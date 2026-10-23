@@ -215,7 +215,7 @@ jobs:
       - uses: extractions/setup-just@v4
         with:
           just-version: '1.58.0'
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
@@ -326,7 +326,7 @@ jobs:
       - uses: extractions/setup-just@v4
         with:
           just-version: '1.58.0'
-      - uses: pnpm/action-setup@v5
+      - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
