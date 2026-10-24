@@ -1,0 +1,187 @@
+# Measure full Rust test coverage under package-level runner sharding.
+# No production CI changes; compare package-partitioned tests against cargo --workspace.
+name: Cargo x64 test sharding benchmark
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/cargo-x64-shard-speed.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cargo-test-sharding-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shard:
+    name: x64 native tests / ${{ matrix.group }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [full, pw-core, pw-dev-server, rest]
+    env:
+      CARGO_TERM_COLOR: never
+      CARGO_INCREMENTAL: '0'
+      RUSTFLAGS: '-D warnings'
+      GROUP: ${{ matrix.group }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: '1.97.1'
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          save-if: false
+      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+        with:
+          just-version: '1.58.0'
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install same pinned tools as CI
+        run: just bootstrap
+      - name: Configure isolated Cargo outputs and check package partition
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "CARGO_TARGET_DIR=$RUNNER_TEMP/test-shard-target" >> "$GITHUB_ENV"
+          python3 - <<'PY'
+          import json
+          import subprocess
+          data = json.loads(subprocess.check_output(
+              ["cargo", "metadata", "--format-version", "1", "--no-deps"], text=True,
+          ))
+          names = {p["name"] for p in data["packages"] if p["id"] in data["workspace_members"]}
+          assert {"pw-core", "pw-dev-server"} <= names
+          assert len(names - {"pw-core", "pw-dev-server"}) > 0
+          print("workspace crates:", len(names))
+          print("other packages:", sorted(names - {"pw-core", "pw-dev-server"}))
+          PY
+      - name: Execute complete native package partition and measure wall time
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p shard-results
+          case "$GROUP" in
+            full)
+              cmd=(cargo test --locked --workspace --no-fail-fast)
+              ;;
+            pw-core)
+              cmd=(cargo test --locked -p pw-core --no-fail-fast)
+              ;;
+            pw-dev-server)
+              cmd=(cargo test --locked -p pw-dev-server --no-fail-fast)
+              ;;
+            rest)
+              cmd=(cargo test --locked --workspace --exclude pw-core --exclude pw-dev-server --no-fail-fast)
+              ;;
+            *) echo "Unexpected group $GROUP" >&2; exit 2 ;;
+          esac
+          printf '%q ' "${cmd[@]}" > shard-results/command.txt
+          echo >> shard-results/command.txt
+          start=$(date +%s)
+          if "${cmd[@]}" > shard-results/cargo.log 2>&1; then
+            status=0
+          else
+            status=$?
+          fi
+          elapsed=$(( $(date +%s) - start ))
+          printf '%s\n' "$elapsed" > shard-results/wall.seconds
+          printf '%s\n' "$status" > shard-results/status.txt
+          GROUP="$GROUP" ELAPSED="$elapsed" STATUS="$status" python3 - <<'PY'
+          import json
+          import os
+          import pathlib
+          import re
+          import sys
+
+          data = pathlib.Path("shard-results/cargo.log").read_text(errors="replace")
+          results = re.findall(
+              r"(?m)^test result: ok\.\s+(\d+) passed;\s+(\d+) failed;\s+(\d+) ignored;",
+              data,
+          )
+          if not results:
+              print("No successful libtest results parsed; report failure")
+              sys.exit(1)
+          count = {
+              "group": os.environ["GROUP"],
+              "passed": sum(int(x[0]) for x in results),
+              "failed": sum(int(x[1]) for x in results),
+              "ignored": sum(int(x[2]) for x in results),
+              "binaries": len(results),
+              "seconds": int(os.environ["ELAPSED"]),
+              "exit": int(os.environ["STATUS"]),
+          }
+          pathlib.Path("shard-results/result.json").write_text(json.dumps(count, indent=2))
+          print(json.dumps(count, indent=2))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write(f"### {count['group']}\n\n"
+                      f"{count['seconds']} seconds, {count['passed']} passed, "
+                      f"{count['ignored']} ignored across {count['binaries']} result blocks; "
+                      f"exit {count['exit']}.\n")
+          if count["failed"] or count["exit"]:
+              sys.exit(1)
+          PY
+      - name: Upload results even on failure
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: rust-test-shard-${{ matrix.group }}
+          path: shard-results/
+          if-no-files-found: warn
+          retention-days: 7
+
+  parity:
+    name: Verify exact test-count coverage and wall-time benefit
+    if: always()
+    needs: [shard]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: rust-test-shard-*
+          path: results
+      - name: Compare all complete test groups to unsharded control
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          root = pathlib.Path("results")
+          wanted = ("full", "pw-core", "pw-dev-server", "rest")
+          values = {}
+          for name in wanted:
+              path = root / f"rust-test-shard-{name}" / "result.json"
+              if not path.exists():
+                  sys.exit(f"Missing result: {path}")
+              values[name] = json.loads(path.read_text())
+          for name, value in values.items():
+              if value["exit"] or value["failed"] or not value["binaries"]:
+                  sys.exit(f"Missing/broken Rust tests in {name}: {value}")
+          for field in ("passed", "failed", "ignored", "binaries"):
+              want = values["full"][field]
+              got = sum(values[n][field] for n in wanted if n != "full")
+              if want != got:
+                  sys.exit(f"{field} parity failure: full={want}, shards={got}")
+          full = values["full"]["seconds"]
+          shards = max(values[n]["seconds"] for n in wanted if n != "full")
+          speedup = full / shards
+          summary = f"Full {full}s vs parallel shards {shards}s, speedup {speedup:.2f}x"
+          print(summary)
+          with open(__import__("os").environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write(f"## x64 complete workspace test partition\n\n{summary}\n\n"
+                      "The comparison includes separate cold build cost per runner "
+                      "and full native + doctest coverage.\n")
+          PY
