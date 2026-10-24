@@ -17,6 +17,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+# This workflow only checks out code, runs tests and performs read-only audits.
+# Explicitly prohibit write-scoped GITHUB_TOKEN permissions.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -54,7 +59,7 @@ jobs:
   # through in either direction.
   build:
     needs: preflight
-    name: ${{ matrix.runner }}
+    name: ${{ matrix.runner == 'ubuntu-24.04-arm' && 'ubuntu-24.04-arm (non-unit)' || matrix.runner }}
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -98,12 +103,105 @@ jobs:
           printf '%s\n' 'CARGO_PROFILE_DEV_DEBUG=0' 'CARGO_PROFILE_TEST_DEBUG=0' >> "$GITHUB_ENV"
 
       - name: CI
-        run: just ci
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.runner }}" = "ubuntu-24.04-arm" ]; then
+            # Native Rust test binaries run on separately gated ARM64 runners.
+            # Never publish this job's status as full ARM64 coverage alone.
+            just ci-without-unit
+          else
+            just ci
+          fi
 
       # Needs the toolchain, so it is not part of `just ci`. This is E2 gate
       # item 4: a domain function executing through generated Koka.
       - name: Koka backend end-to-end
         run: just spike-pw-to-koka
+
+  # Complete ARM64 native and doc tests run as three disjoint Cargo package
+  # partitions on independent machines. PR #45 verified equality with the
+  # unsharded cargo test --workspace: 3348 passed, 26 ignored, 363 result blocks.
+  # Keep the normal just ci recipe intact; the arm_required gate below replaces
+  # the old ARM64 CI check name and refuses success if ANY partition fails.
+  arm_native_unit:
+    needs: preflight
+    name: ARM64 Rust tests (${{ matrix.group }})
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 80
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [pw-core, pw-dev-server, rest]
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      # New actions must use immutable, verified commit SHAs, not mutable tags.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: '1.97.1'
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          shared-key: arm-native-tests
+          save-if: ${{ matrix.group == 'pw-core' && github.ref == 'refs/heads/master' }}
+      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+        with:
+          just-version: '1.58.0'
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Bootstrap pinned toolchain
+        run: just bootstrap
+      - name: All native unit/integration/doc tests for this partition
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${{ matrix.group }}" in
+            pw-core)
+              cargo test --locked -p pw-core --no-fail-fast
+              ;;
+            pw-dev-server)
+              cargo test --locked -p pw-dev-server --no-fail-fast
+              ;;
+            rest)
+              cargo test --locked --workspace --exclude pw-core --exclude pw-dev-server --no-fail-fast
+              ;;
+            *)
+              echo "Unknown Cargo test partition" >&2
+              exit 2
+              ;;
+          esac
+
+  # Preserve the previous required check name (ubuntu-24.04-arm) only as a
+  # fail-closed AND of the original ARM64 non-unit gates and all Cargo shards.
+  # A skipped/cancelled/failed/incomplete job must NEVER count as success.
+  arm_required:
+    name: ubuntu-24.04-arm
+    needs: [build, arm_native_unit]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require both CI and all native test partitions
+        shell: bash
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          NATIVE_TESTS_RESULT: ${{ needs.arm_native_unit.result }}
+        run: |
+          set -euo pipefail
+          printf 'Full CI build matrix: %s\nARM64 native unit matrix: %s\n' "$BUILD_RESULT" "$NATIVE_TESTS_RESULT"
+          test "$BUILD_RESULT" = success
+          test "$NATIVE_TESTS_RESULT" = success
 
   # Split out because it needs a network-fetched advisory database, and a
   # transient outage there should not be reported as a broken build.
