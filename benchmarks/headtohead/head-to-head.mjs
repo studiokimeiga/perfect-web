@@ -31,7 +31,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { load, sessions } from "./load.mjs";
+import { idleCost, load, sessions } from "./load.mjs";
 import { HERE, REPO, machine, playwright, playwrightVersion, shuffled, startServer, summary } from "./lib.mjs";
 import { SLOW_4G, measureOnce } from "./measure.mjs";
 import { APPS, PW_SERVER, target } from "./targets.mjs";
@@ -99,6 +99,7 @@ async function measureApp(appName, args, log) {
   const runs = [];
   const browsers = {};
   const loads = {};
+  const idle = {};
   try {
     for (const t of targets) {
       if (t.server.cmd === PW_SERVER && !fs.existsSync(PW_SERVER)) {
@@ -140,6 +141,37 @@ async function measureApp(appName, args, log) {
         loads[t.stack] = await load({ pid: servers[t.stack].pid, url, rate: args.loadRate, seconds: args.loadSeconds, cookies });
         log(`  ${appName}: ${t.stack} under ${args.loadRate}/s for ${args.loadSeconds} s`);
       }
+      const browser = await chromium.launch();
+      try {
+        for (const t of targets) {
+          const ready = (page) =>
+            t.ready === "pw"
+              ? page.waitForFunction(() => document.documentElement.dataset.pwReady === "1")
+              : page.locator(t.appSelector).waitFor({ state: "attached" });
+          // The app's first interaction, timed from the press to the change
+          // on the page (the instrument's own clock: no page observers here).
+          const step = t.interactions[0];
+          const press = async (page) => {
+            const arg = step.before ? await step.before(page) : step.arg;
+            const started = performance.now();
+            await step.run(page);
+            await page.waitForFunction(
+              ([cond, a]) => {
+                if (cond === "todos") return document.querySelectorAll(".todo-list li").length === a;
+                if (cond === "count") return document.querySelector("#cart-count")?.textContent.trim() === a;
+                return false;
+              },
+              [step.cond, arg],
+              { timeout: 30_000, polling: 10 },
+            );
+            return performance.now() - started;
+          };
+          idle[t.stack] = await idleCost({ browser, url: t.url, pid: servers[t.stack].pid, pages: 20, seconds: 10, ready, press });
+          log(`  ${appName}: ${t.stack}: 20 idle pages for 10 s`);
+        }
+      } finally {
+        await browser.close();
+      }
     }
   } finally {
     for (const s of Object.values(servers)) await s.stop();
@@ -152,7 +184,7 @@ async function measureApp(appName, args, log) {
     }
   }
   const problems = validate({ runs, targets, network: args.shaped ? SLOW_4G : null, minRuns: MIN_RUNS, manifest, sources });
-  return { app: appName, title: app.title, targets: targets.map(describe), runs, loads, browsers, problems };
+  return { app: appName, title: app.title, targets: targets.map(describe), runs, loads, idle, browsers, problems };
 }
 
 function describe(t) {

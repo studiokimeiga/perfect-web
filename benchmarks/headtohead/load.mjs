@@ -106,3 +106,47 @@ export async function load({ pid, url, rate = 100, seconds = 10, warmup = 50, co
     processes: after.pids,
   };
 }
+
+/**
+ * What open pages cost a server while nobody touches them: `pages` tabs of
+ * the app, each loaded and left alone (a person reading), for `seconds`. The
+ * server's CPU over that window, and the requests the pages made in it (a
+ * page that keeps a live connection asks again whenever its server closes
+ * one). A stack whose pages ask nothing while idle costs its server nothing.
+ */
+export async function idleCost({ browser, url, pid, pages = 20, seconds = 10, ready, press = null }) {
+  const context = await browser.newContext();
+  try {
+    const opened = [];
+    for (let i = 0; i < pages; i++) {
+      const page = await context.newPage();
+      await page.goto(url);
+      await ready(page);
+      opened.push(page);
+    }
+    // Settled: whatever loading started is over before the window opens.
+    await new Promise((r) => setTimeout(r, 2000));
+    let requests = 0;
+    const count = () => requests++;
+    context.on("request", count);
+    const before = treeCost(pid);
+    await new Promise((r) => setTimeout(r, seconds * 1000));
+    const after = treeCost(pid);
+    context.off("request", count);
+    // Then a person presses, in the last of the pages, with the others open:
+    // a browser opens at most six connections to one host over HTTP/1.1, and
+    // a connection a page holds is one the press waits for.
+    const pressMs = press ? await press(opened[opened.length - 1]) : null;
+    return {
+      pages,
+      seconds,
+      requests,
+      requestsPerPagePerMinute: (requests / pages) * (60 / seconds),
+      cpuMsPerSecond: (after.cpuMs - before.cpuMs) / seconds,
+      rssMiB: after.rssKiB / 1024,
+      pressMs,
+    };
+  } finally {
+    await context.close();
+  }
+}

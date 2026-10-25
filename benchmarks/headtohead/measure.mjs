@@ -138,47 +138,84 @@ export const SLOW_4G = {
 };
 
 /**
- * Every response a page's context fetches while `track` is on, by its
- * order: the bytes decoded, compressed as a static host would, received as
- * the engine reports them, and its encoding and cache state.
+ * Every request a page's context makes, by phase (the load, each
+ * interaction): for each response, its bytes decoded, what Brotli (q11) and
+ * gzip (9) make of them, whether it is minified, its blob, and the bytes the
+ * engine says it received (Playwright's `request.sizes()`). On Chromium also
+ * the DevTools protocol's own count for every request, streams and aborted
+ * ones included (`Network.dataReceived` and `Network.loadingFinished`), which
+ * is what "received" means where it is available.
+ *
+ * A request held open longer than a second (a long poll or a stream, as
+ * Pleris's page keeps one for its updates) does not keep the network from
+ * being quiet: it is background, counted when it ends.
  */
 export function networkLog(context, cdp) {
   const entries = [];
-  const pending = new Set();
+  const pending = new Map();
   let lastActivity = Date.now();
   let phase = "load";
-  const cdpSizes = new Map();
+  const chromium = new Map();
   if (cdp) {
+    // Each byte is counted in the phase it arrived in: a stream opened while
+    // the page loaded and answering an interaction counts in the interaction.
+    // A response a cache answered received nothing from the network.
+    const count = (c, n) => {
+      if (c.fromCache) return;
+      c.received += n;
+      c.byPhase[phase] = (c.byPhase[phase] ?? 0) + n;
+    };
+    cdp.on("Network.requestWillBeSent", (e) => {
+      if (!chromium.has(e.requestId)) {
+        chromium.set(e.requestId, { url: e.request.url, phase, received: 0, byPhase: {}, total: null, failed: null, fromCache: false });
+      }
+    });
     cdp.on("Network.responseReceived", (e) => {
-      cdpSizes.set(e.requestId, {
-        url: e.response.url,
-        fromCache: !!(e.response.fromDiskCache || e.response.fromPrefetchCache),
-        fromMemory: false,
+      const c = chromium.get(e.requestId);
+      if (!c) return;
+      Object.assign(c, {
         status: e.response.status,
+        fromCache: c.fromCache || !!e.response.fromDiskCache || !!e.response.fromPrefetchCache || !!e.response.fromServiceWorker,
       });
+      count(c, e.response.encodedDataLength ?? 0);
     });
     cdp.on("Network.requestServedFromCache", (e) => {
-      const s = cdpSizes.get(e.requestId) ?? {};
-      cdpSizes.set(e.requestId, { ...s, fromMemory: true });
+      const c = chromium.get(e.requestId);
+      if (c) c.fromCache = true;
+    });
+    cdp.on("Network.dataReceived", (e) => {
+      const c = chromium.get(e.requestId);
+      if (c) count(c, e.encodedDataLength);
     });
     cdp.on("Network.loadingFinished", (e) => {
-      const s = cdpSizes.get(e.requestId);
-      if (s) Object.assign(s, { encodedDataLength: e.encodedDataLength, phase });
+      const c = chromium.get(e.requestId);
+      if (!c) return;
+      c.total = e.encodedDataLength;
+      // What arrived uncounted by its chunks (Chromium may report a body's
+      // bytes only at its end) counts where the request finished.
+      if (c.total > c.received) count(c, c.total - c.received);
+    });
+    cdp.on("Network.loadingFailed", (e) => {
+      const c = chromium.get(e.requestId);
+      if (c) c.failed = e.errorText || (e.canceled ? "canceled" : "failed");
     });
   }
   const onRequest = (request) => {
-    pending.add(request);
+    pending.set(request, Date.now());
     lastActivity = Date.now();
   };
   const settle = async (request, failed) => {
+    const opened = pending.get(request) ?? Date.now();
     pending.delete(request);
-    lastActivity = Date.now();
+    const longLived = Date.now() - opened > 1000;
+    if (!longLived) lastActivity = Date.now();
     const entry = {
       phase,
       url: request.url(),
       method: request.method(),
       kind: request.resourceType(),
       failed: failed ? request.failure()?.errorText ?? "failed" : null,
+      heldMs: Date.now() - opened,
     };
     entries.push(entry);
     if (failed) return;
@@ -189,7 +226,7 @@ export function networkLog(context, cdp) {
       entry.type = (headers["content-type"] ?? "").split(";")[0];
       entry.encoding = headers["content-encoding"] ?? null;
       entry.cacheControl = headers["cache-control"] ?? null;
-      entry.fromServiceWorker = response?.fromServiceWorker() ?? false;
+      entry.validator = headers.etag ? "etag" : headers["last-modified"] ? "last-modified" : null;
       let body = Buffer.alloc(0);
       if (entry.status && entry.status !== 304 && !(entry.status >= 300 && entry.status < 400)) {
         try {
@@ -200,11 +237,18 @@ export function networkLog(context, cdp) {
       }
       Object.assign(entry, sizes(body));
       entry.blob = body.length ? gitBlob(body) : null;
-      if (/javascript|css/.test(entry.type)) entry.minified = minifiedVerdict(body.toString("utf8")).minified;
+      if (/javascript|css/.test(entry.type)) {
+        const v = minifiedVerdict(body.toString("utf8"), entry.type);
+        entry.minified = v.minified;
+        entry.minifiedShare = v.share;
+        entry.minifiedBytes = v.minifiedBytes;
+      }
       if (entry.kind === "document") entry.text = body.toString("utf8");
       const reported = await request.sizes().catch(() => null);
-      entry.receivedBody = reported?.responseBodySize ?? null;
-      entry.receivedHeaders = reported?.responseHeadersSize ?? null;
+      // Playwright reports a cached response's sizes as negative: nothing
+      // came from the network.
+      entry.receivedBody = reported ? Math.max(0, reported.responseBodySize) : null;
+      entry.receivedHeaders = reported ? Math.max(0, reported.responseHeadersSize) : null;
     } catch (e) {
       entry.error = String(e).split("\n")[0];
     }
@@ -220,21 +264,21 @@ export function networkLog(context, cdp) {
     setPhase(p) {
       phase = p;
     },
-    /** The network is quiet: nothing in flight for `quietMs`, within `capMs`. */
+    /** The network is quiet: nothing but long-held requests in flight, and
+     * nothing else started or ended for `quietMs`, within `capMs`. */
     async quiet(quietMs = 400, capMs = 15_000) {
       const until = Date.now() + capMs;
       while (Date.now() < until) {
-        if (pending.size === 0 && Date.now() - lastActivity >= quietMs) return true;
+        const now = Date.now();
+        const busy = [...pending.values()].some((opened) => now - opened <= 1000);
+        if (!busy && now - lastActivity >= quietMs) return true;
         await new Promise((r) => setTimeout(r, 25));
       }
       return false;
     },
-    /** Chromium's own count of the bytes received for each request: matched
-     * to the log's entries by address, in order. */
+    /** Chromium's own count of every request's bytes, with the phase it began in. */
     chromiumReceived() {
-      const out = [];
-      for (const s of cdpSizes.values()) out.push(s);
-      return out;
+      return [...chromium.values()].map((c) => ({ ...c, bytes: c.total ?? c.received }));
     },
   };
 }

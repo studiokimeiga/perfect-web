@@ -33,25 +33,42 @@ function kindOf(q) {
   return KINDS.find(([, test]) => test(q))[0];
 }
 
-/** One phase's responses in one run: counts and bytes. */
+/**
+ * One phase's requests in one run: the responses' count and bytes (decoded,
+ * and as a static host compresses them), and the bytes received: on
+ * Chromium, the DevTools protocol's count of every byte that arrived in the
+ * phase (headers, bodies, streams and aborted requests alike); elsewhere,
+ * Playwright's `request.sizes()` of each response. A request that ended
+ * without a response (an aborted stream) is counted apart, not as a response.
+ */
 export function bytesOf(run, phase, common = [], { withCommon = true } = {}) {
-  const qs = (run.requests ?? []).filter((q) => (phase === "interactions" ? q.phase.startsWith("interaction") : q.phase === phase));
-  const out = { requests: 0, raw: 0, br: 0, gzip: 0, received: 0, receivedKnown: true, byKind: {}, encodings: new Set(), notModified: 0 };
+  const inPhase = (p) => (phase === "interactions" ? p.startsWith("interaction") : p === phase);
+  const qs = (run.requests ?? []).filter((q) => inPhase(q.phase));
+  const out = { requests: 0, aborted: 0, raw: 0, br: 0, gzip: 0, received: 0, byKind: {}, encodings: new Set(), notModified: 0, source: run.received ? "chromium" : "playwright" };
   for (const q of qs) {
     if (!withCommon && isCommon(q.url, common)) continue;
+    if (q.failed) {
+      out.aborted++;
+      continue;
+    }
     out.requests++;
     if (q.status === 304) out.notModified++;
     out.raw += q.raw ?? 0;
     out.br += q.br ?? 0;
     out.gzip += q.gzip ?? 0;
-    if (q.receivedBody == null) out.receivedKnown = false;
-    out.received += (q.receivedBody ?? 0) + (q.receivedHeaders ?? 0);
+    if (!run.received) out.received += (q.receivedBody ?? 0) + (q.receivedHeaders ?? 0);
     if (q.encoding) out.encodings.add(q.encoding);
     const k = kindOf(q);
     out.byKind[k] = out.byKind[k] ?? { requests: 0, raw: 0, br: 0 };
     out.byKind[k].requests++;
     out.byKind[k].raw += q.raw ?? 0;
     out.byKind[k].br += q.br ?? 0;
+  }
+  if (run.received) {
+    for (const c of run.received) {
+      if (!withCommon && isCommon(c.url, common)) continue;
+      for (const [p, n] of Object.entries(c.byPhase ?? {})) if (inPhase(p)) out.received += n;
+    }
   }
   out.encodings = [...out.encodings].sort().join("+") || "none";
   return out;
@@ -164,6 +181,19 @@ export function lossesFirst(result) {
         row(app, `${what}${app.app === "todomvc" ? " (React's and Svelte's server is the instrument's static host: any static host serves them)" : ""}`, values, byValue);
       }
     }
+    if (app.idle && Object.keys(app.idle).length) {
+      for (const [what, f] of [
+        ["requests an idle open page makes a minute", (i) => i.requestsPerPagePerMinute],
+        ["server CPU, ms a second, for 20 idle open pages", (i) => i.cpuMsPerSecond],
+        ["a press with 19 other pages of the app open, ms to its change (Chromium)", (i) => i.pressMs],
+      ]) {
+        const values = app.targets.filter((t) => app.idle[t.stack]).map((t) => {
+          const v = f(app.idle[t.stack]);
+          return [t.label, v, ms(v)];
+        });
+        row(app, what, values, byValue);
+      }
+    }
   }
   return { losses, wins, unclear };
 }
@@ -184,7 +214,7 @@ function bytesTable(app, lines) {
     const wo = bytesOf(rs[0], "load", t.common, { withCommon: false });
     const kinds = Object.entries(first.byKind).map(([k, v]) => `${k} ${v.requests}: ${fmt(v.raw)}/${fmt(v.br)}`).join("; ");
     lines.push(
-      `  ${pad(t.label, 10)} ${rpad(first.requests, 8)} ${rpad(fmt(raw.value) + (raw.varies ? "*" : ""), 9)} ${rpad(fmt(first.br), 9)} ${rpad(fmt(first.gzip), 8)} ${rpad(fmt(received.value) + (received.varies ? `~${fmt(received.min)}` : ""), 9)}  ${pad(first.encodings, 8)} ${rpad(fmt(wo.br), 14)}  ${kinds}`,
+      `  ${pad(t.label, 10)} ${rpad(first.requests, 8)} ${rpad(fmt(raw.value) + (raw.varies ? "*" : ""), 9)} ${rpad(fmt(first.br), 9)} ${rpad(fmt(first.gzip), 8)} ${rpad(fmt(received.value) + (received.varies ? `~${fmt(received.min)}` : ""), 9)}  ${pad(first.encodings, 8)} ${rpad(fmt(wo.br), 14)}  ${kinds}${first.aborted ? `; ${first.aborted} request(s) aborted before their response ended (a held stream, or a read the page cut short)` : ""}`,
     );
   }
   for (const s of steps) {
@@ -193,8 +223,9 @@ function bytesTable(app, lines) {
       const r = runsOf(app, { stack: t.stack, engine: "chromium", condition: "cold" })[0];
       if (!r) continue;
       const b = bytesOf(r, `interaction:${s}`, t.common);
-      const urls = (r.requests ?? []).filter((q) => q.phase === `interaction:${s}`).map((q) => `${new URL(q.url).pathname} ${fmt(q.raw)}`);
-      lines.push(`    ${pad(t.label, 10)} ${rpad(b.requests, 3)} ${rpad(fmt(b.raw), 9)} ${rpad(fmt(b.br), 9)} ${rpad(fmt(b.received), 9)}  ${urls.join(", ")}`);
+      const urls = (r.requests ?? []).filter((q) => q.phase === `interaction:${s}` && !q.failed).map((q) => `${q.method === "GET" ? "" : `${q.method} `}${new URL(q.url).pathname} ${fmt(q.raw)}`);
+      const aborted = b.aborted ? `; ${b.aborted} request(s) aborted before their response ended (${[...new Set((r.requests ?? []).filter((q) => q.phase === `interaction:${s}` && q.failed).map((q) => new URL(q.url).pathname))].join(", ")})` : "";
+      lines.push(`    ${pad(t.label, 10)} ${rpad(b.requests, 3)} ${rpad(fmt(b.raw), 9)} ${rpad(fmt(b.br), 9)} ${rpad(fmt(b.received), 9)}  ${urls.join(", ")}${aborted}`);
     }
   }
   lines.push("  warm (the same context after one whole visit; Chromium): requests / answered 304 / received");
@@ -220,6 +251,18 @@ function timingTable(app, lines) {
       lines.push(`    ${pad("", 10)} interactive            ${spread(tm.ready)}`);
       for (const s of steps) lines.push(`    ${pad("", 10)} ${pad(`"${s}"`, 22)} ${spread(tm[`step:${s}`])}`);
     }
+  }
+}
+
+function idleTable(app, lines) {
+  if (!app.idle || !Object.keys(app.idle).length) return;
+  const any = Object.values(app.idle)[0];
+  lines.push(`open pages left alone: ${any.pages} pages of the app in Chromium, each loaded and untouched, for ${any.seconds} s`);
+  lines.push(`  ${pad("stack", 10)} ${rpad("requests", 8)} ${rpad("per page a minute", 17)} ${rpad("server CPU ms/s", 15)} ${rpad("server RSS MiB", 14)}  then a press in the last page, to its change (ms)`);
+  for (const t of app.targets) {
+    const i = app.idle[t.stack];
+    if (!i) continue;
+    lines.push(`  ${pad(t.label, 10)} ${rpad(i.requests, 8)} ${rpad(i.requestsPerPagePerMinute.toFixed(1), 17)} ${rpad(ms(i.cpuMsPerSecond), 15)} ${rpad(i.rssMiB.toFixed(1), 14)}  ${ms(i.pressMs)}`);
   }
 }
 
@@ -266,6 +309,8 @@ export function renderReport(result) {
     timingTable(app, lines);
     lines.push("");
     loadTable(app, lines);
+    lines.push("");
+    idleTable(app, lines);
     lines.push("");
   }
   return `${lines.join("\n")}\n`;

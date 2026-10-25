@@ -82,28 +82,37 @@ export function sha256(body) {
 
 // --- minified or not --------------------------------------------------------------
 
+/** What "minified" means here, printed with every verdict. */
+export const MINIFIED_RULE =
+  "minified: esbuild 0.28.2's minifier (whitespace, syntax and identifiers) takes less than 10% more off it; under 1 KiB counts as minified";
+
 /**
- * Whether a script reads as a minifier's output: few line breaks for its
- * size, and little indentation or comment. The rule is printed with every
- * verdict. A minifier writes long lines (Terser, esbuild and Rolldown write
- * a module in a handful), drops indentation and keeps only licence comments;
- * a hand-written or merely bundled script has a line every 30-60 bytes.
+ * Whether a script or stylesheet is a minifier's output: what a minifier
+ * still finds to take off it. A file another minifier wrote (Terser, SWC,
+ * Rolldown's) loses a few percent more to esbuild's; a file no minifier
+ * touched loses its indentation, comments and long names, typically 30-70%.
+ * The minifier is esbuild, as the SvelteKit baseline pins it (this package's
+ * `package.json`); a file it cannot parse is reported unknown (`null`), not
+ * guessed at. Returns the share esbuild took off, and what it made of it.
  */
-export function minifiedVerdict(text) {
-  const lines = text.split("\n");
+export function minifiedVerdict(text, type = "text/javascript") {
   const bytes = Buffer.byteLength(text);
-  const indented = lines.filter((l) => /^(\t| {2,})\S/.test(l)).length;
-  const comments = (text.match(/(^|\s)\/\/\s|\/\*(?!!)[\s\S]*?\*\//g) ?? []).length;
-  const perLine = bytes / Math.max(1, lines.length);
-  const indentShare = indented / Math.max(1, lines.length);
-  const minified = bytes < 512 || (perLine >= 200 && indentShare < 0.05);
-  return {
-    minified,
-    rule: "minified: under 512 bytes, or at least 200 bytes a line with under 5% of lines indented",
-    bytesPerLine: Math.round(perLine),
-    indentedShare: Number(indentShare.toFixed(3)),
-    comments,
-  };
+  if (bytes < 1024) return { minified: true, rule: MINIFIED_RULE, share: null, minifiedBytes: bytes };
+  let esbuild;
+  try {
+    esbuild = createRequire(path.join(HERE, "package.json"))("esbuild");
+  } catch {
+    return { minified: null, rule: MINIFIED_RULE, share: null, minifiedBytes: null, error: "esbuild is not installed" };
+  }
+  try {
+    const loader = /css/.test(type) ? "css" : "js";
+    const out = esbuild.transformSync(text, { loader, minify: true, legalComments: "inline", logLevel: "silent" });
+    const after = Buffer.byteLength(out.code);
+    const share = 1 - after / bytes;
+    return { minified: share < 0.1, rule: MINIFIED_RULE, share: Number(share.toFixed(3)), minifiedBytes: after };
+  } catch (e) {
+    return { minified: null, rule: MINIFIED_RULE, share: null, minifiedBytes: null, error: String(e).split("\n")[0] };
+  }
 }
 
 // --- the machine --------------------------------------------------------------------
