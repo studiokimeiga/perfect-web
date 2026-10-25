@@ -743,11 +743,13 @@ mod tests {
             &b"HTTP/1.1 200 OK\nContent-Length: 0\r\n\r\n"[..],
             b"HTTP/1.1 200 OK\r\nContent-Length: 0\n\n",
             b"HTTP/1.1 200 OK\r\nx: a\rb\r\ncontent-length: 0\r\n\r\n",
-            b"HTTP/1.1 200 OK\r\nx: a\r\n folded\r\ncontent-length: 0\r\n\r\n",
-            b"HTTP/1.1 200 OK\r\ncontent-length : 0\r\n\r\n",
+            b"HTTP/1.1 200 O\rK\r\ncontent-length: 0\r\n\r\n",
+            b"HTTP/1.1 200 OK\r\nx-y : 1\r\ncontent-length: 0\r\n\r\n",
             b"HTTP/1.1 200 OK\r\nno colon\r\ncontent-length: 0\r\n\r\n",
             b"HTTP/1.1 200 OK\r\nx: a\x01b\r\ncontent-length: 0\r\n\r\n",
             b"HTTP/2 200\r\ncontent-length: 0\r\n\r\n",
+            b"HTTP/2.0 200 OK\r\ncontent-length: 0\r\n\r\n",
+            b"HTTP/1.2 200 OK\r\ncontent-length: 0\r\n\r\n",
             b"HTTP/1.1 20 OK\r\ncontent-length: 0\r\n\r\n",
             b"HTTP/1.1 600 Odd\r\ncontent-length: 0\r\n\r\n",
             b"HTTP/1.1 099 Odd\r\ncontent-length: 0\r\n\r\n",
@@ -764,6 +766,14 @@ mod tests {
         many.extend_from_slice(b"content-length: 0\r\n\r\n");
         let many = read_answer(&many[..], &Limits::default());
         assert!(matches!(many, Err(Error::Framing(_))), "{many:?}");
+        // A folded line is refused as one, though no `:` would follow it.
+        let folded = read(b"HTTP/1.1 200 OK\r\nx: a\r\n folded: b\r\ncontent-length: 0\r\n\r\n");
+        assert_eq!(
+            folded,
+            Err(Error::Framing(
+                "a field line folded onto the one before it (obs-fold)".into()
+            ))
+        );
     }
 
     /// **Interim answers are passed over, a final one with no body has
@@ -779,10 +789,16 @@ mod tests {
             Ok((200, "ok".to_string()))
         );
         assert!(framing(
-            b"HTTP/1.1 101 Switching Protocols\r\nupgrade: h2c\r\n\r\n"
+            b"HTTP/1.1 101 Switching Protocols\r\nupgrade: h2c\r\n\r\n\
+              HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n"
         ));
-        let interim = b"HTTP/1.1 100 Continue\r\n\r\n".repeat(9);
+        let mut interim = b"HTTP/1.1 100 Continue\r\n\r\n".repeat(9);
+        interim.extend_from_slice(b"HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n");
         assert!(framing(&interim));
+        let mut eight = b"HTTP/1.1 100 Continue\r\n\r\n".repeat(8);
+        eight.extend_from_slice(b"HTTP/1.1 200 OK\r\ncontent-length: 0\r\n\r\n");
+        let eight = read(&eight);
+        assert!(eight.is_ok(), "{eight:?}");
         for status in [204, 304] {
             let answer = read(format!("HTTP/1.1 {status} X\r\n\r\n").as_bytes());
             assert_eq!(

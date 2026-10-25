@@ -2561,6 +2561,41 @@ mod https_tests {
         assert!(front.seen().is_empty(), "{:?}", front.seen());
     }
 
+    /// **A reader's interaction that would split the provider's request is
+    /// never sent**: the interaction keys the payment (`Idempotency-Key`),
+    /// and is the reader's runtime's to name; a line break in it would end
+    /// the field and begin another in the request to the provider. The
+    /// client refuses the field, so the payment is `TransportFailed` and the
+    /// provider is asked nothing. (Until the one client, it was written into
+    /// the head as it came.)
+    #[test]
+    fn an_interaction_that_would_split_the_providers_request_is_never_sent() {
+        let authority = TestCa::new("payments test authority");
+        let (_origin, front, https) = behind_tls(&authority.server(&[NAME]));
+        let payments = payments_at(&https, &authority);
+        assert!(payments.is_ok(), "{:?}", payments.as_ref().err());
+        let payments = payments.unwrap();
+        for interaction in ["press-a\r\nx-injected: 1", "press-a\rb", "press-\u{e9}"] {
+            let out = operations(
+                payments.clone(),
+                Some(interaction.into()),
+                "reader-a".into(),
+            )[0]
+            .1(&[Val::String("o-1".into()), Val::S64(1250)]);
+            assert_eq!(
+                out,
+                Ok(vec![Val::Result(Err(Some(Box::new(Val::Variant(
+                    "transport-failed".into(),
+                    None
+                )))))]),
+                "{interaction:?}"
+            );
+        }
+        assert!(front.seen().is_empty(), "{:?}", front.seen());
+        let sent = begin(&payments, "o-1", "press-a");
+        assert!(sent.is_ok(), "{sent:?}");
+    }
+
     /// **The payments reach their provider and nothing else**: their
     /// client's grant is the provider's origin, a development one where the
     /// provider is the development provider, and any other origin is

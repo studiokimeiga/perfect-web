@@ -25,7 +25,12 @@ impl Roots {
     /// usable certificate is refused, so a host without one fails at start,
     /// not at its first call.
     pub fn platform() -> Result<Roots, Error> {
-        let found = rustls_native_certs::load_native_certs();
+        Roots::found(rustls_native_certs::load_native_certs())
+    }
+
+    /// The roots a read of the platform's store found, refused where none is
+    /// one this client can use.
+    fn found(found: rustls_native_certs::CertificateResult) -> Result<Roots, Error> {
         let mut store = RootCertStore::empty();
         let (taken, _) = store.add_parsable_certificates(found.certs);
         if taken == 0 {
@@ -168,5 +173,31 @@ fn refused(origin: &Origin, e: rustls::Error) -> Error {
     Error::Certificate {
         origin: origin.to_string(),
         refusal,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::testing::TestCa;
+
+    /// **A platform store holding no certificate this client can use is
+    /// refused**, empty or of what is no certificate, so that a host without
+    /// one fails at its start; one holding a root is taken.
+    #[test]
+    fn a_platform_store_without_a_usable_root_is_refused() {
+        let empty = Roots::found(rustls_native_certs::CertificateResult::default());
+        assert!(matches!(empty, Err(Error::Config(_))), "{empty:?}");
+        let mut garbage = rustls_native_certs::CertificateResult::default();
+        garbage
+            .certs
+            .push(CertificateDer::from(b"not a certificate".to_vec()));
+        let garbage = Roots::found(garbage);
+        assert!(matches!(garbage, Err(Error::Config(_))), "{garbage:?}");
+        let mut one = rustls_native_certs::CertificateResult::default();
+        one.certs
+            .push(CertificateDer::from(TestCa::new("a root").der().to_vec()));
+        let one = Roots::found(one);
+        assert_eq!(one.map(|r| r.len()), Ok(1));
     }
 }

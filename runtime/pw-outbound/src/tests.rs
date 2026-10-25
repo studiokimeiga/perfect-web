@@ -246,11 +246,11 @@ fn every_address_is_checked_before_any_is_reached() {
 fn a_development_origin_reaches_this_machine_alone() {
     let global: IpAddr = "1.1.1.1".parse().unwrap();
     let client = client(
-        held(Grant::none().development(&https(NAME, 443))),
+        held(Grant::none().development(&https(NAME, 9))),
         trusting(),
         &[(NAME, &[global])],
     );
-    let refused = client.send(&Request::get(https(NAME, 443)));
+    let refused = client.send(&Request::get(https(NAME, 9)));
     assert!(
         matches!(refused, Err(Error::Address { address, .. }) if address == global),
         "{refused:?}"
@@ -496,6 +496,26 @@ fn an_answer_dripped_is_given_up_at_the_total() {
     assert!(took < Duration::from_secs(3), "{took:?}");
 }
 
+/// **The exchange has what is left of the total, past the handshake's own
+/// bound**: an answer that takes longer than the handshake may, and less
+/// than the total, is read.
+#[test]
+fn the_exchange_has_the_rest_of_the_total() {
+    let server = Server::tls(&ca().server(&[NAME]), |_| Reply::Drip {
+        bytes: b"HTTP/1.1 200 OK\r\ncontent-length: 4\r\n\r\nslow".to_vec(),
+        every: Duration::from_millis(50),
+    });
+    let (said, _) = timed(
+        Limits {
+            handshake: Duration::from_millis(1000),
+            total: Duration::from_secs(8),
+            ..quick()
+        },
+        server.port(),
+    );
+    assert_eq!(said.map(|a| a.text()), Ok("slow".to_string()));
+}
+
 /// **An answer held open after its last byte is read by its length**, not
 /// waited on: the provider that sends its events before it closes does not
 /// hold the host (ADR-0332, step eight).
@@ -687,6 +707,8 @@ fn a_secret_is_sent_and_said_nowhere() {
     assert!(sent.is_ok(), "{sent:?}");
     let seen = server.seen();
     assert_eq!(seen[0].header("authorization"), Some(SECRET));
+    let alone = format!("{:?}", Secret::new(SECRET));
+    assert!(!alone.contains("sk_test"), "{alone}");
     let shown = format!("{:?}", request("/ok"));
     assert!(
         !shown.contains("sk_test") && !shown.contains("form_secret") && !shown.contains("token"),

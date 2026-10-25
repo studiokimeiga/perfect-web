@@ -385,6 +385,27 @@ mod tests {
             let read = origin(text);
             assert!(matches!(read, Err(Error::Config(_))), "{text}: {read:?}");
         }
+        // Credentials and a fragment are refused as themselves.
+        for (text, why) in [
+            (
+                "https://user:pass@api.provider.test",
+                "holds credentials, which are never sent in a URL",
+            ),
+            (
+                "https://user@api.provider.test",
+                "holds credentials, which are never sent in a URL",
+            ),
+            (
+                "https://api.provider.test/#top",
+                "holds a fragment, which is never sent",
+            ),
+        ] {
+            assert_eq!(
+                origin(text),
+                Err(Error::Config(format!("`{text}` is not an origin: {why}"))),
+                "{text}"
+            );
+        }
         let long = format!("https://{}.test", "a".repeat(64));
         assert!(origin(&long).is_err(), "a label of 64");
         let ok = format!("https://{}.test", "a".repeat(63));
