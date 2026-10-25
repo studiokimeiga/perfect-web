@@ -43,6 +43,21 @@ fn compiled_table_readers_have_exact_manifest_and_contract_imports() {
     let build = pw_core::build::build(&units()).expect("the table reader builds");
     assert!(build.refusals().is_empty(), "{:?}", build.refusals());
 
+    // Read the compiler's JSON contract through the runtime's independent
+    // contract mirror, rather than passing compiler types into the host.
+    let host_contracts = pw_host::ComponentContract::from_json(
+        &serde_json::to_string(&build.contracts).expect("serialize compiled contracts"),
+    )
+    .expect("host accepts compiler-emitted contracts");
+    let origin = pw_host::Topology::from_json(
+        r#"{"nodes":[{"name":"origin","world":"origin","grants":["database.read<Lists>"]}]}"#,
+    )
+    .expect("read-enabled origin");
+    let no_read = pw_host::Topology::from_json(
+        r#"{"nodes":[{"name":"origin","world":"origin","grants":[]}]}"#,
+    )
+    .expect("origin without read grant");
+
     let table = build
         .tables
         .tables
@@ -111,6 +126,61 @@ fn compiled_table_readers_have_exact_manifest_and_contract_imports() {
                 .iter()
                 .any(|capability| capability.name() == "database.read<Lists>"),
             "{component_id} must declare its read capability"
+        );
+
+        // Admit the actual Wasmtime imports, not the compiler's claimed list.
+        let host_contract = host_contracts
+            .iter()
+            .find(|contract| contract.component_id == component_id)
+            .expect("host has the corresponding emitted contract");
+        let admission = pw_host::admit(host_contract, &origin, "origin", &actual_imports);
+        assert!(admission.is_admitted(), "{component_id}: {admission:?}");
+        let granted = pw_host::Granted::from(&admission, &Default::default())
+            .expect("admitted read grant");
+        assert_eq!(
+            pw_host::linkable(host_contract, &granted),
+            actual_imports,
+            "{component_id}: host must link only the declared read",
+        );
+
+        // A matching contract without the table read grant cannot run.
+        let denied = pw_host::admit(host_contract, &no_read, "origin", &actual_imports);
+        assert!(
+            denied
+                .refusals()
+                .iter()
+                .any(|reason| matches!(reason, pw_host::Refusal::Ungranted { .. })),
+            "{component_id}: missing read grant must refuse admission: {denied:?}",
+        );
+
+        // Negative control: the sibling is another real compiled component,
+        // but its get/get-many import is absent from this reader's contract.
+        let sibling_id = if component_id == "tables.reader.ById" {
+            "tables.reader.ByIds"
+        } else {
+            "tables.reader.ById"
+        };
+        let (_, sibling) = build
+            .components
+            .iter()
+            .find(|(id, _)| id == sibling_id)
+            .expect("the sibling reader component");
+        let Built::Component {
+            compiled: sibling_compiled,
+            ..
+        } = sibling
+        else {
+            panic!("{sibling_id} did not compile");
+        };
+        let sibling_imports = pw_host::engine::imports_of(&sibling_compiled.component.bytes)
+            .expect("Wasmtime inspects sibling imports");
+        let mismatch = pw_host::admit(host_contract, &origin, "origin", &sibling_imports);
+        assert!(
+            mismatch
+                .refusals()
+                .iter()
+                .any(|reason| matches!(reason, pw_host::Refusal::UndeclaredImport { .. })),
+            "{component_id}: sibling import must be undeclared: {mismatch:?}",
         );
     }
 }
