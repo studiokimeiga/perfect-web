@@ -1,17 +1,19 @@
 //! Generic in-memory execution of compiler-declared Pleris tables (ADR-0338 D2).
 //!
-//! This is a pre-host adapter. It consumes the compiler's tables.json types,
-//! not a second schema format. It proves key/prefix/index reads and staged,
-//! atomic writes in one memory source. The host's Wasm value encoding,
-//! transactional outbox, deployment migration and other databases remain
-//! independent integration obligations; no production claim follows.
+//! It consumes the compiler's tables.json types, not a second schema format.
+//! It proves key/prefix/index reads and staged, atomic writes in one memory
+//! source, and serves an admitted component's `get` and `get-many` imports as
+//! Wasmtime host functions (`read_host_fns`). Writes through the host, the
+//! development server's routing of a program's tables, the transactional
+//! outbox, deployment migration and other databases remain independent
+//! integration obligations; no production claim follows.
 //!
 //! JSON is the internal adapter value representation, not the public WIT ABI.
 //! Unsupported storage variants fail closed rather than losing information.
 
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use pw_core::tables::{FunctionJson, Primitive, Schema, Stored, TableJson, TablesJson};
 use serde_json::{Map, Value};
@@ -237,6 +239,46 @@ impl MemoryTables {
             selected.insert(key);
         }
         Ok(selected.into_iter().collect())
+    }
+
+    /// **The table reads an admitted component links, as host functions**
+    /// (ADR-0338 D2): one callback for each import
+    /// [`MemoryTables::read_host_imports`] selects, keyed as the engine links
+    /// it (`pw:tables/<table>#get`), and nothing else. Each reads this
+    /// adapter through the import it is installed for, its arguments decoded
+    /// and its rows encoded by `pw_host::engine::table_read_host`; the engine
+    /// then reads each answer through the type the component declares
+    /// (ADR-0166), so a row reaches the component as its WIT record or not at
+    /// all. A component with any other table import gets an error, not a
+    /// partial map.
+    pub fn read_host_fns(
+        self: &Arc<Self>,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, Error> {
+        use pw_host::engine::table_read_host::{ReadKind, host_fn};
+        let mut out = BTreeMap::new();
+        for import in self.read_host_imports(contract, granted)? {
+            let (_, function) = operation(&self.manifest, &import)?;
+            let kind = match function.primitive {
+                Primitive::Get => ReadKind::Get,
+                Primitive::GetMany => ReadKind::GetMany,
+                _ => {
+                    return Err(Error::Input(format!(
+                        "read-only table host cannot bind `{import}`"
+                    )));
+                }
+            };
+            let tables = Arc::clone(self);
+            let bound = import.clone();
+            let read = Arc::new(move |args: &[Value]| {
+                tables
+                    .read(&bound, args)
+                    .map_err(|error| format!("`{bound}`: {error:?}"))
+            });
+            out.insert(import, host_fn(kind, read));
+        }
+        Ok(out)
     }
 
     /// A serializable transaction in this memory database. A failed command,

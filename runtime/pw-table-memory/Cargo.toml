@@ -10,5 +10,12 @@ publish = false
 # in-memory adapter. This is not yet connected to the development host.
 [dependencies]
 pw-core = { path = "../../compiler/pw-core" }
-pw-host = { path = "../pw-host" }
+# `engine`: an admitted component's table reads are served as the engine's
+# host functions (`read_host_fns`), so this adapter links Wasmtime, as the
+# development server that will route tables to it already does.
+pw-host = { path = "../pw-host", features = ["engine"] }
 serde_json.workspace = true
+
+[dev-dependencies]
+# The compiled-reader test parses the checked-in Pleris fixtures itself.
+pw-syntax = { path = "../../compiler/pw-syntax" }
