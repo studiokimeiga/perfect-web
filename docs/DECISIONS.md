@@ -3250,3 +3250,7 @@ A command's send is answered within its deadline, or it is no answer (track `com
 [ADR-0382](DECISIONS/ADR-0382-a-page-loads-its-modules-within-the-deadline.md):
 The modules a page loads when it first needs them are loaded within the deadline, and a failed load is not kept (track `press-modules`; not landed).
 - A handler's module, the page's speculation module, its renderer and its computed values load within ADR-0381's deadline; a failed or given-up load is forgotten and asked for again under a new specifier, as a handler's is; a press whose speculation cannot load is sent unspeculated.
+
+[ADR-0384](DECISIONS/ADR-0384-a-dating-app.md):
+A dating app: whose a row is, who else may read it, and what a precise value reveals (track `hinge-design`; accepted 2026-10-25 as the fifth reference app's plan, docs only).
+- Every capability a Hinge-shaped app needs that Pleris lacks, as generic platform tracks: rows with owners and per-principal sharing, predicates written in Pleris, table policies that reveal no precise value, bounded rows with host-made cursors, coarse location, ordered private media, push, declared limits, erasure, moderation, verification, subscriptions and typed form bindings; then the app in slices in `examples/dating/`, with no app-specific Rust. Nothing is built by this note, and the three published Hinge privacy failures become museum exhibits, Pleris misses until their protections are real.

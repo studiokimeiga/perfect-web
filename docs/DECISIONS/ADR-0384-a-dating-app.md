@@ -1,7 +1,13 @@
-# ADR-XXXX: a dating app: whose a row is, who else may read it, and what a precise value reveals
+# ADR-0384: a dating app: whose a row is, who else may read it, and what a precise value reveals
 
-Status: proposed for the integrator's ruling; a design note by track
-`hinge-design` (the coordinator's brief of 2026-10-25). Docs only: nothing
+Status: accepted as the fifth reference app's plan by the integrator's
+ruling below (2026-10-25), and numbered ADR-0384 at its landing; a design
+note by track `hinge-design` (the coordinator's brief of 2026-10-25). Its
+"Downloads for the owner's approval", "Owner decisions" and "Questions for
+the integrator" stand as asked; since the owner's order of 2026-10-25
+(decide by best judgement), each download a track needs is the track's to
+make and record, and credentials, accounts and paid services stay the
+owner's. Docs only: nothing
 here is built, and nothing was downloaded. Every version, licence and size
 below was read from crates.io's API, from ffmpeg.org's and
 download.geonames.org's HTTP headers, and from their pages; no crate,
