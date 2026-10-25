@@ -147,9 +147,14 @@ async function measureApp(appName, args, log) {
     if (args.load) {
       for (const t of targets) {
         const url = t.url;
-        const cookies = appName === "store" ? await sessions(url, 20) : [""];
-        loads[t.stack] = await load({ pid: servers[t.stack].pid, url, rate: args.loadRate, seconds: args.loadSeconds, cookies });
-        log(`  ${appName}: ${t.stack} under ${args.loadRate}/s for ${args.loadSeconds} s`);
+        try {
+          const cookies = appName === "store" ? await sessions(url, 20) : [""];
+          loads[t.stack] = await load({ pid: servers[t.stack].pid, url, rate: args.loadRate, seconds: args.loadSeconds, cookies });
+          log(`  ${appName}: ${t.stack} under ${args.loadRate}/s for ${args.loadSeconds} s`);
+        } catch (e) {
+          loads[t.stack] = { error: String(e?.message ?? e).split("\n")[0] };
+          log(`  ${appName}: ${t.stack}: the fixed load FAILED: ${loads[t.stack].error}`);
+        }
       }
       const browser = await chromium.launch();
       try {
@@ -176,8 +181,14 @@ async function measureApp(appName, args, log) {
             );
             return performance.now() - started;
           };
-          idle[t.stack] = await idleCost({ browser, url: t.url, pid: servers[t.stack].pid, pages: 20, seconds: 10, ready, press });
-          log(`  ${appName}: ${t.stack}: 20 idle pages for 10 s`);
+          try {
+            idle[t.stack] = await idleCost({ browser, url: t.url, pid: servers[t.stack].pid, pages: 20, seconds: 10, ready, press });
+            log(`  ${appName}: ${t.stack}: 20 idle pages for 10 s`);
+          } catch (e) {
+            // Kept as a failure, which the rules refuse; the rest is reported.
+            idle[t.stack] = { error: String(e?.message ?? e).split("\n")[0] };
+            log(`  ${appName}: ${t.stack}: idle pages FAILED: ${idle[t.stack].error}`);
+          }
         }
       } finally {
         await browser.close();
@@ -194,6 +205,13 @@ async function measureApp(appName, args, log) {
     }
   }
   const problems = validate({ runs, targets, network: args.shaped ? SLOW_4G : null, minRuns: MIN_RUNS, manifest, sources });
+  for (const [stack, i] of Object.entries(idle)) {
+    if (i.error) problems.push(`idle: ${appName}/${stack}: the open pages' measurement failed: ${i.error}`);
+  }
+  for (const [stack, l] of Object.entries(loads)) {
+    if (l.error) problems.push(`load: ${appName}/${stack}: the fixed load failed: ${l.error}`);
+    else if (l.answered < l.sent) problems.push(`load: ${appName}/${stack}: ${l.sent - l.answered} of ${l.sent} requests went unanswered`);
+  }
   return { app: appName, title: app.title, targets: targets.map(describe), runs, loads, idle, browsers, problems };
 }
 

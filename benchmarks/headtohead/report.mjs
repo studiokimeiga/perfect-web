@@ -176,7 +176,7 @@ export function lossesFirst(result, sections = {}) {
         ["latency under load, median, ms", (l) => l.latencyMs.median],
         ["latency under load, p99, ms", (l) => l.p99Ms],
       ]) {
-        const values = app.targets.filter((t) => app.loads[t.stack]).map((t) => {
+        const values = app.targets.filter((t) => app.loads[t.stack] && !app.loads[t.stack].error).map((t) => {
           const v = f(app.loads[t.stack]);
           return [t.label, v, ms(v)];
         });
@@ -189,7 +189,7 @@ export function lossesFirst(result, sections = {}) {
         ["server CPU, ms a second, for 20 idle open pages", (i) => i.cpuMsPerSecond],
         ["a press with 19 other pages of the app open, ms to its change (Chromium)", (i) => i.pressMs],
       ]) {
-        const values = app.targets.filter((t) => app.idle[t.stack]).map((t) => {
+        const values = app.targets.filter((t) => app.idle[t.stack] && !app.idle[t.stack].error).map((t) => {
           const v = f(app.idle[t.stack]);
           return [t.label, v, ms(v)];
         });
@@ -324,24 +324,32 @@ function timingTable(app, lines) {
 
 function idleTable(app, lines) {
   if (!app.idle || !Object.keys(app.idle).length) return;
-  const any = Object.values(app.idle)[0];
+  const any = Object.values(app.idle).find((i) => !i.error) ?? {};
   lines.push(`open pages left alone: ${any.pages} pages of the app in Chromium, each loaded and untouched, for ${any.seconds} s`);
   lines.push(`  ${pad("stack", 10)} ${rpad("requests", 8)} ${rpad("per page a minute", 17)} ${rpad("server CPU ms/s", 15)} ${rpad("server RSS MiB", 14)}  then a press in the last page, to its change (ms)`);
   for (const t of app.targets) {
     const i = app.idle[t.stack];
     if (!i) continue;
+    if (i.error) {
+      lines.push(`  ${pad(t.label, 10)} FAILED: ${i.error}`);
+      continue;
+    }
     lines.push(`  ${pad(t.label, 10)} ${rpad(i.requests, 8)} ${rpad(i.requestsPerPagePerMinute.toFixed(1), 17)} ${rpad(ms(i.cpuMsPerSecond), 15)} ${rpad(i.rssMiB.toFixed(1), 14)}  ${ms(i.pressMs)}`);
   }
 }
 
 function loadTable(app, lines) {
   if (!app.loads || !Object.keys(app.loads).length) return;
-  const any = Object.values(app.loads)[0];
+  const any = Object.values(app.loads).find((l) => !l.error) ?? {};
   lines.push(`server under a fixed open load: ${any.rate} requests/s for ${any.seconds} s, each request of the page's document (after ${50} warm-up requests)`);
   lines.push(`  ${pad("stack", 10)} ${rpad("answered", 9)} ${rpad("CPU ms/req", 10)} ${rpad("p50 ms", 7)} ${rpad("p99 ms", 7)} ${rpad("RSS MiB before/peak/after", 26)} processes  statuses`);
   for (const t of app.targets) {
     const l = app.loads[t.stack];
     if (!l) continue;
+    if (l.error) {
+      lines.push(`  ${pad(t.label, 10)} FAILED: ${l.error}`);
+      continue;
+    }
     lines.push(
       `  ${pad(t.label, 10)} ${rpad(`${l.answered}/${l.sent}`, 9)} ${rpad(ms(l.cpuMsPerRequest), 10)} ${rpad(ms(l.latencyMs.median), 7)} ${rpad(ms(l.p99Ms), 7)} ${rpad(`${l.rssMiB.before.toFixed(1)}/${l.rssMiB.peak.toFixed(1)}/${l.rssMiB.after.toFixed(1)}`, 26)} ${rpad(l.processes, 9)}  ${JSON.stringify(l.statuses)}`,
     );
