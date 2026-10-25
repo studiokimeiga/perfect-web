@@ -289,7 +289,7 @@ def code_mutants():
 
 PORT = os.environ.get("PORT", "3141")
 QUICK = ["node", "benchmarks/headtohead/head-to-head.mjs", "--apps", "todomvc", "--engines", "chromium",
-         "--conditions", "cold", "--no-shaped", "--no-load"]
+         "--conditions", "cold", "--no-shaped", "--no-load", "--settle", "0"]
 REACT_BUNDLE = H2H / "todomvc/react/dist/app.bundle.js"
 SVELTE_SCRIPT = H2H / "todomvc/svelte/dist/assets/index-BxPr2-fK.js"
 PLERIS_APP = ROOT / "examples/todomvc/app.pw"

@@ -362,6 +362,9 @@ export function renderReport(result, sections = {}) {
   const m = meta.machine;
   lines.push(`machine: ${m.cpu}, ${m.logicalCpus} logical CPUs, ${m.memoryGiB} GiB; ${m.os}; kernel ${m.kernel}; node ${m.node}`);
   lines.push(`load average: ${m.loadAverage.join(" ")} at the start, ${meta.loadAverageAfter?.join(" ")} at the end`);
+  if (meta.settled) {
+    lines.push(`settled before measuring: one-minute load ${meta.settled.before} -> ${meta.settled.after} in ${meta.settled.waitedSeconds} s (waits at most ${meta.args?.settleSeconds} s for under ${meta.settled.goal})`);
+  }
   lines.push(`playwright: ${meta.playwright}; browsers: ${result.apps.map((a) => Object.entries(a.browsers).map(([k, v]) => `${k} ${v}`).join(", "))[0] ?? "-"}`);
   lines.push(`runs: ${meta.args.runs} per cell (at least ${meta.minRuns}); conditions ${meta.args.conditions.join(", ")}; engines ${meta.args.engines.join(", ")}; Chromium also shaped: ${meta.args.shaped ? "Slow 4G" : "no"}; seed ${meta.args.seed}`);
   lines.push(`commit: ${meta.commit}${meta.dirty ? ` + ${meta.dirty}` : ""}; ${meta.started} to ${meta.finished}`);

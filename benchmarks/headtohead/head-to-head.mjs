@@ -47,6 +47,7 @@ function parseArgs(argv) {
     shaped: true,
     seed: 20261025,
     loadRate: 100,
+    settleSeconds: 120,
     loadSeconds: 10,
     load: true,
     stacks: null,
@@ -64,6 +65,7 @@ function parseArgs(argv) {
     else if (k === "--load-rate") a.loadRate = Number(v());
     else if (k === "--load-seconds") a.loadSeconds = Number(v());
     else if (k === "--no-load") a.load = false;
+    else if (k === "--settle") a.settleSeconds = Number(v());
     else if (k === "--stacks") a.stacks = v().split(",");
     else if (k === "--json") a.json = path.resolve(v());
     else if (k === "--render") a.render = path.resolve(v());
@@ -215,6 +217,25 @@ async function measureApp(appName, args, log) {
   return { app: appName, title: app.title, targets: targets.map(describe), runs, loads, idle, browsers, problems };
 }
 
+/** Waits, at most `seconds`, for the one-minute load average to fall below a
+ * quarter of the logical CPUs; returns what it saw. */
+async function settle(seconds, log) {
+  const goal = Math.max(2, os.cpus().length / 4);
+  const before = os.loadavg()[0];
+  const startedAt = Date.now();
+  while (os.loadavg()[0] >= goal && Date.now() - startedAt < seconds * 1000) {
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  const out = {
+    goal,
+    before: Number(before.toFixed(2)),
+    after: Number(os.loadavg()[0].toFixed(2)),
+    waitedSeconds: Math.round((Date.now() - startedAt) / 1000),
+  };
+  log(`  settled: one-minute load ${out.before} -> ${out.after} in ${out.waitedSeconds} s (goal under ${goal})`);
+  return out;
+}
+
 /**
  * What the recipe's earlier steps wrote (`just e14-head-to-head`): each
  * section's text, printed whole after the summary, and its data, which the
@@ -271,12 +292,21 @@ async function main() {
     process.stdout.write(renderReport(JSON.parse(fs.readFileSync(args.render, "utf8")), sections));
     return;
   }
-  const started = new Date().toISOString();
   const log = (line) => process.stderr.write(`${line}\n`);
+  // The recipe's builds and checks just before leave the machine busy: wait
+  // for its one-minute load to fall below a quarter of its CPUs, at most
+  // `settleSeconds`, and say what the wait was.
+  const settled = await settle(args.settleSeconds, log);
+  const started = new Date().toISOString();
   const meta = {
     started,
     commit: git("rev-parse", "HEAD"),
-    dirty: git("status", "--porcelain", "--untracked-files=no") ? "uncommitted changes" : null,
+    // As the recipes judge it: the evidence a run writes, and the store's IR
+    // a build rewrites, are not changes to what is measured.
+    dirty: git("status", "--porcelain", "--untracked-files=no", "--", ".", ":(exclude)docs/evidence", ":(exclude)spikes/own-renderer/store-ir.json")
+      ? "uncommitted changes"
+      : null,
+    settled,
     machine: machine(),
     playwright: playwrightVersion(),
     args: { ...args, json: args.json ? path.relative(REPO, args.json) : null },
