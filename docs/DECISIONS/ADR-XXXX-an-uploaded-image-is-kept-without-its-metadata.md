@@ -221,8 +221,11 @@ The integrator's files; proposed wording:
   which rewrites the file in its order, so a fresh worktree is dirty after
   its first browser build (here, after `run.sh` and `feed.sh`), and a
   recipe's `commit:` line, which asks `git diff --quiet HEAD`, would add
-  "+ uncommitted changes" where that happens before it is recorded. Not
-  changed here (`Cargo.lock` is shared); restored before each commit.
+  "+ uncommitted changes" where that happens before it is recorded, which
+  `ci_plan.py` (`RECORDED_AT`) reads as no commit at all: such evidence is
+  never current. No evidence has been recorded on master since. Put in
+  cargo's order on this branch, in its own commit (`c71acb8b`), exactly as
+  cargo rewrote it, so `--locked` builds are unchanged.
 - **No flake** in the runs here.
 
 ## Alternatives
@@ -293,5 +296,6 @@ verification run: see the Report.
 2. **pHYs** dropped by this track's judgment (§2): agreed?
 3. **An opt-out** (a program that shows a photo's camera, say): not
    proposed; the host strips for every upload. Agreed?
-4. **`Cargo.lock`'s order** (Found): sort it on master, and run the browser
-   build scripts with `--locked`?
+4. **`Cargo.lock`'s order** (Found): sorted here in its own commit; and
+   should `run.sh`, `feed.sh` and `just ci` pass `--locked`, so a lockfile
+   out of order fails loudly rather than dirtying a checkout?
