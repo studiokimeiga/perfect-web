@@ -34,6 +34,7 @@
 //! key, with the type sniffed from its bytes, `nosniff`, a sandbox, and kept
 //! forever by any cache, since what a key names never changes.
 
+pub(crate) mod icc;
 pub(crate) mod multipart;
 pub(crate) mod sniff;
 pub(crate) mod strip;
@@ -1628,7 +1629,7 @@ pub(crate) mod tests {
         let u = uploads(d.path(), declared(), LEASE);
         let s = shared(&u);
         let laden = strip::tests::laden_jpeg();
-        assert_eq!(strip::tests::identified(&laden).len(), 6);
+        assert_eq!(strip::tests::identified(&laden).len(), 9);
         let kept = strip::strip(&laden).expect("kept");
         let key = BlobKey::of(&kept);
         let a = post(&u, "s-1", &laden, "IMG_0001.jpg", "image/jpeg");

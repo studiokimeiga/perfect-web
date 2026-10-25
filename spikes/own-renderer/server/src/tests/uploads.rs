@@ -173,7 +173,7 @@ fn a_photos_metadata_is_neither_kept_nor_served() {
     use crate::uploads::strip::tests::{identified, laden_jpeg};
     let s = served_feed();
     let laden = laden_jpeg();
-    assert_eq!(identified(&laden).len(), 6, "{:?}", identified(&laden));
+    assert_eq!(identified(&laden).len(), 9, "{:?}", identified(&laden));
     assert!(attach(&s, "a", &laden).starts_with("http/1.1 303"));
     let answered = post_image(&s, "a", "Where I was", "A gradient, turned", "i-1");
     assert!(answered.committed, "{:?}", answered.result);

@@ -42,6 +42,7 @@
 //!   other application's extension (XMP's among them), and whatever follows
 //!   the trailer.
 
+use super::icc;
 use super::sniff::{self, Kind, Unreadable, be16, be32, le32};
 
 /// **What is kept of `bytes`**: the image, rewritten without its metadata,
@@ -66,6 +67,53 @@ const ICC: &[u8] = b"ICC_PROFILE\0";
 const ADOBE: &[u8] = b"Adobe";
 const EXIF: &[u8] = b"Exif\0\0";
 
+/// **The most of a profile an APP2 chunk holds**: an APP2 segment's 65,533
+/// bytes of data (its length's sixteen bits, less their own two), less
+/// `ICC_PROFILE\0`, its number and its count (ICC.1, B.4; libjpeg-turbo's
+/// `MAX_DATA_BYTES_IN_MARKER`).
+const ICC_PART: usize = 65_519;
+
+/// **An ICC profile's APP2 chunks, as libjpeg reads them**
+/// (`jpeg_read_icc_profile`, libjpeg-turbo's `jdicc.c`, which the engines'
+/// decoders call): each numbered from 1 to the count each gives, the same
+/// count in all, no number twice and none missing; otherwise none is read.
+struct IccChunks<'a> {
+    count: u8,
+    parts: [Option<&'a [u8]>; 255],
+    bogus: bool,
+}
+
+impl<'a> IccChunks<'a> {
+    fn new() -> IccChunks<'a> {
+        IccChunks {
+            count: 0,
+            parts: [None; 255],
+            bogus: false,
+        }
+    }
+
+    /// A chunk's data: `ICC_PROFILE\0`, its number, the count, its part.
+    fn add(&mut self, data: &'a [u8]) {
+        let (n, count) = (data[ICC.len()] as usize, data[ICC.len() + 1]);
+        let numbered = n >= 1 && n <= count as usize && (self.count == 0 || self.count == count);
+        if !numbered || self.parts[n - 1].is_some() {
+            self.bogus = true;
+            return;
+        }
+        self.count = count;
+        self.parts[n - 1] = Some(&data[ICC.len() + 2..]);
+    }
+
+    /// The profile they make, joined in their numbers' order.
+    fn profile(&self) -> Option<Vec<u8>> {
+        if self.bogus {
+            return None;
+        }
+        let parts: Option<Vec<&[u8]>> = self.parts[..self.count as usize].iter().copied().collect();
+        parts.map(|p| p.concat()).filter(|p| !p.is_empty())
+    }
+}
+
 /// **A marker segment kept whole** (T.81, Table B.1): a frame header
 /// (SOFn), a table (DHT `C4`, DAC `CC`, DQT `DB`), DNL, DRI, and the
 /// hierarchical process's DHP and EXP. Numbers that decoding reads, and
@@ -89,6 +137,7 @@ fn jpeg(b: &[u8]) -> Result<Vec<u8>, &'static str> {
     const SHORT: &str = "it ends before its EOI";
     let mut jfif: Option<Vec<u8>> = None;
     let mut turned: Option<u32> = None;
+    let mut profile = IccChunks::new();
     let mut scanned = false;
     let mut kept = Vec::with_capacity(b.len());
     let mut at = 2; // past SOI
@@ -121,19 +170,31 @@ fn jpeg(b: &[u8]) -> Result<Vec<u8>, &'static str> {
         let data = b.get(at + 2..at + length).ok_or(SHORT)?;
         at += length;
         match m {
-            // Its version, units and densities, and no thumbnail: a thumbnail
-            // is the picture as it was before an edit cropped it.
+            // Its version; no units, and a density of 1 by 1, the pixels'
+            // aspect alone (a density names the screen or the scanner that
+            // made it, as PNG's pHYs does); and no thumbnail, which is the
+            // picture as it was before an edit cropped it.
             0xE0 if data.starts_with(JFIF) && data.len() >= 14 => {
                 if jfif.is_none() {
-                    jfif = Some([&data[..12], &[0, 0]].concat());
+                    jfif = Some([&data[..7], &[0, 0, 1, 0, 1, 0, 0]].concat());
                 }
             }
-            // The turn a browser shows it at, as it reads it: the first Exif
-            // structure whose `Orientation` it can read, before any scan.
+            // The turn written back: the first Exif structure whose
+            // `Orientation` reads, before any scan. (Measured in Playwright
+            // 1.58: of a JPEG's APP1 segments, Firefox reads only the first,
+            // of any kind, and Chromium and WebKit the first Exif; what is
+            // kept has one APP1, the turn alone, so all three show it
+            // alike.)
             0xE1 if !scanned && turned.is_none() && data.starts_with(EXIF) => {
                 turned = sniff::orientation(&data[EXIF.len()..]);
             }
-            0xE2 if data.starts_with(ICC) => segment(&mut kept, m, data),
+            // An ICC profile's chunks, read as a browser reads them: before
+            // any scan, and each long enough to be numbered.
+            0xE2 if data.len() >= ICC.len() + 2 && data.starts_with(ICC) => {
+                if !scanned {
+                    profile.add(data);
+                }
+            }
             0xEE if data.starts_with(ADOBE) && data.len() >= 12 => {
                 segment(&mut kept, m, &data[..12]);
             }
@@ -156,6 +217,14 @@ fn jpeg(b: &[u8]) -> Result<Vec<u8>, &'static str> {
     }
     if let Some(o @ 2..=8) = turned {
         segment(&mut out, 0xE1, &orientation_alone(o as u16));
+    }
+    // The profile rewritten (`icc.rs`), in as few chunks as hold it.
+    if let Some(profile) = profile.profile().and_then(|p| icc::scrub(&p)) {
+        let parts = profile.chunks(ICC_PART);
+        let count = parts.len() as u8;
+        for (part, n) in parts.zip(1u8..) {
+            segment(&mut out, 0xE2, &[ICC, &[n, count], part].concat());
+        }
     }
     out.extend(kept);
     out.extend([0xFF, 0xD9]);
@@ -200,19 +269,54 @@ pub(crate) fn orientation_alone(o: u16) -> Vec<u8> {
 
 // ---- PNG ----
 
-/// **The chunks a PNG keeps** (third edition, §4.8.2 and §11.3): the
+/// **The chunks a PNG keeps whole** (third edition, §4.8.2 and §11.3): the
 /// critical four; transparency; colour space information a browser renders
-/// by (sBIT, which none does, is not among them); and animation's.
-const PNG_KEPT: [&[u8; 4]; 15] = [
-    b"IHDR", b"PLTE", b"IDAT", b"IEND", b"tRNS", b"cHRM", b"gAMA", b"iCCP", b"sRGB", b"cICP",
-    b"mDCV", b"cLLI", b"acTL", b"fcTL", b"fdAT",
+/// by (sBIT, which none does, is not among them; iCCP is kept rewritten);
+/// and animation's.
+const PNG_KEPT: [&[u8; 4]; 14] = [
+    b"IHDR", b"PLTE", b"IDAT", b"IEND", b"tRNS", b"cHRM", b"gAMA", b"sRGB", b"cICP", b"mDCV",
+    b"cLLI", b"acTL", b"fcTL", b"fdAT",
 ];
 
+/// **An iCCP chunk's data, its profile rewritten** (third edition,
+/// §11.3.2.4: a profile name of 1 to 79 bytes and its NUL, compression
+/// method 0, then the profile in a zlib stream): its name, which is free
+/// text (a person's, say), made [`icc::NEUTRAL`]; its profile inflated (to
+/// at most [`icc::MAX`] bytes, with `miniz_oxide`, which this crate already
+/// takes), rewritten (`icc.rs`) and deflated again. Nothing where any of it
+/// does not read.
+fn iccp(data: &[u8]) -> Option<Vec<u8>> {
+    let nul = data
+        .iter()
+        .take(80)
+        .position(|&c| c == 0)
+        .filter(|&n| n > 0)?;
+    if data.get(nul + 1) != Some(&0) {
+        return None;
+    }
+    let stream = &data[nul + 2..];
+    let profile = miniz_oxide::inflate::decompress_to_vec_zlib_with_limit(stream, icc::MAX).ok()?;
+    let kept = icc::scrub(&profile)?;
+    let deflated = miniz_oxide::deflate::compress_to_vec_zlib(&kept, 6);
+    Some([icc::NEUTRAL, &[0, 0], &deflated].concat())
+}
+
+/// A PNG chunk: its data's length, its type, its data, and its CRC over its
+/// type and data (§5.3).
+fn png_chunk(kind: &[u8; 4], data: &[u8]) -> Vec<u8> {
+    let mut c = (data.len() as u32).to_be_bytes().to_vec();
+    c.extend(kind);
+    c.extend(data);
+    c.extend(sniff::crc32(&c[4..]).to_be_bytes());
+    c
+}
+
 /// **A PNG, its chunks walked to IEND**: those it keeps copied whole, with
-/// their CRCs, in order.
+/// their CRCs, in order; its first iCCP rewritten, and its CRC computed.
 fn png(b: &[u8]) -> Result<Vec<u8>, &'static str> {
     const SHORT: &str = "it ends before its IEND chunk";
     let mut out = b.get(..8).ok_or(SHORT)?.to_vec();
+    let mut profiled = false;
     let mut at = 8;
     loop {
         let length = be32(b, at).ok_or(SHORT)? as usize;
@@ -224,6 +328,14 @@ fn png(b: &[u8]) -> Result<Vec<u8>, &'static str> {
         let chunk = b.get(at..end).ok_or(SHORT)?;
         if PNG_KEPT.iter().any(|k| &k[..] == kind) {
             out.extend(chunk);
+        } else if kind == b"iCCP" {
+            // A PNG has one; a second is not read, so not kept.
+            if !profiled {
+                profiled = true;
+                if let Some(data) = iccp(&chunk[8..8 + length]) {
+                    out.extend(png_chunk(b"iCCP", &data));
+                }
+            }
         } else if kind[0].is_ascii_uppercase() {
             return Err("it has a critical chunk this does not know");
         }
@@ -237,7 +349,9 @@ fn png(b: &[u8]) -> Result<Vec<u8>, &'static str> {
 // ---- WebP ----
 
 /// VP8X's flags (RFC 9649, §2.7.1, its bits numbered from the most
-/// significant): Exif metadata (E) and XMP metadata (X).
+/// significant): an ICC profile (I), Exif metadata (E) and XMP metadata
+/// (X).
+const VP8X_ICC: u8 = 0x20;
 const VP8X_EXIF: u8 = 0x08;
 const VP8X_XMP: u8 = 0x04;
 
@@ -255,19 +369,32 @@ fn chunk(out: &mut Vec<u8>, fourcc: &[u8], data: &[u8]) {
 /// A RIFF chunk read: its FourCC and its data.
 type Chunk<'a> = (&'a [u8], &'a [u8]);
 
-/// **A RIFF list's chunks**. A last chunk of an odd size may lack its
-/// padding.
-fn chunks(mut b: &[u8]) -> Result<Vec<Chunk<'_>>, &'static str> {
-    const LONG: &str = "a chunk is longer than its RIFF";
-    let mut found = Vec::new();
-    while !b.is_empty() {
-        let fourcc = b.get(..4).ok_or(LONG)?;
-        let size = le32(b, 4).ok_or(LONG)? as usize;
-        let data = b.get(8..8 + size).ok_or(LONG)?;
-        found.push((fourcc, data));
-        b = b.get(8 + size + size % 2..).unwrap_or(&[]);
+/// **A RIFF list's chunks, read one at a time** (the independent review,
+/// finding 4): nothing is kept of a chunk once it has been read, so a file
+/// of many empty chunks costs a walk, and no list of them. A last chunk of
+/// an odd size may lack its padding. After a chunk longer than the list,
+/// nothing more is read.
+struct Chunks<'a>(&'a [u8]);
+
+impl<'a> Iterator for Chunks<'a> {
+    type Item = Result<Chunk<'a>, &'static str>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let b = self.0;
+        if b.is_empty() {
+            return None;
+        }
+        let read = || {
+            let size = le32(b, 4)? as usize;
+            Some((b.get(..4)?, b.get(8..8 + size)?, size))
+        };
+        let Some((fourcc, data, size)) = read() else {
+            self.0 = &[];
+            return Some(Err("a chunk is longer than its RIFF"));
+        };
+        self.0 = b.get(8 + size + size % 2..).unwrap_or(&[]);
+        Some(Ok((fourcc, data)))
     }
-    Ok(found)
 }
 
 /// **A WebP, its chunks walked to its RIFF's size**: a simple file's image,
@@ -277,19 +404,34 @@ fn webp(b: &[u8]) -> Result<Vec<u8>, &'static str> {
     let body = b
         .get(12..size.saturating_add(8))
         .ok_or("its RIFF size is not the bytes it has")?;
-    let found = chunks(body)?;
+    let mut found = Chunks(body);
     let mut kept = Vec::new();
-    match found.first() {
-        Some((first @ (b"VP8 " | b"VP8L"), data)) => chunk(&mut kept, first, data),
-        Some((b"VP8X", _)) => {
-            for (n, (fourcc, data)) in found.iter().enumerate() {
-                match *fourcc {
-                    b"VP8X" if n == 0 => {
-                        let mut header = data.get(..10).ok_or("its VP8X chunk is short")?.to_vec();
-                        header[0] &= !(VP8X_EXIF | VP8X_XMP);
-                        chunk(&mut kept, fourcc, &header);
+    match found.next().transpose()? {
+        Some((first @ (b"VP8 " | b"VP8L"), data)) => {
+            chunk(&mut kept, first, data);
+            // The rest walked to the RIFF's end, and dropped.
+            for walked in found {
+                walked?;
+            }
+        }
+        Some((b"VP8X", data)) => {
+            let mut header = data.get(..10).ok_or("its VP8X chunk is short")?.to_vec();
+            header[0] &= !(VP8X_EXIF | VP8X_XMP);
+            chunk(&mut kept, b"VP8X", &header);
+            let (mut profiled, mut profile_kept) = (false, false);
+            for walked in found {
+                let (fourcc, data) = walked?;
+                match fourcc {
+                    // Its profile rewritten (`icc.rs`); a file has one, and
+                    // a second is not read, so not kept.
+                    b"ICCP" if !profiled => {
+                        profiled = true;
+                        if let Some(profile) = icc::scrub(data) {
+                            chunk(&mut kept, fourcc, &profile);
+                            profile_kept = true;
+                        }
                     }
-                    b"ICCP" | b"ANIM" | b"ALPH" | b"VP8 " | b"VP8L" => {
+                    b"ANIM" | b"ALPH" | b"VP8 " | b"VP8L" => {
                         chunk(&mut kept, fourcc, data);
                     }
                     b"ANMF" => {
@@ -297,16 +439,22 @@ fn webp(b: &[u8]) -> Result<Vec<u8>, &'static str> {
                             .get(..16)
                             .ok_or("an ANMF chunk is shorter than its frame header")?
                             .to_vec();
-                        for (fourcc, data) in chunks(&data[16..])? {
+                        for walked in Chunks(&data[16..]) {
+                            let (fourcc, data) = walked?;
                             if matches!(fourcc, b"ALPH" | b"VP8 " | b"VP8L") {
                                 chunk(&mut frame, fourcc, data);
                             }
                         }
                         chunk(&mut kept, b"ANMF", &frame);
                     }
-                    // EXIF, `XMP `, and chunks a writer made up.
+                    // EXIF, `XMP `, a second ICCP or VP8X, and chunks a
+                    // writer made up.
                     _ => {}
                 }
+            }
+            // VP8X flags a profile where one is kept, and only there.
+            if !profile_kept {
+                kept[8] &= !VP8X_ICC;
             }
         }
         _ => return Err("its first chunk is not VP8, VP8L or VP8X"),
@@ -440,26 +588,94 @@ pub(crate) mod tests {
     const XMP_LATITUDE: &[u8] = b"48,51.4935N";
     /// tIME's 2026-10-25 09:41:00.
     const TIME: [u8; 7] = [0x07, 0xEA, 10, 25, 9, 41, 0];
+    /// An ICC profile's creation time, 2026-10-25 09:41:00 (a
+    /// dateTimeNumber: six big-endian 16-bit numbers).
+    pub(crate) const CREATED: [u8; 12] = [0x07, 0xEA, 0, 10, 0, 25, 0, 9, 0, 41, 0, 0];
+    /// An ICC profile's ID, which is an MD5 of the profile as it was.
+    pub(crate) const PROFILE_ID: &[u8; 16] = b"Pleris-profileID";
+    /// A display's serial number.
+    pub(crate) const SERIAL: &[u8] = b"SN 4815162342";
 
     pub(crate) fn latitude() -> Vec<u8> {
         LATITUDE.iter().flat_map(|v| v.to_be_bytes()).collect()
     }
 
-    /// Which known values `b` holds.
+    /// Which known values `b` holds, a text's as ASCII or as UTF-16BE (as
+    /// an ICC profile's `mluc` holds it).
     pub(crate) fn identified(b: &[u8]) -> Vec<&'static str> {
-        let known: [(&str, &[u8]); 7] = [
-            ("a GPS latitude", &latitude()),
-            ("an XMP latitude", XMP_LATITUDE),
-            ("a camera", CAMERA),
-            ("when it was taken", TAKEN),
-            ("a person's name", NAME),
-            ("a comment", COMMENT),
-            ("a PNG's tIME", &TIME),
+        let text = |s: &[u8]| vec![s.to_vec(), s.iter().flat_map(|&c| [0, c]).collect()];
+        let known: [(&str, Vec<Vec<u8>>); 10] = [
+            ("a GPS latitude", vec![latitude()]),
+            ("an XMP latitude", text(XMP_LATITUDE)),
+            ("a camera", text(CAMERA)),
+            ("when it was taken", text(TAKEN)),
+            ("a person's name", text(NAME)),
+            ("a comment", text(COMMENT)),
+            ("a PNG's tIME", vec![TIME.to_vec()]),
+            ("an ICC profile's creation time", vec![CREATED.to_vec()]),
+            ("an ICC profile's ID", vec![PROFILE_ID.to_vec()]),
+            ("a serial number", text(SERIAL)),
         ];
         known
             .iter()
-            .filter(|(_, v)| b.windows(v.len()).any(|w| w == *v))
+            .filter(|(_, forms)| forms.iter().any(|v| b.windows(v.len()).any(|w| w == v)))
             .map(|(what, _)| *what)
+            .collect()
+    }
+
+    /// **The ICC profiles an image holds**: a JPEG's APP2 chunks before its
+    /// first scan, joined in their numbers' order; each of a PNG's iCCP
+    /// chunks, inflated; each of a WebP's ICCP chunks.
+    pub(crate) fn profiles_in(b: &[u8]) -> Vec<Vec<u8>> {
+        match sniff::sniff(b) {
+            Some(Kind::Jpeg) => {
+                let mut parts = Vec::new();
+                let mut at = 2;
+                while b[at + 1] != 0xDA {
+                    let length = be16(b, at + 2).unwrap() as usize;
+                    let data = &b[at + 4..at + 2 + length];
+                    if b[at + 1] == 0xE2 && data.starts_with(ICC) {
+                        parts.push((data[12], &data[14..]));
+                    }
+                    at += 2 + length;
+                }
+                parts.sort();
+                let joined: Vec<u8> = parts.iter().flat_map(|(_, part)| part.to_vec()).collect();
+                [joined].into_iter().filter(|p| !p.is_empty()).collect()
+            }
+            Some(Kind::Png) => {
+                let mut found = Vec::new();
+                let mut at = 8;
+                while &b[at + 4..at + 8] != b"IEND" {
+                    let length = be32(b, at).unwrap() as usize;
+                    let data = &b[at + 8..at + 8 + length];
+                    if &b[at + 4..at + 8] == b"iCCP" {
+                        let nul = data.iter().position(|&c| c == 0).unwrap();
+                        let inflated =
+                            miniz_oxide::inflate::decompress_to_vec_zlib(&data[nul + 2..]);
+                        found.push(inflated.expect("a zlib stream"));
+                    }
+                    at += 12 + length;
+                }
+                found
+            }
+            Some(Kind::Webp) => Chunks(&b[12..])
+                .map(|c| c.expect("a chunk"))
+                .filter(|(fourcc, _)| fourcc == b"ICCP")
+                .map(|(_, data)| data.to_vec())
+                .collect(),
+            _ => Vec::new(),
+        }
+    }
+
+    /// `profile` as a JPEG's APP2 segments of at most `part` of its bytes
+    /// each, numbered from 1.
+    fn app2s(profile: &[u8], part: usize) -> Vec<(u8, Vec<u8>)> {
+        let parts: Vec<&[u8]> = profile.chunks(part).collect();
+        let count = parts.len() as u8;
+        let numbered = parts.iter().zip(1..);
+        numbered
+            .map(|(part, n)| (0xE2, [ICC, &[n, count], part].concat()))
             .collect()
     }
 
@@ -573,11 +789,46 @@ pub(crate) mod tests {
         base[20..].to_vec()
     }
 
-    /// JFIF 1.02's APP0 with a 2 by 1 thumbnail.
+    /// JFIF 1.02's APP0 at 144 dots per inch (a Retina screen's), with a 2
+    /// by 1 thumbnail.
     fn jfif_with_thumbnail() -> Vec<u8> {
-        let mut d = b"JFIF\0\x01\x02\x01\x00\x48\x00\x48\x02\x01".to_vec();
+        let mut d = b"JFIF\0\x01\x02\x01\x00\x90\x00\x90\x02\x01".to_vec();
         d.extend([0xB0, 0x0B, 0x1E, 0x55, 0x0F, 0xF1]);
         d
+    }
+
+    /// JFIF 1.02's APP0 as it is kept: its version, no units, and a density
+    /// of 1 by 1, the pixels' aspect alone.
+    const JFIF_KEPT: &[u8] = b"JFIF\0\x01\x02\x00\x00\x01\x00\x01\x00\x00";
+
+    /// **A JPEG with restart markers** (T.81, B.2.4.4's DRI and B.1.1.5's
+    /// RSTm in a scan), as a phone's or a camera's hardware encoder writes
+    /// them, built here: 16 by 8, three components each sampled 1 by 1, a
+    /// restart after each MCU. Each block is its DC alone (its quantizer 8,
+    /// Huffman codes `0` for category 0 and `10` for 7, and `0` for EOB):
+    /// the left MCU's Y −64, so grey 64; the right's +64 after the restart
+    /// has reset the prediction, so grey 192.
+    pub(crate) fn restarted_jpeg() -> Vec<u8> {
+        let mut b = vec![0xFF, 0xD8];
+        segment(&mut b, 0xDB, &[&[0x00, 8][..], &[1; 63]].concat());
+        segment(
+            &mut b,
+            0xC0,
+            &[8, 0, 8, 0, 16, 3, 1, 0x11, 0, 2, 0x11, 0, 3, 0x11, 0],
+        );
+        let dc = [&[0x00, 1, 1][..], &[0; 14], &[0, 7]].concat();
+        let ac = [&[0x10, 1][..], &[0; 15], &[0x00]].concat();
+        segment(&mut b, 0xC4, &[dc, ac].concat());
+        segment(&mut b, 0xDD, &[0, 1]);
+        segment(&mut b, 0xDA, &[3, 1, 0x00, 2, 0x00, 3, 0x00, 0, 63, 0]);
+        // Y: `10`, then −64's seven bits `0111111`, then EOB; Cb and Cr: DC
+        // 0 and EOB; padded with 1s.
+        b.extend([0x9F, 0x83]);
+        b.extend([0xFF, 0xD0]);
+        // Y: `10`, then +64's `1000000`, then EOB; Cb and Cr.
+        b.extend([0xA0, 0x03]);
+        b.extend([0xFF, 0xD9]);
+        b
     }
 
     /// Adobe's APP14 (version 100, no flags, transform 1), and two bytes
@@ -586,23 +837,27 @@ pub(crate) mod tests {
         [&b"Adobe\x00\x64\x00\x00\x00\x00\x01"[..], b"JR"].concat()
     }
 
-    /// **A phone's photo**: JFIF with a thumbnail, and JFXX's; Exif turned a
-    /// quarter, with its camera, time and GPS position; an ICC profile; XMP;
-    /// IPTC; MPF; C2PA's JUMBF; Adobe's APP14; APP15; a comment; then the
-    /// eight-by-five image, and after its EOI a second image with its own
-    /// Exif, as a phone appends a depth map.
+    /// **A phone's photo**: JFIF at 144 dots per inch with a thumbnail, and
+    /// JFXX's; Exif turned a quarter, with its camera, time and GPS
+    /// position; an ICC profile, a display's (version 2), which names a
+    /// person, a device, its serial number and a time, in two APP2 chunks,
+    /// the second first; XMP; IPTC; MPF; C2PA's JUMBF; Adobe's APP14;
+    /// APP15; a comment; then the eight-by-five image, and after its EOI a
+    /// second image with its own Exif, as a phone appends a depth map.
     pub(crate) fn laden_jpeg() -> Vec<u8> {
         let second = jpeg_of(&[(0xE1, [EXIF, &tiff(1)].concat())], &[0xFF, 0xD9], &[]);
+        let icc = app2s(&icc::tests::planted(2), 600);
         jpeg_of(
             &[
                 (0xE0, jfif_with_thumbnail()),
                 (0xE0, b"JFXX\0\x13\x01\x01\x0F\xF1\xCE".to_vec()),
                 (0xE1, [EXIF, &tiff(6)].concat()),
-                (0xE2, b"ICC_PROFILE\0\x01\x01a profile".to_vec()),
+                icc[1].clone(),
                 (
                     0xE1,
                     [&b"http://ns.adobe.com/xap/1.0/\0"[..], &xmp()].concat(),
                 ),
+                icc[0].clone(),
                 (0xED, iptc()),
                 (0xE2, [&b"MPF\0MM\0\x2A\0\0\0\x08"[..], NAME].concat()),
                 (0xEB, [&b"JP\0\x01\0\0\0\x01jumb"[..], NAME].concat()),
@@ -618,16 +873,18 @@ pub(crate) mod tests {
     #[test]
     fn a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else() {
         let laden = laden_jpeg();
-        assert_eq!(identified(&laden).len(), 6, "{:?}", identified(&laden));
+        assert_eq!(identified(&laden).len(), 9, "{:?}", identified(&laden));
         let kept = strip(&laden).expect("kept");
         assert_eq!(identified(&kept), Vec::<&str>::new());
-        // Exactly: JFIF without its thumbnail, the turn alone, the ICC
-        // profile, Adobe's twelve bytes, and the image's every byte.
+        // Exactly: JFIF without its density or thumbnail, the turn alone,
+        // the ICC profile rewritten (`icc.rs`) in one chunk, Adobe's twelve
+        // bytes, and the image's every byte.
+        let profile = icc::scrub(&icc::tests::planted(2)).expect("a profile kept");
         let expected = jpeg_of(
             &[
-                (0xE0, b"JFIF\0\x01\x02\x01\x00\x48\x00\x48\x00\x00".to_vec()),
+                (0xE0, JFIF_KEPT.to_vec()),
                 (0xE1, orientation_alone(6)),
-                (0xE2, b"ICC_PROFILE\0\x01\x01a profile".to_vec()),
+                (0xE2, [ICC, &[1, 1], &profile].concat()),
                 (0xEE, adobe()[..12].to_vec()),
             ],
             &jpeg_body(),
@@ -720,15 +977,148 @@ pub(crate) mod tests {
         assert_eq!(malformed(&under), "a segment's length is under 2");
     }
 
+    /// **A JPEG's density is not kept** (the independent review, finding
+    /// 2): JFIF's units and densities name the screen or the scanner that
+    /// made it (a Retina screen's 144 dots per inch), as PNG's pHYs does,
+    /// which is dropped; no engine sizes an image by them. What is kept says
+    /// no units and 1 by 1, the pixels square.
+    #[test]
+    fn a_jpegs_density_is_not_kept() {
+        let body = jpeg_body();
+        let jfif = |units: u8, x: u16, y: u16| {
+            let d = [
+                &b"JFIF\0\x01\x02"[..],
+                &[units],
+                &x.to_be_bytes(),
+                &y.to_be_bytes(),
+            ];
+            (0xE0, [&d.concat()[..], &[0, 0]].concat())
+        };
+        let kept = jpeg_of(&[(0xE0, JFIF_KEPT.to_vec())], &body, &[]);
+        for (units, x, y) in [(1, 144, 144), (2, 57, 57), (1, 72, 300), (0, 2, 1)] {
+            let sent = jpeg_of(&[jfif(units, x, y)], &body, &[]);
+            assert_eq!(strip(&sent), Ok(kept.clone()), "units {units}, {x} by {y}");
+        }
+    }
+
+    /// **A JPEG's ICC profile is read as libjpeg reads its chunks, and kept
+    /// for its colour alone** (the independent review, finding 1;
+    /// `jpeg_read_icc_profile` in libjpeg-turbo's `jdicc.c`, on the APP2
+    /// segments before the first scan): its chunks joined in their numbers'
+    /// order, wherever they are; rewritten (`icc.rs`); and split again into
+    /// chunks of 65,519 bytes, as many as an APP2 segment holds. Chunks that
+    /// do not make one profile, as libjpeg reads them, are not kept, nor a
+    /// profile that does not parse, nor one after the first scan, which no
+    /// browser reads; an APP2 too short to number its chunk is no chunk.
+    #[test]
+    fn a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks() {
+        let body = jpeg_body();
+        let large = [icc::tests::naming(4), icc::tests::colour(4, 40_000)].concat();
+        let profile = icc::tests::profile(4, &large);
+        assert!(profile.len() > 65_519, "more than one chunk's");
+        let scrubbed = icc::scrub(&profile).expect("a profile kept");
+        assert_eq!(identified(&scrubbed), Vec::<&str>::new());
+        let app2 = |n: u8, count: u8, part: &[u8]| (0xE2, [ICC, &[n, count], part].concat());
+        let (one, two) = profile.split_at(30_000);
+        let (a, b, c) = (&one[..15_000], &one[15_000..], two);
+        let sent = jpeg_of(
+            &[app2(2, 2, two), (0xFE, COMMENT.to_vec()), app2(1, 2, one)],
+            &body,
+            &[],
+        );
+        let (first, second) = scrubbed.split_at(65_519);
+        let kept = jpeg_of(&[app2(1, 2, first), app2(2, 2, second)], &body, &[]);
+        assert_eq!(strip(&sent), Ok(kept.clone()));
+        assert_eq!(strip(&kept), Ok(kept.clone()), "rewritten to itself");
+        assert_eq!(profiles_in(&kept), vec![scrubbed]);
+        let none = jpeg_of(&[], &body, &[]);
+        let small = icc::tests::planted(2);
+        let cases = [
+            ("a chunk missing", vec![app2(1, 2, one)]),
+            (
+                "a chunk twice",
+                vec![app2(1, 2, one), app2(1, 2, one), app2(2, 2, two)],
+            ),
+            (
+                "their counts differ, though they hold it all",
+                vec![app2(1, 2, a), app2(2, 2, b), app2(3, 3, c)],
+            ),
+            ("a chunk numbered 0", vec![app2(0, 2, one), app2(2, 2, two)]),
+            (
+                "a chunk numbered past its count",
+                vec![app2(1, 1, one), app2(2, 1, two)],
+            ),
+            (
+                "a profile that does not parse",
+                vec![app2(1, 1, &small[1..])],
+            ),
+        ];
+        for (what, segments) in cases {
+            assert_eq!(
+                strip(&jpeg_of(&segments, &body, &[])),
+                Ok(none.clone()),
+                "{what}"
+            );
+        }
+        let alone = jpeg_of(&[app2(1, 1, &icc::scrub(&small).unwrap())], &body, &[]);
+        let short = (0xE2, [ICC, &[1]].concat());
+        assert_eq!(
+            strip(&jpeg_of(&[app2(1, 1, &small), short], &body, &[])),
+            Ok(alone)
+        );
+        // After the first scan: not read, so not kept.
+        let progressive = fixture("nine-by-seven-progressive.jpeg");
+        let first_scan = progressive
+            .windows(2)
+            .position(|w| w == [0xFF, 0xDA])
+            .unwrap();
+        let after = first_scan
+            + progressive[first_scan..]
+                .windows(2)
+                .position(|w| w == [0xFF, 0xC4])
+                .unwrap();
+        let mut late = progressive[..after].to_vec();
+        let (m, data) = app2(1, 1, &small);
+        segment(&mut late, m, &data);
+        late.extend(&progressive[after..]);
+        assert_eq!(strip(&late), Ok(progressive));
+    }
+
+    /// **A JPEG with restart markers is kept whole** (the independent
+    /// review, finding 3): a restart marker is within its scan, not its end,
+    /// so the scan is copied past it.
+    #[test]
+    fn a_jpeg_with_restart_markers_is_kept_whole() {
+        let restarted = restarted_jpeg();
+        let restarts = restarted
+            .windows(2)
+            .filter(|w| w[0] == 0xFF && (0xD0..=0xD7).contains(&w[1]));
+        assert_eq!(restarts.count(), 1, "a restart in its scan");
+        assert_eq!(strip(&restarted), Ok(restarted.clone()));
+        let shown = sniff::measure(&restarted).expect("measured");
+        assert_eq!((shown.width, shown.height), (16, 8));
+        // With what a camera adds, its scan is kept whole all the same.
+        let laden = [
+            &restarted[..2],
+            &jpeg_of(
+                &[(0xE1, [EXIF, &tiff(1)].concat()), (0xFE, COMMENT.to_vec())],
+                &[],
+                &[],
+            )[2..],
+            &restarted[2..],
+        ]
+        .concat();
+        assert_eq!(identified(&laden).len(), 4, "{:?}", identified(&laden));
+        assert_eq!(strip(&laden), Ok(restarted));
+    }
+
     // ---- PNG ----
 
-    /// A PNG chunk, its CRC computed.
-    fn png_chunk(kind: &[u8; 4], data: &[u8]) -> Vec<u8> {
-        let mut c = (data.len() as u32).to_be_bytes().to_vec();
-        c.extend(kind);
-        c.extend(data);
-        c.extend(sniff::crc32(&c[4..]).to_be_bytes());
-        c
+    /// An iCCP chunk: its profile's name, a NUL, compression method 0, and
+    /// `profile` deflated at `level`, in zlib's stream.
+    pub(crate) fn iccp_chunk(name: &[u8], profile: &[u8], level: u8) -> Vec<u8> {
+        let deflated = miniz_oxide::deflate::compress_to_vec_zlib(profile, level);
+        png_chunk(b"iCCP", &[name, &[0, 0], &deflated].concat())
     }
 
     /// `six-by-four.png`: its signature and IHDR, its IDAT, its IEND.
@@ -743,12 +1133,12 @@ pub(crate) mod tests {
     }
 
     /// The colour, transparency and animation chunks a PNG keeps, before its
-    /// IDAT and after it.
-    fn png_kept() -> (Vec<u8>, Vec<u8>) {
+    /// IDAT and after it, `iccp` its iCCP chunk.
+    fn png_kept(iccp: Vec<u8>) -> (Vec<u8>, Vec<u8>) {
         let before = [
             png_chunk(b"gAMA", &[0, 0, 0xB1, 0x8F]),
             png_chunk(b"cHRM", &[7; 32]),
-            png_chunk(b"iCCP", b"ICC profile\0\0a profile"),
+            iccp,
             png_chunk(b"sRGB", &[0]),
             png_chunk(b"cICP", &[1, 13, 0, 1]),
             png_chunk(b"mDCV", &[9; 24]),
@@ -766,11 +1156,12 @@ pub(crate) mod tests {
     }
 
     /// **A PNG an editor wrote**: six-by-four.png with the chunks it keeps,
-    /// and with text (tEXt, zTXt, iTXt's XMP), tIME, eXIf, pHYs, sBIT, bKGD
-    /// and a private chunk among them, and bytes after its IEND.
+    /// its iCCP a display's profile (version 4) named for a person; and
+    /// with text (tEXt, zTXt, iTXt's XMP), tIME, eXIf, pHYs, sBIT, bKGD and
+    /// a private chunk among them, and bytes after its IEND.
     pub(crate) fn laden_png() -> Vec<u8> {
         let (head, idat, iend) = png_parts();
-        let (before, after) = png_kept();
+        let (before, after) = png_kept(iccp_chunk(NAME, &icc::tests::planted(4), 9));
         [
             head,
             png_chunk(b"tEXt", &[&b"Comment\0"[..], COMMENT].concat()),
@@ -798,12 +1189,75 @@ pub(crate) mod tests {
     fn a_png_keeps_its_image_colour_and_frames_and_nothing_else() {
         let laden = laden_png();
         assert_eq!(identified(&laden).len(), 7, "{:?}", identified(&laden));
+        let planted = icc::tests::planted(4);
+        assert_eq!(
+            identified(&profiles_in(&laden).concat()).len(),
+            6,
+            "in its profile"
+        );
         let kept = strip(&laden).expect("kept");
         assert_eq!(identified(&kept), Vec::<&str>::new());
+        // Its iCCP named "ICC profile", its profile rewritten (`icc.rs`),
+        // deflated again, and its CRC its own.
         let (head, idat, iend) = png_parts();
-        let (before, after) = png_kept();
+        let profile = icc::scrub(&planted).expect("a profile kept");
+        let (before, after) = png_kept(iccp_chunk(icc::NEUTRAL, &profile, 6));
         assert_eq!(kept, [head, before, idat, after, iend].concat());
+        assert_eq!(profiles_in(&kept), vec![profile]);
         assert_eq!(strip(&kept), Ok(kept.clone()), "rewritten to itself");
+    }
+
+    /// **A PNG's ICC profile is read from its first iCCP chunk, and kept
+    /// for its colour alone** (the independent review, finding 1; PNG,
+    /// third edition, §11.3.2.4): its name, which is free text, made "ICC
+    /// profile"; its profile inflated (with this crate's `miniz_oxide`, to
+    /// at most 4 MiB), rewritten (`icc.rs`) and deflated again; its CRC
+    /// computed. A second iCCP is not kept (a PNG has one), nor an iCCP
+    /// without a name, with a name past 79 bytes, compressed by another
+    /// method, whose stream is cut or inflates past 4 MiB, or whose profile
+    /// does not parse.
+    #[test]
+    fn a_pngs_icc_profile_is_read_from_its_first_iccp() {
+        let (head, idat, iend) = png_parts();
+        let png = |chunks: &[Vec<u8>]| [&head[..], &chunks.concat(), &idat, &iend].concat();
+        let planted = icc::tests::planted(4);
+        let kept = iccp_chunk(icc::NEUTRAL, &icc::scrub(&planted).unwrap(), 6);
+        let second = iccp_chunk(b"second", &icc::tests::planted(2), 1);
+        assert_eq!(
+            strip(&png(&[iccp_chunk(NAME, &planted, 1), second])),
+            Ok(png(std::slice::from_ref(&kept)))
+        );
+        let crc = be32(&kept, kept.len() - 4).unwrap();
+        assert_eq!(
+            crc,
+            sniff::crc32(&kept[4..kept.len() - 4]),
+            "its CRC its own"
+        );
+        let iccp = |name: &[u8], method: u8, stream: &[u8]| {
+            png_chunk(b"iCCP", &[name, &[0, method], stream].concat())
+        };
+        let stream = miniz_oxide::deflate::compress_to_vec_zlib(&planted, 1);
+        let past = [&planted[..], &vec![0; icc::MAX]].concat();
+        let cases = [
+            ("no name", iccp(b"", 0, &stream)),
+            ("a name of 80 bytes", iccp(&[b'n'; 80], 0, &stream)),
+            ("another compression method", iccp(NAME, 1, &stream)),
+            ("its stream cut", iccp(NAME, 0, &stream[..stream.len() - 4])),
+            ("its stream past 4 MiB", iccp_chunk(NAME, &past, 1)),
+            (
+                "a profile that does not parse",
+                iccp_chunk(NAME, &planted[1..], 1),
+            ),
+        ];
+        for (what, chunk) in cases {
+            assert_eq!(strip(&png(&[chunk])), Ok(png(&[])), "{what}");
+        }
+        let longest = iccp(&[b'n'; 79], 0, &stream);
+        assert_eq!(
+            strip(&png(&[longest])),
+            Ok(png(&[kept])),
+            "a name of 79 bytes"
+        );
     }
 
     #[test]
@@ -857,15 +1311,17 @@ pub(crate) mod tests {
     }
 
     /// **An extended WebP an editor wrote**: VP8X flagging an ICC profile,
-    /// Exif and XMP; the profile, its alpha and its image; then EXIF, `XMP `
-    /// and a private chunk; and bytes after its RIFF.
+    /// Exif and XMP; the profile (a display's, version 4, which names a
+    /// person, a device, its serial number and a time), its alpha and its
+    /// image; then EXIF, `XMP ` and a private chunk; and bytes after its
+    /// RIFF.
     pub(crate) fn laden_webp() -> Vec<u8> {
         let (mut vp8x, alph, vp8) = alpha_parts();
-        vp8x[0] |= 0x20 | VP8X_EXIF | VP8X_XMP;
+        vp8x[0] |= VP8X_ICC | VP8X_EXIF | VP8X_XMP;
         riff_of(
             &[
                 riff_chunk(b"VP8X", &vp8x),
-                riff_chunk(b"ICCP", b"a profile"),
+                riff_chunk(b"ICCP", &icc::tests::planted(4)),
                 alph,
                 vp8,
                 riff_chunk(b"EXIF", &tiff(6)),
@@ -879,15 +1335,16 @@ pub(crate) mod tests {
     #[test]
     fn a_webp_keeps_its_image_colour_and_alpha_and_nothing_else() {
         let laden = laden_webp();
-        assert_eq!(identified(&laden).len(), 6, "{:?}", identified(&laden));
+        assert_eq!(identified(&laden).len(), 9, "{:?}", identified(&laden));
         let kept = strip(&laden).expect("kept");
         assert_eq!(identified(&kept), Vec::<&str>::new());
         let (mut vp8x, alph, vp8) = alpha_parts();
-        vp8x[0] |= 0x20; // the ICC profile's flag, kept; Exif's and XMP's cleared
+        vp8x[0] |= VP8X_ICC; // the ICC profile's flag, kept; Exif's and XMP's cleared
+        let profile = icc::scrub(&icc::tests::planted(4)).expect("a profile kept");
         let expected = riff_of(
             &[
                 riff_chunk(b"VP8X", &vp8x),
-                riff_chunk(b"ICCP", b"a profile"),
+                riff_chunk(b"ICCP", &profile),
                 alph,
                 vp8,
             ],
@@ -908,6 +1365,56 @@ pub(crate) mod tests {
         assert_eq!(
             strip(&long),
             Ok(riff_of(&[riff_chunk(b"VP8X", &vp8x), alph, vp8], &[]))
+        );
+    }
+
+    /// **A WebP's ICC profile is read from its first ICCP chunk, and kept
+    /// for its colour alone** (the independent review, finding 1; RFC 9649,
+    /// §2.7.1.4: one ICCP, flagged in VP8X): rewritten (`icc.rs`); a second
+    /// ICCP not kept; one whose profile does not parse not kept, and VP8X
+    /// then flags no profile.
+    #[test]
+    fn a_webps_icc_profile_is_read_from_its_first_iccp() {
+        let (vp8x, alph, vp8) = alpha_parts();
+        let flagged = |icc: bool| {
+            let mut v = vp8x.clone();
+            v[0] |= if icc { VP8X_ICC } else { 0 };
+            riff_chunk(b"VP8X", &v)
+        };
+        let planted = icc::tests::planted(2);
+        let profile = icc::scrub(&planted).expect("a profile kept");
+        let two = riff_of(
+            &[
+                flagged(true),
+                riff_chunk(b"ICCP", &planted),
+                riff_chunk(b"ICCP", &icc::tests::planted(4)),
+                alph.clone(),
+                vp8.clone(),
+            ],
+            &[],
+        );
+        let one = riff_of(
+            &[
+                flagged(true),
+                riff_chunk(b"ICCP", &profile),
+                alph.clone(),
+                vp8.clone(),
+            ],
+            &[],
+        );
+        assert_eq!(strip(&two), Ok(one));
+        let unread = riff_of(
+            &[
+                flagged(true),
+                riff_chunk(b"ICCP", &planted[1..]),
+                alph.clone(),
+                vp8.clone(),
+            ],
+            &[],
+        );
+        assert_eq!(
+            strip(&unread),
+            Ok(riff_of(&[flagged(false), alph, vp8], &[]))
         );
     }
 
@@ -972,6 +1479,90 @@ pub(crate) mod tests {
             malformed(&short),
             "an ANMF chunk is shorter than its frame header"
         );
+    }
+
+    /// **A WebP of five megabytes of empty chunks costs a walk, and no list
+    /// of them** (the independent review, finding 4): an extended file, its
+    /// image, then 624,990 empty chunks a writer made up, each eight bytes,
+    /// is kept as its image alone. Its peak resident memory over the
+    /// input's own stays under a quarter of the input (0 kB here), where a
+    /// list of its chunks, 32 bytes each, adds four times the input (19 MB
+    /// here, with the list put back); and it takes under two seconds (some
+    /// 45 ms here, unoptimized). Measured in a child process of this test
+    /// binary that runs this test alone, so no other test's memory is
+    /// counted, by Linux's `VmHWM` (the peak resident set) read before and
+    /// after, the walk run once on a small file first so that the pages of
+    /// code it faults in (a megabyte or two) are not counted.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_webp_of_many_empty_chunks_is_walked_without_a_list() {
+        const CHILD: &str = "PW_STRIP_WALK_CHILD";
+        let vp8l = fixture("seven-by-three-lossless.webp")[12..].to_vec();
+        let vp8x = riff_chunk(b"VP8X", &[0, 0, 0, 0, 6, 0, 0, 2, 0, 0]);
+        if std::env::var_os(CHILD).is_some() {
+            let peak = || -> u64 {
+                let status = std::fs::read_to_string("/proc/self/status").expect("its status");
+                let line = status.lines().find_map(|l| l.strip_prefix("VmHWM:"));
+                let kb = line.expect("VmHWM").trim().trim_end_matches("kB").trim();
+                kb.parse().expect("kilobytes")
+            };
+            // The walk's code and the measure's own read once first, so
+            // that the pages of code they fault in are not counted.
+            let few = riff_of(&[vp8x.clone(), vp8l.clone(), riff_chunk(b"prVt", &[])], &[]);
+            assert!(strip(&few).is_ok() && peak() > 0);
+            let head = 12 + vp8x.len() + vp8l.len();
+            let chunks = (5_000_000 - head) / 8;
+            let mut laden = Vec::with_capacity(head + 8 * chunks);
+            laden.extend(b"RIFF");
+            laden.extend(((head - 8 + 8 * chunks) as u32).to_le_bytes());
+            laden.extend(b"WEBP");
+            laden.extend(&vp8x);
+            laden.extend(&vp8l);
+            for _ in 0..chunks {
+                laden.extend(b"prVt\0\0\0\0");
+            }
+            let before = peak();
+            let started = std::time::Instant::now();
+            let kept = strip(&laden);
+            let took = started.elapsed();
+            let over = peak() - before;
+            assert_eq!(kept, Ok(riff_of(&[vp8x, vp8l], &[])));
+            println!(
+                "WALKED {} {chunks} {over} {}",
+                laden.len(),
+                took.as_micros()
+            );
+            return;
+        }
+        let name = "uploads::strip::tests::a_webp_of_many_empty_chunks_is_walked_without_a_list";
+        let child = std::process::Command::new(std::env::current_exe().expect("this test binary"))
+            .args(["--exact", name, "--nocapture", "--test-threads=1"])
+            .env(CHILD, "1")
+            .output()
+            .expect("the child runs");
+        let out = String::from_utf8_lossy(&child.stdout);
+        assert!(
+            child.status.success(),
+            "{out}\n{}",
+            String::from_utf8_lossy(&child.stderr)
+        );
+        // After libtest's `test <name> ... `, on its line.
+        let walked: Vec<u64> = out
+            .lines()
+            .find_map(|l| l.split_once("WALKED ").map(|(_, measure)| measure))
+            .expect("the child's measure")
+            .split(' ')
+            .map(|n| n.parse().expect("a count"))
+            .collect();
+        let [bytes, chunks, over_kb, micros] = walked[..] else {
+            panic!("{out}")
+        };
+        assert!(bytes > 4_999_000 && chunks == 624_990, "{out}");
+        assert!(
+            over_kb * 1024 < bytes / 4,
+            "{over_kb} kB over the input's {bytes} bytes"
+        );
+        assert!(micros < 2_000_000, "{micros} µs");
     }
 
     // ---- GIF ----
@@ -1089,6 +1680,70 @@ pub(crate) mod tests {
             malformed(&control),
             "a graphic control extension is not four bytes"
         );
+    }
+
+    /// `pixels`, each an index of a colour table whose LZW minimum code
+    /// size is 2, as GIF's LZW codes (GIF89a, Appendix F): a clear code (4)
+    /// before every two pixels, so no code is ever wider than three bits,
+    /// then the end of information (5), packed from the least significant
+    /// bit.
+    fn lzw(pixels: &[u8]) -> Vec<u8> {
+        let mut codes = Vec::new();
+        for pair in pixels.chunks(2) {
+            codes.push(4);
+            codes.extend(pair.iter().map(|&p| p as u32));
+        }
+        codes.push(5);
+        let (mut bits, mut held, mut packed) = (0u32, 0, Vec::new());
+        for code in codes {
+            bits |= code << held;
+            held += 3;
+            while held >= 8 {
+                packed.push(bits as u8);
+                bits >>= 8;
+                held -= 8;
+            }
+        }
+        if held > 0 {
+            packed.push(bits as u8);
+        }
+        packed
+    }
+
+    /// **A GIF whose image has its own colour table** (GIF89a, §20's local
+    /// colour table), as an animation's per-frame palettes are, built here:
+    /// a logical screen of 4 by 2 whose global table is black and white,
+    /// and an image whose own table is red, blue, green and white, its left
+    /// half red and its right half blue.
+    pub(crate) fn local_table_gif() -> Vec<u8> {
+        let mut b = b"GIF89a".to_vec();
+        b.extend([4, 0, 2, 0, 0x80, 0, 0]);
+        b.extend([0, 0, 0, 255, 255, 255]);
+        b.extend([0x2C, 0, 0, 0, 0, 4, 0, 2, 0, 0x81]);
+        b.extend([255, 0, 0, 0, 0, 255, 0, 255, 0, 255, 255, 255]);
+        b.push(2);
+        b.extend(sub_blocks(&lzw(&[0, 0, 1, 1, 0, 0, 1, 1])));
+        b.push(0x3B);
+        b
+    }
+
+    /// **A GIF whose images have their own colour tables is kept whole**
+    /// (the independent review, finding 3): an image's local colour table
+    /// is part of the image, so the walk goes on past it.
+    #[test]
+    fn a_gif_whose_images_have_their_own_colour_tables_is_kept() {
+        let gif = local_table_gif();
+        assert_eq!(gif[28], 0x81, "a local colour table of four");
+        assert_eq!(strip(&gif), Ok(gif.clone()));
+        let shown = sniff::measure(&gif).expect("measured");
+        assert_eq!((shown.width, shown.height), (4, 2));
+        // Two frames, each with its own palette, a comment between them.
+        let (head, image) = (&gif[..19], &gif[19..gif.len() - 1]);
+        let comment = [&[0x21, 0xFE][..], &sub_blocks(COMMENT)].concat();
+        let laden = [head, &CONTROL, image, &comment, &CONTROL, image, &[0x3B]].concat();
+        assert_eq!(identified(&laden), vec!["a comment"]);
+        let kept = [head, &CONTROL, image, &CONTROL, image, &[0x3B]].concat();
+        assert_eq!(strip(&laden), Ok(kept));
     }
 
     // ---- Every format ----
