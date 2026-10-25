@@ -101,8 +101,11 @@ shipped.
 (blob `2d6ec366a6da8fa4c9208d8b798219c6639180b8`, 18,752 bytes), from the
 package installed for `spikes/own-renderer`.
 
-`benchmarks/headtohead/upstream.mjs` holds every file here to its blob: the
-head-to-head refuses to measure a vendored file that is not upstream's.
+`upstream.json` is this table as data, from the fetched checkout. The
+head-to-head (`../validate.mjs`, its build rule) holds every file listed there
+to its blob, and every file a page is sent from these directories to the file
+of the same name: it refuses to report a measurement of a vendored file that
+is not upstream's, or of a served file that is not the vendored one.
 
 ## What the builds are
 
