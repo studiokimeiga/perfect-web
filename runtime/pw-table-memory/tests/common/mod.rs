@@ -323,16 +323,14 @@ pub fn grants(names: &[&str]) -> String {
         .join(",")
 }
 
+/// What platform imports were handed, by their key, in the order called.
+pub type Handed = Arc<Mutex<Vec<(String, Vec<Val>)>>>;
+
 /// Every platform import of `reader`'s contract (its outbox's invalidations,
 /// ADR-0209), each answering nothing and recording what it was given, by its
 /// key, in the order it was called.
-pub fn platform(
-    reader: &Reader,
-) -> (
-    BTreeMap<String, HostFn>,
-    Arc<Mutex<Vec<(String, Vec<Val>)>>>,
-) {
-    let calls: Arc<Mutex<Vec<(String, Vec<Val>)>>> = Arc::default();
+pub fn platform(reader: &Reader) -> (BTreeMap<String, HostFn>, Handed) {
+    let calls: Handed = Arc::default();
     let mut host = BTreeMap::new();
     for import in &reader.contract.imports {
         if pw_host::tables::is_table_interface(&import.interface) {

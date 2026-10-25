@@ -527,9 +527,14 @@ impl Manifest {
                     .generated_name(function.primitive, &function.by)
                     .map_err(|why| format!("tables.json: `{import}` {why}"))?;
                 if function.name != generated {
+                    let primitive = function.primitive.name();
+                    let article = if primitive.starts_with(['a', 'e', 'i', 'o', 'u']) {
+                        "an"
+                    } else {
+                        "a"
+                    };
                     return Err(format!(
-                        "tables.json: `{import}` is a {}, imported elsewhere than `#{}`",
-                        function.primitive.name(),
+                        "tables.json: `{import}` is {article} {primitive}, imported elsewhere than `#{}`",
                         wit_name(&generated)
                     ));
                 }

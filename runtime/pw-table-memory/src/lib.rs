@@ -160,47 +160,51 @@ impl Data {
     /// **The one mutation**: `key`'s row becomes `row` (none: it is removed),
     /// every index and reference entry of the row before removed and of the
     /// row after added. A unique index's value held by another key refuses
-    /// it before anything changes.
+    /// it before anything changes; and everything that can fail is done
+    /// before anything changes, so that a row and its maps never part.
     fn set(&mut self, shape: &TableShape, key: &Key, row: Option<Row>) -> Result<Set, Error> {
-        let mut entries = Vec::with_capacity(shape.indexes.len());
-        if let Some(row) = &row {
-            for (index, declared) in self.indexes.iter().zip(&shape.indexes) {
-                let values = row_key(row, &declared.fields)?;
+        let after = match &row {
+            Some(row) => Some(entries(shape, row)?),
+            None => None,
+        };
+        if let Some((values, _)) = &after {
+            for ((index, declared), values) in self.indexes.iter().zip(&shape.indexes).zip(values) {
                 if declared.unique
-                    && let Some(holder) = holding(index, &values).find(|held| *held != key)
+                    && let Some(holder) = holding(index, values).find(|held| *held != key)
                 {
                     let held = self.rows.get(holder).cloned().ok_or_else(|| {
                         Error::Schema(format!("{}'s index names a missing row", shape.name))
                     })?;
                     return Ok(Set::Held(held));
                 }
-                entries.push(values);
             }
         }
-        let referring = match &row {
-            Some(row) => references(shape, row)?,
-            None => Vec::new(),
+        let before = match self.rows.get(key) {
+            Some(prior) => Some(entries(shape, prior)?),
+            None => None,
         };
         let prior = match row {
             Some(row) => self.rows.insert(key.clone(), row),
             None => self.rows.remove(key),
         };
-        if let Some(prior) = &prior {
-            for (index, declared) in self.indexes.iter_mut().zip(&shape.indexes) {
-                index.remove(&(row_key(prior, &declared.fields)?, key.clone()));
+        if let Some((values, referred)) = before {
+            for (index, values) in self.indexes.iter_mut().zip(values) {
+                index.remove(&(values, key.clone()));
             }
-            for (map, referred) in self.referring.iter_mut().zip(references(shape, prior)?) {
+            for (map, referred) in self.referring.iter_mut().zip(referred) {
                 if let Some(referred) = referred {
                     map.remove(&(referred, key.clone()));
                 }
             }
         }
-        for (index, values) in self.indexes.iter_mut().zip(entries) {
-            index.insert((values, key.clone()));
-        }
-        for (map, referred) in self.referring.iter_mut().zip(referring) {
-            if let Some(referred) = referred {
-                map.insert((referred, key.clone()));
+        if let Some((values, referred)) = after {
+            for (index, values) in self.indexes.iter_mut().zip(values) {
+                index.insert((values, key.clone()));
+            }
+            for (map, referred) in self.referring.iter_mut().zip(referred) {
+                if let Some(referred) = referred {
+                    map.insert((referred, key.clone()));
+                }
             }
         }
         Ok(Set::Done(prior))
@@ -225,6 +229,17 @@ fn holding<'a>(
         .range((values.clone(), Vec::new())..)
         .take_while(move |(held, _)| *held == values)
         .map(|(_, key)| key)
+}
+
+/// A row's entries in its table's maps: each index's values, and the key
+/// each reference refers to.
+fn entries(shape: &TableShape, row: &Row) -> Result<(Vec<Key>, Vec<Option<Key>>), Error> {
+    let values = shape
+        .indexes
+        .iter()
+        .map(|index| row_key(row, &index.fields))
+        .collect::<Result<_, _>>()?;
+    Ok((values, references(shape, row)?))
 }
 
 /// The key each of a row's references refers to; none where it holds none.
@@ -522,14 +537,14 @@ impl Command {
 
     /// **The tables this command has written so far**, by name: what its
     /// commit publishes, and so what a host commits its outbox with
-    /// (`Staged::rows`); none where it wrote nothing.
+    /// (`Staged::rows`); none where it wrote nothing, a delete of a key no
+    /// row has, or a row put back as it was, among them.
     pub fn written(&self) -> Result<BTreeSet<String>, Error> {
         let working = self.inner.working_of(self.id)?;
         let open = working.open.as_ref().ok_or(Error::Ended)?;
-        Ok(open
-            .touched
-            .keys()
-            .map(|(table, _)| self.inner.shape.tables[*table].name.clone())
+        Ok(changed(&working.tables, &open.touched)
+            .iter()
+            .map(|(table, _, _)| self.inner.shape.tables[*table].name.clone())
             .collect())
     }
 
@@ -544,10 +559,11 @@ impl Command {
             let mut working = self.inner.working_of(self.id)?;
             let Working { tables, open, .. } = &mut *working;
             let open = open.as_mut().ok_or(Error::Ended)?;
-            self.inner.held(tables, &open.touched)?;
+            let changed = changed(tables, &open.touched);
+            self.inner.held(tables, &changed)?;
             open.prepared = true;
             let mut written = BTreeMap::new();
-            for (table, _) in open.touched.keys() {
+            for (table, _, _) in &changed {
                 written.insert(
                     self.inner.shape.tables[*table].name.clone(),
                     tables[*table].version + 1,
@@ -639,13 +655,10 @@ impl Inner {
         write(&self.shape, tables, &mut open.touched, import, args)
     }
 
-    /// **What a commit keeps** (see [`Command::prepare`]).
-    fn held(
-        &self,
-        tables: &[Data],
-        touched: &BTreeMap<(usize, Key), Option<Row>>,
-    ) -> Result<(), Error> {
-        let written: BTreeSet<usize> = touched.keys().map(|(table, _)| *table).collect();
+    /// **What a commit keeps** (see [`Command::prepare`]), of each row it
+    /// changed.
+    fn held(&self, tables: &[Data], changed: &[(usize, Key, Option<Row>)]) -> Result<(), Error> {
+        let written: BTreeSet<usize> = changed.iter().map(|(table, _, _)| *table).collect();
         for &table in &written {
             let shape = &self.shape.tables[table];
             if let Some(bound) = shape.bounded
@@ -658,7 +671,7 @@ impl Inner {
                 )));
             }
         }
-        for (table, key) in touched.keys() {
+        for (table, key, _) in changed {
             let shape = &self.shape.tables[*table];
             match tables[*table].rows.get(key) {
                 // A row written: each row it refers to exists.
@@ -713,14 +726,10 @@ impl Inner {
         let Some(ended) = open.take() else {
             return;
         };
-        let written: BTreeSet<usize> = ended.touched.keys().map(|(table, _)| *table).collect();
         if publish {
-            // Each touched key's row as the command left it.
-            let rows: Vec<(usize, Key, Option<Row>)> = ended
-                .touched
-                .keys()
-                .map(|(table, key)| (*table, key.clone(), tables[*table].rows.get(key).cloned()))
-                .collect();
+            // Each key the command changed, with its row as it left it.
+            let rows = changed(tables, &ended.touched);
+            let written: BTreeSet<usize> = rows.iter().map(|(table, _, _)| *table).collect();
             if let Ok(mut published) = self.published.lock() {
                 let state = Arc::make_mut(&mut *published);
                 replay(&self.shape, state, &rows);
@@ -743,6 +752,21 @@ impl Inner {
         drop(working);
         self.turn.notify_one();
     }
+}
+
+/// **Each key a command changed**, with its row now: each it touched whose
+/// row is not the one it held before.
+fn changed(
+    tables: &[Data],
+    touched: &BTreeMap<(usize, Key), Option<Row>>,
+) -> Vec<(usize, Key, Option<Row>)> {
+    touched
+        .iter()
+        .filter_map(|((table, key), before)| {
+            let now = tables[*table].rows.get(key).cloned();
+            (now != *before).then(|| (*table, key.clone(), now))
+        })
+        .collect()
 }
 
 /// Tables a replay sets rows in: the working copy's, or the published ones,

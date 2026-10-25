@@ -529,35 +529,46 @@ fn an_ended_command_writes_nothing() {
     let command = db.begin().unwrap();
     let host = command.host_fns(&contract, &granted).unwrap();
     let insert = host.get(USERS_INSERT).unwrap().clone();
-    assert_eq!(insert(&[cy.clone()]), Ok(vec![Val::Result(Ok(None))]));
     assert_eq!(
-        insert(&[cy.clone()]),
+        insert(std::slice::from_ref(&cy)),
+        Ok(vec![Val::Result(Ok(None))])
+    );
+    assert_eq!(
+        insert(std::slice::from_ref(&cy)),
         Ok(vec![Val::Result(Err(Some(Box::new(cy.clone()))))]),
         "refused by its own earlier write"
     );
     let prepared = command.prepare().unwrap();
     assert!(
-        insert(&[cy.clone()]).is_err(),
+        insert(std::slice::from_ref(&cy)).is_err(),
         "prepared, it writes nothing more"
     );
     prepared.publish();
     let next = db.begin().unwrap();
-    let refused = insert(&[cy.clone()]).expect_err("ended, it writes nothing");
+    let refused = insert(std::slice::from_ref(&cy)).expect_err("ended, it writes nothing");
     assert!(refused.contains("Ended"), "{refused}");
     drop(next);
     assert_eq!(db.read(BY_NAME, &[json!("Cy")]).unwrap(), user("cy", "Cy"));
 }
 
-/// A command that writes nothing commits nothing a host need record, and a
-/// delete of a key no row has writes nothing.
+/// A command that writes nothing commits nothing a host need record: a
+/// delete of a key no row has, a row put back as it was, and a row
+/// inserted and deleted again write nothing.
 #[test]
 fn a_command_that_writes_nothing_reports_no_table() {
     let db = seeded(10);
     let mut command = db.begin().unwrap();
     command.write(USERS_DELETE, &[json!("nobody")]).unwrap();
     command.write(DELETE_OF_AUTHOR, &[json!("nobody")]).unwrap();
+    command.write(USERS_PUT, &[user("ann", "Ann")]).unwrap();
+    command.write(USERS_INSERT, &[user("cy", "Cy")]).unwrap();
+    command.write(USERS_DELETE, &[json!("cy")]).unwrap();
     assert!(command.written().unwrap().is_empty());
     assert!(command.commit().unwrap().written.is_empty());
+    // The neighbour: a row changed is a table written.
+    let mut command = db.begin().unwrap();
+    command.write(USERS_PUT, &[user("ann", "Anne")]).unwrap();
+    assert_eq!(command.written().unwrap(), ["Users".to_string()].into());
 }
 
 /// An `Option` of an `Option` would store its `Some(None)` as its `None`:
