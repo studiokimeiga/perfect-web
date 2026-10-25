@@ -163,6 +163,34 @@ fn an_image_attached_is_posted_with_its_post_and_served() {
     attached_and_posted(&served_feed());
 }
 
+/// **What names a place, a device, a person or a time is neither kept nor
+/// served** (track `upload-metadata`, ADR-XXXX): a phone's photo, attached
+/// over HTTP and posted, is shown turned as it was taken, and served by the
+/// key of the bytes kept, which hold no GPS position, camera, time, XMP,
+/// IPTC or comment.
+#[test]
+fn a_photos_metadata_is_neither_kept_nor_served() {
+    use crate::uploads::strip::tests::{identified, laden_jpeg};
+    let s = served_feed();
+    let laden = laden_jpeg();
+    assert_eq!(identified(&laden).len(), 6, "{:?}", identified(&laden));
+    assert!(attach(&s, "a", &laden).starts_with("http/1.1 303"));
+    let answered = post_image(&s, "a", "Where I was", "A gradient, turned", "i-1");
+    assert!(answered.committed, "{:?}", answered.result);
+    let theirs = page(&s, "b", "feed.app.Home~ui", &Params::new());
+    let at = theirs.find("src=\"/images/").expect("an image") + "src=\"".len();
+    let src = &theirs[at..at + theirs[at..].find('"').expect("its end")];
+    let after = &theirs[at..];
+    assert!(after.contains("width=\"5\" height=\"8\""), "{theirs}");
+    let (head, body) = get(&s, src);
+    assert!(head.starts_with("http/1.1 200"), "{head}");
+    assert!(head.contains("content-type: image/jpeg"), "{head}");
+    assert_eq!(identified(&body), Vec::<&str>::new());
+    let key = crate::blob::BlobKey::of(&body);
+    assert_eq!(src, format!("/images/{}.jpeg", key.hex()), "served as kept");
+    assert_eq!(body, crate::uploads::strip::strip(&laden).expect("kept"));
+}
+
 /// **Posting an image with none attached is not found, and commits
 /// nothing**; a post without one is a post as before.
 fn none_attached(s: &Server) {

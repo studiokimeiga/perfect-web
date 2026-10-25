@@ -1619,6 +1619,80 @@ pub(crate) mod tests {
         assert_eq!(files(&d.path().join("staged")), 0, "forgotten, posted");
     }
 
+    /// **An image is leased, shown and kept as it is rewritten** (ADR-XXXX):
+    /// without what names a place, a device, a person or a time, by the
+    /// rewritten bytes' key, in the deployment's storage as in staging.
+    #[test]
+    fn an_image_is_leased_and_kept_without_its_metadata() {
+        let d = dir();
+        let u = uploads(d.path(), declared(), LEASE);
+        let s = shared(&u);
+        let laden = strip::tests::laden_jpeg();
+        assert_eq!(strip::tests::identified(&laden).len(), 6);
+        let kept = strip::strip(&laden).expect("kept");
+        let key = BlobKey::of(&kept);
+        let a = post(&u, "s-1", &laden, "IMG_0001.jpg", "image/jpeg");
+        assert_eq!(a.status, 303, "{}", body(&a));
+        let shown = s.shown("s-1").expect("leased");
+        assert_eq!((shown.width, shown.height), (5, 8), "turned, as taken");
+        let mine = get(&u, &shown.src, "s-1", "");
+        assert_eq!(mine.body, kept, "its author sees what is kept");
+        assert_eq!(strip::tests::identified(&mine.body), Vec::<&str>::new());
+        let staged = d.path().join("staged");
+        assert!(staged.join(&key.hex()[..2]).join(key.hex()).is_file());
+        assert_eq!(files(&staged), 1, "and nothing else");
+        let claimed = s.claim("s-1").expect("claimed");
+        assert_eq!(claimed.key, key);
+        s.keep(&claimed).expect("kept");
+        s.committed(claimed);
+        let blob = d.path().join("blobs").join(&key.hex()[..2]).join(key.hex());
+        assert_eq!(std::fs::read(blob).expect("committed"), kept);
+    }
+
+    /// **Measured as it is kept, which is what is served**: of two Exif
+    /// structures, a browser turns a JPEG by the first it reads, and the
+    /// rewrite keeps that one alone, so a page states the size the browser
+    /// shows (read from the bytes as sent, the second said unturned).
+    #[test]
+    fn an_image_is_measured_as_it_is_kept() {
+        let d = dir();
+        let u = uploads(d.path(), declared(), LEASE);
+        let base = strip::tests::fixture("eight-by-five.jpeg");
+        let exif = |o: u16| {
+            let mut app1 = vec![0xFF, 0xE1];
+            let data = [&b"Exif\0\0"[..], &strip::tests::tiff(o)].concat();
+            app1.extend(((data.len() + 2) as u16).to_be_bytes());
+            app1.extend(data);
+            app1
+        };
+        let twice = [&base[..2], &exif(6), &exif(1), &base[2..]].concat();
+        assert_eq!(sniff::measure(&twice).map(|m| m.width), Ok(8), "as sent");
+        assert_eq!(post(&u, "s-1", &twice, "a.jpg", "image/jpeg").status, 303);
+        let shown = shared(&u).shown("s-1").expect("leased");
+        assert_eq!((shown.width, shown.height), (5, 8));
+    }
+
+    /// **A file whose container does not parse is refused whole**: a JPEG
+    /// whose header reads, cut before its EOI, is no image to rewrite, and
+    /// nothing of it is staged.
+    #[test]
+    fn a_file_the_rewrite_cannot_walk_is_refused_whole() {
+        let d = dir();
+        let u = uploads(d.path(), declared(), LEASE);
+        let base = strip::tests::fixture("eight-by-five.jpeg");
+        let cut = &base[..base.len() - 2];
+        assert!(sniff::measure(cut).is_ok(), "its header reads");
+        let a = post(&u, "s-1", cut, "a.jpg", "image/jpeg");
+        assert_eq!(a.status, 422);
+        assert!(
+            body(&a).contains("The file is not a whole JPEG image: it ends before its EOI."),
+            "{}",
+            body(&a)
+        );
+        assert!(shared(&u).shown("s-1").is_none());
+        assert_eq!(files(&d.path().join("staged")), 0);
+    }
+
     #[test]
     fn a_lease_nothing_claims_ends_when_its_time_does() {
         let d = dir();
