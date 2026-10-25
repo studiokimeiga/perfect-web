@@ -29,7 +29,24 @@ fail:
   in the browser); a file the rewrite refuses kept as sent; an image
   measured as sent, not as kept; a user's hourly bytes counting what is kept
   where the bytes sent are; a lease replaced by the same bytes forgetting
-  them (the track's finding in `Shared::lease`).
+  them (the track's finding in `Shared::lease`);
+- the independent review of 2026-10-25: an ICC profile (`uploads/icc.rs`)
+  keeping its creation time, its device's maker and model, its ID, a
+  `desc`, `mluc` or `text` tag's text, or a tag of another type (Apple's
+  `mmod`, a calibration's `dtim`); a colour tag dropped or cut; a profile
+  read that does not parse (shorter than it says, no `acsp`, a version over
+  4, a tag in its table or shorter than its type, two tags' data
+  overlapping, more than 1,024 tags) or kept larger than 4 MiB; a JPEG's
+  ICC chunks kept as sent, or not kept, read after the first scan, read
+  though their counts differ or a number repeats, or split one byte past an
+  APP2; a PNG's iCCP not kept, kept as sent, keeping its name, a second kept,
+  inflated without a bound, read with another compression method, with no
+  name or a name past 79 bytes; a WebP's ICCP not kept, kept as sent, a
+  second kept, VP8X's ICC flag left set where none is kept; JFIF's units and
+  densities kept (finding 2); a scan ended at a restart marker, a GIF
+  image's local colour table not skipped (finding 3: each refuses every
+  such file); a WebP's chunks listed before they are walked (finding 4:
+  four times its bytes in memory).
 
 The tests: the server's (`uploads` and `blob`: `uploads/strip.rs`,
 `uploads.rs`, `tests/uploads.rs`, `blob.rs`), and for the mutants marked
@@ -48,6 +65,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 STRIP = ROOT / "spikes/own-renderer/server/src/uploads/strip.rs"
+ICC = ROOT / "spikes/own-renderer/server/src/uploads/icc.rs"
 UPLOADS = ROOT / "spikes/own-renderer/server/src/uploads.rs"
 
 RUST = "rust"
@@ -56,7 +74,15 @@ BROWSER = "browser"
 # The catch-alls a mutant adds an arm before.
 JPEG_REST = "            // Every other APPn, COM, JPGn and RESn.\n            _ => {}\n"
 PNG_KEEPS = "        if PNG_KEPT.iter().any(|k| &k[..] == kind) {\n"
-WEBP_KEEPS = '                    b"ICCP" | b"ANIM" | b"ALPH" | b"VP8 " | b"VP8L" => {\n'
+WEBP_KEEPS = '                    b"ANIM" | b"ALPH" | b"VP8 " | b"VP8L" => {\n'
+JFIF_KEPT = "                    jfif = Some([&data[..7], &[0, 0, 1, 0, 1, 0, 0]].concat());\n"
+ICC_READ = "                    profile.add(data);\n"
+ICCP_KEPT = "                if let Some(data) = iccp(&chunk[8..8 + length]) {\n"
+ICCP_SCRUBBED = "                        if let Some(profile) = icc::scrub(data) {\n"
+ZEROED = "const ZEROED: [(usize, usize); 3] = [(24, 36), (48, 64), (84, 128)];\n"
+NEUTRAL = '        b"desc" | b"mluc" | b"text" => Keeps::Neutral,\n'
+TAG_READ = "        if at < table || len < 4 || at.checked_add(len)? > size {\n"
+SIGNED = '    if &p[36..40] != b"acsp" || p[8] > 4 {\n'
 GIF_REST = (
     "                    // Comments (FE), plain text (01) and labels it does not know.\n"
     "                    _ => {}\n"
@@ -109,8 +135,15 @@ MUTANTS = [
         "a JPEG's APP0 is kept whole, its thumbnail with it",
         RUST,
         STRIP,
-        "                    jfif = Some([&data[..12], &[0, 0]].concat());\n",
+        JFIF_KEPT,
         "                    jfif = Some(data.to_vec());\n",
+    ),
+    (
+        "a JPEG's JFIF units and densities are kept (a screen's 144 dpi)",
+        RUST,
+        STRIP,
+        JFIF_KEPT,
+        "                    jfif = Some([&data[..12], &[0, 0]].concat());\n",
     ),
     (
         "what follows a JPEG's EOI is kept (a phone's second image)",
@@ -158,8 +191,50 @@ MUTANTS = [
         "a JPEG's ICC profile is not kept",
         RUST,
         STRIP,
-        "            0xE2 if data.starts_with(ICC) => segment(&mut kept, m, data),\n",
-        "            0xE2 if data.starts_with(ICC) => {}\n",
+        ICC_READ,
+        "",
+    ),
+    (
+        "a JPEG's ICC profile is kept as sent, what it names with it",
+        RUST,
+        STRIP,
+        ICC_READ,
+        "                    segment(&mut kept, m, data);\n",
+    ),
+    (
+        "an ICC chunk after a JPEG's first scan is read",
+        RUST,
+        STRIP,
+        "                if !scanned {\n" + ICC_READ,
+        "                if !scanned || m == 0xE2 {\n" + ICC_READ,
+    ),
+    (
+        "ICC chunks whose counts differ are read as one profile",
+        RUST,
+        STRIP,
+        "        let numbered = n >= 1 && n <= count as usize && (self.count == 0 || self.count == count);\n",
+        "        let numbered = n >= 1 && n <= count as usize;\n",
+    ),
+    (
+        "an ICC chunk whose number repeats is read",
+        RUST,
+        STRIP,
+        "        if !numbered || self.parts[n - 1].is_some() {\n",
+        "        if !numbered {\n",
+    ),
+    (
+        "a profile is split into chunks one byte longer than an APP2 holds",
+        RUST,
+        STRIP,
+        "const ICC_PART: usize = 65_519;\n",
+        "const ICC_PART: usize = 65_520;\n",
+    ),
+    (
+        "a scan ends at a restart marker (every JPEG with restart intervals refused)",
+        RUST,
+        STRIP,
+        "            Some(0x00 | 0xD0..=0xD7) => at = next + 1,\n",
+        "            Some(0x00) => at = next + 1,\n",
     ),
     (
         "Adobe's APP14 is kept whole, past its twelve bytes",
@@ -200,8 +275,63 @@ MUTANTS = [
     ),
     ("a PNG's palette (PLTE) is not kept", RUST, STRIP, PNG_KEEPS, png_drops("PLTE")),
     ("a PNG's transparency (tRNS) is not kept", RUST, STRIP, PNG_KEEPS, png_drops("tRNS")),
-    ("a PNG's ICC profile (iCCP) is not kept", RUST, STRIP, PNG_KEEPS, png_drops("iCCP")),
     ("an animated PNG's frame data (fdAT) is not kept", RUST, STRIP, PNG_KEEPS, png_drops("fdAT")),
+    (
+        "a PNG's ICC profile (iCCP) is not kept",
+        RUST,
+        STRIP,
+        ICCP_KEPT,
+        ICCP_KEPT.replace(") {\n", ").filter(|_| false) {\n"),
+    ),
+    (
+        "a PNG's iCCP is kept as sent, its profile and its name with it",
+        RUST,
+        STRIP,
+        ICCP_KEPT,
+        ICCP_KEPT.replace(") {\n", ").map(|_| chunk[8..8 + length].to_vec()) {\n"),
+    ),
+    (
+        "a PNG's iCCP keeps its name",
+        RUST,
+        STRIP,
+        "    Some([icc::NEUTRAL, &[0, 0], &deflated].concat())\n",
+        "    Some([&data[..nul], &[0, 0], &deflated].concat())\n",
+    ),
+    (
+        "a PNG's second iCCP is kept",
+        RUST,
+        STRIP,
+        "                profiled = true;\n" + ICCP_KEPT,
+        ICCP_KEPT,
+    ),
+    (
+        "a PNG's iCCP is inflated without a bound",
+        RUST,
+        STRIP,
+        "    let profile = miniz_oxide::inflate::decompress_to_vec_zlib_with_limit(stream, icc::MAX).ok()?;\n",
+        "    let profile = miniz_oxide::inflate::decompress_to_vec_zlib(stream).ok()?;\n",
+    ),
+    (
+        "a PNG's iCCP compressed by another method is read",
+        RUST,
+        STRIP,
+        "    if data.get(nul + 1) != Some(&0) {\n",
+        "    if data.get(nul + 1).is_none() {\n",
+    ),
+    (
+        "a PNG's iCCP without a name is read",
+        RUST,
+        STRIP,
+        "        .filter(|&n| n > 0)?;\n",
+        "        .filter(|_| true)?;\n",
+    ),
+    (
+        "a PNG's iCCP whose name is past 79 bytes is read",
+        RUST,
+        STRIP,
+        "        .take(80)\n",
+        "        .take(81)\n",
+    ),
     (
         "a critical chunk it does not know is dropped, not refused",
         RUST,
@@ -237,24 +367,25 @@ MUTANTS = [
         "a WebP's unknown chunk is kept",
         RUST,
         STRIP,
-        "                    // EXIF, `XMP `, and chunks a writer made up.\n"
+        "                    // EXIF, `XMP `, a second ICCP or VP8X, and chunks a\n"
+        "                    // writer made up.\n"
         "                    _ => {}\n",
-        '                    b"EXIF" | b"XMP " => {}\n'
+        '                    b"EXIF" | b"XMP " | b"ICCP" | b"VP8X" => {}\n'
         "                    _ => chunk(&mut kept, fourcc, data),\n",
     ),
     (
         "VP8X's Exif flag is left set",
         RUST,
         STRIP,
-        "                        header[0] &= !(VP8X_EXIF | VP8X_XMP);\n",
-        "                        header[0] &= !VP8X_XMP;\n",
+        "            header[0] &= !(VP8X_EXIF | VP8X_XMP);\n",
+        "            header[0] &= !VP8X_XMP;\n",
     ),
     (
         "VP8X's XMP flag is left set",
         RUST,
         STRIP,
-        "                        header[0] &= !(VP8X_EXIF | VP8X_XMP);\n",
-        "                        header[0] &= !VP8X_EXIF;\n",
+        "            header[0] &= !(VP8X_EXIF | VP8X_XMP);\n",
+        "            header[0] &= !VP8X_EXIF;\n",
     ),
     (
         "an animated WebP frame's unknown chunk is kept",
@@ -267,8 +398,29 @@ MUTANTS = [
         "a WebP's ICC profile (ICCP) is not kept",
         RUST,
         STRIP,
-        WEBP_KEEPS,
-        WEBP_KEEPS.replace('b"ICCP" | ', ""),
+        ICCP_SCRUBBED,
+        ICCP_SCRUBBED.replace(") {\n", ").filter(|_| false) {\n"),
+    ),
+    (
+        "a WebP's ICC profile is kept as sent, what it names with it",
+        RUST,
+        STRIP,
+        ICCP_SCRUBBED,
+        ICCP_SCRUBBED.replace(") {\n", ").map(|_| data.to_vec()) {\n"),
+    ),
+    (
+        "a WebP's second ICCP is kept",
+        RUST,
+        STRIP,
+        '                    b"ICCP" if !profiled => {\n',
+        '                    b"ICCP" => {\n',
+    ),
+    (
+        "VP8X flags an ICC profile where none is kept",
+        RUST,
+        STRIP,
+        "                kept[8] &= !VP8X_ICC;\n",
+        "",
     ),
     (
         "an animated WebP's ANIM is not kept",
@@ -295,8 +447,15 @@ MUTANTS = [
         "a WebP chunk past its RIFF is kept as far as it goes",
         RUST,
         STRIP,
-        "        let data = b.get(8..8 + size).ok_or(LONG)?;\n",
-        "        let data = b.get(8..(8 + size).min(b.len())).ok_or(LONG)?;\n",
+        "            Some((b.get(..4)?, b.get(8..8 + size)?, size))\n",
+        "            Some((b.get(..4)?, b.get(8..(8 + size).min(b.len()))?, size))\n",
+    ),
+    (
+        "a WebP's chunks are listed before they are walked (four times its bytes)",
+        RUST,
+        STRIP,
+        "    let mut found = Chunks(body);\n",
+        "    let mut found = Chunks(body).collect::<Vec<_>>().into_iter();\n",
     ),
     # ---- GIF ----
     (
@@ -371,6 +530,133 @@ MUTANTS = [
         STRIP,
         "        match *b.get(at).ok_or(SHORT)? {\n",
         "        match b.get(at).copied().unwrap_or(0x3B) {\n",
+    ),
+    (
+        "a GIF image's own colour table is not skipped (every GIF with per-frame palettes refused)",
+        RUST,
+        STRIP,
+        "                let local = table(*b.get(at + 9).ok_or(SHORT)?);\n",
+        "                let local = 0;\n",
+    ),
+    # ---- An ICC profile (uploads/icc.rs) ----
+    (
+        "an ICC profile's creation time is kept",
+        RUST,
+        ICC,
+        ZEROED,
+        "const ZEROED: [(usize, usize); 2] = [(48, 64), (84, 128)];\n",
+    ),
+    (
+        "an ICC profile's device maker, model and attributes are kept",
+        RUST,
+        ICC,
+        ZEROED,
+        "const ZEROED: [(usize, usize); 2] = [(24, 36), (84, 128)];\n",
+    ),
+    (
+        "an ICC profile's ID is kept",
+        RUST,
+        ICC,
+        ZEROED,
+        "const ZEROED: [(usize, usize); 3] = [(24, 36), (48, 64), (100, 128)];\n",
+    ),
+    (
+        "an ICC profile's desc text is kept (a version 2 description, device maker or model)",
+        RUST,
+        ICC,
+        NEUTRAL,
+        '        b"desc" => Keeps::Whole,\n        b"mluc" | b"text" => Keeps::Neutral,\n',
+    ),
+    (
+        "an ICC profile's mluc text is kept (a version 4 description, device maker or model)",
+        RUST,
+        ICC,
+        NEUTRAL,
+        '        b"mluc" => Keeps::Whole,\n        b"desc" | b"text" => Keeps::Neutral,\n',
+    ),
+    (
+        "an ICC profile's text-typed text is kept (a version 2 copyright)",
+        RUST,
+        ICC,
+        NEUTRAL,
+        '        b"text" => Keeps::Whole,\n        b"desc" | b"mluc" => Keeps::Neutral,\n',
+    ),
+    (
+        "an ICC tag of another type is kept (Apple's mmod with a serial number, a calibration's time)",
+        RUST,
+        ICC,
+        "        _ => Keeps::Nothing,\n",
+        "        _ => Keeps::Whole,\n",
+    ),
+    (
+        "an ICC profile's XYZ tags (its white and primaries) are dropped",
+        RUST,
+        ICC,
+        '        b"XYZ " | b"curv" | b"para" | b"sf32" | b"mft1" | b"mft2" | b"mAB " | b"mBA " | b"mpet"\n',
+        '        b"curv" | b"para" | b"sf32" | b"mft1" | b"mft2" | b"mAB " | b"mBA " | b"mpet"\n',
+    ),
+    (
+        "an ICC colour tag is not kept byte for byte (its last byte lost)",
+        RUST,
+        ICC,
+        "            Keeps::Whole => out.extend(&p[at..at + len]),\n",
+        "            Keeps::Whole => out.extend(&p[at..at + len - 1]),\n",
+    ),
+    (
+        "two ICC tags whose data overlap are read",
+        RUST,
+        ICC,
+        "    if ranges.windows(2).any(|w| w[0].0 + w[0].1 > w[1].0) {\n",
+        "    if ranges.windows(2).any(|w| w[0] == w[1]) {\n",
+    ),
+    (
+        "an ICC tag in its profile's table is read",
+        RUST,
+        ICC,
+        TAG_READ,
+        "        if len < 4 || at.checked_add(len)? > size {\n",
+    ),
+    (
+        "an ICC tag shorter than its type's signature is read",
+        RUST,
+        ICC,
+        TAG_READ,
+        "        if at < table || at.checked_add(len)? > size {\n",
+    ),
+    (
+        "an ICC profile shorter than its header says is read",
+        RUST,
+        ICC,
+        "    if size < HEADER + 4 || size > profile.len() || size > MAX {\n",
+        "    if size < HEADER + 4 || size > MAX {\n",
+    ),
+    (
+        "an ICC profile without its acsp signature is read",
+        RUST,
+        ICC,
+        SIGNED,
+        "    if p[8] > 4 {\n",
+    ),
+    (
+        "an ICC profile of a version over 4 (iccMAX's) is read",
+        RUST,
+        ICC,
+        SIGNED,
+        '    if &p[36..40] != b"acsp" {\n',
+    ),
+    (
+        "an ICC profile of more than 1,024 tags is read",
+        RUST,
+        ICC,
+        "    if count > MAX_TAGS {\n",
+        "    if count > 2 * MAX_TAGS {\n",
+    ),
+    (
+        "an ICC profile a fixed text makes larger than 4 MiB is kept (and not kept again)",
+        RUST,
+        ICC,
+        "    if out.len() > MAX {\n",
+        "    if out.len() > 2 * MAX {\n",
     ),
     # ---- The upload path ----
     (

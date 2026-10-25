@@ -10,7 +10,8 @@
 # JPEG, PNG, WebP and GIF, each with what names a place, a device, a person
 # or a time put in and none of it kept, what decoding, colour and a photo's
 # turn need kept byte for byte, a file that does not parse refused, the
-# rewrite idempotent, and any bytes refused or kept again unchanged), the
+# rewrite idempotent, and any bytes refused or kept again unchanged; and
+# uploads/icc.rs, an ICC profile kept for its colour alone), the
 # upload path that leases, measures and keeps what it rewrote (uploads.rs),
 # and the feed that serves it over HTTP (tests/uploads.rs): the server's
 # `uploads` and `blob` tests. Then the browser suite in three engines
@@ -28,7 +29,7 @@ e14-upload-metadata:
        echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' ':(exclude)spikes/own-renderer/store-ir.json' || echo ' + uncommitted changes')"; \
        echo "rust: $(rustc --version)"; echo "node: $(node --version)"; \
        echo "playwright: $(cd spikes/own-renderer && pnpm exec playwright --version)"; echo; \
-       echo "== the server (uploads/strip.rs, uploads.rs, tests/uploads.rs, blob.rs)"; echo; \
+       echo "== the server (uploads/strip.rs, uploads/icc.rs, uploads.rs, tests/uploads.rs, blob.rs)"; echo; \
        cargo test --locked -p pw-dev-server -- uploads blob 2>&1 | awk '/^(test |test result)/ { print } /panicked at/ { p = 5 } p > 0 { print; p-- }'; \
        echo; echo "== an image shown and served without its metadata, in three engines (e2e/upload-metadata.spec.mjs)"; echo; \
        bash scripts/run_suite.sh -- pnpm exec playwright test e2e/upload-metadata.spec.mjs --reporter=line; \
