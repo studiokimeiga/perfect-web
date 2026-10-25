@@ -1,8 +1,8 @@
 ADR-0238 - a command speculates on several entries, a page on those it shows
 
 produced by: just e14-speculated-arms
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -14,7 +14,7 @@ test arms_are_separated_by_commas ... ok
 test an_arm_whose_target_a_page_shows_under_another_key_is_refused ... ok
 test a_page_that_shows_no_target_has_no_speculation ... ok
 test each_page_speculates_on_the_arm_whose_target_it_shows ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.96s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.17s
 
 == the parser (compiler/pw-syntax/src/grammar.rs)
 
@@ -55,13 +55,13 @@ failures:
 
 ---- a_page_that_shows_no_target_has_no_speculation stdout ----
 
-thread 'a_page_that_shows_no_target_has_no_speculation' (116698) panicked at compiler/pw-core/tests/speculated_arms.rs:173:5:
+thread 'a_page_that_shows_no_target_has_no_speculation' (327487) panicked at compiler/pw-core/tests/speculated_arms.rs:173:5:
 a page that speculates on nothing has no module; emitted pages: ["feed.app.Home~ui", "feed.app.PostPage~ui", "feed.app.FollowingPage~ui", "feed.app.ProfilePage~ui", "feed.app.NotificationsPage~ui", "feed.app.ConversationPage~ui", "feed.app.Likes~ui"]
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- each_page_speculates_on_the_arm_whose_target_it_shows stdout ----
 
-thread 'each_page_speculates_on_the_arm_whose_target_it_shows' (116702) panicked at compiler/pw-core/tests/speculated_arms.rs:91:5:
+thread 'each_page_speculates_on_the_arm_whose_target_it_shows' (327491) panicked at compiler/pw-core/tests/speculated_arms.rs:91:5:
 home speculation: Some(Err("Unsupported { construct: \"a speculation on an entry the page does not show by the same key\", reason: \"`feed.app.like` speculates on an entry `feed.app.Home~ui` reads by no binding whose key resolves to the same invocation context, or to the page's parameter each of its handlers passes the command unchanged (ruling 0122-d)\" }"))
 
 
@@ -69,7 +69,7 @@ failures:
     a_page_that_shows_no_target_has_no_speculation
     each_page_speculates_on_the_arm_whose_target_it_shows
 
-test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.22s
+test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.40s
 
 error: test failed, to rerun pass `-p pw-core --test speculated_arms`
 
@@ -77,8 +77,8 @@ an arm whose target the page does not show refuses the page [cargo]: KILLED (2 o
 
 running 5 tests
 test each_arms_name_is_its_own_targets_value ... ok
-test arms_are_separated_by_commas ... ok
 test an_arm_whose_target_a_page_shows_under_another_key_is_refused ... ok
+test arms_are_separated_by_commas ... ok
 test a_page_that_shows_no_target_has_no_speculation ... FAILED
 test each_page_speculates_on_the_arm_whose_target_it_shows ... ok
 
@@ -86,7 +86,7 @@ failures:
 
 ---- a_page_that_shows_no_target_has_no_speculation stdout ----
 
-thread 'a_page_that_shows_no_target_has_no_speculation' (117065) panicked at compiler/pw-core/tests/speculated_arms.rs:173:5:
+thread 'a_page_that_shows_no_target_has_no_speculation' (327857) panicked at compiler/pw-core/tests/speculated_arms.rs:173:5:
 a page that speculates on nothing has no module; emitted pages: ["feed.app.Home~ui", "feed.app.PostPage~ui", "feed.app.FollowingPage~ui", "feed.app.ProfilePage~ui", "feed.app.NotificationsPage~ui", "feed.app.ConversationPage~ui", "feed.app.Likes~ui"]
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -94,7 +94,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_page_that_shows_no_target_has_no_speculation
 
-test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.94s
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.31s
 
 error: test failed, to rerun pass `-p pw-core --test speculated_arms`
 
@@ -111,25 +111,25 @@ failures:
 
 ---- each_arms_name_is_its_own_targets_value stdout ----
 
-thread 'each_arms_name_is_its_own_targets_value' (117540) panicked at compiler/pw-core/tests/speculated_arms.rs:191:5:
+thread 'each_arms_name_is_its_own_targets_value' (328330) panicked at compiler/pw-core/tests/speculated_arms.rs:191:5:
 checked clean
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- an_arm_whose_target_a_page_shows_under_another_key_is_refused stdout ----
 
-thread 'an_arm_whose_target_a_page_shows_under_another_key_is_refused' (117538) panicked at compiler/pw-core/tests/speculated_arms.rs:136:5:
+thread 'an_arm_whose_target_a_page_shows_under_another_key_is_refused' (328328) panicked at compiler/pw-core/tests/speculated_arms.rs:136:5:
 the mismatched entry is refused: None
 
 ---- arms_are_separated_by_commas stdout ----
 
-thread 'arms_are_separated_by_commas' (117539) panicked at compiler/pw-core/tests/speculated_arms.rs:220:5:
+thread 'arms_are_separated_by_commas' (328329) panicked at compiler/pw-core/tests/speculated_arms.rs:220:5:
 assertion `left == right` failed
   left: 0
  right: 3
 
 ---- each_page_speculates_on_the_arm_whose_target_it_shows stdout ----
 
-thread 'each_page_speculates_on_the_arm_whose_target_it_shows' (117542) panicked at compiler/pw-core/tests/speculated_arms.rs:91:5:
+thread 'each_page_speculates_on_the_arm_whose_target_it_shows' (328331) panicked at compiler/pw-core/tests/speculated_arms.rs:91:5:
 home speculation: None
 
 
@@ -139,7 +139,7 @@ failures:
     each_arms_name_is_its_own_targets_value
     each_page_speculates_on_the_arm_whose_target_it_shows
 
-test result: FAILED. 1 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.15s
+test result: FAILED. 1 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.31s
 
 error: test failed, to rerun pass `-p pw-core --test speculated_arms`
 
@@ -151,7 +151,7 @@ failures:
 
 ---- grammar::tests::an_optimistic_clause_has_an_arm_for_each_entry stdout ----
 
-thread 'grammar::tests::an_optimistic_clause_has_an_arm_for_each_entry' (117699) panicked at compiler/pw-syntax/src/grammar.rs:4771:9:
+thread 'grammar::tests::an_optimistic_clause_has_an_arm_for_each_entry' (328486) panicked at compiler/pw-syntax/src/grammar.rs:4771:9:
 assertion `left == right` failed
   left: []
  right: ["Timeline(s, _) as feed => liked(feed, p)", "Thread(p) as thread => again(thread, p)"]
@@ -174,7 +174,7 @@ failures:
 
 ---- grammar::tests::an_optimistic_clause_has_an_arm_for_each_entry stdout ----
 
-thread 'grammar::tests::an_optimistic_clause_has_an_arm_for_each_entry' (118315) panicked at compiler/pw-syntax/src/grammar.rs:4792:9:
+thread 'grammar::tests::an_optimistic_clause_has_an_arm_for_each_entry' (329105) panicked at compiler/pw-syntax/src/grammar.rs:4792:9:
 assertion `left == right` failed: [SyntaxError { code: "PW0009", message: "expected an expression, found `,`", span: 12..13, help: None }, SyntaxError { code: "PW0016", message: "an optimistic clause's arms are separated by commas", span: 14..31, help: Some("write a comma before this arm") }]
   left: 2
  right: 1
@@ -192,8 +192,8 @@ an arm with no transition after its arrow takes the comma after it [cargo]: KILL
 
 running 5 tests
 test each_arms_name_is_its_own_targets_value ... FAILED
-test arms_are_separated_by_commas ... FAILED
 test an_arm_whose_target_a_page_shows_under_another_key_is_refused ... FAILED
+test arms_are_separated_by_commas ... FAILED
 test a_page_that_shows_no_target_has_no_speculation ... ok
 test each_page_speculates_on_the_arm_whose_target_it_shows ... FAILED
 
@@ -201,25 +201,25 @@ failures:
 
 ---- each_arms_name_is_its_own_targets_value stdout ----
 
-thread 'each_arms_name_is_its_own_targets_value' (118775) panicked at compiler/pw-core/tests/speculated_arms.rs:191:5:
+thread 'each_arms_name_is_its_own_targets_value' (329565) panicked at compiler/pw-core/tests/speculated_arms.rs:191:5:
 checked clean
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
+---- an_arm_whose_target_a_page_shows_under_another_key_is_refused stdout ----
+
+thread 'an_arm_whose_target_a_page_shows_under_another_key_is_refused' (329563) panicked at compiler/pw-core/tests/speculated_arms.rs:136:5:
+the mismatched entry is refused: Some(Ok(Speculation { page: "feed.app.PostPage~ui", bindings: [Binding { binding: "thread", resource: "feed.app.Thread", key: ["id"], aliases: [] }], commands: ["feed.app.reply"], regions: [5, 0], source: "// Generated by pw: optimistic speculation for feed.app.PostPage~ui (ADR-0122). Do not edit.\n\nconst f0 = (() => {\nreturn function (v0, v1, v2) {\n  const v4 = \"you\";\n  const v5 = v4;\n  const v6 = \"@you\";\n  const v7 = \"You\";\n  const v8 = { \"id\": v5, \"handle\": v6, \"name\": v7 };\n  const v9 = \"pending-reply-\";\n  const v10 = v0[\"replies\"];\n  const v11 = BigInt(v10.length);\n  const v12 = v11.toString();\n  const v13 = \"\" + v9 + v12;\n  const v14 = v13;\n  const v15 = v2;\n  const v16 = 0n;\n  const v17 = [];\n  const v18 = [];\n  const v19 = { \"id\": v14, \"author\": v8, \"text\": v15, \"likes\": v16, \"replies\": v17, \"images\": v18 };\n  const v20 = v0[\"id\"];\n  const v21 = v0[\"author\"];\n  const v22 = v0[\"text\"];\n  const v23 = v0[\"likes\"];\n  const v24 = v0[\"replies\"];\n  const v25 = [v19];\n  const v26 = [...v24, ...v25];\n  const v27 = v0[\"images\"];\n  const v28 = { \"id\": v20, \"author\": v21, \"text\": v22, \"likes\": v23, \"replies\": v26, \"images\": v27 };\n  return v28;\n};\n})();\n\nconst f1 = (() => {\nreturn function (v0) {\n  const v1 = v0[\"replies\"];\n  const v2 = BigInt(v1.length);\n  const v3 = 0n;\n  const v4 = v2 === v3;\n  return v4;\n};\n})();\n\nconst f2 = (() => {\nreturn function (v0) {\n  const v1 = v0[\"replies\"];\n  const v2 = BigInt(v1.length);\n  const v3 = \"reply\";\n  const v4 = \"replies\";\n  const v6 = 1n;\n  const v7 = v2 === v6;\n  let v13;\n  if (v7) {\n    const v8 = \"1 \";\n    const v9 = \"\" + v8 + v3;\n    v13 = v9;\n  } else {\n    const v10 = v2.toString();\n    const v11 = \" \";\n    const v12 = \"\" + v10 + v11 + v4;\n    v13 = v12;\n  }\n  return v13;\n};\n})();\n\nconst f3 = (() => {\nreturn function (v0) {\n  const v1 = v0[\"likes\"];\n  const v2 = \"like\";\n  const v3 = \"likes\";\n  const v5 = 1n;\n  const v6 = v1 === v5;\n  let v12;\n  if (v6) {\n    const v7 = \"1 \";\n    const v8 = \"\" + v7 + v2;\n    v12 = v8;\n  } else {\n    const v9 = v1.toString();\n    const v10 = \" \";\n    const v11 = \"\" + v9 + v10 + v3;\n    v12 = v11;\n  }\n  return v12;\n};\n})();\n\nexport const decode = {\n  \"thread\": (j) => ((w) => { const nodes = w === null || typeof w !== \"object\" ? undefined : w.$graph; if (!Array.isArray(nodes) || nodes.length === 0) throw new Error(\"trap: a `$graph` with no node\"); const built = new Array(nodes.length); const held = new Array(nodes.length).fill(false); let at = nodes.length - 1; const take = (r) => { const k = r === null || typeof r !== \"object\" ? undefined : r.$node; if (!Number.isInteger(k) || k <= at || k >= nodes.length || held[k]) throw new Error(\"trap: a `$graph` that is not a tree\"); held[k] = true; return built[k]; }; for (; at >= 0; at--) { const n = nodes[at]; built[at] = ((o) => ({ \"id\": o[\"id\"], \"author\": ((o) => ({ \"id\": o[\"id\"], \"handle\": o[\"handle\"], \"name\": o[\"name\"] }))(o[\"author\"]), \"text\": o[\"text\"], \"likes\": BigInt(o[\"likes\"]), \"replies\": o[\"replies\"].map((x) => take(x)), \"images\": o[\"images\"].map((x) => ((o) => ({ \"src\": o[\"src\"], \"width\": BigInt(o[\"width\"]), \"height\": BigInt(o[\"height\"]), \"alt\": o[\"alt\"] }))(x)) }))(n); } for (let k = 1; k < nodes.length; k++) if (!held[k]) throw new Error(\"trap: a `$graph` that is not a tree\"); return built[0]; })(j),\n};\n\nexport const aliases = {\n};\n\nexport const parts = {\n  \"thread\": { \"1\": f2, \"2\": f3 },\n};\n\nexport const computed = {\n  \"thread\": { \"#feed.app.PostPage~ui~5\": f1 },\n};\n\nexport const regions = {\n  \"thread\": [{ kind: \"block\", part: 5 }, { kind: \"block\", part: 0 }],\n};\n\nexport const commands = {\n  \"feed.app.reply\": [{ binding: \"thread\", transition: (value, args) => f0(value, args[0], args[1]) }],\n};\n" }))
+
 ---- arms_are_separated_by_commas stdout ----
 
-thread 'arms_are_separated_by_commas' (118774) panicked at compiler/pw-core/tests/speculated_arms.rs:220:5:
+thread 'arms_are_separated_by_commas' (329564) panicked at compiler/pw-core/tests/speculated_arms.rs:220:5:
 assertion `left == right` failed
   left: 1
  right: 3
 
----- an_arm_whose_target_a_page_shows_under_another_key_is_refused stdout ----
-
-thread 'an_arm_whose_target_a_page_shows_under_another_key_is_refused' (118773) panicked at compiler/pw-core/tests/speculated_arms.rs:136:5:
-the mismatched entry is refused: Some(Ok(Speculation { page: "feed.app.PostPage~ui", bindings: [Binding { binding: "thread", resource: "feed.app.Thread", key: ["id"], aliases: [] }], commands: ["feed.app.reply"], regions: [5, 0], source: "// Generated by pw: optimistic speculation for feed.app.PostPage~ui (ADR-0122). Do not edit.\n\nconst f0 = (() => {\nreturn function (v0, v1, v2) {\n  const v4 = \"you\";\n  const v5 = v4;\n  const v6 = \"@you\";\n  const v7 = \"You\";\n  const v8 = { \"id\": v5, \"handle\": v6, \"name\": v7 };\n  const v9 = \"pending-reply-\";\n  const v10 = v0[\"replies\"];\n  const v11 = BigInt(v10.length);\n  const v12 = v11.toString();\n  const v13 = \"\" + v9 + v12;\n  const v14 = v13;\n  const v15 = v2;\n  const v16 = 0n;\n  const v17 = [];\n  const v18 = [];\n  const v19 = { \"id\": v14, \"author\": v8, \"text\": v15, \"likes\": v16, \"replies\": v17, \"images\": v18 };\n  const v20 = v0[\"id\"];\n  const v21 = v0[\"author\"];\n  const v22 = v0[\"text\"];\n  const v23 = v0[\"likes\"];\n  const v24 = v0[\"replies\"];\n  const v25 = [v19];\n  const v26 = [...v24, ...v25];\n  const v27 = v0[\"images\"];\n  const v28 = { \"id\": v20, \"author\": v21, \"text\": v22, \"likes\": v23, \"replies\": v26, \"images\": v27 };\n  return v28;\n};\n})();\n\nconst f1 = (() => {\nreturn function (v0) {\n  const v1 = v0[\"replies\"];\n  const v2 = BigInt(v1.length);\n  const v3 = 0n;\n  const v4 = v2 === v3;\n  return v4;\n};\n})();\n\nconst f2 = (() => {\nreturn function (v0) {\n  const v1 = v0[\"replies\"];\n  const v2 = BigInt(v1.length);\n  const v3 = \"reply\";\n  const v4 = \"replies\";\n  const v6 = 1n;\n  const v7 = v2 === v6;\n  let v13;\n  if (v7) {\n    const v8 = \"1 \";\n    const v9 = \"\" + v8 + v3;\n    v13 = v9;\n  } else {\n    const v10 = v2.toString();\n    const v11 = \" \";\n    const v12 = \"\" + v10 + v11 + v4;\n    v13 = v12;\n  }\n  return v13;\n};\n})();\n\nconst f3 = (() => {\nreturn function (v0) {\n  const v1 = v0[\"likes\"];\n  const v2 = \"like\";\n  const v3 = \"likes\";\n  const v5 = 1n;\n  const v6 = v1 === v5;\n  let v12;\n  if (v6) {\n    const v7 = \"1 \";\n    const v8 = \"\" + v7 + v2;\n    v12 = v8;\n  } else {\n    const v9 = v1.toString();\n    const v10 = \" \";\n    const v11 = \"\" + v9 + v10 + v3;\n    v12 = v11;\n  }\n  return v12;\n};\n})();\n\nexport const decode = {\n  \"thread\": (j) => ((w) => { const nodes = w === null || typeof w !== \"object\" ? undefined : w.$graph; if (!Array.isArray(nodes) || nodes.length === 0) throw new Error(\"trap: a `$graph` with no node\"); const built = new Array(nodes.length); const held = new Array(nodes.length).fill(false); let at = nodes.length - 1; const take = (r) => { const k = r === null || typeof r !== \"object\" ? undefined : r.$node; if (!Number.isInteger(k) || k <= at || k >= nodes.length || held[k]) throw new Error(\"trap: a `$graph` that is not a tree\"); held[k] = true; return built[k]; }; for (; at >= 0; at--) { const n = nodes[at]; built[at] = ((o) => ({ \"id\": o[\"id\"], \"author\": ((o) => ({ \"id\": o[\"id\"], \"handle\": o[\"handle\"], \"name\": o[\"name\"] }))(o[\"author\"]), \"text\": o[\"text\"], \"likes\": BigInt(o[\"likes\"]), \"replies\": o[\"replies\"].map((x) => take(x)), \"images\": o[\"images\"].map((x) => ((o) => ({ \"src\": o[\"src\"], \"width\": BigInt(o[\"width\"]), \"height\": BigInt(o[\"height\"]), \"alt\": o[\"alt\"] }))(x)) }))(n); } for (let k = 1; k < nodes.length; k++) if (!held[k]) throw new Error(\"trap: a `$graph` that is not a tree\"); return built[0]; })(j),\n};\n\nexport const aliases = {\n};\n\nexport const parts = {\n  \"thread\": { \"1\": f2, \"2\": f3 },\n};\n\nexport const computed = {\n  \"thread\": { \"#feed.app.PostPage~ui~5\": f1 },\n};\n\nexport const regions = {\n  \"thread\": [{ kind: \"block\", part: 5 }, { kind: \"block\", part: 0 }],\n};\n\nexport const commands = {\n  \"feed.app.reply\": [{ binding: \"thread\", transition: (value, args) => f0(value, args[0], args[1]) }],\n};\n" }))
-
 ---- each_page_speculates_on_the_arm_whose_target_it_shows stdout ----
 
-thread 'each_page_speculates_on_the_arm_whose_target_it_shows' (118776) panicked at compiler/pw-core/tests/speculated_arms.rs:111:5:
+thread 'each_page_speculates_on_the_arm_whose_target_it_shows' (329566) panicked at compiler/pw-core/tests/speculated_arms.rs:111:5:
 // Generated by pw: optimistic speculation for feed.app.PostPage~ui (ADR-0122). Do not edit.
 
 const f0 = (() => {
@@ -339,7 +339,7 @@ failures:
     each_arms_name_is_its_own_targets_value
     each_page_speculates_on_the_arm_whose_target_it_shows
 
-test result: FAILED. 1 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.87s
+test result: FAILED. 1 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.18s
 
 error: test failed, to rerun pass `-p pw-core --test speculated_arms`
 
@@ -347,36 +347,36 @@ only a clause's first arm is lowered [cargo]: KILLED (4 of 6 tests fail)
 
 running 5 tests
 test an_arm_whose_target_a_page_shows_under_another_key_is_refused ... FAILED
-test each_arms_name_is_its_own_targets_value ... ok
 test arms_are_separated_by_commas ... FAILED
 test a_page_that_shows_no_target_has_no_speculation ... FAILED
+test each_arms_name_is_its_own_targets_value ... ok
 test each_page_speculates_on_the_arm_whose_target_it_shows ... FAILED
 
 failures:
 
 ---- an_arm_whose_target_a_page_shows_under_another_key_is_refused stdout ----
 
-thread 'an_arm_whose_target_a_page_shows_under_another_key_is_refused' (119286) panicked at compiler/pw-core/tests/speculated_arms.rs:72:5:
+thread 'an_arm_whose_target_a_page_shows_under_another_key_is_refused' (330076) panicked at compiler/pw-core/tests/speculated_arms.rs:72:5:
 the program checks: Err("the program does not check, so nothing is compiled: [PW0331] `like`'s optimistic transition produces `feed.app.Post`, but it targets a resource whose value is `List<feed.app.Item>`; [PW0331] `follow`'s optimistic transition produces `feed.app.Profile`, but it targets a resource whose value is `feed.app.Relation`; [PW0331] `unfollow`'s optimistic transition produces `feed.app.Profile`, but it targets a resource whose value is `feed.app.Relation`")
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- arms_are_separated_by_commas stdout ----
 
-thread 'arms_are_separated_by_commas' (119287) panicked at compiler/pw-core/tests/speculated_arms.rs:210:5:
+thread 'arms_are_separated_by_commas' (330077) panicked at compiler/pw-core/tests/speculated_arms.rs:210:5:
 assertion `left == right` failed
   left: ["PW0016 an optimistic clause's arms are separated by commas", "PW0331 `like`'s optimistic transition produces `feed.app.Post`, but it targets a resource whose value is `List<feed.app.Item>`", "PW0331 `follow`'s optimistic transition produces `feed.app.Profile`, but it targets a resource whose value is `feed.app.Relation`", "PW0331 `unfollow`'s optimistic transition produces `feed.app.Profile`, but it targets a resource whose value is `feed.app.Relation`"]
  right: ["PW0016 an optimistic clause's arms are separated by commas"]
 
 ---- a_page_that_shows_no_target_has_no_speculation stdout ----
 
-thread 'a_page_that_shows_no_target_has_no_speculation' (119285) panicked at compiler/pw-core/tests/speculated_arms.rs:154:5:
+thread 'a_page_that_shows_no_target_has_no_speculation' (330075) panicked at compiler/pw-core/tests/speculated_arms.rs:154:5:
 assertion `left == right` failed
   left: ["PW0331 `like`'s optimistic transition produces `feed.app.Post`, but it targets a resource whose value is `List<feed.app.Item>`", "PW0331 `follow`'s optimistic transition produces `feed.app.Profile`, but it targets a resource whose value is `feed.app.Relation`", "PW0331 `unfollow`'s optimistic transition produces `feed.app.Profile`, but it targets a resource whose value is `feed.app.Relation`"]
  right: []
 
 ---- each_page_speculates_on_the_arm_whose_target_it_shows stdout ----
 
-thread 'each_page_speculates_on_the_arm_whose_target_it_shows' (119289) panicked at compiler/pw-core/tests/speculated_arms.rs:88:5:
+thread 'each_page_speculates_on_the_arm_whose_target_it_shows' (330080) panicked at compiler/pw-core/tests/speculated_arms.rs:88:5:
 assertion `left == right` failed
   left: ["PW0331 `like`'s optimistic transition produces `feed.app.Post`, but it targets a resource whose value is `List<feed.app.Item>`", "PW0331 `follow`'s optimistic transition produces `feed.app.Profile`, but it targets a resource whose value is `feed.app.Relation`", "PW0331 `unfollow`'s optimistic transition produces `feed.app.Profile`, but it targets a resource whose value is `feed.app.Relation`"]
  right: []
@@ -388,7 +388,7 @@ failures:
     arms_are_separated_by_commas
     each_page_speculates_on_the_arm_whose_target_it_shows
 
-test result: FAILED. 1 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.43s
+test result: FAILED. 1 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.54s
 
 error: test failed, to rerun pass `-p pw-core --test speculated_arms`
 
@@ -396,36 +396,36 @@ each transition is paired with the clause's first target [cargo]: KILLED (4 of 6
 
 running 5 tests
 test an_arm_whose_target_a_page_shows_under_another_key_is_refused ... FAILED
-test arms_are_separated_by_commas ... FAILED
-test a_page_that_shows_no_target_has_no_speculation ... FAILED
 test each_arms_name_is_its_own_targets_value ... ok
+test a_page_that_shows_no_target_has_no_speculation ... FAILED
+test arms_are_separated_by_commas ... FAILED
 test each_page_speculates_on_the_arm_whose_target_it_shows ... FAILED
 
 failures:
 
 ---- an_arm_whose_target_a_page_shows_under_another_key_is_refused stdout ----
 
-thread 'an_arm_whose_target_a_page_shows_under_another_key_is_refused' (119653) panicked at compiler/pw-core/tests/speculated_arms.rs:72:5:
+thread 'an_arm_whose_target_a_page_shows_under_another_key_is_refused' (330444) panicked at compiler/pw-core/tests/speculated_arms.rs:72:5:
 the program checks: Err("the program does not check, so nothing is compiled: [PW0605] argument 1 of `feed.app.liked` is declared `List<feed.app.Item>` and this is `feed.app.Post`; [PW0605] argument 1 of `feed.app.liked` is declared `List<feed.app.Item>` and this is `feed.app.Post`; [PW0605] argument 1 of `feed.app.followed` is declared `feed.app.Relation` and this is `feed.app.Profile`; [PW0605] argument 1 of `feed.app.unfollowed` is declared `feed.app.Relation` and this is `feed.app.Profile`")
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
----- arms_are_separated_by_commas stdout ----
-
-thread 'arms_are_separated_by_commas' (119654) panicked at compiler/pw-core/tests/speculated_arms.rs:210:5:
-assertion `left == right` failed
-  left: ["PW0605 argument 1 of `feed.app.liked` is declared `List<feed.app.Item>` and this is `feed.app.Post`", "PW0605 argument 1 of `feed.app.liked` is declared `List<feed.app.Item>` and this is `feed.app.Post`", "PW0016 an optimistic clause's arms are separated by commas", "PW0605 argument 1 of `feed.app.followed` is declared `feed.app.Relation` and this is `feed.app.Profile`", "PW0605 argument 1 of `feed.app.unfollowed` is declared `feed.app.Relation` and this is `feed.app.Profile`"]
- right: ["PW0016 an optimistic clause's arms are separated by commas"]
-
 ---- a_page_that_shows_no_target_has_no_speculation stdout ----
 
-thread 'a_page_that_shows_no_target_has_no_speculation' (119652) panicked at compiler/pw-core/tests/speculated_arms.rs:154:5:
+thread 'a_page_that_shows_no_target_has_no_speculation' (330443) panicked at compiler/pw-core/tests/speculated_arms.rs:154:5:
 assertion `left == right` failed
   left: ["PW0605 argument 1 of `feed.app.liked` is declared `List<feed.app.Item>` and this is `feed.app.Post`", "PW0605 argument 1 of `feed.app.liked` is declared `List<feed.app.Item>` and this is `feed.app.Post`", "PW0605 argument 1 of `feed.app.followed` is declared `feed.app.Relation` and this is `feed.app.Profile`", "PW0605 argument 1 of `feed.app.unfollowed` is declared `feed.app.Relation` and this is `feed.app.Profile`"]
  right: []
 
+---- arms_are_separated_by_commas stdout ----
+
+thread 'arms_are_separated_by_commas' (330445) panicked at compiler/pw-core/tests/speculated_arms.rs:210:5:
+assertion `left == right` failed
+  left: ["PW0605 argument 1 of `feed.app.liked` is declared `List<feed.app.Item>` and this is `feed.app.Post`", "PW0605 argument 1 of `feed.app.liked` is declared `List<feed.app.Item>` and this is `feed.app.Post`", "PW0016 an optimistic clause's arms are separated by commas", "PW0605 argument 1 of `feed.app.followed` is declared `feed.app.Relation` and this is `feed.app.Profile`", "PW0605 argument 1 of `feed.app.unfollowed` is declared `feed.app.Relation` and this is `feed.app.Profile`"]
+ right: ["PW0016 an optimistic clause's arms are separated by commas"]
+
 ---- each_page_speculates_on_the_arm_whose_target_it_shows stdout ----
 
-thread 'each_page_speculates_on_the_arm_whose_target_it_shows' (119656) panicked at compiler/pw-core/tests/speculated_arms.rs:88:5:
+thread 'each_page_speculates_on_the_arm_whose_target_it_shows' (330447) panicked at compiler/pw-core/tests/speculated_arms.rs:88:5:
 assertion `left == right` failed
   left: ["PW0605 argument 1 of `feed.app.liked` is declared `List<feed.app.Item>` and this is `feed.app.Post`", "PW0605 argument 1 of `feed.app.liked` is declared `List<feed.app.Item>` and this is `feed.app.Post`", "PW0605 argument 1 of `feed.app.followed` is declared `feed.app.Relation` and this is `feed.app.Profile`", "PW0605 argument 1 of `feed.app.unfollowed` is declared `feed.app.Relation` and this is `feed.app.Profile`"]
  right: []
@@ -437,7 +437,7 @@ failures:
     arms_are_separated_by_commas
     each_page_speculates_on_the_arm_whose_target_it_shows
 
-test result: FAILED. 1 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.44s
+test result: FAILED. 1 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.53s
 
 error: test failed, to rerun pass `-p pw-core --test speculated_arms`
 
@@ -449,7 +449,7 @@ an arm's name is the clause's last target's value [cargo]: KILLED (4 of 6 tests 
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('#counts')
           - unexpected value "0 replies · 0 likes"
-    [cause]: Error: PW_ASSERTION:963c75bf38c4d70b0d912749fa3d79c5aead5472b9bcf97c16590cf07434f977
+    [cause]: Error: PW_ASSERTION:0c81f20c4c8c77a7737eb1c41155016cc1e21ec644d1e19c20bf546d2112f671
   2) [firefox] › e2e/feed.spec.mjs:630:1 › a like on the thread page shows before the server answers 
     Error: expect(locator).toHaveText(expected) failed
     Expected: "0 replies · 1 like"
@@ -457,7 +457,7 @@ an arm's name is the clause's last target's value [cargo]: KILLED (4 of 6 tests 
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('#counts')
           - unexpected value "0 replies · 0 likes"
-    [cause]: Error: PW_ASSERTION:963c75bf38c4d70b0d912749fa3d79c5aead5472b9bcf97c16590cf07434f977
+    [cause]: Error: PW_ASSERTION:0c81f20c4c8c77a7737eb1c41155016cc1e21ec644d1e19c20bf546d2112f671
   3) [webkit] › e2e/feed.spec.mjs:630:1 › a like on the thread page shows before the server answers 
     Error: expect(locator).toHaveText(expected) failed
     Expected: "0 replies · 1 like"
@@ -465,10 +465,10 @@ an arm's name is the clause's last target's value [cargo]: KILLED (4 of 6 tests 
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('#counts')
           - unexpected value "0 replies · 0 likes"
-    [cause]: Error: PW_ASSERTION:963c75bf38c4d70b0d912749fa3d79c5aead5472b9bcf97c16590cf07434f977
+    [cause]: Error: PW_ASSERTION:0c81f20c4c8c77a7737eb1c41155016cc1e21ec644d1e19c20bf546d2112f671
   3 failed
   63 passed (1.4m)
-  run_suite: kept 4 of 4 entries of its output (2.1 MiB) in kept-traces/e14-speculated-arms/20261022T021508Z-120181/run-1
+  run_suite: kept 4 of 4 entries of its output (2.2 MiB) in kept-traces/e14-speculated-arms/20261025T173030Z-330967/run-1
   run_suite: exit 1
 
 the feed's like on the thread page is not speculated [browser]: KILLED (3 of 66 tests fail)

@@ -1,8 +1,8 @@
 ADR-0277 - a materialization is kept, and a page reads it
 
 produced by: just e14-materializations-kept
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -15,11 +15,11 @@ test a_page_reads_a_public_one_the_host_keeps ... ok
 test what_it_depends_on_is_stated_once_by_reading_it ... ok
 test one_that_derives_its_value_reads_another_and_a_cycle_of_reads_is_refused ... ok
 test a_body_begins_where_the_clauses_end_whatever_it_begins_with ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.76s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.41s
 test each_read_is_the_platforms_and_names_what_it_reads ... ok
-test one_that_derives_its_value_is_a_component_that_imports_its_reads ... ok
 test a_page_that_reads_one_depends_on_it_and_binds_it ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.34s
+test one_that_derives_its_value_is_a_component_that_imports_its_reads ... ok
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.42s
 
 == the chain's order (runtime/pw-materialize/tests/chain_order.rs)
 
@@ -32,16 +32,16 @@ test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 test materializations::tests::a_read_is_asked_by_its_values ... ok
 test materializations::tests::what_no_entry_holds_is_refused ... ok
 test materializations::tests::a_value_reads_back_as_it_was ... ok
-test tests::materializations::a_change_makes_the_chain_again_in_its_order_and_tells_its_readers ... ok
 test tests::materializations::an_entry_made_again_with_its_value_tells_no_one ... ok
 test tests::materializations::a_page_is_served_what_a_chain_derives_every_readers ... ok
+test tests::materializations::a_change_makes_the_chain_again_in_its_order_and_tells_its_readers ... ok
 test tests::materializations::a_document_that_reads_another_key_is_told_nothing ... ok
 test tests::materializations::what_could_not_be_made_again_is_served_its_last_good_value ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 705 filtered out; finished in 11.18s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 733 filtered out; finished in 16.40s
 
 == the store's chain in three engines (e2e/materialized.spec.mjs)
 
-  6 passed (29.0s)
+  6 passed (35.8s)
 
 == mutation controls (scripts/materializations_kept_mutations.py)
 
