@@ -1291,6 +1291,7 @@ dependencies = [
  "pw-document",
  "pw-host",
  "pw-materialize",
+ "pw-outbound",
  "pw-protocol",
  "pw-render",
  "pw-resource",

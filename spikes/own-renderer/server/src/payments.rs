@@ -619,7 +619,7 @@ mod provider_tests {
 // --- the development provider, on its own origin ---------------------------
 
 use std::io::{BufRead, BufReader, Read, Write};
-use std::net::{TcpListener, TcpStream, ToSocketAddrs};
+use std::net::{TcpListener, TcpStream};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -1287,18 +1287,14 @@ mod origin_tests {
 
 // --- the host, hearing the provider ---------------------------------------
 
-/// **A GET of `url`** (`http://host:port/path`): its status and body.
-pub(crate) fn get(url: &str) -> Result<(u16, String), String> {
-    let rest = url.strip_prefix("http://").ok_or("not an http URL")?;
-    let (authority, path) = rest
-        .split_once('/')
-        .map_or((rest, "/".to_string()), |(a, p)| (a, format!("/{p}")));
-    let mut stream = provider_stream(authority, PROVIDER_WAIT)?;
-    let head = format!("GET {path} HTTP/1.1\r\nhost: {authority}\r\nconnection: close\r\n\r\n");
-    stream
-        .write_all(head.as_bytes())
+/// **A GET of `url` through `client`**, the payments' own (track
+/// outbound-https): its status and body. The client reaches the provider's
+/// origin alone, and reads an answer by its length within `PROVIDER_WAIT`.
+pub(crate) fn get(client: &Client, url: &str) -> Result<(u16, String), String> {
+    let answer = client
+        .send(&outbound::Request::get(url))
         .map_err(|e| e.to_string())?;
-    answer_of(stream)
+    Ok((answer.status(), answer.text()))
 }
 
 /// **The payment an owner's order awaits** (step seven): the order's
@@ -1349,14 +1345,18 @@ pub(crate) struct Hearing {
     secret: Vec<u8>,
     /// The provider's API, where an intent is read again.
     api: String,
+    /// The client the intent is read again with: the provider's origin
+    /// alone.
+    client: Client,
     heard: Mutex<std::collections::BTreeSet<String>>,
 }
 
 impl Hearing {
-    pub(crate) fn new(secret: &[u8], api: &str) -> Hearing {
+    pub(crate) fn new(secret: &[u8], api: &str, client: Client) -> Hearing {
         Hearing {
             secret: secret.to_vec(),
             api: api.trim_end_matches('/').to_string(),
+            client,
             heard: Mutex::new(std::collections::BTreeSet::new()),
         }
     }
@@ -1383,8 +1383,11 @@ impl Hearing {
         if self.heard.lock().expect("heard").contains(id) {
             return Err(NotActed::HeardBefore);
         }
-        let (code, read) = get(&format!("{}/v1/payment_intents/{intent}", self.api))
-            .map_err(NotActed::Unreadable)?;
+        let (code, read) = get(
+            &self.client,
+            &format!("{}/v1/payment_intents/{intent}", self.api),
+        )
+        .map_err(NotActed::Unreadable)?;
         if code != 200 {
             return Err(NotActed::Unreadable(format!(
                 "the provider answered {code} for {intent}"
@@ -1445,7 +1448,11 @@ mod hearing_tests {
     #[test]
     fn an_intent_whose_amount_changed_at_the_provider_settles_nothing() {
         let (base, origin) = provider();
-        let hearing = Hearing::new(b"whsec_t", &base);
+        let hearing = Hearing::new(
+            b"whsec_t",
+            &base,
+            development_client(&base).expect("a client"),
+        );
         {
             let mut p = origin.provider.lock().expect("provider");
             let i = p
@@ -1486,11 +1493,11 @@ mod hearing_tests {
     #[test]
     fn an_outcome_the_host_could_not_settle_is_settled_when_sent_again() {
         let (base, origin) = provider();
-        let payments = Payments {
-            provider: base.clone(),
-            hearing: Hearing::new(b"whsec_t", &base),
-            settled: Mutex::new(Vec::new()),
-        };
+        let payments = Payments::new(
+            &base,
+            b"whsec_t",
+            development_client(&base).expect("a client"),
+        );
         {
             let mut p = origin.provider.lock().expect("provider");
             let i = p
@@ -1526,7 +1533,11 @@ mod hearing_tests {
     #[test]
     fn the_host_acts_on_the_intent_as_the_provider_says_it_now() {
         let (base, origin) = provider();
-        let hearing = Hearing::new(b"whsec_t", &base);
+        let hearing = Hearing::new(
+            b"whsec_t",
+            &base,
+            development_client(&base).expect("a client"),
+        );
         let id = {
             let mut p = origin.provider.lock().expect("provider");
             let i = p
@@ -1631,6 +1642,11 @@ pub(crate) fn header_value<'a>(headers: &'a str, name: &str) -> Option<&'a str> 
 pub(crate) struct Payments {
     /// The provider's origin, which a page embeds the hosted fields from.
     pub(crate) provider: String,
+    /// **The client the host reaches its provider with** (track
+    /// outbound-https): granted the provider's origin and nothing else, so
+    /// no request the payments make reaches another; its whole exchange
+    /// within `PROVIDER_WAIT`.
+    client: Client,
     hearing: Hearing,
     /// Each payment the provider's signed word settled, as read again, in
     /// the order heard: what an order's transition reads (to come, with the
@@ -1639,6 +1655,17 @@ pub(crate) struct Payments {
 }
 
 impl Payments {
+    /// **The deployment's payments at `provider`**, heard with `secret`,
+    /// reached with `client`, whose grant is the provider's origin.
+    pub(crate) fn new(provider: &str, secret: &[u8], client: Client) -> Payments {
+        Payments {
+            provider: provider.trim_end_matches('/').to_string(),
+            hearing: Hearing::new(secret, provider, client.clone()),
+            client,
+            settled: Mutex::new(Vec::new()),
+        }
+    }
+
     pub(crate) fn describe(&self) -> String {
         format!("the development provider, at {}", self.provider)
     }
@@ -1678,11 +1705,9 @@ impl Payments {
 /// A test's: the deployment's payments at a provider that is not there.
 #[cfg(test)]
 pub(crate) fn unreachable() -> Arc<Payments> {
-    Arc::new(Payments {
-        provider: "http://127.0.0.1:9".into(),
-        hearing: Hearing::new(b"x", "http://127.0.0.1:9"),
-        settled: Mutex::new(Vec::new()),
-    })
+    let provider = "http://127.0.0.1:9";
+    let client = development_client(provider).expect("a development client");
+    Arc::new(Payments::new(provider, b"x", client))
 }
 
 /// **The deployment's payments, as its configuration states them.**
@@ -1744,12 +1769,39 @@ pub(crate) fn development(
     ));
     let served = origin.clone();
     std::thread::spawn(move || serve(listener, served));
-    let payments = Arc::new(Payments {
-        hearing: Hearing::new(&secret, &provider),
-        provider,
-        settled: Mutex::new(Vec::new()),
-    });
+    let payments = Arc::new(Payments::new(
+        &provider,
+        &secret,
+        development_client(&provider)?,
+    ));
     Ok((payments, origin))
+}
+
+/// **The client a development deployment reaches its development provider
+/// with** (track outbound-https): the provider's origin granted as a
+/// development one, plain HTTP on this machine and nowhere else, and no
+/// roots, so that no https request it made would be trusted. A deployment
+/// whose provider is at a public origin grants it as one (`Grant::public`),
+/// over TLS against the platform's roots (`Roots::platform`): NEXT 6d's.
+pub(crate) fn development_client(provider: &str) -> Result<Client, String> {
+    let grant = outbound::Grant::none()
+        .development(provider)
+        .map_err(|e| e.to_string())?;
+    Ok(Client::new(grant, outbound::Roots::none())
+        .map_err(|e| e.to_string())?
+        .with_limits(provider_limits()))
+}
+
+/// **How long, and how much, the host waits for its provider**: the whole
+/// exchange within `PROVIDER_WAIT` (step eight), connecting and the
+/// handshake within it.
+pub(crate) fn provider_limits() -> outbound::Limits {
+    outbound::Limits {
+        connect: PROVIDER_WAIT,
+        handshake: PROVIDER_WAIT,
+        total: PROVIDER_WAIT,
+        ..outbound::Limits::default()
+    }
 }
 
 #[cfg(test)]
@@ -1877,85 +1929,29 @@ mod configured_tests {
 // --- the program's operations ----------------------------------------------
 
 use pw_host::engine::{HostFn, Val};
+use pw_outbound::{self as outbound, Client};
 
 /// **How long the host waits for its provider** (step eight): to connect,
-/// to send and to be answered. A host's commands wait while the provider
-/// answers one of them, its layer held, so a provider that does not answer
-/// in ten seconds is one that cannot be reached (`TransportFailed`).
+/// to send and to be answered, all of it (track outbound-https: until then
+/// each read was bounded, and not the answer). A host's commands wait while
+/// the provider answers one of them, its layer held, so a provider that does
+/// not answer in ten seconds is one that cannot be reached
+/// (`TransportFailed`).
 const PROVIDER_WAIT: std::time::Duration = std::time::Duration::from_secs(10);
 
-/// **A connection to the provider at `authority`**, held to `wait` for
-/// connecting, sending and answering.
-fn provider_stream(authority: &str, wait: std::time::Duration) -> Result<TcpStream, String> {
-    let address = authority
-        .to_socket_addrs()
-        .map_err(|e| e.to_string())?
-        .next()
-        .ok_or_else(|| format!("no address for `{authority}`"))?;
-    let stream = TcpStream::connect_timeout(&address, wait).map_err(|e| e.to_string())?;
-    stream
-        .set_read_timeout(Some(wait))
-        .map_err(|e| e.to_string())?;
-    stream
-        .set_write_timeout(Some(wait))
-        .map_err(|e| e.to_string())?;
-    Ok(stream)
-}
-
-/// **An answer read off `stream`**: its status, and its body as long as its
-/// head says (RFC 9112 §6.3), so it is read once it is sent, whether or not
-/// the connection then stays open (step eight). A provider sends an event
-/// before it closes, and a reader's command that waited for the close would
-/// hold the host's layer while the event waited for it.
-fn answer_of(stream: TcpStream) -> Result<(u16, String), String> {
-    let mut reader = BufReader::new(stream);
-    let mut head = String::new();
-    loop {
-        let mut line = String::new();
-        let n = reader.read_line(&mut line).map_err(|e| e.to_string())?;
-        if n == 0 || line == "\r\n" {
-            break;
-        }
-        head.push_str(&line);
-    }
-    let code = head
-        .split_whitespace()
-        .nth(1)
-        .and_then(|c| c.parse().ok())
-        .ok_or_else(|| format!("no status: {head:?}"))?;
-    let mut body = Vec::new();
-    match header_value(&head, "content-length").and_then(|l| l.parse::<usize>().ok()) {
-        Some(length) => {
-            body.resize(length, 0);
-            reader.read_exact(&mut body).map_err(|e| e.to_string())?;
-        }
-        None => {
-            reader.read_to_end(&mut body).map_err(|e| e.to_string())?;
-        }
-    }
-    Ok((code, String::from_utf8_lossy(&body).into_owned()))
-}
-
-/// **A POST of JSON to `url`**, with an `Idempotency-Key`: its status and
-/// body.
-fn post_json(url: &str, key: &str, body: &serde_json::Value) -> Result<(u16, String), String> {
-    let rest = url.strip_prefix("http://").ok_or("not an http URL")?;
-    let (authority, path) = rest
-        .split_once('/')
-        .map_or((rest, "/".to_string()), |(a, p)| (a, format!("/{p}")));
-    let body = body.to_string();
-    let mut stream = provider_stream(authority, PROVIDER_WAIT)?;
-    let head = format!(
-        "POST {path} HTTP/1.1\r\nhost: {authority}\r\ncontent-type: application/json\r\nidempotency-key: {key}\r\ncontent-length: {}\r\nconnection: close\r\n\r\n",
-        body.len()
-    );
-    stream
-        .write_all(head.as_bytes())
-        .map_err(|e| e.to_string())?;
-    stream
-        .write_all(body.as_bytes())
-        .map_err(|e| e.to_string())?;
-    answer_of(stream)
+/// **A POST of JSON to `url` through `client`**, with an
+/// `Idempotency-Key`: its status and body. A key the client would not write
+/// (a line break in an interaction's id) sends nothing.
+fn post_json(
+    client: &Client,
+    url: &str,
+    key: &str,
+    body: &serde_json::Value,
+) -> Result<(u16, String), String> {
+    let request = outbound::Request::post(url, "application/json", body.to_string())
+        .header("idempotency-key", key);
+    let answer = client.send(&request).map_err(|e| e.to_string())?;
+    Ok((answer.status(), answer.text()))
 }
 
 /// A payment as the program's `Payment` is: `{ id, client_secret, status }`.
@@ -2020,6 +2016,7 @@ pub(crate) fn operations(
     owner: String,
 ) -> Vec<(String, HostFn)> {
     let (provider, reader) = (payments.provider.clone(), owner.clone());
+    let client = payments.client.clone();
     let begin: HostFn = Arc::new(move |args: &[Val]| {
         let [Val::String(order), Val::S64(amount)] = args else {
             return Err(format!("payments#begin(order, amount) received {args:?}"));
@@ -2039,6 +2036,7 @@ pub(crate) fn operations(
             )))))])
         };
         match post_json(
+            &payments.client,
             &format!("{}/v1/payment_intents", payments.provider),
             &format!("{order}:{interaction}"),
             &asked,
@@ -2075,7 +2073,7 @@ pub(crate) fn operations(
         let unreached = Val::Variant("transport-failed".into(), None);
         let canceled = Val::Variant("canceled".into(), None);
         let intent = format!("{provider}/v1/payment_intents/{payment}");
-        let read: serde_json::Value = match get(&intent) {
+        let read: serde_json::Value = match get(&client, &intent) {
             Ok((200, body)) => serde_json::from_str(&body).map_err(|e| e.to_string())?,
             Ok((404, _)) => return Err(format!("no payment `{payment}` at the provider")),
             Ok(_) | Err(_) => return answer(Err(unreached)),
@@ -2087,6 +2085,7 @@ pub(crate) fn operations(
         }
         let asked = serde_json::json!({ "cancellation_reason": "requested_by_customer" });
         match post_json(
+            &client,
             &format!("{intent}/cancel"),
             &format!("cancel-{payment}"),
             &asked,
@@ -2269,8 +2268,10 @@ mod answer_tests {
             // Open until the answer is read, or thirty seconds.
             let _ = held.recv_timeout(std::time::Duration::from_secs(30));
         });
+        let base = url.trim_end_matches("/v1/x").to_string();
+        let client = development_client(&base).expect("a client");
         let started = std::time::Instant::now();
-        let answered = get(&url);
+        let answered = get(&client, &url);
         let took = started.elapsed();
         let _ = done.send(());
         assert_eq!(answered, Ok((200, r#"{"ok":true}"#.to_string())));
@@ -2279,26 +2280,36 @@ mod answer_tests {
 
     /// **A provider that does not answer in time is one that cannot be
     /// reached** (step eight): the host's commands wait while it answers, so
-    /// they wait no longer than `PROVIDER_WAIT`. Here a tenth of a second,
-    /// against a provider that never answers.
+    /// they wait no longer than `PROVIDER_WAIT`, the whole exchange (track
+    /// outbound-https). Here a tenth of a second, against a provider that
+    /// never answers.
     #[test]
     fn a_provider_that_does_not_answer_in_time_is_not_reached() {
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
-        let authority = listener.local_addr().expect("addr").to_string();
+        let base = format!("http://{}", listener.local_addr().expect("addr"));
         let (done, held) = std::sync::mpsc::channel::<()>();
         std::thread::spawn(move || {
             let (_stream, _) = listener.accept().expect("accept");
             let _ = held.recv_timeout(std::time::Duration::from_secs(30));
         });
+        let client = development_client(&base)
+            .expect("a client")
+            .with_limits(outbound::Limits {
+                total: std::time::Duration::from_millis(100),
+                ..provider_limits()
+            });
         let started = std::time::Instant::now();
-        let stream =
-            provider_stream(&authority, std::time::Duration::from_millis(100)).expect("connected");
-        let answered = answer_of(stream);
+        let answered = get(&client, &format!("{base}/v1/x"));
         let took = started.elapsed();
         let _ = done.send(());
         assert!(answered.is_err(), "{answered:?}");
         assert!(took < std::time::Duration::from_secs(5), "{took:?}");
         assert_eq!(PROVIDER_WAIT, std::time::Duration::from_secs(10));
+        let limits = development_client(&base).expect("a client").limits();
+        assert_eq!(
+            (limits.connect, limits.handshake, limits.total),
+            (PROVIDER_WAIT, PROVIDER_WAIT, PROVIDER_WAIT)
+        );
     }
 }
 
@@ -2395,5 +2406,200 @@ mod cancel_tests {
                 None
             )))))])
         );
+    }
+}
+
+/// **The payments at an https origin** (track outbound-https): the same
+/// operations and the same hearing, through the same client, over TLS. The
+/// development provider stands behind a TLS front presenting a certificate
+/// of a test's authority, at a name fixed to this machine, as a provider
+/// stands behind its load balancer; a deployment's provider at a public
+/// origin differs in its grant (`Grant::public`) and its roots
+/// (`Roots::platform`) alone.
+#[cfg(test)]
+mod https_tests {
+    use super::*;
+    use pw_outbound::testing::{Leaf, Server, TestCa};
+    use std::net::{IpAddr, Ipv4Addr};
+
+    const NAME: &str = "payments.provider.test";
+
+    /// The development provider on a port of its own, its events held,
+    /// behind a TLS front presenting `leaf`: the provider, the front, and
+    /// the front's origin.
+    fn behind_tls(leaf: &Leaf) -> (Arc<Origin>, Server, String) {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+        let backend = listener.local_addr().expect("addr");
+        let origin = Arc::new(Origin::new(
+            b"whsec_t",
+            "http://127.0.0.1:9/x",
+            "http://127.0.0.1:3301",
+            wall_seconds,
+        ));
+        origin.hold();
+        let served = origin.clone();
+        std::thread::spawn(move || serve(listener, served));
+        let front = Server::front(leaf, backend);
+        let https = format!("https://{NAME}:{}", front.port());
+        (origin, front, https)
+    }
+
+    /// The payments at `https`, its client trusting `authority`'s root
+    /// alone, the provider's name fixed to this machine.
+    fn payments_at(https: &str, authority: &TestCa) -> Result<Arc<Payments>, String> {
+        let grant = outbound::Grant::none()
+            .development(https)
+            .map_err(|e| e.to_string())?;
+        let roots = outbound::Roots::only(&[authority.der()]).map_err(|e| e.to_string())?;
+        let client = Client::new(grant, roots)
+            .map_err(|e| e.to_string())?
+            .with_resolver(Arc::new(
+                outbound::Fixed::new().name(NAME, &[IpAddr::V4(Ipv4Addr::LOCALHOST)]),
+            ))
+            .with_limits(provider_limits());
+        Ok(Arc::new(Payments::new(https, b"whsec_t", client)))
+    }
+
+    /// A payment begun for `order` by reader-a: its id, or what was said.
+    fn begin(payments: &Arc<Payments>, order: &str, press: &str) -> Result<String, String> {
+        let out = operations(payments.clone(), Some(press.into()), "reader-a".into())[0].1(&[
+            Val::String(order.into()),
+            Val::S64(1250),
+        ])?;
+        match out.as_slice() {
+            [Val::Result(Ok(Some(p)))] => match p.as_ref() {
+                Val::Record(fields) => match &fields[0].1 {
+                    Val::String(id) => Ok(id.clone()),
+                    other => Err(format!("{other:?}")),
+                },
+                other => Err(format!("{other:?}")),
+            },
+            other => Err(format!("{other:?}")),
+        }
+    }
+
+    /// **A provider at an https origin is reached over TLS, its certificate
+    /// verified**: a payment begun, its outcome heard and read again, and
+    /// another canceled by its reader, every request through the front.
+    #[test]
+    fn a_provider_at_an_https_origin_is_reached_over_tls() {
+        let authority = TestCa::new("payments test authority");
+        let (origin, front, https) = behind_tls(&authority.server(&[NAME]));
+        let payments = payments_at(&https, &authority);
+        assert!(payments.is_ok(), "{:?}", payments.as_ref().err());
+        let payments = payments.unwrap();
+        let paid = begin(&payments, "o-1", "press-a");
+        assert!(paid.is_ok(), "{paid:?}");
+        let paid = paid.unwrap();
+        let events = {
+            let mut p = origin.provider.lock().expect("provider");
+            let secret = p.read(&paid).map(|i| i.client_secret);
+            assert!(secret.is_ok(), "{secret:?}");
+            let charged = p.pay(&secret.unwrap(), "4242424242424242");
+            assert!(charged.is_ok(), "{charged:?}");
+            std::mem::take(&mut p.outbox)
+        };
+        let (body, header) = DevProvider::sent(&events[0], b"whsec_t", wall_seconds());
+        let heard = payments
+            .hearing
+            .webhook(Some(&header), body.as_bytes(), wall_seconds())
+            .map(|(_, s)| (s.order, s.owner, s.status));
+        assert_eq!(
+            heard,
+            Ok(("o-1".into(), "reader-a".into(), "succeeded".into()))
+        );
+        let other = begin(&payments, "o-2", "press-b");
+        assert!(other.is_ok(), "{other:?}");
+        let canceled =
+            operations(payments.clone(), Some("press-c".into()), "reader-a".into())[1].1(&[
+                Val::String(other.unwrap()),
+            ]);
+        assert_eq!(
+            canceled,
+            Ok(vec![Val::Result(Ok(Some(Box::new(Val::Variant(
+                "canceled".into(),
+                None
+            )))))])
+        );
+        let seen = front.seen();
+        let host = format!("{NAME}:{}", front.port());
+        assert_eq!(
+            seen.iter()
+                .map(|s| (s.head.split(' ').next().unwrap_or(""), s.header("host")))
+                .collect::<Vec<_>>(),
+            vec![
+                ("POST", Some(host.as_str())),
+                ("GET", Some(host.as_str())),
+                ("POST", Some(host.as_str())),
+                ("GET", Some(host.as_str())),
+                ("POST", Some(host.as_str())),
+            ]
+        );
+    }
+
+    /// **A provider presenting a certificate the client does not trust is
+    /// not reached**: the payment is `TransportFailed`, and the provider is
+    /// asked nothing.
+    #[test]
+    fn a_provider_whose_certificate_is_not_trusted_is_not_reached() {
+        let authority = TestCa::new("payments test authority");
+        let stranger = TestCa::new("another authority");
+        let (_origin, front, https) = behind_tls(&stranger.server(&[NAME]));
+        let payments = payments_at(&https, &authority);
+        assert!(payments.is_ok(), "{:?}", payments.as_ref().err());
+        let out = operations(payments.unwrap(), Some("press-a".into()), "reader-a".into())[0].1(&[
+            Val::String("o-1".into()),
+            Val::S64(1250),
+        ]);
+        assert_eq!(
+            out,
+            Ok(vec![Val::Result(Err(Some(Box::new(Val::Variant(
+                "transport-failed".into(),
+                None
+            )))))])
+        );
+        assert!(front.seen().is_empty(), "{:?}", front.seen());
+    }
+
+    /// **The payments reach their provider and nothing else**: their
+    /// client's grant is the provider's origin, a development one where the
+    /// provider is the development provider, and any other origin is
+    /// refused before anything is sent.
+    #[test]
+    fn the_payments_reach_their_provider_alone() {
+        let free = TcpListener::bind("127.0.0.1:0").expect("bind");
+        let port = free.local_addr().expect("addr").port();
+        drop(free);
+        let configured = configure(
+            true,
+            "http://127.0.0.1:3301",
+            3301,
+            Some("dev"),
+            Some(&port.to_string()),
+        );
+        assert!(
+            matches!(configured, Ok(Some(_))),
+            "{:?}",
+            configured.as_ref().err()
+        );
+        let payments = configured.unwrap().unwrap();
+        assert_eq!(
+            payments.client.grant().origins(),
+            vec![format!("http://127.0.0.1:{port}")]
+        );
+        assert_eq!(payments.provider, format!("http://127.0.0.1:{port}"));
+        for elsewhere in [
+            format!("http://127.0.0.1:{}/v1/payment_intents", port + 1),
+            format!("https://127.0.0.1:{port}/v1/payment_intents"),
+            format!("http://localhost:{port}/v1/payment_intents"),
+        ] {
+            let refused = payments
+                .client
+                .send(&outbound::Request::get(elsewhere.clone()));
+            assert!(
+                matches!(refused, Err(outbound::Error::Undeclared { .. })),
+                "{elsewhere}: {refused:?}"
+            );
+        }
     }
 }
