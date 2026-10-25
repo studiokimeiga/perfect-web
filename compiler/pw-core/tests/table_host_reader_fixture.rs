@@ -261,10 +261,53 @@ fn compiled_table_readers_have_exact_manifest_and_contract_imports() {
                     &path,
                     &present_args,
                 ),
-                Ok(vec![present_result]),
+                Ok(vec![present_result.clone()]),
                 "the compiled get reader must return the HostFn's typed present row"
             );
             assert_eq!(present_calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+
+            // A HostFn may return values that are well-formed Val variants but
+            // wrong for the compiled guest's WIT Option<TodoList>. Wasmtime
+            // must refuse that value, not turn it into a missing row.
+            let invalid_calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            let observed = std::sync::Arc::clone(&invalid_calls);
+            let invalid_handler: pw_host::engine::HostFn = std::sync::Arc::new(move |_| {
+                observed.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                Ok(vec![pw_host::engine::Val::Option(Some(Box::new(
+                    pw_host::engine::Val::S64(10),
+                )))])
+            });
+            let invalid_host =
+                std::collections::BTreeMap::from([(key.to_owned(), invalid_handler)]);
+            assert!(
+                pw_host::engine::call_within(
+                    &compiled.component.bytes,
+                    host_contract,
+                    &granted,
+                    &pw_host::Limits::unbounded(),
+                    &invalid_host,
+                    &path,
+                    &present_args,
+                )
+                .is_err(),
+                "a scalar Some value must not satisfy the compiled WIT row result"
+            );
+            assert_eq!(invalid_calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+
+            // A malformed callback result must not poison another valid read.
+            assert_eq!(
+                pw_host::engine::call_within(
+                    &compiled.component.bytes,
+                    host_contract,
+                    &granted,
+                    &pw_host::Limits::unbounded(),
+                    &exact_host,
+                    &path,
+                    &present_args,
+                ),
+                Ok(vec![present_result]),
+            );
+            assert_eq!(present_calls.load(std::sync::atomic::Ordering::SeqCst), 2);
         }
 
         if component_id == "tables.reader.ByIds" {
