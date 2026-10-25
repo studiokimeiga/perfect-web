@@ -280,12 +280,13 @@ export async function startServer({ name, cmd, args, cwd, env = {}, port, probe 
 /** Fisher-Yates, from a seeded generator, so that a run's order is printed
  * and can be run again. */
 export function shuffled(list, seed) {
-  let s = seed >>> 0 || 1;
+  // Mulberry32: every seed, small ones too, mixed before its first draw.
+  let s = seed >>> 0;
   const rand = () => {
-    s ^= s << 13;
-    s ^= s >>> 17;
-    s ^= s << 5;
-    return (s >>> 0) / 2 ** 32;
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 2 ** 32;
   };
   const out = [...list];
   for (let i = out.length - 1; i > 0; i--) {

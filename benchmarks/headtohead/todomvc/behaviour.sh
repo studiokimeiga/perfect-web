@@ -26,4 +26,9 @@ PLAYWRIGHT_JSON_OUTPUT_NAME="$OUT" pnpm exec playwright test --reporter=json > /
 CODE=$?
 set -e
 echo "playwright exited $CODE (the judge reads its report; expected gaps fail by design)"
-python3 "$REPO_ROOT/scripts/head_to_head_behaviour.py" "$OUT"
+# SUMMARY: where the judge writes the data the head-to-head's summary reads;
+# CYPRESS: "stack=file ..." of the Cypress judges' reports, counted with it.
+EXTRA=()
+if [ -n "${SUMMARY:-}" ]; then EXTRA+=(--json "$SUMMARY"); fi
+for c in ${CYPRESS:-}; do EXTRA+=(--cypress "$c"); done
+python3 "$REPO_ROOT/scripts/head_to_head_behaviour.py" "$OUT" "${EXTRA[@]}"

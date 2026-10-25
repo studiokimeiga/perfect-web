@@ -117,7 +117,7 @@ export function compareSpread(a, b) {
  * row per metric and cell, every stack's value on it). A row Pleris is best
  * in is a win; a row where the spreads overlap is neither and is counted.
  */
-export function lossesFirst(result) {
+export function lossesFirst(result, sections = {}) {
   const losses = [];
   const wins = [];
   let unclear = 0;
@@ -126,14 +126,16 @@ export function lossesFirst(result) {
     const mine = values.find(([l]) => l === "Pleris");
     if (!mine) return;
     const verdicts = values.filter(([l]) => l !== "Pleris").map((v) => [v[0], better(mine, v)]);
-    const text = `${app.app}: ${what}: ${values.map(([l, , shown]) => `${l} ${shown}`).join(" | ")}`;
+    const text = `${app.app ?? app}: ${what}: ${values.map(([l, , shown]) => `${l} ${shown}`).join(" | ")}`;
     const beaten = verdicts.filter(([, v]) => v === "loses").map(([l]) => l);
     if (beaten.length) losses.push(`${text}  (better: ${beaten.join(", ")})`);
     else if (verdicts.length && verdicts.every(([, v]) => v === "wins")) wins.push(text);
     else unclear++;
   };
   const byValue = (a, b) => (a[1] > b[1] ? "loses" : a[1] < b[1] ? "wins" : "within the spread");
+  const byMore = (a, b) => (a[1] < b[1] ? "loses" : a[1] > b[1] ? "wins" : "within the spread");
   const bySpread = (a, b) => compareSpread(a[1], b[1]);
+  sectionRows(sections, row, byValue, byMore);
   for (const app of result.apps) {
     if (!app.targets.some((t) => t.stack === "pleris")) continue;
     const steps = app.runs[0]?.interactions?.map((x) => x.name) ?? [];
@@ -196,6 +198,62 @@ export function lossesFirst(result) {
     }
   }
   return { losses, wins, unclear };
+}
+
+const STACK_LABEL = { pleris: "Pleris", react: "React", svelte: "Svelte", "next-react": "Next.js", sveltekit: "SvelteKit" };
+
+/** The rows the other sections give: behaviour, source, the feature
+ * changes, the museum. Each in the same terms as the measured rows. */
+function sectionRows({ behaviour, loc, feature, museum }, row, byValue, byMore) {
+  if (behaviour?.spec) {
+    const values = Object.entries(behaviour.spec.stacks).map(([s, v]) => [STACK_LABEL[s], v.passed, `${v.passed}/${v.total}`]);
+    row("todomvc", "TodoMVC's specification, tests passed in Chromium, Firefox and WebKit together (more is better)", values, byMore);
+  }
+  if (behaviour?.cypress) {
+    const values = Object.entries(behaviour.cypress).map(([s, v]) => [STACK_LABEL[s], v.passed, `${v.passed}/${v.total}`]);
+    row("todomvc", "TodoMVC's official Cypress suite, tests passed (more is better)", values, byMore);
+  }
+  for (const [app, stacks] of Object.entries(loc?.counts ?? {})) {
+    const v = (f) => Object.entries(stacks).map(([s, c]) => [STACK_LABEL[s], f(c), String(f(c))]);
+    row(app, "source the developer writes: app lines", v((c) => c.app.lines), byValue);
+    row(app, "source the developer writes: app lines plus the code it needs in its server in another language", v((c) => c.app.lines + c.host.lines), byValue);
+    row(app, "source the developer writes: app files", v((c) => c.app.files.length), byValue);
+    row(app, "source the developer writes: languages (app, and server code it needs)", v((c) => new Set([...Object.keys(c.app.languages), ...Object.keys(c.host.languages)]).size), byValue);
+    row(app, "source the developer writes: build and configuration lines", v((c) => c.build.lines), byValue);
+  }
+  if (feature?.rows) {
+    const totals = {};
+    for (const r of feature.rows) {
+      const values = Object.entries(r.stacks).map(([s, c]) => [STACK_LABEL[s], c.pr.added + c.pr.removed, `+${c.pr.added}/-${c.pr.removed} in ${c.pr.files} file(s), ${c.pr.languages.join("+")}`]);
+      row("store", `the same change, ${r.id} (${r.title}): lines changed`, values, byValue);
+      for (const [s, c] of Object.entries(r.stacks)) {
+        const t = (totals[s] ??= { lines: 0, files: 0, languages: new Set(), refused: 0, n: 0 });
+        t.lines += c.pr.added + c.pr.removed;
+        t.files += c.pr.files;
+        c.pr.languages.forEach((l) => t.languages.add(l));
+        if (c.unsafe && !c.unsafe.clean) t.refused++;
+        t.n++;
+      }
+    }
+    const v = (f, show) => Object.entries(totals).map(([s, t]) => [STACK_LABEL[s], f(t), show(t)]);
+    row("store", "the twelve changes: lines changed in all", v((t) => t.lines, (t) => String(t.lines)), byValue);
+    row("store", "the twelve changes: files touched in all", v((t) => t.files, (t) => String(t.files)), byValue);
+    row("store", "the twelve changes: languages touched", v((t) => t.languages.size, (t) => [...t.languages].sort().join("+")), byValue);
+    if (feature.rows.some((r) => Object.values(r.stacks).some((c) => c.unsafe))) {
+      row("store", "the twelve changes: unsafe versions the stack's own checker refuses (more is better)", v((t) => t.refused, (t) => `${t.refused}/${t.n}`), byMore);
+    }
+  }
+  if (museum?.exhibits) {
+    const n = museum.exhibits.length;
+    const values = [
+      ["Pleris", museum.exhibits.filter((e) => !e.refused).length, `${museum.exhibits.filter((e) => !e.refused).length}/${n}`],
+      ...["next-react", "sveltekit"].map((s) => {
+        const shown = museum.exhibits.filter((e) => e.stack === s && e.shown).length;
+        return [STACK_LABEL[s], shown, `${shown}/${n} (shown in it)`];
+      }),
+    ];
+    row("store", "the museum's bug classes the stack lets ship (fewer is better)", values, byValue);
+  }
 }
 
 function bytesTable(app, lines) {
@@ -280,7 +338,7 @@ function loadTable(app, lines) {
   }
 }
 
-export function renderReport(result) {
+export function renderReport(result, sections = {}) {
   const { meta } = result;
   const lines = [];
   const m = meta.machine;
@@ -290,7 +348,7 @@ export function renderReport(result) {
   lines.push(`runs: ${meta.args.runs} per cell (at least ${meta.minRuns}); conditions ${meta.args.conditions.join(", ")}; engines ${meta.args.engines.join(", ")}; Chromium also shaped: ${meta.args.shaped ? "Slow 4G" : "no"}; seed ${meta.args.seed}`);
   lines.push(`commit: ${meta.commit}${meta.dirty ? ` + ${meta.dirty}` : ""}; ${meta.started} to ${meta.finished}`);
   lines.push("");
-  const { losses, wins, unclear } = lossesFirst(result);
+  const { losses, wins, unclear } = lossesFirst(result, sections);
   lines.push(`== where Pleris loses: ${losses.length} row(s) of the tables below in which another stack does better`);
   for (const l of losses) lines.push(`  LOSS ${l}`);
   if (!losses.length) lines.push("  none in these tables");
@@ -298,6 +356,11 @@ export function renderReport(result) {
   lines.push(`== where Pleris is best: ${wins.length} row(s); ${unclear} more where it is neither (spreads overlap, or it is between the others)`);
   for (const w of wins) lines.push(`  BEST ${w}`);
   lines.push("");
+  for (const [name, text] of Object.entries(sections.texts ?? {})) {
+    lines.push(`== ${name}`);
+    lines.push(text.trimEnd());
+    lines.push("");
+  }
   for (const app of result.apps) {
     lines.push(`== ${app.title}`);
     for (const t of app.targets) {

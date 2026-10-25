@@ -21,6 +21,7 @@ does not ask for most of them.
 """
 
 import json
+import re
 import pathlib
 import sys
 
@@ -118,15 +119,59 @@ def judge(report):
     return lines, problems
 
 
+CYPRESS_LINE = re.compile(r"^(?:acceptance|react|svelte): (\d+) of (\d+) passed", re.M)
+
+
+def cypress_counts(text):
+    """(passed, total) from a Cypress judge's report: `todomvc_cypress_result.py`'s
+    acceptance line for Pleris, `head_to_head_cypress.py`'s for the others."""
+    m = CYPRESS_LINE.search(text)
+    return (int(m.group(1)), int(m.group(2))) if m else None
+
+
+def summary(report, cypress_texts):
+    """The data the head-to-head's summary reads: each stack's tests passed in
+    the three engines together, and its Cypress count."""
+    found = results(report)
+    spec = {}
+    for stack in STACKS:
+        cells = [found.get((stack, e), {}) for e in ENGINES]
+        spec[stack] = {
+            "passed": sum(1 for c in cells for s in c.values() if s == "passed"),
+            "total": sum(len(c) for c in cells),
+            "gaps": sorted(GAPS[stack]),
+        }
+    cypress = {}
+    for stack, text in cypress_texts.items():
+        counts = cypress_counts(text)
+        if counts:
+            cypress[stack] = {"passed": counts[0], "total": counts[1]}
+    return {"spec": {"engines": list(ENGINES), "stacks": spec}, "cypress": cypress}
+
+
 def main(argv):
-    if len(argv) != 2:
-        print("usage: head_to_head_behaviour.py <playwright json report>")
+    args = argv[1:]
+    out = None
+    cypress_texts = {}
+    if "--json" in args:
+        i = args.index("--json")
+        out = pathlib.Path(args[i + 1])
+        del args[i : i + 2]
+    while "--cypress" in args:
+        i = args.index("--cypress")
+        stack, _, file = args[i + 1].partition("=")
+        cypress_texts[stack] = pathlib.Path(file).read_text(encoding="utf-8", errors="replace")
+        del args[i : i + 2]
+    if len(args) != 1:
+        print("usage: head_to_head_behaviour.py <playwright json report> [--json out] [--cypress stack=judge-output ...]")
         return 2
     try:
-        report = json.loads(pathlib.Path(argv[1]).read_text(encoding="utf-8"))
+        report = json.loads(pathlib.Path(args[0]).read_text(encoding="utf-8"))
     except (OSError, ValueError) as why:
         print(f"behaviour: no report to read: {why}")
         return 1
+    if out:
+        out.write_text(json.dumps(summary(report, cypress_texts), indent=1) + "\n")
     lines, problems = judge(report)
     print("TodoMVC's specification (app-spec.md), one test per behaviour, three engines (behaviour.spec.mjs):")
     for line in lines:

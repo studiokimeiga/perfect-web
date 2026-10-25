@@ -67,6 +67,7 @@ function parseArgs(argv) {
     else if (k === "--stacks") a.stacks = v().split(",");
     else if (k === "--json") a.json = path.resolve(v());
     else if (k === "--render") a.render = path.resolve(v());
+    else if (k === "--sections") a.sections = path.resolve(v());
     else throw new Error(`head-to-head: unknown argument ${k}`);
   }
   return a;
@@ -187,6 +188,36 @@ async function measureApp(appName, args, log) {
   return { app: appName, title: app.title, targets: targets.map(describe), runs, loads, idle, browsers, problems };
 }
 
+/**
+ * What the recipe's earlier steps wrote (`just e14-head-to-head`): each
+ * section's text, printed whole after the summary, and its data, which the
+ * summary's rows read. A section that is not there is left out, and says so.
+ */
+function readSections(dir) {
+  if (!dir) return {};
+  const json = (name) => {
+    const f = path.join(dir, `${name}.json`);
+    return fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, "utf8")) : null;
+  };
+  const texts = {};
+  for (const [file, title] of [
+    ["behaviour.txt", "TodoMVC's behaviour on every stack (Cypress, and the specification in three engines)"],
+    ["loc.txt", "the source each stack's developer writes (scripts/head_to_head_loc.py)"],
+    ["feature.txt", "the same feature change in each stack (feature-change.mjs)"],
+    ["museum.txt", "the museum's bug classes each stack lets ship (museum-classes.mjs)"],
+  ]) {
+    const f = path.join(dir, file);
+    texts[title] = fs.existsSync(f) ? fs.readFileSync(f, "utf8") : "(not run)";
+  }
+  return {
+    texts,
+    behaviour: json("behaviour"),
+    loc: json("loc"),
+    feature: json("feature"),
+    museum: json("museum"),
+  };
+}
+
 function describe(t) {
   return {
     stack: t.stack,
@@ -207,9 +238,10 @@ function describe(t) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  const sections = readSections(args.sections);
   if (args.render) {
     // A kept run, reported again: no measurement.
-    process.stdout.write(renderReport(JSON.parse(fs.readFileSync(args.render, "utf8"))));
+    process.stdout.write(renderReport(JSON.parse(fs.readFileSync(args.render, "utf8")), sections));
     return;
   }
   const started = new Date().toISOString();
@@ -232,7 +264,7 @@ async function main() {
   meta.loadAverageAfter = os.loadavg().map((l) => Number(l.toFixed(2)));
   const result = { meta, apps };
   if (args.json) fs.writeFileSync(args.json, `${JSON.stringify(result, null, 1)}\n`);
-  process.stdout.write(renderReport(result));
+  process.stdout.write(renderReport(result, sections));
   const problems = apps.flatMap((a) => a.problems);
   if (problems.length) {
     process.stdout.write(`\nhead-to-head: REFUSED: ${problems.length} problem(s); nothing above is a measurement\n`);
