@@ -88,21 +88,21 @@ const identified = (bytes) => {
   return Object.keys(KNOWN).filter((what) => KNOWN[what].some((value) => searched.includes(value)));
 };
 
+/** A PNG's chunks before its IEND, each `[type, data]` (none for another kind). */
+function* pngChunks(bytes) {
+  if (bytes.subarray(1, 4).toString("latin1") !== "PNG") return;
+  for (let at = 8; at + 8 <= bytes.length; at += 12 + bytes.readUInt32BE(at)) {
+    const type = bytes.subarray(at + 4, at + 8).toString("latin1");
+    if (type === "IEND") return;
+    yield [type, bytes.subarray(at + 8, at + 8 + bytes.readUInt32BE(at))];
+  }
+}
+
 /** A PNG's iCCP profiles, inflated (none for another kind). */
 function pngProfiles(bytes) {
-  const found = [];
-  if (bytes.subarray(1, 4).toString("latin1") !== "PNG") return found;
-  for (let at = 8; at + 8 <= bytes.length; ) {
-    const length = bytes.readUInt32BE(at);
-    const type = bytes.subarray(at + 4, at + 8).toString("latin1");
-    if (type === "IEND") break;
-    if (type === "iCCP") {
-      const data = bytes.subarray(at + 8, at + 8 + length);
-      found.push(inflateSync(data.subarray(data.indexOf(0) + 2)));
-    }
-    at += 12 + length;
-  }
-  return found;
+  return [...pngChunks(bytes)]
+    .filter(([type]) => type === "iCCP")
+    .map(([, data]) => inflateSync(data.subarray(data.indexOf(0) + 2)));
 }
 
 /** A TIFF IFD at offset `at` (big-endian): its entries, no next IFD, then each value over four bytes. */
@@ -172,6 +172,21 @@ function textOf(version, type, text) {
   return Buffer.concat([latin1("text\0\0\0\0"), text, Buffer.alloc(1)]);
 }
 
+/** A display profile's header, version 2 or 4: its creation time, its device's maker and model, its creator and ID. */
+function profileHeader(version) {
+  const header = Buffer.alloc(128);
+  header[8] = version;
+  header[9] = version >= 4 ? 0x30 : 0x10;
+  header.write("mntrRGB XYZ ", 12, "latin1");
+  CREATED.copy(header, 24);
+  header.write("acspAPPL", 36, "latin1");
+  Buffer.from([...latin1("PLRSP7PR"), 0xde, 0xad, 0xbe, 0xef]).copy(header, 48);
+  Buffer.concat([s15(0.9642), s15(1), s15(0.8249)]).copy(header, 68);
+  header.write("PLRS", 80, "latin1");
+  PROFILE_ID.copy(header, 84);
+  return header;
+}
+
 /**
  * A display's profile, version 2 or 4: what names a person (its description), a device (its maker's and model's
  * descriptions, Apple's `mmod`) and its serial number, and a time (its header's creation time, a calibration's `calt`),
@@ -196,16 +211,7 @@ function displayProfile(version) {
     [["chad"], Buffer.concat([latin1("sf32\0\0\0\0"), ...[1, 0, 0, 0, 1, 0, 0, 0, 1].map(s15)])],
   ];
   const count = tags.reduce((n, [sigs]) => n + sigs.length, 0);
-  const header = Buffer.alloc(128);
-  header[8] = version;
-  header[9] = version >= 4 ? 0x30 : 0x10;
-  header.write("mntrRGB XYZ ", 12, "latin1");
-  CREATED.copy(header, 24);
-  header.write("acspAPPL", 36, "latin1");
-  Buffer.from([...latin1("PLRSP7PR"), 0xde, 0xad, 0xbe, 0xef]).copy(header, 48);
-  Buffer.concat([s15(0.9642), s15(1), s15(0.8249)]).copy(header, 68);
-  header.write("PLRS", 80, "latin1");
-  PROFILE_ID.copy(header, 84);
+  const header = profileHeader(version);
   const table = Buffer.alloc(4 + 12 * count);
   table.writeUInt32BE(count, 0);
   const pad4 = (n) => (n + 3) & ~3;
@@ -432,6 +438,27 @@ async function home(page) {
   await page.waitForFunction(() => document.documentElement.dataset.pwReady === "1");
 }
 
+/**
+ * A profile kept for its colour: each file as served (`profiled`, `[file, bytes served]`) decodes to the colour of the
+ * file as sent. The feed's page allows no `data:` image, so both are decoded on a new page's blank one (WebKit keeps
+ * the feed's policy in the `about:blank` the feed's own page goes to, and Chromium and Firefox do not); the fixture
+ * without a profile says whether this engine renders by a profile at all.
+ */
+async function expectColoursAsSent(page, profiled, project) {
+  const blank = await page.context().newPage();
+  await blank.goto("about:blank");
+  for (const [file, served] of profiled) {
+    const sent = await colourOf(blank, file.mime, file.bytes);
+    const bare = await colourOf(blank, file.mime, fixture(file.bare));
+    expect(await colourOf(blank, file.mime, served), `${file.name}: its colour as sent`).toEqual(sent);
+    const by = sent.join() === bare.join() ? "does not render by its profile" : "renders by its profile";
+    console.log(
+      `EVIDENCE colour (${project}): ${file.name} ${by}: as sent and as served [${sent}], without a profile [${bare}]`,
+    );
+  }
+  await blank.close();
+}
+
 /** Attach `file` with the home page's form, and post it with `text`. */
 async function attachAndPost(page, file, text) {
   await page.locator("#attach input[type=file]").setInputFiles({ name: file.name, mimeType: file.mime, buffer: file.bytes });
@@ -469,22 +496,7 @@ test("each format is shown and served without its metadata", async ({ page, requ
     expect(src).toBe(`/images/${key}.${file.kind}`);
     if (file.bare) profiled.push([file, bytes]);
   }
-  // A profile kept for its colour: the file as served decodes to the colour of the file as sent. The feed's page
-  // allows no `data:` image, so both are decoded on a new page's blank one (WebKit keeps the feed's policy in the
-  // `about:blank` the feed's own page goes to, and Chromium and Firefox do not); the fixture without a profile says
-  // whether this engine renders by a profile at all.
-  const blank = await page.context().newPage();
-  await blank.goto("about:blank");
-  for (const [file, served] of profiled) {
-    const sent = await colourOf(blank, file.mime, file.bytes);
-    const bare = await colourOf(blank, file.mime, fixture(file.bare));
-    expect(await colourOf(blank, file.mime, served), `${file.name}: its colour as sent`).toEqual(sent);
-    const by = sent.join() === bare.join() ? "does not render by its profile" : "renders by its profile";
-    console.log(
-      `EVIDENCE colour (${testInfo.project.name}): ${file.name} ${by}: as sent and as served [${sent}], without a profile [${bare}]`,
-    );
-  }
-  await blank.close();
+  await expectColoursAsSent(page, profiled, testInfo.project.name);
 });
 
 test("a JPEG with restart markers and a GIF with its own palette are kept whole and shown", async ({ page, request }, testInfo) => {
