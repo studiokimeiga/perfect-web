@@ -17,6 +17,11 @@ on:
   pull_request:
   workflow_dispatch:
 
+# This workflow only checks out code, runs tests and performs read-only audits.
+# Explicitly prohibit write-scoped GITHUB_TOKEN permissions.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -48,13 +53,20 @@ jobs:
         run: |
           python3 -m unittest discover -s scripts/tests -p 'test_quality_*.py' -v
           python3 scripts/quality_regressions.py
+      # Cargo owns integration-test discovery. Fail before expensive compilation
+      # if a new binary or an unexpected source file would be left unchecked.
+      - name: Prove x64 pw-core shard coverage against Cargo metadata
+        run: |
+          python3 -m unittest discover -s tools/perf_core -p 'test_*.py' -v
+          python3 tools/perf_core/shard.py --check
+          python3 tools/perf_core/shard.py --check --weights-file tools/perf_core/arm_weights.json
 
   # The main matrix. arm64 is not a formality: the project is developed on
   # Apple Silicon, so an x64-only CI would let an arch-specific assumption
   # through in either direction.
   build:
     needs: preflight
-    name: ${{ matrix.runner }}
+    name: ${{ matrix.runner }} (non-unit)
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -69,7 +81,16 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - uses: Swatinem/rust-cache@v2
+      - name: Configure ARM64 verified LLD
+        if: matrix.runner == 'ubuntu-24.04-arm'
+        run: bash scripts/ci_arm_lld.sh
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        if: matrix.runner != 'ubuntu-24.04-arm'
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        if: matrix.runner == 'ubuntu-24.04-arm'
+        with:
+          shared-key: arm-ci-lld18
 
       # tools/versions.lock pins just 1.58.0; unpinned, the action installs
       # whatever release is newest (charter §3.6).
@@ -89,13 +110,207 @@ jobs:
       - name: Bootstrap pinned toolchain
         run: just bootstrap
 
+      # Full `just ci` experiment (draft PR #43): 29m02s vs 50m53s on
+      # Linux ARM64 with debug info disabled. x64 regressed in that experiment,
+      # so this is explicitly ARM64-only; no tests are removed.
+      - name: Disable Rust dev/test debug info on ARM64
+        if: matrix.runner == 'ubuntu-24.04-arm'
+        run: |
+          printf '%s\n' 'CARGO_PROFILE_DEV_DEBUG=0' 'CARGO_PROFILE_TEST_DEBUG=0' >> "$GITHUB_ENV"
+
       - name: CI
-        run: just ci
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Native Rust test binaries are independently, exhaustively gated
+          # by both architecture-specific matrices and required status jobs.
+          # Never represent this step as complete CI by itself.
+          just ci-without-unit
 
       # Needs the toolchain, so it is not part of `just ci`. This is E2 gate
       # item 4: a domain function executing through generated Koka.
       - name: Koka backend end-to-end
         run: just spike-pw-to-koka
+
+  # ARM64 native and doc tests remain exhaustive. The isolated run
+  # 40138974772 demonstrated four integration partitions plus complete
+  # library/doctests: 1812 passed, 2 intentionally ignored, zero failures,
+  # and 238 distinct Cargo test binaries assigned exactly once. Other
+  # workspace packages keep the original pw-dev-server/rest partitions.
+  # Keep just ci intact and require every shard via the arm_required gate.
+  arm_native_unit:
+    needs: preflight
+    name: ARM64 Rust tests (${{ matrix.group }})
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 80
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [pw-core-libdocs, pw-core-int-0, pw-core-int-1, pw-core-int-2, pw-core-int-3, pw-dev-server, rest]
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_INCREMENTAL: '0'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      # New actions must use immutable, verified commit SHAs, not mutable tags.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: '1.97.1'
+          components: rustfmt, clippy
+      - name: Configure ARM64 verified LLD
+        run: bash scripts/ci_arm_lld.sh
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          shared-key: arm-native-tests-lld18
+          save-if: ${{ matrix.group == 'pw-core-int-0' && github.ref == 'refs/heads/master' }}
+      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+        with:
+          just-version: '1.58.0'
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Bootstrap pinned toolchain
+        run: just bootstrap
+      - name: All native unit/integration/doc tests for this partition
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${{ matrix.group }}" in
+            pw-core-libdocs)
+              cargo test --locked -p pw-core --lib --no-fail-fast
+              cargo test --locked -p pw-core --doc --no-fail-fast
+              ;;
+            pw-core-int-0|pw-core-int-1|pw-core-int-2|pw-core-int-3)
+              name="${{ matrix.group }}"
+              shard="${name##*-}"
+              python3 tools/perf_core/shard.py --shard "$shard" --weights-file tools/perf_core/arm_weights.json
+              ;;
+            pw-dev-server)
+              cargo test --locked -p pw-dev-server --no-fail-fast
+              ;;
+            rest)
+              cargo test --locked --workspace --exclude pw-core --exclude pw-dev-server --no-fail-fast
+              ;;
+            *)
+              echo "Unknown Cargo test partition" >&2
+              exit 2
+              ;;
+          esac
+
+  # Keep x64's unchanged debug profile (PR #43 found no-debug slower).
+  # Experiment 40135659315 verified 1,812 pw-core passes and 2 ignored,
+  # with all 238 integration binaries exactly once, 3.2x lower test-gate
+  # wall time. The four integration groups plus lib/doctests replace only
+  # the previous sequential pw-core group. Both other groups are unchanged.
+  x64_native_unit:
+    needs: preflight
+    name: x64 Rust tests (${{ matrix.group }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [pw-core-libdocs, pw-core-int-0, pw-core-int-1, pw-core-int-2, pw-core-int-3, pw-dev-server, rest]
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_INCREMENTAL: '0'
+      RUSTFLAGS: '-D warnings'
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: '1.97.1'
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          shared-key: x64-native-tests
+          save-if: ${{ matrix.group == 'pw-core-int-0' && github.ref == 'refs/heads/master' }}
+      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+        with:
+          just-version: '1.58.0'
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Bootstrap pinned toolchain
+        run: just bootstrap
+      - name: All native unit/integration/doc tests for x64 partition
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "${{ matrix.group }}" in
+            pw-core-libdocs)
+              cargo test --locked -p pw-core --lib --no-fail-fast
+              cargo test --locked -p pw-core --doc --no-fail-fast
+              ;;
+            pw-core-int-0|pw-core-int-1|pw-core-int-2|pw-core-int-3)
+              name="${{ matrix.group }}"
+              shard="${name##*-}"
+              python3 tools/perf_core/shard.py --shard "$shard"
+              ;;
+            pw-dev-server)
+              cargo test --locked -p pw-dev-server --no-fail-fast
+              ;;
+            rest)
+              cargo test --locked --workspace --exclude pw-core --exclude pw-dev-server --no-fail-fast
+              ;;
+            *)
+              echo "Unknown Cargo test partition" >&2
+              exit 2
+              ;;
+          esac
+
+  # Preserve the previous required x64 check name, and require BOTH the
+  # non-unit CI matrix (including Koka on both platforms) AND all native x64
+  # test shards to finish successfully. Matrix failure/skipping propagates.
+  x64_required:
+    name: ubuntu-24.04
+    needs: [build, x64_native_unit]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require both CI and all native x64 test partitions
+        shell: bash
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          NATIVE_TESTS_RESULT: ${{ needs.x64_native_unit.result }}
+        run: |
+          set -euo pipefail
+          printf 'Full CI non-unit matrix: %s\nx64 native unit matrix: %s\n' "$BUILD_RESULT" "$NATIVE_TESTS_RESULT"
+          test "$BUILD_RESULT" = success
+          test "$NATIVE_TESTS_RESULT" = success
+
+  # Preserve the previous required check name (ubuntu-24.04-arm) only as a
+  # fail-closed AND of the original ARM64 non-unit gates and all Cargo shards.
+  # A skipped/cancelled/failed/incomplete job must NEVER count as success.
+  arm_required:
+    name: ubuntu-24.04-arm
+    needs: [build, arm_native_unit]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require both CI and all native test partitions
+        shell: bash
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          NATIVE_TESTS_RESULT: ${{ needs.arm_native_unit.result }}
+        run: |
+          set -euo pipefail
+          printf 'Full CI build matrix: %s\nARM64 native unit matrix: %s\n' "$BUILD_RESULT" "$NATIVE_TESTS_RESULT"
+          test "$BUILD_RESULT" = success
+          test "$NATIVE_TESTS_RESULT" = success
 
   # Split out because it needs a network-fetched advisory database, and a
   # transient outage there should not be reported as a broken build.

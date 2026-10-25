@@ -1,0 +1,19 @@
+// Minimal generated-table read components for the D2 Wasmtime host test.
+// These use compiler-generated operations, not handwritten host bindings.
+module tables.reader
+
+import List
+import Lists.{ TodoList, ListId }
+import Lists
+
+query ById(id: ListId) -> Option<TodoList>
+    consistency strong
+{
+    Lists.get(id)
+}
+
+query ByIds(ids: List<ListId>) -> List<TodoList>
+    consistency strong
+{
+    Lists.get_many(ids)
+}

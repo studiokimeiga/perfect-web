@@ -4689,6 +4689,14 @@ ci: evidence-gates fmt-check lint case-check mutation-anchors test-unit test-com
     @echo ""
     @echo "ci: OK"
 
+# For the ARM64 GitHub Actions shard matrix ONLY. This omits exactly the
+# workspace-native test recipe; the CI aggregate job must require ALL three
+# exhaustive Cargo partitions, and a single passing non-unit job is never
+# sufficient evidence of green CI. The normal `just ci` remains unchanged.
+ci-without-unit: evidence-gates fmt-check lint case-check mutation-anchors test-compile mutant-programs
+    @echo ""
+    @echo "ci-without-unit: OK (native Cargo test matrix is REQUIRED separately)"
+
 # ADR-0231: a page's parameter is rendered on every page, and the feed's
 # replies. The compiler's tests, the server's, the feed in three engines, and
 # the mutation controls.
