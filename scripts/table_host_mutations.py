@@ -28,6 +28,11 @@ Each mutant undoes one piece and must be killed by a test:
 8. a row exactly its table's there: no field more, none less, none out of
    place, each of its type and within its bounds.
 
+Re-anchored by ADR-0386, which generalized these checks from `get` and
+`get-many` to every table function: each mutant still removes the check it
+names, now where every primitive passes through it. ADR-0386's own controls
+are `scripts/d2_writes_mutations.py`'s.
+
 Run whole from the repository root (`just e14-table-host`). Every source is
 restored in finally; the unmutated baseline must pass before any mutant
 means anything. Words given as arguments run only the mutants whose
@@ -67,8 +72,8 @@ MUTANTS = [
      "                if !imports.insert(function.import.as_str()) {\n",
      "                if !imports.insert(function.import.as_str()) && false {\n"),
     ("a get may be imported elsewhere than #get", TABLES,
-     "                    && function.import != format!(\"{interface}#{served}\")\n",
-     "                    && false\n"),
+     "                if function.name != generated {\n",
+     "                if false && function.name != generated {\n"),
     ("an effect need not be its primitive's", TABLES,
      "                if function.effect != effect {\n",
      "                if false && function.effect != effect {\n"),
@@ -76,13 +81,11 @@ MUTANTS = [
      "                if !function.by.iter().chain(&function.sorted_by).all(known) {\n",
      "                if false && !function.by.iter().chain(&function.sorted_by).all(known) {\n"),
     ("a get may read by other than the key", TABLES,
-     "                    && function.by != table.key\n",
-     "                    && false\n"),
+     "            Primitive::Get | Primitive::GetMany | Primitive::Delete if by != self.key => {\n",
+     "            Primitive::Get | Primitive::GetMany | Primitive::Delete if false && by != self.key => {\n"),
     # 2. the gate
     ("the gate leaves out a table import its manifest does not declare", TABLES,
-     "                return Err(refused(\n"
-     "                    \"tables.json declares no get or get-many there\".into(),\n"
-     "                ));\n",
+     "                return Err(refused(\"tables.json declares no function there\".into()));\n",
      "                continue;\n"),
     ("the gate binds a component's import", TABLES,
      "            if import.kind != ImportKind::HostCapability {\n",
@@ -101,37 +104,37 @@ MUTANTS = [
      "    false\n"),
     # 3. the only way
     ("a call links table imports without the gate", HOST,
-     "        let table_reads = crate::tables::gate_links(contract, granted, tables)?;\n",
-     "        let table_reads = { let _ = tables; std::collections::BTreeMap::<String, crate::tables::Read>::new() };\n"),
+     "        let table_functions = crate::tables::gate_links(contract, granted, tables, command)?;\n",
+     "        let table_functions = { let _ = (tables, command); std::collections::BTreeMap::<String, crate::tables::Access>::new() };\n"),
     ("instantiation links table imports with stubs", HOST,
-     "        crate::tables::gate_links(contract, granted, None)?;\n",
+     "        crate::tables::gate_links(contract, granted, None, false)?;\n",
      ""),
     ("the gate is skipped when a manifest is given", TABLES,
-     "        Some(tables) => tables.admit_reads(contract, granted),\n",
+     "        Some(tables) => tables.admit(contract, granted, command),\n",
      "        Some(_) => Ok(BTreeMap::new()),\n"),
     ("no import is a table's", TABLES,
      "    is_table_interface(key.split('#').next().unwrap_or(key))\n",
      "    is_table_interface(key.split('#').next().unwrap_or(key)) && false\n"),
     # 4. a table import's type, where it is linked
     ("a table import links whatever its type", HOST,
-     "                    table_link::check_import(read, &ty)?;\n",
-     "                    let _ = (read, ty);\n"),
+     "                    table_link::check_import(function, &ty)?;\n",
+     "                    let _ = (function, ty);\n"),
     ("a get-many's key type goes unchecked", LINK,
-     "        key(read, &keys.ty()).map_err(refused)?;\n",
-     "        let _ = key(read, &keys.ty());\n"),
+     "        selector(words, &read.by, &given.ty())?;\n",
+     "        let _ = selector(words, &read.by, &given.ty());\n"),
     ("a get-many's rows go unchecked", LINK,
-     "        record(&read.row, &rows.ty()).map_err(refused)?;\n",
-     "        let _ = record(&read.row, &rows.ty());\n"),
+     "        record(&read.row, &rows.ty())\n",
+     "        { let _ = record(&read.row, &rows.ty()); Ok(()) }\n"),
     ("a get's row goes unchecked", LINK,
-     "        record(&read.row, &row.ty()).map_err(refused)?;\n",
-     "        let _ = record(&read.row, &row.ty());\n"),
+     "        record(&read.row, &row.ty())\n",
+     "        { let _ = record(&read.row, &row.ty()); Ok(()) }\n"),
     ("a get takes any number of key values", LINK,
-     "        if params.len() != read.by.len() {\n",
-     "        if false && params.len() != read.by.len() {\n"),
+     "    if params.len() != by.len() {\n",
+     "    if false && params.len() != by.len() {\n"),
     ("a get's key values go untyped", LINK,
-     "            stored(&column.stored, ty)\n"
-     "                .map_err(|why| refused(format!(\"its key's `{}`: {why}\", column.name)))?;\n",
-     "            let _ = (stored(&column.stored, ty), column);\n"),
+     "        stored(&column.stored, ty)\n"
+     "            .map_err(|why| format!(\"its {words}'s `{}`: {why}\", column.name))?;\n",
+     "        let _ = (stored(&column.stored, ty), words, column);\n"),
     ("a row may hold more fields than tables.json", LINK,
      "    if fields.len() != columns.len() {\n",
      "    if false && fields.len() != columns.len() {\n"),
@@ -153,8 +156,8 @@ MUTANTS = [
      "            if fields.len() != columns.len() {\n",
      "            if false && fields.len() != columns.len() {\n"),
     ("a get takes any number of key fields", KEYS,
-     "    if args.len() != read.by.len() {\n",
-     "    if false && args.len() != read.by.len() {\n"),
+     "    if args.len() != by.len() {\n",
+     "    if false && args.len() != by.len() {\n"),
     # 6. a row, encoded as its record
     ("an encoded row keeps a field it does not declare", ROWS,
      "        .find(|name| !columns.iter().any(|column| &column.name == *name))\n",
@@ -173,8 +176,8 @@ MUTANTS = [
      "                if key == asked {\n",
      "                if true || key == asked {\n"),
     ("a get-many may answer a key not asked for", LINK,
-     "        if !asked.contains(&key) {\n",
-     "        if false && !asked.contains(&key) {\n"),
+     "            if !asked.contains(&found) {\n",
+     "            if false && !asked.contains(&found) {\n"),
     ("a get-many may answer a key twice", LINK,
      "        if !seen.insert(key.clone()) {\n",
      "        if !seen.insert(key.clone()) && false {\n"),
@@ -182,8 +185,8 @@ MUTANTS = [
      "        if last.as_ref().is_some_and(|last| *last > place) {\n",
      "        if false && last.as_ref().is_some_and(|last| *last > place) {\n"),
     ("no answer is held to its read", HOST,
-     "                            table_link::check_answer(read, &args, &out).map_err(|why| {\n",
-     "                            { let _ = (read, &args); Ok::<(), String>(()) }.map_err(|why| {\n"),
+     "                            table_link::check_answer(function, &args, &out).map_err(|why| {\n",
+     "                            { let _ = (function, &args); Ok::<(), String>(()) }.map_err(|why| {\n"),
     # 8. a row, exactly its table's
     ("an answered row may lack a field", LINK,
      "            return Err(format!(\"the row lacks `{}`\", column.wit));\n",

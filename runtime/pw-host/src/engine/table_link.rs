@@ -88,37 +88,38 @@ fn read_import(read: &Read, params: &[Type], results: &[Type]) -> Result<(), Str
 }
 
 fn write_import(write: &Write, params: &[Type], results: &[Type]) -> Result<(), String> {
+    // What it answers: where it can be refused, the row that refuses it, a
+    // row of its table's; nothing otherwise.
+    if write.refusable() {
+        let [Type::Result(answer)] = results else {
+            return Err(format!(
+                "it answers ({}), not a result of the row that refuses it",
+                listed(results)
+            ));
+        };
+        if let Some(ok) = answer.ok() {
+            return Err(format!(
+                "its ok holds {}, where it holds nothing",
+                named(&ok)
+            ));
+        }
+        let Some(held) = answer.err() else {
+            return Err("its error holds nothing, where it holds the row that refuses it".into());
+        };
+        record(&write.row, &held).map_err(|why| format!("its refusal's row: {why}"))?;
+    } else if !results.is_empty() {
+        return Err(format!("it answers ({}), not nothing", listed(results)));
+    }
+    // What it is given: a row, or the fields it deletes by.
     match write.primitive {
         Primitive::Insert | Primitive::Put => {
             let [row] = params else {
                 return Err(format!("it takes ({}), not one row", listed(params)));
             };
-            record(&write.row, row)?;
+            record(&write.row, row).map_err(|why| format!("its row: {why}"))
         }
-        primitive => fields(primitive.by_words(), &write.by, params)?,
+        primitive => fields(primitive.by_words(), &write.by, params),
     }
-    if !write.refusable() {
-        return match results {
-            [] => Ok(()),
-            _ => Err(format!("it answers ({}), not nothing", listed(results))),
-        };
-    }
-    let [Type::Result(answer)] = results else {
-        return Err(format!(
-            "it answers ({}), not a result of the row that refuses it",
-            listed(results)
-        ));
-    };
-    if let Some(ok) = answer.ok() {
-        return Err(format!(
-            "its ok holds {}, where it holds nothing",
-            named(&ok)
-        ));
-    }
-    let Some(held) = answer.err() else {
-        return Err("its error holds nothing, where it holds the row that refuses it".into());
-    };
-    record(&write.row, &held)
 }
 
 /// The fields a read or a delete is given, each by its stored type, in

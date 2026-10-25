@@ -67,12 +67,23 @@ fn answering_all(
 fn a_read_typed_otherwise_than_tables_json_is_refused_when_linking() {
     let program = app();
     type Edit = fn(&mut serde_json::Value);
-    let cases: [(&str, Vec<Val>, &str, Edit); 3] = [
+    let cases: [(&str, Vec<Val>, &str, Edit); 4] = [
         (
             ITEMS_OF,
             vec![text("groceries")],
             "its prefix's `list`: string where tables.json declares an Int",
             |json| table(json, "Items")["fields"][0]["stored"] = json!({"int": {}}),
+        ),
+        // A row cannot tell `Some(None)` from `None`: refused, however the
+        // component types the field.
+        (
+            ITEMS_OF,
+            vec![text("groceries")],
+            "`note`: an Option of an Option",
+            |json| {
+                table(json, "Items")["fields"][6]["stored"] =
+                    json!({"option": {"option": {"string": {}}}})
+            },
         ),
         (
             LIST_AT,
@@ -86,7 +97,7 @@ fn a_read_typed_otherwise_than_tables_json_is_refused_when_linking() {
         (
             OPEN_ITEMS,
             vec![],
-            "`done`: bool where tables.json declares a String",
+            "its index's `done`: bool where tables.json declares a String",
             |json| table(json, "Items")["fields"][3]["stored"] = json!({"string": {}}),
         ),
     ];
@@ -224,7 +235,7 @@ fn an_answer_not_its_reads_is_refused() {
 fn a_manifest_is_whole_for_every_primitive() {
     let program = program();
     type Edit = fn(&mut serde_json::Value);
-    let cases: [(&str, Edit); 10] = [
+    let cases: [(&str, Edit); 15] = [
         (
             "reads by other than a proper prefix of Items's key",
             |json| function(json, "Items", "of_list")["by"] = json!(["id"]),
@@ -261,6 +272,43 @@ fn a_manifest_is_whole_for_every_primitive() {
                     .as_array_mut()
                     .unwrap()
                     .push(json!({"name": "by_list_done", "fields": ["done"], "unique": true}))
+            },
+        ),
+        (
+            "index `done_index` is not one index of its fields",
+            |json| table(json, "Items")["indexes"][0]["name"] = json!("done_index"),
+        ),
+        (
+            "index `by_nothing` is not one index of its fields",
+            |json| {
+                table(json, "Items")["indexes"]
+                    .as_array_mut()
+                    .unwrap()
+                    .push(json!({"name": "by_nothing", "fields": []}))
+            },
+        ),
+        ("index `by_nope` is not one index of its fields", |json| {
+            table(json, "Items")["indexes"]
+                .as_array_mut()
+                .unwrap()
+                .push(json!({"name": "by_nope", "fields": ["nope"]}))
+        }),
+        (
+            "index `by_title_title` is not one index of its fields",
+            |json| {
+                table(json, "Items")["indexes"]
+                    .as_array_mut()
+                    .unwrap()
+                    .push(json!({"name": "by_title_title", "fields": ["title", "title"]}))
+            },
+        ),
+        (
+            "index `by_done_many` is not one index of its fields",
+            |json| {
+                table(json, "Items")["indexes"]
+                    .as_array_mut()
+                    .unwrap()
+                    .push(json!({"name": "by_done_many", "fields": ["title"]}))
             },
         ),
         ("Lists is bounded to no row", |json| {

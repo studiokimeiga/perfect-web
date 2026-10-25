@@ -64,6 +64,7 @@ import 'just/command-deadline.just'
 import 'just/press-modules.just'
 import 'just/e14-readiness.just'
 import 'just/table-host.just'
+import 'just/d2-writes.just'
 
 default:
     @just --list

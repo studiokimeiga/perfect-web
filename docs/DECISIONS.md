@@ -3254,3 +3254,7 @@ The modules a page loads when it first needs them are loaded within the deadline
 [ADR-0385](DECISIONS/ADR-0385-a-component-reads-its-tables-through-the-table-gate.md):
 A compiled component reads its tables through the table gate, typed and exact (ADR-0338's D2 read path, track `d2-integrate`; PR #53, merged at `4345726a`, 2026-10-25).
 - The gate (`pw_host::tables`) is the only way a `pw:tables/…` import links; each import is typed as tables.json declares before instantiation; every answer is its read's (a get's own key, a get-many's asked keys once in canonical order) and every row exactly its table's. `e14-table-host`: 49 of 49 mutants killed.
+
+[ADR-0386](DECISIONS/ADR-0386-a-command-writes-its-tables-through-the-gate-staged.md):
+A command writes its tables through the table gate, staged, and every read is gated (ADR-0338's D2 writes and other reads, track `d2-writes`; not landed).
+- `insert`, `put`, `delete` and `delete_of_<fields>` link only into a command, with their table's write capability, typed, each answer held; a command reads its own writes, no other read sees them until it commits, and it commits whole (bound and references held) or not at all; a refused write answers the row that holds it; prefix, index, set-form and bounded `all` reads gated, typed and held. The memory adapter keeps rows and indexes as maps; the tables a command changed are what a host commits the outbox by.

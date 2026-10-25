@@ -188,13 +188,30 @@ pub fn app() -> Program {
 pub const INSERT_THEN_GET: &str = "tables.writer.insert_then_get";
 pub const PUT_THEN_OPEN: &str = "tables.writer.put_then_open";
 pub const INSERT_THEN_DIVIDE: &str = "tables.writer.insert_then_divide";
+pub const RENAME: &str = "tables.writer.rename";
 
 /// The writers' program: the lists, their items, their source, `writer.pw`.
 pub fn writer() -> Program {
     program_of(
         &["writer.pw"],
-        &[INSERT_THEN_GET, PUT_THEN_OPEN, INSERT_THEN_DIVIDE],
+        &[INSERT_THEN_GET, PUT_THEN_OPEN, INSERT_THEN_DIVIDE, RENAME],
     )
+}
+
+/// **The tables' declarations and `program`, its source edited by `edit`,
+/// as `pw build` checks and builds them**: the build, or why the program does
+/// not check.
+pub fn build_edited(
+    program: &str,
+    edit: impl Fn(&str) -> String,
+) -> Result<pw_core::build::Build, String> {
+    let mut units = units(&["Lists.pw", "Items.pw", "ListData.pw", program]);
+    let last = units.last_mut().expect("the program's unit");
+    last.src = edit(&last.src);
+    let parsed = pw_syntax::parse_tree(&last.src);
+    assert!(parsed.ok(), "{:?}", parsed.errors);
+    last.hir = pw_core::lower::lower_file(&last.src, &parsed.green);
+    pw_core::program::build(&units)
 }
 
 /// The tables' declarations and `program`, built by the compiler, and the

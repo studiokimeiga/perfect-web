@@ -236,6 +236,26 @@ fn make_list_inserts_or_answers_the_row_that_holds_its_key_or_slug() {
     );
 }
 
+/// **Which queries a write invalidates is the command's to declare, and the
+/// checker holds it whole** (PW5106, ADR-0007): a table's write performs
+/// `database.write<Lists>`, so `make_list` without `EveryList()` among its
+/// invalidations, which reads `Lists`, does not build; as written, it does.
+#[test]
+fn a_write_that_invalidates_no_reader_of_its_table_does_not_build() {
+    let declared = "invalidates EveryList(), ListAt(list.slug), EveryItem()";
+    let Err(refused) = build_edited("app.pw", |src| {
+        assert_eq!(src.matches(declared).count(), 1);
+        src.replace(declared, "invalidates ListAt(list.slug), EveryItem()")
+    }) else {
+        panic!("a write leaving a reader of its table as it was is refused");
+    };
+    assert!(
+        refused.contains("[PW5106] `make_list` writes `Lists` and does not invalidate `EveryList`"),
+        "{refused}"
+    );
+    assert!(build_edited("app.pw", str::to_string).is_ok());
+}
+
 /// `keep_item` puts a row whole, and the index it reads by is kept on the
 /// write: an item done leaves the open items, a new one joins them in its
 /// place in the order.

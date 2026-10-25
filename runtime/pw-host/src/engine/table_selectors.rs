@@ -483,6 +483,25 @@ mod tests {
             assert!(refused.contains("`secret`"), "{refused}");
             assert!(decode_write_arguments(&write, &[]).is_err());
         }
+        // An `Option` of an `Option`: its `Some(None)` would be stored as
+        // its `None`, so it is refused, and its `None` is stored.
+        let mut nested = write(Primitive::Insert);
+        nested.row = vec![Column::new(
+            "maybe",
+            Stored::Option(Box::new(Stored::Option(Box::new(string(None))))),
+        )];
+        let some_none = Val::Record(vec![(
+            "maybe".into(),
+            Val::Option(Some(Box::new(Val::Option(None)))),
+        )]);
+        assert!(decode_write_arguments(&nested, &[some_none]).is_err());
+        assert_eq!(
+            decode_write_arguments(
+                &nested,
+                &[Val::Record(vec![("maybe".into(), Val::Option(None))])]
+            ),
+            Ok(vec![json!({"maybe": null})])
+        );
         let delete = write(Primitive::Delete);
         assert_eq!(
             decode_write_arguments(&delete, &[Val::String("a".into())]),

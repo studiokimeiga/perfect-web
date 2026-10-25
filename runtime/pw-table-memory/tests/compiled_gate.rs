@@ -177,12 +177,18 @@ fn table<'a>(json: &'a mut serde_json::Value, name: &str) -> &'a mut serde_json:
 fn a_write_typed_otherwise_than_tables_json_is_refused_when_linking() {
     let program = app();
     type Edit = fn(&mut serde_json::Value);
-    let cases: [(&str, Vec<Val>, &str, Edit); 3] = [
+    let cases: [(&str, Vec<Val>, &str, Edit); 4] = [
         (
             MAKE_LIST,
             vec![list("todo", "work", 1)],
-            "`added`: s64 where tables.json declares a String",
+            "its refusal's row: `added`: s64 where tables.json declares a String",
             |json| lists(json)["fields"][3]["stored"] = json!({"string": {}}),
+        ),
+        (
+            KEEP_ITEM,
+            vec![item("groceries", "milk", false, 1)],
+            "its row: `added`: s64 where tables.json declares a String",
+            |json| table(json, "Items")["fields"][5]["stored"] = json!({"string": {}}),
         ),
         (
             KEEP_ITEM,
@@ -247,6 +253,68 @@ fn a_write_typed_otherwise_than_tables_json_is_refused_when_linking() {
             "{id}"
         );
     }
+}
+
+/// **A write that tables.json says answers nothing links only where the
+/// component's answers nothing**: `writer.pw`'s `rename` puts a list, which a
+/// unique slug lets be refused; with the slug's index plain in tables.json,
+/// its import answers what the write does not, and is refused where it
+/// links. The compiler's own manifest links and runs it, and its refusal is
+/// the list that holds the slug.
+#[test]
+fn a_write_answering_what_tables_json_says_it_does_not_is_refused() {
+    let program = writer();
+    let renamer = program.reader(RENAME);
+    let granted = renamer.admitted(&renamer.contract, &grants(NODE));
+    let plain = manifest_where(&program.tables, |json| {
+        lists(json)["indexes"][0]["unique"] = json!(false);
+        for function in lists(json)["functions"].as_array_mut().unwrap() {
+            if function["name"] == "by_slug" {
+                function["sorted_by"] = json!(["added", "id"]);
+            }
+        }
+    })
+    .expect("a whole manifest");
+    let (callback, calls) = answering(Vec::new());
+    let host = BTreeMap::from([("pw:tables/lists#put".to_string(), callback)]);
+    let refused = renamer
+        .call(&granted, &host, &plain, &[list("todo", "work", 1)])
+        .expect_err("a put that tables.json says cannot be refused");
+    assert!(
+        refused.contains("it answers (a result), not nothing"),
+        "{refused}"
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    // The neighbour: the compiler's manifest, on the adapter.
+    let tables = MemoryTables::new(program.tables.clone()).unwrap();
+    tables
+        .transaction(|tx| {
+            tx.write("pw:tables/lists#insert", &[list_json("todo", "work", 1)])?;
+            tx.write("pw:tables/lists#insert", &[list_json("next", "play", 2)])
+        })
+        .unwrap();
+    let staged = tables.begin().unwrap();
+    let host = staged.host_fns(&renamer.contract, &granted).unwrap();
+    assert_eq!(
+        renamer.call(
+            &granted,
+            &host,
+            tables.host_tables(),
+            &[list("next", "work", 2)]
+        ),
+        Ok(vec![Val::Result(Err(Some(Box::new(list(
+            "todo", "work", 1
+        )))))])
+    );
+    assert_eq!(
+        renamer.call(
+            &granted,
+            &host,
+            tables.host_tables(),
+            &[list("next", "fun", 2)]
+        ),
+        Ok(vec![Val::Result(Ok(None))])
+    );
 }
 
 /// **A write answers only as its write**, whoever answers it: an insert's

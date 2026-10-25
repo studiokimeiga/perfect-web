@@ -27,6 +27,13 @@ command put_then_open(item: Item) -> List<Item>
     Items.by_done(false)
 }
 
+// A list kept whole, refused by the list that holds its slug.
+command rename(list: TodoList) -> Result<(), TodoList>
+    transaction serializable
+{
+    Lists.put(list)
+}
+
 // A write, then a division by `by`: by zero, it stops after its write.
 command insert_then_divide(list: TodoList, by: Int) -> Result<Int, TodoList>
     transaction serializable
