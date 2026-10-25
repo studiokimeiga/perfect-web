@@ -1,6 +1,5 @@
-//! Compile the D2 get/get-many reader fixture without running a host.
-//! The separate Wasmtime integration must later invoke these actual components
-//! using only manifest-declared, admitted bindings.
+//! Compile the D2 get/get-many readers and exercise one exact get HostFn.
+//! MemoryTables binding and present-row/get-many execution remain separate.
 
 use pw_core::backend::component::Built;
 use pw_core::check::Unit;
@@ -182,5 +181,55 @@ fn compiled_table_readers_have_exact_manifest_and_contract_imports() {
                 .any(|reason| matches!(reason, pw_host::Refusal::UndeclaredImport { .. })),
             "{component_id}: sibling import must be undeclared: {mismatch:?}",
         );
+
+        if component_id == "tables.reader.ById" {
+            // Admission is not execution: exercise the real compiled guest
+            // with exactly its declared get handler, but no memory adapter yet.
+            let export = host_contract.exports[0]
+                .component
+                .as_ref()
+                .expect("reader export has a component path");
+            let path = [&export.interface[..], &export.function[..]];
+            let args = [pw_host::engine::Val::String("missing".into())];
+
+            // A capability grant alone must never supply a default/stub host.
+            let unimplemented = pw_host::engine::call_within(
+                &compiled.component.bytes,
+                host_contract,
+                &granted,
+                &pw_host::Limits::unbounded(),
+                &Default::default(),
+                &path,
+                &args,
+            )
+            .expect_err("get with no host callback must be refused");
+            assert!(
+                unimplemented.contains(key),
+                "the missing exact read must be named: {unimplemented}"
+            );
+
+            let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            let observed = std::sync::Arc::clone(&calls);
+            let handler: pw_host::engine::HostFn = std::sync::Arc::new(move |received| {
+                assert_eq!(received, &[pw_host::engine::Val::String("missing".into())]);
+                observed.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                Ok(vec![pw_host::engine::Val::Option(None)])
+            });
+            let exact_host = std::collections::BTreeMap::from([(key.to_owned(), handler)]);
+            assert_eq!(
+                pw_host::engine::call_within(
+                    &compiled.component.bytes,
+                    host_contract,
+                    &granted,
+                    &pw_host::Limits::unbounded(),
+                    &exact_host,
+                    &path,
+                    &args,
+                ),
+                Ok(vec![pw_host::engine::Val::Option(None)]),
+                "the compiled get reader must call the granted exact HostFn"
+            );
+            assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+        }
     }
 }
