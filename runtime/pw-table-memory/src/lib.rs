@@ -425,6 +425,39 @@ fn selections(by: &[String], args: &[Value], many: bool) -> Result<BTreeSet<Key>
     Ok(out)
 }
 
+fn typed_read_selections(
+    table: &TableJson,
+    fun: &FunctionJson,
+    args: &[Value],
+) -> Result<BTreeSet<Key>, Error> {
+    let keys = selections(&fun.by, args, fun.primitive.many())?;
+    // Atom::parse checks the value's shape, but a boolean is still a valid
+    // Atom when the declared selector is a string. A mismatched read must
+    // fail, not turn into the same answer as an absent row.
+    for key in &keys {
+        for (name, atom) in fun.by.iter().zip(key) {
+            let field = table
+                .schema
+                .fields
+                .iter()
+                .find(|field| field.name == *name)
+                .ok_or_else(|| Error::Schema(format!("unknown table selector field {name}")))?;
+            let value = match atom {
+                Atom::Bool(value) => Value::from(*value),
+                Atom::Int(value) => Value::from(*value),
+                Atom::Str(value) => Value::from(value.clone()),
+            };
+            if !validates(&value, &field.stored) {
+                return Err(Error::Input(format!(
+                    "{} selector {name} fails its declared type or bound",
+                    fun.import
+                )));
+            }
+        }
+    }
+    Ok(keys)
+}
+
 fn read(
     manifest: &TablesJson,
     state: &State,
@@ -447,7 +480,7 @@ fn read(
     let keys = if fun.primitive == Primitive::All {
         BTreeSet::new()
     } else {
-        selections(&fun.by, args, fun.primitive.many())?
+        typed_read_selections(table, fun, args)?
     };
     let mut found: Vec<&Row> = rows
         .values()
