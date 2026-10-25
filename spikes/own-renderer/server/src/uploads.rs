@@ -735,12 +735,14 @@ impl Shared {
             .staged
             .put(bytes)
             .map_err(|_| (500, "The image could not be kept.", None))?;
+        // Held before the earlier lease lets its bytes go: the same bytes
+        // attached again are the same blob, which ending it first forgot.
+        *state.holds.entry(key.clone()).or_default() += 1;
         if let Some(old) = state.leases.remove(session) {
             self.end(&mut state, old);
         }
         state.next += 1;
         let id = format!("up-{}", state.next);
-        *state.holds.entry(key.clone()).or_default() += 1;
         state.staged_bytes += size;
         state
             .spent
@@ -1560,6 +1562,30 @@ pub(crate) mod tests {
             303
         );
         assert_eq!(files(&staged), 2, "s-2 still holds the 3 by 3");
+    }
+
+    /// **The same image attached twice by one session is kept** (track
+    /// `upload-metadata`'s finding): the second lease holds its bytes before
+    /// the first lets them go, so no lease names bytes its staging forgot.
+    #[test]
+    fn the_same_image_attached_twice_is_kept() {
+        let d = dir();
+        let u = uploads(d.path(), declared(), LEASE);
+        let s = shared(&u);
+        for _ in 0..2 {
+            assert_eq!(
+                post(&u, "s-1", &png(3, 3), "a.png", "image/png").status,
+                303
+            );
+        }
+        let shown = s.shown("s-1").expect("leased");
+        assert_eq!(get(&u, &shown.src, "s-1", "").status, 200, "shown to it");
+        assert_eq!(files(&d.path().join("staged")), 1);
+        let claimed = s.claim("s-1").expect("claimed");
+        s.keep(&claimed)
+            .expect("its bytes kept, so its post commits");
+        s.committed(claimed);
+        assert_eq!(files(&d.path().join("staged")), 0, "forgotten, posted");
     }
 
     #[test]
