@@ -1382,16 +1382,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "pw-tasks"
-version = "0.0.0"
-
-[[package]]
 name = "pw-table-memory"
 version = "0.0.0"
 dependencies = [
  "pw-core",
  "serde_json",
 ]
+
+[[package]]
+name = "pw-tasks"
+version = "0.0.0"
 
 [[package]]
 name = "pw-time"
