@@ -247,7 +247,7 @@ def code_mutants():
         passed = sum(1 for r in results.values() if r is None)
         print(f"baseline ({suite}): {passed} passed, {len(results) - passed} failed", flush=True)
         if status != 0 or not results or any(r is not None for r in results.values()):
-            print(f"FAIL: the unmutated {suite} baseline is not green; no mutant can mean anything")
+            print(f"FAIL: the unmutated baseline is not green ({suite} tests); no mutant can mean anything")
             mutation_baseline.explain()
             return None
         baselines[suite] = results
@@ -336,6 +336,7 @@ def integrity_controls():
 
 
 def main():
+    import mutation_baseline  # keeps what each command says, for a red baseline  # noqa: F401
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(1))
     os.environ.setdefault("PORT", PORT)
     bad = code_mutants()
