@@ -86,6 +86,14 @@ the [last-passing ledger](STATUS-HISTORY-2026-10.md#last-passing-commit).
 
 ## completed gate items
 
+On master since PR #53 (`4345726a`, 2026-10-25), ADR-0338 D2's read path
+([ADR-0385](DECISIONS/ADR-0385-a-component-reads-its-tables-through-the-table-gate.md)):
+a compiled component reads declared tables only through the table gate,
+each import typed as `tables.json` declares before instantiation, each
+answer held to its read; [evidence](evidence/E14/table-host.txt) by
+`just e14-table-host`, 49 of 49 mutants killed. Writes, the other reads,
+the development server's routing and an app with no Rust data layer remain.
+
 At train-12 source `ec15e5b1`, the latest complete campaign detects all
 43 TodoMVC, 62 device-storage and 50 second-host faults, plus TodoMVC's
 8 compatibility, 55 Cypress producer and 17 strict producer controls.

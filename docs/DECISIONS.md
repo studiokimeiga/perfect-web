@@ -3250,3 +3250,7 @@ A command's send is answered within its deadline, or it is no answer (track `com
 [ADR-0382](DECISIONS/ADR-0382-a-page-loads-its-modules-within-the-deadline.md):
 The modules a page loads when it first needs them are loaded within the deadline, and a failed load is not kept (track `press-modules`; not landed).
 - A handler's module, the page's speculation module, its renderer and its computed values load within ADR-0381's deadline; a failed or given-up load is forgotten and asked for again under a new specifier, as a handler's is; a press whose speculation cannot load is sent unspeculated.
+
+[ADR-0385](DECISIONS/ADR-0385-a-component-reads-its-tables-through-the-table-gate.md):
+A compiled component reads its tables through the table gate, typed and exact (ADR-0338's D2 read path, track `d2-integrate`; PR #53, merged at `4345726a`, 2026-10-25).
+- The gate (`pw_host::tables`) is the only way a `pw:tables/…` import links; each import is typed as tables.json declares before instantiation; every answer is its read's (a get's own key, a get-many's asked keys once in canonical order) and every row exactly its table's. `e14-table-host`: 49 of 49 mutants killed.
