@@ -231,5 +231,55 @@ fn compiled_table_readers_have_exact_manifest_and_contract_imports() {
             );
             assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
         }
+
+        if component_id == "tables.reader.ByIds" {
+            // Exercise the compiled get-many ABI with two typed rows in the
+            // callback's order. The memory adapter is not connected yet.
+            let export = host_contract.exports[0]
+                .component
+                .as_ref()
+                .expect("reader export has a component path");
+            let path = [&export.interface[..], &export.function[..]];
+            let args = [pw_host::engine::Val::List(vec![
+                pw_host::engine::Val::String("list-b".into()),
+                pw_host::engine::Val::String("list-a".into()),
+            ])];
+            let row = |id: &str, added: i64| {
+                pw_host::engine::Val::Record(vec![
+                    ("id".into(), pw_host::engine::Val::String(id.into())),
+                    (
+                        "name".into(),
+                        pw_host::engine::Val::String(format!("List {id}")),
+                    ),
+                    ("slug".into(), pw_host::engine::Val::String(id.into())),
+                    ("added".into(), pw_host::engine::Val::S64(added)),
+                ])
+            };
+            let rows = pw_host::engine::Val::List(vec![row("list-b", 20), row("list-a", 10)]);
+            let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            let observed = std::sync::Arc::clone(&calls);
+            let expected_args = args.clone();
+            let supplied_rows = rows.clone();
+            let handler: pw_host::engine::HostFn = std::sync::Arc::new(move |received| {
+                assert_eq!(received, &expected_args[..]);
+                observed.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                Ok(vec![supplied_rows.clone()])
+            });
+            let exact_host = std::collections::BTreeMap::from([(key.to_owned(), handler)]);
+            assert_eq!(
+                pw_host::engine::call_within(
+                    &compiled.component.bytes,
+                    host_contract,
+                    &granted,
+                    &pw_host::Limits::unbounded(),
+                    &exact_host,
+                    &path,
+                    &args,
+                ),
+                Ok(vec![rows]),
+                "the compiled get-many reader must forward keys and return typed rows"
+            );
+            assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+        }
     }
 }
