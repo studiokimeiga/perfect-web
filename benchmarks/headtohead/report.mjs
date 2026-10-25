@@ -258,9 +258,11 @@ function sectionRows({ behaviour, loc, feature, museum }, row, byValue, byMore) 
 
 function bytesTable(app, lines) {
   const steps = app.runs[0]?.interactions?.map((x) => x.name) ?? [];
-  lines.push("bytes, cold, Chromium (every cold run of a stack received the same, or its range is shown):");
+  lines.push("bytes of the first load, cold, Chromium (every cold run of a stack received the same, or its range is shown):");
+  lines.push("  decoded: the responses' bodies; Brotli 11, gzip 9: those bodies as a static host compresses them, for every stack alike;");
+  lines.push("  received: what the browser received as each host sent it (headers included); app br: Brotli 11 without TodoMVC's common files (base.js, learn.json)");
   lines.push(
-    `  ${pad("stack", 10)} ${rpad("requests", 8)} ${rpad("decoded", 9)} ${rpad("Brotli 11", 9)} ${rpad("gzip 9", 8)} ${rpad("received", 9)}  ${pad("as sent", 8)} ${rpad("w/o common, br", 14)}  by kind (decoded/br)`,
+    `  ${pad("stack", 10)} ${rpad("requests", 8)} ${rpad("decoded", 9)} ${rpad("Brotli 11", 9)} ${rpad("gzip 9", 8)} ${rpad("received", 9)}  ${pad("as sent", 8)} ${rpad("app br", 14)}  by kind (decoded/br)`,
   );
   for (const t of app.targets) {
     const rs = runsOf(app, { stack: t.stack, engine: "chromium", condition: "cold" });
@@ -274,6 +276,14 @@ function bytesTable(app, lines) {
     lines.push(
       `  ${pad(t.label, 10)} ${rpad(first.requests, 8)} ${rpad(fmt(raw.value) + (raw.varies ? "*" : ""), 9)} ${rpad(fmt(first.br), 9)} ${rpad(fmt(first.gzip), 8)} ${rpad(fmt(received.value) + (received.varies ? `~${fmt(received.min)}` : ""), 9)}  ${pad(first.encodings, 8)} ${rpad(fmt(wo.br), 14)}  ${kinds}${first.aborted ? `; ${first.aborted} request(s) aborted before their response ended (a held stream, or a read the page cut short)` : ""}`,
     );
+  }
+  lines.push("  scripts and styles a minifier still shrinks by 10% or more (esbuild 0.28.2's, lib.mjs's rule), as served:");
+  for (const t of app.targets) {
+    const r = runsOf(app, { stack: t.stack, engine: "chromium", condition: "cold" })[0];
+    if (!r) continue;
+    const loose = (r.requests ?? []).filter((q) => q.minified === false);
+    const shown = loose.map((q) => `${new URL(q.url).pathname} ${fmt(q.raw)} -> ${fmt(q.minifiedBytes)}${isCommon(q.url, t.common) ? " (TodoMVC's common file)" : ""}`);
+    lines.push(`    ${pad(t.label, 10)} ${shown.length ? shown.join("; ") : "none"}`);
   }
   for (const s of steps) {
     lines.push(`  interaction "${s}" (cold, Chromium): requests / decoded / Brotli 11 / received`);
