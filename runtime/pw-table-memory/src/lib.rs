@@ -218,32 +218,27 @@ impl MemoryTables {
     }
 
     /// **The table reads an admitted component links, as host functions**
-    /// (ADR-0338 D2): one callback for each import
-    /// [`MemoryTables::read_host_imports`] selects, keyed as the engine links
-    /// it (`pw:tables/<table>#get`), and nothing else. Each reads this
-    /// adapter through the import it is installed for, its arguments decoded
-    /// and its rows encoded by `pw_host::engine::table_read_host`; the engine
-    /// then reads each answer through the type the component declares
-    /// (ADR-0166), so a row reaches the component as its WIT record or not at
-    /// all. A component with any other table import gets an error, not a
-    /// partial map.
+    /// (ADR-0338 D2): one callback for each read the host's gate admits
+    /// ([`MemoryTables::read_host_imports`]), keyed as the engine links it
+    /// (`pw:tables/<table>#get`), and nothing else. Each reads this adapter
+    /// through the import it is installed for, its keys held to the read's
+    /// and its rows encoded as the read's row declares
+    /// (`pw_host::engine::table_read_host`); the engine links them only with
+    /// this manifest (`call_with_tables` and [`MemoryTables::host_tables`]),
+    /// and holds each answer to the read again. A component with any other
+    /// table import gets an error, not a partial map.
     pub fn read_host_fns(
         self: &Arc<Self>,
         contract: &pw_host::ComponentContract,
         granted: &pw_host::Granted,
     ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, Error> {
-        use pw_host::engine::table_read_host::{ReadKind, host_fn};
+        use pw_host::engine::table_read_host::host_fn;
         let mut out = BTreeMap::new();
         let reads = self
             .host
             .admit_reads(contract, granted)
             .map_err(Error::Input)?;
         for (import, read) in reads {
-            let kind = if read.many {
-                ReadKind::GetMany
-            } else {
-                ReadKind::Get
-            };
             let tables = Arc::clone(self);
             let bound = import.clone();
             let data = Arc::new(move |args: &[Value]| {
@@ -251,7 +246,7 @@ impl MemoryTables {
                     .read(&bound, args)
                     .map_err(|error| format!("`{bound}`: {error:?}"))
             });
-            out.insert(import, host_fn(kind, data));
+            out.insert(import, host_fn(read, data));
         }
         Ok(out)
     }

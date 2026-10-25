@@ -184,20 +184,23 @@ fn a_present_row_round_trips_typed() {
     assert_eq!(calls.load(Ordering::SeqCst), 1);
 }
 
-/// PR #38: the compiled get-many forwards its keys to its exact callback,
-/// once, and answers its typed rows.
+/// PR #38, with the integrator's ruling 7 of 2026-10-25: the compiled
+/// get-many forwards its keys to its exact callback, once and as given
+/// (here with a key twice), and answers typed rows only in tables.json's
+/// order (by key), each key once.
 #[test]
-fn get_many_forwards_its_keys_and_answers_typed_rows() {
+fn get_many_forwards_its_keys_and_answers_canonical_rows_once() {
     let program = program();
     let reader = program.reader(BY_IDS);
     let granted = reader.admitted(&reader.contract, READ_LISTS);
     let args = [Val::List(vec![
         Val::String("list-b".into()),
         Val::String("list-a".into()),
+        Val::String("list-b".into()),
     ])];
     let rows = Val::List(vec![
-        todo_list("list-b", "List B", 20),
         todo_list("list-a", "List A", 10),
+        todo_list("list-b", "List B", 20),
     ]);
     let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
     let observed = std::sync::Arc::clone(&calls);
@@ -216,24 +219,157 @@ fn get_many_forwards_its_keys_and_answers_typed_rows() {
     assert_eq!(calls.load(Ordering::SeqCst), 1);
 }
 
-/// PR #40: a well-formed `Val` of the wrong shape for the compiled guest's
-/// WIT `Option<TodoList>` is refused, never read as a missing row, and a
-/// valid read after it still works.
+/// Ruling 7: whatever answers a get-many, its rows are of keys asked for,
+/// each once, in tables.json's order; an answer that is not is refused, not
+/// passed on. Missing keys are left out, and an empty list is an answer.
 #[test]
-fn a_malformed_get_answer_is_refused_and_a_valid_one_still_works() {
+fn a_get_many_answer_out_of_order_twice_or_unasked_is_refused() {
+    let program = program();
+    let reader = program.reader(BY_IDS);
+    let granted = reader.admitted(&reader.contract, READ_LISTS);
+    let args = [Val::List(vec![
+        Val::String("list-b".into()),
+        Val::String("list-a".into()),
+    ])];
+    let a = todo_list("list-a", "List A", 10);
+    let b = todo_list("list-b", "List B", 20);
+    let z = todo_list("list-z", "List Z", 30);
+    for (rows, words) in [
+        (vec![b.clone(), a.clone()], "out of tables.json's order"),
+        (vec![a.clone(), a.clone(), b.clone()], "was answered before"),
+        (vec![a.clone(), z], "(\"list-z\") was not asked for"),
+    ] {
+        let (callback, calls) = answering(vec![Val::List(rows)]);
+        let host = BTreeMap::from([(GET_MANY.to_string(), callback)]);
+        let refused = reader
+            .call(&granted, &host, &program.manifest, &args)
+            .expect_err(words);
+        assert!(refused.contains(words), "{words}: {refused}");
+        assert_eq!(calls.load(Ordering::SeqCst), 1, "the answer, not the link");
+    }
+    // The neighbours: a key left out, and none found.
+    for rows in [vec![b.clone()], vec![]] {
+        let (callback, _) = answering(vec![Val::List(rows.clone())]);
+        let host = BTreeMap::from([(GET_MANY.to_string(), callback)]);
+        assert_eq!(
+            reader.call(&granted, &host, &program.manifest, &args),
+            Ok(vec![Val::List(rows)])
+        );
+    }
+}
+
+/// Ruling 7: a get answers none, or the row of the key it was given.
+#[test]
+fn a_get_answering_another_keys_row_is_refused() {
+    let program = program();
+    let reader = program.reader(BY_ID);
+    let granted = reader.admitted(&reader.contract, READ_LISTS);
+    let other = Val::Option(Some(Box::new(todo_list("list-z", "List Z", 30))));
+    let (callback, calls) = answering(vec![other]);
+    let host = BTreeMap::from([(GET.to_string(), callback)]);
+    let refused = reader
+        .call(
+            &granted,
+            &host,
+            &program.manifest,
+            &[Val::String("list-a".into())],
+        )
+        .expect_err("another key's row");
+    assert!(
+        refused.contains("the row of (\"list-z\") where (\"list-a\") was asked for"),
+        "{refused}"
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+}
+
+/// The integrator's ruling 8 of 2026-10-25: a table read's row is exactly
+/// the row tables.json declares. Until then the engine projected an answer
+/// onto the component's type (ADR-0166), which drops a field the type does
+/// not name: a `secret` reached no component, silently. Now a row with a
+/// field more, or less, or out of its place, is refused.
+#[test]
+fn a_row_with_a_field_more_or_less_is_refused_not_projected() {
+    let program = program();
+    let fields = |list: Val| match list {
+        Val::Record(fields) => fields,
+        _ => unreachable!(),
+    };
+    let mut secret = fields(todo_list("list-a", "List A", 10));
+    secret.push(("secret".into(), Val::String("leak".into())));
+    let mut lacking = fields(todo_list("list-a", "List A", 10));
+    lacking.pop();
+    let mut reordered = fields(todo_list("list-a", "List A", 10));
+    reordered.swap(0, 3);
+    for (row, words) in [
+        (
+            secret,
+            "the row has `secret`, which tables.json does not declare",
+        ),
+        (lacking, "the row lacks `added`"),
+        (reordered, "`added` where tables.json declares `id`"),
+    ] {
+        for (id, answer, args) in [
+            (
+                BY_ID,
+                Val::Option(Some(Box::new(Val::Record(row.clone())))),
+                vec![Val::String("list-a".into())],
+            ),
+            (
+                BY_IDS,
+                Val::List(vec![Val::Record(row.clone())]),
+                vec![Val::List(vec![Val::String("list-a".into())])],
+            ),
+        ] {
+            let reader = program.reader(id);
+            let granted = reader.admitted(&reader.contract, READ_LISTS);
+            let (callback, calls) = answering(vec![answer]);
+            let host = BTreeMap::from([(reader.imports[0].clone(), callback)]);
+            let refused = reader
+                .call(&granted, &host, &program.manifest, &args)
+                .expect_err(words);
+            assert!(refused.contains(words), "{id}: {words}: {refused}");
+            assert_eq!(calls.load(Ordering::SeqCst), 1, "{id}");
+        }
+    }
+}
+
+/// PR #40, with the integrator's ruling 9 of 2026-10-25: a well-formed
+/// `Val` of the wrong type for the compiled guest's WIT `Option<TodoList>`
+/// is refused for its type, never read as a missing row, and a valid read
+/// after it still works. #40's own case (`Some(s64)` for a row) was refused
+/// by ADR-0179's invariant on `some.slug`, not by its type; it is kept, and
+/// the case only a type can refuse is `added`, which holds no invariant, as
+/// an s32.
+#[test]
+fn a_mistyped_get_answer_is_refused_for_its_type_and_a_valid_one_still_works() {
     let program = program();
     let reader = program.reader(BY_ID);
     let granted = reader.admitted(&reader.contract, READ_LISTS);
     let args = [Val::String("list-a".into())];
-    let (invalid, invalid_calls) = answering(vec![Val::Option(Some(Box::new(Val::S64(10))))]);
-    let host = BTreeMap::from([(GET.to_string(), invalid)]);
-    assert!(
-        reader
+    let narrow = Val::Record(vec![
+        ("id".into(), Val::String("list-a".into())),
+        ("name".into(), Val::String("List A".into())),
+        ("slug".into(), Val::String("list-a".into())),
+        ("added".into(), Val::S32(10)),
+    ]);
+    for (answer, words) in [
+        (
+            Val::Option(Some(Box::new(narrow))),
+            "`added`: s32 where tables.json declares an Int (s64)",
+        ),
+        (
+            Val::Option(Some(Box::new(Val::S64(10)))),
+            "s64 where a row is a record",
+        ),
+    ] {
+        let (invalid, invalid_calls) = answering(vec![answer]);
+        let host = BTreeMap::from([(GET.to_string(), invalid)]);
+        let refused = reader
             .call(&granted, &host, &program.manifest, &args)
-            .is_err(),
-        "a scalar Some value must not satisfy the compiled WIT row result"
-    );
-    assert_eq!(invalid_calls.load(Ordering::SeqCst), 1);
+            .expect_err(words);
+        assert!(refused.contains(words), "{refused}");
+        assert_eq!(invalid_calls.load(Ordering::SeqCst), 1);
+    }
 
     let present = Val::Option(Some(Box::new(todo_list("list-a", "List A", 10))));
     let (valid, valid_calls) = answering(vec![present.clone()]);

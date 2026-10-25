@@ -299,6 +299,66 @@ fn a_table_import_typed_otherwise_than_tables_json_is_refused_when_linking() {
     }
 }
 
+/// The integrator's rulings 6 to 8 of 2026-10-25, through the composed
+/// callback any adapter would use (`table_read_host::host_fn`): an adapter's
+/// row is encoded as the record tables.json declares, in its order, or
+/// refused whole (a field more, `secret`, or less); and an adapter that
+/// answers another key's row, or rows out of order, is refused by the
+/// engine whatever encoded them.
+#[test]
+fn an_adapters_answer_is_held_to_its_read_whoever_wrote_it() {
+    use pw_host::engine::table_read_host::host_fn;
+    let program = program();
+    let row = |id: &str| json!({"added": 10, "id": id, "name": "List A", "slug": id});
+    for (id, answer, args, words) in [
+        (
+            BY_ID,
+            {
+                let mut secret = row("list-a");
+                secret["secret"] = json!("leak");
+                secret
+            },
+            vec![Val::String("list-a".into())],
+            "it has `secret`, which tables.json does not declare",
+        ),
+        (
+            BY_ID,
+            json!({"id": "list-a", "name": "List A", "slug": "list-a"}),
+            vec![Val::String("list-a".into())],
+            "it lacks `added`",
+        ),
+        (
+            BY_ID,
+            row("list-z"),
+            vec![Val::String("list-a".into())],
+            "the row of (\"list-z\") where (\"list-a\") was asked for",
+        ),
+        (
+            BY_IDS,
+            json!([row("list-b"), row("list-a")]),
+            vec![Val::List(vec![
+                Val::String("list-a".into()),
+                Val::String("list-b".into()),
+            ])],
+            "out of tables.json's order",
+        ),
+    ] {
+        let reader = program.reader(id);
+        let granted = reader.admitted(&reader.contract, READ_LISTS);
+        let reads = program
+            .manifest
+            .admit_reads(&reader.contract, &granted)
+            .expect("the gate admits the reader's read");
+        let (import, read) = reads.into_iter().next().expect("one read");
+        let data = Arc::new(move |_: &[serde_json::Value]| Ok(answer.clone()));
+        let host = BTreeMap::from([(import, host_fn(read, data))]);
+        let refused = reader
+            .call(&granted, &host, &program.manifest, &args)
+            .expect_err(words);
+        assert!(refused.contains(words), "{id}: {words}: {refused}");
+    }
+}
+
 /// The integrator's ruling 3 of 2026-10-25: PR #29's gate held a function's
 /// import to its table's interface, and no test failed without that. A
 /// manifest whose `Lists.get` is imported at `Items`' interface is refused

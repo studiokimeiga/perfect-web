@@ -17,7 +17,16 @@ Each mutant undoes one piece and must be killed by a test:
    calls and instantiation);
 4. a table import typed as tables.json declares its read, where it is
    linked (`engine::table_link::check_import`): a get's key values and row,
-   a get-many's keys and rows, a row's fields counted, named and typed.
+   a get-many's keys and rows, a row's fields counted, named and typed;
+5. a key held to its declared type and bounds before an adapter reads it
+   (`table_selectors`), a composite key's fields by their own names;
+6. a row encoded as its declared record (`table_results`): its order, its
+   WIT names, its types and bounds, no field more;
+7. every answer held to its read where the engine passes it on
+   (`table_link::check_answer`): a get's row its key's; a get-many's rows of
+   keys asked, each once, in order;
+8. a row exactly its table's there: no field more, none less, none out of
+   place, each of its type and within its bounds.
 
 Run whole from the repository root (`just e14-table-host`). Every source is
 restored in finally; the unmutated baseline must pass before any mutant
@@ -34,6 +43,8 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 TABLES = ROOT / "runtime/pw-host/src/tables.rs"
 HOST = ROOT / "runtime/pw-host/src/lib.rs"
 LINK = ROOT / "runtime/pw-host/src/engine/table_link.rs"
+KEYS = ROOT / "runtime/pw-host/src/engine/table_selectors.rs"
+ROWS = ROOT / "runtime/pw-host/src/engine/table_results.rs"
 
 MUTANTS = [
     # 1. the manifest, whole
@@ -91,7 +102,7 @@ MUTANTS = [
     # 3. the only way
     ("a call links table imports without the gate", HOST,
      "        let table_reads = crate::tables::gate_links(contract, granted, tables)?;\n",
-     "        let table_reads = std::collections::BTreeMap::<String, crate::tables::Read>::new();\n"),
+     "        let table_reads = { let _ = tables; std::collections::BTreeMap::<String, crate::tables::Read>::new() };\n"),
     ("instantiation links table imports with stubs", HOST,
      "        crate::tables::gate_links(contract, granted, None)?;\n",
      ""),
@@ -130,6 +141,71 @@ MUTANTS = [
     ("a row's fields go untyped", LINK,
      "        stored(&column.stored, &field.ty).map_err(|why| format!(\"`{}`: {why}\", column.name))?;\n",
      "        let _ = stored(&column.stored, &field.ty);\n"),
+    # 5. a key, before an adapter reads it
+    ("a key goes unchecked against its declared type and bounds", KEYS,
+     "    check_value(&column.stored, value)\n"
+     "        .map_err(|why| format!(\"key field `{}`: {why}\", column.name))?;\n",
+     "    let _ = (check_value(&column.stored, value), column);\n"),
+    ("a composite key's fields go by place, not name", KEYS,
+     "                if *name != column.wit {\n",
+     "                if false && *name != column.wit {\n"),
+    ("a composite key may have fewer fields", KEYS,
+     "            if fields.len() != columns.len() {\n",
+     "            if false && fields.len() != columns.len() {\n"),
+    ("a get takes any number of key fields", KEYS,
+     "    if args.len() != read.by.len() {\n",
+     "    if false && args.len() != read.by.len() {\n"),
+    # 6. a row, encoded as its record
+    ("an encoded row keeps a field it does not declare", ROWS,
+     "        .find(|name| !columns.iter().any(|column| &column.name == *name))\n",
+     "        .find(|name| false && !columns.iter().any(|column| &column.name == *name))\n"),
+    ("an encoded row comes in another order", ROWS,
+     "        fields.push((column.wit.clone(), encoded));\n",
+     "        fields.insert(0, (column.wit.clone(), encoded));\n"),
+    ("an encoded row keeps the Pleris names", ROWS,
+     "        fields.push((column.wit.clone(), encoded));\n",
+     "        fields.push((column.name.clone(), encoded));\n"),
+    ("an encoded value goes unbounded", ROWS,
+     "    check_value(stored, &encoded)?;\n",
+     "    let _ = check_value(stored, &encoded);\n"),
+    # 7. an answer, its read's
+    ("a get may answer another key's row", LINK,
+     "                if key == asked {\n",
+     "                if true || key == asked {\n"),
+    ("a get-many may answer a key not asked for", LINK,
+     "        if !asked.contains(&key) {\n",
+     "        if false && !asked.contains(&key) {\n"),
+    ("a get-many may answer a key twice", LINK,
+     "        if !seen.insert(key.clone()) {\n",
+     "        if !seen.insert(key.clone()) && false {\n"),
+    ("a get-many may answer out of order", LINK,
+     "        if last.as_ref().is_some_and(|last| *last > place) {\n",
+     "        if false && last.as_ref().is_some_and(|last| *last > place) {\n"),
+    ("no answer is held to its read", HOST,
+     "                            table_link::check_answer(read, &args, &out).map_err(|why| {\n",
+     "                            { let _ = (read, &args); Ok::<(), String>(()) }.map_err(|why| {\n"),
+    # 8. a row, exactly its table's
+    ("an answered row may lack a field", LINK,
+     "            return Err(format!(\"the row lacks `{}`\", column.wit));\n",
+     "            continue;\n"),
+    ("an answered row's fields go by any names", LINK,
+     "        if *name != column.wit {\n",
+     "        if false && *name != column.wit {\n"),
+    ("an answered row may hold a field more", LINK,
+     "    if let Some((extra, _)) = given.get(columns.len()) {\n",
+     "    if let Some((extra, _)) = given.get(usize::MAX) {\n"),
+    ("an answered row's values go untyped", LINK,
+     "        check_value(&column.stored, value).map_err(|why| format!(\"`{}`: {why}\", column.wit))?;\n",
+     "        let _ = check_value(&column.stored, value);\n"),
+    ("an Int goes unbounded", LINK,
+     "            if at_least.is_some_and(|least| *n < least) || at_most.is_some_and(|most| *n > most) {\n",
+     "            if false && (at_least.is_some_and(|least| *n < least) || at_most.is_some_and(|most| *n > most)) {\n"),
+    ("a String goes unbounded", LINK,
+     "            if min_length.is_some_and(|least| length < least)\n",
+     "            if false && min_length.is_some_and(|least| length < least)\n"),
+    ("a Float need not be finite", LINK,
+     "        (Stored::Float, Val::Float64(x)) if x.is_finite() => Ok(()),\n",
+     "        (Stored::Float, Val::Float64(x)) if x.is_finite() || x.is_nan() => Ok(()),\n"),
 ]
 
 TESTS = [

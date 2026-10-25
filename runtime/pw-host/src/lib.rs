@@ -1204,7 +1204,9 @@ pub mod engine {
     /// (ADR-0338 D2): every `pw:tables/…` import a grant would link is linked
     /// only as `tables`' gate admits it ([`crate::tables::gate_links`]), and
     /// only typed as tables.json declares its read
-    /// ([`table_link::check_import`]). [`call_within`] and every other call
+    /// ([`table_link::check_import`]); and each of its answers, whoever
+    /// supplies it, reaches the component only as its read's
+    /// ([`table_link::check_answer`]). [`call_within`] and every other call
     /// links no table import.
     #[allow(clippy::too_many_arguments)]
     pub fn call_with_tables(
@@ -2693,7 +2695,8 @@ pub mod engine {
                 // A table's read is linked only as tables.json types it, and
                 // refused here, before anything is instantiated (the
                 // integrator's ruling 4 of 2026-10-25).
-                if let Some(read) = table_reads.get(&key) {
+                let read = table_reads.get(&key).cloned();
+                if let Some(read) = &read {
                     let ty = imported_func(&engine, &component, interface, func)
                         .ok_or_else(|| format!("`{key}` is no function the component imports"))?;
                     table_link::check_import(read, &ty)?;
@@ -2718,6 +2721,16 @@ pub mod engine {
                             .collect::<Result<_, _>>()
                             .map_err(|e| wasmtime::Error::msg(format!("`{named}`: {e}")))?;
                         let out = implementation(&args).map_err(wasmtime::Error::msg)?;
+                        // A table read's answer is its read's, exactly, or the
+                        // call fails: never projected, never passed on (the
+                        // integrator's rulings 7 and 8 of 2026-10-25).
+                        if let Some(read) = &read {
+                            table_link::check_answer(read, &args, &out).map_err(|why| {
+                                wasmtime::Error::msg(format!(
+                                    "`{named}` answered what its read is not: {why}"
+                                ))
+                            })?;
+                        }
                         if out.len() != results.len() {
                             return Err(wasmtime::Error::msg(format!(
                                 "the host returned {} values where the operation has {}",

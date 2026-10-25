@@ -141,12 +141,17 @@ pub struct Column {
 }
 
 impl Column {
-    pub fn of(field: &Field) -> Column {
+    /// A field by its Pleris name, its WIT name the compiler's for it.
+    pub fn new(name: &str, stored: Stored) -> Column {
         Column {
-            name: field.name.clone(),
-            wit: wit_name(&field.name),
-            stored: field.stored.clone(),
+            name: name.to_string(),
+            wit: wit_name(name),
+            stored,
         }
+    }
+
+    pub fn of(field: &Field) -> Column {
+        Column::new(&field.name, field.stored.clone())
     }
 }
 
