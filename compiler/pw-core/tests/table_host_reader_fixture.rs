@@ -135,8 +135,8 @@ fn compiled_table_readers_have_exact_manifest_and_contract_imports() {
             .expect("host has the corresponding emitted contract");
         let admission = pw_host::admit(host_contract, &origin, "origin", &actual_imports);
         assert!(admission.is_admitted(), "{component_id}: {admission:?}");
-        let granted = pw_host::Granted::from(&admission, &Default::default())
-            .expect("admitted read grant");
+        let granted =
+            pw_host::Granted::from(&admission, &Default::default()).expect("admitted read grant");
         assert_eq!(
             pw_host::linkable(host_contract, &granted),
             actual_imports,
