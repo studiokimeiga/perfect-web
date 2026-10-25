@@ -899,6 +899,9 @@ pub mod engine {
     /// Flat read-only table row values; no linker bindings are installed here.
     pub mod table_results;
 
+    /// Compose an admitted table read's adapter closure into one host callback.
+    pub mod table_read_host;
+
     /// **The configuration of every engine the host makes** (ADR-0244): the
     /// component model, and none of the proposals Pleris's components do not
     /// use, so a component that uses one is refused when it loads.
