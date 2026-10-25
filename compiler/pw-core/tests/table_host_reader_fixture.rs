@@ -78,6 +78,16 @@ fn compiled_table_readers_have_exact_manifest_and_contract_imports() {
         assert!(*audited > 0);
         assert_eq!(compiled.component.imports, [key], "{component_id}");
 
+        // Compiler bookkeeping is not proof of what Wasmtime will load.
+        // Read imports from the compiled binary through the actual host engine.
+        let actual_imports = pw_host::engine::imports_of(&compiled.component.bytes)
+            .unwrap_or_else(|error| panic!("{component_id} fails Wasmtime: {error}"));
+        assert_eq!(
+            actual_imports,
+            [key],
+            "{component_id}: Wasmtime imports must be exactly the manifest's read"
+        );
+
         let contract = build
             .contracts
             .iter()

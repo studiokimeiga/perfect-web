@@ -46,6 +46,8 @@ wit-parser = "0.257.1"
 wasmparser = "0.257.1"
 
 [dev-dependencies]
+# Check the actual component imports with the host's Wasmtime engine.
+pw-host = { path = "../../runtime/pw-host", features = ["engine"] }
 # ADR-0158: a test leaves nothing behind.
 tempfile.workspace = true
 # ADR-0203: a view that contains itself, compiled here and rendered by the
