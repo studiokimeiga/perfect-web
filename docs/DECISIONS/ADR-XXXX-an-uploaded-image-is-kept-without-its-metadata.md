@@ -164,10 +164,11 @@ Each read 2026-10-25.
 - **An unknown critical PNG chunk is refused**, not dropped: dropping it
   would change what the image is (the PNG specification's "cannot safely
   interpret").
-- **GIF's plain text is dropped** and a graphic control before it kept: no
-  browser here draws plain text, and Firefox's decoder, which skips it,
-  keeps a graphic control's values for the image that follows (they are
-  cleared only in `EndImageFrame`), which is what the kept file says.
+- **GIF's plain text is dropped** and a graphic control before it kept: it
+  is text a writer chose, Firefox's decoder skips it as it skips a comment,
+  and keeps a graphic control's values for the image that follows (they
+  are cleared only in `EndImageFrame`), which is what the kept file says.
+  Whether Chromium or WebKit draws plain text was not checked.
 - **No CRC is checked**: a kept chunk is copied with its CRC, and a decoder
   judges it, as before.
 
@@ -268,10 +269,18 @@ changed, refused or kept and kept again unchanged), four at the upload
 seam (leased, measured and kept as rewritten; refused whole; the same
 image attached twice) and one over HTTP; `e2e/upload-metadata.spec.mjs`,
 9 of 9 in Chromium, Firefox and WebKit; `just evidence-gates` (1066 tests);
-a smoke of the mutation script (both baselines, two mutants killed). The
-record is `just e14-upload-metadata` (`docs/evidence/E14/upload-metadata.txt`)
-with `e14-uploads` and the rest of what this branch reaches, from one
-verification run: see the Report.
+a smoke of the mutation script (both baselines, two mutants killed); `just
+ci`, green.
+
+On GitHub, at `b64610b9`: verify run 40183150640 (dispatched with the 103
+recipes `ci_plan.py --changed origin/master HEAD --current` planned, and
+its three full browser jobs) succeeded, every recipe exiting 0; among them
+`e14-upload-metadata` (718 s: baselines of 68 server tests and 9 browser
+tests, then every mutant killed, since the script exits non-zero on a
+survivor or a lost anchor), `e14-uploads` (766 s, its 34 controls run whole,
+since its tests and its anchors' files changed) and
+`e14-browser-host-map`. CI run 40183140413 at the same commit: green. The
+run's evidence files were not fetched here (see the Report).
 
 - `scripts/upload_metadata_mutations.py`, 55 mutants: each keeping one kind
   of metadata, breaking one thing the rewrite keeps, letting a file that
@@ -299,3 +308,22 @@ verification run: see the Report.
 4. **`Cargo.lock`'s order** (Found): sorted here in its own commit; and
    should `run.sh`, `feed.sh` and `just ci` pass `--locked`, so a lockfile
    out of order fails loudly rather than dirtying a checkout?
+
+## Report
+
+**Built.** `uploads/strip.rs` (the rewrite of JPEG, PNG, WebP and GIF, and
+its tests), its wiring in `Shared::upload`, the lease fix, tests at the
+upload seam and over HTTP, `e2e/upload-metadata.spec.mjs` and its host
+registration, `scripts/upload_metadata_mutations.py`,
+`just/upload-metadata.just` and its import, `Cargo.lock` in cargo's order,
+this ADR and ADR-0260's amendment.
+
+**Evidence.** Verify run 40183150640 at `b64610b9`, all 103 planned recipes
+green with the three full browser jobs; CI 40183140413 green; locally the
+server's 68 tests, the spec's 9 of 9 in three engines and `just ci`. The
+run's files are not in `docs/evidence/` yet: `just evidence-fetch` reads
+artifacts through `gh`, which is logged out in this PC's WSL, and the
+brief said to download nothing, so the fetch is the integrator's (or a
+word to this track).
+
+**Dependencies.** None new.
