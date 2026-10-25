@@ -24,6 +24,52 @@ This note's job is to find, honestly, every capability a Hinge-shaped
 dating app needs that Pleris lacks, and to lay out its build as tracks,
 with no app-specific Rust.
 
+## Ruling (the integrator, 2026-10-25)
+
+Accepted under the owner's delegation of 2026-10-02 as the plan for a
+fifth reference app, whose purpose is to make Pleris complete: each gap it
+names is a framework track, never app-specific Rust. Answers to the
+questions below:
+
+1. **Codes**: the table clauses' refusals (PW6901 to PW6904, PW6909 to
+   PW6913, PW6920) are declaration rules and go in `DeclarationRules`'
+   PW03xx, next free after D1's PW0354 to PW0366, as ADR-0338's ruling 4
+   placed D1's; the rest keep the PW69xx block for the H-tracks.
+2. **ADR-0115 amended**: a program may give a predicate a body, written in
+   Pleris, so who may act is in the program where the checker sees it.
+   The deployment's Rust predicates (`identity.rs`'s `holds`) keep working
+   until each is rewritten; the amendment states the order of asking.
+3. **ADR-0279**: confirmed: two owners read from each side, and no label
+   names two principals.
+4. **ADR-0129**: confirmed narrow: a private field's write is a sink
+   (PW6903) for private fields of owned tables alone; widened only with
+   evidence.
+5. **H1, H3, H4 and H9 wait for D2's writes** to land, then build on D2/D3's
+   files; they are not folded into D2's open pull requests.
+6. **One `outbound-https` platform track** serves NEXT 6d (payments), H7
+   (push), H11 (verification) and the production track's real OIDC
+   provider, behind the host's `network.fetch` (a program declares the
+   origins; the host holds TLS and the keys). It waits for the owner's
+   approval of its download (`rustls` 0.23.46 with `ring` 0.17.14, nine
+   crates, and ISC admitted to `deny.toml`).
+7. **The capability matrix** gains the four rows ("Location and distance",
+   "Mutual-consent privacy", "Trust and safety: blocking, reporting,
+   moderation", "Account deletion and data export") and the dating app as a
+   reference app, at the next landing.
+8. **The museum**: yes: the 2024 paper's three Hinge findings become
+   exhibits by ADR-0342's protocol, shown in Next.js or SvelteKit; each is
+   a miss in Pleris until H3's `reveals` and the policies that answer it
+   are built, said so.
+9. **`examples/dating/`** is the app's home: the fifth app, no Rust and no
+   migrations of its own.
+10. **Ports** are given to each track when it starts, from the browser host
+    map's single port map.
+
+Found, and fixed first on its own track: uploaded images keep their
+metadata (ADR-0260), so a photo from a phone published in the feed today
+tells where it was taken. That is a privacy defect of the framework as it
+stands, not a gap of this app.
+
 ## The gaps, first
 
 The main output. Each is examined below against Hinge's own pages and
