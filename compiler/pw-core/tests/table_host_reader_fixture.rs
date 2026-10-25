@@ -1,5 +1,5 @@
-//! Compile the D2 get/get-many readers and exercise one exact get HostFn.
-//! MemoryTables binding and present-row/get-many execution remain separate.
+//! Compile the D2 readers and exercise exact read-only Wasmtime HostFns.
+//! MemoryTables binding remains separate.
 
 use pw_core::backend::component::Built;
 use pw_core::check::Unit;
@@ -230,6 +230,41 @@ fn compiled_table_readers_have_exact_manifest_and_contract_imports() {
                 "the compiled get reader must call the granted exact HostFn"
             );
             assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
+
+            // A present key must preserve the typed WIT Option<TodoList>
+            // across the compiled guest and its exact host callback.
+            let present_args = [pw_host::engine::Val::String("list-a".into())];
+            let present_row = pw_host::engine::Val::Record(vec![
+                ("id".into(), pw_host::engine::Val::String("list-a".into())),
+                ("name".into(), pw_host::engine::Val::String("List A".into())),
+                ("slug".into(), pw_host::engine::Val::String("list-a".into())),
+                ("added".into(), pw_host::engine::Val::S64(10)),
+            ]);
+            let present_result = pw_host::engine::Val::Option(Some(Box::new(present_row)));
+            let present_calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+            let observed = std::sync::Arc::clone(&present_calls);
+            let expected_args = present_args.clone();
+            let supplied_result = present_result.clone();
+            let handler: pw_host::engine::HostFn = std::sync::Arc::new(move |received| {
+                assert_eq!(received, &expected_args[..]);
+                observed.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                Ok(vec![supplied_result.clone()])
+            });
+            let exact_host = std::collections::BTreeMap::from([(key.to_owned(), handler)]);
+            assert_eq!(
+                pw_host::engine::call_within(
+                    &compiled.component.bytes,
+                    host_contract,
+                    &granted,
+                    &pw_host::Limits::unbounded(),
+                    &exact_host,
+                    &path,
+                    &present_args,
+                ),
+                Ok(vec![present_result]),
+                "the compiled get reader must return the HostFn's typed present row"
+            );
+            assert_eq!(present_calls.load(std::sync::atomic::Ordering::SeqCst), 1);
         }
 
         if component_id == "tables.reader.ByIds" {
