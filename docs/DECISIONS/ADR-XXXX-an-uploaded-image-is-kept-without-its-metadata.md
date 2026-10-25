@@ -34,6 +34,13 @@ in its amendment of the same date). Date: 2026-10-25. Milestone: E14.
    put. The new lease's preview answered 404 and its post's `keep` failed
    ("lease has no bytes"). The test `the_same_image_attached_twice_is_kept`
    failed on master; the hold is now taken first (its own commit).
+5. **This ADR's first version kept an ICC profile whole, and a JPEG's
+   density; two of its parser's regressions passed every test; its WebP
+   walk listed every chunk; and it said a browser reads the first readable
+   Exif** (the independent review of 2026-10-25, below): a screenshot's
+   profile named its display's model and serial number and when it was
+   made, and a JPEG kept its screen's 144 dpi where a PNG's pHYs was
+   dropped. Each is fixed below, with its test and its mutation control.
 
 ## Context
 
@@ -140,27 +147,37 @@ Each read 2026-10-25.
 
 | | kept | dropped | refused |
 |---|---|---|---|
-| JPEG | SOFn, DHT, DAC, DQT, DRI, DNL, DHP, EXP; each SOS and its scan byte for byte; JFIF's APP0, its twelve bytes and no thumbnail; APP2's ICC profile; Adobe's APP14, its twelve bytes; an Exif holding `Orientation` alone | every other APPn (Exif's APP1 with its GPS IFD, maker notes and thumbnail; XMP; MPF; FlashPix; IPTC's APP13; C2PA's APP11; APP12, APP15), COM, JFXX, reserved markers, TEM and RSTm outside a scan, everything after EOI | ends before EOI; a second SOI; a stuffed zero or no marker where a marker is; a length under 2 |
-| PNG | IHDR, PLTE, IDAT, IEND, tRNS, cHRM, gAMA, iCCP, sRGB, cICP, mDCV, cLLI, acTL, fcTL, fdAT, each with its CRC | tEXt, zTXt, iTXt, tIME, eXIf, pHYs, sBIT, bKGD, hIST, sPLT, every unknown ancillary chunk, everything after IEND | ends before IEND; a type not four letters; an unknown critical chunk |
-| WebP | simple: its image chunk; extended: VP8X (its ten bytes, Exif and XMP flags cleared), ICCP, ANIM, ANMF (its header, ALPH, `VP8 `, VP8L), ALPH, `VP8 `, VP8L; the RIFF's size rewritten, odd chunks padded | EXIF, `XMP `, unknown chunks (in a frame too), anything a simple file has after its image, everything past the RIFF's size | a chunk past its RIFF; an ANMF under 16 bytes |
+| JPEG | SOFn, DHT, DAC, DQT, DRI, DNL, DHP, EXP; each SOS and its scan byte for byte, its restart markers with it; JFIF's APP0, its version, no units, a density of 1 by 1 and no thumbnail; the ICC profile of the APP2 chunks before the first scan, rewritten (§2a) and split again at 65,519 bytes; Adobe's APP14, its twelve bytes; an Exif holding `Orientation` alone | every other APPn (Exif's APP1 with its GPS IFD, maker notes and thumbnail; XMP; MPF; FlashPix; IPTC's APP13; C2PA's APP11; APP12, APP15), COM, JFXX, JFIF's units and densities, ICC chunks that libjpeg would not read as one profile or after the first scan, reserved markers, TEM and RSTm outside a scan, everything after EOI | ends before EOI; a second SOI; a stuffed zero or no marker where a marker is; a length under 2 |
+| PNG | IHDR, PLTE, IDAT, IEND, tRNS, cHRM, gAMA, sRGB, cICP, mDCV, cLLI, acTL, fcTL, fdAT, each with its CRC; the first iCCP, named "ICC profile", its profile rewritten (§2a), its CRC computed | tEXt, zTXt, iTXt, tIME, eXIf, pHYs, sBIT, bKGD, hIST, sPLT, a second iCCP, every unknown ancillary chunk, everything after IEND | ends before IEND; a type not four letters; an unknown critical chunk |
+| WebP | simple: its image chunk; extended: VP8X (its ten bytes, Exif and XMP flags cleared, its ICC flag where a profile is kept), the first ICCP rewritten (§2a), ANIM, ANMF (its header, ALPH, `VP8 `, VP8L), ALPH, `VP8 `, VP8L; the RIFF's size rewritten, odd chunks padded | EXIF, `XMP `, a second ICCP, unknown chunks (in a frame too), anything a simple file has after its image, everything past the RIFF's size | a chunk past its RIFF; an ANMF under 16 bytes |
 | GIF | the header, the logical screen and its colour table; each image whole; a graphic control's four bytes; `NETSCAPE2.0`'s or `ANIMEXTS1.0`'s loop count | comments, plain text, every other application's extension (XMP's `XMP DataXMP`, an ICC profile's `ICCRGBG1012`), unknown labels, a loop's or a graphic control's other sub-blocks, everything after the trailer | ends before the trailer; an unknown block; a graphic control not of four bytes |
 
 - **A photo's turn.** A browser turns a JPEG by its Exif `Orientation`, and
-  dropping it would show a phone's portrait photo sideways. The first Exif
-  APP1 whose `Orientation` reads, before the first scan, is the one a
-  browser reads (correction 3); where it says 2 to 8 the rewrite writes an
-  APP1 that holds that one tag: `Exif\0\0`, a big-endian TIFF header, IFD0
-  of one entry (`0112`, SHORT, count 1), no next IFD, 32 bytes. Pillow's
-  turned fixture is exactly that already. 1, or a value out of range, is
-  not written: a browser shows either unturned.
+  dropping it would show a phone's portrait photo sideways. The rewrite
+  reads the first Exif APP1 whose `Orientation` reads, before the first
+  scan, and where it says 2 to 8 writes an APP1 that holds that one tag:
+  `Exif\0\0`, a big-endian TIFF header, IFD0 of one entry (`0112`, SHORT,
+  count 1), no next IFD, 32 bytes. Pillow's turned fixture is exactly that
+  already. 1, or a value out of range, is not written: a browser shows
+  either unturned. What the engines read of a file as sent differs
+  (measured in Playwright 1.58, the spec's EVIDENCE lines; amended by the
+  independent review, below): Firefox reads only a JPEG's first APP1, of
+  any kind, so an Exif after an XMP APP1 does not turn it there; Chromium
+  and WebKit read the first Exif APP1. Of two Exif APP1s, all three read
+  the first (correction 3). The file kept holds one APP1, the turn alone,
+  so all three engines show it alike (the spec's `xmp-first.jpg`).
 - **A thumbnail is dropped wherever it is** (Exif's IFD1, JFIF's, JFXX): a
   thumbnail is the picture as it was before an edit cropped it.
-- **ICC profiles are kept** (APP2, iCCP, ICCP), as the ruling says, since
-  colour needs them; see Not claimed for what a profile's header says.
-- **pHYs is dropped**: no engine needs it to decode or colour an image, and
-  a screenshot's pixels per metre names the screen that made it (a Retina
-  display's 144 ppi). sBIT, bKGD, hIST and sPLT are dropped too: no
-  browser renders by them, and sPLT carries a name.
+- **ICC profiles are kept for their colour, and rewritten** (APP2, iCCP,
+  ICCP; §2a, from the independent review): colour needs them, and a
+  display's names its model, its serial number and a time.
+- **pHYs is dropped, and JFIF's density written 1 by 1**: no engine needs
+  either to decode or colour an image, and a screenshot's pixels per metre
+  or dots per inch name the screen that made it (a Retina display's 144
+  ppi). JFIF's APP0 keeps its version and says no units and a density of 1
+  by 1, the pixels square (the independent review's finding 2). sBIT, bKGD,
+  hIST and sPLT are dropped too: no browser renders by them, and sPLT
+  carries a name.
 - **An unknown critical PNG chunk is refused**, not dropped: dropping it
   would change what the image is (the PNG specification's "cannot safely
   interpret").
@@ -170,7 +187,64 @@ Each read 2026-10-25.
   are cleared only in `EndImageFrame`), which is what the kept file says.
   Whether Chromium or WebKit draws plain text was not checked.
 - **No CRC is checked**: a kept chunk is copied with its CRC, and a decoder
-  judges it, as before.
+  judges it, as before. An iCCP rewritten has its CRC computed.
+
+### 2a. An ICC profile, kept for its colour (the independent review)
+
+`uploads/icc.rs` reads a profile as ICC.1 lays it out, in version 2
+(ICC.1:2001-04) as in version 4 (ICC.1:2022), and in the versions before 2,
+laid out alike: a 128-byte header; a tag table (a count, then twelve bytes
+a tag: signature, offset from the profile's start, size); each tag's data,
+its type's signature and four reserved bytes first. What is kept is
+rebuilt from it:
+
+- **the header**, its size rewritten, with zeros where it says when the
+  profile was created (bytes 24 to 35), the device's maker, model and
+  attributes (48 to 63), the profile's ID (84 to 99, an MD5 of the profile
+  as it was) and the reserved bytes (100 to 127); its class, colour space,
+  connection space, version, flags, rendering intent, illuminant and
+  creator as they were;
+- **each tag of a colour or rendering type**, byte for byte: `XYZ `, `curv`,
+  `para`, `sf32`, `mft1`, `mft2`, `mAB `, `mBA `, `mpet`, `chrm`, `clro`,
+  `meas`, `sig `, `view`, `cicp`;
+- **each tag of a text type** (`desc`, `mluc`, `text`: the profile's
+  description, the device's maker's and model's, the copyright, the viewing
+  conditions', a target's) as its own type holding one fixed text, "ICC
+  profile": a version 2 `desc` of 102 bytes (ASCII, no Unicode or
+  ScriptCode text), an `mluc` of one English record, or a `text`;
+- **no tag of any other type**: Apple's `mmod` (a display's maker, model and
+  serial number), `dtim` (`calt`, when it was calibrated), `dict`, `pseq`,
+  `psid`, `data`, `ncl2`, `clrt`, `vcgt`, and a writer's own. Colour is
+  computed from none of them; this goes past the ruling, which named text
+  tags, by the track's allow-list (§1): a serial number is not text.
+
+Tags that shared their data share it still, the data laid out in its order
+and four-byte aligned, so what is kept is rebuilt to itself. **A profile that
+does not parse is dropped**, and its image is then shown as sRGB: shorter
+than its header says, its size under 132, no `acsp`, a major version over 4
+(iccMAX), more than 1,024 tags, a tag in the table or outside the profile or
+shorter than its type's signature, two tags' data overlapping but not the
+same bytes, over 4 MiB, or made over 4 MiB by its fixed texts. Bytes after
+the size a profile's header says are not kept with it.
+
+- **JPEG**: its APP2 chunks before the first scan are read as libjpeg-turbo's
+  `jpeg_read_icc_profile` reads them (each numbered 1 to the count each
+  gives, the same count in all, no number twice, none missing; an APP2 under
+  14 bytes is no chunk), joined, rewritten, and written back after JFIF's
+  APP0 and the turn, in as few chunks of at most 65,519 bytes as hold it.
+  Chunks that do not make one profile are dropped, as libjpeg drops them.
+- **PNG**: the first iCCP's name (free text, a person's name, say) becomes
+  "ICC profile"; its profile is inflated with `miniz_oxide` (0.9.1, already
+  `pw-dev-server`'s dependency for kiokun's words: no new crate) to at most
+  4 MiB, rewritten, deflated again (level 6) and its CRC computed. An iCCP
+  with no name or a name past 79 bytes, another compression method, a
+  stream that is cut or inflates past 4 MiB, or a profile that does not
+  parse is dropped; a second iCCP is dropped (a PNG has one).
+- **WebP**: the first ICCP is rewritten; a second dropped; VP8X's ICC flag
+  cleared where none is kept.
+- **4 MiB** is this track's bound on what a profile may cost to read (a PNG's
+  is inflated): phones' and displays' profiles are of a few hundred bytes to
+  a few kilobytes, a printer's with large tables a few megabytes.
 
 ### 3. Images kept before this
 
@@ -196,10 +270,12 @@ The integrator's files; proposed wording:
 
 - **KNOWN_LIMITATIONS**: remove "an Exif GPS position is served as
   uploaded" and "EXIF orientation outside JPEG: read as stored". Add: an
-  uploaded image keeps its ICC profile whole, whose header names the
-  profile's maker and device class and may name a model and a creation
-  date (for the profiles phones embed, sRGB or Display P3, the profile's,
-  the same in every photo of that maker); nothing in the pixels is touched
+  uploaded image keeps its ICC profile's colour, its colour tags byte for
+  byte (a calibrated display's measured curves and primaries can tell its
+  panel from another's), its header's class, colour spaces, version,
+  flags, intent and creator; its descriptions, device fields, creation
+  time, ID and other tags are not kept (§2a), and a profile that does not
+  parse is dropped, its image then shown as sRGB; nothing in the pixels is touched
   (a face, a street sign, a screen in a reflection), nor data hidden in a
   JPEG's scan or past a GIF image's LZW end; an Ultra HDR or ISO 21496-1
   gain map goes with MPF and what follows EOI, so such a photo shows as its
@@ -208,10 +284,11 @@ The integrator's files; proposed wording:
   rewritten (§3); a PNG or WebP is shown as stored, never turned by an
   Exif.
 - **Capability matrix**, uploads: "metadata (Exif and its GPS position,
-  XMP, IPTC, comments, text chunks, timestamps, thumbnails, trailing data)
-  stripped by the host before an image is kept, for every upload; a JPEG's
-  turn kept; colour profiles and animation kept; tested in Chromium,
-  Firefox and WebKit."
+  XMP, IPTC, comments, text chunks, timestamps, thumbnails, densities,
+  trailing data) stripped by the host before an image is kept, for every
+  upload; a JPEG's turn kept; colour profiles kept for their colour without
+  their descriptions, device fields or times; animation kept; tested in
+  Chromium, Firefox and WebKit."
 
 ## Found
 
@@ -228,6 +305,91 @@ The integrator's files; proposed wording:
   cargo's order on this branch, in its own commit (`c71acb8b`), exactly as
   cargo rewrote it, so `--locked` builds are unchanged.
 - **No flake** in the runs here.
+- **WebKit keeps a page's CSP in the `about:blank` it goes to** (Playwright
+  1.58, found by the review's colour check): after the feed's page,
+  `page.goto("about:blank")` refuses a `data:` image, a
+  `securitypolicyviolation` naming the feed's `img-src 'self'`; Chromium and
+  Firefox load it, and so does WebKit on a new page's `about:blank`. The
+  spec decodes on a new page.
+- **Which engines render by an embedded profile** (the spec's EVIDENCE
+  lines, Playwright 1.58): Chromium by the JPEG's, the PNG's and the WebP's;
+  WebKit by the JPEG's and the PNG's, not the WebP's ICCP; Firefox, as
+  Playwright builds and runs it, by none. Where an engine renders by it,
+  the rewritten profile gives the same colour as the profile sent.
+
+## Independent review (2026-10-25)
+
+An independent review found five things, each reproduced by its reviewer;
+the integrator ruled on each (2026-10-25). A second worker fixed them on
+this branch, each test written first and seen failing on the code before
+(the restart and palette fixtures pass on it: their mutants are what
+fails). Each fix has its mutation control in
+`scripts/upload_metadata_mutations.py`.
+
+1. **ICC profiles can identify** (medium). A JPEG's APP2 profile, a PNG's
+   iCCP (whose name is free text) and a WebP's ICCP were kept whole: a
+   screenshot's display profile names its model (`desc`, `dmnd`, `dmdd`),
+   may hold its serial number (Apple's `mmod`), and its header holds a
+   creation time and an ID. **Ruling**: scrub, don't drop. **Fix**:
+   `uploads/icc.rs` and §2a: the header's time, device fields and ID
+   zeroed; each text tag a fixed text of its type; each colour tag byte for
+   byte; every other tag dropped (beyond the ruling: Apple's serial number
+   is not text); a profile that does not parse dropped, its image then
+   shown as sRGB. The PNG's iCCP is renamed "ICC profile", inflated with
+   `miniz_oxide`, which `pw-dev-server` already takes (so no profile is
+   dropped for want of an inflater, and no crate is added), rewritten,
+   deflated and given its CRC. **Tests**: `icc.rs`'s three (a display's
+   profile in version 2 and 4 with a person's name, a camera, a serial
+   number, a copyright, `mmod`, `calt`, a creation time and an ID planted:
+   none survives, the header's colour fields and every colour tag byte for
+   byte, the three curves still one datum, rebuilt to itself; the fixed
+   texts byte for byte; ten malformed profiles dropped, 1,024 tags kept
+   and 1,025 not, a profile a text would push past 4 MiB not kept); in
+   `strip.rs`, each laden file's profile planted and none of it served, and
+   `a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks`,
+   `a_pngs_icc_profile_is_read_from_its_first_iccp`,
+   `a_webps_icc_profile_is_read_from_its_first_iccp`; in the browser,
+   `profiled.jpg`, `profiled.png` and `profiled.webp` served without any
+   planted value (the PNG's profile inflated to be searched), shown at their
+   size, and decoded to the colour of the files as sent in all three
+   engines.
+2. **A JPEG's density** (low). JFIF's units and densities were kept (a 144
+   dpi survived) where PNG's pHYs is dropped. **Fix**: units 0, density 1
+   by 1. **Test**: `a_jpegs_density_is_not_kept` (144, 57 per cm, 72 by
+   300, an aspect of 2 to 1: each kept as 0, 1, 1); the laden JPEG's JFIF
+   is at 144 dpi.
+3. **Two parser regressions passed every test** (medium): a scan ended at
+   a restart marker, which refuses every JPEG with restart intervals
+   (common from phones' and cameras' hardware encoders); a GIF image's
+   local colour table not skipped, which refuses every GIF with per-frame
+   palettes. **Fix**: fixtures built from bytes in the tests,
+   `restarted_jpeg` (16 by 8, a DRI of one MCU, an RST0 in its scan, its
+   halves grey 64 and 192) and `local_table_gif` (its image's own palette,
+   red and blue, over a black and white global one), each kept byte for
+   byte (with a camera's metadata or a comment around them, dropped), and
+   served whole and shown with their colours in three engines
+   (`restarted.jpg`, `palettes.gif`); both mutants in the script.
+4. **A WebP cost about seven times its bytes** (low, denial of service):
+   `chunks()` listed every chunk (32 bytes for an empty chunk's 8). **Fix**:
+   `Chunks`, an iterator; the simple file's remaining chunks are walked
+   (and checked) without a list. **Test**:
+   `a_webp_of_many_empty_chunks_is_walked_without_a_list`: a child process
+   of the test binary strips a 5 MB file of 624,990 empty chunks, its peak
+   resident set (`VmHWM`) read before and after, under a quarter of the
+   input over it (0 kB here; the list put back adds 19 MB) and under two
+   seconds (some 45 ms here). The codebase has no allocation counter, so
+   the peak resident set is measured, as the ruling allowed; the walk is
+   first run on a small file so that the pages of code it faults in (a
+   megabyte or two) are not counted, which they were at first.
+5. **A wrong claim** (low): §2 and the comment in `strip.rs` said the first
+   Exif APP1 whose `Orientation` reads is the one a browser reads. In
+   Playwright 1.58, Firefox reads only the first APP1 of any kind;
+   Chromium and WebKit the first Exif. **Fix**: both reworded to what was
+   measured; the spec's EVIDENCE lines now measure it (a JPEG whose first
+   APP1 is XMP, then an Exif saying 6: shown 8 by 5 in Firefox and 5 by 8
+   in Chromium and WebKit), and its `xmp-first.jpg` is served turned in all
+   three.
+6. **Evidence of record** is the integrator's at landing.
 
 ## Alternatives
 
@@ -247,11 +409,25 @@ The integrator's files; proposed wording:
 - **Refusing images with metadata**: refuses every phone's photo.
 - **Stripping in the program**: every program would have to; the host does
   it once.
+- **Dropping every ICC profile** (the review's alternative): no profile can
+  name anything, but a Display P3 photo or a printer's CMYK image loses its
+  colours. Refused by the ruling.
+- **Rewriting a profile's texts in place**: keeps every offset, but a fixed
+  text does not fit a tag shorter than it (a `text` of "sRGB"), so the text
+  would vary with the tag. The profile is rebuilt instead, its colour tags'
+  bytes copied, so one fixed text fits every tag.
+- **Keeping a profile's tags of other types** (as the ruling names only
+  text tags): keeps Apple's `mmod`, which holds a display's serial number,
+  and a calibration's time. An allow-list of colour types drops them.
 
 ## Consequences
 
 - **The bytes kept differ from those sent**: their key is theirs, so two
   exports of one photo with different metadata are one blob.
+- **An image with an ICC profile is kept with its profile rebuilt**, so its
+  bytes differ from those sent even when it holds nothing else; a PNG's
+  iCCP is deflated again, its size changed. A profile that does not parse
+  is dropped, and its image is shown as sRGB.
 - **Some files ADR-0260 kept are refused** (Decision §1), each with why.
 - **One pass and one buffer** the size of the upload, at most the
   declaration's bytes; nothing in the language, the runtime or a program
@@ -287,12 +463,31 @@ run's evidence files were not fetched here (see the Report).
   does not parse through, or undoing a piece of the upload path; two
   killed by the browser suite alone.
 
+**The independent review's fixes** (local, 2026-10-25, the PC idle): the
+server's `uploads` and `blob` tests, 78 passed (ten of them the review's:
+seven in `strip.rs`, three in `icc.rs`); `e2e/upload-metadata.spec.mjs`, 12
+of 12 in Chromium, Firefox and WebKit (four tests, one of them new, and
+the first with six more files); `cargo clippy -p pw-dev-server
+--all-targets -D warnings`, `cargo fmt --check`,
+`scripts/mutation_anchors.py`, `scripts/case-check.sh` and `just
+evidence-gates`, each passing; and `scripts/upload_metadata_mutations.py`
+run whole, as `just e14-upload-metadata` runs it (`CARGO_INCREMENTAL=0`):
+both baselines green (78 server tests, 12 browser tests), then **91 of 91
+mutants killed**: 36 added for the review (each finding's, and each check
+`icc.rs` makes) and 8 re-anchored on code the review moved, two killed by
+the browser suite alone. `just ci` is run before the push, which is made
+only on green. Evidence of record is the integrator's at landing.
+
 ## Not claimed
 
-- See §4's KNOWN_LIMITATIONS: ICC profiles, pixels, hidden data, gain maps,
-  a GIF's ICC profile, images kept before this.
+- See §4's KNOWN_LIMITATIONS: an ICC profile's colour tags, pixels, hidden
+  data, gain maps, a GIF's ICC profile, images kept before this.
 - A JPEG's scans, restart intervals or Huffman codes validated, or a PNG's
-  chunk order or CRCs: a decoder judges what is kept, as before.
+  chunk order or CRCs: a decoder judges what is kept, as before. Likewise a
+  kept colour tag's contents: a colour management module judges them.
+- That every engine renders by a profile: Firefox, as Playwright 1.58
+  builds and runs it, renders by none, so the colour check is vacuous
+  there, and WebKit by no WebP ICCP (Found).
 - The multipart part's file name (never read, ADR-0260) and the request's
   headers (never kept).
 - ADR-0260's own: decompression bombs past the declared size, animated
@@ -308,6 +503,17 @@ run's evidence files were not fetched here (see the Report).
 4. **`Cargo.lock`'s order** (Found): sorted here in its own commit; and
    should `run.sh`, `feed.sh` and `just ci` pass `--locked`, so a lockfile
    out of order fails loudly rather than dirtying a checkout?
+5. **An ICC profile, past the ruling** (§2a), each this worker's choice,
+   each cheap to reverse: tags of a type neither colour nor text are
+   dropped (Apple's `mmod` holds a serial number, `calt` a time); the
+   header's device maker, model and attributes are zeroed besides its
+   creation time and ID. Agreed?
+6. **A profile's bounds** (§2a): at most 4 MiB and 1,024 tags, and no two
+   tags' data overlapping unless they are the same bytes; a profile past
+   them is dropped and its image shown as sRGB. None of the profiles a
+   phone or a display embeds comes near them; agreed?
+7. **What browsers do not read is dropped**: ICC chunks after a JPEG's
+   first scan, a PNG's second iCCP, a WebP's second ICCP. Agreed?
 
 ## Report
 
@@ -316,7 +522,11 @@ its tests), its wiring in `Shared::upload`, the lease fix, tests at the
 upload seam and over HTTP, `e2e/upload-metadata.spec.mjs` and its host
 registration, `scripts/upload_metadata_mutations.py`,
 `just/upload-metadata.just` and its import, `Cargo.lock` in cargo's order,
-this ADR and ADR-0260's amendment.
+this ADR and ADR-0260's amendment. After the independent review:
+`uploads/icc.rs` (an ICC profile kept for its colour alone) and its use in
+the three formats, JFIF's density, the lazy WebP walk, the restart and
+palette fixtures, the spec's colour check and six files, 36 more mutation
+controls, and this ADR's §2a and review section.
 
 **Evidence.** Verify run 40183150640 at `b64610b9`, all 103 planned recipes
 green with the three full browser jobs; CI 40183140413 green; locally the
@@ -324,6 +534,11 @@ server's 68 tests, the spec's 9 of 9 in three engines and `just ci`. The
 run's files are not in `docs/evidence/` yet: `just evidence-fetch` reads
 artifacts through `gh`, which is logged out in this PC's WSL, and the
 brief said to download nothing, so the fetch is the integrator's (or a
-word to this track).
+word to this track). After the review, locally: the server's 78 tests, the
+spec's 12 of 12 in three engines, 91 of 91 mutants killed, and `just ci`
+before the push.
 
-**Dependencies.** None new.
+**Dependencies.** None new: the PNG's iCCP is inflated and deflated with
+`miniz_oxide` 0.9.1, which `pw-dev-server` already takes (its version
+checked in `Cargo.lock` and its API, `decompress_to_vec_zlib_with_limit`
+and `compress_to_vec_zlib`, in the crate's source in cargo's registry).
