@@ -1,4 +1,4 @@
-//! **The host's one outbound client** (track `outbound-https`, ADR-XXXX).
+//! **The host's one outbound client** (track `outbound-https`, ADR-0387).
 //!
 //! Every platform service that calls another origin (a payment provider, an
 //! identity provider's token endpoint, a push service, a verification
@@ -42,7 +42,7 @@
 //!
 //! TLS is rustls with the *ring* provider; the HTTP/1.1 is this crate's own,
 //! over the rustls stream (the smallest dependency set that does the job:
-//! ADR-XXXX's alternatives).
+//! ADR-0387's alternatives).
 
 use std::fmt;
 use std::io::{self, Read, Write};
@@ -56,9 +56,6 @@ mod origin;
 mod resolve;
 mod secret;
 mod tls;
-
-#[cfg(any(test, feature = "test-ca"))]
-pub mod testing;
 
 #[cfg(test)]
 mod tests;

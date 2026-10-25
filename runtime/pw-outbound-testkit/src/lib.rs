@@ -1,12 +1,14 @@
-//! **A test's certificate authority and servers** (this crate's tests, and a
-//! dependent's through the `test-ca` feature): an authority made for the
-//! run, the certificates it issues, and servers that answer as a test says.
-//! Nothing here is a trust decision: a client trusts the authority only
-//! where a test gives its root to [`crate::Roots::only`]. Its keys are made
-//! for each run and never written down (charter §3.7: no private
-//! certificate material in the repository).
+//! **A test's certificate authority and servers, for `pw-outbound`'s tests
+//! and its dependents'** (ADR-0387): an authority made for the run, the
+//! certificates it issues, and servers that answer as a test says. A
+//! dev-dependency alone (the integrator's ruling, 2026-10-25): no crate the
+//! host ships depends on it, so no test authority and no test server is in a
+//! production build. Nothing here is a trust decision: a client trusts the
+//! authority only where a test gives its root to `pw_outbound::Roots::only`.
+//! Its keys are made for each run and never written down (charter §3.7: no
+//! private certificate material in the repository).
 //!
-//! The certificates are DER this module writes itself over *ring*, already
+//! The certificates are DER this crate writes itself over *ring*, already
 //! the TLS provider: an issuer's name, a validity, an ECDSA P-256 key, and
 //! the extensions WebPKI reads (basic constraints, key usage, subject
 //! alternative names, server authentication).
@@ -20,6 +22,8 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use ring::rand::{SecureRandom, SystemRandom};
 use ring::signature::{ECDSA_P256_SHA256_ASN1_SIGNING, EcdsaKeyPair, KeyPair};
 use rustls::pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer};
+use rustls::server::ResolvesServerCertUsingSni;
+use rustls::sign::CertifiedKey;
 use rustls::{ServerConfig, ServerConnection, StreamOwned};
 
 // --- DER, as much as a certificate needs ---------------------------------------
@@ -177,12 +181,22 @@ fn certificate(
     sequence(&[tbs, algorithm, bits(signature.as_ref(), 0)])
 }
 
-/// **A server's certificate and key**: its chain, the leaf first, and its
-/// PKCS #8 key.
+/// **A server's certificate and key**: its chain, the leaf first, its
+/// PKCS #8 key, and the DNS names it is issued for (its addresses aside).
 #[derive(Clone)]
 pub struct Leaf {
     pub chain: Vec<Vec<u8>>,
     pub key: Vec<u8>,
+    pub names: Vec<String>,
+}
+
+/// The DNS names among `names`: what a server picks a certificate by.
+fn dns_names(names: &[&str]) -> Vec<String> {
+    names
+        .iter()
+        .filter(|n| n.parse::<IpAddr>().is_err())
+        .map(|n| n.to_string())
+        .collect()
 }
 
 fn leaf_extensions(names: &[&str]) -> Vec<Vec<u8>> {
@@ -249,6 +263,7 @@ impl TestCa {
         Leaf {
             chain: vec![der],
             key: key.pkcs8,
+            names: dns_names(names),
         }
     }
 
@@ -275,18 +290,20 @@ pub fn self_signed(names: &[&str]) -> Leaf {
     Leaf {
         chain: vec![der],
         key: key.pkcs8,
+        names: dns_names(names),
     }
 }
 
 // --- servers ---------------------------------------------------------------------
 
-/// **A request as a test's server saw it**: its head, its body, and the
-/// bytes as they came.
+/// **A request as a test's server saw it**: its head, its body, the bytes
+/// as they came, and, over TLS, the name the client gave by SNI.
 #[derive(Debug, Clone)]
 pub struct Seen {
     pub head: String,
     pub body: Vec<u8>,
     pub raw: Vec<u8>,
+    pub sni: Option<String>,
 }
 
 impl Seen {
@@ -408,7 +425,40 @@ impl Server {
         leaf: &Leaf,
         answer: impl Fn(&Seen) -> Reply + Send + Sync + 'static,
     ) -> Server {
-        let config = server_config(leaf);
+        Server::serving_tls(at, server_config(leaf), answer)
+    }
+
+    /// **A TLS server presenting `leaf` only to a client that names one of
+    /// its DNS names by SNI** (rustls's `ResolvesServerCertUsingSni`), as a
+    /// host serving several sites at one address does: a handshake without
+    /// SNI, or naming another site, is refused.
+    pub fn by_name(leaf: &Leaf, answer: impl Fn(&Seen) -> Reply + Send + Sync + 'static) -> Server {
+        let key = rustls::crypto::ring::sign::any_supported_type(&private_key(leaf))
+            .expect("the leaf's key");
+        let mut sites = ResolvesServerCertUsingSni::new();
+        for name in &leaf.names {
+            sites
+                .add(name, CertifiedKey::new(chain(leaf), key.clone()))
+                .expect("a name the leaf is issued for");
+        }
+        let config =
+            ServerConfig::builder_with_provider(Arc::new(rustls::crypto::ring::default_provider()))
+                .with_safe_default_protocol_versions()
+                .expect("TLS 1.2 and 1.3")
+                .with_no_client_auth()
+                .with_cert_resolver(Arc::new(sites));
+        Server::serving_tls(
+            SocketAddr::from(([127, 0, 0, 1], 0)),
+            Arc::new(config),
+            answer,
+        )
+    }
+
+    fn serving_tls(
+        at: SocketAddr,
+        config: Arc<ServerConfig>,
+        answer: impl Fn(&Seen) -> Reply + Send + Sync + 'static,
+    ) -> Server {
         let answer: Answerer = Arc::new(answer);
         Server::start_on(at, move |tcp, kept| {
             let _ = tcp.set_read_timeout(Some(Duration::from_secs(10)));
@@ -416,7 +466,8 @@ impl Server {
                 return;
             };
             let mut tls = StreamOwned::new(conn, tcp);
-            if let Some(seen) = read_request(&mut tls) {
+            if let Some(mut seen) = read_request(&mut tls) {
+                seen.sni = tls.conn.server_name().map(str::to_string);
                 kept.lock().expect("kept").push(seen.clone());
                 reply(&mut tls, answer(&seen));
                 tls.conn.send_close_notify();
@@ -481,19 +532,24 @@ impl Drop for Server {
     }
 }
 
-fn server_config(leaf: &Leaf) -> Arc<ServerConfig> {
-    let chain = leaf
-        .chain
+fn chain(leaf: &Leaf) -> Vec<CertificateDer<'static>> {
+    leaf.chain
         .iter()
         .map(|c| CertificateDer::from(c.clone()))
-        .collect();
-    let key = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(leaf.key.clone()));
+        .collect()
+}
+
+fn private_key(leaf: &Leaf) -> PrivateKeyDer<'static> {
+    PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(leaf.key.clone()))
+}
+
+fn server_config(leaf: &Leaf) -> Arc<ServerConfig> {
     Arc::new(
         ServerConfig::builder_with_provider(Arc::new(rustls::crypto::ring::default_provider()))
             .with_safe_default_protocol_versions()
             .expect("TLS 1.2 and 1.3")
             .with_no_client_auth()
-            .with_single_cert(chain, key)
+            .with_single_cert(chain(leaf), private_key(leaf))
             .expect("the leaf and its key"),
     )
 }
@@ -522,7 +578,12 @@ fn read_request(stream: &mut impl Read) -> Option<Seen> {
     let mut body = vec![0; length.min(1024 * 1024)];
     stream.read_exact(&mut body).ok()?;
     raw.extend_from_slice(&body);
-    Some(Seen { head, body, raw })
+    Some(Seen {
+        head,
+        body,
+        raw,
+        sni: None,
+    })
 }
 
 fn reply(stream: &mut impl Write, reply: Reply) {

@@ -1292,6 +1292,7 @@ dependencies = [
  "pw-host",
  "pw-materialize",
  "pw-outbound",
+ "pw-outbound-testkit",
  "pw-protocol",
  "pw-render",
  "pw-resource",
@@ -1346,9 +1347,17 @@ name = "pw-outbound"
 version = "0.0.0"
 dependencies = [
  "libc",
- "ring",
+ "pw-outbound-testkit",
  "rustls",
  "rustls-native-certs",
+]
+
+[[package]]
+name = "pw-outbound-testkit"
+version = "0.0.0"
+dependencies = [
+ "ring",
+ "rustls",
 ]
 
 [[package]]

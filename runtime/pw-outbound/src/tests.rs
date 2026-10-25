@@ -7,8 +7,8 @@ use std::net::{IpAddr, Ipv4Addr, TcpStream};
 use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
-use crate::testing::{self, DAY_SECONDS, Leaf, Reply, Server, TestCa};
 use crate::*;
+use pw_outbound_testkit::{self as testing, DAY_SECONDS, Leaf, Reply, Server, TestCa};
 
 const LOOPBACK: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 const NAME: &str = "api.provider.test";

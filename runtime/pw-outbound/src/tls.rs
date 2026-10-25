@@ -179,7 +179,7 @@ fn refused(origin: &Origin, e: rustls::Error) -> Error {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::TestCa;
+    use pw_outbound_testkit::TestCa;
 
     /// **A platform store holding no certificate this client can use is
     /// refused**, empty or of what is no certificate, so that a host without

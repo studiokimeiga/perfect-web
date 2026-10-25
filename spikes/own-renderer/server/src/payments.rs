@@ -2455,7 +2455,7 @@ mod cancel_tests {
 #[cfg(test)]
 mod https_tests {
     use super::*;
-    use pw_outbound::testing::{Leaf, Server, TestCa};
+    use pw_outbound_testkit::{Leaf, Server, TestCa};
     use std::net::{IpAddr, Ipv4Addr};
 
     const NAME: &str = "payments.provider.test";

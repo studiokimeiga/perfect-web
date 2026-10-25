@@ -36,7 +36,7 @@ allow = [
     "Zlib",
     "Unicode-3.0",
     "Unlicense",
-    # The host's outbound HTTPS (track outbound-https, ADR-XXXX): ring 0.17
+    # The host's outbound HTTPS (track outbound-https, ADR-0387): ring 0.17
     # is "Apache-2.0 AND ISC", and rustls-webpki and untrusted are ISC alone.
     # ISC is MIT's equivalent in substance (keep the notice, no warranty),
     # OSI-approved and permissive, so it changes nothing the dual MIT and

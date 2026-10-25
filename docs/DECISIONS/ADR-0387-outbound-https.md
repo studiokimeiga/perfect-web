@@ -1,4 +1,4 @@
-# ADR-XXXX: the host reaches another origin through one client, and only an origin it declares
+# ADR-0387: the host reaches another origin through one client, and only an origin it declares
 
 Status: proposed by track `outbound-https` (2026-10-25), under the
 integrator's ruling of 2026-10-25 and the owner's delegation of 2026-10-02;
@@ -343,7 +343,7 @@ and advisories) passed in the `ci` workflow at the track's first push.
 ## What the capability matrix and KNOWN_LIMITATIONS should say
 
 - **Third-party APIs** (`docs/vision/capabilities.md`): "The host has one
-  outbound client (`pw-outbound`, ADR-XXXX): only the origins a service's
+  outbound client (`pw-outbound`, ADR-0387): only the origins a service's
   grant declares, every address checked against IANA's special-purpose
   blocks before any is reached, TLS 1.3/1.2 (rustls, *ring*) against the
   platform's roots, no redirect followed, one deadline, bounded answers,
@@ -354,7 +354,7 @@ and advisories) passed in the `ci` workflow at the track's first push.
   recommender is simulated in process; nothing sends a webhook; no
   post-quantum key exchange, no revocation checking, no proxy."
 - **Production**: "There is no TLS" becomes "The host serves plain HTTP;
-  outbound, it speaks TLS (ADR-XXXX)."
+  outbound, it speaks TLS (ADR-0387)."
 - **KNOWN_LIMITATIONS**: the not-claimed list above.
 
 ## Questions for the integrator

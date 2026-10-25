@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mutation controls for track outbound-https (ADR-XXXX): the host's one
+"""Mutation controls for track outbound-https (ADR-0387): the host's one
 outbound client, and the payments reaching their provider through it.
 
 Each mutant undoes one piece:
