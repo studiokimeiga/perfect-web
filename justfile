@@ -16,6 +16,7 @@ export PATH := toolchain_bin + ":" + env_var('PATH')
 # imported recipe runs in this directory, under these settings.
 import 'just/identity.just'
 import 'just/uploads.just'
+import 'just/upload-metadata.just'
 import 'just/notifications.just'
 import 'just/messages.just'
 import 'just/kiokun.just'

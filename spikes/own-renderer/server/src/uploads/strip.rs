@@ -698,6 +698,17 @@ pub(crate) mod tests {
             "it ends before its EOI",
             "cut in a segment"
         );
+        assert_eq!(
+            body[..4],
+            [0xFF, 0xDB, 0x00, 0x43],
+            "a DQT of 69 bytes first"
+        );
+        let between = jpeg_of(&[], &body[..69], &[]);
+        assert_eq!(
+            malformed(&between),
+            "it ends before its EOI",
+            "cut between two"
+        );
         let second_soi = jpeg_of(&[], &[&[0xFF, 0xD8][..], &body].concat(), &[]);
         assert_eq!(malformed(&second_soi), "a second SOI");
         let stray = jpeg_of(&[(0xFE, vec![])], &[&[0x00][..], &body].concat(), &[]);
