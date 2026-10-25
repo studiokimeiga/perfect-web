@@ -893,6 +893,9 @@ pub mod engine {
     /// engine does, without depending on a second copy of the engine.
     pub use wasmtime::component::Val;
 
+    /// Strict read-only table selector conversion, before manifest validation.
+    pub mod table_selectors;
+
     /// **The configuration of every engine the host makes** (ADR-0244): the
     /// component model, and none of the proposals Pleris's components do not
     /// use, so a component that uses one is refused when it loads.
