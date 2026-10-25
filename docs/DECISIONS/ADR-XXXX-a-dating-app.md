@@ -79,7 +79,7 @@ plan.
    **(H6)**
 7. **No push notifications.** No service worker, no Push API, and no
    outbound TLS, the gap the Stripe adapter waits on (NEXT 6d). **(H7)**
-8. **Blocking, open since ADR-0279** ("blocking, the integrator's"), has to
+8. **Blocking, open since ADR-0279** (NEXT: "blocking, the integrator's"), has to
    hide one user from another everywhere: pages, `/pw-read`, the stream,
    caches, notifications and media. **(H1 to H3, A5)**
 9. **No moderation**: "a comment is shown as written ... with no review,
@@ -301,7 +301,7 @@ up to it.
 | Chat | DMs, built in Rust (0279) | the same, declared; read from each side | H1, H4, A4 |
 | Your Turn Limits | none | a predicate in Pleris refusing a like | H2, A4 |
 | Unmatch, hide, remove | none | two-owner rows deleted by either owner; the actor's block row, read both ways by every predicate | H1, H2, A4 |
-| Block (people one knows) | none (0279: "blocking, the integrator's") | hidden everywhere; by phone or email needs verified identifiers | H1 to H3, A5 |
+| Block (people one knows) | none (NEXT, after 0279: "blocking, the integrator's") | hidden everywhere; by phone or email needs verified identifiers | H1 to H3, A5 |
 | Report | none (0341: no moderation) | a report, a staff principal, review, bans | H10, A5 |
 | Pause | none | a policy's conjunct | H3, A5 |
 | Selfie verification, age checks | payments' provider pattern (0332) | a provider, the camera, biometric data never kept | H11 |
@@ -701,8 +701,8 @@ user query Discover(reader: capability.User<UserId>) -> List<Card>
     let me = Profiles.get(reader)
     let prefs = Preferences.get(reader)
     let near = Profiles.by_cell_many_first(reader, geo.near(me.cell, prefs.max_km), 500)
-    let liked = Likes.of_from_many(reader, ids(near))       // the reader's own likes of them
-    let skipped = Skips.of_from_many(reader, ids(near))
+    let liked = Likes.get_many(reader, ids(near))           // the reader's own likes of them
+    let skipped = Skips.get_many(reader, ids(near))
     let accepts = Preferences.accepts_many(reader, ids(near))
     rank(prefs, me.cell, List.filter(near, c => fits(prefs, c) & accepted(accepts, c)
         & fresh(liked, skipped, c)))
@@ -1127,13 +1127,15 @@ names on Linux, 2,102,460 bytes:
   crates (MIT OR Apache-2.0, 8,213,752 bytes). Already in the lock: `cc`,
   `cfg-if`, `getrandom` 0.2, `libc`, `log`, `once_cell`, `rustversion`.
 - **ISC must be admitted to `deny.toml`** (`ring`, `rustls-webpki` and
-  `untrusted` have no other licence): a permissive licence, an ADR's line
-  by `deny.toml`'s own comment.
+  `untrusted` have no other licence): a permissive licence, and a
+  decision `deny.toml`'s comment says is recorded in
+  `docs/research/technology-matrix.md` as well.
 - **Not proposed**: `webpki-roots` 1.0.11 (CDLA-Permissive-2.0, not
   admitted; the operating system's roots instead) and `aws-lc-rs`,
   rustls's default provider (a C and assembly build).
-- `rustls` 0.23.46 and `rustls-webpki` 0.103.16 are under two weeks old at
-  this date; an approval may take the newest patch older than that.
+- `rustls` 0.23.46, `rustls-webpki` 0.103.16 and `rustls-native-certs`
+  0.8.5 are under two weeks old at this date; an approval may take the
+  newest patch older than that.
 - **Push needs nothing more**: `ring` 0.17.14 provides `ECDH_P256`,
   `ECDSA_P256_SHA256_FIXED_SIGNING`, `hkdf` and `AES_128_GCM` (docs.rs,
   read 2026-10-25), all RFC 8291 and RFC 8292 use.
