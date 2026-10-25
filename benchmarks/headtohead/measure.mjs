@@ -18,11 +18,14 @@
 //   are attached. A client-rendered app attaches them as it renders (React
 //   at `createRoot`, Svelte in `mount`), so it is interactive when its field
 //   is in the document; a page its server rendered is interactive when its
-//   runtime says so: Pleris's `data-pw-ready`, Next.js's App Router state
-//   (`history.state.__NA`), SvelteKit's router state
-//   (`history.state["sveltekit:history"]`). Each run then checks the claim:
-//   its first interaction, made at once, must take effect without loading a
-//   new document;
+//   runtime says so: Pleris's `data-pw-ready`; Next.js's App Router state
+//   (`history.state.__NA`, written by an effect of the hydrated tree);
+//   SvelteKit's router started (`_start_router` sets
+//   `history.scrollRestoration` to "manual" after `_hydrate`; its router
+//   state, `history.state["sveltekit:history"]`, is written BEFORE it
+//   hydrates, so it is not the signal). Each run then checks the claim: its
+//   first interaction, made at once, must take effect without loading a new
+//   document;
 // - each interaction's latency, from the input event's own time stamp to the
 //   change in the document and to the frame after it, and the bytes it made
 //   the browser fetch.
@@ -62,9 +65,25 @@ const OBSERVERS = String.raw`(() => {
     if (READY === "dom") return !!document.querySelector(APP);
     if (READY === "pw") return document.documentElement.dataset.pwReady === "1";
     if (READY === "next") return !!(history.state && history.state.__NA);
-    if (READY === "sveltekit") return !!(history.state && "sveltekit:history" in history.state);
+    // SvelteKit's client writes its router state BEFORE it hydrates, and
+    // starts its router after: `_start_router` sets scrollRestoration first.
+    if (READY === "sveltekit") return history.scrollRestoration === "manual";
     return false;
   };
+  try {
+    const d = Object.getOwnPropertyDescriptor(History.prototype, "scrollRestoration");
+    Object.defineProperty(History.prototype, "scrollRestoration", {
+      configurable: true,
+      enumerable: d.enumerable,
+      get() {
+        return d.get.call(this);
+      },
+      set(v) {
+        d.set.call(this, v);
+        check();
+      },
+    });
+  } catch {}
   // What an interaction waits for, by name: no code is made from text, so a
   // page's policy against eval is no obstacle and is never bypassed.
   const CONDS = {

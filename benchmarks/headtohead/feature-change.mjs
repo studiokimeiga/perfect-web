@@ -273,8 +273,28 @@ export function render(result) {
       );
     }
   }
-  lines.push("  totals over the tasks:");
   const checked = result.rows.some((r) => Object.values(r.stacks).some((c) => c.reference));
+  if (checked) {
+    // The reviewer's checklist: each class of mistake, the tasks that carry
+    // it, and who catches the unsafe version in each stack.
+    lines.push("  what a reviewer must verify by hand, by class of mistake (the tasks' unsafe versions):");
+    const classes = new Map();
+    for (const row of result.rows) {
+      const name = row.class.split(":")[0];
+      if (!classes.has(name)) classes.set(name, []);
+      classes.get(name).push(row);
+    }
+    for (const [name, rows] of classes) {
+      const per = Object.keys(STACKS).map((stack) => {
+        const cells = rows.map((r) => [r.id, r.stacks[stack]]).filter(([, c]) => c?.unsafe);
+        const proved = cells.filter(([, c]) => !c.unsafe.clean).map(([id, c]) => `${id} ${(/\[(PW\d+)\]/.exec(c.unsafe.error) ?? [])[1] ?? "refused"}`);
+        const left = cells.filter(([, c]) => c.unsafe.clean).map(([id]) => id);
+        return `${STACKS[stack].label}: ${proved.length ? `checker proves ${proved.join(", ")}` : "checker proves none"}${left.length ? `; reviewer: ${left.join(", ")}` : ""}`;
+      });
+      lines.push(`    ${name} (${rows.map((r) => r.id).join(", ")}): ${per.join(" | ")}`);
+    }
+  }
+  lines.push("  totals over the tasks:");
   for (const [stack, t] of Object.entries(totals)) {
     lines.push(
       `    ${STACKS[stack].label.padEnd(10)} ${t.n} changes: +${t.added} -${t.removed} lines, ${t.files} file(s) touched, languages ${[...t.languages].sort().join(", ")}` +

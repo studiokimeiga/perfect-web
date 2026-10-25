@@ -364,7 +364,7 @@ export function renderReport(result, sections = {}) {
   for (const app of result.apps) {
     lines.push(`== ${app.title}`);
     for (const t of app.targets) {
-      lines.push(`  ${pad(t.label, 10)} ${t.version}; written by ${t.who}; served by ${t.server.cmd} ${t.server.args.join(" ")}; interactive when ${t.ready === "dom" ? "its field is in the document (rendered by the client, handlers attached as it renders)" : t.ready === "pw" ? "the runtime sets data-pw-ready" : t.ready === "next" ? "the App Router's state is in history.state" : "SvelteKit's router state is in history.state"}; build minifies: ${t.expect.minifies ? "yes" : "NO"}; host compresses: ${t.expect.compresses || "NO"}; host lets a cache keep its files: ${t.expect.caches ? "yes" : "NO"}`);
+      lines.push(`  ${pad(t.label, 10)} ${t.version}; written by ${t.who}; served by ${t.server.cmd} ${t.server.args.join(" ")}; interactive when ${t.ready === "dom" ? "its field is in the document (rendered by the client, handlers attached as it renders)" : t.ready === "pw" ? "the runtime sets data-pw-ready" : t.ready === "next" ? "the hydrated App Router writes its state to history.state" : "SvelteKit's router starts after hydrating (history.scrollRestoration set)"}; build minifies: ${t.expect.minifies ? "yes" : "NO"}; host compresses: ${t.expect.compresses || "NO"}; host lets a cache keep its files: ${t.expect.caches ? "yes" : "NO"}`);
     }
     lines.push("");
     bytesTable(app, lines);
