@@ -31,6 +31,30 @@ const MOST_INTERIM: usize = 8;
 /// Field lines in one head.
 const MOST_FIELDS: usize = 128;
 
+/// What a body's buffer holds before its bytes come: a stated length is the
+/// peer's word, so the buffer grows from this as the body arrives.
+const BODY_SET_ASIDE: usize = 64 * 1024;
+
+/// Characters of a value an error quotes, at most.
+const QUOTED: usize = 32;
+
+/// **A value as an error quotes it**: at most [`QUOTED`] characters of it,
+/// each control, format or combining character escaped
+/// (`char::escape_debug`), so that no answer (and no name a request was
+/// given) writes a line, or a terminal's command, of its own into a log, nor
+/// a page of its own into an error.
+pub(crate) fn quoted(value: &str) -> String {
+    let mut out: String = value
+        .chars()
+        .take(QUOTED)
+        .flat_map(char::escape_debug)
+        .collect();
+    if value.chars().nth(QUOTED).is_some() {
+        out.push_str("...");
+    }
+    out
+}
+
 /// RFC 9110 §5.6.2's token.
 fn is_token(name: &[u8]) -> bool {
     !name.is_empty()
@@ -70,7 +94,8 @@ fn is_value(value: &str) -> bool {
 fn check_name(name: &str) -> Result<(), Error> {
     if !is_token(name.as_bytes()) {
         return Err(Error::Request(format!(
-            "`{name}` is not a field name (a token)"
+            "`{}` is not a field name (a token)",
+            quoted(name)
         )));
     }
     if RESERVED.iter().any(|r| r.eq_ignore_ascii_case(name)) {
@@ -229,6 +254,30 @@ impl<R: Read> Input<R> {
         }
     }
 
+    /// **The CRLF that ends a chunk's data, where its size says it ends**
+    /// (RFC 9112 §7.1), each byte taken from `budget`. Any other byte there
+    /// is a chunk longer or shorter than its size states, which no line
+    /// read after it would say: a shorter chunk's data takes the framing
+    /// that follows it.
+    fn chunk_end(&mut self, budget: &mut Budget) -> Result<(), Error> {
+        for end in *b"\r\n" {
+            if self.fill()? == 0 {
+                return Err(Error::Framing(
+                    "the connection closed before a chunk's end".into(),
+                ));
+            }
+            let byte = self.buf[self.start];
+            self.start += 1;
+            budget.take(1)?;
+            if byte != end {
+                return Err(Error::Framing(
+                    "a chunk's data does not end where its size says".into(),
+                ));
+            }
+        }
+        Ok(())
+    }
+
     /// **Exactly `n` more bytes** onto `out`, or the cut said.
     fn exact(&mut self, n: usize, out: &mut Vec<u8>) -> Result<(), Error> {
         let mut want = n;
@@ -255,14 +304,12 @@ enum Version {
 }
 
 /// **A status line**: `HTTP/1.1` (or `HTTP/1.0`), a space, three digits from
-/// 100 to 599, and a reason or none.
+/// 100 to 599, and a reason or none. One that is not is never quoted: a
+/// server echoing the request would make it the request line, its path and
+/// query among it (ADR-0387 §9).
 fn status_line(line: &[u8]) -> Result<(Version, u16), Error> {
-    let bad = || {
-        Error::Framing(format!(
-            "`{}` is not a status line",
-            String::from_utf8_lossy(&line[..line.len().min(40)])
-        ))
-    };
+    let bad =
+        || Error::Framing("the answer's status line is not one of HTTP/1.1 or HTTP/1.0".into());
     let version = match line.get(..9) {
         Some(b"HTTP/1.1 ") => Version::Http11,
         Some(b"HTTP/1.0 ") => Version::Http10,
@@ -387,7 +434,8 @@ pub(crate) fn read_answer<R: Read>(reader: R, limits: &Limits) -> Result<Answer,
         .find(|c| !c.eq_ignore_ascii_case("identity"))
     {
         return Err(Error::Framing(format!(
-            "the body is encoded as `{coding}`, which the client never asks"
+            "the body is encoded as `{}`, which the client never asks",
+            quoted(coding)
         )));
     }
     let body = if status == 204 || status == 304 {
@@ -434,7 +482,7 @@ fn body<R: Read>(
         if codings.len() != 1 || !codings[0].eq_ignore_ascii_case("chunked") {
             return Err(Error::Framing(format!(
                 "the transfer coding `{}`: `chunked` alone is read",
-                codings.join(", ")
+                quoted(&codings.join(", "))
             )));
         }
         return chunked(input, limits);
@@ -454,27 +502,30 @@ fn body<R: Read>(
             ));
         }
     };
+    let not_a_length = || Error::Framing(format!("`{}` is not a length", quoted(length)));
     if length.is_empty() || length.len() > 19 || !length.bytes().all(|b| b.is_ascii_digit()) {
-        return Err(Error::Framing(format!("`{length}` is not a length")));
+        return Err(not_a_length());
     }
-    let length: u64 = length
-        .parse()
-        .map_err(|_| Error::Framing(format!("`{length}` is not a length")))?;
+    let length: u64 = length.parse().map_err(|_| not_a_length())?;
+    // Refused before anything is set aside for it.
     if length > limits.body as u64 {
         return Err(Error::TooLarge {
             what: "body",
             limit: limits.body,
         });
     }
-    let mut body = Vec::with_capacity(length as usize);
+    // The length is the peer's word: a little is set aside for it, and the
+    // buffer grows as its bytes come.
+    let mut body = Vec::with_capacity((length as usize).min(BODY_SET_ASIDE));
     input.exact(length as usize, &mut body)?;
     Ok(body)
 }
 
 /// **A chunked body** (RFC 9112 §7.1): each chunk's size in hex, its
-/// extensions passed over, its data, and its CRLF; then the last chunk and
-/// the trailer fields, read and dropped. The data is bounded by the body's
-/// limit, and the framing around it by as many bytes again.
+/// extensions passed over, its data, and its CRLF exactly where its size
+/// says; then the last chunk and the trailer fields, each held to a field
+/// line's grammar and dropped. The data is bounded by the body's limit, and
+/// the framing around it by as many bytes again.
 fn chunked<R: Read>(input: &mut Input<R>, limits: &Limits) -> Result<Vec<u8>, Error> {
     let mut framing = Budget::new(limits.body, "body's chunk framing");
     let mut body = Vec::new();
@@ -509,11 +560,7 @@ fn chunked<R: Read>(input: &mut Input<R>, limits: &Limits) -> Result<Vec<u8>, Er
             });
         }
         input.exact(size as usize, &mut body)?;
-        if !input.line(&mut framing)?.is_empty() {
-            return Err(Error::Framing(
-                "a chunk is longer than its size states".into(),
-            ));
-        }
+        input.chunk_end(&mut framing)?;
     }
 }
 
@@ -610,6 +657,23 @@ mod tests {
         ] {
             assert!(refused(get().header(name, "x")), "{name}");
         }
+        // A secret's name is held as any field's: a token, none of the
+        // client's own (ADR-0387 §8).
+        for name in ["Transfer-Encoding", "host", "x\r\nx-injected", ""] {
+            assert!(
+                refused(get().secret(name, Secret::new("chunked"))),
+                "{name:?}"
+            );
+        }
+        // A name that is no token is quoted escaped: no refusal writes a
+        // line of its own into a log.
+        let named = request_head(&get().header("x\r\nx-injected", "v"), &origin, "/");
+        assert_eq!(
+            named,
+            Err(Error::Request(
+                "`x\\r\\nx-injected` is not a field name (a token)".into()
+            ))
+        );
         let secret = request_head(
             &get().secret(
                 "authorization",
@@ -694,9 +758,10 @@ mod tests {
         assert!(framing(b"HTTP/1.1 200 OK\r\nconnection: close\r\n\r\n"));
     }
 
-    /// **A chunked body is read chunk by chunk**, extensions and trailers
-    /// passed over; a chunk longer or shorter than its size, a size that is
-    /// not hex, or a cut is refused.
+    /// **A chunked body is read chunk by chunk**, extensions passed over and
+    /// trailers read as field lines and dropped; a chunk longer or shorter
+    /// than its size, a size that is not hex, a trailer that is no field
+    /// line, or a cut is refused, each for its own reason.
     #[test]
     fn a_chunked_body_is_read_by_its_chunks() {
         let answer = read(
@@ -706,16 +771,36 @@ mod tests {
         assert_eq!(answer.map(|a| a.text()), Ok("hello, world".to_string()));
         let empty = read(b"HTTP/1.1 200 OK\r\ntransfer-encoding: CHUNKED\r\n\r\n0\r\n\r\n");
         assert_eq!(empty.map(|a| a.into_body()), Ok(Vec::new()));
-        for bad in [
-            &b"HTTP/1.1 200 OK\r\ntransfer-encoding: chunked\r\n\r\n3\r\nhello\r\n0\r\n\r\n"[..],
-            b"HTTP/1.1 200 OK\r\ntransfer-encoding: chunked\r\n\r\n9\r\nhello\r\n0\r\n\r\n",
-            b"HTTP/1.1 200 OK\r\ntransfer-encoding: chunked\r\n\r\nz\r\nhello\r\n0\r\n\r\n",
-            b"HTTP/1.1 200 OK\r\ntransfer-encoding: chunked\r\n\r\n\r\n",
-            b"HTTP/1.1 200 OK\r\ntransfer-encoding: chunked\r\n\r\n5\r\nhello\r\n",
-            b"HTTP/1.1 200 OK\r\ntransfer-encoding: chunked\r\n\r\n1 1\r\nh\r\n0\r\n\r\n",
-            b"HTTP/1.1 200 OK\r\ntransfer-encoding: chunked\r\n\r\n0\r\n\r\nextra",
+        let chunked = |rest: &str| {
+            let mut answer = b"HTTP/1.1 200 OK\r\ntransfer-encoding: chunked\r\n\r\n".to_vec();
+            answer.extend_from_slice(rest.as_bytes());
+            read(&answer)
+        };
+        let longer = "a chunk's data does not end where its size says";
+        let not_hex = "a chunk's size is not a hexadecimal number";
+        for (bad, why) in [
+            // Longer than its size: "lo" where the chunk's CRLF belongs.
+            ("3\r\nhello\r\n0\r\n\r\n", longer),
+            // Shorter: its size takes the CRLF and the last chunk's size,
+            // and what follows is no CRLF.
+            ("9\r\nhello\r\n0\r\n\r\n", longer),
+            ("5\r\nhello", "the connection closed before a chunk's end"),
+            ("z\r\nhello\r\n0\r\n\r\n", not_hex),
+            ("\r\n", not_hex),
+            ("1 1\r\nh\r\n0\r\n\r\n", not_hex),
+            (
+                "5\r\nhello\r\n",
+                "the connection closed in the middle of a line",
+            ),
+            (
+                "0\r\n\r\nextra",
+                "bytes follow the answer past the length its framing states",
+            ),
+            // A trailer is a field line, held as any other.
+            ("0\r\nno colon\r\n\r\n", "a field line without a `:`"),
+            ("0\r\nx: a\x01b\r\n\r\n", "a field value holding a control"),
         ] {
-            assert!(framing(bad), "{}", String::from_utf8_lossy(bad));
+            assert_eq!(chunked(bad), Err(Error::Framing(why.into())), "{bad:?}");
         }
     }
 
@@ -737,6 +822,123 @@ mod tests {
         let identity =
             read(b"HTTP/1.1 200 OK\r\ncontent-encoding: identity\r\ncontent-length: 0\r\n\r\n");
         assert!(identity.is_ok(), "{identity:?}");
+    }
+
+    /// **What an error quotes of an answer is short and escaped**: a status
+    /// line not at all (an echoing server's would be the request line, its
+    /// path and query among it); a coding's or a length's value at most 32
+    /// characters of it, each control, format or combining character
+    /// escaped, so no answer writes a line, or a terminal's command, of its
+    /// own into a log.
+    #[test]
+    fn an_error_quotes_an_answer_short_and_escaped() {
+        let echoed = read(b"GET /hooks/hook_secret_9?token=t HTTP/1.1\r\nhost: x\r\n\r\n");
+        let controls = read(b"\x1b[2J\x1b]0;owned\x07 HTTP/1.1 200 OK\r\n\r\n");
+        for said in [echoed, controls] {
+            assert_eq!(
+                said,
+                Err(Error::Framing(
+                    "the answer's status line is not one of HTTP/1.1 or HTTP/1.0".into()
+                ))
+            );
+        }
+        let coding = read(
+            "HTTP/1.1 200 OK\r\ncontent-encoding: \u{202e}gzip\u{9b}2J\r\ncontent-length: 0\r\n\r\n"
+                .as_bytes(),
+        );
+        assert_eq!(
+            coding,
+            Err(Error::Framing(
+                "the body is encoded as `\\u{202e}gzip\\u{9b}2J`, which the client never asks"
+                    .into()
+            ))
+        );
+        let long = read(
+            format!(
+                "HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n",
+                "9".repeat(100)
+            )
+            .as_bytes(),
+        );
+        assert_eq!(
+            long,
+            Err(Error::Framing(format!(
+                "`{}...` is not a length",
+                "9".repeat(32)
+            )))
+        );
+        let codings = read(b"HTTP/1.1 200 OK\r\ntransfer-encoding: gzip, chunked\r\n\r\n0\r\n\r\n");
+        assert_eq!(
+            codings,
+            Err(Error::Framing(
+                "the transfer coding `gzip, chunked`: `chunked` alone is read".into()
+            ))
+        );
+        let signed = read(b"HTTP/1.1 200 OK\r\ncontent-length: +2\r\n\r\nok");
+        assert_eq!(signed, Err(Error::Framing("`+2` is not a length".into())));
+    }
+
+    /// **A stated length is not allocated on the peer's word**: under a body
+    /// bound set high, an answer stating 64 MiB and sending none of it is
+    /// refused as cut, no more than 64 KiB having been set aside for it; a
+    /// length past any memory, with no bound at all, is refused the same way
+    /// (never a panic, nor an abort); and a body past 64 KiB that does
+    /// arrive is read whole, its buffer grown as its bytes came.
+    #[test]
+    fn a_stated_length_is_not_allocated_before_its_bytes() {
+        use crate::tests::allocations;
+        // The allocator notes what is asked of it: a body that came is
+        // held, its buffer as large as it.
+        let body = vec![b'b'; 200 * 1024];
+        let mut whole =
+            format!("HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n", body.len()).into_bytes();
+        whole.extend_from_slice(&body);
+        let mega = Limits {
+            body: 1024 * 1024,
+            ..limits()
+        };
+        allocations::largest();
+        let came = read_answer(&whole[..], &mega);
+        let grown = allocations::largest();
+        assert_eq!(came.map(Answer::into_body), Ok(body));
+        assert!(grown >= 200 * 1024, "{grown}");
+        // A body stated and never sent: 64 KiB set aside, no more.
+        let high = Limits {
+            body: 128 * 1024 * 1024,
+            ..limits()
+        };
+        allocations::largest();
+        let cut = read_answer(
+            &b"HTTP/1.1 200 OK\r\ncontent-length: 67108864\r\n\r\n"[..],
+            &high,
+        );
+        let set_aside = allocations::largest();
+        assert_eq!(
+            cut,
+            Err(Error::Framing(
+                "the connection closed 0 bytes into a body of 67108864".into()
+            ))
+        );
+        assert!(
+            set_aside <= 64 * 1024,
+            "{set_aside} bytes before a byte came"
+        );
+        let unbounded = Limits {
+            body: usize::MAX,
+            ..limits()
+        };
+        for length in ["9999999999999999999", "70368744177664"] {
+            let cut = read_answer(
+                format!("HTTP/1.1 200 OK\r\ncontent-length: {length}\r\n\r\n").as_bytes(),
+                &unbounded,
+            );
+            assert_eq!(
+                cut,
+                Err(Error::Framing(format!(
+                    "the connection closed 0 bytes into a body of {length}"
+                )))
+            );
+        }
     }
 
     /// **A head is lines ended by CRLF, of fields as RFC 9112 writes them**:

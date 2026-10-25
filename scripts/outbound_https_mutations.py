@@ -7,35 +7,44 @@ Each mutant undoes one piece:
   scheme; a public origin over plain HTTP, or at a special address; a
   development origin at any address;
 - the addresses: a resolved address not checked, or only the first; the
-  first address taking the whole connection's bound; a development origin
-  reaching global addresses; loopback, an IPv4-mapped
+  name resolved again before connecting, its second answer unchecked (DNS
+  rebinding); the first address taking the whole connection's bound; a
+  development origin reaching global addresses; loopback, an IPv4-mapped
   address, 10/8, 172.16/12, 192.168/16, 169.254/16 (a cloud's metadata),
   100.64/10, 0/8, multicast, the reserved block, 6to4, or everything
   outside 2000::/3 taken for global;
 - the certificates: https sent in the clear; the roots given ignored; an
-  empty platform store taken; an expired, or wrongly named, certificate
-  said as another refusal;
+  empty platform store taken; a name not sent by SNI; an expired, or
+  wrongly named, certificate said as another refusal;
 - redirects: none refused, or a 307 or 308 (which keep the method and the
   body) taken for an answer;
 - the deadline: each read bounded, not the answer (the development
-  provider's wait); a read's wait not cut to what is left; the deadline not
-  checked before a read; connecting or the handshake bounded by the total
+  provider's wait); a write's wait unbounded; a read's wait not cut to
+  what is left; the deadline not checked before a read; connecting or the
+  handshake bounded by the total
   alone; the exchange bounded by the handshake's bound; the resolver waited
   for past its wait, or running lookups without bound; a wait not held to
   a day;
-- the bounds: a length one past the bound read; chunks bounded one at a
+- the bounds: a length one past the bound read; a stated length allocated
+  before its bytes come; chunks bounded one at a
   time, or summed with what is held so that the sum wraps; their framing
   unbounded; the head bounded at four times its limit;
 - the framing: an answer stating no length taken as empty; both lengths, or
   a length stated twice, taken; a coding other than `chunked` read as it; a
   coding in HTTP/1.0 taken; a cut body taken whole; bytes past the end
-  taken; a chunk longer than its size taken; a bare LF or CR taken; a folded
+  taken; a chunk's end not read where its size says, any two bytes taken
+  for it (a chunk longer or shorter than its size), or a cut there taken
+  for it; a trailer not held to a field line's grammar; a bare LF or CR
+  taken; a folded
   line, whitespace before a `:`, or a control in a value taken; interim
   answers unbounded; a switch of protocol passed over; a body read for 304;
   a content coding taken, or any asked for; a status out of range, or
   another protocol's status line, read; a redirect's error holding its whole
-  location;
-- the request: a value with a line break written; a secret's value
+  location; a status line that is not one quoted in its error (an echoing
+  server's request line); a value an error quotes not escaped, or not cut
+  short;
+- the request: a value with a line break written; a secret's name
+  unchecked; a secret's value
   unchecked or shown in its refusal; the client's own fields settable, or
   `accept-encoding` among them; a
   field name not a token; a body's length not stated; a target holding a
@@ -43,7 +52,8 @@ Each mutant undoes one piece:
   something else; an IPv4 address in another form read as a name; a host
   in any case; https's default port another; port 0 taken;
 - the secret: a `Secret`'s `Debug` showing it; a request's `Debug` showing
-  its body, or its path and query; an answer's `Debug` showing its body;
+  its body, or its path and query; an answer's `Debug` showing its body,
+  or its fields' values;
 - the payments: their client granted nothing; their wait six times
   longer; their hearing reading through another client; a request the
   client refused taken for an unreachable provider; a payment's id, or an
@@ -147,6 +157,22 @@ MUTANTS = [
         "                .admits(*address)\n"
         "                .or_else(|_| Ok::<(), &'static str>(()))\n"
         "                .map_err(|class| Error::Address {\n",
+    ),
+    (
+        "the name is resolved again before connecting, its second answer unchecked",
+        CLIENT,
+        LIB,
+        "        let addresses = self.addresses(&origin, reach, deadline)?;\n",
+        "        self.addresses(&origin, reach, deadline)?;\n"
+        "        let addresses: Vec<SocketAddr> = match origin.host() {\n"
+        "            Host::Name(name) => self\n"
+        "                .resolver\n"
+        "                .resolve(name, origin.port(), self.limits.total)?\n"
+        "                .into_iter()\n"
+        "                .map(|address| SocketAddr::new(address, origin.port()))\n"
+        "                .collect(),\n"
+        "            Host::Ip(address) => vec![SocketAddr::new(*address, origin.port())],\n"
+        "        };\n",
     ),
     (
         "only the first resolved address is checked",
@@ -287,6 +313,13 @@ MUTANTS = [
         "            }\n",
     ),
     (
+        "a name is not sent by SNI",
+        CLIENT,
+        TLS,
+        "    config.alpn_protocols = vec![b\"http/1.1\".to_vec()];\n",
+        "    config.alpn_protocols = vec![b\"http/1.1\".to_vec()];\n    config.enable_sni = false;\n",
+    ),
+    (
         "a certificate for another name is said as of an unknown issuer",
         CLIENT,
         TLS,
@@ -317,6 +350,13 @@ MUTANTS = [
         "    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {\n"
         "        self.deadline = Instant::now() + Duration::from_secs(1);\n"
         "        let left = self.left()?;\n",
+    ),
+    (
+        "a write waits without bound (no write timeout)",
+        CLIENT,
+        LIB,
+        "        let left = self.left()?;\n        self.tcp.set_write_timeout(Some(left))?;\n",
+        "        let _left = self.left()?;\n",
     ),
     (
         "a read waits as long as a minute, past the deadline",
@@ -385,6 +425,13 @@ MUTANTS = [
         HTTP1,
         "    if length > limits.body as u64 {\n",
         "    if length > limits.body as u64 + 1 {\n",
+    ),
+    (
+        "a stated length is allocated before its bytes come",
+        CLIENT,
+        HTTP1,
+        "    let mut body = Vec::with_capacity((length as usize).min(BODY_SET_ASIDE));\n",
+        "    let mut body = Vec::with_capacity(length as usize);\n",
     ),
     (
         "chunks are bounded one at a time, not together",
@@ -475,11 +522,34 @@ MUTANTS = [
         "    if input.buffered() > 0 && false {\n",
     ),
     (
-        "a chunk longer than its size is taken",
+        "a chunk's end is not read where its size says",
         CLIENT,
         HTTP1,
-        "        if !input.line(&mut framing)?.is_empty() {\n",
-        "        if !input.line(&mut framing)?.is_empty() && false {\n",
+        "        input.chunk_end(&mut framing)?;\n",
+        "",
+    ),
+    (
+        "a chunk's data may end on any two bytes (a chunk longer or shorter than its size)",
+        CLIENT,
+        HTTP1,
+        "            if byte != end {\n",
+        "            if byte != end && false {\n",
+    ),
+    (
+        "a cut at a chunk's end is taken as its end",
+        CLIENT,
+        HTTP1,
+        "                return Err(Error::Framing(\n"
+        "                    \"the connection closed before a chunk's end\".into(),\n"
+        "                ));\n",
+        "                return Ok(());\n",
+    ),
+    (
+        "a trailer line is not held to a field line's grammar",
+        CLIENT,
+        HTTP1,
+        "                field_line(&trailer)?;\n",
+        "                let _ = field_line(&trailer);\n",
     ),
     (
         "a bare LF ends a line",
@@ -563,6 +633,33 @@ MUTANTS = [
         "                .map(|l| l.to_string()),\n",
     ),
     (
+        "a status line that is not one is quoted in its error (an echo's request line)",
+        CLIENT,
+        HTTP1,
+        "    let bad =\n"
+        "        || Error::Framing(\"the answer's status line is not one of HTTP/1.1 or HTTP/1.0\".into());\n",
+        "    let bad = || {\n"
+        "        Error::Framing(format!(\n"
+        "            \"`{}` is not a status line\",\n"
+        "            String::from_utf8_lossy(&line[..line.len().min(40)])\n"
+        "        ))\n"
+        "    };\n",
+    ),
+    (
+        "a value an error quotes is not escaped",
+        CLIENT,
+        HTTP1,
+        "        .flat_map(char::escape_debug)\n",
+        "",
+    ),
+    (
+        "a value an error quotes is not cut short",
+        CLIENT,
+        HTTP1,
+        "        .take(QUOTED)\n",
+        "        .take(usize::MAX)\n",
+    ),
+    (
         "a status out of range is read",
         CLIENT,
         HTTP1,
@@ -590,6 +687,13 @@ MUTANTS = [
         HTTP1,
         "        if !is_value(secret.expose()) {\n",
         "        if !is_value(secret.expose()) && false {\n",
+    ),
+    (
+        "a secret's name is not checked",
+        CLIENT,
+        HTTP1,
+        "    for (name, secret) in &request.secrets {\n        check_name(name)?;\n",
+        "    for (name, secret) in &request.secrets {\n",
     ),
     (
         "a secret's refusal shows its value",
@@ -702,6 +806,14 @@ MUTANTS = [
         LIB,
         "        let origin = origin::origin_of(&self.url);\n",
         "        let origin = Some(self.url.clone());\n",
+    ),
+    (
+        "an answer's Debug shows its fields' values",
+        CLIENT,
+        LIB,
+        "                \"headers\",\n"
+        "                &self.headers.iter().map(|(n, _)| n).collect::<Vec<_>>(),\n",
+        "                \"headers\",\n                &self.headers,\n",
     ),
     (
         "an answer's Debug shows its body",

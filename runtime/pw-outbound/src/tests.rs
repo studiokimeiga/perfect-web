@@ -1,14 +1,74 @@
-//! **The client against servers of its own** (`testing`): the grant, the
-//! addresses, the certificates, the redirects, the deadline, the sizes and
-//! the secrets, each with the case it holds and its neighbour that passes.
+//! **The client against servers of its own** (`pw-outbound-testkit`): the
+//! grant, the addresses, the certificates, the redirects, the deadline, the
+//! sizes and the secrets, each with the case it holds and its neighbour that
+//! passes.
 
 use std::fmt::Debug;
-use std::net::{IpAddr, Ipv4Addr, TcpStream};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
 use crate::*;
 use pw_outbound_testkit::{self as testing, DAY_SECONDS, Leaf, Reply, Server, TestCa};
+
+/// **The largest allocation each thread asks for**: the test binary's
+/// allocator is the system's, every request noted, so that a test can know a
+/// stated length was not allocated on a peer's word (a panic or an abort in
+/// the allocator would say less, and not at the test's assertion).
+pub(crate) mod allocations {
+    use std::alloc::{GlobalAlloc, Layout, System};
+    use std::cell::Cell;
+
+    thread_local! {
+        // A `Cell` of a `usize`, initialized constantly: reading it
+        // allocates nothing and registers no destructor.
+        static LARGEST: Cell<usize> = const { Cell::new(0) };
+    }
+
+    fn note(size: usize) {
+        let _ = LARGEST.try_with(|largest| largest.set(largest.get().max(size)));
+    }
+
+    /// The largest allocation this thread has asked for since it last
+    /// asked, the count begun again.
+    pub(crate) fn largest() -> usize {
+        LARGEST.try_with(|largest| largest.replace(0)).unwrap_or(0)
+    }
+
+    /// The system's allocator, noting each size it is asked for.
+    pub(crate) struct Noting;
+
+    // SAFETY: every call is the system allocator's, with the caller's own
+    // arguments; noting a size allocates nothing.
+    unsafe impl GlobalAlloc for Noting {
+        unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+            note(layout.size());
+            // SAFETY: the caller's contract, passed on whole.
+            unsafe { System.alloc(layout) }
+        }
+
+        unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+            note(layout.size());
+            // SAFETY: as `alloc`.
+            unsafe { System.alloc_zeroed(layout) }
+        }
+
+        unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+            note(new_size);
+            // SAFETY: as `alloc`.
+            unsafe { System.realloc(ptr, layout, new_size) }
+        }
+
+        unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+            // SAFETY: as `alloc`.
+            unsafe { System.dealloc(ptr, layout) }
+        }
+    }
+}
+
+#[global_allocator]
+static NOTING: allocations::Noting = allocations::Noting;
 
 const LOOPBACK: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 const NAME: &str = "api.provider.test";
@@ -239,6 +299,52 @@ fn every_address_is_checked_before_any_is_reached() {
     assert_eq!(server.connections(), 0);
 }
 
+/// **A resolver whose answer changes after its first lookup** (a name
+/// rebound between a check and a connection), counting its lookups.
+struct Rebinding {
+    first: IpAddr,
+    later: IpAddr,
+    lookups: AtomicUsize,
+}
+
+impl Resolve for Rebinding {
+    fn resolve(&self, _host: &str, _port: u16, _within: Duration) -> Result<Vec<IpAddr>, Error> {
+        let before = self.lookups.fetch_add(1, Ordering::SeqCst);
+        Ok(vec![if before == 0 { self.first } else { self.later }])
+    }
+}
+
+/// **A name is looked up once, and the address checked is the address
+/// reached** (DNS rebinding proper): a name whose answer changes after its
+/// first lookup reaches the server at its first answer, and is looked up
+/// once; the server at its later answer is never reached. (Both answers are
+/// this machine's, as a development origin's must be: what is held is that
+/// nothing is resolved between the check and the connection.)
+#[cfg(target_os = "linux")]
+#[test]
+fn a_name_is_looked_up_once_and_its_checked_answer_reached() {
+    let leaf = ca().server(&[NAME]);
+    let first = Server::tls(&leaf, |_| Reply::ok("first"));
+    let port = first.port();
+    let later: IpAddr = "127.0.0.2".parse().unwrap();
+    let second = Server::tls_on(SocketAddr::new(later, port), &leaf, |_| Reply::ok("later"));
+    let rebinding = Arc::new(Rebinding {
+        first: LOOPBACK,
+        later,
+        lookups: AtomicUsize::new(0),
+    });
+    let client = held(Client::new(
+        held(Grant::none().development(&https(NAME, port))),
+        trusting(),
+    ))
+    .with_resolver(rebinding.clone())
+    .with_limits(quick());
+    let said = client.send(&Request::get(https(NAME, port)));
+    assert_eq!(said.map(|a| a.text()), Ok("first".to_string()));
+    assert_eq!(rebinding.lookups.load(Ordering::SeqCst), 1);
+    assert_eq!((first.connections(), second.connections()), (1, 0));
+}
+
 /// **A development origin reaches this machine and nothing else**: a name
 /// resolving to a global address is refused, as one resolving to a private
 /// one is.
@@ -277,6 +383,23 @@ fn an_address_origin_is_verified_by_its_address() {
             refusal: Refusal::WrongName
         })
     );
+}
+
+/// **A name is sent by SNI**: a server holding several sites at one
+/// address, which presents a site's certificate only to a client that names
+/// it, is reached, and saw the origin's name.
+#[test]
+fn a_name_is_sent_by_sni() {
+    let server = Server::by_name(&ca().server(&[NAME]), |seen| {
+        Reply::ok(&format!("reached {}", seen.target()))
+    });
+    let said = granted(server.port()).send(&Request::get(format!(
+        "{}/by-name",
+        https(NAME, server.port())
+    )));
+    assert_eq!(said.map(|a| a.text()), Ok("reached /by-name".to_string()));
+    let named: Vec<Option<String>> = server.seen().into_iter().map(|s| s.sni).collect();
+    assert_eq!(named, vec![Some(NAME.to_string())]);
 }
 
 // --- certificates are verified ------------------------------------------------------
@@ -552,6 +675,38 @@ fn no_wait_is_longer_than_a_day() {
     assert_eq!(said.map(|a| a.status()), Ok(200));
 }
 
+/// **A write to a peer that never reads is given up at the total**: a
+/// request larger than the sockets' buffers, sent to a server that takes the
+/// connection and reads nothing, waits only for what is left of the
+/// deadline, as every read does (each write's wait is the deadline's).
+#[test]
+fn a_write_to_a_peer_that_never_reads_is_given_up() {
+    let server = Server::mute(Duration::from_secs(8));
+    let origin = format!("http://127.0.0.1:{}", server.port());
+    let client = held(Client::new(
+        held(Grant::none().development(&origin)),
+        Roots::none(),
+    ))
+    .with_limits(Limits {
+        total: Duration::from_secs(1),
+        ..quick()
+    });
+    let started = Instant::now();
+    let said = client.send(&Request::post(
+        format!("{origin}/upload"),
+        "application/octet-stream",
+        vec![b'a'; 64 * 1024 * 1024],
+    ));
+    let took = started.elapsed();
+    assert_eq!(
+        said,
+        Err(Error::TimedOut {
+            phase: Phase::Exchange
+        })
+    );
+    assert!(took < Duration::from_secs(4), "{took:?}");
+}
+
 /// **A read or a write begun past the deadline is the deadline's**: it is
 /// refused as timed out, and never handed to the socket, which takes no wait
 /// of zero. (Mostly the socket's own wait ends an exchange; this is the case
@@ -758,7 +913,11 @@ fn the_framing_is_held_over_tls() {
 #[test]
 fn a_secret_is_sent_and_said_nowhere() {
     let server = Server::tls(&ca().server(&[NAME]), |seen| match seen.path() {
-        "/ok" => Reply::ok("client_secret_answer_5"),
+        "/ok" => Reply::Bytes(
+            b"HTTP/1.1 200 OK\r\nset-cookie: session=cookie_secret_6\r\n\
+              content-length: 22\r\n\r\nclient_secret_answer_5"
+                .to_vec(),
+        ),
         "/framing" => Reply::Bytes(b"HTTP/1.1 200 OK\r\n\r\nno length".to_vec()),
         "/redirect" => Reply::Bytes(
             b"HTTP/1.1 307 X\r\nlocation: https://elsewhere.test/\r\ncontent-length: 0\r\n\r\n"
@@ -796,9 +955,13 @@ fn a_secret_is_sent_and_said_nowhere() {
         shown.contains("Authorization") && shown.contains(NAME),
         "{shown}"
     );
+    // An answer's `Debug`: its fields' names, never their values or its body.
     let answer = format!("{:?}", sent.as_ref().ok());
-    assert!(!answer.contains("client_secret_answer"), "{answer}");
-    assert!(answer.contains("content-type"), "{answer}");
+    assert!(
+        !answer.contains("client_secret_answer") && !answer.contains("cookie_secret"),
+        "{answer}"
+    );
+    assert!(answer.contains("set-cookie"), "{answer}");
     let expired = ca().leaf(
         &[NAME],
         testing::now() - 10 * DAY_SECONDS,
@@ -851,6 +1014,40 @@ fn a_secret_is_sent_and_said_nowhere() {
             "{shown}"
         );
     }
+}
+
+/// **A server that echoes the request has none of it said in the client's
+/// error**: the request line it sends back where a status line belongs (the
+/// path and the query, and a secret's field after it) is refused without a
+/// byte of it quoted.
+#[test]
+fn an_echoed_request_is_quoted_in_no_error() {
+    let server = Server::plain(|seen| Reply::Bytes(seen.raw.clone()));
+    let origin = format!("http://127.0.0.1:{}", server.port());
+    let client = held(Client::new(
+        held(Grant::none().development(&origin)),
+        Roots::none(),
+    ))
+    .with_limits(quick());
+    let said = client.send(
+        &Request::get(format!("{origin}/hooks/hook_secret_9?token=tok_secret_8"))
+            .secret("authorization", Secret::new(SECRET)),
+    );
+    assert_eq!(
+        said,
+        Err(Error::Framing(
+            "the answer's status line is not one of HTTP/1.1 or HTTP/1.0".into()
+        ))
+    );
+    let seen = server.seen();
+    assert_eq!(seen.len(), 1, "the request was sent, and echoed");
+    let shown = format!("{said:?} {}", said.clone().err().unwrap());
+    assert!(
+        !shown.contains("hook_secret")
+            && !shown.contains("tok_secret")
+            && !shown.contains("sk_test"),
+        "{shown}"
+    );
 }
 
 /// **A field that would end its line is refused before anything is sent**,
