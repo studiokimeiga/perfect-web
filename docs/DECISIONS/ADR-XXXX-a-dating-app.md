@@ -37,22 +37,29 @@ plan.
    Rust host operations take the reader's handle (ADR-0279); the
    no-app-specific-Rust rule (ADR-0338, ruling 1) removes exactly that
    Rust. A table's generated reads take plain ids, so a `public query`
-   could read anyone's likes, skips or location. **(H1)**
+   could read anyone's likes, skips or location; and a program with no
+   Rust cannot even name its reader's own id, which the feed reads
+   through Rust (`author(current_session())`). **(H1)**
 2. **"Only after both liked" is not expressible.** "No label names two
    principals" (ADR-0279); a predicate's meaning is the deployment's Rust
    (`identity.rs`'s `holds`: `SignedIn`, `OwnsPost`, `MayMessage`,
    `MayRate`, ADR-0115); `requires` belongs to commands only, and
    ADR-0339's ruling 3 (`requires` on a query, accepted 2026-10-15) is not
-   built. Hinge's Match Note is shown "after both people have liked each
-   other" and to matches alone. **(H1, H2, H3)**
+   built. Hinge's Match Note is shown once both people have liked each
+   other, and to matches alone. **Can the checker hold "only after both
+   liked" today? No**: nothing in a program states it where the checker
+   reads. With H1 to H3 it holds the structure (no read of the note but
+   the generated one, which evaluates the predicate in the read's
+   snapshot); what "matched" means stays the program's text, held by
+   tests and mutation controls. **(H1, H2, H3)**
 3. **Predicates cannot be written in Pleris.** A dating app has a dozen
    (matched, may like, may message, not blocked, under the turn limit, has
    a rose, subscribed, adult); each would be a Rust match arm in the
    deployment today. **(H2)**
 4. **Nothing holds what a precise value may reveal.** Hinge's own bug,
    found in 2024: its distance *filter* used exact locations, so a filter
-   answered whether someone was within a distance, an oracle that located
-   users to about two metres, though the distance was hidden in the UI.
+   answered whether someone was within a distance, an oracle that
+   pinpointed users, though the distance was hidden in the UI.
    Pleris has no notion of a value that reaches another reader only
    coarsened; `device.Location` is `{ lat: Int, lng: Int }`, with no unit,
    and `current_location()` is `todo`. The same class: a birth date and an
@@ -147,8 +154,8 @@ read directly. Quotes are short; the rest is paraphrase.
   collects "your geolocation (latitude and longitude) from your device"
   with permission, and keeps an "approximate location" in profile data.
 - **Matches and chat**: a match is a mutual like. Match Note (newsroom,
-  2025-02-26): 255 characters, shown "after both people have liked each
-  other", to matches only, and viewed before the match completes. Your
+  2025-02-26): 255 characters, shown once both people have liked each
+  other, to matches only, and viewed before the match completes. Your
   Turn Limits (newsroom, 2024-09-18): with "too many people waiting on
   their response" a dater replies or ends conversations before new likes;
   the match is not told *(help, excerpt)*. Chat-specific notifications,
@@ -275,6 +282,9 @@ questions).
 
 ## The gaps, feature by feature
 
+"None" is the matrix's Missing: nothing of it, or pieces that do not add
+up to it.
+
 | Hinge's feature | What Pleris has (matrix row; ADRs) | What it lacks | Track |
 | --- | --- | --- | --- |
 | Four to six photos, in order | Uploads, built: one image a post (0260) | several media in a row and their order; Exif stripped; served only to permitted readers; collected by a generic rule | H6 |
@@ -282,7 +292,7 @@ questions).
 | Voice and video prompts, 30 s | none ("Video and media", Missing) | audio and video kinds, duration, byte ranges, recording in the page | H6 |
 | Vitals, each visible or hidden | none | a field its owner shows or hides, and others' view without it | H1 |
 | A like on a photo or prompt, with a comment | the feed's like, in Rust (0274) | a like private to its sender and its recipient, declared | H1, A3 |
-| Likes You: one at a time, or all | none | the recipient's view of likes, gated by entitlement in its policy | H1 to H3, A3 |
+| Likes You: one at a time, or all | none | the recipient's view of likes (`shares to`); one at a time is the app's rule in its query, not a privacy rule | H1, A3 |
 | Roses, Standouts (daily) | the clock's day (0304) | a balance and a weekly grant (H12 for purchases) | A3, H12 |
 | Discover, preferences, mutual dealbreakers | `List.sort_by`, `List.filter` | candidates near the reader, bounded; others' preferences used, never shown | H3, H4, H5, A2 |
 | A neighborhood and a distance | `device.location` declared, `todo` | the browser's read; a coarse cell; a distance between cells; a precise value never compared | H5, H3 |
@@ -290,7 +300,7 @@ questions).
 | Match Note, matches only | none | a row readable when a predicate holds of its owner | H2, H3 |
 | Chat | DMs, built in Rust (0279) | the same, declared; read from each side | H1, H4, A4 |
 | Your Turn Limits | none | a predicate in Pleris refusing a like | H2, A4 |
-| Unmatch, hide, remove | none | deletes across two owners; a removal both ways | H1, A4 |
+| Unmatch, hide, remove | none | two-owner rows deleted by either owner; the actor's block row, read both ways by every predicate | H1, H2, A4 |
 | Block (people one knows) | none (0279: "blocking, the integrator's") | hidden everywhere; by phone or email needs verified identifiers | H1 to H3, A5 |
 | Report | none (0341: no moderation) | a report, a staff principal, review, bans | H10, A5 |
 | Pause | none | a policy's conjunct | H3, A5 |
@@ -316,6 +326,7 @@ table Likes
     index   by_from_day on from, day
     owner   from             // the sender's: read, written and erased with them
     shares  to               // and its recipient's to read
+    written when MayLike(to) // a row another reads is written only when this holds
     private day, sent        // read by its owner alone
 ```
 
@@ -325,6 +336,11 @@ table Likes
   `Likes.by_from_day(me, day)`. A program makes no handle (ADR-0263), so it
   can read no other user's rows by naming an id. The adapter compares the
   handle's user with the field; the answer is labelled the reader's.
+- **The reader's own id**: a row names its owner by `UserId`, so a
+  program writing its reader's like needs that id as a value. The platform
+  gives none today (the feed reads it through Rust,
+  `author(current_session())`); `capability.id_of(current_user())` is
+  added, an id that grants nothing (ADR-0270), labelled the reader's.
 - **Two owners** (`owner low, high`) are a pair's rows, read from each side
   (ADR-0279's ruling, kept): each owner reads them as their own, and the
   generated read of the pair takes the reader's handle and the other's id.
@@ -340,17 +356,26 @@ table Likes
   table (`LikeSeen`) without those fields, and with each `reveals` field
   (decision 3) in their place. A value another reader may not see is not
   in the type they are answered, so no page, frame, `/pw-read`, cache entry
-  or `EntryValue` can carry it: the paper's card-stack leak has no field
-  to leak through.
+  or `EntryValue` can carry it: the like's time the paper found in
+  Hinge's answers has no field to leak through.
 - **Default deny**: a table with an `owner` and no `shares` is its owner's
   alone; a table with no `owner` is the program's public data (the prompt
   catalogue), and a table holding a `UserId` field states one or the
-  other (H9's PW6922).
+  other (H9's PW6920).
 - **Writes are checked as PostgreSQL's `WITH CHECK`**: an owned row is
-  inserted, put or deleted only through the reader's handle, and the
-  adapter checks the row's owner field against it; a two-owner row by
-  either owner; and a command writing a row its program shares by a
-  predicate requires that predicate (H3's PW6911).
+  inserted, put or deleted only through an owner's handle (its owner's;
+  either owner's of a two-owner row), the adapter checking the owner
+  field against it. **No row is written for another**: what two
+  principals share is a two-owner row either writes (a match, a
+  conversation, whose turn it is); what one tells another is a row the
+  teller owns and shares (a like).
+- **`written when <Predicate>`**: a row another principal will read (a
+  `shares <field>` row, or a two-owner row) is written only when a
+  predicate over that other principal holds, evaluated by the adapter on
+  every write in the command's transaction, so no command can forget it;
+  a table whose rows another reads and that states none is refused (H3's
+  PW6911). Without it, anyone could open a conversation with anyone by
+  writing a two-owner row naming them.
 - **Erasure and export come from the same clauses** (H9): every row a
   principal owns, in every table of the program's sources, is found by its
   owner fields; no Rust lists them.
@@ -366,20 +391,37 @@ table Likes
 predicate Matched(other: UserId)
     says "You can see this once you've both liked each other."
 {
-    MatchSides.has(current_user(), other)
+    present(Matches.pair(current_user(), other)) & !blocked_either(current_user(), other)
 }
 ```
+
+(`Matches` is a two-owner table; `pair` its generated read of one pair
+from the reader's side; `present` is `Option`'s "is `Some`", which the
+standard library lacks today.)
 
 - **A body reads, and does nothing else**: no write, no schedule, no
   network, no clock but `clock.compare` (PW6905). It runs before the
   command's body, as `requires` does today (ADR-0115), inside the
   command's transaction, so what it read is what the command writes
   against (ADR-0258's `OwnsPost` reasoning, kept).
+- **A body reads with the policy's authority, not the reader's.** Whether
+  the other blocked the reader is the other's row, which the reader may
+  not read (decision 1); a predicate must read it. So inside a
+  predicate's body alone, a table's reads take ids in the owner's place
+  (`Blocks.get(other, me)`), as a PostgreSQL policy reads what its
+  caller cannot; elsewhere they take the handle. What a body read leaves
+  it as one bit, the predicate's answer, which its use discloses anyway
+  (a blocked profile is not shown); the checker holds that nothing else
+  of what it read flows out (the body's result is a `Bool`, its reads
+  reach no write, log or answer).
 - **Its parameters are its uses' parameters** (PW6906): ADR-0115's rule
   that "arbitrary expressions are not run before authorization" stands
   for arguments; the body is the program's authorization, evaluated by
   the host as a compiled export. A predicate the program does not give a
   body is the deployment's, as now.
+- **A predicate may call another**, and a body's helper functions are
+  held to the same rules (`blocked_either` above reads `Blocks` both
+  ways, which only a body may).
 - **`requires` on a query** (ADR-0339's ruling 3, its code PW6907): a page
   whose query a predicate refuses is told the predicate's words (ADR-0302).
 - **A predicate guarding a set read states its set form** (PW6908), held
@@ -408,8 +450,9 @@ predicate Matched(other: UserId)
   ```
 
   The seen row has `age: Int` and `active_today: Bool` in place of `birth`
-  and `last_active`. A function whose result is the field's own type
-  (an identity "coarsening") is refused (PW6910).
+  and `last_active` (the whole declaration, vitals included, is decision
+  9's). A function whose result is the field's own type (an identity
+  "coarsening") is refused (PW6910).
 - **A platform `geo` module**, generic, its arithmetic the host's
   intrinsics (Pleris has `Float` but no trigonometry):
 
@@ -423,7 +466,7 @@ predicate Matched(other: UserId)
 
   `Precise` has no comparison and no distance: the only thing a program
   can do with it is `cell_of`, store it in a `private` field, or drop it.
-  This app drops it (data minimisation, the paper's first advice): its
+  This app drops it (data minimisation, among the paper's countermeasures): its
   filter and its display both use `apart(cell, cell)`, so no comparison
   whose answer reaches another reader is made on the precise point, the
   2024 oracle's cause. A cell is revealed by design, as Hinge reveals a
@@ -467,10 +510,11 @@ predicate Matched(other: UserId)
   media with the rest.
 - **Audio and video**: `upload` gains `mp4`, `webm` and `ogg` kinds by
   WHATWG MIME Sniffing's §6.2 (its MP4 and WebM signatures; the standard
-  last updated 2026-10-19), and `max_seconds`, read from the container's
-  own duration; byte ranges served (RFC 9110), since "HTTP servers hosting
-  media files for iOS must support byte-range requests" (Apple's Safari
-  Web Content Guide, updated 2016-12-12).
+  last updated 2026-10-19), and `max_seconds`, read from the container
+  (its stated duration, or its last frame's time where a recorder states
+  none, which is measured, not assumed); byte ranges served (RFC 9110),
+  since "HTTP servers hosting media files for iOS must support byte-range
+  requests" (Apple's Safari Web Content Guide, updated 2016-12-12).
 - **Recorded in the page**: `device.camera` and `device.microphone`
   effects (browser placement), MediaRecorder behind them; which formats
   each engine records and plays is measured first, not assumed. No
@@ -482,8 +526,8 @@ predicate Matched(other: UserId)
   Geolocation API, asked in a handler a press started (PW6915: a device
   permission is asked from a press, never on load), decoded into
   `Precise` (latitude and longitude in range) and sent as a command's
-  argument; Playwright emulates geolocation and its permission in each
-  engine (playwright.dev, Emulation).
+  argument. Playwright emulates a position and grants the permission
+  (playwright.dev, Emulation); each engine is measured.
 - **Push**: a service worker the build generates (same origin, allowed by
   ADR-0333's policy as a `worker-src 'self'`); `device.notify`, asked from
   a press; the subscription held by the platform, since its endpoint is "a
@@ -495,7 +539,7 @@ predicate Matched(other: UserId)
   conversation. On iOS, push reaches Home Screen web apps only, from iOS
   16.4 (WebKit blog, 2023-02-16): said on the page.
 - **A push carries no other principal's private field by default**
-  (PW6919): a lock screen is read by whoever holds the phone, so a
+  (PW6918): a lock screen is read by whoever holds the phone, so a
   message's text is a preview its reader turns on.
 
 ### 7. Safety is the sharing predicate's
@@ -511,9 +555,10 @@ predicate Matched(other: UserId)
   Hinge's report is.
 - **Pause**: `paused` is private; `Discoverable` excludes a paused owner
   except to their matches.
-- **Unmatch**: both sides' match rows and the conversation deleted in one
-  transaction, and a removal recorded both ways, so neither is shown the
-  other again.
+- **Unmatch**: the pair's match, conversation and turn rows deleted in
+  one transaction, and the actor's `Blocks` row written (its `why`
+  "unmatched"); since every predicate reads blocks both ways, neither is
+  shown the other again.
 - **Delete account** (H9): every owned row, every blob only those rows
   named, the sessions and the scheduled runs; a two-owner row goes for
   both, as Hinge's deleted chat history does; a safety hold is owner
@@ -521,7 +566,7 @@ predicate Matched(other: UserId)
 
 ### 8. Limits are declared
 
-- **A command's `rate`** (`rate 200 per 1.days per user`, PW6920): a
+- **A command's `rate`** (`rate 200 per 1.days per user`, PW6919): a
   counter in the platform's tables, one across hosts (ADR-0369), refused
   429 with `Retry-After` and told in the page's words (ADR-0302).
 - **Business quotas are predicates** over the tables (free likes a day,
@@ -531,122 +576,177 @@ predicate Matched(other: UserId)
 
 ### 9. The app, declared
 
-A sketch of `examples/dating/` (syntax provisional): its data as tables in
-one source, its rules as predicates, its pages over queries. No Rust and
-no migrations of its own (ADR-0339's ruling 2).
+A sketch of `examples/dating/` (syntax provisional): no Rust and no
+migrations of its own (ADR-0339's ruling 2). Each table is declared in a
+module of its name (ADR-0350: one table a module), so the app is a module
+per table, the source's module and its pages' module.
+
+**Its tables**, in one source, `DatingData`:
+
+| Table | Key | Whose; who else reads; written when | Private (revealed as) | Index, order |
+| --- | --- | --- | --- | --- |
+| `Profiles` | `user` | `owner user`; `shares when Discoverable(user)` | `birth` (`age_on`), `last_active` (`active_today`), `height` and `hometown` (`shown`), `paused` | `by_cell on cell` |
+| `Preferences` | `user` | `owner user` | all (`dealbreakers` as `accepts`) | |
+| `Likes` | `to, from` | `owner from`; `shares to`; `written when MayLike(to)` | `day`, `sent` | `by_from_day on from, day` |
+| `Skips` | `from, to` | `owner from`; no one | | |
+| `Matches` | `low, high` | `owner low, high`; `written when LikedBy` | | `by_high on high` |
+| `Messages` | `low, high, sent, id` | `owner low, high`; `written when Matched` | | `order sent descending` |
+| `Turns` | `low, high` | `owner low, high` (whose turn); `written when Matched` | | `by_turn on turn` |
+| `MatchNotes` | `user` | `owner user`; `shares when Matched(user)` | | |
+| `Blocks` | `by, other` | `owner by`; no one (`why`: unmatched, blocked, reported) | | `by_other on other` |
+| `Reports` | `by, id` | `owner by`; staff (H10) | | |
+| `WeMet` | `by, other` | `owner by`; no one | | |
+| `Wallets` | `user` | `owner user` (roses; the week's free one) | | |
+| `Entitlements` | `user` | `owner user`; written by a `Payments` command alone | | |
+| `Prompts` | `id` | none: public, `bounded 500` | | |
+
+Two in full, as D1's grammar writes a table, each in its own module:
 
 ```
-module dating.app
+module Messages
 
-opaque type PhotoId = String
-opaque type Comment = String where String.length(value) >= 1 & String.length(value) <= 150
+import capability.{ UserId }
+import Matches
 
-type Gender = Woman | Man | Nonbinary
-type Visible<T> = Visible { value: T, shown: Bool }        // a vital, shown or hidden by its owner
+opaque type MessageId = String
+opaque type MessageText = String where String.length(value) >= 1 & String.length(value) <= 2000
+
+type Message = Message { low: UserId, high: UserId, sent: Instant, id: MessageId,
+    from: UserId, text: MessageText }
+
+table Messages
+    row     Message
+    key     low, high, sent, id
+    order   sent descending          // H4
+    owner   low, high                // a pair's: read from each side (ADR-0279)
+    written when Matched             // over the other owner (H3)
+```
+
+```
+module Profiles
+
+type Visible<T> = Visible { value: T, shown: Bool }   // a vital its owner shows or hides
 type Photo = Photo { id: PhotoId, media: Media<ProfilePhoto>, prompt: Option<PromptId> }
 type Answer = Answer { prompt: PromptId, text: AnswerText }
-type Part = OnPhoto(PhotoId) | OnAnswer(PromptId) | OnVoice | OnVideo
 
 type Profile = Profile {
     user: UserId, first_name: FirstName, birth: LocalDate, gender: Gender,
     height: Visible<Centimetres>, hometown: Visible<String>,
-    photos: List<Photo>, answers: List<Answer>,
+    photos: List<Photo>, answers: List<Answer>,                 // their order is the list's
     voice: Option<Media<VoiceAnswer>>, video: Option<Media<VideoAnswer>>,
     cell: Cell, paused: Bool, last_active: Instant, verified: Bool,
 }
 
-type Like = Like { to: UserId, from: UserId, part: Part, comment: Option<Comment>,
-    rose: Bool, day: LocalDate, sent: Instant }
+table Profiles
+    row     Profile
+    key     user
+    owner   user
+    index   by_cell on cell
+    shares  when Discoverable(user)
+    private birth, paused, last_active, height, hometown
+    reveals birth as age_on, last_active as active_today, height as shown, hometown as shown
+```
 
-table Profiles                       // decision 3's sketch
-table Preferences                    // owner user; private all; reveals dealbreakers as accepts
-table Likes                          // decision 1's sketch
-table Skips      row Skip           key from, to     owner from          // never shared
-table MatchSides row MatchSide      key user, other  owner user          // one row a side
-table Messages   row Message        key low, high, sent, id   owner low, high   order sent descending
-table Waiting    row Waiting        key user, other  owner user          // whose turn it is
-table MatchNotes row MatchNote      key user         owner user          shares when Matched(user)
-table Blocks     row Block          key by, blocked  owner by  index by_blocked on blocked
-table Reports    row Report         key by, id       owner by            // shared with staff (H10)
-table WeMet      row WeMetAnswer    key by, other    owner by            // never shared
-table Wallets    row Wallet         key user         owner user          // roses, the week's grant
-table Entitlements row Entitlement  key user         owner user          // written by Payments only
-table Prompts    row PromptText     key id           bounded 500         // public
+(`shown` turns a `Visible<T>` into an `Option<T>`: `None` where its owner
+unticked "Visible on Profile".)
 
-source DatingData
-    holds        Profiles, Preferences, Likes, Skips, MatchSides, Messages, Waiting,
-                 MatchNotes, Blocks, Reports, WeMet, Wallets, Entitlements, Prompts
-    transactions serializable
-    reads        strong
-    changes      none
-    sets         one_call
+**Its rules**, predicates with bodies (decision 2), read with the
+policy's authority:
 
+```
 predicate NotBlocked(other: UserId) says "This profile isn't available."
-    { !Blocks.has_either(current_user(), other) }
+{
+    !blocked_either(current_user(), other)
+}
+
 predicate Discoverable(user: UserId) says "This profile isn't available."
-    { NotBlocked(user) & (!Profiles.paused_of(user) | MatchSides.has(current_user(), user)) }
-predicate Matched(other: UserId) says "You can see this once you've both liked each other."
-    { MatchSides.has(current_user(), other) & NotBlocked(other) }
+{
+    NotBlocked(user) & (!paused(Profiles.get(user)) | present(Matches.pair(current_user(), user)))
+}
+
+predicate LikedBy(other: UserId) says "You can match once they've liked you too."
+{
+    present(Likes.get(current_user(), other))        // `other` liked the reader
+}
+
 predicate MayLike(to: UserId) says "You can't like this profile right now."
-    { Discoverable(to) & UnderTurnLimit() & (Subscribed() | LikesLeftToday()) }
+{
+    Discoverable(to) & UnderTurnLimit() & (Subscribed() | LikesLeftToday())
+}
+
 predicate MayMessage(other: UserId) says "You can message someone once you've matched."
-    { Matched(other) }
+{
+    Matched(other)
+}
+```
 
+**Its reads and writes** (a sketch):
+
+```
 event Liked(from: UserId, to: UserId)
-event Matched(a: UserId, b: UserId)
+event Paired(a: UserId, b: UserId)
 event Messaged(from: UserId, to: UserId)
-event Ended(a: UserId, b: UserId)                 // an unmatch, a block, a report
+event Ended(by: UserId, other: UserId)               // an unmatch, a block, a report
 
-// The reader's discovery: candidates in the cells near them, as each is seen,
-// whom the reader has not acted on, who accept the reader and whom the reader's
-// preferences accept, ranked by the program's own score: bounded throughout.
+// The reader's discovery: candidates in the cells near them, as each is
+// seen, whom the reader has not acted on, who accept the reader and whom
+// the reader's preferences accept, ranked by the program's own score;
+// bounded throughout (H4), set reads throughout (PW0405).
 user query Discover(reader: capability.User<UserId>) -> List<Card>
     cache          private
     key            reader
-    invalidates_on Acted(reader, _), Ended(reader, _), Ended(_, reader), Moved(reader)
+    invalidates_on Liked(reader, _), Skipped(reader, _), Ended(reader, _), Ended(_, reader),
+        Moved(reader)
 {
-    let me = Profiles.mine(reader)
-    let prefs = Preferences.mine(reader)
+    let me = Profiles.get(reader)
+    let prefs = Preferences.get(reader)
     let near = Profiles.by_cell_many_first(reader, geo.near(me.cell, prefs.max_km), 500)
-    let acted = Likes.get_many(reader, ids(near)), Skips.get_many(reader, ids(near))
+    let liked = Likes.of_from_many(reader, ids(near))       // the reader's own likes of them
+    let skipped = Skips.of_from_many(reader, ids(near))
     let accepts = Preferences.accepts_many(reader, ids(near))
     rank(prefs, me.cell, List.filter(near, c => fits(prefs, c) & accepted(accepts, c)
-        & not_acted(acted, c)))
+        & fresh(liked, skipped, c)))
 }
 
-user query LikesYou(reader: capability.User<UserId>) -> LikesYou    // all, or one and a count
+user query LikesYou(reader: capability.User<UserId>) -> LikesYou      // all, or one and a count
 user query Matches(reader: capability.User<UserId>) -> List<MatchItem>
 user query Conversation(reader: capability.User<UserId>, other: UserId, page: Option<Cursor>)
     -> Result<Conversation, DatingError>
     requires MayMessage(other)                                       // decision 2
 
-// A like: on a part of the profile, with a comment or not; a match where the
-// other already liked the reader, in the same serializable transaction, so two
-// likes at once make one match and never none (a write skew under snapshot
-// isolation, which the source's `transactions serializable` refuses).
+// A like on a part of a profile, a comment or none; a match where the other
+// already liked the reader, in the same serializable transaction, so two
+// likes at once make one match and never none: a write skew under
+// snapshot isolation, which `transactions serializable` refuses.
 command like(to: UserId, part: Part, comment: Option<Comment>) -> Result<Liked, DatingError>
     requires      SignedIn, MayLike(to)
-    rate          500 per 1.days per user
+    rate          500 per 1.days per user                            // decision 8
     idempotent_by InteractionId
-    emits         Liked(me(), to)
+    emits         Liked(id_of(current_user()), to)
 
-command skip(user: UserId)                       -> Result<(), DatingError>
-command unmatch(other: UserId)                   -> Result<(), DatingError>   // requires Matched
-command block(other: UserId)                     -> Result<(), DatingError>
-command report(other: UserId, why: ReportReason) -> Result<(), DatingError>
-command send(other: UserId, text: MessageText)   -> Result<Message, DatingError>   // requires MayMessage
-command set_place(here: Precise)                 -> Result<(), DatingError>   // stores cell_of(here) alone
-command pause() / unpause() / delete_account() / answer_we_met(other, met: Bool)
+command skip(user: UserId)                        -> Result<(), DatingError>
+command unmatch(other: UserId)                    -> Result<(), DatingError>    // requires Matched
+command block(other: UserId)                      -> Result<(), DatingError>
+command report(other: UserId, why: ReportReason)  -> Result<(), DatingError>
+command send(other: UserId, text: MessageText)    -> Result<Message, DatingError> // requires MayMessage
+command set_place(here: Precise)                  -> Result<(), DatingError>    // keeps cell_of(here)
+command pause(), unpause(), delete_account(), answer_we_met(other: UserId, met: Bool)
 
-session page DiscoverPage()  { route "/" ... }               // a card, its parts, Like and Skip
-session page ProfilePage(user: UserId) { route "/u/{user}" ... }   // the seen profile
-session page LikesPage()     { route "/likes" ... }
-session page MatchesPage()   { route "/matches" ... }
-session page ChatPage(other: UserId) { route "/matches/{other}" ... }
-session page EditPage()      { route "/me" ... }             // photos in order, answers, vitals' boxes
-session page SettingsPage()  { route "/settings" ... }       // preferences, pause, delete, push
+session page DiscoverPage()          { route "/" }                 // a card, its parts, Like and Skip
+session page ProfilePage(user: UserId) { route "/u/{user}" }       // the seen profile
+session page LikesPage()             { route "/likes" }
+session page MatchesPage()           { route "/matches" }
+session page ChatPage(other: UserId) { route "/matches/{other}" }
+session page EditPage()              { route "/me" }               // photos in order, answers, vitals
+session page SettingsPage()          { route "/settings" }         // preferences, pause, delete, push
 ```
 
+- **Discovery is bounded by construction**: on a `one_call` source its
+  reads are a fixed number of set reads (the reader's rows, the
+  candidates by cell, the reader's likes and skips of them, their
+  preferences' answer, and the policy's own set reads of blocks and
+  matches), whatever the number of candidates, and at most 500 rows by
+  `first`: ADR-0337's calls and H4's rows, both held.
 - **The rank is the program's**, a deterministic score over the seen
   candidates (mutual preference fit, distance band, recent activity), not
   Hinge's model. Standouts is the same pool under another score, keyed by
@@ -655,9 +755,14 @@ session page SettingsPage()  { route "/settings" ... }       // preferences, pau
 - **We Met** is scheduled by each user's own first message in a
   conversation (`schedule ask_we_met(other) after hours(96)`), since a run
   is its scheduler's (ADR-0334).
-- **Your Turn Limits** read `Waiting`, which `send` keeps: a message from
-  the other puts the reader's row, the reader's reply deletes it, and
-  `UnderTurnLimit()` reads `Waiting.of_user_first(me, limit + 1)`.
+- **Your Turn Limits** read `Turns`, which `send` keeps (the turn passes
+  to the other), and `UnderTurnLimit()` reads the reader's turns with
+  `Turns.by_turn_first(me, limit + 1)`, bounded (H4).
+- **A block, a report or an unmatch** writes the actor's `Blocks` row
+  (with its `why`), deletes the pair's `Matches`, `Messages` and `Turns`
+  rows where there are any, and emits `Ended(me, other)`, which drops the
+  other's entries in their sessions: their open pages lose the profile,
+  the match, the conversation and the photos at once.
 
 ### 10. What the checker would refuse
 
@@ -667,13 +772,13 @@ session page SettingsPage()  { route "/settings" ... }       // preferences, pau
 | returns another user's `birth`, `paused` or a like's `sent` | the seen type has no such field | the paper's API leaks |
 | filters candidates by a distance on `Precise` | `Precise` has no distance; it is never stored | Hinge's 2024 oracle |
 | reads a conversation it is not a side of | the generated read takes the reader's handle | a third user's view |
-| shows a Match Note without `Matched` | `shares when Matched(user)` is in the read | "after both people have liked each other" |
-| sends a message with no `requires MayMessage(other)` | PW6911 | a block or an unmatch bypassed |
+| shows a Match Note without `Matched` | `shares when Matched(user)` is in the read | shown once both have liked, to matches alone |
+| writes a message to someone it has not matched | `Messages`' `written when Matched`, held on every write; a table another reads with no `written when`, PW6911 | a conversation opened with anyone |
 | asks for the location on load | PW6915 | a prompt the reader did not start |
 | writes a reader's `birth` into a match's row | PW6903 | a private field copied where others read |
 | keeps an `Instant` of a like in a cursor | PW6913 | the order value leaking through paging |
-| puts a message's text in a push | PW6919 | a lock screen read by anyone |
-| declares a table holding a `UserId` with no `owner` or reason | PW6922 | erasure incomplete |
+| puts a message's text in a push | PW6918 | a lock screen read by anyone |
+| declares a table holding a `UserId` with no `owner` or reason | PW6920 | erasure incomplete |
 
 ## How it fits Pleris
 
@@ -682,7 +787,7 @@ session page SettingsPage()  { route "/settings" ... }       // preferences, pau
 | Whose a row is | `owner` names a principal's id field; generated reads lead with the reader's handle; a shared cache reads no owned table | the adapter compares the handle's user with the owner field; default deny |
 | Who else reads | `shares <field>`; `shares when P`, P a Pleris predicate with a set form | P evaluated in the read's snapshot, per row or by set; failing rows not answered |
 | What others see | the seen row: `private` fields absent, `reveals` fields computed by declared pure functions | the generated read builds it; the private value never leaves the read |
-| Writing | owned rows through the handle; a private field written into no shared row; a shared row's predicate required | the owner field re-checked on every write |
+| Writing | owned rows through an owner's handle; a private field written into no shared row; `written when` on every table another reads | the owner field and the `written when` predicate checked on every write |
 | Predicates | a body that only reads; parameters; words (PW0351) | evaluated in the command's transaction or the read's snapshot; refused with words |
 | Location | `Precise` has no operation but `cell_of`; a device read only from a press | the browser asks; the host decodes; the grid's intrinsics |
 | Rows | `first(n)`, `after(cursor, n)`, n bounded; cursors are handles | keyset reads; cursors made and checked by the host |
@@ -710,13 +815,22 @@ moves. In order of what each needs.
 
 ### Phase 0: what other tracks owe first
 
-- **D2 `memory-adapter`** (ADR-0338): writes in a command's transaction,
-  the outbox, interaction records and scheduled runs with table writes,
-  the generated conformance suite (issue #27's open list). Every H track
-  needs it.
-- **D3 `postgres-adapter`**: migrations from `tables.json`, the platform's
-  tables, serializable transactions, drift refused. The app's slices need
-  it to persist; the H tracks' compiler halves do not.
+- **D2 `memory-adapter`** (ADR-0338; issue #27's open list), before any
+  H track's runtime half: `insert`, `put`, `delete` and `delete_of` in a
+  command's transaction, rolled back with it; a command's `emits`
+  committed with its table writes (the outbox: every live update this
+  app shows); `idempotent_by`'s record committed with them (a like or a
+  message sent twice is one); a `schedule` committed with them (We Met, a
+  subscription's lapse); the set reads through Wasmtime (drafts #29 to
+  #40 carry `get` and `get_many`; the prefix and index forms follow); the
+  generated conformance suite. Built already in `pw-table-memory`:
+  uniqueness, multi-field keys, references in one source, rollback.
+- **D3 `postgres-adapter`**, before the app's slices: migrations from
+  `tables.json` under the advisory lock; serializable transactions (two
+  likes at once must make one match, a write skew below serializable);
+  the platform's tables shared by hosts (ADR-0369's outbox and sessions,
+  for tables); drift refused at start. The H tracks' compiler halves do
+  not wait for it.
 - **`outbound-https`** (new; shared with NEXT 6d's Stripe adapter, H7,
   H11): a TLS client in the host behind `network.fetch`'s grant, its
   roots the operating system's, timeouts bounded; downloads 1.
@@ -727,7 +841,8 @@ moves. In order of what each needs.
 - Files: `compiler/pw-syntax/src/grammar.rs` (`owner`, `shares`,
   `private`), `compiler/pw-core/src/tables.rs` (handle-taking reads, the
   seen row, write checks, `tables.json`'s owners), `privacy.rs` (PW6902,
-  PW6903), `codes.rs`; `pw-table-memory` (the owner check, the seen row);
+  PW6903), `codes.rs`; `packages/pw-platform-web/capability.pw`
+  (`id_of`); `pw-table-memory` (the owner check, the seen row);
   `compiler/pw-core/tests/table_owners.rs`; corpus fixtures.
 - Codes: PW6901 `owner`/`shares` name a field holding a principal's id;
   PW6902 a query cached shared reads an owned table; PW6903 a private
@@ -756,33 +871,41 @@ query.**
   arguments are its uses' parameters; PW6907 a query's `requires`; PW6908
   a predicate guarding a set read has no set form.
 - Acceptance (`e14-predicates-in-pleris`): each rule refused beside its
-  control; the feed's `MayMessage` rewritten in Pleris answering as
-  `messages.rs` does on memory and PostgreSQL, its Rust arm deleted, the
-  feed's message tests unchanged; a predicate's reads inside the
-  command's transaction (a concurrent change between predicate and body
-  refused by serializability); a page whose query is refused showing the
-  words, in three engines.
+  control; a fixture program over declared tables (`examples/tables/`'s
+  kind) whose commands and a query require predicates with bodies,
+  refused and allowed as their bodies say, on memory (and PostgreSQL
+  after D3); a predicate's reads inside the command's transaction (a
+  concurrent change between predicate and body refused by
+  serializability); a page whose query is refused showing the words, in
+  three engines. The feed's `MayMessage` and the store's `MayRate` move
+  to bodies when D4 and D5 declare their data, and their Rust arms in
+  `identity.rs` go then.
 - Mutation controls: the predicate skipped; inverted; evaluated outside
   the transaction; a write allowed in a body; the query's `requires`
   ignored.
 - Moves: "A refusal is never silent" (predicates with parameters);
   "Privacy"; "A data layer declared in Pleris" (no predicate in Rust).
 
-**H3 `table-policies`: `shares when` and `reveals`.** Needs H1, H2.
-- Files: `tables.rs` (the guarded reads and their set forms, the
-  revealed fields), `pw-table-memory`, D3's adapter, tests.
-- Codes: PW6909 `shares when` names a predicate in Pleris over the row's
-  owner that does not read the table it guards; PW6910 `reveals` names a
-  pure function whose result is not the field's own type; PW6911 a
-  command writing a row shared by a predicate requires it.
+**H3 `table-policies`: `shares when`, `written when` and `reveals`.**
+Needs H1, H2.
+- Files: `tables.rs` (the guarded reads and their set forms, the write
+  guard, the revealed fields), `pw-table-memory`, D3's adapter, tests.
+- Codes: PW6909 `shares when` and `written when` name a predicate with a
+  body, over one principal, whose body does not read the table it guards
+  (which would recurse); PW6910 `reveals` names a pure function whose
+  result is not the field's own type; PW6911 a table whose rows another
+  principal reads (`shares <field>`, or two owners) states no `written
+  when`.
 - Acceptance (`e14-table-policies`): a Match Note unread before the
   match and read after it, in one transaction's snapshot and the next;
   a seen profile with `age` and without `birth`; a set read of 500
   candidates under `Discoverable` costing its set reads, counted at two
-  sizes; a block making every guarded read of the pair answer nothing.
+  sizes; a block making every guarded read of the pair answer nothing;
+  a message written to an unmatched user refused by the adapter, whatever
+  the command.
 - Mutation controls: the guard skipped on the set form only; the
   predicate read outside the read's snapshot; `reveals` answering the raw
-  field; PW6911 disabled.
+  field; the write guard skipped; PW6911 disabled.
 - Moves: "Privacy"; a new row, "Mutual-consent privacy" (question 7).
 
 **H4 `bounded-rows`: `first`, `after`, descending, cursors.**
@@ -851,8 +974,8 @@ query.**
   encrypted and decrypted against RFC 8291's example; a VAPID header
   verified; a delivery retried and then dropped; an expired endpoint
   removed; nothing sent to a muted conversation; the worker's
-  notification shown in Chromium and Firefox, said for WebKit where
-  Playwright cannot drive it.
+  notification shown in each engine Playwright can drive it in, and where
+  one cannot, said.
 - Mutation controls: the payload unencrypted; a reused ephemeral key; the
   mute ignored; a private text in a payload.
 - Moves: "Notifications" (push); "Email, outgoing webhooks and recurring
@@ -861,7 +984,7 @@ query.**
 **H8 `rate-limits`: a command's `rate`.**
 - Files: `policy.rs` (`rate`), `codes.rs`, the host's counters in the
   platform's tables, tests.
-- Codes: PW6920 `rate`'s shape, on a command alone.
+- Codes: PW6919 `rate`'s shape, on a command alone.
 - Acceptance (`e14-rate-limits`): a limit held across two hosts on one
   database; 429 with `Retry-After` and the words in the page; a limit per
   user and per session.
@@ -870,10 +993,10 @@ query.**
 - Moves: "Production" (rate limiting).
 
 **H9 `erasure`: delete and export a principal's data.** Needs H1.
-- Files: `tables.rs` (PW6922; the erase and export plans in
+- Files: `tables.rs` (PW6920; the erase and export plans in
   `tables.json`), the adapters' erase, the host's blob collection and
   sessions, a route answering a file (export), tests.
-- Codes: PW6922 a table holding a `UserId` field with no `owner` and no
+- Codes: PW6920 a table holding a `UserId` field with no `owner` and no
   stated reason to keep it.
 - Acceptance (`e14-erasure`): after `delete_account`, no row, blob,
   session or scheduled run of the user's on memory and PostgreSQL; the
@@ -885,35 +1008,64 @@ query.**
 **H10 `moderation`: a staff principal, reports, bans.**
 - Files: the identity layer (a staff principal, a ban state refusing
   sign-in), the platform's audit log of staff reads, `privacy.rs`, tests.
-- Codes: PW6923 a staff read with no audit record.
+- Codes: PW6921 a staff read with no audit record.
 - Acceptance (`e14-moderation`): a report visible to staff alone; every
   staff read logged; a banned user's sessions ended and refused.
 - Mutation controls: the audit skipped; a report shown to its subject.
 - Moves: "Multi-tenancy" (roles); a new row, "Trust and safety"
   (question 7). Shares roles with the SaaS admin app.
 
-**H11 `verification` (conditional, owner decision 5)**: a provider's
-selfie and age checks through `outbound-https`, its signed answer
-invoking a command (ADR-0332's pattern), no biometric value in any table
-(PW6924); a badge revoked when the photos change.
+**H11 `verification` (conditional, owner decision 5): a provider's
+selfie and age checks.** Needs `outbound-https`, and a mounted resource
+(ADR-0075, ADR-0339's D4) if the provider's capture is its own script.
+- Files: a development verification provider beside the payment one, its
+  signed answer invoking a command (`invoked_by Verification`, ADR-0332's
+  pattern), the badge's rule in the app.
+- Codes: PW6922 a biometric value (an image, a template, an estimate) in
+  any table; the provider holds it.
+- Acceptance (`e14-verification`): a signed answer badging, an unsigned
+  or stale one refused; a photo changed revoking the badge; no biometric
+  byte stored (the tables and blobs searched after a run).
+- Mutation controls: the signature unchecked; the badge kept after a
+  change; an image kept.
+- Moves: "Third-party APIs".
 
-**H12 `subscriptions`**: recurring entitlements and consumables on the
-development provider (`invoked_by Payments` extends `until`; a rose spent
-in a serializable command); a real provider after NEXT 6d. Codes: PW6925
-an entitlement written by anything but a Payments command. Moves:
-"Payments".
+**H12 `subscriptions`: tiers, renewals, roses.**
+- Files: the development provider's subscriptions (a renewal, a lapse, a
+  refund told by signed webhook), `Entitlements` written by `invoked_by
+  Payments` commands, a rose spent in a serializable command, a run
+  scheduled at a period's end (ADR-0334); a real provider after NEXT 6d.
+- Codes: PW6923 an entitlement written by anything but a `Payments`
+  command.
+- Acceptance (`e14-subscriptions`): subscribe, renew, lapse at the
+  period's end, refund within 14 days; two presses spending one rose
+  spend it once; a lapsed subscriber's likes counted again.
+- Mutation controls: the lapse never run; an entitlement written from a
+  page's command; a rose spent twice.
+- Moves: "Payments".
 
-**H13 `form-bindings`**: `bind:value` on an `Int` range, `bind:checked`
-on a `Bool`, `bind:value` on a `<select>` of a closed sum type, a set of
-checkboxes on a `Set`; the existing binding rules extended, no new code.
-Moves: "Forms".
+**H13 `form-bindings`: the inputs preferences are made of.**
+- Files: `signals.rs` and the runtime's bindings: `bind:value` on an
+  `Int` from a range or number input, `bind:checked` on a `Bool`,
+  `bind:value` on a `<select>` of a closed sum type, a group of checkboxes
+  on a `Set`; tests and `e2e/bindings.spec.mjs`.
+- Codes: none new: the existing binding rules extended to each type.
+- Acceptance (`e14-form-bindings`): each binding round-trips in three
+  engines; a value outside the type refused at decode (charter §7.10); a
+  binding of the wrong type refused at build.
+- Mutation controls: a decode skipped; a select accepting an unknown
+  case; a range read as text.
+- Moves: "Forms".
 
 ### Phase 2: the app, in slices (`examples/dating/`, no Rust)
 
 Each slice: its pages and commands, server tests on memory and
 PostgreSQL, a browser suite in Chromium, Firefox and WebKit, and its
 mutation script; every predicate inverted and skipped, every policy
-removed, as controls.
+removed, as controls. What the slices move: the rows their H tracks
+moved, from "built in a reference app's Rust" (messages, notifications,
+privacy by handle) to "built in a program with no Rust"; and the
+reference apps' list, a dating app among them (question 7).
 
 - **A1 `dating-profiles`** (H1, H6, H13, D3): sign-in, an adult's birth
   date, the profile with photos in order, answers, a voice and a video
@@ -1047,10 +1199,10 @@ switches, measured, not downloaded.
 
 ## Questions for the integrator
 
-1. **Codes**: PW6901 to PW6925 (PW69 free on all 162 origin refs,
+1. **Codes**: PW6901 to PW6923 (PW69 free on all 162 origin refs,
    2026-10-25; PW67 is ADR-0339's reservation, PW68 `DeviceStore`'s); or
    the table clauses' refusals (PW6901 to PW6904, PW6909 to PW6913,
-   PW6922) in `DeclarationRules`' PW03xx, as ADR-0338's ruling 4 placed
+   PW6920) in `DeclarationRules`' PW03xx, as ADR-0338's ruling 4 placed
    D1's?
 2. **ADR-0115**: decision 2 lets a program give a predicate a body. It
    changes a rule other code relies on (`identity.rs`'s `holds`, the
@@ -1095,27 +1247,36 @@ switches, measured, not downloaded.
 - **End-to-end encryption of chats**: NEXT's later app.
 - **Scale**: discovery computed on one host per request; several hosts
   through ADR-0369's shared database only.
+- **A paywall held as privacy**: a like is its recipient's to read
+  (`shares to`), so the free tier's "one at a time" is the app's rule in
+  its query; another query of the same app could show more. The checker
+  holds whose data reaches whom, not a business gate (the paper's
+  card-stack leak was both; Pleris answers its privacy half).
+- **A message deleted alone**: either owner of a conversation may delete
+  its rows, and an unmatch deletes them all for both; who may delete one
+  message (its author alone) is not designed.
+- **Timing**: what a predicate's or a policy's cost tells a reader.
 - **i18n**, and accessibility past the suites the project already runs.
 
 ## Found while researching
 
-Corrections first.
+Corrections to the record first, then findings.
 
-1. **The feed serves its users' photo locations today.** ADR-0260's not
+1. **The capability matrix is stale on D2**: it says `track/tables-d2` is
+   uncommitted; master has `pw-table-memory` (PR #12, merged 2026-10-24)
+   and draft PRs #29 to #40. The integrator's file.
+2. **ADR-0339's ruling 3 is unbuilt**: `requires` on a query, accepted
+   2026-10-15; at `cc47a64b`, `check.rs` refuses `requires` off a command.
+3. **The feed serves its users' photo locations today.** ADR-0260's not
    claimed: "an Exif GPS position is served as uploaded". Any feed image
    from a phone that records its place publishes where it was taken, to
    anyone, at an immutable address. Not a dating-app issue: a reference
    app's live privacy gap. H6's stripping should land for the feed first.
-2. **ADR-0339's ruling 3 is unbuilt**: `requires` on a query, accepted
-   2026-10-15; at `cc47a64b`, `check.rs` refuses `requires` off a command.
-3. **The capability matrix is stale on D2**: it says `track/tables-d2` is
-   uncommitted; master has `pw-table-memory` (PR #12, merged 2026-10-24)
-   and draft PRs #29 to #40. The integrator's file.
 4. **Two location types, neither with a unit**: `device.Location { lat:
-   Int, lng: Int }` (`packages/pw-platform-web/device.pw`) and `domain`'s
-   `LatLng` of `Float`s (`examples/lib/Maps.pw`); and `placement.rs`'s test
-   vocabulary names `device.geolocation` where the platform declares
-   `device.location`.
+   Int, lng: Int }` (`packages/pw-platform-web/device.pw`) and `LatLng` of
+   `Float`s (`examples/domain.pw`, which `examples/lib/Maps.pw` uses); and
+   `placement.rs`'s test vocabulary names `device.geolocation` where the
+   platform declares `device.location`.
 5. **Hinge's location bug was its filter, not its display** (the 2024
    paper): hiding a number fixes nothing while a comparison uses the
    precise value. What a framework must hold is what a comparison uses.
@@ -1127,3 +1288,6 @@ Corrections first.
    pw-own-renderer-spike`) links it from the store, with no download.
 7. **help.hinge.co refuses automated reads** (HTTP 403): its facts here
    are search excerpts, to be read again by a person.
+8. **No platform function gives a program its reader's own id**: the feed
+   reads it through Rust (`author(current_session())`), which a program
+   with no Rust cannot (decision 1's `id_of`).
