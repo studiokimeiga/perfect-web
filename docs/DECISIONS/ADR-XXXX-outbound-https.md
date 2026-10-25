@@ -266,11 +266,12 @@ Each is a test, and a mutant the test kills (`scripts/outbound_https_mutations.p
 ## Acceptance
 
 Recorded by `just e14-outbound-https` in `docs/evidence/E14/outbound-https.txt`:
-`runtime/pw-outbound`'s 45 tests; the development server's 36 payments
+`runtime/pw-outbound`'s 46 tests; the development server's 36 payments
 tests (the store's among them, in memory; seven of them of the payments
 at an https origin and of the provider's answer); and the mutation controls
 (`scripts/outbound_https_mutations.py`, 88 mutants: 82 of the client, 6 of
-the payments; each kill named by its tests). The scripts the change reaches
+the payments; each kill named by its tests): 88 of 88 killed, recorded at
+the track's merge of master (90810781). The scripts the change reaches
 (`ci_plan.py --changed`), each run whole on this track: `payments` (39),
 `invoked_by` (14), `each_heads` (12; reached only because the planner reads
 `resolve` as pw-core's module of that name). `cargo deny check` (licences
