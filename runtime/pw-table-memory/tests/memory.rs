@@ -420,6 +420,9 @@ fn table_host_refuses_unknown_writes_and_wildcard_imports() {
         "pw:tables/likes#all",
         "pw:tables/other#get",
         "pw:tables/*#get",
+        // The tables' namespace however it is spelt: versioned, or bare.
+        "pw:tables@0.1.0/likes#get",
+        "pw:tables#get",
     ] {
         let (contract, granted) = admitted_table_reader(&["pw:tables/likes#get", denied]);
         assert!(
@@ -468,11 +471,11 @@ fn table_host_refuses_ungranted_or_misclassified_read_and_manifest_mismatch() {
         .find(|f| f.primitive == Primitive::Get)
         .unwrap()
         .effect = "write".into();
-    let changed = MemoryTables::new(changed).unwrap();
-    let (contract, granted) = admitted_table_reader(&["pw:tables/likes#get"]);
+    // Refused where the manifest is read (the D2 integration): a get whose
+    // effect says write is no manifest, so no gate ever binds from it.
     assert!(matches!(
-        changed.read_host_imports(&contract, &granted),
-        Err(Error::Input(_))
+        MemoryTables::new(changed),
+        Err(Error::Schema(reason)) if reason.contains("pw:tables/likes#get")
     ));
 }
 

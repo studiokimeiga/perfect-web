@@ -63,6 +63,12 @@ fn compiled_table_readers_have_exact_manifest_and_contract_imports() {
         .iter()
         .find(|table| table.schema.name == "Lists")
         .expect("compiler emitted Lists in tables.json");
+    // A table import links only with the program's tables.json (the table
+    // gate, ADR-0338 D2), read as the host reads it.
+    let host_tables = pw_host::tables::Manifest::from_json(
+        &serde_json::to_string(&build.tables).expect("serialize tables.json"),
+    )
+    .expect("the host reads the compiler's tables.json");
 
     for (component_id, key, primitive) in [
         ("tables.reader.ById", "pw:tables/lists#get", Primitive::Get),
@@ -193,12 +199,13 @@ fn compiled_table_readers_have_exact_manifest_and_contract_imports() {
             let args = [pw_host::engine::Val::String("missing".into())];
 
             // A capability grant alone must never supply a default/stub host.
-            let unimplemented = pw_host::engine::call_within(
+            let unimplemented = pw_host::engine::call_with_tables(
                 &compiled.component.bytes,
                 host_contract,
                 &granted,
                 &pw_host::Limits::unbounded(),
                 &Default::default(),
+                &host_tables,
                 &path,
                 &args,
             )
@@ -217,12 +224,13 @@ fn compiled_table_readers_have_exact_manifest_and_contract_imports() {
             });
             let exact_host = std::collections::BTreeMap::from([(key.to_owned(), handler)]);
             assert_eq!(
-                pw_host::engine::call_within(
+                pw_host::engine::call_with_tables(
                     &compiled.component.bytes,
                     host_contract,
                     &granted,
                     &pw_host::Limits::unbounded(),
                     &exact_host,
+                    &host_tables,
                     &path,
                     &args,
                 ),
@@ -252,12 +260,13 @@ fn compiled_table_readers_have_exact_manifest_and_contract_imports() {
             });
             let exact_host = std::collections::BTreeMap::from([(key.to_owned(), handler)]);
             assert_eq!(
-                pw_host::engine::call_within(
+                pw_host::engine::call_with_tables(
                     &compiled.component.bytes,
                     host_contract,
                     &granted,
                     &pw_host::Limits::unbounded(),
                     &exact_host,
+                    &host_tables,
                     &path,
                     &present_args,
                 ),
@@ -280,12 +289,13 @@ fn compiled_table_readers_have_exact_manifest_and_contract_imports() {
             let invalid_host =
                 std::collections::BTreeMap::from([(key.to_owned(), invalid_handler)]);
             assert!(
-                pw_host::engine::call_within(
+                pw_host::engine::call_with_tables(
                     &compiled.component.bytes,
                     host_contract,
                     &granted,
                     &pw_host::Limits::unbounded(),
                     &invalid_host,
+                    &host_tables,
                     &path,
                     &present_args,
                 )
@@ -296,12 +306,13 @@ fn compiled_table_readers_have_exact_manifest_and_contract_imports() {
 
             // A malformed callback result must not poison another valid read.
             assert_eq!(
-                pw_host::engine::call_within(
+                pw_host::engine::call_with_tables(
                     &compiled.component.bytes,
                     host_contract,
                     &granted,
                     &pw_host::Limits::unbounded(),
                     &exact_host,
+                    &host_tables,
                     &path,
                     &present_args,
                 ),
@@ -345,12 +356,13 @@ fn compiled_table_readers_have_exact_manifest_and_contract_imports() {
             });
             let exact_host = std::collections::BTreeMap::from([(key.to_owned(), handler)]);
             assert_eq!(
-                pw_host::engine::call_within(
+                pw_host::engine::call_with_tables(
                     &compiled.component.bytes,
                     host_contract,
                     &granted,
                     &pw_host::Limits::unbounded(),
                     &exact_host,
+                    &host_tables,
                     &path,
                     &args,
                 ),

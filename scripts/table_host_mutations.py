@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+"""Mutation controls for D2's read path: a compiled component reads its
+tables through the table gate, typed, exact, and held to what tables.json
+declares (ADR-0338 D2; PRs #29 to #40, integrated, and the integrator's
+rulings of 2026-10-25 on them).
+
+Each mutant undoes one piece and must be killed by a test:
+1. the manifest held whole where the host reads it (`pw_host::tables`):
+   each table's interface its name's, each import at its own table's
+   interface and name, one function an import, each effect its
+   primitive's, every field a function names its table's, a get and a
+   get-many by the table's key;
+2. the gate (`Manifest::admit_reads`, PR #29's): a get or get-many the
+   manifest declares, the host's own import, its table's capability,
+   granted; the tables' namespace however it is spelt;
+3. the gate the only way a table import links (`gate_links`, the engine's
+   calls and instantiation).
+
+Run whole from the repository root (`just e14-table-host`). Every source is
+restored in finally; the unmutated baseline must pass before any mutant
+means anything. Words given as arguments run only the mutants whose
+description holds one of them, for a quick look while working; the record is
+a whole run.
+"""
+import pathlib
+import re
+import subprocess
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+TABLES = ROOT / "runtime/pw-host/src/tables.rs"
+HOST = ROOT / "runtime/pw-host/src/lib.rs"
+
+MUTANTS = [
+    # 1. the manifest, whole
+    ("a table's interface need not be its name's", TABLES,
+     "            if table.interface != interface {\n",
+     "            if false && table.interface != interface {\n"),
+    ("a table may repeat a field", TABLES,
+     "            if fields.len() != table.fields.len() {\n",
+     "            if false && fields.len() != table.fields.len() {\n"),
+    ("a key may name no field", TABLES,
+     "            if table.key.is_empty() || !table.key.iter().all(known) {\n",
+     "            if table.key.is_empty() {\n"),
+    ("an order may name no field", TABLES,
+     "            if !table.order.iter().all(known) {\n",
+     "            if false && !table.order.iter().all(known) {\n"),
+    ("an import may sit outside its table's interface", TABLES,
+     "                if function.import != import {\n",
+     "                if false && function.import != import {\n"),
+    ("an import may be two functions'", TABLES,
+     "                if !imports.insert(function.import.as_str()) {\n",
+     "                if !imports.insert(function.import.as_str()) && false {\n"),
+    ("a get may be imported elsewhere than #get", TABLES,
+     "                    && function.import != format!(\"{interface}#{served}\")\n",
+     "                    && false\n"),
+    ("an effect need not be its primitive's", TABLES,
+     "                if function.effect != effect {\n",
+     "                if false && function.effect != effect {\n"),
+    ("a function may name a field its table lacks", TABLES,
+     "                if !function.by.iter().chain(&function.sorted_by).all(known) {\n",
+     "                if false && !function.by.iter().chain(&function.sorted_by).all(known) {\n"),
+    ("a get may read by other than the key", TABLES,
+     "                    && function.by != table.key\n",
+     "                    && false\n"),
+    # 2. the gate
+    ("the gate leaves out a table import its manifest does not declare", TABLES,
+     "                return Err(refused(\n"
+     "                    \"tables.json declares no get or get-many there\".into(),\n"
+     "                ));\n",
+     "                continue;\n"),
+    ("the gate binds a component's import", TABLES,
+     "            if import.kind != ImportKind::HostCapability {\n",
+     "            if false && import.kind != ImportKind::HostCapability {\n"),
+    ("the gate trusts an import's claim of its capability", TABLES,
+     "            if import.capability != capability {\n",
+     "            if false && import.capability != capability {\n"),
+    ("the gate binds an ungranted read", TABLES,
+     "            if !linkable.contains(&key) {\n",
+     "            if false && !linkable.contains(&key) {\n"),
+    ("a versioned spelling of the namespace is no table's", TABLES,
+     '        || interface.starts_with("pw:tables@")\n',
+     "        || false\n"),
+    ("the bare namespace is no table's", TABLES,
+     '    interface == "pw:tables"\n',
+     "    false\n"),
+    # 3. the only way
+    ("a call links table imports without the gate", HOST,
+     "        crate::tables::gate_links(contract, granted, tables)?;\n",
+     ""),
+    ("instantiation links table imports with stubs", HOST,
+     "        crate::tables::gate_links(contract, granted, None)?;\n",
+     ""),
+    ("the gate is skipped when a manifest is given", TABLES,
+     "        Some(tables) => tables.admit_reads(contract, granted),\n",
+     "        Some(_) => Ok(BTreeMap::new()),\n"),
+    ("no import is a table's", TABLES,
+     "    is_table_interface(key.split('#').next().unwrap_or(key))\n",
+     "    is_table_interface(key.split('#').next().unwrap_or(key)) && false\n"),
+]
+
+TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory"],
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-host", "--features", "engine", "--lib"],
+]
+
+
+def run_tests():
+    built, passed, failed = True, 0, 0
+    for cmd in TESTS:
+        r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+        results = re.findall(r"test result: \w+\. (\d+) passed; (\d+) failed", r.stdout + r.stderr)
+        if not results:
+            built = False
+        for p, f in results:
+            passed += int(p)
+            failed += int(f)
+    return built, passed, failed
+
+
+def main():
+    import mutation_baseline  # keeps every command and reports a red baseline
+    built, passed, failed = run_tests()
+    print(f"baseline: {passed} passed, {failed} failed", flush=True)
+    if not built or failed or not passed:
+        print("FAIL: the unmutated baseline is not green; no mutant can mean anything")
+        mutation_baseline.explain()
+        return 1
+    chosen = [m for m in MUTANTS if not sys.argv[1:] or any(w in m[0] for w in sys.argv[1:])]
+    survivors = 0
+    for what, path, anchor, replacement in chosen:
+        original = path.read_text()
+        if original.count(anchor) != 1:
+            print(f"{what}: ANCHOR NOT FOUND EXACTLY ONCE in {path.name}", flush=True)
+            survivors += 1
+            continue
+        try:
+            path.write_text(original.replace(anchor, replacement, 1))
+            built, passed, failed = run_tests()
+        finally:
+            path.write_text(original)
+        if not built:
+            verdict = "KILLED (does not build)"
+        elif failed:
+            verdict = f"KILLED ({failed} of {passed + failed} tests fail)"
+        else:
+            verdict = "SURVIVED"
+            survivors += 1
+        print(f"{what}: {verdict}", flush=True)
+    print(f"{len(chosen) - survivors} of {len(chosen)} mutants killed")
+    return 1 if survivors else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

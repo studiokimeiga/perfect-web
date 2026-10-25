@@ -57,6 +57,9 @@ type State = BTreeMap<String, Rows>;
 /// commit/rollback, and the state is only published on a successful commit.
 pub struct MemoryTables {
     manifest: TablesJson,
+    /// The same manifest as the host reads it (`pw_host::tables`): its gate,
+    /// and what the engine holds each read to.
+    host: pw_host::tables::Manifest,
     state: Mutex<State>,
 }
 
@@ -171,10 +174,22 @@ impl MemoryTables {
                 }
             }
         }
+        // Read back as the host reads it, so that what this adapter serves
+        // and what the engine admits are one manifest, held whole.
+        let text = serde_json::to_string(&manifest)
+            .map_err(|error| Error::Schema(format!("tables.json: {error}")))?;
+        let host = pw_host::tables::Manifest::from_json(&text).map_err(Error::Schema)?;
         Ok(Self {
             manifest,
+            host,
             state: Mutex::new(state),
         })
+    }
+
+    /// The manifest as the host reads it: what a call that reads these tables
+    /// is given (`pw_host::engine::call_with_tables`).
+    pub fn host_tables(&self) -> &pw_host::tables::Manifest {
+        &self.host
     }
 
     /// Read a compiler-emitted host import, with its arguments in function
@@ -186,59 +201,20 @@ impl MemoryTables {
     }
 
     /// Select the exact read-only table imports this admitted component may
-    /// bind. Both the compiler's table manifest and the admitted contract must
-    /// name each import; a node's other capabilities grant nothing here.
-    ///
-    /// This is a pre-link gate, not a WIT value codec or Wasmtime execution.
-    /// A later host binding must use only these keys when installing HostFns.
+    /// bind: the host's gate (`pw_host::tables::Manifest::admit_reads`, PR
+    /// #29's, which the engine applies to every table import it links), on
+    /// this adapter's manifest. Both the compiler's table manifest and the
+    /// admitted contract must name each import; a node's other capabilities
+    /// grant nothing here.
     pub fn read_host_imports(
         &self,
         contract: &pw_host::ComponentContract,
         granted: &pw_host::Granted,
     ) -> Result<Vec<String>, Error> {
-        let linkable: BTreeSet<String> = pw_host::linkable(contract, granted).into_iter().collect();
-        let manifest_reads: BTreeMap<&str, String> = self
-            .manifest
-            .tables
-            .iter()
-            .flat_map(|table| {
-                table.functions.iter().filter_map(|function| {
-                    let operation = match function.primitive {
-                        Primitive::Get => "get",
-                        Primitive::GetMany => "get-many",
-                        _ => return None,
-                    };
-                    (function.effect == "read"
-                        && function.import == format!("{}#{operation}", table.interface))
-                    .then(|| {
-                        (
-                            function.import.as_str(),
-                            format!("database.read<{}>", table.schema.name),
-                        )
-                    })
-                })
-            })
-            .collect();
-
-        let mut selected = BTreeSet::new();
-        for import in contract
-            .imports
-            .iter()
-            .filter(|import| import.interface.starts_with("pw:tables/"))
-        {
-            let key = import.key();
-            if import.kind != pw_host::ImportKind::HostCapability
-                || manifest_reads.get(key.as_str()).map(String::as_str)
-                    != Some(import.capability.as_str())
-                || !linkable.contains(&key)
-            {
-                return Err(Error::Input(format!(
-                    "read-only table host cannot bind `{key}`"
-                )));
-            }
-            selected.insert(key);
-        }
-        Ok(selected.into_iter().collect())
+        self.host
+            .admit_reads(contract, granted)
+            .map(|reads| reads.into_keys().collect())
+            .map_err(Error::Input)
     }
 
     /// **The table reads an admitted component links, as host functions**
@@ -258,25 +234,24 @@ impl MemoryTables {
     ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, Error> {
         use pw_host::engine::table_read_host::{ReadKind, host_fn};
         let mut out = BTreeMap::new();
-        for import in self.read_host_imports(contract, granted)? {
-            let (_, function) = operation(&self.manifest, &import)?;
-            let kind = match function.primitive {
-                Primitive::Get => ReadKind::Get,
-                Primitive::GetMany => ReadKind::GetMany,
-                _ => {
-                    return Err(Error::Input(format!(
-                        "read-only table host cannot bind `{import}`"
-                    )));
-                }
+        let reads = self
+            .host
+            .admit_reads(contract, granted)
+            .map_err(Error::Input)?;
+        for (import, read) in reads {
+            let kind = if read.many {
+                ReadKind::GetMany
+            } else {
+                ReadKind::Get
             };
             let tables = Arc::clone(self);
             let bound = import.clone();
-            let read = Arc::new(move |args: &[Value]| {
+            let data = Arc::new(move |args: &[Value]| {
                 tables
                     .read(&bound, args)
                     .map_err(|error| format!("`{bound}`: {error:?}"))
             });
-            out.insert(import, host_fn(kind, read));
+            out.insert(import, host_fn(kind, data));
         }
         Ok(out)
     }
