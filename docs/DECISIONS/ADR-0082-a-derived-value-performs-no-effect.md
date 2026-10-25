@@ -37,3 +37,24 @@ diagnostic names the effect and the route it took.
   clean, as do the store and kiokun.
 - **Mutation controls:** `scripts/derived_mutations.py`, `just e10-derived`,
   3 mutants.
+
+## Amended, 2026-10-25: a control that had become equivalent
+
+The nightly of 2026-10-25, the first to run every recipe since train-12,
+failed `e10-derived` at `cc47a64b`: "only what a derived value calls
+counts" survived, and `master` at `4345726a` reproduces it on a clean tree.
+The mutant replaced the check's `infer_in_at`, which counts what a body
+calls, the members it reads and the declarations it names, with
+`infer_at`, which counted its calls alone. ADR-0351 (train-12) made
+`infer_at` read the members and values of every body `run` typed, so the
+replacement found the same effects and the tests could not tell. Nothing
+in the check had weakened; the control had stopped expressing its fault.
+
+It now removes the member and value effects from `infer_in_reading`, the
+inference `infer_in_at` performs, so the check counts calls alone, as
+before 2026-09-26. The derived-purity tests kill it (1 of 2 fail), and the
+other two controls are unchanged: 3 of 3 killed.
+
+No push planned the recipe in the five days between: a push plans a
+mutation script's recipe when its anchored lines change, not when the code
+those lines call does. Sunday's run of every recipe is what found it.

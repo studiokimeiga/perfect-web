@@ -17,6 +17,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CHECK = ROOT / "compiler/pw-core/src/check.rs"
+EFFECTS = ROOT / "compiler/pw-core/src/effects.rs"
 
 # (what is undone, file, anchor, replacement)
 MUTANTS = [
@@ -33,15 +34,17 @@ MUTANTS = [
         "                .find(|s| s.span.start >= region.start || true)",
     ),
     (
+        # Until 2026-10-25 this replaced the check's `infer_in_at` with
+        # `infer_at`, which then counted calls alone. ADR-0351 made
+        # `infer_at` read the members and values of every body `run` typed,
+        # so it found what `infer_in_at` finds, and the mutant survived as an
+        # equivalent (the nightly of 2026-10-25, at cc47a64b). The same
+        # fault, where the inference the check uses adds them: calls alone.
         "only what a derived value calls counts",
-        CHECK,
-        "        let found = inference.infer_in_at(unit, body, &types);\n"
-        "        for value in derived {",
-        "        let found = {\n"
-        "            let _ = &types;\n"
-        "            inference.infer_at(unit, body)\n"
-        "        };\n"
-        "        for value in derived {",
+        EFFECTS,
+        "        self.member_effects(body, body.root, types, &mut out, reads.as_deref_mut());\n"
+        "        self.value_effects(unit, body, body.root, types, &mut out, reads);\n",
+        "        let _ = &mut out;\n",
     ),
 ]
 
