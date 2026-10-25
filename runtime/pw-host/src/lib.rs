@@ -56,6 +56,10 @@ use serde::{Deserialize, Serialize};
 
 pub mod plan;
 
+/// `tables.json`, mirrored, and the gate every table import links through
+/// (ADR-0338 D2).
+pub mod tables;
+
 // --- the compiler's artifact, mirrored --------------------------------------
 //
 // ADR-0018/ADR-0020: field-name mirrors of `pw_core::contract`. This crate does
@@ -893,6 +897,18 @@ pub mod engine {
     /// engine does, without depending on a second copy of the engine.
     pub use wasmtime::component::Val;
 
+    /// Strict read-only table selector conversion, before manifest validation.
+    pub mod table_selectors;
+
+    /// Flat read-only table row values; no linker bindings are installed here.
+    pub mod table_results;
+
+    /// Compose an admitted table read's adapter closure into one host callback.
+    pub mod table_read_host;
+
+    /// A table import's type, held to tables.json where it is linked.
+    pub mod table_link;
+
     /// **The configuration of every engine the host makes** (ADR-0244): the
     /// component model, and none of the proposals Pleris's components do not
     /// use, so a component that uses one is refused when it loads.
@@ -1184,6 +1200,29 @@ pub mod engine {
         Prepared::compile(bytes)?.call_within(contract, granted, limits, host, export, args)
     }
 
+    /// **[`call_within`], for a component that reads a program's tables**
+    /// (ADR-0338 D2): every `pw:tables/…` import a grant would link is linked
+    /// only as `tables`' gate admits it ([`crate::tables::gate_links`]), and
+    /// only typed as tables.json declares its read
+    /// ([`table_link::check_import`]); and each of its answers, whoever
+    /// supplies it, reaches the component only as its read's
+    /// ([`table_link::check_answer`]). [`call_within`] and every other call
+    /// links no table import.
+    #[allow(clippy::too_many_arguments)]
+    pub fn call_with_tables(
+        bytes: &[u8],
+        contract: &crate::ComponentContract,
+        granted: &crate::Granted,
+        limits: &crate::Limits,
+        host: &std::collections::BTreeMap<String, HostFn>,
+        tables: &crate::tables::Manifest,
+        export: &[&str],
+        args: &[wasmtime::component::Val],
+    ) -> Result<Vec<wasmtime::component::Val>, String> {
+        Prepared::compile(bytes)?
+            .call_with_tables(contract, granted, limits, host, tables, export, args)
+    }
+
     /// Invoke an export after the deployment explicitly evaluates its
     /// authorization preconditions.
     #[allow(clippy::too_many_arguments)]
@@ -1339,6 +1378,34 @@ pub mod engine {
                 granted,
                 limits,
                 host,
+                None,
+                export,
+                args,
+            )
+        }
+
+        /// [`call_with_tables`], on the compiled component.
+        #[allow(clippy::too_many_arguments)]
+        pub fn call_with_tables(
+            &self,
+            contract: &crate::ComponentContract,
+            granted: &crate::Granted,
+            limits: &crate::Limits,
+            host: &std::collections::BTreeMap<String, HostFn>,
+            tables: &crate::tables::Manifest,
+            export: &[&str],
+            args: &[wasmtime::component::Val],
+        ) -> Result<Vec<wasmtime::component::Val>, String> {
+            self.hold_arguments(contract, export, args)?;
+            refuse_unevaluated_authorization(contract, export)?;
+            run(
+                &self.engine,
+                &self.component,
+                contract,
+                granted,
+                limits,
+                host,
+                Some(tables),
                 export,
                 args,
             )
@@ -1369,6 +1436,7 @@ pub mod engine {
                 granted,
                 limits,
                 host,
+                None,
                 export,
                 args,
             )
@@ -2484,11 +2552,12 @@ pub mod engine {
         granted: &crate::Granted,
         limits: &crate::Limits,
         host: &std::collections::BTreeMap<String, HostFn>,
+        tables: Option<&crate::tables::Manifest>,
         export: &[&str],
         args: &[wasmtime::component::Val],
     ) -> Result<Vec<wasmtime::component::Val>, String> {
         run_measured(
-            engine, component, contract, granted, limits, host, export, args,
+            engine, component, contract, granted, limits, host, tables, export, args,
         )
         .map(|(results, _)| results)
     }
@@ -2531,6 +2600,7 @@ pub mod engine {
                 granted,
                 limits,
                 host,
+                None,
                 export,
                 args,
             )
@@ -2583,6 +2653,7 @@ pub mod engine {
         granted: &crate::Granted,
         limits: &crate::Limits,
         host: &std::collections::BTreeMap<String, HostFn>,
+        tables: Option<&crate::tables::Manifest>,
         export: &[&str],
         args: &[wasmtime::component::Val],
     ) -> Result<(Vec<wasmtime::component::Val>, Usage), String> {
@@ -2594,6 +2665,9 @@ pub mod engine {
 
         let mut linker: Linker<crate::Meter> = Linker::new(&engine);
         let supplied = crate::linkable(contract, granted);
+        // A table's import links through the table gate or not at all
+        // (ADR-0338 D2; the integrator's ruling 2 of 2026-10-25).
+        let table_reads = crate::tables::gate_links(contract, granted, tables)?;
         let functions = imported_functions(&engine, &component);
         let wanted: BTreeSet<&str> = supplied.iter().map(String::as_str).collect();
 
@@ -2618,6 +2692,15 @@ pub mod engine {
                         "`{key}` is granted and the host implements nothing for it"
                     ));
                 };
+                // A table's read is linked only as tables.json types it, and
+                // refused here, before anything is instantiated (the
+                // integrator's ruling 4 of 2026-10-25).
+                let read = table_reads.get(&key).cloned();
+                if let Some(read) = &read {
+                    let ty = imported_func(&engine, &component, interface, func)
+                        .ok_or_else(|| format!("`{key}` is no function the component imports"))?;
+                    table_link::check_import(read, &ty)?;
+                }
                 let named = key.clone();
                 // What its answer must hold (ADR-0179), as the contract states.
                 let bounded: Vec<crate::Bounded> = contract
@@ -2638,6 +2721,16 @@ pub mod engine {
                             .collect::<Result<_, _>>()
                             .map_err(|e| wasmtime::Error::msg(format!("`{named}`: {e}")))?;
                         let out = implementation(&args).map_err(wasmtime::Error::msg)?;
+                        // A table read's answer is its read's, exactly, or the
+                        // call fails: never projected, never passed on (the
+                        // integrator's rulings 7 and 8 of 2026-10-25).
+                        if let Some(read) = &read {
+                            table_link::check_answer(read, &args, &out).map_err(|why| {
+                                wasmtime::Error::msg(format!(
+                                    "`{named}` answered what its read is not: {why}"
+                                ))
+                            })?;
+                        }
                         if out.len() != results.len() {
                             return Err(wasmtime::Error::msg(format!(
                                 "the host returned {} values where the operation has {}",
@@ -2716,6 +2809,25 @@ pub mod engine {
         Ok((results, usage))
     }
 
+    /// One imported function's type, as the component imports it.
+    fn imported_func(
+        engine: &wasmtime::Engine,
+        component: &wasmtime::component::Component,
+        interface: &str,
+        func: &str,
+    ) -> Option<wasmtime::component::types::ComponentFunc> {
+        let ty = component.component_type();
+        let (_, item) = ty.imports(engine).find(|(name, _)| *name == interface)?;
+        let ComponentItem::ComponentInstance(instance) = item.ty else {
+            return None;
+        };
+        let (_, export) = instance.exports(engine).find(|(name, _)| *name == func)?;
+        match export.ty {
+            ComponentItem::ComponentFunc(ty) => Some(ty),
+            _ => None,
+        }
+    }
+
     /// Each imported interface's FUNCTION exports, read from the component.
     ///
     /// One reader, used by both `instantiate_within` and `call_within`: what an
@@ -2771,6 +2883,10 @@ pub mod engine {
 
         let mut linker: Linker<crate::Meter> = Linker::new(&engine);
         let supplied = crate::linkable(contract, granted);
+        // No table import links here: a stub would answer a read for any
+        // table a contract claims (ADR-0338 D2; the integrator's ruling 2 of
+        // 2026-10-25). `call_with_tables` links one through the gate.
+        crate::tables::gate_links(contract, granted, None)?;
 
         // **Grouped by interface, and only the FUNCTIONS.**
         //
