@@ -358,3 +358,150 @@ fn unused_imports_and_wrong_selectors_are_rejected() {
         Err(Error::Input(_))
     ));
 }
+
+fn admitted_table_reader(imports: &[&str]) -> (pw_host::ComponentContract, pw_host::Granted) {
+    let declared: Vec<Value> = imports
+        .iter()
+        .map(|key| {
+            let (interface, name) = key.split_once('#').expect("interface#function");
+            json!({
+                "interface": interface,
+                "name": name,
+                "capability": "database.read<Likes>",
+                "kind": "host_capability"
+            })
+        })
+        .collect();
+    let contract: pw_host::ComponentContract = serde_json::from_value(json!({
+        "component_id": "likes.reader",
+        "capability_mapping": pw_host::CAPABILITY_MAPPING,
+        "abi_schema": "test",
+        "required_capabilities": [{"family": "database", "operation": "read", "argument": "Likes"}],
+        "allowed_placements": ["origin"],
+        "imports": declared,
+        "exports": []
+    }))
+    .unwrap();
+    let topology = pw_host::Topology::from_json(
+        r#"{"nodes":[{"name":"origin","world":"origin","grants":["database.read<Likes>"]}]}"#,
+    )
+    .unwrap();
+    let actual: Vec<String> = imports.iter().map(|key| (*key).into()).collect();
+    let admitted = pw_host::admit(&contract, &topology, "origin", &actual);
+    assert!(admitted.is_admitted(), "{admitted:?}");
+    let granted = pw_host::Granted::from(&admitted, &Default::default()).unwrap();
+    (contract, granted)
+}
+
+#[test]
+fn admitted_component_selects_only_manifest_declared_get_and_get_many() {
+    let db = MemoryTables::new(manifest()).unwrap();
+    let (contract, granted) =
+        admitted_table_reader(&["pw:tables/likes#get-many", "pw:tables/likes#get"]);
+    assert_eq!(
+        db.read_host_imports(&contract, &granted).unwrap(),
+        ["pw:tables/likes#get", "pw:tables/likes#get-many"]
+    );
+
+    // The manifest has get-many, but a contract that only imports get must
+    // never receive the neighboring operation.
+    let (contract, granted) = admitted_table_reader(&["pw:tables/likes#get"]);
+    assert_eq!(
+        db.read_host_imports(&contract, &granted).unwrap(),
+        ["pw:tables/likes#get"]
+    );
+}
+
+#[test]
+fn table_host_refuses_unknown_writes_and_wildcard_imports() {
+    let db = MemoryTables::new(manifest()).unwrap();
+    for denied in [
+        "pw:tables/likes#put",
+        "pw:tables/likes#all",
+        "pw:tables/other#get",
+        "pw:tables/*#get",
+        // The tables' namespace however it is spelt: versioned, or bare.
+        "pw:tables@0.1.0/likes#get",
+        "pw:tables#get",
+    ] {
+        let (contract, granted) = admitted_table_reader(&["pw:tables/likes#get", denied]);
+        assert!(
+            matches!(
+                db.read_host_imports(&contract, &granted),
+                Err(Error::Input(reason)) if reason.contains(denied)
+            ),
+            "{denied} must be refused, not silently omitted"
+        );
+    }
+}
+
+#[test]
+fn table_host_refuses_ungranted_or_misclassified_read_and_manifest_mismatch() {
+    let db = MemoryTables::new(manifest()).unwrap();
+    let (mut contract, granted) = admitted_table_reader(&["pw:tables/likes#get"]);
+    contract.imports[0].kind = pw_host::ImportKind::Component;
+    assert!(matches!(
+        db.read_host_imports(&contract, &granted),
+        Err(Error::Input(_))
+    ));
+
+    let (mut contract, _) = admitted_table_reader(&["pw:tables/likes#get"]);
+    contract.required_capabilities.clear();
+    let topology = pw_host::Topology::from_json(
+        r#"{"nodes":[{"name":"origin","world":"origin","grants":[]}]}"#,
+    )
+    .unwrap();
+    let admission = pw_host::admit(
+        &contract,
+        &topology,
+        "origin",
+        &["pw:tables/likes#get".into()],
+    );
+    assert!(admission.is_admitted());
+    let no_grants = pw_host::Granted::from(&admission, &Default::default()).unwrap();
+    assert!(matches!(
+        db.read_host_imports(&contract, &no_grants),
+        Err(Error::Input(_))
+    ));
+
+    let mut changed = manifest();
+    changed.tables[0]
+        .functions
+        .iter_mut()
+        .find(|f| f.primitive == Primitive::Get)
+        .unwrap()
+        .effect = "write".into();
+    // Refused where the manifest is read (the D2 integration): a get whose
+    // effect says write is no manifest, so no gate ever binds from it.
+    assert!(matches!(
+        MemoryTables::new(changed),
+        Err(Error::Schema(reason)) if reason.contains("pw:tables/likes#get")
+    ));
+}
+
+#[test]
+fn table_host_refuses_wrong_table_capability_even_when_admitted() {
+    let db = MemoryTables::new(manifest()).unwrap();
+    let (mut contract, _) = admitted_table_reader(&["pw:tables/likes#get"]);
+    // A forged contract and topology may agree on a grant for another table.
+    // That does not authorize the compiler manifest's Likes table import.
+    contract.imports[0].capability = "database.read<Other>".into();
+    contract.required_capabilities[0].argument = Some("Other".into());
+    let topology = pw_host::Topology::from_json(
+        r#"{"nodes":[{"name":"origin","world":"origin","grants":["database.read<Other>"]}]}"#,
+    )
+    .unwrap();
+    let admission = pw_host::admit(
+        &contract,
+        &topology,
+        "origin",
+        &["pw:tables/likes#get".into()],
+    );
+    assert!(admission.is_admitted(), "{admission:?}");
+    let granted = pw_host::Granted::from(&admission, &Default::default()).unwrap();
+    assert!(pw_host::linkable(&contract, &granted).contains(&"pw:tables/likes#get".into()));
+    assert!(matches!(
+        db.read_host_imports(&contract, &granted),
+        Err(Error::Input(_))
+    ));
+}

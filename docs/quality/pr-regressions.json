@@ -38,6 +38,22 @@
       "notes": "CI run 40010968719 rejected collapsible_if; follow-up repaired this specific lint."
     },
     {
+      "id": "pr36-rustfmt",
+      "kind": "format",
+      "source": "https://github.com/studiokimeiga/perfect-web/pull/36",
+      "bad": "18d5598e04fa59416e6921f3e912d1ca7c635b4a",
+      "fixed": "24a63dfa278cb72671cc833309733766a55f3f1b",
+      "detector": "cargo fmt --all -- --check",
+      "replay": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "notes": "CI run 40089070100's fast preflight failed fmt-check on a hand-wrapped line in compiler/pw-core/tests/table_host_reader_fixture.rs; the author had no local Rust toolchain. The D2 integration branch rewrapped it (#37's 8fb8eb58 made the same change)."
+    },
+    {
       "id": "pr9-locked-install",
       "kind": "dependency",
       "source": "https://github.com/studiokimeiga/perfect-web/pull/9",
