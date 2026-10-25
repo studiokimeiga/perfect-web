@@ -1,8 +1,11 @@
 # ADR-0387: the host reaches another origin through one client, and only an origin it declares
 
-Status: proposed by track `outbound-https` (2026-10-25), under the
-integrator's ruling of 2026-10-25 and the owner's delegation of 2026-10-02;
-the integrator numbers it. Milestone: E14. Builds on ADR-0006 and ADR-0026
+Status: accepted by the integrator under the owner's delegation of
+2026-10-02; proposed by track `outbound-https` (2026-10-25) under the
+integrator's ruling of 2026-10-25, held to two independent reviews (the
+second's findings and their fixes: "Independent review (2026-10-25)") and
+a third before it lands, numbered ADR-0387; it lands by pull request.
+Milestone: E14. Builds on ADR-0006 and ADR-0026
 (a capability authorizes an operation the host provides), ADR-0332 (a
 payment is the provider's word; step eight's wait and read by length),
 ADR-0333 (what a page may run) and the dating-app note's ruling 6 (one
@@ -88,7 +91,9 @@ track's OIDC).
    the IPv4 address it maps. One refused address refuses the name, whatever
    the others are. So a name rebound to this machine, a private network or
    a cloud's metadata service (169.254.169.254) reaches nothing, and nothing
-   is resolved again between the check and the connection. The addresses
+   is resolved again between the check and the connection: a name whose
+   answer changes after its first lookup is looked up once, and its first,
+   checked answer is the one reached. The addresses
    are tried in the resolver's order, each given its share of what is left
    of the connection's bound, so one that never answers (an unrouted IPv6
    address before a working IPv4 one) does not take the others' time. The
@@ -96,7 +101,8 @@ track's OIDC).
    bounded too, and at most 32 run at once for one client, the next
    refused: a resolver that never answers leaves no thread per request.
 4. **TLS is rustls 0.23.46 with the *ring* provider**: its safe default
-   versions (TLS 1.3 and 1.2), ALPN `http/1.1`, SNI for a name, an address
+   versions (TLS 1.3 and 1.2), ALPN `http/1.1`, SNI for a name (a server
+   holding several sites at one address presents the origin's), an address
    verified as an IP SAN, no client certificate, no early data, no key log.
    A certificate is verified by rustls-webpki against the client's
    `Roots`, and a refusal says what it is (`Refusal::Expired`,
@@ -120,13 +126,18 @@ track's OIDC).
    by default): resolving, connecting (`Limits::connect`, five), the
    handshake (`Limits::handshake`, five), writing and reading are each
    within it, and every read and write on the socket waits only for what is
-   left of it. A peer that drips its answer is given up at the total. No
+   left of it. A peer that drips its answer is given up at the total, and so
+   is one that takes the connection and never reads a request larger than
+   the sockets' buffers. No
    wait is longer than a day (`MOST_WAIT`): a longer one is held to it, so
    no deadline overflows the clock.
 7. **An answer is bounded**: its head (64 KiB, its interim answers among
    it, 128 fields at most) and its body (1 MiB, a chunked body's framing to
    as many bytes again). A stated length past the bound is refused before a
-   byte of it is read or allocated, and a chunk's size is held to what is
+   byte of it is read or allocated; one within it is the peer's word, so at
+   most 64 KiB is set aside before its bytes come, and the buffer grows as
+   they do (under a bound set high, a lying `Content-Length` would otherwise
+   panic or abort the process). A chunk's size is held to what is
    left of the bound, never summed with what is held (a size near 2^64
    would wrap the sum).
 8. **HTTP/1.1 is the host's own** (RFC 9112), strictly: one request per
@@ -135,12 +146,15 @@ track's OIDC).
    whole (ADR-0332, step eight). Refused: both lengths at once, a length
    stated twice or as a list, a transfer coding other than `chunked` (or
    any in HTTP/1.0), a body cut short, bytes past the answer's end, a chunk
-   longer than its size, a bare CR or LF, a folded field line, whitespace
+   whose data does not end, with its CRLF, where its size says (longer or
+   shorter than its size, said as such), a trailer that is no field line, a
+   bare CR or LF, a folded field line, whitespace
    before a `:`, a control in a value, a content coding the client never
    asked for, a switch of protocol, more than eight interim answers, and a
    status line of another protocol or out of 100 to 599. Every request
    asks for no content coding (`accept-encoding: identity`; RFC 9110 §12.5.3
-   lets a server choose any where the field is absent). A request's field
+   lets a server choose any where the field is absent). A request's field,
+   a secret's as any other,
    is a token and a value of visible ASCII, spaces and tabs (no CR or LF, so
    no field ends its line), never one of the client's own (`Host`,
    `Accept-Encoding`, the framing, the connection's); its target is a path
@@ -154,7 +168,13 @@ track's OIDC).
    says only that it is one, and no code outside the crate can read it
    back, so no host code can put it in a program's `Val`, an error or a log
    line. The client logs nothing. No error holds a request's header value,
-   body, path or query, and a URL's error never quotes the URL. A
+   body, path or query, and a URL's error never quotes the URL. An
+   answer's status line is never quoted (a server echoing the request would
+   make it the request line, its path and query among it); an error quotes
+   at most 32 characters of an answer's field value (a coding, a length)
+   or of a request's field name that is no token, each control, format or
+   combining character escaped (`char::escape_debug`), so no peer writes a
+   line, or a terminal's command, of its own into a log. A
    `Request`'s `Debug` shows its URL's origin alone (a webhook's path may be
    a secret), its headers, its secrets' names and its body's length; an
    `Answer`'s, its status, its fields' names and its body's length (a
@@ -201,9 +221,13 @@ track's OIDC).
     two weeks old was taken only for a security fix (`rustls`,
     `rustls-webpki`); otherwise the newest older than that
     (`rustls-native-certs` 0.8.4, not 0.8.5; `schannel` 0.1.29, not
-    0.1.30). The tests add no crate: their certificate authority is DER
-    written over *ring* (`pw_outbound::testing`), and the connection's bound
-    uses `libc`, both already in the graph.
+    0.1.30). The tests add no crate from crates.io: their certificate
+    authority and servers are a workspace crate of their own,
+    `runtime/pw-outbound-testkit` (DER written over *ring*, servers over
+    rustls), which each user takes as a dev-dependency alone (the
+    integrator's ruling, 2026-10-25), so no crate the host ships holds a
+    test authority; and the connection's bound uses `libc`, already in the
+    graph.
 
 ## Alternatives
 
@@ -237,11 +261,16 @@ track's OIDC).
 - **`rcgen` for the tests' certificates**: tried; its weak dependency
   features put 25 crates into `Cargo.lock` (the `x509-parser` family and
   `time`'s), 7 of them built. The DER a test certificate needs is a page of
-  this crate's `testing`, over *ring*, and every negative test has a
+  the testkit's, over *ring*, and every negative test has a
   positive neighbour from the same writer, so a writer's mistake fails a
   test rather than passing one.
 - **Test certificates committed**: private key material in the repository
   (charter §3.7); the authority is made for each run instead.
+- **The test authority as a `test-ca` feature of `pw-outbound`** (the
+  track's first form): a dependent's tests turned the feature on, so the
+  production crate held a module of test servers and an authority that any
+  build could enable by a feature, in the same graph as the host. The
+  integrator's ruling (2026-10-25): a dev-only crate instead.
 - **Checking addresses at connect time only, by the connector**: the same
   check, but a resolver's second answer could differ from the first; one
   resolution, checked whole, is what is connected to.
@@ -253,14 +282,14 @@ Each is a test, and a mutant the test kills (`scripts/outbound_https_mutations.p
 | Guarantee | Tests | Mutants |
 | --- | --- | --- |
 | Only a declared origin, compared whole | `an_undeclared_origin_is_never_reached`, `a_grant_holds_its_origins_to_their_reach`, `origin::tests` | any origin; no port; no scheme; public over http; public or development at a special address; host case; default port; port 0; another IPv4 form; credentials, fragment |
-| Addresses checked, every one, before any is reached | `a_public_origin_rebound_to_loopback_reaches_nothing`, `a_public_origin_reaches_no_special_address`, `every_address_is_checked_before_any_is_reached`, `a_development_origin_reaches_this_machine_alone`, `an_address_that_never_answers_leaves_the_next_its_share` (Linux), `address::tests` | not checked; first only; the first taking the whole bound; development reaching global; loopback global; mapped read as IPv6; 10/8, 172.16/12, 192.168/16, 169.254/16, 100.64/10, 0/8, multicast, reserved, 6to4 narrowed; all of IPv6 global |
-| Certificates verified | `an_expired_certificate_is_refused`, `a_certificate_not_yet_valid_is_refused`, `a_certificate_for_another_host_is_refused`, `a_certificate_of_no_given_root_is_refused`, `the_platforms_roots_do_not_trust_a_tests_authority`, `an_address_origin_is_verified_by_its_address`, `tls::tests` | https in the clear; roots ignored; empty store taken; refusals misnamed |
+| Addresses checked, every one, before any is reached, and a name looked up once | `a_public_origin_rebound_to_loopback_reaches_nothing`, `a_name_is_looked_up_once_and_its_checked_answer_reached` (Linux), `a_public_origin_reaches_no_special_address`, `every_address_is_checked_before_any_is_reached`, `a_development_origin_reaches_this_machine_alone`, `an_address_that_never_answers_leaves_the_next_its_share` (Linux), `address::tests` | not checked; first only; the name resolved again before connecting; the first taking the whole bound; development reaching global; loopback global; mapped read as IPv6; 10/8, 172.16/12, 192.168/16, 169.254/16, 100.64/10, 0/8, multicast, reserved, 6to4 narrowed; all of IPv6 global |
+| Certificates verified | `an_expired_certificate_is_refused`, `a_certificate_not_yet_valid_is_refused`, `a_certificate_for_another_host_is_refused`, `a_certificate_of_no_given_root_is_refused`, `the_platforms_roots_do_not_trust_a_tests_authority`, `an_address_origin_is_verified_by_its_address`, `a_name_is_sent_by_sni`, `tls::tests` | https in the clear; roots ignored; empty store taken; no SNI; refusals misnamed |
 | No redirect followed | `a_redirect_is_never_followed`, `http1::tests::a_redirect_is_refused` | none refused; 307 and 308 answers; the error holding the whole location |
-| One deadline | `a_handshake_never_begun_is_given_up`, `an_answer_never_sent_is_given_up`, `an_answer_dripped_is_given_up_at_the_total`, `the_exchange_has_the_rest_of_the_total`, `a_connection_never_accepted_is_given_up` (Linux), `no_wait_is_longer_than_a_day`, `resolve::tests`, payments' `a_provider_that_does_not_answer_in_time_is_not_reached` | each read bounded, not the answer; a read waiting a minute; the deadline unchecked; connect and handshake by the total alone; the exchange by the handshake's bound; the resolver past its wait, or lookups unbounded; a wait not held to a day; the payments' wait six times longer |
-| Bounded sizes | `an_answer_is_bounded`, `a_length_past_the_bound_is_refused_unread`, `a_head_past_the_bound_is_refused` | a length one past; chunks bounded singly, or summed so the sum wraps; chunk framing unbounded; head at four times |
-| HTTP/1.1 framing | `http1::tests` (lengths, chunks, codings, grammar, interim), `the_framing_is_held_over_tls`, `an_answer_held_open_is_read_by_its_length` | a mutant per rule, `accept-encoding: identity` among them |
-| A request's fields cannot split it | `no_field_can_split_a_request`, `a_field_that_would_split_the_request_is_never_sent`, `a_requests_head_is_written_whole` | a line break written; a secret unchecked; reserved fields in another case, or `accept-encoding` not reserved; a non-token name; no length; a target with a line break |
-| Secrets said nowhere | `a_secret_is_sent_and_said_nowhere`, `a_urls_error_never_quotes_it`, `no_field_can_split_a_request` | a secret's `Debug`; a request's body, or its path and query, in its `Debug`; an answer's body in its; a secret in its refusal |
+| One deadline | `a_handshake_never_begun_is_given_up`, `an_answer_never_sent_is_given_up`, `an_answer_dripped_is_given_up_at_the_total`, `the_exchange_has_the_rest_of_the_total`, `a_connection_never_accepted_is_given_up` (Linux), `a_write_to_a_peer_that_never_reads_is_given_up`, `no_wait_is_longer_than_a_day`, `resolve::tests`, payments' `a_provider_that_does_not_answer_in_time_is_not_reached` | each read bounded, not the answer; a write's wait unbounded; a read waiting a minute; the deadline unchecked; connect and handshake by the total alone; the exchange by the handshake's bound; the resolver past its wait, or lookups unbounded; a wait not held to a day; the payments' wait six times longer |
+| Bounded sizes | `an_answer_is_bounded`, `a_stated_length_is_not_allocated_before_its_bytes`, `a_length_past_the_bound_is_refused_unread`, `a_head_past_the_bound_is_refused` | a length one past; a stated length allocated before its bytes; chunks bounded singly, or summed so the sum wraps; chunk framing unbounded; head at four times |
+| HTTP/1.1 framing | `http1::tests` (lengths, chunks and their trailers, each refusal's reason, codings, grammar, interim), `the_framing_is_held_over_tls`, `an_answer_held_open_is_read_by_its_length` | a mutant per rule, `accept-encoding: identity` among them; a chunk's end not read, any two bytes taken for it, or a cut there taken; a trailer unchecked |
+| A request's fields cannot split it | `no_field_can_split_a_request`, `a_field_that_would_split_the_request_is_never_sent`, `a_requests_head_is_written_whole` | a line break written; a secret's value, or its name, unchecked; reserved fields in another case, or `accept-encoding` not reserved; a non-token name; no length; a target with a line break |
+| Secrets said nowhere | `a_secret_is_sent_and_said_nowhere`, `an_echoed_request_is_quoted_in_no_error`, `an_error_quotes_an_answer_short_and_escaped`, `a_urls_error_never_quotes_it`, `no_field_can_split_a_request` | a secret's `Debug`; a request's body, or its path and query, in its `Debug`; an answer's body, or its fields' values, in its; a secret in its refusal; a status line quoted; a quoted value unescaped, or not cut short |
 | The payments through it | payments' `https_tests` (an https provider; an untrusted one; a split interaction; an id that is not one; the grant) and `answer_tests`, the store's payments in memory | granted nothing; waiting longer; the hearing through another client; a refusal taken for an unreachable provider; a payment's id or an intent's unchecked |
 
 ## Acceptance
@@ -282,10 +311,10 @@ and advisories) passed in the `ci` workflow at the track's first push.
 - **A program's own `network.fetch` naming its origins** (the ruling's
   "the capability a program declares"): no program fetches a real origin
   (the recommender is simulated in process), and the effect takes no origin
-  today. The client is ready for one (a grant is a list of origins); the
-  language's form is a question for the integrator (below), built with the
-  first program that needs it, as ADR-0333 builds a program's declared
-  origins.
+  today. The client is ready for one (a grant is a list of origins). The
+  integrator's ruling (below): a program will name an origin by an `origin`
+  declaration carried in its effect row (`network.fetch<Stripe>`), on a
+  track of its own.
 - **A provider at a public origin, configured**: no deployment names one
   yet. NEXT 6d's `PW_PAYMENTS=stripe` is the first (below).
 - **Post-quantum key exchange**: *ring* has none (X25519, P-256, P-384), so
@@ -308,8 +337,18 @@ and advisories) passed in the `ci` workflow at the track's first push.
   what is trusted (the operator's to set).
 - **The refusal of an empty platform store** is tested with an empty
   `CertificateResult`, not on a machine without a store; the connection's
-  bound and each address's share of it are tested on Linux alone (a
-  listener whose queue is full; a second loopback address).
+  bound, each address's share of it and a name's one lookup are tested on
+  Linux alone (a listener whose queue is full; a second loopback address).
+- **An operator's own NAT64 prefix**: the well-known prefix (`64:ff9b::/96`,
+  and `64:ff9b:1::/48`) is an IANA special-purpose block, refused for a
+  public origin; a network-specific prefix an operator's translator uses
+  is in 2000::/3 and looks public, so a name answering in it reaches what
+  the translator reaches, a private IPv4 address among it. Naming that
+  prefix as a deployment's option, refused as its IPv4 address would be, is
+  future work.
+- **An IPv6-only host reaching an IPv4-only provider**: through DNS64 and
+  NAT64 a provider with no IPv6 address answers in the well-known prefix,
+  which is refused, so an IPv6-only host cannot reach it.
 
 ## What next work needs
 
@@ -333,14 +372,17 @@ and advisories) passed in the `ci` workflow at the track's first push.
   HKDF, AES-128-GCM) are *ring*'s. Push services' origins differ by browser
   (`fcm.googleapis.com`, `updates.push.services.mozilla.com`,
   `web.push.apple.com`, Windows's `*.notify.windows.com`, a host per
-  region): a grant of exact origins cannot name the last (a question
-  below). A payload is the user's and never logged.
+  region): a grant of exact origins cannot name the last. The integrator's
+  ruling (below): a push grant holds the platform's list of push-service
+  suffixes (FCM, Mozilla, Apple, WNS) and each subscription's endpoint is
+  checked against it; never a general wildcard. A payload is the user's and
+  never logged.
 - **H11, verification**: its provider's origin granted as the payment
   provider's is.
 - **Webhooks out**: each destination a public grant, never redirected, its
   body signed (as ADR-0332's HMAC), delivered by a queue.
 
-## What the capability matrix and KNOWN_LIMITATIONS should say
+## What the capability matrix and KNOWN_LIMITATIONS say (applied at the landing)
 
 - **Third-party APIs** (`docs/vision/capabilities.md`): "The host has one
   outbound client (`pw-outbound`, ADR-0387): only the origins a service's
@@ -357,20 +399,21 @@ and advisories) passed in the `ci` workflow at the track's first push.
   outbound, it speaks TLS (ADR-0387)."
 - **KNOWN_LIMITATIONS**: the not-claimed list above.
 
-## Questions for the integrator
+## The integrator's rulings (2026-10-25)
 
-1. **A program's own `network.fetch` naming its origins**: an argument
-   (`network.fetch<O>`, `O` a declared origin) changes the effect's arity,
-   which the corpus and the store's grants rely on; a clause on a host
-   binding (`host "…" reaches "https://…"`) does not. Which, and when (with
-   the first program that fetches a real origin, proposed)?
-2. **Push services' per-region hosts** (H7): a grant of a suffix for push
-   alone, or each subscription's endpoint checked against a list of
-   services' origins?
-3. **`pw-outbound`'s `test-ca` feature** makes its test authority and
-   servers a dependent's dev-dependency (the development server's payments
-   tests use them). Acceptable in a production crate, behind a feature, or
-   a crate of its own?
+The track's three questions, ruled:
+
+1. **A program names an origin by an `origin` declaration carried in its
+   effect row** (`network.fetch<Stripe>`, `Stripe` a declared origin), not
+   by a clause on a host binding: the origin is part of what the program's
+   type says it does. Built on a track of its own, with the first program
+   that fetches a real origin.
+2. **A push grant uses the platform's push-service suffix list** (FCM,
+   Mozilla, Apple, WNS), each subscription's endpoint checked against it;
+   never a general wildcard grant. Built with H7.
+3. **The test authority and servers are a dev-only crate** of their own
+   (`runtime/pw-outbound-testkit`, a dev-dependency of each user), not a
+   `test-ca` feature of the production crate. Done (decision 11).
 
 ## Found
 
