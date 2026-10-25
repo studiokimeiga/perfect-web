@@ -66,7 +66,7 @@ const OBSERVERS = String.raw`(() => {
     if (READY === "pw") return document.documentElement.dataset.pwReady === "1";
     if (READY === "next") return !!(history.state && history.state.__NA);
     // SvelteKit's client writes its router state BEFORE it hydrates, and
-    // starts its router after: `_start_router` sets scrollRestoration first.
+    // starts its router after: _start_router sets scrollRestoration first.
     if (READY === "sveltekit") return history.scrollRestoration === "manual";
     return false;
   };

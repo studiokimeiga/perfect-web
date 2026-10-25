@@ -182,7 +182,7 @@ export const APPS = {
           cmd: process.execPath,
           args: ["build"],
           cwd: SVELTEKIT,
-          env: { PORT: String(port(5)), HOST: "127.0.0.1", ORIGIN: `http://127.0.0.1:${port(5)}`, NODE_ENV: "production" },
+          env: { PORT: String(port(5)), HOST: "127.0.0.1", ORIGIN: `http://localhost:${port(5)}`, NODE_ENV: "production" },
           port: port(5),
         }),
         path: "/stores/blue-bottle",
@@ -209,7 +209,12 @@ export function target(app, stack) {
     app,
     stack,
     label: s.label,
-    url: `http://127.0.0.1:${srv.port}${s.path}`,
+    // Every page at `localhost`, served on the IPv4 loopback: SvelteKit sets
+    // its session cookie `Secure` on any host but `localhost` over HTTP, and
+    // WebKit, unlike Chromium and Firefox, keeps no Secure cookie from
+    // http://127.0.0.1, so there the SvelteKit store kept no cart. One host
+    // name for every stack, so no stack is measured differently.
+    url: `http://localhost:${srv.port}${s.path}`,
     appSelector: a.appSelector,
     ready: s.ready,
     interactions: a.steps,

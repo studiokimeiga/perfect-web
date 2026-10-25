@@ -176,6 +176,10 @@ export function checkShaped(runs, network) {
 export function checkInteractive(runs, steps) {
   const problems = [];
   for (const r of runs) {
+    if (r.error) {
+      problems.push(`interactive: ${cellKey(r)} run ${r.i}: the run failed: ${r.error}`);
+      continue;
+    }
     if (!r.sameDocument) problems.push(`interactive: ${cellKey(r)} run ${r.i}: an interaction loaded a new document`);
     if ((r.interactions ?? []).length !== steps.length) {
       problems.push(`interactive: ${cellKey(r)} run ${r.i}: ${(r.interactions ?? []).length} of ${steps.length} interactions completed`);

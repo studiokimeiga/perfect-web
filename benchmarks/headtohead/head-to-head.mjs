@@ -126,8 +126,17 @@ async function measureApp(appName, args, log) {
           const order = shuffled(stackNames, args.seed + i * 7919 + blocks.indexOf(block) * 104729);
           for (const stack of order) {
             const t = targets.find((x) => x.stack === stack);
-            const r = await measureOnce({ browser, engine: block.engine, target: t, condition: block.condition, network: block.network });
-            runs.push({ app: appName, stack, engine: block.engine, condition: block.condition, network: block.network?.name ?? null, i, order: order.join(" "), ...r });
+            const cell = { app: appName, stack, engine: block.engine, condition: block.condition, network: block.network?.name ?? null, i, order: order.join(" ") };
+            try {
+              const r = await measureOnce({ browser, engine: block.engine, target: t, condition: block.condition, network: block.network });
+              runs.push({ ...cell, ...r });
+            } catch (e) {
+              // A run that failed is kept as one, with what failed: the rules
+              // refuse it (`validate.mjs`), and the rest is still reported.
+              const error = String(e?.message ?? e).split("\n")[0];
+              runs.push({ ...cell, error, requests: [], interactions: [], timings: {} });
+              log(`  ${appName}: ${stack} ${block.engine} ${block.condition}${block.network ? ` ${block.network.name}` : ""} run ${i} FAILED: ${error}`);
+            }
           }
         }
       } finally {
