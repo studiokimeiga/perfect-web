@@ -142,6 +142,10 @@ test("times differ only where their spreads do not overlap", () => {
   assert.equal(compareSpread(s(10, 20, 30), s(25, 27, 29)), "within the spread");
   // A higher median is no loss while the quartiles overlap.
   assert.equal(compareSpread(s(20, 28, 36), s(10, 25, 30)), "within the spread");
+  // Nor while they are apart by less than the engines' timer resolution.
+  assert.equal(compareSpread(s(30.6, 30.65, 30.7), s(30, 30.2, 30.4)), "within the spread");
+  assert.equal(compareSpread(s(30, 30.2, 30.4), s(30.6, 30.65, 30.7)), "within the spread");
+  assert.equal(compareSpread(s(31.5, 31.6, 31.7), s(30, 30.2, 30.4)), "loses");
 });
 
 test("a row in which another stack does better is a loss, and one in which Pleris is best of all is a win", () => {

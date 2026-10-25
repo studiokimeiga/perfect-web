@@ -6,8 +6,9 @@
 // (ADR-0342 §4's instrument), and the bytes each engine received are shown
 // beside. Times are medians with their quartiles and extremes, per engine,
 // condition and network. A difference in time is reported as a loss or a win
-// only where the two spreads do not overlap (one's first quartile above the
-// other's third); otherwise it is "within the spread".
+// only where the two spreads are apart by at least the engines' timer
+// resolution, a millisecond (one's first quartile that much above the other's
+// third); otherwise it is "within the spread".
 
 import { summary } from "./lib.mjs";
 
@@ -104,10 +105,14 @@ export function timings(app, cell, steps) {
 }
 
 /** Whether `a` (Pleris) is worse than `b`: a median above, with spreads apart. */
+/** A difference in time smaller than the engines' timer resolution is no
+ * difference: Firefox and WebKit give `performance.now()` to a millisecond. */
+export const RESOLUTION_MS = 1;
+
 export function compareSpread(a, b) {
   if (!a || !b || a.n === 0 || b.n === 0) return "unknown";
-  if (a.q1 > b.q3) return "loses";
-  if (a.q3 < b.q1) return "wins";
+  if (a.q1 - b.q3 >= RESOLUTION_MS) return "loses";
+  if (b.q1 - a.q3 >= RESOLUTION_MS) return "wins";
   return "within the spread";
 }
 
