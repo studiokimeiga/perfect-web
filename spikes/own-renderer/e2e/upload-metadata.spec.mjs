@@ -1,4 +1,4 @@
-// Track `upload-metadata` (ADR-XXXX, amending ADR-0260): an uploaded image
+// Track `upload-metadata` (ADR-0383, amending ADR-0260): an uploaded image
 // is kept and served without what names a place, a device, a person or a
 // time, in three engines. On the uploads track's hosts (`UPLOADS_PORTS`,
 // each with a blob storage of its own), each file is built here from a real

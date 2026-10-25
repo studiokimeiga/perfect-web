@@ -1,5 +1,5 @@
 //! **An image kept without what names a place, a device, a person or a
-//! time** (track `upload-metadata`, ADR-XXXX, amending ADR-0260).
+//! time** (track `upload-metadata`, ADR-0383, amending ADR-0260).
 //!
 //! ADR-0260 kept and served an upload's bytes as they were sent, so its
 //! metadata went with them: a photo taken on a phone and posted in the feed

@@ -1,5 +1,5 @@
 //! **An ICC profile kept for its colour, without what names a device, a
-//! person or a time** (track `upload-metadata`, ADR-XXXX: the independent
+//! person or a time** (track `upload-metadata`, ADR-0383: the independent
 //! review of 2026-10-25, finding 1).
 //!
 //! An image's embedded profile is what its colours mean, and a browser

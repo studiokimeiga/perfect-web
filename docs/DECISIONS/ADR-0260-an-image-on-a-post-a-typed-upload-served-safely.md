@@ -484,7 +484,7 @@ and the CI gates green.
 - New environment: `PW_BLOB_DIR`, `PW_UPLOAD_MAX_BYTES`,
   `PW_UPLOAD_MAX_WIDTH`, `PW_UPLOAD_MAX_HEIGHT`.
 
-## Amendment, 2026-10-25: an uploaded image is kept without its metadata (ADR-XXXX)
+## Amendment, 2026-10-25: an uploaded image is kept without its metadata (ADR-0383)
 
 Corrections first. This ADR kept and served an upload's bytes as sent, so a
 photo posted in the feed published its GPS position, camera, time, XMP,
@@ -495,7 +495,7 @@ engines: Chromium and Firefox turn a PNG by its eXIf (WebKit does not), so a
 turned PNG's box was sized unturned there. `sniff.rs` read the last of a
 JPEG's two Exif structures, where every engine reads the first. And
 `Shared::lease` lost the bytes of the same image attached twice by one
-session (§4's lease, fixed). ADR-XXXX (track `upload-metadata`) has the host
+session (§4's lease, fixed). ADR-0383 (track `upload-metadata`) has the host
 rewrite every upload before it is kept: each format's container walked, what
 decoding, colour, animation and a JPEG's turn need kept byte for byte (the
 turn as an Exif holding `Orientation` alone), everything else dropped, a

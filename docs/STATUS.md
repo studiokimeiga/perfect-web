@@ -45,6 +45,24 @@ passed (141 reached recipes, `e14-pleris-controls` and the three browser
 engines); the evidence is fetched at `973fbbcc`. Landing waits for the
 owner's approval and for exact-commit CI at the landed commit.
 
+**Landed by pull request, 2026-10-25: an uploaded image keeps no
+metadata** (track `upload-metadata`,
+[ADR-0383](DECISIONS/ADR-0383-an-uploaded-image-is-kept-without-its-metadata.md),
+amending ADR-0260). A privacy defect: a photo posted in the feed published
+its GPS position, camera, time, XMP, IPTC and comments, as sent. The host
+now rewrites every upload before it keeps it (JPEG, PNG, WebP and GIF, a
+JPEG's turn kept, an ICC profile kept for its colour alone), and a
+container that does not parse is refused whole. An independent review's
+five findings are fixed, each with its test and mutation control. At
+`58591617`, CI [40203355686](https://github.com/studiokimeiga/perfect-web/actions/runs/40203355686)
+and verify [40203355758](https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758)
+passed (103 recipes, `e14-upload-metadata`'s 91 of 91 mutants killed among
+them, and the three browser engines); that evidence is fetched at
+`818f4278`. The pull request's checks at its own head, the recipes the
+ADR's numbering reached among them, are its landing record. Not claimed:
+the pixels, a profile's measured colour tags, and images a deployment kept
+before ([KNOWN_LIMITATIONS](KNOWN_LIMITATIONS.md)).
+
 ## last passing commit
 
 **Latest verified master:** `e7664d2eb01aa8c6e91df594bd7270a84a8bf8de`

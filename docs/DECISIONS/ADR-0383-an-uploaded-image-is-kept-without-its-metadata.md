@@ -1,4 +1,4 @@
-# ADR-XXXX: an uploaded image is kept and served without what names a place, a device, a person or a time
+# ADR-0383: an uploaded image is kept and served without what names a place, a device, a person or a time
 
 Status: proposed by track `upload-metadata` (`track/upload-metadata`), under
 the integrator's ruling of 2026-10-25; amends ADR-0260 (and ADR-0260 says so
@@ -542,3 +542,27 @@ before the push.
 `miniz_oxide` 0.9.1, which `pw-dev-server` already takes (its version
 checked in `Cargo.lock` and its API, `decompress_to_vec_zlib_with_limit`
 and `compress_to_vec_zlib`, in the crate's source in cargo's registry).
+
+## Numbered (2026-10-25)
+
+- **Numbered ADR-0383** by the integrator's delegate, which lands this
+  track by pull request (the integrator's brief of 2026-10-25): the next
+  number after master's ADR-0382, which no branch on origin, open pull
+  request or worktree had taken. Numbered from `58591617`
+  (`track/upload-metadata`) after the evidence of its verify 40203355758
+  was fetched (`818f4278`). `ADR-XXXX` reads `ADR-0383` in the track's
+  code, tests, spec, mutation script, recipe and evidence (14 mentions in
+  8 files) and in ADR-0260's amendment (2), as in this file's name and
+  title.
+- **The integrator's answers** (2026-10-25) to the questions above: 1, the
+  cleaning pass is queued for the production track (NEXT); 2, pHYs
+  dropped: agreed; 4, yes: a follow-up passes `--locked` in `run.sh`,
+  `feed.sh` and `just ci`, with a gate that every cargo call in a recipe
+  or a script is locked (NEXT). Questions 3 and 5 to 7 remain open.
+- **Evidence of record**: verify 40203355758 at `58591617` (the 103
+  recipes its push planned, `e14-upload-metadata` with 91 of 91 mutants
+  killed among them, and the three full browser jobs), fetched in
+  `818f4278`; CI 40203355686 at the same commit. Numbering rewrote lines
+  that `e14-upload-metadata` and other recipes read, so the pull
+  request's own verify, at its head, runs again each recipe the numbering
+  reaches (ADR-0281).

@@ -164,7 +164,7 @@ fn an_image_attached_is_posted_with_its_post_and_served() {
 }
 
 /// **What names a place, a device, a person or a time is neither kept nor
-/// served** (track `upload-metadata`, ADR-XXXX): a phone's photo, attached
+/// served** (track `upload-metadata`, ADR-0383): a phone's photo, attached
 /// over HTTP and posted, is shown turned as it was taken, and served by the
 /// key of the bytes kept, which hold no GPS position, camera, time, XMP,
 /// IPTC or comment.

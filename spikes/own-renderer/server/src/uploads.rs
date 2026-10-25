@@ -16,7 +16,7 @@
 //!    kind is sniffed from the bytes, and its width and height read from its
 //!    header ([`sniff`]); the name and type the browser sent are never read.
 //! 2. The image is rewritten without what names a place, a device, a person
-//!    or a time ([`strip`], ADR-XXXX), and what is kept waits in this
+//!    or a time ([`strip`], ADR-0383), and what is kept waits in this
 //!    server's staging, by its SHA-256, **leased** to the session: one lease
 //!    a session, which a second upload replaces.
 //! 3. A command **claims** the lease (`resource.acquire<Upload>` in the
@@ -672,7 +672,7 @@ impl Shared {
             Err(read) => return unreadable(read),
         }
         // **Kept without what names a place, a device, a person or a time**
-        // (ADR-XXXX): rewritten before it is kept, a file whose container
+        // (ADR-0383): rewritten before it is kept, a file whose container
         // does not parse refused whole; then measured as it is kept, which
         // is what is served.
         let (kept, measured) = match strip::strip(bytes)
@@ -713,7 +713,7 @@ impl Shared {
 
     /// **`bytes` staged, and leased to `session`**, its earlier lease ended.
     /// `sent` is how many bytes its sender sent, which the user's budget and
-    /// the staging's cap count: what is kept may be fewer (ADR-XXXX), and
+    /// the staging's cap count: what is kept may be fewer (ADR-0383), and
     /// what the server read and rewrote is what it cost.
     fn lease(
         &self,
@@ -1254,7 +1254,7 @@ pub(crate) mod tests {
     }
 
     /// A PNG of `w` by `h`: its signature and IHDR, which is what is read,
-    /// and its IEND, which the host walks to as it keeps it (ADR-XXXX).
+    /// and its IEND, which the host walks to as it keeps it (ADR-0383).
     pub(crate) fn png(w: u32, h: u32) -> Vec<u8> {
         let mut b = vec![0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A];
         b.extend(13u32.to_be_bytes());
@@ -1620,7 +1620,7 @@ pub(crate) mod tests {
         assert_eq!(files(&d.path().join("staged")), 0, "forgotten, posted");
     }
 
-    /// **An image is leased, shown and kept as it is rewritten** (ADR-XXXX):
+    /// **An image is leased, shown and kept as it is rewritten** (ADR-0383):
     /// without what names a place, a device, a person or a time, by the
     /// rewritten bytes' key, in the deployment's storage as in staging.
     #[test]
@@ -1875,7 +1875,7 @@ pub(crate) mod tests {
             303
         );
         // Bytes: each at the declaration's most, the bytes spent first; the
-        // bytes sent, though what is kept drops all past IEND (ADR-XXXX).
+        // bytes sent, though what is kept drops all past IEND (ADR-0383).
         let mut large = png(2, 2);
         large.resize(4096, 0);
         for n in 0..BYTES_AN_HOUR {

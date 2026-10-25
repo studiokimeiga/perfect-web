@@ -50,6 +50,30 @@ The local-only performance/load/memory and Kiokun checks remain separate
 unproved work; keep their scope and the known backend/runtime limitations
 explicit.
 
+## Queued 2026-10-25: `upload-metadata`'s follow-ups
+
+Landed by pull request
+([ADR-0383](DECISIONS/ADR-0383-an-uploaded-image-is-kept-without-its-metadata.md));
+these follow the integrator's answers to its questions. Each waits behind
+the order above, and neither blocks it.
+
+1. **Every cargo call in a recipe or a script is `--locked`** (ADR-0383's
+   Found and its question 4). `run.sh`, `feed.sh` and `just ci`'s `cargo
+   test --workspace` call cargo without `--locked`, so a `Cargo.lock` out
+   of cargo's order (master's, from `7b7edea6` until this landing) is
+   rewritten and leaves a fresh checkout dirty; a recipe recorded after
+   that names "+ uncommitted changes", which `ci_plan.py` reads as no
+   commit, so its evidence is never current. Pass `--locked` there, and
+   add a gate, with its test and mutation control, that every cargo call
+   in a recipe or a script is locked, and that finds at least as many
+   calls as there are today, so that it cannot pass by finding none.
+2. **Clean a deployment's already-stored images** (the production track;
+   ADR-0383 §3 and its question 1): with uploads closed, rewrite each blob
+   a post names, point its posts at the rewritten bytes and their size in
+   one transaction, collect the old blob and have the CDN purge its
+   address; a blob that does not parse is reported and left, and a second
+   pass changes nothing. Due before a deployment keeps images; none does.
+
 ## After train-12's landing, 2026-10-21
 
 Kept as it stood when train-13 was assembled; its first three items are

@@ -1,4 +1,4 @@
-ADR-XXXX (track upload-metadata) - an uploaded image kept and served without what names a place, a device, a person or a time
+ADR-0383 (track upload-metadata) - an uploaded image kept and served without what names a place, a device, a person or a time
 
 produced by: just e14-upload-metadata
 commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9

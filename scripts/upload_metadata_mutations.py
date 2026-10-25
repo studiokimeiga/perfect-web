@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mutation controls for track `upload-metadata` (ADR-XXXX, amending ADR-0260):
+"""Mutation controls for track `upload-metadata` (ADR-0383, amending ADR-0260):
 an uploaded image is kept and served without what names a place, a device, a
 person or a time.
 

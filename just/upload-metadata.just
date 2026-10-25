@@ -1,4 +1,4 @@
-# Track `upload-metadata`'s recipes (ADR-XXXX, amending ADR-0260): an
+# Track `upload-metadata`'s recipes (ADR-0383, amending ADR-0260): an
 # uploaded image kept and served without what names a place, a device, a
 # person or a time. The track adds its recipes here and nowhere else; the
 # root justfile imports this file, and its settings and variables (`set
@@ -24,7 +24,7 @@ e14-upload-metadata:
     @bash spikes/own-renderer/feed.sh > /dev/null
     @cargo build --quiet --locked -p pw-dev-server -p kiokun-server
     @mkdir -p docs/evidence/E14
-    @{ echo "ADR-XXXX (track upload-metadata) - an uploaded image kept and served without what names a place, a device, a person or a time"; echo; \
+    @{ echo "ADR-0383 (track upload-metadata) - an uploaded image kept and served without what names a place, a device, a person or a time"; echo; \
        echo "produced by: just e14-upload-metadata"; \
        echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' ':(exclude)spikes/own-renderer/store-ir.json' || echo ' + uncommitted changes')"; \
        echo "rust: $(rustc --version)"; echo "node: $(node --version)"; \
