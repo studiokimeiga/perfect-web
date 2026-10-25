@@ -326,7 +326,7 @@ MUTANTS = [
         "        self.tcp\n            .set_read_timeout(Some(left.max(Duration::from_secs(60))))?;\n",
     ),
     (
-        "the deadline is not checked before a read",
+        "the deadline is not checked before a read or a write",
         CLIENT,
         LIB,
         "        let left = self.deadline.saturating_duration_since(Instant::now());\n"

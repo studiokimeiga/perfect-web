@@ -88,8 +88,13 @@ track's OIDC).
    the IPv4 address it maps. One refused address refuses the name, whatever
    the others are. So a name rebound to this machine, a private network or
    a cloud's metadata service (169.254.169.254) reaches nothing, and nothing
-   is resolved again between the check and the connection. The system's
-   resolver runs on a thread of its own, so its wait is bounded too.
+   is resolved again between the check and the connection. The addresses
+   are tried in the resolver's order, each given its share of what is left
+   of the connection's bound, so one that never answers (an unrouted IPv6
+   address before a working IPv4 one) does not take the others' time. The
+   system's resolver runs each lookup on a thread of its own, so its wait is
+   bounded too, and at most 32 run at once for one client, the next
+   refused: a resolver that never answers leaves no thread per request.
 4. **TLS is rustls 0.23.46 with the *ring* provider**: its safe default
    versions (TLS 1.3 and 1.2), ALPN `http/1.1`, SNI for a name, an address
    verified as an IP SAN, no client certificate, no early data, no key log.
@@ -106,19 +111,24 @@ track's OIDC).
      authority's root (`Roots::only`); a client of plain-HTTP development
      origins alone needs none (`Roots::none`, which trusts nothing).
 5. **No redirect is followed.** Fetch's redirect statuses (301, 302, 303,
-   307, 308) are `Error::Redirected`, with where they point; following one
-   would be a new request, held to the grant like any other. So no answer
+   307, 308) are `Error::Redirected`, with the origin they point to (never
+   the path or query, which may echo the request's); following one would be
+   a new request, held to the grant like any other. So no answer
    takes the client, or a secret it sent, to another origin, and a 307 or
    308 never resends a body anywhere.
 6. **One deadline bounds the whole exchange** (`Limits::total`, ten seconds
    by default): resolving, connecting (`Limits::connect`, five), the
    handshake (`Limits::handshake`, five), writing and reading are each
    within it, and every read and write on the socket waits only for what is
-   left of it. A peer that drips its answer is given up at the total.
+   left of it. A peer that drips its answer is given up at the total. No
+   wait is longer than a day (`MOST_WAIT`): a longer one is held to it, so
+   no deadline overflows the clock.
 7. **An answer is bounded**: its head (64 KiB, its interim answers among
    it, 128 fields at most) and its body (1 MiB, a chunked body's framing to
    as many bytes again). A stated length past the bound is refused before a
-   byte of it is read or allocated.
+   byte of it is read or allocated, and a chunk's size is held to what is
+   left of the bound, never summed with what is held (a size near 2^64
+   would wrap the sum).
 8. **HTTP/1.1 is the host's own** (RFC 9112), strictly: one request per
    connection, `Connection: close`; an answer is read by its stated length
    or its chunks, never to the connection's close, and as soon as it is
@@ -128,11 +138,13 @@ track's OIDC).
    longer than its size, a bare CR or LF, a folded field line, whitespace
    before a `:`, a control in a value, a content coding the client never
    asked for, a switch of protocol, more than eight interim answers, and a
-   status line of another protocol or out of 100 to 599. A request's field
+   status line of another protocol or out of 100 to 599. Every request
+   asks for no content coding (`accept-encoding: identity`; RFC 9110 §12.5.3
+   lets a server choose any where the field is absent). A request's field
    is a token and a value of visible ASCII, spaces and tabs (no CR or LF, so
-   no field ends its line), never one of the client's own (`Host`, the
-   framing, the connection's); its target is a path and a query of URI
-   characters. Three refusals are stricter than RFC 9112 allows a user
+   no field ends its line), never one of the client's own (`Host`,
+   `Accept-Encoding`, the framing, the connection's); its target is a path
+   and a query of URI characters. Three refusals are stricter than RFC 9112 allows a user
    agent: an obs-fold, which §5.2 has it unfold (as httparse refuses one by
    default); a close-delimited answer, which §6.3 reads to the close, and a
    transfer coding whose last is not `chunked`, also read to the close
@@ -142,15 +154,25 @@ track's OIDC).
    says only that it is one, and no code outside the crate can read it
    back, so no host code can put it in a program's `Val`, an error or a log
    line. The client logs nothing. No error holds a request's header value,
-   body or query, and a URL's error never quotes the URL; a `Request`'s
-   `Debug` shows its URL without the query, its headers, its secrets' names
-   and its body's length.
+   body, path or query, and a URL's error never quotes the URL. A
+   `Request`'s `Debug` shows its URL's origin alone (a webhook's path may be
+   a secret), its headers, its secrets' names and its body's length; an
+   `Answer`'s, its status, its fields' names and its body's length (a
+   provider's answer may hold a payment's client secret or a token).
 10. **The payments reach their provider through it.** `payments.rs`'s own
     HTTP is gone: `Payments` holds a client granted the provider's origin
     alone (`development_client`: a development origin, plain HTTP, no
     roots, within `PROVIDER_WAIT`, now the whole exchange's bound), and
     `begin`, `cancel` and the hearing's read of an intent all go through
-    it. A provider at an https origin is reached over TLS by the same code
+    it. A request the client refuses before sending it (a field or a target
+    that would split it, an origin not granted) traps the command: it says
+    the host's or the program's mistake, and `TransportFailed` would say the
+    provider could not be reached. A payment's id, and an intent's a signed
+    event names, are each one segment of the provider's path (letters,
+    digits, `_`, as Stripe's are), so no id makes another request of the one
+    meant. The development provider's client is made before the provider
+    starts, so a port no origin can name (0) is refused at start. A
+    provider at an https origin is reached over TLS by the same code
     (tested with the development provider behind a TLS front); a
     deployment's provider at a public origin differs in its grant
     (`Grant::public`) and its roots (`Roots::platform`) alone: NEXT 6d's
@@ -205,6 +227,9 @@ track's OIDC).
 - **Following redirects to declared origins**: each would need its own
   checks (a method changed, a body resent, a secret header dropped across
   origins), for providers that never redirect; refusing them is one rule.
+- **Happy Eyeballs** (RFC 8305, addresses raced): a thread or a poller per
+  attempt for a host that calls a few providers; each address's share of
+  the bound keeps one dead address from taking the rest's time.
 - **Kept-alive connections**: a pool, a stale connection, and the retry of
   a request that may have been applied, for providers called a few times a
   minute; TLS sessions are resumed instead (rustls's in-memory cache, one
@@ -228,22 +253,28 @@ Each is a test, and a mutant the test kills (`scripts/outbound_https_mutations.p
 | Guarantee | Tests | Mutants |
 | --- | --- | --- |
 | Only a declared origin, compared whole | `an_undeclared_origin_is_never_reached`, `a_grant_holds_its_origins_to_their_reach`, `origin::tests` | any origin; no port; no scheme; public over http; public or development at a special address; host case; default port; port 0; another IPv4 form; credentials, fragment |
-| Addresses checked, every one, before any is reached | `a_public_origin_rebound_to_loopback_reaches_nothing`, `a_public_origin_reaches_no_special_address`, `every_address_is_checked_before_any_is_reached`, `a_development_origin_reaches_this_machine_alone`, `address::tests` | not checked; first only; development reaching global; loopback global; mapped read as IPv6; 10/8, 172.16/12, 192.168/16, 169.254/16, 100.64/10, 0/8, multicast, reserved, 6to4 narrowed; all of IPv6 global |
+| Addresses checked, every one, before any is reached | `a_public_origin_rebound_to_loopback_reaches_nothing`, `a_public_origin_reaches_no_special_address`, `every_address_is_checked_before_any_is_reached`, `a_development_origin_reaches_this_machine_alone`, `an_address_that_never_answers_leaves_the_next_its_share` (Linux), `address::tests` | not checked; first only; the first taking the whole bound; development reaching global; loopback global; mapped read as IPv6; 10/8, 172.16/12, 192.168/16, 169.254/16, 100.64/10, 0/8, multicast, reserved, 6to4 narrowed; all of IPv6 global |
 | Certificates verified | `an_expired_certificate_is_refused`, `a_certificate_not_yet_valid_is_refused`, `a_certificate_for_another_host_is_refused`, `a_certificate_of_no_given_root_is_refused`, `the_platforms_roots_do_not_trust_a_tests_authority`, `an_address_origin_is_verified_by_its_address`, `tls::tests` | https in the clear; roots ignored; empty store taken; refusals misnamed |
-| No redirect followed | `a_redirect_is_never_followed`, `http1::tests::a_redirect_is_refused` | none refused; 307 and 308 answers |
-| One deadline | `a_handshake_never_begun_is_given_up`, `an_answer_never_sent_is_given_up`, `an_answer_dripped_is_given_up_at_the_total`, `the_exchange_has_the_rest_of_the_total`, `a_connection_never_accepted_is_given_up` (Linux), `the_systems_resolver_is_waited_for_no_longer_than_given`, payments' `a_provider_that_does_not_answer_in_time_is_not_reached` | each read bounded, not the answer; a read waiting a minute; the deadline unchecked; connect and handshake by the total alone; the exchange by the handshake's bound; the resolver past its wait; the payments' wait six times longer |
-| Bounded sizes | `an_answer_is_bounded`, `a_length_past_the_bound_is_refused_unread`, `a_head_past_the_bound_is_refused` | a length one past; chunks bounded singly; chunk framing unbounded; head at four times |
-| HTTP/1.1 framing | `http1::tests` (lengths, chunks, codings, grammar, interim), `the_framing_is_held_over_tls`, `an_answer_held_open_is_read_by_its_length` | 23 mutants, one per rule |
-| A request's fields cannot split it | `no_field_can_split_a_request`, `a_field_that_would_split_the_request_is_never_sent`, `a_requests_head_is_written_whole` | a line break written; a secret unchecked; reserved fields in another case; a non-token name; no length; a target with a line break |
-| Secrets said nowhere | `a_secret_is_sent_and_said_nowhere`, `a_urls_error_never_quotes_it`, `no_field_can_split_a_request` | a secret's `Debug`; a request's body or query in its `Debug`; a secret in its refusal |
-| The payments through it | payments' `https_tests` and `answer_tests`, the store's payments in memory | granted nothing; waiting longer; the hearing through another client |
+| No redirect followed | `a_redirect_is_never_followed`, `http1::tests::a_redirect_is_refused` | none refused; 307 and 308 answers; the error holding the whole location |
+| One deadline | `a_handshake_never_begun_is_given_up`, `an_answer_never_sent_is_given_up`, `an_answer_dripped_is_given_up_at_the_total`, `the_exchange_has_the_rest_of_the_total`, `a_connection_never_accepted_is_given_up` (Linux), `no_wait_is_longer_than_a_day`, `resolve::tests`, payments' `a_provider_that_does_not_answer_in_time_is_not_reached` | each read bounded, not the answer; a read waiting a minute; the deadline unchecked; connect and handshake by the total alone; the exchange by the handshake's bound; the resolver past its wait, or lookups unbounded; a wait not held to a day; the payments' wait six times longer |
+| Bounded sizes | `an_answer_is_bounded`, `a_length_past_the_bound_is_refused_unread`, `a_head_past_the_bound_is_refused` | a length one past; chunks bounded singly, or summed so the sum wraps; chunk framing unbounded; head at four times |
+| HTTP/1.1 framing | `http1::tests` (lengths, chunks, codings, grammar, interim), `the_framing_is_held_over_tls`, `an_answer_held_open_is_read_by_its_length` | a mutant per rule, `accept-encoding: identity` among them |
+| A request's fields cannot split it | `no_field_can_split_a_request`, `a_field_that_would_split_the_request_is_never_sent`, `a_requests_head_is_written_whole` | a line break written; a secret unchecked; reserved fields in another case, or `accept-encoding` not reserved; a non-token name; no length; a target with a line break |
+| Secrets said nowhere | `a_secret_is_sent_and_said_nowhere`, `a_urls_error_never_quotes_it`, `no_field_can_split_a_request` | a secret's `Debug`; a request's body, or its path and query, in its `Debug`; an answer's body in its; a secret in its refusal |
+| The payments through it | payments' `https_tests` (an https provider; an untrusted one; a split interaction; an id that is not one; the grant) and `answer_tests`, the store's payments in memory | granted nothing; waiting longer; the hearing through another client; a refusal taken for an unreachable provider; a payment's id or an intent's unchecked |
 
 ## Acceptance
 
 Recorded by `just e14-outbound-https` in `docs/evidence/E14/outbound-https.txt`:
-`runtime/pw-outbound`'s 42 tests; the development server's payments tests
-(the store's among them, in memory); and the mutation controls. Counts as
-run on this track: see the track's commit and the recipe's evidence.
+`runtime/pw-outbound`'s 45 tests; the development server's 36 payments
+tests (the store's among them, in memory; seven of them of the payments
+at an https origin and of the provider's answer); and the mutation controls
+(`scripts/outbound_https_mutations.py`, 88 mutants: 82 of the client, 6 of
+the payments; each kill named by its tests). The scripts the change reaches
+(`ci_plan.py --changed`), each run whole on this track: `payments` (39),
+`invoked_by` (14), `each_heads` (12; reached only because the planner reads
+`resolve` as pw-core's module of that name). `cargo deny check` (licences
+and advisories) passed in the `ci` workflow at the track's first push.
 
 ## Not claimed
 
@@ -264,16 +295,20 @@ run on this track: see the track's commit and the recipe's evidence.
   given).
 - **Proxies**: `HTTPS_PROXY` and its kin are not read; a deployment behind
   an egress proxy cannot use the client yet.
-- **HTTP/2, kept-alive connections, Happy Eyeballs** (addresses are tried
-  in the resolver's order), internationalized names (an A-label is taken,
-  a U-label refused), `100-continue`.
+- **HTTP/2, kept-alive connections, addresses raced** (they are tried in
+  the resolver's order, each with its share), internationalized names (an
+  A-label is taken, a U-label refused), `100-continue`.
 - **A secret's bytes wiped from memory** once sent.
+- **Every byte past an answer's end**: bytes that arrive with the answer
+  are refused; any sent later are never read, as the answer is taken once
+  it is whole (ADR-0332, step eight).
 - **The platform's roots, read at start**: a change to the store reaches
   the host at its next start, and `SSL_CERT_FILE` / `SSL_CERT_DIR` change
   what is trusted (the operator's to set).
 - **The refusal of an empty platform store** is tested with an empty
   `CertificateResult`, not on a machine without a store; the connection's
-  bound is tested on Linux alone (a listener whose queue is full).
+  bound and each address's share of it are tested on Linux alone (a
+  listener whose queue is full; a second loopback address).
 
 ## What next work needs
 
@@ -338,6 +373,23 @@ run on this track: see the track's commit and the recipe's evidence.
 
 ## Found
 
+- **(correction, found by the track's review) A chunk's size wrapped the
+  bound.** The first version summed a chunk's size with the body held; a
+  size near 2^64 after a first chunk wrapped the sum past the bound in a
+  release build (the server's `release` profile has no overflow checks),
+  and the body was read without bound until the deadline. Held to what is
+  left now; the regression is in `an_answer_is_bounded`, and its mutant
+  ("the sum wraps") in the script.
+- **(correction, found by the review) A payment's id made another
+  request**: `cancel` and the hearing pasted an id into the provider's
+  path; `pi_1?x=` read the intent `pi_1` (its owner the reader's), then
+  posted to `/v1/payment_intents/pi_1?x=/cancel`, Stripe's update, not its
+  cancel. Before the one client a CR or LF in an id reached the request
+  line itself. Each id is one segment now.
+- **(flake, ci run 40217665465, ARM64)** the first resolver test waited
+  1 ns for `localhost` and raced the answer: `recv_timeout` takes a message
+  already sent before it reads the clock. Rewritten over a lookup that
+  sleeps; the review had named it.
 - **(correction) The payments' own HTTP was unbounded** (Context): a
   provider's stated length allocated whole, a body read to the close, a
   head line unbounded, and each read bounded rather than the answer. Fixed
@@ -350,6 +402,6 @@ run on this track: see the track's commit and the recipe's evidence.
   as it came, and the interaction is the reader's runtime's to name
   (`pw-interaction`, a line of the command's head, trimmed), so a bare CR,
   a control or a character outside ASCII in it went to the provider in a
-  field of its own making. The client refuses such a field: the payment is
-  `TransportFailed` and the provider is asked nothing
+  field of its own making. The client refuses such a field: the command
+  traps, and the provider is asked nothing
   (`an_interaction_that_would_split_the_providers_request_is_never_sent`).

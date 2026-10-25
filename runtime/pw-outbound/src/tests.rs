@@ -552,6 +552,29 @@ fn no_wait_is_longer_than_a_day() {
     assert_eq!(said.map(|a| a.status()), Ok(200));
 }
 
+/// **A read or a write begun past the deadline is the deadline's**: it is
+/// refused as timed out, and never handed to the socket, which takes no wait
+/// of zero. (Mostly the socket's own wait ends an exchange; this is the case
+/// it cannot: a read begun after the last byte that came in time.)
+#[test]
+fn a_read_or_a_write_past_the_deadline_is_timed_out() {
+    use std::io::{Read, Write};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let tcp = TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+    let past = Instant::now()
+        .checked_sub(Duration::from_millis(1))
+        .unwrap_or_else(Instant::now);
+    let mut sock = Sock {
+        tcp,
+        deadline: past,
+    };
+    let read = sock.read(&mut [0u8; 8]).map_err(|e| e.kind());
+    assert_eq!(read, Err(std::io::ErrorKind::TimedOut));
+    let written = sock.write(b"x").map_err(|e| e.kind());
+    assert_eq!(written, Err(std::io::ErrorKind::TimedOut));
+    drop(listener);
+}
+
 /// **A connection the server's host never accepts is given up at the
 /// connection's bound**: a listener whose queue is full drops each new
 /// connection's first packet, as an address that answers nothing does.
