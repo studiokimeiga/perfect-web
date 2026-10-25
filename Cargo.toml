@@ -8,6 +8,7 @@ members = [
     "runtime/pw-document",
     "runtime/pw-host",
     "runtime/pw-materialize",
+    "runtime/pw-outbound",
     "runtime/pw-protocol",
     "runtime/pw-render",
     "runtime/pw-render-wasm",
