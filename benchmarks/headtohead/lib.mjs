@@ -17,15 +17,14 @@ export const BENCH = path.resolve(HERE, "..");
 export const REPO = path.resolve(BENCH, "..");
 export const HARNESS = path.join(BENCH, "harness");
 
-/** Playwright, as the benchmark's harness installs it (1.58.0): the
- * head-to-head adds no package of its own. */
+/** Playwright, 1.58.0, as this package pins it (`package.json`), the same
+ * the benchmark's harness and the own renderer pin. */
 export function playwright() {
-  return createRequire(path.join(HARNESS, "package.json"))("@playwright/test");
+  return createRequire(path.join(HERE, "package.json"))("@playwright/test");
 }
 
 export function playwrightVersion() {
-  const require = createRequire(path.join(HARNESS, "package.json"));
-  return require("@playwright/test/package.json").version;
+  return createRequire(path.join(HERE, "package.json"))("@playwright/test/package.json").version;
 }
 
 // --- statistics ---------------------------------------------------------------

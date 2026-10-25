@@ -12,6 +12,9 @@ packages:
   - "benchmarks/baselines/next-react"
   - "benchmarks/baselines/sveltekit"
   - "benchmarks/harness"
+  # The head-to-head (ADR-XXXX): its instrument and specs, on the pinned
+  # Playwright; it measures the vendored TodoMVC apps and the baselines above.
+  - "benchmarks/headtohead"
   # Track `todomvc` (W7): TodoMVC's own Cypress suite, vendored unchanged and
   # run against TodoMVC in Pleris (`spikes/todomvc-cypress`). In the workspace
   # so that `just audit` scans Cypress's dependency tree too (charter §3.6).

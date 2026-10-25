@@ -1,0 +1,7 @@
+{
+  "name": "pw-bench-headtohead",
+  "private": true,
+  "type": "module",
+  "//": "The head-to-head (ADR-XXXX): its instrument and behaviour specs, on the Playwright the benchmark's harness and the own renderer pin (1.58.0, the browser builds installed on this host). No other package: the apps it measures are vendored or are the benchmark's baselines.",
+  "devDependencies": { "@playwright/test": "1.58.0" }
+}
