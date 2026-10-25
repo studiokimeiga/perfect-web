@@ -1,15 +1,14 @@
 ADR-0082 - a derived value performs no effect
 
 produced by: just e10-derived
-commit: 320c52a44840a80423609ab476eb847c04de34a6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39442025240 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 06e4827e5f19d4c27713f39745bf23de422854fa
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == derived purity (compiler/pw-core/tests/derived_purity.rs)
 
-test a_derived_value_performs_no_effect ... ok
 test what_a_derived_value_names_and_reads_counts ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+test a_derived_value_performs_no_effect ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
 
 == mutation controls (scripts/derived_mutations.py)
 
