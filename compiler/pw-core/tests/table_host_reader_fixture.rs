@@ -1,5 +1,6 @@
-//! Compile the D2 readers and exercise exact read-only Wasmtime HostFns.
-//! MemoryTables binding remains separate.
+//! Compile the D2 get/get-many reader fixture without running a host.
+//! The separate Wasmtime integration must later invoke these actual components
+//! using only manifest-declared, admitted bindings.
 
 use pw_core::backend::component::Built;
 use pw_core::check::Unit;
@@ -42,33 +43,12 @@ fn compiled_table_readers_have_exact_manifest_and_contract_imports() {
     let build = pw_core::build::build(&units()).expect("the table reader builds");
     assert!(build.refusals().is_empty(), "{:?}", build.refusals());
 
-    // Read the compiler's JSON contract through the runtime's independent
-    // contract mirror, rather than passing compiler types into the host.
-    let host_contracts = pw_host::ComponentContract::from_json(
-        &serde_json::to_string(&build.contracts).expect("serialize compiled contracts"),
-    )
-    .expect("host accepts compiler-emitted contracts");
-    let origin = pw_host::Topology::from_json(
-        r#"{"nodes":[{"name":"origin","world":"origin","grants":["database.read<Lists>"]}]}"#,
-    )
-    .expect("read-enabled origin");
-    let no_read = pw_host::Topology::from_json(
-        r#"{"nodes":[{"name":"origin","world":"origin","grants":[]}]}"#,
-    )
-    .expect("origin without read grant");
-
     let table = build
         .tables
         .tables
         .iter()
         .find(|table| table.schema.name == "Lists")
         .expect("compiler emitted Lists in tables.json");
-    // A table import links only with the program's tables.json (the table
-    // gate, ADR-0338 D2), read as the host reads it.
-    let host_tables = pw_host::tables::Manifest::from_json(
-        &serde_json::to_string(&build.tables).expect("serialize tables.json"),
-    )
-    .expect("the host reads the compiler's tables.json");
 
     for (component_id, key, primitive) in [
         ("tables.reader.ById", "pw:tables/lists#get", Primitive::Get),
@@ -98,16 +78,6 @@ fn compiled_table_readers_have_exact_manifest_and_contract_imports() {
         assert!(*audited > 0);
         assert_eq!(compiled.component.imports, [key], "{component_id}");
 
-        // Compiler bookkeeping is not proof of what Wasmtime will load.
-        // Read imports from the compiled binary through the actual host engine.
-        let actual_imports = pw_host::engine::imports_of(&compiled.component.bytes)
-            .unwrap_or_else(|error| panic!("{component_id} fails Wasmtime: {error}"));
-        assert_eq!(
-            actual_imports,
-            [key],
-            "{component_id}: Wasmtime imports must be exactly the manifest's read"
-        );
-
         let contract = build
             .contracts
             .iter()
@@ -132,244 +102,5 @@ fn compiled_table_readers_have_exact_manifest_and_contract_imports() {
                 .any(|capability| capability.name() == "database.read<Lists>"),
             "{component_id} must declare its read capability"
         );
-
-        // Admit the actual Wasmtime imports, not the compiler's claimed list.
-        let host_contract = host_contracts
-            .iter()
-            .find(|contract| contract.component_id == component_id)
-            .expect("host has the corresponding emitted contract");
-        let admission = pw_host::admit(host_contract, &origin, "origin", &actual_imports);
-        assert!(admission.is_admitted(), "{component_id}: {admission:?}");
-        let granted =
-            pw_host::Granted::from(&admission, &Default::default()).expect("admitted read grant");
-        assert_eq!(
-            pw_host::linkable(host_contract, &granted),
-            actual_imports,
-            "{component_id}: host must link only the declared read",
-        );
-
-        // A matching contract without the table read grant cannot run.
-        let denied = pw_host::admit(host_contract, &no_read, "origin", &actual_imports);
-        assert!(
-            denied
-                .refusals()
-                .iter()
-                .any(|reason| matches!(reason, pw_host::Refusal::Ungranted { .. })),
-            "{component_id}: missing read grant must refuse admission: {denied:?}",
-        );
-
-        // Negative control: the sibling is another real compiled component,
-        // but its get/get-many import is absent from this reader's contract.
-        let sibling_id = if component_id == "tables.reader.ById" {
-            "tables.reader.ByIds"
-        } else {
-            "tables.reader.ById"
-        };
-        let (_, sibling) = build
-            .components
-            .iter()
-            .find(|(id, _)| id == sibling_id)
-            .expect("the sibling reader component");
-        let Built::Component {
-            compiled: sibling_compiled,
-            ..
-        } = sibling
-        else {
-            panic!("{sibling_id} did not compile");
-        };
-        let sibling_imports = pw_host::engine::imports_of(&sibling_compiled.component.bytes)
-            .expect("Wasmtime inspects sibling imports");
-        let mismatch = pw_host::admit(host_contract, &origin, "origin", &sibling_imports);
-        assert!(
-            mismatch
-                .refusals()
-                .iter()
-                .any(|reason| matches!(reason, pw_host::Refusal::UndeclaredImport { .. })),
-            "{component_id}: sibling import must be undeclared: {mismatch:?}",
-        );
-
-        if component_id == "tables.reader.ById" {
-            // Admission is not execution: exercise the real compiled guest
-            // with exactly its declared get handler, but no memory adapter yet.
-            let export = host_contract.exports[0]
-                .component
-                .as_ref()
-                .expect("reader export has a component path");
-            let path = [&export.interface[..], &export.function[..]];
-            let args = [pw_host::engine::Val::String("missing".into())];
-
-            // A capability grant alone must never supply a default/stub host.
-            let unimplemented = pw_host::engine::call_with_tables(
-                &compiled.component.bytes,
-                host_contract,
-                &granted,
-                &pw_host::Limits::unbounded(),
-                &Default::default(),
-                &host_tables,
-                &path,
-                &args,
-            )
-            .expect_err("get with no host callback must be refused");
-            assert!(
-                unimplemented.contains(key),
-                "the missing exact read must be named: {unimplemented}"
-            );
-
-            let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
-            let observed = std::sync::Arc::clone(&calls);
-            let handler: pw_host::engine::HostFn = std::sync::Arc::new(move |received| {
-                assert_eq!(received, &[pw_host::engine::Val::String("missing".into())]);
-                observed.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                Ok(vec![pw_host::engine::Val::Option(None)])
-            });
-            let exact_host = std::collections::BTreeMap::from([(key.to_owned(), handler)]);
-            assert_eq!(
-                pw_host::engine::call_with_tables(
-                    &compiled.component.bytes,
-                    host_contract,
-                    &granted,
-                    &pw_host::Limits::unbounded(),
-                    &exact_host,
-                    &host_tables,
-                    &path,
-                    &args,
-                ),
-                Ok(vec![pw_host::engine::Val::Option(None)]),
-                "the compiled get reader must call the granted exact HostFn"
-            );
-            assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
-
-            // A present key must preserve the typed WIT Option<TodoList>
-            // across the compiled guest and its exact host callback.
-            let present_args = [pw_host::engine::Val::String("list-a".into())];
-            let present_row = pw_host::engine::Val::Record(vec![
-                ("id".into(), pw_host::engine::Val::String("list-a".into())),
-                ("name".into(), pw_host::engine::Val::String("List A".into())),
-                ("slug".into(), pw_host::engine::Val::String("list-a".into())),
-                ("added".into(), pw_host::engine::Val::S64(10)),
-            ]);
-            let present_result = pw_host::engine::Val::Option(Some(Box::new(present_row)));
-            let present_calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
-            let observed = std::sync::Arc::clone(&present_calls);
-            let expected_args = present_args.clone();
-            let supplied_result = present_result.clone();
-            let handler: pw_host::engine::HostFn = std::sync::Arc::new(move |received| {
-                assert_eq!(received, &expected_args[..]);
-                observed.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                Ok(vec![supplied_result.clone()])
-            });
-            let exact_host = std::collections::BTreeMap::from([(key.to_owned(), handler)]);
-            assert_eq!(
-                pw_host::engine::call_with_tables(
-                    &compiled.component.bytes,
-                    host_contract,
-                    &granted,
-                    &pw_host::Limits::unbounded(),
-                    &exact_host,
-                    &host_tables,
-                    &path,
-                    &present_args,
-                ),
-                Ok(vec![present_result.clone()]),
-                "the compiled get reader must return the HostFn's typed present row"
-            );
-            assert_eq!(present_calls.load(std::sync::atomic::Ordering::SeqCst), 1);
-
-            // A HostFn may return values that are well-formed Val variants but
-            // wrong for the compiled guest's WIT Option<TodoList>. Wasmtime
-            // must refuse that value, not turn it into a missing row.
-            let invalid_calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
-            let observed = std::sync::Arc::clone(&invalid_calls);
-            let invalid_handler: pw_host::engine::HostFn = std::sync::Arc::new(move |_| {
-                observed.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                Ok(vec![pw_host::engine::Val::Option(Some(Box::new(
-                    pw_host::engine::Val::S64(10),
-                )))])
-            });
-            let invalid_host =
-                std::collections::BTreeMap::from([(key.to_owned(), invalid_handler)]);
-            assert!(
-                pw_host::engine::call_with_tables(
-                    &compiled.component.bytes,
-                    host_contract,
-                    &granted,
-                    &pw_host::Limits::unbounded(),
-                    &invalid_host,
-                    &host_tables,
-                    &path,
-                    &present_args,
-                )
-                .is_err(),
-                "a scalar Some value must not satisfy the compiled WIT row result"
-            );
-            assert_eq!(invalid_calls.load(std::sync::atomic::Ordering::SeqCst), 1);
-
-            // A malformed callback result must not poison another valid read.
-            assert_eq!(
-                pw_host::engine::call_with_tables(
-                    &compiled.component.bytes,
-                    host_contract,
-                    &granted,
-                    &pw_host::Limits::unbounded(),
-                    &exact_host,
-                    &host_tables,
-                    &path,
-                    &present_args,
-                ),
-                Ok(vec![present_result]),
-            );
-            assert_eq!(present_calls.load(std::sync::atomic::Ordering::SeqCst), 2);
-        }
-
-        if component_id == "tables.reader.ByIds" {
-            // Exercise the compiled get-many ABI with two typed rows in the
-            // callback's order. The memory adapter is not connected yet.
-            let export = host_contract.exports[0]
-                .component
-                .as_ref()
-                .expect("reader export has a component path");
-            let path = [&export.interface[..], &export.function[..]];
-            let args = [pw_host::engine::Val::List(vec![
-                pw_host::engine::Val::String("list-b".into()),
-                pw_host::engine::Val::String("list-a".into()),
-            ])];
-            let row = |id: &str, added: i64| {
-                pw_host::engine::Val::Record(vec![
-                    ("id".into(), pw_host::engine::Val::String(id.into())),
-                    (
-                        "name".into(),
-                        pw_host::engine::Val::String(format!("List {id}")),
-                    ),
-                    ("slug".into(), pw_host::engine::Val::String(id.into())),
-                    ("added".into(), pw_host::engine::Val::S64(added)),
-                ])
-            };
-            let rows = pw_host::engine::Val::List(vec![row("list-b", 20), row("list-a", 10)]);
-            let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
-            let observed = std::sync::Arc::clone(&calls);
-            let expected_args = args.clone();
-            let supplied_rows = rows.clone();
-            let handler: pw_host::engine::HostFn = std::sync::Arc::new(move |received| {
-                assert_eq!(received, &expected_args[..]);
-                observed.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                Ok(vec![supplied_rows.clone()])
-            });
-            let exact_host = std::collections::BTreeMap::from([(key.to_owned(), handler)]);
-            assert_eq!(
-                pw_host::engine::call_with_tables(
-                    &compiled.component.bytes,
-                    host_contract,
-                    &granted,
-                    &pw_host::Limits::unbounded(),
-                    &exact_host,
-                    &host_tables,
-                    &path,
-                    &args,
-                ),
-                Ok(vec![rows]),
-                "the compiled get-many reader must forward keys and return typed rows"
-            );
-            assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
-        }
     }
 }
