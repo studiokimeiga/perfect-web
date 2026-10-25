@@ -59,7 +59,7 @@ it has, as it is.
 | each interaction | the input event's own time stamp to the change in the document and to the frame after it | TodoMVC: add, complete, filter; the store: Add |
 | cold and warm | cold: a new browser context; warm: the same context after one whole visit, its page storage cleared, cookies kept | stated beside every number |
 | network shaping | Chromium alone (Playwright offers Firefox and WebKit none): Lighthouse's Slow 4G, 150 ms, 1.6 Mbit/s down, 750 kbit/s up, CPU x4 | the same profile for every stack in a block |
-| runs | seven a cell, every stack visited once a round in an order shuffled from the seed and the round (printed) | median, quartiles, extremes; a time differs only where the quartiles do not overlap |
+| runs | seven a cell, every stack visited once a round in an order shuffled from the seed and the round (printed), after the machine settles (up to 120 s for its one-minute load to fall under a quarter of its CPUs) | median, quartiles, extremes; a time differs only where the quartiles are a millisecond apart, the engines' timer resolution |
 | server cost | `load.mjs`: an open fixed load, 100 requests/s for 10 s after 50 warm-up requests, of the page's document (the store with 20 sessions' cookies); latency from when each was due | CPU (user + system) of the server's process tree per request and resident memory before, at peak and after, from /proc |
 | open pages | 20 pages of the app in one Chromium, loaded and left alone for 10 s; then a press in the last | the requests they made, the server's CPU a second, the press's time to its change |
 | source size | `scripts/head_to_head_loc.py` | non-blank, non-comment lines by each language's own comments; app, the code it needs in its server in another language, build and configuration apart; lockfiles and builds listed and not counted |
@@ -97,7 +97,7 @@ downloaded its main script again from a host that lets a cache keep it
 fixed load with an unanswered request; a failed page load, fixed load or
 open-pages measurement, each kept in the report as the failure it was.
 `scripts/head_to_head_mutations.py` takes each rule out in turn, and each
-piece of the instrument, its judges and its counter (29 mutants, each killed
+piece of the instrument, its judges and its counter (30 mutants, each killed
 by an assertion of its witness test), and runs four integrity controls on the
 real instrument (a run count of one; React on an unminified print of its
 build; Svelte on a build not upstream's; Pleris on a build older than its
@@ -132,16 +132,21 @@ Ports: `PORT` + 220..249.
 
 ## Results
 
-`PORT=13441 just e14-head-to-head`, 2026-10-25 (the whole recipe 18:21-18:46Z,
-its measurement 18:28-18:46Z), at `d6fdb217`, on the PC: an Intel Core
-i9-13900K, 32 logical CPUs, 31.2 GiB, Ubuntu 22.04.3 on WSL2 (kernel
-6.18.54.1); the one-minute load average 30.3 when the measurement began (the
-recipe's own builds and checks just before it, and other sessions' work) and
-1.4 when it ended; Chromium 145.0.7632.6, Firefox 146.0.1, WebKit 26.0;
-seven runs a cell; every rule held (`docs/evidence/E14/head-to-head.txt`,
-which prints the 58 rows where Pleris loses and the 31 where it is best
-before any table). The mutation and integrity controls: 29 of 29 mutants
-killed; 4 of 4 integrity controls caught.
+`PORT=13441 just e14-head-to-head` at `acd3f4c8` (master's `4345726a`, D2's
+read path, merged), 2026-10-25, its measurement 19:52-20:08Z, on the PC: an
+Intel Core i9-13900K, 32 logical CPUs, 31.2 GiB, Ubuntu 22.04.3 on WSL2
+(kernel 6.18.54.1). Other sessions were working: the instrument waited its
+120 s for the one-minute load average to fall under 8 (a quarter of the
+CPUs) and measured from 8.9 (it had been 20.9, the recipe's own builds and
+checks among it); it was 6.6 at the end. Chromium 145.0.7632.6, Firefox
+146.0.1, WebKit 26.0; seven runs a cell; every rule held
+(`docs/evidence/E14/head-to-head.txt`, which prints the 59 rows where Pleris
+loses and the 29 where it is best before any table). The mutation and
+integrity controls: 30 of 30 mutants killed; 4 of 4 integrity controls
+caught. Three earlier recordings held every rule too (at `d6fdb217`, before
+the merge, committed as `322a94ab`; at `2138e7b6`; at `23654ac1`): their bytes
+are these, their times within or above these spreads (the first measured
+under a load of 30).
 
 Times are medians [first-third quartiles] in milliseconds from navigation
 start; bytes are Chromium's, which every engine's decoded bodies equal.
@@ -157,56 +162,56 @@ start; bytes are Chromium's, which every engine's decoded bodies equal.
 | "toggle": bytes received | 1,723 | 0 | 0 |
 | "filter": bytes received | 0 | 0 | 0 |
 | warm load: bytes received | 233,910 | 1,338 | 759 |
-| first contentful paint, ms (chromium, cold) | 48 [40-50] | 60 [48-68] | 52 [40-60] |
-| interactive, ms (chromium, cold) | 58 [57-59] | 84 [77-124] | 41 [39-50] |
-| "add" to its frame, ms (chromium, cold) | 43 [42-46] | 17 [13-21] | 14 [13-17] |
-| first contentful paint, ms (chromium, cold, slow-4g) | 460 [448-470] | 392 [390-396] | 396 [392-406] |
-| interactive, ms (chromium, cold, slow-4g) | 1,958 [1,946-1,966] | 921 [912-939] | 508 [498-532] |
-| "add" to its frame, ms (chromium, cold, slow-4g) | 2,506 [2,489-2,510] | 66 [62-69] | 67 [65-71] |
-| first contentful paint, ms (chromium, warm, slow-4g) | 420 [418-424] | 352 [348-354] | 208 [200-214] |
-| interactive, ms (chromium, warm, slow-4g) | 1,901 [1,898-1,909] | 406 [401-413] | 358 [356-366] |
-| "add" to its frame, ms (chromium, warm, slow-4g) | 2,414 [2,412-2,421] | 33 [31-35] | 25 [25-29] |
-| first contentful paint, ms (firefox, cold) | 46 [40-56] | 87 [84-117] | 105 [92-111] |
-| interactive, ms (firefox, cold) | 151 [123-167] | 109 [107-154] | 95 [91-100] |
-| "add" to its frame, ms (firefox, cold) | 48 [47-53] | 15 [14-18] | 14 [14-15] |
-| first contentful paint, ms (webkit, cold) | 73 [66-76] | 64 [55-67] | 40 [37-42] |
-| interactive, ms (webkit, cold) | 125 [117-130] | 94 [84-104] | 57 [53-61] |
-| "add" to its frame, ms (webkit, cold) | 179 [161-190] | 36 [33-42] | 35 [32-38] |
-| server CPU per document request, ms | 0.27 | 0.61 | 0.61 |
-| server resident memory at peak, MiB | 32 | 90 | 89 |
-| latency under 100 requests/s, p50 / p99 ms | 2.0 / 3.7 | 0.9 / 4.4 | 0.9 / 2.0 |
+| first contentful paint, ms (chromium, cold) | 32 [28-34] | 36 [34-38] | 36 [32-36] |
+| interactive, ms (chromium, cold) | 35 [33-36] | 47 [42-50] | 26 [20-28] |
+| "add" to its frame, ms (chromium, cold) | 32 [31-33] | 9 [8-11] | 8 [7-9] |
+| first contentful paint, ms (chromium, cold, slow-4g) | 432 [418-436] | 372 [368-380] | 368 [366-378] |
+| interactive, ms (chromium, cold, slow-4g) | 1,904 [1,894-1,909] | 871 [817-919] | 461 [455-471] |
+| "add" to its frame, ms (chromium, cold, slow-4g) | 2,402 [2,399-2,417] | 34 [32-63] | 34 [32-43] |
+| first contentful paint, ms (chromium, warm, slow-4g) | 400 [396-406] | 340 [336-348] | 192 [188-220] |
+| interactive, ms (chromium, warm, slow-4g) | 1,884 [1,877-1,885] | 371 [367-386] | 342 [340-379] |
+| "add" to its frame, ms (chromium, warm, slow-4g) | 2,391 [2,389-2,404] | 16 [15-28] | 18 [14-32] |
+| first contentful paint, ms (firefox, cold) | 31 [24-35] | 41 [40-48] | 57 [51-61] |
+| interactive, ms (firefox, cold) | 65 [61-66] | 59 [57-62] | 44 [43-45] |
+| "add" to its frame, ms (firefox, cold) | 27 [24-30] | 7 [7-8] | 7 [7-7] |
+| first contentful paint, ms (webkit, cold) | 33 [32-41] | 29 [24-30] | 21 [21-23] |
+| interactive, ms (webkit, cold) | 58 [55-69] | 40 [40-44] | 30 [29-31] |
+| "add" to its frame, ms (webkit, cold) | 81 [81-95] | 19 [19-20] | 18 [18-20] |
+| server CPU per document request, ms | 0.21 | 0.33 | 0.28 |
+| server resident memory at peak, MiB | 31 | 88 | 87 |
+| latency under 100 requests/s, p50 / p99 ms | 1.2 / 6.1 | 0.4 / 2.9 | 0.3 / 0.9 |
 | 20 idle pages: requests a page a minute; server CPU ms/s | 0.0; 0.0 | 0.0; 0.0 | 0.0; 0.0 |
-| a press with 19 other pages open, ms to its change | 94 | 155 | 59 |
+| a press with 19 other pages open, ms to its change | 60 | 26 | 30 |
 
 **The store** (ADR-0120's three stores, one contract):
 
 | metric | Pleris | Next.js | SvelteKit |
 |---|---|---|---|
-| first load: bytes received, as each host sent them | 216,653 | 140,210 | 35,007 |
-| first load: bytes as a static host sends them (Brotli 11), app only | 63,189 | 117,107 | 30,442 |
+| first load: bytes received, as each host sent them | 216,653 | 140,209 | 35,024 |
+| first load: bytes as a static host sends them (Brotli 11), app only | 63,186 | 117,108 | 30,458 |
 | first load: requests | 4 | 6 | 9 |
-| "add": bytes received | 4,314 | 2,386 | 388 |
-| warm load: bytes received | 216,615 | 2,897 | 2,500 |
-| first contentful paint, ms (chromium, cold) | 40 [34-44] | 72 [60-92] | 52 [38-56] |
-| interactive, ms (chromium, cold) | 66 [57-89] | 179 [140-207] | 76 [71-97] |
-| "add" to its frame, ms (chromium, cold) | 28 [27-29] | 60 [43-61] | 33 [27-43] |
-| first contentful paint, ms (chromium, cold, slow-4g) | 232 [230-242] | 224 [222-226] | 224 [212-228] |
-| interactive, ms (chromium, cold, slow-4g) | 1,736 [1,731-1,744] | 1,307 [1,281-1,322] | 596 [579-613] |
-| "add" to its frame, ms (chromium, cold, slow-4g) | 369 [368-371] | 259 [254-269] | 388 [380-395] |
-| first contentful paint, ms (chromium, warm, slow-4g) | 204 [202-206] | 212 [204-212] | 212 [208-214] |
-| interactive, ms (chromium, warm, slow-4g) | 1,705 [1,698-1,710] | 366 [352-376] | 295 [288-296] |
-| "add" to its frame, ms (chromium, warm, slow-4g) | 360 [355-365] | 225 [224-226] | 369 [367-372] |
-| first contentful paint, ms (firefox, cold) | 42 [39-45] | 53 [41-60] | 38 [36-42] |
-| interactive, ms (firefox, cold) | 96 [95-103] | 140 [114-150] | 95 [91-100] |
-| "add" to its frame, ms (firefox, cold) | 33 [33-34] | 39 [38-42] | 37 [35-44] |
-| first contentful paint, ms (webkit, cold) | 20 [17-20] | 26 [26-34] | 20 [19-22] |
-| interactive, ms (webkit, cold) | 66 [64-68] | 120 [113-123] | 64 [64-67] |
-| "add" to its frame, ms (webkit, cold) | 24 [22-25] | 40 [40-50] | 29 [27-31] |
-| server CPU per document request, ms | 0.33 | 9.69 | 2.24 |
-| server resident memory at peak, MiB | 36 | 157 | 118 |
-| latency under 100 requests/s, p50 / p99 ms | 2.1 / 3.9 | 7.9 / 27.3 | 2.2 / 4.1 |
-| 20 idle pages: requests a page a minute; server CPU ms/s | 9.0; 10.0 | 0.0; 0.0 | 0.0; 0.0 |
-| a press with 19 other pages open, ms to its change | 10,024 | 53 | 56 |
+| "add": bytes received | 4,314 | 2,394 | 388 |
+| warm load: bytes received | 216,615 | 2,896 | 2,499 |
+| first contentful paint, ms (chromium, cold) | 28 [28-32] | 44 [36-52] | 28 [28-32] |
+| interactive, ms (chromium, cold) | 38 [33-42] | 72 [66-106] | 30 [29-36] |
+| "add" to its frame, ms (chromium, cold) | 30 [29-30] | 30 [30-31] | 31 [31-31] |
+| first contentful paint, ms (chromium, cold, slow-4g) | 248 [226-256] | 220 [210-236] | 212 [210-228] |
+| interactive, ms (chromium, cold, slow-4g) | 1,732 [1,710-1,786] | 1,220 [1,207-1,336] | 620 [574-639] |
+| "add" to its frame, ms (chromium, cold, slow-4g) | 354 [352-365] | 259 [235-303] | 365 [355-381] |
+| first contentful paint, ms (chromium, warm, slow-4g) | 180 [176-192] | 188 [184-196] | 196 [192-206] |
+| interactive, ms (chromium, warm, slow-4g) | 1,672 [1,671-1,682] | 264 [255-267] | 252 [234-272] |
+| "add" to its frame, ms (chromium, warm, slow-4g) | 341 [333-346] | 196 [192-207] | 343 [341-349] |
+| first contentful paint, ms (firefox, cold) | 30 [30-34] | 39 [33-49] | 28 [23-31] |
+| interactive, ms (firefox, cold) | 49 [47-56] | 89 [64-113] | 48 [43-52] |
+| "add" to its frame, ms (firefox, cold) | 17 [17-33] | 33 [32-33] | 30 [17-33] |
+| first contentful paint, ms (webkit, cold) | 13 [12-20] | 18 [16-23] | 15 [14-20] |
+| interactive, ms (webkit, cold) | 51 [46-66] | 74 [68-88] | 61 [41-65] |
+| "add" to its frame, ms (webkit, cold) | 12 [11-19] | 28 [27-41] | 27 [19-28] |
+| server CPU per document request, ms | 0.25 | 7.43 | 1.77 |
+| server resident memory at peak, MiB | 36 | 167 | 119 |
+| latency under 100 requests/s, p50 / p99 ms | 1.1 / 8.7 | 4.9 / 142.3 | 1.2 / 10.8 |
+| 20 idle pages: requests a page a minute; server CPU ms/s | 8.7; 2.0 | 0.0; 0.0 | 0.0; 0.0 |
+| a press with 19 other pages open, ms to its change | 10,063 | 36 | 37 |
 
 Behaviour, source, the same change and the museum:
 
@@ -259,7 +264,10 @@ controls before a number was reported.
    framework's output, 20-64% for files no minifier touched.
 6. **The mutation controls found a test gap**: no test had a higher median
    whose quartiles overlap, so "a higher median is a loss" survived; the
-   test has it now, and the mutant is killed.
+   test has it now, and the mutant is killed. And a run called three stores'
+   Add, each 31 ms at the median, a win for Pleris by a fraction of a
+   millisecond, below Firefox's and WebKit's timer resolution: a time now
+   differs only where the quartiles are at least a millisecond apart.
 7. **The dry run's evidence said "+ uncommitted changes"**: master's
    `Cargo.lock` at `cc47a64b` was not in cargo's own order (`pw-tasks` before
    `pw-table-memory`), so the unlocked `cargo run` in `todomvc.sh` rewrote it
@@ -274,7 +282,7 @@ first:
    first add fetches `pw-render.wasm` (386,022 bytes, sent uncompressed), two
    handler modules and the page's computed module: 395,444 bytes where
    React and Svelte fetch nothing. Under Slow 4G the first add takes
-   2,506 ms to its frame (React 66, Svelte 67).
+   2,402 ms to its frame (React 34, Svelte 34).
    *Route*: the runtime (preload the renderer once the page is interactive,
    serve it compressed, or render a keyed row without it).
 9. **Pleris's host compresses nothing, keeps no connection and lets no cache
@@ -283,7 +291,7 @@ first:
    whole (234,001 bytes for TodoMVC, where the same files
    Brotli-compressed would be 67,051), and a warm load downloads
    everything again (216,615 bytes on the store page, Next.js
-   2,897, SvelteKit 2,500). *Route*: a production host
+   2,896, SvelteKit 2,499). *Route*: a production host
    (precompressed Brotli, content-hashed immutable names or validators,
    keep-alive or HTTP/2): the charter's deployment story, which has none.
 10. **The runtime is not minified**: `pw-runtime.mjs` is 154,052 bytes;
@@ -294,15 +302,15 @@ first:
     connection.** Each store page holds its update stream for two seconds at
     a time; over HTTP/1.1 a browser opens six connections to a host, so with
     more pages than that, the next request waits for a stream to end. With 20
-    pages open the last page's Add took 10,024 ms to change its count
-    (Next.js 53, SvelteKit 56); a probe found 55 ms
+    pages open the last page's Add took 10,063 ms to change its count
+    (Next.js 36, SvelteKit 37); a probe found 55 ms
     with one page, 1,855 ms for the command with eight. *Route*: one
     subscription per origin shared by its pages (a `BroadcastChannel` or
     `SharedWorker` leader), or HTTP/2 in the host.
 12. **An idle page costs its server.** The stream is answered by a thread
     that wakes every 25 ms for two seconds under the server's `pending` lock
     (`stream_open`, 80 passes), then the page asks again: 20 idle store pages
-    made 30 requests in 10 s and cost 10 ms of CPU a
+    made 29 requests in 10 s and cost 2 ms of CPU a
     second; the frameworks' pages ask nothing. (They also push nothing: the
     live update is a feature Pleris has and they do not; its cost is
     reported, not its value.) *Route*: wake held streams on a write, not on a
@@ -354,19 +362,21 @@ And where Pleris is best, in the same terms:
     larger in Pleris: T03, 43 lines against 25 and 29.
 19. **The museum**: Pleris refuses all five exhibits; Next.js was shown
     letting three ship (G01, H07, J01) and SvelteKit two (F01, J08).
-20. **Server cost per request**: the Pleris host's 0.33 ms of CPU and
-    36 MiB at peak for the store page, against Next.js's 9.69 ms and
-    157 MiB and SvelteKit's 2.24 ms and 118 MiB.
+20. **Server cost per request**: the Pleris host's 0.25 ms of CPU and
+    36 MiB at peak for the store page, against Next.js's 7.43 ms and
+    167 MiB and SvelteKit's 1.77 ms and 119 MiB; and the lowest latency
+    under the load (p99 8.7 ms; 142, 11).
 21. **Source**: TodoMVC in Pleris is 189 lines in one file and one language
     (persistence included), React's 278 in 11 files and four languages,
     Svelte's 201 in 8 and four. The store is the other way round: 503 lines
     of Pleris in 21 files, and the Rust above, against 151 and 134.
-22. **On a fast network the bytes cost Pleris little**: unshaped, its store
-    page is interactive in 66 ms in Chromium (Next.js 179, SvelteKit 76) and
-    its Add reaches its frame soonest in Firefox (33 ms; 39, 37) and WebKit
-    (24 ms; 40, 29), with the fewest requests (4; 6, 9); TodoMVC's first paint
-    in Firefox is 46 ms (87, 105). Server rendering paints early, and its
-    host answers fast; what it sends is what loses on a slow network.
+22. **On a fast network the bytes cost Pleris little**: unshaped (the
+    loopback), its store page paints and becomes interactive within the
+    spread of SvelteKit's and ahead of Next.js's (Chromium: interactive 38 ms,
+    Next.js 72, SvelteKit 30), with the fewest requests (4; 6, 9), and
+    TodoMVC's first paint in Firefox is 31 ms (React 41, Svelte 57). Server
+    rendering paints early; what Pleris sends is what loses on a slow
+    network.
 
 ## What is claimed, and what is not
 
@@ -407,9 +417,9 @@ again by `just e14-head-to-head`, which says whether it moved:
    (finding 15).
 7. Prerender device-only pages (finding 14); one stylesheet per page
    (finding 16).
-8. The instrument: let the machine settle before measuring (the recipe's
-   own builds and checks left a one-minute load average of 30 when the
-   measurement began: wait until it falls, and print the wait); ADR-0120's
+8. The instrument: a machine of its own (the PC's other sessions kept its
+   load near 8 through the 120 s the instrument waits for it to settle);
+   ADR-0120's
    contract in all three engines (correction 3 would have been caught there);
    the feed's timeline as a third app; the same run on a GitHub runner beside
    the PC's, two machines' numbers.
