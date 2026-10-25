@@ -1,0 +1,167 @@
+D2 - a compiled component reads its tables through the table gate
+
+produced by: just e14-table-host
+commit: 34348f563841e107e906bc6cd392a4db2f8983e2
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/d2-integrate/runtime/pw-host)
+   Compiling pw-table-memory v0.0.0 (/home/haki/code/pw-wt/d2-integrate/runtime/pw-table-memory)
+    Finished `test` profile [unoptimized] target(s) in 1.87s
+     Running unittests src/lib.rs (target/debug/deps/pw_table_memory-47ddeb6880de76ba)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/compiled_reader.rs (target/debug/deps/compiled_reader-366303b5ca270a64)
+
+running 10 tests
+test the_hosts_wit_names_are_the_compilers ... ok
+test no_table_host_function_without_the_tables_read_grant ... ok
+test a_forged_table_capability_is_refused_when_linking ... ok
+test compiled_get_many_answers_the_declared_order_once_per_present_key ... ok
+test compiled_get_reads_present_and_missing_rows_from_the_memory_adapter ... ok
+test a_manifest_import_outside_its_tables_interface_is_refused ... ok
+test a_manifest_that_is_not_whole_is_refused_where_it_is_read ... ok
+test a_table_import_typed_otherwise_than_tables_json_is_refused_when_linking ... ok
+test no_other_call_or_instantiation_links_a_table_import ... ok
+test an_adapters_answer_is_held_to_its_read_whoever_wrote_it ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running tests/compiled_reader_abi.rs (target/debug/deps/compiled_reader_abi-aafebf8e2cc8c4de)
+
+running 12 tests
+test each_reader_imports_exactly_its_manifest_declared_read ... ok
+test admission_links_only_each_readers_own_read ... ok
+test a_node_without_the_read_grant_refuses_admission ... ok
+test a_granted_get_with_no_callback_is_refused_not_stubbed ... ok
+test a_missing_key_answers_none_through_the_exact_callback ... ok
+test a_get_answering_another_keys_row_is_refused ... ok
+test get_many_forwards_its_keys_and_answers_canonical_rows_once ... ok
+test a_mistyped_get_answer_is_refused_for_its_type_and_a_valid_one_still_works ... ok
+test a_get_many_answer_out_of_order_twice_or_unasked_is_refused ... ok
+test a_present_row_round_trips_typed ... ok
+test a_row_with_a_field_more_or_less_is_refused_not_projected ... ok
+test a_siblings_import_is_undeclared_for_a_reader ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests/memory.rs (target/debug/deps/memory-df2796e170f22841)
+
+running 11 tests
+test invalid_rows_and_schema_hash_fail_closed ... ok
+test compiler_manifest_drives_reads_without_app_specific_storage ... ok
+test foreign_keys_are_validated_at_commit ... ok
+test rejected_and_abandoned_writes_do_not_publish ... ok
+test set_queries_deduplicate_and_sort_not_by_input_order ... ok
+test table_host_refuses_unknown_writes_and_wildcard_imports ... ok
+test admitted_component_selects_only_manifest_declared_get_and_get_many ... ok
+test table_host_refuses_ungranted_or_misclassified_read_and_manifest_mismatch ... ok
+test table_host_refuses_wrong_table_capability_even_when_admitted ... ok
+test unused_imports_and_wrong_selectors_are_rejected ... ok
+test transactions_serialize_concurrent_writers ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/read_selector_types.rs (target/debug/deps/read_selector_types-5fdd5c2ac29804d5)
+
+running 2 tests
+test scalar_reads_refuse_wrong_types_and_schema_bounds_instead_of_missing ... ok
+test set_reads_refuse_one_bad_member_without_losing_valid_neighbors ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests pw_table_memory
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/d2-integrate/runtime/pw-host)
+    Finished `test` profile [unoptimized] target(s) in 0.81s
+     Running unittests src/lib.rs (target/debug/deps/pw_host-0579f5acb0df0058)
+
+running 17 tests
+test engine::table_link::tests::values_hold_their_stored_type_and_bounds ... ok
+test engine::table_link::tests::a_composite_get_answers_its_own_key_or_none ... ok
+test engine::table_link::tests::a_composite_get_many_answers_asked_keys_once_in_order ... ok
+test engine::table_read_host::tests::adapter_errors_and_unsupported_rows_are_refusals ... ok
+test engine::table_read_host::tests::get_many_preserves_adapter_order_and_empty_reads ... ok
+test engine::table_read_host::tests::malformed_or_mistyped_arguments_never_reach_the_adapter ... ok
+test engine::table_read_host::tests::get_passes_typed_selectors_and_returns_wit_some_or_none ... ok
+test engine::table_results::tests::a_row_with_more_or_fewer_fields_than_declared_is_refused ... ok
+test engine::table_results::tests::get_many_preserves_bounded_adapter_order_and_empty_lists ... ok
+test engine::table_results::tests::get_preserves_present_and_missing_option_rows ... ok
+test engine::table_results::tests::rows_are_records_in_their_declared_order ... ok
+test engine::table_selectors::tests::get_keeps_scalar_key_values_and_types ... ok
+test engine::table_results::tests::unsupported_and_wrong_result_shapes_fail_closed ... ok
+test engine::table_selectors::tests::get_many_keeps_composite_records_by_the_keys_own_names ... ok
+test engine::table_selectors::tests::refuses_a_key_of_other_arity_or_field_names ... ok
+test engine::table_selectors::tests::refuses_keys_of_another_declared_type_or_out_of_bounds ... ok
+test engine::table_selectors::tests::refuses_unsupported_key_shapes_without_defaults_or_coercion ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+    Finished `test` profile [unoptimized] target(s) in 0.04s
+     Running tests/table_host_reader_fixture.rs (target/debug/deps/table_host_reader_fixture-38d991c721ceca9a)
+
+running 1 test
+test compiled_table_readers_have_exact_manifest_and_contract_imports ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+
+== mutation controls (scripts/table_host_mutations.py)
+baseline: 52 passed, 0 failed
+a table's interface need not be its name's: KILLED (1 of 27 tests fail)
+a table may repeat a field: KILLED (1 of 27 tests fail)
+a key may name no field: KILLED (1 of 27 tests fail)
+an order may name no field: KILLED (1 of 27 tests fail)
+an import may sit outside its table's interface: KILLED (1 of 27 tests fail)
+an import may be two functions': KILLED (1 of 27 tests fail)
+a get may be imported elsewhere than #get: KILLED (1 of 27 tests fail)
+an effect need not be its primitive's: KILLED (1 of 27 tests fail)
+a function may name a field its table lacks: KILLED (1 of 27 tests fail)
+a get may read by other than the key: KILLED (1 of 27 tests fail)
+the gate leaves out a table import its manifest does not declare: KILLED (1 of 50 tests fail)
+the gate binds a component's import: KILLED (1 of 50 tests fail)
+the gate trusts an import's claim of its capability: KILLED (1 of 27 tests fail)
+the gate binds an ungranted read: KILLED (1 of 27 tests fail)
+a versioned spelling of the namespace is no table's: KILLED (1 of 50 tests fail)
+the bare namespace is no table's: KILLED (1 of 50 tests fail)
+a call links table imports without the gate: KILLED (4 of 27 tests fail)
+instantiation links table imports with stubs: KILLED (1 of 27 tests fail)
+the gate is skipped when a manifest is given: KILLED (3 of 27 tests fail)
+no import is a table's: KILLED (4 of 27 tests fail)
+a table import links whatever its type: KILLED (1 of 27 tests fail)
+a get-many's key type goes unchecked: KILLED (1 of 27 tests fail)
+a get-many's rows go unchecked: KILLED (1 of 27 tests fail)
+a get's row goes unchecked: KILLED (1 of 27 tests fail)
+a get takes any number of key values: KILLED (1 of 27 tests fail)
+a get's key values go untyped: KILLED (1 of 27 tests fail)
+a row may hold more fields than tables.json: KILLED (1 of 27 tests fail)
+a row's fields go by any names: KILLED (1 of 27 tests fail)
+a row's fields go untyped: KILLED (1 of 27 tests fail)
+a key goes unchecked against its declared type and bounds: KILLED (2 of 52 tests fail)
+a composite key's fields go by place, not name: KILLED (1 of 52 tests fail)
+a composite key may have fewer fields: KILLED (1 of 52 tests fail)
+a get takes any number of key fields: KILLED (2 of 52 tests fail)
+an encoded row keeps a field it does not declare: KILLED (2 of 27 tests fail)
+an encoded row comes in another order: KILLED (10 of 27 tests fail)
+an encoded row keeps the Pleris names: KILLED (4 of 52 tests fail)
+an encoded value goes unbounded: KILLED (1 of 52 tests fail)
+a get may answer another key's row: KILLED (2 of 27 tests fail)
+a get-many may answer a key not asked for: KILLED (2 of 39 tests fail)
+a get-many may answer a key twice: KILLED (2 of 39 tests fail)
+a get-many may answer out of order: KILLED (2 of 27 tests fail)
+no answer is held to its read: KILLED (1 of 27 tests fail)
+an answered row may lack a field: KILLED (1 of 39 tests fail)
+an answered row's fields go by any names: KILLED (2 of 39 tests fail)
+an answered row may hold a field more: KILLED (1 of 39 tests fail)
+an answered row's values go untyped: KILLED (2 of 39 tests fail)
+an Int goes unbounded: KILLED (4 of 52 tests fail)
+a String goes unbounded: KILLED (1 of 52 tests fail)
+a Float need not be finite: KILLED (1 of 52 tests fail)
+49 of 49 mutants killed
+memory bound: no process was stopped

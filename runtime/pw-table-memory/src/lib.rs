@@ -1,17 +1,19 @@
 //! Generic in-memory execution of compiler-declared Pleris tables (ADR-0338 D2).
 //!
-//! This is a pre-host adapter. It consumes the compiler's tables.json types,
-//! not a second schema format. It proves key/prefix/index reads and staged,
-//! atomic writes in one memory source. The host's Wasm value encoding,
-//! transactional outbox, deployment migration and other databases remain
-//! independent integration obligations; no production claim follows.
+//! It consumes the compiler's tables.json types, not a second schema format.
+//! It proves key/prefix/index reads and staged, atomic writes in one memory
+//! source, and serves an admitted component's `get` and `get-many` imports as
+//! Wasmtime host functions (`read_host_fns`). Writes through the host, the
+//! development server's routing of a program's tables, the transactional
+//! outbox, deployment migration and other databases remain independent
+//! integration obligations; no production claim follows.
 //!
 //! JSON is the internal adapter value representation, not the public WIT ABI.
 //! Unsupported storage variants fail closed rather than losing information.
 
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use pw_core::tables::{FunctionJson, Primitive, Schema, Stored, TableJson, TablesJson};
 use serde_json::{Map, Value};
@@ -55,6 +57,9 @@ type State = BTreeMap<String, Rows>;
 /// commit/rollback, and the state is only published on a successful commit.
 pub struct MemoryTables {
     manifest: TablesJson,
+    /// The same manifest as the host reads it (`pw_host::tables`): its gate,
+    /// and what the engine holds each read to.
+    host: pw_host::tables::Manifest,
     state: Mutex<State>,
 }
 
@@ -169,10 +174,22 @@ impl MemoryTables {
                 }
             }
         }
+        // Read back as the host reads it, so that what this adapter serves
+        // and what the engine admits are one manifest, held whole.
+        let text = serde_json::to_string(&manifest)
+            .map_err(|error| Error::Schema(format!("tables.json: {error}")))?;
+        let host = pw_host::tables::Manifest::from_json(&text).map_err(Error::Schema)?;
         Ok(Self {
             manifest,
+            host,
             state: Mutex::new(state),
         })
+    }
+
+    /// The manifest as the host reads it: what a call that reads these tables
+    /// is given (`pw_host::engine::call_with_tables`).
+    pub fn host_tables(&self) -> &pw_host::tables::Manifest {
+        &self.host
     }
 
     /// Read a compiler-emitted host import, with its arguments in function
@@ -181,6 +198,57 @@ impl MemoryTables {
     pub fn read(&self, import: &str, args: &[Value]) -> Result<Value, Error> {
         let state = self.state.lock().map_err(|_| Error::StoragePoisoned)?;
         read(&self.manifest, &state, import, args)
+    }
+
+    /// Select the exact read-only table imports this admitted component may
+    /// bind: the host's gate (`pw_host::tables::Manifest::admit_reads`, PR
+    /// #29's, which the engine applies to every table import it links), on
+    /// this adapter's manifest. Both the compiler's table manifest and the
+    /// admitted contract must name each import; a node's other capabilities
+    /// grant nothing here.
+    pub fn read_host_imports(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<Vec<String>, Error> {
+        self.host
+            .admit_reads(contract, granted)
+            .map(|reads| reads.into_keys().collect())
+            .map_err(Error::Input)
+    }
+
+    /// **The table reads an admitted component links, as host functions**
+    /// (ADR-0338 D2): one callback for each read the host's gate admits
+    /// ([`MemoryTables::read_host_imports`]), keyed as the engine links it
+    /// (`pw:tables/<table>#get`), and nothing else. Each reads this adapter
+    /// through the import it is installed for, its keys held to the read's
+    /// and its rows encoded as the read's row declares
+    /// (`pw_host::engine::table_read_host`); the engine links them only with
+    /// this manifest (`call_with_tables` and [`MemoryTables::host_tables`]),
+    /// and holds each answer to the read again. A component with any other
+    /// table import gets an error, not a partial map.
+    pub fn read_host_fns(
+        self: &Arc<Self>,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, Error> {
+        use pw_host::engine::table_read_host::host_fn;
+        let mut out = BTreeMap::new();
+        let reads = self
+            .host
+            .admit_reads(contract, granted)
+            .map_err(Error::Input)?;
+        for (import, read) in reads {
+            let tables = Arc::clone(self);
+            let bound = import.clone();
+            let data = Arc::new(move |args: &[Value]| {
+                tables
+                    .read(&bound, args)
+                    .map_err(|error| format!("`{bound}`: {error:?}"))
+            });
+            out.insert(import, host_fn(read, data));
+        }
+        Ok(out)
     }
 
     /// A serializable transaction in this memory database. A failed command,
@@ -369,6 +437,39 @@ fn selections(by: &[String], args: &[Value], many: bool) -> Result<BTreeSet<Key>
     Ok(out)
 }
 
+fn typed_read_selections(
+    table: &TableJson,
+    fun: &FunctionJson,
+    args: &[Value],
+) -> Result<BTreeSet<Key>, Error> {
+    let keys = selections(&fun.by, args, fun.primitive.many())?;
+    // Atom::parse checks the value's shape, but a boolean is still a valid
+    // Atom when the declared selector is a string. A mismatched read must
+    // fail, not turn into the same answer as an absent row.
+    for key in &keys {
+        for (name, atom) in fun.by.iter().zip(key) {
+            let field = table
+                .schema
+                .fields
+                .iter()
+                .find(|field| field.name == *name)
+                .ok_or_else(|| Error::Schema(format!("unknown table selector field {name}")))?;
+            let value = match atom {
+                Atom::Bool(value) => Value::from(*value),
+                Atom::Int(value) => Value::from(*value),
+                Atom::Str(value) => Value::from(value.clone()),
+            };
+            if !validates(&value, &field.stored) {
+                return Err(Error::Input(format!(
+                    "{} selector {name} fails its declared type or bound",
+                    fun.import
+                )));
+            }
+        }
+    }
+    Ok(keys)
+}
+
 fn read(
     manifest: &TablesJson,
     state: &State,
@@ -391,7 +492,7 @@ fn read(
     let keys = if fun.primitive == Primitive::All {
         BTreeSet::new()
     } else {
-        selections(&fun.by, args, fun.primitive.many())?
+        typed_read_selections(table, fun, args)?
     };
     let mut found: Vec<&Row> = rows
         .values()

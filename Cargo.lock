@@ -1419,6 +1419,8 @@ name = "pw-table-memory"
 version = "0.0.0"
 dependencies = [
  "pw-core",
+ "pw-host",
+ "pw-syntax",
  "serde_json",
 ]
 
