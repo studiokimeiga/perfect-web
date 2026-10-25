@@ -119,11 +119,11 @@ pub fn measure(bytes: &[u8]) -> Result<Measured, Unreadable> {
     })
 }
 
-fn be16(b: &[u8], at: usize) -> Option<u32> {
+pub(crate) fn be16(b: &[u8], at: usize) -> Option<u32> {
     Some(u16::from_be_bytes(b.get(at..at + 2)?.try_into().ok()?) as u32)
 }
 
-fn be32(b: &[u8], at: usize) -> Option<u32> {
+pub(crate) fn be32(b: &[u8], at: usize) -> Option<u32> {
     Some(u32::from_be_bytes(b.get(at..at + 4)?.try_into().ok()?))
 }
 
@@ -136,7 +136,7 @@ fn le24(b: &[u8], at: usize) -> Option<u32> {
     Some(s[0] as u32 | (s[1] as u32) << 8 | (s[2] as u32) << 16)
 }
 
-fn le32(b: &[u8], at: usize) -> Option<u32> {
+pub(crate) fn le32(b: &[u8], at: usize) -> Option<u32> {
     Some(u32::from_le_bytes(b.get(at..at + 4)?.try_into().ok()?))
 }
 
