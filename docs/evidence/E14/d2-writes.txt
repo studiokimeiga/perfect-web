@@ -1,0 +1,237 @@
+D2 - a command writes its tables through the table gate, staged; every read gated
+
+produced by: just e14-d2-writes
+commit: 4e9604f3c78befd0f739c38a704b1b19032f6943
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/d2-writes/runtime/pw-host)
+   Compiling pw-table-memory v0.0.0 (/home/haki/code/pw-wt/d2-writes/runtime/pw-table-memory)
+    Finished `test` profile [unoptimized] target(s) in 2.27s
+     Running unittests src/lib.rs (target/debug/deps/pw_table_memory-47ddeb6880de76ba)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/compiled_app.rs (target/debug/deps/compiled_app-385e3ee0e5359dad)
+
+running 10 tests
+test a_command_reads_its_own_writes_before_it_commits ... ok
+test a_commands_index_read_sees_its_own_puts ... ok
+test a_command_that_stops_after_a_write_publishes_nothing ... ok
+test a_write_that_invalidates_no_reader_of_its_table_does_not_build ... ok
+test a_commands_writes_are_invisible_until_it_commits ... ok
+test keep_item_puts_whole_rows_and_keeps_the_index ... ok
+test drop_item_and_clear_list_delete_by_key_and_by_prefix ... ok
+test make_list_inserts_or_answers_the_row_that_holds_its_key_or_slug ... ok
+test every_query_reads_its_tables_through_the_gate_in_d1s_order ... ok
+test a_command_not_committed_publishes_none_of_its_writes ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running tests/compiled_gate.rs (target/debug/deps/compiled_gate-d8ce034716550309)
+
+running 5 tests
+test a_write_answering_what_tables_json_says_it_does_not_is_refused ... ok
+test a_forged_or_ungranted_write_is_refused ... ok
+test a_write_links_only_into_a_command ... ok
+test a_writes_answer_that_is_not_its_own_is_refused ... ok
+test a_write_typed_otherwise_than_tables_json_is_refused_when_linking ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+     Running tests/compiled_reader.rs (target/debug/deps/compiled_reader-366303b5ca270a64)
+
+running 10 tests
+test the_hosts_wit_names_are_the_compilers ... ok
+test no_table_host_function_without_the_tables_read_grant ... ok
+test a_forged_table_capability_is_refused_when_linking ... ok
+test compiled_get_reads_present_and_missing_rows_from_the_memory_adapter ... ok
+test compiled_get_many_answers_the_declared_order_once_per_present_key ... ok
+test an_adapters_answer_is_held_to_its_read_whoever_wrote_it ... ok
+test a_manifest_import_outside_its_tables_interface_is_refused ... ok
+test a_manifest_that_is_not_whole_is_refused_where_it_is_read ... ok
+test a_table_import_typed_otherwise_than_tables_json_is_refused_when_linking ... ok
+test no_other_call_or_instantiation_links_a_table_import ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests/compiled_reader_abi.rs (target/debug/deps/compiled_reader_abi-aafebf8e2cc8c4de)
+
+running 12 tests
+test a_node_without_the_read_grant_refuses_admission ... ok
+test admission_links_only_each_readers_own_read ... ok
+test a_siblings_import_is_undeclared_for_a_reader ... ok
+test each_reader_imports_exactly_its_manifest_declared_read ... ok
+test a_granted_get_with_no_callback_is_refused_not_stubbed ... ok
+test a_missing_key_answers_none_through_the_exact_callback ... ok
+test a_present_row_round_trips_typed ... ok
+test a_get_answering_another_keys_row_is_refused ... ok
+test get_many_forwards_its_keys_and_answers_canonical_rows_once ... ok
+test a_mistyped_get_answer_is_refused_for_its_type_and_a_valid_one_still_works ... ok
+test a_row_with_a_field_more_or_less_is_refused_not_projected ... ok
+test a_get_many_answer_out_of_order_twice_or_unasked_is_refused ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests/compiled_reads.rs (target/debug/deps/compiled_reads-9beaf96d243ea2df)
+
+running 3 tests
+test a_manifest_is_whole_for_every_primitive ... ok
+test a_read_typed_otherwise_than_tables_json_is_refused_when_linking ... ok
+test an_answer_not_its_reads_is_refused ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+     Running tests/memory.rs (target/debug/deps/memory-df2796e170f22841)
+
+running 11 tests
+test invalid_rows_and_schema_hash_fail_closed ... ok
+test foreign_keys_are_validated_at_commit ... ok
+test admitted_component_selects_only_manifest_declared_get_and_get_many ... ok
+test compiler_manifest_drives_reads_without_app_specific_storage ... ok
+test rejected_and_abandoned_writes_do_not_publish ... ok
+test unused_imports_and_wrong_selectors_are_rejected ... ok
+test table_host_refuses_wrong_table_capability_even_when_admitted ... ok
+test set_queries_deduplicate_and_sort_not_by_input_order ... ok
+test table_host_refuses_unknown_writes_and_wildcard_imports ... ok
+test transactions_serialize_concurrent_writers ... ok
+test table_host_refuses_ungranted_or_misclassified_read_and_manifest_mismatch ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/read_selector_types.rs (target/debug/deps/read_selector_types-5fdd5c2ac29804d5)
+
+running 2 tests
+test set_reads_refuse_one_bad_member_without_losing_valid_neighbors ... ok
+test scalar_reads_refuse_wrong_types_and_schema_bounds_instead_of_missing ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/staged.rs (target/debug/deps/staged-d17fd50abe7c7481)
+
+running 11 tests
+test a_command_that_writes_nothing_reports_no_table ... ok
+test a_unique_value_is_held_by_one_row_through_any_writes ... ok
+test a_dropped_command_is_undone_whole_its_maps_too ... ok
+test a_refused_write_changes_nothing_and_the_command_goes_on ... ok
+test a_command_waits_its_turn ... ok
+test an_ended_command_writes_nothing ... ok
+test every_index_is_kept_on_every_write ... ok
+test an_option_of_an_option_is_refused_where_the_adapter_is_made ... ok
+test a_commands_reads_see_its_writes_and_no_other_read_does ... ok
+test references_are_held_at_commit_both_ways ... ok
+test the_bound_is_held_at_commit_and_all_never_answers_past_it ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests pw_table_memory
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/d2-writes/runtime/pw-host)
+    Finished `test` profile [unoptimized] target(s) in 0.69s
+     Running unittests src/lib.rs (target/debug/deps/pw_host-0579f5acb0df0058)
+
+running 25 tests
+test engine::table_link::tests::a_composite_get_answers_its_own_key_or_none ... ok
+test engine::table_link::tests::a_composite_get_many_answers_asked_keys_once_in_order ... ok
+test engine::table_link::tests::a_prefix_answers_its_own_prefix_once_by_the_tables_order ... ok
+test engine::table_link::tests::a_writes_refusal_is_the_row_that_holds_what_it_would_write ... ok
+test engine::table_link::tests::index_and_all_answers_hold_their_values_and_bound ... ok
+test engine::table_link::tests::values_hold_their_stored_type_and_bounds ... ok
+test engine::table_read_host::tests::adapter_errors_and_unsupported_rows_are_refusals ... ok
+test engine::table_read_host::tests::get_many_preserves_adapter_order_and_empty_reads ... ok
+test engine::table_read_host::tests::get_passes_typed_selectors_and_returns_wit_some_or_none ... ok
+test engine::table_read_host::tests::malformed_or_mistyped_arguments_never_reach_the_adapter ... ok
+test engine::table_results::tests::a_row_with_more_or_fewer_fields_than_declared_is_refused ... ok
+test engine::table_results::tests::a_writes_answer_is_ok_the_refusing_row_or_nothing ... ok
+test engine::table_results::tests::get_many_preserves_bounded_adapter_order_and_empty_lists ... ok
+test engine::table_results::tests::get_preserves_present_and_missing_option_rows ... ok
+test engine::table_results::tests::rows_are_records_in_their_declared_order ... ok
+test engine::table_results::tests::unsupported_and_wrong_result_shapes_fail_closed ... ok
+test engine::table_selectors::tests::all_takes_nothing_and_a_prefix_its_fields ... ok
+test engine::table_selectors::tests::get_keeps_scalar_key_values_and_types ... ok
+test engine::table_selectors::tests::a_written_row_is_exactly_its_tables_or_refused ... ok
+test engine::table_selectors::tests::get_many_keeps_composite_records_by_the_keys_own_names ... ok
+test engine::table_selectors::tests::refuses_a_key_of_other_arity_or_field_names ... ok
+test engine::table_selectors::tests::refuses_keys_of_another_declared_type_or_out_of_bounds ... ok
+test engine::table_write_host::tests::a_malformed_row_never_reaches_the_adapter ... ok
+test engine::table_selectors::tests::refuses_unsupported_key_shapes_without_defaults_or_coercion ... ok
+test engine::table_write_host::tests::a_write_passes_its_row_and_answers_its_wit_type ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling pw-cli v0.0.0 (/home/haki/code/pw-wt/d2-writes/compiler/pw-cli)
+    Finished `test` profile [unoptimized] target(s) in 0.87s
+     Running tests/tables.rs (target/debug/deps/tables-b3512ac5b2e4a62d)
+
+running 5 tests
+test an_invalid_or_missing_release_is_an_error ... ok
+test actual_compiler_manifest_executes_without_app_specific_rust ... ok
+test a_released_schema_does_not_skip_executable_support ... ok
+test migration_refusals_precede_unsupported_backend_diagnostics ... ok
+test check_and_build_hold_a_program_to_the_named_release ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
+
+
+== mutation controls (scripts/d2_writes_mutations.py)
+baseline: 89 passed, 0 failed
+a prefix's read may be by other than a proper prefix of the key: KILLED (1 of 65 tests fail)
+an index's read may be by other than one of its indexes: KILLED (1 of 65 tests fail)
+all may be of an unbounded table: KILLED (1 of 65 tests fail)
+a function's rows may come in another order than D1's: KILLED (1 of 65 tests fail)
+a unique index's read is ordered as a list's: KILLED (9 of 35 tests fail)
+an insert, a put or all may be given fields: KILLED (1 of 65 tests fail)
+an index may be named as no index read is: KILLED (1 of 65 tests fail)
+an index may be of no field: KILLED (1 of 65 tests fail)
+an index may name a field its table lacks: KILLED (1 of 65 tests fail)
+an index may name a field twice: KILLED (1 of 65 tests fail)
+an index's read may be named as another's set form: KILLED (1 of 65 tests fail)
+two indexes may be on one's fields: KILLED (1 of 65 tests fail)
+a table may be bounded to no row: KILLED (1 of 65 tests fail)
+a key may name a field twice: KILLED (1 of 65 tests fail)
+a table's write links into a query: KILLED (1 of 40 tests fail)
+a write's capability is its table's read: KILLED (8 of 35 tests fail)
+the engine takes every export for a command: KILLED (1 of 40 tests fail)
+a written row goes untyped where it links: KILLED (1 of 40 tests fail)
+a refusable write may answer nothing where it links: KILLED (1 of 40 tests fail)
+a refusal's row goes untyped where it links: KILLED (1 of 40 tests fail)
+a write that cannot be refused may answer something where it links: KILLED (1 of 40 tests fail)
+a delete's key goes untyped where it links: KILLED (1 of 40 tests fail)
+a unique index's read is typed as a list where it links: KILLED (2 of 35 tests fail)
+an Option of an Option links: KILLED (1 of 65 tests fail)
+all may answer past its table's bound: KILLED (2 of 65 tests fail)
+an insert may be refused by a row that holds nothing it would: KILLED (2 of 40 tests fail)
+a put may be refused by its own key's row: KILLED (1 of 89 tests fail)
+a write that cannot be refused may answer a value: KILLED (2 of 40 tests fail)
+a write that cannot be refused may be answered refused: KILLED (1 of 89 tests fail)
+a written row reaches the adapter unchecked: KILLED (2 of 89 tests fail)
+an Option of an Option is written as none: KILLED (1 of 89 tests fail)
+a staged write is visible before its commit: KILLED (2 of 35 tests fail)
+a command's reads miss its own writes: KILLED (2 of 35 tests fail)
+an index not kept on a write: a row's new values missed: KILLED (6 of 35 tests fail)
+an index not kept on a write: a row's old values kept: KILLED (4 of 35 tests fail)
+a unique value may be held twice: KILLED (1 of 35 tests fail)
+an insert replaces its key's row: KILLED (1 of 35 tests fail)
+a command not committed is published: KILLED (2 of 35 tests fail)
+a command not committed is not undone: KILLED (2 of 35 tests fail)
+a commit publishes part of a command: KILLED (5 of 35 tests fail)
+a commit's bound goes unheld: KILLED (1 of 89 tests fail)
+all answers past its bound inside a command: KILLED (1 of 89 tests fail)
+a reference to a missing row commits: KILLED (1 of 76 tests fail)
+a row referred to may be deleted at commit: KILLED (1 of 89 tests fail)
+a command begins while another is open: KILLED (1 of 76 tests fail)
+an ended command's functions act on the open one: KILLED (1 of 89 tests fail)
+a prepared command writes on: KILLED (1 of 89 tests fail)
+a delete of a prefix deletes past it: KILLED (3 of 35 tests fail)
+a command reports no table it wrote: KILLED (1 of 89 tests fail)
+a row put back as it was is a write: KILLED (1 of 89 tests fail)
+a refused write traps its command: KILLED (1 of 35 tests fail)
+the adapter stores an Option of an Option: KILLED (1 of 89 tests fail)
+a table's write leaves its readers as they were (PW5106 reads no write): KILLED (1 of 35 tests fail)
+53 of 53 mutants killed
+memory bound: no process was stopped
