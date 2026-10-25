@@ -10,4 +10,5 @@ publish = false
 # in-memory adapter. This is not yet connected to the development host.
 [dependencies]
 pw-core = { path = "../../compiler/pw-core" }
+pw-host = { path = "../pw-host" }
 serde_json.workspace = true

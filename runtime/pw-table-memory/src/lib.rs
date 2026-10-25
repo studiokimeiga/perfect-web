@@ -183,6 +183,62 @@ impl MemoryTables {
         read(&self.manifest, &state, import, args)
     }
 
+    /// Select the exact read-only table imports this admitted component may
+    /// bind. Both the compiler's table manifest and the admitted contract must
+    /// name each import; a node's other capabilities grant nothing here.
+    ///
+    /// This is a pre-link gate, not a WIT value codec or Wasmtime execution.
+    /// A later host binding must use only these keys when installing HostFns.
+    pub fn read_host_imports(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<Vec<String>, Error> {
+        let linkable: BTreeSet<String> = pw_host::linkable(contract, granted).into_iter().collect();
+        let manifest_reads: BTreeMap<&str, String> = self
+            .manifest
+            .tables
+            .iter()
+            .flat_map(|table| {
+                table.functions.iter().filter_map(|function| {
+                    let operation = match function.primitive {
+                        Primitive::Get => "get",
+                        Primitive::GetMany => "get-many",
+                        _ => return None,
+                    };
+                    (function.effect == "read"
+                        && function.import == format!("{}#{operation}", table.interface))
+                    .then(|| {
+                        (
+                            function.import.as_str(),
+                            format!("database.read<{}>", table.schema.name),
+                        )
+                    })
+                })
+            })
+            .collect();
+
+        let mut selected = BTreeSet::new();
+        for import in contract
+            .imports
+            .iter()
+            .filter(|import| import.interface.starts_with("pw:tables/"))
+        {
+            let key = import.key();
+            if import.kind != pw_host::ImportKind::HostCapability
+                || manifest_reads.get(key.as_str()).map(String::as_str)
+                    != Some(import.capability.as_str())
+                || !linkable.contains(&key)
+            {
+                return Err(Error::Input(format!(
+                    "read-only table host cannot bind `{key}`"
+                )));
+            }
+            selected.insert(key);
+        }
+        Ok(selected.into_iter().collect())
+    }
+
     /// A serializable transaction in this memory database. A failed command,
     /// unique violation, missing reference or user error publishes nothing.
     pub fn transaction<T>(
