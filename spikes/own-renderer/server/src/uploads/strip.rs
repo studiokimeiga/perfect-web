@@ -1445,6 +1445,7 @@ pub(crate) mod tests {
     #[test]
     fn an_adobe_headers_flags_cannot_name_a_device() {
         let mut data = adobe();
+        data[5..7].copy_from_slice(b"ID");
         data[7..11].copy_from_slice(b"SN42");
         let sent = jpeg_of(&[(0xee, data)], &jpeg_body(), &[]);
         let mut expected = adobe()[..12].to_vec();

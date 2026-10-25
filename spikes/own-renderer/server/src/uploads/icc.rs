@@ -101,6 +101,14 @@ fn keeps(sig: &[u8], ty: &[u8]) -> Keeps {
             | b"meas"
             | b"view"
             | b"cicp"
+            | b"D2B0"
+            | b"D2B1"
+            | b"D2B2"
+            | b"D2B3"
+            | b"B2D0"
+            | b"B2D1"
+            | b"B2D2"
+            | b"B2D3"
     );
     match ty {
         b"XYZ " | b"curv" | b"para" | b"sf32" | b"mft1" | b"mft2" | b"mAB " | b"mBA " | b"mpet"
@@ -111,9 +119,16 @@ fn keeps(sig: &[u8], ty: &[u8]) -> Keeps {
                 Keeps::Nothing
             }
         }
-        b"desc" | b"mluc" | b"text" => Keeps::Neutral,
+        b"desc" | b"mluc" | b"text" if text_tag(sig) => Keeps::Neutral,
         _ => Keeps::Nothing,
     }
+}
+
+fn text_tag(sig: &[u8]) -> bool {
+    matches!(
+        sig,
+        b"desc" | b"dmnd" | b"dmdd" | b"cprt" | b"vued" | b"targ"
+    )
 }
 
 /// **A text type `ty` holding [`NEUTRAL`] alone**, its type's signature and
@@ -843,6 +858,21 @@ pub(crate) mod tests {
         assert!(
             scrub(&profile(4, &[(vec![*b"wtpt", *b"rTRC"], xyz)])).is_none(),
             "every shared signature checked"
+        );
+    }
+
+    #[test]
+    fn unknown_text_tag_signatures_and_their_payloads_are_not_kept() {
+        let mut tags = colour(4, 1);
+        tags.push((vec![*b"SN42"], text_of(4, b"desc", b"Jane Roe")));
+        let kept = scrub(&profile(4, &tags)).expect("unknown metadata removed");
+        assert!(!kept.windows(4).any(|w| w == b"SN42"));
+        assert_eq!(tags_of(&kept).len(), 8);
+        assert_eq!(scrub(&kept), Some(kept.clone()));
+        tags.push((vec![*b"D2B0"], [b"mpet".to_vec(), vec![0; 28]].concat()));
+        assert!(
+            scrub(&profile(4, &tags)).is_none(),
+            "nested standard transform drops profile"
         );
     }
 

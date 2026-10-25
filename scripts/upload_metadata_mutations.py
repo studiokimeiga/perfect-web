@@ -80,7 +80,7 @@ ICC_READ = "                    profile.add(data);\n"
 ICCP_KEPT = "                if let Some(data) = iccp(&chunk[8..8 + length]) {\n"
 ICCP_SCRUBBED = "                        if let Some(profile) = icc::scrub(data) {\n"
 ZEROED = "const ZEROED: [(usize, usize); 6] = [(4, 8), (10, 12), (24, 36), (40, 44), (48, 64), (80, 128)];\n"
-NEUTRAL = '        b"desc" | b"mluc" | b"text" => Keeps::Neutral,\n'
+NEUTRAL = '        b"desc" | b"mluc" | b"text" if text_tag(sig) => Keeps::Neutral,\n'
 TAG_READ = "        if at < table || len < 8 || at.checked_add(len)? > size {\n"
 SIGNED = '    if &p[36..40] != b"acsp" || p[8] > 4 {\n'
 GIF_REST = (
@@ -102,6 +102,15 @@ def png_drops(kind):
 # scripts/mutation_anchors.py reads, its last three the file and the edit.
 MUTANTS = [
     # ---- The integrator's additional review cases ----
+    ("rewritten image growth is omitted from the staging budget", RUST, UPLOADS,
+     "        let staged_size = size.max(bytes.len() as u64);\n", "        let staged_size = size;\n"),
+    ("an expanded image releases only its input-byte charge", RUST, UPLOADS,
+     "                bytes: staged_size,\n", "                bytes: size,\n"),
+    ("ICC unknown text tag signatures are kept", RUST, ICC,
+     '        b"desc" | b"mluc" | b"text" if text_tag(sig) => Keeps::Neutral,\n',
+     '        b"desc" | b"mluc" | b"text" => Keeps::Neutral,\n'),
+    ("Adobe producer version bytes are kept", RUST, STRIP,
+     "                adobe[5..7].copy_from_slice(&100u16.to_be_bytes());\n", ""),
     ("ICC colour payload tails are accepted", RUST, ICC,
      "    if data.len() != length {\n", "    if data.len() < length {\n"),
     ("ICC shared transforms ignore distinct matrix contexts", RUST, ICC,
@@ -633,28 +642,28 @@ MUTANTS = [
         "const ZEROED: [(usize, usize); 7] = [(4, 8), (10, 12), (24, 36), (40, 44), (48, 64), (80, 84), (100, 128)];\n",
     ),
     (
-        "an ICC profile's desc text is kept (a version 2 description, device maker or model)",
+        "an ICC desc tag is admitted as colour instead of neutral text",
         RUST,
         ICC,
         NEUTRAL,
         '        b"desc" => Keeps::Whole,\n        b"mluc" | b"text" => Keeps::Neutral,\n',
     ),
     (
-        "an ICC profile's mluc text is kept (a version 4 description, device maker or model)",
+        "an ICC mluc tag is admitted as colour instead of neutral text",
         RUST,
         ICC,
         NEUTRAL,
         '        b"mluc" => Keeps::Whole,\n        b"desc" | b"text" => Keeps::Neutral,\n',
     ),
     (
-        "an ICC profile's text-typed text is kept (a version 2 copyright)",
+        "an ICC text tag is admitted as colour instead of neutral text",
         RUST,
         ICC,
         NEUTRAL,
         '        b"text" => Keeps::Whole,\n        b"desc" | b"mluc" => Keeps::Neutral,\n',
     ),
     (
-        "an ICC tag of another type is kept (Apple's mmod with a serial number, a calibration's time)",
+        "an unsupported ICC tag type is admitted as colour",
         RUST,
         ICC,
         "        _ => Keeps::Nothing,\n",

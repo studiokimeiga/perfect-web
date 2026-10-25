@@ -140,8 +140,8 @@ Each read 2026-10-25.
 - **Idempotent**: what is kept is rewritten to itself; every real encoder's
   fixture (ADR-0260's) is kept as it was.
 - **The budget** (ADR-0260 §3a) spends the bytes sent, since what the server
-  read and rewrote is what it cost; the staging's cap counts them too, over
-  what is held and never under.
+  read and rewrote is what it cost; the staging's cap charges the larger of incoming and rewritten bytes,
+  so it is never below what is held.
 
 ### 2. What each format keeps
 
@@ -657,3 +657,21 @@ contradictory exit statuses, browser crashes and incomplete runs as invalid
 proof and fails the campaign. A browser failure must carry an assertion
 report. Dedicated producer regressions verify these controls and restoration.
 Only a completed whole campaign establishes its final count.
+
+
+### Final review: signatures and expansion accounting
+
+Unknown text-tag signatures are now dropped as well as their payloads:
+a neutral value alone left an arbitrary four-byte tag name in the table.
+Only known textual signatures are kept as neutral text. Standard D2B/B2D
+nested transforms are explicitly recognized as unsupported, causing the
+same whole-profile fallback as A2B/B2A nested transforms.
+
+A minimal genuine-layout ICC description grows from 850 incoming image
+bytes to 938 rewritten image bytes. Failing-first regressions found the
+staging counter still charged 850, and admitted that image where only
+850 staging bytes remained (303 instead of 503). Staging now charges
+`max(sent, kept)`, while the hourly budget still charges incoming bytes.
+Replacement and discard release the exact staging charge; neither a
+refused expansion nor a retry can leave that charge behind. Dedicated
+controls remove growth accounting and release only incoming bytes.

@@ -730,6 +730,7 @@ impl Shared {
             return Err((409, "The image attached before is being posted.", None));
         }
         let size = sent;
+        let staged_size = size.max(bytes.len() as u64);
         // The user's budget, for the hour before now.
         let now = Instant::now();
         let spent = state.spent.entry(user.to_string()).or_default();
@@ -752,7 +753,7 @@ impl Shared {
             ));
         }
         let replaced = state.leases.get(session).map_or(0, |l| l.bytes);
-        if state.staged_bytes - replaced + size > STAGED_CAP {
+        if state.staged_bytes - replaced + staged_size > STAGED_CAP {
             return Err((
                 503,
                 "Too many images are waiting to be posted; try again later.",
@@ -771,7 +772,7 @@ impl Shared {
         }
         state.next += 1;
         let id = format!("up-{}", state.next);
-        state.staged_bytes += size;
+        state.staged_bytes += staged_size;
         state
             .spent
             .entry(user.to_string())
@@ -785,7 +786,7 @@ impl Shared {
                 kind: m.kind,
                 width: m.width,
                 height: m.height,
-                bytes: size,
+                bytes: staged_size,
                 made: Instant::now(),
                 claimed: false,
             },
@@ -1851,6 +1852,70 @@ pub(crate) mod tests {
         assert_eq!(s.collect(&key, false), Ok(true));
         // A key that is no key builds no path.
         assert!(s.collect("../../etc/passwd", false).is_err());
+    }
+
+    fn an_expanding_profile_image() -> Vec<u8> {
+        let profile =
+            icc::tests::profile(2, &[(vec![*b"desc"], b"desc\0\0\0\0\0\0\0\x01\0".to_vec())]);
+        let data = [&b"ICC_PROFILE\0"[..], &[1, 1], &profile].concat();
+        let mut sent = vec![0xff, 0xd8, 0xff, 0xe2];
+        sent.extend(((data.len() + 2) as u16).to_be_bytes());
+        sent.extend(data);
+        sent.extend(&strip::tests::fixture("eight-by-five.jpeg")[2..]);
+        assert!(strip::strip(&sent).expect("rewritten").len() > sent.len());
+        sent
+    }
+
+    #[test]
+    fn staged_bytes_cover_expansion_but_hourly_bytes_count_the_upload() {
+        let d = dir();
+        let u = uploads(d.path(), declared(), LEASE);
+        let sent = an_expanding_profile_image();
+        let kept = strip::strip(&sent).unwrap();
+        assert_eq!(post(&u, "growth", &sent, "a.jpg", "image/jpeg").status, 303);
+        let shared = u.leases().unwrap();
+        {
+            let state = shared.state.lock().unwrap();
+            assert_eq!(
+                state.staged_bytes,
+                kept.len() as u64,
+                "actual retained bytes accounted"
+            );
+            assert_eq!(
+                state.spent["u-growth"].back().unwrap().1,
+                sent.len() as u64,
+                "hourly incoming bytes"
+            );
+        }
+        let small = png(2, 2);
+        assert_eq!(post(&u, "growth", &small, "a.png", "image/png").status, 303);
+        assert_eq!(
+            shared.state.lock().unwrap().staged_bytes,
+            small.len() as u64,
+            "replacement releases expanded hold"
+        );
+        let claimed = shared.claim("growth").unwrap();
+        shared.discarded(claimed);
+        assert_eq!(shared.state.lock().unwrap().staged_bytes, 0);
+    }
+
+    #[test]
+    fn expansion_cannot_cross_the_staging_cap() {
+        let d = dir();
+        let u = uploads(d.path(), declared(), LEASE);
+        let sent = an_expanding_profile_image();
+        let shared = u.leases().unwrap();
+        let occupied = STAGED_CAP - sent.len() as u64;
+        shared.state.lock().unwrap().staged_bytes = occupied;
+        let answer = post(&u, "growth", &sent, "a.jpg", "image/jpeg");
+        assert_eq!(
+            answer.status, 503,
+            "rewritten bytes exceed remaining capacity"
+        );
+        let state = shared.state.lock().unwrap();
+        assert_eq!(state.staged_bytes, occupied);
+        assert!(!state.leases.contains_key("growth"));
+        assert!(state.spent["u-growth"].is_empty());
     }
 
     /// **A user's budget**: so many images an hour, and so many times the
