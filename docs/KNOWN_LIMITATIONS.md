@@ -661,12 +661,14 @@ awaited in order. What remains:
   can identify it** (ADR-0383, amending ADR-0260). The host rewrites every
   upload before it keeps it and keeps, of its Exif, a JPEG's turn alone; a
   PNG or WebP is shown as stored, never turned by an Exif. An ICC profile
-  is kept for its colour: its colour tags byte for byte (a calibrated
-  display's measured curves and primaries can tell its panel from
-  another's), and its header's class, colour spaces, version, flags,
-  intent and creator; its descriptions, device fields, creation time, ID
-  and other tags are not kept, and a profile that does not parse is
-  dropped, its image then shown as sRGB. Nothing in the pixels is touched
+  keeps validated standard colour tags, with reserved bytes canonicalized;
+  the numeric colour values remain and can fingerprint a calibrated display.
+  Producer signatures, vendor flags, unused fields and trailing payload bytes
+  are removed or refused. Unsupported nested ICC transforms (`mAB`, `mBA`,
+  `mpet`) cause the whole profile to be dropped, so the image may have
+  different colour under sRGB. Undefined header colour identifiers or intent,
+  non-D50 header illuminants and malformed supported payloads also drop the
+  profile. This is not universal ICC compatibility. Nothing in the pixels is touched
   (a face, a street sign, a screen in a reflection), nor data hidden in a
   JPEG's scan or past a GIF image's LZW end. An Ultra HDR or ISO 21496-1
   gain map goes with MPF and what follows EOI, so such a photo shows as

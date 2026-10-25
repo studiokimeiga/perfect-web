@@ -72,6 +72,9 @@ const SERIAL = latin1("SN 4815162342");
 const utf16 = (text) => Buffer.from([...text].flatMap((c) => [0, c]));
 /** Each known value, a text's as ASCII and as UTF-16BE (as an ICC profile's `mluc` holds it). */
 const KNOWN = {
+  "producer CMM": [latin1("CMM!")],
+  "producer platform": [latin1("OS!!")],
+  "producer creator": [latin1("APP!")],
   "a GPS latitude": [LATITUDE],
   "an XMP latitude": [XMP_LATITUDE],
   "a camera": [CAMERA, utf16(CAMERA)],
@@ -175,14 +178,15 @@ function textOf(version, type, text) {
 /** A display profile's header, version 2 or 4: its creation time, its device's maker and model, its creator and ID. */
 function profileHeader(version) {
   const header = Buffer.alloc(128);
+  header.write("CMM!", 4, "latin1");
   header[8] = version;
   header[9] = version >= 4 ? 0x30 : 0x10;
   header.write("mntrRGB XYZ ", 12, "latin1");
   CREATED.copy(header, 24);
-  header.write("acspAPPL", 36, "latin1");
+  header.write("acspOS!!", 36, "latin1");
   Buffer.from([...latin1("PLRSP7PR"), 0xde, 0xad, 0xbe, 0xef]).copy(header, 48);
   Buffer.concat([s15(0.9642), s15(1), s15(0.8249)]).copy(header, 68);
-  header.write("PLRS", 80, "latin1");
+  header.write("APP!", 80, "latin1");
   PROFILE_ID.copy(header, 84);
   return header;
 }
@@ -332,26 +336,25 @@ function editedGif() {
 }
 
 /** eight-by-five.jpeg with a display's profile (version 2) in two APP2 chunks. */
-function profiledJpeg() {
+function profiledJpeg(profile = displayProfile(2)) {
   const base = fixture("eight-by-five.jpeg");
-  const profile = displayProfile(2);
   const half = profile.length >> 1;
   const chunk = (n, part) => segment(0xe2, Buffer.concat([latin1("ICC_PROFILE\0"), Buffer.from([n, 2]), part]));
   return Buffer.concat([base.subarray(0, 20), chunk(1, profile.subarray(0, half)), chunk(2, profile.subarray(half)), base.subarray(20)]);
 }
 
 /** six-by-four.png with a display's profile (version 4) in an iCCP named for a person. */
-function profiledPng() {
+function profiledPng(profile = displayProfile(4)) {
   const base = fixture("six-by-four.png");
-  const iccp = pngChunk("iCCP", Buffer.concat([NAME, Buffer.from([0, 0]), deflateSync(displayProfile(4))]));
+  const iccp = pngChunk("iCCP", Buffer.concat([NAME, Buffer.from([0, 0]), deflateSync(profile)]));
   return Buffer.concat([base.subarray(0, 33), iccp, base.subarray(33)]);
 }
 
 /** twelve-by-nine-alpha.webp with a display's profile (version 4) in an ICCP, flagged in its VP8X. */
-function profiledWebp() {
+function profiledWebp(profile = displayProfile(4)) {
   const base = Buffer.from(fixture("twelve-by-nine-alpha.webp"));
   base[20] |= 0x20;
-  return riff([base.subarray(12, 30), riffChunk("ICCP", displayProfile(4)), base.subarray(30)]);
+  return riff([base.subarray(12, 30), riffChunk("ICCP", profile), base.subarray(30)]);
 }
 
 /** eight-by-five.jpeg whose first APP1 is XMP, then an Exif turned a quarter (6). */
@@ -589,4 +592,53 @@ test("what each engine shows of a file as it was sent", async ({ page }, testInf
     // A line the evidence keeps (scripts/run_suite.sh keeps `EVIDENCE` lines).
     console.log(`EVIDENCE as sent (${testInfo.project.name}): ${what}: shown ${size[0]} by ${size[1]}`);
   }
+});
+
+
+for (const orientation of [2, 3, 4, 5, 6, 7, 8]) {
+  test(`JPEG orientation ${orientation} keeps the same displayed pixels`, async ({ page, request }, testInfo) => {
+    const base = fixture("eight-by-five.jpeg");
+    const bytes = Buffer.concat([base.subarray(0, 2), exifSegment(orientation), base.subarray(2)]);
+    const file = { name: `orientation-${orientation}.jpg`, mime: "image/jpeg", bytes };
+    await home(page);
+    const photo = await attachAndPost(page, file, `${file.name} ${testInfo.project.name} ${Date.now()}`);
+    const served = Buffer.from(await (await request.get(await photo.getAttribute("src"))).body());
+    const blank = await page.context().newPage();
+    try {
+      expect(await pixelsOf(blank, served)).toEqual(await pixelsOf(blank, bytes));
+    } finally {
+      await blank.close();
+    }
+  });
+}
+
+async function pixelsOf(page, bytes) {
+  return page.evaluate(async (src) => {
+    const image = new Image();
+    image.src = src;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    [canvas.width, canvas.height] = [image.naturalWidth, image.naturalHeight];
+    const context = canvas.getContext("2d");
+    context.drawImage(image, 0, 0);
+    return [canvas.width, canvas.height, ...context.getImageData(0, 0, canvas.width, canvas.height).data];
+  }, `data:image/jpeg;base64,${bytes.toString("base64")}`);
+}
+
+test("the real ICC sRGB profile stays decodable with the same colour", async ({ page, request }, testInfo) => {
+  const profile = fixture("sRGB2014.icc");
+  const files = [
+    { name: "real.jpg", mime: "image/jpeg", bytes: profiledJpeg(profile), bare: "eight-by-five.jpeg" },
+    { name: "real.png", mime: "image/png", bytes: profiledPng(profile), bare: "six-by-four.png" },
+    { name: "real.webp", mime: "image/webp", bytes: profiledWebp(profile), bare: "twelve-by-nine-alpha.webp" },
+  ];
+  await home(page);
+  const kept = [];
+  for (const file of files) {
+    const photo = await attachAndPost(page, file, `${file.name} ${testInfo.project.name} ${Date.now()}`);
+    const answer = await request.get(await photo.getAttribute("src"));
+    expect(answer.status()).toBe(200);
+    kept.push([file, Buffer.from(await answer.body())]);
+  }
+  await expectColoursAsSent(page, kept, testInfo.project.name);
 });

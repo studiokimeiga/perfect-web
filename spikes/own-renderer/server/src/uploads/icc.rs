@@ -14,13 +14,15 @@
 //! bytes first. What is kept is rebuilt from it:
 //!
 //! - **the header**, its size rewritten, and zeroed: when it was created
-//!   (bytes 24 to 35), the device's maker, model and attributes (48 to 63),
+//!   (bytes 24 to 35), producer CMM (4 to 7), platform (40 to 43), creator
+//!   (80 to 83), and the device's maker, model and attributes (48 to 63),
 //!   the profile's ID (84 to 99, an MD5 of the profile as it was) and the
 //!   reserved bytes (100 to 127); its class, colour space, connection
 //!   space, version, rendering intent and illuminant as they were;
-//! - **each tag of a type of colour or rendering data**, byte for byte:
-//!   `XYZ `, `curv`, `para`, `sf32`, `mft1`, `mft2`, `mAB `, `mBA `,
-//!   `mpet`, `chrm`, `clro`, `meas`, `sig `, `view` and `cicp`;
+//! - **known colour tags with validated layouts**, preserving meaningful
+//!   numeric data while clearing reserved bytes and unused matrix fields;
+//!   payload tails are refused, and nested `mAB `, `mBA ` and `mpet`
+//!   transforms drop the entire profile until their padding is parsed;
 //! - **each tag of a text type** (`desc`, `mluc` and `text`: the profile's
 //!   description, the device's maker and model, the copyright, the viewing
 //!   conditions' description, ...), as its type holding one fixed text,
@@ -54,10 +56,9 @@ const HEADER: usize = 128;
 /// **The text a text-bearing tag is given**, and a PNG's iCCP its name.
 pub(crate) const NEUTRAL: &[u8] = b"ICC profile";
 
-/// The header's bytes zeroed: when it was created (24 to 35); the device's
-/// maker, model and attributes (48 to 63); the profile's ID and the
-/// reserved bytes (84 to 127).
-const ZEROED: [(usize, usize); 3] = [(24, 36), (48, 64), (84, 128)];
+/// The header's producer CMM, platform and creator, creation time, device
+/// fields, profile ID and reserved bytes are zeroed.
+const ZEROED: [(usize, usize); 6] = [(4, 8), (10, 12), (24, 36), (40, 44), (48, 64), (80, 128)];
 
 /// What a tag's type keeps of it.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -71,10 +72,45 @@ enum Keeps {
 }
 
 /// **What the tag of type `ty` keeps.**
-fn keeps(ty: &[u8]) -> Keeps {
+fn keeps(sig: &[u8], ty: &[u8]) -> Keeps {
+    let known = matches!(
+        sig,
+        b"wtpt"
+            | b"bkpt"
+            | b"rXYZ"
+            | b"gXYZ"
+            | b"bXYZ"
+            | b"lumi"
+            | b"chad"
+            | b"rTRC"
+            | b"gTRC"
+            | b"bTRC"
+            | b"kTRC"
+            | b"A2B0"
+            | b"A2B1"
+            | b"A2B2"
+            | b"B2A0"
+            | b"B2A1"
+            | b"B2A2"
+            | b"gamt"
+            | b"pre0"
+            | b"pre1"
+            | b"pre2"
+            | b"chrm"
+            | b"clro"
+            | b"meas"
+            | b"view"
+            | b"cicp"
+    );
     match ty {
         b"XYZ " | b"curv" | b"para" | b"sf32" | b"mft1" | b"mft2" | b"mAB " | b"mBA " | b"mpet"
-        | b"chrm" | b"clro" | b"meas" | b"sig " | b"view" | b"cicp" => Keeps::Whole,
+        | b"chrm" | b"clro" | b"meas" | b"sig " | b"view" | b"cicp" => {
+            if known {
+                Keeps::Whole
+            } else {
+                Keeps::Nothing
+            }
+        }
         b"desc" | b"mluc" | b"text" => Keeps::Neutral,
         _ => Keeps::Nothing,
     }
@@ -114,6 +150,131 @@ fn neutral(ty: &[u8]) -> Vec<u8> {
     t
 }
 
+/// Validate meaningful colour payloads before copying them. No ignored tail
+/// or internal reserved bytes may carry identifying data. Complex nested
+/// transforms are refused as a whole profile until their padding is parsed.
+fn colour_layout(sig: &[u8], data: &[u8]) -> Option<()> {
+    let ty = data.get(..4)?;
+    let length = match (sig, ty) {
+        (b"wtpt" | b"bkpt" | b"rXYZ" | b"gXYZ" | b"bXYZ" | b"lumi", b"XYZ ") => 20,
+        (b"chad", b"sf32") => 44,
+        (b"rTRC" | b"gTRC" | b"bTRC" | b"kTRC", b"curv") => {
+            12usize.checked_add(2usize.checked_mul(be32(data, 8)? as usize)?)?
+        }
+        (b"rTRC" | b"gTRC" | b"bTRC" | b"kTRC", b"para") => {
+            let function = u16::from_be_bytes(data.get(8..10)?.try_into().ok()?) as usize;
+            12 + 4 * [1, 3, 4, 5, 7].get(function)?
+        }
+        (b"chrm", b"chrm") => {
+            let channels = u16::from_be_bytes(data.get(8..10)?.try_into().ok()?) as usize;
+            12usize.checked_add(8usize.checked_mul(channels)?)?
+        }
+        (b"clro", b"clro") => 12usize.checked_add(be32(data, 8)? as usize)?,
+        (b"meas", b"meas") | (b"view", b"view") => 36,
+        (b"cicp", b"cicp") => 12,
+        (
+            b"A2B0" | b"A2B1" | b"A2B2" | b"B2A0" | b"B2A1" | b"B2A2" | b"gamt" | b"pre0" | b"pre1"
+            | b"pre2",
+            b"mft1" | b"mft2",
+        ) => lut_length(data)?,
+        _ => return None,
+    };
+    if data.len() != length {
+        return None;
+    }
+    Some(())
+}
+
+fn colour_tag(sig: &[u8], data: &[u8], input_space: &[u8]) -> Option<Vec<u8>> {
+    colour_layout(sig, data)?;
+    let ty = &data[..4];
+    let mut out = data.to_vec();
+    if ty == b"para" {
+        out[10..12].fill(0);
+    } else if ty == b"mft1" || ty == b"mft2" {
+        out[11] = 0;
+        if input_space != b"XYZ " {
+            out[12..48].fill(0);
+            for at in [12, 28, 44] {
+                out[at..at + 4].copy_from_slice(&65536u32.to_be_bytes());
+            }
+        } else if out[8] != 3 {
+            return None;
+        }
+    }
+    Some(out)
+}
+
+fn lut_length(data: &[u8]) -> Option<usize> {
+    let (input, output, grid) = (
+        *data.get(8)? as usize,
+        *data.get(9)? as usize,
+        *data.get(10)? as usize,
+    );
+    if !(1..=15).contains(&input) || !(1..=15).contains(&output) || grid < 2 {
+        return None;
+    }
+    let cells = grid.checked_pow(input as u32)?.checked_mul(output)?;
+    if data.get(..4)? == b"mft1" {
+        48usize
+            .checked_add(256usize.checked_mul(input + output)?)?
+            .checked_add(cells)
+    } else {
+        let a = u16::from_be_bytes(data.get(48..50)?.try_into().ok()?) as usize;
+        let b = u16::from_be_bytes(data.get(50..52)?.try_into().ok()?) as usize;
+        if !(2..=4096).contains(&a) || !(2..=4096).contains(&b) {
+            return None;
+        }
+        let entries = a
+            .checked_mul(input)?
+            .checked_add(cells)?
+            .checked_add(b.checked_mul(output)?)?;
+        52usize.checked_add(2usize.checked_mul(entries)?)
+    }
+}
+
+/// Header colour spaces are enumerated signatures, never producer text.
+fn colour_space(space: &[u8]) -> bool {
+    matches!(
+        space,
+        b"XYZ "
+            | b"Lab "
+            | b"Luv "
+            | b"YCbr"
+            | b"Yxy "
+            | b"RGB "
+            | b"GRAY"
+            | b"HSV "
+            | b"HLS "
+            | b"CMYK"
+            | b"CMY "
+            | b"2CLR"
+            | b"3CLR"
+            | b"4CLR"
+            | b"5CLR"
+            | b"6CLR"
+            | b"7CLR"
+            | b"8CLR"
+            | b"9CLR"
+            | b"ACLR"
+            | b"BCLR"
+            | b"CCLR"
+            | b"DCLR"
+            | b"ECLR"
+            | b"FCLR"
+    )
+}
+
+fn header_is_colour(p: &[u8]) -> bool {
+    matches!(
+        &p[12..16],
+        b"scnr" | b"mntr" | b"prtr" | b"link" | b"spac" | b"abst" | b"nmcl"
+    ) && colour_space(&p[16..20])
+        && (matches!(&p[20..24], b"XYZ " | b"Lab ")
+            || (&p[12..16] == b"link" && colour_space(&p[20..24])))
+        && p[68..80] == [0, 0, 0xf6, 0xd6, 0, 1, 0, 0, 0, 0, 0xd3, 0x2d]
+}
+
 /// A tag of a profile's table: its signature, and its data's offset and
 /// size.
 struct Tag {
@@ -134,6 +295,12 @@ pub(crate) fn scrub(profile: &[u8]) -> Option<Vec<u8>> {
     if &p[36..40] != b"acsp" || p[8] > 4 {
         return None;
     }
+    if !header_is_colour(p) {
+        return None;
+    }
+    if be32(p, 64)? > 3 {
+        return None;
+    }
     let count = be32(p, HEADER)? as usize;
     if count > MAX_TAGS {
         return None;
@@ -143,7 +310,7 @@ pub(crate) fn scrub(profile: &[u8]) -> Option<Vec<u8>> {
     for entry in (HEADER + 4..table).step_by(12) {
         let (at, len) = (be32(p, entry + 4)? as usize, be32(p, entry + 8)? as usize);
         // After the table, within the profile, and its type's signature in it.
-        if at < table || len < 4 || at.checked_add(len)? > size {
+        if at < table || len < 8 || at.checked_add(len)? > size {
             return None;
         }
         let sig = p[entry..entry + 4].try_into().ok()?;
@@ -158,8 +325,16 @@ pub(crate) fn scrub(profile: &[u8]) -> Option<Vec<u8>> {
     }
     let kept: Vec<&Tag> = tags
         .iter()
-        .filter(|t| keeps(&p[t.at..t.at + 4]) != Keeps::Nothing)
+        .filter(|t| keeps(&t.sig, &p[t.at..t.at + 4]) != Keeps::Nothing)
         .collect();
+    // Shared payloads are validated for every tag that names them, not
+    // only whichever signature appeared first in the table.
+    for tag in &kept {
+        let data = &p[tag.at..tag.at + tag.len];
+        if keeps(&tag.sig, &data[..4]) == Keeps::Whole {
+            colour_layout(&tag.sig, data)?;
+        }
+    }
     let table = HEADER + 4 + 12 * kept.len();
     let mut out = Vec::with_capacity(size);
     out.extend(&p[..HEADER]);
@@ -168,7 +343,11 @@ pub(crate) fn scrub(profile: &[u8]) -> Option<Vec<u8>> {
     let mut moved = Vec::with_capacity(ranges.len());
     for &(at, len) in &ranges {
         let ty = &p[at..at + 4];
-        let keeps = keeps(ty);
+        let Some(tag) = kept.iter().find(|t| t.at == at && t.len == len) else {
+            moved.push((0, 0));
+            continue;
+        };
+        let keeps = keeps(&tag.sig, ty);
         if keeps == Keeps::Nothing {
             moved.push((0, 0));
             continue;
@@ -176,7 +355,33 @@ pub(crate) fn scrub(profile: &[u8]) -> Option<Vec<u8>> {
         out.resize(out.len().next_multiple_of(4), 0);
         let start = out.len();
         match keeps {
-            Keeps::Whole => out.extend(&p[at..at + len]),
+            Keeps::Whole => {
+                let input_space = if tag.sig.starts_with(b"A2B") {
+                    &p[16..20]
+                } else {
+                    &p[20..24]
+                };
+                let data = &p[at..at + len];
+                if matches!(ty, b"mft1" | b"mft2") {
+                    let different_spaces =
+                        kept.iter().filter(|t| t.at == at && t.len == len).any(|t| {
+                            (t.sig.starts_with(b"A2B") && &p[16..20] == b"XYZ ")
+                                || (!t.sig.starts_with(b"A2B") && &p[20..24] == b"XYZ ")
+                        }) && kept.iter().filter(|t| t.at == at && t.len == len).any(|t| {
+                            (t.sig.starts_with(b"A2B") && &p[16..20] != b"XYZ ")
+                                || (!t.sig.starts_with(b"A2B") && &p[20..24] != b"XYZ ")
+                        });
+                    if different_spaces {
+                        let rgb = colour_tag(&tag.sig, data, b"RGB ")?;
+                        let xyz = colour_tag(&tag.sig, data, b"XYZ ")?;
+                        if rgb != xyz {
+                            return None;
+                        }
+                    }
+                }
+                out.extend(colour_tag(&tag.sig, &p[at..at + len], input_space)?);
+                out[start + 4..start + 8].fill(0);
+            }
             _ => out.extend(neutral(ty)),
         }
         moved.push((start, out.len() - start));
@@ -200,6 +405,9 @@ pub(crate) fn scrub(profile: &[u8]) -> Option<Vec<u8>> {
     for (from, to) in ZEROED {
         out[from..to].fill(0);
     }
+    // Only bits 0 and 1 are standardized. Vendor and reserved flag bits
+    // carry no colour transform and can encode the producing device.
+    out[44..48].copy_from_slice(&(be32(p, 44)? & 3).to_be_bytes());
     Some(out)
 }
 
@@ -430,6 +638,212 @@ pub(crate) mod tests {
             );
             assert_eq!(scrub(&kept), Some(kept.clone()), "rebuilt to itself");
         }
+    }
+
+    /// CMM, platform and creator describe the producing software or device,
+    /// rather than the colour transform. Test these independently of ZEROED.
+    #[test]
+    fn a_profiles_producer_signatures_are_not_kept() {
+        for version in [2, 4] {
+            let mut sent = planted(version);
+            for (at, value) in [(4, b"CMM!"), (40, b"OS!!"), (80, b"APP!")] {
+                sent[at..at + 4].copy_from_slice(value);
+            }
+            let kept = scrub(&sent).expect("colour profile kept");
+            for at in [4, 40, 80] {
+                assert_eq!(&kept[at..at + 4], &[0; 4], "producer at {at}");
+            }
+            for (sig, data) in tags_of(&kept) {
+                if !sig.starts_with(b"d") && sig != *b"cprt" {
+                    let before = tags_of(&sent);
+                    assert_eq!(data, before.iter().find(|(s, _)| *s == sig).unwrap().1);
+                }
+            }
+            assert_eq!(scrub(&kept), Some(kept.clone()), "idempotent");
+        }
+    }
+
+    /// The ICC's published profile exercises a real encoder's tag layout,
+    /// including its sampled curves and shared payloads, without the fixture
+    /// depending on our own synthetic profile builder.
+    #[test]
+    fn a_real_srgb_profile_keeps_its_colour_transform() {
+        let sent = include_bytes!("../../../e2e/uploads/sRGB2014.icc");
+        assert_eq!(sent.len(), 3024, "upstream fixture size");
+        let kept = scrub(sent).expect("published sRGB profile kept");
+        let before = tags_of(sent);
+        let after = tags_of(&kept);
+        for sig in [
+            *b"rXYZ", *b"gXYZ", *b"bXYZ", *b"rTRC", *b"gTRC", *b"bTRC", *b"wtpt", *b"chad",
+        ] {
+            let old = before
+                .iter()
+                .find(|(s, _)| *s == sig)
+                .expect("source colour tag")
+                .1;
+            let new = after
+                .iter()
+                .find(|(s, _)| *s == sig)
+                .expect("kept colour tag")
+                .1;
+            assert_eq!(new, old, "colour tag {sig:?}");
+        }
+        for at in [4, 40, 80] {
+            assert_eq!(&kept[at..at + 4], &[0; 4]);
+        }
+        assert_eq!(scrub(&kept), Some(kept.clone()));
+    }
+
+    #[test]
+    fn an_icc_profiles_reserved_and_vendor_bits_cannot_carry_identifiers() {
+        let mut sent = planted(4);
+        sent[10..12].copy_from_slice(b"SN");
+        sent[44..48].copy_from_slice(&[0x53, 0x4e, 0x34, 3]);
+        let wtpt = HEADER + 4 + 12 * 6;
+        assert_eq!(&sent[wtpt..wtpt + 4], b"wtpt");
+        let at = be32(&sent, wtpt + 4).unwrap() as usize;
+        sent[at + 4..at + 8].copy_from_slice(b"SN42");
+        let kept = scrub(&sent).expect("colour kept");
+        assert_eq!(&kept[10..12], &[0; 2], "version reserved bytes");
+        assert_eq!(&kept[44..48], &[0, 0, 0, 3], "only standard flag bits");
+        let white = tags_of(&kept)
+            .into_iter()
+            .find(|(sig, _)| sig == b"wtpt")
+            .unwrap()
+            .1;
+        assert_eq!(&white[4..8], &[0; 4], "tag reserved bytes");
+        assert_eq!(&white[8..], &sent[at + 8..at + 20], "colour unchanged");
+        assert_eq!(scrub(&kept), Some(kept.clone()));
+    }
+
+    #[test]
+    fn an_icc_profile_with_an_undefined_rendering_intent_is_dropped() {
+        let mut sent = planted(4);
+        for intent in [4, u32::from_be_bytes(*b"SN42"), u32::MAX] {
+            sent[64..68].copy_from_slice(&intent.to_be_bytes());
+            assert_eq!(scrub(&sent), None, "undefined intent {intent}");
+        }
+        for intent in 0u32..=3 {
+            sent[64..68].copy_from_slice(&intent.to_be_bytes());
+            let kept = scrub(&sent).expect("defined intent kept");
+            assert_eq!(&kept[64..68], &intent.to_be_bytes());
+        }
+    }
+
+    #[test]
+    fn colour_payload_slack_is_refused_and_unknown_colour_tags_are_dropped() {
+        let mut tags = colour(4, 1);
+        for index in [0, 4, 5] {
+            let mut altered = tags.clone();
+            altered[index].1.extend(b"Jane Roe");
+            assert!(
+                scrub(&profile(4, &altered)).is_none(),
+                "colour payload tail {index}"
+            );
+        }
+        tags.push((
+            vec![*b"camr"],
+            [b"XYZ \0\0\0\0".to_vec(), b"Jane RoeSN42".to_vec()].concat(),
+        ));
+        let kept = scrub(&profile(4, &tags)).expect("unknown tag removed");
+        assert!(
+            !kept.windows(NAME.len()).any(|w| w == NAME),
+            "no orphaned payload"
+        );
+        assert!(!tags_of(&kept).iter().any(|(sig, _)| sig == b"camr"));
+        assert_eq!(scrub(&kept), Some(kept.clone()));
+        for ty in [b"mAB ", b"mBA ", b"mpet"] {
+            let mut tags = colour(4, 1);
+            tags.push((vec![*b"A2B0"], [&ty[..], &[0; 28]].concat()));
+            assert!(
+                scrub(&profile(4, &tags)).is_none(),
+                "nested transform needs a parser"
+            );
+        }
+    }
+
+    #[test]
+    fn legacy_lut_payloads_have_exact_bounded_lengths() {
+        for ty in [b"mft1", b"mft2"] {
+            let length = if ty == b"mft1" { 562 } else { 64 };
+            let mut data = vec![0; length];
+            data[..4].copy_from_slice(ty);
+            data[8..11].copy_from_slice(&[1, 1, 2]);
+            if ty == b"mft2" {
+                data[48..52].copy_from_slice(&[0, 2, 0, 2]);
+            }
+            let tags = vec![(vec![*b"A2B0"], data.clone())];
+            assert!(scrub(&profile(4, &tags)).is_some(), "valid {ty:?}");
+            for length in [data.len() - 1, data.len() + 1] {
+                let mut wrong = data.clone();
+                wrong.resize(length, 42);
+                assert!(scrub(&profile(4, &[(vec![*b"A2B0"], wrong)])).is_none());
+            }
+            data[8..11].copy_from_slice(&[15, 15, 255]);
+            assert!(
+                scrub(&profile(4, &[(vec![*b"A2B0"], data)])).is_none(),
+                "overflow refused"
+            );
+        }
+    }
+
+    #[test]
+    fn colour_type_reserved_fields_are_zeroed() {
+        let mut tags = colour(4, 1);
+        tags[4].1[10..12].copy_from_slice(b"SN");
+        let kept = scrub(&profile(4, &tags)).expect("parametric curve kept");
+        let curve = tags_of(&kept)
+            .into_iter()
+            .find(|(sig, _)| sig == b"rTRC")
+            .unwrap()
+            .1;
+        assert_eq!(&curve[10..12], &[0; 2]);
+        let mut lut = vec![0; 562];
+        lut[..4].copy_from_slice(b"mft1");
+        lut[8..12].copy_from_slice(&[1, 1, 2, 42]);
+        lut[12..20].copy_from_slice(b"Jane Roe");
+        let kept = scrub(&profile(4, &[(vec![*b"A2B0"], lut)])).expect("LUT kept");
+        let data = tags_of(&kept)[0].1;
+        assert_eq!(data[11], 0);
+        assert!(!data.windows(NAME.len()).any(|w| w == NAME));
+        for at in [12, 28, 44] {
+            assert_eq!(&data[at..at + 4], &65536u32.to_be_bytes());
+        }
+    }
+
+    #[test]
+    fn header_colour_identifiers_cannot_be_free_producer_text() {
+        for (at, text) in [
+            (12, &b"SN42"[..]),
+            (16, &b"SN42"[..]),
+            (20, &b"SN42"[..]),
+            (68, &b"Jane RoeSN42!"[..]),
+        ] {
+            let mut sent = planted(4);
+            sent[at..at + text.len()].copy_from_slice(text);
+            assert!(scrub(&sent).is_none(), "undefined header field {at}");
+        }
+        assert!(scrub(&planted(4)).is_some());
+    }
+
+    #[test]
+    fn shared_colour_payloads_obey_every_signature_and_direction() {
+        let mut lut = vec![0; 48 + 3 * 256 + 8 * 3 + 3 * 256];
+        lut[..4].copy_from_slice(b"mft1");
+        lut[8..11].copy_from_slice(&[3, 3, 2]);
+        lut[12..16].copy_from_slice(&32768u32.to_be_bytes());
+        let kept =
+            scrub(&profile(4, &[(vec![*b"B2A0"], lut.clone())])).expect("XYZ input matrix kept");
+        assert_eq!(&tags_of(&kept)[0].1[12..16], &32768u32.to_be_bytes());
+        assert!(
+            scrub(&profile(4, &[(vec![*b"A2B0", *b"B2A0"], lut)])).is_none(),
+            "shared contexts cannot disagree"
+        );
+        let xyz = xyz(D50.0, D50.1, D50.2);
+        assert!(
+            scrub(&profile(4, &[(vec![*b"wtpt", *b"rTRC"], xyz)])).is_none(),
+            "every shared signature checked"
+        );
     }
 
     /// **The fixed text, as each type holds it**, byte for byte.

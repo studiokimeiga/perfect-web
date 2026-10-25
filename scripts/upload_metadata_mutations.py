@@ -74,14 +74,14 @@ BROWSER = "browser"
 # The catch-alls a mutant adds an arm before.
 JPEG_REST = "            // Every other APPn, COM, JPGn and RESn.\n            _ => {}\n"
 PNG_KEEPS = "        if PNG_KEPT.iter().any(|k| &k[..] == kind) {\n"
-WEBP_KEEPS = '                    b"ANIM" | b"ALPH" | b"VP8 " | b"VP8L" => {\n'
+WEBP_KEEPS = '                    b"VP8 " | b"VP8L" => {\n'
 JFIF_KEPT = "                    jfif = Some([&data[..7], &[0, 0, 1, 0, 1, 0, 0]].concat());\n"
 ICC_READ = "                    profile.add(data);\n"
 ICCP_KEPT = "                if let Some(data) = iccp(&chunk[8..8 + length]) {\n"
 ICCP_SCRUBBED = "                        if let Some(profile) = icc::scrub(data) {\n"
-ZEROED = "const ZEROED: [(usize, usize); 3] = [(24, 36), (48, 64), (84, 128)];\n"
+ZEROED = "const ZEROED: [(usize, usize); 6] = [(4, 8), (10, 12), (24, 36), (40, 44), (48, 64), (80, 128)];\n"
 NEUTRAL = '        b"desc" | b"mluc" | b"text" => Keeps::Neutral,\n'
-TAG_READ = "        if at < table || len < 4 || at.checked_add(len)? > size {\n"
+TAG_READ = "        if at < table || len < 8 || at.checked_add(len)? > size {\n"
 SIGNED = '    if &p[36..40] != b"acsp" || p[8] > 4 {\n'
 GIF_REST = (
     "                    // Comments (FE), plain text (01) and labels it does not know.\n"
@@ -101,6 +101,78 @@ def png_drops(kind):
 # (what is undone, which tests, file, anchor, replacement): the shape
 # scripts/mutation_anchors.py reads, its last three the file and the edit.
 MUTANTS = [
+    # ---- The integrator's additional review cases ----
+    ("ICC colour payload tails are accepted", RUST, ICC,
+     "    if data.len() != length {\n", "    if data.len() < length {\n"),
+    ("ICC shared transforms ignore distinct matrix contexts", RUST, ICC,
+     "                    if different_spaces {\n", "                    if false {\n"),
+    ("ICC header colour identifiers are unchecked", RUST, ICC,
+     "    if !header_is_colour(p) {\n", "    if false {\n"),
+    ("ICC unused legacy LUT matrix is kept", RUST, ICC,
+     "        if input_space != b\"XYZ \" {\n", "        if false {\n"),
+    ("ICC colour payload layout validation is bypassed", RUST, ICC,
+     "                out.extend(colour_tag(&tag.sig, &p[at..at + len], input_space)?);\n",
+     "                out.extend(&p[at..at + len]);\n"),
+    ("ICC unknown colour tag signatures are admitted", RUST, ICC,
+     "            if known {\n", "            if known || !sig.is_empty() {\n"),
+    ("ICC parametric-curve reserved bytes are kept", RUST, ICC,
+     "        out[10..12].fill(0);\n", ""),
+    ("ICC legacy LUT reserved byte is kept", RUST, ICC,
+     "        out[11] = 0;\n", ""),
+    ("PNG CRC bytes are copied from the sender", RUST, STRIP,
+     "            out.extend(png_chunk(kind, &chunk[8..8 + length]));\n", "            out.extend(chunk);\n"),
+    ("PNG transparency length is unchecked", RUST, STRIP,
+     "        b\"tRNS\" => {\n", "        b\"tRNS\" => return true,\n        b\"ZZZZ\" => {\n"),
+    ("WebP ALPH reserved bits are kept", RUST, STRIP,
+     "    *packed &= 0x3f;\n", "    *packed &= 0xff;\n"),
+    ("WebP ANMF reserved bits are kept", RUST, STRIP,
+     "                        frame[15] &= 3;\n", "                        frame[15] &= 0xff;\n"),
+    ("WebP ANIM retains excess bytes", RUST, STRIP,
+     "                        if data.len() != 6 {\n", "                        if false {\n"),
+    ("GIF descriptor reserved bits are kept", RUST, STRIP,
+     "                out[start + 9] &= 0xe7;\n", "                out[start + 9] &= 0xff;\n"),
+    ("GIF graphic-control reserved bits are kept", RUST, STRIP,
+     "                        out.extend([4, ext[1] & 0x1f, ext[2], ext[3], ext[4]]);\n",
+     "                        out.extend([4, ext[1], ext[2], ext[3], ext[4]]);\n"),
+    ("ICC undefined rendering intents are kept", RUST, ICC,
+     "    if be32(p, 64)? > 3 {\n", "    if false {\n"),
+    ("PNG fixed chunks keep trailing payloads", RUST, STRIP,
+     "        if !png_length(kind, length, colour, palette) {\n", "        if false {\n"),
+    ("Adobe APP14 producer flags are kept", RUST, STRIP,
+     "                adobe[7..11].fill(0);\n", ""),
+    ("WebP VP8X reserved flag bits are kept", RUST, STRIP,
+     "            header[0] &= 0x3e;\n", ""),
+    ("WebP VP8X reserved bytes are kept", RUST, STRIP,
+     "            header[1..4].fill(0);\n", ""),
+    ("an ICC profile's version reserved bytes are kept", RUST, ICC, ZEROED,
+     "const ZEROED: [(usize, usize); 5] = [(4, 8), (24, 36), (40, 44), (48, 64), (80, 128)];\n"),
+    ("an ICC profile's tag reserved bytes are kept", RUST, ICC,
+     "                out[start + 4..start + 8].fill(0);\n", ""),
+    ("an ICC profile's vendor flags are kept", RUST, ICC,
+     "    out[44..48].copy_from_slice(&(be32(p, 44)? & 3).to_be_bytes());\n",
+     "    out[44..48].copy_from_slice(&be32(p, 44)?.to_be_bytes());\n"),
+    ("an ICC profile's preferred CMM signature is kept", RUST, ICC, ZEROED,
+     "const ZEROED: [(usize, usize); 5] = [(10, 12), (24, 36), (40, 44), (48, 64), (80, 128)];\n"),
+    ("an ICC profile's platform signature is kept", RUST, ICC, ZEROED,
+     "const ZEROED: [(usize, usize); 5] = [(4, 8), (10, 12), (24, 36), (48, 64), (80, 128)];\n"),
+    ("an ICC profile's creator signature is kept", RUST, ICC, ZEROED,
+     "const ZEROED: [(usize, usize); 6] = [(4, 8), (10, 12), (24, 36), (40, 44), (48, 64), (84, 128)];\n"),
+    ("JPEG orientation 2 is lost", RUST, STRIP,
+     "    if let Some(o @ 2..=8) = turned {\n", "    if let Some(o @ 3..=8) = turned {\n"),
+    ("JPEG orientation 8 is lost", RUST, STRIP,
+     "    if let Some(o @ 2..=8) = turned {\n", "    if let Some(o @ 2..=7) = turned {\n"),
+    ("JPEG segment fill is skipped only once", RUST, STRIP,
+     "        while b.get(at) == Some(&0xFF) {\n", "        if b.get(at) == Some(&0xFF) {\n"),
+    ("JPEG scan fill is skipped only once", RUST, STRIP,
+     "        while b.get(next) == Some(&0xFF) {\n", "        if b.get(next) == Some(&0xFF) {\n"),
+    ("short JFIF data is sliced", RUST, STRIP,
+     "            0xE0 if data.starts_with(JFIF) && data.len() >= 14 => {\n",
+     "            0xE0 if data.starts_with(JFIF) => {\n"),
+    ("short Adobe data is sliced", RUST, STRIP,
+     "            0xEE if data.starts_with(ADOBE) && data.len() >= 12 => {\n",
+     "            0xEE if data.starts_with(ADOBE) => {\n"),
+    ("a PNG's suggested palette is kept", RUST, STRIP, PNG_KEEPS, png_keeps("sPLT")),
+    ("a PNG's histogram is kept", RUST, STRIP, PNG_KEEPS, png_keeps("hIST")),
     # ---- JPEG ----
     (
         "a JPEG's Exif is kept whole, its GPS position, camera and time with it",
@@ -240,7 +312,7 @@ MUTANTS = [
         "Adobe's APP14 is kept whole, past its twelve bytes",
         RUST,
         STRIP,
-        "                segment(&mut kept, m, &data[..12]);\n",
+        "                segment(&mut kept, m, &adobe);\n",
         "                segment(&mut kept, m, data);\n",
     ),
     (
@@ -391,8 +463,8 @@ MUTANTS = [
         "an animated WebP frame's unknown chunk is kept",
         RUST,
         STRIP,
-        '                            if matches!(fourcc, b"ALPH" | b"VP8 " | b"VP8L") {\n',
-        "                            if !fourcc.is_empty() {\n",
+        '                            } else if matches!(fourcc, b"VP8 " | b"VP8L") {\n',
+        "                            } else if !fourcc.is_empty() {\n",
     ),
     (
         "a WebP's ICC profile (ICCP) is not kept",
@@ -426,8 +498,8 @@ MUTANTS = [
         "an animated WebP's ANIM is not kept",
         RUST,
         STRIP,
-        WEBP_KEEPS,
-        WEBP_KEEPS.replace('b"ANIM" | ', ""),
+        '                    b"ANIM" => {\n',
+        '                    b"ANIM" if false => {\n',
     ),
     (
         "a WebP's RIFF size is not rewritten",
@@ -493,7 +565,7 @@ MUTANTS = [
         "a graphic control's other sub-blocks are kept",
         RUST,
         STRIP,
-        "                        out.extend(&ext[..5]);\n                        out.push(0);\n",
+        "                        out.extend([4, ext[1] & 0x1f, ext[2], ext[3], ext[4]]);\n                        out.push(0);\n",
         "                        out.extend(ext);\n",
     ),
     (
@@ -544,21 +616,21 @@ MUTANTS = [
         RUST,
         ICC,
         ZEROED,
-        "const ZEROED: [(usize, usize); 2] = [(48, 64), (84, 128)];\n",
+        "const ZEROED: [(usize, usize); 5] = [(4, 8), (10, 12), (40, 44), (48, 64), (80, 128)];\n",
     ),
     (
         "an ICC profile's device maker, model and attributes are kept",
         RUST,
         ICC,
         ZEROED,
-        "const ZEROED: [(usize, usize); 2] = [(24, 36), (84, 128)];\n",
+        "const ZEROED: [(usize, usize); 5] = [(4, 8), (10, 12), (24, 36), (40, 44), (80, 128)];\n",
     ),
     (
         "an ICC profile's ID is kept",
         RUST,
         ICC,
         ZEROED,
-        "const ZEROED: [(usize, usize); 3] = [(24, 36), (48, 64), (100, 128)];\n",
+        "const ZEROED: [(usize, usize); 7] = [(4, 8), (10, 12), (24, 36), (40, 44), (48, 64), (80, 84), (100, 128)];\n",
     ),
     (
         "an ICC profile's desc text is kept (a version 2 description, device maker or model)",
@@ -599,8 +671,8 @@ MUTANTS = [
         "an ICC colour tag is not kept byte for byte (its last byte lost)",
         RUST,
         ICC,
-        "            Keeps::Whole => out.extend(&p[at..at + len]),\n",
-        "            Keeps::Whole => out.extend(&p[at..at + len - 1]),\n",
+        "                out.extend(colour_tag(&tag.sig, &p[at..at + len], input_space)?);\n",
+        "                out.extend(colour_tag(&tag.sig, &p[at..at + len - 1], input_space)?);\n",
     ),
     (
         "two ICC tags whose data overlap are read",
@@ -614,7 +686,7 @@ MUTANTS = [
         RUST,
         ICC,
         TAG_READ,
-        "        if len < 4 || at.checked_add(len)? > size {\n",
+        "        if len < 8 || at.checked_add(len)? > size {\n",
     ),
     (
         "an ICC tag shorter than its type's signature is read",
@@ -718,7 +790,10 @@ def rust():
     results = re.findall(r"test result: \w+\. (\d+) passed; (\d+) failed", r.stdout + r.stderr)
     if not results:
         return False, 0, 0
-    return True, sum(int(p) for p, _ in results), sum(int(f) for _, f in results)
+    passed = sum(int(p) for p, _ in results)
+    failed = sum(int(f) for _, f in results)
+    valid = passed + failed > 0 and r.returncode == (101 if failed else 0)
+    return valid, passed, failed
 
 
 def browser():
@@ -738,11 +813,26 @@ def browser():
     except subprocess.TimeoutExpired:
         os.killpg(p.pid, signal.SIGKILL)
         p.communicate()
-        return True, 0, 1
+        return False, 0, 0
+    return browser_result(out, p.returncode)
+
+
+def browser_result(out, status):
+    """Only completed, assertion-caused test failures can kill a mutant."""
     out = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", out)
     passed = sum(int(n) for n in re.findall(r"^\s+(\d+) passed", out, re.M))
-    failed = sum(int(n) for n in re.findall(r"^\s+(\d+) (?:failed|did not run)", out, re.M))
-    return passed + failed > 0, passed, failed
+    failed = sum(int(n) for n in re.findall(r"^\s+(\d+) failed", out, re.M))
+    infrastructure = re.search(
+        r"did not run|interrupted|worker process exited|browserType\.launch|"
+        r"Test timeout of|ECONNREFUSED|EADDRINUSE|Protocol error|"
+        r"Target page, context or browser has been closed|webServer.*(?:failed|timed out)",
+        out,
+        re.I,
+    )
+    assertion = not failed or re.search(r"Error: expect\(|AssertionError|^\s*Expected:", out, re.M)
+    valid = passed + failed > 0 and not infrastructure and bool(assertion) and (status != 0) == bool(failed)
+    return bool(valid), passed, failed
+
 
 
 SUITES = {RUST: rust, BROWSER: browser}
@@ -780,7 +870,8 @@ def main():
         finally:
             path.write_text(original)
         if not built:
-            verdict = "KILLED (does not build)"
+            verdict = "INVALID (build, infrastructure or test-result failure)"
+            survivors += 1
         elif failed:
             verdict = f"KILLED ({failed} of {passed + failed} tests fail)"
         else:

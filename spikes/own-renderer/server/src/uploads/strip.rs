@@ -196,7 +196,10 @@ fn jpeg(b: &[u8]) -> Result<Vec<u8>, &'static str> {
                 }
             }
             0xEE if data.starts_with(ADOBE) && data.len() >= 12 => {
-                segment(&mut kept, m, &data[..12]);
+                let mut adobe = data[..12].to_vec();
+                adobe[5..7].copy_from_slice(&100u16.to_be_bytes());
+                adobe[7..11].fill(0);
+                segment(&mut kept, m, &adobe);
             }
             0xDA => {
                 segment(&mut kept, m, data);
@@ -303,12 +306,39 @@ fn iccp(data: &[u8]) -> Option<Vec<u8>> {
 
 /// A PNG chunk: its data's length, its type, its data, and its CRC over its
 /// type and data (§5.3).
-fn png_chunk(kind: &[u8; 4], data: &[u8]) -> Vec<u8> {
+fn png_chunk(kind: &[u8], data: &[u8]) -> Vec<u8> {
     let mut c = (data.len() as u32).to_be_bytes().to_vec();
     c.extend(kind);
     c.extend(data);
     c.extend(sniff::crc32(&c[4..]).to_be_bytes());
     c
+}
+
+/// Fixed-size PNG chunks cannot carry bytes outside their defined fields
+/// (PNG third edition, sections 11.2, 11.3.2 and 11.3.6).
+fn png_length(kind: &[u8], length: usize, colour: u8, palette: usize) -> bool {
+    let fixed = match kind {
+        b"IHDR" => 13,
+        b"IEND" => 0,
+        b"cHRM" => 32,
+        b"gAMA" | b"cICP" => 4,
+        b"sRGB" => 1,
+        b"mDCV" => 24,
+        b"cLLI" | b"acTL" => 8,
+        b"fcTL" => 26,
+        b"PLTE" => return length > 0 && length <= 768 && length.is_multiple_of(3),
+        b"fdAT" => return length >= 4,
+        b"tRNS" => {
+            return match colour {
+                0 => length == 2,
+                2 => length == 6,
+                3 => length > 0 && length <= palette,
+                _ => false,
+            };
+        }
+        _ => return true,
+    };
+    length == fixed
 }
 
 /// **A PNG, its chunks walked to IEND**: those it keeps copied whole, with
@@ -317,6 +347,8 @@ fn png(b: &[u8]) -> Result<Vec<u8>, &'static str> {
     const SHORT: &str = "it ends before its IEND chunk";
     let mut out = b.get(..8).ok_or(SHORT)?.to_vec();
     let mut profiled = false;
+    let colour = *b.get(25).ok_or(SHORT)?;
+    let mut palette = 0;
     let mut at = 8;
     loop {
         let length = be32(b, at).ok_or(SHORT)? as usize;
@@ -324,10 +356,16 @@ fn png(b: &[u8]) -> Result<Vec<u8>, &'static str> {
         if !kind.iter().all(u8::is_ascii_alphabetic) {
             return Err("a chunk's type is not four letters");
         }
+        if !png_length(kind, length, colour, palette) {
+            return Err("a chunk has bytes outside its declared fields");
+        }
         let end = (at + 12).checked_add(length).ok_or(SHORT)?;
         let chunk = b.get(at..end).ok_or(SHORT)?;
         if PNG_KEPT.iter().any(|k| &k[..] == kind) {
-            out.extend(chunk);
+            if kind == b"PLTE" {
+                palette = length / 3;
+            }
+            out.extend(png_chunk(kind, &chunk[8..8 + length]));
         } else if kind == b"iCCP" {
             // A PNG has one; a second is not read, so not kept.
             if !profiled {
@@ -397,6 +435,14 @@ impl<'a> Iterator for Chunks<'a> {
     }
 }
 
+/// ALPH's two high bits are reserved; the rest describes the coded alpha.
+fn alpha(data: &[u8]) -> Result<Vec<u8>, &'static str> {
+    let mut out = data.to_vec();
+    let packed = out.first_mut().ok_or("an ALPH chunk is empty")?;
+    *packed &= 0x3f;
+    Ok(out)
+}
+
 /// **A WebP, its chunks walked to its RIFF's size**: a simple file's image,
 /// or an extended file's image, colour and animation.
 fn webp(b: &[u8]) -> Result<Vec<u8>, &'static str> {
@@ -417,6 +463,8 @@ fn webp(b: &[u8]) -> Result<Vec<u8>, &'static str> {
         Some((b"VP8X", data)) => {
             let mut header = data.get(..10).ok_or("its VP8X chunk is short")?.to_vec();
             header[0] &= !(VP8X_EXIF | VP8X_XMP);
+            header[0] &= 0x3e;
+            header[1..4].fill(0);
             chunk(&mut kept, b"VP8X", &header);
             let (mut profiled, mut profile_kept) = (false, false);
             for walked in found {
@@ -431,7 +479,14 @@ fn webp(b: &[u8]) -> Result<Vec<u8>, &'static str> {
                             profile_kept = true;
                         }
                     }
-                    b"ANIM" | b"ALPH" | b"VP8 " | b"VP8L" => {
+                    b"ANIM" => {
+                        if data.len() != 6 {
+                            return Err("an ANIM chunk is not six bytes");
+                        }
+                        chunk(&mut kept, fourcc, data);
+                    }
+                    b"ALPH" => chunk(&mut kept, fourcc, &alpha(data)?),
+                    b"VP8 " | b"VP8L" => {
                         chunk(&mut kept, fourcc, data);
                     }
                     b"ANMF" => {
@@ -439,9 +494,12 @@ fn webp(b: &[u8]) -> Result<Vec<u8>, &'static str> {
                             .get(..16)
                             .ok_or("an ANMF chunk is shorter than its frame header")?
                             .to_vec();
+                        frame[15] &= 3;
                         for walked in Chunks(&data[16..]) {
                             let (fourcc, data) = walked?;
-                            if matches!(fourcc, b"ALPH" | b"VP8 " | b"VP8L") {
+                            if fourcc == b"ALPH" {
+                                chunk(&mut frame, fourcc, &alpha(data)?);
+                            } else if matches!(fourcc, b"VP8 " | b"VP8L") {
                                 chunk(&mut frame, fourcc, data);
                             }
                         }
@@ -530,7 +588,9 @@ fn gif(b: &[u8]) -> Result<Vec<u8>, &'static str> {
             0x2C => {
                 let local = table(*b.get(at + 9).ok_or(SHORT)?);
                 let end = blocks(b, at + 10 + local + 1)?;
+                let start = out.len();
                 out.extend(b.get(at..end).ok_or(SHORT)?);
+                out[start + 9] &= 0xe7;
                 at = end;
             }
             0x21 => {
@@ -545,7 +605,7 @@ fn gif(b: &[u8]) -> Result<Vec<u8>, &'static str> {
                             return Err("a graphic control extension is not four bytes");
                         }
                         out.extend([0x21, 0xF9]);
-                        out.extend(&ext[..5]);
+                        out.extend([4, ext[1] & 0x1f, ext[2], ext[3], ext[4]]);
                         out.push(0);
                     }
                     0xFF => {
@@ -898,6 +958,68 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn every_valid_jpeg_orientation_is_kept_alone() {
+        let body = jpeg_body();
+        for o in 0..=9 {
+            let sent = jpeg_of(&[(0xE1, [EXIF, &tiff(o)].concat())], &body, &[]);
+            let segments = if (2..=8).contains(&o) {
+                vec![(0xE1, orientation_alone(o))]
+            } else {
+                vec![]
+            };
+            let expected = jpeg_of(&segments, &body, &[]);
+            let kept = strip(&sent).expect("JPEG kept");
+            assert_eq!(kept, expected, "orientation {o}");
+            let shown = sniff::measure(&kept).expect("measured");
+            let size = if (5..=8).contains(&o) { (5, 8) } else { (8, 5) };
+            assert_eq!((shown.width, shown.height), size, "orientation {o}");
+            assert_eq!(strip(&kept), Ok(kept.clone()));
+        }
+    }
+
+    #[test]
+    fn jpeg_fill_bytes_before_segments_and_after_scans_are_accepted() {
+        let body = jpeg_body();
+        let base = jpeg_of(&[(0xE1, orientation_alone(6))], &body, &[]);
+        for count in [1, 2, 17] {
+            let mut sent = base.clone();
+            sent.splice(2..2, std::iter::repeat_n(0xff, count));
+            let eoi = sent.len() - 2;
+            sent.splice(eoi..eoi, std::iter::repeat_n(0xff, count));
+            assert_eq!(strip(&sent), Ok(base.clone()), "{count} fill bytes");
+        }
+    }
+
+    #[test]
+    fn fill_bytes_before_a_jpeg_restart_stay_with_the_scan() {
+        let base = restarted_jpeg();
+        let restart = base.windows(2).position(|w| w == [0xff, 0xd0]).unwrap();
+        for count in [2, 17] {
+            let mut sent = base.clone();
+            sent.splice(restart..restart, std::iter::repeat_n(0xff, count));
+            assert_eq!(strip(&sent), Ok(sent.clone()), "restart fill {count}");
+        }
+    }
+
+    #[test]
+    fn short_jfif_and_adobe_segments_are_dropped_without_panicking() {
+        let body = jpeg_body();
+        for (marker, data, required) in [(0xe0, jfif_with_thumbnail(), 14), (0xee, adobe(), 12)] {
+            for len in 0..required {
+                let sent = jpeg_of(&[(marker, data[..len].to_vec())], &body, &[]);
+                let result = std::panic::catch_unwind(|| strip(&sent));
+                assert_eq!(
+                    result.expect("short header must not panic"),
+                    Ok(jpeg_of(&[], &body, &[])),
+                    "{marker:x}, {len}"
+                );
+            }
+            let sent = jpeg_of(&[(marker, data[..required].to_vec())], &body, &[]);
+            assert!(strip(&sent).is_ok(), "complete header");
+        }
+    }
+
+    #[test]
     fn a_jpegs_turn_is_its_first_readable_exif_before_any_scan() {
         let body = jpeg_body();
         let mut unreadable = [EXIF, &tiff(6)].concat();
@@ -1170,6 +1292,8 @@ pub(crate) mod tests {
             png_chunk(b"zTXt", &[&b"Author\0\0"[..], NAME].concat()),
             png_chunk(b"pHYs", &[0, 0, 0x16, 0x25, 0, 0, 0x16, 0x25, 1]),
             png_chunk(b"sBIT", &[8, 8, 8]),
+            png_chunk(b"sPLT", &[&b"Jane Roe\0\x08"[..], &[0; 6]].concat()),
+            png_chunk(b"hIST", &[0, 1, 0, 2]),
             png_chunk(b"bKGD", &[0, 0, 0, 0, 0, 0]),
             png_chunk(b"prVt", CAMERA),
             idat,
@@ -1216,6 +1340,30 @@ pub(crate) mod tests {
     /// without a name, with a name past 79 bytes, compressed by another
     /// method, whose stream is cut or inflates past 4 MiB, or whose profile
     /// does not parse.
+
+    #[test]
+    fn the_real_srgb_profile_survives_each_supported_container() {
+        let profile = include_bytes!("../../../e2e/uploads/sRGB2014.icc");
+        let expected = icc::scrub(profile).expect("real profile kept");
+        let (head, idat, iend) = png_parts();
+        let (before, after) = png_kept(iccp_chunk(b"sRGB", profile, 6));
+        let png = [head, before, idat, after, iend].concat();
+        let webp = riff_of(
+            &[
+                riff_chunk(b"VP8X", &[0x20, 0, 0, 0, 6, 0, 0, 2, 0, 0]),
+                riff_chunk(b"ICCP", profile),
+                fixture("seven-by-three-lossless.webp")[12..].to_vec(),
+            ],
+            &[],
+        );
+        let jpeg = jpeg_of(&app2s(profile, 600), &jpeg_body(), &[]);
+        for sent in [jpeg, png, webp] {
+            let kept = strip(&sent).expect("image kept");
+            assert_eq!(profiles_in(&kept), vec![expected.clone()]);
+            assert_eq!(strip(&kept), Ok(kept.clone()));
+        }
+    }
+
     #[test]
     fn a_pngs_icc_profile_is_read_from_its_first_iccp() {
         let (head, idat, iend) = png_parts();
@@ -1258,6 +1406,143 @@ pub(crate) mod tests {
             Ok(png(&[kept])),
             "a name of 79 bytes"
         );
+    }
+
+    #[test]
+    fn fixed_png_chunks_refuse_undeclared_payload_bytes() {
+        let (head, idat, iend) = png_parts();
+        for (kind, size) in [
+            (b"IHDR", 13),
+            (b"IEND", 0),
+            (b"cHRM", 32),
+            (b"gAMA", 4),
+            (b"sRGB", 1),
+            (b"cICP", 4),
+            (b"mDCV", 24),
+            (b"cLLI", 8),
+            (b"acTL", 8),
+            (b"fcTL", 26),
+        ] {
+            let data = [vec![0; size], NAME.to_vec()].concat();
+            let sent = [
+                head.clone(),
+                png_chunk(kind, &data),
+                idat.clone(),
+                iend.clone(),
+            ]
+            .concat();
+            assert!(
+                matches!(strip(&sent), Err(Unreadable::Malformed(Kind::Png, _))),
+                "{kind:?} cannot hold extra bytes"
+            );
+        }
+        assert!(
+            strip(&fixture("six-by-four.png")).is_ok(),
+            "real encoder neighbour"
+        );
+    }
+
+    #[test]
+    fn an_adobe_headers_flags_cannot_name_a_device() {
+        let mut data = adobe();
+        data[7..11].copy_from_slice(b"SN42");
+        let sent = jpeg_of(&[(0xee, data)], &jpeg_body(), &[]);
+        let mut expected = adobe()[..12].to_vec();
+        expected[7..11].fill(0);
+        assert_eq!(
+            strip(&sent),
+            Ok(jpeg_of(&[(0xee, expected)], &jpeg_body(), &[]))
+        );
+    }
+
+    #[test]
+    fn webp_reserved_header_bits_are_neutral() {
+        let (mut header, alph, vp8) = alpha_parts();
+        header[0] |= 0xc1;
+        header[1..4].copy_from_slice(b"ID!");
+        let sent = riff_of(
+            &[riff_chunk(b"VP8X", &header), alph.clone(), vp8.clone()],
+            &[],
+        );
+        header[0] &= 0x3e;
+        header[1..4].fill(0);
+        let expected = riff_of(&[riff_chunk(b"VP8X", &header), alph, vp8], &[]);
+        assert_eq!(strip(&sent), Ok(expected.clone()));
+        assert_eq!(strip(&expected), Ok(expected.clone()));
+    }
+
+    #[test]
+    fn png_checksums_and_transparency_cannot_hold_ignored_bytes() {
+        let base = fixture("six-by-four.png");
+        let mut sent = base.clone();
+        sent[29..33].copy_from_slice(b"SN42");
+        assert_eq!(strip(&sent), Ok(base), "CRC regenerated, not copied");
+        let (head, idat, iend) = png_parts();
+        let extra = png_chunk(b"tRNS", &[0; 14]);
+        assert!(
+            strip(&[head, extra, idat, iend].concat()).is_err(),
+            "RGB transparency is six bytes"
+        );
+    }
+
+    #[test]
+    fn webp_animation_and_alpha_headers_cannot_carry_reserved_data() {
+        let (mut header, mut alph, vp8) = alpha_parts();
+        alph[8] |= 0xc0;
+        let sent = riff_of(
+            &[riff_chunk(b"VP8X", &header), alph.clone(), vp8.clone()],
+            &[],
+        );
+        alph[8] &= 0x3f;
+        let expected = riff_of(&[riff_chunk(b"VP8X", &header), alph, vp8.clone()], &[]);
+        assert_eq!(strip(&sent), Ok(expected));
+        header[0] |= 2;
+        let mut frame = vec![0; 16];
+        frame[15] = 0xfc;
+        frame.extend(&vp8);
+        let sent = riff_of(
+            &[
+                riff_chunk(b"VP8X", &header),
+                riff_chunk(b"ANIM", &[0; 6]),
+                riff_chunk(b"ANMF", &frame),
+            ],
+            &[],
+        );
+        frame[15] = 0;
+        let expected = riff_of(
+            &[
+                riff_chunk(b"VP8X", &header),
+                riff_chunk(b"ANIM", &[0; 6]),
+                riff_chunk(b"ANMF", &frame),
+            ],
+            &[],
+        );
+        assert_eq!(strip(&sent), Ok(expected));
+        let extra = riff_of(
+            &[
+                riff_chunk(b"VP8X", &header),
+                riff_chunk(b"ANIM", b"Jane Roe"),
+            ],
+            &[],
+        );
+        assert!(strip(&extra).is_err(), "ANIM has six bytes");
+    }
+
+    #[test]
+    fn a_gifs_reserved_descriptor_and_control_bits_are_zeroed() {
+        let base = local_table_gif();
+        let image = base.iter().position(|&b| b == 0x2c).unwrap();
+        let mut sent = base.clone();
+        sent[image + 9] |= 0x18;
+        assert_eq!(strip(&sent), Ok(base));
+        let sent = [
+            sent[..image].to_vec(),
+            vec![0x21, 0xf9, 4, 0xe0, 0, 0, 0, 0],
+            sent[image..].to_vec(),
+        ]
+        .concat();
+        let kept = strip(&sent).expect("GIF kept");
+        assert_eq!(kept[image + 3], 0, "graphic control reserved bits");
     }
 
     #[test]

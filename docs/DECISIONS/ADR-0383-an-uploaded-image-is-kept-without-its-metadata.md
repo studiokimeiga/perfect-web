@@ -199,11 +199,12 @@ its type's signature and four reserved bytes first. What is kept is
 rebuilt from it:
 
 - **the header**, its size rewritten, with zeros where it says when the
-  profile was created (bytes 24 to 35), the device's maker, model and
+  profile was created (bytes 24 to 35), the preferred CMM (4 to 7), primary
+  platform (40 to 43), creator (80 to 83), the device's maker, model and
   attributes (48 to 63), the profile's ID (84 to 99, an MD5 of the profile
   as it was) and the reserved bytes (100 to 127); its class, colour space,
-  connection space, version, flags, rendering intent, illuminant and
-  creator as they were;
+  connection space, version, flags, rendering intent and illuminant as they
+  were;
 - **each tag of a colour or rendering type**, byte for byte: `XYZ `, `curv`,
   `para`, `sf32`, `mft1`, `mft2`, `mAB `, `mBA `, `mpet`, `chrm`, `clro`,
   `meas`, `sig `, `view`, `cicp`;
@@ -273,7 +274,7 @@ The integrator's files; proposed wording:
   uploaded image keeps its ICC profile's colour, its colour tags byte for
   byte (a calibrated display's measured curves and primaries can tell its
   panel from another's), its header's class, colour spaces, version,
-  flags, intent and creator; its descriptions, device fields, creation
+  flags and intent; its CMM, platform, creator, descriptions, device fields, creation
   time, ID and other tags are not kept (§2a), and a profile that does not
   parse is dropped, its image then shown as sRGB; nothing in the pixels is touched
   (a face, a street sign, a screen in a reflection), nor data hidden in a
@@ -577,3 +578,82 @@ and `compress_to_vec_zlib`, in the crate's source in cargo's registry).
   each was split, its behaviour unchanged (`fffe9e38`), and the spec
   passes 12 of 12 in the three engines as before. `just preflight` does
   not run Fallow (NEXT).
+
+
+## The integrator's additional review (2026-10-25)
+
+A new failing-first test at `4611ce3d` reproduced a retained producer CMM
+signature (bytes 4..8). The same independent assertions cover platform
+(40..44) and creator (80..84), in v2 and v4 profiles. These are now zeroed;
+colour tags stay byte-for-byte and rewriting stays idempotent. Individual
+mutation controls restore each field. Existing header tests derived their
+expected zeros from the implementation's own ZEROED constant, so they
+could not detect an omitted field; the new assertions use literal offsets.
+
+Coverage now includes every valid JPEG orientation (2..8) and 0/1/9,
+segment fill and scan fill before restart markers, every short JFIF/Adobe
+header length, PNG suggested palettes and histograms, and malformed JPEG,
+PNG and WebP uploads through HTTP with no staged or committed bytes. New
+controls narrow each orientation endpoint, skip fill once, remove each
+short-header guard, and retain sPLT/hIST.
+
+The genuine ICC sRGB2014 profile is an unmodified, licensed test fixture
+with source, size and SHA-256 recorded beside it. Its sampled curves,
+primaries, white point and chromatic adaptation survive verbatim. This
+checks a real profile layout as well as our synthetic fixtures; it does not
+establish compatibility with every ICC producer or every profile type.
+
+### The integrator's rulings (2026-10-25)
+
+Every accepted upload is rewritten; there is no program opt-out. Non-colour
+ICC tag types are dropped, even when a vendor uses a binary serial number.
+Profiles are bounded to 4 MiB and 1,024 tags. JPEG ICC chunks after the first
+scan are dropped. These confirm the existing implementation decisions;
+they do not add retroactive cleaning of stored media. Pixel content and
+fingerprinting through retained colour measurements remain limitations.
+
+The new head must earn its own complete hosted checks and independent
+review. Earlier 78-test/91-mutant evidence above remains historical.
+
+
+### Additional reproduced privacy lanes and the resulting contract
+
+Independent review of the new cases reproduced identifiers in ICC common
+reserved bytes, vendor flags, version padding and trailing curve payloads;
+PNG IEND payload; WebP VP8X reserved fields; Adobe APP14 flags. All three
+crafted image containers still decoded in Chromium. New unit regressions
+failed before each container/field repair (raw failures retained by the
+integrator); earlier green suites did not cover these lanes.
+
+The rewriter now canonicalizes ICC producer/reserved fields, standard flag
+bits, per-type reserved fields and ignored LUT matrices. It validates
+header classes/colour spaces, D50, rendering intent, known colour tag
+signatures and exact meaningful payload lengths, with checked LUT sizes.
+Unknown colour tags and their orphaned bytes are dropped. Every signature
+sharing a payload must admit its layout; distinct LUT matrix contexts may
+not disagree. Numeric colour data stays unchanged where meaningful.
+
+**Compatibility limit:** nested `mAB`, `mBA` and `mpet` transforms have no
+padding parser here. A profile requiring one is dropped whole; the image
+still decodes under sRGB, and can have different colour. This supersedes
+§2a's earlier broader whole-tag claim. This is a deliberate privacy-first
+fallback, not claimed support for all genuine ICC profiles.
+
+PNG fixed-size chunks and transparency lengths are bounded by their
+fields, palette size and colour type; kept CRCs are regenerated. WebP
+VP8X/ANMF/ALPH reserved bits are zeroed and ANIM is exactly six bytes. GIF
+descriptor and control reserved bits are zeroed. Adobe APP14 keeps its
+transform with version 100 and zero flags. Valid neighbouring images,
+colour transforms and animations remain covered separately.
+
+Primary references verified 2026-10-25: [ICC.1:2022](https://archive.color.org/specification/ICC.1-2022-05.pdf)
+§7.2, §10.1, §10.6/10.10/10.11/10.18; [PNG third edition](https://www.w3.org/TR/png-3/)
+§11; [RFC 9649](https://www.rfc-editor.org/rfc/rfc9649.html) §2.7;
+[libjpeg-turbo examine_app14](https://raw.githubusercontent.com/libjpeg-turbo/libjpeg-turbo/main/src/jdmarker.c)
+uses the transform for colour and only traces version/flags.
+
+The mutation runner now treats build/infrastructure failures, zero tests,
+contradictory exit statuses, browser crashes and incomplete runs as invalid
+proof and fails the campaign. A browser failure must carry an assertion
+report. Dedicated producer regressions verify these controls and restoration.
+Only a completed whole campaign establishes its final count.

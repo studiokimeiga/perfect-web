@@ -324,6 +324,27 @@ fn what_is_not_an_image_is_refused_whatever_it_is_called() {
     assert!(attach(&s, "a", &fixture("ten-by-six-lossy.webp")).starts_with("http/1.1 303"));
 }
 
+/// A sniffable image with a cut container is refused by the real HTTP seam;
+/// no lease or committed bytes may survive the refusal.
+#[test]
+fn a_malformed_image_is_refused_over_http_without_staging() {
+    let s = served_feed();
+    for name in [
+        "eight-by-five.jpeg",
+        "six-by-four.png",
+        "ten-by-six-lossy.webp",
+    ] {
+        let mut bytes = fixture(name);
+        bytes.pop();
+        let head = attach(&s, "a", &bytes);
+        assert!(head.starts_with("http/1.1 422"), "{name}: {head}");
+        assert_eq!(blobs(&s, "staged"), 0);
+        assert_eq!(blobs(&s, "blobs"), 0);
+    }
+    assert!(attach(&s, "a", &fixture("six-by-four.png")).starts_with("http/1.1 303"));
+    assert_eq!(blobs(&s, "staged"), 1, "valid neighbour staged");
+}
+
 /// The newest post's id, first in the home page's timeline.
 fn newest(s: &Server) -> String {
     let home = page(s, "b", "feed.app.Home~ui", &Params::new());
