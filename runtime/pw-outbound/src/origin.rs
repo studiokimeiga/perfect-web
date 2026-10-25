@@ -125,6 +125,13 @@ impl fmt::Display for Origin {
     }
 }
 
+/// **The origin of `url`**, as written canonically, or `None` where it
+/// names none: what may be shown of a URL whose path or query may hold a
+/// secret.
+pub(crate) fn origin_of(url: &str) -> Option<String> {
+    split(url).ok().map(|(origin, _)| origin.to_string())
+}
+
 /// An origin's text, shortened for a message: a grant's origin is the
 /// deployment's configuration, never a secret, but may be long.
 fn shown(text: &str) -> String {

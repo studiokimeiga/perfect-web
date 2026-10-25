@@ -134,7 +134,9 @@ pub enum Error {
     Framing(String),
     /// The answer's head or body is larger than the client takes.
     TooLarge { what: &'static str, limit: usize },
-    /// The answer redirects, which the client never follows.
+    /// The answer redirects, which the client never follows; `location`
+    /// is the origin it points to (none for a relative or unread one), never
+    /// its path or query, which may echo the request's.
     Redirected {
         status: u16,
         location: Option<String>,
@@ -195,10 +197,7 @@ pub(crate) fn io_error(e: io::Error, phase: Phase) -> Error {
         return Error::TimedOut { phase };
     }
     if let Some(tls) = e.get_ref().and_then(|i| i.downcast_ref::<rustls::Error>()) {
-        return Error::Tls {
-            origin: String::new(),
-            why: tls.to_string(),
-        };
+        return Error::Io(format!("TLS: {tls}"));
     }
     Error::Io(e.to_string())
 }
@@ -220,6 +219,22 @@ pub struct Limits {
     /// The answer's body, in bytes; a chunked body's framing is held to as
     /// many again.
     pub body: usize,
+}
+
+/// The longest any wait is: a day. A longer one is taken as a day, so that
+/// no deadline is past what an `Instant` holds.
+pub const MOST_WAIT: Duration = Duration::from_secs(24 * 60 * 60);
+
+impl Limits {
+    /// These limits, each wait at most [`MOST_WAIT`].
+    fn held(self) -> Limits {
+        Limits {
+            connect: self.connect.min(MOST_WAIT),
+            handshake: self.handshake.min(MOST_WAIT),
+            total: self.total.min(MOST_WAIT),
+            ..self
+        }
+    }
 }
 
 impl Default for Limits {
@@ -355,9 +370,10 @@ impl Method {
 }
 
 /// **A request**: a method, a URL, headers, secret headers and a body. Its
-/// `Debug` shows its URL without the query, its headers, the names of its
-/// secrets and its body's length: no secret, and no body, which may hold one
-/// (a token exchange's form).
+/// `Debug` shows the origin of its URL, its headers, the names of its
+/// secrets and its body's length: no secret, no path or query (a webhook's
+/// address may be a secret), and no body, which may hold one (a token
+/// exchange's form).
 #[derive(Clone)]
 pub struct Request {
     method: Method,
@@ -419,10 +435,10 @@ impl Request {
 
 impl fmt::Debug for Request {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let url = self.url.split(['?', '#']).next().unwrap_or("");
+        let origin = origin::origin_of(&self.url);
         f.debug_struct("Request")
             .field("method", &self.method)
-            .field("url", &url)
+            .field("origin", &origin)
             .field("headers", &self.headers)
             .field(
                 "secrets",
@@ -434,12 +450,27 @@ impl fmt::Debug for Request {
 }
 
 /// **An answer**: its status, its fields (names lowercase, in order) and its
-/// body.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// body. Its `Debug` shows its status, its fields' names and its body's
+/// length: a provider's answer may hold a secret (a payment's client secret,
+/// an identity provider's tokens).
+#[derive(Clone, PartialEq, Eq)]
 pub struct Answer {
     status: u16,
     headers: Vec<(String, String)>,
     body: Vec<u8>,
+}
+
+impl fmt::Debug for Answer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Answer")
+            .field("status", &self.status)
+            .field(
+                "headers",
+                &self.headers.iter().map(|(n, _)| n).collect::<Vec<_>>(),
+            )
+            .field("body", &self.body.len())
+            .finish()
+    }
 }
 
 impl Answer {
@@ -503,13 +534,14 @@ impl Client {
         Ok(Client {
             grant: Arc::new(grant),
             tls: tls::config(&roots)?,
-            resolver: Arc::new(System),
+            resolver: Arc::new(System::new()),
             limits: Limits::default(),
         })
     }
 
+    /// Within `limits`, each wait at most [`MOST_WAIT`].
     pub fn with_limits(mut self, limits: Limits) -> Client {
-        self.limits = limits;
+        self.limits = limits.held();
         self
     }
 
@@ -607,15 +639,19 @@ impl Client {
     }
 }
 
-/// **A connection to the first of `addresses` that takes one** by `by`.
+/// **A connection to the first of `addresses` that takes one** by `by`,
+/// each address given its share of what is left, so that one that never
+/// answers (an unrouted IPv6 address before a working IPv4 one) does not
+/// take the others' time.
 fn connect(origin: &Origin, addresses: &[SocketAddr], by: Instant) -> Result<TcpStream, Error> {
     let mut last: Option<io::Error> = None;
-    for address in addresses {
+    for (tried, address) in addresses.iter().enumerate() {
         let left = by.saturating_duration_since(Instant::now());
-        if left.is_zero() {
+        let share = left / (addresses.len() - tried) as u32;
+        if share.is_zero() {
             break;
         }
-        match TcpStream::connect_timeout(address, left) {
+        match TcpStream::connect_timeout(address, share) {
             Ok(tcp) => {
                 // The request is written whole, at once.
                 let _ = tcp.set_nodelay(true);

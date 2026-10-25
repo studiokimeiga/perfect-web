@@ -1290,11 +1290,39 @@ mod origin_tests {
 /// **A GET of `url` through `client`**, the payments' own (track
 /// outbound-https): its status and body. The client reaches the provider's
 /// origin alone, and reads an answer by its length within `PROVIDER_WAIT`.
-pub(crate) fn get(client: &Client, url: &str) -> Result<(u16, String), String> {
-    let answer = client
-        .send(&outbound::Request::get(url))
-        .map_err(|e| e.to_string())?;
+pub(crate) fn get(client: &Client, url: &str) -> Result<(u16, String), outbound::Error> {
+    let answer = client.send(&outbound::Request::get(url))?;
     Ok((answer.status(), answer.text()))
+}
+
+/// **Whether the client refused a request before sending it**: one it would
+/// not write (a field or a target that would split it), an origin its grant
+/// does not hold, a grant or roots not made. The host's mistake or the
+/// program's, never the provider's: a trap, not `TransportFailed`, which
+/// says the provider could not be reached.
+fn unsent(e: &outbound::Error) -> bool {
+    matches!(
+        e,
+        outbound::Error::Request(_)
+            | outbound::Error::Undeclared { .. }
+            | outbound::Error::Config(_)
+    )
+}
+
+/// **A provider's id as one segment of a path**: letters, digits and `_`,
+/// as Stripe's (`pi_3Mtw…`) and the development provider's (`pi_dev000001`)
+/// are. Anything else (`?`, `/`, `..`) would make another request of the
+/// one meant (`/v1/payment_intents/pi_1?x=/cancel` updates; it does not
+/// cancel): refused before anything is sent.
+fn segment(id: &str) -> Result<&str, String> {
+    if !id.is_empty()
+        && id.len() <= 255
+        && id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+    {
+        return Ok(id);
+    }
+    let shown: String = id.chars().take(64).collect();
+    Err(format!("`{}` is not a provider's id", shown.escape_debug()))
 }
 
 /// **The payment an owner's order awaits** (step seven): the order's
@@ -1383,11 +1411,12 @@ impl Hearing {
         if self.heard.lock().expect("heard").contains(id) {
             return Err(NotActed::HeardBefore);
         }
+        let intent = segment(intent).map_err(NotActed::Unreadable)?;
         let (code, read) = get(
             &self.client,
             &format!("{}/v1/payment_intents/{intent}", self.api),
         )
-        .map_err(NotActed::Unreadable)?;
+        .map_err(|e| NotActed::Unreadable(e.to_string()))?;
         if code != 200 {
             return Err(NotActed::Unreadable(format!(
                 "the provider answered {code} for {intent}"
@@ -1758,9 +1787,12 @@ pub(crate) fn development(
 ) -> Result<(Arc<Payments>, Arc<Origin>), String> {
     let mut secret = [0u8; 32];
     getrandom::fill(&mut secret).map_err(|e| format!("a webhook secret: {e}"))?;
+    let provider = format!("http://127.0.0.1:{provider_port}");
+    // Made first: a provider whose origin no client may be granted is not
+    // started.
+    let client = development_client(&provider)?;
     let listener = TcpListener::bind(("127.0.0.1", provider_port))
         .map_err(|e| format!("the development payment provider's port {provider_port}: {e}"))?;
-    let provider = format!("http://127.0.0.1:{provider_port}");
     let origin = Arc::new(Origin::new(
         &secret,
         &format!("http://127.0.0.1:{port}/payments/webhook"),
@@ -1769,11 +1801,7 @@ pub(crate) fn development(
     ));
     let served = origin.clone();
     std::thread::spawn(move || serve(listener, served));
-    let payments = Arc::new(Payments::new(
-        &provider,
-        &secret,
-        development_client(&provider)?,
-    ));
+    let payments = Arc::new(Payments::new(&provider, &secret, client));
     Ok((payments, origin))
 }
 
@@ -1824,6 +1852,10 @@ mod configured_tests {
             refused.contains("runs only in a development deployment"),
             "{refused}"
         );
+        // A provider's port no origin can name is refused before the
+        // provider starts.
+        let zero = configure(true, "http://127.0.0.1:3301", 3301, Some("dev"), Some("0"));
+        assert!(zero.is_err(), "port 0");
         let unknown = configure(true, "http://127.0.0.1:3301", 3301, Some("stripe"), None)
             .err()
             .expect("refused");
@@ -1947,10 +1979,10 @@ fn post_json(
     url: &str,
     key: &str,
     body: &serde_json::Value,
-) -> Result<(u16, String), String> {
+) -> Result<(u16, String), outbound::Error> {
     let request = outbound::Request::post(url, "application/json", body.to_string())
         .header("idempotency-key", key);
-    let answer = client.send(&request).map_err(|e| e.to_string())?;
+    let answer = client.send(&request)?;
     Ok((answer.status(), answer.text()))
 }
 
@@ -2054,6 +2086,7 @@ pub(crate) fn operations(
             Ok((400, body)) if body.contains("idempotency_error") => Err(format!(
                 "the order's payment was begun with another amount: {body}"
             )),
+            Err(e) if unsent(&e) => Err(format!("the payment was not begun: {e}")),
             Ok(_) | Err(_) => failed(),
         }
     });
@@ -2064,6 +2097,7 @@ pub(crate) fn operations(
         let [Val::String(payment)] = args else {
             return Err(format!("payments#cancel(payment) received {args:?}"));
         };
+        let payment = segment(payment)?;
         let answer = |r: Result<Val, Val>| -> Result<Vec<Val>, String> {
             Ok(vec![Val::Result(match r {
                 Ok(v) => Ok(Some(Box::new(v))),
@@ -2076,6 +2110,7 @@ pub(crate) fn operations(
         let read: serde_json::Value = match get(&client, &intent) {
             Ok((200, body)) => serde_json::from_str(&body).map_err(|e| e.to_string())?,
             Ok((404, _)) => return Err(format!("no payment `{payment}` at the provider")),
+            Err(e) if unsent(&e) => return Err(format!("the payment was not read: {e}")),
             Ok(_) | Err(_) => return answer(Err(unreached)),
         };
         if read["metadata"]["owner"].as_str() != Some(reader.as_str()) {
@@ -2103,6 +2138,7 @@ pub(crate) fn operations(
                     None => Err(format!("the provider refused the cancel: {body}")),
                 }
             }
+            Err(e) if unsent(&e) => Err(format!("the payment was not canceled: {e}")),
             Ok(_) | Err(_) => answer(Err(unreached)),
         }
     });
@@ -2565,9 +2601,9 @@ mod https_tests {
     /// never sent**: the interaction keys the payment (`Idempotency-Key`),
     /// and is the reader's runtime's to name; a line break in it would end
     /// the field and begin another in the request to the provider. The
-    /// client refuses the field, so the payment is `TransportFailed` and the
-    /// provider is asked nothing. (Until the one client, it was written into
-    /// the head as it came.)
+    /// client refuses the field, so the command traps (the provider was not
+    /// unreachable: nothing was sent) and the provider is asked nothing.
+    /// (Until the one client, it was written into the head as it came.)
     #[test]
     fn an_interaction_that_would_split_the_providers_request_is_never_sent() {
         let authority = TestCa::new("payments test authority");
@@ -2582,18 +2618,56 @@ mod https_tests {
                 "reader-a".into(),
             )[0]
             .1(&[Val::String("o-1".into()), Val::S64(1250)]);
-            assert_eq!(
-                out,
-                Ok(vec![Val::Result(Err(Some(Box::new(Val::Variant(
-                    "transport-failed".into(),
-                    None
-                )))))]),
-                "{interaction:?}"
+            assert!(
+                out.as_ref()
+                    .is_err_and(|why| why.starts_with("the payment was not begun")),
+                "{interaction:?}: {out:?}"
             );
         }
         assert!(front.seen().is_empty(), "{:?}", front.seen());
         let sent = begin(&payments, "o-1", "press-a");
         assert!(sent.is_ok(), "{sent:?}");
+    }
+
+    /// **A provider's id that is not one is never sent**: a payment the
+    /// program names, and an intent a signed event names, each one segment
+    /// of the provider's path, or nothing is asked. `pi_1?x=` would have
+    /// read the intent, then posted to its update, not its cancel.
+    #[test]
+    fn an_id_that_would_make_another_request_is_never_sent() {
+        let authority = TestCa::new("payments test authority");
+        let (_origin, front, https) = behind_tls(&authority.server(&[NAME]));
+        let payments = payments_at(&https, &authority);
+        assert!(payments.is_ok(), "{:?}", payments.as_ref().err());
+        let payments = payments.unwrap();
+        for id in ["pi_1?x=", "pi_1/cancel", "..", "pi 1", ""] {
+            let out =
+                operations(payments.clone(), Some("press-a".into()), "reader-a".into())[1].1(&[
+                    Val::String(id.into()),
+                ]);
+            assert!(
+                out.as_ref()
+                    .is_err_and(|why| why.contains("is not a provider's id")),
+                "{id:?}: {out:?}"
+            );
+        }
+        let (body, header) = DevProvider::sent(
+            &Event {
+                id: "evt_q".into(),
+                kind: "payment_intent.succeeded",
+                intent: "pi_1?x=".into(),
+            },
+            b"whsec_t",
+            wall_seconds(),
+        );
+        let heard = payments
+            .hearing
+            .webhook(Some(&header), body.as_bytes(), wall_seconds());
+        assert!(
+            matches!(&heard, Err(NotActed::Unreadable(why)) if why.contains("is not a provider's id")),
+            "{heard:?}"
+        );
+        assert!(front.seen().is_empty(), "{:?}", front.seen());
     }
 
     /// **The payments reach their provider and nothing else**: their

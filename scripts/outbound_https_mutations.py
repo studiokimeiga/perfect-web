@@ -6,8 +6,9 @@ Each mutant undoes one piece:
 - the grant: any origin reached, or one compared without its port or its
   scheme; a public origin over plain HTTP, or at a special address; a
   development origin at any address;
-- the addresses: a resolved address not checked, or only the first; a
-  development origin reaching global addresses; loopback, an IPv4-mapped
+- the addresses: a resolved address not checked, or only the first; the
+  first address taking the whole connection's bound; a development origin
+  reaching global addresses; loopback, an IPv4-mapped
   address, 10/8, 172.16/12, 192.168/16, 169.254/16 (a cloud's metadata),
   100.64/10, 0/8, multicast, the reserved block, 6to4, or everything
   outside 2000::/3 taken for global;
@@ -20,8 +21,10 @@ Each mutant undoes one piece:
   provider's wait); a read's wait not cut to what is left; the deadline not
   checked before a read; connecting or the handshake bounded by the total
   alone; the exchange bounded by the handshake's bound; the resolver waited
-  for past its wait;
-- the bounds: a length one past the bound read; chunks or their framing
+  for past its wait, or running lookups without bound; a wait not held to
+  a day;
+- the bounds: a length one past the bound read; chunks bounded one at a
+  time, or summed with what is held so that the sum wraps; their framing
   unbounded; the head bounded at four times its limit;
 - the framing: an answer stating no length taken as empty; both lengths, or
   a length stated twice, taken; a coding other than `chunked` read as it; a
@@ -29,23 +32,27 @@ Each mutant undoes one piece:
   taken; a chunk longer than its size taken; a bare LF or CR taken; a folded
   line, whitespace before a `:`, or a control in a value taken; interim
   answers unbounded; a switch of protocol passed over; a body read for 304;
-  a content coding taken; a status out of range, or another protocol's
-  status line, read;
+  a content coding taken, or any asked for; a status out of range, or
+  another protocol's status line, read; a redirect's error holding its whole
+  location;
 - the request: a value with a line break written; a secret's value
-  unchecked or shown in its refusal; the client's own fields settable; a
+  unchecked or shown in its refusal; the client's own fields settable, or
+  `accept-encoding` among them; a
   field name not a token; a body's length not stated; a target holding a
   line break written; credentials or a fragment in a URL refused as
   something else; an IPv4 address in another form read as a name; a host
   in any case; https's default port another; port 0 taken;
 - the secret: a `Secret`'s `Debug` showing it; a request's `Debug` showing
-  its body, or its query;
+  its body, or its path and query; an answer's `Debug` showing its body;
 - the payments: their client granted nothing; their wait six times
-  longer; their hearing reading through another client.
+  longer; their hearing reading through another client; a request the
+  client refused taken for an unreachable provider; a payment's id, or an
+  intent's, not checked as one segment of the provider's path.
 
 A client mutant must fail pw-outbound's tests (`cargo test -p pw-outbound
 --lib`); a payments mutant, the development server's tests of the payments
 at an https origin and of the provider's answer (`payments::https_tests::`,
-`payments::answer_tests::`). Only complete native results earn a kill: a
+`payments::answer_tests::`). Each kill names the tests that failed. Only complete native results earn a kill: a
 build that fails, a producer that times out, an inventory that differs from
 the baseline's, or a failure anywhere but an assertion of a test source is
 REFUSED, never a kill.
@@ -147,6 +154,13 @@ MUTANTS = [
         LIB,
         "        for address in &named {\n",
         "        for address in named.iter().take(1) {\n",
+    ),
+    (
+        "the first address takes the whole connection's bound",
+        CLIENT,
+        LIB,
+        "        let share = left / (addresses.len() - tried) as u32;\n",
+        "        let share = left / (addresses.len() - tried).min(1) as u32;\n",
     ),
     (
         "a development origin reaches global addresses",
@@ -350,6 +364,20 @@ MUTANTS = [
         "        match answer.recv_timeout(within) {\n",
         "        match answer.recv_timeout(within.max(Duration::from_secs(5))) {\n",
     ),
+    (
+        "lookups running at once are not bounded",
+        CLIENT,
+        RESOLVE,
+        "        if self.running.fetch_add(1, Ordering::SeqCst) >= MOST_LOOKUPS {\n",
+        "        if self.running.fetch_add(1, Ordering::SeqCst) >= usize::MAX {\n",
+    ),
+    (
+        "a wait is not held to a day",
+        CLIENT,
+        LIB,
+        "            total: self.total.min(MOST_WAIT),\n",
+        "            total: self.total,\n",
+    ),
     # --- the bounds --------------------------------------------------------
     (
         "a length one past the bound is read",
@@ -362,8 +390,15 @@ MUTANTS = [
         "chunks are bounded one at a time, not together",
         CLIENT,
         HTTP1,
-        "        if body.len() as u64 + size > limits.body as u64 {\n",
+        "        if size > (limits.body - body.len()) as u64 {\n",
         "        if size > limits.body as u64 {\n",
+    ),
+    (
+        "a chunk's size is summed with what is held, and the sum wraps",
+        CLIENT,
+        HTTP1,
+        "        if size > (limits.body - body.len()) as u64 {\n",
+        "        if (body.len() as u64).wrapping_add(size) > limits.body as u64 {\n",
     ),
     (
         "a chunked body's framing is unbounded",
@@ -514,6 +549,20 @@ MUTANTS = [
         "        .find(|c| c.is_empty())\n",
     ),
     (
+        "any content coding is asked for",
+        CLIENT,
+        HTTP1,
+        "    head.extend_from_slice(b\"accept-encoding: identity\\r\\nconnection: close\\r\\n\\r\\n\");\n",
+        "    head.extend_from_slice(b\"connection: close\\r\\n\\r\\n\");\n",
+    ),
+    (
+        "a redirect's error holds its whole location",
+        CLIENT,
+        HTTP1,
+        "                .and_then(|l| crate::origin::origin_of(l)),\n",
+        "                .map(|l| l.to_string()),\n",
+    ),
+    (
         "a status out of range is read",
         CLIENT,
         HTTP1,
@@ -556,6 +605,13 @@ MUTANTS = [
         HTTP1,
         "    if RESERVED.iter().any(|r| r.eq_ignore_ascii_case(name)) {\n",
         "    if RESERVED.iter().any(|r| *r == name) {\n",
+    ),
+    (
+        "accept-encoding is the request's to set",
+        CLIENT,
+        HTTP1,
+        "    \"accept-encoding\",\n",
+        "    \"x-accept-encoding\",\n",
     ),
     (
         "a field's name need not be a token",
@@ -641,11 +697,18 @@ MUTANTS = [
         "            )\n",
     ),
     (
-        "a request's Debug shows its query",
+        "a request's Debug shows its path and query",
         CLIENT,
         LIB,
-        "        let url = self.url.split(['?', '#']).next().unwrap_or(\"\");\n",
-        "        let url = self.url.as_str();\n",
+        "        let origin = origin::origin_of(&self.url);\n",
+        "        let origin = Some(self.url.clone());\n",
+    ),
+    (
+        "an answer's Debug shows its body",
+        CLIENT,
+        LIB,
+        "            .field(\"body\", &self.body.len())\n",
+        "            .field(\"body\", &String::from_utf8_lossy(&self.body))\n",
     ),
     # --- the payments ------------------------------------------------------
     (
@@ -663,6 +726,27 @@ MUTANTS = [
         PAYMENTS,
         "        total: PROVIDER_WAIT,\n        ..outbound::Limits::default()\n",
         "        total: PROVIDER_WAIT * 6,\n        ..outbound::Limits::default()\n",
+    ),
+    (
+        "a request the client refused is taken for an unreachable provider",
+        SERVER,
+        PAYMENTS,
+        "            Err(e) if unsent(&e) => Err(format!(\"the payment was not begun: {e}\")),\n",
+        "",
+    ),
+    (
+        "a payment's id is not checked as one segment of the provider's path",
+        SERVER,
+        PAYMENTS,
+        "        let payment = segment(payment)?;\n",
+        "        let payment = payment.as_str();\n",
+    ),
+    (
+        "an intent's id is not checked as one segment of the provider's path",
+        SERVER,
+        PAYMENTS,
+        "        let intent = segment(intent).map_err(NotActed::Unreadable)?;\n",
+        "        let intent: &str = intent;\n",
     ),
     (
         "the payments' hearing reads through another client",
@@ -696,30 +780,30 @@ INVENTORY = {}
 
 
 def run_tests(suite):
-    """(valid, passed, failed): a complete named inventory, failures only at
-    a test's assertions."""
+    """(valid, passed, failed, the failing tests): a complete named
+    inventory, failures only at a test's assertions."""
     cmd, sources = SUITES[suite]
     full = [*cmd, "--format=pretty"] if "--" in cmd else [*cmd, "--", "--format=pretty"]
     try:
         child = producer_process.run(full, cwd=ROOT, timeout=900)
     except subprocess.TimeoutExpired as expired:
         print(expired.output, flush=True)
-        return False, 0, 0
+        return False, 0, 0, ()
     result = cargo_assertion_results.validate(
         child.returncode, child.stdout, root=ROOT, sources=sources,
         expected=INVENTORY.get(suite))
     if not result.valid:
         print(child.stdout[-4000:], flush=True)
-        return False, 0, 0
+        return False, 0, 0, ()
     INVENTORY.setdefault(suite, cargo_assertion_results.names(child.stdout))
-    return True, result.passed, result.failed
+    return True, result.passed, result.failed, result.failure_names
 
 
 def main():
     import mutation_baseline  # keeps what each command says, for a red baseline
     watch = mutation_baseline.mutation_bound.start()
     for suite in (CLIENT, SERVER):
-        built, passed, failed = run_tests(suite)
+        built, passed, failed, _ = run_tests(suite)
         print(f"baseline ({suite}): {passed} passed, {failed} failed", flush=True)
         if not built or failed or not passed or watch.stopped:
             print("FAIL: the unmutated baseline is not green; no mutant can mean anything")
@@ -734,12 +818,12 @@ def main():
             survivors += 1
             continue
         with mutation_source.changed(path, original, original.replace(anchor, replacement, 1)):
-            built, passed, failed = run_tests(suite)
+            built, passed, failed, killers = run_tests(suite)
         if not built or watch.stopped:
             verdict = "REFUSED (invalid native assertion producer)"
             survivors += 1
         elif failed:
-            verdict = f"KILLED ({failed} of {passed + failed} tests fail)"
+            verdict = f"KILLED by {', '.join(killers)} ({failed} of {passed + failed} tests fail)"
         else:
             verdict = "SURVIVED"
             survivors += 1

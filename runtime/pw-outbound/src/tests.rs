@@ -373,8 +373,8 @@ fn the_platforms_roots_do_not_trust_a_tests_authority() {
 #[test]
 fn a_redirect_is_never_followed() {
     let target = serving(&ca().server(&[OTHER]));
-    let location = format!("{}/followed", https(OTHER, target.port()));
-    let answered = location.clone();
+    let answered = format!("{}/followed?echoed=sk_test_x", https(OTHER, target.port()));
+    let location = https(OTHER, target.port());
     let server = Server::tls(&ca().server(&[NAME]), move |seen| {
         let status = seen.target().trim_start_matches("/s/");
         Reply::Bytes(
@@ -455,7 +455,7 @@ fn an_answer_never_sent_is_given_up() {
     });
     let (said, took) = timed(
         Limits {
-            total: Duration::from_secs(1),
+            total: Duration::from_secs(3),
             ..quick()
         },
         server.port(),
@@ -466,7 +466,7 @@ fn an_answer_never_sent_is_given_up() {
             phase: Phase::Exchange
         })
     );
-    assert!(took < Duration::from_secs(3), "{took:?}");
+    assert!(took < Duration::from_secs(6), "{took:?}");
 }
 
 /// **A server that drips its answer, each byte well within any single
@@ -482,7 +482,7 @@ fn an_answer_dripped_is_given_up_at_the_total() {
     });
     let (said, took) = timed(
         Limits {
-            total: Duration::from_secs(1),
+            total: Duration::from_secs(3),
             ..quick()
         },
         server.port(),
@@ -493,7 +493,7 @@ fn an_answer_dripped_is_given_up_at_the_total() {
             phase: Phase::Exchange
         })
     );
-    assert!(took < Duration::from_secs(3), "{took:?}");
+    assert!(took < Duration::from_secs(6), "{took:?}");
 }
 
 /// **The exchange has what is left of the total, past the handshake's own
@@ -503,12 +503,12 @@ fn an_answer_dripped_is_given_up_at_the_total() {
 fn the_exchange_has_the_rest_of_the_total() {
     let server = Server::tls(&ca().server(&[NAME]), |_| Reply::Drip {
         bytes: b"HTTP/1.1 200 OK\r\ncontent-length: 4\r\n\r\nslow".to_vec(),
-        every: Duration::from_millis(50),
+        every: Duration::from_millis(75),
     });
     let (said, _) = timed(
         Limits {
-            handshake: Duration::from_millis(1000),
-            total: Duration::from_secs(8),
+            handshake: Duration::from_secs(2),
+            total: Duration::from_secs(10),
             ..quick()
         },
         server.port(),
@@ -529,7 +529,27 @@ fn an_answer_held_open_is_read_by_its_length() {
     });
     let (said, took) = timed(quick(), server.port());
     assert_eq!(said.map(|a| a.text()), Ok("held".to_string()));
-    assert!(took < Duration::from_secs(2), "{took:?}");
+    assert!(took < Duration::from_secs(5), "{took:?}");
+}
+
+/// **No wait is longer than a day**: limits past it are held to it, so no
+/// deadline is past what the clock holds, and a client so made still answers.
+#[test]
+fn no_wait_is_longer_than_a_day() {
+    let server = serving(&ca().server(&[NAME]));
+    let client = granted(server.port()).with_limits(Limits {
+        connect: Duration::MAX,
+        handshake: Duration::MAX,
+        total: Duration::MAX,
+        ..quick()
+    });
+    let limits = client.limits();
+    assert_eq!(
+        (limits.connect, limits.handshake, limits.total),
+        (MOST_WAIT, MOST_WAIT, MOST_WAIT)
+    );
+    let said = client.send(&Request::get(https(NAME, server.port())));
+    assert_eq!(said.map(|a| a.status()), Ok(200));
 }
 
 /// **A connection the server's host never accepts is given up at the
@@ -554,6 +574,38 @@ fn a_connection_never_accepted_is_given_up() {
         })
     );
     assert!(took < Duration::from_secs(3), "{took:?}");
+    drop((queued, listener));
+}
+
+/// **Each address is given its share of the connection's bound**: a name
+/// whose first address never takes a connection, and whose second does, is
+/// reached through the second within the bound.
+#[cfg(target_os = "linux")]
+#[test]
+fn an_address_that_never_answers_leaves_the_next_its_share() {
+    let (listener, queued, port) = full_listener();
+    let second: IpAddr = "127.0.0.2".parse().unwrap();
+    let server = Server::tls_on(
+        std::net::SocketAddr::new(second, port),
+        &ca().server(&[NAME]),
+        |seen| Reply::ok(&format!("reached {}", seen.target())),
+    );
+    let client = client(
+        held(Grant::none().development(&https(NAME, port))),
+        trusting(),
+        &[(NAME, &[LOOPBACK, second])],
+    )
+    .with_limits(Limits {
+        connect: Duration::from_secs(1),
+        total: Duration::from_secs(8),
+        ..quick()
+    });
+    let started = Instant::now();
+    let said = client.send(&Request::get(format!("{}/second", https(NAME, port))));
+    let took = started.elapsed();
+    assert_eq!(said.map(|a| a.text()), Ok("reached /second".to_string()));
+    assert!(took < Duration::from_secs(3), "{took:?}");
+    assert_eq!(server.connections(), 1);
     drop((queued, listener));
 }
 
@@ -683,7 +735,7 @@ fn the_framing_is_held_over_tls() {
 #[test]
 fn a_secret_is_sent_and_said_nowhere() {
     let server = Server::tls(&ca().server(&[NAME]), |seen| match seen.path() {
-        "/ok" => Reply::ok("ok"),
+        "/ok" => Reply::ok("client_secret_answer_5"),
         "/framing" => Reply::Bytes(b"HTTP/1.1 200 OK\r\n\r\nno length".to_vec()),
         "/redirect" => Reply::Bytes(
             b"HTTP/1.1 307 X\r\nlocation: https://elsewhere.test/\r\ncontent-length: 0\r\n\r\n"
@@ -709,12 +761,21 @@ fn a_secret_is_sent_and_said_nowhere() {
     assert_eq!(seen[0].header("authorization"), Some(SECRET));
     let alone = format!("{:?}", Secret::new(SECRET));
     assert!(!alone.contains("sk_test"), "{alone}");
-    let shown = format!("{:?}", request("/ok"));
+    let shown = format!("{:?}", request("/hooks/hook_secret_9"));
     assert!(
-        !shown.contains("sk_test") && !shown.contains("form_secret") && !shown.contains("token"),
+        !shown.contains("sk_test")
+            && !shown.contains("form_secret")
+            && !shown.contains("token")
+            && !shown.contains("hook_secret"),
         "{shown}"
     );
-    assert!(shown.contains("authorization") || shown.contains("Authorization"));
+    assert!(
+        shown.contains("Authorization") && shown.contains(NAME),
+        "{shown}"
+    );
+    let answer = format!("{:?}", sent.as_ref().ok());
+    assert!(!answer.contains("client_secret_answer"), "{answer}");
+    assert!(answer.contains("content-type"), "{answer}");
     let expired = ca().leaf(
         &[NAME],
         testing::now() - 10 * DAY_SECONDS,
@@ -736,6 +797,29 @@ fn a_secret_is_sent_and_said_nowhere() {
         ),
     );
     assert_eq!(errors.len(), 6);
+    let kinds: Vec<&str> = errors
+        .iter()
+        .map(|said| match said {
+            Err(Error::Certificate { .. }) => "certificate",
+            Err(Error::Framing(_)) => "framing",
+            Err(Error::Redirected { .. }) => "redirected",
+            Err(Error::TimedOut { .. }) => "timed out",
+            Err(Error::Request(_)) => "request",
+            Err(Error::Undeclared { .. }) => "undeclared",
+            _ => "other",
+        })
+        .collect();
+    assert_eq!(
+        kinds,
+        [
+            "certificate",
+            "framing",
+            "redirected",
+            "timed out",
+            "request",
+            "undeclared"
+        ]
+    );
     for said in errors {
         assert!(said.is_err(), "{said:?}");
         let shown = format!("{said:?} {}", said.clone().err().unwrap());

@@ -349,7 +349,14 @@ pub struct Server {
 
 impl Server {
     fn start(handle: impl Fn(TcpStream, &Mutex<Vec<Seen>>) + Send + Sync + 'static) -> Server {
-        let listener = TcpListener::bind("127.0.0.1:0").expect("a port");
+        Server::start_on(SocketAddr::from(([127, 0, 0, 1], 0)), handle)
+    }
+
+    fn start_on(
+        at: SocketAddr,
+        handle: impl Fn(TcpStream, &Mutex<Vec<Seen>>) + Send + Sync + 'static,
+    ) -> Server {
+        let listener = TcpListener::bind(at).expect("a port");
         let address = listener.local_addr().expect("its address");
         let connections = Arc::new(AtomicUsize::new(0));
         let seen = Arc::new(Mutex::new(Vec::new()));
@@ -391,9 +398,19 @@ impl Server {
     /// **A TLS server presenting `leaf`**, answering as `answer` says, its
     /// close said with `close_notify`.
     pub fn tls(leaf: &Leaf, answer: impl Fn(&Seen) -> Reply + Send + Sync + 'static) -> Server {
+        Server::tls_on(SocketAddr::from(([127, 0, 0, 1], 0)), leaf, answer)
+    }
+
+    /// **A TLS server at `at`** (another loopback address, a port another
+    /// listens on elsewhere), as [`Server::tls`] is.
+    pub fn tls_on(
+        at: SocketAddr,
+        leaf: &Leaf,
+        answer: impl Fn(&Seen) -> Reply + Send + Sync + 'static,
+    ) -> Server {
         let config = server_config(leaf);
         let answer: Answerer = Arc::new(answer);
-        Server::start(move |tcp, kept| {
+        Server::start_on(at, move |tcp, kept| {
             let _ = tcp.set_read_timeout(Some(Duration::from_secs(10)));
             let Ok(conn) = ServerConnection::new(config.clone()) else {
                 return;

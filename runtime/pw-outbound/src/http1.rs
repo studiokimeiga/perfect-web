@@ -11,8 +11,9 @@ use crate::{Answer, Error, Limits, Phase, Request, io_error};
 
 /// The header names the client writes itself, or that would change how the
 /// connection is used: a request may set none of them.
-const RESERVED: [&str; 10] = [
+const RESERVED: [&str; 11] = [
     "host",
+    "accept-encoding",
     "content-length",
     "transfer-encoding",
     "connection",
@@ -123,7 +124,9 @@ pub(crate) fn request_head(
     if let Some(body) = &request.body {
         field("content-length", &body.len().to_string());
     }
-    head.extend_from_slice(b"connection: close\r\n\r\n");
+    // No content coding is read, so none is taken (RFC 9110 §12.5.3: a
+    // request without the field takes any).
+    head.extend_from_slice(b"accept-encoding: identity\r\nconnection: close\r\n\r\n");
     Ok(head)
 }
 
@@ -374,7 +377,9 @@ pub(crate) fn read_answer<R: Read>(reader: R, limits: &Limits) -> Result<Answer,
     if matches!(status, 301 | 302 | 303 | 307 | 308) {
         return Err(Error::Redirected {
             status,
-            location: values(&fields, "location").first().map(|l| l.to_string()),
+            location: values(&fields, "location")
+                .first()
+                .and_then(|l| crate::origin::origin_of(l)),
         });
     }
     if let Some(coding) = values(&fields, "content-encoding")
@@ -497,7 +502,7 @@ fn chunked<R: Read>(input: &mut Input<R>, limits: &Limits) -> Result<Vec<u8>, Er
                 field_line(&trailer)?;
             }
         }
-        if body.len() as u64 + size > limits.body as u64 {
+        if size > (limits.body - body.len()) as u64 {
             return Err(Error::TooLarge {
                 what: "body",
                 limit: limits.body,
@@ -549,7 +554,8 @@ mod tests {
             Ok(
                 "POST /v1/payment_intents HTTP/1.1\r\nhost: api.provider.test:8443\r\n\
                 content-type: application/json\r\nidempotency-key: order-1:interaction-2\r\n\
-                authorization: Bearer sk_test_1\r\ncontent-length: 2\r\nconnection: close\r\n\r\n"
+                authorization: Bearer sk_test_1\r\ncontent-length: 2\r\n\
+                accept-encoding: identity\r\nconnection: close\r\n\r\n"
                     .to_string()
             )
         );
@@ -557,10 +563,9 @@ mod tests {
         let head = request_head(&Request::get("https://x/"), &origin, "/v1/x?a=1");
         assert_eq!(
             head.map(|h| String::from_utf8_lossy(&h).into_owned()),
-            Ok(
-                "GET /v1/x?a=1 HTTP/1.1\r\nhost: api.provider.test\r\nconnection: close\r\n\r\n"
-                    .to_string()
-            )
+            Ok("GET /v1/x?a=1 HTTP/1.1\r\nhost: api.provider.test\r\n\
+                 accept-encoding: identity\r\nconnection: close\r\n\r\n"
+                .to_string())
         );
     }
 
@@ -592,6 +597,7 @@ mod tests {
         }
         for name in [
             "Host",
+            "Accept-Encoding",
             "content-length",
             "Transfer-Encoding",
             "connection",
@@ -815,7 +821,7 @@ mod tests {
         for status in [301, 302, 303, 307, 308] {
             let answer = read(
                 format!(
-                    "HTTP/1.1 {status} Moved\r\nlocation: https://elsewhere.test/x\r\ncontent-length: 0\r\n\r\n"
+                    "HTTP/1.1 {status} Moved\r\nlocation: https://elsewhere.test/x?echoed=sk_test_1\r\ncontent-length: 0\r\n\r\n"
                 )
                 .as_bytes(),
             );
@@ -823,7 +829,7 @@ mod tests {
                 answer,
                 Err(Error::Redirected {
                     status,
-                    location: Some("https://elsewhere.test/x".into())
+                    location: Some("https://elsewhere.test".into())
                 })
             );
         }
@@ -880,6 +886,19 @@ mod tests {
         );
         assert_eq!(
             chunks,
+            Err(Error::TooLarge {
+                what: "body",
+                limit: 64
+            })
+        );
+        // A chunk whose size, added to what is held, would overflow: held
+        // to what is left of the bound, never summed.
+        let overflowing = read(
+            b"HTTP/1.1 200 OK\r\ntransfer-encoding: chunked\r\n\r\n\
+              1\r\na\r\nffffffffffffffff\r\nbbbbbbbb\r\n0\r\n\r\n",
+        );
+        assert_eq!(
+            overflowing,
             Err(Error::TooLarge {
                 what: "body",
                 limit: 64
