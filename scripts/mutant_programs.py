@@ -66,7 +66,10 @@ STD = "packages/*/*.pw"
 MODULE = re.compile(r"^[ \t]*module[ \t]+([A-Za-z_][\w.]*)", re.M)
 IMPORT = re.compile(r"^[ \t]*import[ \t]+([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)", re.M)
 
-WORKERS = 6
+# Full 344-mutant / 560-check census matched exactly at 2, 4 and 6 workers;
+# in the 2026-10-24 Linux CI benchmark, four was the quickest observed.
+# CPU contention may outweigh additional threads beyond four.
+WORKERS = 4
 
 
 def load(script: pathlib.Path):
