@@ -235,7 +235,7 @@ fn an_answer_not_its_reads_is_refused() {
 fn a_manifest_is_whole_for_every_primitive() {
     let program = program();
     type Edit = fn(&mut serde_json::Value);
-    let cases: [(&str, Edit); 15] = [
+    let cases: [(&str, Edit); 16] = [
         (
             "reads by other than a proper prefix of Items's key",
             |json| function(json, "Items", "of_list")["by"] = json!(["id"]),
@@ -302,6 +302,8 @@ fn a_manifest_is_whole_for_every_primitive() {
                     .push(json!({"name": "by_title_title", "fields": ["title", "title"]}))
             },
         ),
+        // An index named as an earlier one's set form, and an earlier one
+        // named as its set form: either way, two functions of one name.
         (
             "index `by_done_many` is not one index of its fields",
             |json| {
@@ -311,6 +313,12 @@ fn a_manifest_is_whole_for_every_primitive() {
                     .push(json!({"name": "by_done_many", "fields": ["title"]}))
             },
         ),
+        ("index `by_done` is not one index of its fields", |json| {
+            table(json, "Items")["indexes"]
+                .as_array_mut()
+                .unwrap()
+                .insert(0, json!({"name": "by_done_many", "fields": ["title"]}))
+        }),
         ("Lists is bounded to no row", |json| {
             table(json, "Lists")["bounded"] = json!(0)
         }),

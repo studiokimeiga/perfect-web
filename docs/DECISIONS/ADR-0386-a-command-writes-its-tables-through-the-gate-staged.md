@@ -166,15 +166,36 @@ commits nothing).
 
 ## Evidence
 
-`docs/evidence/E14/d2-writes.txt`, by `just e14-d2-writes`: the tests of
-`pw-table-memory` (`compiled_app.rs` 9: app.pw's five queries and four
-commands, writer.pw's own reads and stop; `compiled_gate.rs` 4;
-`compiled_reads.rs` 3; `staged.rs` 11; the read path's 35), `pw-host
---features engine --lib`, `pw-cli --test tables`; and
-`scripts/d2_writes_mutations.py`, every mutant killed by a failing test
-(counts in the evidence). `scripts/table_host_mutations.py`, re-anchored where
-this generalized ADR-0385's checks, run whole again
-(`docs/evidence/E14/table-host.txt`).
+`docs/evidence/E14/d2-writes.txt`, by `just e14-d2-writes`:
+
+- **`pw-table-memory`, 64 tests**: `compiled_app.rs` 10 (app.pw's five
+  queries through every read primitive, its four commands through every
+  write primitive, a command's writes invisible until it commits and none
+  published where it is not, PW5106 for a table's write; writer.pw's
+  command reading its own writes before it commits, and one stopping after
+  a write); `compiled_gate.rs` 5 (a write only into a command, a forged or
+  ungranted write, a write typed otherwise, a write answering what
+  tables.json says it does not, an answer not its write's);
+  `compiled_reads.rs` 3 (the other reads typed and held, a manifest whole
+  for every primitive, 16 refusals); `staged.rs` 11 (the adapter's
+  staging, maps, unique values, bound, references, turns, ended commands,
+  what a command wrote); and the read path's 35, unchanged in what they
+  assert but for two fixtures brought to D1's order and `all`, now a read
+  the gate admits.
+- **`pw-host --features engine --lib`, 25** (the link-time types, answers,
+  codecs and write callback); **`pw-cli --test tables`, 5** (the compiler's
+  tables.json executed by the adapter).
+- **`scripts/d2_writes_mutations.py`, 53 mutants**, each killed by a failing
+  test, ADR-0338's two named controls among them ("a staged write visible
+  before its commit", "an index not kept on a write", here two: a row's new
+  values missed, and its old values kept). The first whole run killed 44 of
+  45 ("a written row goes untyped where it links" survived: the refusal's
+  row, the same record, refused it first), and the second 52 of 53 (an
+  index named as an earlier one's set form); each got its case, and the
+  record is a whole run.
+- **`scripts/table_host_mutations.py`**, re-anchored where this generalized
+  ADR-0385's checks (15 anchors), run whole again by `just e14-table-host`
+  (`docs/evidence/E14/table-host.txt`).
 
 ## Not claimed
 
@@ -193,5 +214,17 @@ this generalized ADR-0385's checks, run whole again
 - **Keys of nullary cases**, composite references, references across
   sources, and an `Option` of an `Option`: refused, not served.
 - **Durability and performance**: memory is the reference adapter, lost
-  with its process; no throughput or latency is measured here, only each
-  primitive's maps.
+  with its process; no throughput or latency is measured here. What is
+  stated is each primitive's work: a key's read a lookup, a prefix's or an
+  index's a range of its map and a sort of the rows found, a write a lookup
+  per index, a commit a replay of the keys it changed; the working copy
+  doubles the maps (the rows themselves are shared).
+
+## Questions for the integrator
+
+- **D1 admits two indexes on one field set** (a `unique` and a plain
+  `index`), and then types the plain one's read a list while ordering it as
+  one row (`sorted_by` empty, `tables::sorted_by`'s "any unique index on
+  these fields"); the adapter answered it one row. The host now refuses
+  such a manifest where it reads it; should PW0361 refuse the declaration
+  (D1's code, `compiler/pw-core/src/tables.rs`), so that it never builds?
