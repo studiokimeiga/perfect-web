@@ -1,0 +1,191 @@
+ADR-XXXX - the host's one outbound HTTPS client
+
+produced by: just e14-outbound-https
+commit: 908107817d7ba7cae15b1cb31c30d1870a70dfb5
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+tls: ring v0.17.14 rustls v0.23.46 rustls-native-certs v0.8.4 rustls-webpki v0.103.16 
+
+== the client (runtime/pw-outbound)
+
+test address::tests::each_special_block_is_told_at_its_ends ... ok
+test http1::tests::a_chunked_body_is_read_by_its_chunks ... ok
+test http1::tests::a_body_is_read_by_its_length ... ok
+test http1::tests::a_length_is_held_to ... ok
+test http1::tests::a_head_is_held_to_its_grammar ... ok
+test http1::tests::a_redirect_is_refused ... ok
+test http1::tests::a_requests_head_is_written_whole ... ok
+test http1::tests::a_transfer_coding_is_chunked_alone ... ok
+test http1::tests::interim_and_bodiless_answers ... ok
+test http1::tests::an_answer_is_bounded ... ok
+test http1::tests::no_field_can_split_a_request ... ok
+test origin::tests::a_urls_error_never_quotes_it ... ok
+test origin::tests::a_url_is_its_origin_and_a_target_of_uri_characters ... ok
+test origin::tests::an_origin_is_its_scheme_host_and_port ... ok
+test origin::tests::what_is_not_an_origin_is_refused ... ok
+test tests::a_development_origin_reaches_this_machine_alone ... ok
+test tests::a_grant_holds_its_origins_to_their_reach ... ok
+test tests::a_field_that_would_split_the_request_is_never_sent ... ok
+test tests::a_read_or_a_write_past_the_deadline_is_timed_out ... ok
+test tests::a_certificate_for_another_host_is_refused ... ok
+test tests::a_public_origin_rebound_to_loopback_reaches_nothing ... ok
+test tests::a_public_origin_reaches_no_special_address ... ok
+test tls::tests::a_platform_store_without_a_usable_root_is_refused ... ok
+test tests::a_declared_origin_is_reached ... ok
+test tests::every_address_is_checked_before_any_is_reached ... ok
+test tests::no_wait_is_longer_than_a_day ... ok
+test tests::a_certificate_of_no_given_root_is_refused ... ok
+test tests::an_undeclared_origin_is_never_reached ... ok
+test tests::a_head_past_the_bound_is_refused ... ok
+test tests::a_certificate_not_yet_valid_is_refused ... ok
+test tests::the_framing_is_held_over_tls ... ok
+test tests::an_expired_certificate_is_refused ... ok
+test tests::an_address_origin_is_verified_by_its_address ... ok
+test tests::a_redirect_is_never_followed ... ok
+test tests::the_platforms_roots_do_not_trust_a_tests_authority ... ok
+test tests::an_answer_held_open_is_read_by_its_length ... ok
+test tests::a_length_past_the_bound_is_refused_unread ... ok
+test resolve::tests::a_lookup_is_waited_for_no_longer_than_given ... ok
+test tests::a_handshake_never_begun_is_given_up ... ok
+test tests::a_connection_never_accepted_is_given_up ... ok
+test tests::an_address_that_never_answers_leaves_the_next_its_share ... ok
+test tests::a_secret_is_sent_and_said_nowhere ... ok
+test tests::an_answer_dripped_is_given_up_at_the_total ... ok
+test tests::the_exchange_has_the_rest_of_the_total ... ok
+test tests::an_answer_never_sent_is_given_up ... ok
+test resolve::tests::lookups_running_at_once_are_bounded ... ok
+test result: ok. 46 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.54s
+
+== the payments through it (spikes/own-renderer/server/src/payments.rs, tests/store_payments.rs, in memory)
+
+test payments::configured_tests::the_development_provider_runs_only_in_development_here ... ok
+test payments::answer_tests::an_answer_is_read_by_its_length_not_its_close ... ok
+test payments::https_tests::an_id_that_would_make_another_request_is_never_sent ... ok
+test payments::hearing_tests::an_outcome_the_host_could_not_settle_is_settled_when_sent_again ... ok
+test payments::https_tests::a_provider_whose_certificate_is_not_trusted_is_not_reached ... ok
+test payments::https_tests::the_payments_reach_their_provider_alone ... ok
+test payments::invoked_tests::a_command_the_platform_invokes_is_told_by_its_contract ... ok
+test payments::hearing_tests::an_intent_whose_amount_changed_at_the_provider_settles_nothing ... ok
+test payments::provider_tests::a_cards_outcome_is_its_test_numbers ... ok
+test payments::provider_tests::an_event_sent_is_signed_for_the_host ... ok
+test payments::configured_tests::the_configured_provider_and_host_agree_on_their_secret ... ok
+test payments::tests::signatures_are_compared_whole ... ok
+test payments::tests::hmac_sha256_is_rfc_4231s ... ok
+test payments::provider_tests::an_intent_is_canceled_until_it_is_paid ... ok
+test payments::provider_tests::an_intent_is_made_once_per_key ... ok
+test payments::https_tests::an_interaction_that_would_split_the_providers_request_is_never_sent ... ok
+test payments::tests::a_webhook_is_the_providers_only_as_it_signed_it ... ok
+test payments::hearing_tests::the_host_acts_on_the_intent_as_the_provider_says_it_now ... ok
+test payments::cancel_tests::a_payment_is_canceled_by_its_reader_alone ... ok
+test payments::origin_tests::the_provider_can_send_twice_and_out_of_order ... ok
+test payments::operation_tests::a_payment_is_begun_once_per_interaction ... ok
+test payments::origin_tests::a_card_paid_in_the_hosted_fields_is_told_to_the_host_signed ... ok
+test payments::https_tests::a_provider_at_an_https_origin_is_reached_over_tls ... ok
+test payments::answer_tests::a_provider_that_does_not_answer_in_time_is_not_reached ... ok
+test tests::store_payments::a_provider_that_cannot_be_reached_places_nothing ... ok
+test tests::store_payments::an_order_no_longer_awaiting_its_payment_is_not_taken_back ... ok
+test tests::store_payments::a_readers_press_of_the_settling_command_is_not_a_command ... ok
+test tests::store_payments::a_providers_own_cancel_takes_the_order_back ... ok
+test tests::store_payments::a_payment_for_an_order_the_reader_has_not_placed_changes_nothing ... ok
+test tests::store_payments::a_card_declined_leaves_the_order_awaiting_and_the_payment_takes_another ... ok
+test tests::store_payments::a_payment_paid_before_it_is_canceled_stands ... ok
+test tests::store_payments::a_code_an_order_taken_back_used_is_the_readers_again ... ok
+test tests::store_payments::a_session_opened_on_a_readers_behalf_is_no_browsers_to_present ... ok
+test tests::store_payments::an_order_awaits_its_payment_on_the_providers_page ... ok
+test tests::store_payments::a_reader_takes_back_an_order_awaiting_its_payment ... ok
+test tests::store_payments::a_card_paid_places_the_order_and_its_open_page_is_told ... ok
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 682 filtered out; finished in 7.26s
+
+== mutation controls (scripts/outbound_https_mutations.py)
+
+baseline (client): 46 passed, 0 failed
+baseline (server): 7 passed, 0 failed
+any origin is reached: KILLED by tests::a_secret_is_sent_and_said_nowhere, tests::an_undeclared_origin_is_never_reached (2 of 46 tests fail)
+an origin is compared without its port: KILLED by tests::an_undeclared_origin_is_never_reached (1 of 46 tests fail)
+an origin is compared without its scheme: KILLED by tests::an_undeclared_origin_is_never_reached (1 of 46 tests fail)
+a public origin may be plain HTTP: KILLED by tests::a_grant_holds_its_origins_to_their_reach (1 of 46 tests fail)
+a public origin may be a special address: KILLED by tests::a_grant_holds_its_origins_to_their_reach (1 of 46 tests fail)
+a development origin may be any address: KILLED by tests::a_grant_holds_its_origins_to_their_reach (1 of 46 tests fail)
+a resolved address is not checked: KILLED by tests::a_development_origin_reaches_this_machine_alone, tests::a_public_origin_reaches_no_special_address, tests::a_public_origin_rebound_to_loopback_reaches_nothing, tests::every_address_is_checked_before_any_is_reached (4 of 46 tests fail)
+only the first resolved address is checked: KILLED by tests::every_address_is_checked_before_any_is_reached (1 of 46 tests fail)
+the first address takes the whole connection's bound: KILLED by tests::an_address_that_never_answers_leaves_the_next_its_share (1 of 46 tests fail)
+a development origin reaches global addresses: KILLED by tests::a_development_origin_reaches_this_machine_alone, tests::a_grant_holds_its_origins_to_their_reach (2 of 46 tests fail)
+loopback is global: KILLED by address::tests::each_special_block_is_told_at_its_ends, tests::a_certificate_for_another_host_is_refused, tests::a_certificate_not_yet_valid_is_refused, tests::a_certificate_of_no_given_root_is_refused, tests::a_connection_never_accepted_is_given_up, tests::a_declared_origin_is_reached, tests::a_grant_holds_its_origins_to_their_reach, tests::a_handshake_never_begun_is_given_up, tests::a_head_past_the_bound_is_refused, tests::a_length_past_the_bound_is_refused_unread, tests::a_public_origin_reaches_no_special_address, tests::a_public_origin_rebound_to_loopback_reaches_nothing, tests::a_redirect_is_never_followed, tests::a_secret_is_sent_and_said_nowhere, tests::an_address_origin_is_verified_by_its_address, tests::an_address_that_never_answers_leaves_the_next_its_share, tests::an_answer_dripped_is_given_up_at_the_total, tests::an_answer_held_open_is_read_by_its_length, tests::an_answer_never_sent_is_given_up, tests::an_expired_certificate_is_refused, tests::an_undeclared_origin_is_never_reached, tests::every_address_is_checked_before_any_is_reached, tests::no_wait_is_longer_than_a_day, tests::the_exchange_has_the_rest_of_the_total, tests::the_framing_is_held_over_tls, tests::the_platforms_roots_do_not_trust_a_tests_authority (26 of 46 tests fail)
+an IPv4-mapped address is read as IPv6: KILLED by address::tests::each_special_block_is_told_at_its_ends, tests::a_public_origin_reaches_no_special_address (2 of 46 tests fail)
+10.0.0.0/8 is one address: KILLED by address::tests::each_special_block_is_told_at_its_ends, tests::a_grant_holds_its_origins_to_their_reach, tests::a_public_origin_reaches_no_special_address, tests::every_address_is_checked_before_any_is_reached (4 of 46 tests fail)
+172.16.0.0/12 is a /16: KILLED by address::tests::each_special_block_is_told_at_its_ends (1 of 46 tests fail)
+192.168.0.0/16 is a /24: KILLED by address::tests::each_special_block_is_told_at_its_ends, tests::a_public_origin_reaches_no_special_address (2 of 46 tests fail)
+169.254.0.0/16, a cloud's metadata among it, is a /24: KILLED by address::tests::each_special_block_is_told_at_its_ends, tests::a_public_origin_reaches_no_special_address (2 of 46 tests fail)
+100.64.0.0/10 is a /16: KILLED by address::tests::each_special_block_is_told_at_its_ends (1 of 46 tests fail)
+0.0.0.0/8 is one address: KILLED by address::tests::each_special_block_is_told_at_its_ends (1 of 46 tests fail)
+multicast is a /8: KILLED by address::tests::each_special_block_is_told_at_its_ends (1 of 46 tests fail)
+the reserved block is a /8: KILLED by address::tests::each_special_block_is_told_at_its_ends (1 of 46 tests fail)
+6to4, which embeds an IPv4 address, is a /32: KILLED by address::tests::each_special_block_is_told_at_its_ends (1 of 46 tests fail)
+every IPv6 address is in 2000::/3: KILLED by address::tests::each_special_block_is_told_at_its_ends, tests::a_public_origin_reaches_no_special_address (2 of 46 tests fail)
+https is sent in the clear: KILLED by tests::a_certificate_for_another_host_is_refused, tests::a_certificate_not_yet_valid_is_refused, tests::a_certificate_of_no_given_root_is_refused, tests::a_declared_origin_is_reached, tests::a_handshake_never_begun_is_given_up, tests::a_head_past_the_bound_is_refused, tests::a_length_past_the_bound_is_refused_unread, tests::a_redirect_is_never_followed, tests::a_secret_is_sent_and_said_nowhere, tests::an_address_origin_is_verified_by_its_address, tests::an_address_that_never_answers_leaves_the_next_its_share, tests::an_answer_dripped_is_given_up_at_the_total, tests::an_answer_held_open_is_read_by_its_length, tests::an_answer_never_sent_is_given_up, tests::an_expired_certificate_is_refused, tests::an_undeclared_origin_is_never_reached, tests::no_wait_is_longer_than_a_day, tests::the_exchange_has_the_rest_of_the_total, tests::the_framing_is_held_over_tls, tests::the_platforms_roots_do_not_trust_a_tests_authority (20 of 46 tests fail)
+the roots given are ignored: KILLED by tests::a_certificate_for_another_host_is_refused, tests::a_declared_origin_is_reached, tests::a_head_past_the_bound_is_refused, tests::a_length_past_the_bound_is_refused_unread, tests::a_redirect_is_never_followed, tests::a_secret_is_sent_and_said_nowhere, tests::an_address_origin_is_verified_by_its_address, tests::an_address_that_never_answers_leaves_the_next_its_share, tests::an_answer_dripped_is_given_up_at_the_total, tests::an_answer_held_open_is_read_by_its_length, tests::an_answer_never_sent_is_given_up, tests::an_undeclared_origin_is_never_reached, tests::no_wait_is_longer_than_a_day, tests::the_exchange_has_the_rest_of_the_total, tests::the_framing_is_held_over_tls (15 of 46 tests fail)
+an empty platform store is taken: KILLED by tls::tests::a_platform_store_without_a_usable_root_is_refused (1 of 46 tests fail)
+an expired certificate is said as another refusal: KILLED by tests::an_expired_certificate_is_refused (1 of 46 tests fail)
+a certificate for another name is said as of an unknown issuer: KILLED by tests::a_certificate_for_another_host_is_refused, tests::an_address_origin_is_verified_by_its_address (2 of 46 tests fail)
+no redirect is refused: KILLED by http1::tests::a_redirect_is_refused, tests::a_redirect_is_never_followed, tests::a_secret_is_sent_and_said_nowhere (3 of 46 tests fail)
+a 307 or 308, which keep the method and the body, is an answer: KILLED by http1::tests::a_redirect_is_refused, tests::a_redirect_is_never_followed, tests::a_secret_is_sent_and_said_nowhere (3 of 46 tests fail)
+each read is bounded, not the answer: KILLED by tests::a_read_or_a_write_past_the_deadline_is_timed_out, tests::an_answer_dripped_is_given_up_at_the_total (2 of 46 tests fail)
+a read waits as long as a minute, past the deadline: KILLED by tests::a_handshake_never_begun_is_given_up, tests::a_secret_is_sent_and_said_nowhere, tests::an_answer_never_sent_is_given_up (3 of 46 tests fail)
+the deadline is not checked before a read or a write: KILLED by tests::a_read_or_a_write_past_the_deadline_is_timed_out (1 of 46 tests fail)
+connecting is bounded by the total alone: KILLED by tests::a_connection_never_accepted_is_given_up, tests::an_address_that_never_answers_leaves_the_next_its_share (2 of 46 tests fail)
+the handshake is bounded by the total alone: KILLED by tests::a_handshake_never_begun_is_given_up (1 of 46 tests fail)
+the exchange is bounded by the handshake's bound: KILLED by tests::the_exchange_has_the_rest_of_the_total (1 of 46 tests fail)
+the resolver is waited for past its wait: KILLED by resolve::tests::a_lookup_is_waited_for_no_longer_than_given, resolve::tests::lookups_running_at_once_are_bounded (2 of 46 tests fail)
+lookups running at once are not bounded: KILLED by resolve::tests::lookups_running_at_once_are_bounded (1 of 46 tests fail)
+a wait is not held to a day: KILLED by tests::no_wait_is_longer_than_a_day (1 of 46 tests fail)
+a length one past the bound is read: KILLED by http1::tests::an_answer_is_bounded (1 of 46 tests fail)
+chunks are bounded one at a time, not together: KILLED by http1::tests::an_answer_is_bounded (1 of 46 tests fail)
+a chunk's size is summed with what is held, and the sum wraps: KILLED by http1::tests::an_answer_is_bounded (1 of 46 tests fail)
+a chunked body's framing is unbounded: KILLED by http1::tests::an_answer_is_bounded (1 of 46 tests fail)
+the head is bounded at four times its limit: KILLED by http1::tests::an_answer_is_bounded, tests::a_head_past_the_bound_is_refused (2 of 46 tests fail)
+an answer stating no length is taken as empty: KILLED by http1::tests::a_length_is_held_to (1 of 46 tests fail)
+an answer stating both lengths is read by its chunks: KILLED by http1::tests::a_transfer_coding_is_chunked_alone, tests::the_framing_is_held_over_tls (2 of 46 tests fail)
+a length stated twice is taken: KILLED by http1::tests::a_length_is_held_to (1 of 46 tests fail)
+a coding other than chunked is read as chunked: KILLED by http1::tests::a_transfer_coding_is_chunked_alone (1 of 46 tests fail)
+a transfer coding in HTTP/1.0 is taken: KILLED by http1::tests::a_transfer_coding_is_chunked_alone (1 of 46 tests fail)
+a body cut short is taken whole: KILLED by http1::tests::a_length_is_held_to, tests::the_framing_is_held_over_tls (2 of 46 tests fail)
+bytes past the answer's end are taken: KILLED by http1::tests::a_chunked_body_is_read_by_its_chunks, http1::tests::a_length_is_held_to (2 of 46 tests fail)
+a chunk longer than its size is taken: KILLED by http1::tests::a_chunked_body_is_read_by_its_chunks (1 of 46 tests fail)
+a bare LF ends a line: KILLED by http1::tests::a_head_is_held_to_its_grammar (1 of 46 tests fail)
+a bare CR inside a line is taken: KILLED by http1::tests::a_head_is_held_to_its_grammar (1 of 46 tests fail)
+a folded line is refused as another error: KILLED by http1::tests::a_head_is_held_to_its_grammar (1 of 46 tests fail)
+whitespace before a field's `:` is taken: KILLED by http1::tests::a_head_is_held_to_its_grammar (1 of 46 tests fail)
+a control in a field's value is taken: KILLED by http1::tests::a_head_is_held_to_its_grammar (1 of 46 tests fail)
+interim answers are taken without end: KILLED by http1::tests::interim_and_bodiless_answers (1 of 46 tests fail)
+a switch of protocol is passed over as an interim answer: KILLED by http1::tests::interim_and_bodiless_answers (1 of 46 tests fail)
+a body is read for a 304: KILLED by http1::tests::interim_and_bodiless_answers (1 of 46 tests fail)
+a content coding is taken: KILLED by http1::tests::a_transfer_coding_is_chunked_alone (1 of 46 tests fail)
+any content coding is asked for: KILLED by http1::tests::a_requests_head_is_written_whole (1 of 46 tests fail)
+a redirect's error holds its whole location: KILLED by http1::tests::a_redirect_is_refused, tests::a_redirect_is_never_followed (2 of 46 tests fail)
+a status out of range is read: KILLED by http1::tests::a_head_is_held_to_its_grammar (1 of 46 tests fail)
+another protocol's status line is read as HTTP/1.1: KILLED by http1::tests::a_head_is_held_to_its_grammar (1 of 46 tests fail)
+a value with a line break is written: KILLED by http1::tests::no_field_can_split_a_request, tests::a_field_that_would_split_the_request_is_never_sent, tests::a_secret_is_sent_and_said_nowhere (3 of 46 tests fail)
+a secret's value is not checked: KILLED by http1::tests::no_field_can_split_a_request, tests::a_field_that_would_split_the_request_is_never_sent (2 of 46 tests fail)
+a secret's refusal shows its value: KILLED by http1::tests::no_field_can_split_a_request (1 of 46 tests fail)
+the client's own fields are settable in another case: KILLED by http1::tests::no_field_can_split_a_request, tests::a_field_that_would_split_the_request_is_never_sent (2 of 46 tests fail)
+accept-encoding is the request's to set: KILLED by http1::tests::no_field_can_split_a_request (1 of 46 tests fail)
+a field's name need not be a token: KILLED by http1::tests::no_field_can_split_a_request (1 of 46 tests fail)
+a body's length is not stated: KILLED by http1::tests::a_requests_head_is_written_whole (1 of 46 tests fail)
+a target holding a line break is written: KILLED by origin::tests::a_url_is_its_origin_and_a_target_of_uri_characters, origin::tests::a_urls_error_never_quotes_it, tests::a_field_that_would_split_the_request_is_never_sent (3 of 46 tests fail)
+credentials in a URL are refused as another error: KILLED by origin::tests::what_is_not_an_origin_is_refused (1 of 46 tests fail)
+a fragment in a URL is refused as another error: KILLED by origin::tests::what_is_not_an_origin_is_refused (1 of 46 tests fail)
+an IPv4 address in another form is read as a name: KILLED by origin::tests::what_is_not_an_origin_is_refused, tests::a_grant_holds_its_origins_to_their_reach, tests::an_address_origin_is_verified_by_its_address (3 of 46 tests fail)
+a host is compared in its case: KILLED by origin::tests::an_origin_is_its_scheme_host_and_port, tests::a_grant_holds_its_origins_to_their_reach (2 of 46 tests fail)
+https's default port is another: KILLED by http1::tests::a_requests_head_is_written_whole, origin::tests::a_url_is_its_origin_and_a_target_of_uri_characters, origin::tests::an_origin_is_its_scheme_host_and_port, tests::a_grant_holds_its_origins_to_their_reach, tests::a_public_origin_reaches_no_special_address (5 of 46 tests fail)
+port 0 is taken: KILLED by origin::tests::what_is_not_an_origin_is_refused (1 of 46 tests fail)
+a secret's Debug shows it: KILLED by tests::a_secret_is_sent_and_said_nowhere (1 of 46 tests fail)
+a request's Debug shows its body: KILLED by tests::a_secret_is_sent_and_said_nowhere (1 of 46 tests fail)
+a request's Debug shows its path and query: KILLED by tests::a_secret_is_sent_and_said_nowhere (1 of 46 tests fail)
+an answer's Debug shows its body: KILLED by tests::a_secret_is_sent_and_said_nowhere (1 of 46 tests fail)
+the payments' client is granted nothing: KILLED by payments::answer_tests::an_answer_is_read_by_its_length_not_its_close, payments::https_tests::the_payments_reach_their_provider_alone (2 of 7 tests fail)
+the payments wait for their provider six times longer: KILLED by payments::answer_tests::a_provider_that_does_not_answer_in_time_is_not_reached (1 of 7 tests fail)
+a request the client refused is taken for an unreachable provider: KILLED by payments::https_tests::an_interaction_that_would_split_the_providers_request_is_never_sent (1 of 7 tests fail)
+a payment's id is not checked as one segment of the provider's path: KILLED by payments::https_tests::an_id_that_would_make_another_request_is_never_sent (1 of 7 tests fail)
+an intent's id is not checked as one segment of the provider's path: KILLED by payments::https_tests::an_id_that_would_make_another_request_is_never_sent (1 of 7 tests fail)
+the payments' hearing reads through another client: KILLED by payments::https_tests::a_provider_at_an_https_origin_is_reached_over_tls (1 of 7 tests fail)
+88 of 88 mutants killed
+memory bound: no process was stopped
