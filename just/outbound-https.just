@@ -16,7 +16,7 @@ e14-outbound-https:
        echo "produced by: just e14-outbound-https"; \
        echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' ':(exclude)spikes/own-renderer/store-ir.json' || echo ' + uncommitted changes')"; \
        echo "rust: $(rustc --version)"; \
-       echo "tls: $(cargo tree --locked -p pw-outbound -e normal --prefix none 2>/dev/null | grep -E '^(rustls|ring|rustls-webpki|rustls-native-certs) v' | sort -u | tr '\n' ' ')"; echo; \
+       echo "tls: $(cargo tree --locked -p pw-outbound -e normal --prefix none --no-dedupe 2>/dev/null | grep -E '^(rustls|ring|rustls-webpki|rustls-native-certs) v' | sort -u | tr '\n' ' ')"; echo; \
        echo "== the client (runtime/pw-outbound)"; echo; \
        cargo test --locked -p pw-outbound --lib 2>&1 | grep -E '^(test |test result)|panicked at'; \
        echo; echo "== the payments through it (spikes/own-renderer/server/src/payments.rs, tests/store_payments.rs, in memory)"; echo; \
