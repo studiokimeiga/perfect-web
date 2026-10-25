@@ -260,18 +260,24 @@ controls before a number was reported.
 6. **The mutation controls found a test gap**: no test had a higher median
    whose quartiles overlap, so "a higher median is a loss" survived; the
    test has it now, and the mutant is killed.
+7. **The dry run's evidence said "+ uncommitted changes"**: master's
+   `Cargo.lock` at `cc47a64b` was not in cargo's own order (`pw-tasks` before
+   `pw-table-memory`), so the unlocked `cargo run` in `todomvc.sh` rewrote it
+   and every recipe building through such a script recorded its commit as
+   changed. This branch committed cargo's order (`0a4ae365`); master's lock is
+   in it since D2's merge (`4345726a`), and the reorder merged away.
 
 Then the framework's, each a finding for the coordinator to route, losses
 first:
 
-7. **Pleris's first interaction downloads its renderer.** In TodoMVC, the
+8. **Pleris's first interaction downloads its renderer.** In TodoMVC, the
    first add fetches `pw-render.wasm` (386,022 bytes, sent uncompressed), two
    handler modules and the page's computed module: 395,444 bytes where
    React and Svelte fetch nothing. Under Slow 4G the first add takes
    2,506 ms to its frame (React 66, Svelte 67).
    *Route*: the runtime (preload the renderer once the page is interactive,
    serve it compressed, or render a keyed row without it).
-8. **Pleris's host compresses nothing, keeps no connection and lets no cache
+9. **Pleris's host compresses nothing, keeps no connection and lets no cache
    keep a build file** (`write_response`: `connection: close`; `serve_file`:
    no `ETag`, `Last-Modified` or `Cache-Control`). Its first load is sent
    whole (234,001 bytes for TodoMVC, where the same files
@@ -280,11 +286,11 @@ first:
    2,897, SvelteKit 2,500). *Route*: a production host
    (precompressed Brotli, content-hashed immutable names or validators,
    keep-alive or HTTP/2): the charter's deployment story, which has none.
-9. **The runtime is not minified**: `pw-runtime.mjs` is 154,052 bytes;
+10. **The runtime is not minified**: `pw-runtime.mjs` is 154,052 bytes;
    esbuild 0.28.2's minifier makes it 55,576 (64% less). ADR-0188 left
    minifying to the owner; the owner's standing order of 2026-10-25 delegates
    it. *Route*: a minify step in the build (esbuild is in the workspace).
-10. **With several pages of one Pleris app open, a press waits for a held
+11. **With several pages of one Pleris app open, a press waits for a held
     connection.** Each store page holds its update stream for two seconds at
     a time; over HTTP/1.1 a browser opens six connections to a host, so with
     more pages than that, the next request waits for a stream to end. With 20
@@ -293,7 +299,7 @@ first:
     with one page, 1,855 ms for the command with eight. *Route*: one
     subscription per origin shared by its pages (a `BroadcastChannel` or
     `SharedWorker` leader), or HTTP/2 in the host.
-11. **An idle page costs its server.** The stream is answered by a thread
+12. **An idle page costs its server.** The stream is answered by a thread
     that wakes every 25 ms for two seconds under the server's `pending` lock
     (`stream_open`, 80 passes), then the page asks again: 20 idle store pages
     made 30 requests in 10 s and cost 10 ms of CPU a
@@ -301,7 +307,7 @@ first:
     live update is a feature Pleris has and they do not; its cost is
     reported, not its value.) *Route*: wake held streams on a write, not on a
     timer.
-12. **The store's data layer is Rust, not Pleris.** Its operations are
+13. **The store's data layer is Rust, not Pleris.** Its operations are
     `host "store:data/..."` declarations, implemented in the development
     server's `store.rs` (2,107 lines of code, shared by every store
     example); the Next.js and SvelteKit stores keep theirs in 50 lines of
@@ -309,25 +315,28 @@ first:
     "favorite stores") cannot be written in Pleris alone today: its pull
     request would touch Rust in the server. Even the tutorial's guestbook
     reads the feed's Rust data layer. *Route*: D2 (ADR-0338's declared
-    tables, served), being integrated now.
-13. **TodoMVC in Pleris needs an application server for every visit**: its
+    tables): its read path, a compiled component reading its tables through
+    the host's table gate, landed on master after this measurement (#53,
+    `4345726a`); a page served with its tables, and their writes, are what
+    the store needs next.
+14. **TodoMVC in Pleris needs an application server for every visit**: its
     document is rendered per request, while its todos are the device's; the
     frameworks' TodoMVCs are static files any CDN serves. *Route*: prerender a
     page whose reads are all the device's at build time.
-14. **The checker leaves three of the twelve changes to a reviewer**: T02
+15. **The checker leaves three of the twelve changes to a reviewer**: T02
     (asks of a slow source not shared), T07 (an answer for a category the
     customer moved past shown) and T09 (a kept answer older than the
     freshness asked for) check clean in Pleris as in the frameworks; each is
     caught by its hidden test only. *Route*: rules for shared reads, stale
     answers and freshness bounds.
-15. **More requests on a first load**: TodoMVC in Pleris makes 7 (three
+16. **More requests on a first load**: TodoMVC in Pleris makes 7 (three
     stylesheets, because the page's policy refuses the official sheet's
     `data:` images and `todomvc-styles.mjs` moves them to files), React and
     Svelte 5. *Route*: one stylesheet per page from the build.
 
 And where Pleris is best, in the same terms:
 
-16. **Behaviour**: TodoMVC in Pleris passes all 60 of the
+17. **Behaviour**: TodoMVC in Pleris passes all 60 of the
     specification's checks in the three engines and 29 of 29 of TodoMVC's
     own Cypress suite; React 51 of 60 and 28 of 29, Svelte 48 of 60 and 28
     of 29. React's gaps: Escape does not leave an edit (`input.jsx`), the
@@ -336,23 +345,23 @@ And where Pleris is best, in the same terms:
     kept (`Item.svelte`), no persistence, a page opened at `#/completed`
     ignores it (`router.js`). Both apps are the official ones, as TodoMVC
     ships them.
-17. **The same change**: over the twelve tasks, Pleris's pull requests change
+18. **The same change**: over the twelve tasks, Pleris's pull requests change
     140 lines in 13 files, one language; Next.js's 323 lines in 20 files, two
     (TSX, TypeScript); SvelteKit's 235 in 19, two (Svelte, TypeScript).
     Pleris's checker refuses 9 of the 12 unsafe versions (loading and error
     states, authorization and privacy, the new order state, accessibility,
     retries); the frameworks' checkers refuse none of them. One task is
     larger in Pleris: T03, 43 lines against 25 and 29.
-18. **The museum**: Pleris refuses all five exhibits; Next.js was shown
+19. **The museum**: Pleris refuses all five exhibits; Next.js was shown
     letting three ship (G01, H07, J01) and SvelteKit two (F01, J08).
-19. **Server cost per request**: the Pleris host's 0.33 ms of CPU and
+20. **Server cost per request**: the Pleris host's 0.33 ms of CPU and
     36 MiB at peak for the store page, against Next.js's 9.69 ms and
     157 MiB and SvelteKit's 2.24 ms and 118 MiB.
-20. **Source**: TodoMVC in Pleris is 189 lines in one file and one language
+21. **Source**: TodoMVC in Pleris is 189 lines in one file and one language
     (persistence included), React's 278 in 11 files and four languages,
     Svelte's 201 in 8 and four. The store is the other way round: 503 lines
     of Pleris in 21 files, and the Rust above, against 151 and 134.
-21. **On a fast network the bytes cost Pleris little**: unshaped, its store
+22. **On a fast network the bytes cost Pleris little**: unshaped, its store
     page is interactive in 66 ms in Chromium (Next.js 179, SvelteKit 76) and
     its Add reaches its frame soonest in Firefox (33 ms; 39, 37) and WebKit
     (24 ms; 40, 29), with the fewest requests (4; 6, 9); TodoMVC's first paint
@@ -379,25 +388,25 @@ And where Pleris is best, in the same terms:
 Pleris's work first, in the order the losses cost a user; each is measured
 again by `just e14-head-to-head`, which says whether it moved:
 
-1. The first interaction's renderer (finding 7): preload or ship
+1. The first interaction's renderer (finding 8): preload or ship
    `pw-render.wasm` compressed before the first press, or render a keyed row
    without it. The first add at Slow 4G should fall from seconds to the tens
    of milliseconds the frameworks take.
-2. A production host (finding 8): precompressed Brotli, content-hashed
+2. A production host (finding 9): precompressed Brotli, content-hashed
    immutable names or validators, keep-alive or HTTP/2. Warm loads should
    receive kilobytes, not the whole page.
-3. Minify the runtime in the build (finding 9).
-4. One live subscription per origin, or HTTP/2 (finding 10), and streams
-   woken by writes, not a 25 ms timer (finding 11).
-5. D2's declared tables served (finding 12); then a thirteenth task, "favorite
+3. Minify the runtime in the build (finding 10).
+4. One live subscription per origin, or HTTP/2 (finding 11), and streams
+   woken by writes, not a 25 ms timer (finding 12).
+5. D2's declared tables served to pages, read and written (finding 13); then a thirteenth task, "favorite
    stores" (a per-customer list the store page shows and a command changes:
    authorization, invalidation, loading and error states and types across the
    boundary in one change), the first whose Pleris pull request would need
    Rust today, added to `benchmarks/tasks` and so to this comparison.
 6. Checker rules for shared reads, stale answers and freshness bounds
-   (finding 14).
-7. Prerender device-only pages (finding 13); one stylesheet per page
    (finding 15).
+7. Prerender device-only pages (finding 14); one stylesheet per page
+   (finding 16).
 8. The instrument: let the machine settle before measuring (the recipe's
    own builds and checks left a one-minute load average of 30 when the
    measurement began: wait until it falls, and print the wait); ADR-0120's
@@ -407,16 +416,11 @@ again by `just e14-head-to-head`, which says whether it moved:
 
 ## Questions for the integrator
 
-1. `0a4ae365` moves `pw-tasks` after `pw-table-memory` in `Cargo.lock`,
-   cargo's own order: master's order is rewritten by any unlocked cargo
-   command, so every recipe that builds through `todomvc.sh` and the like
-   records "+ uncommitted changes" on master's next verify. Land it with this
-   track, or alone first?
-2. `benchmarks/headtohead` joins the pnpm workspace with two packages the
+1. `benchmarks/headtohead` joins the pnpm workspace with two packages the
    lockfile already holds (`@playwright/test` 1.58.0, `esbuild` 0.28.2), nine
    lockfile lines: acceptable, or should the instrument resolve them from the
    harness and the SvelteKit baseline instead?
-3. The recipe took 25 minutes here (twelve tasks' checkers in three stacks,
+2. The recipe took 25 minutes here (twelve tasks' checkers in three stacks,
    three Cypress runs, the specification in three engines, 336 measured page
    loads, two fixed loads, forty idle pages and the controls): is a verify
    shard of its own acceptable, or should it run nightly only?
