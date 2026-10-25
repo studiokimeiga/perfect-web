@@ -54,6 +54,14 @@ MEMORY = ROOT / "runtime/pw-table-memory/src/lib.rs"
 CHECK = ROOT / "compiler/pw-core/src/check.rs"
 
 MUTANTS = [
+    ("integer publication equality is rounded through float", MEMORY,
+     "        (Value::Number(left), Value::Number(right)) if left.is_f64() || right.is_f64() => {\n",
+     "        (Value::Number(left), Value::Number(right)) if true => {\n"),
+
+    ("floating zero signs are ignored when publishing a staged row", MEMORY,
+     "            let unchanged = same_rows(&now, before);\n",
+     "            let unchanged = now == *before;\n"),
+
     # 1. the manifest, whole for every primitive
     ("a prefix's read may be by other than a proper prefix of the key", TABLES,
      "        let prefix = !by.is_empty() && by.len() < self.key.len() && self.key[..by.len()] == *by;\n",
@@ -237,7 +245,7 @@ MUTANTS = [
      "        Ok(changed(&working.tables, &open.touched)\n",
      "        Ok(changed(&working.tables, &BTreeMap::new())\n"),
     ("a row put back as it was is a write", MEMORY,
-     "            (now != *before).then(|| (*table, key.clone(), now))\n",
+     "            (!unchanged).then(|| (*table, key.clone(), now))\n",
      "            Some((*table, key.clone(), now))\n"),
     ("a refused write traps its command", MEMORY,
      "                            Err(Error::Conflict { existing, .. }) => Ok(Some(existing)),\n",

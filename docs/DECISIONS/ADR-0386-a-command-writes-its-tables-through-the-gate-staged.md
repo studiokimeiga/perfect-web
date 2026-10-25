@@ -228,3 +228,16 @@ commits nothing).
   these fields"); the adapter answered it one row. The host now refuses
   such a manifest where it reads it; should PW0361 refuse the declaration
   (D1's code, `compiler/pw-core/src/tables.rs`), so that it never builds?
+
+
+## Review repair: exact stored float equality (2026-10-25)
+
+A failing-first staged-transaction regression reproduced `put(-0.0)` after
+`0.0` returning success without publishing the changed row: JSON equality
+considered the rows equal, leaving working and published copies different.
+Change detection now compares floating representations by bits, recursively,
+while preserving exact integer comparisons. The regression checks isolated
+staging, publication, change reporting, rollback and rejection of two NaN
+payloads (nonfinite JSON becomes null and cannot enter the declared Float).
+A control restores ordinary JSON equality. This closes F1 only; the other
+contract, staging-bound and poisoned-lock review findings remain open.

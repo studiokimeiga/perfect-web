@@ -588,3 +588,85 @@ fn an_option_of_an_option_is_refused_where_the_adapter_is_made() {
     ));
     assert!(MemoryTables::new(manifest(10)).is_ok());
 }
+
+#[test]
+fn changing_only_a_floats_zero_sign_is_published_and_rolled_back_exactly() {
+    let mut declared = manifest(10);
+    declared.tables[0]
+        .schema
+        .fields
+        .push(field("score", Stored::Float));
+    let hash = Schema::of(declared.tables.iter().map(|t| t.schema.clone()).collect()).hash;
+    declared.hash = hash.clone();
+    declared.migration.to = hash;
+    let db = MemoryTables::new(declared).expect("float field admitted");
+    let row = |score: f64| json!({"author":"ann","id":"a1","rank":1,"draft":false,"score":score});
+    db.transaction(|tx| {
+        tx.write(USERS_INSERT, &[user("ann", "Ann")])?;
+        tx.write(POSTS_INSERT, &[row(0.0)])
+    })
+    .unwrap();
+    let bits = |value: Value| value[0]["score"].as_f64().expect("a float").to_bits();
+    let mut command = db.begin().unwrap();
+    command.write(POSTS_PUT, &[row(-0.0)]).unwrap();
+    assert_eq!(
+        bits(command.read(OF_AUTHOR, &[json!("ann")]).unwrap()),
+        (-0.0f64).to_bits()
+    );
+    assert_eq!(
+        bits(db.read(OF_AUTHOR, &[json!("ann")]).unwrap()),
+        0.0f64.to_bits(),
+        "staging isolated"
+    );
+    let committed = command.commit().unwrap();
+    assert!(
+        committed.written.contains_key("Posts"),
+        "a representational change must publish"
+    );
+    assert_eq!(
+        bits(db.read(OF_AUTHOR, &[json!("ann")]).unwrap()),
+        (-0.0f64).to_bits(),
+        "published bits match staged bits"
+    );
+    let mut rolled_back = db.begin().unwrap();
+    rolled_back.write(POSTS_PUT, &[row(0.0)]).unwrap();
+    drop(rolled_back);
+    let next = db.begin().unwrap();
+    assert_eq!(
+        bits(next.read(OF_AUTHOR, &[json!("ann")]).unwrap()),
+        (-0.0f64).to_bits(),
+        "rollback restores exact bits"
+    );
+    drop(next);
+    for nan in [f64::NAN, f64::from_bits(0x7ff8_0000_0000_0042)] {
+        let mut command = db.begin().unwrap();
+        assert!(
+            command.write(POSTS_PUT, &[row(nan)]).is_err(),
+            "nonfinite JSON value is refused"
+        );
+        drop(command);
+    }
+    assert_eq!(
+        bits(db.read(OF_AUTHOR, &[json!("ann")]).unwrap()),
+        (-0.0f64).to_bits()
+    );
+}
+
+#[test]
+fn integer_changes_above_float_precision_are_not_lost() {
+    let db = seeded(10);
+    let lower = 9_007_199_254_740_992i64;
+    for rank in [lower, lower + 1] {
+        let mut command = db.begin().unwrap();
+        command
+            .write(POSTS_PUT, &[post("ann", "a1", rank, false)])
+            .unwrap();
+        let committed = command.commit().unwrap();
+        assert!(committed.written.contains_key("Posts"));
+        let rows = db.read(OF_AUTHOR, &[json!("ann")]).unwrap();
+        assert_eq!(
+            rows.as_array().unwrap().last().unwrap()["rank"].as_i64(),
+            Some(rank)
+        );
+    }
+}

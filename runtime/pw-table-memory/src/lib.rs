@@ -764,9 +764,42 @@ fn changed(
         .iter()
         .filter_map(|((table, key), before)| {
             let now = tables[*table].rows.get(key).cloned();
-            (now != *before).then(|| (*table, key.clone(), now))
+            let unchanged = same_rows(&now, before);
+            (!unchanged).then(|| (*table, key.clone(), now))
         })
         .collect()
+}
+
+/// Storage equality preserves floating-point representation. JSON numeric
+/// equality merges +0.0 and -0.0, which must not leave staging and published
+/// snapshots holding different bits after a successful command.
+fn same_rows(left: &Option<Row>, right: &Option<Row>) -> bool {
+    match (left, right) {
+        (Some(left), Some(right)) => same_fields(left, right),
+        (None, None) => true,
+        _ => false,
+    }
+}
+
+fn same_fields(left: &Map<String, Value>, right: &Map<String, Value>) -> bool {
+    left.len() == right.len()
+        && left
+            .iter()
+            .all(|(key, value)| right.get(key).is_some_and(|other| same_value(value, other)))
+}
+
+fn same_value(left: &Value, right: &Value) -> bool {
+    match (left, right) {
+        (Value::Number(left), Value::Number(right)) if left.is_f64() || right.is_f64() => {
+            left.is_f64() == right.is_f64()
+                && left.as_f64().map(f64::to_bits) == right.as_f64().map(f64::to_bits)
+        }
+        (Value::Array(left), Value::Array(right)) => {
+            left.len() == right.len() && left.iter().zip(right).all(|(a, b)| same_value(a, b))
+        }
+        (Value::Object(left), Value::Object(right)) => same_fields(left, right),
+        _ => left == right,
+    }
 }
 
 /// Tables a replay sets rows in: the working copy's, or the published ones,
