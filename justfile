@@ -63,6 +63,7 @@ import 'just/effect-convergence.just'
 import 'just/command-deadline.just'
 import 'just/press-modules.just'
 import 'just/e14-readiness.just'
+import 'just/table-host.just'
 
 default:
     @just --list
