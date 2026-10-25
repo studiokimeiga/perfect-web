@@ -253,6 +253,9 @@ struct Inner {
     working: Mutex<Working>,
     /// Told when a command ends, so that the next may begin.
     turn: Condvar,
+    /// What is told when a command finds another open and waits its turn
+    /// ([`MemoryTables::tell_on_wait`]).
+    told: Mutex<Option<Arc<dyn Fn() + Send + Sync>>>,
 }
 
 struct Working {
@@ -310,6 +313,7 @@ impl MemoryTables {
                     next: 1,
                 }),
                 turn: Condvar::new(),
+                told: Mutex::new(None),
                 shape,
                 host,
             }),
@@ -392,6 +396,12 @@ impl MemoryTables {
             .working
             .lock()
             .map_err(|_| Error::StoragePoisoned)?;
+        if working.open.is_some()
+            && let Ok(told) = self.inner.told.lock()
+            && let Some(tell) = told.as_ref()
+        {
+            tell();
+        }
         while working.open.is_some() {
             working = self
                 .inner
@@ -411,6 +421,17 @@ impl MemoryTables {
             id,
             ended: false,
         })
+    }
+
+    /// **Tell `tell` each time a command finds another open and waits its
+    /// turn**, as it is about to wait (for tests and diagnostics, as the
+    /// development server's write guard tells, ADR-0365: "waiting at its
+    /// turn" is a fact the adapter can state, where "has not begun yet" is a
+    /// silence a slow thread makes too).
+    pub fn tell_on_wait(&self, tell: impl Fn() + Send + Sync + 'static) {
+        if let Ok(mut told) = self.inner.told.lock() {
+            *told = Some(Arc::new(tell));
+        }
     }
 
     /// A serializable transaction in this memory database. A failed command,
