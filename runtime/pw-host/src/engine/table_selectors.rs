@@ -1,20 +1,23 @@
-//! Read-only Pleris table selector values at the Wasmtime boundary.
+//! Table selector and row values at the Wasmtime boundary.
 //!
 //! This converts generated WIT argument values into the memory adapter's
 //! internal JSON representation. It does not define a JSON WIT ABI, authorize
 //! an import, or install a Wasmtime host function.
 //!
-//! **Each key is held to tables.json before any adapter reads it** (the
-//! integrator's ruling 5 of 2026-10-25, defence in depth): its arity, each
-//! field's stored type and bounds, and a composite key's fields by their WIT
-//! names, mapped back to the Pleris names the adapter's rows use. A key of
-//! another type is refused, never read as a key no row has.
+//! **What a function is given is held to tables.json before any adapter
+//! reads it** (the integrator's ruling 5 of 2026-10-25, defence in depth;
+//! ADR-0386 for the writes): a selector's arity, each field's stored type and
+//! bounds, a composite selector's fields by their WIT names, mapped back to
+//! the Pleris names the adapter's rows use; a row exactly its table's, as
+//! the engine holds an answered one (`table_link::exact_row`). A selector of
+//! another type is refused, never read as a key no row has, and a row of
+//! another shape is refused, never stored.
 
 use serde_json::{Map, Value};
 
 use super::Val;
-use super::table_link::check_value;
-use crate::tables::{Column, Read};
+use super::table_link::{check_value, exact_row};
+use crate::tables::{Column, Primitive, Read, Stored, Write};
 
 /// One key field's value, of its column's stored type and within its bounds.
 fn scalar(column: &Column, value: &Val) -> Result<Value, String> {
@@ -31,10 +34,10 @@ fn scalar(column: &Column, value: &Val) -> Result<Value, String> {
     }
 }
 
-/// One key as a get-many's list holds it: its one field's value, or a record
-/// of its fields, by their WIT names, in the key's order.
-fn key(read: &Read, value: &Val) -> Result<Value, String> {
-    match (read.by.as_slice(), value) {
+/// One selector as a set form's list holds it: its one field's value, or a
+/// record of its fields, by their WIT names, in their declared order.
+fn key(columns: &[Column], value: &Val) -> Result<Value, String> {
+    match (columns, value) {
         ([column], value) => scalar(column, value),
         (columns, Val::Record(fields)) => {
             if fields.len() != columns.len() {
@@ -63,44 +66,124 @@ fn key(read: &Read, value: &Val) -> Result<Value, String> {
     }
 }
 
-/// Decode a read's positional arguments, held to its key, without inventing
-/// missing or unsupported values: a get's key fields, or a get-many's one
-/// list of keys. The adapter then reads by them, and checks them again.
+/// The positional fields a read or a delete is given, each its column's.
+fn positional(primitive: Primitive, by: &[Column], args: &[Val]) -> Result<Vec<Value>, String> {
+    if args.len() != by.len() {
+        return Err(format!(
+            "a {} takes its {}'s {} field(s), and was given {}",
+            primitive.name(),
+            primitive.by_words(),
+            by.len(),
+            args.len()
+        ));
+    }
+    args.iter()
+        .zip(by)
+        .enumerate()
+        .map(|(index, (value, column))| {
+            scalar(column, value)
+                .map_err(|reason| format!("table argument {}: {reason}", index + 1))
+        })
+        .collect()
+}
+
+/// Decode a read's arguments, held to what it reads by, without inventing
+/// missing or unsupported values: a keyed read's fields (a `get`'s key, a
+/// prefix's, an index's), a set form's one list of them, and `all`'s
+/// nothing. The adapter then reads by them, and checks them again.
 pub fn decode_read_arguments(read: &Read, args: &[Val]) -> Result<Vec<Value>, String> {
-    if read.many {
+    if read.many() {
         let [Val::List(keys)] = args else {
-            return Err("a get-many takes one list of keys".into());
+            return Err(format!(
+                "a {} takes one list of {}s",
+                read.primitive.name(),
+                read.primitive.by_words()
+            ));
         };
         let keys = keys
             .iter()
             .enumerate()
             .map(|(index, value)| {
-                key(read, value).map_err(|why| format!("table read key {}: {why}", index + 1))
+                key(&read.by, value).map_err(|why| format!("table read key {}: {why}", index + 1))
             })
             .collect::<Result<Vec<_>, _>>()?;
         return Ok(vec![Value::Array(keys)]);
     }
-    if args.len() != read.by.len() {
-        return Err(format!(
-            "a get takes its key's {} field(s), and was given {}",
-            read.by.len(),
-            args.len()
-        ));
+    positional(read.primitive, &read.by, args)
+}
+
+/// **Decode a write's arguments** (ADR-0386): an `insert`'s or a `put`'s
+/// row, exactly its table's (its fields in their declared order, by their
+/// WIT names, each of its stored type and within its bounds), as the
+/// adapter's object by the Pleris names; a delete's key or prefix fields.
+pub fn decode_write_arguments(write: &Write, args: &[Val]) -> Result<Vec<Value>, String> {
+    match write.primitive {
+        Primitive::Insert | Primitive::Put => {
+            let [row] = args else {
+                return Err(format!(
+                    "a {} takes one row, and was given {} values",
+                    write.primitive.name(),
+                    args.len()
+                ));
+            };
+            Ok(vec![row_value(&write.row, row)?])
+        }
+        primitive => positional(primitive, &write.by, args),
     }
-    args.iter()
-        .zip(&read.by)
-        .enumerate()
-        .map(|(index, (value, column))| {
-            scalar(column, value)
-                .map_err(|reason| format!("table read argument {}: {reason}", index + 1))
-        })
-        .collect()
+}
+
+/// A row, exactly its table's, as the adapter's object.
+fn row_value(columns: &[Column], value: &Val) -> Result<Value, String> {
+    let fields = exact_row(columns, value).map_err(|why| format!("a row: {why}"))?;
+    record(columns, fields)
+}
+
+fn record(columns: &[Column], fields: &[(String, Val)]) -> Result<Value, String> {
+    let mut object = Map::new();
+    for (column, (_, value)) in columns.iter().zip(fields) {
+        let json = json(&column.stored, value).map_err(|why| format!("`{}`: {why}", column.wit))?;
+        object.insert(column.name.clone(), json);
+    }
+    Ok(Value::Object(object))
+}
+
+/// A value held exactly (`exact_row` checked its type and bounds), as the
+/// adapter's JSON.
+fn json(stored: &Stored, value: &Val) -> Result<Value, String> {
+    Ok(match (stored, value) {
+        (Stored::Int { .. }, Val::S64(n)) => Value::from(*n),
+        (Stored::String { .. }, Val::String(s)) => Value::from(s.clone()),
+        (Stored::Bool, Val::Bool(b)) => Value::from(*b),
+        (Stored::Float, Val::Float64(x)) => serde_json::Number::from_f64(*x)
+            .map(Value::Number)
+            .ok_or_else(|| format!("{x} is not a finite number"))?,
+        (Stored::Option(_), Val::Option(None)) => Value::Null,
+        // `Some(None)` would be stored as `None` (ADR-0386).
+        (Stored::Option(inner), Val::Option(Some(_))) if matches!(**inner, Stored::Option(_)) => {
+            return Err("an Option of an Option is not stored".into());
+        }
+        (Stored::Option(inner), Val::Option(Some(value))) => json(inner, value)?,
+        (Stored::List(inner), Val::List(items)) => Value::Array(
+            items
+                .iter()
+                .map(|item| json(inner, item))
+                .collect::<Result<_, _>>()?,
+        ),
+        (Stored::Record(fields), Val::Record(given)) => {
+            record(&fields.iter().map(Column::of).collect::<Vec<_>>(), given)?
+        }
+        _ => {
+            return Err(format!(
+                "a value the table host does not store: {}",
+                super::table_link::described(stored)
+            ));
+        }
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tables::Stored;
     use serde_json::json;
 
     fn string(max: Option<i64>) -> Stored {
@@ -117,8 +200,8 @@ mod tests {
         }
     }
 
-    /// A read keyed by `key`, its row `key` and a title.
-    fn read(many: bool, key: &[(&str, Stored)]) -> Read {
+    /// A read bound to `primitive` by `key`, its row `key` and a title.
+    fn read_by(primitive: Primitive, key: &[(&str, Stored)]) -> Read {
         let by: Vec<Column> = key
             .iter()
             .map(|(name, stored)| Column::new(name, stored.clone()))
@@ -126,15 +209,29 @@ mod tests {
         let mut row = by.clone();
         row.push(Column::new("title", string(None)));
         Read {
-            import: "pw:tables/items#get".into(),
+            import: format!("pw:tables/items#{}", primitive.name()),
             table: "Items".into(),
-            many,
+            primitive,
             key: by.iter().map(|c| c.name.clone()).collect(),
             by,
             row,
             order: None,
             sorted_by: Vec::new(),
+            unique: false,
+            bounded: None,
         }
+    }
+
+    /// A get, or a get-many, by `key`.
+    fn read(many: bool, key: &[(&str, Stored)]) -> Read {
+        read_by(
+            if many {
+                Primitive::GetMany
+            } else {
+                Primitive::Get
+            },
+            key,
+        )
     }
 
     #[test]
@@ -291,5 +388,107 @@ mod tests {
         }
         assert!(decode_read_arguments(&get_many, &[Val::List(vec![Val::S64(1)])]).is_err());
         assert!(decode_read_arguments(&get_many, &[]).is_err());
+    }
+
+    /// ADR-0386: `all` is given nothing, and a prefix read its fields.
+    #[test]
+    fn all_takes_nothing_and_a_prefix_its_fields() {
+        let all = read_by(Primitive::All, &[]);
+        assert_eq!(decode_read_arguments(&all, &[]), Ok(vec![]));
+        assert!(decode_read_arguments(&all, &[Val::String("a".into())]).is_err());
+        let prefix = read_by(Primitive::Prefix, &[("list", string(None))]);
+        assert_eq!(
+            decode_read_arguments(&prefix, &[Val::String("a".into())]),
+            Ok(vec![json!("a")])
+        );
+        assert!(decode_read_arguments(&prefix, &[Val::S64(1)]).is_err());
+    }
+
+    fn row() -> Vec<Column> {
+        vec![
+            Column::new("list_id", string(Some(4))),
+            Column::new("count", int(Some(1))),
+            Column::new("note", Stored::Option(Box::new(string(None)))),
+            Column::new("weight", Stored::Float),
+            Column::new("tags", Stored::List(Box::new(string(None)))),
+        ]
+    }
+
+    fn write(primitive: Primitive) -> Write {
+        let row = row();
+        Write {
+            import: format!("pw:tables/items#{}", primitive.name()),
+            table: "Items".into(),
+            primitive,
+            by: match primitive {
+                Primitive::Delete | Primitive::DeletePrefix => row[..1].to_vec(),
+                _ => Vec::new(),
+            },
+            key: vec!["list_id".into()],
+            unique: Vec::new(),
+            row,
+        }
+    }
+
+    fn given(list: &str, count: i64, weight: f64) -> Val {
+        Val::Record(vec![
+            ("list-id".into(), Val::String(list.into())),
+            ("count".into(), Val::S64(count)),
+            (
+                "note".into(),
+                Val::Option(Some(Box::new(Val::String("n".into())))),
+            ),
+            ("weight".into(), Val::Float64(weight)),
+            (
+                "tags".into(),
+                Val::List(vec![Val::String("x".into()), Val::String("y".into())]),
+            ),
+        ])
+    }
+
+    /// ADR-0386: a row given to an insert or a put reaches the adapter as
+    /// its table's, by the Pleris names, each value as it was given; one of
+    /// another shape, type or bound never does.
+    #[test]
+    fn a_written_row_is_exactly_its_tables_or_refused() {
+        for primitive in [Primitive::Insert, Primitive::Put] {
+            let write = write(primitive);
+            assert_eq!(
+                decode_write_arguments(&write, &[given("a", 2, 1.5)]),
+                Ok(vec![json!({
+                    "list_id": "a", "count": 2, "note": "n", "weight": 1.5, "tags": ["x", "y"]
+                })])
+            );
+            for (bad, words) in [
+                (given("a", 0, 1.5), "`count`: 0 is outside its bounds"),
+                (
+                    given("abcde", 1, 1.5),
+                    "`list-id`: 5 characters is outside its bounds",
+                ),
+                (given("a", 1, f64::INFINITY), "inf is not a finite number"),
+                (Val::S64(1), "s64 where a row is a record"),
+            ] {
+                let refused = decode_write_arguments(&write, &[bad]).expect_err(words);
+                assert!(refused.contains(words), "{words}: {refused}");
+            }
+            let Val::Record(mut fields) = given("a", 1, 1.5) else {
+                unreachable!()
+            };
+            fields.swap(0, 1);
+            assert!(decode_write_arguments(&write, &[Val::Record(fields.clone())]).is_err());
+            fields.swap(0, 1);
+            fields.push(("secret".into(), Val::String("leak".into())));
+            let refused =
+                decode_write_arguments(&write, &[Val::Record(fields)]).expect_err("a field more");
+            assert!(refused.contains("`secret`"), "{refused}");
+            assert!(decode_write_arguments(&write, &[]).is_err());
+        }
+        let delete = write(Primitive::Delete);
+        assert_eq!(
+            decode_write_arguments(&delete, &[Val::String("a".into())]),
+            Ok(vec![json!("a")])
+        );
+        assert!(decode_write_arguments(&delete, &[Val::String("abcde".into())]).is_err());
+        assert!(decode_write_arguments(&delete, &[]).is_err());
     }
 }

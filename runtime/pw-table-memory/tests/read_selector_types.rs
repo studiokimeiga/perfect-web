@@ -13,14 +13,14 @@ fn field(name: &str, stored: Stored) -> FieldSchema {
     }
 }
 
-fn function(name: &str, primitive: Primitive, by: &[&str]) -> FunctionJson {
+fn function(name: &str, primitive: Primitive, by: &[&str], sorted_by: &[&str]) -> FunctionJson {
     FunctionJson {
         name: name.into(),
         import: format!("pw:tables/likes#{}", name.replace('_', "-")),
         primitive,
         effect: if primitive.writes() { "write" } else { "read" }.into(),
         by: by.iter().map(|name| (*name).into()).collect(),
-        sorted_by: Vec::new(),
+        sorted_by: sorted_by.iter().map(|name| (*name).into()).collect(),
         params: Vec::new(),
         returns: String::new(),
     }
@@ -64,11 +64,21 @@ fn manifest() -> TablesJson {
             row: "Like".into(),
             bounded: Some(10),
             functions: vec![
-                function("get", Primitive::Get, &["from", "to"]),
-                function("get_many", Primitive::GetMany, &["from", "to"]),
-                function("by_rank", Primitive::Index, &["rank"]),
-                function("of_from_many", Primitive::PrefixMany, &["from"]),
-                function("insert", Primitive::Insert, &[]),
+                function("get", Primitive::Get, &["from", "to"], &[]),
+                function(
+                    "get_many",
+                    Primitive::GetMany,
+                    &["from", "to"],
+                    &["from", "to", "rank"],
+                ),
+                function("by_rank", Primitive::Index, &["rank"], &[]),
+                function(
+                    "of_from_many",
+                    Primitive::PrefixMany,
+                    &["from"],
+                    &["from", "rank", "to"],
+                ),
+                function("insert", Primitive::Insert, &[], &[]),
             ],
         }],
         migration: Plan {

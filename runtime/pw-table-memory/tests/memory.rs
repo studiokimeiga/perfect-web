@@ -83,7 +83,7 @@ fn manifest() -> TablesJson {
                     "get_many",
                     Primitive::GetMany,
                     &["from", "to"],
-                    &["from", "to"],
+                    &["from", "to", "rank"],
                 ),
                 function(
                     "of_from",
@@ -416,8 +416,8 @@ fn admitted_component_selects_only_manifest_declared_get_and_get_many() {
 fn table_host_refuses_unknown_writes_and_wildcard_imports() {
     let db = MemoryTables::new(manifest()).unwrap();
     for denied in [
+        // A write, into what the gate admits for a query.
         "pw:tables/likes#put",
-        "pw:tables/likes#all",
         "pw:tables/other#get",
         "pw:tables/*#get",
         // The tables' namespace however it is spelt: versioned, or bare.

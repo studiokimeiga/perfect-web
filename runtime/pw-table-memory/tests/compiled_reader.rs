@@ -271,11 +271,20 @@ fn a_table_import_typed_otherwise_than_tables_json_is_refused_when_linking() {
         }
         // A key of two fields in tables.json, where the reader was built
         // for one: a get takes one value, a get-many's keys are not records.
+        // The manifest is whole otherwise: each function by the new key, in
+        // D1's order by it.
         let manifest = manifest_where(&program.tables, |json| {
             lists(json)["key"] = json!(["id", "slug"]);
             for function in lists(json)["functions"].as_array_mut().unwrap() {
-                if function["name"] == "get" || function["name"] == "get_many" {
+                let name = function["name"].as_str().unwrap().to_string();
+                if ["get", "get_many", "delete"].contains(&name.as_str()) {
                     function["by"] = json!(["id", "slug"]);
+                }
+                match name.as_str() {
+                    "get_many" => function["sorted_by"] = json!(["id", "slug", "added"]),
+                    "by_slug_many" => function["sorted_by"] = json!(["slug", "added", "id"]),
+                    "all" => function["sorted_by"] = json!(["added", "id", "slug"]),
+                    _ => {}
                 }
             }
         })

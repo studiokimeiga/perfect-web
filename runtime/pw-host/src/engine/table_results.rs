@@ -1,4 +1,4 @@
-//! Encode a table adapter's read results as Wasmtime component values.
+//! Encode a table adapter's answers as Wasmtime component values.
 //!
 //! This is an internal JSON-to-WIT boundary, not a JSON public ABI. A row is
 //! encoded as the record tables.json declares (the integrator's rulings 6 and
@@ -7,17 +7,17 @@
 //! f64, an `Option`, a `List`, a record) and within its bounds, no field
 //! more and none less. Nothing depends on the order of a JSON object's keys,
 //! and nothing is guessed: a row that is not its table's is refused whole.
-//! The engine then holds the encoded answer to the read again
+//! The engine then holds the encoded answer to its function again
 //! (`table_link::check_answer`), whoever encoded it.
 
 use serde_json::Value;
 
 use super::Val;
 use super::table_link::check_value;
-use crate::tables::{Column, Read, Stored};
+use crate::tables::{Column, Read, Stored, Write};
 
-fn row(read: &Read, value: &Value) -> Result<Val, String> {
-    record(&read.row, value).map_err(|why| format!("a {} row: {why}", read.table))
+fn row(columns: &[Column], table: &str, value: &Value) -> Result<Val, String> {
+    record(columns, value).map_err(|why| format!("a {table} row: {why}"))
 }
 
 /// A record of exactly these fields, in this order.
@@ -90,37 +90,73 @@ fn json_named(value: &Value) -> &'static str {
     }
 }
 
-/// Encode a single-key get: a missing row is WIT none; a present row is some.
+/// Encode a read's answer as its WIT type: none or one row where it answers
+/// one ([`Read::one`]), a list of rows otherwise.
+pub fn encode_read(read: &Read, value: &Value) -> Result<Val, String> {
+    if read.one() {
+        encode_get(read, value)
+    } else {
+        encode_get_many(read, value)
+    }
+}
+
+/// Encode a single-row read: a missing row is WIT none; a present row is
+/// some.
 pub fn encode_get(read: &Read, value: &Value) -> Result<Val, String> {
     if value.is_null() {
         Ok(Val::Option(None))
     } else {
-        Ok(Val::Option(Some(Box::new(row(read, value)?))))
+        Ok(Val::Option(Some(Box::new(row(
+            &read.row,
+            &read.table,
+            value,
+        )?))))
     }
 }
 
-/// Encode get-many in the exact order returned by the adapter.
+/// Encode a list of rows in the exact order returned by the adapter.
 /// An invalid element refuses the entire result, never dropping that row.
 pub fn encode_get_many(read: &Read, value: &Value) -> Result<Val, String> {
     let rows = value
         .as_array()
-        .ok_or_else(|| "a get-many result must be a list".to_string())?;
+        .ok_or_else(|| format!("a {} result must be a list", read.primitive.name()))?;
     Ok(Val::List(
         rows.iter()
-            .map(|value| row(read, value))
+            .map(|value| row(&read.row, &read.table, value))
             .collect::<Result<_, _>>()?,
     ))
+}
+
+/// **Encode a write's answer** (ADR-0386): where it can be refused, `ok`,
+/// or the row that refused it as the error; otherwise nothing. A refusal of
+/// a write that cannot be refused is no answer the component can be given.
+pub fn encode_write(write: &Write, refused: Option<&Value>) -> Result<Vec<Val>, String> {
+    match (write.refusable(), refused) {
+        (true, None) => Ok(vec![Val::Result(Ok(None))]),
+        (true, Some(held)) => Ok(vec![Val::Result(Err(Some(Box::new(row(
+            &write.row,
+            &write.table,
+            held,
+        )?))))]),
+        (false, None) => Ok(Vec::new()),
+        (false, Some(_)) => Err(format!(
+            "`{}` was refused, and a {} answers nothing",
+            write.import,
+            write.primitive.name()
+        )),
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tables::Primitive;
     use serde_json::json;
 
     /// A table whose row is declared `id, active, sort_order, note`: not the
     /// order of a JSON object's keys (`active, id, note, sort_order`).
-    fn read() -> Read {
-        let row = vec![
+    fn columns() -> Vec<Column> {
+        vec![
             Column::new(
                 "id",
                 Stored::String {
@@ -143,16 +179,22 @@ mod tests {
                     max_length: None,
                 })),
             ),
-        ];
+        ]
+    }
+
+    fn read() -> Read {
+        let row = columns();
         Read {
             import: "pw:tables/likes#get".into(),
             table: "Likes".into(),
-            many: false,
+            primitive: Primitive::Get,
             by: vec![row[0].clone()],
             key: vec!["id".into()],
             row,
             order: None,
             sorted_by: Vec::new(),
+            unique: false,
+            bounded: None,
         }
     }
 
@@ -259,5 +301,42 @@ mod tests {
             encode_get(&read(), &stored("still-ok")),
             Ok(Val::Option(Some(Box::new(record("still-ok", None)))))
         );
+    }
+
+    fn write(primitive: Primitive, unique: bool) -> Write {
+        Write {
+            import: format!("pw:tables/likes#{}", primitive.name()),
+            table: "Likes".into(),
+            primitive,
+            by: Vec::new(),
+            row: columns(),
+            key: vec!["id".into()],
+            unique: if unique {
+                vec![vec!["sort_order".into()]]
+            } else {
+                Vec::new()
+            },
+        }
+    }
+
+    /// ADR-0386: an insert answers `ok`, or the row that refused it, encoded
+    /// as its table's; a put without a unique index answers nothing, and is
+    /// never refused.
+    #[test]
+    fn a_writes_answer_is_ok_the_refusing_row_or_nothing() {
+        let insert = write(Primitive::Insert, false);
+        assert_eq!(encode_write(&insert, None), Ok(vec![Val::Result(Ok(None))]));
+        assert_eq!(
+            encode_write(&insert, Some(&stored("held"))),
+            Ok(vec![Val::Result(Err(Some(Box::new(record("held", None)))))])
+        );
+        let mut secret = stored("held");
+        secret["secret"] = json!("leak");
+        assert!(encode_write(&insert, Some(&secret)).is_err());
+        let plain = write(Primitive::Put, false);
+        assert_eq!(encode_write(&plain, None), Ok(Vec::new()));
+        assert!(encode_write(&plain, Some(&stored("held"))).is_err());
+        let unique = write(Primitive::Put, true);
+        assert_eq!(encode_write(&unique, None), Ok(vec![Val::Result(Ok(None))]));
     }
 }

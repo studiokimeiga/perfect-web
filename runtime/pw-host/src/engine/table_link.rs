@@ -1,91 +1,150 @@
-//! **A table read, held to tables.json where it is linked** (ADR-0338 D2;
-//! the integrator's ruling 4 of 2026-10-25).
+//! **A table function, held to tables.json where it is linked** (ADR-0338
+//! D2; the integrator's ruling 4 of 2026-10-25, ADR-0385; ADR-0386 for the
+//! writes and the other reads).
 //!
 //! The engine links a function for each import with the type the component
 //! declares (`func_new`), so a table import typed otherwise than tables.json
-//! declares its read linked, and failed, if at all, only when it was called.
-//! A component is compiled from the same declaration as its tables.json, so
-//! a difference means one of the two is not what was built with the other:
-//! a stale build, or a forged one. [`check_import`] compares the import's
-//! type, read from the component, with the type tables.json gives the read,
-//! before anything is instantiated, and refuses there.
+//! declares its function linked, and failed, if at all, only when it was
+//! called. A component is compiled from the same declaration as its
+//! tables.json, so a difference means one of the two is not what was built
+//! with the other: a stale build, or a forged one. [`check_import`] compares
+//! the import's type, read from the component, with the type tables.json
+//! gives the function, before anything is instantiated, and refuses there.
 //!
 //! **And each answer, when it is given** (the integrator's rulings 7 and 8):
-//! whatever answers a table read, the memory adapter's callback or any
-//! other, its answer reaches the component only if it is the read's:
+//! whatever answers a table function, the memory adapter's callback or any
+//! other, its answer reaches the component only if it is the function's:
 //! [`check_answer`] holds every row to the row tables.json declares, exactly
 //! (no field more, none less, each of its type and within its bounds: an
 //! answer is not projected onto the type, as ADR-0166 projects a host's
-//! records), a `get`'s row to the key asked for, and a `get-many`'s rows to
-//! keys asked for, each once, in tables.json's order.
+//! records); a read's rows to what it was asked (a key, a prefix, an index's
+//! values), each row once, in tables.json's order, and an `all` to its
+//! table's bound; a write's refusal to a row that holds what it would write.
 
 use std::collections::BTreeSet;
 
 use wasmtime::component::Val;
 use wasmtime::component::types::{ComponentFunc, Type};
 
-use crate::tables::{Column, Read, Stored};
+use crate::tables::{Access, Column, Primitive, Read, Stored, Write};
 
-/// **Is this import typed as tables.json declares its read?** A `get` takes
-/// its key's fields and answers an option of its row; a `get-many` takes a
-/// list of keys (a key's one field, or a record of its fields) and answers a
-/// list of rows; a row is a record of the table's fields, in their declared
-/// order, by their WIT names, each of its stored type.
-pub fn check_import(read: &Read, func: &ComponentFunc) -> Result<(), String> {
+/// **Is this import typed as tables.json declares its function?** A read
+/// takes what it reads by (the key's, a prefix's or an index's fields; a set
+/// form one list of them, each a field's value or a record of the fields;
+/// `all` nothing) and answers an option of its row (a `get`, a unique
+/// index's read) or a list of rows. A write takes a row (`insert`, `put`) or
+/// the fields it deletes by, and answers `result<_, row>` where it can be
+/// refused, nothing otherwise. A row is a record of the table's fields, in
+/// their declared order, by their WIT names, each of its stored type.
+pub fn check_import(access: &Access, func: &ComponentFunc) -> Result<(), String> {
     let params: Vec<Type> = func.params().map(|(_, ty)| ty).collect();
     let results: Vec<Type> = func.results().collect();
-    let refused = |why: String| {
+    let refused = |what: &str, why: String| {
         format!(
-            "`{}` is typed otherwise than tables.json declares the read: {why}",
-            read.import
+            "`{}` is typed otherwise than tables.json declares the {what}: {why}",
+            access.import()
         )
     };
-    if read.many {
-        let [Type::List(keys)] = params.as_slice() else {
-            return Err(refused(format!(
-                "it takes ({}), not one list of keys",
-                listed(&params)
-            )));
+    match access {
+        Access::Read(read) => {
+            read_import(read, &params, &results).map_err(|why| refused("read", why))
+        }
+        Access::Write(write) => {
+            write_import(write, &params, &results).map_err(|why| refused("write", why))
+        }
+    }
+}
+
+fn read_import(read: &Read, params: &[Type], results: &[Type]) -> Result<(), String> {
+    let words = read.primitive.by_words();
+    if read.many() {
+        let [Type::List(given)] = params else {
+            return Err(format!(
+                "it takes ({}), not one list of {words}s",
+                listed(params)
+            ));
         };
-        key(read, &keys.ty()).map_err(refused)?;
-        let [Type::List(rows)] = results.as_slice() else {
-            return Err(refused(format!(
-                "it answers ({}), not a list of rows",
-                listed(&results)
-            )));
-        };
-        record(&read.row, &rows.ty()).map_err(refused)?;
+        selector(words, &read.by, &given.ty())?;
     } else {
-        if params.len() != read.by.len() {
-            return Err(refused(format!(
-                "it takes ({}), not the key's {} field(s)",
-                listed(&params),
-                read.by.len()
-            )));
-        }
-        for (ty, column) in params.iter().zip(&read.by) {
-            stored(&column.stored, ty)
-                .map_err(|why| refused(format!("its key's `{}`: {why}", column.name)))?;
-        }
-        let [Type::Option(row)] = results.as_slice() else {
-            return Err(refused(format!(
+        fields(words, &read.by, params)?;
+    }
+    if read.one() {
+        let [Type::Option(row)] = results else {
+            return Err(format!(
                 "it answers ({}), not an option of a row",
-                listed(&results)
-            )));
+                listed(results)
+            ));
         };
-        record(&read.row, &row.ty()).map_err(refused)?;
+        record(&read.row, &row.ty())
+    } else {
+        let [Type::List(rows)] = results else {
+            return Err(format!(
+                "it answers ({}), not a list of rows",
+                listed(results)
+            ));
+        };
+        record(&read.row, &rows.ty())
+    }
+}
+
+fn write_import(write: &Write, params: &[Type], results: &[Type]) -> Result<(), String> {
+    match write.primitive {
+        Primitive::Insert | Primitive::Put => {
+            let [row] = params else {
+                return Err(format!("it takes ({}), not one row", listed(params)));
+            };
+            record(&write.row, row)?;
+        }
+        primitive => fields(primitive.by_words(), &write.by, params)?,
+    }
+    if !write.refusable() {
+        return match results {
+            [] => Ok(()),
+            _ => Err(format!("it answers ({}), not nothing", listed(results))),
+        };
+    }
+    let [Type::Result(answer)] = results else {
+        return Err(format!(
+            "it answers ({}), not a result of the row that refuses it",
+            listed(results)
+        ));
+    };
+    if let Some(ok) = answer.ok() {
+        return Err(format!(
+            "its ok holds {}, where it holds nothing",
+            named(&ok)
+        ));
+    }
+    let Some(held) = answer.err() else {
+        return Err("its error holds nothing, where it holds the row that refuses it".into());
+    };
+    record(&write.row, &held)
+}
+
+/// The fields a read or a delete is given, each by its stored type, in
+/// order.
+fn fields(words: &str, by: &[Column], params: &[Type]) -> Result<(), String> {
+    if params.len() != by.len() {
+        return Err(format!(
+            "it takes ({}), not the {words}'s {} field(s)",
+            listed(params),
+            by.len()
+        ));
+    }
+    for (ty, column) in params.iter().zip(by) {
+        stored(&column.stored, ty)
+            .map_err(|why| format!("its {words}'s `{}`: {why}", column.name))?;
     }
     Ok(())
 }
 
-/// A key as a `get-many`'s list holds it: its one field's value, or a record
-/// of its fields.
-fn key(read: &Read, ty: &Type) -> Result<(), String> {
-    match read.by.as_slice() {
-        [column] => {
-            stored(&column.stored, ty).map_err(|why| format!("its key's `{}`: {why}", column.name))
-        }
-        columns => record(columns, ty).map_err(|why| format!("its key: {why}")),
+/// What a set form's list holds: its one field's value, or a record of its
+/// fields.
+fn selector(words: &str, by: &[Column], ty: &Type) -> Result<(), String> {
+    match by {
+        [column] => stored(&column.stored, ty)
+            .map_err(|why| format!("its {words}'s `{}`: {why}", column.name)),
+        columns => record(columns, ty).map_err(|why| format!("its {words}: {why}")),
     }
 }
 
@@ -127,6 +186,13 @@ fn stored(stored: &Stored, ty: &Type) -> Result<(), String> {
         | (Stored::String { .. }, Type::String)
         | (Stored::Bool, Type::Bool)
         | (Stored::Float, Type::Float64) => Ok(()),
+        // An adapter's row holds none as nothing (JSON's `null`, SQL's
+        // `NULL`), so `Some(None)` would come back `None` (ADR-0386).
+        (Stored::Option(inner), _) if matches!(**inner, Stored::Option(_)) => Err(
+            "an Option of an Option, whose `Some(None)` a row cannot tell from `None`, is not \
+             a type the table host serves yet"
+                .into(),
+        ),
         (Stored::Option(inner), Type::Option(option)) => self::stored(inner, &option.ty()),
         (Stored::List(inner), Type::List(list)) => self::stored(inner, &list.ty()),
         (Stored::Record(fields), ty) => {
@@ -140,7 +206,7 @@ fn stored(stored: &Stored, ty: &Type) -> Result<(), String> {
             | Stored::Recursive(_),
             _,
         ) => Err(format!(
-            "{} is not a type the table host reads yet",
+            "{} is not a type the table host serves yet",
             described(stored)
         )),
         (stored, ty) => Err(format!(
@@ -206,21 +272,31 @@ fn listed(types: &[Type]) -> String {
     types.iter().map(named).collect::<Vec<_>>().join(", ")
 }
 
-/// **Is this answer the read's?** A `get` answers none, or the row of the
-/// key it was given; a `get-many` answers rows of keys it was given, each
-/// key once, in tables.json's order ([`Read::canonical`]); every row is
-/// exactly the row tables.json declares ([`exact_row`]). A key missing from
-/// the table is left out of a `get-many`, and an empty list is an answer.
-pub fn check_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), String> {
+/// **Is this answer the function's?** See the module: a read's rows are
+/// what it was asked (a `get`'s and a unique index's one row its key's or
+/// value's), each once, in tables.json's order ([`Read::canonical`]), an
+/// `all` within its table's bound; a write that can be refused answers ok or
+/// the row holding what it would write; every row is exactly the row
+/// tables.json declares ([`exact_row`]). A key or a value no row has is left
+/// out, and an empty list is an answer.
+pub fn check_answer(access: &Access, args: &[Val], results: &[Val]) -> Result<(), String> {
+    match access {
+        Access::Read(read) => read_answer(read, args, results),
+        Access::Write(write) => write_answer(write, args, results),
+    }
+}
+
+fn read_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), String> {
     let [answer] = results else {
         return Err(format!("{} values where a read answers one", results.len()));
     };
-    if !read.many {
+    let by = || read.by.iter().map(|c| c.name.as_str());
+    if read.one() {
         return match answer {
             Val::Option(None) => Ok(()),
             Val::Option(Some(row)) => {
-                let fields = exact_row(read, row)?;
-                let key = atoms(read, fields, read.by.iter().map(|c| c.name.as_str()))?;
+                let fields = exact_row(&read.row, row)?;
+                let key = atoms(&read.row, fields, by())?;
                 let asked = args.iter().map(atom).collect::<Result<Vec<_>, _>>()?;
                 if key == asked {
                     Ok(())
@@ -233,32 +309,55 @@ pub fn check_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), St
                 }
             }
             other => Err(format!(
-                "{} where a get answers an option of a row",
-                val_named(other)
+                "{} where a {} answers an option of a row",
+                val_named(other),
+                read.primitive.name()
             )),
         };
     }
     let Val::List(rows) = answer else {
         return Err(format!(
-            "{} where a get-many answers a list of rows",
-            val_named(answer)
+            "{} where a {} answers a list of rows",
+            val_named(answer),
+            read.primitive.name()
         ));
     };
-    let asked = asked_keys(read, args)?;
+    // What each row's fields read by must be one of: none for `all`.
+    let asked: Option<BTreeSet<Vec<Atom>>> = match read.primitive {
+        Primitive::All => None,
+        _ if read.many() => Some(asked_selectors(read, args)?),
+        _ => Some(BTreeSet::from([args
+            .iter()
+            .map(atom)
+            .collect::<Result<Vec<_>, _>>()?])),
+    };
+    if read.primitive == Primitive::All
+        && let Some(bound) = read.bounded
+        && rows.len() as u64 > bound
+    {
+        return Err(format!(
+            "{} rows, where {} is bounded to {bound}",
+            rows.len(),
+            read.table
+        ));
+    }
     let order = read.canonical();
     let mut seen = BTreeSet::new();
     let mut last: Option<Vec<Atom>> = None;
     for (index, row) in rows.iter().enumerate() {
         let at = |why: String| format!("row {}: {why}", index + 1);
-        let fields = exact_row(read, row).map_err(at)?;
-        let key = atoms(read, fields, read.by.iter().map(|c| c.name.as_str())).map_err(at)?;
-        if !asked.contains(&key) {
-            return Err(at(format!("{} was not asked for", shown(&key))));
+        let fields = exact_row(&read.row, row).map_err(at)?;
+        if let Some(asked) = &asked {
+            let found = atoms(&read.row, fields, by()).map_err(at)?;
+            if !asked.contains(&found) {
+                return Err(at(format!("{} was not asked for", shown(&found))));
+            }
         }
+        let key = atoms(&read.row, fields, read.key.iter().map(String::as_str)).map_err(at)?;
         if !seen.insert(key.clone()) {
             return Err(at(format!("{} was answered before", shown(&key))));
         }
-        let place = atoms(read, fields, order.iter().map(String::as_str)).map_err(at)?;
+        let place = atoms(&read.row, fields, order.iter().map(String::as_str)).map_err(at)?;
         if last.as_ref().is_some_and(|last| *last > place) {
             return Err(at(format!(
                 "it is out of tables.json's order (by {})",
@@ -270,15 +369,81 @@ pub fn check_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), St
     Ok(())
 }
 
+fn write_answer(write: &Write, args: &[Val], results: &[Val]) -> Result<(), String> {
+    if !write.refusable() {
+        return match results {
+            [] => Ok(()),
+            _ => Err(format!(
+                "{} values where a {} answers nothing",
+                results.len(),
+                write.primitive.name()
+            )),
+        };
+    }
+    let [answer] = results else {
+        return Err(format!(
+            "{} values where a {} answers one",
+            results.len(),
+            write.primitive.name()
+        ));
+    };
+    let held = match answer {
+        Val::Result(Ok(None)) => return Ok(()),
+        Val::Result(Err(Some(held))) => held,
+        other => {
+            return Err(format!(
+                "{} where a {} answers ok, or the row that refuses it",
+                val_named(other),
+                write.primitive.name()
+            ));
+        }
+    };
+    let [given] = args else {
+        return Err(format!(
+            "a {} is given one row, and was given {}",
+            write.primitive.name(),
+            args.len()
+        ));
+    };
+    let held = exact_row(&write.row, held)?;
+    let given = exact_row(&write.row, given)?;
+    let key =
+        |fields: &[(String, Val)]| atoms(&write.row, fields, write.key.iter().map(String::as_str));
+    let (its, mine) = (key(held)?, key(given)?);
+    let mut shares = false;
+    for unique in &write.unique {
+        let values =
+            |fields: &[(String, Val)]| atoms(&write.row, fields, unique.iter().map(String::as_str));
+        shares |= values(held)? == values(given)?;
+    }
+    // An insert is refused by the row of its key, or of a unique value it
+    // would hold; a put, which replaces its key's row, by another row of a
+    // unique value it would hold.
+    let refuses = match write.primitive {
+        Primitive::Insert => its == mine || shares,
+        _ => its != mine && shares,
+    };
+    if refuses {
+        Ok(())
+    } else {
+        Err(format!(
+            "refused by the row of {}, which holds nothing the {} of {} would",
+            shown(&its),
+            write.primitive.name(),
+            shown(&mine)
+        ))
+    }
+}
+
 /// **A row, exactly as tables.json declares it**: a record of the table's
 /// fields in their declared order, by their WIT names, no field more and
 /// none less, each value of its stored type and within its bounds. Its
 /// fields, for reading by position.
-pub fn exact_row<'a>(read: &Read, row: &'a Val) -> Result<&'a [(String, Val)], String> {
-    let Val::Record(fields) = row else {
-        return Err(format!("{} where a row is a record", val_named(row)));
+pub fn exact_row<'a>(row: &[Column], value: &'a Val) -> Result<&'a [(String, Val)], String> {
+    let Val::Record(fields) = value else {
+        return Err(format!("{} where a row is a record", val_named(value)));
     };
-    exact(&read.row, fields)?;
+    exact(row, fields)?;
     Ok(fields)
 }
 
@@ -371,14 +536,13 @@ fn atom(value: &Val) -> Result<Atom, String> {
 
 /// The values of these fields of an exact row, by their Pleris names.
 fn atoms<'a>(
-    read: &Read,
+    row: &[Column],
     fields: &[(String, Val)],
     names: impl Iterator<Item = &'a str>,
 ) -> Result<Vec<Atom>, String> {
     names
         .map(|name| {
-            let at = read
-                .row
+            let at = row
                 .iter()
                 .position(|column| column.name == name)
                 .ok_or_else(|| format!("`{name}` is no field of the row"))?;
@@ -387,15 +551,20 @@ fn atoms<'a>(
         .collect()
 }
 
-/// The keys a `get-many` was given: each its one field's value, or a record
-/// of its fields by their WIT names.
-fn asked_keys(read: &Read, args: &[Val]) -> Result<BTreeSet<Vec<Atom>>, String> {
-    let [Val::List(keys)] = args else {
-        return Err("a get-many is given one list of keys".into());
+/// What a set form was given: each its one field's value, or a record of
+/// its fields by their WIT names.
+fn asked_selectors(read: &Read, args: &[Val]) -> Result<BTreeSet<Vec<Atom>>, String> {
+    let words = read.primitive.by_words();
+    let [Val::List(given)] = args else {
+        return Err(format!(
+            "a {} is given one list of {words}s",
+            read.primitive.name()
+        ));
     };
-    keys.iter()
-        .map(|key| match (read.by.as_slice(), key) {
-            ([_], key) => Ok(vec![atom(key)?]),
+    given
+        .iter()
+        .map(|value| match (read.by.as_slice(), value) {
+            ([_], value) => Ok(vec![atom(value)?]),
             (columns, Val::Record(fields)) if fields.len() == columns.len() => columns
                 .iter()
                 .zip(fields)
@@ -404,13 +573,13 @@ fn asked_keys(read: &Read, args: &[Val]) -> Result<BTreeSet<Vec<Atom>>, String> 
                         atom(value)
                     } else {
                         Err(format!(
-                            "a key's `{name}` where `{}` is declared",
+                            "a {words}'s `{name}` where `{}` is declared",
                             column.wit
                         ))
                     }
                 })
                 .collect(),
-            (_, other) => Err(format!("{} where a key is a record", val_named(other))),
+            (_, other) => Err(format!("{} where a {words} is a record", val_named(other))),
         })
         .collect()
 }
@@ -471,47 +640,75 @@ mod tests {
         }
     }
 
-    /// Items, keyed by `list` then `id`, ordered by `added`; its `count` at
-    /// least 1 and its `note` optional. A get-many's answers come by its key's
-    /// fields, then `added`, then the key.
-    fn items(many: bool) -> Read {
-        let row = vec![
+    fn int(at_least: Option<i64>) -> Stored {
+        Stored::Int {
+            at_least,
+            at_most: None,
+        }
+    }
+
+    /// Items' row: keyed by `list` then `id`, ordered by `added`; its `count`
+    /// at least 1, its `note` optional.
+    fn row() -> Vec<Column> {
+        vec![
             Column::new("list", string()),
             Column::new("id", string()),
-            Column::new(
-                "count",
-                Stored::Int {
-                    at_least: Some(1),
-                    at_most: None,
-                },
-            ),
-            Column::new(
-                "added",
-                Stored::Int {
-                    at_least: None,
-                    at_most: None,
-                },
-            ),
+            Column::new("count", int(Some(1))),
+            Column::new("added", int(None)),
             Column::new("note", Stored::Option(Box::new(string()))),
-        ];
+        ]
+    }
+
+    /// Items' read bound to `primitive` by `by`, its rows in D1's order.
+    fn items(primitive: Primitive, by: &[&str]) -> Read {
+        let row = row();
+        let by: Vec<Column> = by
+            .iter()
+            .map(|name| row.iter().find(|c| c.name == *name).unwrap().clone())
+            .collect();
+        let grouped: Vec<String> = if primitive.many() {
+            by.iter().map(|c| c.name.clone()).collect()
+        } else {
+            Vec::new()
+        };
+        let mut sorted_by: Vec<String> = Vec::new();
+        for field in
+            grouped
+                .into_iter()
+                .chain(["added".to_string(), "list".to_string(), "id".to_string()])
+        {
+            if !sorted_by.contains(&field) {
+                sorted_by.push(field);
+            }
+        }
         Read {
-            import: "pw:tables/items#get-many".into(),
+            import: format!("pw:tables/items#{}", primitive.name()),
             table: "Items".into(),
-            many,
-            by: row[..2].to_vec(),
+            primitive,
+            by,
             key: vec!["list".into(), "id".into()],
             order: Some("added".into()),
-            sorted_by: vec!["list".into(), "id".into(), "added".into()],
+            sorted_by: if primitive == Primitive::Get {
+                Vec::new()
+            } else {
+                sorted_by
+            },
+            unique: false,
+            bounded: None,
             row,
         }
     }
 
     fn item(list: &str, id: &str, count: i64, note: Option<&str>) -> Val {
+        added(list, id, count, 0, note)
+    }
+
+    fn added(list: &str, id: &str, count: i64, at: i64, note: Option<&str>) -> Val {
         Val::Record(vec![
             ("list".into(), Val::String(list.into())),
             ("id".into(), Val::String(id.into())),
             ("count".into(), Val::S64(count)),
-            ("added".into(), Val::S64(0)),
+            ("added".into(), Val::S64(at)),
             (
                 "note".into(),
                 Val::Option(note.map(|n| Box::new(Val::String(n.into())))),
@@ -526,9 +723,13 @@ mod tests {
         ])
     }
 
+    fn read(read: Read) -> Access {
+        Access::Read(read)
+    }
+
     #[test]
     fn a_composite_get_many_answers_asked_keys_once_in_order() {
-        let read = items(true);
+        let read = read(items(Primitive::GetMany, &["list", "id"]));
         let asked = [Val::List(vec![key("b", "1"), key("a", "2"), key("a", "1")])];
         let rows = |rows: Vec<Val>| [Val::List(rows)];
         assert_eq!(
@@ -593,7 +794,7 @@ mod tests {
 
     #[test]
     fn a_composite_get_answers_its_own_key_or_none() {
-        let read = items(false);
+        let read = read(items(Primitive::Get, &["list", "id"]));
         let asked = [Val::String("a".into()), Val::String("1".into())];
         let one = |row: Val| [Val::Option(Some(Box::new(row)))];
         assert_eq!(check_answer(&read, &asked, &[Val::Option(None)]), Ok(()));
@@ -610,6 +811,179 @@ mod tests {
         assert!(check_answer(&read, &asked, &[Val::List(vec![])]).is_err());
         assert!(check_answer(&read, &asked, &[]).is_err());
         assert!(check_answer(&read, &asked, &[Val::Option(None), Val::Option(None)]).is_err());
+    }
+
+    /// ADR-0386: a prefix's rows are of the prefix asked, each once, by the
+    /// table's order then its key, not by the key alone.
+    #[test]
+    fn a_prefix_answers_its_own_prefix_once_by_the_tables_order() {
+        let prefix = read(items(Primitive::Prefix, &["list"]));
+        let asked = [Val::String("a".into())];
+        let rows = |rows: Vec<Val>| [Val::List(rows)];
+        // By `added`, then the key: "2" before "1".
+        let ok = rows(vec![
+            added("a", "2", 1, 1, None),
+            added("a", "1", 1, 5, None),
+        ]);
+        assert_eq!(check_answer(&prefix, &asked, &ok), Ok(()));
+        assert_eq!(check_answer(&prefix, &asked, &rows(vec![])), Ok(()));
+        for (answer, words) in [
+            (
+                vec![added("a", "1", 1, 5, None), added("a", "2", 1, 1, None)],
+                "out of tables.json's order",
+            ),
+            (
+                vec![added("b", "1", 1, 0, None)],
+                "(\"b\") was not asked for",
+            ),
+            (
+                vec![added("a", "1", 1, 0, None), added("a", "1", 1, 0, None)],
+                "(\"a\", \"1\") was answered before",
+            ),
+        ] {
+            let refused = check_answer(&prefix, &asked, &rows(answer)).expect_err(words);
+            assert!(refused.contains(words), "{words}: {refused}");
+        }
+        // Its set form: rows of the prefixes asked, grouped by them.
+        let many = read(items(Primitive::PrefixMany, &["list"]));
+        let asked = [Val::List(vec![
+            Val::String("b".into()),
+            Val::String("a".into()),
+        ])];
+        let grouped = rows(vec![
+            added("a", "1", 1, 5, None),
+            added("b", "2", 1, 1, None),
+        ]);
+        assert_eq!(check_answer(&many, &asked, &grouped), Ok(()));
+        let ungrouped = rows(vec![
+            added("b", "2", 1, 1, None),
+            added("a", "1", 1, 5, None),
+        ]);
+        assert!(
+            check_answer(&many, &asked, &ungrouped)
+                .expect_err("grouped by the prefix first")
+                .contains("out of tables.json's order")
+        );
+    }
+
+    /// ADR-0386: an index's rows hold the value asked; a unique index's read
+    /// answers none or the row of that value; `all` answers no more rows than
+    /// its table's bound.
+    #[test]
+    fn index_and_all_answers_hold_their_values_and_bound() {
+        let mut done = items(Primitive::Index, &["count"]);
+        let asked = [Val::S64(2)];
+        let rows = |rows: Vec<Val>| [Val::List(rows)];
+        assert_eq!(
+            check_answer(
+                &read(done.clone()),
+                &asked,
+                &rows(vec![item("a", "1", 2, None)])
+            ),
+            Ok(())
+        );
+        let refused = check_answer(
+            &read(done.clone()),
+            &asked,
+            &rows(vec![item("a", "1", 3, None)]),
+        )
+        .expect_err("another value's row");
+        assert!(refused.contains("(3) was not asked for"), "{refused}");
+        done.unique = true;
+        done.sorted_by = Vec::new();
+        let one = |row: Val| [Val::Option(Some(Box::new(row)))];
+        assert_eq!(
+            check_answer(&read(done.clone()), &asked, &one(item("a", "1", 2, None))),
+            Ok(())
+        );
+        assert!(
+            check_answer(&read(done.clone()), &asked, &one(item("a", "1", 3, None)))
+                .expect_err("another value's row")
+                .contains("the row of (3) where (2) was asked for")
+        );
+        let mut all = items(Primitive::All, &[]);
+        all.bounded = Some(2);
+        let two = rows(vec![item("a", "1", 1, None), item("a", "2", 1, None)]);
+        assert_eq!(check_answer(&read(all.clone()), &[], &two), Ok(()));
+        let three = rows(vec![
+            item("a", "1", 1, None),
+            item("a", "2", 1, None),
+            item("a", "3", 1, None),
+        ]);
+        let refused = check_answer(&read(all), &[], &three).expect_err("past the bound");
+        assert!(
+            refused.contains("3 rows, where Items is bounded to 2"),
+            "{refused}"
+        );
+    }
+
+    fn write(primitive: Primitive, unique: &[&[&str]]) -> Access {
+        let row = row();
+        let by = match primitive {
+            Primitive::Delete => row[..2].to_vec(),
+            Primitive::DeletePrefix => row[..1].to_vec(),
+            _ => Vec::new(),
+        };
+        Access::Write(Write {
+            import: format!("pw:tables/items#{}", primitive.name()),
+            table: "Items".into(),
+            primitive,
+            by,
+            key: vec!["list".into(), "id".into()],
+            unique: unique
+                .iter()
+                .map(|fields| fields.iter().map(|f| f.to_string()).collect())
+                .collect(),
+            row,
+        })
+    }
+
+    /// ADR-0386: an insert is refused only by the row of its key or of a
+    /// unique value it would hold; a put only by another key's row of a
+    /// unique value; a write that cannot be refused answers nothing.
+    #[test]
+    fn a_writes_refusal_is_the_row_that_holds_what_it_would_write() {
+        let refused = |held: Val| [Val::Result(Err(Some(Box::new(held))))];
+        let written = [Val::Result(Ok(None))];
+        let given = [item("a", "1", 2, None)];
+        let insert = write(Primitive::Insert, &[&["count"]]);
+        assert_eq!(check_answer(&insert, &given, &written), Ok(()));
+        // Its key's row, and another key's row of its unique count.
+        assert_eq!(
+            check_answer(&insert, &given, &refused(item("a", "1", 7, None))),
+            Ok(())
+        );
+        assert_eq!(
+            check_answer(&insert, &given, &refused(item("b", "9", 2, None))),
+            Ok(())
+        );
+        let other = check_answer(&insert, &given, &refused(item("b", "9", 3, None)))
+            .expect_err("a row that holds nothing it would");
+        assert!(other.contains("holds nothing the insert"), "{other}");
+        assert!(check_answer(&insert, &given, &[]).is_err());
+        assert!(check_answer(&insert, &given, &[Val::Option(None)]).is_err());
+        assert!(
+            check_answer(&insert, &given, &refused(Val::S64(1)))
+                .expect_err("no row")
+                .contains("s64 where a row is a record")
+        );
+        let put = write(Primitive::Put, &[&["count"]]);
+        assert_eq!(check_answer(&put, &given, &written), Ok(()));
+        assert_eq!(
+            check_answer(&put, &given, &refused(item("b", "9", 2, None))),
+            Ok(())
+        );
+        // A put replaces its key's row: that row refuses nothing.
+        assert!(check_answer(&put, &given, &refused(item("a", "1", 2, None))).is_err());
+        // Without a unique index, a put and the deletes answer nothing.
+        for primitive in [Primitive::Put, Primitive::Delete, Primitive::DeletePrefix] {
+            let plain = write(primitive, &[]);
+            assert_eq!(check_answer(&plain, &given, &[]), Ok(()));
+            assert!(
+                check_answer(&plain, &given, &written).is_err(),
+                "{primitive:?}"
+            );
+        }
     }
 
     #[test]
