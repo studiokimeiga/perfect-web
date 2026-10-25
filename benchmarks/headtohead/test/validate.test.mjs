@@ -158,4 +158,6 @@ test("a warm run that downloaded its main script again is refused where its host
   assert.match(checkWarm([cold, warmAgain], { caches: true }).join("\n"), /was downloaded again/);
   assert.deepEqual(checkWarm([cold, warmCached], { caches: true }), []);
   assert.deepEqual(checkWarm([cold, warmAgain], { caches: false }), []);
+  // Firefox's and WebKit's sizes cannot tell a cache's answer: not held there.
+  assert.deepEqual(checkWarm([cold, { ...warmAgain, engine: "firefox" }], { caches: true }), []);
 });

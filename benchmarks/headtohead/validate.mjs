@@ -194,17 +194,23 @@ export function checkInteractive(runs, steps) {
   return problems;
 }
 
-/** A warm run of a stack whose host lets a cache keep its files: its largest
- * cold script must not have been downloaded again. */
+/**
+ * A warm run of a stack whose host lets a cache keep its files: its largest
+ * cold script must not have been downloaded again. Held in Chromium alone,
+ * where the DevTools protocol says which response a cache answered: in
+ * Firefox and WebKit, Playwright reports a cached response's size as if it
+ * had been received (a probe of 2026-10-25: the server saw no request for
+ * an immutable file the engines' sizes reported in full).
+ */
 export function checkWarm(runs, expect) {
   const problems = [];
   if (!expect.caches) return problems;
-  const cold = runs.find((r) => r.condition === "cold" && !r.network);
+  const cold = runs.find((r) => r.condition === "cold" && !r.network && r.engine === "chromium");
   if (!cold) return problems;
   const scripts = (cold.requests ?? []).filter((q) => q.phase === "load" && /javascript/.test(q.type ?? ""));
   const biggest = scripts.sort((a, b) => (b.raw ?? 0) - (a.raw ?? 0))[0];
   if (!biggest) return problems;
-  for (const r of runs.filter((x) => x.condition === "warm" && !x.network)) {
+  for (const r of runs.filter((x) => x.condition === "warm" && !x.network && x.engine === "chromium")) {
     const again = (r.requests ?? []).find((q) => q.url === biggest.url && q.phase === "load");
     if (again && again.status === 200 && (again.receivedBody ?? 0) >= 0.5 * (biggest.receivedBody ?? biggest.raw)) {
       problems.push(`warm: ${cellKey(r)} run ${r.i}: ${new URL(biggest.url).pathname} was downloaded again (${again.receivedBody} bytes)`);

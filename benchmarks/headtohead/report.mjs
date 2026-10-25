@@ -238,7 +238,7 @@ function sectionRows({ behaviour, loc, feature, museum }, row, byValue, byMore) 
     const v = (f, show) => Object.entries(totals).map(([s, t]) => [STACK_LABEL[s], f(t), show(t)]);
     row("store", "the twelve changes: lines changed in all", v((t) => t.lines, (t) => String(t.lines)), byValue);
     row("store", "the twelve changes: files touched in all", v((t) => t.files, (t) => String(t.files)), byValue);
-    row("store", "the twelve changes: languages touched", v((t) => t.languages.size, (t) => [...t.languages].sort().join("+")), byValue);
+    row("store", "the twelve changes: languages touched", v((t) => t.languages.size, (t) => `${t.languages.size} (${[...t.languages].sort().join("+")})`), byValue);
     if (feature.rows.some((r) => Object.values(r.stacks).some((c) => c.unsafe))) {
       row("store", "the twelve changes: unsafe versions the stack's own checker refuses (more is better)", v((t) => t.refused, (t) => `${t.refused}/${t.n}`), byMore);
     }
