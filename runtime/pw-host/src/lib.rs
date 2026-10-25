@@ -906,6 +906,9 @@ pub mod engine {
     /// Compose an admitted table read's adapter closure into one host callback.
     pub mod table_read_host;
 
+    /// A table import's type, held to tables.json where it is linked.
+    pub mod table_link;
+
     /// **The configuration of every engine the host makes** (ADR-0244): the
     /// component model, and none of the proposals Pleris's components do not
     /// use, so a component that uses one is refused when it loads.
@@ -1199,8 +1202,10 @@ pub mod engine {
 
     /// **[`call_within`], for a component that reads a program's tables**
     /// (ADR-0338 D2): every `pw:tables/…` import a grant would link is linked
-    /// only as `tables`' gate admits it ([`crate::tables::gate_links`]).
-    /// [`call_within`] and every other call links no table import.
+    /// only as `tables`' gate admits it ([`crate::tables::gate_links`]), and
+    /// only typed as tables.json declares its read
+    /// ([`table_link::check_import`]). [`call_within`] and every other call
+    /// links no table import.
     #[allow(clippy::too_many_arguments)]
     pub fn call_with_tables(
         bytes: &[u8],
@@ -2660,7 +2665,7 @@ pub mod engine {
         let supplied = crate::linkable(contract, granted);
         // A table's import links through the table gate or not at all
         // (ADR-0338 D2; the integrator's ruling 2 of 2026-10-25).
-        crate::tables::gate_links(contract, granted, tables)?;
+        let table_reads = crate::tables::gate_links(contract, granted, tables)?;
         let functions = imported_functions(&engine, &component);
         let wanted: BTreeSet<&str> = supplied.iter().map(String::as_str).collect();
 
@@ -2685,6 +2690,14 @@ pub mod engine {
                         "`{key}` is granted and the host implements nothing for it"
                     ));
                 };
+                // A table's read is linked only as tables.json types it, and
+                // refused here, before anything is instantiated (the
+                // integrator's ruling 4 of 2026-10-25).
+                if let Some(read) = table_reads.get(&key) {
+                    let ty = imported_func(&engine, &component, interface, func)
+                        .ok_or_else(|| format!("`{key}` is no function the component imports"))?;
+                    table_link::check_import(read, &ty)?;
+                }
                 let named = key.clone();
                 // What its answer must hold (ADR-0179), as the contract states.
                 let bounded: Vec<crate::Bounded> = contract
@@ -2781,6 +2794,25 @@ pub mod engine {
             call: instantiated.elapsed(),
         };
         Ok((results, usage))
+    }
+
+    /// One imported function's type, as the component imports it.
+    fn imported_func(
+        engine: &wasmtime::Engine,
+        component: &wasmtime::component::Component,
+        interface: &str,
+        func: &str,
+    ) -> Option<wasmtime::component::types::ComponentFunc> {
+        let ty = component.component_type();
+        let (_, item) = ty.imports(engine).find(|(name, _)| *name == interface)?;
+        let ComponentItem::ComponentInstance(instance) = item.ty else {
+            return None;
+        };
+        let (_, export) = instance.exports(engine).find(|(name, _)| *name == func)?;
+        match export.ty {
+            ComponentItem::ComponentFunc(ty) => Some(ty),
+            _ => None,
+        }
     }
 
     /// Each imported interface's FUNCTION exports, read from the component.

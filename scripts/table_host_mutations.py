@@ -14,7 +14,10 @@ Each mutant undoes one piece and must be killed by a test:
    manifest declares, the host's own import, its table's capability,
    granted; the tables' namespace however it is spelt;
 3. the gate the only way a table import links (`gate_links`, the engine's
-   calls and instantiation).
+   calls and instantiation);
+4. a table import typed as tables.json declares its read, where it is
+   linked (`engine::table_link::check_import`): a get's key values and row,
+   a get-many's keys and rows, a row's fields counted, named and typed.
 
 Run whole from the repository root (`just e14-table-host`). Every source is
 restored in finally; the unmutated baseline must pass before any mutant
@@ -30,6 +33,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 TABLES = ROOT / "runtime/pw-host/src/tables.rs"
 HOST = ROOT / "runtime/pw-host/src/lib.rs"
+LINK = ROOT / "runtime/pw-host/src/engine/table_link.rs"
 
 MUTANTS = [
     # 1. the manifest, whole
@@ -86,8 +90,8 @@ MUTANTS = [
      "    false\n"),
     # 3. the only way
     ("a call links table imports without the gate", HOST,
-     "        crate::tables::gate_links(contract, granted, tables)?;\n",
-     ""),
+     "        let table_reads = crate::tables::gate_links(contract, granted, tables)?;\n",
+     "        let table_reads = std::collections::BTreeMap::<String, crate::tables::Read>::new();\n"),
     ("instantiation links table imports with stubs", HOST,
      "        crate::tables::gate_links(contract, granted, None)?;\n",
      ""),
@@ -97,6 +101,35 @@ MUTANTS = [
     ("no import is a table's", TABLES,
      "    is_table_interface(key.split('#').next().unwrap_or(key))\n",
      "    is_table_interface(key.split('#').next().unwrap_or(key)) && false\n"),
+    # 4. a table import's type, where it is linked
+    ("a table import links whatever its type", HOST,
+     "                    table_link::check_import(read, &ty)?;\n",
+     "                    let _ = (read, ty);\n"),
+    ("a get-many's key type goes unchecked", LINK,
+     "        key(read, &keys.ty()).map_err(refused)?;\n",
+     "        let _ = key(read, &keys.ty());\n"),
+    ("a get-many's rows go unchecked", LINK,
+     "        record(&read.row, &rows.ty()).map_err(refused)?;\n",
+     "        let _ = record(&read.row, &rows.ty());\n"),
+    ("a get's row goes unchecked", LINK,
+     "        record(&read.row, &row.ty()).map_err(refused)?;\n",
+     "        let _ = record(&read.row, &row.ty());\n"),
+    ("a get takes any number of key values", LINK,
+     "        if params.len() != read.by.len() {\n",
+     "        if false && params.len() != read.by.len() {\n"),
+    ("a get's key values go untyped", LINK,
+     "            stored(&column.stored, ty)\n"
+     "                .map_err(|why| refused(format!(\"its key's `{}`: {why}\", column.name)))?;\n",
+     "            let _ = (stored(&column.stored, ty), column);\n"),
+    ("a row may hold more fields than tables.json", LINK,
+     "    if fields.len() != columns.len() {\n",
+     "    if false && fields.len() != columns.len() {\n"),
+    ("a row's fields go by any names", LINK,
+     "        if field.name != column.wit {\n",
+     "        if false && field.name != column.wit {\n"),
+    ("a row's fields go untyped", LINK,
+     "        stored(&column.stored, &field.ty).map_err(|why| format!(\"`{}`: {why}\", column.name))?;\n",
+     "        let _ = stored(&column.stored, &field.ty);\n"),
 ]
 
 TESTS = [

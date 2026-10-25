@@ -209,6 +209,96 @@ fn no_other_call_or_instantiation_links_a_table_import() {
     assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 0);
 }
 
+/// The integrator's ruling 4 of 2026-10-25: the engine links a function
+/// with the type the component declares, so a table import typed otherwise
+/// than tables.json declares its read linked, and was called. It is refused
+/// where it is linked now, before the component is instantiated, and the
+/// callback never runs.
+#[test]
+fn a_table_import_typed_otherwise_than_tables_json_is_refused_when_linking() {
+    let program = program();
+    fn lists(json: &mut serde_json::Value) -> &mut serde_json::Value {
+        json["tables"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|table| table["name"] == "Lists")
+            .unwrap()
+    }
+    type Edit = fn(&mut serde_json::Value);
+    let rows: [(&str, Edit); 3] = [
+        ("`added`: s64 where tables.json declares a String", |json| {
+            lists(json)["fields"][3]["stored"] = json!({"string": {}})
+        }),
+        (
+            "a record of 4 field(s) where tables.json declares 5",
+            |json| {
+                let secret = json!({"name": "secret", "type": "String", "stored": {"string": {}}});
+                lists(json)["fields"].as_array_mut().unwrap().push(secret);
+            },
+        ),
+        ("field `name` where tables.json declares `title`", |json| {
+            lists(json)["fields"][1]["name"] = json!("title")
+        }),
+    ];
+    let key: (&str, Edit) = (
+        "its key's `id`: string where tables.json declares an Int",
+        |json| lists(json)["fields"][0]["stored"] = json!({"int": {}}),
+    );
+    for (id, args) in [
+        (BY_ID, vec![Val::String("list-a".into())]),
+        (BY_IDS, vec![Val::List(vec![Val::String("list-a".into())])]),
+    ] {
+        let reader = program.reader(id);
+        let granted = reader.admitted(&reader.contract, READ_LISTS);
+        let import = reader.imports[0].clone();
+        let answer = if id == BY_ID {
+            Val::Option(Some(Box::new(todo_list("list-a", "List A", 10))))
+        } else {
+            Val::List(vec![todo_list("list-a", "List A", 10)])
+        };
+        let (callback, calls) = answering(vec![answer.clone()]);
+        let host = BTreeMap::from([(import, callback)]);
+        for (words, edit) in rows.iter().chain([&key]) {
+            let manifest = manifest_where(&program.tables, *edit).expect("a whole manifest");
+            let refused = reader
+                .call(&granted, &host, &manifest, &args)
+                .expect_err(&format!("{id} refused when linked: {words}"));
+            assert!(
+                refused.contains("typed otherwise than tables.json") && refused.contains(words),
+                "{id}: {words}: {refused}"
+            );
+        }
+        // A key of two fields in tables.json, where the reader was built
+        // for one: a get takes one value, a get-many's keys are not records.
+        let manifest = manifest_where(&program.tables, |json| {
+            lists(json)["key"] = json!(["id", "slug"]);
+            for function in lists(json)["functions"].as_array_mut().unwrap() {
+                if function["name"] == "get" || function["name"] == "get_many" {
+                    function["by"] = json!(["id", "slug"]);
+                }
+            }
+        })
+        .expect("a whole manifest");
+        let words = if id == BY_ID {
+            "it takes (string), not the key's 2 field(s)"
+        } else {
+            "its key: string where a record is declared"
+        };
+        let refused = reader
+            .call(&granted, &host, &manifest, &args)
+            .expect_err(&format!("{id} refused when linked: {words}"));
+        assert!(refused.contains(words), "{id}: {refused}");
+        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 0, "{id}");
+        // The neighbour: typed as its tables.json declares, it links and runs.
+        assert_eq!(
+            reader.call(&granted, &host, &program.manifest, &args),
+            Ok(vec![answer]),
+            "{id}"
+        );
+    }
+}
+
 /// The integrator's ruling 3 of 2026-10-25: PR #29's gate held a function's
 /// import to its table's interface, and no test failed without that. A
 /// manifest whose `Lists.get` is imported at `Items`' interface is refused
