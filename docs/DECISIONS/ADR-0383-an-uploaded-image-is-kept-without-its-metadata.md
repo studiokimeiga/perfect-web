@@ -566,3 +566,14 @@ and `compress_to_vec_zlib`, in the crate's source in cargo's registry).
   that `e14-upload-metadata` and other recipes read, so the pull
   request's own verify, at its head, runs again each recipe the numbering
   reaches (ADR-0281).
+- **master moved after the numbering**: PR #53 (`4345726a`, D2's read
+  path) merged at 18:37Z and was merged here (`c488d981`) without a
+  conflict. It also put master's `Cargo.lock` in cargo's order, the order
+  `c71acb8b` gives it, so the lockfile of this ADR's Found is in order on
+  master since then; the `--locked` follow-up stands (NEXT).
+- **Fallow's audit** (the pull request's check, gate new-only) refused
+  three new functions of `e2e/upload-metadata.spec.mjs`, each of
+  cyclomatic complexity 5, so a CRAP score of 30 at its threshold of 30;
+  each was split, its behaviour unchanged (`fffe9e38`), and the spec
+  passes 12 of 12 in the three engines as before. `just preflight` does
+  not run Fallow (NEXT).
