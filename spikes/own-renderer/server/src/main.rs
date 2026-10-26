@@ -15386,6 +15386,7 @@ public query Store(",
     mod scheduled_probe;
     #[cfg(feature = "scheduler-postgres-tests")]
     mod scheduled_replay;
+    mod session_revocation;
     mod store_scheduled;
     // TRACK SEAM (reviews): a store's ratings and reviews, in memory and on
     // PostgreSQL where a database is named.

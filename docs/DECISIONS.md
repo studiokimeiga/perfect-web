@@ -3278,3 +3278,7 @@ Outbound HTTPS follows an allowed origin, with bounded DNS, TLS, framing and dea
 [ADR-0388](DECISIONS/ADR-0388-a-scheduled-generation-is-consumed-with-its-commit.md):
 A scheduled generation is consumed with its authoritative commit (implementation and gates pending).
 - An opaque local queue binding and transactional exact-generation/revision fence protect business rows, receipt and events; terminal no-write/error outcomes, stale retries and legacy ambiguity are explicit. Browser receipt retention remains separate; no external exactly-once or generic D2 integration claim.
+
+[ADR-0389](DECISIONS/ADR-0389-session-authority-is-checked-at-delivery-and-commit.md):
+Session authority is checked at delivery and commit (proposed; reproduced current-source privacy/command gaps, repair pending).
+- Separate current inspection from activity, bind each document/command to its reader generation, and fence command publication with revocation; notification/cache cleanup alone provides no authority.
