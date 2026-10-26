@@ -996,3 +996,93 @@ fn on_postgres_two_hosts_commit_a_run_once() {
     assert!(s.cart_lines("a").is_empty(), "nothing written");
     assert_eq!(runs_kept(&layer), 0, "answered, and removed");
 }
+
+/// A compiled Clock command commits before cleanup fails. Fresh hosts at
+/// 23/25 logical hours must not add the non-idempotent cart line again.
+/// The trigger injects only cleanup failure, in this test's disposable schema.
+#[test]
+fn on_postgres_a_pending_schedule_is_not_repeated_after_receipt_expiry() {
+    let url = database().expect("this reproduction requires PostgreSQL");
+    let layer = Arc::new(StorePg::for_test(&url).expect("the isolated layer"));
+    let (dir, out) =
+        built_from_patches_in("examples", super::store_scheduled::with_scheduling, &[]);
+    let host = || {
+        let fresh = Arc::new(
+            StorePg::open_with(
+                &url,
+                layer.schema(),
+                Isolation::Serializable,
+                crate::feed_pg::RenderSeats::default(),
+            )
+            .expect("a fresh host's layer"),
+        );
+        Server::from_build_layers(out.clone(), out.clone(), None, Some(fresh))
+            .expect("a fresh host from the compiled program")
+    };
+    let a = host();
+    assert!(super::store_scheduled::in_five(&a, "espresso", false, "replay-schedule").committed);
+    layer
+        .sql()
+        .batch_execute(
+            "CREATE FUNCTION refuse_schedule_cleanup() RETURNS trigger LANGUAGE plpgsql AS $$
+         BEGIN RAISE EXCEPTION 'isolated cleanup fault after action commit'; END $$;
+         CREATE TRIGGER refuse_schedule_cleanup BEFORE DELETE ON schedules
+         FOR EACH ROW EXECUTE FUNCTION refuse_schedule_cleanup();",
+        )
+        .expect("the cleanup fault installed in the disposable schema");
+    const HOUR: u64 = 60 * 60 * 1000;
+    const FIVE: u64 = 5 * 60 * 1000;
+    let snapshot = |label: &str, s: &Server| {
+        let row = layer
+            .sql()
+            .query_one(
+                "SELECT (SELECT count(*) FROM schedules),
+                    (SELECT count(*) FROM interactions WHERE key LIKE '%schedule-%'),
+                    (SELECT count(*) FROM outbox WHERE kind = 'event')",
+                &[],
+            )
+            .expect("the committed records inspected");
+        let pending: i64 = row.get(0);
+        let receipts: i64 = row.get(1);
+        let events: i64 = row.get(2);
+        let lines = s.cart_lines("a");
+        println!(
+            "REPLAY_SNAPSHOT {label}: lines={lines:?}; schedules={pending}; job_receipts={receipts}; events={events}"
+        );
+        assert_eq!(
+            pending, 1,
+            "cleanup fault leaves the original scheduling pending"
+        );
+        assert_eq!(receipts, 1, "the action's receipt exists");
+        (lines, events)
+    };
+    a.query_clock.0.advance(FIVE);
+    assert_eq!(
+        a.run_due().0,
+        1,
+        "the real scheduler dispatches the compiled Clock command"
+    );
+    let first = snapshot("committed-before-cleanup", &a);
+    assert_eq!(first.0, [("espresso".to_string(), 1)]);
+    assert_eq!(first.1, 1);
+    drop(a);
+    let b = host();
+    b.query_clock.0.advance(FIVE + 23 * HOUR);
+    assert_eq!(b.run_due().0, 1);
+    assert_eq!(
+        snapshot("fresh-host-at-23h", &b),
+        first,
+        "within-window control"
+    );
+    drop(b);
+    let c = host();
+    c.query_clock.0.advance(FIVE + 25 * HOUR);
+    assert_eq!(c.run_due().0, 1);
+    let delayed = snapshot("fresh-host-at-25h", &c);
+    assert_eq!(
+        delayed, first,
+        "a pending durable job must not outlive its completion protection"
+    );
+    drop(c);
+    drop(dir);
+}
