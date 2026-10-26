@@ -7,8 +7,10 @@
 //! whatever its XMP, IPTC or a comment named. Every upload is now rewritten
 //! by the host before it is kept: its format's container walked to its end,
 //! what decoding, colour and a photo's turn need copied whole and in its
-//! order, and the rest dropped. A rewriter, not a decoder: no pixel is read
-//! or changed. A file whose container does not parse is refused whole, so
+//! order, and the rest dropped. Pixel color values are never interpreted
+//! or changed. PNG filtered bytes are expanded only to validate their bounded
+//! stream extent; pixels are never converted or re-encoded. A file whose
+//! container does not parse is refused whole, so
 //! nothing half-rewritten is ever kept; what is kept is rewritten to itself;
 //! and it is what is served.
 //!
@@ -55,7 +57,18 @@ pub fn strip(bytes: &[u8]) -> Result<Vec<u8>, Unreadable> {
         Kind::Webp => webp(bytes),
         Kind::Gif => gif(bytes),
     };
-    kept.map_err(|why| Unreadable::Malformed(kind, why))
+    kept.map_err(|why| {
+        if kind == Kind::Png
+            && matches!(
+                why,
+                super::png_state::INTERLEAVED | super::png_state::BUDGET
+            )
+        {
+            Unreadable::Unsupported(kind, why)
+        } else {
+            Unreadable::Malformed(kind, why)
+        }
+    })
 }
 
 // ---- JPEG ----
@@ -350,6 +363,7 @@ fn png(b: &[u8]) -> Result<Vec<u8>, &'static str> {
     let colour = *b.get(25).ok_or(SHORT)?;
     let mut palette = 0;
     let mut at = 8;
+    let mut structure = None;
     loop {
         let length = be32(b, at).ok_or(SHORT)? as usize;
         let kind = b.get(at + 4..at + 8).ok_or(SHORT)?;
@@ -361,6 +375,16 @@ fn png(b: &[u8]) -> Result<Vec<u8>, &'static str> {
         }
         let end = (at + 12).checked_add(length).ok_or(SHORT)?;
         let chunk = b.get(at..end).ok_or(SHORT)?;
+        let data = &chunk[8..8 + length];
+        if at == 8 {
+            if kind != b"IHDR" {
+                return Err("a PNG does not start with IHDR");
+            }
+            structure = Some(super::png_state::State::new(data)?);
+        } else if kind == b"IHDR" {
+            return Err("a PNG has another IHDR");
+        }
+        structure.as_mut().ok_or(SHORT)?.accept(kind, data)?;
         if PNG_KEPT.iter().any(|k| &k[..] == kind) {
             if kind == b"PLTE" {
                 palette = length / 3;
@@ -1337,6 +1361,18 @@ pub(crate) mod tests {
     /// The colour, transparency and animation chunks a PNG keeps, before its
     /// IDAT and after it, `iccp` its iCCP chunk.
     fn png_kept(iccp: Vec<u8>) -> (Vec<u8>, Vec<u8>) {
+        let control = |sequence: u32| {
+            [
+                sequence.to_be_bytes().to_vec(),
+                6u32.to_be_bytes().to_vec(),
+                4u32.to_be_bytes().to_vec(),
+                vec![0; 8],
+                vec![0, 1, 0, 10, 0, 0],
+            ]
+            .concat()
+        };
+        let idat = png_parts().1;
+        let frame = [&2u32.to_be_bytes()[..], &idat[8..idat.len() - 4]].concat();
         let before = [
             png_chunk(b"gAMA", &[0, 0, 0xB1, 0x8F]),
             png_chunk(b"cHRM", &[7; 32]),
@@ -1348,12 +1384,9 @@ pub(crate) mod tests {
             png_chunk(b"PLTE", &[255, 0, 0, 0, 255, 0]),
             png_chunk(b"tRNS", &[0, 1, 0, 2, 0, 3]),
             png_chunk(b"acTL", &[0, 0, 0, 2, 0, 0, 0, 0]),
-            png_chunk(b"fcTL", &[0; 26]),
+            png_chunk(b"fcTL", &control(0)),
         ];
-        let after = [
-            png_chunk(b"fcTL", &[1; 26]),
-            png_chunk(b"fdAT", &[0, 0, 0, 2, 9, 9]),
-        ];
+        let after = [png_chunk(b"fcTL", &control(1)), png_chunk(b"fdAT", &frame)];
         (before.concat(), after.concat())
     }
 
@@ -1445,14 +1478,18 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn a_pngs_icc_profile_is_read_from_its_first_iccp() {
+    fn a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused() {
         let (head, idat, iend) = png_parts();
         let png = |chunks: &[Vec<u8>]| [&head[..], &chunks.concat(), &idat, &iend].concat();
         let planted = icc::tests::planted(4);
         let kept = iccp_chunk(icc::NEUTRAL, &icc::tests::kept_profile(&planted), 6);
         let second = iccp_chunk(b"second", &icc::tests::planted(2), 1);
+        assert!(
+            strip(&png(&[iccp_chunk(NAME, &planted, 1), second])).is_err(),
+            "a duplicate iCCP is ambiguous and refused"
+        );
         assert_eq!(
-            strip(&png(&[iccp_chunk(NAME, &planted, 1), second])),
+            strip(&png(&[iccp_chunk(NAME, &planted, 1)])),
             Ok(png(std::slice::from_ref(&kept)))
         );
         let crc = be32(&kept, kept.len() - 4).unwrap();

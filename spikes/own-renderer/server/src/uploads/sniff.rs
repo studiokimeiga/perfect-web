@@ -84,6 +84,8 @@ pub enum Unreadable {
     Unrecognized,
     /// A signature, and a header that does not hold what its format says.
     Malformed(Kind, &'static str),
+    /// A known image exceeds this rewriter's safe supported subset or work bound.
+    Unsupported(Kind, &'static str),
 }
 
 /// **The kind the bytes' signature names**, and nothing else: the WHATWG

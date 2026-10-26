@@ -763,3 +763,70 @@ browser proof tests, seven negative lifecycle cases and four malformed
 walk reports. It confirmed the declaration-versus-actual-copy limitation
 above; no universal memory-safety or format-compatibility claim is made.
 The earlier failed/cancelled campaigns above remain historical failures.
+
+
+### Research follow-up ruling: PNG stream and structural privacy boundary
+
+Independent research against `62ab20c8` reproduced late/duplicate cHRM,
+unused bytes after the zlib stream inside IDAT, and duplicate ICC tag
+signatures carrying identifiers through rewriting. Additional independently
+reproduced carriers include a later IDAT payload, extra decoded scanline
+bytes, fdAT suffix and orphan fdAT. They are current merge blockers;
+129/129 earlier controls never established their absence.
+
+PNG singleton/placement rules and APNG frame structure are now mandatory
+before keeping bytes. Ambiguous color chunks or invalid frame streams
+refuse the whole image. Every default/frame zlib stream must complete,
+consume every nonempty payload byte and expand to exactly the filtered
+scanline extent derived from its legal dimensions, depth, color and Adam7
+passes. Incremental validation spans split/empty IDAT and fdAT pieces;
+fdAT strips its sequence prefix; the browser-ambiguous interleaving subset
+is refused as ruled below.
+No pixels are transformed or re-encoded. A fixed-size output buffer and
+one monotonic **256 MiB aggregate expanded-work budget** cover default
+image plus all animation frames, reserving each expected extent before
+inflation. This is a new host-wide limit, stricter than some formerly
+accepted upload declarations; it is independent of compressed/staged byte
+accounting and intentionally refuses excessive decompression work.
+
+Duplicate ICC signatures, including identical shared offsets under the
+same signature, drop the entire ambiguous profile. Distinct signatures
+sharing one payload remain valid. This follows PNG third-edition sections
+5.6/11.2.3/11.3.6 and ICC.1:2022 section7.3.1. The repair must earn native
+and real HTTP preview/claim/storage/serve regressions, browser neighbors,
+mutation controls, independent review and fresh exact-head gates. Arbitrary
+compressed-bit/palette/pixel steganography and display fingerprints remain
+outside the claim. No existing stored image is rewritten by this work.
+
+
+The independent Chromium probe found a persistent compatibility boundary:
+with one-byte fdAT pieces and ancillary text interleaved between them,
+removing only text changes transparent pixels to the declared brown frame.
+It persists through 1,000 ms and both detached/attached Images; waiting is
+not a repair. This arrangement is allowed by APNG but currently ambiguous
+across the supported engines. The integrator therefore rules bounded
+refusal whenever ancillary chunks intervene between fdAT pieces of one
+frame, with an explicit unsupported-image diagnostic. Ancillary chunks
+before/after a complete frame remain allowed, as do split and sequence-only
+empty fdAT pieces without such interleaving. Do not replace a failed pixel
+assertion with a canonical-control comparison or claim compatibility for
+the refused subset. This narrows supported APNG compatibility explicitly;
+it does not retain metadata placeholders or relabel retained identifiers.
+
+
+Bounded validation after this ruling passes 117 complete upload/blob tests
+and all 45 browser cases (15 per engine), including preview/final-byte and
+canvas comparisons. The exact external research originals were also
+exercised locally through the native upload/stage/claim/store/serve path;
+modified checked-in ICC fixture derivatives remove original identification
+and copyright as the fixture license requires. The original profile file
+remains unmodified. No derived fixture is represented as the original.
+
+The first 18-control pilot produced 17 valid kills and one surviving
+continuity control: existing cases stopped at an incomplete earlier stream
+or used consecutive chunks. A new completed-IDAT/ancillary/later-IDAT
+carrier exposes that missing case. The legacy second-iCCP mutation now
+survives because the earlier singleton guard refuses the file before that
+branch; it is removed as redundant without crediting a kill. A new
+singleton control covers that structural refusal. The complete revised
+catalog has 146 controls; fresh whole verification remains required.

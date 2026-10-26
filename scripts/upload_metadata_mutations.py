@@ -385,13 +385,6 @@ MUTANTS = [
         "    Some([&data[..nul], &[0, 0], &deflated].concat())\n",
     ),
     (
-        "a PNG's second iCCP is kept",
-        RUST,
-        STRIP,
-        "                profiled = true;\n" + ICCP_KEPT,
-        ICCP_KEPT,
-    ),
-    (
         "a PNG's iCCP is inflated without a bound",
         RUST,
         STRIP,
@@ -791,6 +784,102 @@ MUTANTS = [
     ),
 ]
 
+PNG_STATE = ROOT / "spikes/own-renderer/server/src/uploads/png_state.rs"
+
+# Research-confirmed PNG stream/structure and ICC ambiguity controls.
+MUTANTS += [
+    (
+        'PNG structural validation is omitted', RUST, STRIP,
+        '        structure.as_mut().ok_or(SHORT)?.accept(kind, data)?;\n',
+        '        let _ = &mut structure;\n',
+    ),
+    (
+        'a repeated PNG singleton is accepted', RUST, PNG_STATE,
+        'if singleton != 0 && self.seen & singleton != 0 {',
+        'if false && singleton != 0 && self.seen & singleton != 0 {',
+    ),
+    (
+        'a PNG colour chunk after image data is accepted', RUST, PNG_STATE,
+        'if self.seen & 1 != 0 || self.idat_started {',
+        'if false && (self.seen & 1 != 0 || self.idat_started) {',
+    ),
+    (
+        'a later IDAT payload is ignored but retained', RUST, PNG_STATE,
+        '            b"IDAT" => {\n',
+        '            b"IDAT" => {\n                if self.idat_closed { return Ok(()); }\n',
+    ),
+    (
+        'a PNG stream retains a later payload after zlib end', RUST, PNG_STATE,
+        '        if self.ended {\n',
+        '        if self.ended { return Ok(()); }\n        if self.ended {\n',
+    ),
+    (
+        'a PNG stream retains same-piece bytes after zlib end', RUST, PNG_STATE,
+        '                Ok(MZStatus::StreamEnd) => {\n                    self.ended = true;\n                    return if input.is_empty() {\n                        Ok(())\n                    } else {\n                        Err("its PNG zlib stream has unused trailing bytes")\n                    };\n                }\n',
+        '                Ok(MZStatus::StreamEnd) => { self.ended = true; return Ok(()); }\n',
+    ),
+    (
+        'inflation crosses its declared extent without immediate refusal', RUST, PNG_STATE,
+        'if self.expanded > self.expected {',
+        'if false && self.expanded > self.expected {',
+    ),
+    (
+        'a completed PNG stream with too few decoded bytes is accepted', RUST, PNG_STATE,
+        'if self.ended && self.expanded == self.expected {',
+        'if self.ended {',
+    ),
+    (
+        'a PNG stream need not reach its zlib end', RUST, PNG_STATE,
+        'if self.ended && self.expanded == self.expected {',
+        'if self.expanded == self.expected {',
+    ),
+    (
+        'a PNG stream ignores its Adler checksum', RUST, PNG_STATE,
+        'InflateState::new_boxed(DataFormat::Zlib)',
+        'InflateState::new_boxed(DataFormat::ZLibIgnoreChecksum)',
+    ),
+    (
+        'the PNG expanded-work budget resets for every frame', RUST, PNG_STATE,
+        "    fn stream(&mut self, width: usize, height: usize) -> Result<Stream, &'static str> {\n        Stream::new(self.format.extent(width, height)?, &mut self.remaining)\n    }",
+        "    fn stream(&mut self, width: usize, height: usize) -> Result<Stream, &'static str> {\n        self.remaining = MAX_EXPANDED;\n        Stream::new(self.format.extent(width, height)?, &mut self.remaining)\n    }",
+    ),
+    (
+        'PNG frame extent does not reserve a bounded shared budget', RUST, PNG_STATE,
+        '*remaining = remaining.checked_sub(expected).ok_or(BUDGET)?;',
+        '*remaining = remaining.saturating_sub(expected);',
+    ),
+    (
+        'an APNG need not have its declared number of frames', RUST, PNG_STATE,
+        'if self.animation.is_some_and(|count| count != self.frames) {',
+        'if false && self.animation.is_some_and(|count| count != self.frames) {',
+    ),
+    (
+        'APNG sequence numbers are not checked', RUST, PNG_STATE,
+        'if u64::from(be32(data, 0).ok_or(INVALID)?) != self.sequence {',
+        'if false && u64::from(be32(data, 0).ok_or(INVALID)?) != self.sequence {',
+    ),
+    (
+        'an APNG frame may extend outside its canvas', RUST, PNG_STATE,
+        '                if width == 0\n                    || height == 0\n                    || x.checked_add(width).is_none_or(|n| n > self.format.width)\n                    || y.checked_add(height).is_none_or(|n| n > self.format.height)\n                    || data.get(24).is_none_or(|n| *n > 2)\n                    || data.get(25).is_none_or(|n| *n > 1)\n                {\n                    return Err(INVALID);\n                }\n',
+        '',
+    ),
+    (
+        'orphan APNG data is ignored but retained', RUST, PNG_STATE,
+        '            b"fdAT" => {\n',
+        '            b"fdAT" => {\n                if self.animation.is_none() { return Ok(()); }\n',
+    ),
+    (
+        'browser-ambiguous interleaved APNG data is accepted', RUST, PNG_STATE,
+        'if self.frame_gap {',
+        'if false && self.frame_gap {',
+    ),
+    (
+        'duplicate ICC tag signatures survive rebuilding', RUST, ICC,
+        '        if tags.iter().any(|tag: &Tag| tag.sig == sig) {\n            return None;\n        }\n',
+        '',
+    ),
+]
+
 SERVER = ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--", "uploads", "blob", "--format=pretty"]
 SERVER_BUILD = ["cargo", "build", "--quiet", "--locked", "-p", "pw-dev-server"]
 FEED_BUILD = ["bash", "spikes/own-renderer/feed.sh"]
@@ -800,7 +889,7 @@ SPEC = ["pnpm", "exec", "playwright", "test", "e2e/upload-metadata.spec.mjs", "-
 BOUND = 900
 
 
-RUST_SOURCES = [STRIP, ICC, UPLOADS, ROOT / "spikes/own-renderer/server/src/tests/uploads.rs", ROOT / "spikes/own-renderer/server/src/blob.rs"]
+RUST_SOURCES = [STRIP, ICC, UPLOADS, ROOT / "spikes/own-renderer/server/src/uploads/png_state.rs", ROOT / "spikes/own-renderer/server/src/uploads/privacy_tests.rs", ROOT / "spikes/own-renderer/server/src/uploads/privacy_lifecycle_tests.rs", ROOT / "spikes/own-renderer/server/src/tests/uploads.rs", ROOT / "spikes/own-renderer/server/src/blob.rs"]
 RUST_INVENTORY = None
 
 
@@ -826,7 +915,7 @@ def rust():
 
 
 BROWSER_INVENTORY = None
-BROWSER_COUNT = 36
+BROWSER_COUNT = 45
 
 
 def browser():
@@ -862,22 +951,28 @@ def browser_projects(metadata):
     """Only project selection metadata; receipt owns status and provenance."""
     counts = {name: 0 for name in ("chromium", "firefox", "webkit")}
     def visit(suites):
-        if not isinstance(suites, list): raise ValueError("missing browser suites")
+        if not isinstance(suites, list):
+            raise ValueError("missing browser suites")
         for suite in suites:
-            if not isinstance(suite, dict): raise ValueError("invalid browser suite")
+            if not isinstance(suite, dict):
+                raise ValueError("invalid browser suite")
             specs = suite.get("specs", [])
-            if not isinstance(specs, list): raise ValueError("invalid browser specs")
+            if not isinstance(specs, list):
+                raise ValueError("invalid browser specs")
             for spec in specs:
                 if not isinstance(spec, dict) or not isinstance(spec.get("tests"), list):
                     raise ValueError("invalid browser spec")
                 for test in spec["tests"]:
                     name = test.get("projectName") if isinstance(test, dict) else None
-                    if name not in counts: raise ValueError("unexpected browser project")
+                    if name not in counts:
+                        raise ValueError("unexpected browser project")
                     counts[name] += 1
             visit(suite.get("suites", []))
-    if not isinstance(metadata, dict): raise ValueError("missing browser metadata")
+    if not isinstance(metadata, dict):
+        raise ValueError("missing browser metadata")
     visit(metadata.get("suites"))
-    if counts != {name: 12 for name in counts}: raise ValueError("incomplete per-engine inventory")
+    if counts != {name: 15 for name in counts}:
+        raise ValueError("incomplete per-engine inventory")
 
 
 def browser_result(status, receipt, nonce, metadata):
@@ -894,7 +989,8 @@ def browser_result(status, receipt, nonce, metadata):
     if len(result.inventory) != BROWSER_COUNT:
         return False, result.passed, result.failed
     if BROWSER_INVENTORY is None:
-        if result.failed: return False, result.passed, result.failed
+        if result.failed:
+            return False, result.passed, result.failed
         BROWSER_INVENTORY = result.inventory
     return True, result.passed, result.failed
 

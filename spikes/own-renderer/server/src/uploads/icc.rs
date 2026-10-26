@@ -329,6 +329,9 @@ pub(crate) fn scrub(profile: &[u8]) -> Option<Vec<u8>> {
             return None;
         }
         let sig = p[entry..entry + 4].try_into().ok()?;
+        if tags.iter().any(|tag: &Tag| tag.sig == sig) {
+            return None;
+        }
         tags.push(Tag { sig, at, len });
     }
     // Each tag's data is another's, the same bytes, or apart from all.
@@ -980,8 +983,16 @@ pub(crate) mod tests {
             desc_len < wtpt_at - desc_at,
             "the description ends before the white point"
         );
-        // At most 1,024 tags, though they share one datum.
-        let many = |n: usize| profile(2, &[(vec![*b"wtpt"; n], xyz(D50.0, D50.1, D50.2))]);
+        // At most 1,024 distinct signatures, though they share one datum.
+        let many = |n: usize| {
+            profile(
+                2,
+                &[(
+                    (0..n as u32).map(u32::to_be_bytes).collect(),
+                    xyz(D50.0, D50.1, D50.2),
+                )],
+            )
+        };
         assert!(scrub(&many(1024)).is_some(), "1,024 tags");
         assert_eq!(scrub(&many(1025)), None, "1,025 tags");
         // Two tags whose data is the same bytes are one datum: kept.

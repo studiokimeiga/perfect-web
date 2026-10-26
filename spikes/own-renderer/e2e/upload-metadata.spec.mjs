@@ -464,13 +464,17 @@ async function expectColoursAsSent(page, profiled, project) {
 }
 
 /** Attach `file` with the home page's form, and post it with `text`. */
-async function attachAndPost(page, file, text) {
+async function attachForPreview(page, file) {
   await page.locator("#attach input[type=file]").setInputFiles({ name: file.name, mimeType: file.mime, buffer: file.bytes });
   await Promise.all([
     page.waitForNavigation(),
     page.locator("#attach").getByRole("button", { name: "Attach", exact: true }).click(),
   ]);
   await page.waitForFunction(() => document.documentElement.dataset.pwReady === "1");
+}
+
+async function attachAndPost(page, file, text) {
+  await attachForPreview(page, file);
   await page.getByLabel("What's happening?").fill(text);
   await page.getByLabel("The image, in words, for whoever cannot see it").fill(`${file.name}, in words`);
   await page.getByRole("button", { name: "Post", exact: true }).click();
@@ -613,7 +617,7 @@ for (const orientation of [2, 3, 4, 5, 6, 7, 8]) {
   });
 }
 
-async function pixelsOf(page, bytes) {
+async function pixelsOf(page, bytes, mime = "image/jpeg") {
   return page.evaluate(async (src) => {
     const image = new Image();
     image.src = src;
@@ -623,7 +627,7 @@ async function pixelsOf(page, bytes) {
     const context = canvas.getContext("2d");
     context.drawImage(image, 0, 0);
     return [canvas.width, canvas.height, ...context.getImageData(0, 0, canvas.width, canvas.height).data];
-  }, `data:image/jpeg;base64,${bytes.toString("base64")}`);
+  }, `data:${mime};base64,${bytes.toString("base64")}`);
 }
 
 test("the real ICC sRGB profile stays decodable with the same colour", async ({ page, request }, testInfo) => {
@@ -642,4 +646,79 @@ test("the real ICC sRGB profile stays decodable with the same colour", async ({ 
     kept.push([file, Buffer.from(await answer.body())]);
   }
   await expectColoursAsSent(page, kept, testInfo.project.name);
+});
+
+
+test("PNG carrier refusals never publish an original blob", async ({ page, request }) => {
+  await home(page);
+  const origin = new URL(page.url()).origin;
+  for (const name of ["late-chrm", "duplicate-chrm", "idat-suffix", "later-idat-suffix", "decoded-suffix", "apng-suffix", "orphan-fdat", "bad-adler", "apng-interleaved", "research-late-chrm", "research-duplicate-chrm", "research-idat-suffix"]) {
+    const bytes = fixture(`privacy-${name}.png`);
+    const answer = await page.request.post("/uploads/post-image", {
+      multipart: { image: { name: `${name}.png`, mimeType: "image/png", buffer: bytes } },
+      headers: { Origin: origin, Referer: `${origin}/`, "Sec-Fetch-Site": "same-origin" },
+      maxRedirects: 0,
+    });
+    expect(answer.status(), "a tolerated carrier is refused before staging").toBe(422);
+    const original = `/images/${createHash("sha256").update(bytes).digest("hex")}.png`;
+    expect((await request.get(original)).status()).toBe(404);
+  }
+});
+
+async function postPreview(page, text) {
+  await page.getByLabel("What's happening?").fill(text);
+  await page.getByLabel("The image, in words, for whoever cannot see it").fill("A synthetic test image");
+  await page.getByRole("button", { name: "Post", exact: true }).click();
+  const image = page.locator("main > ul > li").filter({ hasText: text }).locator("img.photo");
+  await expect(image).toHaveCount(1);
+  return image;
+}
+
+async function previewRoundtrip(page, request, name, label) {
+  const bytes = fixture(`privacy-${name}.png`);
+  await attachForPreview(page, { name: `${name}.png`, mime: "image/png", bytes });
+  const staged = page.locator('img[src^="/uploads/post-image/"]');
+  await expect(staged).toHaveCount(1);
+  const previewURL = await staged.getAttribute("src");
+  const previewAnswer = await page.request.get(previewURL);
+  expect(previewAnswer.status()).toBe(200);
+  const preview = Buffer.from(await previewAnswer.body());
+  const image = await postPreview(page, label);
+  const src = await image.getAttribute("src");
+  const served = Buffer.from(await (await request.get(src)).body());
+  expect(served.equals(preview), "the committed body is the rewritten preview").toBe(true);
+  expect(src).toBe(`/images/${createHash("sha256").update(preview).digest("hex")}.png`);
+  expect((await page.request.get(previewURL)).status()).toBe(404);
+  return { bytes, served };
+}
+
+test("PNG stream and ICC repairs survive preview claim storage and serving", async ({ page, request }, testInfo) => {
+  await home(page);
+  const blank = await page.context().newPage();
+  try {
+    for (const name of ["duplicate-icc", "valid-icc", "split-idat", "apng-included", "apng-excluded", "apng-split"]) {
+      const { bytes, served } = await previewRoundtrip(page, request, name, `${name} ${testInfo.project.name} ${Date.now()}`);
+      const reference = name === "duplicate-icc" ? fixture("privacy-clean.png") : bytes;
+      expect(await pixelsOf(blank, served, "image/png"), name).toEqual(await pixelsOf(blank, reference, "image/png"));
+      if (name.endsWith("duplicate-icc")) expect(pngProfiles(served)).toEqual([]);
+    }
+  } finally {
+    await blank.close();
+  }
+});
+
+test("PNG packed sixteen bit and tiny Adam7 neighbors keep all displayed pixels", async ({ page, request }, testInfo) => {
+  test.setTimeout(90_000); // Eleven full upload/post/decode neighbors, including WebKit.
+  await home(page);
+  const blank = await page.context().newPage();
+  try {
+    for (const name of ["layout-0-1", "layout-0-8", "layout-0-16", "layout-2-8", "layout-2-16", "layout-4-16", "layout-6-16", "layout-3-1", "layout-3-2", "layout-3-4", "adam7-tiny"]) {
+      const bytes = fixture(`privacy-${name}.png`);
+      const image = await attachAndPost(page, { name: `${name}.png`, mime: "image/png", bytes }, `${name} ${testInfo.project.name} ${Date.now()}`);
+      const served = Buffer.from(await (await request.get(await image.getAttribute("src"))).body());
+      expect(await pixelsOf(blank, served, "image/png")).toEqual(await pixelsOf(blank, bytes, "image/png"));
+    }
+  } finally {
+    await blank.close();
+  }
 });

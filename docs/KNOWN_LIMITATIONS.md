@@ -1389,3 +1389,24 @@ preserved, not replaced with invented results.
   actual post-settlement success marker and do not count refused attempts as
   completion. Local strict whole12 and CI passed, and so did the exact
   head's verify 38909882781; landed with train-9.
+
+
+PNG/APNG upload rewriting now reserves at most 256 MiB of aggregate expanded
+filtered scanline work across the default image and every animation frame.
+Validation streams through fixed-size buffers; this is a decompression-work
+limit, not a 256 MiB memory allocation or a replacement for declared input
+and staging budgets. It can refuse large images that fit an application's
+compressed-byte and dimension declaration. Ambiguous PNG ordering, duplicate
+singleton chunks, extra compressed/decoded stream bytes and malformed APNG
+structure refuse the whole image. This does not remove arbitrary encoded-bit,
+palette or pixel steganography, calibrated-display fingerprints or metadata
+from older stored uploads. ADR-0383 records the specific boundary and gates.
+
+
+APNG ancillary chunks interleaved between fdAT pieces of one frame are
+explicitly unsupported: Chromium renders a demonstrated arrangement
+transparently until metadata removal makes its declared pixels visible.
+The host refuses it with an unsupported-image response rather than change
+that appearance. Split/sequence-only-empty fdAT without interleaving and
+ancillary chunks before/after frames remain supported. This is a stricter
+supported subset than APNG's ordering rules, not malformed-file evidence.

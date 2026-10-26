@@ -36,6 +36,9 @@
 
 pub(crate) mod icc;
 pub(crate) mod multipart;
+mod png_state;
+#[cfg(test)]
+mod privacy_tests;
 pub(crate) mod sniff;
 pub(crate) mod strip;
 
@@ -651,6 +654,13 @@ impl Shared {
             Unreadable::Unrecognized => {
                 let why = format!("The file is not an image: only {kinds}.");
                 Answer::refused(415, &why, &back)
+            }
+            Unreadable::Unsupported(kind, why) => {
+                let why = format!(
+                    "This {} image cannot be rewritten safely: {why}.",
+                    kind.word().to_uppercase()
+                );
+                Answer::refused(422, &why, &back)
             }
             Unreadable::Malformed(kind, why) => {
                 let why = format!(
@@ -1296,6 +1306,13 @@ pub(crate) mod tests {
         let crc = sniff::crc32(&chunk);
         b.extend(&chunk);
         b.extend(crc.to_be_bytes());
+        let row = w as usize * 4 + 1;
+        let raw = vec![0; row * h as usize];
+        let encoded = miniz_oxide::deflate::compress_to_vec_zlib(&raw, 6);
+        b.extend((encoded.len() as u32).to_be_bytes());
+        let data = [&b"IDAT"[..], &encoded].concat();
+        b.extend(&data);
+        b.extend(sniff::crc32(&data).to_be_bytes());
         b.extend(0u32.to_be_bytes());
         b.extend(b"IEND");
         b.extend(sniff::crc32(b"IEND").to_be_bytes());
@@ -2086,4 +2103,5 @@ pub(crate) mod tests {
         assert_eq!(files(&d.path().join("staged")), 0);
         assert_eq!(files(&d.path().join("blobs")), 0, "a discard keeps nothing");
     }
+    include!("uploads/privacy_lifecycle_tests.rs");
 }
