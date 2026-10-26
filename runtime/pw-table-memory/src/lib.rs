@@ -179,6 +179,16 @@ impl Data {
                 }
             }
         }
+        if row.is_some()
+            && !self.rows.contains_key(key)
+            && let Some(bound) = shape.bounded
+            && self.rows.len() as u64 >= bound
+        {
+            return Err(Error::Input(format!(
+                "{} cannot grow past its declared bound of {bound}",
+                shape.name
+            )));
+        }
         let before = match self.rows.get(key) {
             Some(prior) => Some(entries(shape, prior)?),
             None => None,
@@ -501,6 +511,11 @@ impl Command {
     ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, Error> {
         use pw_host::engine::{table_read_host, table_write_host};
         use pw_host::tables::Access;
+        if !matches!(contract.exports.as_slice(), [export] if export.kind == "command") {
+            return Err(Error::Input(
+                "staged table callbacks require one explicit command export".into(),
+            ));
+        }
         let mut out = BTreeMap::new();
         let admitted = self
             .inner

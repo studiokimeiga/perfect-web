@@ -83,11 +83,14 @@ commits nothing).
    handle; returned as the command's declared error, nothing of the command
    commits. Each write is held to every unique index before anything
    changes, so no state, staged or committed, holds a unique value twice. A
-   table's bound and its references (a row referring to one that exists, a
-   referred row not deleted under one referring to it) are held when the
-   command commits (`Command::prepare`), as a deferred foreign key is; one
-   broken refuses the whole command, and nothing is published. `all`
-   answers no more rows than the bound, inside a command too.
+   table's row bound is also held before each growth write changes any row,
+   index, reference or touched-key map. A replacement at the bound is valid;
+   to replace one key with another at capacity, delete first. Key/unique
+   conflicts still answer the existing row before the resource guard. A
+   resource refusal traps the write and leaves staging unchanged. References
+   remain deferred until `Command::prepare`; prepare rechecks the bound as
+   defense in depth. A broken commit publishes nothing. `all` answers no
+   more rows than the bound, inside a command too.
 5. **Commit in the platform's two steps.** `Command::prepare` holds the
    commit (fallible, as `Staged::commit` is), and the command writes nothing
    more; `Prepared::publish` publishes it whole (infallible, as
@@ -151,9 +154,11 @@ commits nothing).
   name the row that refuses it when it is made, and PostgreSQL's
   non-deferrable unique constraints are held per statement too; a swap goes
   through a free value.
-- **The bound held per write.** Rejected: a command may insert one row and
-  delete another; held at commit, as a deferred constraint, with `all`
-  refusing past it meanwhile, no read ever sees more.
+- **The bound held only at commit.** Rejected on integrator review:
+  refusing `all` did not prevent arbitrarily many staged rows and index
+  entries. The bound is a resource limit as well as a query contract. A
+  command replacing keys at capacity must delete before inserting. This
+  supersedes the original insert-before-delete ruling.
 - **Stage in an overlay merged into every read.** Rejected for the working
   copy: one read implementation serves a command and a query, where an
   overlay needs a merged form of every primitive.
@@ -241,3 +246,27 @@ staging, publication, change reporting, rollback and rejection of two NaN
 payloads (nonfinite JSON becomes null and cannot enter the declared Float).
 A control restores ordinary JSON equality. This closes F1 only; the other
 contract, staging-bound and poisoned-lock review findings remain open.
+
+
+### Review rulings: staged authority and resource bounds
+
+`Command::host_fns` must require exactly one explicit `command` export,
+matching the compiler's current one-export component contract. Missing,
+query, mixed or ambiguous exports receive no staged callbacks, including
+read-only callbacks. Query callbacks continue to read the published state.
+The per-write bound ruling above precedes its implementation; references
+remain deferred so related rows may still be written in either order.
+
+
+Failing-first regressions reproduced both staged query access and growth
+past the declared row bound. The repaired adapter passes all 67 memory
+adapter tests (14 staged tests). Two new controls remove admission and
+per-write growth checks. The former prepare-only and `all`-only bound
+controls are now equivalent under the earlier growth guard and are removed
+from the catalog, without crediting kills; those checks remain in production
+as defense in depth. The D2 mutation producer now requires a complete
+native named inventory and assertion-site failures, refuses build/crash
+failures, and restores source with the shared mutation guard. Historical
+53-control evidence predates these changes; the revised whole campaign
+and independent review remain required. Poison/waiter/publication findings
+remain open.

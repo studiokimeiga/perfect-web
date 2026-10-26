@@ -40,9 +40,12 @@ description holds one of them, for a quick look while working; the record is
 a whole run.
 """
 import pathlib
-import re
 import subprocess
 import sys
+
+import cargo_assertion_results
+import mutation_source
+import producer_process
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 TABLES = ROOT / "runtime/pw-host/src/tables.rs"
@@ -54,6 +57,13 @@ MEMORY = ROOT / "runtime/pw-table-memory/src/lib.rs"
 CHECK = ROOT / "compiler/pw-core/src/check.rs"
 
 MUTANTS = [
+    ("staged callbacks are handed to a query or ambiguous export", MEMORY,
+     '        if !matches!(contract.exports.as_slice(), [export] if export.kind == "command") {\n',
+     '        if false {\n'),
+    ("a staged growth write passes the declared row bound", MEMORY,
+     "            && self.rows.len() as u64 >= bound\n",
+     "            && false\n"),
+
     ("integer publication equality is rounded through float", MEMORY,
      "        (Value::Number(left), Value::Number(right)) if left.is_f64() || right.is_f64() => {\n",
      "        (Value::Number(left), Value::Number(right)) if true => {\n"),
@@ -212,12 +222,9 @@ MUTANTS = [
     ("a commit publishes part of a command", MEMORY,
      "            let rows = changed(tables, &ended.touched);\n",
      "            let rows: Vec<_> = changed(tables, &ended.touched).into_iter().take(1).collect();\n"),
-    ("a commit's bound goes unheld", MEMORY,
-     "                && tables[table].rows.len() as u64 > bound\n",
-     "                && false\n"),
-    ("all answers past its bound inside a command", MEMORY,
-     "            if data.rows.len() as u64 > bound {\n",
-     "            if false && data.rows.len() as u64 > bound {\n"),
+    # The prepare/all bound checks remain in production as defense in depth.
+    # Removing either alone is equivalent under the per-growth-write guard;
+    # do not credit their former controls as kills after that ruling.
     ("a reference to a missing row commits", MEMORY,
      "                        if !tables[reference.target].rows.contains_key(&referred) {\n",
      "                        if false && !tables[reference.target].rows.contains_key(&referred) {\n"),
@@ -265,23 +272,38 @@ MUTANTS = [
      "            .filter_map(|e| crate::effects::database_domain(e, \"no-write\"))\n"),
 ]
 
+# Keep each Cargo test binary separate: names can repeat between binaries,
+# and the shared native assertion validator expects one complete inventory.
 TESTS = [
-    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory"],
-    ["cargo", "test", "--quiet", "--locked", "-p", "pw-host", "--features", "engine", "--lib"],
-]
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", path.stem]
+    for path in sorted((ROOT / "runtime/pw-table-memory/tests").glob("*.rs"))
+] + [["cargo", "test", "--quiet", "--locked", "-p", "pw-host", "--features", "engine", "--lib"]]
+
+
+
+SOURCES = [*sorted((ROOT / "runtime/pw-table-memory").rglob("*.rs")),
+           *sorted((ROOT / "runtime/pw-host").rglob("*.rs"))]
+INVENTORY = {}
 
 
 def run_tests():
-    built, passed, failed = True, 0, 0
+    passed, failed = 0, 0
     for cmd in TESTS:
-        r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
-        results = re.findall(r"test result: \w+\. (\d+) passed; (\d+) failed", r.stdout + r.stderr)
-        if not results:
-            built = False
-        for p, f in results:
-            passed += int(p)
-            failed += int(f)
-    return built, passed, failed
+        full = [*cmd, "--", "--format=pretty"]
+        try:
+            child = producer_process.run(full, cwd=ROOT, timeout=900)
+        except subprocess.TimeoutExpired:
+            return False, passed, failed
+        key = tuple(cmd)
+        result = cargo_assertion_results.validate(child.returncode, child.stdout,
+            root=ROOT, sources=SOURCES, expected=INVENTORY.get(key))
+        if not result.valid:
+            print(child.stdout[-4000:], flush=True)
+            return False, passed, failed
+        INVENTORY.setdefault(key, cargo_assertion_results.names(child.stdout))
+        passed += result.passed
+        failed += result.failed
+    return True, passed, failed
 
 
 def main():
@@ -300,13 +322,11 @@ def main():
             print(f"{what}: ANCHOR NOT FOUND EXACTLY ONCE in {path.name}", flush=True)
             survivors += 1
             continue
-        try:
-            path.write_text(original.replace(anchor, replacement, 1))
+        with mutation_source.changed(path, original, original.replace(anchor, replacement, 1)):
             built, passed, failed = run_tests()
-        finally:
-            path.write_text(original)
         if not built:
-            verdict = "KILLED (does not build)"
+            verdict = "INVALID (build, infrastructure or native assertion producer)"
+            survivors += 1
         elif failed:
             verdict = f"KILLED ({failed} of {passed + failed} tests fail)"
         else:

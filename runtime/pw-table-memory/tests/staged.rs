@@ -408,31 +408,48 @@ fn a_unique_value_is_held_by_one_row_through_any_writes() {
     assert_eq!(db.read(BY_NAME, &[json!("Free")]).unwrap(), Value::Null);
 }
 
-/// **The bound is held at every commit, and `all` never answers past it**:
-/// inside a command a table may hold more for a while, and its `all` then
-/// refuses; committed so, the command is refused whole.
+/// The bound limits staging itself; a refused growth changes no indexes,
+/// references or written rows. Replacements and delete-before-insert work.
 #[test]
-fn the_bound_is_held_at_commit_and_all_never_answers_past_it() {
-    let db = seeded(2);
+fn a_growth_write_is_refused_at_the_bound_without_changing_staging() {
+    assert!(
+        MemoryTables::new(manifest(0)).is_err(),
+        "zero is not a valid declared bound"
+    );
+    let db = seeded(3);
+    let posts_before = db.read(OF_AUTHOR, &[json!("ann")]).unwrap();
     let mut command = db.begin().unwrap();
     command.write(USERS_INSERT, &[user("cy", "Cy")]).unwrap();
-    assert!(matches!(
-        command.read(USERS_ALL, &[]),
-        Err(Error::Input(why)) if why.contains("more than its bound of 2")
-    ));
-    // Back within it before the commit: committed.
+    let before = command.read(USERS_ALL, &[]).unwrap();
+    let written = command.written().unwrap();
+    for import in [USERS_INSERT, USERS_PUT] {
+        for i in 0..64 {
+            let id = format!("denied-{i}");
+            assert!(matches!(command.write(import, &[user(&id, &id)]),
+                Err(Error::Input(why)) if why.contains("declared bound of 3")));
+            assert_eq!(command.read(BY_NAME, &[json!(id)]).unwrap(), Value::Null);
+        }
+    }
+    assert_eq!(command.read(USERS_ALL, &[]).unwrap(), before);
+    assert_eq!(command.written().unwrap(), written);
+    assert_eq!(db.read(BY_NAME, &[json!("Cy")]).unwrap(), Value::Null);
+    // A conflict remains its typed value even at capacity.
+    assert!(matches!(command.write(USERS_PUT, &[user("other", "Ann")]),
+        Err(Error::Conflict { existing, .. }) if existing == user("ann", "Ann")));
+    command.write(USERS_PUT, &[user("ann", "Anne")]).unwrap();
     command.write(USERS_DELETE, &[json!("cy")]).unwrap();
+    command.write(USERS_INSERT, &[user("dee", "Dee")]).unwrap();
+    assert_eq!(command.read(BY_NAME, &[json!("Cy")]).unwrap(), Value::Null);
+    assert_eq!(
+        command.read(BY_NAME, &[json!("Dee")]).unwrap(),
+        user("dee", "Dee")
+    );
     command.commit().unwrap();
-    let mut command = db.begin().unwrap();
-    command.write(USERS_INSERT, &[user("cy", "Cy")]).unwrap();
-    assert!(matches!(
-        command.commit(),
-        Err(Error::Input(why)) if why.contains("Users exceeds its declared bound")
-    ));
     assert_eq!(
         db.read(USERS_ALL, &[]).unwrap(),
-        json!([user("ann", "Ann"), user("bo", "Bo")])
+        json!([user("ann", "Anne"), user("bo", "Bo"), user("dee", "Dee")])
     );
+    assert_eq!(db.read(OF_AUTHOR, &[json!("ann")]).unwrap(), posts_before);
 }
 
 /// **References are held at commit, both ways**: a post of no user, and a
@@ -513,7 +530,7 @@ fn an_ended_command_writes_nothing() {
             "capability": "database.write<Users>",
             "kind": "host_capability"
         }],
-        "exports": []
+        "exports": [{"name":"write", "kind":"command"}]
     }))
     .unwrap();
     let topology = pw_host::Topology::from_json(
@@ -549,6 +566,60 @@ fn an_ended_command_writes_nothing() {
     assert!(refused.contains("Ended"), "{refused}");
     drop(next);
     assert_eq!(db.read(BY_NAME, &[json!("Cy")]).unwrap(), user("cy", "Cy"));
+}
+
+/// A query may never acquire staged callbacks, even if it only reads.
+#[test]
+fn staged_callbacks_require_one_explicit_command_export() {
+    let db = seeded(10);
+    let mut command = db.begin().unwrap();
+    command.write(USERS_INSERT, &[user("cy", "Cy")]).unwrap();
+    let contract: pw_host::ComponentContract = serde_json::from_value(json!({
+        "component_id":"users.reader", "capability_mapping":pw_host::CAPABILITY_MAPPING,
+        "abi_schema":"test", "required_capabilities":[{"family":"database", "operation":"read", "argument":"Users"}],
+        "allowed_placements":["origin"], "imports":[{"interface":"pw:tables/users", "name":"all",
+            "capability":"database.read<Users>", "kind":"host_capability"}],
+        "exports":[{"name":"read", "kind":"command"}]
+    })).unwrap();
+    let topology = pw_host::Topology::from_json(
+        r#"{"nodes":[{"name":"origin","world":"origin","grants":["database.read<Users>"]}]}"#,
+    )
+    .unwrap();
+    let admission = pw_host::admit(&contract, &topology, "origin", &[USERS_ALL.into()]);
+    let granted = pw_host::Granted::from(&admission, &Default::default()).unwrap();
+    let host = command.host_fns(&contract, &granted).unwrap();
+    let row = |id: &str, name: &str| {
+        Val::Record(vec![
+            ("id".into(), Val::String(id.into())),
+            ("name".into(), Val::String(name.into())),
+        ])
+    };
+    assert_eq!(
+        host[USERS_ALL](&[]),
+        Ok(vec![Val::List(vec![
+            row("ann", "Ann"),
+            row("bo", "Bo"),
+            row("cy", "Cy")
+        ])])
+    );
+    let mut query = contract.clone();
+    query.exports[0].kind = "query".into();
+    let published = db.read_host_fns(&query, &granted).unwrap();
+    assert_eq!(
+        published[USERS_ALL](&[]),
+        Ok(vec![Val::List(vec![row("ann", "Ann"), row("bo", "Bo")])])
+    );
+    let mut absent = contract.clone();
+    absent.exports.clear();
+    let mut mixed = contract.clone();
+    mixed.exports.push(query.exports[0].clone());
+    let mut ambiguous = contract.clone();
+    ambiguous.exports.push(contract.exports[0].clone());
+    for refused in [query, absent, mixed, ambiguous] {
+        assert!(
+            matches!(command.host_fns(&refused, &granted), Err(Error::Input(why)) if why.contains("one explicit command export"))
+        );
+    }
 }
 
 /// A command that writes nothing commits nothing a host need record: a

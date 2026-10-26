@@ -55,7 +55,13 @@ fn a_write_links_only_into_a_command() {
     let mut query = maker.contract.clone();
     query.exports[0].kind = "query".into();
     let staged = tables.begin().unwrap();
-    let (granted, host) = host_of(&program, &tables, &staged, MAKE_LIST, &query);
+    // A malicious host can still hand the engine callbacks constructed for
+    // the real command; the engine independently refuses their query use.
+    let (granted, host) = host_of(&program, &tables, &staged, MAKE_LIST, &maker.contract);
+    assert!(
+        matches!(staged.host_fns(&query, &granted), Err(Error::Input(why))
+        if why.contains("one explicit command export"))
+    );
     let refused = maker
         .call_as(
             &query,
