@@ -1227,3 +1227,40 @@ fn on_postgres_a_stale_fetched_schedule_cannot_repeat_a_completed_action() {
         "an already consumed job's stale generation must not act again"
     );
 }
+
+/// A known pre-commit refusal is retryable after the missing grant is restored.
+/// The durable scheduler must not replay a client-cache refusal forever.
+#[test]
+fn on_postgres_a_scheduled_refusal_can_recover_on_the_same_host() {
+    let url = database().expect("this reproduction requires PostgreSQL");
+    let layer = Arc::new(StorePg::for_test(&url).expect("the isolated layer"));
+    println!("RETRY_CACHE_SCHEMA {}", layer.schema());
+    let (_dir, out) =
+        built_from_patches_in("examples", super::store_scheduled::with_scheduling, &[]);
+    let mut s = Server::from_build_layers(out.clone(), out, None, Some(layer.clone()))
+        .expect("served from the compiled program");
+    assert!(super::store_scheduled::in_five(&s, "espresso", false, "retry-schedule").committed);
+    let original_grants = s.topology.nodes[0].grants.clone();
+    s.topology.nodes[0].grants.retain(|g| g != "outbox.write");
+    s.query_clock.0.advance(5 * 60 * 1000);
+    assert_eq!(s.run_due().0, 1);
+    assert!(
+        s.cart_lines("a").is_empty(),
+        "first refusal commits no business effect"
+    );
+    let first = s.runs().all_runs().expect("pending after refusal");
+    assert_eq!(first.len(), 1);
+    assert_eq!(first[0].attempts, 1);
+    s.topology.nodes[0].grants = original_grants;
+    s.query_clock.0.advance(2000);
+    assert_eq!(s.run_due().0, 1, "retry when its backoff ends");
+    let pending = s.runs().all_runs().expect("pending after retry");
+    let committed = s.cart_lines("a");
+    println!("RETRY_CACHE_SNAPSHOT lines={committed:?}; pending={pending:?}");
+    assert_eq!(
+        committed,
+        [("espresso".to_string(), 1)],
+        "a restored known-refused job must execute rather than replay its cached refusal"
+    );
+    assert!(pending.is_empty());
+}
