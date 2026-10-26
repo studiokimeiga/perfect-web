@@ -11,12 +11,16 @@ The source is restored after every mutant, whatever happens.
 """
 
 import pathlib
-import re
 import subprocess
 import sys
 
+import cargo_assertion_results
+import mutation_source
+import producer_process
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CHECK = ROOT / "compiler/pw-core/src/check.rs"
+EFFECTS = ROOT / "compiler/pw-core/src/effects.rs"
 
 # (what is undone, file, anchor, replacement)
 MUTANTS = [
@@ -33,15 +37,17 @@ MUTANTS = [
         "                .find(|s| s.span.start >= region.start || true)",
     ),
     (
+        # Until 2026-10-25 this replaced the check's `infer_in_at` with
+        # `infer_at`, which then counted calls alone. ADR-0351 made
+        # `infer_at` read the members and values of every body `run` typed,
+        # so it found what `infer_in_at` finds, and the mutant survived as an
+        # equivalent (the nightly of 2026-10-25, at cc47a64b). The same
+        # fault, where the inference the check uses adds them: calls alone.
         "only what a derived value calls counts",
-        CHECK,
-        "        let found = inference.infer_in_at(unit, body, &types);\n"
-        "        for value in derived {",
-        "        let found = {\n"
-        "            let _ = &types;\n"
-        "            inference.infer_at(unit, body)\n"
-        "        };\n"
-        "        for value in derived {",
+        EFFECTS,
+        "        self.member_effects(body, body.root, types, &mut out, reads.as_deref_mut());\n"
+        "        self.value_effects(unit, body, body.root, types, &mut out, reads);\n",
+        "        let _ = &mut out;\n",
     ),
 ]
 
@@ -49,19 +55,28 @@ TESTS = [
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "derived_purity"],
 ]
 
+INVENTORY = {}
+SOURCES = [ROOT / "compiler/pw-core/tests/derived_purity.rs"]
+
+
 def run_tests():
-    """(built, passed, failed) over every test command."""
-    built, passed, failed = True, 0, 0
+    """Complete named native assertion results; broken producers are invalid."""
+    passed, failed = 0, 0
     for cmd in TESTS:
-        r = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
-        out = r.stdout + r.stderr
-        m = re.search(r"test result: \w+\. (\d+) passed; (\d+) failed", out)
-        if m is None:
-            built = False
-            continue
-        passed += int(m.group(1))
-        failed += int(m.group(2))
-    return built, passed, failed
+        try:
+            child = producer_process.run([*cmd, "--", "--format=pretty"], cwd=ROOT, timeout=900)
+        except subprocess.TimeoutExpired:
+            return False, passed, failed
+        key = tuple(cmd)
+        result = cargo_assertion_results.validate(child.returncode, child.stdout,
+            root=ROOT, sources=SOURCES, expected=INVENTORY.get(key))
+        if not result.valid:
+            print(child.stdout[-4000:], flush=True)
+            return False, passed, failed
+        INVENTORY.setdefault(key, cargo_assertion_results.names(child.stdout))
+        passed += result.passed
+        failed += result.failed
+    return True, passed, failed
 
 
 def main():
@@ -80,13 +95,11 @@ def main():
             print(f"{what}: ANCHOR NOT FOUND EXACTLY ONCE in {path.name}")
             survivors += 1
             continue
-        try:
-            path.write_text(original.replace(anchor, replacement, 1))
+        with mutation_source.changed(path, original, original.replace(anchor, replacement, 1)):
             built, passed, failed = run_tests()
-        finally:
-            path.write_text(original)
         if not built:
-            verdict = "KILLED (does not build)"
+            verdict = "INVALID (build, infrastructure or native assertion producer)"
+            survivors += 1
         elif failed:
             verdict = f"KILLED ({failed} of {passed + failed} tests fail)"
         else:

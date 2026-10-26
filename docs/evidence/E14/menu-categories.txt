@@ -1,22 +1,22 @@
 ADR-0181 - a menu is grouped by its category, and a list inside a row is changed where it is
 
 produced by: just e14-menu-categories
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == the plan (compiler/pw-core/tests/row_reads.rs)
 
-test a_row_reads_a_member_of_its_item_once_in_text_and_attributes_alike ... ok
 test a_row_of_a_loop_inside_a_loop_reads_members_of_its_item ... ok
+test a_row_reads_a_member_of_its_item_once_in_text_and_attributes_alike ... ok
 test a_member_read_in_a_row_of_a_list_no_query_gives_is_refused ... ok
 test fields_are_the_renderer_s_and_a_query_s_member_in_text_at_the_top_is_a_part ... ok
-test a_signal_s_member_is_refused_since_the_browser_reads_a_signal_by_field ... ok
 test what_a_row_decides_by_and_a_list_it_iterates_are_computed_for_it ... ok
+test a_signal_s_member_is_refused_since_the_browser_reads_a_signal_by_field ... ok
 test a_query_s_member_read_outside_a_row_is_computed_by_a_host ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.88s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.01s
 
 == the renderer (runtime/pw-render/tests/nested_lists.rs, instance_changes.rs)
 
@@ -41,7 +41,7 @@ test tests::a_menu_is_grouped_by_its_category ... ok
 test tests::a_rename_sets_every_part_that_reads_the_name ... ok
 test tests::a_stock_change_told_renders_its_row_again_where_it_is ... ok
 test tests::an_insert_and_what_changed_with_it_are_derived_from_the_menu ... ok
-test result: ok. 704 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 550.13s
+test result: ok. 732 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 534.30s
 
 == the pages, in three engines (e2e/stores.spec.mjs, e2e/keyed-list.spec.mjs)
 
