@@ -654,6 +654,11 @@
         "mutable:transport"
       ]
     },
+    "upload-metadata.spec.mjs": {
+      "roles": [
+        "uploads"
+      ]
+    },
     "uploads.spec.mjs": {
       "roles": [
         "uploads"

@@ -1,8 +1,8 @@
 ADR-0177 - a public read whose origin fails is answered with the last value kept
 
 produced by: just e14-last-known-good
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -22,11 +22,11 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 197 filtered out; fi
 == the development server (pw-dev-server)
 
 test tests::a_failed_origin_is_answered_with_the_last_public_value_kept ... ok
-test result: ok. 704 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 384.50s
+test result: ok. 732 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 538.77s
 
 == the page, in three engines (e2e/controls.spec.mjs)
 
-  15 passed (45.9s)
+  15 passed (53.4s)
 
 == mutation controls (scripts/last_known_good_mutations.py)
 

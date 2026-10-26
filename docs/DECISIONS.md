@@ -2171,6 +2171,9 @@ merged by the integrator).
   the upload and publishes it with the post or discards it (PW2005 holds
   each path), and only what a post committed is served, `nosniff`,
   sandboxed and immutable.
+- Amended 2026-10-25 by ADR-0383: an upload had been kept and served as
+  sent, a photo's GPS position among it; it is now kept without its
+  metadata.
 [ADR-0261](DECISIONS/ADR-0261-a-deleted-posts-image-is-not-served-and-its-blob-is-collected.md):
 a deleted post's image is not served, and its blob is collected (ADR-0260's
 first question at its merge).
@@ -3250,6 +3253,10 @@ A command's send is answered within its deadline, or it is no answer (track `com
 [ADR-0382](DECISIONS/ADR-0382-a-page-loads-its-modules-within-the-deadline.md):
 The modules a page loads when it first needs them are loaded within the deadline, and a failed load is not kept (track `press-modules`; not landed).
 - A handler's module, the page's speculation module, its renderer and its computed values load within ADR-0381's deadline; a failed or given-up load is forgotten and asked for again under a new specifier, as a handler's is; a press whose speculation cannot load is sent unspeculated.
+
+[ADR-0383](DECISIONS/ADR-0383-an-uploaded-image-is-kept-without-its-metadata.md):
+An uploaded image is kept and served without what names a place, a device, a person or a time (track `upload-metadata`, amending ADR-0260; reviewed 2026-10-26; PR #54 holds its landing record).
+- The host rewrites every upload before it keeps it: each format's container is walked, and what decoding, colour, animation and a JPEG's turn need is copied byte for byte (the turn as an Exif holding `Orientation` alone); an ICC profile is kept for its colour without its descriptions, device fields, time or ID; everything else is dropped, and a container that does not parse is refused whole. Not claimed: the pixels, a profile's measured colour tags, data hidden in a JPEG's scan, and images a deployment kept before.
 
 [ADR-0384](DECISIONS/ADR-0384-a-dating-app.md):
 A dating app: whose a row is, who else may read it, and what a precise value reveals (track `hinge-design`; accepted 2026-10-25 as the fifth reference app's plan, docs only).
