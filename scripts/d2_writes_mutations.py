@@ -58,6 +58,9 @@ CHECK = ROOT / "compiler/pw-core/src/check.rs"
 TABLE_DECL = ROOT / "compiler/pw-core/src/tables.rs"
 
 MUTANTS = [
+    ('a put is refused by an unrelated row', LINK, '        _ => its != mine && shares,\n', '        _ => its != mine,\n'),
+    ('a delete manifest may select other than the whole key', TABLES, '            Primitive::Get | Primitive::GetMany | Primitive::Delete if by != self.key => {\n', '            Primitive::Get | Primitive::GetMany if by != self.key => {\n'),
+    ('a delete-prefix manifest may select other than a proper key prefix', TABLES, '            Primitive::Prefix | Primitive::PrefixMany | Primitive::DeletePrefix if !prefix => Err(\n', '            Primitive::Prefix | Primitive::PrefixMany if !prefix => Err(\n'),
     ('terminal failure publication skips the wait-mutex handshake', MEMORY, '    fn fail(&self) -> Error {\n        let guard = self\n            .working\n            .lock()\n            .unwrap_or_else(|poisoned| poisoned.into_inner());\n        self.mark_failed();\n        drop(guard);\n        self.wake_failed();\n        Error::StoragePoisoned\n    }\n', '    fn fail(&self) -> Error {\n        self.mark_failed(); self.wake_failed(); Error::StoragePoisoned\n    }\n'),
     ('an observer capture is dropped under its registration lock', MEMORY, '            Ok(mut slot) => slot.replace(observer),\n', '            Ok(mut slot) => { drop(slot.replace(observer)); None::<Arc<dyn Fn() + Send + Sync>> },\n'),
     ("compiler admits two indexes on the same ordered fields", TABLE_DECL,

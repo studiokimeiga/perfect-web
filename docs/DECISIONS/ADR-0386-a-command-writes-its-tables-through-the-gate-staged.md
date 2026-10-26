@@ -211,6 +211,15 @@ commits nothing).
 
 ## Not claimed
 
+- **Authorized commands using tables**: `requires` commands cannot yet use
+  the generic table call path; authenticated/authorized table routing must
+  be wired through the same engine gate before this is a complete app host.
+- **Opaque parameter semantics at the link boundary**: table WIT parameters
+  named `arg0`, `arg1` erase the meaning of equally typed composite key
+  positions. The current link can check order and primitive value types,
+  not distinguish two exchanged opaque keys of the same lowered type. This
+  remains an explicit conformance/contract obligation, not a solved property.
+
 - **The development server serving a program's tables**: `from_build_layers`
   reading tables.json, a `DataLayer` over `MemoryTables` (`reads` its
   `read_host_fns`, `begin` its `Command`, `rows` its `written`, `commit` its
@@ -341,3 +350,19 @@ has 65 controls; its whole campaign and final independent review are still
 pending. The compiler's 36 table tests and its duplicate-index control also
 pass their focused checks. No platform outbox or durable transaction claim
 is added by these results.
+
+Additional review coverage exercises a put refusal by an unrelated row and
+by its own key, beside the legitimate other-key/unique-value neighbor;
+malformed delete and delete-prefix selectors are rejected at manifest
+admission. Three controls drop those exact conditions. A prepared command
+unpublished on drop already has an explicit row/turn regression in the
+failure suite. These close test gaps in existing guards; they add no new
+claim of host routing or app functionality.
+
+The final focused refusal/selector checks pass the complete nine-test
+compiled-gate/compiled-reads inventory; each of the three new controls
+compiles and fails one native assertion. The adapter now has 80 passing
+tests and the catalog 68 controls. These changes close F3's specified
+coverage cases; F7's authorized-table routing and erased composite-key
+meaning remain explicit limitations. The PW0361 question above was ruled
+yes and implemented with its fixture and control in `b019575e`.

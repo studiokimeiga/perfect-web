@@ -235,7 +235,7 @@ fn an_answer_not_its_reads_is_refused() {
 fn a_manifest_is_whole_for_every_primitive() {
     let program = program();
     type Edit = fn(&mut serde_json::Value);
-    let cases: [(&str, Edit); 16] = [
+    let cases: [(&str, Edit); 18] = [
         (
             "reads by other than a proper prefix of Items's key",
             |json| function(json, "Items", "of_list")["by"] = json!(["id"]),
@@ -322,13 +322,26 @@ fn a_manifest_is_whole_for_every_primitive() {
         ("Lists is bounded to no row", |json| {
             table(json, "Lists")["bounded"] = json!(0)
         }),
+        ("reads by other than Items's key", |json| {
+            function(json, "Items", "delete")["by"] = json!(["id"]);
+        }),
+        (
+            "reads by other than a proper prefix of Items's key",
+            |json| {
+                let deleting = function(json, "Items", "delete_of_list");
+                deleting["by"] = json!(["id"]);
+                deleting["name"] = json!("delete_of_id");
+                deleting["import"] = json!("pw:tables/items#delete-of-id");
+            },
+        ),
         ("Items's key names a field twice", |json| {
             table(json, "Items")["key"] = json!(["list", "list"])
         }),
     ];
     for (words, edit) in cases {
-        let refused = manifest_where(&program.tables, edit)
-            .expect_err(&format!("a manifest whose {words} is refused"));
+        let result = manifest_where(&program.tables, edit);
+        assert!(result.is_err(), "a manifest whose {words} is refused");
+        let refused = result.err().unwrap();
         assert!(refused.contains(words), "{words}: {refused}");
     }
     assert!(manifest_where(&program.tables, |_| {}).is_ok());

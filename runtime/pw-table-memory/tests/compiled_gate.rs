@@ -379,3 +379,38 @@ fn a_writes_answer_that_is_not_its_own_is_refused() {
         "{refused}"
     );
 }
+
+/// A put replaces its own key; only another key sharing a unique value
+/// can legitimately refuse it. An unrelated row grants no such refusal.
+#[test]
+fn a_put_refusal_must_hold_a_unique_value_for_another_key() {
+    let program = writer();
+    let tables = MemoryTables::new(program.tables.clone()).unwrap();
+    let renamer = program.reader(RENAME);
+    let granted = renamer.admitted(&renamer.contract, &grants(NODE));
+    let given = list("next", "work", 2);
+    for held in [list("other", "elsewhere", 9), list("next", "work", 2)] {
+        let (callback, calls) = answering(vec![Val::Result(Err(Some(Box::new(held))))]);
+        let host = BTreeMap::from([("pw:tables/lists#put".to_string(), callback)]);
+        let answer = renamer.call(
+            &granted,
+            &host,
+            tables.host_tables(),
+            std::slice::from_ref(&given),
+        );
+        assert!(
+            answer.is_err(),
+            "a put may not be refused by an unrelated row or its own key"
+        );
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+    let held = list("other", "work", 9);
+    let expected = vec![Val::Result(Err(Some(Box::new(held))))];
+    let (callback, calls) = answering(expected.clone());
+    let host = BTreeMap::from([("pw:tables/lists#put".to_string(), callback)]);
+    assert_eq!(
+        renamer.call(&granted, &host, tables.host_tables(), &[given]),
+        Ok(expected)
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+}
