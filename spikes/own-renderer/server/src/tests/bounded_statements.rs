@@ -981,6 +981,10 @@ fn placing_and_settling_where_payments_are_taken_is_bounded() {
 // and `settle_payment` the order's time where it settles one paid (1 more).
 // Track `second-host` (ADR-0369): and each commit's lock and notify on the
 // outbox (1), as [`PAGES`]' commands.
+// ADR0388: each Clock completion also locks its exact queue generation and
+// conditionally deletes that row in the authoritative transaction (2 SQL).
+// Native red/green measurements retain exact equality at seed and 50 stores;
+// only expire_order and send_to_store execute as Clock in this scenario.
 const AWAITING: &[(&str, u64)] = &[
     ("place_order, taking payments: its transaction", 39),
     (
@@ -992,7 +996,7 @@ const AWAITING: &[(&str, u64)] = &[
         "settle_payment, on the provider's word of the cancel: its transaction",
         15,
     ),
-    ("expire_order, run thirty minutes on: its transaction", 27),
+    ("expire_order, run thirty minutes on: its transaction", 29),
     (
         "settle_payment, on the provider's word of the sweep's cancel: its transaction",
         15,
@@ -1014,7 +1018,7 @@ const AWAITING: &[(&str, u64)] = &[
     ),
     (
         "send_to_store, run when its preparation is due: its transaction",
-        10,
+        12,
     ),
 ];
 

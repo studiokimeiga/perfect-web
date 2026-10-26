@@ -62,3 +62,17 @@ The bc0 campaign's declared-Err mutation blocked its synchronous competing-host 
 PostgreSQL18's SELECT locking-clause documentation confirms NOWAIT reports a row-lock conflict instead of waiting (https://www.postgresql.org/docs/18/sql-select.html, read2026-10-26). It does not bypass table locks; this witness has an isolated fresh schema and no competing DDL. The initial owner-string fixture selected no physical row and earns no positive/kill credit; the corrected check uses the fixture's owned table without depending on private owner encoding.
 
 The corrected pilot completed the full31-test baseline and all31mutated results: two named native assertion failures, no timeouts/process stops, verified owned-schema absence and source restoration. This is SUBSET1/21 only. The entire21-control campaign and all affected recipes at the final source still must pass.
+
+## Whole PostgreSQL gate: exact statement pins, 2026-10-26
+
+Whole verify40370244716 at ee0c327e failed e14-store-postgres despite its
+wrapper job succeeding. The native whole suite returned101: payment bounds
+kept the pre-fence Clock pins. Reproduction at8eda43e2 shows exact seed/50-store
+equality across all10 transactions; only expire_order27->29 and send_to_store
+10->12 differ from the historical pins. The two added statements are the
+authoritative queue SELECT FOR UPDATE and exact conditional DELETE, both
+counted by StorePg. Re-pin precisely those two values; retain equality at both
+sizes and all other exact bounds. This is test-contract maintenance for actual
+work, not a looser/unbounded assertion. Original whole run remains failed;
+new native checks, full reached verification and exact publication gates are
+required. No unchanged campaign is reattributed to this new test commit.
