@@ -25,4 +25,4 @@ serde_json = { workspace = true }
 tempfile.workspace = true
 # Already in the graph through pw-host (48.0.7 in Cargo.lock): the oracle reads
 # each artifact's own types to generate its inputs.
-wasmtime = "48.0.7"
+wasmtime = { workspace = true }
