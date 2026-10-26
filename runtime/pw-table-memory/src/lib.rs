@@ -1113,7 +1113,9 @@ fn supported(ty: &Stored) -> bool {
         | Stored::Bool
         | Stored::Float
         | Stored::Unit => true,
-        Stored::Option(inner) => !matches!(**inner, Stored::Option(_)) && supported(inner),
+        Stored::Option(inner) => {
+            !matches!(**inner, Stored::Option(_) | Stored::Unit) && supported(inner)
+        }
         Stored::List(inner) => supported(inner),
         Stored::Record(fields) => fields.iter().all(|f| supported(&f.stored)),
         Stored::Map(_, _) | Stored::Set(_) | Stored::Cases(_) | Stored::Recursive(_) => false,

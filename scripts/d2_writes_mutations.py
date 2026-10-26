@@ -57,6 +57,7 @@ MEMORY = ROOT / "runtime/pw-table-memory/src/lib.rs"
 CHECK = ROOT / "compiler/pw-core/src/check.rs"
 
 MUTANTS = [
+    ('the adapter stores nullable unit as indistinguishable null', MEMORY, '        Stored::Option(inner) => {\n            !matches!(**inner, Stored::Option(_) | Stored::Unit) && supported(inner)\n        }\n', '        Stored::Option(inner) => {\n            !matches!(**inner, Stored::Option(_)) && supported(inner)\n        }\n'),
     ('a wait observer runs with the working lock held', MEMORY, '            drop(working);\n            if let Some(tell) = tell {\n                tell();\n            }\n', '            if let Some(tell) = tell { tell(); }\n            drop(working);\n'),
     ('internal storage failure leaves existing waiters asleep', MEMORY, '        self.turn.notify_all();\n', '        // mutation: no failure wakeup\n'),
     ('internal storage failure is not sticky', MEMORY, '        self.failed.store(true, Ordering::Release);\n', '        // mutation: no sticky failure\n'),
@@ -264,9 +265,7 @@ MUTANTS = [
     ("a refused write traps its command", MEMORY,
      "                            Err(Error::Conflict { existing, .. }) => Ok(Some(existing)),\n",
      "                            Err(Error::Conflict { existing, .. }) => Err(existing.to_string()),\n"),
-    ("the adapter stores an Option of an Option", MEMORY,
-     "        Stored::Option(inner) => !matches!(**inner, Stored::Option(_)) && supported(inner),\n",
-     "        Stored::Option(inner) => supported(inner),\n"),
+    ('the adapter stores an Option of an Option', MEMORY, '        Stored::Option(inner) => {\n            !matches!(**inner, Stored::Option(_) | Stored::Unit) && supported(inner)\n        }\n', '        Stored::Option(inner) => {\n            !matches!(**inner, Stored::Unit) && supported(inner)\n        }\n'),
     # 7. which queries a write invalidates: the command's, held whole (PW5106)
     ("a table's write leaves its readers as they were (PW5106 reads no write)", CHECK,
      "        let writes: BTreeSet<String> = inference\n"

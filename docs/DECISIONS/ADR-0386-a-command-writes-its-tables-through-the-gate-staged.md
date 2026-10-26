@@ -134,8 +134,12 @@ commits nothing).
    every key first, so no unique value is held twice between two steps.
 10. **Not served, refused:** an `Option` of an `Option` (its `Some(None)`
     cannot be stored apart from its `None`), refused where it links, where a
-    row is decoded, and where the adapter is made; two indexes on one field
-    set, refused where the manifest is read.
+    row is decoded, and where the adapter is made. The adapter also refuses
+    `Option<Unit>`, including inside a list or record: its `Some(())` and
+    `None` would both be JSON null. Plain Unit and Option<Bool> remain valid.
+    Two indexes on one ordered field list are refused at compiler PW0361
+    and again where the host reads the manifest; neither ordering of unique
+    and non-unique declarations is an exception.
 
 ## Alternatives
 
@@ -299,3 +303,8 @@ Prepare/publish failures never report `Committed`; a prepared command
 unpublished on drop restores its rows and releases its turn. These local
 results are bounded proofs, not a claim that the revised whole campaign,
 independent final review or platform transaction integration has completed.
+
+A failing-first regression reproduced adapter admission of `Option<Unit>`;
+nullable unit is now refused recursively at adapter construction, with
+plain Unit and nullable Bool as valid neighbors. Compiler PW0361's matching
+index-list rule remains required until its own regression and fix land.

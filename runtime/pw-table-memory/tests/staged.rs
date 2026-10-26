@@ -741,3 +741,26 @@ fn integer_changes_above_float_precision_are_not_lost() {
         );
     }
 }
+
+#[test]
+fn an_option_of_unit_is_refused_before_some_and_none_can_merge() {
+    for stored in [
+        Stored::Option(Box::new(Stored::Unit)),
+        Stored::List(Box::new(Stored::Option(Box::new(Stored::Unit)))),
+    ] {
+        let mut shape = manifest(10);
+        shape.tables[1].schema.fields.push(field("note", stored));
+        shape.hash = Schema::of(shape.tables.iter().map(|t| t.schema.clone()).collect()).hash;
+        shape.migration.to = shape.hash.clone();
+        assert!(
+            matches!(MemoryTables::new(shape),Err(Error::Schema(why)) if why.contains("unsupported storage encoding"))
+        );
+    }
+    for stored in [Stored::Unit, Stored::Option(Box::new(Stored::Bool))] {
+        let mut shape = manifest(10);
+        shape.tables[1].schema.fields.push(field("note", stored));
+        shape.hash = Schema::of(shape.tables.iter().map(|t| t.schema.clone()).collect()).hash;
+        shape.migration.to = shape.hash.clone();
+        assert!(MemoryTables::new(shape).is_ok());
+    }
+}
