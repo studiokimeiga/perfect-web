@@ -95,6 +95,8 @@ pub struct Committed {
 /// scheduled again is another.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScheduledRun {
+    /// Versioned scheduler completion protocol; legacy0 requires reconciliation.
+    pub protocol: i64,
     pub id: i64,
     pub command: String,
     pub args: String,
@@ -302,6 +304,7 @@ pub enum Trace {
 
 /// The store: application state, the outbox, and the materialized entries.
 pub struct Materializer {
+    queue_authority: QueueAuthority,
     db: Mutex<Connection>,
     clock: Clock,
     /// The compatibility generation every entry is namespaced by.
@@ -360,12 +363,14 @@ impl Materializer {
                  user_id  TEXT NOT NULL,
                  due_ms   INTEGER NOT NULL,
                  attempts INTEGER NOT NULL DEFAULT 0,
-                 failed   TEXT
+                 failed   TEXT,
+                 protocol INTEGER NOT NULL DEFAULT 1 CHECK (protocol IN (0, 1))
              );
              CREATE INDEX schedules_due ON schedules (due_ms);",
         )
         .expect("schema");
         Materializer {
+            queue_authority: QueueAuthority::new(),
             db: Mutex::new(db),
             clock,
             compatibility: compatibility.to_string(),
@@ -507,7 +512,7 @@ impl Materializer {
     ) -> Result<(), String> {
         tx.execute(
             "INSERT INTO interactions (key, sent, answer, at_ms) VALUES (?1, ?2, ?3, ?4)",
-            params![key, sent, answer, at_ms as i64],
+            params![key, sent, answer, i64::try_from(at_ms).unwrap_or(i64::MAX)],
         )
         .map(|_| ())
         .map_err(|e| format!("interaction `{key}` not recorded: {e}"))
@@ -518,7 +523,7 @@ impl Materializer {
     pub fn prune_interactions(tx: &rusqlite::Transaction<'_>, before_ms: u64) {
         tx.execute(
             "DELETE FROM interactions WHERE at_ms < ?1",
-            params![before_ms as i64],
+            params![i64::try_from(before_ms).unwrap_or(i64::MAX)],
         )
         .expect("interactions pruned");
     }
@@ -530,7 +535,7 @@ impl Materializer {
         let db = self.db();
         db.query_row(
             "SELECT sent, answer FROM interactions WHERE key = ?1 AND at_ms >= ?2",
-            params![key, since_ms as i64],
+            params![key, i64::try_from(since_ms).unwrap_or(i64::MAX)],
             |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)),
         )
         .ok()
@@ -584,7 +589,7 @@ impl Materializer {
         let db = self.db();
         let mut stmt = db
             .prepare(&format!(
-                "SELECT id, command, args, user_id, due_ms, attempts, failed FROM schedules {filter}"
+                "SELECT id, command, args, user_id, due_ms, attempts, failed, protocol FROM schedules {filter}"
             ))
             .expect("prepare");
         let rows = stmt
@@ -597,6 +602,7 @@ impl Materializer {
                     due_ms: r.get(4)?,
                     attempts: r.get(5)?,
                     failed: r.get(6)?,
+                    protocol: r.get(7)?,
                 })
             })
             .expect("query");
@@ -972,6 +978,9 @@ impl Drop for FlightGuard<'_> {
         self.owner.done.notify_all();
     }
 }
+
+mod scheduled;
+pub use scheduled::QueueAuthority;
 
 #[cfg(test)]
 mod tests {

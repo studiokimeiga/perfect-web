@@ -183,13 +183,7 @@ MUTANTS = [
         "                            key: schedules::key(&scheduling.command, &args),\n",
         '                            key: schedules::key(&scheduling.command, ""),\n',
     ),
-    (
-        "a scheduling that writes nothing else commits nothing",
-        MEMORY,
-        SERVER,
-        "            None if !scheduled.is_empty() => Vec::new(),\n",
-        "            None if false => Vec::new(),\n",
-    ),
+    ("a scheduling that writes nothing else commits nothing", MEMORY, SERVER, '            None if !scheduled.is_empty() || completing.is_some() => Vec::new(),\n', '            None if completing.is_some() => Vec::new(),\n'),
     (
         "a duration is counted from 1970",
         MEMORY,
@@ -232,20 +226,8 @@ MUTANTS = [
         '            &format!("schedule-{}", run.id),\n            &run.user,\n',
         '            &format!("schedule-{}", run.id),\n            "nobody",\n',
     ),
-    (
-        "a run answered is kept",
-        MEMORY,
-        SERVER,
-        "                self.runs().ran(run.id)\n",
-        "                Ok(())\n",
-    ),
-    (
-        "a refused run is taken as answered",
-        MEMORY,
-        SERVER,
-        "            Ok(answered) => answered.why,\n",
-        "            Ok(_) => None,\n",
-    ),
+    ("a run answered is kept", MEMORY, MATERIALIZE.with_name("scheduled.rs"), '        let changed = tx.execute(\n            "DELETE FROM schedules WHERE id = ?1 AND command = ?2 AND args = ?3 AND user_id = ?4 AND due_ms = ?5 AND attempts = ?6 AND failed IS NULL AND protocol = 1",\n            params![expected.id, expected.command, expected.args, expected.user, expected.due_ms, expected.attempts],\n        ).map_err(|_| "scheduled completion was refused".to_string())?;\n', '        let changed = 1;\n'),
+    ("a refused run is taken as answered", MEMORY, SERVER, '            Err(why) => why,\n        };\n        let failures = run.attempts.saturating_add(1);\n', '            Err(_why) => return false,\n        };\n        let failures = run.attempts.saturating_add(1);\n'),
     (
         "a refused run runs again at once",
         MEMORY,
@@ -253,13 +235,7 @@ MUTANTS = [
         "    2000_i64\n",
         "    0_i64\n",
     ),
-    (
-        "a refused run is never kept failed",
-        MEMORY,
-        SERVER,
-        "            Some(why) if run.attempts >= schedules::RETRIES => {\n",
-        "            Some(why) if run.attempts >= i64::MAX => {\n",
-    ),
+    ("a refused run is never kept failed", MEMORY, SERVER, '        let terminal = run.attempts >= schedules::RETRIES;\n', '        let terminal = false;\n'),
     (
         "a run's commit is told to no one reading it",
         MEMORY,

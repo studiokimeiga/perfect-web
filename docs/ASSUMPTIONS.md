@@ -505,3 +505,6 @@ text loading). **If false** (if production loaded it as text): live
 kiokun.com marks every hit Common, a bug of kiokun.com's own for the owner,
 and the rewrite's oracle names that as a Difference rather than matching it.
 
+
+
+- ADR0388 candidate: scheduled generation ids are not reused; adapter tokens are local and cannot be persisted/transferred. Rebuilding/restarting selects anew. SQL queue state is authoritative even if a commit acknowledgement is missing; no rollback is inferred from String Err. Local seam tests cover after-commit adapter errors, not actual interrupted sockets or process loss. Old workers must be quiesced for protocol1 rollout. Final strict whole campaign and exact-source hosted proof remain pending.

@@ -1307,7 +1307,7 @@ where
         due_ms: Some(due),
     };
     let mut seed = layer.begin("private-test-session");
-    seed.commit(&[], &[], None, &[scheduled(10)])
+    seed.commit(&[], &[], None, &[scheduled(10)], None)
         .expect("the original run committed");
     drop(seed);
     let original = layer.all_runs().expect("the original run");
@@ -1328,7 +1328,7 @@ where
         let waited = write.waited();
         // Waiting at the guard, the write has changed nothing yet.
         let while_waiting = layer.all_runs().expect("the runs while the write waits");
-        let committed = staged.commit(&[], &[], None, &[scheduled(20)]);
+        let committed = staged.commit(&[], &[], None, &[scheduled(20)], None);
         // Release every guard and drain before asserting, also on a refusal.
         drop(staged);
         let finished = write.returned();

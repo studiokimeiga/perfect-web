@@ -1412,3 +1412,8 @@ The host refuses it with an unsupported-image response rather than change
 that appearance. Split/sequence-only-empty fdAT without interleaving and
 ancillary chunks before/after frames remain supported. This is a stricter
 supported subset than APNG's ordering rules, not malformed-file evidence.
+
+
+### Scheduled generation repair (ADR0388, local candidate, 2026-10-26)
+
+The new queue fence is implemented locally, with adversarial PG/materializer tests; hosted source proof, strict whole mutation campaign, independent final review and published-head gates are pending. It does not give exactly-once Wasm evaluation or external HTTP effects. A lost adapter acknowledgement after an actual PG commit is exercised, including hidden/pruned receipts; actual socket loss during COMMIT, process kill and unsettled upload claims remain unproved. Upgrade requires quiescing old workers and reconciling protocol0 quarantine; it does not repair previously duplicated effects or support mixed-version execution. Admission quotas/fairness for pending/failed work and generic D2 business/platform-outbox integration remain unfinished.

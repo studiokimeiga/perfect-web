@@ -629,7 +629,7 @@ command post_in_five(text: PostText) -> Result<Int, FeedError>
 
 /// The feed's `app.pw`, with [`SCHEDULING`]'s commands and the clock's
 /// `minutes` they read.
-fn with_scheduling(app: &str) -> String {
+pub(super) fn with_scheduling(app: &str) -> String {
     let imported = app.replacen(
         "\nimport List\n",
         "\nimport List\nimport clock.{ minutes }\n",

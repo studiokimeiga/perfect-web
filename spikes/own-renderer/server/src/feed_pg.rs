@@ -71,6 +71,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "0011_sessions",
         include_str!("../migrations/feed/0011_sessions.sql"),
     ),
+    (
+        "0012_scheduled_commit",
+        include_str!("../migrations/feed/0012_scheduled_commit.sql"),
+    ),
 ];
 
 /// **How a command's transaction is opened.** The layer sets serializable on
@@ -892,6 +896,7 @@ fn author(c: &mut Client, principals: &Principals, session: &str) -> Result<Stri
 
 /// **The feed's data in one PostgreSQL database.**
 pub(crate) struct FeedPg {
+    queue_authority: pw_materialize::QueueAuthority,
     pool: Arc<Pool>,
     /// TRACK SEAM (render-merge): the renders' connections (NEXT 4c).
     renders: Arc<Renders>,
@@ -962,6 +967,7 @@ impl FeedPg {
         let sessions = Arc::new(crate::hosts::SessionsPg::new(url, &outbox.schema));
         let tail = crate::hosts::Tail::at(url, outbox, &host, highest);
         Ok(FeedPg {
+            queue_authority: pw_materialize::QueueAuthority::new(),
             pool,
             renders: Renders::new(url, schema, seats),
             isolation,
@@ -1040,13 +1046,15 @@ fn val_of(json: &serde_json::Value) -> Result<Val, String> {
 /// **A command's transaction** (ADR-0218, ADR-0246): its connection, in
 /// the transaction `begin` opened, from the call to the commit.
 pub(crate) struct Staging<'a> {
+    queue_authority: &'a pw_materialize::QueueAuthority,
     _writes: std::sync::MutexGuard<'a, ()>,
     pool: Arc<Pool>,
     /// The connection, given back to the pool when the staging is dropped.
     conn: Arc<Mutex<Option<Client>>>,
     /// Whether the command wrote anything.
     wrote: Arc<AtomicBool>,
-    /// Whether its transaction committed; dropped otherwise, it rolls back.
+    /// Whether COMMIT was acknowledged. Drop attempts rollback otherwise;
+    /// transport loss can still leave the authoritative outcome unknown.
     committed: bool,
     ops: crate::data::Ops,
     /// Track `uploads`: the leases the command claimed, given back where it
@@ -1082,11 +1090,28 @@ impl crate::data::Staged for Staging<'_> {
         invalidated: &[Dropped],
         interaction: Option<&crate::data::Recorded<'_>>,
         scheduled: &[crate::schedules::Scheduled],
-    ) -> Result<Option<Outboxed>, String> {
+        completing: Option<crate::schedules::Completing<'_>>,
+    ) -> Result<crate::data::Commit, String> {
         let mut conn = self.conn.lock().expect("the command's connection");
         let c = conn
             .as_mut()
             .ok_or("the command's transaction did not open")?;
+        if let Some(completion) = completing {
+            if !completion.belongs_to(self.queue_authority) {
+                return Err("scheduled completion belongs to another queue adapter".into());
+            }
+            match crate::schedules::pg::consume(c, completion.run, completion.now_ms, || {})
+                .map_err(pg)?
+            {
+                crate::schedules::pg::Fence::Consumed => {}
+                crate::schedules::pg::Fence::NotCurrent => {
+                    return Ok(crate::data::Commit::NotCurrent);
+                }
+                crate::schedules::pg::Fence::Refused => {
+                    return Err("scheduled completion removed no current row".into());
+                }
+            }
+        }
         // Track `uploads`: a post's image in the deployment's blob storage
         // before its row commits, so no committed post names bytes the
         // deployment does not have.
@@ -1157,13 +1182,16 @@ impl crate::data::Staged for Staging<'_> {
             }
         }
         match delivered(c, &ids) {
-            Ok(read) => Ok(Some(read)),
+            Ok(read) => Ok(crate::data::Commit::Applied(read)),
             // Committed, and not read back: what it handed is what
             // committed, and the other hosts read its rows from their
             // cursors; the command is not answered as refused.
             Err(why) => {
                 eprintln!("pw dev server: the feed's outbox was not read back: {why}");
-                Ok(Some((events.to_vec(), invalidated.to_vec())))
+                Ok(crate::data::Commit::Applied((
+                    events.to_vec(),
+                    invalidated.to_vec(),
+                )))
             }
         }
     }
@@ -1267,7 +1295,8 @@ impl Drop for Staging<'_> {
         let Some(mut c) = self.conn.lock().expect("the command's connection").take() else {
             return;
         };
-        // A command that failed, trapped or was refused commits nothing.
+        // Roll back an unacknowledged transaction when possible. A transport
+        // failure around COMMIT may have committed; queue/receipt state reconciles it.
         if !self.committed && c.batch_execute("ROLLBACK").is_err() {
             return;
         }
@@ -1283,6 +1312,28 @@ type InTransaction =
 /// **Its runs, outside a command** (the scheduled-commands track): those
 /// its `schedules` keeps, each statement on a connection of its own.
 impl crate::schedules::Runs for FeedPg {
+    fn authority(&self) -> &pw_materialize::QueueAuthority {
+        &self.queue_authority
+    }
+    fn current(
+        &self,
+        expected: &pw_materialize::ScheduledRun,
+        now_ms: i64,
+    ) -> Result<bool, String> {
+        self.pool
+            .with(|c| crate::schedules::pg::current(c, expected, now_ms))
+    }
+    fn retry_current(
+        &self,
+        expected: &pw_materialize::ScheduledRun,
+        attempts: i64,
+        due_ms: i64,
+        failed: Option<&str>,
+    ) -> Result<bool, String> {
+        let _writes = self.writes.lock().unwrap_or_else(|e| e.into_inner());
+        self.pool
+            .with(|c| crate::schedules::pg::retry_current(c, expected, attempts, due_ms, failed))
+    }
     fn due_runs(
         &self,
         now_ms: i64,
@@ -1296,11 +1347,13 @@ impl crate::schedules::Runs for FeedPg {
         self.pool.with(crate::schedules::pg::next_run)
     }
 
+    #[cfg(test)]
     fn ran(&self, id: i64) -> Result<(), String> {
         let _writes = self.writes.lock().unwrap_or_else(|e| e.into_inner());
         self.pool.with(|c| crate::schedules::pg::ran(c, id))
     }
 
+    #[cfg(test)]
     fn retry(
         &self,
         id: i64,
@@ -1730,6 +1783,7 @@ impl crate::data::DataLayer for FeedPg {
             }),
         );
         Box::new(Staging {
+            queue_authority: &self.queue_authority,
             _writes: writes,
             pool: self.pool.clone(),
             conn,

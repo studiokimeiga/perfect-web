@@ -176,13 +176,7 @@ MUTANTS = [
         "                Fate::Discarded => leases.discarded(claimed),\n",
         "                Fate::Discarded => leases.unclaim(claimed),\n",
     ),
-    (
-        "a post's image commits without its bytes in the deployment's storage",
-        RUST,
-        FEED,
-        '        self.claims.lock().expect("claims").keep()?;\n',
-        "",
-    ),
+    ("a post's image commits without its bytes in the deployment's storage", RUST, FEED, '    fn prepare_materialized(&mut self) -> Result<(), String> {\n        self.claims.lock().expect("claims").keep()\n    }\n', '    fn prepare_materialized(&mut self) -> Result<(), String> {\n        Ok(())\n    }\n'),
     (
         "on PostgreSQL, a post's image commits without its bytes in storage",
         "postgres",

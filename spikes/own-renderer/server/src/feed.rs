@@ -501,17 +501,9 @@ impl crate::data::Staged for Staging<'_> {
         })
     }
 
-    /// Track `uploads`: a post's image put in the deployment's blob storage
-    /// before the command commits; the host's materializer commits the rest.
-    fn commit(
-        &mut self,
-        _events: &[crate::data::Handed],
-        _invalidated: &[crate::data::Dropped],
-        _interaction: Option<&crate::data::Recorded<'_>>,
-        _scheduled: &[crate::schedules::Scheduled],
-    ) -> Result<Option<crate::data::Outboxed>, String> {
-        self.claims.lock().expect("claims").keep()?;
-        Ok(None)
+    /// Blob preparation occurs after the materializer's completion fence.
+    fn prepare_materialized(&mut self) -> Result<(), String> {
+        self.claims.lock().expect("claims").keep()
     }
 
     fn publish(&mut self) {

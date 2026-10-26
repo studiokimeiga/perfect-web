@@ -21,7 +21,7 @@
 //! [`DataLayer::begin`]: crate::data::DataLayer::begin
 
 use super::*;
-use crate::data::{Dropped, Handed, Ops, Outboxed, Provided};
+use crate::data::{Dropped, Handed, Ops, Provided};
 use crate::feed_pg::{Isolation, delivered, ident, json_of, pg};
 use crate::store::{AddressRow, Estimate, Faults, Item, Order, Rows, StoreRow, With, Written};
 use postgres::{Client, NoTls};
@@ -104,6 +104,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
     (
         "0019_sessions",
         include_str!("../migrations/store/0019_sessions.sql"),
+    ),
+    (
+        "0020_scheduled_commit",
+        include_str!("../migrations/store/0020_scheduled_commit.sql"),
     ),
 ];
 
@@ -932,6 +936,7 @@ impl Rows for PgRows<'_> {
 
 /// **The store's data in one PostgreSQL schema.**
 pub(crate) struct StorePg {
+    queue_authority: pw_materialize::QueueAuthority,
     pool: Arc<Pool>,
     /// TRACK SEAM (render-merge): the renders' connections, as the feed's
     /// (NEXT 4c): with the pool's, no more than `CONNECTIONS` + the
@@ -994,6 +999,7 @@ impl StorePg {
         let tail = crate::hosts::Tail::at(url, crate::hosts::Outbox::of(schema), &host, highest);
         let sessions = Arc::new(crate::hosts::SessionsPg::new(url, schema));
         Ok(StorePg {
+            queue_authority: pw_materialize::QueueAuthority::new(),
             pool,
             renders: crate::feed_pg::Renders::new(url, Some(schema), seats),
             isolation,
@@ -1087,12 +1093,14 @@ impl Drop for StorePg {
 /// **A command's transaction** (ADR-0218, ADR-0246): its connection, in
 /// the transaction `begin` opened, from the call to the commit.
 pub(crate) struct Staging<'a> {
+    queue_authority: &'a pw_materialize::QueueAuthority,
     _writes: std::sync::MutexGuard<'a, ()>,
     session: String,
     /// The connection, given back to the pool when the staging is dropped.
     conn: Arc<Mutex<Option<Conn>>>,
     written: Arc<Mutex<Written>>,
-    /// Whether its transaction committed; dropped otherwise, it rolls back.
+    /// Whether COMMIT was acknowledged. Drop attempts rollback otherwise;
+    /// transport loss can still leave the authoritative outcome unknown.
     committed: bool,
     ops: Ops,
     /// The layer's tally, and this command's place in it (NEXT 4b).
@@ -1105,6 +1113,9 @@ pub(crate) struct Staging<'a> {
 }
 
 impl crate::data::Staged for Staging<'_> {
+    fn projection_scope(&self) -> crate::data::ProjectionScope {
+        crate::data::ProjectionScope::Session
+    }
     fn ops(&self) -> Ops {
         self.ops.clone()
     }
@@ -1125,7 +1136,8 @@ impl crate::data::Staged for Staging<'_> {
         invalidated: &[Dropped],
         interaction: Option<&crate::data::Recorded<'_>>,
         scheduled: &[crate::schedules::Scheduled],
-    ) -> Result<Option<Outboxed>, String> {
+        completing: Option<crate::schedules::Completing<'_>>,
+    ) -> Result<crate::data::Commit, String> {
         // The commit's statements are the command's (the integrator's ruling
         // on NEXT 4b): what it handed the outbox, its interaction's record,
         // the runs it scheduled or cancelled, and the outbox read back, each
@@ -1133,7 +1145,7 @@ impl crate::data::Staged for Staging<'_> {
         // data's size.
         let (tally, txn) = (self.tally.clone(), self.txn);
         tally.around_in(txn, || {
-            self.committed_with(events, invalidated, interaction, scheduled)
+            self.committed_with(events, invalidated, interaction, scheduled, completing)
         })
     }
 }
@@ -1145,12 +1157,31 @@ impl Staging<'_> {
         invalidated: &[Dropped],
         interaction: Option<&crate::data::Recorded<'_>>,
         scheduled: &[crate::schedules::Scheduled],
-    ) -> Result<Option<Outboxed>, String> {
+        completing: Option<crate::schedules::Completing<'_>>,
+    ) -> Result<crate::data::Commit, String> {
         let mut conn = self.conn.lock().expect("the command's connection");
         let c = conn
             .as_mut()
             .ok_or("the command's transaction did not open")?
             .client();
+        if let Some(completion) = completing {
+            if !completion.belongs_to(self.queue_authority) {
+                return Err("scheduled completion belongs to another queue adapter".into());
+            }
+            match crate::schedules::pg::consume(c, completion.run, completion.now_ms, || {
+                Counted::ran(1)
+            })
+            .map_err(pg)?
+            {
+                crate::schedules::pg::Fence::Consumed => {}
+                crate::schedules::pg::Fence::NotCurrent => {
+                    return Ok(crate::data::Commit::NotCurrent);
+                }
+                crate::schedules::pg::Fence::Refused => {
+                    return Err("scheduled completion removed no current row".into());
+                }
+            }
+        }
         // **The interaction's answer, with the writes** (ADR-0325).
         if let Some(r) = interaction {
             crate::feed_pg::record(c, r)?;
@@ -1212,13 +1243,16 @@ impl Staging<'_> {
         // The outbox's rows read back, one statement.
         Counted::ran(1);
         match delivered(c, &ids) {
-            Ok(read) => Ok(Some(read)),
+            Ok(read) => Ok(crate::data::Commit::Applied(read)),
             // Committed, and not read back: what it handed is what
             // committed, and the other hosts read its rows from their
             // cursors; the command is not answered as refused.
             Err(why) => {
                 eprintln!("pw dev server: the store's outbox was not read back: {why}");
-                Ok(Some((events.to_vec(), invalidated.to_vec())))
+                Ok(crate::data::Commit::Applied((
+                    events.to_vec(),
+                    invalidated.to_vec(),
+                )))
             }
         }
     }
@@ -1229,7 +1263,8 @@ impl Drop for Staging<'_> {
         let Some(mut conn) = self.conn.lock().expect("the command's connection").take() else {
             return;
         };
-        // A command that failed, trapped or was refused commits nothing.
+        // Roll back an unacknowledged transaction when possible. A transport
+        // failure around COMMIT may have committed; queue/receipt state reconciles it.
         if !self.committed && conn.client().batch_execute("ROLLBACK").is_err() {
             conn.discard();
         }
@@ -1239,6 +1274,29 @@ impl Drop for Staging<'_> {
 /// **Its runs, outside a command** (the scheduled-commands track): those
 /// its `schedules` keeps, each statement on a connection of its own.
 impl crate::schedules::Runs for StorePg {
+    fn authority(&self) -> &pw_materialize::QueueAuthority {
+        &self.queue_authority
+    }
+    fn current(
+        &self,
+        expected: &pw_materialize::ScheduledRun,
+        now_ms: i64,
+    ) -> Result<bool, String> {
+        let mut conn = self.pool.take()?;
+        crate::schedules::pg::current(conn.client(), expected, now_ms).map_err(pg)
+    }
+    fn retry_current(
+        &self,
+        expected: &pw_materialize::ScheduledRun,
+        attempts: i64,
+        due_ms: i64,
+        failed: Option<&str>,
+    ) -> Result<bool, String> {
+        let _writes = self.writes.lock().unwrap_or_else(|e| e.into_inner());
+        let mut conn = self.pool.take()?;
+        crate::schedules::pg::retry_current(conn.client(), expected, attempts, due_ms, failed)
+            .map_err(pg)
+    }
     fn due_runs(
         &self,
         now_ms: i64,
@@ -1253,12 +1311,14 @@ impl crate::schedules::Runs for StorePg {
         crate::schedules::pg::next_run(conn.client()).map_err(pg)
     }
 
+    #[cfg(test)]
     fn ran(&self, id: i64) -> Result<(), String> {
         let _writes = self.writes.lock().unwrap_or_else(|e| e.into_inner());
         let mut conn = self.pool.take()?;
         crate::schedules::pg::ran(conn.client(), id).map_err(pg)
     }
 
+    #[cfg(test)]
     fn retry(
         &self,
         id: i64,
@@ -1409,6 +1469,7 @@ impl crate::data::DataLayer for StorePg {
             "command",
         );
         Box::new(Staging {
+            queue_authority: &self.queue_authority,
             _writes: writes,
             session: session.to_string(),
             conn,

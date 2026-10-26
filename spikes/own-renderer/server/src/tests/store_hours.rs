@@ -588,7 +588,7 @@ fn a_repeated_store_in_a_set_read_keeps_all_of_its_hours() {
         );
     }
     staged
-        .commit(&[], &[], None, &[])
+        .commit(&[], &[], None, &[], None)
         .expect("the fixture commits");
     staged.publish();
     drop(staged);

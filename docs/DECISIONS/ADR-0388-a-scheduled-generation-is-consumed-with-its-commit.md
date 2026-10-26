@@ -33,3 +33,10 @@ No exactly-once Wasm evaluation, external HTTP effect, cross-source atomic trans
 ## Primary API check
 
 Pinned Rust1.97.1 supports `Arc::ptr_eq`, stable since1.17: https://doc.rust-lang.org/std/sync/struct.Arc.html#method.ptr_eq (read2026-10-26). Raw address equality alone can alias nested owners, so the proposed design instead uses distinct private live allocations. PostgreSQL18 DELETE reports rows actually removed, including zero when a BEFORE DELETE trigger suppresses removal: https://www.postgresql.org/docs/18/sql-delete.html (read2026-10-26). Use affected-row evidence, never assume a matching predicate removed a row.
+
+
+## Local implementation candidate (2026-10-26)
+
+Adapter-owned fencing, typed NotCurrent, conditional retry/reconciliation, fresh terminal-error staging and Clock cache/lifetime separation are implemented. Independent review's suppressed UPDATE case first reproduced native [1,1,1] waits and now observes [1000,1000,1000]. The strict local baseline has29native tests with full named inventories, test-only assertion provenance and independently queried absence of each owned fresh PG schema. Fourteen adversarial producer tests pass. Existing117upload/blob and10scheduling regressions pass; default/PG-feature preflight/clippy and real server build pass. Earlier parallel PG setup exhaustion is invalid evidence.
+
+The18control whole strict campaign and retargeted legacy campaigns remain pending, as do hosted source receipts, final independent commit review and every exact published-head gate. Adapter-ACK-loss tests follow real Applied SQL commits with visible/hidden/pruned receipts; they do not simulate socket loss while the adapter's committed flag is unknown, OS kills or unsettled external claims. No completed D2, private-media/session revocation or complete-app claim follows.

@@ -1218,6 +1218,7 @@ struct Server {
     /// **How the scheduled runs ended** since the host started (the
     /// scheduled-commands track), which `/metrics` reports.
     counted_runs: CountedRuns,
+    scheduled_locks: Mutex<BTreeMap<i64, std::sync::Weak<Mutex<()>>>>,
     /// **The deployment's public origin** (ADR-0311), `PW_ORIGIN`, as the
     /// identity reads it: what a page's canonical address is written
     /// absolute with, never a request's `Host`, which its client chooses.
@@ -2008,6 +2009,7 @@ impl Server {
             identity,
             uploads: uploads::Uploads::default(),
             counted_runs: CountedRuns::default(),
+            scheduled_locks: Mutex::new(BTreeMap::new()),
         }
     }
 
@@ -2609,8 +2611,21 @@ impl Server {
         interaction: Option<&str>,
         record: Option<(&str, &str)>,
     ) -> Result<Answered, String> {
+        self.command_recorded_for(component_id, session, args, interaction, record, None)?
+            .into_answer()
+    }
+
+    fn command_recorded_for(
+        &self,
+        component_id: &str,
+        session: &str,
+        args: &[Val],
+        interaction: Option<&str>,
+        record: Option<(&str, &str)>,
+        completing: Option<schedules::Completing<'_>>,
+    ) -> Result<CommandOutcome, String> {
         let (answered, dropped) =
-            self.command_held(component_id, session, args, interaction, record)?;
+            self.command_held(component_id, session, args, interaction, record, completing)?;
         // Every other session holding what the commit dropped is told after
         // the author is answered (ADR-0219), so a post's answer does not
         // wait on every reader.
@@ -2643,12 +2658,13 @@ impl Server {
         args: &[Val],
         interaction: Option<&str>,
         record: Option<(&str, &str)>,
-    ) -> Result<(Answered, Vec<Reached>), String> {
+        completing: Option<schedules::Completing<'_>>,
+    ) -> Result<(CommandOutcome, Vec<Reached>), String> {
         // The session's one change at a time, through its frames (ADR-0172).
-        let session_lock = self.one_at_a_time(session);
+        let session_lock = completing.is_none().then(|| self.one_at_a_time(session));
         let _one = session_lock
-            .lock()
-            .expect("one change of a session at a time");
+            .as_ref()
+            .map(|lock| lock.lock().expect("one change of a session at a time"));
         // The data layer's writes, staged until the transaction commits
         // (ADR-0218): for the store, the session's cart, under one lock held
         // across the call and the commit — two presses in the same instant
@@ -2703,7 +2719,17 @@ impl Server {
                     why: None,
                     refused: None,
                 };
-                return Ok((answered, Vec::new()));
+                if let Some(completion) = completing {
+                    // Release every old operation/claim and Writes before new staging.
+                    drop(out);
+                    drop(host);
+                    drop(staged_events);
+                    drop(staging);
+                    return self
+                        .complete_scheduled_error(session, record, answered, completion)
+                        .map(|outcome| (outcome, Vec::new()));
+                }
+                return Ok((CommandOutcome::Answered(answered), Vec::new()));
             }
             let (emitted, invalidated, scheduling) = {
                 let staged = staged_events.lock().expect("staged");
@@ -2750,16 +2776,20 @@ impl Server {
                 &invalidated,
                 recorded.as_ref(),
                 &scheduled,
+                completing,
             ) {
                 Ok(committed) => committed,
                 // **Recorded first by another host** (ADR-0325): the same
                 // interaction committed there, and its record holds the key.
-                // This commit rolled back, and the interaction is answered
-                // as the first was.
+                // A refusal rolled back or its acknowledgement was lost;
+                // an exact authoritative receipt answers either case.
                 Err(why) => match record {
                     Some((key, sent)) => match self.recalled_interaction(key)? {
                         Some((first, answer)) if first == sent => {
-                            return Ok((Answered::from_kept(&answer), Vec::new()));
+                            return Ok((
+                                CommandOutcome::Answered(Answered::from_kept(&answer)),
+                                Vec::new(),
+                            ));
                         }
                         _ => return Err(why),
                     },
@@ -2771,6 +2801,11 @@ impl Server {
             if !scheduled.is_empty() {
                 self.timers.changed.notify_all();
             }
+            let committed = match committed {
+                CommitOutcome::Applied(value) => Some(value),
+                CommitOutcome::NoWrites => None,
+                CommitOutcome::NotCurrent => return Ok((CommandOutcome::NotCurrent, Vec::new())),
+            };
             let Some(((emitted, invalidated), ids)) = committed else {
                 // Nothing was written, so there is nothing to commit.
                 let answered = Answered {
@@ -2779,11 +2814,11 @@ impl Server {
                     why: None,
                     refused: None,
                 };
-                return Ok((answered, Vec::new()));
+                return Ok((CommandOutcome::Answered(answered), Vec::new()));
             };
             // What the cart's values include from now on, by the interaction
             // that committed it (ADR-0172), recorded with the commit.
-            if let Some(interaction) = interaction {
+            if let Some(interaction) = interaction.filter(|_| completing.is_none()) {
                 let mut applied = self.applied.lock().expect("applied");
                 let mine = applied.entry(session.to_string()).or_default();
                 mine.push_back(interaction.to_string());
@@ -2800,11 +2835,15 @@ impl Server {
             // layer's own entry for the session (the store's cart), or on the
             // host's clock (ADR-0218).
             if self.data.session_entry() {
-                self.drain_held(session);
+                if completing.is_none() {
+                    self.drain_held(session);
+                }
             } else {
                 self.clock.advance(1);
-                let version = Version(self.clock.now());
-                self.send_documents(session, &session_documents(session), version, false);
+                if completing.is_none() {
+                    let version = Version(self.clock.now());
+                    self.send_documents(session, &session_documents(session), version, false);
+                }
             }
             // Delivered: every event the commit staged is consumed, the
             // order's among them, which no entry drained above names (track
@@ -2817,7 +2856,41 @@ impl Server {
                 why: None,
                 refused: None,
             };
-            Ok((answered, reached))
+            Ok((CommandOutcome::Answered(answered), reached))
+        }
+    }
+
+    fn complete_scheduled_error(
+        &self,
+        session: &str,
+        record: Option<(&str, &str)>,
+        answer: Answered,
+        completing: schedules::Completing<'_>,
+    ) -> Result<CommandOutcome, String> {
+        let mut empty = self.data.begin(session);
+        let kept = answer.kept();
+        let now = u64::try_from(self.now()).unwrap_or_default();
+        let recorded = record.map(|(key, sent)| data::Recorded {
+            key,
+            sent,
+            answer: &kept,
+            at_ms: now,
+            forget_before_ms: now.saturating_sub(INTERACTIONS_KEPT_MS),
+        });
+        match self.commit_staged(
+            &mut *empty,
+            &[],
+            &[],
+            recorded.as_ref(),
+            &[],
+            Some(completing),
+        )? {
+            CommitOutcome::Applied((_, ids)) => {
+                self.materializer.delivered(&ids);
+                Ok(CommandOutcome::Answered(answer))
+            }
+            CommitOutcome::NotCurrent => Ok(CommandOutcome::NotCurrent),
+            CommitOutcome::NoWrites => Err("scheduled terminal completion did not commit".into()),
         }
     }
 
@@ -2846,21 +2919,34 @@ impl Server {
         invalidated: &[data::Dropped],
         interaction: Option<&data::Recorded<'_>>,
         scheduled: &[schedules::Scheduled],
-    ) -> Result<Option<(data::Outboxed, Vec<i64>)>, String> {
+        completing: Option<schedules::Completing<'_>>,
+    ) -> Result<CommitOutcome, String> {
         // A command that wrote nothing commits nothing, unless it scheduled
         // or cancelled a run (the scheduled-commands track), which is
         // written as its writes are.
-        let rows = match staging.rows() {
+        let mut rows = match staging.rows() {
             Some(rows) => rows,
-            None if !scheduled.is_empty() => Vec::new(),
-            None => return Ok(None),
+            None if !scheduled.is_empty() || completing.is_some() => Vec::new(),
+            None => return Ok(CommitOutcome::NoWrites),
         };
+        if completing.is_some()
+            && matches!(staging.projection_scope(), data::ProjectionScope::Session)
+        {
+            rows.clear();
+        }
+
         let events = emitted
             .iter()
             .map(|(event, values)| outboxed(event, values))
             .collect::<Result<Vec<_>, String>>()?;
-        let (delivered, ids) = match staging.commit(emitted, invalidated, interaction, scheduled)? {
-            Some(committed) => {
+        let (delivered, ids) = match staging.commit(
+            emitted,
+            invalidated,
+            interaction,
+            scheduled,
+            completing,
+        )? {
+            data::Commit::Applied(committed) => {
                 let mut ids = Vec::new();
                 if self.data.session_entry() {
                     let recorded = committed
@@ -2885,11 +2971,25 @@ impl Server {
                 }
                 (committed, ids)
             }
-            None => {
+            data::Commit::NotCurrent => return Ok(CommitOutcome::NotCurrent),
+            data::Commit::Materializer => {
                 // The state the data layer staged and the outbox's events, in
                 // one transaction (ADR-0019, ADR-0208); and the interaction's
                 // answer, where the command has one (ADR-0325).
+                let mut current = true;
                 let ids = self.materializer.command(|tx| {
+                    if let Some(completion) = completing {
+                        if !completion.belongs_to(self.materializer.queue_authority()) {
+                            return Err(
+                                "scheduled completion belongs to another queue adapter".to_string()
+                            );
+                        }
+                        if !Materializer::consume_run(tx, completion.run, completion.now_ms)? {
+                            current = false;
+                            return Ok(Vec::new());
+                        }
+                    }
+                    staging.prepare_materialized()?;
                     for (key, value) in &rows {
                         Materializer::set_state(tx, key, value);
                     }
@@ -2902,12 +3002,15 @@ impl Server {
                     schedules::write(tx, scheduled)?;
                     Ok::<_, String>(events)
                 })?;
+                if !current {
+                    return Ok(CommitOutcome::NotCurrent);
+                }
                 ((emitted.to_vec(), invalidated.to_vec()), ids)
             }
         };
         // What was staged is the data layer's from now on.
         staging.publish();
-        Ok(Some((delivered, ids)))
+        Ok(CommitOutcome::Applied((delivered, ids)))
     }
 
     /// **A route's change to the store's data, committed as a command's is**
@@ -2941,11 +3044,14 @@ impl Server {
             }
             other => return Err(format!("{op} answered {other:?}")),
         };
-        let Some(((delivered, _), ids)) =
-            self.commit_staged(&mut *staging, events, &[], None, &[])?
-        else {
-            return Ok(answer);
-        };
+        let ((delivered, _), ids) =
+            match self.commit_staged(&mut *staging, events, &[], None, &[], None)? {
+                CommitOutcome::Applied(value) => value,
+                CommitOutcome::NoWrites => return Ok(answer),
+                CommitOutcome::NotCurrent => {
+                    return Err("unexpected scheduled disposition on a platform route".into());
+                }
+            };
         drop(staging);
         deliver(&delivered);
         self.materializer.delivered(&ids);
@@ -3055,13 +3161,11 @@ impl Server {
     /// [`Server::command_json`], and what the command answered (ADR-0157).
     /// A retried interaction is given the first request's answer, its value
     /// included.
-    fn command_answer(
+    fn command_arguments(
         &self,
         component_id: &str,
-        session: &str,
         json: &[serde_json::Value],
-        interaction: Option<&str>,
-    ) -> Result<Answered, String> {
+    ) -> Result<(pw_host::ComponentExport, Vec<Val>), String> {
         let loaded = self
             .components
             .get(component_id)
@@ -3076,6 +3180,17 @@ impl Server {
         // Typed by the export's parameters, and held to the invariants its
         // contract states (ADR-0179): a forged quantity of 0 is refused here.
         let args = loaded.prepared.arguments_for(&export, json)?;
+        Ok((export, args))
+    }
+
+    fn command_answer(
+        &self,
+        component_id: &str,
+        session: &str,
+        json: &[serde_json::Value],
+        interaction: Option<&str>,
+    ) -> Result<Answered, String> {
+        let (export, args) = self.command_arguments(component_id, json)?;
         // With the predicate `requires` refused it by, where one did
         // (ADR-0302): taken on the thread that ran it, as it ends, so it is
         // kept with the interaction.
@@ -3421,11 +3536,13 @@ impl Server {
     /// scheduled-commands track), for as long as the host runs: woken when a
     /// commit schedules one or the clock is moved, and each second at least.
     fn run_when_due(&self) {
-        loop {
-            let (ran, wait) = self.run_due();
-            if ran == 0 {
-                self.timers.wait(wait);
-            }
+        self.drive_scheduled(|| true, |wait| self.timers.wait(wait));
+    }
+
+    fn drive_scheduled(&self, keep_running: impl Fn() -> bool, wait: impl Fn(u64)) {
+        while keep_running() {
+            let (_selected, delay) = self.run_due();
+            wait(delay);
         }
     }
 
@@ -3433,15 +3550,16 @@ impl Server {
     /// many, and how long until the next, a second at most.
     fn run_due(&self) -> (usize, u64) {
         let now = self.now();
-        let due = match self.runs().due_runs(now, 16) {
+        let due = match schedules::select(self.runs(), now, 16) {
             Ok(due) => due,
             Err(why) => {
                 eprintln!("pw dev server: the scheduled runs were not read: {why}");
                 return (0, 1000);
             }
         };
+        let mut blocked = false;
         for run in &due {
-            self.run_scheduled(run);
+            blocked |= self.run_scheduled(run);
         }
         // What the runs' commits reached, told to each session reading it,
         // as a connection's command's is once it is answered (ADR-0219):
@@ -3450,7 +3568,11 @@ impl Server {
             self.tell_waiting();
         }
         let next = self.runs().next_run().unwrap_or(None);
-        let wait = next.map_or(1000, |at| (at - self.now()).clamp(1, 1000));
+        let wait = if blocked {
+            1000
+        } else {
+            next.map_or(1000, |at| (at - self.now()).clamp(1, 1000))
+        };
         (due.len(), u64::try_from(wait).unwrap_or(1000))
     }
 
@@ -3463,55 +3585,171 @@ impl Server {
     /// One that trapped or was refused runs again, after 2 s doubling to a
     /// minute; after [`schedules::RETRIES`] runs again it is kept, failed,
     /// and said in the host's log and its `/metrics`.
-    fn run_scheduled(&self, run: &pw_materialize::ScheduledRun) {
+    fn scheduled_lock(&self, id: i64) -> Arc<Mutex<()>> {
+        let mut held = self.scheduled_locks.lock().expect("scheduled locks");
+        held.retain(|_, weak| weak.strong_count() != 0);
+        if let Some(lock) = held.get(&id).and_then(std::sync::Weak::upgrade) {
+            return lock;
+        }
+        let lock = Arc::new(Mutex::new(()));
+        held.insert(id, Arc::downgrade(&lock));
+        lock
+    }
+
+    fn run_scheduled(&self, run: &schedules::Candidate<'_>) -> bool {
+        // Protect the principal lease on this host without permanent result memoization.
+        let lock = self.scheduled_lock(run.id);
+        let _one = lock.lock().expect("one scheduled generation on this host");
+        let source = self.runs();
+        if !run.belongs_to(source.authority()) {
+            eprintln!("pw dev server: scheduled candidate belongs to another adapter");
+            return false;
+        }
+        match source.current(run, self.now()) {
+            Ok(true) => {}
+            Ok(false) => {
+                self.counted_runs
+                    .stale
+                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                return false;
+            }
+            Err(why) => {
+                eprintln!("pw dev server: scheduled authority could not be checked: {why}");
+                return true;
+            }
+        }
+        if run.protocol != 1 {
+            return match source.retry_current(
+                run,
+                run.attempts,
+                run.due_ms,
+                Some("legacy scheduled work requires reconciliation"),
+            ) {
+                Ok(true) => {
+                    self.counted_runs
+                        .failed
+                        .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                    false
+                }
+                Ok(false) => self.scheduled_update_blocked(source, run),
+                Err(why) => {
+                    eprintln!("pw dev server: legacy scheduled quarantine failed: {why}");
+                    true
+                }
+            };
+        }
         let behalf = self.identity.principals().on_behalf(
             "clock",
             &format!("schedule-{}", run.id),
             &run.user,
         );
         let session = behalf.session().to_string();
-        let interaction = format!("schedule-{}", run.id);
-        let answered = serde_json::from_str::<Vec<serde_json::Value>>(&run.args)
-            .map_err(|e| format!("its arguments do not read: {e}"))
-            .and_then(|args| {
-                self.command_answer(&run.command, &session, &args, Some(&interaction))
-            });
-        let failed = match answered {
-            Ok(answered) => answered.why,
-            Err(why) => Some(why),
-        };
-        let kept = match failed {
-            None => {
+        let result = self.command_scheduled(run, &session);
+        let failed = match result {
+            Ok(CommandOutcome::NotCurrent) => {
+                self.counted_runs
+                    .stale
+                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                return false;
+            }
+            Ok(CommandOutcome::Answered(answer)) if answer.why.is_none() => {
                 self.counted_runs
                     .ran
                     .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                self.runs().ran(run.id)
+                return false; // Consumption already committed; never blindly delete a newer revision.
             }
-            Some(why) if run.attempts >= schedules::RETRIES => {
-                self.counted_runs
-                    .failed
-                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                eprintln!(
-                    "pw dev server: a run of {} due at {} failed for good, run {} times: {why}",
-                    run.command,
-                    run.due_ms,
-                    run.attempts + 1
-                );
-                self.runs()
-                    .retry(run.id, run.attempts + 1, run.due_ms, Some(&why))
-            }
-            Some(_) => {
-                self.counted_runs
-                    .retried
-                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                let failures = run.attempts + 1;
-                let again = self.now().saturating_add(schedules::backoff_ms(failures));
-                self.runs().retry(run.id, failures, again, None)
-            }
+            Ok(CommandOutcome::Answered(answer)) => answer
+                .why
+                .unwrap_or_else(|| "scheduled answer was refused".into()),
+            Err(why) => why,
         };
-        if let Err(why) = kept {
-            eprintln!("pw dev server: a scheduled run was not kept: {why}");
+        let failures = run.attempts.saturating_add(1);
+        let terminal = run.attempts >= schedules::RETRIES;
+        let due = if terminal {
+            run.due_ms
+        } else {
+            self.now().saturating_add(schedules::backoff_ms(failures))
+        };
+        match source.retry_current(run, failures, due, terminal.then_some(failed.as_str())) {
+            Ok(true) => {
+                let counted = if terminal {
+                    &self.counted_runs.failed
+                } else {
+                    &self.counted_runs.retried
+                };
+                counted.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                if terminal {
+                    eprintln!(
+                        "pw dev server: scheduled command {} failed after {} attempts",
+                        run.command, failures
+                    );
+                }
+                false
+            }
+            Ok(false) => self.scheduled_update_blocked(source, run),
+            Err(why) => {
+                eprintln!("pw dev server: scheduled retry was not kept: {why}");
+                true
+            }
         }
+    }
+
+    /// Zero affected rows may mean a newer revision, or a suppressed write.
+    /// Only an authoritative recheck can establish staleness; otherwise wait.
+    fn scheduled_update_blocked(
+        &self,
+        source: &dyn schedules::Runs,
+        run: &schedules::Candidate<'_>,
+    ) -> bool {
+        match source.current(run, self.now()) {
+            Ok(false) => {
+                self.counted_runs
+                    .stale
+                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                false
+            }
+            Ok(true) => {
+                eprintln!("pw dev server: scheduled persistence left its due generation unchanged");
+                true
+            }
+            Err(why) => {
+                eprintln!("pw dev server: scheduled update could not be reconciled: {why}");
+                true
+            }
+        }
+    }
+
+    fn command_scheduled(
+        &self,
+        run: &schedules::Candidate<'_>,
+        session: &str,
+    ) -> Result<CommandOutcome, String> {
+        let json = serde_json::from_str::<Vec<serde_json::Value>>(&run.args)
+            .map_err(|_| "scheduled arguments do not read".to_string())?;
+        let (export, args) = self.command_arguments(&run.command, &json)?;
+        if export.invoked_by.as_deref() != Some("Clock") || export.idempotent_by.is_none() {
+            return Err("scheduled target is not an idempotent Clock command".into());
+        }
+        let interaction = format!("schedule-{}", run.id);
+        let key = format!("{session}\u{1f}{}\u{1f}{interaction}", run.command);
+        let sent = serde_json::Value::Array(json).to_string();
+        // One evaluator/commit core; no browser memoization/session history for Clock.
+        let result = self.command_recorded_for(
+            &run.command,
+            session,
+            &args,
+            Some(&interaction),
+            Some((&key, &sent)),
+            Some(run.completing(self.now())),
+        );
+        let refused = identity::take_refusal();
+        result.map(|outcome| match outcome {
+            CommandOutcome::Answered(mut answer) => {
+                answer.refused = refused;
+                CommandOutcome::Answered(answer)
+            }
+            other => other,
+        })
     }
 
     /// **Every other host's commits, heard and told** (ADR-0369, track
@@ -7252,6 +7490,7 @@ type StagedEvents = Arc<Mutex<Staged>>;
 /// done, to run again, or kept, failed for good.
 #[derive(Default)]
 struct CountedRuns {
+    stale: std::sync::atomic::AtomicU64,
     ran: std::sync::atomic::AtomicU64,
     retried: std::sync::atomic::AtomicU64,
     failed: std::sync::atomic::AtomicU64,
@@ -9755,6 +9994,7 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 "runs": {
                     "ran": runs.ran.load(std::sync::atomic::Ordering::SeqCst),
                     "retried": runs.retried.load(std::sync::atomic::Ordering::SeqCst),
+                    "stale": runs.stale.load(std::sync::atomic::Ordering::SeqCst),
                     "failed": runs.failed.load(std::sync::atomic::Ordering::SeqCst),
                 },
             });
@@ -11160,6 +11400,24 @@ fn write_response(stream: &mut TcpStream, code: u16, mime: &str, headers: &str, 
     let _ = stream.flush();
     let mut sink = Vec::new();
     let _ = stream.take(0).read_to_end(&mut sink);
+}
+
+enum CommandOutcome {
+    Answered(Answered),
+    NotCurrent,
+}
+impl CommandOutcome {
+    fn into_answer(self) -> Result<Answered, String> {
+        match self {
+            Self::Answered(a) => Ok(a),
+            Self::NotCurrent => Err("unexpected scheduled disposition on a client command".into()),
+        }
+    }
+}
+enum CommitOutcome {
+    Applied((data::Outboxed, Vec<i64>)),
+    NoWrites,
+    NotCurrent,
 }
 
 #[cfg(test)]
@@ -15089,6 +15347,8 @@ public query Store(",
     mod store_payments;
     // The scheduled-commands track: a command run when the clock passes its
     // time, and the store's sweep.
+    mod scheduled_memory;
+    mod scheduled_probe;
     #[cfg(feature = "scheduler-postgres-tests")]
     mod scheduled_replay;
     mod store_scheduled;
