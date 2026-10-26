@@ -1,8 +1,8 @@
 ADR-0312 - a page and its layout show one entry by one value
 
 produced by: just e14-one-entry
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -11,9 +11,9 @@ playwright: Version 1.58.0
 
 test a_layouts_count_is_speculated_with_the_pages ... ok
 test a_layouts_computed_part_is_named_by_the_layout ... ok
-test a_page_declares_at_least_its_layouts_audience ... ok
 test a_layouts_signal_and_handler_are_its_pages_under_its_name ... ok
 test a_layout_provides_what_its_views_need_and_its_page_provides_it_nothing ... ok
+test a_page_declares_at_least_its_layouts_audience ... ok
 test a_layout_takes_no_page_clause_and_no_other_declaration_names_one ... ok
 test a_page_reads_what_its_layout_reads_in_the_graph ... ok
 test a_page_is_shown_in_its_layout_whose_parts_are_numbered_first ... ok
@@ -22,22 +22,22 @@ test a_page_names_one_layout_and_a_layout_is_given_nothing ... ok
 test what_a_layout_shows_is_its_pages_for_the_shared_cache ... ok
 test its_plan_reads_the_layouts_bindings_under_names_no_source_writes ... ok
 test a_slot_is_its_layouts_once_at_the_top_and_empty ... ok
-test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 38.99s
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 38.96s
 
 == the module run under Node (compiler/pw-conformance/tests/speculation.rs)
 
 test a_speculated_value_read_inside_a_block_is_refused_by_name ... ok
 test the_stores_transitions_run_and_its_parts_read_the_result ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.23s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.22s
 
 == the host: one entry for the store's cart
 
 test tests::a_page_and_its_layout_show_one_entry_by_one_value ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 712 filtered out; finished in 11.51s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 740 filtered out; finished in 11.36s
 
 == the layout's count, in three engines (e2e/layouts.spec.mjs)
 
-  12 passed (23.4s)
+  12 passed (23.2s)
 
 == mutation controls (scripts/one_entry_mutations.py)
 

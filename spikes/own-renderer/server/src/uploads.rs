@@ -15,8 +15,10 @@
 //!    only when its length is within the declaration's bytes; its image's
 //!    kind is sniffed from the bytes, and its width and height read from its
 //!    header ([`sniff`]); the name and type the browser sent are never read.
-//! 2. The bytes wait in this server's staging, by their SHA-256, **leased**
-//!    to the session: one lease a session, which a second upload replaces.
+//! 2. The image is rewritten without what names a place, a device, a person
+//!    or a time ([`strip`], ADR-0383), and what is kept waits in this
+//!    server's staging, by its SHA-256, **leased** to the session: one lease
+//!    a session, which a second upload replaces.
 //! 3. A command **claims** the lease (`resource.acquire<Upload>` in the
 //!    program) and either **commits** it with a post or **discards** it
 //!    (`resource.release<Upload>`): PW2005 holds the program to one or the
@@ -32,8 +34,13 @@
 //! key, with the type sniffed from its bytes, `nosniff`, a sandbox, and kept
 //! forever by any cache, since what a key names never changes.
 
+pub(crate) mod icc;
 pub(crate) mod multipart;
+mod png_state;
+#[cfg(test)]
+mod privacy_tests;
 pub(crate) mod sniff;
+pub(crate) mod strip;
 
 use crate::blob::{BlobKey, BlobStore, LocalBlobs, MemoryBlobs};
 use sniff::{Kind, Measured, Unreadable};
@@ -643,8 +650,28 @@ impl Shared {
             return Answer::refused(413, &too_large, &back);
         }
         let kinds = declared.types.join(", ").to_uppercase();
-        let measured = match sniff::measure(bytes) {
-            Ok(m) if declared.allows(m.kind) => m,
+        let unreadable = |read| match read {
+            Unreadable::Unrecognized => {
+                let why = format!("The file is not an image: only {kinds}.");
+                Answer::refused(415, &why, &back)
+            }
+            Unreadable::Unsupported(kind, why) => {
+                let why = format!(
+                    "This {} image cannot be rewritten safely: {why}.",
+                    kind.word().to_uppercase()
+                );
+                Answer::refused(422, &why, &back)
+            }
+            Unreadable::Malformed(kind, why) => {
+                let why = format!(
+                    "The file is not a whole {} image: {why}.",
+                    kind.word().to_uppercase()
+                );
+                Answer::refused(422, &why, &back)
+            }
+        };
+        match sniff::measure(bytes) {
+            Ok(m) if declared.allows(m.kind) => {}
             Ok(m) => {
                 let why = format!(
                     "A {} image cannot be attached: only {kinds}.",
@@ -652,17 +679,17 @@ impl Shared {
                 );
                 return Answer::refused(415, &why, &back);
             }
-            Err(Unreadable::Unrecognized) => {
-                let why = format!("The file is not an image: only {kinds}.");
-                return Answer::refused(415, &why, &back);
-            }
-            Err(Unreadable::Malformed(kind, why)) => {
-                let why = format!(
-                    "The file is not a whole {} image: {why}.",
-                    kind.word().to_uppercase()
-                );
-                return Answer::refused(422, &why, &back);
-            }
+            Err(read) => return unreadable(read),
+        }
+        // **Kept without what names a place, a device, a person or a time**
+        // (ADR-0383): rewritten before it is kept, a file whose container
+        // does not parse refused whole; then measured as it is kept, which
+        // is what is served.
+        let (kept, measured) = match strip::strip(bytes)
+            .and_then(|kept| sniff::measure(&kept).map(|measured| (kept, measured)))
+        {
+            Ok(read) => read,
+            Err(read) => return unreadable(read),
         };
         if measured.width > declared.max_width || measured.height > declared.max_height {
             let why = format!(
@@ -671,7 +698,14 @@ impl Shared {
             );
             return Answer::refused(422, &why, &back);
         }
-        match self.lease(session, &user, declared, bytes, measured) {
+        match self.lease(
+            session,
+            &user,
+            declared,
+            &kept,
+            bytes.len() as u64,
+            measured,
+        ) {
             Ok(()) => {
                 let mut a = Answer::new(303, "text/plain; charset=utf-8", Vec::new());
                 a.set("location", back);
@@ -688,12 +722,16 @@ impl Shared {
     }
 
     /// **`bytes` staged, and leased to `session`**, its earlier lease ended.
+    /// `sent` is how many bytes its sender sent, which the user's budget and
+    /// the staging's cap count: what is kept may be fewer (ADR-0383), and
+    /// what the server read and rewrote is what it cost.
     fn lease(
         &self,
         session: &str,
         user: &str,
         declared: &Declared,
         bytes: &[u8],
+        sent: u64,
         m: Measured,
     ) -> Result<(), (u16, &'static str, Option<Duration>)> {
         let mut state = self.state.lock().expect("uploads");
@@ -701,7 +739,8 @@ impl Shared {
         if state.leases.get(session).is_some_and(|l| l.claimed) {
             return Err((409, "The image attached before is being posted.", None));
         }
-        let size = bytes.len() as u64;
+        let size = sent;
+        let staged_size = size.max(bytes.len() as u64);
         // The user's budget, for the hour before now.
         let now = Instant::now();
         let spent = state.spent.entry(user.to_string()).or_default();
@@ -724,7 +763,7 @@ impl Shared {
             ));
         }
         let replaced = state.leases.get(session).map_or(0, |l| l.bytes);
-        if state.staged_bytes - replaced + size > STAGED_CAP {
+        if state.staged_bytes - replaced + staged_size > STAGED_CAP {
             return Err((
                 503,
                 "Too many images are waiting to be posted; try again later.",
@@ -735,13 +774,15 @@ impl Shared {
             .staged
             .put(bytes)
             .map_err(|_| (500, "The image could not be kept.", None))?;
+        // Held before the earlier lease lets its bytes go: the same bytes
+        // attached again are the same blob, which ending it first forgot.
+        *state.holds.entry(key.clone()).or_default() += 1;
         if let Some(old) = state.leases.remove(session) {
             self.end(&mut state, old);
         }
         state.next += 1;
         let id = format!("up-{}", state.next);
-        *state.holds.entry(key.clone()).or_default() += 1;
-        state.staged_bytes += size;
+        state.staged_bytes += staged_size;
         state
             .spent
             .entry(user.to_string())
@@ -755,7 +796,7 @@ impl Shared {
                 kind: m.kind,
                 width: m.width,
                 height: m.height,
-                bytes: size,
+                bytes: staged_size,
                 made: Instant::now(),
                 claimed: false,
             },
@@ -1204,6 +1245,36 @@ pub(crate) fn discard_op(claims: Claiming, staged: impl Fn() + Send + Sync + 'st
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+
+    /// Domain expectations in mutation tests must fail at a native assert
+    /// site; an unwrap panic alone is not valid mutation evidence.
+    pub(crate) trait Required {
+        type Value;
+        fn required(self, why: &str) -> Self::Value;
+    }
+
+    impl<T> Required for Option<T> {
+        type Value = T;
+        fn required(self, why: &str) -> T {
+            assert!(self.is_some(), "{why}");
+            match self {
+                Some(value) => value,
+                None => unreachable!(),
+            }
+        }
+    }
+
+    impl<T, E> Required for Result<T, E> {
+        type Value = T;
+        fn required(self, why: &str) -> T {
+            assert!(self.is_ok(), "{why}");
+            match self {
+                Ok(value) => value,
+                Err(_) => unreachable!(),
+            }
+        }
+    }
+
     use std::io::Cursor;
 
     pub(crate) fn declared() -> Declared {
@@ -1223,7 +1294,8 @@ pub(crate) mod tests {
         Uploads::with(vec![d], open("staged"), open("blobs"), lease_for)
     }
 
-    /// A PNG of `w` by `h`: its signature and IHDR, which is what is read.
+    /// A PNG of `w` by `h`: its signature and IHDR, which is what is read,
+    /// and its IEND, which the host walks to as it keeps it (ADR-0383).
     pub(crate) fn png(w: u32, h: u32) -> Vec<u8> {
         let mut b = vec![0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A];
         b.extend(13u32.to_be_bytes());
@@ -1234,6 +1306,16 @@ pub(crate) mod tests {
         let crc = sniff::crc32(&chunk);
         b.extend(&chunk);
         b.extend(crc.to_be_bytes());
+        let row = w as usize * 4 + 1;
+        let raw = vec![0; row * h as usize];
+        let encoded = miniz_oxide::deflate::compress_to_vec_zlib(&raw, 6);
+        b.extend((encoded.len() as u32).to_be_bytes());
+        let data = [&b"IDAT"[..], &encoded].concat();
+        b.extend(&data);
+        b.extend(sniff::crc32(&data).to_be_bytes());
+        b.extend(0u32.to_be_bytes());
+        b.extend(b"IEND");
+        b.extend(sniff::crc32(b"IEND").to_be_bytes());
         b
     }
 
@@ -1562,6 +1644,104 @@ pub(crate) mod tests {
         assert_eq!(files(&staged), 2, "s-2 still holds the 3 by 3");
     }
 
+    /// **The same image attached twice by one session is kept** (track
+    /// `upload-metadata`'s finding): the second lease holds its bytes before
+    /// the first lets them go, so no lease names bytes its staging forgot.
+    #[test]
+    fn the_same_image_attached_twice_is_kept() {
+        let d = dir();
+        let u = uploads(d.path(), declared(), LEASE);
+        let s = shared(&u);
+        for _ in 0..2 {
+            assert_eq!(
+                post(&u, "s-1", &png(3, 3), "a.png", "image/png").status,
+                303
+            );
+        }
+        let shown = s.shown("s-1").expect("leased");
+        assert_eq!(get(&u, &shown.src, "s-1", "").status, 200, "shown to it");
+        assert_eq!(files(&d.path().join("staged")), 1);
+        let claimed = s.claim("s-1").expect("claimed");
+        s.keep(&claimed)
+            .expect("its bytes kept, so its post commits");
+        s.committed(claimed);
+        assert_eq!(files(&d.path().join("staged")), 0, "forgotten, posted");
+    }
+
+    /// **An image is leased, shown and kept as it is rewritten** (ADR-0383):
+    /// without what names a place, a device, a person or a time, by the
+    /// rewritten bytes' key, in the deployment's storage as in staging.
+    #[test]
+    fn an_image_is_leased_and_kept_without_its_metadata() {
+        let d = dir();
+        let u = uploads(d.path(), declared(), LEASE);
+        let s = shared(&u);
+        let laden = strip::tests::laden_jpeg();
+        assert_eq!(strip::tests::identified(&laden).len(), 9);
+        let kept = strip::strip(&laden).expect("kept");
+        let key = BlobKey::of(&kept);
+        let a = post(&u, "s-1", &laden, "IMG_0001.jpg", "image/jpeg");
+        assert_eq!(a.status, 303, "{}", body(&a));
+        let shown = s.shown("s-1").expect("leased");
+        assert_eq!((shown.width, shown.height), (5, 8), "turned, as taken");
+        let mine = get(&u, &shown.src, "s-1", "");
+        assert_eq!(mine.body, kept, "its author sees what is kept");
+        assert_eq!(strip::tests::identified(&mine.body), Vec::<&str>::new());
+        let staged = d.path().join("staged");
+        assert!(staged.join(&key.hex()[..2]).join(key.hex()).is_file());
+        assert_eq!(files(&staged), 1, "and nothing else");
+        let claimed = s.claim("s-1").expect("claimed");
+        assert_eq!(claimed.key, key);
+        s.keep(&claimed).expect("kept");
+        s.committed(claimed);
+        let blob = d.path().join("blobs").join(&key.hex()[..2]).join(key.hex());
+        assert_eq!(std::fs::read(blob).expect("committed"), kept);
+    }
+
+    /// **Measured as it is kept, which is what is served**: of two Exif
+    /// structures, a browser turns a JPEG by the first it reads, and the
+    /// rewrite keeps that one alone, so a page states the size the browser
+    /// shows (read from the bytes as sent, the second said unturned).
+    #[test]
+    fn an_image_is_measured_as_it_is_kept() {
+        let d = dir();
+        let u = uploads(d.path(), declared(), LEASE);
+        let base = strip::tests::fixture("eight-by-five.jpeg");
+        let exif = |o: u16| {
+            let mut app1 = vec![0xFF, 0xE1];
+            let data = [&b"Exif\0\0"[..], &strip::tests::tiff(o)].concat();
+            app1.extend(((data.len() + 2) as u16).to_be_bytes());
+            app1.extend(data);
+            app1
+        };
+        let twice = [&base[..2], &exif(6), &exif(1), &base[2..]].concat();
+        assert_eq!(sniff::measure(&twice).map(|m| m.width), Ok(8), "as sent");
+        assert_eq!(post(&u, "s-1", &twice, "a.jpg", "image/jpeg").status, 303);
+        let shown = shared(&u).shown("s-1").expect("leased");
+        assert_eq!((shown.width, shown.height), (5, 8));
+    }
+
+    /// **A file whose container does not parse is refused whole**: a JPEG
+    /// whose header reads, cut before its EOI, is no image to rewrite, and
+    /// nothing of it is staged.
+    #[test]
+    fn a_file_the_rewrite_cannot_walk_is_refused_whole() {
+        let d = dir();
+        let u = uploads(d.path(), declared(), LEASE);
+        let base = strip::tests::fixture("eight-by-five.jpeg");
+        let cut = &base[..base.len() - 2];
+        assert!(sniff::measure(cut).is_ok(), "its header reads");
+        let a = post(&u, "s-1", cut, "a.jpg", "image/jpeg");
+        assert_eq!(a.status, 422);
+        assert!(
+            body(&a).contains("The file is not a whole JPEG image: it ends before its EOI."),
+            "{}",
+            body(&a)
+        );
+        assert!(shared(&u).shown("s-1").is_none());
+        assert_eq!(files(&d.path().join("staged")), 0);
+    }
+
     #[test]
     fn a_lease_nothing_claims_ends_when_its_time_does() {
         let d = dir();
@@ -1721,6 +1901,70 @@ pub(crate) mod tests {
         assert!(s.collect("../../etc/passwd", false).is_err());
     }
 
+    fn an_expanding_profile_image() -> Vec<u8> {
+        let profile =
+            icc::tests::profile(2, &[(vec![*b"desc"], b"desc\0\0\0\0\0\0\0\x01\0".to_vec())]);
+        let data = [&b"ICC_PROFILE\0"[..], &[1, 1], &profile].concat();
+        let mut sent = vec![0xff, 0xd8, 0xff, 0xe2];
+        sent.extend(((data.len() + 2) as u16).to_be_bytes());
+        sent.extend(data);
+        sent.extend(&strip::tests::fixture("eight-by-five.jpeg")[2..]);
+        assert!(strip::strip(&sent).required("rewritten").len() > sent.len());
+        sent
+    }
+
+    #[test]
+    fn staged_bytes_cover_expansion_but_hourly_bytes_count_the_upload() {
+        let d = dir();
+        let u = uploads(d.path(), declared(), LEASE);
+        let sent = an_expanding_profile_image();
+        let kept = strip::strip(&sent).unwrap();
+        assert_eq!(post(&u, "growth", &sent, "a.jpg", "image/jpeg").status, 303);
+        let shared = u.leases().unwrap();
+        {
+            let state = shared.state.lock().unwrap();
+            assert_eq!(
+                state.staged_bytes,
+                kept.len() as u64,
+                "actual retained bytes accounted"
+            );
+            assert_eq!(
+                state.spent["u-growth"].back().unwrap().1,
+                sent.len() as u64,
+                "hourly incoming bytes"
+            );
+        }
+        let small = png(2, 2);
+        assert_eq!(post(&u, "growth", &small, "a.png", "image/png").status, 303);
+        assert_eq!(
+            shared.state.lock().unwrap().staged_bytes,
+            small.len() as u64,
+            "replacement releases expanded hold"
+        );
+        let claimed = shared.claim("growth").unwrap();
+        shared.discarded(claimed);
+        assert_eq!(shared.state.lock().unwrap().staged_bytes, 0);
+    }
+
+    #[test]
+    fn expansion_cannot_cross_the_staging_cap() {
+        let d = dir();
+        let u = uploads(d.path(), declared(), LEASE);
+        let sent = an_expanding_profile_image();
+        let shared = u.leases().unwrap();
+        let occupied = STAGED_CAP - sent.len() as u64;
+        shared.state.lock().unwrap().staged_bytes = occupied;
+        let answer = post(&u, "growth", &sent, "a.jpg", "image/jpeg");
+        assert_eq!(
+            answer.status, 503,
+            "rewritten bytes exceed remaining capacity"
+        );
+        let state = shared.state.lock().unwrap();
+        assert_eq!(state.staged_bytes, occupied);
+        assert!(!state.leases.contains_key("growth"));
+        assert!(state.spent["u-growth"].is_empty());
+    }
+
     /// **A user's budget**: so many images an hour, and so many times the
     /// declaration's bytes, whichever is spent first; another user's is
     /// their own. Spent by an upload, posted or not.
@@ -1742,18 +1986,19 @@ pub(crate) mod tests {
             post(&u, "s-2", &png(64, 1), "a.png", "image/png").status,
             303
         );
-        // Bytes: each at the declaration's most, the bytes spent first.
+        // Bytes: each at the declaration's most, the bytes spent first; the
+        // bytes sent, though what is kept drops all past IEND (ADR-0383).
         let mut large = png(2, 2);
         large.resize(4096, 0);
         for n in 0..BYTES_AN_HOUR {
-            large[40] = n as u8;
+            large[100] = n as u8;
             assert_eq!(
                 post(&u, "s-3", &large, "a.png", "image/png").status,
                 303,
                 "{n}"
             );
         }
-        large[40] = 255;
+        large[100] = 255;
         assert_eq!(post(&u, "s-3", &large, "a.png", "image/png").status, 429);
     }
 
@@ -1858,4 +2103,5 @@ pub(crate) mod tests {
         assert_eq!(files(&d.path().join("staged")), 0);
         assert_eq!(files(&d.path().join("blobs")), 0, "a discard keeps nothing");
     }
+    include!("uploads/privacy_lifecycle_tests.rs");
 }

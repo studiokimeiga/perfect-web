@@ -16,6 +16,7 @@ export PATH := toolchain_bin + ":" + env_var('PATH')
 # imported recipe runs in this directory, under these settings.
 import 'just/identity.just'
 import 'just/uploads.just'
+import 'just/upload-metadata.just'
 import 'just/notifications.just'
 import 'just/messages.just'
 import 'just/kiokun.just'
@@ -65,6 +66,7 @@ import 'just/press-modules.just'
 import 'just/e14-readiness.just'
 import 'just/table-host.just'
 import 'just/d2-writes.just'
+import 'just/outbound-https.just'
 
 default:
     @just --list

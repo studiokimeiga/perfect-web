@@ -1,8 +1,8 @@
 ADR-0172 - the cart lists its lines, and a speculation reaches every part that reads it
 
 produced by: just e14-cart-lines
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -12,10 +12,10 @@ playwright: Version 1.58.0
 test tests::a_request_that_is_not_one_is_refused ... ok
 test tests::a_text_part_is_escaped_as_the_server_escapes_it ... ok
 test tests::a_match_renders_the_case_it_is_given ... ok
-test tests::an_attribute_is_written_as_the_document_writes_it ... ok
 test tests::an_elements_captures_are_written_as_the_server_writes_them ... ok
-test tests::an_instance_is_rendered_as_the_server_renders_it ... ok
+test tests::an_attribute_is_written_as_the_document_writes_it ... ok
 test tests::an_instance_is_rendered_with_the_template_the_request_carries ... ok
+test tests::an_instance_is_rendered_as_the_server_renders_it ... ok
 test tests::what_changed_in_an_instance_is_each_part_set_where_it_is ... ok
 test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
@@ -24,40 +24,40 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 test a_block_that_changed_renders_the_instance_again ... ok
 test a_match_that_shows_the_arm_it_showed_is_set_where_it_is ... ok
-test a_block_that_decides_as_it_did_is_set_where_it_is ... ok
 test a_renamed_item_sets_its_text_and_every_attribute_that_reads_the_name ... ok
+test a_block_that_decides_as_it_did_is_set_where_it_is ... ok
 test an_unkeyed_list_inside_the_row_that_changed_renders_the_row_again ... ok
-test an_attribute_is_set_as_the_document_writes_it_and_a_boolean_one_comes_and_goes ... ok
 test nothing_changed_is_no_change ... ok
+test an_attribute_is_set_as_the_document_writes_it_and_a_boolean_one_comes_and_goes ... ok
 test what_a_handler_captures_is_set_where_it_is ... ok
 test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test a_blocked_part_refuses_the_render ... ok
 test a_capture_that_cannot_be_carried_blocks_the_render ... ok
-test a_captured_value_survives_the_attribute_exactly ... ok
-test a_capture_a_view_names_otherwise_is_read_where_it_is ... ok
 test a_conditional_region_renders_one_branch ... ok
+test a_capture_a_view_names_otherwise_is_read_where_it_is ... ok
 test a_false_boolean_attribute_is_absent_not_empty ... ok
-test a_missing_else_renders_nothing_rather_than_failing ... ok
-test a_keyed_loop_refuses_two_items_with_one_key ... ok
-test a_missing_value_is_an_error_not_an_empty_string ... ok
+test a_captured_value_survives_the_attribute_exactly ... ok
 test a_keyed_loop_refuses_an_item_with_no_key_value ... ok
+test a_keyed_loop_refuses_two_items_with_one_key ... ok
+test a_missing_else_renders_nothing_rather_than_failing ... ok
+test a_missing_value_is_an_error_not_an_empty_string ... ok
 test a_nested_template_renders_in_place_with_its_own_arguments ... ok
 test a_range_part_is_delimited_by_its_own_anchors ... ok
 test a_public_domain_and_a_session_domain_render_different_tokens ... ok
-test a_text_expression_renders_its_value ... ok
+test a_static_region_carries_no_identity_markup ... ok
 test a_value_with_no_text_form_is_refused_rather_than_stringified ... ok
 test an_attribute_renders_as_a_quoted_value ... ok
-test a_static_region_carries_no_identity_markup ... ok
+test a_text_expression_renders_its_value ... ok
 test an_each_region_renders_once_per_element_with_the_binding_in_scope ... ok
 test an_element_local_part_anchors_on_the_element_not_on_a_comment ... ok
 test an_empty_collection_renders_the_surrounding_markup_and_no_items ... ok
+test an_element_s_handlers_carry_one_attribute_between_them ... ok
 test an_element_carries_exactly_the_paths_its_handler_reads ... ok
 test an_error_inside_an_instance_is_the_first_the_document_meets ... ok
-test an_element_s_handlers_carry_one_attribute_between_them ... ok
 test an_event_part_emits_nothing_because_behaviour_is_not_markup ... ok
 test an_instance_of_an_unknown_template_is_refused_rather_than_skipped ... ok
-test an_unkeyed_loop_emits_no_instance_boundaries ... ok
 test an_instance_rendered_alone_is_the_bytes_the_page_has_there ... ok
+test an_unkeyed_loop_emits_no_instance_boundaries ... ok
 test the_blocked_check_can_fail ... ok
 test the_determinism_check_can_fail ... ok
 test carried_captures_serialize_deterministically ... ok
@@ -69,19 +69,19 @@ test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
 
 test a_handler_named_by_a_local_is_refused_when_checked ... ok
 test a_listed_capture_is_still_held_to_what_the_handler_reads ... ok
-test a_handler_written_as_a_lambda_has_code ... ok
 test an_event_part_with_no_code_is_refused_at_build ... ok
+test a_handler_written_as_a_lambda_has_code ... ok
 test a_handler_captures_what_it_reads_of_the_page ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 28.26s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 20.61s
 test a_command_inside_a_function_is_refused ... ok
 test a_command_parameter_a_browser_cannot_send_is_refused ... ok
 test a_command_is_sent_again_as_its_retry_clause_says ... ok
-test a_case_and_a_record_holding_one_are_sent_as_the_browser_holds_them ... ok
 test a_handler_calls_several_commands_in_order ... ok
+test a_case_and_a_record_holding_one_are_sent_as_the_browser_holds_them ... ok
 test a_handler_branches_between_commands ... ok
 test a_handler_that_calls_no_command_is_refused ... ok
-test a_handler_that_discards_its_answer_with_underscore_sends_it ... ok
 test a_handler_that_discards_its_answer_by_name_sends_it ... ok
+test a_handler_that_discards_its_answer_with_underscore_sends_it ... ok
 test a_handler_computes_what_it_sends ... ok
 test a_record_or_a_list_is_sent_as_json_carries_it ... ok
 test a_refused_command_stops_the_handler_before_the_next ... ok
@@ -94,26 +94,26 @@ test a_program_that_does_not_check_compiles_no_handlers ... ok
 test a_handler_calls_its_commands_by_the_contracts_own_ids ... ok
 test the_stores_handlers_compile_to_the_calls_their_bodies_make ... ok
 test a_module_and_its_event_part_name_one_handler ... ok
-test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.71s
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.99s
 test a_list_inside_a_querys_value_is_iterated_by_its_path ... ok
 test a_region_whose_handler_captures_what_the_browser_does_not_hold_is_refused ... ok
 test a_region_that_reads_what_the_browser_does_not_hold_is_refused ... ok
 test a_speculated_value_read_in_a_block_no_region_renders_is_refused ... ok
 test the_count_alone_is_speculated_as_before ... ok
 test a_part_that_reads_a_speculated_value_is_rendered_again ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.25s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.23s
 test a_signal_a_view_captures_is_refused ... ok
 test a_page_plans_a_composed_view_as_its_own_markup ... ok
 test a_name_the_view_binds_hides_nothing_it_was_given ... ok
 test a_handler_in_a_view_captures_what_the_page_gave_it ... ok
 test a_view_that_cannot_compose_is_reported_where_it_is_used ... ok
 test a_signal_a_view_shows_is_live_as_the_page_s_own ... ok
-test a_view_s_part_and_handler_are_the_page_s_to_speculate ... ok
 test a_view_used_twice_has_parts_of_its_own_each_time ... ok
+test a_view_s_part_and_handler_are_the_page_s_to_speculate ... ok
 test a_view_is_written_where_it_is_used ... ok
 test what_cannot_be_composed_is_refused_by_name ... ok
 test what_a_view_captures_is_checked_where_it_is_given ... ok
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 36.89s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 25.34s
 
 == the transitions under Node, and each command against its reference (compiler/pw-conformance)
 
@@ -123,33 +123,33 @@ test the_kiokun_search_agrees_with_its_reference ... ok
 test the_oracle_notices_a_reference_that_is_wrong ... ok
 test the_stores_queries_agree_with_their_reference ... ok
 test the_stores_commands_agree_with_their_reference ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.48s
-test a_speculated_value_read_inside_a_block_is_refused_by_name ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.17s
 test the_stores_transitions_run_and_its_parts_read_the_result ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.18s
+test a_speculated_value_read_inside_a_block_is_refused_by_name ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.02s
 
 == a record and a list from a browser (runtime/pw-host)
 
 test a_list_of_records_is_read_element_by_element_and_runs ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 test a_node_without_the_write_capability_does_not_admit_it ... ok
 test a_granted_operation_the_host_does_not_implement_is_refused ... ok
 test a_data_layer_failure_is_the_commands_failure ... ok
 test a_data_layer_answer_that_breaks_an_invariant_is_the_commands_failure ... ok
-test a_quantity_that_is_no_positive_int_is_refused_as_the_arguments_are_decoded ... ok
-test an_argument_that_breaks_its_invariant_never_reaches_the_component ... ok
 test a_world_level_export_is_found_by_its_declaration ... ok
+test an_argument_that_breaks_its_invariant_never_reaches_the_component ... ok
 test an_export_not_declared_by_the_contract_cannot_be_invoked ... ok
-test an_ungranted_operation_is_refused_by_the_engine ... ok
 test an_item_that_cannot_be_ordered_is_refused_before_anything_is_written ... ok
-test arguments_for_an_export_the_component_does_not_have_are_refused ... ok
-test json_arguments_are_typed_by_the_export_they_are_for ... ok
+test a_quantity_that_is_no_positive_int_is_refused_as_the_arguments_are_decoded ... ok
+test an_ungranted_operation_is_refused_by_the_engine ... ok
 test requires_cannot_be_bypassed_by_the_raw_call_api ... ok
-test the_compiled_command_runs_through_the_host ... ok
+test json_arguments_are_typed_by_the_export_they_are_for ... ok
+test arguments_for_an_export_the_component_does_not_have_are_refused ... ok
 test the_instance_runs_within_its_fuel ... ok
+test the_compiled_command_runs_through_the_host ... ok
 test the_artifact_imports_exactly_what_its_contract_allows ... ok
 test sustained_calls_leave_memory_flat ... ok
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.55s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.07s
 
 == the development server (pw-dev-server)
 
@@ -158,11 +158,11 @@ test tests::a_lines_steps_reach_the_data_layer ... ok
 test tests::a_sessions_changes_wait_for_the_one_in_progress ... ok
 test tests::a_speculating_page_is_sent_its_carts_value ... ok
 test tests::the_compiled_command_carries_its_arguments_to_the_data_layer ... ok
-test result: ok. 704 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 546.29s
+test result: ok. 732 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 381.23s
 
 == the cart in three engines (e2e/cart.spec.mjs)
 
-  21 passed (44.0s)
+  21 passed (35.2s)
 
 == mutation controls (scripts/cart_lines_mutations.py)
 

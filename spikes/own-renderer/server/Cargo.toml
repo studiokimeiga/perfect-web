@@ -27,6 +27,9 @@ pw-render = { path = "../../../runtime/pw-render" }
 pw-resource = { path = "../../../runtime/pw-resource" }
 # ADR-0304: the host's tz database, read for the platform's clock.
 pw-time = { path = "../../../runtime/pw-time" }
+# Track outbound-https (ADR-0387): the host's one outbound client, which the
+# payments reach their provider with.
+pw-outbound = { path = "../../../runtime/pw-outbound" }
 # The feed's data in PostgreSQL, where the deployment names one
 # (`PW_FEED_DATABASE_URL`); the in-memory layer otherwise.
 postgres.workspace = true
@@ -53,6 +56,9 @@ miniz_oxide = "0.9.1"
 rusqlite.workspace = true
 
 [dev-dependencies]
+# Track outbound-https (ADR-0387): a test's certificate authority and TLS
+# front, for the payments at an https origin; a dev-dependency alone.
+pw-outbound-testkit = { path = "../../../runtime/pw-outbound-testkit" }
 # ADR-0158: a test leaves nothing behind.
 tempfile.workspace = true
 # ADR-0145: a test builds a program with the compiler, as `pw build` builds

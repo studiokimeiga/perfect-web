@@ -1,8 +1,8 @@
 ADR-0311 - a page states its canonical address
 
 produced by: just e14-canonical
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -33,7 +33,7 @@ test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 test identity::tests::an_origin_is_a_scheme_a_host_and_a_port ... ok
 test tests::a_page_s_canonical_address_is_written_with_the_deployment_s_origin ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 711 filtered out; finished in 17.36s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 739 filtered out; finished in 17.40s
 
 == the corpus at C19 (corpus-check, generality.rs, checking_source.rs)
 
@@ -42,12 +42,12 @@ accepted: 44/44 charter §16 categories covered
 rejected: 95 files
 rejected: 95/95 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 195.96s
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 171.11s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 197.06s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 173.30s
 
 == a canonical address, and a navigation's head, in three engines (e2e/canonical.spec.mjs)
 
-  6 passed (18.5s)
+  6 passed (17.4s)
 
 == mutation controls (scripts/canonical_mutations.py)
 

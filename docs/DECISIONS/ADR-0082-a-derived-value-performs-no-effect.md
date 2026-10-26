@@ -37,3 +37,56 @@ diagnostic names the effect and the route it took.
   clean, as do the store and kiokun.
 - **Mutation controls:** `scripts/derived_mutations.py`, `just e10-derived`,
   3 mutants.
+
+## Amended, 2026-10-25: a control that had become equivalent
+
+The nightly of 2026-10-25, the first to run every recipe since train-12,
+failed `e10-derived` at `cc47a64b`: "only what a derived value calls
+counts" survived, and `master` at `4345726a` reproduces it on a clean tree.
+The mutant replaced the check's `infer_in_at`, which counts what a body
+calls, the members it reads and the declarations it names, with
+`infer_at`, which counted its calls alone. ADR-0351 (train-12) made
+`infer_at` read the members and values of every body `run` typed, so the
+replacement found the same effects and the tests could not tell. Nothing
+in the check had weakened; the control had stopped expressing its fault.
+
+It now removes the member and value effects from `infer_in_reading`, the
+inference `infer_in_at` performs, so the check counts calls alone, as
+before 2026-09-26. The derived-purity tests kill it (1 of 2 fail), and the
+other two controls are unchanged: 3 of 3 killed.
+
+No push planned the recipe in the five days between: a push plans a
+mutation script's recipe when its anchored lines change, not when the code
+those lines call does. Sunday's run of every recipe is what found it.
+
+
+### Integration review: invalid producers cannot count as kills
+
+The separate review reproduced the original equivalent survivor and all
+three new assertion kills, but found that the legacy producer counted a
+build failure as a kill and trusted summary text alone. The producer now
+requires native Cargo exit/summary agreement, complete named test identity
+frozen from the baseline, and exactly one native assertion source site per
+failed test in `derived_purity.rs`. Build failure, setup I/O, ordinary panic,
+timeout, missing/renamed tests and contradictory status are invalid and
+fail the campaign. Source restoration uses the shared mutation guard; the
+script's executable bit is restored. The compiler behavior and three
+controls do not change. Two producer regressions exercise a renamed equal-
+count inventory and failed-build/status rejection. New whole-recipe
+results and exact-head gates are required; older 3/3 output does not prove
+the stricter producer passed.
+
+
+The stricter producer's whole **3/3 valid assertion kills**, two-test native
+baseline and all planned browser jobs passed in exact-branch dispatch
+[40265020077](https://github.com/studiokimeiga/perfect-web/actions/runs/40265020077)
+at `00c8febf8a24a7d118f5e4e925d19fe959731051`. Canonical
+`just evidence-fetch 40265020077` records `docs/evidence/E10/derived.txt`.
+The preceding successful PR recipe40263852479 ran a synthetic merge
+commit96fcde56; canonical fetch correctly refused that artifact because
+its recorded commit did not equal the run's source head. Nothing was
+copied or restamped. The exact-branch dispatch supplies the eligible
+record. Independent follow-up review also reproduced all three strict
+kills and16 producer/shared regressions, including invalid build/status,
+setup I/O, ordinary panic, timeout/cancellation and source restoration.
+Final current-master integration and exact-head gates remain required.

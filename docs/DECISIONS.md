@@ -2171,6 +2171,9 @@ merged by the integrator).
   the upload and publishes it with the post or discards it (PW2005 holds
   each path), and only what a post committed is served, `nosniff`,
   sandboxed and immutable.
+- Amended 2026-10-25 by ADR-0383: an upload had been kept and served as
+  sent, a photo's GPS position among it; it is now kept without its
+  metadata.
 [ADR-0261](DECISIONS/ADR-0261-a-deleted-posts-image-is-not-served-and-its-blob-is-collected.md):
 a deleted post's image is not served, and its blob is collected (ADR-0260's
 first question at its merge).
@@ -3251,10 +3254,22 @@ A command's send is answered within its deadline, or it is no answer (track `com
 The modules a page loads when it first needs them are loaded within the deadline, and a failed load is not kept (track `press-modules`; not landed).
 - A handler's module, the page's speculation module, its renderer and its computed values load within ADR-0381's deadline; a failed or given-up load is forgotten and asked for again under a new specifier, as a handler's is; a press whose speculation cannot load is sent unspeculated.
 
+[ADR-0383](DECISIONS/ADR-0383-an-uploaded-image-is-kept-without-its-metadata.md):
+An uploaded image is kept and served without what names a place, a device, a person or a time (track `upload-metadata`, amending ADR-0260; reviewed 2026-10-26; PR #54 holds its landing record).
+- The host rewrites every upload before it keeps it: each format's container is walked, and what decoding, colour, animation and a JPEG's turn need is copied byte for byte (the turn as an Exif holding `Orientation` alone); an ICC profile is kept for its colour without its descriptions, device fields, time or ID; everything else is dropped, and a container that does not parse is refused whole. Not claimed: the pixels, a profile's measured colour tags, data hidden in a JPEG's scan, and images a deployment kept before.
+
+[ADR-0384](DECISIONS/ADR-0384-a-dating-app.md):
+A dating app: whose a row is, who else may read it, and what a precise value reveals (track `hinge-design`; accepted 2026-10-25 as the fifth reference app's plan, docs only).
+- Every capability a Hinge-shaped app needs that Pleris lacks, as generic platform tracks: rows with owners and per-principal sharing, predicates written in Pleris, table policies that reveal no precise value, bounded rows with host-made cursors, coarse location, ordered private media, push, declared limits, erasure, moderation, verification, subscriptions and typed form bindings; then the app in slices in `examples/dating/`, with no app-specific Rust. Nothing is built by this note, and the three published Hinge privacy failures become museum exhibits, Pleris misses until their protections are real.
+
 [ADR-0385](DECISIONS/ADR-0385-a-component-reads-its-tables-through-the-table-gate.md):
 A compiled component reads its tables through the table gate, typed and exact (ADR-0338's D2 read path, track `d2-integrate`; PR #53, merged at `4345726a`, 2026-10-25).
 - The gate (`pw_host::tables`) is the only way a `pw:tables/…` import links; each import is typed as tables.json declares before instantiation; every answer is its read's (a get's own key, a get-many's asked keys once in canonical order) and every row exactly its table's. `e14-table-host`: 49 of 49 mutants killed.
 
 [ADR-0386](DECISIONS/ADR-0386-a-command-writes-its-tables-through-the-gate-staged.md):
-A command writes its tables through the table gate, staged, and every read is gated (ADR-0338's D2 writes and other reads, track `d2-writes`; not landed).
-- `insert`, `put`, `delete` and `delete_of_<fields>` link only into a command, with their table's write capability, typed, each answer held; a command reads its own writes, no other read sees them until it commits, and it commits whole (bound and references held) or not at all; a refused write answers the row that holds it; prefix, index, set-form and bounded `all` reads gated, typed and held. The memory adapter keeps rows and indexes as maps; the tables a command changed are what a host commits the outbox by.
+A command writes its tables through the table gate, staged (ADR-0338's D2 writes and other reads, track `d2-writes`; reviewed foundation, PR #58 holds its landing record).
+- Typed insert, put, delete and selector imports are validated before linking. The standalone memory adapter stages bounded rows and indexes, with whole prepare/rollback and fallible publication. Its strict 69-control proof does not wire development-server commands or an atomic join with events, interactions, outbox and schedules; durable D3 and generated conformance remain open. Companion table-host/tables receipts retain their separate legacy-producer scope.
+
+[ADR-0387](DECISIONS/ADR-0387-outbound-https.md):
+Outbound HTTPS follows an allowed origin, with bounded DNS, TLS, framing and deadlines (track `outbound-https`; reviewed client foundation).
+- Process-wide resolver reservations and redacted diagnostics constrain the configured client. The strict 111-control proof does not implement app-authored network capabilities or demonstrate a real payment-provider deployment.

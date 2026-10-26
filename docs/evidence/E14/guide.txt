@@ -1,8 +1,8 @@
 ADR-0343 (track guide) - a guide whose examples compile: every example of docs/guide checked, and the tutorial's app run in three engines
 
 produced by: just e14-guide
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -14,8 +14,8 @@ test a_gaps_build_output_belongs_to_the_gap_before_it ... ok
 test a_pages_file_blocks_are_its_program_in_order ... ok
 test a_page_is_held_to_the_directory_it_names ... ok
 test a_page_with_no_example_or_a_block_unseen_is_reported ... ok
-test a_program_differs_from_a_directory_by_a_file_or_a_byte ... ok
 test a_refused_examples_codes_are_read_from_its_output ... ok
+test a_program_differs_from_a_directory_by_a_file_or_a_byte ... ok
 test an_unclosed_or_indented_fence_is_refused ... ok
 test an_info_string_says_what_a_block_is ... ok
 test shown_output_belongs_to_the_refused_example_before_it ... ok
@@ -24,7 +24,7 @@ test the_reference_is_held_to_the_registry ... ok
 test the_diagnostic_reference_lists_every_registered_code ... ok
 test every_example_in_the_guide_compiles_as_it_says ... ok
 test a_wrong_example_is_reported_and_a_right_one_is_not ... ok
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.10s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.51s
 
 == the reference of codes, from the registry (scripts/guide_diagnostics.py)
 
@@ -36,16 +36,16 @@ test_a_pipe_in_a_cell_is_escaped (test_guide_diagnostics.Reading.test_a_pipe_in_
 test_a_retired_code_with_its_reason_continued_across_lines (test_guide_diagnostics.Reading.test_a_retired_code_with_its_reason_continued_across_lines) ... ok
 test_an_owner_without_a_title_is_written_from_its_name (test_guide_diagnostics.Reading.test_an_owner_without_a_title_is_written_from_its_name) ... ok
 test_each_entry_with_its_invariant_and_the_adrs_its_comment_cites (test_guide_diagnostics.Reading.test_each_entry_with_its_invariant_and_the_adrs_its_comment_cites) ... ok
-Ran 7 tests in 0.093s
+Ran 7 tests in 0.059s
 OK
 
 == the tutorial's app, examples/guestbook/*.pw, in three engines (e2e/guestbook.spec.mjs)
 
-  12 passed (16.8s)
+  12 passed (12.9s)
 
 == mutation controls (scripts/guide_mutations.py)
 
-Python frozen full IDs: ['test_guide_diagnostics.Current.test_every_registered_code_has_a_row', 'test_guide_diagnostics.Current.test_the_committed_page_is_what_the_registry_writes', 'test_guide_diagnostics.Reading.test_a_line_that_is_no_entry_is_refused_not_skipped', 'test_guide_diagnostics.Reading.test_a_pipe_in_a_cell_is_escaped', 'test_guide_diagnostics.Reading.test_a_retired_code_with_its_reason_continued_across_lines', 'test_guide_diagnostics.Reading.test_an_owner_without_a_title_is_written_from_its_name', 'test_guide_diagnostics.Reading.test_each_entry_with_its_invariant_and_the_adrs_its_comment_cites']; evidence /tmp/pw-guide-python-evidence-n9isj5p1
+Python frozen full IDs: ['test_guide_diagnostics.Current.test_every_registered_code_has_a_row', 'test_guide_diagnostics.Current.test_the_committed_page_is_what_the_registry_writes', 'test_guide_diagnostics.Reading.test_a_line_that_is_no_entry_is_refused_not_skipped', 'test_guide_diagnostics.Reading.test_a_pipe_in_a_cell_is_escaped', 'test_guide_diagnostics.Reading.test_a_retired_code_with_its_reason_continued_across_lines', 'test_guide_diagnostics.Reading.test_an_owner_without_a_title_is_written_from_its_name', 'test_guide_diagnostics.Reading.test_each_entry_with_its_invariant_and_the_adrs_its_comment_cites']; evidence /tmp/pw-guide-python-evidence-50g4q4_i
 baseline: the guide's tests, 22 ran, 0 failed
 baseline: the guestbook in Chromium, 4 ran, 0 failed
 an example no longer type-checks: KILLED by every_example_in_the_guide_compiles_as_it_says (1 of 22 tests fail; Rust body assertion)
