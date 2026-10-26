@@ -75,3 +75,18 @@ controls do not change. Two producer regressions exercise a renamed equal-
 count inventory and failed-build/status rejection. New whole-recipe
 results and exact-head gates are required; older 3/3 output does not prove
 the stricter producer passed.
+
+
+The stricter producer's whole **3/3 valid assertion kills**, two-test native
+baseline and all planned browser jobs passed in exact-branch dispatch
+[40265020077](https://github.com/studiokimeiga/perfect-web/actions/runs/40265020077)
+at `00c8febf8a24a7d118f5e4e925d19fe959731051`. Canonical
+`just evidence-fetch 40265020077` records `docs/evidence/E10/derived.txt`.
+The preceding successful PR recipe40263852479 ran a synthetic merge
+commit96fcde56; canonical fetch correctly refused that artifact because
+its recorded commit did not equal the run's source head. Nothing was
+copied or restamped. The exact-branch dispatch supplies the eligible
+record. Independent follow-up review also reproduced all three strict
+kills and16 producer/shared regressions, including invalid build/status,
+setup I/O, ordinary panic, timeout/cancellation and source restoration.
+Final current-master integration and exact-head gates remain required.

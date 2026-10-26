@@ -20,7 +20,7 @@
   "e10-control-flow": 1782,
   "e10-declared-events": 28,
   "e10-declared-once": 79,
-  "e10-derived": 31,
+  "e10-derived": 50,
   "e10-effects-through-values": 1019,
   "e10-embedded-json": 6,
   "e10-field-assignment": 32,
