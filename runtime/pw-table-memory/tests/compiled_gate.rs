@@ -5,6 +5,10 @@
 
 mod common;
 
+#[path = "support/assert_result.rs"]
+mod assert_result;
+use assert_result::*;
+
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -38,7 +42,7 @@ fn host_of(
     let granted = reader.admitted(contract, &grants(NODE));
     let mut host = staged
         .host_fns(contract, &granted)
-        .expect("the gate admits the command's functions");
+        .assert_ok("the gate admits the command's functions");
     host.extend(platform(reader).0);
     let _ = tables;
     (granted, host)
@@ -50,11 +54,11 @@ fn host_of(
 #[test]
 fn a_write_links_only_into_a_command() {
     let program = app();
-    let tables = MemoryTables::new(program.tables.clone()).unwrap();
+    let tables = MemoryTables::new(program.tables.clone()).assert_ok("valid domain result");
     let maker = program.reader(MAKE_LIST);
     let mut query = maker.contract.clone();
     query.exports[0].kind = "query".into();
-    let staged = tables.begin().unwrap();
+    let staged = tables.begin().assert_ok("valid domain result");
     // A malicious host can still hand the engine callbacks constructed for
     // the real command; the engine independently refuses their query use.
     let (granted, host) = host_of(&program, &tables, &staged, MAKE_LIST, &maker.contract);
@@ -70,7 +74,7 @@ fn a_write_links_only_into_a_command() {
             Some(tables.host_tables()),
             &[list("todo", "work", 1)],
         )
-        .expect_err("a write in a query");
+        .assert_err("a write in a query");
     assert!(
         refused.contains("pw:tables/lists#insert")
             && refused.contains("a table's write links only into a command"),
@@ -86,7 +90,7 @@ fn a_write_links_only_into_a_command() {
         Ok(serde_json::Value::Null)
     );
     // The neighbour: its own contract, a command.
-    let staged = tables.begin().unwrap();
+    let staged = tables.begin().assert_ok("valid domain result");
     let (granted, host) = host_of(&program, &tables, &staged, MAKE_LIST, &maker.contract);
     assert_eq!(
         maker.call(
@@ -107,23 +111,23 @@ fn a_write_links_only_into_a_command() {
 #[test]
 fn a_forged_or_ungranted_write_is_refused() {
     let program = app();
-    let tables = MemoryTables::new(program.tables.clone()).unwrap();
+    let tables = MemoryTables::new(program.tables.clone()).assert_ok("valid domain result");
     let maker = program.reader(MAKE_LIST);
     let mut forged = maker.contract.clone();
     let insert = forged
         .imports
         .iter_mut()
         .find(|i| i.key() == "pw:tables/lists#insert")
-        .unwrap();
+        .assert_ok("valid domain result");
     insert.capability = "database.write<Other>".into();
     let required = forged
         .required_capabilities
         .iter_mut()
         .find(|c| c.argument.as_deref() == Some("Lists"))
-        .unwrap();
+        .assert_ok("valid domain result");
     required.argument = Some("Other".into());
     let granted = maker.admitted(&forged, &grants(&["database.write<Other>", "outbox.write"]));
-    let staged = tables.begin().unwrap();
+    let staged = tables.begin().assert_ok("valid domain result");
     assert!(matches!(
         staged.host_fns(&forged, &granted),
         Err(Error::Input(why)) if why.contains("database.write<Other>")
@@ -144,7 +148,7 @@ fn a_forged_or_ungranted_write_is_refused() {
             Some(tables.host_tables()),
             &[list("todo", "work", 1)],
         )
-        .expect_err("the gate refuses another table's capability");
+        .assert_err("the gate refuses another table's capability");
     assert!(refused.contains("database.write<Other>"), "{refused}");
     assert_eq!(calls.load(Ordering::SeqCst), 0);
     let denied = maker.admission(
@@ -168,10 +172,10 @@ fn lists(json: &mut serde_json::Value) -> &mut serde_json::Value {
 fn table<'a>(json: &'a mut serde_json::Value, name: &str) -> &'a mut serde_json::Value {
     json["tables"]
         .as_array_mut()
-        .unwrap()
+        .assert_ok("valid domain result")
         .iter_mut()
         .find(|table| table["name"] == name)
-        .unwrap()
+        .assert_ok("valid domain result")
 }
 
 /// **A write's import is typed as tables.json declares it, where it links**:
@@ -203,7 +207,7 @@ fn a_write_typed_otherwise_than_tables_json_is_refused_when_linking() {
             |json| {
                 table(json, "Items")["indexes"]
                     .as_array_mut()
-                    .unwrap()
+                    .assert_ok("valid domain result")
                     .push(json!({"name": "by_title", "fields": ["title"], "unique": true}))
             },
         ),
@@ -216,7 +220,7 @@ fn a_write_typed_otherwise_than_tables_json_is_refused_when_linking() {
     ];
     for (id, args, words, edit) in cases {
         let reader = program.reader(id);
-        let manifest = manifest_where(&program.tables, edit).expect("a whole manifest");
+        let manifest = manifest_where(&program.tables, edit).assert_ok("a whole manifest");
         let granted = reader.admitted(&reader.contract, &grants(NODE));
         let calls = Arc::new(AtomicUsize::new(0));
         let mut host = platform(reader).0;
@@ -232,7 +236,7 @@ fn a_write_typed_otherwise_than_tables_json_is_refused_when_linking() {
         }
         let refused = reader
             .call(&granted, &host, &manifest, &args)
-            .expect_err(words);
+            .assert_err(words);
         assert!(
             refused.contains("typed otherwise than tables.json declares the write")
                 && refused.contains(words),
@@ -240,7 +244,7 @@ fn a_write_typed_otherwise_than_tables_json_is_refused_when_linking() {
         );
         assert_eq!(calls.load(Ordering::SeqCst), 0, "{id}");
         // The neighbour: the compiler's own manifest, and the adapter.
-        let tables = MemoryTables::new(program.tables.clone()).unwrap();
+        let tables = MemoryTables::new(program.tables.clone()).assert_ok("valid domain result");
         tables
             .transaction(|tx| {
                 tx.write(
@@ -248,9 +252,11 @@ fn a_write_typed_otherwise_than_tables_json_is_refused_when_linking() {
                     &[list_json("groceries", "food", 1)],
                 )
             })
-            .unwrap();
-        let staged = tables.begin().unwrap();
-        let mut host = staged.host_fns(&reader.contract, &granted).unwrap();
+            .assert_ok("valid domain result");
+        let staged = tables.begin().assert_ok("valid domain result");
+        let mut host = staged
+            .host_fns(&reader.contract, &granted)
+            .assert_ok("valid domain result");
         host.extend(platform(reader).0);
         assert!(
             reader
@@ -274,33 +280,38 @@ fn a_write_answering_what_tables_json_says_it_does_not_is_refused() {
     let granted = renamer.admitted(&renamer.contract, &grants(NODE));
     let plain = manifest_where(&program.tables, |json| {
         lists(json)["indexes"][0]["unique"] = json!(false);
-        for function in lists(json)["functions"].as_array_mut().unwrap() {
+        for function in lists(json)["functions"]
+            .as_array_mut()
+            .assert_ok("valid domain result")
+        {
             if function["name"] == "by_slug" {
                 function["sorted_by"] = json!(["added", "id"]);
             }
         }
     })
-    .expect("a whole manifest");
+    .assert_ok("a whole manifest");
     let (callback, calls) = answering(Vec::new());
     let host = BTreeMap::from([("pw:tables/lists#put".to_string(), callback)]);
     let refused = renamer
         .call(&granted, &host, &plain, &[list("todo", "work", 1)])
-        .expect_err("a put that tables.json says cannot be refused");
+        .assert_err("a put that tables.json says cannot be refused");
     assert!(
         refused.contains("it answers (a result), not nothing"),
         "{refused}"
     );
     assert_eq!(calls.load(Ordering::SeqCst), 0);
     // The neighbour: the compiler's manifest, on the adapter.
-    let tables = MemoryTables::new(program.tables.clone()).unwrap();
+    let tables = MemoryTables::new(program.tables.clone()).assert_ok("valid domain result");
     tables
         .transaction(|tx| {
             tx.write("pw:tables/lists#insert", &[list_json("todo", "work", 1)])?;
             tx.write("pw:tables/lists#insert", &[list_json("next", "play", 2)])
         })
-        .unwrap();
-    let staged = tables.begin().unwrap();
-    let host = staged.host_fns(&renamer.contract, &granted).unwrap();
+        .assert_ok("valid domain result");
+    let staged = tables.begin().assert_ok("valid domain result");
+    let host = staged
+        .host_fns(&renamer.contract, &granted)
+        .assert_ok("valid domain result");
     assert_eq!(
         renamer.call(
             &granted,
@@ -329,13 +340,13 @@ fn a_write_answering_what_tables_json_says_it_does_not_is_refused() {
 #[test]
 fn a_writes_answer_that_is_not_its_own_is_refused() {
     let program = app();
-    let tables = MemoryTables::new(program.tables.clone()).unwrap();
+    let tables = MemoryTables::new(program.tables.clone()).assert_ok("valid domain result");
     let maker = program.reader(MAKE_LIST);
     let granted = maker.admitted(&maker.contract, &grants(NODE));
     let admitted = tables
         .host_tables()
         .admit_command(&maker.contract, &granted)
-        .unwrap();
+        .assert_ok("valid domain result");
     let Some(pw_host::tables::Access::Write(insert)) =
         admitted.get("pw:tables/lists#insert").cloned()
     else {
@@ -356,7 +367,7 @@ fn a_writes_answer_that_is_not_its_own_is_refused() {
             tables.host_tables(),
             &[list("todo", "work", 1)],
         )
-        .expect_err("a row that refuses nothing");
+        .assert_err("a row that refuses nothing");
     assert!(
         refused.contains("holds nothing the insert of (\"todo\") would"),
         "{refused}"
@@ -373,7 +384,7 @@ fn a_writes_answer_that_is_not_its_own_is_refused() {
             tables.host_tables(),
             &[text("groceries"), text("milk")],
         )
-        .expect_err("a delete answers nothing");
+        .assert_err("a delete answers nothing");
     assert!(
         refused.contains("1 values where a delete answers nothing"),
         "{refused}"
@@ -385,7 +396,7 @@ fn a_writes_answer_that_is_not_its_own_is_refused() {
 #[test]
 fn a_put_refusal_must_hold_a_unique_value_for_another_key() {
     let program = writer();
-    let tables = MemoryTables::new(program.tables.clone()).unwrap();
+    let tables = MemoryTables::new(program.tables.clone()).assert_ok("valid domain result");
     let renamer = program.reader(RENAME);
     let granted = renamer.admitted(&renamer.contract, &grants(NODE));
     let given = list("next", "work", 2);

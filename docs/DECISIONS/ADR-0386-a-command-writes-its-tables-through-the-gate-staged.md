@@ -387,3 +387,30 @@ catalog is 69 controls. The earlier cc98 hosted campaign failed closed at
 38/65 because legacy tests still used non-assertion failure paths; it is
 not acceptance evidence. Its two companion read/table recipes passed, but
 their raw controls still need scope-aware inspection before new claims.
+
+### Strict producer repairs after the failed whole campaign
+
+Verify 40252299461 at `cc98b89b` earned 38/65 valid kills, with 27 invalid
+witnesses. It remains a failed campaign. Nine manifest refusals were
+corrected in the focused F3 follow-up; the remaining legacy cases used
+`expect_err`, positive contract helpers, follow-on command unwraps, a
+background observer assertion or multiple thread assertions. No invalid
+result is relabelled as a kill.
+
+Test-only result helpers now assert the domain contract before extracting
+it. Fixture filesystem setup retains ordinary failure paths. Transaction
+workers return their completed Results to one parent assertion; an actual
+thread panic remains an ordinary join failure and invalid evidence. The
+wait observer reports a Result to its parent, whose completed comparison
+is the sole semantic assertion. Native assertion provenance and each
+binary's frozen inventory remain mandatory; build errors, unexpected
+panics and incomplete inventories remain invalid.
+
+The revised complete baseline passes 142 tests (81 adapter, 25 host engine,
+36 compiler tables). All 27 formerly refused controls now compile and fail
+native assertions in bounded reruns; the begin-overlap control was repaired
+last and rerun against the complete inventory. Two producer regressions
+also pass. These local results do not replace a fresh whole 69-control
+campaign, final independent producer review or exact-head hosted gates.
+The two older companion table recipe results are historical; their legacy
+producer weaknesses remain separate obligations.

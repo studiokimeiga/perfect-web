@@ -12,6 +12,10 @@
 
 mod common;
 
+#[path = "support/assert_result.rs"]
+mod assert_result;
+use assert_result::*;
+
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
@@ -33,7 +37,7 @@ const NODE: &[&str] = &[
 /// The program's tables, holding two lists and four items, written through
 /// the adapter's own transaction.
 fn seeded(program: &Program) -> MemoryTables {
-    let tables = MemoryTables::new(program.tables.clone()).expect("the adapter");
+    let tables = MemoryTables::new(program.tables.clone()).assert_ok("the adapter");
     tables
         .transaction(|tx| {
             tx.write(
@@ -54,7 +58,7 @@ fn seeded(program: &Program) -> MemoryTables {
             }
             Ok(())
         })
-        .expect("seeded through the adapter's own transaction");
+        .assert_ok("seeded through the adapter's own transaction");
     tables
 }
 
@@ -65,7 +69,7 @@ fn query(program: &Program, tables: &MemoryTables, id: &str, args: &[Val]) -> Ve
     let granted = reader.admitted(&reader.contract, &grants(NODE));
     let host = tables
         .read_host_fns(&reader.contract, &granted)
-        .expect("the gate admits the query's reads");
+        .assert_ok("the gate admits the query's reads");
     assert_eq!(
         host.keys().collect::<Vec<_>>(),
         reader.imports.iter().collect::<Vec<_>>(),
@@ -73,7 +77,7 @@ fn query(program: &Program, tables: &MemoryTables, id: &str, args: &[Val]) -> Ve
     );
     reader
         .call(&granted, &host, tables.host_tables(), args)
-        .unwrap_or_else(|why| panic!("{id}: {why}"))
+        .assert_ok("the compiled reader executes")
 }
 
 /// What a command answered, and what it handed the platform's imports.
@@ -95,19 +99,19 @@ fn command_with(
 ) -> Ran {
     let reader = program.reader(id);
     let granted = reader.admitted(&reader.contract, &grants(NODE));
-    let staged = tables.begin().expect("its turn");
+    let staged = tables.begin().assert_ok("its turn");
     let mut host = staged
         .host_fns(&reader.contract, &granted)
-        .expect("the gate admits the command's reads and writes");
+        .assert_ok("the gate admits the command's reads and writes");
     let (platform, calls) = platform(reader);
     host.extend(platform);
     wrap(&mut host);
     let answer = reader.call(&granted, &host, tables.host_tables(), args);
     let declared_error = matches!(answer.as_deref(), Ok([Val::Result(Err(_))]));
     if answer.is_ok() && !declared_error {
-        staged.commit().expect("its commit");
+        staged.commit().assert_ok("its commit");
     }
-    let platform = calls.lock().unwrap().clone();
+    let platform = calls.lock().assert_ok("valid domain result").clone();
     Ran { answer, platform }
 }
 
@@ -243,12 +247,11 @@ fn make_list_inserts_or_answers_the_row_that_holds_its_key_or_slug() {
 #[test]
 fn a_write_that_invalidates_no_reader_of_its_table_does_not_build() {
     let declared = "invalidates EveryList(), ListAt(list.slug), EveryItem()";
-    let Err(refused) = build_edited("app.pw", |src| {
+    let refused = build_edited("app.pw", |src| {
         assert_eq!(src.matches(declared).count(), 1);
         src.replace(declared, "invalidates ListAt(list.slug), EveryItem()")
-    }) else {
-        panic!("a write leaving a reader of its table as it was is refused");
-    };
+    })
+    .assert_err("a write leaving a reader of its table as it was is refused");
     assert!(
         refused.contains("[PW5106] `make_list` writes `Lists` and does not invalidate `EveryList`"),
         "{refused}"
@@ -347,8 +350,10 @@ fn a_commands_writes_are_invisible_until_it_commits() {
     let tables = seeded(&program);
     let keeper = program.reader(KEEP_ITEM);
     let granted = keeper.admitted(&keeper.contract, &grants(NODE));
-    let staged = tables.begin().expect("its turn");
-    let mut host = staged.host_fns(&keeper.contract, &granted).unwrap();
+    let staged = tables.begin().assert_ok("its turn");
+    let mut host = staged
+        .host_fns(&keeper.contract, &granted)
+        .assert_ok("keeper host functions");
     host.extend(platform(keeper).0);
     let before = open_items(&program, &tables);
     for row in [
@@ -370,7 +375,7 @@ fn a_commands_writes_are_invisible_until_it_commits() {
         Ok(serde_json::Value::Null),
         "the adapter's own read, before the commit"
     );
-    staged.commit().expect("its commit");
+    staged.commit().assert_ok("its commit");
     assert_eq!(
         open_items(&program, &tables),
         [Val::List(vec![
@@ -387,7 +392,7 @@ fn a_commands_writes_are_invisible_until_it_commits() {
 fn a_command_not_committed_publishes_none_of_its_writes() {
     let program = app();
     let tables = seeded(&program);
-    let staged = tables.begin().expect("its turn");
+    let staged = tables.begin().assert_ok("its turn");
     for (id, args) in [
         (KEEP_ITEM, vec![item("groceries", "milk", true, 3)]),
         (CLEAR_LIST, vec![text("chores")]),
@@ -395,11 +400,13 @@ fn a_command_not_committed_publishes_none_of_its_writes() {
     ] {
         let reader = program.reader(id);
         let granted = reader.admitted(&reader.contract, &grants(NODE));
-        let mut host = staged.host_fns(&reader.contract, &granted).unwrap();
+        let mut host = staged
+            .host_fns(&reader.contract, &granted)
+            .assert_ok("reader host functions");
         host.extend(platform(reader).0);
         reader
             .call(&granted, &host, tables.host_tables(), &args)
-            .unwrap_or_else(|why| panic!("{id}: {why}"));
+            .assert_ok("the compiled reader executes");
     }
     drop(staged);
     let after = seeded(&program);
@@ -422,7 +429,8 @@ fn a_command_not_committed_publishes_none_of_its_writes() {
 #[test]
 fn a_command_reads_its_own_writes_before_it_commits() {
     let program = writer();
-    let tables = Arc::new(MemoryTables::new(program.tables.clone()).unwrap());
+    let tables =
+        Arc::new(MemoryTables::new(program.tables.clone()).assert_ok("valid domain result"));
     let outside: Arc<Mutex<Vec<serde_json::Value>>> = Arc::default();
     let seen = Arc::clone(&outside);
     let reading = Arc::clone(&tables);
@@ -432,12 +440,12 @@ fn a_command_reads_its_own_writes_before_it_commits() {
         INSERT_THEN_GET,
         &[list("todo", "work", 30)],
         move |host| {
-            let get = host.remove("pw:tables/lists#get").expect("its get");
+            let get = host.remove("pw:tables/lists#get").assert_ok("its get");
             let wrapped: HostFn = Arc::new(move |args| {
-                seen.lock().unwrap().push(
+                seen.lock().assert_ok("valid domain result").push(
                     reading
                         .read("pw:tables/lists#get", &[json!("todo")])
-                        .unwrap(),
+                        .assert_ok("valid domain result"),
                 );
                 get(args)
             });
@@ -451,7 +459,7 @@ fn a_command_reads_its_own_writes_before_it_commits() {
         ))))))])
     );
     assert_eq!(
-        *outside.lock().unwrap(),
+        *outside.lock().assert_ok("valid domain result"),
         [serde_json::Value::Null],
         "outside the command, at its own read, nothing"
     );
@@ -466,7 +474,7 @@ fn a_command_reads_its_own_writes_before_it_commits() {
 #[test]
 fn a_commands_index_read_sees_its_own_puts() {
     let program = writer();
-    let tables = MemoryTables::new(program.tables.clone()).unwrap();
+    let tables = MemoryTables::new(program.tables.clone()).assert_ok("valid domain result");
     tables
         .transaction(|tx| {
             tx.write(
@@ -478,7 +486,7 @@ fn a_commands_index_read_sees_its_own_puts() {
                 &[item_json("groceries", "milk", false, 3)],
             )
         })
-        .unwrap();
+        .assert_ok("valid domain result");
     let done = command(
         &program,
         &tables,
@@ -504,14 +512,14 @@ fn a_commands_index_read_sees_its_own_puts() {
 #[test]
 fn a_command_that_stops_after_a_write_publishes_nothing() {
     let program = writer();
-    let tables = MemoryTables::new(program.tables.clone()).unwrap();
+    let tables = MemoryTables::new(program.tables.clone()).assert_ok("valid domain result");
     let stopped = command(
         &program,
         &tables,
         INSERT_THEN_DIVIDE,
         &[list("todo", "work", 30), Val::S64(0)],
     );
-    let why = stopped.answer.expect_err("a division by zero stops it");
+    let why = stopped.answer.assert_err("a division by zero stops it");
     assert!(why.contains("division by zero"), "{why}");
     assert_eq!(
         tables.read("pw:tables/lists#get", &[json!("todo")]),

@@ -95,9 +95,9 @@ fn a_wait_observer_may_read_and_replace_itself_without_lock_reentry() {
     let weak = Arc::downgrade(&db);
     db.tell_on_wait(move || {
         let db = weak.upgrade().unwrap();
-        assert_eq!(db.read(GET, &[json!(1)]), Ok(Value::Null));
+        let value = db.read(GET, &[json!(1)]);
         db.tell_on_wait(|| {});
-        sent.send(()).unwrap();
+        let _ = sent.send(value);
     });
     let (done, finished) = mpsc::channel();
     let other = Arc::clone(&db);
@@ -111,11 +111,13 @@ fn a_wait_observer_may_read_and_replace_itself_without_lock_reentry() {
     if observed.is_err() {
         std::mem::forget(first.take().unwrap());
     }
-    assert!(
-        observed.is_ok(),
-        "observer completed without storage or observer locks held"
+    assert_eq!(
+        observed,
+        Ok(Ok(Value::Null)),
+        "observer reads the published snapshot outside all locks"
     );
-    first.take().unwrap().commit().unwrap();
+    let committed = first.take().unwrap().commit();
+    assert!(committed.is_ok(), "the first remains the open command");
     assert_eq!(finished.recv_timeout(Duration::from_secs(3)), Ok(Ok(())));
     worker.join().unwrap();
     assert_eq!(db.read(GET, &[json!(1)]), Ok(json!({"id":1})));
@@ -163,8 +165,18 @@ fn internal_working_poison_wakes_every_existing_waiter() {
         }));
     }
     for _ in 0..2 {
-        heard.recv_timeout(Duration::from_secs(3)).unwrap();
+        let contender = heard.recv_timeout(Duration::from_secs(3));
+        assert!(
+            contender.is_ok(),
+            "each contender waits for the active command"
+        );
     }
+    let owner = db.inner.working_of(id);
+    assert!(
+        owner.is_ok(),
+        "contenders did not replace the active command"
+    );
+    drop(owner);
     let broken = Arc::clone(&db);
     assert!(
         fault_thread(move || {

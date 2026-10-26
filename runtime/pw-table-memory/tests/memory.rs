@@ -4,6 +4,10 @@ use pw_core::tables::{
 };
 use pw_table_memory::{Error, MemoryTables};
 use serde_json::{Value, json};
+#[path = "support/assert_result.rs"]
+mod assert_result;
+use assert_result::*;
+
 use std::sync::Arc;
 
 fn field(name: &str, stored: Stored) -> FieldSchema {
@@ -130,51 +134,55 @@ fn like(from: &str, to: &str, rank: i64) -> Value {
 
 #[test]
 fn compiler_manifest_drives_reads_without_app_specific_storage() {
-    let db = MemoryTables::new(manifest()).unwrap();
+    let db = MemoryTables::new(manifest()).assert_ok("valid domain result");
     db.transaction(|tx| {
         tx.write(&call("insert"), &[like("a", "c", 10)])?;
         tx.write(&call("insert"), &[like("a", "b", 2)])?;
         tx.write(&call("insert"), &[like("d", "c", 5)])?;
         Ok(())
     })
-    .unwrap();
+    .assert_ok("valid domain result");
     assert_eq!(
-        db.read(&call("get"), &[json!("a"), json!("b")]).unwrap(),
+        db.read(&call("get"), &[json!("a"), json!("b")])
+            .assert_ok("valid domain result"),
         like("a", "b", 2)
     );
     assert_eq!(
         db.read(&call("get"), &[json!("unknown"), json!("b")])
-            .unwrap(),
+            .assert_ok("valid domain result"),
         Value::Null
     );
     assert_eq!(
-        db.read(&call("of-from"), &[json!("a")]).unwrap(),
+        db.read(&call("of-from"), &[json!("a")])
+            .assert_ok("valid domain result"),
         json!([like("a", "b", 2), like("a", "c", 10)])
     );
     assert_eq!(
-        db.read(&call("by-to"), &[json!("c")]).unwrap(),
+        db.read(&call("by-to"), &[json!("c")])
+            .assert_ok("valid domain result"),
         json!([like("d", "c", 5), like("a", "c", 10)])
     );
     assert_eq!(
-        db.read(&call("by-rank"), &[json!(5)]).unwrap(),
+        db.read(&call("by-rank"), &[json!(5)])
+            .assert_ok("valid domain result"),
         like("d", "c", 5)
     );
     assert_eq!(
-        db.read(&call("all"), &[]).unwrap(),
+        db.read(&call("all"), &[]).assert_ok("valid domain result"),
         json!([like("a", "b", 2), like("d", "c", 5), like("a", "c", 10)])
     );
 }
 
 #[test]
 fn set_queries_deduplicate_and_sort_not_by_input_order() {
-    let db = MemoryTables::new(manifest()).unwrap();
+    let db = MemoryTables::new(manifest()).assert_ok("valid domain result");
     db.transaction(|tx| {
         tx.write(&call("insert"), &[like("x", "d", 30)])?;
         tx.write(&call("insert"), &[like("z", "a", 3)])?;
         tx.write(&call("insert"), &[like("x", "b", 20)])?;
         Ok(())
     })
-    .unwrap();
+    .assert_ok("valid domain result");
     assert_eq!(
         db.read(
             &call("get-many"),
@@ -183,27 +191,31 @@ fn set_queries_deduplicate_and_sort_not_by_input_order() {
                 { "from": "x", "to": "d" }, { "from": "missing", "to": "z" },
             ])]
         )
-        .unwrap(),
+        .assert_ok("valid domain result"),
         json!([like("x", "d", 30), like("z", "a", 3)])
     );
     assert_eq!(
         db.read(&call("of-from-many"), &[json!(["z", "x", "x"])])
-            .unwrap(),
+            .assert_ok("valid domain result"),
         json!([like("x", "b", 20), like("x", "d", 30), like("z", "a", 3)])
     );
-    assert_eq!(db.read(&call("get-many"), &[json!([])]).unwrap(), json!([]));
+    assert_eq!(
+        db.read(&call("get-many"), &[json!([])])
+            .assert_ok("valid domain result"),
+        json!([])
+    );
     assert_eq!(
         db.read(&call("by-to-many"), &[json!(["a", "d", "d"])])
-            .unwrap(),
+            .assert_ok("valid domain result"),
         json!([like("z", "a", 3), like("x", "d", 30)])
     );
 }
 
 #[test]
 fn rejected_and_abandoned_writes_do_not_publish() {
-    let db = MemoryTables::new(manifest()).unwrap();
+    let db = MemoryTables::new(manifest()).assert_ok("valid domain result");
     db.transaction(|tx| tx.write(&call("insert"), &[like("a", "b", 1)]))
-        .unwrap();
+        .assert_ok("valid domain result");
     assert!(matches!(
         db.transaction(|tx| {
             tx.write(&call("insert"), &[like("other", "c", 1)])?;
@@ -212,7 +224,7 @@ fn rejected_and_abandoned_writes_do_not_publish() {
         Err(Error::Conflict { .. })
     ));
     assert_eq!(
-        db.read(&call("all"), &[]).unwrap(),
+        db.read(&call("all"), &[]).assert_ok("valid domain result"),
         json!([like("a", "b", 1)])
     );
 
@@ -222,7 +234,7 @@ fn rejected_and_abandoned_writes_do_not_publish() {
     });
     assert!(abandoned.is_err());
     assert_eq!(
-        db.read(&call("all"), &[]).unwrap(),
+        db.read(&call("all"), &[]).assert_ok("valid domain result"),
         json!([like("a", "b", 1)])
     );
 
@@ -232,16 +244,16 @@ fn rejected_and_abandoned_writes_do_not_publish() {
         tx.write(&call("delete"), &[json!("new"), json!("d")])?;
         Ok(())
     })
-    .unwrap();
+    .assert_ok("valid domain result");
     assert_eq!(
-        db.read(&call("all"), &[]).unwrap(),
+        db.read(&call("all"), &[]).assert_ok("valid domain result"),
         json!([like("a", "b", 3)])
     );
 }
 
 #[test]
 fn invalid_rows_and_schema_hash_fail_closed() {
-    let db = MemoryTables::new(manifest()).unwrap();
+    let db = MemoryTables::new(manifest()).assert_ok("valid domain result");
     for row in [
         json!({ "from": "a", "to": "b", "rank": "not-an-int", "note": null }),
         json!({ "from": "a", "to": "b", "rank": 1 }),
@@ -256,12 +268,15 @@ fn invalid_rows_and_schema_hash_fail_closed() {
     let mut bad = manifest();
     bad.hash = "incorrect".into();
     assert!(matches!(MemoryTables::new(bad), Err(Error::Schema(_))));
-    assert_eq!(db.read(&call("all"), &[]).unwrap(), json!([]));
+    assert_eq!(
+        db.read(&call("all"), &[]).assert_ok("valid domain result"),
+        json!([])
+    );
 }
 
 #[test]
 fn transactions_serialize_concurrent_writers() {
-    let db = Arc::new(MemoryTables::new(manifest()).unwrap());
+    let db = Arc::new(MemoryTables::new(manifest()).assert_ok("valid domain result"));
     let mut threads = Vec::new();
     for n in 0..12 {
         let db = Arc::clone(&db);
@@ -270,17 +285,21 @@ fn transactions_serialize_concurrent_writers() {
                 tx.write(&call("insert"), &[like("a", &format!("user-{n}"), n)])?;
                 Ok(())
             })
-            .unwrap();
         }));
     }
-    for handle in threads {
-        handle.join().unwrap();
-    }
+    let results = threads
+        .into_iter()
+        .map(|handle| handle.join().expect("transaction worker did not panic"))
+        .collect::<Vec<_>>();
+    assert!(
+        results.iter().all(Result::is_ok),
+        "every transaction commits"
+    );
     assert_eq!(
         db.read(&call("all"), &[])
-            .unwrap()
+            .assert_ok("valid domain result")
             .as_array()
-            .unwrap()
+            .assert_ok("valid domain result")
             .len(),
         12
     );
@@ -321,7 +340,7 @@ fn foreign_keys_are_validated_at_commit() {
     });
     m.hash = Schema::of(m.tables.iter().map(|t| t.schema.clone()).collect()).hash;
     m.migration.to = m.hash.clone();
-    let db = MemoryTables::new(m).unwrap();
+    let db = MemoryTables::new(m).assert_ok("valid domain result");
     assert!(matches!(
         db.transaction(|tx| tx.write(&call("insert"), &[like("a", "missing", 1)])),
         Err(Error::Input(_))
@@ -331,16 +350,17 @@ fn foreign_keys_are_validated_at_commit() {
         tx.write(&call("insert"), &[like("a", "b", 1)])?;
         Ok(())
     })
-    .unwrap();
+    .assert_ok("a valid transaction after a refused one commits");
     assert_eq!(
-        db.read(&call("get"), &[json!("a"), json!("b")]).unwrap(),
+        db.read(&call("get"), &[json!("a"), json!("b")])
+            .assert_ok("valid domain result"),
         like("a", "b", 1)
     );
 }
 
 #[test]
 fn unused_imports_and_wrong_selectors_are_rejected() {
-    let db = MemoryTables::new(manifest()).unwrap();
+    let db = MemoryTables::new(manifest()).assert_ok("valid domain result");
     assert!(matches!(
         db.read("pw:tables/other#get", &[]),
         Err(Error::Input(_))
@@ -363,7 +383,7 @@ fn admitted_table_reader(imports: &[&str]) -> (pw_host::ComponentContract, pw_ho
     let declared: Vec<Value> = imports
         .iter()
         .map(|key| {
-            let (interface, name) = key.split_once('#').expect("interface#function");
+            let (interface, name) = key.split_once('#').assert_ok("interface#function");
             json!({
                 "interface": interface,
                 "name": name,
@@ -381,25 +401,27 @@ fn admitted_table_reader(imports: &[&str]) -> (pw_host::ComponentContract, pw_ho
         "imports": declared,
         "exports": []
     }))
-    .unwrap();
+    .assert_ok("valid domain result");
     let topology = pw_host::Topology::from_json(
         r#"{"nodes":[{"name":"origin","world":"origin","grants":["database.read<Likes>"]}]}"#,
     )
-    .unwrap();
+    .assert_ok("valid domain result");
     let actual: Vec<String> = imports.iter().map(|key| (*key).into()).collect();
     let admitted = pw_host::admit(&contract, &topology, "origin", &actual);
     assert!(admitted.is_admitted(), "{admitted:?}");
-    let granted = pw_host::Granted::from(&admitted, &Default::default()).unwrap();
+    let granted =
+        pw_host::Granted::from(&admitted, &Default::default()).assert_ok("valid domain result");
     (contract, granted)
 }
 
 #[test]
 fn admitted_component_selects_only_manifest_declared_get_and_get_many() {
-    let db = MemoryTables::new(manifest()).unwrap();
+    let db = MemoryTables::new(manifest()).assert_ok("valid domain result");
     let (contract, granted) =
         admitted_table_reader(&["pw:tables/likes#get-many", "pw:tables/likes#get"]);
     assert_eq!(
-        db.read_host_imports(&contract, &granted).unwrap(),
+        db.read_host_imports(&contract, &granted)
+            .assert_ok("valid domain result"),
         ["pw:tables/likes#get", "pw:tables/likes#get-many"]
     );
 
@@ -407,14 +429,15 @@ fn admitted_component_selects_only_manifest_declared_get_and_get_many() {
     // never receive the neighboring operation.
     let (contract, granted) = admitted_table_reader(&["pw:tables/likes#get"]);
     assert_eq!(
-        db.read_host_imports(&contract, &granted).unwrap(),
+        db.read_host_imports(&contract, &granted)
+            .assert_ok("valid domain result"),
         ["pw:tables/likes#get"]
     );
 }
 
 #[test]
 fn table_host_refuses_unknown_writes_and_wildcard_imports() {
-    let db = MemoryTables::new(manifest()).unwrap();
+    let db = MemoryTables::new(manifest()).assert_ok("valid domain result");
     for denied in [
         // A write, into what the gate admits for a query.
         "pw:tables/likes#put",
@@ -437,7 +460,7 @@ fn table_host_refuses_unknown_writes_and_wildcard_imports() {
 
 #[test]
 fn table_host_refuses_ungranted_or_misclassified_read_and_manifest_mismatch() {
-    let db = MemoryTables::new(manifest()).unwrap();
+    let db = MemoryTables::new(manifest()).assert_ok("valid domain result");
     let (mut contract, granted) = admitted_table_reader(&["pw:tables/likes#get"]);
     contract.imports[0].kind = pw_host::ImportKind::Component;
     assert!(matches!(
@@ -450,7 +473,7 @@ fn table_host_refuses_ungranted_or_misclassified_read_and_manifest_mismatch() {
     let topology = pw_host::Topology::from_json(
         r#"{"nodes":[{"name":"origin","world":"origin","grants":[]}]}"#,
     )
-    .unwrap();
+    .assert_ok("valid domain result");
     let admission = pw_host::admit(
         &contract,
         &topology,
@@ -458,7 +481,8 @@ fn table_host_refuses_ungranted_or_misclassified_read_and_manifest_mismatch() {
         &["pw:tables/likes#get".into()],
     );
     assert!(admission.is_admitted());
-    let no_grants = pw_host::Granted::from(&admission, &Default::default()).unwrap();
+    let no_grants =
+        pw_host::Granted::from(&admission, &Default::default()).assert_ok("valid domain result");
     assert!(matches!(
         db.read_host_imports(&contract, &no_grants),
         Err(Error::Input(_))
@@ -469,7 +493,7 @@ fn table_host_refuses_ungranted_or_misclassified_read_and_manifest_mismatch() {
         .functions
         .iter_mut()
         .find(|f| f.primitive == Primitive::Get)
-        .unwrap()
+        .assert_ok("valid domain result")
         .effect = "write".into();
     // Refused where the manifest is read (the D2 integration): a get whose
     // effect says write is no manifest, so no gate ever binds from it.
@@ -481,7 +505,7 @@ fn table_host_refuses_ungranted_or_misclassified_read_and_manifest_mismatch() {
 
 #[test]
 fn table_host_refuses_wrong_table_capability_even_when_admitted() {
-    let db = MemoryTables::new(manifest()).unwrap();
+    let db = MemoryTables::new(manifest()).assert_ok("valid domain result");
     let (mut contract, _) = admitted_table_reader(&["pw:tables/likes#get"]);
     // A forged contract and topology may agree on a grant for another table.
     // That does not authorize the compiler manifest's Likes table import.
@@ -490,7 +514,7 @@ fn table_host_refuses_wrong_table_capability_even_when_admitted() {
     let topology = pw_host::Topology::from_json(
         r#"{"nodes":[{"name":"origin","world":"origin","grants":["database.read<Other>"]}]}"#,
     )
-    .unwrap();
+    .assert_ok("valid domain result");
     let admission = pw_host::admit(
         &contract,
         &topology,
@@ -498,7 +522,8 @@ fn table_host_refuses_wrong_table_capability_even_when_admitted() {
         &["pw:tables/likes#get".into()],
     );
     assert!(admission.is_admitted(), "{admission:?}");
-    let granted = pw_host::Granted::from(&admission, &Default::default()).unwrap();
+    let granted =
+        pw_host::Granted::from(&admission, &Default::default()).assert_ok("valid domain result");
     assert!(pw_host::linkable(&contract, &granted).contains(&"pw:tables/likes#get".into()));
     assert!(matches!(
         db.read_host_imports(&contract, &granted),

@@ -3012,3 +3012,6 @@ pub mod engine {
         })
     }
 }
+
+#[cfg(test)]
+mod test_assertions;

@@ -5,6 +5,10 @@
 
 mod common;
 
+#[path = "support/assert_result.rs"]
+mod assert_result;
+use assert_result::*;
+
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -20,10 +24,10 @@ fn text(value: &str) -> Val {
 fn table<'a>(json: &'a mut serde_json::Value, name: &str) -> &'a mut serde_json::Value {
     json["tables"]
         .as_array_mut()
-        .unwrap()
+        .assert_ok("valid domain result")
         .iter_mut()
         .find(|table| table["name"] == name)
-        .unwrap()
+        .assert_ok("valid domain result")
 }
 
 fn function<'a>(
@@ -33,10 +37,10 @@ fn function<'a>(
 ) -> &'a mut serde_json::Value {
     table(json, table_name)["functions"]
         .as_array_mut()
-        .unwrap()
+        .assert_ok("valid domain result")
         .iter_mut()
         .find(|function| function["name"] == name)
-        .unwrap()
+        .assert_ok("valid domain result")
 }
 
 const READS: &[&str] = &["database.read<Lists>", "database.read<Items>"];
@@ -104,11 +108,11 @@ fn a_read_typed_otherwise_than_tables_json_is_refused_when_linking() {
     for (id, args, words, edit) in cases {
         let reader = program.reader(id);
         let granted = reader.admitted(&reader.contract, &grants(READS));
-        let manifest = manifest_where(&program.tables, edit).expect("a whole manifest");
+        let manifest = manifest_where(&program.tables, edit).assert_ok("a whole manifest");
         let (host, calls) = answering_all(reader, vec![Val::List(vec![])]);
         let refused = reader
             .call(&granted, &host, &manifest, &args)
-            .expect_err(words);
+            .assert_err(words);
         assert!(
             refused.contains("typed otherwise than tables.json declares the read")
                 && refused.contains(words),
@@ -184,7 +188,7 @@ fn an_answer_not_its_reads_is_refused() {
         let (host, calls) = answering_all(reader, vec![answer]);
         let refused = reader
             .call(&granted, &host, &program.manifest, &args)
-            .expect_err(words);
+            .assert_err(words);
         assert!(refused.contains(words), "{id}: {words}: {refused}");
         assert_eq!(
             calls.load(Ordering::SeqCst),
@@ -251,7 +255,7 @@ fn a_manifest_is_whole_for_every_primitive() {
         ("is an all of Lists, which states no bound", |json| {
             table(json, "Lists")
                 .as_object_mut()
-                .unwrap()
+                .assert_ok("valid domain result")
                 .remove("bounded");
         }),
         (
@@ -270,7 +274,7 @@ fn a_manifest_is_whole_for_every_primitive() {
             |json| {
                 table(json, "Items")["indexes"]
                     .as_array_mut()
-                    .unwrap()
+                    .assert_ok("valid domain result")
                     .push(json!({"name": "by_list_done", "fields": ["done"], "unique": true}))
             },
         ),
@@ -283,14 +287,14 @@ fn a_manifest_is_whole_for_every_primitive() {
             |json| {
                 table(json, "Items")["indexes"]
                     .as_array_mut()
-                    .unwrap()
+                    .assert_ok("valid domain result")
                     .push(json!({"name": "by_nothing", "fields": []}))
             },
         ),
         ("index `by_nope` is not one index of its fields", |json| {
             table(json, "Items")["indexes"]
                 .as_array_mut()
-                .unwrap()
+                .assert_ok("valid domain result")
                 .push(json!({"name": "by_nope", "fields": ["nope"]}))
         }),
         (
@@ -298,7 +302,7 @@ fn a_manifest_is_whole_for_every_primitive() {
             |json| {
                 table(json, "Items")["indexes"]
                     .as_array_mut()
-                    .unwrap()
+                    .assert_ok("valid domain result")
                     .push(json!({"name": "by_title_title", "fields": ["title", "title"]}))
             },
         ),
@@ -309,14 +313,14 @@ fn a_manifest_is_whole_for_every_primitive() {
             |json| {
                 table(json, "Items")["indexes"]
                     .as_array_mut()
-                    .unwrap()
+                    .assert_ok("valid domain result")
                     .push(json!({"name": "by_done_many", "fields": ["title"]}))
             },
         ),
         ("index `by_done` is not one index of its fields", |json| {
             table(json, "Items")["indexes"]
                 .as_array_mut()
-                .unwrap()
+                .assert_ok("valid domain result")
                 .insert(0, json!({"name": "by_done_many", "fields": ["title"]}))
         }),
         ("Lists is bounded to no row", |json| {
@@ -341,7 +345,7 @@ fn a_manifest_is_whole_for_every_primitive() {
     for (words, edit) in cases {
         let result = manifest_where(&program.tables, edit);
         assert!(result.is_err(), "a manifest whose {words} is refused");
-        let refused = result.err().unwrap();
+        let refused = result.err().assert_ok("valid domain result");
         assert!(refused.contains(words), "{words}: {refused}");
     }
     assert!(manifest_where(&program.tables, |_| {}).is_ok());

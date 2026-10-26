@@ -13,6 +13,9 @@
 //! another type is refused, never read as a key no row has, and a row of
 //! another shape is refused, never stored.
 
+#[cfg(test)]
+use crate::test_assertions::*;
+
 use serde_json::{Map, Value};
 
 use super::Val;
@@ -322,7 +325,7 @@ mod tests {
             (Val::S64(1), "s64 where tables.json declares a String"),
             (Val::String("four".into()), "outside its bounds"),
         ] {
-            let refused = decode_read_arguments(&get, &[value]).expect_err(words);
+            let refused = decode_read_arguments(&get, &[value]).assert_err(words);
             assert!(refused.contains(words), "{refused}");
         }
         let get = read(false, &[("count", int(Some(1)))]);
@@ -468,7 +471,7 @@ mod tests {
                 (given("a", 1, f64::INFINITY), "inf is not a finite number"),
                 (Val::S64(1), "s64 where a row is a record"),
             ] {
-                let refused = decode_write_arguments(&write, &[bad]).expect_err(words);
+                let refused = decode_write_arguments(&write, &[bad]).assert_err(words);
                 assert!(refused.contains(words), "{words}: {refused}");
             }
             let Val::Record(mut fields) = given("a", 1, 1.5) else {
@@ -479,7 +482,7 @@ mod tests {
             fields.swap(0, 1);
             fields.push(("secret".into(), Val::String("leak".into())));
             let refused =
-                decode_write_arguments(&write, &[Val::Record(fields)]).expect_err("a field more");
+                decode_write_arguments(&write, &[Val::Record(fields)]).assert_err("a field more");
             assert!(refused.contains("`secret`"), "{refused}");
             assert!(decode_write_arguments(&write, &[]).is_err());
         }

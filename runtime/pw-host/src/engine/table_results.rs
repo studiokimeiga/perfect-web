@@ -10,6 +10,9 @@
 //! The engine then holds the encoded answer to its function again
 //! (`table_link::check_answer`), whoever encoded it.
 
+#[cfg(test)]
+use crate::test_assertions::*;
+
 use serde_json::Value;
 
 use super::Val;
@@ -287,11 +290,14 @@ mod tests {
     fn a_row_with_more_or_fewer_fields_than_declared_is_refused() {
         let mut secret = stored("first");
         secret["secret"] = json!("leak");
-        let refused = encode_get(&read(), &secret).expect_err("an extra field");
+        let refused = encode_get(&read(), &secret).assert_err("an extra field");
         assert!(refused.contains("`secret`"), "{refused}");
         let mut lacking = stored("first");
-        lacking.as_object_mut().unwrap().remove("note");
-        let refused = encode_get(&read(), &lacking).expect_err("a missing field");
+        lacking
+            .as_object_mut()
+            .assert_ok("valid domain result")
+            .remove("note");
+        let refused = encode_get(&read(), &lacking).assert_err("a missing field");
         assert!(refused.contains("lacks `note`"), "{refused}");
         let collision =
             json!({"id": "x", "active": true, "sort_order": 1, "sort-order": 1, "note": null});

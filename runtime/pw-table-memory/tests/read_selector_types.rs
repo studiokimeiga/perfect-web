@@ -2,6 +2,10 @@ use pw_core::tables::{
     FieldSchema, FunctionJson, IndexSchema, Plan, Primitive, Schema, Step, Stored, TableJson,
     TableSchema, TablesJson,
 };
+#[path = "support/assert_result.rs"]
+mod assert_result;
+use assert_result::*;
+
 use pw_table_memory::{Error, MemoryTables};
 use serde_json::{Value, json};
 
@@ -92,7 +96,7 @@ fn manifest() -> TablesJson {
 }
 
 fn seeded() -> MemoryTables {
-    let db = MemoryTables::new(manifest()).unwrap();
+    let db = MemoryTables::new(manifest()).assert_ok("valid domain result");
     db.transaction(|tx| {
         tx.write(
             "pw:tables/likes#insert",
@@ -104,7 +108,7 @@ fn seeded() -> MemoryTables {
         )?;
         Ok(())
     })
-    .unwrap();
+    .assert_ok("valid domain result");
     db
 }
 

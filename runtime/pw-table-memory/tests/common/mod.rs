@@ -6,6 +6,8 @@
 //! Each test file uses part of it.
 #![allow(dead_code)]
 
+use crate::assert_result::*;
+
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
@@ -219,16 +221,16 @@ pub fn build_edited(
 fn program_of(program: &[&str], ids: &[&str]) -> Program {
     let mut fixtures = vec!["Lists.pw", "Items.pw", "ListData.pw"];
     fixtures.extend(program);
-    let build = pw_core::build::build(&units(&fixtures)).expect("the table program builds");
+    let build = pw_core::build::build(&units(&fixtures)).assert_ok("the table program builds");
     assert!(build.refusals().is_empty(), "{:?}", build.refusals());
     let contracts = pw_host::ComponentContract::from_json(
         &serde_json::to_string(&build.contracts).expect("serialize compiled contracts"),
     )
-    .expect("the host reads the compiler's contracts");
+    .assert_ok("the host reads the compiler's contracts");
     let manifest = pw_host::tables::Manifest::from_json(
         &serde_json::to_string(&build.tables).expect("serialize tables.json"),
     )
-    .expect("the host reads the compiler's tables.json");
+    .assert_ok("the host reads the compiler's tables.json");
     let mut readers = BTreeMap::new();
     for &id in ids {
         let (_, artifact) = build
@@ -240,7 +242,7 @@ fn program_of(program: &[&str], ids: &[&str]) -> Program {
             panic!("{id} did not compile: {artifact:?}");
         };
         let bytes = compiled.component.bytes.clone();
-        let imports = pw_host::engine::imports_of(&bytes).expect("Wasmtime reads its imports");
+        let imports = pw_host::engine::imports_of(&bytes).assert_ok("Wasmtime reads its imports");
         let contract = contracts
             .iter()
             .find(|contract| contract.component_id == id)

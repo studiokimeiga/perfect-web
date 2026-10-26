@@ -21,6 +21,9 @@
 //! values), each row once, in tables.json's order, and an `all` to its
 //! table's bound; a write's refusal to a row that holds what it would write.
 
+#[cfg(test)]
+use crate::test_assertions::*;
+
 use std::collections::BTreeSet;
 
 use wasmtime::component::Val;
@@ -665,7 +668,12 @@ mod tests {
         let row = row();
         let by: Vec<Column> = by
             .iter()
-            .map(|name| row.iter().find(|c| c.name == *name).unwrap().clone())
+            .map(|name| {
+                row.iter()
+                    .find(|c| c.name == *name)
+                    .assert_ok("valid domain result")
+                    .clone()
+            })
             .collect();
         let grouped: Vec<String> = if primitive.many() {
             by.iter().map(|c| c.name.clone()).collect()
@@ -768,7 +776,7 @@ mod tests {
                 "s64 where a row is a record",
             ),
         ] {
-            let refused = check_answer(&read, &asked, &rows(answer)).expect_err(words);
+            let refused = check_answer(&read, &asked, &rows(answer)).assert_err(words);
             assert!(refused.contains(words), "{words}: {refused}");
         }
         // A key given in another shape than the read's is no key.
@@ -804,7 +812,7 @@ mod tests {
             Ok(())
         );
         let refused =
-            check_answer(&read, &asked, &one(item("a", "2", 1, None))).expect_err("other");
+            check_answer(&read, &asked, &one(item("a", "2", 1, None))).assert_err("other");
         assert!(
             refused.contains("the row of (\"a\", \"2\") where (\"a\", \"1\")"),
             "{refused}"
@@ -842,7 +850,7 @@ mod tests {
                 "(\"a\", \"1\") was answered before",
             ),
         ] {
-            let refused = check_answer(&prefix, &asked, &rows(answer)).expect_err(words);
+            let refused = check_answer(&prefix, &asked, &rows(answer)).assert_err(words);
             assert!(refused.contains(words), "{words}: {refused}");
         }
         // Its set form: rows of the prefixes asked, grouped by them.
@@ -862,7 +870,7 @@ mod tests {
         ]);
         assert!(
             check_answer(&many, &asked, &ungrouped)
-                .expect_err("grouped by the prefix first")
+                .assert_err("grouped by the prefix first")
                 .contains("out of tables.json's order")
         );
     }
@@ -888,7 +896,7 @@ mod tests {
             &asked,
             &rows(vec![item("a", "1", 3, None)]),
         )
-        .expect_err("another value's row");
+        .assert_err("another value's row");
         assert!(refused.contains("(3) was not asked for"), "{refused}");
         done.unique = true;
         done.sorted_by = Vec::new();
@@ -899,7 +907,7 @@ mod tests {
         );
         assert!(
             check_answer(&read(done.clone()), &asked, &one(item("a", "1", 3, None)))
-                .expect_err("another value's row")
+                .assert_err("another value's row")
                 .contains("the row of (3) where (2) was asked for")
         );
         let mut all = items(Primitive::All, &[]);
@@ -911,7 +919,7 @@ mod tests {
             item("a", "2", 1, None),
             item("a", "3", 1, None),
         ]);
-        let refused = check_answer(&read(all), &[], &three).expect_err("past the bound");
+        let refused = check_answer(&read(all), &[], &three).assert_err("past the bound");
         assert!(
             refused.contains("3 rows, where Items is bounded to 2"),
             "{refused}"
@@ -959,13 +967,13 @@ mod tests {
             Ok(())
         );
         let other = check_answer(&insert, &given, &refused(item("b", "9", 3, None)))
-            .expect_err("a row that holds nothing it would");
+            .assert_err("a row that holds nothing it would");
         assert!(other.contains("holds nothing the insert"), "{other}");
         assert!(check_answer(&insert, &given, &[]).is_err());
         assert!(check_answer(&insert, &given, &[Val::Option(None)]).is_err());
         assert!(
             check_answer(&insert, &given, &refused(Val::S64(1)))
-                .expect_err("no row")
+                .assert_err("no row")
                 .contains("s64 where a row is a record")
         );
         let put = write(Primitive::Put, &[&["count"]]);

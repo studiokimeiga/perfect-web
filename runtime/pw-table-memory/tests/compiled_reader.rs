@@ -13,6 +13,10 @@
 
 mod common;
 
+#[path = "support/assert_result.rs"]
+mod assert_result;
+use assert_result::*;
+
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -25,7 +29,7 @@ use serde_json::json;
 
 /// The program's tables.json in a memory adapter holding three lists.
 fn seeded(tables: &pw_core::tables::TablesJson) -> Arc<MemoryTables> {
-    let adapter = Arc::new(MemoryTables::new(tables.clone()).expect("the adapter"));
+    let adapter = Arc::new(MemoryTables::new(tables.clone()).assert_ok("the adapter"));
     adapter
         .transaction(|tx| {
             for (id, name, added) in [("list-b", "List B", 20), ("list-a", "List A", 10)] {
@@ -39,7 +43,7 @@ fn seeded(tables: &pw_core::tables::TablesJson) -> Arc<MemoryTables> {
                 &[json!({"id": "list-c", "name": "List C", "slug": "list-c", "added": 5})],
             )
         })
-        .expect("seeded through the adapter's own transaction");
+        .assert_ok("seeded through the adapter's own transaction");
     adapter
 }
 
@@ -51,7 +55,7 @@ fn compiled_get_reads_present_and_missing_rows_from_the_memory_adapter() {
     let granted = reader.admitted(&reader.contract, READ_LISTS);
     let host = tables
         .read_host_fns(&reader.contract, &granted)
-        .expect("the admitted get is served");
+        .assert_ok("the admitted get is served");
     assert_eq!(
         host.keys().collect::<Vec<_>>(),
         [GET],
@@ -90,7 +94,7 @@ fn compiled_get_many_answers_the_declared_order_once_per_present_key() {
     let granted = reader.admitted(&reader.contract, READ_LISTS);
     let host = tables
         .read_host_fns(&reader.contract, &granted)
-        .expect("the admitted get-many is served");
+        .assert_ok("the admitted get-many is served");
     assert_eq!(host.keys().collect::<Vec<_>>(), [GET_MANY]);
 
     let keys = ["list-b", "missing", "list-a", "list-b"]
@@ -135,7 +139,7 @@ fn no_table_host_function_without_the_tables_read_grant() {
             tables.host_tables(),
             &[Val::String("list-a".into())],
         )
-        .expect_err("a granted import with no callback is refused");
+        .assert_err("a granted import with no callback is refused");
     assert!(refused.contains("implements nothing"), "{refused}");
 }
 
@@ -161,11 +165,11 @@ fn a_forged_table_capability_is_refused_when_linking() {
 
     let without = reader
         .call_as(&forged, &granted, &host, None, &args)
-        .expect_err("no table import links without the program's tables");
+        .assert_err("no table import links without the program's tables");
     assert!(without.contains("table gate"), "{without}");
     let gated = reader
         .call_as(&forged, &granted, &host, Some(&program.manifest), &args)
-        .expect_err("the gate refuses a capability other than its table's");
+        .assert_err("the gate refuses a capability other than its table's");
     assert!(
         gated.contains(GET) && gated.contains("database.read<Other>"),
         "{gated}"
@@ -201,10 +205,10 @@ fn no_other_call_or_instantiation_links_a_table_import() {
             None,
             &[Val::String("x".into())],
         )
-        .expect_err("call_within links no table import");
+        .assert_err("call_within links no table import");
     assert!(call.contains("table gate"), "{call}");
     let instantiated = pw_host::engine::instantiate(&reader.bytes, &reader.contract, &granted)
-        .expect_err("instantiation links no table import, not even a stub");
+        .assert_err("instantiation links no table import, not even a stub");
     assert!(instantiated.contains("table gate"), "{instantiated}");
     assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 0);
 }
@@ -220,10 +224,10 @@ fn a_table_import_typed_otherwise_than_tables_json_is_refused_when_linking() {
     fn lists(json: &mut serde_json::Value) -> &mut serde_json::Value {
         json["tables"]
             .as_array_mut()
-            .unwrap()
+            .assert_ok("valid domain result")
             .iter_mut()
             .find(|table| table["name"] == "Lists")
-            .unwrap()
+            .assert_ok("valid domain result")
     }
     type Edit = fn(&mut serde_json::Value);
     let rows: [(&str, Edit); 3] = [
@@ -234,7 +238,10 @@ fn a_table_import_typed_otherwise_than_tables_json_is_refused_when_linking() {
             "a record of 4 field(s) where tables.json declares 5",
             |json| {
                 let secret = json!({"name": "secret", "type": "String", "stored": {"string": {}}});
-                lists(json)["fields"].as_array_mut().unwrap().push(secret);
+                lists(json)["fields"]
+                    .as_array_mut()
+                    .assert_ok("valid domain result")
+                    .push(secret);
             },
         ),
         ("field `name` where tables.json declares `title`", |json| {
@@ -260,10 +267,10 @@ fn a_table_import_typed_otherwise_than_tables_json_is_refused_when_linking() {
         let (callback, calls) = answering(vec![answer.clone()]);
         let host = BTreeMap::from([(import, callback)]);
         for (words, edit) in rows.iter().chain([&key]) {
-            let manifest = manifest_where(&program.tables, *edit).expect("a whole manifest");
+            let manifest = manifest_where(&program.tables, *edit).assert_ok("a whole manifest");
             let refused = reader
                 .call(&granted, &host, &manifest, &args)
-                .expect_err(&format!("{id} refused when linked: {words}"));
+                .assert_err(&format!("{id} refused when linked: {words}"));
             assert!(
                 refused.contains("typed otherwise than tables.json") && refused.contains(words),
                 "{id}: {words}: {refused}"
@@ -275,8 +282,14 @@ fn a_table_import_typed_otherwise_than_tables_json_is_refused_when_linking() {
         // D1's order by it.
         let manifest = manifest_where(&program.tables, |json| {
             lists(json)["key"] = json!(["id", "slug"]);
-            for function in lists(json)["functions"].as_array_mut().unwrap() {
-                let name = function["name"].as_str().unwrap().to_string();
+            for function in lists(json)["functions"]
+                .as_array_mut()
+                .assert_ok("valid domain result")
+            {
+                let name = function["name"]
+                    .as_str()
+                    .assert_ok("valid domain result")
+                    .to_string();
                 if ["get", "get_many", "delete"].contains(&name.as_str()) {
                     function["by"] = json!(["id", "slug"]);
                 }
@@ -288,7 +301,7 @@ fn a_table_import_typed_otherwise_than_tables_json_is_refused_when_linking() {
                 }
             }
         })
-        .expect("a whole manifest");
+        .assert_ok("a whole manifest");
         let words = if id == BY_ID {
             "it takes (string), not the key's 2 field(s)"
         } else {
@@ -296,7 +309,7 @@ fn a_table_import_typed_otherwise_than_tables_json_is_refused_when_linking() {
         };
         let refused = reader
             .call(&granted, &host, &manifest, &args)
-            .expect_err(&format!("{id} refused when linked: {words}"));
+            .assert_err(&format!("{id} refused when linked: {words}"));
         assert!(refused.contains(words), "{id}: {refused}");
         assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 0, "{id}");
         // The neighbour: typed as its tables.json declares, it links and runs.
@@ -357,13 +370,13 @@ fn an_adapters_answer_is_held_to_its_read_whoever_wrote_it() {
         let reads = program
             .manifest
             .admit_reads(&reader.contract, &granted)
-            .expect("the gate admits the reader's read");
-        let (import, read) = reads.into_iter().next().expect("one read");
+            .assert_ok("the gate admits the reader's read");
+        let (import, read) = reads.into_iter().next().assert_ok("one read");
         let data = Arc::new(move |_: &[serde_json::Value]| Ok(answer.clone()));
         let host = BTreeMap::from([(import, host_fn(read, data))]);
         let refused = reader
             .call(&granted, &host, &program.manifest, &args)
-            .expect_err(words);
+            .assert_err(words);
         assert!(refused.contains(words), "{id}: {words}: {refused}");
     }
 }
@@ -380,28 +393,29 @@ fn a_manifest_import_outside_its_tables_interface_is_refused() {
         move |json: &mut serde_json::Value| {
             let lists = json["tables"]
                 .as_array_mut()
-                .unwrap()
+                .assert_ok("valid domain result")
                 .iter_mut()
                 .find(|table| table["name"] == "Lists")
-                .unwrap();
+                .assert_ok("valid domain result");
             let function = lists["functions"]
                 .as_array_mut()
-                .unwrap()
+                .assert_ok("valid domain result")
                 .iter_mut()
                 .find(|function| function["import"] == import)
-                .unwrap();
+                .assert_ok("valid domain result");
             edit(function);
         }
     };
     let get_elsewhere = lists_function(GET, |get| get["import"] = json!("pw:tables/elsewhere#get"));
-    let refused = manifest_where(&program.tables, get_elsewhere).expect_err("refused when read");
+    let refused = manifest_where(&program.tables, get_elsewhere).assert_err("refused when read");
     assert!(
         refused.contains("outside `pw:tables/lists#get`"),
         "{refused}"
     );
-    let mut changed = serde_json::to_value(&program.tables).unwrap();
+    let mut changed = serde_json::to_value(&program.tables).assert_ok("valid domain result");
     get_elsewhere(&mut changed);
-    let changed: pw_core::tables::TablesJson = serde_json::from_value(changed).unwrap();
+    let changed: pw_core::tables::TablesJson =
+        serde_json::from_value(changed).assert_ok("valid domain result");
     assert!(matches!(
         MemoryTables::new(changed),
         Err(Error::Schema(reason)) if reason.contains("outside")
@@ -411,7 +425,7 @@ fn a_manifest_import_outside_its_tables_interface_is_refused() {
     let index_elsewhere = lists_function("pw:tables/lists#by-slug", |index| {
         index["import"] = json!("pw:tables/elsewhere#by-slug")
     });
-    let refused = manifest_where(&program.tables, index_elsewhere).expect_err("refused when read");
+    let refused = manifest_where(&program.tables, index_elsewhere).assert_err("refused when read");
     assert!(
         refused.contains("outside `pw:tables/lists#by-slug`"),
         "{refused}"
@@ -422,7 +436,7 @@ fn a_manifest_import_outside_its_tables_interface_is_refused() {
         get["name"] = json!("fetch");
         get["import"] = json!("pw:tables/lists#fetch");
     });
-    let refused = manifest_where(&program.tables, get_renamed).expect_err("refused when read");
+    let refused = manifest_where(&program.tables, get_renamed).assert_err("refused when read");
     assert!(refused.contains("elsewhere than `#get`"), "{refused}");
 
     // The neighbour: the compiler's own manifest is whole.
@@ -440,18 +454,18 @@ fn a_manifest_that_is_not_whole_is_refused_where_it_is_read() {
     fn lists(json: &mut serde_json::Value) -> &mut serde_json::Value {
         json["tables"]
             .as_array_mut()
-            .unwrap()
+            .assert_ok("valid domain result")
             .iter_mut()
             .find(|table| table["name"] == "Lists")
-            .unwrap()
+            .assert_ok("valid domain result")
     }
     fn function<'a>(json: &'a mut serde_json::Value, import: &str) -> &'a mut serde_json::Value {
         lists(json)["functions"]
             .as_array_mut()
-            .unwrap()
+            .assert_ok("valid domain result")
             .iter_mut()
             .find(|function| function["import"] == import)
-            .unwrap()
+            .assert_ok("valid domain result")
     }
     type Edit = fn(&mut serde_json::Value);
     let cases: [(&str, Edit); 9] = [
@@ -460,7 +474,10 @@ fn a_manifest_that_is_not_whole_is_refused_where_it_is_read() {
         }),
         ("repeats a field", |json| {
             let name = lists(json)["fields"][1].clone();
-            lists(json)["fields"].as_array_mut().unwrap().push(name);
+            lists(json)["fields"]
+                .as_array_mut()
+                .assert_ok("valid domain result")
+                .push(name);
         }),
         ("key is not its fields'", |json| {
             lists(json)["key"] = json!(["nope"])
@@ -470,7 +487,10 @@ fn a_manifest_that_is_not_whole_is_refused_where_it_is_read() {
         }),
         ("is two functions'", |json| {
             let get = function(json, GET).clone();
-            lists(json)["functions"].as_array_mut().unwrap().push(get);
+            lists(json)["functions"]
+                .as_array_mut()
+                .assert_ok("valid domain result")
+                .push(get);
         }),
         ("is a read, not a write", |json| {
             function(json, GET)["effect"] = json!("write")
@@ -487,7 +507,7 @@ fn a_manifest_that_is_not_whole_is_refused_where_it_is_read() {
     ];
     for (words, edit) in cases {
         let refused = manifest_where(&program.tables, edit)
-            .expect_err(&format!("a manifest whose Lists {words} is refused"));
+            .assert_err(&format!("a manifest whose Lists {words} is refused"));
         assert!(refused.contains(words), "{words}: {refused}");
     }
     assert!(manifest_where(&program.tables, |_| {}).is_ok());
