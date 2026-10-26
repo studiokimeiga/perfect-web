@@ -1019,6 +1019,7 @@ fn on_postgres_a_pending_schedule_is_not_repeated_after_receipt_expiry() {
         Server::from_build_layers(out.clone(), out.clone(), None, Some(fresh))
             .expect("a fresh host from the compiled program")
     };
+    println!("REPLAY_SCHEMA {}", layer.schema());
     let a = host();
     assert!(super::store_scheduled::in_five(&a, "espresso", false, "replay-schedule").committed);
     layer
@@ -1030,6 +1031,21 @@ fn on_postgres_a_pending_schedule_is_not_repeated_after_receipt_expiry() {
          FOR EACH ROW EXECUTE FUNCTION refuse_schedule_cleanup();",
         )
         .expect("the cleanup fault installed in the disposable schema");
+    let original = layer
+        .sql()
+        .query_one(
+            "SELECT id, key, command, args, user_id, due_ms FROM schedules",
+            &[],
+        )
+        .expect("the exact scheduled generation");
+    let original_id: i64 = original.get(0);
+    let original_key: String = original.get(1);
+    let original_args: String = original.get(3);
+    let original_user: String = original.get(4);
+    println!(
+        "REPLAY_JOB id={original_id}; key={original_key:?}; args={original_args}; user={original_user:?}"
+    );
+    let receipt_key = std::cell::RefCell::new(None::<String>);
     const HOUR: u64 = 60 * 60 * 1000;
     const FIVE: u64 = 5 * 60 * 1000;
     let snapshot = |label: &str, s: &Server| {
@@ -1045,6 +1061,33 @@ fn on_postgres_a_pending_schedule_is_not_repeated_after_receipt_expiry() {
         let pending: i64 = row.get(0);
         let receipts: i64 = row.get(1);
         let events: i64 = row.get(2);
+        let job = layer
+            .sql()
+            .query_one("SELECT id, key, args, user_id FROM schedules", &[])
+            .expect("the pending generation");
+        assert_eq!(job.get::<_, i64>(0), original_id);
+        assert_eq!(job.get::<_, String>(1), original_key);
+        assert_eq!(job.get::<_, String>(2), original_args);
+        assert_eq!(job.get::<_, String>(3), original_user);
+        let receipt = layer
+            .sql()
+            .query_one(
+                "SELECT key, sent, answer, at_ms FROM interactions WHERE key LIKE '%schedule-%'",
+                &[],
+            )
+            .expect("the exact committed job receipt");
+        let key: String = receipt.get(0);
+        if let Some(first) = &*receipt_key.borrow() {
+            assert_eq!(&key, first);
+        }
+        *receipt_key.borrow_mut() = Some(key.clone());
+        let sent: String = receipt.get(1);
+        let answer: String = receipt.get(2);
+        let at_ms: i64 = receipt.get(3);
+        assert_eq!(sent, original_args);
+        println!(
+            "REPLAY_RECEIPT {label}: key={key:?}; at_ms={at_ms}; sent={sent}; answer={answer}"
+        );
         let lines = s.cart_lines("a");
         println!(
             "REPLAY_SNAPSHOT {label}: lines={lines:?}; schedules={pending}; job_receipts={receipts}; events={events}"
@@ -1068,6 +1111,11 @@ fn on_postgres_a_pending_schedule_is_not_repeated_after_receipt_expiry() {
     drop(a);
     let b = host();
     b.query_clock.0.advance(FIVE + 23 * HOUR);
+    assert!(
+        b.recalled_interaction(receipt_key.borrow().as_deref().expect("the key"))
+            .expect("recall at23h")
+            .is_some()
+    );
     assert_eq!(b.run_due().0, 1);
     assert_eq!(
         snapshot("fresh-host-at-23h", &b),
@@ -1077,6 +1125,11 @@ fn on_postgres_a_pending_schedule_is_not_repeated_after_receipt_expiry() {
     drop(b);
     let c = host();
     c.query_clock.0.advance(FIVE + 25 * HOUR);
+    assert!(
+        c.recalled_interaction(receipt_key.borrow().as_deref().expect("the key"))
+            .expect("recall at25h")
+            .is_none()
+    );
     assert_eq!(c.run_due().0, 1);
     let delayed = snapshot("fresh-host-at-25h", &c);
     assert_eq!(
