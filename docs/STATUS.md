@@ -10,24 +10,28 @@ failed runs, corrections and their original scope.
 
 ## current milestone
 
-**Integration checkpoint2026-10-26:** PR54 landed at exact tested
-`39ec7743`. A newly surfaced current advisory gate blocks follow-up integration:
-four Zstandard advisories enter through Wasmtime's unconfigured disk-cache
-feature. Draft PR59 removes only that unused feature while preserving all25
-other upstream defaults and the separate process component cache. Reviewed
-source `109f459e` passed current WIP CI40339069136 and full affected verification
-[40341658053](https://github.com/studiokimeiga/perfect-web/actions/runs/40341658053).
-Reproduce with `just e8-host` and `just e14-compiled-once`; canonical receipts
-are [artifact-audit](evidence/E8/artifact-audit.txt) and
-[compiled-once](evidence/E14/compiled-once.txt), fetched with
-`just evidence-fetch 40341658053`. The audit ran105host tests0ignored; the
-whole dev-server suite passed771with9ignored (no credit for ignores), with
-1.71GiB peak within its bound. The2compile-once controls remain legacy producer
-evidence. The final metadata descendant and exact published-head gates remain
-required before PR59 lands; current master is still advisory-red. This repairs
-the dependency graph, not the unfinished generic D2 server transaction, Hinge
-application, private-media/session authority or complete-framework acceptance.
-Older ledger statements below retain the scope/date of their review.
+**Integration checkpoint2026-10-26:** master `0035f923` contains PR54's
+image-privacy repair and PR59's unused Wasmtime disk-cache dependency removal,
+both landed by ordinary fast-forward to the exact tested heads after independent
+reviews and all published gates. The prior current Zstandard advisory blocker
+is repaired without an audit waiver. Post-merge reruns are separate from those
+passing pre-merge gates.
+
+PR55's derived-purity producer repair is still awaiting its final integration
+head gates, and PR56 remains a design document rather than a dating app.
+Outbound HTTPS and staged D2 table writes are queued foundations; generic
+server routing/principal policies, unified business/platform transactions,
+migrations and private-media/session authority remain unfinished.
+
+PR59's canonical exact-source proof at `109f459e` is
+[verify40341658053](https://github.com/studiokimeiga/perfect-web/actions/runs/40341658053):
+`just e8-host` and `just e14-compiled-once`, fetched with
+`just evidence-fetch 40341658053`. Receipts are
+[artifact-audit](evidence/E8/artifact-audit.txt) and
+[compiled-once](evidence/E14/compiled-once.txt). Host audit105passed/0ignored;
+server suite771passed/9ignored and1.71GiB peak; ignored cases get no credit.
+The2compile-once controls remain legacy producer evidence. Older ledger
+statements below retain the scope/date of their review.
 
 **E14, the AI benchmark**, ahead of E11-E13 under the owner's 2026-10-02
 ruling ([ADR-0119](DECISIONS/ADR-0119-e10-closes-and-the-ai-benchmark-comes-next.md),
