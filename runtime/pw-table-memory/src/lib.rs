@@ -23,7 +23,8 @@
 //! published copy. A refused write changes nothing; a command dropped
 //! without committing (refused, failed, trapped) is undone whole; a commit
 //! is held to the bound and the references first ([`Command::prepare`]), and
-//! then published whole ([`Prepared::publish`]), which cannot fail.
+//! then published whole ([`Prepared::publish`]). Internal storage failure
+//! refuses publication; this prototype is not yet the platform outbox transaction.
 //!
 //! JSON is the internal adapter value representation, not the public WIT ABI.
 //! Unsupported storage variants fail closed rather than losing information.
@@ -32,6 +33,7 @@
 //! databases remain later obligations; no production claim follows.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 
 use pw_core::tables::{Primitive, Schema, Stored, TableJson, TablesJson};
@@ -281,6 +283,8 @@ struct Inner {
     /// What is told when a command finds another open and waits its turn
     /// ([`MemoryTables::tell_on_wait`]).
     told: Mutex<Option<Arc<dyn Fn() + Send + Sync>>>,
+    /// Internal failure is sticky: no reader or writer can use partial state.
+    failed: AtomicBool,
 }
 
 struct Working {
@@ -339,6 +343,7 @@ impl MemoryTables {
                 }),
                 turn: Condvar::new(),
                 told: Mutex::new(None),
+                failed: AtomicBool::new(false),
                 shape,
                 host,
             }),
@@ -416,23 +421,23 @@ impl MemoryTables {
     /// it has ended, one at a time. Its writes are staged until it commits
     /// ([`Command::commit`]), and undone whole where it is dropped instead.
     pub fn begin(&self) -> Result<Command, Error> {
-        let mut working = self
-            .inner
-            .working
-            .lock()
-            .map_err(|_| Error::StoragePoisoned)?;
-        if working.open.is_some()
-            && let Ok(told) = self.inner.told.lock()
-            && let Some(tell) = told.as_ref()
-        {
-            tell();
+        let mut working = self.inner.lock_working()?;
+        if working.open.is_some() {
+            let tell = self
+                .inner
+                .told
+                .lock()
+                .map_err(|_| self.inner.fail())?
+                .clone();
+            // The callback may read, replace itself, or panic. It owns no lock.
+            drop(working);
+            if let Some(tell) = tell {
+                tell();
+            }
+            working = self.inner.lock_working()?;
         }
         while working.open.is_some() {
-            working = self
-                .inner
-                .turn
-                .wait(working)
-                .map_err(|_| Error::StoragePoisoned)?;
+            working = working.wait()?;
         }
         let id = working.next;
         working.next += 1;
@@ -567,8 +572,9 @@ impl Command {
     /// each written table within its bound, each reference written to a row
     /// that exists, and no row referring to one it deleted. Refused, the
     /// command is undone whole and nothing is published; held, it writes
-    /// nothing more and is published by [`Prepared::publish`], which cannot
-    /// fail. A unique index needs no check here: no write ever breaks one.
+    /// nothing more and is published by [`Prepared::publish`]. Internal
+    /// storage failure remains fallible. A unique index needs no check here:
+    /// no write ever breaks one.
     pub fn prepare(mut self) -> Result<Prepared, Error> {
         let written = {
             let mut working = self.inner.working_of(self.id)?;
@@ -598,14 +604,14 @@ impl Command {
 
     /// [`Command::prepare`], then [`Prepared::publish`].
     pub fn commit(self) -> Result<Committed, Error> {
-        Ok(self.prepare()?.publish())
+        self.prepare()?.publish()
     }
 }
 
 impl Drop for Command {
     fn drop(&mut self) {
         if !self.ended {
-            self.inner.end(self.id, false);
+            let _ = self.inner.end(self.id, false);
         }
     }
 }
@@ -625,12 +631,12 @@ impl Prepared {
 
     /// **Publish what the command staged**: every read after it sees all of
     /// it, and none before saw any of it.
-    pub fn publish(mut self) -> Committed {
+    pub fn publish(mut self) -> Result<Committed, Error> {
+        self.command.inner.end(self.command.id, true)?;
         self.command.ended = true;
-        self.command.inner.end(self.command.id, true);
-        Committed {
+        Ok(Committed {
             written: std::mem::take(&mut self.written),
-        }
+        })
     }
 }
 
@@ -640,15 +646,85 @@ pub struct Committed {
     pub written: BTreeMap<String, u64>,
 }
 
+/// A working lock carries its failure notification through every caller.
+/// On unwind it releases the mutex before waking all waiters.
+struct WorkingLease<'a> {
+    inner: &'a Inner,
+    locked: Option<MutexGuard<'a, Working>>,
+}
+
+impl std::ops::Deref for WorkingLease<'_> {
+    type Target = Working;
+    fn deref(&self) -> &Working {
+        self.locked.as_ref().expect("working lease owns its lock")
+    }
+}
+impl std::ops::DerefMut for WorkingLease<'_> {
+    fn deref_mut(&mut self) -> &mut Working {
+        self.locked.as_mut().expect("working lease owns its lock")
+    }
+}
+impl Drop for WorkingLease<'_> {
+    fn drop(&mut self) {
+        let unwinding = std::thread::panicking();
+        drop(self.locked.take());
+        if unwinding || self.inner.working.is_poisoned() || self.inner.published.is_poisoned() {
+            self.inner.fail();
+        }
+    }
+}
+impl WorkingLease<'_> {
+    fn wait(mut self) -> Result<Self, Error> {
+        let locked = self.locked.take().expect("working lease owns its lock");
+        let locked = self
+            .inner
+            .turn
+            .wait(locked)
+            .map_err(|_| self.inner.fail())?;
+        self.locked = Some(locked);
+        self.inner.healthy()?;
+        Ok(self)
+    }
+}
+
 impl Inner {
+    fn fail(&self) -> Error {
+        self.failed.store(true, Ordering::Release);
+        self.turn.notify_all();
+        Error::StoragePoisoned
+    }
+
+    fn healthy(&self) -> Result<(), Error> {
+        if self.failed.load(Ordering::Acquire)
+            || self.working.is_poisoned()
+            || self.published.is_poisoned()
+        {
+            Err(self.fail())
+        } else {
+            Ok(())
+        }
+    }
+
+    fn lock_working(&self) -> Result<WorkingLease<'_>, Error> {
+        self.healthy()?;
+        let locked = self.working.lock().map_err(|_| self.fail())?;
+        self.healthy()?;
+        Ok(WorkingLease {
+            inner: self,
+            locked: Some(locked),
+        })
+    }
+
     fn read_published(&self, import: &str, args: &[Value]) -> Result<Value, Error> {
-        let tables = Arc::clone(&*self.published.lock().map_err(|_| Error::StoragePoisoned)?);
+        self.healthy()?;
+        let tables = Arc::clone(&*self.published.lock().map_err(|_| self.fail())?);
+        self.healthy()?;
         read(&self.shape, &tables, import, args)
     }
 
     /// The working copy, where `id` is the open command.
-    fn working_of(&self, id: u64) -> Result<MutexGuard<'_, Working>, Error> {
-        let working = self.working.lock().map_err(|_| Error::StoragePoisoned)?;
+    fn working_of(&self, id: u64) -> Result<WorkingLease<'_>, Error> {
+        let working = self.lock_working()?;
         match &working.open {
             Some(open) if open.id == id => Ok(working),
             _ => Err(Error::Ended),
@@ -730,33 +806,32 @@ impl Inner {
     /// rows restored in the working copy; then the next command may begin.
     /// Both remove every touched key first and then set each row it holds
     /// after, so that no unique value is held twice between the two.
-    fn end(&self, id: u64, publish: bool) {
-        let Ok(mut working) = self.working.lock() else {
-            return;
-        };
+    fn end(&self, id: u64, publish: bool) -> Result<(), Error> {
+        let mut working = self.lock_working()?;
         let Working { tables, open, .. } = &mut *working;
         if !open.as_ref().is_some_and(|open| open.id == id) {
-            return;
+            return Err(Error::Ended);
         }
-        let Some(ended) = open.take() else {
-            return;
+        // Acquire every fallible lock before consuming the undo log.
+        let mut published = if publish {
+            Some(self.published.lock().map_err(|_| self.fail())?)
+        } else {
+            None
         };
-        if publish {
-            // Each key the command changed, with its row as it left it.
+        self.healthy()?;
+        let ended = open.take().ok_or(Error::Ended)?;
+        if let Some(published) = published.as_mut() {
             let rows = changed(tables, &ended.touched);
             let written: BTreeSet<usize> = rows.iter().map(|(table, _, _)| *table).collect();
-            if let Ok(mut published) = self.published.lock() {
-                let state = Arc::make_mut(&mut *published);
-                replay(&self.shape, state, &rows);
-                for &table in &written {
-                    Arc::make_mut(&mut state[table]).version += 1;
-                }
+            let state = Arc::make_mut(published);
+            replay(&self.shape, state, &rows);
+            for &table in &written {
+                Arc::make_mut(&mut state[table]).version += 1;
             }
             for &table in &written {
                 tables[table].version += 1;
             }
         } else {
-            // Each touched key's row before the command wrote it.
             let rows: Vec<(usize, Key, Option<Row>)> = ended
                 .touched
                 .into_iter()
@@ -764,8 +839,10 @@ impl Inner {
                 .collect();
             replay(&self.shape, tables, &rows);
         }
+        drop(published);
         drop(working);
         self.turn.notify_one();
+        Ok(())
     }
 }
 
@@ -1347,3 +1424,6 @@ impl AsRef<Data> for Data {
         self
     }
 }
+
+#[cfg(test)]
+mod failure_tests;

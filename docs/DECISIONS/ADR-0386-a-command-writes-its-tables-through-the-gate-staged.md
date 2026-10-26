@@ -91,15 +91,18 @@ commits nothing).
    remain deferred until `Command::prepare`; prepare rechecks the bound as
    defense in depth. A broken commit publishes nothing. `all` answers no
    more rows than the bound, inside a command too.
-5. **Commit in the platform's two steps.** `Command::prepare` holds the
-   commit (fallible, as `Staged::commit` is), and the command writes nothing
-   more; `Prepared::publish` publishes it whole (infallible, as
-   `Staged::publish` is). Each reports the tables whose rows changed, by
-   name, at their new version (`Command::written`, `Prepared::written`,
-   `Committed`): **the hook a host commits the outbox by**, its
-   `Staged::rows`. A command that changes nothing (a delete of no row, a row
-   put back as it was) reports none, and commits no events (ADR-0208's "Not
-   claimed").
+5. **Prepare and publish in this standalone adapter.** `Command::prepare`
+   checks the candidate and ends further writes; `Prepared::publish` must
+   return `Result<Committed, Error>` and report internal storage failure.
+   `Command::written` reports names; `Prepared::written` and `Committed`
+   additionally report the resulting versions. A poisoned lock must never
+   yield a successful commit. This supersedes the original infallible
+   publication claim. **This API is not yet the platform's `Staged`**:
+   that platform persists outbox/interaction records before infallible
+   publication, so adding `?` afterward cannot give atomic rollback. Do not
+   wire that sequence to this fallible prototype. Durable rows and platform
+   records need one transaction, or a separately designed recoverable
+   publication protocol, before the generic host integration can land.
 6. **Which queries a write invalidates is what the command declares**
    (ADR-0007: invalidation is explicit). A table's write performs
    `database.write<T>`, so PW5106 refuses a command that writes `T` and
@@ -270,3 +273,29 @@ failures, and restores source with the shared mutation guard. Historical
 53-control evidence predates these changes; the revised whole campaign
 and independent review remain required. Poison/waiter/publication findings
 remain open.
+
+
+### Review ruling: waiters, callbacks and storage failure
+
+A wait observer is cloned under its own mutex and invoked with no storage
+or observer lock held. Begin reacquires the working lock and rechecks the
+open command before atomically waiting, preventing a lost wakeup. Internal
+working/published poison fails the database closed for reads and writes,
+wakes every waiter and returns `StoragePoisoned`. Working-lock ownership
+must notify on unwind after releasing its guard; an external observer panic
+must leave database locks and health intact. These failure semantics precede
+the implementation. The standalone fallible publish API above deliberately
+withdraws any claim of platform outbox atomicity.
+
+The five failing-first storage/observer regressions all failed at native
+assertions on the prior implementation. The repair passes all 75 adapter
+tests, including eight failure/publication tests. Six new controls each
+compile and produce native assertion failures against the frozen eight-test
+failure inventory. Internal injected panics are suppressed only for the
+exact reserved injection payload on the named fault thread; an unexpected
+panic still reaches the ordinary hook and cannot earn an assertion kill.
+The lease releases its mutex before marking failure and notifying waiters.
+Prepare/publish failures never report `Committed`; a prepared command
+unpublished on drop restores its rows and releases its turn. These local
+results are bounded proofs, not a claim that the revised whole campaign,
+independent final review or platform transaction integration has completed.

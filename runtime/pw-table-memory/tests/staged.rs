@@ -560,7 +560,7 @@ fn an_ended_command_writes_nothing() {
         insert(std::slice::from_ref(&cy)).is_err(),
         "prepared, it writes nothing more"
     );
-    prepared.publish();
+    prepared.publish().unwrap();
     let next = db.begin().unwrap();
     let refused = insert(std::slice::from_ref(&cy)).expect_err("ended, it writes nothing");
     assert!(refused.contains("Ended"), "{refused}");

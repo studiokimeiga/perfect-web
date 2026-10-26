@@ -57,6 +57,12 @@ MEMORY = ROOT / "runtime/pw-table-memory/src/lib.rs"
 CHECK = ROOT / "compiler/pw-core/src/check.rs"
 
 MUTANTS = [
+    ('a wait observer runs with the working lock held', MEMORY, '            drop(working);\n            if let Some(tell) = tell {\n                tell();\n            }\n', '            if let Some(tell) = tell { tell(); }\n            drop(working);\n'),
+    ('internal storage failure leaves existing waiters asleep', MEMORY, '        self.turn.notify_all();\n', '        // mutation: no failure wakeup\n'),
+    ('internal storage failure is not sticky', MEMORY, '        self.failed.store(true, Ordering::Release);\n', '        // mutation: no sticky failure\n'),
+    ('a working lock unwind does not announce failure', MEMORY, '        if unwinding || self.inner.working.is_poisoned() || self.inner.published.is_poisoned() {\n', '        if false {\n'),
+    ('prepared publication ignores a storage failure', MEMORY, '        self.command.inner.end(self.command.id, true)?;\n', '        let _ = self.command.inner.end(self.command.id, true);\n'),
+    ('queries continue reading after internal working failure', MEMORY, '        self.healthy()?;\n        let tables = Arc::clone(&*self.published.lock().map_err(|_| self.fail())?);\n        self.healthy()?;\n        read(&self.shape, &tables, import, args)\n', '        let tables = Arc::clone(&*self.published.lock().map_err(|_| self.fail())?);\n        read(&self.shape, &tables, import, args)\n'),
     ("staged callbacks are handed to a query or ambiguous export", MEMORY,
      '        if !matches!(contract.exports.as_slice(), [export] if export.kind == "command") {\n',
      '        if false {\n'),
@@ -190,9 +196,10 @@ MUTANTS = [
      "        (Stored::Option(inner), Val::Option(Some(_))) if false && matches!(**inner, Stored::Option(_)) => {\n"),
     # 6. the memory adapter: staged, kept, published whole or not at all
     ("a staged write is visible before its commit", MEMORY,
-     "        let tables = Arc::clone(&*self.published.lock().map_err(|_| Error::StoragePoisoned)?);\n"
+     "        let tables = Arc::clone(&*self.published.lock().map_err(|_| self.fail())?);\n"
+     "        self.healthy()?;\n"
      "        read(&self.shape, &tables, import, args)\n",
-     "        let working = self.working.lock().map_err(|_| Error::StoragePoisoned)?;\n"
+     "        let working = self.lock_working()?;\n"
      "        read(&self.shape, &working.tables, import, args)\n"),
     ("a command's reads miss its own writes", MEMORY,
      "        let working = self.working_of(id)?;\n"
@@ -214,8 +221,8 @@ MUTANTS = [
      "            if false\n"
      "                && let Some(existing) = data.rows.get(&key)\n"),
     ("a command not committed is published", MEMORY,
-     "            self.inner.end(self.id, false);\n",
-     "            self.inner.end(self.id, true);\n"),
+     "            let _ = self.inner.end(self.id, false);\n",
+     "            let _ = self.inner.end(self.id, true);\n"),
     ("a command not committed is not undone", MEMORY,
      "            replay(&self.shape, tables, &rows);\n",
      "            let _ = rows;\n"),
@@ -274,7 +281,7 @@ MUTANTS = [
 
 # Keep each Cargo test binary separate: names can repeat between binaries,
 # and the shared native assertion validator expects one complete inventory.
-TESTS = [
+TESTS = [["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--lib"]] + [
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", path.stem]
     for path in sorted((ROOT / "runtime/pw-table-memory/tests").glob("*.rs"))
 ] + [["cargo", "test", "--quiet", "--locked", "-p", "pw-host", "--features", "engine", "--lib"]]
