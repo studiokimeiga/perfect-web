@@ -497,3 +497,19 @@ assertion. Its bound is now expressed with saturating addition; this keeps
 the one-byte overrun observable without inventing an impossible limit above
 u64::MAX. The valid huge-limit allocation test stays. The revised whole
 campaign remains required; the failed run is not acceptance evidence.
+
+### Verified source evidence after the review fixes
+
+At source `b83044313de06055e5bf67187f708d8622b2e458`, hosted
+verify 40250992644 succeeds: 55 client tests, 40 payment tests (11 focused
+answer/HTTPS tests in each control baseline), and 111 of 111 controls killed
+by completed native assertions, with no process stopped by the memory bound.
+All three full-browser jobs succeed. Exact-source CI 40250931540 and census
+40250931477 succeed. Independent review accepted the source delta and the
+corrected overrun witness. The canonical `just evidence-fetch 40250992644`
+imports the eligible source record; earlier failed or pre-review records
+above remain historical. The resolved TLS inventory in that record is
+rustls 0.23.46, ring 0.17.14, webpki 0.103.16 and native-certs 0.8.4; that is
+the built version, distinct from the earlier proposal's 0.8.5 inventory.
+The evidence-only head must still earn its own CI, and planned PR checks
+must pass before integration. The Not claimed obligations remain open.
