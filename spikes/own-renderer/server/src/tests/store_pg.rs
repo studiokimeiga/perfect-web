@@ -1139,3 +1139,91 @@ fn on_postgres_a_pending_schedule_is_not_repeated_after_receipt_expiry() {
     drop(c);
     drop(dir);
 }
+
+/// A second host already fetched the run before A committed and consumed it.
+/// Normal cleanup succeeds; resuming the fetched generation after the client
+/// receipt horizon must still be fenced. No SQL fault is installed here.
+#[test]
+fn on_postgres_a_stale_fetched_schedule_cannot_repeat_a_completed_action() {
+    let url = database().expect("this reproduction requires PostgreSQL");
+    let layer = Arc::new(StorePg::for_test(&url).expect("the isolated layer"));
+    println!("STALE_REPLAY_SCHEMA {}", layer.schema());
+    let (_dir, out) =
+        built_from_patches_in("examples", super::store_scheduled::with_scheduling, &[]);
+    let host = || {
+        let fresh = Arc::new(
+            StorePg::open_with(
+                &url,
+                layer.schema(),
+                Isolation::Serializable,
+                crate::feed_pg::RenderSeats::default(),
+            )
+            .expect("an independent host's layer"),
+        );
+        Server::from_build_layers(out.clone(), out.clone(), None, Some(fresh))
+            .expect("served from the compiled program")
+    };
+    const FIVE: u64 = 5 * 60 * 1000;
+    const HOUR: u64 = 60 * 60 * 1000;
+    let a = host();
+    assert!(super::store_scheduled::in_five(&a, "espresso", false, "stale-schedule").committed);
+    let b = host();
+    let c = host();
+    a.query_clock.0.advance(FIVE);
+    b.query_clock.0.advance(FIVE);
+    c.query_clock.0.advance(FIVE);
+    let before = b.runs().due_runs(b.now(), 16).expect("B selects due work");
+    let c_before = c.runs().due_runs(c.now(), 16).expect("C selects due work");
+    assert_eq!(before.len(), 1);
+    assert_eq!(c_before.len(), 1);
+    assert_eq!(before[0].id, c_before[0].id);
+    assert_eq!(before[0].command, c_before[0].command);
+    assert_eq!(before[0].args, c_before[0].args);
+    assert_eq!(
+        a.run_due().0,
+        1,
+        "A dispatches and normally consumes the run"
+    );
+    assert_eq!(
+        layer
+            .sql()
+            .query_one("SELECT count(*) FROM schedules", &[])
+            .expect("queue")
+            .get::<_, i64>(0),
+        0
+    );
+    assert_eq!(host().cart_lines("a"), [("espresso".to_string(), 1)]);
+    b.query_clock.0.advance(23 * HOUR);
+    b.run_scheduled(&before[0]);
+    assert_eq!(
+        host().cart_lines("a"),
+        [("espresso".to_string(), 1)],
+        "within-window stale snapshot control"
+    );
+    c.query_clock.0.advance(25 * HOUR);
+    c.run_scheduled(&c_before[0]);
+    let committed = host().cart_lines("a");
+    let row = layer
+        .sql()
+        .query_one(
+            "SELECT (SELECT count(*) FROM schedules),
+                (SELECT count(*) FROM interactions WHERE key LIKE '%schedule-%'),
+                (SELECT count(*) FROM outbox WHERE kind = 'event')",
+            &[],
+        )
+        .expect("fresh committed state");
+    let pending: i64 = row.get(0);
+    let receipts: i64 = row.get(1);
+    let events: i64 = row.get(2);
+    println!(
+        "STALE_REPLAY_SNAPSHOT id={}; lines={committed:?}; schedules={pending}; job_receipts={receipts}; events={events}",
+        before[0].id
+    );
+    assert_eq!(pending, 0, "normal cleanup succeeds");
+    assert_eq!(receipts, 1);
+    assert_eq!(
+        (committed, events),
+        (vec![("espresso".to_string(), 1)], 1),
+        "an already consumed job's stale generation must not act again"
+    );
+}
