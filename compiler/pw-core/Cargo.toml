@@ -40,7 +40,7 @@ wasm-encoder = "0.257.1"
 # normal dependency for that reason: the ABI's facts are no longer only
 # checked here, they are consumed.
 wit-component = "0.257.1"
-wit-parser = "0.257.1"
+wit-parser = "0.262.0"
 # The core module's own import list, read back from the bytes the encoder
 # produced rather than from what the encoder meant to produce.
 wasmparser = "0.257.1"
