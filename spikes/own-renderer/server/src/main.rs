@@ -15089,6 +15089,8 @@ public query Store(",
     mod store_payments;
     // The scheduled-commands track: a command run when the clock passes its
     // time, and the store's sweep.
+    #[cfg(feature = "scheduler-postgres-tests")]
+    mod scheduled_replay;
     mod store_scheduled;
     // TRACK SEAM (reviews): a store's ratings and reviews, in memory and on
     // PostgreSQL where a database is named.

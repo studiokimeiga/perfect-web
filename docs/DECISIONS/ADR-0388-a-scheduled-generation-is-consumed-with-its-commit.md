@@ -1,0 +1,35 @@
+# ADR-0388: a scheduled generation is consumed with its commit
+
+Status: accepted design under the integrator's existing delegation; implementation and gates pending. Date:2026-10-26. Milestone:E14. Amends ADR-0334's composition with ADR-0325; preserves ordinary browser interaction retention. This is a generic platform change, not an application-specific backend or completed D2 integration.
+
+## Observed failure
+
+Three exact one-test PostgreSQL counterexamples use the existing compiler-built `.pw` Clock command and production scheduler/dispatcher:
+
+- After action commit and injected cleanup failure, fresh hosts at23/25 logical hours observe one then two cart items/events while the same job remains pending. The old exact receipt stops qualifying and is replaced.
+- With normal cleanup, two hosts already selected the generation. One consumes it; another resumes after25 logical hours and duplicates the committed action. A fresh fourth host reads the second effect despite no queue row.
+- A known outbox-grant refusal commits nothing. Restoring the grant before retry on the same Server still replays the serialized refusal and leaves the job pending. Client result-cache reuse is the source-level cause hypothesis to calibrate.
+
+Production base4345726a and local characterization commitsd93e6683/45a50714/f6de3bfc preserve these failures. Raw output is `docs/evidence/E14/scheduled-replay-counterexamples.txt`. These are dispatcher/SQL-commit and volatile-host-state tests, not OS kills, HTTP restarts, external charges or a complete crash campaign. The initial zero-test filter invocation earns no evidence credit.
+
+## Decision
+
+1. A due row is a candidate, not execution authority. Carry its nonreused generation id, exact command/arguments/scheduler, due/attempt revision, failed state and protocol marker. Bind the internal candidate to the live queue adapter that selected it. The current implementation does not serialize/transfer candidates between adapters: a host restart selects again from its actual queue. This native authority binding is not a persisted global job identifier, a rolling host instance, a credential-derived namespace or an external dispatch API.
+2. Before evaluation, reject foreign, absent, changed, not-yet-due or failed candidates. Recheck authoritatively at commit: early admission does not remove the race. PostgreSQL staging must use the same owning queue connection/transaction; memory fallback must use this host's materializer. Unknown source/adapter combinations refuse, never silently fall back to another store.
+3. Conditionally consume the exact current generation/revision in the same authoritative transaction as retained business rows, result receipt, events/invalidations and scheduling changes. Consume before applying self-rescheduling/cancellation, so a replacement is a distinct generation. A failed fence rolls back everything and never publishes staged memory. A suppressed zero-row DELETE after a matching locked row is storage refusal, not successful completion.
+4. Distinguish `Applied`, `NotCurrent` and refusal/unknown outcomes internally. NotCurrent establishes no business commit and triggers no blind legacy cleanup. Retry/failure updates are conditional on the selected revision; a late failure cannot overwrite backoff, revive a failed row or affect a replacement.
+5. A no-write success still commits platform-only consumption/result. A declared Err fully drops the old staging, operations, event/schedule buffers and resource claims, then uses fresh empty staging for conditional terminal consumption/result. The error is established only if that transaction wins. Do not re-enter the session lock or retain rolled-back Rust state. Traps/storage refusals leave retryable work; unknown commit outcomes are reconciled without inventing rollback.
+6. Clock origin bypasses browser result memoization and per-client interaction bookkeeping while sharing the same evaluator/commit core. The adapter fence is authority. Preserve browser/Payments entry behavior and ordinary24-hour receipt expiry; do not replace replay safety with immortal per-job RAM entries.
+7. New queue generations use protocol1. Existing PostgreSQL rows default protocol0 through explicit migrations. New hosts must not execute ambiguous legacy work after its receipt history may have vanished: quarantine/reconcile rather than blindly replay. Exact legacy receipts may support a separately audited reconciliation; no automatic repair of previously duplicated effects is claimed. Quiesce all old workers for upgrade; mixed-version execution is unsupported. Generation ids are never reused. Pending/failed job admission and volume still need operational quotas.
+
+The implementation uses a private live allocation token per queue adapter, exposed only as an opaque `QueueAuthority`. A candidate borrows the selecting token; staging compares token identity with its owning adapter. Tokens are not Clone, serialized or persisted, and allocate once per adapter rather than per job. This avoids the nested-owner address alias permitted by address-only trait-object comparison. Independent hosts selecting from one SQL queue still arbitrate through the shared transactional row fence. Foreign handles, including another handle to the same database, must reselect locally. Validate both cases before treating the seam as implemented.
+
+## Required acceptance
+
+RealPG store/feed and memory/materializer paths; rollback on completion refusal and recovery after removing it; race two hosts; delayed stale selection after normal cleanup and receipt pruning; cancellation/rescheduling/self-rescheduling; stale pre-retry and failed revisions; changed arguments/foreign adapter; pure/event-only success; declared Err after attempted writes/scheduling and competing completion; same-host transient refusal recovery; unchanged ordinary client23/25-hour semantics; new work first due after25 hours; protocol0 quarantine. Check committed business, receipt, queue and event state, not only returned status. Calibrate strict native assertion controls; setup/compiler/IO/product panic/worker crash/timeout/incomplete inventory is INVALID. Whole reached campaigns, independent review and exact published-head gates remain required.
+
+No exactly-once Wasm evaluation, external HTTP effect, cross-source atomic transaction, persistent memory store, D3 or complete application claim follows from these tests. D2's standalone fallible publication remains unwired until adapter-owned platform/business atomicity is proved.
+
+## Primary API check
+
+Pinned Rust1.97.1 supports `Arc::ptr_eq`, stable since1.17: https://doc.rust-lang.org/std/sync/struct.Arc.html#method.ptr_eq (read2026-10-26). Raw address equality alone can alias nested owners, so the proposed design instead uses distinct private live allocations. PostgreSQL18 DELETE reports rows actually removed, including zero when a BEFORE DELETE trigger suppresses removal: https://www.postgresql.org/docs/18/sql-delete.html (read2026-10-26). Use affected-row evidence, never assume a matching predicate removed a row.

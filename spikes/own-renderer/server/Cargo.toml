@@ -13,6 +13,10 @@ publish = false
 # browser boundary. Saying that here is what stops a temporary adapter quietly
 # becoming architecture.
 
+[features]
+# Explicit actualPG gate; selected tests fail setup when their database is absent.
+scheduler-postgres-tests = []
+
 [dependencies]
 pw-document = { path = "../../../runtime/pw-document" }
 # E8's host, in E7-P's dev server. The deletion condition above says E8 replaces

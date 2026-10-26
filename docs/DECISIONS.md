@@ -3273,3 +3273,8 @@ A command writes its tables through the table gate, staged (ADR-0338's D2 writes
 [ADR-0387](DECISIONS/ADR-0387-outbound-https.md):
 Outbound HTTPS follows an allowed origin, with bounded DNS, TLS, framing and deadlines (track `outbound-https`; reviewed client foundation).
 - Process-wide resolver reservations and redacted diagnostics constrain the configured client. The strict 111-control proof does not implement app-authored network capabilities or demonstrate a real payment-provider deployment.
+
+
+[ADR-0388](DECISIONS/ADR-0388-a-scheduled-generation-is-consumed-with-its-commit.md):
+A scheduled generation is consumed with its authoritative commit (implementation and gates pending).
+- An opaque local queue binding and transactional exact-generation/revision fence protect business rows, receipt and events; terminal no-write/error outcomes, stale retries and legacy ambiguity are explicit. Browser receipt retention remains separate; no external exactly-once or generic D2 integration claim.
