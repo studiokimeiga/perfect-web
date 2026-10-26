@@ -153,12 +153,12 @@ def run_tests():
 
 
 def main():
-    import mutation_baseline
+    import mutation_baseline  # retain command output before the baseline runs
     watch = mutation_baseline.mutation_bound.start()
     valid, passed, failed, _ = run_tests()
     print(f"baseline: {passed} passed, {failed} failed", flush=True)
     if not valid or not passed or failed or watch.stopped:
-        print("FAIL: invalid or red unmutated baseline", flush=True)
+        print("FAIL: the unmutated baseline is not green; no control can mean anything")
         mutation_baseline.explain()
         return 1
     chosen = [m for m in MUTANTS if not sys.argv[1:] or any(x in m[0] for x in sys.argv[1:])]
