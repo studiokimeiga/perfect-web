@@ -414,3 +414,25 @@ also pass. These local results do not replace a fresh whole 69-control
 campaign, final independent producer review or exact-head hosted gates.
 The two older companion table recipe results are historical; their legacy
 producer weaknesses remain separate obligations.
+
+
+### Completed revised source campaign
+
+[Verify 40257165693](https://github.com/studiokimeiga/perfect-web/actions/runs/40257165693)
+at `e3ae9b204f673305766044200542ab47397fa383` passed all planned jobs,
+including the whole D2 catalog: **69/69 valid native assertion kills**, a
+142-test complete frozen baseline and all three browser jobs. Canonical
+`just evidence-fetch 40257165693` records `docs/evidence/E14/d2-writes.txt`
+and its companion recipe logs. The companion legacy table recipes report
+49/49 and 44/44; these are separate historical-style producer results,
+not a claim that their runners now enforce D2's strict native proof rules.
+
+Independent review accepted both the production caller-unwind repair and
+final witness delta. It independently distinguished completed transaction
+errors (eligible parent assertion) from missing fixture I/O and unexpected
+transaction-worker or observer panics (invalid), and passed its scoped
+12+11+3 native baselines plus two producer regressions. The earlier 38/65
+run remains failed evidence. Exact final CI and PR quality gates still
+apply to subsequent evidence/integration commits. These results establish
+the standalone staged adapter and gate, not atomicity with platform outbox
+records, authenticated generic routing or durable D3 storage.
