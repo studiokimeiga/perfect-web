@@ -487,3 +487,13 @@ after a deliberately failing mutation. Eleven new controls undo these
 repairs independently; build/crash/inventory failures cannot earn kills.
 The whole 111-control campaign and independent review of this delta remain
 required before landing.
+
+
+Hosted verify 40248500320 at `828e4269` completed the campaign but refused
+one control: 110 of 111 earned assertion kills. The one-byte overrun mutant
+added one to an unrestricted `usize::MAX` test limit and overflowed in debug
+mode, so its second failure was a product-site panic rather than a valid
+assertion. Its bound is now expressed with saturating addition; this keeps
+the one-byte overrun observable without inventing an impossible limit above
+u64::MAX. The valid huge-limit allocation test stays. The revised whole
+campaign remains required; the failed run is not acceptance evidence.

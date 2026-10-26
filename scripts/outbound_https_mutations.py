@@ -424,7 +424,7 @@ MUTANTS = [
         CLIENT,
         HTTP1,
         "    if length > limits.body as u64 {\n",
-        "    if length > limits.body as u64 + 1 {\n",
+        "    if length > (limits.body as u64).saturating_add(1) {\n",
     ),
     (
         "a stated length is allocated before its bytes come",
