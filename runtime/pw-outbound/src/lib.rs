@@ -194,7 +194,7 @@ pub(crate) fn io_error(e: io::Error, phase: Phase) -> Error {
         return Error::TimedOut { phase };
     }
     if let Some(tls) = e.get_ref().and_then(|i| i.downcast_ref::<rustls::Error>()) {
-        return Error::Io(format!("TLS: {tls}"));
+        return Error::Io(format!("TLS: {}", http1::quoted(&tls.to_string())));
     }
     Error::Io(e.to_string())
 }

@@ -161,12 +161,12 @@ fn refused(origin: &Origin, e: rustls::Error) -> Error {
                 Refusal::WrongName
             }
             CertificateError::UnknownIssuer => Refusal::UnknownIssuer,
-            other => Refusal::Other(format!("{other:?}")),
+            other => Refusal::Other(crate::http1::quoted(&format!("{other:?}"))),
         },
         other => {
             return Error::Tls {
                 origin: origin.to_string(),
-                why: other.to_string(),
+                why: crate::http1::quoted(&other.to_string()),
             };
         }
     };
@@ -180,6 +180,40 @@ fn refused(origin: &Origin, e: rustls::Error) -> Error {
 mod tests {
     use super::*;
     use pw_outbound_testkit::TestCa;
+
+    #[test]
+    fn peer_controlled_tls_refusals_are_short_and_escaped() {
+        let origin = Origin::parse("https://provider.test").unwrap();
+        let huge = format!("bad\n\u{1b}[31m{}", "x".repeat(4096));
+        let errors = [
+            rustls::Error::General(huge.clone()),
+            rustls::Error::InvalidCertificate(
+                CertificateError::UnsupportedSignatureAlgorithmContext {
+                    signature_algorithm_id: vec![42; 4096],
+                    supported_algorithms: vec![],
+                },
+            ),
+        ];
+        for error in errors {
+            let shown = refused(&origin, error).to_string();
+            assert!(shown.len() < 512, "bounded TLS refusal");
+            assert!(!shown.contains('\n') && !shown.contains('\u{1b}'));
+        }
+        let error = std::io::Error::other(rustls::Error::General(huge));
+        let shown = io_error(error, Phase::Handshake).to_string();
+        assert!(shown.len() < 512);
+        assert!(!shown.contains('\n') && !shown.contains('\u{1b}'));
+        assert!(matches!(
+            refused(
+                &origin,
+                rustls::Error::InvalidCertificate(CertificateError::UnknownIssuer)
+            ),
+            Error::Certificate {
+                refusal: Refusal::UnknownIssuer,
+                ..
+            }
+        ));
+    }
 
     /// **A platform store holding no certificate this client can use is
     /// refused**, empty or of what is no certificate, so that a host without

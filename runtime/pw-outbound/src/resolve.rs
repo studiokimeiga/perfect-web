@@ -6,9 +6,9 @@
 use std::collections::BTreeMap;
 use std::io;
 use std::net::{IpAddr, ToSocketAddrs};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{self, RecvTimeoutError};
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 use crate::{Error, Phase};
@@ -18,7 +18,7 @@ pub trait Resolve: Send + Sync {
     fn resolve(&self, host: &str, port: u16, within: Duration) -> Result<Vec<IpAddr>, Error>;
 }
 
-/// Lookups one resolver lets run at once: a lookup given up is left to
+/// System lookups the process lets run at once: a lookup given up is left to
 /// finish on its thread, and a resolver that never answers would otherwise
 /// leave a thread for every request.
 pub const MOST_LOOKUPS: usize = 32;
@@ -27,10 +27,22 @@ pub const MOST_LOOKUPS: usize = 32;
 /// thread of its own, so that the wait for it is bounded as every other wait
 /// is: a lookup still running when the wait ends is left to finish, and its
 /// answer to nobody; at most [`MOST_LOOKUPS`] run at once, and one more is
-/// refused.
-#[derive(Debug, Clone, Default)]
+/// refused, across independently constructed clients and resolvers.
+#[derive(Debug, Clone)]
 pub struct System {
     running: Arc<AtomicUsize>,
+}
+
+static RUNNING: OnceLock<Arc<AtomicUsize>> = OnceLock::new();
+
+impl Default for System {
+    fn default() -> Self {
+        Self {
+            running: RUNNING
+                .get_or_init(|| Arc::new(AtomicUsize::new(0)))
+                .clone(),
+        }
+    }
 }
 
 impl System {
@@ -143,6 +155,8 @@ mod tests {
     use std::net::Ipv4Addr;
     use std::time::Instant;
 
+    static LOOKUP_TESTS: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
     const LOOPBACK: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 
     /// **A lookup is waited for no longer than it is given**: one that takes
@@ -150,6 +164,8 @@ mod tests {
     /// is taken; and the system's own answers for `localhost`.
     #[test]
     fn a_lookup_is_waited_for_no_longer_than_given() {
+        // Serialize these probes even after another probe asserts a mutation.
+        let _serial = LOOKUP_TESTS.lock().unwrap_or_else(|e| e.into_inner());
         let system = System::new();
         let started = Instant::now();
         let slow = system.bounded(
@@ -181,27 +197,67 @@ mod tests {
     /// **At most [`MOST_LOOKUPS`] lookups run at once**: lookups that never
     /// answer in time fill the resolver, the next is refused at once, and
     /// once they end a lookup is taken again.
-    #[test]
-    fn lookups_running_at_once_are_bounded() {
-        let system = System::new();
-        let mut refused_at = None;
-        for i in 0..(2 * MOST_LOOKUPS) {
-            let said = system.bounded(
+    fn exercise_bound(systems: &[System]) {
+        use std::sync::{Condvar, Mutex};
+        let release = Arc::new((Mutex::new(false), Condvar::new()));
+        let (finished, done) = mpsc::channel();
+        let (mut admitted, mut refused) = (0, 0);
+        for i in 0..64 {
+            let release = release.clone();
+            let finished = finished.clone();
+            let result = systems[i % systems.len()].bounded(
                 "held.test",
-                || {
-                    std::thread::sleep(Duration::from_secs(3));
+                move || {
+                    let (lock, wake) = &*release;
+                    let mut released = lock.lock().unwrap();
+                    while !*released {
+                        released = wake.wait(released).unwrap();
+                    }
+                    let _ = finished.send(());
                     Ok(vec![LOOPBACK])
                 },
                 Duration::from_millis(1),
             );
-            if matches!(&said, Err(Error::Resolve { why, .. }) if why.contains("already running")) {
-                refused_at = Some(i);
-                break;
+            match result {
+                Err(Error::TimedOut {
+                    phase: Phase::Resolve,
+                }) => admitted += 1,
+                Err(Error::Resolve { why, .. }) if why.contains("already running") => refused += 1,
+                other => panic!("unexpected lookup result {other:?}"),
             }
         }
-        assert_eq!(refused_at, Some(MOST_LOOKUPS));
-        std::thread::sleep(Duration::from_millis(3500));
-        let again = system.bounded("free.test", || Ok(vec![LOOPBACK]), Duration::from_secs(10));
-        assert_eq!(again, Ok(vec![LOOPBACK]));
+        *release.0.lock().unwrap() = true;
+        release.1.notify_all();
+        for _ in 0..admitted {
+            done.recv_timeout(Duration::from_secs(5)).unwrap();
+        }
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while systems
+            .iter()
+            .any(|s| s.running.load(Ordering::SeqCst) >= MOST_LOOKUPS)
+        {
+            assert!(Instant::now() < deadline, "lookup permits released");
+            std::thread::yield_now();
+        }
+        assert!(admitted > 0 && admitted <= 32, "admitted {admitted}");
+        assert!(refused > 0, "excess lookups refused");
+        assert_eq!(
+            systems[0].bounded("free.test", || Ok(vec![LOOPBACK]), Duration::from_secs(5)),
+            Ok(vec![LOOPBACK])
+        );
+    }
+
+    #[test]
+    fn lookups_running_at_once_are_bounded() {
+        // Serialize these probes even after another probe asserts a mutation.
+        let _serial = LOOKUP_TESTS.lock().unwrap_or_else(|e| e.into_inner());
+        exercise_bound(&[System::new()]);
+    }
+
+    #[test]
+    fn independently_constructed_resolvers_share_one_process_budget() {
+        // Serialize these probes even after another probe asserts a mutation.
+        let _serial = LOOKUP_TESTS.lock().unwrap_or_else(|e| e.into_inner());
+        exercise_bound(&[System::new(), System::new()]);
     }
 }

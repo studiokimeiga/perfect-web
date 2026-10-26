@@ -2000,7 +2000,7 @@ fn payment_val(provider: &str, intent: &serde_json::Value) -> Result<Val, String
         Some("processing") => "processing",
         Some("succeeded") => "succeeded",
         Some("canceled") => "canceled",
-        other => return Err(format!("the provider's intent is {other:?}")),
+        _ => return Err("the provider returned an undefined payment status".into()),
     };
     let page = format!(
         "{}/pay/{}",
@@ -2083,9 +2083,9 @@ pub(crate) fn operations(
             }
             // The key sent with other arguments: the program's own error,
             // as a command's interaction is (ADR-0121).
-            Ok((400, body)) if body.contains("idempotency_error") => Err(format!(
-                "the order's payment was begun with another amount: {body}"
-            )),
+            Ok((400, body)) if body.contains("idempotency_error") => {
+                Err("the order's payment was begun with another amount".into())
+            }
             Err(e) if unsent(&e) => Err(format!("the payment was not begun: {e}")),
             Ok(_) | Err(_) => failed(),
         }
@@ -2131,11 +2131,16 @@ pub(crate) fn operations(
                     serde_json::from_str(&body).map_err(|e| e.to_string())?;
                 match said["error"]["payment_intent"]["status"].as_str() {
                     Some("canceled") => answer(Ok(canceled)),
-                    Some(status) => answer(Err(Val::Variant(
+                    Some(
+                        status @ ("requires_payment_method"
+                        | "requires_action"
+                        | "processing"
+                        | "succeeded"),
+                    ) => answer(Err(Val::Variant(
                         "past".into(),
                         Some(Box::new(Val::Variant(status.replace('_', "-"), None))),
                     ))),
-                    None => Err(format!("the provider refused the cancel: {body}")),
+                    _ => Err("the provider refused the cancel".into()),
                 }
             }
             Err(e) if unsent(&e) => Err(format!("the payment was not canceled: {e}")),
@@ -2287,6 +2292,100 @@ mod operation_tests {
 #[cfg(test)]
 mod answer_tests {
     use super::*;
+
+    fn provider_refusal(cancel: bool, status: Option<&str>) -> Result<Vec<Val>, String> {
+        use pw_outbound_testkit::{Reply, Server};
+        let message = format!("sk_test_hidden\n\u{1b}[31m{}", "x".repeat(4096));
+        let body = serde_json::json!({"error":{"type":"idempotency_error","message":message,
+            "payment_intent":{"status":status}}})
+        .to_string();
+        let server = Server::plain(move |request| {
+            if request.path() == "/v1/payment_intents/pi_test" {
+                Reply::ok(r#"{"id":"pi_test","metadata":{"owner":"alice"},"status":"processing"}"#)
+            } else {
+                Reply::Bytes(
+                    format!(
+                        "HTTP/1.1 400 Bad Request\r\ncontent-length: {}\r\n\r\n{body}",
+                        body.len()
+                    )
+                    .into_bytes(),
+                )
+            }
+        });
+        let base = format!("http://{}", server.address());
+        let client = development_client(&base).expect("valid development origin");
+        let payments = Arc::new(Payments::new(&base, b"test_only", client));
+        let calls = operations(payments, Some("press".into()), "alice".into());
+        if cancel {
+            calls[1].1(&[Val::String("pi_test".into())])
+        } else {
+            calls[0].1(&[Val::String("order".into()), Val::S64(100)])
+        }
+    }
+
+    #[test]
+    fn a_begin_refusal_does_not_echo_provider_secrets() {
+        let result = provider_refusal(false, None);
+        assert!(result.is_err(), "begin refused");
+        let error = result.err().unwrap();
+        assert!(!error.contains("sk_test_hidden"));
+        assert!(error.len() < 256);
+    }
+
+    #[test]
+    fn a_cancel_refusal_does_not_echo_provider_secrets() {
+        let result = provider_refusal(true, None);
+        assert!(result.is_err(), "cancel refused");
+        let error = result.err().unwrap();
+        assert!(!error.contains("sk_test_hidden"));
+        assert!(error.len() < 256);
+    }
+
+    #[test]
+    fn a_cancel_refusal_only_carries_a_declared_payment_status() {
+        let secret = format!("sk_test_hidden\n\u{1b}[31m{}", "x".repeat(4096));
+        let result = provider_refusal(true, Some(&secret));
+        assert!(
+            result.is_err(),
+            "an undefined status cannot cross the typed host boundary"
+        );
+        let error = result.err().unwrap();
+        assert!(!error.contains("sk_test_hidden") && error.len() < 256);
+        for status in [
+            "requires_payment_method",
+            "requires_action",
+            "processing",
+            "succeeded",
+        ] {
+            assert_eq!(
+                provider_refusal(true, Some(status)),
+                Ok(vec![Val::Result(Err(Some(Box::new(Val::Variant(
+                    "past".into(),
+                    Some(Box::new(Val::Variant(status.replace('_', "-"), None)))
+                )))))])
+            );
+        }
+        assert_eq!(
+            provider_refusal(true, Some("canceled")),
+            Ok(vec![Val::Result(Ok(Some(Box::new(Val::Variant(
+                "canceled".into(),
+                None
+            )))))])
+        );
+    }
+
+    #[test]
+    fn an_undefined_provider_status_never_enters_a_payment_diagnostic() {
+        let status = format!("sk_test_hidden\n\u{1b}[31m{}", "x".repeat(4096));
+        let intent =
+            serde_json::json!({"id":"pi_test", "client_secret":"test_only", "status":status});
+        let error = payment_val("http://127.0.0.1:1", &intent).expect_err("unknown status refused");
+        assert!(!error.contains("sk_test_hidden"));
+        assert!(error.len() < 256);
+        let neighbour =
+            serde_json::json!({"id":"pi_test", "client_secret":"test_only", "status":"processing"});
+        assert!(payment_val("http://127.0.0.1:1", &neighbour).is_ok());
+    }
 
     /// **An answer is read by its length** (step eight): its body read once
     /// it is sent, while the connection stays open. Read to the close, a

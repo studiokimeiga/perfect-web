@@ -71,12 +71,11 @@ impl Origin {
     /// at most.
     pub fn parse(text: &str) -> Result<Origin, Error> {
         let (origin, rest) = split(text)
-            .map_err(|why| Error::Config(format!("`{}` is not an origin: {why}", shown(text))))?;
+            .map_err(|why| Error::Config(format!("the configured origin is invalid: {why}")))?;
         if !(rest.is_empty() || rest == "/") {
-            return Err(Error::Config(format!(
-                "`{}` is not an origin: a scheme, a host and a port, and nothing after them",
-                shown(text)
-            )));
+            return Err(Error::Config(
+                "the configured origin is invalid: a scheme, a host and a port, and nothing after them".into()
+            ));
         }
         Ok(origin)
     }
@@ -130,12 +129,6 @@ impl fmt::Display for Origin {
 /// secret.
 pub(crate) fn origin_of(url: &str) -> Option<String> {
     split(url).ok().map(|(origin, _)| origin.to_string())
-}
-
-/// An origin's text, shortened for a message: a grant's origin is the
-/// deployment's configuration, never a secret, but may be long.
-fn shown(text: &str) -> String {
-    text.chars().take(80).collect()
 }
 
 /// **The origin a URL names, and what follows its authority.**
@@ -409,7 +402,9 @@ mod tests {
         ] {
             assert_eq!(
                 origin(text),
-                Err(Error::Config(format!("`{text}` is not an origin: {why}"))),
+                Err(Error::Config(format!(
+                    "the configured origin is invalid: {why}"
+                ))),
                 "{text}"
             );
         }
@@ -417,6 +412,26 @@ mod tests {
         assert!(origin(&long).is_err(), "a label of 64");
         let ok = format!("https://{}.test", "a".repeat(63));
         assert!(origin(&ok).is_ok(), "a label of 63");
+    }
+
+    #[test]
+    fn an_invalid_grant_never_echoes_credentials_or_control_characters() {
+        for url in [
+            "https://sk_test_hidden:@x.test",
+            "https://user:sk_test_hidden@x.test",
+            "https://x.test/sk_test_hidden",
+            "https://x.test?sk_test_hidden\n\x1b[31m",
+        ] {
+            let error = crate::Grant::none().public(url).expect_err("invalid grant");
+            let shown = format!("{error} {error:?}");
+            assert!(
+                !shown.contains("sk_test_hidden"),
+                "grant refusal disclosed credentials"
+            );
+            assert!(!shown.contains('\n') && !shown.contains('\x1b'));
+            assert!(shown.len() < 512, "bounded refusal");
+        }
+        assert!(crate::Grant::none().public("https://x.test").is_ok());
     }
 
     /// **A URL is its origin and its target**; a target is a path and a

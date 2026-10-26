@@ -872,6 +872,17 @@ MUTANTS = [
         "                    .expect(\"a client\"),\n"
         "            ),\n",
     ),
+    ('an invalid configured origin echoes credentials', CLIENT, ORIGIN, 'Error::Config(format!("the configured origin is invalid: {why}"))', 'Error::Config(format!("the configured origin {text} is invalid: {why}"))'),
+    ('a configured origin with a path echoes its query', CLIENT, ORIGIN, '"the configured origin is invalid: a scheme, a host and a port, and nothing after them".into()', 'format!("the configured origin {text} is invalid")'),
+    ('separate system resolvers multiply the process lookup budget', CLIENT, RESOLVE, 'running: RUNNING\n                .get_or_init(|| Arc::new(AtomicUsize::new(0)))\n                .clone(),', 'running: Arc::new(AtomicUsize::new(0)),'),
+    ('the process permits more than 32 concurrent system lookups', CLIENT, RESOLVE, 'pub const MOST_LOOKUPS: usize = 32;', 'pub const MOST_LOOKUPS: usize = 64;'),
+    ('an unknown certificate diagnostic is unbounded', CLIENT, TLS, 'Refusal::Other(crate::http1::quoted(&format!("{other:?}")))', 'Refusal::Other(format!("{other:?}"))'),
+    ('a TLS handshake diagnostic echoes controls and unbounded data', CLIENT, TLS, 'why: crate::http1::quoted(&other.to_string()),', 'why: other.to_string(),'),
+    ('a nested TLS I/O diagnostic echoes controls and unbounded data', CLIENT, LIB, 'Error::Io(format!("TLS: {}", http1::quoted(&tls.to_string())))', 'Error::Io(format!("TLS: {tls}"))'),
+    ('a payment begin refusal echoes the provider body', SERVER, PAYMENTS, 'Err("the order\'s payment was begun with another amount".into())', 'Err(format!("the order\'s payment was begun with another amount: {body}"))'),
+    ('a payment cancel refusal echoes the provider body', SERVER, PAYMENTS, '_ => Err("the provider refused the cancel".into()),', '_ => Err(format!("the provider refused the cancel: {body}")),'),
+    ('an undefined payment status enters the diagnostic', SERVER, PAYMENTS, '_ => return Err("the provider returned an undefined payment status".into()),', '_ => return Err(format!("the provider returned payment status {}", intent["status"])),'),
+    ('an undefined cancel status crosses the typed host boundary', SERVER, PAYMENTS, 'Some(\n                        status @ ("requires_payment_method"\n                        | "requires_action"\n                        | "processing"\n                        | "succeeded"),\n                    )', 'Some(status)'),
 ]
 
 CLIENT_TESTS = [SRC / name for name in ("address.rs", "http1.rs", "origin.rs", "resolve.rs", "tls.rs", "tests.rs")]

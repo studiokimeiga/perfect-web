@@ -3,7 +3,7 @@
 Status: accepted by the integrator under the owner's delegation of
 2026-10-02; proposed by track `outbound-https` (2026-10-25) under the
 integrator's ruling of 2026-10-25, held to two independent reviews (the
-second's findings and their fixes: "Independent review (2026-10-25)") and
+second's findings and their fixes: "Independent reviews (2026-10-25)") and
 a third before it lands, numbered ADR-0387; it lands by pull request.
 Milestone: E14. Builds on ADR-0006 and ADR-0026
 (a capability authorizes an operation the host provides), ADR-0332 (a
@@ -89,7 +89,7 @@ track's OIDC).
    reached at an anycast service's address), multicast, or, in IPv6, outside
    2000::/3, is refused for a public origin; an IPv4-mapped IPv6 address is
    the IPv4 address it maps. One refused address refuses the name, whatever
-   the others are. So a name rebound to this machine, a private network or
+   the others are. So a name rebound to loopback, a private network or
    a cloud's metadata service (169.254.169.254) reaches nothing, and nothing
    is resolved again between the check and the connection: a name whose
    answer changes after its first lookup is looked up once, and its first,
@@ -98,7 +98,8 @@ track's OIDC).
    of the connection's bound, so one that never answers (an unrouted IPv6
    address before a working IPv4 one) does not take the others' time. The
    system's resolver runs each lookup on a thread of its own, so its wait is
-   bounded too, and at most 32 run at once for one client, the next
+   bounded too, and at most 32 run at once across all system resolvers in
+   this process, the next
    refused: a resolver that never answers leaves no thread per request.
 4. **TLS is rustls 0.23.46 with the *ring* provider**: its safe default
    versions (TLS 1.3 and 1.2), ALPN `http/1.1`, SNI for a name (a server
@@ -294,7 +295,8 @@ Each is a test, and a mutant the test kills (`scripts/outbound_https_mutations.p
 
 ## Acceptance
 
-Recorded by `just e14-outbound-https` in `docs/evidence/E14/outbound-https.txt`:
+**Historical evidence, predating the review fixes:** recorded by
+`just e14-outbound-https` in `docs/evidence/E14/outbound-https.txt`:
 `runtime/pw-outbound`'s 46 tests; the development server's 36 payments
 tests (the store's among them, in memory; seven of them of the payments
 at an https origin and of the provider's answer); and the mutation controls
@@ -306,7 +308,18 @@ the track's merge of master (90810781). The scripts the change reaches
 `resolve` as pw-core's module of that name). `cargo deny check` (licences
 and advisories) passed in the `ci` workflow at the track's first push.
 
+The current working source has 55 client tests and 11 focused provider
+answer/HTTPS tests, and 111 mutation controls. Focused baseline tests pass;
+no new whole-campaign result is claimed until the final source commit
+finishes hosted verification and its eligible evidence is fetched.
+
 ## Not claimed
+
+- **Refusing this host's own public addresses**: a globally routable address
+  assigned to this machine passes the public-address policy. A permitted
+  provider name resolving there can connect if TLS also authenticates it;
+  the address classifier is not a local-interface or deployment topology
+  policy. Loopback/private/special addresses are refused as stated above.
 
 - **A program's own `network.fetch` naming its origins** (the ruling's
   "the capability a program declares"): no program fetches a real origin
@@ -449,3 +462,28 @@ The track's three questions, ruled:
   field of its own making. The client refuses such a field: the command
   traps, and the provider is asked nothing
   (`an_interaction_that_would_split_the_providers_request_is_never_sent`).
+
+
+## Independent reviews (2026-10-25)
+
+The recovered second review was addressed in `7aa99873`: a two-server
+rebinding probe; a blocked writer's deadline; escaped, bounded quoted
+fields and no request-line echo; bounded initial allocation for a stated
+length; secret-name/answer-Debug/trailer/SNI controls and exact chunk ends.
+Its 13-control smoke is historical and is not a final whole campaign.
+
+The recovered third review identified credential-bearing origin diagnostics,
+unbounded TLS certificate details, provider-body diagnostics, per-client DNS
+budgets, and the own-public-address overclaim. New failing-first regressions
+reproduce those leaks and two independently constructed resolvers admitting
+64 blocked lookups under the old budget. Invalid configured origins now
+show only a static context and reason. TLS details are cut and escaped.
+Payment begin/cancel errors never include provider bodies; unknown payment
+statuses never enter diagnostics or typed variants. Known neighboring
+statuses still map to their declared variants. System resolvers share one
+process-wide 32-lookup budget. The tests pin the literal limit, release
+held lookups before assertions, and keep a test-serialization mutex usable
+after a deliberately failing mutation. Eleven new controls undo these
+repairs independently; build/crash/inventory failures cannot earn kills.
+The whole 111-control campaign and independent review of this delta remain
+required before landing.
