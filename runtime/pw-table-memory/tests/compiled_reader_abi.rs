@@ -12,6 +12,10 @@
 
 mod common;
 
+#[path = "support/assert_result.rs"]
+mod assert_result;
+use assert_result::*;
+
 use std::collections::BTreeMap;
 use std::sync::atomic::Ordering;
 
@@ -36,12 +40,12 @@ fn each_reader_imports_exactly_its_manifest_declared_read() {
             .tables
             .iter()
             .find(|table| table.schema.name == "Lists")
-            .expect("tables.json declares Lists");
+            .assert_ok("tables.json declares Lists");
         let function = lists
             .functions
             .iter()
             .find(|function| function.import == key)
-            .expect("tables.json declares the read");
+            .assert_ok("tables.json declares the read");
         assert_eq!(
             (function.primitive, function.effect.as_str()),
             (primitive, "read")
@@ -98,7 +102,7 @@ fn a_siblings_import_is_undeclared_for_a_reader() {
         let topology = pw_host::Topology::from_json(&format!(
             r#"{{"nodes":[{{"name":"origin","world":"origin","grants":[{READ_LISTS}]}}]}}"#
         ))
-        .unwrap();
+        .assert_ok("valid domain result");
         let mismatch = pw_host::admit(
             &reader.contract,
             &topology,
@@ -128,7 +132,7 @@ fn a_granted_get_with_no_callback_is_refused_not_stubbed() {
             &program.manifest,
             &[Val::String("missing".into())],
         )
-        .expect_err("get with no host callback must be refused");
+        .assert_err("get with no host callback must be refused");
     assert!(
         refused.contains(GET),
         "the missing exact read is named: {refused}"
@@ -243,7 +247,7 @@ fn a_get_many_answer_out_of_order_twice_or_unasked_is_refused() {
         let host = BTreeMap::from([(GET_MANY.to_string(), callback)]);
         let refused = reader
             .call(&granted, &host, &program.manifest, &args)
-            .expect_err(words);
+            .assert_err(words);
         assert!(refused.contains(words), "{words}: {refused}");
         assert_eq!(calls.load(Ordering::SeqCst), 1, "the answer, not the link");
     }
@@ -274,7 +278,7 @@ fn a_get_answering_another_keys_row_is_refused() {
             &program.manifest,
             &[Val::String("list-a".into())],
         )
-        .expect_err("another key's row");
+        .assert_err("another key's row");
     assert!(
         refused.contains("the row of (\"list-z\") where (\"list-a\") was asked for"),
         "{refused}"
@@ -326,7 +330,7 @@ fn a_row_with_a_field_more_or_less_is_refused_not_projected() {
             let host = BTreeMap::from([(reader.imports[0].clone(), callback)]);
             let refused = reader
                 .call(&granted, &host, &program.manifest, &args)
-                .expect_err(words);
+                .assert_err(words);
             assert!(refused.contains(words), "{id}: {words}: {refused}");
             assert_eq!(calls.load(Ordering::SeqCst), 1, "{id}");
         }
@@ -366,7 +370,7 @@ fn a_mistyped_get_answer_is_refused_for_its_type_and_a_valid_one_still_works() {
         let host = BTreeMap::from([(GET.to_string(), invalid)]);
         let refused = reader
             .call(&granted, &host, &program.manifest, &args)
-            .expect_err(words);
+            .assert_err(words);
         assert!(refused.contains(words), "{refused}");
         assert_eq!(invalid_calls.load(Ordering::SeqCst), 1);
     }

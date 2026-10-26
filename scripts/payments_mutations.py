@@ -74,20 +74,12 @@ MUTANTS = [
         '                    Some("canceled") => answer(Ok(canceled)),\n',
         '                    Some("canceled_") => answer(Ok(canceled)),\n',
     ),
-    (
-        "an answer is read to the connection's close",
-        MEMORY,
-        PAYMENTS,
-        '    match header_value(&head, "content-length").and_then(|l| l.parse::<usize>().ok()) {\n',
-        '    match header_value(&head, "content-length")\n        .and_then(|l| l.parse::<usize>().ok())\n        .filter(|_| false)\n    {\n',
-    ),
-    (
-        "the host waits for its provider without end",
-        MEMORY,
-        PAYMENTS,
-        "        .set_read_timeout(Some(wait))\n",
-        "        .set_read_timeout(None)\n",
-    ),
+    # "An answer is read to the connection's close" and "the host waits for
+    # its provider without end" undid payments.rs's own HTTP, which track
+    # outbound-https replaced with the host's one client: its controls are
+    # outbound_https_mutations.py's ("an answer stating no length is taken
+    # as empty", "each read is bounded, not the answer", "the payments wait
+    # for their provider six times longer").
     (
         "a canceled outcome leaves the order awaiting",
         MEMORY,

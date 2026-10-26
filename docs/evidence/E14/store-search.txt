@@ -1,8 +1,8 @@
 Track store-search - the stores and their dishes, searched in the store's data layer to one meaning
 
 produced by: just e14-store-search
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
@@ -10,24 +10,24 @@ postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
 test kiokun::search::tests::a_csv_record_holds_quotes_commas_and_line_breaks ... ok
 test kiokun::search::tests::a_query_is_words_whatever_it_holds ... ok
-test search::tests::a_pattern_escapes_what_like_reads ... ok
 test search::tests::a_blank_or_long_text_is_a_declared_error ... ok
+test search::tests::a_pattern_escapes_what_like_reads ... ok
 test search::tests::a_term_is_lowered_a_character_at_a_time ... ok
 test search::tests::each_character_held_back_is_one_rusts_tables_lower ... ok
-test search::tests::found_lists_the_first_and_counts_the_rest ... ok
-test search::tests::a_tier_says_where_the_terms_were_found ... ok
 test search::tests::in_memory_the_layer_answers_the_programs_cases ... ok
+test search::tests::a_tier_says_where_the_terms_were_found ... ok
+test search::tests::found_lists_the_first_and_counts_the_rest ... ok
 test search::tests::in_memory_the_seed_is_searched ... ok
-test search::tests::in_memory_the_table_is_answered ... ok
 test kiokun::search::tests::a_query_fts5_cannot_read_raw_is_answered ... ok
-test search::tests::on_postgres_each_stores_cuisine_is_memorys ... ok
+test search::tests::in_memory_the_table_is_answered ... ok
 test search::tests::on_postgres_a_search_is_two_statements_whatever_the_stores ... ok
+test search::tests::on_postgres_each_stores_cuisine_is_memorys ... ok
 test search::tests::stores_and_dishes_are_ordered_by_rank_then_name_then_id ... ok
 test search::tests::on_postgres_the_seed_is_searched_through_the_layer ... ok
 PostgreSQL's Unicode 16.0, Rust's 17.0: 0 differ
-test search::tests::on_postgres_the_table_is_answered_alike ... ok
 test search::tests::on_postgres_every_character_is_lowered_alike ... ok
-test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 695 filtered out; finished in 0.83s
+test search::tests::on_postgres_the_table_is_answered_alike ... ok
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 723 filtered out; finished in 1.38s
 
 == the search page served, the store in memory (tests/store_search.rs)
 
@@ -35,31 +35,31 @@ test tests::store_search::a_search_lists_the_stores_and_dishes_that_match ... ok
 test tests::store_search::a_menu_change_reaches_a_kept_search ... ok
 test tests::store_search::a_search_lists_the_stores_that_reach_the_chosen_address ... ok
 test tests::store_search::a_menu_change_tells_the_stores_page_once ... ok
-test tests::store_search::an_open_search_page_is_told_of_a_menu_change ... ok
 test tests::store_search::case_is_ignored_and_accents_are_not ... ok
+test tests::store_search::an_open_search_page_is_told_of_a_menu_change ... ok
 test tests::store_search::no_text_fails_the_page ... ok
 test tests::store_search::a_stores_cuisine_is_shown_on_the_home_page_and_its_page ... ok
-test tests::store_search::the_search_is_at_its_routes_query ... ok
 test tests::store_search::the_sentence_inside_its_arm_is_told_where_it_is ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 703 filtered out; finished in 14.10s
+test tests::store_search::the_search_is_at_its_routes_query ... ok
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 731 filtered out; finished in 21.88s
 
 == the search page served, the store on PostgreSQL (PW_STORE_TEST_LAYER=postgres)
 
 test tests::store_search::a_menu_change_reaches_a_kept_search ... ok
+test tests::store_search::a_search_lists_the_stores_that_reach_the_chosen_address ... ok
 test tests::store_search::a_menu_change_tells_the_stores_page_once ... ok
 test tests::store_search::a_search_lists_the_stores_and_dishes_that_match ... ok
-test tests::store_search::a_search_lists_the_stores_that_reach_the_chosen_address ... ok
-test tests::store_search::case_is_ignored_and_accents_are_not ... ok
 test tests::store_search::an_open_search_page_is_told_of_a_menu_change ... ok
+test tests::store_search::case_is_ignored_and_accents_are_not ... ok
 test tests::store_search::no_text_fails_the_page ... ok
 test tests::store_search::a_stores_cuisine_is_shown_on_the_home_page_and_its_page ... ok
-test tests::store_search::the_sentence_inside_its_arm_is_told_where_it_is ... ok
 test tests::store_search::the_search_is_at_its_routes_query ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 703 filtered out; finished in 15.06s
+test tests::store_search::the_sentence_inside_its_arm_is_told_where_it_is ... ok
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 731 filtered out; finished in 23.04s
 
 == the search page in three engines (e2e/store-search.spec.mjs)
 
-  36 passed (38.5s)
+  36 passed (51.0s)
 
 == mutation controls (scripts/store_search_mutations.py)
 

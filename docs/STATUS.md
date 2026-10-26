@@ -45,6 +45,29 @@ passed (141 reached recipes, `e14-pleris-controls` and the three browser
 engines); the evidence is fetched at `973fbbcc`. Landing waits for the
 owner's approval and for exact-commit CI at the landed commit.
 
+**In review, not landed: upload image metadata repair** (PR #54, track
+`upload-metadata`,
+[ADR-0383](DECISIONS/ADR-0383-an-uploaded-image-is-kept-without-its-metadata.md)).
+The preceding status incorrectly called the PR landed. Master remains
+`4345726a2db9a12a8bfb5c755cd4e80ee90585d5`; the older `58591617` and
+`818f4278` results are historical track evidence. Integration review and
+subsequent research found additional ICC, container, staging-accounting and
+PNG/APNG compressed-stream privacy gaps. The revised source
+`1afd58fcfc66434070422b3112debeac94bad07f` passes exact CI
+[40264422871](https://github.com/studiokimeiga/perfect-web/actions/runs/40264422871)
+and whole upload verification
+[40264616606](https://github.com/studiokimeiga/perfect-web/actions/runs/40264616606):
+117 native and 45 browser baseline cases, all 146 strict mutation controls,
+and the three browser suites. All nine reached recipes have canonical evidence: the remaining eight
+passed [40265548018](https://github.com/studiokimeiga/perfect-web/actions/runs/40265548018),
+including three full-browser repeats of 1,357 passed and 20 skipped each
+(the skipped cases receive no passing credit). Exact final publication/PR
+gates must still pass before merge. Unsupported complex ICC profiles are dropped; browser-
+ambiguous APNG interleaving and excessive expected filtered extent refuse
+with an unsupported diagnostic. Numeric color values, pixels, existing
+stored media and private-media authorization/revocation remain outside this
+metadata-minimization claim.
+
 ## last passing commit
 
 **Latest verified master:** `e7664d2eb01aa8c6e91df594bd7270a84a8bf8de`
@@ -85,6 +108,16 @@ the [landing snapshot](STATUS-HISTORY-2026-10-21.md#last-passing-commit) and
 the [last-passing ledger](STATUS-HISTORY-2026-10.md#last-passing-commit).
 
 ## completed gate items
+
+On master since PR #53 (`4345726a`, 2026-10-25), ADR-0338 D2's read path
+([ADR-0385](DECISIONS/ADR-0385-a-component-reads-its-tables-through-the-table-gate.md)):
+a compiled component reads declared tables only through the table gate,
+each import typed as `tables.json` declares before instantiation, each
+answer held to its read; [evidence](evidence/E14/table-host.txt) by
+`just e14-table-host`, 49 of 49 mutants killed. Writes and the other reads
+are implemented on this unmerged branch under ADR-0386, with whole updated
+campaigns and final review pending. Generic server routing, atomic platform
+records, durable storage and an app with no Rust data layer remain.
 
 At train-12 source `ec15e5b1`, the latest complete campaign detects all
 43 TodoMVC, 62 device-storage and 50 second-host faults, plus TodoMVC's

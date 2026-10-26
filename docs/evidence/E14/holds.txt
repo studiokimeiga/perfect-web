@@ -1,8 +1,8 @@
 ADR-0307 - a control is shown where its command's predicates hold
 
 produced by: just e14-holds
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -17,17 +17,17 @@ test a_predicates_answer_is_a_bool ... ok
 test a_refusable_control_is_shown_to_every_reader ... ok
 test a_control_where_its_predicate_is_not_asked_is_refused ... ok
 test the_plan_names_what_the_page_asks_and_a_host_computes_from_the_answer ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.29s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
 
 == the host answers what a page asks of its reader
 
 test tests::sign_in::a_callback_another_browser_started_is_refused ... ok
 test tests::sign_in::a_command_from_another_origin_is_refused ... ok
-test tests::sign_in::a_control_is_shown_where_its_commands_predicate_holds ... ok
 test tests::sign_in::a_documents_answers_are_its_own_for_its_life ... ok
-test tests::sign_in::a_page_holds_its_announcer_from_the_first_byte ... ok
-test tests::sign_in::a_post_and_a_reply_are_their_signed_in_authors ... ok
+test tests::sign_in::a_control_is_shown_where_its_commands_predicate_holds ... ok
 test tests::sign_in::a_fresh_sessions_cookie_is_http_only_and_unguessable ... ok
+test tests::sign_in::a_post_and_a_reply_are_their_signed_in_authors ... ok
+test tests::sign_in::a_page_holds_its_announcer_from_the_first_byte ... ok
 test tests::sign_in::a_refusal_says_the_programs_words_for_its_predicate ... ok
 test tests::sign_in::a_refused_press_sent_again_is_refused_again ... ok
 test tests::sign_in::a_predicate_the_deployment_cannot_evaluate_is_refused_at_start ... ok
@@ -36,20 +36,20 @@ test tests::sign_in::a_session_is_no_one_until_a_provider_vouches_for_it ... ok
 test tests::sign_in::an_answer_is_read_by_the_compilers_name_for_it ... ok
 test tests::sign_in::on_postgres::a_delete_on_postgres_is_its_authors_alone ... ok
 test tests::sign_in::on_postgres::a_post_on_postgres_is_its_signed_in_authors ... ok
-test tests::sign_in::a_signed_out_reader_reads_and_cannot_post ... ok
 test tests::sign_in::a_sign_in_rotates_the_session_and_the_old_one_is_no_one ... ok
+test tests::sign_in::a_signed_out_reader_reads_and_cannot_post ... ok
 test tests::sign_in::signing_out_forgets_the_principal ... ok
 test tests::sign_in::only_its_author_deletes_a_post ... ok
 test tests::sign_in::the_guest_models_reader_is_its_sessions_guest ... ok
-test tests::sign_in::the_relying_party_answers_the_routes_the_compiler_knows ... ok
 test tests::sign_in::the_development_provider_signs_up_and_in_through_the_flow ... ok
+test tests::sign_in::the_relying_party_answers_the_routes_the_compiler_knows ... ok
 test tests::sign_in::a_token_not_this_sign_ins_is_refused ... ok
 test tests::sign_in::two_users_pages_never_share_private_parts ... ok
-test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 689 filtered out; finished in 15.87s
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 717 filtered out; finished in 10.93s
 
 == the feed and the store, in three engines (e2e/feed.spec.mjs, e2e/identity.spec.mjs, e2e/store.spec.mjs)
 
-  135 passed (2.2m)
+  135 passed (1.6m)
 
 == mutation controls (scripts/holds_mutations.py)
 
