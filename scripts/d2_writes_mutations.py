@@ -58,6 +58,8 @@ CHECK = ROOT / "compiler/pw-core/src/check.rs"
 TABLE_DECL = ROOT / "compiler/pw-core/src/tables.rs"
 
 MUTANTS = [
+    ('terminal failure publication skips the wait-mutex handshake', MEMORY, '    fn fail(&self) -> Error {\n        let guard = self\n            .working\n            .lock()\n            .unwrap_or_else(|poisoned| poisoned.into_inner());\n        self.mark_failed();\n        drop(guard);\n        self.wake_failed();\n        Error::StoragePoisoned\n    }\n', '    fn fail(&self) -> Error {\n        self.mark_failed(); self.wake_failed(); Error::StoragePoisoned\n    }\n'),
+    ('an observer capture is dropped under its registration lock', MEMORY, '            Ok(mut slot) => slot.replace(observer),\n', '            Ok(mut slot) => { drop(slot.replace(observer)); None::<Arc<dyn Fn() + Send + Sync>> },\n'),
     ("compiler admits two indexes on the same ordered fields", TABLE_DECL,
      "        if let Some(first) = field_lists.get(&index.fields) {\n",
      "        if false && let Some(first) = field_lists.get(&index.fields) {\n"),
@@ -65,9 +67,9 @@ MUTANTS = [
     ('a wait observer runs with the working lock held', MEMORY, '            drop(working);\n            if let Some(tell) = tell {\n                tell();\n            }\n', '            if let Some(tell) = tell { tell(); }\n            drop(working);\n'),
     ('internal storage failure leaves existing waiters asleep', MEMORY, '        self.turn.notify_all();\n', '        // mutation: no failure wakeup\n'),
     ('internal storage failure is not sticky', MEMORY, '        self.failed.store(true, Ordering::Release);\n', '        // mutation: no sticky failure\n'),
-    ('a working lock unwind does not announce failure', MEMORY, '        if unwinding || self.inner.working.is_poisoned() || self.inner.published.is_poisoned() {\n', '        if false {\n'),
+    ('a working lock unwind does not announce failure', MEMORY, '        if unwinding || self.inner.poisoned() {\n', '        if false {\n'),
     ('prepared publication ignores a storage failure', MEMORY, '        self.command.inner.end(self.command.id, true)?;\n', '        let _ = self.command.inner.end(self.command.id, true);\n'),
-    ('queries continue reading after internal working failure', MEMORY, '        self.healthy()?;\n        let tables = Arc::clone(&*self.published.lock().map_err(|_| self.fail())?);\n        self.healthy()?;\n        read(&self.shape, &tables, import, args)\n', '        let tables = Arc::clone(&*self.published.lock().map_err(|_| self.fail())?);\n        read(&self.shape, &tables, import, args)\n'),
+    ('queries continue reading after internal working failure', MEMORY, '    fn read_published(&self, import: &str, args: &[Value]) -> Result<Value, Error> {\n        self.healthy()?;\n        let tables = match self.published.lock() {\n            Ok(published) => Arc::clone(&*published),\n            Err(poisoned) => {\n                drop(poisoned);\n                return Err(self.fail());\n            }\n        };\n        self.healthy()?;\n        read(&self.shape, &tables, import, args)\n    }\n', '    fn read_published(&self, import: &str, args: &[Value]) -> Result<Value, Error> {\n        let tables = match self.published.lock() {\n            Ok(published) => Arc::clone(&*published),\n            Err(poisoned) => {\n                drop(poisoned);\n                return Err(self.fail());\n            }\n        };\n        read(&self.shape, &tables, import, args)\n    }\n'),
     ("staged callbacks are handed to a query or ambiguous export", MEMORY,
      '        if !matches!(contract.exports.as_slice(), [export] if export.kind == "command") {\n',
      '        if false {\n'),
@@ -200,12 +202,7 @@ MUTANTS = [
      "        (Stored::Option(inner), Val::Option(Some(_))) if matches!(**inner, Stored::Option(_)) => {\n",
      "        (Stored::Option(inner), Val::Option(Some(_))) if false && matches!(**inner, Stored::Option(_)) => {\n"),
     # 6. the memory adapter: staged, kept, published whole or not at all
-    ("a staged write is visible before its commit", MEMORY,
-     "        let tables = Arc::clone(&*self.published.lock().map_err(|_| self.fail())?);\n"
-     "        self.healthy()?;\n"
-     "        read(&self.shape, &tables, import, args)\n",
-     "        let working = self.lock_working()?;\n"
-     "        read(&self.shape, &working.tables, import, args)\n"),
+    ('a staged write is visible before its commit', MEMORY, '    fn read_published(&self, import: &str, args: &[Value]) -> Result<Value, Error> {\n        self.healthy()?;\n        let tables = match self.published.lock() {\n            Ok(published) => Arc::clone(&*published),\n            Err(poisoned) => {\n                drop(poisoned);\n                return Err(self.fail());\n            }\n        };\n        self.healthy()?;\n        read(&self.shape, &tables, import, args)\n    }\n', '    fn read_published(&self, import: &str, args: &[Value]) -> Result<Value, Error> {\n        let working = self.lock_working()?;\n        read(&self.shape, &working.tables, import, args)\n    }\n'),
     ("a command's reads miss its own writes", MEMORY,
      "        let working = self.working_of(id)?;\n"
      "        read(&self.shape, &working.tables, import, args)\n",

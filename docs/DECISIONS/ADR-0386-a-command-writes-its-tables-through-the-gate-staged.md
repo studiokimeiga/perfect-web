@@ -318,3 +318,26 @@ rather than relying on the adapter to reject a build the compiler admitted.
 The new compiler control belongs to the D2 catalog and its complete native
 `pw-core --test tables` inventory; historical table-recipe controls are not
 credited as new evidence by this change.
+
+
+Independent review reproduced two residual races at `38c70fac`: a captured
+observer's destructor ran while registration was locked, and an unlocked
+failure notification could disappear between a healthy check and the
+atomic wait. Registration must move the old Arc out and drop it afterward.
+Terminal failure publication must share the working mutex with that wait
+predicate. Unlocked readers acquire working solely to mark terminal failure,
+then release it and notify; callers already holding working mark failure
+there, and their lease notifies after release. Drop a published lock or its
+PoisonError guard before acquiring working to preserve lock order. This
+supersedes the earlier unsynchronized atomic-flag notification design.
+
+Three additional failing-first regressions reproduced both captured-Drop
+paths (panic and reentry) and a terminal failure completed before the paused
+waiter released its mutex. The revised adapter passes all 79 tests, eleven
+of them in the failure binary. Eight failure controls, including the two
+new synchronization/destructor controls, compile and fail native assertions
+against the complete frozen eleven-test inventory. The full catalog now
+has 65 controls; its whole campaign and final independent review are still
+pending. The compiler's 36 table tests and its duplicate-index control also
+pass their focused checks. No platform outbox or durable transaction claim
+is added by these results.

@@ -427,7 +427,7 @@ impl MemoryTables {
                 .inner
                 .told
                 .lock()
-                .map_err(|_| self.inner.fail())?
+                .map_err(|_| self.inner.fail_locked())?
                 .clone();
             // The callback may read, replace itself, or panic. It owns no lock.
             drop(working);
@@ -459,9 +459,17 @@ impl MemoryTables {
     /// turn" is a fact the adapter can state, where "has not begun yet" is a
     /// silence a slow thread makes too).
     pub fn tell_on_wait(&self, tell: impl Fn() + Send + Sync + 'static) {
-        if let Ok(mut told) = self.inner.told.lock() {
-            *told = Some(Arc::new(tell));
-        }
+        let observer: Arc<dyn Fn() + Send + Sync> = Arc::new(tell);
+        let old = match self.inner.told.lock() {
+            Ok(mut slot) => slot.replace(observer),
+            Err(poisoned) => {
+                drop(poisoned);
+                drop(observer);
+                return;
+            }
+        };
+        // Captured values may run arbitrary Drop code, including registration.
+        drop(old);
     }
 
     /// A serializable transaction in this memory database. A failed command,
@@ -667,39 +675,85 @@ impl std::ops::DerefMut for WorkingLease<'_> {
 impl Drop for WorkingLease<'_> {
     fn drop(&mut self) {
         let unwinding = std::thread::panicking();
-        drop(self.locked.take());
-        if unwinding || self.inner.working.is_poisoned() || self.inner.published.is_poisoned() {
-            self.inner.fail();
+        if unwinding || self.inner.poisoned() {
+            if self.locked.is_some() {
+                self.inner.mark_failed();
+                drop(self.locked.take());
+                self.inner.wake_failed();
+            } else {
+                // The atomic wait already released the mutex.
+                self.inner.fail();
+            }
         }
     }
 }
 impl WorkingLease<'_> {
-    fn wait(mut self) -> Result<Self, Error> {
+    fn wait(self) -> Result<Self, Error> {
+        self.inner.healthy_locked()?;
+        self.wait_after_check()
+    }
+
+    // Separate the checked-to-wait window so tests can place a failure in it.
+    fn wait_after_check(mut self) -> Result<Self, Error> {
         let locked = self.locked.take().expect("working lease owns its lock");
-        let locked = self
-            .inner
-            .turn
-            .wait(locked)
-            .map_err(|_| self.inner.fail())?;
+        let locked = match self.inner.turn.wait(locked) {
+            Ok(locked) => locked,
+            Err(poisoned) => {
+                self.inner.mark_failed();
+                drop(poisoned);
+                self.inner.wake_failed();
+                return Err(Error::StoragePoisoned);
+            }
+        };
         self.locked = Some(locked);
-        self.inner.healthy()?;
+        self.inner.healthy_locked()?;
         Ok(self)
     }
 }
 
 impl Inner {
-    fn fail(&self) -> Error {
+    fn mark_failed(&self) {
         self.failed.store(true, Ordering::Release);
+    }
+    fn wake_failed(&self) {
         self.turn.notify_all();
+    }
+
+    /// Terminal failure publication shares the wait predicate's mutex.
+    /// A poisoned guard is taken only as a synchronization barrier; no data
+    /// is read, recovered or declared healthy through it.
+    fn fail(&self) -> Error {
+        let guard = self
+            .working
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        self.mark_failed();
+        drop(guard);
+        self.wake_failed();
         Error::StoragePoisoned
     }
 
-    fn healthy(&self) -> Result<(), Error> {
-        if self.failed.load(Ordering::Acquire)
+    /// The caller owns a working lease; its Drop releases before notifying.
+    fn fail_locked(&self) -> Error {
+        self.mark_failed();
+        Error::StoragePoisoned
+    }
+
+    fn poisoned(&self) -> bool {
+        self.failed.load(Ordering::Acquire)
             || self.working.is_poisoned()
             || self.published.is_poisoned()
-        {
+    }
+    fn healthy(&self) -> Result<(), Error> {
+        if self.poisoned() {
             Err(self.fail())
+        } else {
+            Ok(())
+        }
+    }
+    fn healthy_locked(&self) -> Result<(), Error> {
+        if self.poisoned() {
+            Err(self.fail_locked())
         } else {
             Ok(())
         }
@@ -707,17 +761,32 @@ impl Inner {
 
     fn lock_working(&self) -> Result<WorkingLease<'_>, Error> {
         self.healthy()?;
-        let locked = self.working.lock().map_err(|_| self.fail())?;
-        self.healthy()?;
-        Ok(WorkingLease {
+        let locked = match self.working.lock() {
+            Ok(locked) => locked,
+            Err(poisoned) => {
+                self.mark_failed();
+                drop(poisoned);
+                self.wake_failed();
+                return Err(Error::StoragePoisoned);
+            }
+        };
+        let lease = WorkingLease {
             inner: self,
             locked: Some(locked),
-        })
+        };
+        self.healthy_locked()?;
+        Ok(lease)
     }
 
     fn read_published(&self, import: &str, args: &[Value]) -> Result<Value, Error> {
         self.healthy()?;
-        let tables = Arc::clone(&*self.published.lock().map_err(|_| self.fail())?);
+        let tables = match self.published.lock() {
+            Ok(published) => Arc::clone(&*published),
+            Err(poisoned) => {
+                drop(poisoned);
+                return Err(self.fail());
+            }
+        };
         self.healthy()?;
         read(&self.shape, &tables, import, args)
     }
@@ -814,11 +883,11 @@ impl Inner {
         }
         // Acquire every fallible lock before consuming the undo log.
         let mut published = if publish {
-            Some(self.published.lock().map_err(|_| self.fail())?)
+            Some(self.published.lock().map_err(|_| self.fail_locked())?)
         } else {
             None
         };
-        self.healthy()?;
+        self.healthy_locked()?;
         let ended = open.take().ok_or(Error::Ended)?;
         if let Some(published) = published.as_mut() {
             let rows = changed(tables, &ended.touched);

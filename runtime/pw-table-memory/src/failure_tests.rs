@@ -295,3 +295,125 @@ fn a_prepared_command_dropped_unpublished_releases_its_turn_and_rows() {
     let next = db.begin().unwrap();
     assert_eq!(next.read(GET, &[json!(1)]), Ok(Value::Null));
 }
+
+struct ObserverCapture(Option<Box<dyn FnOnce() + Send + Sync>>);
+impl Drop for ObserverCapture {
+    fn drop(&mut self) {
+        if let Some(action) = self.0.take() {
+            action();
+        }
+    }
+}
+
+#[test]
+fn replacing_an_observer_drops_its_capture_outside_the_registration_lock() {
+    let db = database();
+    let capture = ObserverCapture(Some(Box::new(|| std::panic::panic_any(FAULT))));
+    db.tell_on_wait(move || {
+        std::hint::black_box(&capture);
+    });
+    let other = Arc::clone(&db);
+    assert!(
+        fault_thread(move || {
+            other.tell_on_wait(|| {});
+        })
+        .join()
+        .is_err()
+    );
+    assert!(
+        !db.inner.told.is_poisoned(),
+        "observer capture is dropped outside registration lock"
+    );
+    assert!(db.begin().is_ok());
+}
+
+#[test]
+fn a_replaced_observer_capture_may_register_another_observer() {
+    let db = database();
+    let weak = Arc::downgrade(&db);
+    let capture = ObserverCapture(Some(Box::new(move || {
+        weak.upgrade().unwrap().tell_on_wait(|| {});
+    })));
+    db.tell_on_wait(move || {
+        std::hint::black_box(&capture);
+    });
+    let other = Arc::clone(&db);
+    let (sent, heard) = mpsc::channel();
+    let worker = std::thread::spawn(move || {
+        other.tell_on_wait(|| {});
+        let _ = sent.send(());
+    });
+    assert_eq!(
+        heard.recv_timeout(Duration::from_secs(3)),
+        Ok(()),
+        "captured Drop can reenter registration"
+    );
+    worker.join().unwrap();
+}
+
+#[test]
+fn a_terminal_failure_is_synchronized_with_the_check_to_wait_window() {
+    let db = database();
+    let first = db.begin().unwrap();
+    let id = first.id;
+    let (held, ready) = mpsc::channel();
+    let (go, proceed) = mpsc::channel();
+    let (sent, waited) = mpsc::channel();
+    let other = Arc::clone(&db);
+    let waiter = std::thread::spawn(move || {
+        let lease = other.inner.working_of(id).unwrap();
+        // The real window after a successful health check, before the atomic wait.
+        other.inner.healthy().unwrap();
+        held.send(()).unwrap();
+        if proceed.recv().is_err() {
+            return;
+        }
+        let result = lease.wait_after_check().map(drop);
+        let _ = sent.send(result);
+    });
+    ready.recv_timeout(Duration::from_secs(3)).unwrap();
+    let broken = Arc::clone(&db);
+    assert!(
+        fault_thread(move || {
+            let _locked = broken.inner.published.lock().unwrap();
+            std::panic::panic_any(FAULT);
+        })
+        .join()
+        .is_err()
+    );
+    let (entered, entering) = mpsc::channel();
+    let (done, finished) = mpsc::channel();
+    let other = Arc::clone(&db);
+    let reader = std::thread::spawn(move || {
+        let _ = entered.send(());
+        let _ = done.send(other.read(GET, &[json!(1)]));
+    });
+    entering.recv_timeout(Duration::from_secs(3)).unwrap();
+    // Failure publication must take working, which the paused waiter owns.
+    // No scheduling assumption can make a synchronized producer finish early.
+    let early = finished.recv_timeout(Duration::from_millis(200));
+    let _ = go.send(());
+    let read = match early.as_ref() {
+        Ok(result) => Ok(result.clone()),
+        Err(_) => finished.recv_timeout(Duration::from_secs(3)),
+    };
+    let wait = waited.recv_timeout(Duration::from_secs(3));
+    if read.is_ok() {
+        reader.join().unwrap();
+    }
+    if wait.is_ok() {
+        waiter.join().unwrap();
+    }
+    assert_eq!(
+        early,
+        Err(mpsc::RecvTimeoutError::Timeout),
+        "failure publication synchronizes with the working mutex"
+    );
+    assert_eq!(read, Ok(Err(Error::StoragePoisoned)));
+    assert_eq!(
+        wait,
+        Ok(Err(Error::StoragePoisoned)),
+        "failure cannot be lost before Condvar::wait"
+    );
+    drop(first);
+}
