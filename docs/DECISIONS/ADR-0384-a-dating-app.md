@@ -504,7 +504,13 @@ standard library lacks today.)
   The seen row has `age: Int` and `active_today: Bool` in place of `birth`
   and `last_active` (the whole declaration, vitals included, is decision
   9's). A function whose result is the field's own type (an identity
-  "coarsening") is refused (PW6910).
+  "coarsening") is refused (PW6910). A different result type is only a
+  structural restriction: `Instant -> Int` can encode every timestamp and
+  `LocalDate -> String` can reproduce the full date. Each `reveals` function
+  is a reviewed declassification with an explicit permitted disclosure and
+  adversarial examples, not a compiler proof of reduced precision. Tests
+  must reject reversible encodings and disclose only the approved age/day
+  or coarse location band through every response path.
 - **A platform `geo` module**, generic, its arithmetic the host's
   intrinsics (Pleris has `Float` but no trigonometry):
 
@@ -557,9 +563,14 @@ standard library lacks today.)
   `udta` and `meta` boxes (where phones put a recording's place), WebM's
   `Tags`; the host's own code, no download.
 - **Served only to a reader the row's policy admits**: no public,
-  immutable address; a session-checked route (or a short-lived address the
-  host signs), so a block, an unmatch, a pause or a deletion stops the
-  media with the rest.
+  immutable address; the first implementation uses a session-checked route
+  that checks the current row policy on each request, ranges included.
+  Expiry and a signature alone do not revoke an already-issued address.
+  A later signed address must also check a revocable policy/epoch at use;
+  it must not silently weaken block, unmatch, pause or deletion revocation.
+  The implementation must state its linearization point for in-flight
+  reads and test bytes delivered across revocation, not promise to recall
+  bytes already delivered to a reader or stored in their browser.
 - **Audio and video**: `upload` gains `mp4`, `webm` and `ogg` kinds by
   WHATWG MIME Sniffing's §6.2 (its MP4 and WebM signatures; the standard
   last updated 2026-10-19), and `max_seconds`, read from the container
@@ -950,7 +961,9 @@ Needs H1, H2.
   when`.
 - Acceptance (`e14-table-policies`): a Match Note unread before the
   match and read after it, in one transaction's snapshot and the next;
-  a seen profile with `age` and without `birth`; a set read of 500
+  a seen profile with `age` and without `birth`; reversible timestamp,
+  full-date string and coordinate encodings refused by the disclosure
+  acceptance tests despite their different result types; a set read of 500
   candidates under `Discoverable` costing its set reads, counted at two
   sizes; a block making every guarded read of the pair answer nothing;
   a message written to an unmatched user refused by the adapter, whatever
@@ -1005,8 +1018,10 @@ Needs H1, H2.
 - Acceptance (`e14-media`): Exif GPS absent from every stored and served
   photo (a fixture with a position, its bytes read back), PNG and WebP
   chunks and MP4 and WebM metadata the same; six photos in order and a
-  reorder; a blocked or unmatched reader's request for a photo refused;
-  a deleted row's blob collected; a range request answered 206 and
+  reorder; a blocked or unmatched reader's request for a photo refused,
+  including a previously issued address and a subsequent range request;
+  pause/deletion revocation and an in-flight read crossing the defined
+  policy transition tested; a deleted row's blob collected; a range request answered 206 and
   played in three engines; a recording made with each engine's fake
   device, its format recorded.
 - Mutation controls: stripping skipped; a blob served without the policy;
@@ -1345,3 +1360,15 @@ Corrections to the record first, then findings.
 8. **No platform function gives a program its reader's own id**: the feed
    reads it through Rust (`author(current_session())`), which a program
    with no Rust cannot (decision 1's `id_of`).
+
+
+## Independent integration review clarifications (2026-10-25)
+
+This remains a plan, not built functionality. Independent review identified
+that a changed `reveals` return type cannot establish safe coarsening, and
+that a short-lived signed URL cannot alone provide immediate revocation.
+The decisions and acceptance obligations above now state those limits.
+The first private-media route checks current policy; any later signed URL
+needs equivalent revocation authority. The disclosure functions need
+reviewed allowed outputs and reversible-encoding negative cases. None of
+H1-H13 or A1-A7 is accepted by this document change.
