@@ -417,3 +417,43 @@ fn a_terminal_failure_is_synchronized_with_the_check_to_wait_window() {
     );
     drop(first);
 }
+
+#[test]
+fn an_outer_caller_panic_rolls_back_without_poisoning_storage() {
+    for mode in 0..3 {
+        let db = database();
+        let other = Arc::clone(&db);
+        let joined = fault_thread(move || {
+            if mode == 2 {
+                let _: Result<(), Error> = other.transaction(|command| {
+                    command.write(INSERT, &[json!({"id":1})])?;
+                    std::panic::panic_any(FAULT);
+                });
+            } else {
+                let mut command = other.begin().unwrap();
+                command.write(INSERT, &[json!({"id":1})]).unwrap();
+                if mode == 1 {
+                    let _prepared = command.prepare().unwrap();
+                    std::panic::panic_any(FAULT);
+                }
+                std::panic::panic_any(FAULT);
+            }
+        })
+        .join();
+        assert!(joined.is_err(), "the caller actually unwound");
+        let payload = joined.err().unwrap();
+        assert_eq!(
+            payload.downcast_ref::<&str>(),
+            Some(&FAULT),
+            "not a setup or product panic"
+        );
+        assert!(!db.inner.working.is_poisoned() && !db.inner.published.is_poisoned());
+        assert_eq!(
+            db.read(GET, &[json!(1)]),
+            Ok(Value::Null),
+            "rollback during outer unwind keeps healthy storage usable"
+        );
+        let next = db.begin().unwrap();
+        assert_eq!(next.read(GET, &[json!(1)]), Ok(Value::Null));
+    }
+}

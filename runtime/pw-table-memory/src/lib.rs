@@ -659,6 +659,7 @@ pub struct Committed {
 struct WorkingLease<'a> {
     inner: &'a Inner,
     locked: Option<MutexGuard<'a, Working>>,
+    unwinding_at_acquire: bool,
 }
 
 impl std::ops::Deref for WorkingLease<'_> {
@@ -674,7 +675,7 @@ impl std::ops::DerefMut for WorkingLease<'_> {
 }
 impl Drop for WorkingLease<'_> {
     fn drop(&mut self) {
-        let unwinding = std::thread::panicking();
+        let unwinding = std::thread::panicking() && !self.unwinding_at_acquire;
         if unwinding || self.inner.poisoned() {
             if self.locked.is_some() {
                 self.inner.mark_failed();
@@ -773,6 +774,7 @@ impl Inner {
         let lease = WorkingLease {
             inner: self,
             locked: Some(locked),
+            unwinding_at_acquire: std::thread::panicking(),
         };
         self.healthy_locked()?;
         Ok(lease)

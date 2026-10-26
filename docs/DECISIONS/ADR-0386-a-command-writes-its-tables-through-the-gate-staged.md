@@ -366,3 +366,24 @@ tests and the catalog 68 controls. These changes close F3's specified
 coverage cases; F7's authorized-table routing and erased composite-key
 meaning remain explicit limitations. The PW0361 question above was ruled
 yes and implemented with its fixture and control in `b019575e`.
+
+Final independent review reproduced a caller-panic cleanup defect: rollback
+completed and neither mutex was poisoned, yet a lease acquired by
+Command::drop during an existing unwind marked the database failed. A
+lease must record whether its caller was already unwinding when acquired;
+only a newly begun unwind or actual storage poison is an internal failure.
+Rollback during an outer caller panic must leave healthy storage usable.
+This applies to Command, Prepared and transaction-closure cleanup. The
+existing internal-lock panic remains terminal; no partial poisoned data is
+recovered as healthy.
+
+The outer-unwind regression failed first with StoragePoisoned after a
+successful rollback. With acquisition-time unwind tracking, all three
+cleanup forms leave both snapshots empty and permit the next command.
+All 81 adapter tests pass. Nine failure controls, including restoration of
+the prior outer-unwind detector, compile and fail native assertions against
+the frozen twelve-test failure inventory. Preflight passes; the latest
+catalog is 69 controls. The earlier cc98 hosted campaign failed closed at
+38/65 because legacy tests still used non-assertion failure paths; it is
+not acceptance evidence. Its two companion read/table recipes passed, but
+their raw controls still need scope-aware inspection before new claims.

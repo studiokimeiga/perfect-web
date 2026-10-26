@@ -58,6 +58,7 @@ CHECK = ROOT / "compiler/pw-core/src/check.rs"
 TABLE_DECL = ROOT / "compiler/pw-core/src/tables.rs"
 
 MUTANTS = [
+    ('a caller unwind is mistaken for internal storage failure', MEMORY, '        let unwinding = std::thread::panicking() && !self.unwinding_at_acquire;\n', '        let unwinding = std::thread::panicking();\n'),
     ('a put is refused by an unrelated row', LINK, '        _ => its != mine && shares,\n', '        _ => its != mine,\n'),
     ('a delete manifest may select other than the whole key', TABLES, '            Primitive::Get | Primitive::GetMany | Primitive::Delete if by != self.key => {\n', '            Primitive::Get | Primitive::GetMany if by != self.key => {\n'),
     ('a delete-prefix manifest may select other than a proper key prefix', TABLES, '            Primitive::Prefix | Primitive::PrefixMany | Primitive::DeletePrefix if !prefix => Err(\n', '            Primitive::Prefix | Primitive::PrefixMany if !prefix => Err(\n'),
