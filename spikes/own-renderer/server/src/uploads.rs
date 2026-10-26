@@ -1892,7 +1892,7 @@ pub(crate) mod tests {
         sent.extend(((data.len() + 2) as u16).to_be_bytes());
         sent.extend(data);
         sent.extend(&strip::tests::fixture("eight-by-five.jpeg")[2..]);
-        assert!(strip::strip(&sent).expect("rewritten").len() > sent.len());
+        assert!(strip::strip(&sent).required("rewritten").len() > sent.len());
         sent
     }
 

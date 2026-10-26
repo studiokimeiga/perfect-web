@@ -57,13 +57,16 @@ every mutant, whatever happens.
 """
 
 import os
+import json
+import secrets
+import tempfile
 import pathlib
-import re
 import signal
 import subprocess
 import sys
 
 import cargo_assertion_results
+import browser_test_results
 import producer_process
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -701,18 +704,19 @@ MUTANTS = [
         "        if len < 8 || at.checked_add(len)? > size {\n",
     ),
     (
-        "an ICC tag shorter than its type's signature is read",
+        "an ICC profile with an undersized tag is kept verbatim",
         RUST,
         ICC,
         TAG_READ,
-        "        if at < table || at.checked_add(len)? > size {\n",
+        "        if at >= table && len < 8 && at.checked_add(len)? <= size { return Some(profile.to_vec()); }\n" + TAG_READ,
     ),
     (
-        "an ICC profile shorter than its header says is read",
+        "a truncated ICC profile is kept verbatim",
         RUST,
         ICC,
         "    if size < HEADER + 4 || size > profile.len() || size > MAX {\n",
-        "    if size < HEADER + 4 || size > MAX {\n",
+        "    if (HEADER + 4..=MAX).contains(&size) && size > profile.len() { return Some(profile.to_vec()); }\n"
+        "    if size < HEADER + 4 || size > profile.len() || size > MAX {\n",
     ),
     (
         "an ICC profile without its acsp signature is read",
@@ -790,7 +794,7 @@ MUTANTS = [
 SERVER = ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--", "uploads", "blob", "--format=pretty"]
 SERVER_BUILD = ["cargo", "build", "--quiet", "--locked", "-p", "pw-dev-server"]
 FEED_BUILD = ["bash", "spikes/own-renderer/feed.sh"]
-SPEC = ["pnpm", "exec", "playwright", "test", "e2e/upload-metadata.spec.mjs", "--reporter=line"]
+SPEC = ["pnpm", "exec", "playwright", "test", "e2e/upload-metadata.spec.mjs", "--retries=0", "--reporter=line,json,./assertion-result-reporter.mjs"]
 
 # How long a browser run may take before it is stopped and counted failed.
 BOUND = 900
@@ -816,45 +820,83 @@ def rust():
         return False, result.passed, result.failed
     if RUST_INVENTORY is None:
         RUST_INVENTORY = cargo_assertion_results.names(child.stdout)
+    if result.failed:
+        print("Native assertion failures: " + ", ".join(result.failure_names), flush=True)
     return True, result.passed, result.failed
 
 
+BROWSER_INVENTORY = None
+BROWSER_COUNT = 36
+
+
 def browser():
-    """(built, passed, failed) of the browser suite, on a server built now."""
-    if subprocess.run(SERVER_BUILD, cwd=ROOT, capture_output=True, text=True).returncode != 0:
-        return False, 0, 0
-    p = subprocess.Popen(
-        SPEC,
-        cwd=ROOT / "spikes/own-renderer",
-        start_new_session=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-    )
+    """A fresh complete nonce receipt, against the exact rebuilt server."""
     try:
-        out, _ = p.communicate(timeout=BOUND)
+        build = producer_process.run(SERVER_BUILD, cwd=ROOT, timeout=BOUND)
+        if build.returncode != 0:
+            print(build.stdout[-2000:], flush=True)
+            return False, 0, 0
+        with tempfile.TemporaryDirectory(prefix="pw-upload-metadata-browser-") as directory:
+            receipt = pathlib.Path(directory) / "assertions.json"
+            metadata = pathlib.Path(directory) / "metadata.json"
+            nonce = secrets.token_hex(32)
+            child = producer_process.run(
+                ["bash", str(ROOT / "scripts/run_suite.sh"), "-C", ".", "--", *SPEC],
+                cwd=ROOT / "spikes/own-renderer", timeout=BOUND,
+                env={**os.environ, "PW_ASSERTION_REPORT": str(receipt), "PW_ASSERTION_NONCE": nonce,
+                     "PLAYWRIGHT_JSON_OUTPUT_NAME": str(metadata), "PLAYWRIGHT_JSON_OUTPUT_FILE": str(metadata)},
+            )
+            try:
+                report, projects = json.loads(receipt.read_text()), json.loads(metadata.read_text())
+            except (OSError, ValueError):
+                report, projects = None, None
+            result = browser_result(child.returncode, report, nonce, projects)
+            if not result[0] or result[2]:
+                print(child.stdout[-6000:], flush=True)
+            return result
     except subprocess.TimeoutExpired:
-        os.killpg(p.pid, signal.SIGKILL)
-        p.communicate()
         return False, 0, 0
-    return browser_result(out, p.returncode)
 
 
-def browser_result(out, status):
-    """Only completed, assertion-caused test failures can kill a mutant."""
-    out = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", out)
-    passed = sum(int(n) for n in re.findall(r"^\s+(\d+) passed", out, re.M))
-    failed = sum(int(n) for n in re.findall(r"^\s+(\d+) failed", out, re.M))
-    infrastructure = re.search(
-        r"did not run|interrupted|worker process exited|browserType\.launch|"
-        r"Test timeout of|ECONNREFUSED|EADDRINUSE|Protocol error|"
-        r"Target page, context or browser has been closed|webServer.*(?:failed|timed out)",
-        out,
-        re.I,
-    )
-    assertion = not failed or re.search(r"Error: expect\(|AssertionError|^\s*Expected:", out, re.M)
-    valid = passed + failed > 0 and not infrastructure and bool(assertion) and (status != 0) == bool(failed)
-    return bool(valid), passed, failed
+def browser_projects(metadata):
+    """Only project selection metadata; receipt owns status and provenance."""
+    counts = {name: 0 for name in ("chromium", "firefox", "webkit")}
+    def visit(suites):
+        if not isinstance(suites, list): raise ValueError("missing browser suites")
+        for suite in suites:
+            if not isinstance(suite, dict): raise ValueError("invalid browser suite")
+            specs = suite.get("specs", [])
+            if not isinstance(specs, list): raise ValueError("invalid browser specs")
+            for spec in specs:
+                if not isinstance(spec, dict) or not isinstance(spec.get("tests"), list):
+                    raise ValueError("invalid browser spec")
+                for test in spec["tests"]:
+                    name = test.get("projectName") if isinstance(test, dict) else None
+                    if name not in counts: raise ValueError("unexpected browser project")
+                    counts[name] += 1
+            visit(suite.get("suites", []))
+    if not isinstance(metadata, dict): raise ValueError("missing browser metadata")
+    visit(metadata.get("suites"))
+    if counts != {name: 12 for name in counts}: raise ValueError("incomplete per-engine inventory")
+
+
+def browser_result(status, receipt, nonce, metadata):
+    global BROWSER_INVENTORY
+    result = browser_test_results.parse(status, receipt, nonce, BROWSER_INVENTORY)
+    if not result.valid:
+        print("Browser receipt refused: " + result.reason, flush=True)
+        return False, result.passed, result.failed
+    try:
+        browser_projects(metadata)
+    except ValueError as error:
+        print("Browser metadata refused: " + str(error), flush=True)
+        return False, result.passed, result.failed
+    if len(result.inventory) != BROWSER_COUNT:
+        return False, result.passed, result.failed
+    if BROWSER_INVENTORY is None:
+        if result.failed: return False, result.passed, result.failed
+        BROWSER_INVENTORY = result.inventory
+    return True, result.passed, result.failed
 
 
 

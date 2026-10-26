@@ -80,13 +80,46 @@ class Results(unittest.TestCase):
                  patch.object(controls, "RUST_INVENTORY", None), contextlib.redirect_stdout(io.StringIO()):
                 self.assertFalse(controls.rust()[0])
 
-    def test_browser_infrastructure_is_not_an_assertion_kill(self):
-        for message in ["worker process exited unexpectedly", "browserType.launch: missing binary",
-                        "Test timeout of 30000ms exceeded", "ECONNREFUSED", "1 did not run"]:
-            self.assertFalse(controls.browser_result(f"{message}\n  1 failed\n", 1)[0])
-        self.assertEqual(controls.browser_result("Error: expect(received).toEqual(expected)\n  1 failed\n", 1), (True, 0, 1))
-        self.assertEqual(controls.browser_result("  36 passed\n", 0), (True, 36, 0))
-        self.assertFalse(controls.browser_result("  36 passed\n", 1)[0])
+    @staticmethod
+    def browser_fixture(nonce="1" * 64):
+        identities = [f"{project}-{n}" for project in ("chromium", "firefox", "webkit") for n in range(12)]
+        receipt = {"schema":1, "complete":True, "nonce":nonce, "inventory":identities,
+                   "tests":[[identity,"passed"] for identity in identities]}
+        metadata = {"suites":[{"specs":[{"tests":[{"projectName":project} for project in ("chromium", "firefox", "webkit")]} for _ in range(12)]}]}
+        return receipt, metadata
+
+    def test_browser_receipts_require_fresh_complete_unchanged_results(self):
+        import copy
+        receipt, metadata = self.browser_fixture()
+        with patch.object(controls, "BROWSER_INVENTORY", None), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(controls.browser_result(0,receipt,"1"*64,metadata),(True,36,0))
+            failed=copy.deepcopy(receipt); failed["tests"][0][1]="failed"
+            self.assertEqual(controls.browser_result(1,failed,"1"*64,metadata),(True,35,1))
+            for status, broken in [(1,None),(0,failed),(0,{**receipt,"complete":False}),
+                    (0,{**receipt,"nonce":"2"*64}),(0,{**receipt,"tests":receipt["tests"][:-1]}),
+                    (0,{**receipt,"inventory":["renamed",*receipt["inventory"][1:]],
+                        "tests":[["renamed","passed"],*receipt["tests"][1:]]})]:
+                self.assertFalse(controls.browser_result(status,broken,"1"*64,metadata)[0])
+            missing=copy.deepcopy(metadata); missing["suites"][0]["specs"][0]["tests"].pop()
+            self.assertFalse(controls.browser_result(0,receipt,"1"*64,missing)[0])
+
+    def test_browser_build_and_invocation_use_the_fresh_assertion_receipt(self):
+        import json
+        calls=[]
+        def producer(command, **kwargs):
+            calls.append((command,kwargs))
+            env=kwargs.get("env",{})
+            if "PW_ASSERTION_REPORT" in env:
+                report, metadata = self.browser_fixture(env["PW_ASSERTION_NONCE"])
+                Path(env["PW_ASSERTION_REPORT"]).write_text(json.dumps(report))
+                Path(env["PLAYWRIGHT_JSON_OUTPUT_NAME"]).write_text(json.dumps(metadata))
+            return SimpleNamespace(returncode=0,stdout="")
+        with patch.object(controls, "BROWSER_INVENTORY", None), patch.object(controls.producer_process,"run",side_effect=producer):
+            self.assertEqual(controls.browser(),(True,36,0))
+        self.assertEqual(calls[0][0],controls.SERVER_BUILD)
+        self.assertIn("--reporter=line,json,./assertion-result-reporter.mjs",calls[1][0])
+        self.assertIn("--retries=0",calls[1][0])
+        self.assertEqual(len(calls[1][1]["env"]["PW_ASSERTION_NONCE"]),64)
 
     def test_invalid_mutant_fails_campaign_and_restores_source(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -30,7 +30,8 @@
 //   - a JPEG with restart markers and a GIF whose image has its own colour
 //     table, built here from bytes: kept and served byte for byte, and
 //     shown with their colours.
-import { expect, test } from "@playwright/test";
+import { test } from "@playwright/test";
+import { expect } from "../assertion-expect.mjs";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { crc32, deflateSync, inflateSync } from "node:zlib";
@@ -43,7 +44,7 @@ test.use({
 });
 
 // One reader's lease at a time on a host: its tests in order.
-test.describe.configure({ mode: "serial" });
+test.describe.configure({ mode: "default" });
 
 const fixture = (name) => readFileSync(new URL(`./uploads/${name}`, import.meta.url));
 const latin1 = (text) => Buffer.from(text, "latin1");
@@ -487,8 +488,8 @@ test("each format is shown and served without its metadata", async ({ page, requ
     await expect(photo).toHaveAttribute("height", String(height));
     // Decoded, at the size its markup states.
     await expect
-      .poll(() => photo.evaluate((img) => (img.complete ? [img.naturalWidth, img.naturalHeight] : null)))
-      .toEqual([width, height]);
+      .poll(() => photo.evaluate((img) => (img.complete ? `${img.naturalWidth}x${img.naturalHeight}` : null)))
+      .toBe(`${width}x${height}`);
     const src = await photo.getAttribute("src");
     const served = await request.get(src);
     expect(served.status()).toBe(200);
@@ -528,8 +529,8 @@ test("a JPEG with restart markers and a GIF with its own palette are kept whole 
     await expect(photo).toHaveAttribute("width", String(width));
     await expect(photo).toHaveAttribute("height", String(height));
     await expect
-      .poll(() => photo.evaluate((img) => (img.complete ? [img.naturalWidth, img.naturalHeight] : null)))
-      .toEqual([width, height]);
+      .poll(() => photo.evaluate((img) => (img.complete ? `${img.naturalWidth}x${img.naturalHeight}` : null)))
+      .toBe(`${width}x${height}`);
     // Nothing to drop, so kept and served byte for byte.
     const src = await photo.getAttribute("src");
     const served = Buffer.from(await (await request.get(src)).body());
@@ -554,8 +555,8 @@ test("a phone's portrait photo keeps its turn", async ({ page }, testInfo) => {
   await home(page);
   const photo = await attachAndPost(page, FILES[0], `Upright in ${testInfo.project.name} at ${Date.now()}`);
   await expect
-    .poll(() => photo.evaluate((img) => (img.complete ? [img.naturalWidth, img.naturalHeight] : null)))
-    .toEqual([5, 8]);
+    .poll(() => photo.evaluate((img) => (img.complete ? `${img.naturalWidth}x${img.naturalHeight}` : null)))
+    .toBe("5x8");
   // Turned a quarter clockwise: the stored bottom-left pixel (no red, full
   // green) is shown at the top left, the stored top-left (neither) at the
   // top right.

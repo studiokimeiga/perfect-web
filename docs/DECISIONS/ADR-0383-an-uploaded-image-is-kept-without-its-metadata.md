@@ -700,3 +700,42 @@ the baseline inventory across calls: renamed tests with the same count,
 duplicate names and ignored tests are invalid. The corrected native
 baseline is 103 tests. Verify 40247937012 was cancelled for this review
 fix and is not evidence; the corrected commit must run the whole campaign.
+
+
+### Whole-campaign producer findings and corrections
+
+Verify 40248335195 at `6cbe30a7` completed 129 controls but earned only
+113 valid kills. Sixteen were refused; the run is failed evidence, not an
+acceptance claim. Independent review reproduced each class. Native cases
+included assertions embedded on match-arm lines, malformed-input helpers
+using generic panic, and a memory-measure child embedding its own failure
+report inside its parent's assertion. Assertions now stand alone; domain
+refusals assert before extracting; the walk child reports completed
+measurements and domain results, while abnormal exit, setup I/O and invalid
+protocol remain invalid producers.
+
+The two original ICC guard-removal controls crashed in production indexing
+and remain invalid, never credited as kills. Their replacements keep raw
+profiles only on bounds-safe, <=4MiB predicates for an undersized tag or a
+truncated declared profile. They prove malformed-profile rejection/privacy,
+not the original guards' protection from panic. The direct arbitrary-bytes
+no-panic/idempotence regression remains; universal memory-safety or format
+compatibility is not inferred from these replacements.
+
+The browser's serial group skipped later tests after a genuine assertion,
+and its prose regex also rejected a native comparison with a custom
+message. Default mode keeps tests sequential while completing independent
+cases. The producer now uses the shared native matcher proof wrapper and
+nonce-bound assertion reporter: complete lifecycle, no retries or skipped
+tests, frozen identities, 36 tests, and 12 in each named engine. Browser/API,
+setup and timeout errors cannot write an eligible receipt. Dimension polls
+compare completed dimension strings through the wrapper's supported native
+`toBe` poll, preserving the width/height checks.
+
+Local bounded repair verification passed the 103-test native baseline and
+all 14 formerly invalid native controls. The complete 36-test browser
+baseline passes; the orientation control yields 27 native comparison
+failures, and the original-bytes lease control three, each with the same
+complete inventory. Eight producer integration regressions pass. These are
+bounded reruns; a new whole 129-control hosted campaign and independent
+review of this final producer delta remain required.

@@ -1135,9 +1135,16 @@ pub(crate) mod tests {
     #[test]
     fn a_jpeg_that_does_not_parse_is_refused() {
         let laden = laden_jpeg();
-        let malformed = |b: &[u8]| match strip(b) {
-            Err(Unreadable::Malformed(Kind::Jpeg, why)) => why,
-            other => panic!("not refused: {other:?}"),
+        let malformed = |b: &[u8]| {
+            let result = strip(b);
+            assert!(
+                matches!(result, Err(Unreadable::Malformed(Kind::Jpeg, _))),
+                "not refused: {result:?}"
+            );
+            let Err(Unreadable::Malformed(_, why)) = result else {
+                unreachable!()
+            };
+            why
         };
         let body = jpeg_body();
         let eoi = body.len() - 2;
@@ -1622,9 +1629,16 @@ pub(crate) mod tests {
     #[test]
     fn a_png_that_does_not_parse_is_refused() {
         let (head, idat, iend) = png_parts();
-        let malformed = |b: &[u8]| match strip(b) {
-            Err(Unreadable::Malformed(Kind::Png, why)) => why,
-            other => panic!("not refused: {other:?}"),
+        let malformed = |b: &[u8]| {
+            let result = strip(b);
+            assert!(
+                matches!(result, Err(Unreadable::Malformed(Kind::Png, _))),
+                "not refused: {result:?}"
+            );
+            let Err(Unreadable::Malformed(_, why)) = result else {
+                unreachable!()
+            };
+            why
         };
         let short = "it ends before its IEND chunk";
         assert_eq!(malformed(&[&head[..], &idat].concat()), short);
@@ -1821,9 +1835,16 @@ pub(crate) mod tests {
 
     #[test]
     fn a_webp_that_does_not_parse_is_refused() {
-        let malformed = |b: &[u8]| match strip(b) {
-            Err(Unreadable::Malformed(Kind::Webp, why)) => why,
-            other => panic!("not refused: {other:?}"),
+        let malformed = |b: &[u8]| {
+            let result = strip(b);
+            assert!(
+                matches!(result, Err(Unreadable::Malformed(Kind::Webp, _))),
+                "not refused: {result:?}"
+            );
+            let Err(Unreadable::Malformed(_, why)) = result else {
+                unreachable!()
+            };
+            why
         };
         let mut long = laden_webp();
         let exif = long.windows(4).position(|w| w == b"EXIF").unwrap();
@@ -1868,7 +1889,10 @@ pub(crate) mod tests {
             // The walk's code and the measure's own read once first, so
             // that the pages of code they fault in are not counted.
             let few = riff_of(&[vp8x.clone(), vp8l.clone(), riff_chunk(b"prVt", &[])], &[]);
-            assert!(strip(&few).is_ok() && peak() > 0);
+            let warm = strip(&few).is_ok();
+            if peak() == 0 {
+                panic!("invalid peak-memory producer");
+            }
             let head = 12 + vp8x.len() + vp8l.len();
             let chunks = (5_000_000 - head) / 8;
             let mut laden = Vec::with_capacity(head + 8 * chunks);
@@ -1885,11 +1909,13 @@ pub(crate) mod tests {
             let kept = strip(&laden);
             let took = started.elapsed();
             let over = peak() - before;
-            assert_eq!(kept, Ok(riff_of(&[vp8x, vp8l], &[])));
+            let correct = kept == Ok(riff_of(&[vp8x, vp8l], &[]));
             println!(
-                "WALKED {} {chunks} {over} {}",
+                "WALKED {} {chunks} {over} {} {} {}",
                 laden.len(),
-                took.as_micros()
+                took.as_micros(),
+                u8::from(warm),
+                u8::from(correct)
             );
             return;
         }
@@ -1899,23 +1925,32 @@ pub(crate) mod tests {
             .env(CHILD, "1")
             .output()
             .expect("the child runs");
-        let out = String::from_utf8_lossy(&child.stdout);
-        assert!(
-            child.status.success(),
-            "{out}\n{}",
-            String::from_utf8_lossy(&child.stderr)
-        );
-        // After libtest's `test <name> ... `, on its line.
-        let walked: Vec<u64> = out
+        let out = String::from_utf8(child.stdout).expect("child stdout UTF-8");
+        if !child.status.success() {
+            panic!("invalid walk child producer");
+        }
+        let reports: Vec<&str> = out
             .lines()
-            .find_map(|l| l.split_once("WALKED ").map(|(_, measure)| measure))
-            .expect("the child's measure")
+            .filter_map(|l| l.split_once("WALKED ").map(|(_, value)| value))
+            .collect();
+        let [report] = reports.as_slice() else {
+            panic!("invalid walk child report");
+        };
+        let walked: Vec<u64> = report
             .split(' ')
             .map(|n| n.parse().expect("a count"))
             .collect();
-        let [bytes, chunks, over_kb, micros] = walked[..] else {
-            panic!("{out}")
+        let [bytes, chunks, over_kb, micros, warm, correct] = walked[..] else {
+            panic!("invalid walk child measures");
         };
+        if warm > 1 || correct > 1 {
+            panic!("invalid walk child boolean");
+        }
+        assert_eq!(
+            (warm, correct),
+            (1, 1),
+            "the walk preserves its small and large image"
+        );
         assert!(bytes > 4_999_000 && chunks == 624_990, "{out}");
         assert!(
             over_kb * 1024 < bytes / 4,
@@ -2018,9 +2053,16 @@ pub(crate) mod tests {
     #[test]
     fn a_gif_that_does_not_parse_is_refused() {
         let (head, image) = gif_parts();
-        let malformed = |b: &[u8]| match strip(b) {
-            Err(Unreadable::Malformed(Kind::Gif, why)) => why,
-            other => panic!("not refused: {other:?}"),
+        let malformed = |b: &[u8]| {
+            let result = strip(b);
+            assert!(
+                matches!(result, Err(Unreadable::Malformed(Kind::Gif, _))),
+                "not refused: {result:?}"
+            );
+            let Err(Unreadable::Malformed(_, why)) = result else {
+                unreachable!()
+            };
+            why
         };
         let short = "it ends before its trailer";
         assert_eq!(malformed(&[&head[..], &image].concat()), short);
@@ -2120,8 +2162,12 @@ pub(crate) mod tests {
             let file = row["file"].as_str().unwrap();
             let bytes = fixture(file);
             match row["kind"].as_str() {
-                Some(_) => assert_eq!(strip(&bytes).as_ref(), Ok(&bytes), "{file}"),
-                None => assert_eq!(strip(&bytes), Err(Unreadable::Unrecognized), "{file}"),
+                Some(_) => {
+                    assert_eq!(strip(&bytes).as_ref(), Ok(&bytes), "{file}");
+                }
+                None => {
+                    assert_eq!(strip(&bytes), Err(Unreadable::Unrecognized), "{file}");
+                }
             }
         }
     }
