@@ -654,10 +654,28 @@ awaited in order. What remains:
   lease is, so a
   restart or a second host forgets it; the development blob store is a
   directory, and there is no production store, CDN, signed address,
-  private image, re-encoding or resizing. Metadata is served as uploaded,
-  an Exif position among it; EXIF orientation is read in JPEG alone. A
-  post carries one image, attaching it navigates the page and loses a draft
-  typed before it, and an image is not part of a post's speculation.
+  private image, re-encoding or resizing. A post carries one image,
+  attaching it navigates the page and loses a draft typed before it, and
+  an image is not part of a post's speculation.
+- **An uploaded image is kept without its metadata, not without all that
+  can identify it** (ADR-0383, amending ADR-0260). The host rewrites every
+  upload before it keeps it and keeps, of its Exif, a JPEG's turn alone; a
+  PNG or WebP is shown as stored, never turned by an Exif. An ICC profile
+  keeps validated standard colour tags, with reserved bytes canonicalized;
+  the numeric colour values remain and can fingerprint a calibrated display.
+  Producer signatures, vendor flags, unused fields and trailing payload bytes
+  are removed or refused. Unsupported nested ICC transforms (`mAB`, `mBA`,
+  `mpet`) cause the whole profile to be dropped, so the image may have
+  different colour under sRGB. Undefined header colour identifiers or intent,
+  non-D50 header illuminants and malformed supported payloads also drop the
+  profile. This is not universal ICC compatibility. Nothing in the pixels is touched
+  (a face, a street sign, a screen in a reflection), nor data hidden in a
+  JPEG's scan or past a GIF image's LZW end. An Ultra HDR or ISO 21496-1
+  gain map goes with MPF and what follows EOI, so such a photo shows as
+  its standard-range image; a GIF's ICC profile is dropped, its colours
+  then taken as sRGB. Images a deployment kept before this are not
+  rewritten: the one-time cleaning pass is described (ADR-0383 §3) and
+  queued for the production track, not built.
 - **The follows timeline is a query** (ADR-0257): read on each render
   from the posts of those followed, not a materialization fanned out on
   write. A reader is told of its own follow by its session, and another
@@ -1371,3 +1389,26 @@ preserved, not replaced with invented results.
   actual post-settlement success marker and do not count refused attempts as
   completion. Local strict whole12 and CI passed, and so did the exact
   head's verify 38909882781; landed with train-9.
+
+
+PNG/APNG upload rewriting now reserves at most 256 MiB of aggregate expected
+filtered-scanline extent across the default image and every animation frame.
+A malformed excess can fill one fixed 32 KiB output block before refusal;
+miniz also owns a 32 KiB internal dictionary. This bounds expected decoded
+extent with fixed refusal overhead, not exact actual inflated bytes or CPU
+work. It is not a 256 MiB allocation, CPU deadline or replacement for input
+and staging budgets. It can refuse large images that fit an application's
+compressed-byte and dimension declaration. Ambiguous PNG ordering, duplicate
+singleton chunks, extra compressed/decoded stream bytes and malformed APNG
+structure refuse the whole image. This does not remove arbitrary encoded-bit,
+palette or pixel steganography, calibrated-display fingerprints or metadata
+from older stored uploads. ADR-0383 records the specific boundary and gates.
+
+
+APNG ancillary chunks interleaved between fdAT pieces of one frame are
+explicitly unsupported: Chromium renders a demonstrated arrangement
+transparently until metadata removal makes its declared pixels visible.
+The host refuses it with an unsupported-image response rather than change
+that appearance. Split/sequence-only-empty fdAT without interleaving and
+ancillary chunks before/after frames remain supported. This is a stricter
+supported subset than APNG's ordering rules, not malformed-file evidence.

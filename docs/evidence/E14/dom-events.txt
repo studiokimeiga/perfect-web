@@ -1,8 +1,8 @@
 ADR-0367 - a double press and a control's losing focus are events the platform declares
 
 produced by: just e14-dom-events
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -11,24 +11,24 @@ playwright: Version 1.58.0
 
 test a_program_without_a_platform_declares_no_events ... ok
 test an_element_handles_an_event_the_platform_declares ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.90s
 test a_lambda_s_written_parameter_type_is_checked ... ok
 test a_handler_written_for_another_event_is_refused ... ok
 test a_handler_is_given_its_event_s_record ... ok
 test an_element_s_handlers_are_lowered_last_and_together ... ok
-test a_double_press_and_a_blur_are_given_their_records ... ok
 test a_modifier_is_one_the_runtime_applies ... ok
+test a_double_press_and_a_blur_are_given_their_records ... ok
 test the_manifest_says_which_event_a_part_handles ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.60s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.27s
 test the_trusted_platform_contract_is_hashed ... ok
 test the_signatures_the_checkers_depend_on_are_exercised ... ok
 test every_platform_signature_is_internally_consistent ... ok
 test the_platform_library_parses_resolves_and_checks_clean ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
 
 == the browser in three engines (e2e/events.spec.mjs)
 
-  24 passed (16.2s)
+  24 passed (22.6s)
 
 == mutation controls (scripts/dom_events_mutations.py)
 

@@ -1,8 +1,8 @@
 ADR-0229 - a computed condition decides its block
 
 produced by: just e14-computed-conditions
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -10,25 +10,25 @@ playwright: Version 1.58.0
 == the build (compiler/pw-core/tests/computed_conditions.rs, template_values.rs)
 
 test an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too ... ok
-test a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal ... ok
 test what_a_condition_does_not_compute_yet_is_refused_by_name ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.72s
+test a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal ... ok
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.27s
 test a_key_is_the_path_from_the_element ... ok
 test the_ir_blocks_a_computed_list_and_a_foreign_key ... ok
-test a_loops_key_is_read_from_its_element ... ok
 test a_directive_other_than_on_does_not_build ... ok
+test a_loops_key_is_read_from_its_element ... ok
 test a_computed_hole_checks_and_does_not_build ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.43s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.38s
 
 == the server (spikes/own-renderer/server/src/main.rs)
 
 test tests::a_condition_a_host_computes_decides_its_block_and_again_when_it_changes ... ok
 test tests::a_condition_the_browser_computes_is_rendered_at_its_first_value ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 711 filtered out; finished in 3.61s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 739 filtered out; finished in 2.52s
 
 == the feed in three engines (e2e/feed.spec.mjs)
 
-  66 passed (1.2m)
+  66 passed (56.9s)
 
 == native producer controls (scripts/computed_conditions_producer_mutations.py)
 
@@ -58,18 +58,18 @@ failures:
 
 ---- an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too stdout ----
 
-thread 'an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too' (71517) panicked at compiler/pw-core/tests/computed_conditions.rs:68:5:
+thread 'an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too' (35592) panicked at compiler/pw-core/tests/computed_conditions.rs:68:5:
 supported computed condition: Some("`t.P~ui`'s values: part 1 computes a value from nothing it reads: write the value itself")
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- what_a_condition_does_not_compute_yet_is_refused_by_name stdout ----
 
-thread 'what_a_condition_does_not_compute_yet_is_refused_by_name' (71518) panicked at compiler/pw-core/tests/computed_conditions.rs:234:9:
+thread 'what_a_condition_does_not_compute_yet_is_refused_by_name' (35593) panicked at compiler/pw-core/tests/computed_conditions.rs:234:9:
 `t.P~ui`'s values: part 0 computes a value from nothing it reads: write the value itself
 
 ---- a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal stdout ----
 
-thread 'a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal' (71516) panicked at compiler/pw-core/tests/computed_conditions.rs:68:5:
+thread 'a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal' (35591) panicked at compiler/pw-core/tests/computed_conditions.rs:68:5:
 supported computed condition: Some("`feed.app.Home~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 22 of `feed.app.Home~ui` reads `#feed.app.Home~ui~22` inside part 21, which the browser renders again with a speculation of `feed`\n`feed.app.ConversationPage~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 5 of `feed.app.ConversationPage~ui` reads `#feed.app.ConversationPage~ui~5` inside part 4, which the browser renders again with a speculation of `talk`\n`feed.app.Home~ui`'s values: part 19 computes a value from nothing it reads: write the value itself\n`feed.app.PostPage~ui`'s values: part 5 computes a value from nothing it reads: write the value itself\n`feed.app.FollowingPage~ui`'s values: part 0 computes a value from nothing it reads: write the value itself\n`feed.app.NotificationsPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself\n`feed.app.MessagesPage~ui`'s values: part 1 computes a value from nothing it reads: write the value itself\n`feed.app.ConversationPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself")
 
 
@@ -78,7 +78,7 @@ failures:
     an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too
     what_a_condition_does_not_compute_yet_is_refused_by_name
 
-test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.58s
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.00s
 
 error: test failed, to rerun pass `-p pw-core --test computed_conditions`
 
@@ -89,21 +89,21 @@ test a_computed_attribute_is_a_value_the_host_sets ... ok
 test a_view_composed_in_the_page_computes_from_the_pages_value ... ok
 test a_value_the_template_computes_performs_nothing ... ok
 test a_value_the_template_computes_is_lifted_and_planned ... FAILED
-test what_a_host_does_not_compute_is_refused_by_name ... ok
 test a_view_that_contains_itself_computes_nothing_yet_and_a_speculated_value_is_computed ... FAILED
+test what_a_host_does_not_compute_is_refused_by_name ... ok
 test a_member_an_imported_module_lacks_does_not_resolve ... ok
 
 failures:
 
 ---- a_value_the_template_computes_is_lifted_and_planned stdout ----
 
-thread 'a_value_the_template_computes_is_lifted_and_planned' (71628) panicked at compiler/pw-core/tests/computed_holes.rs:139:5:
+thread 'a_value_the_template_computes_is_lifted_and_planned' (35703) panicked at compiler/pw-core/tests/computed_holes.rs:139:5:
 ["`feed.app.Home~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 22 of `feed.app.Home~ui` reads `#feed.app.Home~ui~22` inside part 21, which the browser renders again with a speculation of `feed`", "`feed.app.ConversationPage~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 5 of `feed.app.ConversationPage~ui` reads `#feed.app.ConversationPage~ui~5` inside part 4, which the browser renders again with a speculation of `talk`", "`feed.app.Home~ui`'s values: part 19 computes a value from nothing it reads: write the value itself", "`feed.app.PostPage~ui`'s values: part 5 computes a value from nothing it reads: write the value itself", "`feed.app.FollowingPage~ui`'s values: part 0 computes a value from nothing it reads: write the value itself", "`feed.app.NotificationsPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself", "`feed.app.MessagesPage~ui`'s values: part 1 computes a value from nothing it reads: write the value itself", "`feed.app.ConversationPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself"]
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_view_that_contains_itself_computes_nothing_yet_and_a_speculated_value_is_computed stdout ----
 
-thread 'a_view_that_contains_itself_computes_nothing_yet_and_a_speculated_value_is_computed' (71631) panicked at compiler/pw-core/tests/computed_holes.rs:382:5:
+thread 'a_view_that_contains_itself_computes_nothing_yet_and_a_speculated_value_is_computed' (35706) panicked at compiler/pw-core/tests/computed_holes.rs:382:5:
 ["`feed.app.Home~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 23 of `feed.app.Home~ui` reads `#feed.app.Home~ui~23` inside part 22, which the browser renders again with a speculation of `feed`", "`feed.app.ConversationPage~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 5 of `feed.app.ConversationPage~ui` reads `#feed.app.ConversationPage~ui~5` inside part 4, which the browser renders again with a speculation of `talk`", "`feed.app.Home~ui`'s values: part 20 computes a value from nothing it reads: write the value itself", "`feed.app.PostPage~ui`'s values: part 5 computes a value from nothing it reads: write the value itself", "`feed.app.FollowingPage~ui`'s values: part 0 computes a value from nothing it reads: write the value itself", "`feed.app.NotificationsPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself", "`feed.app.MessagesPage~ui`'s values: part 1 computes a value from nothing it reads: write the value itself", "`feed.app.ConversationPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself"]
 
 
@@ -111,7 +111,7 @@ failures:
     a_value_the_template_computes_is_lifted_and_planned
     a_view_that_contains_itself_computes_nothing_yet_and_a_speculated_value_is_computed
 
-test result: FAILED. 6 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.48s
+test result: FAILED. 6 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.55s
 
 error: test failed, to rerun pass `-p pw-core --test computed_holes`
 
@@ -119,53 +119,53 @@ error: test failed, to rerun pass `-p pw-core --test computed_holes`
 running 4 tests
 test an_attribute_and_a_views_field_of_a_signal_are_computed_as_well ... ok
 test what_the_browser_does_not_compute_yet_is_refused_by_name ... ok
-test a_value_computed_from_a_signal_is_the_browsers_and_its_first_the_hosts ... FAILED
 test standalone_and_prepared_signal_modules_are_byte_identical ... FAILED
+test a_value_computed_from_a_signal_is_the_browsers_and_its_first_the_hosts ... FAILED
 
 failures:
 
----- a_value_computed_from_a_signal_is_the_browsers_and_its_first_the_hosts stdout ----
-
-thread 'a_value_computed_from_a_signal_is_the_browsers_and_its_first_the_hosts' (71739) panicked at compiler/pw-core/tests/computed_signals.rs:69:5:
-supported computed signal: Some("`feed.app.Home~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 22 of `feed.app.Home~ui` reads `#feed.app.Home~ui~22` inside part 21, which the browser renders again with a speculation of `feed`\n`feed.app.ConversationPage~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 5 of `feed.app.ConversationPage~ui` reads `#feed.app.ConversationPage~ui~5` inside part 4, which the browser renders again with a speculation of `talk`\n`feed.app.Home~ui`'s values: part 19 computes a value from nothing it reads: write the value itself\n`feed.app.PostPage~ui`'s values: part 5 computes a value from nothing it reads: write the value itself\n`feed.app.FollowingPage~ui`'s values: part 0 computes a value from nothing it reads: write the value itself\n`feed.app.NotificationsPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself\n`feed.app.MessagesPage~ui`'s values: part 1 computes a value from nothing it reads: write the value itself\n`feed.app.ConversationPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself")
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-
 ---- standalone_and_prepared_signal_modules_are_byte_identical stdout ----
 
-thread 'standalone_and_prepared_signal_modules_are_byte_identical' (71741) panicked at compiler/pw-core/tests/computed_signals.rs:131:5:
+thread 'standalone_and_prepared_signal_modules_are_byte_identical' (35814) panicked at compiler/pw-core/tests/computed_signals.rs:131:5:
 complete executable program: Some("the program does not check, so nothing is compiled: app.pw: [PW6601] `feed.app.Home~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 22 of `feed.app.Home~ui` reads `#feed.app.Home~ui~22` inside part 21, which the browser renders again with a speculation of `feed`; app.pw: [PW6601] `feed.app.ConversationPage~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 5 of `feed.app.ConversationPage~ui` reads `#feed.app.ConversationPage~ui~5` inside part 4, which the browser renders again with a speculation of `talk`; app.pw: [PW6601] `feed.app.Home~ui`'s values: part 19 computes a value from nothing it reads: write the value itself; app.pw: [PW6601] `feed.app.PostPage~ui`'s values: part 5 computes a value from nothing it reads: write the value itself; app.pw: [PW6601] `feed.app.FollowingPage~ui`'s values: part 0 computes a value from nothing it reads: write the value itself; app.pw: [PW6601] `feed.app.NotificationsPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself; app.pw: [PW6601] `feed.app.MessagesPage~ui`'s values: part 1 computes a value from nothing it reads: write the value itself; app.pw: [PW6601] `feed.app.ConversationPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- a_value_computed_from_a_signal_is_the_browsers_and_its_first_the_hosts stdout ----
+
+thread 'a_value_computed_from_a_signal_is_the_browsers_and_its_first_the_hosts' (35812) panicked at compiler/pw-core/tests/computed_signals.rs:69:5:
+supported computed signal: Some("`feed.app.Home~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 22 of `feed.app.Home~ui` reads `#feed.app.Home~ui~22` inside part 21, which the browser renders again with a speculation of `feed`\n`feed.app.ConversationPage~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 5 of `feed.app.ConversationPage~ui` reads `#feed.app.ConversationPage~ui~5` inside part 4, which the browser renders again with a speculation of `talk`\n`feed.app.Home~ui`'s values: part 19 computes a value from nothing it reads: write the value itself\n`feed.app.PostPage~ui`'s values: part 5 computes a value from nothing it reads: write the value itself\n`feed.app.FollowingPage~ui`'s values: part 0 computes a value from nothing it reads: write the value itself\n`feed.app.NotificationsPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself\n`feed.app.MessagesPage~ui`'s values: part 1 computes a value from nothing it reads: write the value itself\n`feed.app.ConversationPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself")
 
 
 failures:
     a_value_computed_from_a_signal_is_the_browsers_and_its_first_the_hosts
     standalone_and_prepared_signal_modules_are_byte_identical
 
-test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.99s
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.26s
 
 error: test failed, to rerun pass `-p pw-core --test computed_signals`
 
 
 running 3 tests
-test tests::a_condition_the_browser_computes_is_rendered_at_its_first_value ... FAILED
 test tests::a_condition_a_host_computes_decides_its_block_and_again_when_it_changes ... FAILED
+test tests::a_condition_the_browser_computes_is_rendered_at_its_first_value ... FAILED
 test tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value ... FAILED
 
 failures:
 
----- tests::a_condition_the_browser_computes_is_rendered_at_its_first_value stdout ----
-
-thread 'tests::a_condition_the_browser_computes_is_rendered_at_its_first_value' (72384) panicked at spikes/own-renderer/server/src/main.rs:15008:9:
-["`feed.app.Home~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 22 of `feed.app.Home~ui` reads `#feed.app.Home~ui~22` inside part 21, which the browser renders again with a speculation of `feed`", "`feed.app.ConversationPage~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 5 of `feed.app.ConversationPage~ui` reads `#feed.app.ConversationPage~ui~5` inside part 4, which the browser renders again with a speculation of `talk`", "`feed.app.Home~ui`'s values: part 19 computes a value from nothing it reads: write the value itself", "`feed.app.PostPage~ui`'s values: part 5 computes a value from nothing it reads: write the value itself", "`feed.app.FollowingPage~ui`'s values: part 0 computes a value from nothing it reads: write the value itself", "`feed.app.NotificationsPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself", "`feed.app.MessagesPage~ui`'s values: part 1 computes a value from nothing it reads: write the value itself", "`feed.app.ConversationPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself"]
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-
 ---- tests::a_condition_a_host_computes_decides_its_block_and_again_when_it_changes stdout ----
 
-thread 'tests::a_condition_a_host_computes_decides_its_block_and_again_when_it_changes' (72383) panicked at spikes/own-renderer/server/src/main.rs:15008:9:
+thread 'tests::a_condition_a_host_computes_decides_its_block_and_again_when_it_changes' (36448) panicked at spikes/own-renderer/server/src/main.rs:15008:9:
 ["`feed.app.Home~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 22 of `feed.app.Home~ui` reads `#feed.app.Home~ui~22` inside part 21, which the browser renders again with a speculation of `feed`", "`feed.app.ConversationPage~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 5 of `feed.app.ConversationPage~ui` reads `#feed.app.ConversationPage~ui~5` inside part 4, which the browser renders again with a speculation of `talk`", "`feed.app.Home~ui`'s values: part 19 computes a value from nothing it reads: write the value itself", "`feed.app.PostPage~ui`'s values: part 1 computes a value from nothing it reads: write the value itself", "`feed.app.FollowingPage~ui`'s values: part 0 computes a value from nothing it reads: write the value itself", "`feed.app.NotificationsPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself", "`feed.app.MessagesPage~ui`'s values: part 1 computes a value from nothing it reads: write the value itself", "`feed.app.ConversationPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::a_condition_the_browser_computes_is_rendered_at_its_first_value stdout ----
+
+thread 'tests::a_condition_the_browser_computes_is_rendered_at_its_first_value' (36449) panicked at spikes/own-renderer/server/src/main.rs:15008:9:
+["`feed.app.Home~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 22 of `feed.app.Home~ui` reads `#feed.app.Home~ui~22` inside part 21, which the browser renders again with a speculation of `feed`", "`feed.app.ConversationPage~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 5 of `feed.app.ConversationPage~ui` reads `#feed.app.ConversationPage~ui~5` inside part 4, which the browser renders again with a speculation of `talk`", "`feed.app.Home~ui`'s values: part 19 computes a value from nothing it reads: write the value itself", "`feed.app.PostPage~ui`'s values: part 5 computes a value from nothing it reads: write the value itself", "`feed.app.FollowingPage~ui`'s values: part 0 computes a value from nothing it reads: write the value itself", "`feed.app.NotificationsPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself", "`feed.app.MessagesPage~ui`'s values: part 1 computes a value from nothing it reads: write the value itself", "`feed.app.ConversationPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself"]
 
 ---- tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value stdout ----
 
-thread 'tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value' (72385) panicked at spikes/own-renderer/server/src/main.rs:15008:9:
+thread 'tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value' (36450) panicked at spikes/own-renderer/server/src/main.rs:15008:9:
 ["`feed.app.Home~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 22 of `feed.app.Home~ui` reads `#feed.app.Home~ui~22` inside part 21, which the browser renders again with a speculation of `feed`", "`feed.app.ConversationPage~ui`'s speculations: `a value a speculated region reads that the browser does not hold` does not encode: part 5 of `feed.app.ConversationPage~ui` reads `#feed.app.ConversationPage~ui~5` inside part 4, which the browser renders again with a speculation of `talk`", "`feed.app.Home~ui`'s values: part 19 computes a value from nothing it reads: write the value itself", "`feed.app.PostPage~ui`'s values: part 5 computes a value from nothing it reads: write the value itself", "`feed.app.FollowingPage~ui`'s values: part 0 computes a value from nothing it reads: write the value itself", "`feed.app.NotificationsPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself", "`feed.app.MessagesPage~ui`'s values: part 1 computes a value from nothing it reads: write the value itself", "`feed.app.ConversationPage~ui`'s values: part 3 computes a value from nothing it reads: write the value itself"]
 
 
@@ -174,7 +174,7 @@ failures:
     tests::a_condition_the_browser_computes_is_rendered_at_its_first_value
     tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value
 
-test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 710 filtered out; finished in 1.32s
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 738 filtered out; finished in 0.90s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -189,7 +189,7 @@ failures:
 
 ---- an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too stdout ----
 
-thread 'an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too' (72736) panicked at compiler/pw-core/tests/computed_conditions.rs:182:5:
+thread 'an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too' (36801) panicked at compiler/pw-core/tests/computed_conditions.rs:182:5:
 assertion `left == right` failed: [Part { part: 5, path: "#t.P~ui~5", binding: "post", steps: [Derived("t.P~ui.derived_5")] }]
   left: 1
  right: 3
@@ -197,12 +197,12 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- what_a_condition_does_not_compute_yet_is_refused_by_name stdout ----
 
-thread 'what_a_condition_does_not_compute_yet_is_refused_by_name' (72737) panicked at compiler/pw-core/tests/computed_conditions.rs:232:9:
+thread 'what_a_condition_does_not_compute_yet_is_refused_by_name' (36802) panicked at compiler/pw-core/tests/computed_conditions.rs:232:9:
 built: reads `post.likes` inside a block a signal decides, and the browser renders that block again from the page's signals alone (ADR-0137)
 
 ---- a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal stdout ----
 
-thread 'a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal' (72735) panicked at compiler/pw-core/tests/computed_conditions.rs:131:5:
+thread 'a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal' (36800) panicked at compiler/pw-core/tests/computed_conditions.rs:131:5:
 [0]
 
 
@@ -211,33 +211,33 @@ failures:
     an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too
     what_a_condition_does_not_compute_yet_is_refused_by_name
 
-test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.72s
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.14s
 
 error: test failed, to rerun pass `-p pw-core --test computed_conditions`
 
 
 running 3 tests
-test tests::a_condition_a_host_computes_decides_its_block_and_again_when_it_changes ... FAILED
-test tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value ... FAILED
 test tests::a_condition_the_browser_computes_is_rendered_at_its_first_value ... FAILED
+test tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value ... FAILED
+test tests::a_condition_a_host_computes_decides_its_block_and_again_when_it_changes ... FAILED
 
 failures:
 
----- tests::a_condition_a_host_computes_decides_its_block_and_again_when_it_changes stdout ----
+---- tests::a_condition_the_browser_computes_is_rendered_at_its_first_value stdout ----
 
-thread 'tests::a_condition_a_host_computes_decides_its_block_and_again_when_it_changes' (73595) panicked at spikes/own-renderer/server/src/main.rs:16535:13:
-initial computed subject renders: Some(Failed("`PostPage` does not render: MissingValue { path: \"#feed.app.PostPage~ui~1\" }"))
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+thread 'tests::a_condition_the_browser_computes_is_rendered_at_its_first_value' (37658) panicked at spikes/own-renderer/server/src/main.rs:16579:13:
+initial browser-computed subject renders: Some(Failed("`Home` does not render: MissingValue { path: \"#feed.app.Home~ui~19\" }"))
 
 ---- tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value stdout ----
 
-thread 'tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value' (73597) panicked at spikes/own-renderer/server/src/main.rs:16382:13:
+thread 'tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value' (37659) panicked at spikes/own-renderer/server/src/main.rs:16382:13:
 initial computed values render: Some(Failed("`Home` does not render: MissingValue { path: \"#feed.app.Home~ui~19\" }"))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
----- tests::a_condition_the_browser_computes_is_rendered_at_its_first_value stdout ----
+---- tests::a_condition_a_host_computes_decides_its_block_and_again_when_it_changes stdout ----
 
-thread 'tests::a_condition_the_browser_computes_is_rendered_at_its_first_value' (73596) panicked at spikes/own-renderer/server/src/main.rs:16579:13:
-initial browser-computed subject renders: Some(Failed("`Home` does not render: MissingValue { path: \"#feed.app.Home~ui~19\" }"))
+thread 'tests::a_condition_a_host_computes_decides_its_block_and_again_when_it_changes' (37657) panicked at spikes/own-renderer/server/src/main.rs:16535:13:
+initial computed subject renders: Some(Failed("`PostPage` does not render: MissingValue { path: \"#feed.app.PostPage~ui~1\" }"))
 
 
 failures:
@@ -245,7 +245,7 @@ failures:
     tests::a_condition_the_browser_computes_is_rendered_at_its_first_value
     tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value
 
-test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 710 filtered out; finished in 2.60s
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 738 filtered out; finished in 1.71s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -270,13 +270,13 @@ failures:
 
 ---- what_a_condition_does_not_compute_yet_is_refused_by_name stdout ----
 
-thread 'what_a_condition_does_not_compute_yet_is_refused_by_name' (73953) panicked at compiler/pw-core/tests/computed_conditions.rs:232:9:
+thread 'what_a_condition_does_not_compute_yet_is_refused_by_name' (38016) panicked at compiler/pw-core/tests/computed_conditions.rs:232:9:
 built: is a block whose subject the browser computes, and whose arms hold a view's signals, which the browser starts again by its arm (ruling 0073-a)
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal stdout ----
 
-thread 'a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal' (73951) panicked at compiler/pw-core/tests/computed_conditions.rs:77:5:
+thread 'a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal' (38014) panicked at compiler/pw-core/tests/computed_conditions.rs:77:5:
 the condition, the browser's
 
 
@@ -284,7 +284,7 @@ failures:
     a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal
     what_a_condition_does_not_compute_yet_is_refused_by_name
 
-test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.75s
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.20s
 
 error: test failed, to rerun pass `-p pw-core --test computed_conditions`
 
@@ -308,13 +308,13 @@ failures:
 
 ---- tests::a_condition_the_browser_computes_is_rendered_at_its_first_value stdout ----
 
-thread 'tests::a_condition_the_browser_computes_is_rendered_at_its_first_value' (74811) panicked at spikes/own-renderer/server/src/main.rs:16579:13:
+thread 'tests::a_condition_the_browser_computes_is_rendered_at_its_first_value' (38878) panicked at spikes/own-renderer/server/src/main.rs:16579:13:
 initial browser-computed subject renders: Some(Failed("`Home` does not render: MissingValue { path: \"#feed.app.Home~ui~19\" }"))
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value stdout ----
 
-thread 'tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value' (74812) panicked at spikes/own-renderer/server/src/main.rs:16382:13:
+thread 'tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value' (38879) panicked at spikes/own-renderer/server/src/main.rs:16382:13:
 initial computed values render: Some(Failed("`Home` does not render: MissingValue { path: \"#feed.app.Home~ui~19\" }"))
 
 
@@ -322,7 +322,7 @@ failures:
     tests::a_condition_the_browser_computes_is_rendered_at_its_first_value
     tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value
 
-test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 710 filtered out; finished in 2.90s
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 738 filtered out; finished in 2.15s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -337,7 +337,7 @@ failures:
 
 ---- a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal stdout ----
 
-thread 'a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal' (75166) panicked at compiler/pw-core/tests/computed_conditions.rs:151:5:
+thread 'a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal' (39234) panicked at compiler/pw-core/tests/computed_conditions.rs:151:5:
 []
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -345,7 +345,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal
 
-test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.72s
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.19s
 
 error: test failed, to rerun pass `-p pw-core --test computed_conditions`
 
@@ -360,7 +360,7 @@ failures:
 
 ---- what_a_condition_does_not_compute_yet_is_refused_by_name stdout ----
 
-thread 'what_a_condition_does_not_compute_yet_is_refused_by_name' (76387) panicked at compiler/pw-core/tests/computed_conditions.rs:232:9:
+thread 'what_a_condition_does_not_compute_yet_is_refused_by_name' (40457) panicked at compiler/pw-core/tests/computed_conditions.rs:232:9:
 built: is a block whose subject the browser computes, and whose arms hold a view's signals, which the browser starts again by its arm (ruling 0073-a)
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -368,7 +368,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     what_a_condition_does_not_compute_yet_is_refused_by_name
 
-test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.79s
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.13s
 
 error: test failed, to rerun pass `-p pw-core --test computed_conditions`
 
@@ -376,20 +376,20 @@ a block whose subject the browser computes may hold a view's signals [cargo]: KI
 
 running 3 tests
 test an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too ... FAILED
-test a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal ... FAILED
 test what_a_condition_does_not_compute_yet_is_refused_by_name ... ok
+test a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal ... FAILED
 
 failures:
 
 ---- an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too stdout ----
 
-thread 'an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too' (77609) panicked at compiler/pw-core/tests/computed_conditions.rs:184:5:
+thread 'an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too' (41674) panicked at compiler/pw-core/tests/computed_conditions.rs:184:5:
 [Part { part: 5, path: "#t.P~ui~5", binding: "post", steps: [Derived("t.P~ui.derived_5")] }, Part { part: 1, path: "#t.P~ui~1", binding: "post", steps: [Derived("t.P~ui.derived_1")] }, Part { part: 2, path: "#t.P~ui~2", binding: "post", steps: [Derived("t.P~ui.derived_2")] }] [0, 4]
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal stdout ----
 
-thread 'a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal' (77608) panicked at compiler/pw-core/tests/computed_conditions.rs:131:5:
+thread 'a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal' (41673) panicked at compiler/pw-core/tests/computed_conditions.rs:131:5:
 [0]
 
 
@@ -397,7 +397,7 @@ failures:
     a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal
     an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too
 
-test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.82s
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.19s
 
 error: test failed, to rerun pass `-p pw-core --test computed_conditions`
 
@@ -411,7 +411,7 @@ failures:
 
 ---- tests::a_condition_a_host_computes_decides_its_block_and_again_when_it_changes stdout ----
 
-thread 'tests::a_condition_a_host_computes_decides_its_block_and_again_when_it_changes' (78464) panicked at spikes/own-renderer/server/src/main.rs:16556:9:
+thread 'tests::a_condition_a_host_computes_decides_its_block_and_again_when_it_changes' (42529) panicked at spikes/own-renderer/server/src/main.rs:16556:9:
 the block rendered again: PatchSet { protocol: ProtocolVersion(1), basis: CausalBasis { resources: [ResourceBasis { entry: ResourceEntryId("f432e03b0f6c4563aa11644a3f269c5c"), version: Version(2) }] }, patches: [Targeted { target: PartAddress { template: TemplateSchemaId("8ceb726acf1c525e"), instances: [], part: LocalPartId(3) }, operation: ReplaceText { text: "3 likes" } }] }
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -419,7 +419,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::a_condition_a_host_computes_decides_its_block_and_again_when_it_changes
 
-test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 710 filtered out; finished in 4.81s
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 738 filtered out; finished in 2.70s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -427,14 +427,14 @@ a block a host's subject decides is not rendered again [cargo]: KILLED (3 of 23 
 
 running 3 tests
 test an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too ... FAILED
-test a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal ... ok
 test what_a_condition_does_not_compute_yet_is_refused_by_name ... ok
+test a_computed_condition_is_a_hosts_from_a_query_and_the_browsers_from_a_signal ... ok
 
 failures:
 
 ---- an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too stdout ----
 
-thread 'an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too' (78828) panicked at compiler/pw-core/tests/computed_conditions.rs:182:5:
+thread 'an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too' (42893) panicked at compiler/pw-core/tests/computed_conditions.rs:182:5:
 assertion `left == right` failed: [Part { part: 1, path: "#t.P~ui~1", binding: "post", steps: [Derived("t.P~ui.derived_1")] }, Part { part: 2, path: "#t.P~ui~2", binding: "post", steps: [Derived("t.P~ui.derived_2")] }]
   left: 2
  right: 3
@@ -444,7 +444,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     an_else_if_a_match_and_a_value_in_a_hosts_block_are_computed_too
 
-test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.76s
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.16s
 
 error: test failed, to rerun pass `-p pw-core --test computed_conditions`
 
@@ -463,7 +463,7 @@ failures:
 
 ---- what_a_host_does_not_compute_is_refused_by_name stdout ----
 
-thread 'what_a_host_does_not_compute_is_refused_by_name' (78942) panicked at compiler/pw-core/tests/computed_holes.rs:348:5:
+thread 'what_a_host_does_not_compute_is_refused_by_name' (43009) panicked at compiler/pw-core/tests/computed_holes.rs:348:5:
 assertion `left == right` failed
   left: 0
  right: 1
@@ -473,7 +473,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     what_a_host_does_not_compute_is_refused_by_name
 
-test result: FAILED. 7 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.39s
+test result: FAILED. 7 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.10s
 
 error: test failed, to rerun pass `-p pw-core --test computed_holes`
 
@@ -488,7 +488,7 @@ failures:
 
 ---- what_a_condition_does_not_compute_yet_is_refused_by_name stdout ----
 
-thread 'what_a_condition_does_not_compute_yet_is_refused_by_name' (80050) panicked at compiler/pw-core/tests/computed_conditions.rs:232:9:
+thread 'what_a_condition_does_not_compute_yet_is_refused_by_name' (44116) panicked at compiler/pw-core/tests/computed_conditions.rs:232:9:
 built: computes a value from the signal `open` inside a block a value other than a signal decides, which the browser does not render again (ruling 0073-a)
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -496,7 +496,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     what_a_condition_does_not_compute_yet_is_refused_by_name
 
-test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.72s
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.19s
 
 error: test failed, to rerun pass `-p pw-core --test computed_conditions`
 
@@ -511,7 +511,7 @@ failures:
 
 ---- what_the_browser_does_not_compute_yet_is_refused_by_name stdout ----
 
-thread 'what_the_browser_does_not_compute_yet_is_refused_by_name' (80271) panicked at compiler/pw-core/tests/computed_signals.rs:331:9:
+thread 'what_the_browser_does_not_compute_yet_is_refused_by_name' (44338) panicked at compiler/pw-core/tests/computed_signals.rs:331:9:
 {#if post.pinned}<p>{shown(open)}</p>{/if} built
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -519,7 +519,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     what_the_browser_does_not_compute_yet_is_refused_by_name
 
-test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.15s
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.40s
 
 error: test failed, to rerun pass `-p pw-core --test computed_signals`
 
@@ -534,7 +534,7 @@ failures:
 
 ---- what_a_condition_does_not_compute_yet_is_refused_by_name stdout ----
 
-thread 'what_a_condition_does_not_compute_yet_is_refused_by_name' (81267) panicked at compiler/pw-core/tests/computed_conditions.rs:232:9:
+thread 'what_a_condition_does_not_compute_yet_is_refused_by_name' (45985) panicked at compiler/pw-core/tests/computed_conditions.rs:232:9:
 built: reads `post.likes` inside a block a signal decides, and the browser renders that block again from the page's signals alone (ADR-0137)
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -542,7 +542,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     what_a_condition_does_not_compute_yet_is_refused_by_name
 
-test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.77s
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.19s
 
 error: test failed, to rerun pass `-p pw-core --test computed_conditions`
 
@@ -557,13 +557,13 @@ failures:
 
 ---- tests::a_condition_the_browser_computes_is_rendered_at_its_first_value stdout ----
 
-thread 'tests::a_condition_the_browser_computes_is_rendered_at_its_first_value' (83351) panicked at spikes/own-renderer/server/src/main.rs:16572:13:
+thread 'tests::a_condition_the_browser_computes_is_rendered_at_its_first_value' (48060) panicked at spikes/own-renderer/server/src/main.rs:16572:13:
 the browser-computed subject has a first value: Some("part 19 reads no value")
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value stdout ----
 
-thread 'tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value' (83352) panicked at spikes/own-renderer/server/src/main.rs:16375:13:
+thread 'tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value' (48061) panicked at spikes/own-renderer/server/src/main.rs:16375:13:
 each live subject has a computed first value: Some("part 19 reads no value")
 
 
@@ -571,7 +571,7 @@ failures:
     tests::a_condition_the_browser_computes_is_rendered_at_its_first_value
     tests::what_a_page_computes_from_a_signal_is_rendered_at_its_first_value
 
-test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 710 filtered out; finished in 2.86s
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 738 filtered out; finished in 2.25s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -583,7 +583,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   2) [firefox] › e2e/feed.spec.mjs:192:1 › a post reaches the author's timeline and every other reader's 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -591,7 +591,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   3) [chromium] › e2e/feed.spec.mjs:234:1 › what is left of a draft is computed as it is typed ─────
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -599,7 +599,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   4) [firefox] › e2e/feed.spec.mjs:234:1 › what is left of a draft is computed as it is typed ──────
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -607,29 +607,29 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   5) [chromium] › e2e/feed.spec.mjs:263:1 › a condition is computed: a draft too long, and a thread with no reply 
     Error: expect(locator).toHaveText(expected) failed
     Expected: "Too long to post."
     Error: element(s) not found
       - Expect "toHaveText" with timeout 5000ms
       - waiting for getByRole('alert')
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
-  6) [chromium] › e2e/feed.spec.mjs:313:1 › a post shows before the server answers, and is the server's after 
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
+  6) [firefox] › e2e/feed.spec.mjs:263:1 › a condition is computed: a draft too long, and a thread with no reply 
+    Error: expect(locator).toHaveText(expected) failed
+    Expected: "Too long to post."
+    Error: element(s) not found
+      - Expect "toHaveText" with timeout 5000ms
+      - waiting for getByRole('alert')
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
+  7) [chromium] › e2e/feed.spec.mjs:313:1 › a post shows before the server answers, and is the server's after 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
     Received: disabled
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
-  7) [firefox] › e2e/feed.spec.mjs:263:1 › a condition is computed: a draft too long, and a thread with no reply 
-    Error: expect(locator).toHaveText(expected) failed
-    Expected: "Too long to post."
-    Error: element(s) not found
-      - Expect "toHaveText" with timeout 5000ms
-      - waiting for getByRole('alert')
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   8) [chromium] › e2e/feed.spec.mjs:339:1 › a post shown before the server answers waits, and acts once it is the server's 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -637,7 +637,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   9) [firefox] › e2e/feed.spec.mjs:313:1 › a post shows before the server answers, and is the server's after 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -645,7 +645,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   10) [chromium] › e2e/feed.spec.mjs:416:1 › a post whose request fails is taken back ──────────────
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -653,7 +653,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   11) [firefox] › e2e/feed.spec.mjs:339:1 › a post shown before the server answers waits, and acts once it is the server's 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -661,7 +661,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   12) [chromium] › e2e/feed.spec.mjs:437:1 › a post longer than 280 characters is not sent, and 280 emoji are 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -669,39 +669,39 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
-  13) [chromium] › e2e/feed.spec.mjs:472:1 › Load more shows the next page, and a post after it is shown over it 
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
+  13) [firefox] › e2e/feed.spec.mjs:416:1 › a post whose request fails is taken back ───────────────
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
     Received: disabled
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
-  14) [firefox] › e2e/feed.spec.mjs:416:1 › a post whose request fails is taken back ───────────────
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
+  14) [chromium] › e2e/feed.spec.mjs:472:1 › Load more shows the next page, and a post after it is shown over it 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
     Received: disabled
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
-  15) [chromium] › e2e/feed.spec.mjs:515:1 › a reply reaches its thread and every reader of it, and no timeline 
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
+  15) [firefox] › e2e/feed.spec.mjs:437:1 › a post longer than 280 characters is not sent, and 280 emoji are 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
     Received: disabled
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
-  16) [firefox] › e2e/feed.spec.mjs:437:1 › a post longer than 280 characters is not sent, and 280 emoji are 
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
+  16) [chromium] › e2e/feed.spec.mjs:515:1 › a reply reaches its thread and every reader of it, and no timeline 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
     Received: disabled
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   17) [chromium] › e2e/feed.spec.mjs:579:1 › a reply shows before the server answers, and is the server's after 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -709,7 +709,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   18) [firefox] › e2e/feed.spec.mjs:472:1 › Load more shows the next page, and a post after it is shown over it 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -717,7 +717,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   19) [chromium] › e2e/feed.spec.mjs:607:1 › a reply whose request fails is taken back ─────────────
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -725,71 +725,71 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
-  20) [chromium] › e2e/feed.spec.mjs:630:1 › a like on the thread page shows before the server answers 
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
+  20) [firefox] › e2e/feed.spec.mjs:515:1 › a reply reaches its thread and every reader of it, and no timeline 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
     Received: disabled
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
-  21) [firefox] › e2e/feed.spec.mjs:515:1 › a reply reaches its thread and every reader of it, and no timeline 
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
+  21) [chromium] › e2e/feed.spec.mjs:630:1 › a like on the thread page shows before the server answers 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
     Received: disabled
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
-  22) [chromium] › e2e/feed.spec.mjs:750:1 › your own page says it is yours ────────────────────────
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
+  22) [firefox] › e2e/feed.spec.mjs:579:1 › a reply shows before the server answers, and is the server's after 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
     Received: disabled
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
-  23) [firefox] › e2e/feed.spec.mjs:579:1 › a reply shows before the server answers, and is the server's after 
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
+  23) [chromium] › e2e/feed.spec.mjs:750:1 › your own page says it is yours ────────────────────────
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
     Received: disabled
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
-  24) [chromium] › e2e/feed.spec.mjs:772:1 › a post's request is kept alive, counted by its bytes ──
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
+  24) [firefox] › e2e/feed.spec.mjs:607:1 › a reply whose request fails is taken back ──────────────
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
     Received: disabled
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
-  25) [firefox] › e2e/feed.spec.mjs:607:1 › a reply whose request fails is taken back ──────────────
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
+  25) [chromium] › e2e/feed.spec.mjs:772:1 › a post's request is kept alive, counted by its bytes ──
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
     Received: disabled
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
-  26) [webkit] › e2e/feed.spec.mjs:192:1 › a post reaches the author's timeline and every other reader's 
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
+  26) [firefox] › e2e/feed.spec.mjs:630:1 › a like on the thread page shows before the server answers 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
     Received: disabled
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
-  27) [firefox] › e2e/feed.spec.mjs:630:1 › a like on the thread page shows before the server answers 
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
+  27) [webkit] › e2e/feed.spec.mjs:192:1 › a post reaches the author's timeline and every other reader's 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
     Received: disabled
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   28) [webkit] › e2e/feed.spec.mjs:234:1 › what is left of a draft is computed as it is typed ──────
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -797,7 +797,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   29) [firefox] › e2e/feed.spec.mjs:750:1 › your own page says it is yours ─────────────────────────
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -805,30 +805,30 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   30) [webkit] › e2e/feed.spec.mjs:263:1 › a condition is computed: a draft too long, and a thread with no reply 
     Error: expect(locator).toHaveText(expected) failed
     Expected: "Too long to post."
     Error: element(s) not found
       - Expect "toHaveText" with timeout 5000ms
       - waiting for getByRole('alert')
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
-  31) [webkit] › e2e/feed.spec.mjs:313:1 › a post shows before the server answers, and is the server's after 
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
+  31) [firefox] › e2e/feed.spec.mjs:772:1 › a post's request is kept alive, counted by its bytes ───
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
     Received: disabled
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
-  32) [firefox] › e2e/feed.spec.mjs:772:1 › a post's request is kept alive, counted by its bytes ───
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
+  32) [webkit] › e2e/feed.spec.mjs:313:1 › a post shows before the server answers, and is the server's after 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
     Received: disabled
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   33) [webkit] › e2e/feed.spec.mjs:339:1 › a post shown before the server answers waits, and acts once it is the server's 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -836,7 +836,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   34) [webkit] › e2e/feed.spec.mjs:416:1 › a post whose request fails is taken back ────────────────
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -844,7 +844,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   35) [webkit] › e2e/feed.spec.mjs:437:1 › a post longer than 280 characters is not sent, and 280 emoji are 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -852,7 +852,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   36) [webkit] › e2e/feed.spec.mjs:472:1 › Load more shows the next page, and a post after it is shown over it 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -860,7 +860,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   37) [webkit] › e2e/feed.spec.mjs:515:1 › a reply reaches its thread and every reader of it, and no timeline 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -868,7 +868,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   38) [webkit] › e2e/feed.spec.mjs:579:1 › a reply shows before the server answers, and is the server's after 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -876,7 +876,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   39) [webkit] › e2e/feed.spec.mjs:607:1 › a reply whose request fails is taken back ───────────────
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -884,7 +884,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   40) [webkit] › e2e/feed.spec.mjs:630:1 › a like on the thread page shows before the server answers 
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -892,7 +892,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   41) [webkit] › e2e/feed.spec.mjs:750:1 › your own page says it is yours ──────────────────────────
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -900,7 +900,7 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   42) [webkit] › e2e/feed.spec.mjs:772:1 › a post's request is kept alive, counted by its bytes ────
     Error: expect(locator).toBeEnabled() failed
     Expected: enabled
@@ -908,10 +908,10 @@ the host renders no first value of a subject [cargo]: KILLED (2 of 23 tests fail
       - Expect "toBeEnabled" with timeout 5000ms
       - waiting for getByRole('button', { name: 'Post' })
           - unexpected value "disabled"
-    [cause]: Error: PW_ASSERTION:23c3a1ba5e130bd7da3ddb688476bc1ce1a94ecd5a9ded386d905bd690c592b2
+    [cause]: Error: PW_ASSERTION:1d28a063d682afaf3dfc6bea86c5eeafebffd1ce3ae25b4c46f27162636594cd
   42 failed
-  24 passed (3.8m)
-  run_suite: kept 40 of 43 entries of its output (31.8 MiB) in kept-traces/e14-computed-conditions/20261022T014843Z-84163/run-1; 3 (2.9 MiB) were over the 32.0 MiB a kept-traces holds (see NOT-KEPT.txt)
+  24 passed (3.4m)
+  run_suite: kept 41 of 43 entries of its output (31.8 MiB) in kept-traces/e14-computed-conditions/20261025T150027Z-48851/run-1; 2 (2.3 MiB) were over the 32.0 MiB a kept-traces holds (see NOT-KEPT.txt)
   run_suite: exit 1
 
 the browser renders a block without what it computes [browser]: KILLED (42 of 66 tests fail)
@@ -921,24 +921,24 @@ the browser renders a block without what it computes [browser]: KILLED (42 of 66
     Error: element(s) not found
       - Expect "toHaveText" with timeout 5000ms
       - waiting for getByRole('alert')
-    [cause]: Error: PW_ASSERTION:a60fb1eb59e1d47cb7d1e9481f3bd8606468660e392aac92097bee6904629dae
+    [cause]: Error: PW_ASSERTION:cd0ff9cde271e0e2fd87c8aa2261b925332db17b046a552c592d6bba04171708
   2) [firefox] › e2e/feed.spec.mjs:263:1 › a condition is computed: a draft too long, and a thread with no reply 
     Error: expect(locator).toHaveText(expected) failed
     Expected: "Too long to post."
     Error: element(s) not found
       - Expect "toHaveText" with timeout 5000ms
       - waiting for getByRole('alert')
-    [cause]: Error: PW_ASSERTION:a60fb1eb59e1d47cb7d1e9481f3bd8606468660e392aac92097bee6904629dae
+    [cause]: Error: PW_ASSERTION:cd0ff9cde271e0e2fd87c8aa2261b925332db17b046a552c592d6bba04171708
   3) [webkit] › e2e/feed.spec.mjs:263:1 › a condition is computed: a draft too long, and a thread with no reply 
     Error: expect(locator).toHaveText(expected) failed
     Expected: "Too long to post."
     Error: element(s) not found
       - Expect "toHaveText" with timeout 5000ms
       - waiting for getByRole('alert')
-    [cause]: Error: PW_ASSERTION:a60fb1eb59e1d47cb7d1e9481f3bd8606468660e392aac92097bee6904629dae
+    [cause]: Error: PW_ASSERTION:cd0ff9cde271e0e2fd87c8aa2261b925332db17b046a552c592d6bba04171708
   3 failed
-  63 passed (1.4m)
-  run_suite: kept 2 of 4 entries of its output (104.1 KiB) in kept-traces/e14-computed-conditions/20261022T015245Z-92750/run-1; 2 (1.7 MiB) were over the 32.0 MiB a kept-traces holds (see NOT-KEPT.txt)
+  63 passed (1.0m)
+  run_suite: kept 2 of 4 entries of its output (129.3 KiB) in kept-traces/e14-computed-conditions/20261025T150400Z-57404/run-1; 2 (1.7 MiB) were over the 32.0 MiB a kept-traces holds (see NOT-KEPT.txt)
   run_suite: exit 1
 
 the browser sets a block in place [browser]: KILLED (3 of 66 tests fail)
