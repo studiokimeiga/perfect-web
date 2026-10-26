@@ -526,3 +526,25 @@ no production behavior changes, and the earlier 111/111 campaign remains
 historical proof at its recorded source. The affected native tests, a fresh
 whole strict campaign and the final exact-head CodeQL/quality gates must
 pass before integration.
+
+
+### Final diagnostic-source evidence
+
+[Push verify40263257525](https://github.com/studiokimeiga/perfect-web/actions/runs/40263257525)
+at `2a99a51a70b0ccd7ab5e2089fa8b1bbcbd7cf7e4` passed all four planned
+recipes and all three browser jobs. Canonical `just evidence-fetch
+40263257525` records outbound-https, payments, invoked-by and each-heads.
+The strict outbound catalog again completes **111/111 valid assertion
+kills**. PR CodeQL40263260443, quality40263260419, Fallow40263260441,
+CI40263260473 and census40263260481 also pass on that exact source head;
+no scanning alert is suppressed.
+
+The separate dispatch40260714455 completed its111-control recipe, then
+failed because a WebKit page crashed in an unrelated soft-navigation test.
+Only that browser job was rerun at the same source; attempt2 completed
+successfully. The first crash remains a failed attempt and receives no
+mutation kill credit. The later successful whole push run above supplies
+the canonical final record. Evidence/document-only successors still need
+exact-head CI and PR gates, plus current-master/index reconciliation after
+PR54/55/56. No app origin capability, configured real provider or complete
+application claim follows from these results.

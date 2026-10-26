@@ -1,8 +1,8 @@
 ADR-0387 - the host's one outbound HTTPS client
 
 produced by: just e14-outbound-https
-commit: b83044313de06055e5bf67187f708d8622b2e458
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40250992644 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 2a99a51a70b0ccd7ab5e2089fa8b1bbcbd7cf7e4
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40263257525 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 tls: ring v0.17.14 rustls v0.23.46 rustls-native-certs v0.8.4 rustls-webpki v0.103.16 
 
@@ -11,17 +11,17 @@ tls: ring v0.17.14 rustls v0.23.46 rustls-native-certs v0.8.4 rustls-webpki v0.1
 test address::tests::each_special_block_is_told_at_its_ends ... ok
 test http1::tests::a_body_is_read_by_its_length ... ok
 test http1::tests::a_chunked_body_is_read_by_its_chunks ... ok
-test http1::tests::a_head_is_held_to_its_grammar ... ok
 test http1::tests::a_length_is_held_to ... ok
+test http1::tests::a_head_is_held_to_its_grammar ... ok
 test http1::tests::a_requests_head_is_written_whole ... ok
 test http1::tests::a_redirect_is_refused ... ok
 test http1::tests::a_transfer_coding_is_chunked_alone ... ok
 test http1::tests::an_error_quotes_an_answer_short_and_escaped ... ok
-test http1::tests::interim_and_bodiless_answers ... ok
 test http1::tests::an_answer_is_bounded ... ok
-test http1::tests::a_stated_length_is_not_allocated_before_its_bytes ... ok
+test http1::tests::interim_and_bodiless_answers ... ok
 test http1::tests::no_field_can_split_a_request ... ok
 test origin::tests::a_url_is_its_origin_and_a_target_of_uri_characters ... ok
+test http1::tests::a_stated_length_is_not_allocated_before_its_bytes ... ok
 test origin::tests::a_urls_error_never_quotes_it ... ok
 test origin::tests::an_invalid_grant_never_echoes_credentials_or_control_characters ... ok
 test origin::tests::an_origin_is_its_scheme_host_and_port ... ok
@@ -63,33 +63,33 @@ test tls::tests::peer_controlled_tls_refusals_are_short_and_escaped ... ok
 test tests::an_answer_dripped_is_given_up_at_the_total ... ok
 test tests::an_answer_never_sent_is_given_up ... ok
 test tests::the_exchange_has_the_rest_of_the_total ... ok
-test result: ok. 55 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.39s
+test result: ok. 55 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.33s
 
 == the payments through it (spikes/own-renderer/server/src/payments.rs, tests/store_payments.rs, in memory)
 
 test payments::answer_tests::a_begin_refusal_does_not_echo_provider_secrets ... ok
 test payments::answer_tests::a_cancel_refusal_does_not_echo_provider_secrets ... ok
-test payments::answer_tests::an_answer_is_read_by_its_length_not_its_close ... ok
 test payments::answer_tests::an_undefined_provider_status_never_enters_a_payment_diagnostic ... ok
+test payments::answer_tests::an_answer_is_read_by_its_length_not_its_close ... ok
 test payments::configured_tests::the_configured_provider_and_host_agree_on_their_secret ... ok
 test payments::configured_tests::the_development_provider_runs_only_in_development_here ... ok
 test payments::hearing_tests::an_intent_whose_amount_changed_at_the_provider_settles_nothing ... ok
+test payments::cancel_tests::a_payment_is_canceled_by_its_reader_alone ... ok
 test payments::hearing_tests::an_outcome_the_host_could_not_settle_is_settled_when_sent_again ... ok
 test payments::hearing_tests::the_host_acts_on_the_intent_as_the_provider_says_it_now ... ok
-test payments::cancel_tests::a_payment_is_canceled_by_its_reader_alone ... ok
 test payments::answer_tests::a_cancel_refusal_only_carries_a_declared_payment_status ... ok
 test payments::https_tests::a_provider_whose_certificate_is_not_trusted_is_not_reached ... ok
 test payments::https_tests::an_id_that_would_make_another_request_is_never_sent ... ok
 test payments::https_tests::the_payments_reach_their_provider_alone ... ok
 test payments::invoked_tests::a_command_the_platform_invokes_is_told_by_its_contract ... ok
-test payments::https_tests::an_interaction_that_would_split_the_providers_request_is_never_sent ... ok
 test payments::operation_tests::a_payment_is_begun_once_per_interaction ... ok
+test payments::https_tests::an_interaction_that_would_split_the_providers_request_is_never_sent ... ok
 test payments::origin_tests::the_provider_can_send_twice_and_out_of_order ... ok
 test payments::provider_tests::a_cards_outcome_is_its_test_numbers ... ok
+test payments::origin_tests::a_card_paid_in_the_hosted_fields_is_told_to_the_host_signed ... ok
 test payments::provider_tests::an_event_sent_is_signed_for_the_host ... ok
 test payments::provider_tests::an_intent_is_canceled_until_it_is_paid ... ok
 test payments::provider_tests::an_intent_is_made_once_per_key ... ok
-test payments::origin_tests::a_card_paid_in_the_hosted_fields_is_told_to_the_host_signed ... ok
 test payments::tests::hmac_sha256_is_rfc_4231s ... ok
 test payments::tests::signatures_are_compared_whole ... ok
 test payments::tests::a_webhook_is_the_providers_only_as_it_signed_it ... ok
@@ -99,15 +99,15 @@ test tests::store_payments::a_card_declined_leaves_the_order_awaiting_and_the_pa
 test tests::store_payments::a_payment_for_an_order_the_reader_has_not_placed_changes_nothing ... ok
 test tests::store_payments::a_code_an_order_taken_back_used_is_the_readers_again ... ok
 test tests::store_payments::a_card_paid_places_the_order_and_its_open_page_is_told ... ok
-test tests::store_payments::a_reader_takes_back_an_order_awaiting_its_payment ... ok
 test tests::store_payments::a_providers_own_cancel_takes_the_order_back ... ok
 test tests::store_payments::a_provider_that_cannot_be_reached_places_nothing ... ok
+test tests::store_payments::a_reader_takes_back_an_order_awaiting_its_payment ... ok
 test tests::store_payments::a_payment_paid_before_it_is_canceled_stands ... ok
 test tests::store_payments::a_readers_press_of_the_settling_command_is_not_a_command ... ok
 test tests::store_payments::a_session_opened_on_a_readers_behalf_is_no_browsers_to_present ... ok
 test tests::store_payments::an_order_awaits_its_payment_on_the_providers_page ... ok
 test tests::store_payments::an_order_no_longer_awaiting_its_payment_is_not_taken_back ... ok
-test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 682 filtered out; finished in 24.58s
+test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 682 filtered out; finished in 16.54s
 
 == mutation controls (scripts/outbound_https_mutations.py)
 
