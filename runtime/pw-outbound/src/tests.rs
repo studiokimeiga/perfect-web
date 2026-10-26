@@ -171,12 +171,12 @@ fn an_undeclared_origin_is_never_reached() {
         let refused = client.send(&Request::get(url.clone()));
         assert!(
             matches!(refused, Err(Error::Undeclared { .. })),
-            "{url}: {refused:?}"
+            "an undeclared URL is refused"
         );
     }
     assert_eq!(server.connections(), 0);
     let reached = client.send(&Request::get(format!("{}/x", https(NAME, server.port()))));
-    assert!(reached.is_ok(), "{reached:?}");
+    assert!(reached.is_ok(), "the declared origin remains reachable");
     assert_eq!(server.connections(), 1);
 }
 
@@ -359,7 +359,7 @@ fn a_development_origin_reaches_this_machine_alone() {
     let refused = client.send(&Request::get(https(NAME, 9)));
     assert!(
         matches!(refused, Err(Error::Address { address, .. }) if address == global),
-        "{refused:?}"
+        "a prohibited DNS answer is refused"
     );
 }
 
@@ -901,9 +901,15 @@ fn the_framing_is_held_over_tls() {
     };
     assert_eq!(get("/chunked").map(|a| a.text()), Ok("ok".to_string()));
     let cut = get("/cut");
-    assert!(matches!(cut, Err(Error::Framing(_))), "{cut:?}");
+    assert!(
+        matches!(cut, Err(Error::Framing(_))),
+        "a truncated body is refused"
+    );
     let both = get("/both");
-    assert!(matches!(both, Err(Error::Framing(_))), "{both:?}");
+    assert!(
+        matches!(both, Err(Error::Framing(_))),
+        "ambiguous framing is refused"
+    );
 }
 
 // --- a secret goes to the connection and nowhere else -------------------------------
@@ -938,7 +944,7 @@ fn a_secret_is_sent_and_said_nowhere() {
         .secret("Authorization", Secret::new(SECRET))
     };
     let sent = client.send(&request("/ok"));
-    assert!(sent.is_ok(), "{sent:?}");
+    assert!(sent.is_ok(), "the secret-bearing request succeeds");
     let seen = server.seen();
     assert_eq!(seen[0].header("authorization"), Some(SECRET));
     let alone = format!("{:?}", Secret::new(SECRET));
@@ -949,11 +955,11 @@ fn a_secret_is_sent_and_said_nowhere() {
             && !shown.contains("form_secret")
             && !shown.contains("token")
             && !shown.contains("hook_secret"),
-        "{shown}"
+        "the formatted boundary preserves only safe diagnostic context"
     );
     assert!(
         shown.contains("Authorization") && shown.contains(NAME),
-        "{shown}"
+        "the formatted boundary preserves only safe diagnostic context"
     );
     // An answer's `Debug`: its fields' names, never their values or its body.
     let answer = format!("{:?}", sent.as_ref().ok());
@@ -1011,7 +1017,7 @@ fn a_secret_is_sent_and_said_nowhere() {
         let shown = format!("{said:?} {}", said.clone().err().unwrap());
         assert!(
             !shown.contains("sk_test") && !shown.contains("form_secret"),
-            "{shown}"
+            "the formatted boundary preserves only safe diagnostic context"
         );
     }
 }
@@ -1046,7 +1052,7 @@ fn an_echoed_request_is_quoted_in_no_error() {
         !shown.contains("hook_secret")
             && !shown.contains("tok_secret")
             && !shown.contains("sk_test"),
-        "{shown}"
+        "the formatted boundary preserves only safe diagnostic context"
     );
 }
 
@@ -1068,7 +1074,10 @@ fn a_field_that_would_split_the_request_is_never_sent() {
         )),
     ] {
         let refused = client.send(&request);
-        assert!(matches!(refused, Err(Error::Request(_))), "{refused:?}");
+        assert!(
+            matches!(refused, Err(Error::Request(_))),
+            "an invalid request is refused"
+        );
     }
     assert_eq!(server.connections(), 0);
 }

@@ -2437,7 +2437,7 @@ mod answer_tests {
         let answered = get(&client, &format!("{base}/v1/x"));
         let took = started.elapsed();
         let _ = done.send(());
-        assert!(answered.is_err(), "{answered:?}");
+        assert!(answered.is_err(), "the timed-out provider call fails");
         assert!(took < std::time::Duration::from_secs(5), "{took:?}");
         assert_eq!(PROVIDER_WAIT, std::time::Duration::from_secs(10));
         let limits = development_client(&base).expect("a client").limits();
@@ -2629,9 +2629,9 @@ mod https_tests {
         let events = {
             let mut p = origin.provider.lock().expect("provider");
             let secret = p.read(&paid).map(|i| i.client_secret);
-            assert!(secret.is_ok(), "{secret:?}");
+            assert!(secret.is_ok(), "the provider read succeeds");
             let charged = p.pay(&secret.unwrap(), "4242424242424242");
-            assert!(charged.is_ok(), "{charged:?}");
+            assert!(charged.is_ok(), "the payment succeeds");
             std::mem::take(&mut p.outbox)
         };
         let (body, header) = DevProvider::sent(&events[0], b"whsec_t", wall_seconds());
@@ -2806,7 +2806,7 @@ mod https_tests {
                 .send(&outbound::Request::get(elsewhere.clone()));
             assert!(
                 matches!(refused, Err(outbound::Error::Undeclared { .. })),
-                "{elsewhere}: {refused:?}"
+                "a provider path outside the declared origin is refused"
             );
         }
     }

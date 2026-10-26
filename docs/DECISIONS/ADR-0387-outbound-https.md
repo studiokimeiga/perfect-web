@@ -513,3 +513,16 @@ rustls 0.23.46, ring 0.17.14, webpki 0.103.16 and native-certs 0.8.4; that is
 the built version, distinct from the earlier proposal's 0.8.5 inventory.
 The evidence-only head must still earn its own CI, and planned PR checks
 must pass before integration. The Not claimed obligations remain open.
+
+### PR diagnostic gate: test assertions also keep secrets private
+
+PR57's exact-head CodeQL result at `1ed64596` reported six sensitive-log
+and ten log-injection alerts. Each sink was a test assertion's failure
+message, including the very strings whose redaction it tested. Test
+fixtures do not justify printing these values: a failing privacy control
+should not copy them to its logs. Those assertions now use fixed messages,
+with their conditions and comparisons unchanged. No alert is suppressed,
+no production behavior changes, and the earlier 111/111 campaign remains
+historical proof at its recorded source. The affected native tests, a fresh
+whole strict campaign and the final exact-head CodeQL/quality gates must
+pass before integration.

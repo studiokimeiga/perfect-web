@@ -682,11 +682,14 @@ mod tests {
             &origin,
             "/",
         );
-        assert!(matches!(secret, Err(Error::Request(_))), "{secret:?}");
+        assert!(
+            matches!(secret, Err(Error::Request(_))),
+            "invalid secret header is refused"
+        );
         let said = format!("{secret:?} {}", secret.clone().err().unwrap());
         assert!(
             !said.contains("sk_live") && !said.contains("injected"),
-            "{said}"
+            "a rejected request does not expose secret header text"
         );
         let tab = request_head(&get().header("x-value", "a\tb"), &origin, "/");
         assert!(tab.is_ok(), "{tab:?}");
