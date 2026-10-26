@@ -925,6 +925,13 @@ fn declared_error_losing_to_another_terminal_completion_keeps_one_receipt() {
     let lab = PgReplay::new(with_terminal_clock);
     let mut a = lab.host();
     assert!(
+        a.command_answered(ADD, "a", &add_shown("espresso", 1), Some("existing-cart"))
+            .expect("existing committed cart")
+            .committed
+    );
+    let events_before = lab.count("SELECT count(*) FROM outbox WHERE kind='event'");
+    let lock_check = lab.layer.clone();
+    assert!(
         a.command_answered(
             "store.page.queue_failure",
             "a",
@@ -942,6 +949,23 @@ fn declared_error_losing_to_another_terminal_completion_keeps_one_receipt() {
     let crossed = probe(
         &mut a,
         Some(Box::new(move || {
+            // Do not hang a mutation campaign by synchronously dispatching B
+            // while a broken A still holds its business row. NOWAIT exposes
+            // that exact lifetime defect as a native domain assertion.
+            let released = match lock_check
+                .sql()
+                .query("SELECT owner FROM cart_lines FOR UPDATE NOWAIT", &[])
+            {
+                Ok(rows) => !rows.is_empty(),
+                Err(why) if why.code() == Some(&postgres::error::SqlState::LOCK_NOT_AVAILABLE) => {
+                    false
+                }
+                Err(why) => panic!("lock inspection setup failed: {why}"),
+            };
+            assert!(
+                released,
+                "declared Err must release its old business transaction before fresh terminal completion"
+            );
             let selected = b.run_due().0;
             observed.store(selected, std::sync::atomic::Ordering::SeqCst);
         })),
@@ -959,7 +983,11 @@ fn declared_error_losing_to_another_terminal_completion_keeps_one_receipt() {
         0,
         "A cannot claim B's generation"
     );
-    assert!(lab.host().cart_lines("a").is_empty());
+    assert_eq!(
+        lab.host().cart_lines("a"),
+        [("espresso".to_string(), 1)],
+        "the existing committed cart survives terminal errors"
+    );
     assert_eq!(lab.count("SELECT count(*) FROM schedules"), 0);
     assert_eq!(
         lab.count("SELECT count(*) FROM interactions WHERE key LIKE '%schedule-%'"),
@@ -967,7 +995,7 @@ fn declared_error_losing_to_another_terminal_completion_keeps_one_receipt() {
     );
     assert_eq!(
         lab.count("SELECT count(*) FROM outbox WHERE kind='event'"),
-        0
+        events_before
     );
 }
 
