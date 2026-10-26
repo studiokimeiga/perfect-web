@@ -690,3 +690,13 @@ and fails the parent assertion only after the child completes normally.
 A malformed or missing child report is an invalid producer, not a kill.
 The 102-test baseline and two pilot mutants passed this stricter validator;
 the full 129-control campaign remains required at the final source commit.
+
+Independent review reproduced a setup failure caught by the initial child
+probe: a missing JPEG fixture became a parent assertion. The catch now
+covers only `strip`, with fixture I/O and case construction outside it.
+A native regression injects child setup failure and checks missing,
+duplicate, malformed and abnormal-exit reports. Producer tests also hold
+the baseline inventory across calls: renamed tests with the same count,
+duplicate names and ignored tests are invalid. The corrected native
+baseline is 103 tests. Verify 40247937012 was cancelled for this review
+fix and is not evidence; the corrected commit must run the whole campaign.

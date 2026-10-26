@@ -59,6 +59,27 @@ class Results(unittest.TestCase):
     def test_a_non_assertion_panic_is_invalid(self):
         self.assertFalse(self.rust_result(101, "test result: FAILED. 0 passed; 1 failed", assertion=False)[0])
 
+    def test_rust_keeps_the_baseline_inventory_not_just_its_count(self):
+        baseline = "running 1 test\ntest original ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\n"
+        other = baseline.replace("test original ...", "test renamed ...")
+        with patch.object(controls.producer_process, "run", side_effect=[
+                SimpleNamespace(returncode=0, stdout=baseline),
+                SimpleNamespace(returncode=0, stdout=baseline),
+                SimpleNamespace(returncode=0, stdout=other)]), \
+             patch.object(controls, "RUST_INVENTORY", None), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(controls.rust(), (True, 1, 0))
+            self.assertEqual(controls.rust(), (True, 1, 0))
+            self.assertFalse(controls.rust()[0])
+
+    def test_duplicate_and_ignored_native_tests_are_invalid(self):
+        for output in [
+            "running 2 tests\ntest repeated ... ok\ntest repeated ... ok\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\n",
+            "running 2 tests\ntest original ... ok\ntest absent ... ignored\ntest result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out\n",
+        ]:
+            with patch.object(controls.producer_process, "run", return_value=SimpleNamespace(returncode=0, stdout=output)), \
+                 patch.object(controls, "RUST_INVENTORY", None), contextlib.redirect_stdout(io.StringIO()):
+                self.assertFalse(controls.rust()[0])
+
     def test_browser_infrastructure_is_not_an_assertion_kill(self):
         for message in ["worker process exited unexpectedly", "browserType.launch: missing binary",
                         "Test timeout of 30000ms exceeded", "ECONNREFUSED", "1 did not run"]:

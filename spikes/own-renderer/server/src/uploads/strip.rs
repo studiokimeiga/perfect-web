@@ -1002,18 +1002,40 @@ pub(crate) mod tests {
         }
     }
 
+    const SHORT_HEADERS_CHILD: &str = "PW_UPLOAD_SHORT_HEADERS_CHILD";
+    const SHORT_HEADERS_SETUP_FAULT: &str = "PW_UPLOAD_SHORT_HEADERS_SETUP_FAULT";
+
     #[test]
     fn short_jfif_and_adobe_segments_are_dropped_without_panicking() {
-        const CHILD: &str = "PW_UPLOAD_SHORT_HEADERS_CHILD";
-        if std::env::var_os(CHILD).is_some() {
-            let healthy = std::panic::catch_unwind(short_header_cases).is_ok();
+        if std::env::var_os(SHORT_HEADERS_CHILD).is_some() {
+            if std::env::var_os(SHORT_HEADERS_SETUP_FAULT).is_some() {
+                panic!("simulated child fixture setup failure");
+            }
+            let healthy = short_header_cases();
             println!("PW_SHORT_HEADERS={healthy}");
             return;
         }
-        let output = std::process::Command::new(std::env::current_exe().expect("test binary"))
-            .args(["--exact", "uploads::strip::tests::short_jfif_and_adobe_segments_are_dropped_without_panicking", "--nocapture"])
-            .env(CHILD, "1").output().expect("child probe started");
+        let healthy = short_header_child(false)
+            .unwrap_or_else(|_| panic!("invalid short-header child producer"));
+        assert!(
+            healthy,
+            "short headers must not panic or retain incomplete fields"
+        );
+    }
+
+    fn short_header_child(setup_fault: bool) -> Result<bool, ()> {
+        let mut child = std::process::Command::new(std::env::current_exe().expect("test binary"));
+        child.args(["--exact", "uploads::strip::tests::short_jfif_and_adobe_segments_are_dropped_without_panicking", "--nocapture"])
+            .env(SHORT_HEADERS_CHILD, "1").env_remove(SHORT_HEADERS_SETUP_FAULT);
+        if setup_fault {
+            child.env(SHORT_HEADERS_SETUP_FAULT, "1");
+        }
+        let output = child.output().expect("child probe started");
         let stdout = String::from_utf8(output.stdout).expect("child stdout is UTF-8");
+        short_header_report(output.status.success(), &stdout)
+    }
+
+    fn short_header_report(success: bool, stdout: &str) -> Result<bool, ()> {
         let marks: Vec<&str> = stdout
             .lines()
             .filter_map(|line| {
@@ -1021,31 +1043,53 @@ pub(crate) mod tests {
                     .map(|(_, mark)| mark.trim())
             })
             .collect();
-        let healthy = match marks.as_slice() {
-            ["true"] if output.status.success() => true,
-            ["false"] if output.status.success() => false,
-            _ => panic!("invalid short-header child producer"),
-        };
-        assert!(
-            healthy,
-            "short headers must not panic or retain incomplete fields"
-        );
+        match marks.as_slice() {
+            ["true"] if success => Ok(true),
+            ["false"] if success => Ok(false),
+            _ => Err(()),
+        }
     }
 
-    fn short_header_cases() {
+    #[test]
+    fn the_short_header_probe_refuses_setup_and_protocol_failures() {
+        assert_eq!(short_header_child(true), Err(()));
+        assert_eq!(
+            short_header_report(true, "PW_SHORT_HEADERS=true\n"),
+            Ok(true)
+        );
+        assert_eq!(
+            short_header_report(true, "PW_SHORT_HEADERS=false\n"),
+            Ok(false)
+        );
+        for (success, report) in [
+            (false, "PW_SHORT_HEADERS=false\n"),
+            (true, ""),
+            (true, "PW_SHORT_HEADERS=true\nPW_SHORT_HEADERS=false\n"),
+            (true, "PW_SHORT_HEADERS=other\n"),
+        ] {
+            assert_eq!(short_header_report(success, report), Err(()));
+        }
+    }
+
+    fn short_header_cases() -> bool {
+        // All fixture I/O and case construction stays outside catch_unwind.
+        // Only a panic from the product operation is a semantic failure.
         let body = jpeg_body();
+        let expected = jpeg_of(&[], &body, &[]);
         for (marker, data, required) in [(0xe0, jfif_with_thumbnail(), 14), (0xee, adobe(), 12)] {
             for len in 0..required {
                 let sent = jpeg_of(&[(marker, data[..len].to_vec())], &body, &[]);
-                assert_eq!(
-                    strip(&sent),
-                    Ok(jpeg_of(&[], &body, &[])),
-                    "{marker:x}, {len}"
-                );
+                let result = std::panic::catch_unwind(|| strip(&sent));
+                if !matches!(result, Ok(Ok(ref kept)) if kept == &expected) {
+                    return false;
+                }
             }
             let sent = jpeg_of(&[(marker, data[..required].to_vec())], &body, &[]);
-            assert!(strip(&sent).is_ok(), "complete header");
+            if !matches!(std::panic::catch_unwind(|| strip(&sent)), Ok(Ok(_))) {
+                return false;
+            }
         }
+        true
     }
 
     #[test]
