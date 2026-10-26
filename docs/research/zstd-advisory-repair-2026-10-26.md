@@ -11,3 +11,12 @@ Primary checks: crates.io/api/v1/crates/{wasmtime,wasmtime-internal-cache,zstd,z
 Validation pending: both lock graphs omit all zstd/internal-cache packages, cargo-deny/current audit, host engine/compiled-component tests, excluded component spike, preflight, independent final diff review and exact published-head CI/quality/verify. No runtime source behavior or passing gate is asserted here.
 
 Local candidate validation: both actual `cargo metadata --locked` resolution graphs omit zstd/zstd-safe/zstd-sys/wasmtime-internal-cache and omit Wasmtime cache while retaining the runtime/component/compiler/GC/async features. Both locks only remove packages (21/25), adding/upgrading none. `just preflight` passes. Host library17, compile-once1, proposal5 and artifact1 tests pass;7 guest-dependent artifact cases remain ignored and receive no passing credit. Excluded spike host `cargo check --locked` passes. `just audit` cannot run locally because cargo-deny is absent; current hosted audit is mandatory, pending, and must not be waived. Exact-commit tests and independent final diff review remain required.
+
+
+## Canonical exact-source hosted evidence
+
+Source109f459ec3df8b66b48a84f55867c034d9747ca7 passed WIP CI40339069136, including current advisories, then complete manual verify40341658053 (both affected recipes and all3browser jobs). `just evidence-fetch 40341658053` canonically fetched `docs/evidence/E8/artifact-audit.txt` and `docs/evidence/E14/compiled-once.txt`, preserving the actual source/run identity and updating only those2recipe timings. No restamped synthetic or prior-source receipt is used.
+
+The artifact audit ran105host tests with0ignored, including all8real-guest artifact cases. The compiled-once recipe ran its focused/cache/proposal and complete conformance suites, then the complete dev-server memory suite:771passed,9ignored,0failed,1.71GiB peak within its bound. Ignored tests receive no passing credit. Its2legacy controls fail their native tests; this is not relabeled as a strict assertion-provenance campaign. The normal built component's ambient/granted/denied/fuel checks passed locally as separately recorded.
+
+Independent final source review accepted109f's exact feature/lock/source delta. The evidence-only descendant still requires its own WIPCI, independent final metadata review, publication, and all exact published-head CI/quality/CodeQL/Fallow/census/planned verification before landing. No complete-framework or persistent-cache capability is claimed.

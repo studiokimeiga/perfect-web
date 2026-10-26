@@ -10,6 +10,25 @@ failed runs, corrections and their original scope.
 
 ## current milestone
 
+**Integration checkpoint2026-10-26:** PR54 landed at exact tested
+`39ec7743`. A newly surfaced current advisory gate blocks follow-up integration:
+four Zstandard advisories enter through Wasmtime's unconfigured disk-cache
+feature. Draft PR59 removes only that unused feature while preserving all25
+other upstream defaults and the separate process component cache. Reviewed
+source `109f459e` passed current WIP CI40339069136 and full affected verification
+[40341658053](https://github.com/studiokimeiga/perfect-web/actions/runs/40341658053).
+Reproduce with `just e8-host` and `just e14-compiled-once`; canonical receipts
+are [artifact-audit](evidence/E8/artifact-audit.txt) and
+[compiled-once](evidence/E14/compiled-once.txt), fetched with
+`just evidence-fetch 40341658053`. The audit ran105host tests0ignored; the
+whole dev-server suite passed771with9ignored (no credit for ignores), with
+1.71GiB peak within its bound. The2compile-once controls remain legacy producer
+evidence. The final metadata descendant and exact published-head gates remain
+required before PR59 lands; current master is still advisory-red. This repairs
+the dependency graph, not the unfinished generic D2 server transaction, Hinge
+application, private-media/session authority or complete-framework acceptance.
+Older ledger statements below retain the scope/date of their review.
+
 **E14, the AI benchmark**, ahead of E11-E13 under the owner's 2026-10-02
 ruling ([ADR-0119](DECISIONS/ADR-0119-e10-closes-and-the-ai-benchmark-comes-next.md),
 [E14 plan](milestones/E14.md)). The offline harness and reference tasks exist.
