@@ -716,8 +716,11 @@ protocol remain invalid producers.
 
 The two original ICC guard-removal controls crashed in production indexing
 and remain invalid, never credited as kills. Their replacements keep raw
-profiles only on bounds-safe, <=4MiB predicates for an undersized tag or a
-truncated declared profile. They prove malformed-profile rejection/privacy,
+profiles on predicates that bound the declared size to 4 MiB for an
+undersized tag or a truncated declared profile. The current campaign inputs
+are bounded. The undersized-tag replacement clones the actual input,
+including any trailing suffix; it does not universally bound that copy to
+4 MiB. They prove malformed-profile rejection/privacy,
 not the original guards' protection from panic. The direct arbitrary-bytes
 no-panic/idempotence regression remains; universal memory-safety or format
 compatibility is not inferred from these replacements.
@@ -739,3 +742,24 @@ failures, and the original-bytes lease control three, each with the same
 complete inventory. Eight producer integration regressions pass. These are
 bounded reruns; a new whole 129-control hosted campaign and independent
 review of this final producer delta remain required.
+
+
+### Final exact-source evidence (2026-10-25)
+
+Verify [40252175706](https://github.com/studiokimeiga/perfect-web/actions/runs/40252175706)
+at `e0e8b6ad161eeb9e746e7fc8a13089d699085fc1` passed the whole reached
+campaign: **129 of 129 valid native assertion kills**, with a 103-test Rust
+baseline and a complete 36-case browser baseline (twelve per engine).
+The planned Chromium, Firefox and WebKit jobs also passed. Canonical
+`just evidence-fetch 40252175706` fetched
+`docs/evidence/E14/upload-metadata.txt`; no invalid, surviving, skipped or
+cancelled result is credited. CI 40252035511 and failure-census 40252035650
+passed on that same source commit. The subsequent evidence/document commit
+must independently earn its exact-head CI and planned PR gates.
+
+Independent final review accepted the producer delta after exercising the
+14 formerly invalid native controls, eight producer regressions, eleven
+browser proof tests, seven negative lifecycle cases and four malformed
+walk reports. It confirmed the declaration-versus-actual-copy limitation
+above; no universal memory-safety or format-compatibility claim is made.
+The earlier failed/cancelled campaigns above remain historical failures.
