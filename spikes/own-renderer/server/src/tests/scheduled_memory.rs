@@ -2,7 +2,19 @@
 use super::*;
 const FIVE: u64 = 5 * 60 * 1000;
 fn memory() -> Served {
-    let s = served_from_patches_in("examples", super::store_scheduled::with_scheduling, &[]);
+    // This suite selects its own adapter, even in the whole-server PG matrix.
+    let (dir, out) =
+        built_from_patches_in("examples", super::store_scheduled::with_scheduling, &[]);
+    let s = Served {
+        server: Server::from_build_layers(
+            out.clone(),
+            out,
+            None,
+            Some(Arc::new(store::StoreData::new())),
+        )
+        .expect("explicit memory adapter served"),
+        _dir: dir,
+    };
     if s.data.runs().is_some() {
         panic!("this selected gate requires the memory adapter");
     }
