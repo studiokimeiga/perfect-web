@@ -1,8 +1,8 @@
 ADR-0309 - a page's query parameters are typed, and a GET form makes them
 
 produced by: just e14-query-params
-commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1afd58fcfc66434070422b3112debeac94bad07f
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40265548018 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -26,22 +26,22 @@ test a_build_writes_each_upload_for_its_host ... ok
 test its_clauses_are_an_uploads_alone ... ok
 test a_form_that_sends_a_file_posts_it_to_an_upload ... ok
 test every_clause_is_stated ... ok
-test a_limit_is_a_literal_count ... ok
 test its_paths_are_literal_paths ... ok
+test a_limit_is_a_literal_count ... ok
 test two_uploads_are_at_two_paths ... ok
 test its_types_are_a_closed_set ... ok
 test its_paths_are_no_pages ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.91s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.89s
 
 == the host reads a query as a browser's form writes it, and moves a page by its path
 
 test tests::a_query_is_read_as_a_browsers_form_writes_it ... ok
 test tests::redirects::a_route_with_a_query_part_is_moved_by_its_path ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 739 filtered out; finished in 23.01s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 778 filtered out; finished in 23.34s
 
 == the demo's search, in three engines (e2e/query.spec.mjs)
 
-  18 passed (19.2s)
+  18 passed (20.7s)
 
 == mutation controls (scripts/query_params_mutations.py)
 

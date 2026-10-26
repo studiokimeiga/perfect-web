@@ -1,8 +1,8 @@
 The argument-invariants track - a value from outside held to its type's invariant at every boundary
 
 produced by: just e14-argument-invariants
-commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 1afd58fcfc66434070422b3112debeac94bad07f
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40265548018 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: none: PW_STORE_DATABASE_URL is not set, and the PostgreSQL test passes doing nothing
 
@@ -11,35 +11,35 @@ postgres: none: PW_STORE_DATABASE_URL is not set, and the PostgreSQL test passes
 test a_maps_keys_and_values_and_a_sets_items_are_stated ... ok
 test a_pages_plan_states_what_its_parameters_must_hold ... ok
 test a_commands_contract_states_each_place_inside_its_arguments ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
 
 == every call holds its export's arguments (runtime/pw-host/tests/pleris_component.rs)
 
 test a_node_without_the_write_capability_does_not_admit_it ... ok
 test a_granted_operation_the_host_does_not_implement_is_refused ... ok
-test a_data_layer_answer_that_breaks_an_invariant_is_the_commands_failure ... ok
 test a_data_layer_failure_is_the_commands_failure ... ok
-test an_export_not_declared_by_the_contract_cannot_be_invoked ... ok
-test a_world_level_export_is_found_by_its_declaration ... ok
+test a_data_layer_answer_that_breaks_an_invariant_is_the_commands_failure ... ok
 test a_quantity_that_is_no_positive_int_is_refused_as_the_arguments_are_decoded ... ok
-test an_argument_that_breaks_its_invariant_never_reaches_the_component ... ok
+test a_world_level_export_is_found_by_its_declaration ... ok
 test an_item_that_cannot_be_ordered_is_refused_before_anything_is_written ... ok
+test an_argument_that_breaks_its_invariant_never_reaches_the_component ... ok
+test an_export_not_declared_by_the_contract_cannot_be_invoked ... ok
 test an_ungranted_operation_is_refused_by_the_engine ... ok
 test arguments_for_an_export_the_component_does_not_have_are_refused ... ok
-test the_artifact_imports_exactly_what_its_contract_allows ... ok
-test requires_cannot_be_bypassed_by_the_raw_call_api ... ok
 test json_arguments_are_typed_by_the_export_they_are_for ... ok
-test the_compiled_command_runs_through_the_host ... ok
+test requires_cannot_be_bypassed_by_the_raw_call_api ... ok
+test the_artifact_imports_exactly_what_its_contract_allows ... ok
 test the_instance_runs_within_its_fuel ... ok
+test the_compiled_command_runs_through_the_host ... ok
 test sustained_calls_leave_memory_flat ... ok
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 18.84s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.52s
 
 == a type that contains itself, a map and a set (compiler/pw-conformance/tests/argument_invariants.rs)
 
 test a_case_that_contains_itself_is_held_as_its_nodes_however_it_is_given ... ok
 test a_record_that_contains_itself_is_held_as_its_nodes_however_it_is_given ... ok
 test a_maps_keys_and_values_and_a_sets_items_are_held ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.58s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
 
 == the development server, the store in memory: a page's parameters, a command's arguments, a row on PostgreSQL (tests/argument_invariants.rs)
 
@@ -49,7 +49,7 @@ test tests::argument_invariants::on_postgres_a_row_written_before_its_check_is_r
 test tests::argument_invariants::a_pages_parameters_are_held_where_its_address_gives_them ... ok
 test tests::argument_invariants::a_value_the_host_built_is_held_as_one_a_browser_sent ... ok
 test tests::argument_invariants::a_label_the_stores_type_refuses_never_reaches_its_data_layer ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 735 filtered out; finished in 10.45s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 774 filtered out; finished in 7.47s
 
 == the same, the store on PostgreSQL (PW_STORE_TEST_LAYER=postgres)
 
@@ -57,7 +57,7 @@ skipped: PW_STORE_DATABASE_URL is not set
 
 == the browser (e2e/argument-invariants.spec.mjs), three engines
 
-  12 passed (23.6s)
+  12 passed (35.3s)
 
 == mutation controls (scripts/argument_invariants_mutations.py)
 

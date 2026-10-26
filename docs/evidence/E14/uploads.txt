@@ -1,8 +1,8 @@
 ADR-0260 (track uploads) - an image on a post: a typed upload, a deployment's blob storage, served safely
 
 produced by: just e14-uploads
-commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 1afd58fcfc66434070422b3112debeac94bad07f
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40265548018 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -15,23 +15,46 @@ test blob::tests::a_blob_in_memory_is_kept_by_its_key_once_and_forgotten ... ok
 test blob::tests::a_key_is_the_sha256_of_the_bytes ... ok
 test blob::tests::a_blob_is_kept_by_its_key_once_and_forgotten ... ok
 test blob::tests::a_blob_changed_where_it_is_kept_is_not_given_out ... ok
-test tests::uploads::an_attached_image_removed_is_forgotten ... ok
-test tests::uploads::a_photos_metadata_is_neither_kept_nor_served ... ok
+test tests::uploads::a_malformed_image_is_refused_over_http_without_staging ... ok
 test tests::uploads::a_command_that_does_not_commit_gives_its_claim_back ... ok
+test tests::uploads::a_photos_metadata_is_neither_kept_nor_served ... ok
 test tests::uploads::a_deleted_posts_image_is_not_served_and_its_blob_is_collected ... ok
-test tests::uploads::an_upload_is_read_within_its_own_limits_not_a_commands ... ok
+test tests::uploads::an_attached_image_removed_is_forgotten ... ok
 test tests::uploads::an_image_attached_is_posted_with_its_post_and_served ... ok
-test tests::uploads::on_postgres_an_attached_image_removed_is_forgotten ... ok
+test tests::uploads::an_upload_is_read_within_its_own_limits_not_a_commands ... ok
 test tests::uploads::on_postgres_a_deleted_posts_image_is_not_served_and_its_blob_is_collected ... ok
+test tests::uploads::on_postgres_an_attached_image_removed_is_forgotten ... ok
 test tests::uploads::on_postgres_posting_an_image_with_none_attached_commits_nothing ... ok
-test tests::uploads::one_signed_out_attaches_nothing ... ok
-test uploads::icc::tests::a_profile_keeps_its_colour_and_names_nothing ... ok
 test tests::uploads::on_postgres_an_image_is_kept_with_its_post ... ok
+test uploads::icc::tests::a_profile_keeps_its_colour_and_names_nothing ... ok
+test uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept ... ok
+test uploads::icc::tests::a_profiles_producer_signatures_are_not_kept ... ok
+test uploads::icc::tests::a_real_srgb_profile_keeps_its_colour_transform ... ok
 test uploads::icc::tests::a_text_tag_holds_one_fixed_text_of_its_type ... ok
+test uploads::icc::tests::an_icc_profile_with_an_undefined_rendering_intent_is_dropped ... ok
+test uploads::icc::tests::an_icc_profiles_reserved_and_vendor_bits_cannot_carry_identifiers ... ok
+test uploads::icc::tests::colour_payload_slack_is_refused_and_unknown_colour_tags_are_dropped ... ok
+test uploads::icc::tests::colour_type_reserved_fields_are_zeroed ... ok
+test uploads::icc::tests::header_colour_identifiers_cannot_be_free_producer_text ... ok
+test uploads::icc::tests::legacy_lut_payloads_have_exact_bounded_lengths ... ok
+test uploads::icc::tests::shared_colour_payloads_obey_every_signature_and_direction ... ok
+test uploads::icc::tests::unknown_text_tag_signatures_and_their_payloads_are_not_kept ... ok
 test uploads::multipart::tests::a_boundary_is_the_media_types_parameter ... ok
 test uploads::multipart::tests::a_forms_parts_are_its_fields ... ok
 test uploads::multipart::tests::a_part_is_a_files_by_its_filename_whatever_it_is_called ... ok
 test uploads::multipart::tests::a_preamble_is_ignored_and_a_body_without_its_close_refused ... ok
+test uploads::png_state::tests::adam7_packed_and_sixteen_bit_scanline_extents_are_exact ... ok
+test uploads::png_state::tests::animation_reserves_one_budget_before_each_frame_stream ... ok
+test uploads::png_state::tests::one_budget_reserves_all_frames_and_checks_exact_bound ... ok
+test uploads::png_state::tests::streaming_drains_full_buffers_and_refuses_short_or_excess_extents ... ok
+test uploads::privacy_tests::icc_duplicate_signatures_are_dropped_without_dropping_shared_curves ... ok
+test uploads::privacy_tests::identical_duplicate_icc_signature_is_also_ambiguous ... ok
+test uploads::privacy_tests::packed_sixteen_bit_and_interlaced_neighbors_rewrite_identically ... ok
+test uploads::privacy_tests::png_ambiguous_color_chunks_are_refused ... ok
+test uploads::privacy_tests::png_animation_streams_are_complete_bounded_and_well_formed ... ok
+test uploads::privacy_tests::png_interleaved_frame_metadata_is_explicitly_unsupported ... ok
+test uploads::privacy_tests::png_split_streams_and_both_animation_layouts_remain_images ... ok
+test uploads::privacy_tests::png_unused_compressed_or_decoded_bytes_are_refused ... ok
 test uploads::sniff::tests::a_gif_is_its_logical_screens_width_and_height ... ok
 test uploads::sniff::tests::a_jpeg_is_its_first_frame_headers_width_and_height ... ok
 test uploads::sniff::tests::a_jpeg_turned_a_quarter_is_as_tall_as_it_is_wide ... ok
@@ -47,6 +70,7 @@ test uploads::sniff::tests::the_kind_is_the_bytes_and_nothing_else ... ok
 test uploads::strip::tests::a_gif_keeps_its_image_timing_and_loop_and_nothing_else ... ok
 test uploads::strip::tests::a_gif_that_does_not_parse_is_refused ... ok
 test uploads::strip::tests::a_gif_whose_images_have_their_own_colour_tables_is_kept ... ok
+test uploads::strip::tests::a_gifs_reserved_descriptor_and_control_bits_are_zeroed ... ok
 test uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else ... ok
 test uploads::strip::tests::a_jpeg_that_does_not_parse_is_refused ... ok
 test uploads::strip::tests::a_jpeg_with_restart_markers_is_kept_whole ... ok
@@ -55,15 +79,26 @@ test uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chu
 test uploads::strip::tests::a_jpegs_turn_is_its_first_readable_exif_before_any_scan ... ok
 test uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else ... ok
 test uploads::strip::tests::a_png_that_does_not_parse_is_refused ... ok
-test uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept ... ok
+test tests::uploads::one_signed_out_attaches_nothing ... ok
 test uploads::strip::tests::a_simple_webp_is_its_image_alone ... ok
 test uploads::strip::tests::a_webp_keeps_its_image_colour_and_alpha_and_nothing_else ... ok
 test uploads::strip::tests::a_webp_of_many_empty_chunks_is_walked_without_a_list ... ok
 test uploads::strip::tests::a_webp_that_does_not_parse_is_refused ... ok
 test uploads::strip::tests::a_webps_icc_profile_is_read_from_its_first_iccp ... ok
+test uploads::strip::tests::an_adobe_headers_flags_cannot_name_a_device ... ok
 test uploads::strip::tests::an_animated_webp_keeps_its_frames_and_nothing_else ... ok
-test tests::uploads::posting_an_image_with_none_attached_commits_nothing ... ok
+test uploads::strip::tests::a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused ... ok
+test uploads::strip::tests::every_valid_jpeg_orientation_is_kept_alone ... ok
+test uploads::strip::tests::fill_bytes_before_a_jpeg_restart_stay_with_the_scan ... ok
+test uploads::strip::tests::fixed_png_chunks_refuse_undeclared_payload_bytes ... ok
+test uploads::strip::tests::jpeg_fill_bytes_before_segments_and_after_scans_are_accepted ... ok
+test uploads::strip::tests::png_checksums_and_transparency_cannot_hold_ignored_bytes ... ok
 test uploads::strip::tests::real_encoders_files_are_kept_as_they_are ... ok
+test uploads::strip::tests::short_jfif_and_adobe_segments_are_dropped_without_panicking ... ok
+test uploads::strip::tests::the_real_srgb_profile_survives_each_supported_container ... ok
+test uploads::strip::tests::the_short_header_probe_refuses_setup_and_protocol_failures ... ok
+test uploads::strip::tests::webp_animation_and_alpha_headers_cannot_carry_reserved_data ... ok
+test uploads::strip::tests::webp_reserved_header_bits_are_neutral ... ok
 test uploads::tests::a_blob_no_post_names_is_collected_unless_a_claim_holds_it ... ok
 test uploads::tests::a_build_declares_its_uploads_and_a_server_starts_with_no_lease ... ok
 test uploads::tests::a_claim_no_transaction_commits_is_given_back ... ok
@@ -76,75 +111,79 @@ test uploads::tests::a_lease_nothing_claims_ends_when_its_time_does ... ok
 test uploads::tests::a_refusal_goes_back_to_this_origin_alone ... ok
 test uploads::tests::a_request_without_a_session_length_or_origin_is_refused ... ok
 test uploads::tests::a_second_upload_ends_the_first_lease_and_its_blob ... ok
-test uploads::strip::tests::a_pngs_icc_profile_is_read_from_its_first_iccp ... ok
+test uploads::tests::a_user_attaches_within_an_hours_budget ... ok
 test uploads::tests::an_image_is_leased_and_kept_without_its_metadata ... ok
 test uploads::tests::an_image_is_leased_to_its_session_and_shown_to_it_alone ... ok
 test uploads::tests::an_image_is_measured_as_it_is_kept ... ok
-test uploads::tests::a_user_attaches_within_an_hours_budget ... ok
+test uploads::tests::expansion_cannot_cross_the_staging_cap ... ok
 test uploads::tests::nothing_is_claimed_where_nothing_is_declared ... ok
+test uploads::tests::privacy_refusals_leave_no_lease_staged_or_final_blob ... ok
+test uploads::tests::privacy_rewrite_is_the_preview_claim_storage_key_and_served_body ... ok
+test uploads::tests::staged_bytes_cover_expansion_but_hourly_bytes_count_the_upload ... ok
 test uploads::tests::the_dimensions_are_held ... ok
 test uploads::tests::the_kind_is_sniffed_and_never_the_senders ... ok
 test uploads::tests::the_same_image_attached_twice_is_kept ... ok
 test uploads::tests::the_size_is_held_before_and_after_the_body_is_read ... ok
-test uploads::strip::tests::any_bytes_are_refused_or_kept_and_kept_again_unchanged ... ok
+test tests::uploads::posting_an_image_with_none_attached_commits_nothing ... ok
 test tests::uploads::what_is_not_an_image_is_refused_whatever_it_is_called ... ok
-test result: ok. 78 passed; 0 failed; 0 ignored; 0 measured; 663 filtered out; finished in 10.51s
+test uploads::strip::tests::any_bytes_are_refused_or_kept_and_kept_again_unchanged ... ok
+test result: ok. 117 passed; 0 failed; 0 ignored; 0 measured; 663 filtered out; finished in 8.13s
 
 == the declaration and its checks (compiler/pw-core/tests/uploads.rs)
 
 test a_build_writes_each_upload_for_its_host ... ok
 test an_upload_that_states_its_limits_checks ... ok
 test its_clauses_are_an_uploads_alone ... ok
-test every_clause_is_stated ... ok
-test a_limit_is_a_literal_count ... ok
 test a_form_that_sends_a_file_posts_it_to_an_upload ... ok
+test a_limit_is_a_literal_count ... ok
+test every_clause_is_stated ... ok
 test its_paths_are_literal_paths ... ok
 test its_types_are_a_closed_set ... ok
 test two_uploads_are_at_two_paths ... ok
 test its_paths_are_no_pages ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.23s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.24s
 
 == an image on a post in three engines (e2e/uploads.spec.mjs)
 
-  15 passed (41.1s)
+  15 passed (35.4s)
 
 == mutation controls (scripts/uploads_mutations.py)
 
-baseline (rust): 88 passed, 0 failed
-baseline (browser): 93 passed, 0 failed
+baseline (rust): 127 passed, 0 failed
+baseline (browser): 132 passed, 0 failed
 postgres: PW_FEED_DATABASE_URL names a database
-the kind is the sender's: anything is a PNG: KILLED (4 of 88 tests fail)
-a served image is typed by its path's extension: KILLED (1 of 88 tests fail)
-a PNG's IHDR CRC is not checked: KILLED (1 of 88 tests fail)
-the size limit raised before the body is read: KILLED (1 of 88 tests fail)
-the size limit raised after the body is read: KILLED (2 of 88 tests fail)
-the width and height are not checked: KILLED (3 of 88 tests fail)
-a JPEG's Exif turn is ignored: KILLED (6 of 88 tests fail)
-a deployment may raise a program's limit: KILLED (1 of 88 tests fail)
-a key need not be 64 hex digits: a path built from what a sender wrote: KILLED (1 of 88 tests fail)
-nosniff dropped: KILLED (4 of 88 tests fail)
-the sandbox dropped: KILLED (3 of 88 tests fail)
-a committed image is not kept by caches as immutable: KILLED (3 of 88 tests fail)
-a lease is shown to any session: KILLED (1 of 88 tests fail)
-an upload from another origin is taken: KILLED (1 of 88 tests fail)
-a claim no transaction committed is not given back: KILLED (2 of 88 tests fail)
-a discarded lease is kept: KILLED (3 of 88 tests fail)
-a post's image commits without its bytes in the deployment's storage: KILLED (3 of 88 tests fail)
-on PostgreSQL, a post's image commits without its bytes in storage: KILLED (2 of 88 tests fail)
-one signed out may attach an image: KILLED (1 of 88 tests fail)
-a user's hourly count of images is not held: KILLED (1 of 88 tests fail)
-a user's hourly bytes are not held: KILLED (1 of 88 tests fail)
-a blob is served whether or not a post names it: KILLED (1 of 88 tests fail)
-a layer that cannot say whether a post names a blob is taken to say yes: KILLED (1 of 88 tests fail)
-a claim in flight does not keep its blob: KILLED (1 of 88 tests fail)
-the memory layer collects a blob a post still names: KILLED (1 of 88 tests fail)
-the memory layer collects no deleted post's image: KILLED (1 of 88 tests fail)
-the memory layer names no blob, so none is served: KILLED (3 of 88 tests fail)
-PostgreSQL's layer collects no deleted post's image: KILLED (1 of 88 tests fail)
-PostgreSQL's layer names no blob, so none is served: KILLED (2 of 88 tests fail)
-PW5603: a form that sends a file may post anywhere: KILLED (1 of 88 tests fail)
-PW5602: an upload's route may be a page's: KILLED (1 of 88 tests fail)
-PW5601: a limit above what a host reads whole: KILLED (1 of 88 tests fail)
-an image's width and height are left out of the timeline's markup: KILLED (18 of 93 tests fail)
+the kind is the sender's: anything is a PNG: KILLED (4 of 127 tests fail)
+a served image is typed by its path's extension: KILLED (1 of 127 tests fail)
+a PNG's IHDR CRC is not checked: KILLED (1 of 127 tests fail)
+the size limit raised before the body is read: KILLED (1 of 127 tests fail)
+the size limit raised after the body is read: KILLED (2 of 127 tests fail)
+the width and height are not checked: KILLED (3 of 127 tests fail)
+a JPEG's Exif turn is ignored: KILLED (7 of 127 tests fail)
+a deployment may raise a program's limit: KILLED (1 of 127 tests fail)
+a key need not be 64 hex digits: a path built from what a sender wrote: KILLED (1 of 127 tests fail)
+nosniff dropped: KILLED (4 of 127 tests fail)
+the sandbox dropped: KILLED (3 of 127 tests fail)
+a committed image is not kept by caches as immutable: KILLED (3 of 127 tests fail)
+a lease is shown to any session: KILLED (2 of 127 tests fail)
+an upload from another origin is taken: KILLED (1 of 127 tests fail)
+a claim no transaction committed is not given back: KILLED (2 of 127 tests fail)
+a discarded lease is kept: KILLED (3 of 127 tests fail)
+a post's image commits without its bytes in the deployment's storage: KILLED (3 of 127 tests fail)
+on PostgreSQL, a post's image commits without its bytes in storage: KILLED (2 of 127 tests fail)
+one signed out may attach an image: KILLED (1 of 127 tests fail)
+a user's hourly count of images is not held: KILLED (1 of 127 tests fail)
+a user's hourly bytes are not held: KILLED (1 of 127 tests fail)
+a blob is served whether or not a post names it: KILLED (1 of 127 tests fail)
+a layer that cannot say whether a post names a blob is taken to say yes: KILLED (1 of 127 tests fail)
+a claim in flight does not keep its blob: KILLED (1 of 127 tests fail)
+the memory layer collects a blob a post still names: KILLED (1 of 127 tests fail)
+the memory layer collects no deleted post's image: KILLED (1 of 127 tests fail)
+the memory layer names no blob, so none is served: KILLED (3 of 127 tests fail)
+PostgreSQL's layer collects no deleted post's image: KILLED (1 of 127 tests fail)
+PostgreSQL's layer names no blob, so none is served: KILLED (2 of 127 tests fail)
+PW5603: a form that sends a file may post anywhere: KILLED (1 of 127 tests fail)
+PW5602: an upload's route may be a page's: KILLED (1 of 127 tests fail)
+PW5601: a limit above what a host reads whole: KILLED (1 of 127 tests fail)
+an image's width and height are left out of the timeline's markup: KILLED (18 of 132 tests fail)
 33 of 33 mutants killed
 memory bound: no process was stopped

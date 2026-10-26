@@ -45,23 +45,28 @@ passed (141 reached recipes, `e14-pleris-controls` and the three browser
 engines); the evidence is fetched at `973fbbcc`. Landing waits for the
 owner's approval and for exact-commit CI at the landed commit.
 
-**Landed by pull request, 2026-10-25: an uploaded image keeps no
-metadata** (track `upload-metadata`,
-[ADR-0383](DECISIONS/ADR-0383-an-uploaded-image-is-kept-without-its-metadata.md),
-amending ADR-0260). A privacy defect: a photo posted in the feed published
-its GPS position, camera, time, XMP, IPTC and comments, as sent. The host
-now rewrites every upload before it keeps it (JPEG, PNG, WebP and GIF, a
-JPEG's turn kept, an ICC profile kept for its colour alone), and a
-container that does not parse is refused whole. An independent review's
-five findings are fixed, each with its test and mutation control. At
-`58591617`, CI [40203355686](https://github.com/studiokimeiga/perfect-web/actions/runs/40203355686)
-and verify [40203355758](https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758)
-passed (103 recipes, `e14-upload-metadata`'s 91 of 91 mutants killed among
-them, and the three browser engines); that evidence is fetched at
-`818f4278`. The pull request's checks at its own head, the recipes the
-ADR's numbering reached among them, are its landing record. Not claimed:
-the pixels, a profile's measured colour tags, and images a deployment kept
-before ([KNOWN_LIMITATIONS](KNOWN_LIMITATIONS.md)).
+**In review, not landed: upload image metadata repair** (PR #54, track
+`upload-metadata`,
+[ADR-0383](DECISIONS/ADR-0383-an-uploaded-image-is-kept-without-its-metadata.md)).
+The preceding status incorrectly called the PR landed. Master remains
+`4345726a2db9a12a8bfb5c755cd4e80ee90585d5`; the older `58591617` and
+`818f4278` results are historical track evidence. Integration review and
+subsequent research found additional ICC, container, staging-accounting and
+PNG/APNG compressed-stream privacy gaps. The revised source
+`1afd58fcfc66434070422b3112debeac94bad07f` passes exact CI
+[40264422871](https://github.com/studiokimeiga/perfect-web/actions/runs/40264422871)
+and whole upload verification
+[40264616606](https://github.com/studiokimeiga/perfect-web/actions/runs/40264616606):
+117 native and 45 browser baseline cases, all 146 strict mutation controls,
+and the three browser suites. All nine reached recipes have canonical evidence: the remaining eight
+passed [40265548018](https://github.com/studiokimeiga/perfect-web/actions/runs/40265548018),
+including three full-browser repeats of 1,357 passed and 20 skipped each
+(the skipped cases receive no passing credit). Exact final publication/PR
+gates must still pass before merge. Unsupported complex ICC profiles are dropped; browser-
+ambiguous APNG interleaving and excessive expected filtered extent refuse
+with an unsupported diagnostic. Numeric color values, pixels, existing
+stored media and private-media authorization/revocation remain outside this
+metadata-minimization claim.
 
 ## last passing commit
 

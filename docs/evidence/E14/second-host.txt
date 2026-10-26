@@ -1,8 +1,8 @@
 ADR-0369 - hosts share one database: each hears every commit from the outbox, and a session is the database's
 
 produced by: just e14-second-host
-commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 1afd58fcfc66434070422b3112debeac94bad07f
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40265548018 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -10,15 +10,15 @@ postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
 == two hosts in one process on one schema (tests/second_host.rs)
 
-test tests::second_host::a_commit_is_told_once_on_each_host ... ok
-test tests::second_host::a_deployment_states_how_long_its_sessions_live ... ok
 test tests::second_host::a_host_behind_the_trim_tells_its_pages_to_reload ... ok
+test tests::second_host::a_commit_is_told_once_on_each_host ... ok
 test tests::second_host::a_feed_commit_waits_for_the_outbox_lock_and_wakes_another_host ... ok
+test tests::second_host::a_deployment_states_how_long_its_sessions_live ... ok
 test tests::second_host::a_host_opening_the_database_deletes_nothing_from_its_outbox ... ok
 test tests::second_host::a_layer_listens_only_once_its_host_reads_the_outbox ... ok
-test tests::second_host::a_layers_sessions_are_read_on_a_bounded_few_connections ... ok
-test tests::second_host::a_host_that_misses_its_notification_catches_up_from_the_outbox ... ok
 test tests::second_host::a_host_started_after_commits_starts_past_them ... ok
+test tests::second_host::a_host_that_misses_its_notification_catches_up_from_the_outbox ... ok
+test tests::second_host::a_layers_sessions_are_read_on_a_bounded_few_connections ... ok
 test tests::second_host::a_post_through_one_host_is_told_to_a_page_on_another ... ok
 test tests::second_host::a_press_on_another_hosts_page_that_committed_nowhere_is_refused_as_that_hosts ... ok
 test tests::second_host::a_press_on_one_hosts_page_sent_again_to_another_is_answered_from_its_record ... ok
@@ -31,24 +31,24 @@ test tests::second_host::a_session_past_its_lifetime_is_signed_out_however_it_is
 test tests::second_host::a_retry_through_another_host_is_answered_from_the_first_hosts_record ... ok
 test tests::second_host::a_readers_cart_changed_through_one_host_is_told_to_their_page_on_another ... ok
 test tests::second_host::a_session_signed_out_on_one_host_is_no_one_on_another ... ok
-test tests::second_host::a_sign_in_begun_on_one_host_completes_on_another_and_holds_on_both ... ok
 test tests::second_host::a_sign_in_begun_too_long_ago_is_refused_on_another_host ... ok
+test tests::second_host::a_sign_in_begun_on_one_host_completes_on_another_and_holds_on_both ... ok
 test tests::second_host::a_sign_in_completed_on_one_host_is_refused_again_on_another ... ok
-test tests::second_host::a_trim_between_a_hosts_two_reads_is_learned ... ok
-test tests::second_host::a_store_commit_waits_for_the_outbox_lock_and_wakes_another_host ... ok
 test tests::second_host::hosts_on_one_database_number_their_pages_apart ... ok
-test tests::second_host::the_feeds_schema_is_a_tests_setting ... ok
+test tests::second_host::a_trim_between_a_hosts_two_reads_is_learned ... ok
 test tests::second_host::an_abandoned_sign_in_is_forgotten_by_the_next_one ... ok
+test tests::second_host::the_feeds_schema_is_a_tests_setting ... ok
+test tests::second_host::a_store_commit_waits_for_the_outbox_lock_and_wakes_another_host ... ok
 test tests::second_host::outbox_ids_are_taken_in_commit_order ... ok
 test tests::second_host::signing_in_rotates_the_session_on_every_host ... ok
-test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 710 filtered out; finished in 44.01s
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 749 filtered out; finished in 31.04s
 
 == the outbox kept, read back and read by every host (tests/feed_pg.rs, tests/store_pg.rs)
 
 test tests::feed_pg::on_postgres_a_like_counts_and_reaches_an_open_thread ... ok
 test tests::feed_pg::on_postgres_a_post_commits_with_its_event_in_one_transaction ... ok
-test tests::feed_pg::on_postgres_a_command_refused_at_its_commit_leaves_nothing ... ok
 test tests::feed_pg::on_postgres_a_feeds_run_is_kept_by_its_database ... ok
+test tests::feed_pg::on_postgres_a_command_refused_at_its_commit_leaves_nothing ... ok
 test tests::feed_pg::on_postgres_a_post_reaches_another_session ... ok
 test tests::feed_pg::on_postgres_a_stated_change_feed_the_layer_cannot_deliver_is_refused ... ok
 test tests::feed_pg::on_postgres_a_reply_is_in_its_thread_as_deep_as_it_goes ... ok
@@ -64,8 +64,8 @@ test tests::store_pg::on_postgres_a_retried_interaction_runs_its_command_once ..
 test tests::store_pg::on_postgres_a_refused_commit_commits_neither_its_state_nor_its_event ... ok
 test tests::store_pg::on_postgres_a_routes_change_commits_with_its_event_in_one_transaction ... ok
 test tests::store_pg::on_postgres_a_run_is_written_by_its_commands_transaction ... ok
-test tests::store_pg::on_postgres_a_run_outlives_the_host_that_scheduled_it ... ok
 test tests::store_pg::on_postgres_a_run_committed_and_not_removed_commits_once ... ok
+test tests::store_pg::on_postgres_a_run_outlives_the_host_that_scheduled_it ... ok
 test tests::store_pg::on_postgres_a_second_hosts_commit_answers_what_the_first_committed ... ok
 test tests::store_pg::on_postgres_a_stated_change_feed_the_layer_cannot_deliver_is_refused ... ok
 test tests::store_pg::on_postgres_an_interactions_answer_outlives_its_host ... ok
@@ -77,11 +77,11 @@ test tests::store_pg::on_postgres_the_stores_schema_is_its_own_beside_the_feeds 
 test tests::store_pg::on_postgres_two_hosts_commit_a_run_once ... ok
 test tests::store_pg::on_postgres_serializable_against_a_read_committed_default_is_refused ... ok
 test tests::store_pg::on_postgres_the_two_layers_answer_alike ... ok
-test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 709 filtered out; finished in 54.58s
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 748 filtered out; finished in 39.58s
 
 == two hosts in three engines (e2e-hosts/second-host.spec.mjs)
 
-  15 passed (40.1s)
+  15 passed (32.4s)
 
 == mutation controls (scripts/second_host_mutations.py)
 

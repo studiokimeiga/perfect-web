@@ -851,3 +851,46 @@ the stale claim that only an unaltered profile fixture is distributed.
 The running verify 40263123334 at `5b10a0aa` is superseded for this test-
 source correction and is not final evidence. A fresh whole 146-control
 campaign at the corrected source remains required before merge.
+
+
+### Corrected complete campaign and original-input replay (2026-10-26)
+
+Verify [40264616606](https://github.com/studiokimeiga/perfect-web/actions/runs/40264616606)
+at `1afd58fcfc66434070422b3112debeac94bad07f` passed the entire revised
+campaign: **146 of 146 valid native assertion kills**, with the complete
+117-test native baseline and 45-case real HTTP/browser baseline (15 per
+engine). Its three planned browser suites also passed. Canonical
+`just evidence-fetch 40264616606` fetched the upload evidence. CI
+40264422871 and census 40264422829 passed on that same source commit.
+This supersedes the test-source correction's pending whole-campaign
+obligation above; the failed, cancelled and redundant-control results
+remain historical and receive no kill credit. The remaining eight reached
+recipes and final publication/merge gates are separate obligations.
+
+A fresh local `cargo build --locked -p pw-dev-server` from clean production
+sources at that source commit also exercised the four exact research
+originals through the existing real HTTP lifecycle test groups: six tests
+passed, two in each browser engine. The three original PNG carrier files
+byte-match the supplied files; the fixture loader temporarily supplied the
+exact external ICC input, then was restored. The executable SHA-256 was
+`c96504657cf12f7484e3e4400071c7cf44c598f2331f5ba5c83910e3597e96f9`
+before and after the run. This is build/input provenance, not live-process
+attestation, a new committed browser inventory or a substitute for the
+45-case/146-control canonical proof. No original external ICC derivative
+was added to the repository by this replay.
+
+
+The remaining eight reached recipes passed in
+[verify40265548018](https://github.com/studiokimeiga/perfect-web/actions/runs/40265548018)
+at the same exact `1afd58fcfc66434070422b3112debeac94bad07f` source:
+`e10-browser`, `e14-argument-invariants`, `e14-descriptions`,
+`e14-invariants`, `e14-materializations-kept`, `e14-query-params`,
+`e14-second-host` and `e14-uploads`. All six recipe shards and all three
+planned browser jobs succeeded. Canonical `just evidence-fetch 40265548018`
+fetched all eight files and their timing records. The full-browser recipe
+ran three times: each reported **1,357 passed and 20 skipped**, with no
+failed/flaky/interrupted test. Those legacy suite skips receive no passing
+credit and are separate from the upload campaign's complete, unskipped
+45-case strict baseline. All nine reached recipes now have eligible
+source evidence. The following evidence/document-only head must still
+pass exact-head CI and final planned PR gates before merge.

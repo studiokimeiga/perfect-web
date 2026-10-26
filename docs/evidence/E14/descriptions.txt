@@ -1,21 +1,21 @@
 ADR-0166 - the store and its items say what they are
 
 produced by: just e14-descriptions
-commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1afd58fcfc66434070422b3112debeac94bad07f
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40265548018 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
 == a host's answer, read through the declared type (runtime/pw-host/tests/host_answers.rs)
 
 test a_field_in_another_order_is_read_by_its_name ... ok
-test a_field_the_type_does_not_declare_is_not_passed_in ... ok
 test a_field_under_neither_name_is_refused_by_both ... ok
+test a_field_the_type_does_not_declare_is_not_passed_in ... ok
 test a_field_the_type_declares_and_the_answer_lacks_is_refused ... ok
 test a_field_written_as_the_program_names_it_is_read ... ok
 test an_answer_as_the_type_declares_it_is_passed_as_it_is ... ok
 test a_list_s_rows_and_a_declared_error_are_read_through_their_types ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
 
 == the store checks
 
@@ -24,11 +24,11 @@ pw check: 73 file(s), no diagnostics
 == the development server (pw-dev-server), the benchmark's store among its tests
 
 test tests::the_store_and_each_item_say_what_they_are ... ok
-test result: ok. 732 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 383.33s
+test result: ok. 771 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 283.55s
 
 == the slots, three engines, WebKit painting the store before them (e2e/slots.spec.mjs)
 
-  21 passed (35.5s)
+  21 passed (29.2s)
 
 == mutation controls (scripts/descriptions_mutations.py)
 
