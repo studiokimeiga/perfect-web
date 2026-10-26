@@ -1013,3 +1013,108 @@ fn pure_clock_cancelled_after_evaluation_cannot_claim_a_terminal_receipt() {
         0
     );
 }
+
+#[test]
+fn a_receipt_without_atomic_queue_consumption_cannot_confirm_clock_completion() {
+    let lab = PgReplay::new(super::store_scheduled::with_scheduling);
+    let a = lab.host();
+    assert!(super::store_scheduled::in_five(&a, "espresso", false, "receipt-only").committed);
+    let id = lab.count("SELECT id FROM schedules");
+    let key = format!("on-behalf:schedule-{id}\u{1f}store.page.add_later\u{1f}schedule-{id}");
+    lab.layer.sql().execute("INSERT INTO interactions(key,sent,answer,at_ms) VALUES($1,$2,$3,$4)",&[&key,&r#"["espresso"]"#,&r#"{"committed":true,"why":null,"refused":null,"result":{"untrusted_receipt":true}}"#,&i64::MAX]).expect("isolated inconsistent receipt injected");
+    a.query_clock.0.advance(FIVE);
+    let dispatch_at = a.now();
+    assert_eq!(a.run_due().0, 1);
+    assert!(
+        lab.host().cart_lines("a").is_empty(),
+        "receipt collision rolls back all attempted business effects"
+    );
+    assert_eq!(
+        lab.count("SELECT count(*) FROM outbox WHERE kind='event'"),
+        0
+    );
+    let pending = a.runs().all_runs().expect("the actual durable queue");
+    assert_eq!(pending.len(), 1);
+    assert_eq!(
+        pending[0].attempts, 1,
+        "a receipt alone is not a successful queue completion"
+    );
+    assert!(
+        pending[0].due_ms >= dispatch_at + 2000,
+        "an unconsumed job gets bounded backoff"
+    );
+    assert_eq!(
+        a.counted_runs.ran.load(std::sync::atomic::Ordering::SeqCst),
+        0
+    );
+}
+
+#[test]
+fn uncertain_clock_ack_refreshes_same_host_views_without_inventing_refused_data() {
+    for lose_ack in [true, false] {
+        let lab = FeedReplay::new();
+        let mut a = lab.host();
+        let marker = "Actual committed clock post after lost acknowledgement";
+        let before = lab.count("SELECT count(*) FROM posts");
+        let scheduled = posted(
+            &a,
+            "/command/feed.app.post_in_five",
+            "a",
+            "view-clock-seed",
+            &serde_json::to_string(&[marker]).expect("arguments"),
+        );
+        assert!(scheduled.contains("\"committed\":true"), "{scheduled}");
+        let (html, _, _, _) = a
+            .serve_document_settled("b", "feed.app.Home~ui", &Params::new(), &[])
+            .expect("cached subscribed view");
+        assert!(html.contains("Hello, feed."), "actual feed page rendered");
+        assert!(
+            a.queries.stored() > 0,
+            "the page warmed actual cached query values"
+        );
+        assert!(!html.contains(marker));
+        let doc = latest(&a.pending.lock().expect("pending"), "b");
+        let frames = sets_of(&a, &doc).len();
+        if lose_ack {
+            probe(&mut a, None, true, false);
+        } else {
+            lab.sql().batch_execute("CREATE FUNCTION deny_view_completion() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'known pre-commit refusal'; END $$; CREATE TRIGGER deny_view_completion BEFORE DELETE ON schedules FOR EACH ROW EXECUTE FUNCTION deny_view_completion();").expect("isolated known refusal");
+        }
+        a.query_clock.0.advance(FIVE);
+        assert_eq!(a.run_due().0, 1);
+        a.hear();
+        a.tell_waiting();
+        let updates = format!("{:?}", &sets_of(&a, &doc)[frames..]);
+        if lose_ack {
+            assert_eq!(lab.count("SELECT count(*) FROM posts"), before + 1);
+            assert_eq!(lab.count("SELECT count(*) FROM schedules"), 0);
+            let (fresh_html, _, _, _) = lab
+                .host()
+                .serve_document_settled("b", "feed.app.Home~ui", &Params::new(), &[])
+                .expect("fresh committed reference view");
+            assert!(
+                fresh_html.contains(marker),
+                "a fresh reference-app page must show the committed post"
+            );
+            assert!(
+                updates.contains(marker),
+                "same-host subscribed view missed a real committed Clock action: {updates}"
+            );
+        } else {
+            assert_eq!(lab.count("SELECT count(*) FROM posts"), before);
+            assert_eq!(lab.count("SELECT attempts FROM schedules"), 1);
+            assert_eq!(
+                lab.count("SELECT count(*) FROM outbox WHERE kind='event'"),
+                0
+            );
+            assert_eq!(
+                lab.count("SELECT count(*) FROM interactions WHERE key LIKE '%schedule-%'"),
+                0
+            );
+            assert!(
+                !updates.contains(marker),
+                "uncertainty refresh must not invent an uncommitted post"
+            );
+        }
+    }
+}

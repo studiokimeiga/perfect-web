@@ -27,6 +27,9 @@ SOURCES = [SERVER / "tests/scheduled_memory.rs", SERVER / "tests/scheduled_repla
 INVENTORY = {}
 # (fault, source, exact anchor, replacement)
 MUTANTS = [
+    ("Clock result receipt is omitted from its authoritative action transaction", SERVER / "main.rs", '            let recorded = record.map(|(key, sent)| data::Recorded {\n                key,\n                sent,\n                answer: &answer,\n', '            let recorded = record.filter(|_| completing.is_none()).map(|(key, sent)| data::Recorded {\n                key,\n                sent,\n                answer: &answer,\n'),
+    ("uncertain Clock commits leave same-host cached views stale", SERVER / "main.rs", '                    self.refresh_uncertain_clock(session, &invalidated, &emitted);\n', '                    if false { self.refresh_uncertain_clock(session, &invalidated, &emitted); }\n'),
+    ("Clock accepts a client receipt without queue consumption", SERVER / "main.rs", '                Err(why) if completing.is_some() => {\n', '                Err(why) if false && completing.is_some() => {\n'),
     ('foreign queue adapters share authority', ROOT / 'runtime/pw-materialize/src/scheduled.rs', '        Arc::ptr_eq(&self.0, &other.0)\n', '        let _ = other; true\n'),
     ('pure Clock success has no platform commit', ROOT / 'spikes/own-renderer/server/src/main.rs', '            None if !scheduled.is_empty() || completing.is_some() => Vec::new(),\n', '            None if !scheduled.is_empty() => Vec::new(),\n'),
     ('memory completion skips transactional consumption', ROOT / 'spikes/own-renderer/server/src/main.rs', '                        if !Materializer::consume_run(tx, completion.run, completion.now_ms)? {\n', '                        if false && !Materializer::consume_run(tx, completion.run, completion.now_ms)? {\n'),

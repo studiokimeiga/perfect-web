@@ -39,8 +39,8 @@ And on PostgreSQL, which the same tests with the store there
 (`tests::store_pg::on_postgres_a_run…`, `…two_hosts…`, and the feed's
 `tests::feed_pg::on_postgres_a_feeds_run…`) must catch: the store's or the
 feed's commit writing no runs; a run due a minute early, or kept once
-answered; a run keyed by its host, so a second host's run of it commits
-again. They need a database: `PW_STORE_DATABASE_URL`, a throwaway one,
+answered; a completion retaining its queue row, or its result receipt omitted
+from the transaction. They need a database: `PW_STORE_DATABASE_URL`, a throwaway one,
 which each test uses in a schema of its own; without it this refuses to
 run.
 
@@ -278,6 +278,9 @@ MUTANTS = [
         "        Some(awaited) => if awaited.order == order {\n",
         "        Some(awaited) => if true {\n",
     ),
+    # The old host-dependent receipt-key control cannot repeat the database
+    # action under the queue fence. Replace that old fault with omission of the
+    # required result receipt; do not credit the now-masked replay control.
     # --- the host, on PostgreSQL ----------------------------------------
     (
         "the store's commit on PostgreSQL writes no runs",
@@ -300,20 +303,8 @@ MUTANTS = [
         "             WHERE failed IS NULL AND due_ms <= $1 ORDER BY due_ms, id LIMIT $2\",\n",
         "             WHERE failed IS NULL AND due_ms <= $1 + 60000 ORDER BY due_ms, id LIMIT $2\",\n",
     ),
-    (
-        "a run on PostgreSQL is kept once answered",
-        POSTGRES,
-        SCHEDULES,
-        '        c.execute("DELETE FROM schedules WHERE id = $1", &[&id])\n',
-        '        c.execute("DELETE FROM schedules WHERE id = -$1", &[&id])\n',
-    ),
-    (
-        "a run is keyed by its host, and a second host's commits again",
-        POSTGRES,
-        SERVER,
-        '        let interaction = format!("schedule-{}", run.id);\n',
-        '        let interaction = format!("schedule-{}-{}", run.id, self.epoch);\n',
-    ),
+    ('a PostgreSQL completion leaves its generation pending', POSTGRES, SCHEDULES, '        let changed = c.execute("DELETE FROM schedules WHERE id = $1 AND command = $2 AND args = $3 AND user_id = $4 AND due_ms = $5 AND attempts = $6 AND failed IS NULL AND protocol = 1", &[&expected.id, &expected.command, &expected.args, &expected.user, &expected.due_ms, &expected.attempts])?;\n', '        let changed = 1;\n'),
+    ('a Clock result receipt is omitted from its action transaction', POSTGRES, SERVER, '            let recorded = record.map(|(key, sent)| data::Recorded {\n                key,\n                sent,\n                answer: &answer,\n', '            let recorded = record.filter(|_| completing.is_none()).map(|(key, sent)| data::Recorded {\n                key,\n                sent,\n                answer: &answer,\n'),
 ]
 
 SERVER_TESTS = ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--"]

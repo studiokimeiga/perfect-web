@@ -2783,6 +2783,19 @@ impl Server {
                 // interaction committed there, and its record holds the key.
                 // A refusal rolled back or its acknowledgement was lost;
                 // an exact authoritative receipt answers either case.
+                // Clock completion authority is the queue transaction, never
+                // an ordinary client receipt. An unknown acknowledgement is
+                // reconciled by conditional queue state, not a cached answer.
+                Err(why) if completing.is_some() => {
+                    // Release the possibly committed/refused transaction and
+                    // every operation before reading authoritative state again.
+                    drop(out);
+                    drop(host);
+                    drop(staged_events);
+                    drop(staging);
+                    self.refresh_uncertain_clock(session, &invalidated, &emitted);
+                    return Err(why);
+                }
                 Err(why) => match record {
                     Some((key, sent)) => match self.recalled_interaction(key)? {
                         Some((first, answer)) if first == sent => {
@@ -2857,6 +2870,28 @@ impl Server {
                 refused: None,
             };
             Ok((CommandOutcome::Answered(answered), reached))
+        }
+    }
+
+    /// An unknown Clock acknowledgement cannot prove Applied or rollback.
+    /// Conservatively refresh affected local reads from the actual database:
+    /// the shared outbox tail intentionally skips this host's own rows.
+    /// This publishes no attempted business writes or application events.
+    fn refresh_uncertain_clock(
+        &self,
+        session: &str,
+        invalidated: &[data::Dropped],
+        events: &[data::Handed],
+    ) {
+        let reached = self.invalidate_queries(session, invalidated, events);
+        if !self.data.session_entry() {
+            self.clock.advance(1);
+        }
+        if !reached.is_empty() {
+            self.telling
+                .lock()
+                .expect("telling")
+                .push((session.to_string(), reached));
         }
     }
 
