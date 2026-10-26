@@ -88,7 +88,19 @@ fn identical_duplicate_icc_signature_is_also_ambiguous() {
     let mut profile = fixture("sRGB2014.icc");
     let signature = profile[132..136].to_vec();
     profile[144..148].copy_from_slice(&signature);
-    assert_eq!(icc::scrub(&profile), None);
+    assert_eq!(
+        icc::scrub(&profile),
+        None,
+        "duplicate signature at a distinct range"
+    );
+    let mut shared = fixture("sRGB2014.icc");
+    let entry = shared[132..144].to_vec();
+    shared[144..156].copy_from_slice(&entry);
+    assert_eq!(
+        icc::scrub(&shared),
+        None,
+        "duplicate signature at the identical offset and size"
+    );
 }
 
 #[test]

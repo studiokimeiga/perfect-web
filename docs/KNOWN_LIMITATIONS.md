@@ -1391,10 +1391,12 @@ preserved, not replaced with invented results.
   head's verify 38909882781; landed with train-9.
 
 
-PNG/APNG upload rewriting now reserves at most 256 MiB of aggregate expanded
-filtered scanline work across the default image and every animation frame.
-Validation streams through fixed-size buffers; this is a decompression-work
-limit, not a 256 MiB memory allocation or a replacement for declared input
+PNG/APNG upload rewriting now reserves at most 256 MiB of aggregate expected
+filtered-scanline extent across the default image and every animation frame.
+A malformed excess can fill one fixed 32 KiB output block before refusal;
+miniz also owns a 32 KiB internal dictionary. This bounds expected decoded
+extent with fixed refusal overhead, not exact actual inflated bytes or CPU
+work. It is not a 256 MiB allocation, CPU deadline or replacement for input
 and staging budgets. It can refuse large images that fit an application's
 compressed-byte and dimension declaration. Ambiguous PNG ordering, duplicate
 singleton chunks, extra compressed/decoded stream bytes and malformed APNG

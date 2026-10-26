@@ -783,11 +783,14 @@ passes. Incremental validation spans split/empty IDAT and fdAT pieces;
 fdAT strips its sequence prefix; the browser-ambiguous interleaving subset
 is refused as ruled below.
 No pixels are transformed or re-encoded. A fixed-size output buffer and
-one monotonic **256 MiB aggregate expanded-work budget** cover default
-image plus all animation frames, reserving each expected extent before
-inflation. This is a new host-wide limit, stricter than some formerly
-accepted upload declarations; it is independent of compressed/staged byte
-accounting and intentionally refuses excessive decompression work.
+one monotonic reservation of **at most 256 MiB of aggregate expected
+filtered-scanline extent** cover the default image and all animation frames.
+Each expected extent is reserved before inflation. A malformed excess can
+fill one fixed 32 KiB output block before it is detected; miniz also owns a
+32 KiB internal dictionary. This is bounded refusal overhead, not an exact
+256 MiB bound on actual inflated bytes or CPU work and not a CPU deadline.
+The reservation is a new host-wide limit, stricter than some formerly
+accepted upload declarations and independent of compressed/staged bytes.
 
 Duplicate ICC signatures, including identical shared offsets under the
 same signature, drop the entire ambiguous profile. Distinct signatures
@@ -830,3 +833,21 @@ survives because the earlier singleton guard refuses the file before that
 branch; it is removed as redundant without crediting a kill. A new
 singleton control covers that structural refusal. The complete revised
 catalog has 146 controls; fresh whole verification remains required.
+
+
+Final independent review accepted production `5b10a0aa`: 69 isolated native
+parser/helper tests, all 18 new valid assertion controls, 240 independent
+legal-geometry cases, 960 malformed stream negatives, 30 one-byte split
+positives and 54 full-RGBA browser comparisons. It independently rechecked
+the exact supplied originals and confirmed typed Unsupported for both the
+interleaving subset and reservation cap. Setup failure/product panic still
+refuse evidence. These scoped checks do not replace the full 117-test
+upload/blob or 45-case HTTP/browser baselines.
+
+Three review corrections are batched after that source: precise expected-
+extent versus actual-work wording; a durable same-signature/same-offset/
+same-size ICC regression beside the distinct-range case; and removal of
+the stale claim that only an unaltered profile fixture is distributed.
+The running verify 40263123334 at `5b10a0aa` is superseded for this test-
+source correction and is not final evidence. A fresh whole 146-control
+campaign at the corrected source remains required before merge.
