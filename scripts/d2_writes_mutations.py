@@ -55,8 +55,12 @@ KEYS = ROOT / "runtime/pw-host/src/engine/table_selectors.rs"
 ROWS = ROOT / "runtime/pw-host/src/engine/table_results.rs"
 MEMORY = ROOT / "runtime/pw-table-memory/src/lib.rs"
 CHECK = ROOT / "compiler/pw-core/src/check.rs"
+TABLE_DECL = ROOT / "compiler/pw-core/src/tables.rs"
 
 MUTANTS = [
+    ("compiler admits two indexes on the same ordered fields", TABLE_DECL,
+     "        if let Some(first) = field_lists.get(&index.fields) {\n",
+     "        if false && let Some(first) = field_lists.get(&index.fields) {\n"),
     ('the adapter stores nullable unit as indistinguishable null', MEMORY, '        Stored::Option(inner) => {\n            !matches!(**inner, Stored::Option(_) | Stored::Unit) && supported(inner)\n        }\n', '        Stored::Option(inner) => {\n            !matches!(**inner, Stored::Option(_)) && supported(inner)\n        }\n'),
     ('a wait observer runs with the working lock held', MEMORY, '            drop(working);\n            if let Some(tell) = tell {\n                tell();\n            }\n', '            if let Some(tell) = tell { tell(); }\n            drop(working);\n'),
     ('internal storage failure leaves existing waiters asleep', MEMORY, '        self.turn.notify_all();\n', '        // mutation: no failure wakeup\n'),
@@ -283,12 +287,13 @@ MUTANTS = [
 TESTS = [["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--lib"]] + [
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", path.stem]
     for path in sorted((ROOT / "runtime/pw-table-memory/tests").glob("*.rs"))
-] + [["cargo", "test", "--quiet", "--locked", "-p", "pw-host", "--features", "engine", "--lib"]]
+] + [["cargo", "test", "--quiet", "--locked", "-p", "pw-host", "--features", "engine", "--lib"],
+     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "tables"]]
 
 
 
 SOURCES = [*sorted((ROOT / "runtime/pw-table-memory").rglob("*.rs")),
-           *sorted((ROOT / "runtime/pw-host").rglob("*.rs"))]
+           *sorted((ROOT / "runtime/pw-host").rglob("*.rs")), ROOT / "compiler/pw-core/tests/tables.rs"]
 INVENTORY = {}
 
 

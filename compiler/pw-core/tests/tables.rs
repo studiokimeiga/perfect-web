@@ -895,7 +895,7 @@ fn pw0361_two_tables_cannot_emit_the_same_interface() {
 fn pw0361_two_functions_cannot_emit_the_same_import() {
     let src = todos(
         "    bounded 500\n",
-        "    bounded 500\n    index by_title_done on title\n    index by_title__done on done\n",
+        "    bounded 500\n    index by_title_done on title\n    index by_title__done on added\n",
     );
     let found = diagnostics(&[("Todos.pw", &src)]);
     assert!(
@@ -1440,4 +1440,55 @@ fn full_validation_preserves_native_migration_unit_span_and_reason() {
             .all(|d| d.code != "PW6601")
     );
     assert!(actual.into_build().is_err());
+}
+
+#[test]
+fn two_indexes_cannot_describe_one_ordered_field_list() {
+    let fixture = include_str!("fixtures/tables-duplicate-index-fields.pw");
+    let found = diagnostics(&[("Todos.pw", fixture)]);
+    assert!(
+        found
+            .iter()
+            .any(|d| d.code == "PW0361" && d.message.contains("same ordered fields")),
+        "{found:#?}"
+    );
+    for first in ["index", "unique"] {
+        for second in ["index", "unique"] {
+            for fields in ["done", "title, done"] {
+                let source = todos(
+                    "index   by_done on done",
+                    &format!("{first} by_first on {fields}\n    {second} by_second on {fields}"),
+                );
+                let found = diagnostics(&[("Todos.pw", &source)]);
+                let repeated: Vec<_> = found
+                    .iter()
+                    .filter(|d| d.code == "PW0361" && d.message.contains("same ordered fields"))
+                    .collect();
+                assert_eq!(
+                    repeated.len(),
+                    1,
+                    "{first} / {second} / {fields}: {found:#?}"
+                );
+                assert_eq!(
+                    repeated[0].related.len(),
+                    1,
+                    "the first declaration is identified"
+                );
+            }
+        }
+    }
+    for source in [
+        TODOS.to_owned(),
+        todos("index   by_done on done", "unique by_done on done"),
+        todos(
+            "index   by_done on done",
+            "index by_forward on title, done\n    unique by_reverse on done, title",
+        ),
+    ] {
+        assert!(
+            refused(&source).is_empty(),
+            "valid ordered-field neighbor: {:#?}",
+            refused(&source)
+        );
+    }
 }

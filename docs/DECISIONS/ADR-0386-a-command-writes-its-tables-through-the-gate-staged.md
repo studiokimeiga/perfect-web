@@ -308,3 +308,13 @@ A failing-first regression reproduced adapter admission of `Option<Unit>`;
 nullable unit is now refused recursively at adapter construction, with
 plain Unit and nullable Bool as valid neighbors. Compiler PW0361's matching
 index-list rule remains required until its own regression and fix land.
+
+
+The compiler PW0361 rule now has a failing-first `.pw` fixture, the eight
+unique/non-unique and single/composite duplicate combinations, and valid
+single-index and reversed-ordered-list neighbors. The host's independent
+manifest refusal stays. This changes the source contract before build,
+rather than relying on the adapter to reject a build the compiler admitted.
+The new compiler control belongs to the D2 catalog and its complete native
+`pw-core --test tables` inventory; historical table-recipe controls are not
+credited as new evidence by this change.
