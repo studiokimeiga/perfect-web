@@ -10,6 +10,29 @@ failed runs, corrections and their original scope.
 
 ## current milestone
 
+**Integration checkpoint2026-10-26:** master `0035f923` contains PR54's
+image-privacy repair and PR59's unused Wasmtime disk-cache dependency removal,
+both landed by ordinary fast-forward to the exact tested heads after independent
+reviews and all published gates. The prior current Zstandard advisory blocker
+is repaired without an audit waiver. Post-merge reruns are separate from those
+passing pre-merge gates.
+
+PR55's derived-purity producer repair is still awaiting its final integration
+head gates, and PR56 remains a design document rather than a dating app.
+Outbound HTTPS and staged D2 table writes are queued foundations; generic
+server routing/principal policies, unified business/platform transactions,
+migrations and private-media/session authority remain unfinished.
+
+PR59's canonical exact-source proof at `109f459e` is
+[verify40341658053](https://github.com/studiokimeiga/perfect-web/actions/runs/40341658053):
+`just e8-host` and `just e14-compiled-once`, fetched with
+`just evidence-fetch 40341658053`. Receipts are
+[artifact-audit](evidence/E8/artifact-audit.txt) and
+[compiled-once](evidence/E14/compiled-once.txt). Host audit105passed/0ignored;
+server suite771passed/9ignored and1.71GiB peak; ignored cases get no credit.
+The2compile-once controls remain legacy producer evidence. Older ledger
+statements below retain the scope/date of their review.
+
 **E14, the AI benchmark**, ahead of E11-E13 under the owner's 2026-10-02
 ruling ([ADR-0119](DECISIONS/ADR-0119-e10-closes-and-the-ai-benchmark-comes-next.md),
 [E14 plan](milestones/E14.md)). The offline harness and reference tasks exist.
