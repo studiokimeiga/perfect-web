@@ -102,7 +102,7 @@ getrandom = "=0.4.3"
 # The uploads track (ADR-0260) takes sha2 0.11.0 too, for a blob's key: the
 # SHA-256 of its bytes (`Sha256::digest`, checked in the crate's README and
 # source).
-sha2 = "=0.11.0"
+sha2 = "=0.11.1"
 
 [profile.release]
 lto = "thin"
