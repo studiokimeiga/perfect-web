@@ -58,3 +58,20 @@ other two controls are unchanged: 3 of 3 killed.
 No push planned the recipe in the five days between: a push plans a
 mutation script's recipe when its anchored lines change, not when the code
 those lines call does. Sunday's run of every recipe is what found it.
+
+
+### Integration review: invalid producers cannot count as kills
+
+The separate review reproduced the original equivalent survivor and all
+three new assertion kills, but found that the legacy producer counted a
+build failure as a kill and trusted summary text alone. The producer now
+requires native Cargo exit/summary agreement, complete named test identity
+frozen from the baseline, and exactly one native assertion source site per
+failed test in `derived_purity.rs`. Build failure, setup I/O, ordinary panic,
+timeout, missing/renamed tests and contradictory status are invalid and
+fail the campaign. Source restoration uses the shared mutation guard; the
+script's executable bit is restored. The compiler behavior and three
+controls do not change. Two producer regressions exercise a renamed equal-
+count inventory and failed-build/status rejection. New whole-recipe
+results and exact-head gates are required; older 3/3 output does not prove
+the stricter producer passed.
