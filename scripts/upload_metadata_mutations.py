@@ -63,6 +63,9 @@ import signal
 import subprocess
 import sys
 
+import cargo_assertion_results
+import producer_process
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 STRIP = ROOT / "spikes/own-renderer/server/src/uploads/strip.rs"
 ICC = ROOT / "spikes/own-renderer/server/src/uploads/icc.rs"
@@ -119,7 +122,7 @@ MUTANTS = [
      "    if !header_is_colour(p) {\n", "    if false {\n"),
     ("ICC unused legacy LUT matrix is kept", RUST, ICC,
      "        if input_space != b\"XYZ \" {\n", "        if false {\n"),
-    ("ICC colour payload layout validation is bypassed", RUST, ICC,
+    ("ICC type-specific reserved fields and unused matrix normalization are bypassed", RUST, ICC,
      "                out.extend(colour_tag(&tag.sig, &p[at..at + len], input_space)?);\n",
      "                out.extend(&p[at..at + len]);\n"),
     ("ICC unknown colour tag signatures are admitted", RUST, ICC,
@@ -784,7 +787,7 @@ MUTANTS = [
     ),
 ]
 
-SERVER = ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--", "uploads", "blob"]
+SERVER = ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--", "uploads", "blob", "--format=pretty"]
 SERVER_BUILD = ["cargo", "build", "--quiet", "--locked", "-p", "pw-dev-server"]
 FEED_BUILD = ["bash", "spikes/own-renderer/feed.sh"]
 SPEC = ["pnpm", "exec", "playwright", "test", "e2e/upload-metadata.spec.mjs", "--reporter=line"]
@@ -793,16 +796,27 @@ SPEC = ["pnpm", "exec", "playwright", "test", "e2e/upload-metadata.spec.mjs", "-
 BOUND = 900
 
 
+RUST_SOURCES = [STRIP, ICC, UPLOADS, ROOT / "spikes/own-renderer/server/src/tests/uploads.rs", ROOT / "spikes/own-renderer/server/src/blob.rs"]
+RUST_INVENTORY = None
+
+
 def rust():
-    """(built, passed, failed) of the server's tests."""
-    r = subprocess.run(SERVER, cwd=ROOT, capture_output=True, text=True)
-    results = re.findall(r"test result: \w+\. (\d+) passed; (\d+) failed", r.stdout + r.stderr)
-    if not results:
+    """A complete named inventory, with failures at native assertion sites."""
+    global RUST_INVENTORY
+    try:
+        child = producer_process.run(SERVER, cwd=ROOT, timeout=900)
+    except subprocess.TimeoutExpired:
         return False, 0, 0
-    passed = sum(int(p) for p, _ in results)
-    failed = sum(int(f) for _, f in results)
-    valid = passed + failed > 0 and r.returncode == (101 if failed else 0)
-    return valid, passed, failed
+    result = cargo_assertion_results.validate(
+        child.returncode, child.stdout, root=ROOT, sources=RUST_SOURCES,
+        expected=RUST_INVENTORY,
+    )
+    if not result.valid:
+        print(child.stdout[-4000:], flush=True)
+        return False, result.passed, result.failed
+    if RUST_INVENTORY is None:
+        RUST_INVENTORY = cargo_assertion_results.names(child.stdout)
+    return True, result.passed, result.failed
 
 
 def browser():

@@ -1235,6 +1235,36 @@ pub(crate) fn discard_op(claims: Claiming, staged: impl Fn() + Send + Sync + 'st
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+
+    /// Domain expectations in mutation tests must fail at a native assert
+    /// site; an unwrap panic alone is not valid mutation evidence.
+    pub(crate) trait Required {
+        type Value;
+        fn required(self, why: &str) -> Self::Value;
+    }
+
+    impl<T> Required for Option<T> {
+        type Value = T;
+        fn required(self, why: &str) -> T {
+            assert!(self.is_some(), "{why}");
+            match self {
+                Some(value) => value,
+                None => unreachable!(),
+            }
+        }
+    }
+
+    impl<T, E> Required for Result<T, E> {
+        type Value = T;
+        fn required(self, why: &str) -> T {
+            assert!(self.is_ok(), "{why}");
+            match self {
+                Ok(value) => value,
+                Err(_) => unreachable!(),
+            }
+        }
+    }
+
     use std::io::Cursor;
 
     pub(crate) fn declared() -> Declared {

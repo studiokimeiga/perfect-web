@@ -675,3 +675,18 @@ staging counter still charged 850, and admitted that image where only
 Replacement and discard release the exact staging charge; neither a
 refused expansion nor a retry can leave that charge behind. Dedicated
 controls remove growth accounting and release only incoming bytes.
+
+### Mutation producer review
+
+A local 42-control smoke initially established failed test counts only; it
+is not assertion-site evidence. The native producer now uses the shared
+`cargo_assertion_results` validator: the complete named inventory must
+match its green baseline, and every failure must originate at a native
+assertion in the declared source files. Crashes, `expect`/`panic` sites and
+incomplete output invalidate the campaign. Domain preconditions use test
+assertions; filesystem and process setup failures remain infrastructure.
+The short-header no-panic probe runs in a child, reports one checked result,
+and fails the parent assertion only after the child completes normally.
+A malformed or missing child report is an invalid producer, not a kill.
+The 102-test baseline and two pilot mutants passed this stricter validator;
+the full 129-control campaign remains required at the final source commit.

@@ -628,6 +628,7 @@ fn gif(b: &[u8]) -> Result<Vec<u8>, &'static str> {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+    use crate::uploads::tests::Required;
 
     /// A fixture a real encoder wrote (`scripts/uploads_fixtures.py`).
     pub(crate) fn fixture(name: &str) -> Vec<u8> {
@@ -713,14 +714,14 @@ pub(crate) mod tests {
                         let nul = data.iter().position(|&c| c == 0).unwrap();
                         let inflated =
                             miniz_oxide::inflate::decompress_to_vec_zlib(&data[nul + 2..]);
-                        found.push(inflated.expect("a zlib stream"));
+                        found.push(inflated.required("a zlib stream"));
                     }
                     at += 12 + length;
                 }
                 found
             }
             Some(Kind::Webp) => Chunks(&b[12..])
-                .map(|c| c.expect("a chunk"))
+                .map(|c| c.required("a chunk"))
                 .filter(|(fourcc, _)| fourcc == b"ICCP")
                 .map(|(_, data)| data.to_vec())
                 .collect(),
@@ -934,12 +935,12 @@ pub(crate) mod tests {
     fn a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else() {
         let laden = laden_jpeg();
         assert_eq!(identified(&laden).len(), 9, "{:?}", identified(&laden));
-        let kept = strip(&laden).expect("kept");
+        let kept = strip(&laden).required("kept");
         assert_eq!(identified(&kept), Vec::<&str>::new());
         // Exactly: JFIF without its density or thumbnail, the turn alone,
         // the ICC profile rewritten (`icc.rs`) in one chunk, Adobe's twelve
         // bytes, and the image's every byte.
-        let profile = icc::scrub(&icc::tests::planted(2)).expect("a profile kept");
+        let profile = icc::tests::kept_profile(&icc::tests::planted(2));
         let expected = jpeg_of(
             &[
                 (0xE0, JFIF_KEPT.to_vec()),
@@ -952,7 +953,7 @@ pub(crate) mod tests {
         );
         assert_eq!(kept, expected);
         // Shown turned, as the original: 8 by 5 stored, 5 by 8 shown.
-        let shown = sniff::measure(&kept).expect("measured");
+        let shown = sniff::measure(&kept).required("measured");
         assert_eq!((shown.width, shown.height), (5, 8));
         assert_eq!(strip(&kept), Ok(kept.clone()), "rewritten to itself");
     }
@@ -968,9 +969,9 @@ pub(crate) mod tests {
                 vec![]
             };
             let expected = jpeg_of(&segments, &body, &[]);
-            let kept = strip(&sent).expect("JPEG kept");
+            let kept = strip(&sent).required("JPEG kept");
             assert_eq!(kept, expected, "orientation {o}");
-            let shown = sniff::measure(&kept).expect("measured");
+            let shown = sniff::measure(&kept).required("measured");
             let size = if (5..=8).contains(&o) { (5, 8) } else { (8, 5) };
             assert_eq!((shown.width, shown.height), size, "orientation {o}");
             assert_eq!(strip(&kept), Ok(kept.clone()));
@@ -1003,13 +1004,41 @@ pub(crate) mod tests {
 
     #[test]
     fn short_jfif_and_adobe_segments_are_dropped_without_panicking() {
+        const CHILD: &str = "PW_UPLOAD_SHORT_HEADERS_CHILD";
+        if std::env::var_os(CHILD).is_some() {
+            let healthy = std::panic::catch_unwind(short_header_cases).is_ok();
+            println!("PW_SHORT_HEADERS={healthy}");
+            return;
+        }
+        let output = std::process::Command::new(std::env::current_exe().expect("test binary"))
+            .args(["--exact", "uploads::strip::tests::short_jfif_and_adobe_segments_are_dropped_without_panicking", "--nocapture"])
+            .env(CHILD, "1").output().expect("child probe started");
+        let stdout = String::from_utf8(output.stdout).expect("child stdout is UTF-8");
+        let marks: Vec<&str> = stdout
+            .lines()
+            .filter_map(|line| {
+                line.split_once("PW_SHORT_HEADERS=")
+                    .map(|(_, mark)| mark.trim())
+            })
+            .collect();
+        let healthy = match marks.as_slice() {
+            ["true"] if output.status.success() => true,
+            ["false"] if output.status.success() => false,
+            _ => panic!("invalid short-header child producer"),
+        };
+        assert!(
+            healthy,
+            "short headers must not panic or retain incomplete fields"
+        );
+    }
+
+    fn short_header_cases() {
         let body = jpeg_body();
         for (marker, data, required) in [(0xe0, jfif_with_thumbnail(), 14), (0xee, adobe(), 12)] {
             for len in 0..required {
                 let sent = jpeg_of(&[(marker, data[..len].to_vec())], &body, &[]);
-                let result = std::panic::catch_unwind(|| strip(&sent));
                 assert_eq!(
-                    result.expect("short header must not panic"),
+                    strip(&sent),
                     Ok(jpeg_of(&[], &body, &[])),
                     "{marker:x}, {len}"
                 );
@@ -1138,7 +1167,7 @@ pub(crate) mod tests {
         let large = [icc::tests::naming(4), icc::tests::colour(4, 40_000)].concat();
         let profile = icc::tests::profile(4, &large);
         assert!(profile.len() > 65_519, "more than one chunk's");
-        let scrubbed = icc::scrub(&profile).expect("a profile kept");
+        let scrubbed = icc::tests::kept_profile(&profile);
         assert_eq!(identified(&scrubbed), Vec::<&str>::new());
         let app2 = |n: u8, count: u8, part: &[u8]| (0xE2, [ICC, &[n, count], part].concat());
         let (one, two) = profile.split_at(30_000);
@@ -1182,7 +1211,7 @@ pub(crate) mod tests {
                 "{what}"
             );
         }
-        let alone = jpeg_of(&[app2(1, 1, &icc::scrub(&small).unwrap())], &body, &[]);
+        let alone = jpeg_of(&[app2(1, 1, &icc::tests::kept_profile(&small))], &body, &[]);
         let short = (0xE2, [ICC, &[1]].concat());
         assert_eq!(
             strip(&jpeg_of(&[app2(1, 1, &small), short], &body, &[])),
@@ -1217,7 +1246,7 @@ pub(crate) mod tests {
             .filter(|w| w[0] == 0xFF && (0xD0..=0xD7).contains(&w[1]));
         assert_eq!(restarts.count(), 1, "a restart in its scan");
         assert_eq!(strip(&restarted), Ok(restarted.clone()));
-        let shown = sniff::measure(&restarted).expect("measured");
+        let shown = sniff::measure(&restarted).required("measured");
         assert_eq!((shown.width, shown.height), (16, 8));
         // With what a camera adds, its scan is kept whole all the same.
         let laden = [
@@ -1319,12 +1348,12 @@ pub(crate) mod tests {
             6,
             "in its profile"
         );
-        let kept = strip(&laden).expect("kept");
+        let kept = strip(&laden).required("kept");
         assert_eq!(identified(&kept), Vec::<&str>::new());
         // Its iCCP named "ICC profile", its profile rewritten (`icc.rs`),
         // deflated again, and its CRC its own.
         let (head, idat, iend) = png_parts();
-        let profile = icc::scrub(&planted).expect("a profile kept");
+        let profile = icc::tests::kept_profile(&planted);
         let (before, after) = png_kept(iccp_chunk(icc::NEUTRAL, &profile, 6));
         assert_eq!(kept, [head, before, idat, after, iend].concat());
         assert_eq!(profiles_in(&kept), vec![profile]);
@@ -1344,7 +1373,7 @@ pub(crate) mod tests {
     #[test]
     fn the_real_srgb_profile_survives_each_supported_container() {
         let profile = include_bytes!("../../../e2e/uploads/sRGB2014.icc");
-        let expected = icc::scrub(profile).expect("real profile kept");
+        let expected = icc::tests::kept_profile(profile);
         let (head, idat, iend) = png_parts();
         let (before, after) = png_kept(iccp_chunk(b"sRGB", profile, 6));
         let png = [head, before, idat, after, iend].concat();
@@ -1358,7 +1387,7 @@ pub(crate) mod tests {
         );
         let jpeg = jpeg_of(&app2s(profile, 600), &jpeg_body(), &[]);
         for sent in [jpeg, png, webp] {
-            let kept = strip(&sent).expect("image kept");
+            let kept = strip(&sent).required("image kept");
             assert_eq!(profiles_in(&kept), vec![expected.clone()]);
             assert_eq!(strip(&kept), Ok(kept.clone()));
         }
@@ -1369,7 +1398,7 @@ pub(crate) mod tests {
         let (head, idat, iend) = png_parts();
         let png = |chunks: &[Vec<u8>]| [&head[..], &chunks.concat(), &idat, &iend].concat();
         let planted = icc::tests::planted(4);
-        let kept = iccp_chunk(icc::NEUTRAL, &icc::scrub(&planted).unwrap(), 6);
+        let kept = iccp_chunk(icc::NEUTRAL, &icc::tests::kept_profile(&planted), 6);
         let second = iccp_chunk(b"second", &icc::tests::planted(2), 1);
         assert_eq!(
             strip(&png(&[iccp_chunk(NAME, &planted, 1), second])),
@@ -1542,7 +1571,7 @@ pub(crate) mod tests {
             sent[image..].to_vec(),
         ]
         .concat();
-        let kept = strip(&sent).expect("GIF kept");
+        let kept = strip(&sent).required("GIF kept");
         assert_eq!(kept[image + 3], 0, "graphic control reserved bits");
     }
 
@@ -1622,11 +1651,11 @@ pub(crate) mod tests {
     fn a_webp_keeps_its_image_colour_and_alpha_and_nothing_else() {
         let laden = laden_webp();
         assert_eq!(identified(&laden).len(), 9, "{:?}", identified(&laden));
-        let kept = strip(&laden).expect("kept");
+        let kept = strip(&laden).required("kept");
         assert_eq!(identified(&kept), Vec::<&str>::new());
         let (mut vp8x, alph, vp8) = alpha_parts();
         vp8x[0] |= VP8X_ICC; // the ICC profile's flag, kept; Exif's and XMP's cleared
-        let profile = icc::scrub(&icc::tests::planted(4)).expect("a profile kept");
+        let profile = icc::tests::kept_profile(&icc::tests::planted(4));
         let expected = riff_of(
             &[
                 riff_chunk(b"VP8X", &vp8x),
@@ -1668,7 +1697,7 @@ pub(crate) mod tests {
             riff_chunk(b"VP8X", &v)
         };
         let planted = icc::tests::planted(2);
-        let profile = icc::scrub(&planted).expect("a profile kept");
+        let profile = icc::tests::kept_profile(&planted);
         let two = riff_of(
             &[
                 flagged(true),
@@ -1739,10 +1768,10 @@ pub(crate) mod tests {
             &[],
         );
         assert_eq!(identified(&laden).len(), 4);
-        let kept = strip(&laden).expect("kept");
+        let kept = strip(&laden).required("kept");
         let one = riff_chunk(b"ANMF", &frame(&[vp8l]));
         assert_eq!(kept, riff_of(&[vp8x(0x02), anim, one.clone(), one], &[]));
-        let measured = sniff::measure(&kept).expect("measured");
+        let measured = sniff::measure(&kept).required("measured");
         assert_eq!((measured.width, measured.height), (7, 3));
     }
 
@@ -1922,7 +1951,7 @@ pub(crate) mod tests {
     fn a_gif_keeps_its_image_timing_and_loop_and_nothing_else() {
         let laden = laden_gif();
         assert_eq!(identified(&laden).len(), 5, "{:?}", identified(&laden));
-        let kept = strip(&laden).expect("kept");
+        let kept = strip(&laden).required("kept");
         assert_eq!(identified(&kept), Vec::<&str>::new());
         let (head, image) = gif_parts();
         assert_eq!(kept, [&head[..], &LOOP, &CONTROL, &image, &[0x3B]].concat());
@@ -2021,7 +2050,7 @@ pub(crate) mod tests {
         let gif = local_table_gif();
         assert_eq!(gif[28], 0x81, "a local colour table of four");
         assert_eq!(strip(&gif), Ok(gif.clone()));
-        let shown = sniff::measure(&gif).expect("measured");
+        let shown = sniff::measure(&gif).required("measured");
         assert_eq!((shown.width, shown.height), (4, 2));
         // Two frames, each with its own palette, a comment between them.
         let (head, image) = (&gif[..19], &gif[19..gif.len() - 1]);

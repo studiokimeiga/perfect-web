@@ -6,8 +6,11 @@ from pathlib import Path
 from types import SimpleNamespace
 import tempfile
 import sys
+import re
 import unittest
 from unittest.mock import Mock, patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 spec = importlib.util.spec_from_file_location(
     "upload_metadata_controls", Path(__file__).resolve().parents[1] / "upload_metadata_mutations.py"
@@ -17,11 +20,27 @@ spec.loader.exec_module(controls)
 
 
 class Results(unittest.TestCase):
-    def rust_result(self, status, output):
-        with patch.object(controls.subprocess, "run", return_value=SimpleNamespace(
-            returncode=status, stdout=output, stderr=""
-        )):
-            return controls.rust()
+    def rust_result(self, status, output, assertion=True):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / "case.rs"
+            source.write_text("assert!(false);\n" if assertion else "panic!(\"broken producer\");\n")
+            summary = re.search(r"test result: (ok|FAILED)\. (\d+) passed; (\d+) failed", output)
+            if summary:
+                passed, failed = int(summary[2]), int(summary[3])
+                names = [f"case_{n}" for n in range(passed + failed)]
+                output = f"running {len(names)} tests\n"
+                output += "".join(f"test {name} ... {'ok' if n < passed else 'FAILED'}\n" for n, name in enumerate(names))
+                if failed:
+                    output += "\nfailures:\n\n"
+                    for name in names[passed:]:
+                        output += f"---- {name} stdout ----\nthread '{name}' panicked at case.rs:1:1:\nassertion failed\n\n"
+                    output += "failures:\n" + "".join(f"    {name}\n" for name in names[passed:])
+                output += f"test result: {summary[1]}. {passed} passed; {failed} failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s\n"
+            with patch.object(controls.producer_process, "run", return_value=SimpleNamespace(returncode=status, stdout=output)), \
+                 patch.object(controls, "ROOT", root), patch.object(controls, "RUST_SOURCES", [source]), \
+                 patch.object(controls, "RUST_INVENTORY", None), contextlib.redirect_stdout(io.StringIO()):
+                return controls.rust()
 
     def test_missing_zero_and_inconsistent_results_are_invalid(self):
         for status, output in [
@@ -36,6 +55,9 @@ class Results(unittest.TestCase):
     def test_actual_assertion_failure_and_green_neighbour_are_valid(self):
         self.assertEqual(self.rust_result(101, "test result: FAILED. 84 passed; 1 failed"), (True, 84, 1))
         self.assertEqual(self.rust_result(0, "test result: ok. 85 passed; 0 failed"), (True, 85, 0))
+
+    def test_a_non_assertion_panic_is_invalid(self):
+        self.assertFalse(self.rust_result(101, "test result: FAILED. 0 passed; 1 failed", assertion=False)[0])
 
     def test_browser_infrastructure_is_not_an_assertion_kill(self):
         for message in ["worker process exited unexpectedly", "browserType.launch: missing binary",

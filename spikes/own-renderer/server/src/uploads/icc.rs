@@ -432,6 +432,18 @@ pub(crate) mod tests {
     use crate::uploads::strip::tests::{
         CAMERA, COMMENT, CREATED, NAME, PROFILE_ID, SERIAL, identified,
     };
+    use crate::uploads::tests::Required;
+
+    /// A supported profile is retained: a native assertion site, so a
+    /// mutation cannot be counted through an expect/unwrap panic.
+    pub(crate) fn kept_profile(profile: &[u8]) -> Vec<u8> {
+        let kept = scrub(profile);
+        assert!(
+            kept.is_some(),
+            "a supported colour profile must be retained"
+        );
+        kept.required("expected profile data")
+    }
 
     /// An s15Fixed16Number (ICC.1, 4.6).
     fn s15(v: f64) -> [u8; 4] {
@@ -565,15 +577,18 @@ pub(crate) mod tests {
     /// A profile's tags, as its table lists them: each signature, and its
     /// data.
     pub(crate) fn tags_of(p: &[u8]) -> Vec<([u8; 4], &[u8])> {
-        let count = be32(p, HEADER).unwrap() as usize;
+        let count = be32(p, HEADER).required("expected profile data") as usize;
         (0..count)
             .map(|n| {
                 let e = HEADER + 4 + 12 * n;
                 let (at, len) = (
-                    be32(p, e + 4).unwrap() as usize,
-                    be32(p, e + 8).unwrap() as usize,
+                    be32(p, e + 4).required("expected profile data") as usize,
+                    be32(p, e + 8).required("expected profile data") as usize,
                 );
-                (p[e..e + 4].try_into().unwrap(), &p[at..at + len])
+                (
+                    p[e..e + 4].try_into().required("expected profile data"),
+                    &p[at..at + len],
+                )
             })
             .collect()
     }
@@ -598,7 +613,7 @@ pub(crate) mod tests {
                 ],
                 "version {version}"
             );
-            let kept = scrub(&planted).expect("kept");
+            let kept = kept_profile(&planted);
             assert_eq!(identified(&kept), Vec::<&str>::new(), "version {version}");
             // The header: its size, and zeros where it named a device or a time.
             assert_eq!(be32(&kept, 0), Some(kept.len() as u32));
@@ -626,7 +641,10 @@ pub(crate) mod tests {
                 .map(str::as_bytes)
             );
             for (sig, data) in &after {
-                let (_, was) = before.iter().find(|(s, _)| s == sig).unwrap();
+                let (_, was) = before
+                    .iter()
+                    .find(|(s, _)| s == sig)
+                    .required("expected profile data");
                 if sig.starts_with(b"d") || sig == b"cprt" {
                     assert_eq!(&data[..4], &was[..4], "of its type");
                     assert_eq!(
@@ -641,7 +659,7 @@ pub(crate) mod tests {
             }
             let curves = |p: &[u8]| -> Vec<Vec<u8>> {
                 let table = &p[HEADER + 4..];
-                (0..be32(p, HEADER).unwrap() as usize)
+                (0..be32(p, HEADER).required("expected profile data") as usize)
                     .filter(|n| table[12 * n + 1..12 * n + 4] == *b"TRC")
                     .map(|n| table[12 * n + 4..12 * n + 12].to_vec())
                     .collect()
@@ -664,14 +682,21 @@ pub(crate) mod tests {
             for (at, value) in [(4, b"CMM!"), (40, b"OS!!"), (80, b"APP!")] {
                 sent[at..at + 4].copy_from_slice(value);
             }
-            let kept = scrub(&sent).expect("colour profile kept");
+            let kept = kept_profile(&sent);
             for at in [4, 40, 80] {
                 assert_eq!(&kept[at..at + 4], &[0; 4], "producer at {at}");
             }
             for (sig, data) in tags_of(&kept) {
                 if !sig.starts_with(b"d") && sig != *b"cprt" {
                     let before = tags_of(&sent);
-                    assert_eq!(data, before.iter().find(|(s, _)| *s == sig).unwrap().1);
+                    assert_eq!(
+                        data,
+                        before
+                            .iter()
+                            .find(|(s, _)| *s == sig)
+                            .required("expected profile data")
+                            .1
+                    );
                 }
             }
             assert_eq!(scrub(&kept), Some(kept.clone()), "idempotent");
@@ -685,7 +710,7 @@ pub(crate) mod tests {
     fn a_real_srgb_profile_keeps_its_colour_transform() {
         let sent = include_bytes!("../../../e2e/uploads/sRGB2014.icc");
         assert_eq!(sent.len(), 3024, "upstream fixture size");
-        let kept = scrub(sent).expect("published sRGB profile kept");
+        let kept = kept_profile(sent);
         let before = tags_of(sent);
         let after = tags_of(&kept);
         for sig in [
@@ -694,12 +719,12 @@ pub(crate) mod tests {
             let old = before
                 .iter()
                 .find(|(s, _)| *s == sig)
-                .expect("source colour tag")
+                .required("source colour tag")
                 .1;
             let new = after
                 .iter()
                 .find(|(s, _)| *s == sig)
-                .expect("kept colour tag")
+                .required("kept colour tag")
                 .1;
             assert_eq!(new, old, "colour tag {sig:?}");
         }
@@ -716,15 +741,15 @@ pub(crate) mod tests {
         sent[44..48].copy_from_slice(&[0x53, 0x4e, 0x34, 3]);
         let wtpt = HEADER + 4 + 12 * 6;
         assert_eq!(&sent[wtpt..wtpt + 4], b"wtpt");
-        let at = be32(&sent, wtpt + 4).unwrap() as usize;
+        let at = be32(&sent, wtpt + 4).required("expected profile data") as usize;
         sent[at + 4..at + 8].copy_from_slice(b"SN42");
-        let kept = scrub(&sent).expect("colour kept");
+        let kept = kept_profile(&sent);
         assert_eq!(&kept[10..12], &[0; 2], "version reserved bytes");
         assert_eq!(&kept[44..48], &[0, 0, 0, 3], "only standard flag bits");
         let white = tags_of(&kept)
             .into_iter()
             .find(|(sig, _)| sig == b"wtpt")
-            .unwrap()
+            .required("expected profile data")
             .1;
         assert_eq!(&white[4..8], &[0; 4], "tag reserved bytes");
         assert_eq!(&white[8..], &sent[at + 8..at + 20], "colour unchanged");
@@ -740,7 +765,7 @@ pub(crate) mod tests {
         }
         for intent in 0u32..=3 {
             sent[64..68].copy_from_slice(&intent.to_be_bytes());
-            let kept = scrub(&sent).expect("defined intent kept");
+            let kept = kept_profile(&sent);
             assert_eq!(&kept[64..68], &intent.to_be_bytes());
         }
     }
@@ -760,7 +785,7 @@ pub(crate) mod tests {
             vec![*b"camr"],
             [b"XYZ \0\0\0\0".to_vec(), b"Jane RoeSN42".to_vec()].concat(),
         ));
-        let kept = scrub(&profile(4, &tags)).expect("unknown tag removed");
+        let kept = kept_profile(&profile(4, &tags));
         assert!(
             !kept.windows(NAME.len()).any(|w| w == NAME),
             "no orphaned payload"
@@ -806,18 +831,18 @@ pub(crate) mod tests {
     fn colour_type_reserved_fields_are_zeroed() {
         let mut tags = colour(4, 1);
         tags[4].1[10..12].copy_from_slice(b"SN");
-        let kept = scrub(&profile(4, &tags)).expect("parametric curve kept");
+        let kept = kept_profile(&profile(4, &tags));
         let curve = tags_of(&kept)
             .into_iter()
             .find(|(sig, _)| sig == b"rTRC")
-            .unwrap()
+            .required("expected profile data")
             .1;
         assert_eq!(&curve[10..12], &[0; 2]);
         let mut lut = vec![0; 562];
         lut[..4].copy_from_slice(b"mft1");
         lut[8..12].copy_from_slice(&[1, 1, 2, 42]);
         lut[12..20].copy_from_slice(b"Jane Roe");
-        let kept = scrub(&profile(4, &[(vec![*b"A2B0"], lut)])).expect("LUT kept");
+        let kept = kept_profile(&profile(4, &[(vec![*b"A2B0"], lut)]));
         let data = tags_of(&kept)[0].1;
         assert_eq!(data[11], 0);
         assert!(!data.windows(NAME.len()).any(|w| w == NAME));
@@ -847,8 +872,7 @@ pub(crate) mod tests {
         lut[..4].copy_from_slice(b"mft1");
         lut[8..11].copy_from_slice(&[3, 3, 2]);
         lut[12..16].copy_from_slice(&32768u32.to_be_bytes());
-        let kept =
-            scrub(&profile(4, &[(vec![*b"B2A0"], lut.clone())])).expect("XYZ input matrix kept");
+        let kept = kept_profile(&profile(4, &[(vec![*b"B2A0"], lut.clone())]));
         assert_eq!(&tags_of(&kept)[0].1[12..16], &32768u32.to_be_bytes());
         assert!(
             scrub(&profile(4, &[(vec![*b"A2B0", *b"B2A0"], lut)])).is_none(),
@@ -865,7 +889,7 @@ pub(crate) mod tests {
     fn unknown_text_tag_signatures_and_their_payloads_are_not_kept() {
         let mut tags = colour(4, 1);
         tags.push((vec![*b"SN42"], text_of(4, b"desc", b"Jane Roe")));
-        let kept = scrub(&profile(4, &tags)).expect("unknown metadata removed");
+        let kept = kept_profile(&profile(4, &tags));
         assert!(!kept.windows(4).any(|w| w == b"SN42"));
         assert_eq!(tags_of(&kept).len(), 8);
         assert_eq!(scrub(&kept), Some(kept.clone()));
@@ -900,7 +924,7 @@ pub(crate) mod tests {
     #[test]
     fn a_profile_that_does_not_parse_is_not_kept() {
         let planted = planted(2);
-        let kept = scrub(&planted).expect("kept");
+        let kept = kept_profile(&planted);
         let changed = |at: usize, bytes: &[u8]| {
             let mut p = planted.clone();
             p[at..at + bytes.len()].copy_from_slice(bytes);
@@ -908,10 +932,10 @@ pub(crate) mod tests {
         };
         let entry = |n: usize| HEADER + 4 + 12 * n;
         let (desc_at, desc_len) = (
-            be32(&planted, entry(0) + 4).unwrap(),
-            be32(&planted, entry(0) + 8).unwrap(),
+            be32(&planted, entry(0) + 4).required("expected profile data"),
+            be32(&planted, entry(0) + 8).required("expected profile data"),
         );
-        let wtpt_at = be32(&planted, entry(6) + 4).unwrap();
+        let wtpt_at = be32(&planted, entry(6) + 4).required("expected profile data");
         assert_eq!(&planted[entry(6)..entry(6) + 4], b"wtpt");
         let cases: [(&str, Option<Vec<u8>>); 10] = [
             (
