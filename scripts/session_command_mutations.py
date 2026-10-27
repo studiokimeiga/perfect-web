@@ -197,11 +197,21 @@ def git(*arguments):
     return subprocess.check_output(["git", *arguments], cwd=ROOT, text=True).strip()
 
 
+INPUT_PATHS = ("compiler", "runtime", "spikes/own-renderer/server", "examples", "scripts",
+               "just", "justfile", "Cargo.toml", "Cargo.lock", "rust-toolchain.toml")
+
+
+def committed_inputs():
+    tracked = subprocess.run(["git", "diff", "--quiet", "HEAD", "--", *INPUT_PATHS], cwd=ROOT).returncode
+    untracked = git("ls-files", "--others", "--exclude-standard", "-z", "--", *INPUT_PATHS)
+    return tracked == 0 and not untracked
+
+
 def inputs():
     paths = git("ls-files", "-z").split("\0")
     paths += git("ls-files", "--others", "--exclude-standard", "-z").split("\0")
-    starts = ("compiler/", "runtime/", "spikes/own-renderer/server/", "examples/", "scripts/")
-    paths = {p for p in paths if p and (p.startswith(starts) or p in ("Cargo.toml", "Cargo.lock", "rust-toolchain.toml"))}
+    starts = ("compiler/", "runtime/", "spikes/own-renderer/server/", "examples/", "scripts/", "just/")
+    paths = {p for p in paths if p and (p.startswith(starts) or p in ("Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "justfile"))}
     return {p: digest(ROOT / p) for p in sorted(paths) if (ROOT / p).is_file()}
 
 
@@ -429,6 +439,8 @@ def main(argv=None):
     try:
         if args.expected_head and args.expected_head != head:
             raise ValueError("HEAD does not match --expected-head")
+        if args.expected_head and not committed_inputs():
+            raise ValueError("exact-head gate refuses tracked or untracked source/recipe changes")
         if "postgres" in allowed and any(not env.get(f"PW_{kind}_DATABASE_URL") for kind in ("FEED", "STORE")):
             raise ValueError("selected PostgreSQL gate requires both explicit database URLs")
         frozen = inventory(specs, output, env, before, args.timeout)

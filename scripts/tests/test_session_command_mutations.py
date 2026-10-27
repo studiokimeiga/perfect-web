@@ -11,6 +11,14 @@ import session_command_mutations as gate
 
 
 class SessionCommandProducer(unittest.TestCase):
+    def test_exact_head_requires_tracked_and_untracked_source_and_recipes_to_be_committed(self):
+        from types import SimpleNamespace
+        for status, untracked, expected in [(0, "", True), (1, "", False), (0, "runtime/extra.rs", False), (0, "just/extra.just", False)]:
+            with patch.object(gate.subprocess, "run", return_value=SimpleNamespace(returncode=status)) as diff, patch.object(gate, "git", return_value=untracked) as listing:
+                self.assertEqual(gate.committed_inputs(), expected)
+                self.assertIn("just", diff.call_args.args[0])
+                self.assertIn("justfile", listing.call_args.args)
+
     def test_native_inventory_refuses_duplicates_missing_and_foreign_names(self):
         self.assertEqual(gate.native_list("scope::one: test\nscope::two: test\n", "scope::"),
                          ("scope::one", "scope::two"))
