@@ -407,8 +407,8 @@ MUTANTS = [
         "a press on another host's page is not answered from its record",
         "hosts",
         SERVER,
-        '                Some((first, answer)) if first == sent => Some(Answered::from_kept(&answer)),\n',
-        '                Some((first, _)) if first == sent => None,\n',
+        '                        Some((first, answer)) if first == sent => {\n                            Some(Answered::from_kept(&answer))\n                        }\n',
+        '                        Some((first, _)) if first == sent => None,\n',
     ),
     # --- The deployment's schema.
     (

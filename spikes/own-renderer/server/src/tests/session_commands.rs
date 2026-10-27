@@ -673,14 +673,18 @@ fn command_traces_disclose_only_bounded_outcome_metadata() {
         why: Some("private-backend-reason-do-not-log\nforged log entry".into()),
         refused: None,
     };
-    let record = command_trace(&answered).expect("a refusal has trace metadata");
+    let record = command_trace(&answered)
+        .expect("a refusal has trace metadata")
+        .to_string();
     assert!(
         record == "command outcome committed=false",
         "the trace includes only an operation and outcome category"
     );
     answered.committed = true;
     assert!(
-        command_trace(&answered).expect("acknowledgement metadata")
+        command_trace(&answered)
+            .expect("acknowledgement metadata")
+            .to_string()
             == "command outcome committed=true",
         "a trace retains the actual commit flag"
     );
@@ -689,4 +693,177 @@ fn command_traces_disclose_only_bounded_outcome_metadata() {
         command_trace(&answered).is_none(),
         "ordinary successful commands add no trace"
     );
+}
+
+#[test]
+fn tracing_an_actual_store_command_never_discloses_private_state() {
+    const COOKIE: &str = "trace-private-browser-cookie-canary";
+    const USER: &str = "trace-private-user-canary";
+    const WHY_TOKEN: &str = "trace-private-backend-canary";
+    const WHY: &str = "trace-private-backend-canary\nforged log entry";
+    const DONE: &str = "TRACE_PRIVACY_FIXTURE_COMPLETED";
+    if std::env::var("PW_TRACE_PRIVACY_PROBE").as_deref() == Ok("child") {
+        let (dir, out) = built_from_patches_in("examples", |app| app.to_string(), &[]);
+        let s = Served {
+            server: Server::from_build_layers(
+                out.clone(),
+                out,
+                None,
+                Some(Arc::new(store::StoreData::new())),
+            )
+            .expect("explicit memory Store fixture"),
+            _dir: dir,
+        };
+        assert!(
+            s.data.runs().is_none(),
+            "this probe uses no persistent fixture"
+        );
+        s.identity
+            .signed_in_for_test(COOKIE, USER, "Private trace fixture");
+        let page = get_as(&s, COOKIE, "/stores/47");
+        assert!(
+            page.starts_with("HTTP/1.1 200"),
+            "a real private document renders"
+        );
+        let document = manifest_of(page.split_once("\r\n\r\n").expect("HTTP body").1)["cursor"]
+            .as_u64()
+            .expect("document");
+        let doc = (COOKIE.to_string(), document);
+        assert!(
+            s.shown.lock().expect("shown").contains_key(&doc),
+            "a real document is registered"
+        );
+        let first = s
+            .command_answer(
+                ADD,
+                COOKIE,
+                &[shown("espresso"), serde_json::json!(6173)],
+                Some("trace-private-add"),
+            )
+            .expect("the admitted command executes");
+        assert!(first.committed, "the actual command commits");
+        assert!(
+            s.cart_value(COOKIE) == 6173,
+            "the original warm cart sees actual private state"
+        );
+        s.materializer_faults
+            .lock()
+            .expect("fault fixture")
+            .insert(COOKIE.into());
+        let next = s
+            .command_answer(
+                ADD,
+                COOKIE,
+                &[shown("espresso"), serde_json::json!(1)],
+                Some("trace-private-next"),
+            )
+            .expect("the neighboring command executes");
+        assert!(
+            next.committed,
+            "a failed regeneration does not undo the real commit"
+        );
+        assert!(
+            s.cart_lines(COOKIE) == [("espresso".into(), 6174)],
+            "the neighboring write exists in authoritative storage"
+        );
+        let failed = s
+            .materializer
+            .entry(&s.cart_key(COOKIE))
+            .expect("the warm entry remains");
+        assert!(
+            failed.stale,
+            "the armed real regeneration failed and retained stale state"
+        );
+        s.drain_held(COOKIE);
+        let recovered = s
+            .materializer
+            .entry(&s.cart_key(COOKIE))
+            .expect("the original entry recovers");
+        assert!(
+            !recovered.stale && recovered.body == "6174",
+            "the original materializer body converges to the actual committed state"
+        );
+        s.unshowable(&doc, WHY);
+        assert!(
+            !s.shown.lock().expect("shown").contains_key(&doc),
+            "the real error path invalidates the shown document"
+        );
+        println!("{DONE}");
+        return;
+    }
+    struct OwnedChild(Option<std::process::Child>);
+    impl Drop for OwnedChild {
+        fn drop(&mut self) {
+            if let Some(child) = &mut self.0 {
+                let _ = child.kill();
+                let _ = child.wait();
+            }
+        }
+    }
+    let child = std::process::Command::new(std::env::current_exe().expect("native probe binary"))
+        .args(["--exact", "tests::session_commands::tracing_an_actual_store_command_never_discloses_private_state",
+               "--nocapture", "--test-threads=1"])
+        .env("PW_TRACE", "1").env("PW_TRACE_PRIVACY_PROBE", "child")
+        .stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::piped())
+        .spawn().expect("trace probe starts");
+    let mut owned = OwnedChild(Some(child));
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+    loop {
+        if owned
+            .0
+            .as_mut()
+            .expect("owned")
+            .try_wait()
+            .expect("probe status")
+            .is_some()
+        {
+            break;
+        }
+        (std::time::Instant::now() < deadline)
+            .then_some(())
+            .expect("trace fixture exceeded its bounded lifetime");
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    let output = owned
+        .0
+        .take()
+        .expect("owned")
+        .wait_with_output()
+        .expect("trace probe reaped");
+    output
+        .status
+        .success()
+        .then_some(())
+        .expect("the actual command/trace fixture completed successfully");
+    String::from_utf8_lossy(&output.stdout)
+        .contains(DONE)
+        .then_some(())
+        .expect("the complete fixture ran");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let leaked: Vec<_> = [
+        ("cookie", COOKIE),
+        ("principal", USER),
+        ("backend", WHY_TOKEN),
+        ("cart", "6173"),
+        ("recovered-cart", "6174"),
+    ]
+    .into_iter()
+    .filter_map(|(kind, canary)| stderr.contains(canary).then_some(kind))
+    .collect();
+    assert!(
+        leaked.is_empty(),
+        "process tracing disclosed private categories: {leaked:?}"
+    );
+    stderr
+        .contains("drain ")
+        .then_some(())
+        .expect("actual materialization trace ran with PW_TRACE enabled");
+    stderr
+        .contains("regeneration failed")
+        .then_some(())
+        .expect("the failed-regeneration diagnostic ran");
+    stderr
+        .contains("unshowable")
+        .then_some(())
+        .expect("the actual error diagnostic path ran");
 }

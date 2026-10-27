@@ -629,10 +629,10 @@ impl CommandActor {
             .is_some_and(|own| Arc::ptr_eq(&own, source))
     }
     pub(crate) fn ensure_current(&self) -> Result<(), AuthorityError> {
-        if self.principals.inspect_reader(&self.session)? == self.reader {
-            Ok(())
-        } else {
-            Err(AuthorityError::Changed)
+        match self.principals.inspect_reader(&self.session) {
+            Ok(current) if current == self.reader => Ok(()),
+            Ok(_) => Err(AuthorityError::Changed),
+            Err(error) => Err(error),
         }
     }
 
@@ -682,15 +682,15 @@ impl Principals {
         if session.starts_with(ON_BEHALF) {
             return Err(AuthorityError::NotBrowserActor);
         }
-        let reader = match self.invocation_reader(session) {
-            Some(reader) => reader,
-            None => self.inspect_reader(session)?,
-        };
-        Ok(CommandActor {
+        let capture = |reader| CommandActor {
             reader,
             session: session.into(),
             principals: self.clone(),
-        })
+        };
+        match self.invocation_reader(session) {
+            Some(reader) => Ok(capture(reader)),
+            None => self.inspect_reader(session).map(capture),
+        }
     }
 
     /// Receipt identity includes the entire immutable actor, not only a cookie

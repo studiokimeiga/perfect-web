@@ -19,6 +19,11 @@ Focused reproduction: `python3 -m unittest -v scripts/tests/test_producer_owners
 Final gates remain `just preflight`, `just e14-session-command-authority`,
 `just e14-scheduled-replay` and the planned hosted CI/browser/recipe checks at one
 new immutable head. No earlier head's result authorizes its merge.
+The next trace follow-up adds the actual child-stderr privacy regression and
+two controls; the canonical command inventory is now 26 controls, with all
+prior controls retained. The 9fed campaign was cancelled and supplies no full
+acceptance. Its aggregate security findings also remain failed historical
+evidence; only the next exact-head result can clear them.
 
 Reviewed 2026-10-21 against master `e7664d2eb01aa8c6e91df594bd7270a84a8bf8de`,
 train-12's landing, and its completed hosted runs. The

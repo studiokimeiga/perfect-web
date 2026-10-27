@@ -1,0 +1,8 @@
+   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/spikes/own-renderer/server)
+    Finished `test` profile [unoptimized] target(s) in 4.09s
+     Running unittests src/main.rs (/home/haki/code/pw-wt/scheduler-replay-20261026/target/debug/deps/pw_dev_server-4beb2a4e31121d83)
+
+running 1 test
+test tests::session_commands::tracing_an_actual_store_command_never_discloses_private_state ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 834 filtered out; finished in 5.46s

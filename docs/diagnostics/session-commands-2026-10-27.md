@@ -136,3 +136,60 @@ scripts/tests/test_producer_ownership.py`, `cargo test --locked -p pw-dev-server
 session_commands native module. The raw red/green records are under the dated
 evidence directory. The initial Debug selection matched zero tests; its explicitly
 INVALID log is retained and supplies no red or green credit.
+
+
+## Remaining trace channels and explicit authority branches
+
+The fresh aggregate analysis at 9fed8179 reported 122 findings: 120 high and two
+medium. The real command-log sink and the two old privacy assertions were
+resolved. Independent review parsed all 478 remaining authority flows: each
+crossed a private Reader success through one of three TryExpr sites into a
+residual error path. Typed fieldless errors alone did not stop that extraction.
+The authority factories and their business/receipt callers now keep success and
+bounded error branches explicit. The same checks, categories, lock order and
+uncertain disposition are retained. One expression-scoped expectation for the
+stylistic Clippy question_mark lint documents the deliberate explicit boundary;
+no security query, severity or alert is excluded. Both remaining network-test
+diagnostics now use fixed messages and retain their original predicates.
+
+Independent review then found older PW_TRACE paths that still printed bearer
+cookies, derived cart values and document/backend details. The in-progress 9fed
+command campaign was deliberately cancelled in a verified non-PG ownership
+phase: ten of 24 controls completed, report valid=False, restored=True, and no
+full gate credit. Independent audit verified all 70 artifacts and 1,799 restored
+inputs; all 154 owned schemas were absent from both actual databases. No
+scheduler campaign ran at that head. Its cancelled evidence is retained.
+
+The new process-level regression self-spawns the same exact native test with
+PW_TRACE enabled only in the child. It builds the canonical Store with an
+explicit memory adapter, renders a real private document, commits a distinctive
+private quantity, commits a neighboring write while regeneration is faulted,
+checks the actual stale materializer entry, then verifies its recovered body and
+the real unshowable-document path. Before repair, its complete child fixture
+revealed cookie, backend, cart and recovered-cart categories on stderr.
+
+All nine audited PW_TRACE call sites now accept a TraceEvent whose fields are
+only operation roles, counts and booleans. Cookies, Doc objects, query values,
+operation payloads, request identifiers and backend messages cannot be passed
+through this API. The parent privacy assertion sees no such canaries after
+repair. The backend token is tested independently of newline escaping. Setup,
+child failure, zero selection, timeout and missing progress use non-assert
+expect failures so they cannot earn a native domain assertion kill. The child
+has a bounded lifetime and a kill/reap guard; captured private output is never
+dumped into the parent's failure message. These claims cover the audited trace
+and identity Debug surfaces, not every startup/provider diagnostic.
+
+The canonical command instrument now selects 26 controls/30 edits, retaining all
+prior controls plus separate actual trace-payload and escaped-error leak
+controls. The receipt-owner composite and older cross-host receipt control were
+reanchored to the same statements after explicit-branch indentation changed.
+All repository mutation anchors pass. The new native trace witness expands the
+frozen memory inventory to 17; resource remains one and real PostgreSQL 14.
+Only fresh execution at the next immutable head can establish its full gate.
+
+Focused reproduction adds `cargo test --locked -p pw-dev-server --bin
+pw-dev-server -- tests::session_commands::tracing_an_actual_store_command_never_discloses_private_state
+--exact --test-threads=1`. The process red/green and precommit outputs are in the
+dated evidence directory. The two trace controls must be killed at the parent
+privacy assertion after the complete actual child fixture, never at a setup
+expectation. A fresh unchanged aggregate CodeQL result remains required.

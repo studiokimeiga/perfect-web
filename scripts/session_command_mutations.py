@@ -75,13 +75,9 @@ CONTROLS = [
                     || (bound.is_none() && current == identity::ReaderIdentity::Guest)
 ''')]),
     ("receipt-owner-composite", "memory", "COMPOSITE receipt lookup adopts the page owner and skips its reader guard", [
-        (MAIN, '''        if owner.as_deref().is_some_and(|owner| owner != session) {
-            return Ok(None);
-        }
-''', '''        let session = owner.as_deref().unwrap_or(session);
-'''),
-        (MAIN, '        if bound.as_ref().is_some_and(|reader| reader != &actor.reader) {\n',
-         '        if false && bound.as_ref().is_some_and(|reader| reader != &actor.reader) {\n')]),
+        (MAIN, '                if owner.as_deref().is_some_and(|owner| owner != session) {\n                    return Ok(None);\n                }\n', '                let session = owner.as_deref().unwrap_or(session);\n'),
+        (MAIN, '                if bound.as_ref().is_some_and(|reader| reader != &actor.reader) {\n',
+         '                if false && bound.as_ref().is_some_and(|reader| reader != &actor.reader) {\n')]),
     ("response-current-authority", "memory", "fixed HTTP command response skips its live delivery decision", [
         (MAIN, '                        if !server.delivery_allowed(&(session.clone(), 0), Some(&reader_identity)) {\n',
          '                        if false && !server.delivery_allowed(&(session.clone(), 0), Some(&reader_identity)) {\n')]),
@@ -180,6 +176,18 @@ CONTROLS.extend([
 MUTANTS = [(identifier, description, path, anchor, replacement)
            for identifier, _, description, edits in CONTROLS
            for path, anchor, replacement in edits]
+
+CONTROLS.extend([
+    ("private-trace-payload", "memory", "private materializer trace prints bearer cookie and derived query data", [
+        (MAIN, '        trace(TraceEvent::Drain {\n            invalidated: invalidated.len(),\n            existing,\n        });\n',
+         '        trace(TraceEvent::Drain {\n            invalidated: invalidated.len(),\n            existing,\n        });\n        if std::env::var("PW_TRACE").is_ok() {\n            eprintln!("private drain {session}: {value}");\n        }\n')]),
+])
+
+CONTROLS.extend([
+    ("private-trace-error", "memory", "private document recovery trace discloses an escaped backend error and cookie", [
+        (MAIN, '        trace(TraceEvent::DocumentRecovery);\n',
+         '        trace(TraceEvent::DocumentRecovery);\n        if std::env::var("PW_TRACE").is_ok() {\n            eprintln!("private recovery {doc:?}: {_why:?}");\n        }\n')]),
+])
 
 LIMITS = [
     "Commands and receipts only; private-media, browser journeys and full framework are separate.",

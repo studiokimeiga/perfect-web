@@ -2692,7 +2692,16 @@ impl Server {
         let actor = if completing.is_some() || self.invoked_by_platform(component_id) {
             None
         } else {
-            Some(principals.command_actor(session)?)
+            // Keep the private success object separate from the bounded
+            // error branch; the security extractor merges these through `?`.
+            #[expect(
+                clippy::question_mark,
+                reason = "preserve the explicit authority success/error boundary for security analysis"
+            )]
+            match principals.command_actor(session) {
+                Ok(actor) => Some(actor),
+                Err(error) => return Err(error.into()),
+            }
         };
         let gate = principals.command_gate(session);
         let run = || {
@@ -2951,8 +2960,10 @@ impl Server {
         if let Some(actor) = &actor {
             principals.with_reader(session, &actor.reader, run)
         } else {
-            let reader = principals.platform_reader(session)?;
-            principals.with_reader(session, &reader, run)
+            match principals.platform_reader(session) {
+                Ok(reader) => principals.with_reader(session, &reader, run),
+                Err(error) => Err(error.into()),
+            }
         }
     }
 
@@ -3206,9 +3217,14 @@ impl Server {
     ) -> Result<Option<Val>, String> {
         let principals = self.identity.principals();
         principals.with_reader(session, reader, || {
-            let actor = principals.command_actor(session)?;
+            let actor = match principals.command_actor(session) {
+                Ok(actor) => actor,
+                Err(error) => return Err(error.into()),
+            };
             let result = self.store_write_for(session, op, args, events, deliver, Some(&actor));
-            actor.ensure_current()?;
+            if let Err(error) = actor.ensure_current() {
+                return Err(error.into());
+            }
             result
         })
     }
@@ -3430,11 +3446,15 @@ impl Server {
             return Err("not a platform-invoked command".into());
         }
         let principals = self.identity.principals();
-        let reader = principals.platform_reader(session)?;
-        let _ = identity::take_refusal();
-        principals.with_reader(session, &reader, || {
-            self.command_answer_bound(component_id, session, json, interaction)
-        })
+        match principals.platform_reader(session) {
+            Ok(reader) => {
+                let _ = identity::take_refusal();
+                principals.with_reader(session, &reader, || {
+                    self.command_answer_bound(component_id, session, json, interaction)
+                })
+            }
+            Err(error) => Err(error.into()),
+        }
     }
 
     fn command_answer(
@@ -3446,12 +3466,18 @@ impl Server {
     ) -> Result<Answered, String> {
         let principals = self.identity.principals();
         let _ = identity::take_refusal();
-        let actor = principals.command_actor(session)?;
-        let answer = principals.with_reader(session, &actor.reader, || {
-            self.command_answer_bound(component_id, session, json, interaction)
-        });
-        actor.ensure_current()?;
-        answer
+        match principals.command_actor(session) {
+            Ok(actor) => {
+                let answer = principals.with_reader(session, &actor.reader, || {
+                    self.command_answer_bound(component_id, session, json, interaction)
+                });
+                if let Err(error) = actor.ensure_current() {
+                    return Err(error.into());
+                }
+                answer
+            }
+            Err(error) => Err(error.into()),
+        }
     }
 
     fn command_answer_bound(
@@ -3806,59 +3832,67 @@ impl Server {
         let Some(id) = interaction else {
             return Ok(None);
         };
-        let actor = self.identity.principals().command_actor(session)?;
-        actor.ensure_current()?;
-        let owner = self
-            .pages
-            .lock()
-            .expect("pages")
-            .keys()
-            .find(|(_, n)| *n == document)
-            .map(|(owner, _)| owner.clone());
-        if owner.as_deref().is_some_and(|owner| owner != session) {
-            return Ok(None);
-        }
-        let bound = self
-            .pending
-            .lock()
-            .expect("pending")
-            .get(&(session.to_string(), document))
-            .and_then(|waiting| waiting.reader.clone());
-        if bound.as_ref().is_some_and(|reader| reader != &actor.reader) {
-            return Ok(None);
-        }
-        let (key, cache_key, sent) = self.receipt_keys(session, component_id, id, json);
-        if matches!(self.commands.command_result(&cache_key), Some(Err(_))) {
-            return Err("interaction outcome could not be confirmed".into());
-        }
-        let first_sent = self
-            .interactions
-            .lock()
-            .expect("interactions")
-            .get(session)
-            .is_some_and(|queue| {
-                queue
-                    .iter()
-                    .any(|(k, first)| *k == cache_key && *first == sent)
-            });
-        if !first_sent {
-            // TRACK SEAM (second-host): **or what the deployment kept**
-            // (ADR-0325, ADR-0369): a press this host never ran, made on a
-            // page another host served (or this one, before it restarted),
-            // which committed there, is answered from the record its commit
-            // wrote with its writes, as this host's memory answers its own;
-            // nothing runs. One never committed has no record, and is
-            // refused as before. The caller's reader envelope must match;
-            // a page number never supplies another cookie's receipt identity.
-            return Ok(match self.recalled_interaction(&key)? {
-                Some((first, answer)) if first == sent => Some(Answered::from_kept(&answer)),
-                _ => None,
-            });
-        }
-        match self.commands.command_result(&cache_key) {
-            Some(Ok(kept)) => Ok(Some(Answered::from_kept(&kept))),
-            Some(Err(_)) => Err("interaction outcome could not be confirmed".into()),
-            None => Ok(None),
+        match self.identity.principals().command_actor(session) {
+            Ok(actor) => {
+                if let Err(error) = actor.ensure_current() {
+                    return Err(error.into());
+                }
+                let owner = self
+                    .pages
+                    .lock()
+                    .expect("pages")
+                    .keys()
+                    .find(|(_, n)| *n == document)
+                    .map(|(owner, _)| owner.clone());
+                if owner.as_deref().is_some_and(|owner| owner != session) {
+                    return Ok(None);
+                }
+                let bound = self
+                    .pending
+                    .lock()
+                    .expect("pending")
+                    .get(&(session.to_string(), document))
+                    .and_then(|waiting| waiting.reader.clone());
+                if bound.as_ref().is_some_and(|reader| reader != &actor.reader) {
+                    return Ok(None);
+                }
+                let (key, cache_key, sent) = self.receipt_keys(session, component_id, id, json);
+                if matches!(self.commands.command_result(&cache_key), Some(Err(_))) {
+                    return Err("interaction outcome could not be confirmed".into());
+                }
+                let first_sent = self
+                    .interactions
+                    .lock()
+                    .expect("interactions")
+                    .get(session)
+                    .is_some_and(|queue| {
+                        queue
+                            .iter()
+                            .any(|(k, first)| *k == cache_key && *first == sent)
+                    });
+                if !first_sent {
+                    // TRACK SEAM (second-host): **or what the deployment kept**
+                    // (ADR-0325, ADR-0369): a press this host never ran, made on a
+                    // page another host served (or this one, before it restarted),
+                    // which committed there, is answered from the record its commit
+                    // wrote with its writes, as this host's memory answers its own;
+                    // nothing runs. One never committed has no record, and is
+                    // refused as before. The caller's reader envelope must match;
+                    // a page number never supplies another cookie's receipt identity.
+                    return Ok(match self.recalled_interaction(&key)? {
+                        Some((first, answer)) if first == sent => {
+                            Some(Answered::from_kept(&answer))
+                        }
+                        _ => None,
+                    });
+                }
+                match self.commands.command_result(&cache_key) {
+                    Some(Ok(kept)) => Ok(Some(Answered::from_kept(&kept))),
+                    Some(Err(_)) => Err("interaction outcome could not be confirmed".into()),
+                    None => Ok(None),
+                }
+            }
+            Err(error) => Err(error.into()),
         }
     }
 
@@ -4376,9 +4410,7 @@ impl Server {
                 // The origin failed, and the query is public and declares
                 // `fallback last_known_good` (ADR-0177): the last value kept.
                 pw_resource::Fetched::LastKnownGood(v) => {
-                    if std::env::var("PW_TRACE").is_ok() {
-                        eprintln!("{resource}: its origin failed; its last known good value");
-                    }
+                    trace(TraceEvent::QueryFallback);
                     return Ok(Val::clone(&v));
                 }
                 pw_resource::Fetched::Failed(e) => return Err(format!("{resource}: {e}")),
@@ -5509,12 +5541,10 @@ impl Server {
                 return self.unshowable_session(session, &why);
             }
         };
-        if std::env::var("PW_TRACE").is_ok() {
-            eprintln!(
-                "drain session={session} invalidated={} value={value} existing={existing}",
-                invalidated.len(),
-            );
-        }
+        trace(TraceEvent::Drain {
+            invalidated: invalidated.len(),
+            existing,
+        });
 
         // First materialization, or a regeneration the drain asked for.
         //
@@ -5546,9 +5576,7 @@ impl Server {
         // server took it to show them, and its next patch left it a line
         // short.
         if regenerated == pw_materialize::Regenerated::Failed {
-            if std::env::var("PW_TRACE").is_ok() {
-                eprintln!("drain session={session}: the regeneration failed; tried again next");
-            }
+            trace(TraceEvent::RegenerationFailed);
             return;
         }
 
@@ -6129,9 +6157,9 @@ impl Server {
             &env,
             &self.templates,
         )?;
-        if std::env::var("PW_TRACE").is_ok() {
-            eprintln!("broadcast {:?} to {} document(s)", op, queue.len());
-        }
+        trace(TraceEvent::MenuBroadcast {
+            documents: queue.len(),
+        });
         let told = self.tell_menu(&mut queue, STORE_ID, &items, patches);
         // **Each document that reads an entry the change made again**
         // (ADR-0277), once the subscriber table is given up: the menu's own
@@ -6331,10 +6359,9 @@ impl Server {
             // menu fragment (ADR-0190).
             if page == self.store_page()
                 && let Some(store) = params.get("id")
-                && let Err(why) = self.refresh_menu(store)
-                && std::env::var("PW_TRACE").is_ok()
+                && self.refresh_menu(store).is_err()
             {
-                eprintln!("the menu of {store} was not brought up to date: {why}");
+                trace(TraceEvent::MenuRefreshFailed);
             }
             // The document's values are read, and it is rendered, OUTSIDE the
             // subscriber table (ADR-0151). Until 2026-10-03 the table was held
@@ -7407,10 +7434,8 @@ impl Server {
     /// document cannot be kept current, and is told to read itself again,
     /// which answers why. Never a panic: one failed query is one page that
     /// cannot be shown, not a server that stops for everyone.
-    fn unshowable(&self, doc: &Doc, why: &str) {
-        if std::env::var("PW_TRACE").is_ok() {
-            eprintln!("unshowable document={doc:?}: {why}");
-        }
+    fn unshowable(&self, doc: &Doc, _why: &str) {
+        trace(TraceEvent::DocumentRecovery);
         let mut queue = self.pending.lock().expect("pending");
         if self.shown.lock().expect("shown").remove(doc).is_some()
             && let Some(waiting) = queue.get_mut(doc)
@@ -7522,10 +7547,8 @@ impl Server {
             };
             // An arm that does not render is a region whose query failed, as
             // far as the page can say: never a placeholder forever.
-            let written = patch(outcome).or_else(|why| {
-                if std::env::var("PW_TRACE").is_ok() {
-                    eprintln!("stream {part} did not render: {why:?}");
-                }
+            let written = patch(outcome).or_else(|_| {
+                trace(TraceEvent::StreamRenderFailed);
                 patch(Settled::Failed(None))
             });
             let Ok(written) = written else { continue };
@@ -9596,10 +9619,8 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                         );
                     }
                     Ok(answered) => {
-                        if std::env::var("PW_TRACE").is_ok()
-                            && let Some(record) = command_trace(&answered)
-                        {
-                            eprintln!("{record}");
+                        if let Some(event) = command_trace(&answered) {
+                            trace(event);
                         }
                         // A commit says which versions it produced (ADR-0122), so a
                         // page can tell when the value it is sent includes it. A
@@ -9934,10 +9955,8 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                     };
                     respond_json(&mut stream, 200, &session, fresh, &body.to_string());
                 }
-                Err(why) => {
-                    if std::env::var("PW_TRACE").is_ok() {
-                        eprintln!("pw-read {binding}: {why}");
-                    }
+                Err(_) => {
+                    trace(TraceEvent::KeyedReadFailed);
                     respond_json(&mut stream, 400, &session, fresh, "{}");
                 }
             }
@@ -12059,13 +12078,56 @@ fn write_response(stream: &mut TcpStream, code: u16, mime: &str, headers: &str, 
     let _ = stream.take(0).read_to_end(&mut sink);
 }
 
-/// Command traces carry bounded operation metadata. An authority or
-/// business error may contain private backend data and is never a log field.
-fn command_trace(answered: &Answered) -> Option<String> {
+/// Trace events accept only bounded operation metadata. A caller cannot
+/// pass a cookie, document, query value, operation payload or backend error.
+enum TraceEvent {
+    QueryFallback,
+    Drain { invalidated: usize, existing: bool },
+    RegenerationFailed,
+    MenuBroadcast { documents: usize },
+    MenuRefreshFailed,
+    DocumentRecovery,
+    StreamRenderFailed,
+    KeyedReadFailed,
+    CommandOutcome { committed: bool },
+}
+
+impl std::fmt::Display for TraceEvent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::QueryFallback => f.write_str("query fallback: last known good value"),
+            Self::Drain {
+                invalidated,
+                existing,
+            } => write!(f, "drain invalidated={invalidated} existing={existing}"),
+            Self::RegenerationFailed => {
+                f.write_str("drain regeneration failed; retry on next drain")
+            }
+            Self::MenuBroadcast { documents } => write!(f, "menu broadcast documents={documents}"),
+            Self::MenuRefreshFailed => f.write_str("menu refresh failed"),
+            Self::DocumentRecovery => f.write_str("unshowable document; resnapshot requested"),
+            Self::StreamRenderFailed => f.write_str("stream region failed to render"),
+            Self::KeyedReadFailed => f.write_str("keyed read failed"),
+            Self::CommandOutcome { committed } => {
+                write!(f, "command outcome committed={committed}")
+            }
+        }
+    }
+}
+
+fn trace(event: TraceEvent) {
+    if std::env::var("PW_TRACE").is_ok() {
+        eprintln!("{event}");
+    }
+}
+
+fn command_trace(answered: &Answered) -> Option<TraceEvent> {
     answered
         .why
         .is_some()
-        .then(|| format!("command outcome committed={}", answered.committed))
+        .then_some(TraceEvent::CommandOutcome {
+            committed: answered.committed,
+        })
 }
 
 enum CommandOutcome {
@@ -15032,10 +15094,13 @@ public query Store(",
         page.set_read_timeout(Some(ms(10_000))).expect("timeout");
         let mut written = String::new();
         let _ = page.read_to_string(&mut written);
-        assert!(written.starts_with("HTTP/1.1 200"), "{written:?}");
+        assert!(
+            written.starts_with("HTTP/1.1 200"),
+            "the stream keeps its successful response header"
+        );
         assert!(
             !written.contains("\"frames\""),
-            "and nothing after: {written:?}"
+            "a cut-off stream emits no subsequent frames"
         );
 
         // A change made while the page is cut off.
