@@ -252,22 +252,24 @@ test("a tab whose reader signed in or out in another is refused at its next pres
   // next interception therefore proves that old response has settled while
   // the reader is still current. Streams normally finish within 80 x 25ms;
   // the condition wait retains Playwright's normal assertion deadline.
-  const shownDocument = () =>
-    here.evaluate(() => JSON.parse(document.getElementById("pw-parts").textContent).cursor);
-  const held = [];
-  const hold = async () => {
-    const before = held.length;
-    await here.route("**/stream?*", (route) => held.push(route));
-    await expect.poll(() => held.length).toBeGreaterThan(before);
-    const document = Number(new URL(held[before].request().url()).searchParams.get("doc"));
+  const shownDocument = (page = here) =>
+    page.evaluate(() => JSON.parse(document.getElementById("pw-parts").textContent).cursor);
+  const held = new Map();
+  const hold = async (page = here) => {
+    const routes = [];
+    held.set(page, routes);
+    await page.route("**/stream?*", (route) => routes.push(route));
+    await expect.poll(() => routes.length).toBeGreaterThan(0);
+    const document = Number(new URL(routes[0].request().url()).searchParams.get("doc"));
     expect(document).toBeGreaterThan(0);
-    expect(await shownDocument()).toBe(document);
+    expect(await shownDocument(page)).toBe(document);
     return document;
   };
-  const release = async () => {
-    await here.unroute("**/stream?*");
+  const release = async (page = here) => {
+    await page.unroute("**/stream?*");
     // A poll of a document already left was cancelled with it.
-    for (const route of held.splice(0)) await route.continue().catch(() => {});
+    for (const route of held.get(page) ?? []) await route.continue().catch(() => {});
+    held.delete(page);
   };
   // A guest's page, and the reader signs up in another tab.
   await ready(here, "/stores/47");
@@ -296,6 +298,9 @@ test("a tab whose reader signed in or out in another is refused at its next pres
   await expect(here.locator("#cart-count")).toHaveText("1");
   // Signed out in the other tab: refused again, the cart as it was.
   const accountDocument = await hold();
+  // Its own subscription could otherwise reload the other tab during the
+  // sign-out fetch's redirect, aborting that fetch before the stale press.
+  await hold(there);
   await there.evaluate(() => fetch("/sign-out", { method: "POST" }));
   expect(await shownDocument()).toBe(accountDocument);
   const again = await add(here, "Cortado");
