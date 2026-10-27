@@ -1051,6 +1051,14 @@ fn val_of(json: &serde_json::Value) -> Result<Val, String> {
 /// the transaction `begin` opened, from the call to the commit.
 pub(crate) struct Staging<'a> {
     queue_authority: &'a pw_materialize::QueueAuthority,
+    session_source: Arc<dyn crate::identity::Kept>,
+    isolation: Isolation,
+    actor: Option<crate::identity::CommandActor>,
+    authorization_attempted: bool,
+    authorization_failed: bool,
+    // Set before an acquisition attempt: unexpected unwind must never pool a
+    // connection whose session-level lock ownership may be unknown.
+    session_lock: Option<Vec<u8>>,
     _writes: std::sync::MutexGuard<'a, ()>,
     pool: Arc<Pool>,
     /// The connection, given back to the pool when the staging is dropped.
@@ -1075,6 +1083,63 @@ pub(crate) struct Staging<'a> {
 }
 
 impl crate::data::Staged for Staging<'_> {
+    fn authorize(&mut self, actor: &crate::identity::CommandActor) -> Result<(), String> {
+        if self.authorization_attempted {
+            self.authorization_failed = true;
+            return Err("a staging cannot acquire session authority twice".into());
+        }
+        self.authorization_attempted = true;
+        self.authorization_failed = true;
+        if matches!(actor.reader, crate::identity::ReaderIdentity::Guest) {
+            actor.ensure_local_current()?;
+            self.actor = Some(actor.clone());
+            self.authorization_failed = false;
+            return Ok(());
+        }
+        if actor.is_local() || !actor.belongs_to(&self.session_source) {
+            return Err("command session belongs to another authority adapter".into());
+        }
+        let hash = actor.hash();
+        self.session_lock = Some(hash.clone());
+        let mut conn = self.conn.lock().expect("the command's connection");
+        let c = conn
+            .as_mut()
+            .ok_or("the command's transaction did not open")?;
+        let result = (|| {
+            // No operation ran yet. End that empty snapshot before any wait.
+            c.batch_execute("ROLLBACK").map_err(pg)?;
+            crate::hosts::command_session_lock(c, &hash, || {})?;
+            begin_command(c, self.isolation).map_err(pg)?;
+            crate::hosts::command_session_wait_bound(c, || {})?;
+            crate::hosts::command_session_row(c, &hash, || {})?;
+            crate::hosts::command_session_live(c, actor, || {})
+        })();
+        if let Err(why) = result {
+            // This includes unknown lock/BEGIN acknowledgements. Closing is
+            // the only safe cleanup; no uncertain backend goes back to Pool.
+            drop(conn.take());
+            self.session_lock = None;
+            return Err(why);
+        }
+        self.actor = Some(actor.clone());
+        self.authorization_failed = false;
+        Ok(())
+    }
+
+    fn revalidate(&mut self) -> Result<(), String> {
+        if self.authorization_failed {
+            return Err("command session authority was not acquired".into());
+        }
+        let Some(actor) = &self.actor else {
+            return Ok(());
+        };
+        let mut conn = self.conn.lock().expect("the command's connection");
+        let c = conn
+            .as_mut()
+            .ok_or("the command's transaction did not open")?;
+        crate::hosts::command_session_live(c, actor, || {})
+    }
+
     fn ops(&self) -> crate::data::Ops {
         self.ops.clone()
     }
@@ -1096,6 +1161,9 @@ impl crate::data::Staged for Staging<'_> {
         scheduled: &[crate::schedules::Scheduled],
         completing: Option<crate::schedules::Completing<'_>>,
     ) -> Result<crate::data::Commit, String> {
+        if self.authorization_failed {
+            return Err("command session authority was not acquired".into());
+        }
         let mut conn = self.conn.lock().expect("the command's connection");
         let c = conn
             .as_mut()
@@ -1162,6 +1230,15 @@ impl crate::data::Staged for Staging<'_> {
                 )
                 .map_err(pg)?;
             ids.push(row.get(0));
+        }
+        // Every blocking preparation/outbox write is complete. Keep the row
+        // and advisory lock, validate the DB clock now, then commit on THIS
+        // connection. A separate session-pool inspection is not a fence.
+        if self.authorization_failed {
+            return Err("command session authority was not acquired".into());
+        }
+        if let Some(actor) = &self.actor {
+            crate::hosts::command_session_live(c, actor, || {})?;
         }
         // The writes and the outbox's rows, at once or not at all. A commit
         // the database refuses (a serialization failure, a deferred
@@ -1296,13 +1373,18 @@ pub(crate) fn outboxed_of(
 
 impl Drop for Staging<'_> {
     fn drop(&mut self) {
-        let Some(mut c) = self.conn.lock().expect("the command's connection").take() else {
+        let Some(mut c) = self.conn.lock().unwrap_or_else(|e| e.into_inner()).take() else {
             return;
         };
         // Roll back an unacknowledged transaction when possible. A transport
         // failure around COMMIT may have committed; queue/receipt state reconciles it.
         if !self.committed && c.batch_execute("ROLLBACK").is_err() {
             return;
+        }
+        if let Some(hash) = self.session_lock.take()
+            && crate::hosts::command_session_unlock(&mut c, &hash, || {}).is_err()
+        {
+            return; // Includes false/uncertain unlock: drop, never pool.
         }
         self.pool.give(c);
     }
@@ -1788,6 +1870,12 @@ impl crate::data::DataLayer for FeedPg {
         );
         Box::new(Staging {
             queue_authority: &self.queue_authority,
+            session_source: self.sessions.clone(),
+            isolation: self.isolation,
+            actor: None,
+            authorization_attempted: false,
+            authorization_failed: false,
+            session_lock: None,
             _writes: writes,
             pool: self.pool.clone(),
             conn,

@@ -442,8 +442,9 @@ impl Tail {
 /// **Sessions and sign-ins kept in a layer's schema** (ADR-0369):
 /// `sessions` and `sign_ins`, each by its secret's SHA-256
 /// ([`crate::identity::kept_hash`]), on connections of their own, so that a
-/// request's read of its session waits on no command; no more than
-/// [`SESSION_CONNECTIONS`] of them open at once.
+/// plain authority inspection does not lock a row. Client activity and
+/// open/close can wait on an admitted command's fence; no more than
+/// [`SESSION_CONNECTIONS`] of these connections are open at once.
 pub(crate) struct SessionsPg {
     url: String,
     schema: String,
@@ -461,10 +462,9 @@ pub(crate) struct SessionsPg {
 /// **How many connections a layer's sessions are read and written on at
 /// once** (ADR-0369; the bound the render merge's ruling holds every pool
 /// to: stated, and deadlock-free by structure): a request past it waits for
-/// one to be given back. Each is taken for one statement, by a thread that
-/// holds nothing else of the host's (a request's read of its session comes
-/// before its route; a sign-in's and a sign-out's writes hold no lock), so
-/// a waiter waits only on statements in flight.
+/// one to be given back. Each is taken for an inspection/admission statement
+/// or one open/close transaction. None is borrowed by a command staging:
+/// its fence runs on the business connection, not a second session seat.
 pub(crate) const SESSION_CONNECTIONS: usize = 8;
 
 /// **How long a kept session's use goes unrecorded**: a minute, or a
@@ -474,16 +474,138 @@ pub(crate) fn touched_after(lifetimes: &crate::identity::SessionLifetimes) -> st
     std::time::Duration::from_secs(60).min(lifetimes.idle / 4)
 }
 
+/// One namespace shared by business staging and session open/close. The schema
+/// isolates applications on one database; the hash never puts a cookie in SQL.
+pub(crate) const SESSION_AUTHORITY_KEY: &str =
+    "hashtextextended(current_schema() || ':pw_session:' || encode($1::bytea, 'hex'), 0)";
+const SESSION_LOCK_TIMEOUT: &str = "SET LOCAL lock_timeout = '5s'";
+
+/// Acquire outside the business transaction: its MVCC snapshot must start only
+/// after this wait. An error leaves ownership uncertain: discard the connection.
+/// Session advisory locks survive COMMIT, and are released explicitly on Drop.
+pub(crate) fn command_session_lock(
+    c: &mut Client,
+    hash: &[u8],
+    mut counted: impl FnMut(),
+) -> Result<(), String> {
+    counted();
+    c.batch_execute("BEGIN").map_err(pg)?;
+    counted();
+    c.batch_execute(SESSION_LOCK_TIMEOUT).map_err(pg)?;
+    counted();
+    c.query_one(
+        &format!("SELECT pg_advisory_lock({SESSION_AUTHORITY_KEY})"),
+        &[&hash],
+    )
+    .map_err(pg)?;
+    counted();
+    c.batch_execute("COMMIT").map_err(pg)
+}
+
+/// Bound subsequent row/business/outbox lock waits in this transaction alone.
+pub(crate) fn command_session_wait_bound(
+    c: &mut Client,
+    mut counted: impl FnMut(),
+) -> Result<(), String> {
+    counted();
+    c.batch_execute(SESSION_LOCK_TIMEOUT).map_err(pg)
+}
+
+/// Lock even an expired row before validating its clock. An absent row is
+/// protected by the advisory lock shared with open/close, including Anonymous.
+pub(crate) fn command_session_row(
+    c: &mut Client,
+    hash: &[u8],
+    mut counted: impl FnMut(),
+) -> Result<(), String> {
+    counted();
+    c.query_opt(
+        "SELECT 1 FROM sessions WHERE hash = $1 FOR UPDATE",
+        &[&hash],
+    )
+    .map_err(pg)?;
+    Ok(())
+}
+
+/// Current authority on the command's own transaction, checked after every
+/// potentially blocking part of evaluation/publication and just before COMMIT.
+/// Never substitutes a new actor for the immutable invocation's actor.
+pub(crate) fn command_session_live(
+    c: &mut Client,
+    actor: &crate::identity::CommandActor,
+    mut counted: impl FnMut(),
+) -> Result<(), String> {
+    use crate::identity::ReaderIdentity;
+    if matches!(actor.reader, ReaderIdentity::Guest) {
+        return actor.ensure_local_current();
+    }
+    if actor.is_local() {
+        return Err("a PostgreSQL command has no persisted session authority".into());
+    }
+    let life = actor.lifetimes();
+    let hash = actor.hash();
+    let absolute = life.absolute.as_secs_f64();
+    let idle = life.idle.as_secs_f64();
+    counted();
+    let row = c
+        .query_opt(
+            "SELECT user_id, handle, name, issuer, epoch FROM sessions \
+         WHERE hash = $1 \
+         AND opened > clock_timestamp() - make_interval(secs => $2) \
+         AND seen > clock_timestamp() - make_interval(secs => $3)",
+            &[&hash, &absolute, &idle],
+        )
+        .map_err(pg)?;
+    let current = row.map(session_identity).transpose()?;
+    match (&actor.reader, current) {
+        (ReaderIdentity::Anonymous, None) => Ok(()),
+        (ReaderIdentity::Account(expected), Some(current)) if *expected == current => Ok(()),
+        _ => Err("session authority changed before commit".into()),
+    }
+}
+
+/// RPC success is not release proof: false means the expected lock was absent.
+pub(crate) fn command_session_unlock(
+    c: &mut Client,
+    hash: &[u8],
+    mut counted: impl FnMut(),
+) -> Result<(), String> {
+    counted();
+    let row = c
+        .query_one(
+            &format!("SELECT pg_advisory_unlock({SESSION_AUTHORITY_KEY})"),
+            &[&hash],
+        )
+        .map_err(pg)?;
+    let released: bool = row
+        .try_get(0)
+        .map_err(|_| "session unlock result could not be decoded")?;
+    if released {
+        Ok(())
+    } else {
+        Err("the command's session lock was not released".into())
+    }
+}
+
 /// **A connection taken for one statement**, given back when dropped,
 /// whatever the statement did.
 struct Taken<'a> {
     sessions: &'a SessionsPg,
     client: Option<Client>,
+    // A mutator marks its connection unsafe before BEGIN and only returns it
+    // after acknowledged COMMIT. Panic/error/unknown ACK closes the socket.
+    reusable: bool,
 }
 
 impl Drop for Taken<'_> {
     fn drop(&mut self) {
-        self.sessions.give(self.client.take());
+        let client = if self.reusable {
+            self.client.take()
+        } else {
+            drop(self.client.take());
+            None
+        };
+        self.sessions.give(client);
     }
 }
 
@@ -511,6 +633,7 @@ impl SessionsPg {
                     return Ok(Taken {
                         sessions: self,
                         client: Some(c),
+                        reusable: true,
                     });
                 }
                 idle.1 -= 1;
@@ -526,6 +649,7 @@ impl SessionsPg {
                 let mut taken = Taken {
                     sessions: self,
                     client: None,
+                    reusable: true,
                 };
                 let mut c = Client::connect(&self.url, NoTls).map_err(pg)?;
                 c.batch_execute(&format!("SET search_path TO {}", ident(&self.schema)))
@@ -556,6 +680,50 @@ impl SessionsPg {
         #[cfg(test)]
         self.ran.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         f(taken.client.as_mut().expect("a connection taken")).map_err(pg)
+    }
+
+    fn counted(&self) {
+        #[cfg(test)]
+        self.ran.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    /// The advisory xact lock and mutation share one real transaction. Unlike
+    /// `with`, every failed/panicking/uncertain mutator discards its connection.
+    fn mutation<T>(
+        &self,
+        hash: &[u8],
+        f: impl FnOnce(&mut Client) -> Result<T, postgres::Error>,
+    ) -> Result<T, String> {
+        let mut taken = self.take()?;
+        taken.reusable = false;
+        let result = {
+            let c = taken.client.as_mut().expect("a connection taken");
+            (|| {
+                self.counted();
+                c.batch_execute("BEGIN")?;
+                self.counted();
+                c.batch_execute(SESSION_LOCK_TIMEOUT)?;
+                self.counted();
+                c.query_one(
+                    &format!("SELECT pg_advisory_xact_lock({SESSION_AUTHORITY_KEY})"),
+                    &[&hash],
+                )?;
+                self.counted();
+                let out = f(c)?;
+                self.counted();
+                c.batch_execute("COMMIT")?;
+                Ok(out)
+            })()
+        };
+        if result.is_ok() {
+            taken.reusable = true;
+        } else if let Some(c) = taken.client.as_mut() {
+            self.counted();
+            // Even acknowledged rollback does not turn a failed mutator into a
+            // reusable connection: uncertain COMMIT/lock ownership stays closed.
+            let _ = c.batch_execute("ROLLBACK");
+        }
+        result.map_err(pg)
     }
 
     /// `seconds` of the database's sleep on one of its connections: a
@@ -660,7 +828,7 @@ impl crate::identity::Kept for SessionsPg {
         p: &crate::identity::Principal,
         epoch: &[u8; 16],
     ) -> Result<(), String> {
-        self.with(|c| {
+        self.mutation(hash, |c| {
             c.execute(
                 "INSERT INTO sessions (hash, user_id, handle, name, issuer, epoch) \
                  VALUES ($1, $2, $3, $4, $5, $6) \
@@ -673,7 +841,7 @@ impl crate::identity::Kept for SessionsPg {
     }
 
     fn close(&self, hash: &[u8]) -> Result<(), String> {
-        self.with(|c| {
+        self.mutation(hash, |c| {
             c.execute("DELETE FROM sessions WHERE hash = $1", &[&hash])
                 .map(|_| ())
         })
