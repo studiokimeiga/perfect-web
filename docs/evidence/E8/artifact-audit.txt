@@ -1,8 +1,8 @@
 E8 — the artifact audit
 
 produced by: just e8-host
-commit: 051e8eb03dec8b33c4b8277cc14abce0a900ec5c
-ci: https://github.com/Kimeiga/perfect-web/actions/runs/38438359393 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 109f459ec3df8b66b48a84f55867c034d9747ca7
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40341658053 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 
 Three checks on data (no engine), fifteen more in tests/admission.rs:
   placement and capability are separate and can disagree either way
@@ -36,7 +36,24 @@ linking; the line naming the guest's return value is the host saying
 yes and the guest receiving the answer - the id is the guest's own
 argument, the name is the host's data.
 
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test engine::table_link::tests::a_composite_get_answers_its_own_key_or_none ... ok
+test engine::table_link::tests::a_composite_get_many_answers_asked_keys_once_in_order ... ok
+test engine::table_link::tests::values_hold_their_stored_type_and_bounds ... ok
+test engine::table_read_host::tests::adapter_errors_and_unsupported_rows_are_refusals ... ok
+test engine::table_read_host::tests::get_many_preserves_adapter_order_and_empty_reads ... ok
+test engine::table_read_host::tests::get_passes_typed_selectors_and_returns_wit_some_or_none ... ok
+test engine::table_read_host::tests::malformed_or_mistyped_arguments_never_reach_the_adapter ... ok
+test engine::table_results::tests::a_row_with_more_or_fewer_fields_than_declared_is_refused ... ok
+test engine::table_results::tests::get_many_preserves_bounded_adapter_order_and_empty_lists ... ok
+test engine::table_results::tests::get_preserves_present_and_missing_option_rows ... ok
+test engine::table_results::tests::rows_are_records_in_their_declared_order ... ok
+test engine::table_results::tests::unsupported_and_wrong_result_shapes_fail_closed ... ok
+test engine::table_selectors::tests::get_keeps_scalar_key_values_and_types ... ok
+test engine::table_selectors::tests::get_many_keeps_composite_records_by_the_keys_own_names ... ok
+test engine::table_selectors::tests::refuses_a_key_of_other_arity_or_field_names ... ok
+test engine::table_selectors::tests::refuses_keys_of_another_declared_type_or_out_of_bounds ... ok
+test engine::table_selectors::tests::refuses_unsupported_key_shapes_without_defaults_or_coercion ... ok
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test a_capabilitys_type_argument_is_part_of_what_is_granted ... ok
 test a_component_dependency_is_not_authority ... ok
 test a_component_granted_nothing_gets_an_empty_linker ... ok
@@ -68,10 +85,10 @@ test a_refused_admission_yields_no_granted_to_link_from ... ok
 test an_instance_runs_within_the_budget_its_deployment_declares ... instantiation spent 1 fuel
 test the_declared_component_imports_exactly_what_its_world_says ... minimal guest imports: ["perfect-web:store/stores@0.1.0#read"]
 test the_std_component_is_refused_for_authority_nobody_asked_for ... std guest imports 31 interfaces
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
 test a_hand_written_rust_guest_through_the_host ... bench: compile the Rust no_std guest (5276 bytes): 0.0 ms
 test the_compiled_command_through_the_host ... bench: compile store.page.add_to_cart (7623 bytes): 0.0 ms
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.68s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.66s
 test a_case_the_path_does_not_name_holds_nothing_to_check ... ok
 test a_strings_length_is_held_at_both_ends_in_code_points ... ok
 test a_value_of_another_shape_than_the_contract_says_is_refused ... ok
@@ -86,11 +103,11 @@ test the_compilers_contracts_deserialize_with_every_field_populated ... ok
 test the_real_contracts_drive_a_real_admission ... ok
 test the_store_page_depends_on_components_without_acquiring_their_authority ... ok
 test the_store_page_does_not_inherit_its_handlers_authority ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
 test a_price_is_written_as_en_us_writes_dollars ... ok
 test an_amount_owed_back_is_written_with_its_sign_first ... ok
 test every_amount_is_exact_the_least_and_the_greatest_included ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
 test a_component_using_exceptions_is_refused ... ok
 test a_component_using_gc_is_refused ... ok
 test a_component_using_none_of_them_loads ... ok
@@ -104,7 +121,7 @@ test a_field_under_neither_name_is_refused_by_both ... ok
 test a_field_written_as_the_program_names_it_is_read ... ok
 test a_list_s_rows_and_a_declared_error_are_read_through_their_types ... ok
 test an_answer_as_the_type_declares_it_is_passed_as_it_is ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
 test a_list_of_records_is_read_element_by_element_and_runs ... {"lines":{}}: argument 1 (`arg0`).lines: expected an array, got {}
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 test a_necessarily_remote_edge_that_owes_a_principal_is_not_a_finished_plan ... ok
@@ -118,22 +135,23 @@ test every_edge_in_the_store_program_can_be_bound ... ok
 test placement_and_transferability_are_independent_and_only_one_pair_fails ... ok
 test the_planner_agrees_with_admit_on_every_pair ... ok
 test the_store_program_is_deployable_on_a_topology_that_serves_it ... ok
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
 test a_data_layer_answer_that_breaks_an_invariant_is_the_commands_failure ... ok
 test a_data_layer_failure_is_the_commands_failure ... a failing data layer: [Result(Err(Some(Variant("cart-expired", None))))]
 test a_granted_operation_the_host_does_not_implement_is_refused ... ok
 test a_node_without_the_write_capability_does_not_admit_it ... refused without database.write<Carts>: Refuse([Ungranted { node: "origin-1", capability: "database.read<Addresses>" }, Ungranted { node: "origin-1", capability: "database.write<Carts>" }, Ungranted { node: "origin-1", capability: "outbox.write" }])
 test a_quantity_that_is_no_positive_int_is_refused_as_the_arguments_are_decoded ... ok
 test a_world_level_export_is_found_by_its_declaration ... ok
+test an_argument_that_breaks_its_invariant_never_reaches_the_component ... ok
 test an_export_not_declared_by_the_contract_cannot_be_invoked ... ok
 test an_item_that_cannot_be_ordered_is_refused_before_anything_is_written ... sold out: [Result(Err(Some(Variant("item-unavailable", Some(String("cortado"))))))]
 test an_ungranted_operation_is_refused_by_the_engine ... ungranted write refused by the engine: component imports instance `store:data/user-carts`, but a matching implementation was not found in the linker
 test arguments_for_an_export_the_component_does_not_have_are_refused ... ok
 test json_arguments_are_typed_by_the_export_they_are_for ... [Object {"available": Bool(true), "category": Object {"id": String("coffee"), "name": String("Coffee")}, "description": String("Short."), "id": String("cortado"), "name": String("Cortado"), "price": Number(375), "store_id": String("47")}]: `pw:app/store-page-add-to-cart-api@0.1.0#add-to-cart` takes 2 argument(s); 1 were sent
 test requires_cannot_be_bypassed_by_the_raw_call_api ... ok
-test sustained_calls_leave_memory_flat ... sustained: 19000 calls after 1000 warm-up -> resident 39432 KiB -> 39476 KiB (+44 KiB), 592.7 µs per call
+test sustained_calls_leave_memory_flat ... sustained: 19000 calls after 1000 warm-up -> resident 38656 KiB -> 38688 KiB (+32 KiB), 617.7 µs per call
 test the_artifact_imports_exactly_what_its_contract_allows ... compiled add_to_cart imports: ["pw:host/invalidations#store-page-cart", "pw:host/outbox#user-cart-changed", "pw:host/principal#read", "store:data/coverage#reaches", "store:data/menus#is-available", "store:data/user-carts#add"]
 test the_compiled_command_runs_through_the_host ... the host saw: [("pw:host/principal#read", []), ("pw:host/invalidations#store-page-cart", [String("session-7")]), ("pw:host/principal#read", []), ("pw:host/outbox#user-cart-changed", [String("session-7")]), ("store:data/menus#is-available", [String("cortado")]), ("pw:host/principal#read", []), ("store:data/coverage#reaches", [String("47"), String("session-7")]), ("pw:host/principal#read", []), ("store:data/user-carts#add", [String("session-7"), String("cortado"), S64(2)])]
 test the_instance_runs_within_its_fuel ... starved of fuel: wasm trap: all fuel consumed by WebAssembly
-test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.95s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.49s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
