@@ -128,3 +128,15 @@ derived redirects/errors in serve_bound's unavailable closure bypass the
 successful-page delivery check. Those outcomes, and serve_page's error paths,
 need their own final authority decision and regressions before complete
 initial-response protection can be claimed. They remain unmerged/open here.
+
+
+The first broader default-feature server run completed with801passed,6failed,
+9ignored. Four privacy witnesses parsed the newly structured partition field as
+if it were the raw cookie; they now require one exact fixture reader partition
+and retain the independent user-argument equality check. One old SQL pin allowed
+only request admission: successful existing-cookie HTML now has exactly two
+session statements (one activity admission, one final read-only inspection), and
+a fresh cookie exactly one inspection. The lifetime witness now separately proves
+internal of does not touch seen and explicit refresh does. These are contract
+updates to legacy tests, not removal of privacy assertions or arbitrary budget
+increases. The failed first run is retained, and affected/final runs are separate.

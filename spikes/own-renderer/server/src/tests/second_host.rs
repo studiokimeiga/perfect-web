@@ -690,10 +690,11 @@ fn a_restarted_host_keeps_its_readers_signed_in() {
     assert!(answer.contains("\"committed\":true"), "{answer}");
 }
 
-/// **A request reads its session once**: one statement, whatever the page
-/// asks of its reader; none for a request with no session yet.
+/// **An existing session is admitted once, and inspected before delivery**:
+/// one activity read plus one read-only authority check (ADR-0389). A fresh
+/// cookie has no admission read and still needs its anonymous delivery check.
 #[test]
-fn a_request_reads_its_session_once() {
+fn a_request_admits_once_and_inspects_before_private_delivery() {
     let Some(url) = database() else { return };
     let db = Schema::new(&url, "read_once");
     let provider = Arc::new(TestProvider::default());
@@ -703,11 +704,19 @@ fn a_request_reads_its_session_once() {
     let before = kept.ran();
     let page = get(&a, "/", &format!("pw-session={ada}"));
     assert!(page.starts_with("HTTP/1.1 200"), "{page}");
-    assert_eq!(kept.ran() - before, 1, "one read for the request");
+    assert_eq!(
+        kept.ran() - before,
+        2,
+        "exactly one activity admission and one final read-only authority check"
+    );
     let before = kept.ran();
     let fresh = get(&a, "/", "");
     assert!(fresh.starts_with("HTTP/1.1 200"), "{fresh}");
-    assert_eq!(kept.ran(), before, "none for a request with no session");
+    assert_eq!(
+        kept.ran() - before,
+        1,
+        "a fresh anonymous cookie has only its final read-only authority check"
+    );
 }
 
 /// The body of an HTTP answer.
@@ -1055,6 +1064,12 @@ fn a_session_in_one_hosts_memory_alone_expires_idle_and_past_its_lifetime() {
         Some(ada.clone()),
         "used ten seconds ago"
     );
+    assert_eq!(
+        principals.seen_for_test("used"),
+        Some(Duration::from_secs(90)),
+        "an internal principal read cannot renew idle lifetime"
+    );
+    principals.refresh("used"); // Explicit client admission records activity.
     let recorded = principals.seen_for_test("used").expect("held");
     assert!(
         recorded >= Duration::from_secs(100),
