@@ -263,6 +263,7 @@ jobs:
           # A shard without a database names none: its recipes run without.
           if [ -n "$DATABASE" ]; then
             export PW_FEED_DATABASE_URL="$DATABASE"
+            export PW_STORE_DATABASE_URL="$DATABASE"
             runner="$runner, PostgreSQL 18.6"
           fi
           echo "$runner" > ci-out-runner.txt
