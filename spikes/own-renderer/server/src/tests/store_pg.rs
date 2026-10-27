@@ -242,8 +242,8 @@ fn on_postgres_a_cart_change_reaches_the_sessions_open_page() {
 /// **A commit the database refuses keeps neither its state nor its event**
 /// (ADR-0208, ADR-0246): a deferred constraint, checked at the commit after
 /// the line and its event were written, refuses it. Nothing is in the cart
-/// or the outbox, the materializer records nothing, the open page is told
-/// nothing, and the next add commits.
+/// or the outbox, the materializer records no attempted state/event, the open
+/// page receives only unchanged convergence data, and the next add commits.
 #[test]
 fn on_postgres_a_refused_commit_commits_neither_its_state_nor_its_event() {
     let Some(url) = database() else { return };
@@ -283,7 +283,28 @@ fn on_postgres_a_refused_commit_commits_neither_its_state_nor_its_event() {
     );
     assert_eq!(s.materializer.state("cart:a"), None, "nothing recorded");
     assert_eq!(s.materializer.retained_events(), 0);
-    assert_eq!(patch_sets(&s, "a").len(), told, "no page told");
+    assert!(
+        patch_sets(&s, "a")
+            .into_iter()
+            .skip(told)
+            .all(|set| set.patches.is_empty()),
+        "authoritative convergence carries no attempted business patches"
+    );
+    assert_eq!(
+        s.count("SELECT count(*) FROM interactions"),
+        0,
+        "refused transaction keeps no receipt"
+    );
+    let doc = latest(&s.pending.lock().expect("pending"), "a");
+    assert!(
+        entry_values(&s, &doc)
+            .iter()
+            .all(
+                |(_, value, _, applied)| !applied.contains(&"i-1".to_string())
+                    && value["lines"].as_array().is_some_and(Vec::is_empty)
+            ),
+        "convergence cannot contain attempted cart lines or acknowledge the refused press"
+    );
     let answered = add(&s, "a", "espresso", 1, "i-2");
     assert!(answered.committed, "{:?}", answered.result);
     assert_eq!(s.cart_lines("a"), [("espresso".to_string(), 1)]);
