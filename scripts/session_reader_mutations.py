@@ -30,7 +30,11 @@ COMMAND = ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin
            "--", *TEST_NAMES, "--exact", "--test-threads=1", "--format=pretty"]
 MUTANTS = [
     ("principal reads ignore the invocation actor", SERVER / "identity.rs",
+     "    pub fn of(&self, session: &str) -> Option<Principal> {\n"
+     "        if session.is_empty() {\n            return None;\n        }\n"
      "        if let Some(reader) = self.invocation_reader(session) {\n",
+     "    pub fn of(&self, session: &str) -> Option<Principal> {\n"
+     "        if session.is_empty() {\n            return None;\n        }\n"
      "        if let Some(reader) = self.invocation_reader(session).filter(|_| false) {\n"),
     ("stream workers discard the captured reader", SERVER / "main.rs",
      "                let answer = principals.with_reader(session, &reader, || {\n"
