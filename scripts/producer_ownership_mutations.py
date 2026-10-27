@@ -40,7 +40,7 @@ def main():
     selector = 'test_producer_ownership'
     search = ROOT / 'scripts/tests'
     evidence = Path(tempfile.mkdtemp(prefix='pw-producer-ownership-'))
-    expected = guide_python.freeze(selector, search, 'test_producer_ownership.py', 10, evidence)
+    expected = guide_python.freeze(selector, search, 'test_producer_ownership.py', 11, evidence)
     baseline = guide_python.run(selector, expected, search, evidence, timeout=60)
     print(baseline.output)
     if not baseline.result.valid or baseline.result.failed or watch.stopped:
