@@ -145,6 +145,20 @@ class SessionCommandProducer(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "inventories differ"):
                     gate.inventory(spec, base, {}, {}, 1)
 
+    def test_cleanup_error_marker_invalidates_an_otherwise_green_native_run(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            source = output / "test.rs"
+            source.write_text("#[test]\nfn one() {}\n")
+            frozen = [{"name":"memory", "cargo":["unused"], "source":str(source), "names":["p::one"]}]
+            green = "test p::one ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\n"
+            for marker in ["", "SESSION_SCHEMA_CLEANUP_ERROR owned: fixture failure\n"]:
+                with patch.object(gate, "process", return_value=({"status":0}, green + marker)), \
+                     patch.object(gate, "drift", return_value=False):
+                    records = gate.run_native(frozen, output, "fixture", {}, {}, 1)
+                self.assertEqual(records[0]["valid"], not bool(marker))
+                self.assertEqual(records[0]["cleanup_error_marker"], bool(marker))
+
     def test_partial_or_invalid_native_controls_do_not_count_as_kills(self):
         self.assertFalse(gate.kill([]))
         self.assertFalse(gate.kill([{"valid":False,"native":{"failed":1}}]))

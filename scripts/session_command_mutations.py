@@ -171,6 +171,12 @@ CONTROLS.extend([
 ''')]),
 ])
 
+CONTROLS.extend([
+    ("store-unknown-warm-entry", "postgres", "uncertain Store commit leaves its original warm cart materialization fresh", [
+        (MAIN, '            self.materializer.invalidate(&self.cart_key(session), 0);\n', ''),
+    ]),
+])
+
 MUTANTS = [(identifier, description, path, anchor, replacement)
            for identifier, _, description, edits in CONTROLS
            for path, anchor, replacement in edits]
@@ -358,7 +364,9 @@ def run_native(frozen, output, label, env, expected_inputs, timeout):
             sources=[ROOT / spec["source"]], expected=spec["names"])
         sites = name != "resource" or library_sites(text)
         native["native"] = result._asdict()
-        native["valid"] = result.valid and sites and cleaned["valid"] and not drift(expected_inputs)
+        native["cleanup_error_marker"] = "SESSION_SCHEMA_CLEANUP_ERROR" in text
+        native["valid"] = (result.valid and sites and cleaned["valid"]
+                           and not native["cleanup_error_marker"] and not drift(expected_inputs))
         records.append(native)
     return records
 
