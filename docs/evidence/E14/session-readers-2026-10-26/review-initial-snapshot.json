@@ -1,0 +1,11 @@
+{
+  "docs/DECISIONS/ADR-0389-session-authority-is-checked-at-delivery-and-commit.md": "1f3f7af8b0e2be12f40a2c551f056ce3c199f3f8f518a50f11a1e9b94b958549",
+  "spikes/own-renderer/server/src/feed_pg.rs": "38e32817c268769e7ae27ffb5b4d5d7d391f6d283712eb3c6cc5ee65b4813b25",
+  "spikes/own-renderer/server/src/hosts.rs": "c371b80325267a5837f0b4c37c7b8902d6dec57d1b687f63920161186999b35d",
+  "spikes/own-renderer/server/src/identity.rs": "d7829e96399829da1f5a21cda514f563b65b35d1d9cbc3c82de9dadf5e013654",
+  "spikes/own-renderer/server/src/main.rs": "902bf4a92208684323618641e6b48555f4ffa8e06b9023199f23a6d50c6ca98e",
+  "spikes/own-renderer/server/src/store_pg.rs": "d6725150dbdbe6b8fe822a56da9d2561ccd9d34fe075a794f50b2c5e06524add",
+  "spikes/own-renderer/server/src/tests/session_revocation.rs": "ef055500d57808d7e6ba6e2074fdb93d5794d97506c78d5174702853ceacc457",
+  "spikes/own-renderer/server/migrations/feed/0013_session_epoch.sql": "b93fdecbf8271714e41db2018404716d69533e22e0839c29797dd974078088b5",
+  "spikes/own-renderer/server/migrations/store/0021_session_epoch.sql": "b93fdecbf8271714e41db2018404716d69533e22e0839c29797dd974078088b5"
+}

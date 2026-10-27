@@ -1,0 +1,81 @@
+{
+  "kind": "local incremental unmerged validation; not canonical hosted acceptance",
+  "source_commit": "686b317635088f64e00c79699ad0cca84bb4acf0",
+  "branch": "wip/session-revocation-20261026",
+  "inherited_checkpoint": "c429d83516f599ff24e34d5549fcb56334ab6be7",
+  "full_native": {
+    "passed": 807,
+    "failed": 0,
+    "ignored": 9,
+    "threads": 4
+  },
+  "initial_full_native": {
+    "passed": 801,
+    "failed": 6,
+    "ignored": 9,
+    "threads": 1,
+    "retained_as_failed": true
+  },
+  "focused_native_subset": {
+    "passed": 30,
+    "failed": 0,
+    "ignored": 0
+  },
+  "legacy_repair_subset": {
+    "passed": 6,
+    "failed": 0,
+    "ignored": 0
+  },
+  "producer_calibrations": {
+    "passed": 18
+  },
+  "strict_controls": {
+    "killed": 3,
+    "total": 3,
+    "native_names_per_run": 4,
+    "source_restored": true
+  },
+  "preflight": "passed",
+  "server_clippy": "passed",
+  "server_build": "passed",
+  "unique_mutation_anchors": 4842,
+  "sources_sha256": {
+    "spikes/own-renderer/server/src/identity.rs": "d7829e96399829da1f5a21cda514f563b65b35d1d9cbc3c82de9dadf5e013654",
+    "spikes/own-renderer/server/src/main.rs": "902bf4a92208684323618641e6b48555f4ffa8e06b9023199f23a6d50c6ca98e",
+    "spikes/own-renderer/server/src/hosts.rs": "c371b80325267a5837f0b4c37c7b8902d6dec57d1b687f63920161186999b35d",
+    "spikes/own-renderer/server/src/feed_pg.rs": "38e32817c268769e7ae27ffb5b4d5d7d391f6d283712eb3c6cc5ee65b4813b25",
+    "spikes/own-renderer/server/src/store_pg.rs": "d6725150dbdbe6b8fe822a56da9d2561ccd9d34fe075a794f50b2c5e06524add",
+    "spikes/own-renderer/server/src/tests/session_revocation.rs": "9376f220daa2d0ae725d7d58df640a251980613719427428ecbe02ca0be54986",
+    "spikes/own-renderer/server/src/tests/messages.rs": "57f12d52db6f2beae52bcf1792e5d525163ed42627eef0fff1b15459058dd428",
+    "spikes/own-renderer/server/src/tests/notifications.rs": "045dcb84b03a11e77ef8db91fa03abcbacce8e2d08dae07e9214e175ac277ef9",
+    "spikes/own-renderer/server/src/tests/second_host.rs": "f88a5b324ad4b094fbd703808578368b4b7a3a66237072dddf1f13fc780c792d",
+    "spikes/own-renderer/server/migrations/feed/0013_session_epoch.sql": "b93fdecbf8271714e41db2018404716d69533e22e0839c29797dd974078088b5",
+    "spikes/own-renderer/server/migrations/store/0021_session_epoch.sql": "b93fdecbf8271714e41db2018404716d69533e22e0839c29797dd974078088b5",
+    "scripts/session_reader_mutations.py": "fb7e16fbfc83f6935c27f60a3fb001d46c9b791b6a3cc8f74e9f60ef2beb6022",
+    "scripts/tests/test_session_reader_controls.py": "d25730fb4a7a7d60f6b5b4ec3b3009a41029dcb5c6194d97226ba940d3a63ae2"
+  },
+  "receipts_sha256": {
+    "initial-full-server-FAILED.txt": "5d59f90c7b1211ba2e7e9149bb60572be6e3c54c6293af2b0f7b45be6fb8a7fe",
+    "final-full-server.txt": "f106430503276c03255293fd3ff427c10e07a661fc87c05d62aed27cab9fdea9",
+    "legacy-six-tests.txt": "27c337f711db1a6cb8802949ae1578a2773d114bb31c441465568f9eddc2a67f",
+    "focused-native.txt": "71145cff418c41ecb98a5a4cddab51498a9f35fa9939213ba121f1b68071e227",
+    "producer-calibrations.txt": "af81cd85f7605aa91b9cb4d1759ee2fcc605883b540853e27f4716c166fa5394",
+    "preflight-and-build.txt": "97c0514b57b230d126dfa6e3d577f3cde4174e3da5c747cc5132e08949a9c9ef",
+    "controls.txt": "3657b048803a17b5c6a10bf3fed24a9c39fc76bd201fb2489e3fe39c2d7b40e1",
+    "local-controls.json": "dd12ba8289ac8a44a463a68cb31e11461b016b3fbbf3a420821b4e4c440daf08",
+    "independent-review.md": "5ac47f0e877ab4c4ed2fc849810e76426b591027b99696b3da098a7c4b375fab",
+    "review-initial-snapshot.json": "30f8a1da0838539ee15096906e8acadbcc0e10aa4795e5c00d4e6d2830a6704c",
+    "legacy-anchor-retargets.json": "771857e4a96b9415812436d53960c4f74a27bd790a13753389263dbbb41c2b54",
+    "commands-full.sh": "7315280c11a748b2b04d1cdd101172aad429695b7bdf0a0a0c986d808bbdaf01",
+    "commands-gates.sh": "5dc363f05f5559655e10e0c3ed048a24ebae48063948e208f130aaac027b76bc"
+  },
+  "pending": [
+    "query-derived redirect/error final authority",
+    "request-local admission result",
+    "keyed/background immutable reads and teardown",
+    "same-transaction browser command and receipt authority",
+    "session-specific PostgreSQL/two-host/actual-browser acceptance",
+    "affected full legacy campaigns",
+    "canonical evidence and exact-head hosted gates"
+  ]
+}

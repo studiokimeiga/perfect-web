@@ -1,0 +1,83 @@
+{
+  "scope": "immutable synchronous readers only",
+  "command": [
+    "cargo",
+    "test",
+    "--quiet",
+    "--locked",
+    "-p",
+    "pw-dev-server",
+    "--bin",
+    "pw-dev-server",
+    "--",
+    "tests::session_revocation::an_anonymous_render_never_borrows_a_transient_authenticated_actor",
+    "tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change",
+    "tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account",
+    "tests::session_revocation::a_private_initial_document_cannot_finish_after_its_session_is_revoked",
+    "--exact",
+    "--test-threads=1",
+    "--format=pretty"
+  ],
+  "producer_sha256": "fb7e16fbfc83f6935c27f60a3fb001d46c9b791b6a3cc8f74e9f60ef2beb6022",
+  "sources": {
+    "spikes/own-renderer/server/src/identity.rs": "d7829e96399829da1f5a21cda514f563b65b35d1d9cbc3c82de9dadf5e013654",
+    "spikes/own-renderer/server/src/main.rs": "902bf4a92208684323618641e6b48555f4ffa8e06b9023199f23a6d50c6ca98e",
+    "spikes/own-renderer/server/src/tests/session_revocation.rs": "9376f220daa2d0ae725d7d58df640a251980613719427428ecbe02ca0be54986"
+  },
+  "baseline": {
+    "valid": true,
+    "passed": 4,
+    "failed": 0,
+    "failure_names": [],
+    "reason": ""
+  },
+  "controls": [
+    {
+      "name": "principal reads ignore the invocation actor",
+      "killed": true,
+      "restored": true,
+      "native": {
+        "valid": true,
+        "passed": 1,
+        "failed": 3,
+        "failure_names": [
+          "tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change",
+          "tests::session_revocation::an_anonymous_render_never_borrows_a_transient_authenticated_actor",
+          "tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account"
+        ],
+        "reason": ""
+      }
+    },
+    {
+      "name": "stream workers discard the captured reader",
+      "killed": true,
+      "restored": true,
+      "native": {
+        "valid": true,
+        "passed": 2,
+        "failed": 2,
+        "failure_names": [
+          "tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change",
+          "tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account"
+        ],
+        "reason": ""
+      }
+    },
+    {
+      "name": "live delivery inspection borrows the frozen reader",
+      "killed": true,
+      "restored": true,
+      "native": {
+        "valid": true,
+        "passed": 3,
+        "failed": 1,
+        "failure_names": [
+          "tests::session_revocation::a_private_initial_document_cannot_finish_after_its_session_is_revoked"
+        ],
+        "reason": ""
+      }
+    }
+  ],
+  "restored": true,
+  "valid": true
+}

@@ -76,3 +76,30 @@ session-specific PostgreSQL migrations/two-host races and actual browsers remain
 open. Nine retargeted legacy controls have unique anchors; their full campaign
 outcomes remain unmeasured here. No hosted workflow, browser acceptance, complete
 application capability, production migration, push or merge is claimed.
+
+
+## Recorded local outcome
+
+Source commit: `686b317635088f64e00c79699ad0cca84bb4acf0`; immutable-reader
+implementation `54d92906c1c4adf38d929ee591dd0367d166a10b`; inherited unfinished
+work checkpoint `c429d83516f599ff24e34d5549fcb56334ab6be7`. No source file
+was replaced while making those commits.
+
+- Whole native server: **807 passed,0failed,9ignored** with4test threads.
+  The initial1thread run remains **FAILED:801passed,6failed,9ignored**;
+  its six contracts were repaired as described in ADR-0389 and independently
+  reviewed, then all six and the full suite passed. No ignored-test credit.
+- Focused identity/session selection: **30passed,0failed,0ignored** (a subset
+  of the native suite, not30additional distinct cases).
+- Scoped strict recipe: **3/3native assertion kills**, with the same four
+  complete native identities per baseline/control, zero skips and restored
+  source hashes. Final producer hash matches the reviewed source.
+- Producer/shared-parser calibrations: **18passed**, including the six new
+  producer failure/restoration/cancellation checks.
+- `just preflight`, explicit server Clippy and a non-test server build passed;
+  **4,842** mutation anchors each match once. This does not measure the full
+  campaigns of the nine retargeted legacy controls.
+
+`local-validation.json` binds those receipts to source/producer hashes and the
+source commit. The final evidence-only commit adds these receipts; it does not
+promote any hosted gate or close the larger session/complete-app acceptance.

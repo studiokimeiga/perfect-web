@@ -1,0 +1,65 @@
+[
+  {
+    "script": "connection_faults_mutations.py",
+    "name": "an open long poll is not ended",
+    "old_anchor": "        // Cut off since it opened (ADR-0175): no answer.\n        if server.cut_off(session, opened) {\n",
+    "anchor": "    for _ in 0..40 {\n        if server.cut_off(session, opened) {\n",
+    "replacement": "    for _ in 0..40 {\n        if false && server.cut_off(session, opened) {\n"
+  },
+  {
+    "script": "document_reads_mutations.py",
+    "name": "a document is read inside the subscriber table",
+    "old_anchor": "                let read = self.render_document(&doc, settled)?;\n                let mut queue = self.pending.lock().expect(\"pending\");\n",
+    "anchor": "                    let read = self.render_document(&doc, settled)?;\n                    let mut queue = self.pending.lock().expect(\"pending\");\n",
+    "replacement": "                    let mut queue = self.pending.lock().expect(\"pending\");\n                    let read = self.render_document(&doc, settled)?;\n"
+  },
+  {
+    "script": "document_reads_mutations.py",
+    "name": "a document is installed after a change reached its session",
+    "old_anchor": "        if pushed.is_some_and(|pushed| waiting.pushed != pushed) {\n",
+    "anchor": "        if pushed.is_some_and(|pushed| waiting.pushed != pushed)\n",
+    "replacement": "        if (pushed.is_some_and(|pushed| waiting.pushed != pushed) && false)\n"
+  },
+  {
+    "script": "not_found_mutations.py",
+    "name": "a page that is not found is answered as one that failed",
+    "old_anchor": "        Unread::NotFound(_) => respond(\n            stream,\n            404,\n",
+    "anchor": "            Unread::NotFound(_) => respond(\n                stream,\n                404,\n",
+    "replacement": "            Unread::NotFound(_) => respond(\n                stream,\n                503,\n"
+  },
+  {
+    "script": "second_host_mutations.py",
+    "name": "a sign-in is not kept where the hosts keep sessions",
+    "old_anchor": "            kept.open(&kept_hash(session), &principal)?;\n",
+    "anchor": "            kept.open(&kept_hash(session), &principal, &epoch)?;\n",
+    "replacement": ""
+  },
+  {
+    "script": "second_host_mutations.py",
+    "name": "a session the database no longer has stays signed in here",
+    "old_anchor": "            Ok(None) => self.close(session),\n",
+    "anchor": "            Ok(None) => {\n                sessions.remove(session);\n            }\n",
+    "replacement": "            Ok(None) => {}\n"
+  },
+  {
+    "script": "second_host_mutations.py",
+    "name": "a host holds its kept sessions to the defaults, not its deployment's",
+    "old_anchor": "        match kept.session(&kept_hash(session), &self.lifetimes()) {\n",
+    "anchor": "        let read = kept.session(&kept_hash(session), &self.lifetimes());\n",
+    "replacement": "        let read = kept.session(&kept_hash(session), &SessionLifetimes::default());\n"
+  },
+  {
+    "script": "second_host_mutations.py",
+    "name": "in memory, an expired session is not forgotten",
+    "old_anchor": "        if expired {\n            self.close(session);\n        }\n",
+    "anchor": "            Some(held) if !held.expired(&lifetimes) => {\n                return Some(held.principal.clone());\n",
+    "replacement": "            Some(held) if true => {\n                return Some(held.principal.clone());\n"
+  },
+  {
+    "script": "titles_mutations.py",
+    "name": "the store's page is titled \"Store\"",
+    "old_anchor": "            Ok(title) => title.unwrap_or_else(|| {\n                if page == server.store_page() {\n                    \"Store\".to_string()\n                } else {\n                    template.name.clone()\n                }\n            }),\n",
+    "anchor": "                Ok(title) => title.unwrap_or_else(|| {\n                    if page == server.store_page() {\n                        \"Store\".to_string()\n                    } else {\n                        template.name.clone()\n                    }\n                }),\n",
+    "replacement": "                Ok(_) => \"Store\".to_string(),\n"
+  }
+]
