@@ -453,10 +453,8 @@ fn unknown_commit(kind: Kind) {
             .clear();
         a.commands.forget_command(&cache_key);
         assert!(
-            a.commands
-                .command_result(&cache_key)
-                .expect("retained reservation")
-                .is_err()
+            matches!(a.commands.command_result(&cache_key), Some(Err(_))),
+            "an unknown reservation survives bounded interaction bookkeeping eviction"
         );
         let document = manifest_of(warm.split_once("\r\n\r\n").expect("body").1)["cursor"]
             .as_u64()
