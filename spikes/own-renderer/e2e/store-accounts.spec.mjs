@@ -245,13 +245,25 @@ test("a tab whose reader signed in or out in another is refused at its next pres
   const [here, there] = [await context.newPage(), await context.newPage()];
   const words = "You signed in or out in another tab. Reload this page to go on.";
   const told = (name) => here.locator(`button[aria-label="Add ${name}"] + .pw-refusal`);
-  // The tab's subscription held from here: its next poll, from the new
-  // session, would be told to read the page again (a document the session
-  // does not hold), and that reload races the press. Held, the tab is one
-  // whose subscription has not asked yet, which is the case the rule is for.
-  // Each held poll is kept, so that letting go continues the shown page's.
+  // Await an intercepted subscription BEFORE changing identity. Installing
+  // a route alone leaves an earlier NDJSON response live: it can reload this
+  // tab, making the next press a valid request from a new document instead.
+  // subscribe() asks serially, after consuming the previous response. The
+  // next interception therefore proves that old response has settled while
+  // the reader is still current. Streams normally finish within 80 x 25ms;
+  // the condition wait retains Playwright's normal assertion deadline.
+  const shownDocument = () =>
+    here.evaluate(() => JSON.parse(document.getElementById("pw-parts").textContent).cursor);
   const held = [];
-  const hold = () => here.route("**/stream?*", (route) => held.push(route));
+  const hold = async () => {
+    const before = held.length;
+    await here.route("**/stream?*", (route) => held.push(route));
+    await expect.poll(() => held.length).toBeGreaterThan(before);
+    const document = Number(new URL(held[before].request().url()).searchParams.get("doc"));
+    expect(document).toBeGreaterThan(0);
+    expect(await shownDocument()).toBe(document);
+    return document;
+  };
   const release = async () => {
     await here.unroute("**/stream?*");
     // A poll of a document already left was cancelled with it.
@@ -259,9 +271,11 @@ test("a tab whose reader signed in or out in another is refused at its next pres
   };
   // A guest's page, and the reader signs up in another tab.
   await ready(here, "/stores/47");
-  await hold();
+  const guestDocument = await hold();
   await signUp(there, handle(testInfo, "tab"));
+  expect(await shownDocument()).toBe(guestDocument);
   const refused = await add(here, "Espresso");
+  expect(refused.request().headers()["pw-document"]).toBe(String(guestDocument));
   expect(refused.status()).toBe(403);
   // Told beside the button and by the page's announcer, the speculation
   // taken back, before the command ran.
@@ -281,9 +295,11 @@ test("a tab whose reader signed in or out in another is refused at its next pres
   expect((await add(here, "Espresso")).status()).toBe(202);
   await expect(here.locator("#cart-count")).toHaveText("1");
   // Signed out in the other tab: refused again, the cart as it was.
-  await hold();
+  const accountDocument = await hold();
   await there.evaluate(() => fetch("/sign-out", { method: "POST" }));
+  expect(await shownDocument()).toBe(accountDocument);
   const again = await add(here, "Cortado");
+  expect(again.request().headers()["pw-document"]).toBe(String(accountDocument));
   expect(again.status()).toBe(403);
   await expect(told("Cortado")).toHaveText(words);
   await expect(here.locator("#cart-count")).toHaveText("1");
