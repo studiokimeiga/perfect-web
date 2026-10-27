@@ -18,18 +18,19 @@ PRODUCERS = ('case_and_delivery_mutations', 'template_mutations',
 
 
 class ProducerOwnership(unittest.TestCase):
-    def probe(self, producer, phase, disposition='callable'):
+    def probe(self, producer, phase, disposition='callable', pause_pid_publication=False):
         with tempfile.TemporaryDirectory() as directory:
             tmp = Path(directory)
-            source, pidfile, receipt, reaped = (tmp / name for name in ('source', 'pid', 'receipt', 'reaped'))
+            source, pidfile, receipt, reaped, pid_opened, pid_release, pid_complete = (
+                tmp / name for name in ('source', 'pid', 'receipt', 'reaped', 'pid-opened', 'pid-release', 'pid-complete'))
             source.write_text('original')
             program = r"""
-import json, os, signal, subprocess, sys
+import json, os, signal, subprocess, sys, time
 from pathlib import Path
 sys.path.insert(0, SCRIPTS)
 import importlib
 producer = importlib.import_module(PRODUCER)
-source, pidfile, receipt, reaped = map(Path, PATHS)
+source, pidfile, receipt, reaped, pid_opened, pid_release, pid_complete = map(Path, PATHS)
 if DISPOSITION == 'callable':
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(37))
 elif DISPOSITION == 'default':
@@ -38,7 +39,26 @@ native = subprocess.Popen
 class Injected(native):
     def __init__(self, *args, **kwargs):
         super().__init__([sys.executable, '-c', 'import time; time.sleep(60)'], **kwargs)
-        pidfile.write_text(str(self.pid))
+        try:
+            # Existence is the outer probe's readiness signal. Publish only a
+            # complete, closed record, even when its writer is descheduled.
+            pending_pid = pidfile.with_name(pidfile.name + '.pending')
+            with pending_pid.open('w') as record:
+                if PAUSE_PID_PUBLICATION:
+                    pid_opened.write_text('writer held before content')
+                    end = time.monotonic() + 5
+                    while not pid_release.exists() and time.monotonic() < end:
+                        time.sleep(.001)
+                    if not pid_release.exists():
+                        raise RuntimeError('PID publication seam was not released')
+                record.write(str(self.pid))
+            pending_pid.replace(pidfile)
+            if PAUSE_PID_PUBLICATION:
+                pid_complete.write_text('record complete')
+        except BaseException:
+            self.kill()
+            self.communicate()
+            raise
         if PHASE in ('launch', 'cleanup'):
             os.kill(os.getpid(), signal.SIGTERM)
     def communicate(self, *args, **kwargs):
@@ -69,12 +89,25 @@ finally:
 """
             settings = '\n'.join(f'{name} = {value!r}' for name, value in [
                 ('SCRIPTS', str(ROOT / 'scripts')), ('PRODUCER', producer),
-                ('PATHS', list(map(str, (source, pidfile, receipt, reaped)))),
-                ('PHASE', phase), ('DISPOSITION', disposition)])
+                ('PATHS', list(map(str, (source, pidfile, receipt, reaped, pid_opened, pid_release, pid_complete)))),
+                ('PHASE', phase), ('DISPOSITION', disposition), ('PAUSE_PID_PUBLICATION', pause_pid_publication)])
             wrapper = subprocess.Popen([sys.executable, '-c', settings + '\n' + program],
                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
             pid = None
             try:
+                exposed_before_content = None
+                if pause_pid_publication:
+                    end = time.monotonic() + 5
+                    while not pid_opened.exists() and wrapper.poll() is None and time.monotonic() < end:
+                        time.sleep(.001)
+                    self.assertTrue(pid_opened.exists(), 'the controlled PID writer did not reach its seam')
+                    if pidfile.exists():
+                        exposed_before_content = pidfile.read_text()
+                    pid_release.write_text('resume writer')
+                    end = time.monotonic() + 5
+                    while not pid_complete.exists() and wrapper.poll() is None and time.monotonic() < end:
+                        time.sleep(.001)
+                    self.assertTrue(pid_complete.exists(), 'the controlled PID writer did not finish')
                 end = time.monotonic() + 5
                 while not pidfile.exists() and wrapper.poll() is None and time.monotonic() < end:
                     time.sleep(.01)
@@ -89,7 +122,11 @@ finally:
                 self.assertEqual(json.loads(receipt.read_text()),
                                  {'alive_at_restore': False, 'source': 'original', 'reaped': True}, output)
                 self.assertEqual(source.read_text(), 'original')
+                if pause_pid_publication:
+                    self.assertIsNone(exposed_before_content,
+                                      'PID readiness exposed an incomplete record before its writer finished')
             finally:
+                pid_release.touch()
                 if wrapper.poll() is None:
                     wrapper.kill()
                     wrapper.communicate()
@@ -98,6 +135,14 @@ finally:
                         os.kill(pid, signal.SIGKILL)
                     except ProcessLookupError:
                         pass
+
+    def test_pid_readiness_is_published_only_after_complete_record_for_all_four(self):
+        # Hold the actual PID writer after open but before write: exists()
+        # alone must never authorize int parsing or signalling an owned child.
+        # Complete every reap/restoration assertion before checking exposure.
+        for producer in PRODUCERS:
+            with self.subTest(producer=producer):
+                self.probe(producer, 'running', pause_pid_publication=True)
 
     def test_launch_cancellation_reaps_before_all_four_restore(self):
         for producer in PRODUCERS:
