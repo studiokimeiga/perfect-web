@@ -55,9 +55,9 @@
     "scripts/tests/test_session_reader_controls.py": "d25730fb4a7a7d60f6b5b4ec3b3009a41029dcb5c6194d97226ba940d3a63ae2"
   },
   "receipts_sha256": {
-    "initial-full-server-FAILED.txt": "5d59f90c7b1211ba2e7e9149bb60572be6e3c54c6293af2b0f7b45be6fb8a7fe",
-    "final-full-server.txt": "f106430503276c03255293fd3ff427c10e07a661fc87c05d62aed27cab9fdea9",
-    "legacy-six-tests.txt": "27c337f711db1a6cb8802949ae1578a2773d114bb31c441465568f9eddc2a67f",
+    "initial-full-server-FAILED.txt": "29b3efedaae3129a0ff1005df2f7c441e67a2582cc84b8a95ba9804bdce2aa7d",
+    "final-full-server.txt": "a5cfc2c822a2617cef36c9586feeb99250f388490ef2a8bdf14c064908837ca7",
+    "legacy-six-tests.txt": "3eba32d6599d76795857fb640e3ce2e71486968a2c29302e536b418db57952d6",
     "focused-native.txt": "71145cff418c41ecb98a5a4cddab51498a9f35fa9939213ba121f1b68071e227",
     "producer-calibrations.txt": "af81cd85f7605aa91b9cb4d1759ee2fcc605883b540853e27f4716c166fa5394",
     "preflight-and-build.txt": "97c0514b57b230d126dfa6e3d577f3cde4174e3da5c747cc5132e08949a9c9ef",
@@ -77,5 +77,6 @@
     "session-specific PostgreSQL/two-host/actual-browser acceptance",
     "affected full legacy campaigns",
     "canonical evidence and exact-head hosted gates"
-  ]
+  ],
+  "receipt_text_encoding": "UTF-8 text; Windows CRLF normalized to LF for stable Git receipts; content lines unchanged"
 }

@@ -103,3 +103,8 @@ was replaced while making those commits.
 `local-validation.json` binds those receipts to source/producer hashes and the
 source commit. The final evidence-only commit adds these receipts; it does not
 promote any hosted gate or close the larger session/complete-app acceptance.
+
+
+Receipt text is retained with CRLF normalized to LF after capture on Windows;
+content lines are unchanged. Receipt SHA256s describe the committed LF bytes,
+and evidence files have ordinary non-executable file modes.
