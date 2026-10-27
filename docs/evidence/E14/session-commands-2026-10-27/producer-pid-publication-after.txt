@@ -1,0 +1,16 @@
+test_child_default_and_ignored_signals_keep_native_semantics (test_producer_ownership.ProducerOwnership) ... ok
+test_child_does_not_inherit_a_blocked_cancellation_signal (test_producer_ownership.ProducerOwnership) ... ok
+test_default_cancellation_raises_through_source_restoration (test_producer_ownership.ProducerOwnership) ... ok
+test_ignored_parent_cancellation_stays_ignored (test_producer_ownership.ProducerOwnership) ... ok
+test_launch_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) ... ok
+test_launch_error_restores_original_handlers (test_producer_ownership.ProducerOwnership) ... ok
+test_native_output_and_nonzero_status_are_unchanged (test_producer_ownership.ProducerOwnership) ... ok
+test_pid_readiness_is_published_only_after_complete_record_for_all_four (test_producer_ownership.ProducerOwnership) ... ok
+test_repeated_cancellation_during_cleanup_cannot_skip_restoration (test_producer_ownership.ProducerOwnership) ... ok
+test_running_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) ... ok
+test_timeout_reaps_and_preserves_native_partial_output (test_producer_ownership.ProducerOwnership) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 1.469s
+
+OK

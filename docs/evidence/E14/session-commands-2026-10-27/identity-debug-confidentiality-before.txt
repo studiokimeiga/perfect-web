@@ -1,0 +1,21 @@
+    Finished `test` profile [unoptimized] target(s) in 0.08s
+     Running unittests src/main.rs (/home/haki/code/pw-wt/scheduler-replay-20261026/target/debug/deps/pw_dev_server-4beb2a4e31121d83)
+
+running 1 test
+test identity::invocation_tests::debug_output_never_discloses_session_authority_or_principal_fields ... FAILED
+
+failures:
+
+---- identity::invocation_tests::debug_output_never_discloses_session_authority_or_principal_fields stdout ----
+
+thread 'identity::invocation_tests::debug_output_never_discloses_session_authority_or_principal_fields' (975159) panicked at spikes/own-renderer/server/src/identity.rs:2297:9:
+identity Debug disclosed private fields in: ["principal", "generation", "reader", "actor", "store", "held"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    identity::invocation_tests::debug_output_never_discloses_session_authority_or_principal_fields
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 831 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

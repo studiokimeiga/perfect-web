@@ -10,6 +10,16 @@ The master worktree was observed at `a13b3c3806b928d4a7e135819d58ff5f39c2a6a6`,
 matching fetched origin/master. The dated integration ledger below is historical;
 no new hosted-CI or complete-session acceptance is asserted by this local work.
 
+Local diagnostic continuation 2026-10-27: the complete check audit also found a
+push-CI PID-publication fixture race and a failing aggregate CodeQL security gate.
+Repairs and raw regressions are in [the command continuation record](diagnostics/session-commands-2026-10-27.md).
+Focused reproduction: `python3 -m unittest -v scripts/tests/test_producer_ownership.py`;
+`cargo test --locked -p pw-dev-server --bin pw-dev-server -- identity::invocation_tests:: --test-threads=1`;
+`cargo test --locked -p pw-dev-server --bin pw-dev-server -- tests::session_commands:: --test-threads=1`.
+Final gates remain `just preflight`, `just e14-session-command-authority`,
+`just e14-scheduled-replay` and the planned hosted CI/browser/recipe checks at one
+new immutable head. No earlier head's result authorizes its merge.
+
 Reviewed 2026-10-21 against master `e7664d2eb01aa8c6e91df594bd7270a84a8bf8de`,
 train-12's landing, and its completed hosted runs. The
 [snapshot at that landing](STATUS-HISTORY-2026-10-21.md) and

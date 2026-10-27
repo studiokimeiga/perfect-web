@@ -209,7 +209,7 @@ pub(crate) trait Staged {
     /// A persistent authority needs its adapter's same-transaction fence.
     fn authorize(&mut self, actor: &crate::identity::CommandActor) -> Result<(), String> {
         if actor.is_local() {
-            actor.ensure_local_current()
+            actor.ensure_local_current().map_err(String::from)
         } else {
             Err("this data adapter cannot fence the session authority".into())
         }

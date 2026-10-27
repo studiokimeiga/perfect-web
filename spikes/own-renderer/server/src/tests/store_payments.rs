@@ -351,8 +351,11 @@ fn a_session_opened_on_a_readers_behalf_is_no_browsers_to_present() {
                 .principals()
                 .on_behalf("payments", "payment-pi_dev000001", &s.owner("a"));
         let (taken, fresh) = session_of(&format!("Cookie: pw-session={}\r\n", behalf.session()));
-        assert!(fresh, "{taken}");
-        assert_ne!(taken, behalf.session());
+        assert!(fresh, "a platform session cannot be presented by a browser");
+        assert!(
+            taken != behalf.session(),
+            "the browser receives a distinct session"
+        );
         assert_eq!(
             session_of("Cookie: pw-session=a\r\n"),
             ("a".to_string(), false)

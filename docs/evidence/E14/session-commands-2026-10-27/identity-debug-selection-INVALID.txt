@@ -1,0 +1,9 @@
+   Compiling pw-materialize v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/runtime/pw-materialize)
+   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/spikes/own-renderer/server)
+    Finished `test` profile [unoptimized] target(s) in 5.68s
+     Running unittests src/main.rs (/home/haki/code/pw-wt/scheduler-replay-20261026/target/debug/deps/pw_dev_server-4beb2a4e31121d83)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 832 filtered out; finished in 0.00s
+

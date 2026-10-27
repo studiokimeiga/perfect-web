@@ -537,7 +537,7 @@ pub(crate) fn command_session_live(
 ) -> Result<(), String> {
     use crate::identity::ReaderIdentity;
     if matches!(actor.reader, ReaderIdentity::Guest) {
-        return actor.ensure_local_current();
+        return actor.ensure_local_current().map_err(String::from);
     }
     if actor.is_local() {
         return Err("a PostgreSQL command has no persisted session authority".into());

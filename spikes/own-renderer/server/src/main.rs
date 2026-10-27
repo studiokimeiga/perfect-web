@@ -2855,7 +2855,7 @@ impl Server {
                     if let Some(actor) = &actor
                         && let Err(why) = actor.ensure_current()
                     {
-                        return Ok((CommandOutcome::Uncertain(why), Vec::new()));
+                        return Ok((CommandOutcome::Uncertain(why.into()), Vec::new()));
                     }
                     match record {
                         Some((key, sent)) => match self.recalled_interaction(key) {
@@ -9596,10 +9596,10 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                         );
                     }
                     Ok(answered) => {
-                        if let Some(why) = &answered.why
-                            && std::env::var("PW_TRACE").is_ok()
+                        if std::env::var("PW_TRACE").is_ok()
+                            && let Some(record) = command_trace(&answered)
                         {
-                            eprintln!("{id}: {why}");
+                            eprintln!("{record}");
                         }
                         // A commit says which versions it produced (ADR-0122), so a
                         // page can tell when the value it is sent includes it. A
@@ -12057,6 +12057,15 @@ fn write_response(stream: &mut TcpStream, code: u16, mime: &str, headers: &str, 
     let _ = stream.flush();
     let mut sink = Vec::new();
     let _ = stream.take(0).read_to_end(&mut sink);
+}
+
+/// Command traces carry bounded operation metadata. An authority or
+/// business error may contain private backend data and is never a log field.
+fn command_trace(answered: &Answered) -> Option<String> {
+    answered
+        .why
+        .is_some()
+        .then(|| format!("command outcome committed={}", answered.committed))
 }
 
 enum CommandOutcome {
@@ -15023,10 +15032,10 @@ public query Store(",
         page.set_read_timeout(Some(ms(10_000))).expect("timeout");
         let mut written = String::new();
         let _ = page.read_to_string(&mut written);
-        assert!(written.starts_with("HTTP/1.1 200"), "{written}");
+        assert!(written.starts_with("HTTP/1.1 200"), "{written:?}");
         assert!(
             !written.contains("\"frames\""),
-            "and nothing after: {written}"
+            "and nothing after: {written:?}"
         );
 
         // A change made while the page is cut off.
@@ -19830,7 +19839,7 @@ public query Store(",
             for secret in [alice, bob, deployment_key] {
                 assert!(
                     !kept.contains(secret),
-                    "{secret} is kept for every reader: {kept}"
+                    "private session data is retained in a shared cache"
                 );
             }
         }

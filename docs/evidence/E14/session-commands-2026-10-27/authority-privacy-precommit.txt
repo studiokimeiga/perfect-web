@@ -1,0 +1,127 @@
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+    Checking pw-resource v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/runtime/pw-resource)
+    Checking pw-document v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/runtime/pw-document)
+    Checking pw-materialize v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/runtime/pw-materialize)
+    Checking pw-render v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/runtime/pw-render)
+    Checking pw-protocol v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/runtime/pw-protocol)
+    Checking pw-core v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/compiler/pw-core)
+    Checking pw-render-wasm v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/runtime/pw-render-wasm)
+    Checking pw-dev-server v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/spikes/own-renderer/server)
+    Checking kiokun-server v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/spikes/kiokun/server)
+    Finished `dev` profile [unoptimized] target(s) in 7.93s
+# `pw-host`'s engine feature is not exercised by `just test`, because a
+# Wasm engine is not needed to decide a capability question. But an
+# unbuilt cfg rots: a field added to `Import` broke `tests/artifact.rs`
+# and nothing noticed until `just e8-host` ran. Compiled here, run there.
+cargo clippy -p pw-host --features engine --all-targets -- -D warnings
+    Finished `dev` profile [unoptimized] target(s) in 0.08s
+case-check: OK (4004 paths)
+mutation anchors: 4870 mutants in 320 scripts, each matching once
+suite=memory, scope=FULL, controls=0/1, valid=False, restored=True
+test_campaign_cancellation_restores_owned_source_and_keeps_invalid_report (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_cancellation_keeps_raw_log_and_is_not_converted_to_success (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_cleanup_error_marker_invalidates_an_otherwise_green_native_run (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_cleanup_observes_both_databases_and_never_drops_a_schema (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_cleanup_refuses_a_leftover_and_still_checks_partial_receipts (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_exact_head_requires_tracked_and_untracked_source_and_recipes_to_be_committed (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+suite=memory, scope=BASELINE_ONLY, controls=0/1, valid=False, restored=False
+test_final_restoration_failure_cannot_return_success (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_freezing_crosschecks_the_binary_list_against_source_declarations (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_macro_inventory_is_explicit_and_fails_unknown_forms (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_mixed_resource_source_only_credits_the_unique_eof_test_module (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_native_inventory_refuses_duplicates_missing_and_foreign_names (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_partial_or_invalid_native_controls_do_not_count_as_kills (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_schema_receipts_reject_missing_duplicate_and_unowned_names (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_cancellation_restores_source_and_propagates (scripts.tests.test_session_reader_controls.ProducerTests) ... ok
+test_complete_native_assertion_and_restoration_are_required (scripts.tests.test_session_reader_controls.ProducerTests) ... ok
+test_final_source_mismatch_forces_nonzero_exit (scripts.tests.test_session_reader_controls.ProducerTests) ... ok
+test_invalid_baseline_never_runs_controls (scripts.tests.test_session_reader_controls.ProducerTests) ... ok
+test_invalid_native_failure_never_counts_as_a_kill (scripts.tests.test_session_reader_controls.ProducerTests) ... ok
+test_missing_anchor_is_invalid (scripts.tests.test_session_reader_controls.ProducerTests) ... ok
+test_exit_inventory_and_source_disagreement_are_refused (scripts.tests.test_cargo_assertion_results.CargoAssertions) ... ok
+test_native_build_failure_is_refused (scripts.tests.test_cargo_assertion_results.CargoAssertions) ... ok
+test_native_green_and_custom_comparison_have_exact_inventory (scripts.tests.test_cargo_assertion_results.CargoAssertions) ... ok
+test_native_runtime_and_same_line_operand_panics_are_refused (scripts.tests.test_cargo_assertion_results.CargoAssertions) ... ok
+test_a_product_assertion_in_the_mixed_runtime_module_is_invalid (scripts.tests.test_scheduled_replay_results.Results) ... ok
+test_build_missing_zero_duplicate_skipped_and_contradictory_results_are_invalid (scripts.tests.test_scheduled_replay_results.Results) ... ok
+test_cancellation_restores_the_owned_source_and_propagates (scripts.tests.test_scheduled_replay_results.Results) ... ok
+OWNED_SCHEMA_CLEANUP_STATUS {"status": 1, "remaining": []}
+OWNED_SCHEMA_CLEANUP_STATUS {"status": 0, "remaining": ["pw_scheduler_store_0123456789abcdef"]}
+test_cleanup_requires_fresh_owned_names_and_successful_empty_database_answer (scripts.tests.test_scheduled_replay_results.Results) ... ok
+test_complete_native_run_with_unverified_cleanup_preserves_receipt_names (scripts.tests.test_scheduled_replay_results.Results) ... ok
+test_equal_counts_cannot_replace_either_binarys_named_inventory (scripts.tests.test_scheduled_replay_results.Results) ... ok
+test_failed_abort_reporting_does_not_replace_cancellation (scripts.tests.test_scheduled_replay_results.Results) ... ok
+test_invalid_mutant_fails_campaign_and_restores_source (scripts.tests.test_scheduled_replay_results.Results) ... ok
+test_leftover_owned_schema_invalidates_even_a_real_assertion_kill (scripts.tests.test_scheduled_replay_results.Results) ... ok
+test_missing_database_and_timeout_have_no_kill_credit (scripts.tests.test_scheduled_replay_results.Results) ... ok
+test_mixed_module_tail_or_duplicate_boundary_cannot_attribute_product_assertions (scripts.tests.test_scheduled_replay_results.Results) ... ok
+test_real_native_assertion_and_green_neighbor (scripts.tests.test_scheduled_replay_results.Results) ... ok
+test_setup_product_worker_and_io_panics_are_invalid (scripts.tests.test_scheduled_replay_results.Results) ... ok
+test_timeout_and_cancellation_preserve_owned_schema_names_in_the_log (scripts.tests.test_scheduled_replay_results.Results) ... ok
+test_child_default_and_ignored_signals_keep_native_semantics (scripts.tests.test_producer_ownership.ProducerOwnership) ... ok
+test_child_does_not_inherit_a_blocked_cancellation_signal (scripts.tests.test_producer_ownership.ProducerOwnership) ... ok
+test_default_cancellation_raises_through_source_restoration (scripts.tests.test_producer_ownership.ProducerOwnership) ... ok
+test_ignored_parent_cancellation_stays_ignored (scripts.tests.test_producer_ownership.ProducerOwnership) ... ok
+test_launch_cancellation_reaps_before_all_four_restore (scripts.tests.test_producer_ownership.ProducerOwnership) ... ok
+test_launch_error_restores_original_handlers (scripts.tests.test_producer_ownership.ProducerOwnership) ... ok
+test_native_output_and_nonzero_status_are_unchanged (scripts.tests.test_producer_ownership.ProducerOwnership) ... ok
+test_pid_readiness_is_published_only_after_complete_record_for_all_four (scripts.tests.test_producer_ownership.ProducerOwnership) ... ok
+test_repeated_cancellation_during_cleanup_cannot_skip_restoration (scripts.tests.test_producer_ownership.ProducerOwnership) ... ok
+test_running_cancellation_reaps_before_all_four_restore (scripts.tests.test_producer_ownership.ProducerOwnership) ... ok
+test_timeout_reaps_and_preserves_native_partial_output (scripts.tests.test_producer_ownership.ProducerOwnership) ... ok
+
+----------------------------------------------------------------------
+Ran 48 tests in 1.698s
+
+OK
+    Checking pw-dev-server v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/spikes/own-renderer/server)
+    Finished `dev` profile [unoptimized] target(s) in 6.34s
+   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/spikes/own-renderer/server)
+    Finished `test` profile [unoptimized] target(s) in 3.12s
+     Running unittests src/main.rs (/home/haki/code/pw-wt/scheduler-replay-20261026/target/debug/deps/pw_dev_server-4beb2a4e31121d83)
+
+running 17 tests
+test identity::invocation_tests::a_panicking_read_restores_the_previous_invocation_binding ... ok
+test identity::invocation_tests::a_read_keeps_its_actor_while_live_inspection_observes_revocation ... ok
+test identity::invocation_tests::anonymous_and_nested_bindings_are_scoped_to_their_store_and_cookie ... ok
+test identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity ... ok
+test identity::invocation_tests::debug_output_never_discloses_session_authority_or_principal_fields ... ok
+test identity::tests::a_cookie_is_http_only_and_secure_outside_this_machine ... ok
+test identity::tests::a_refusal_is_taken_once ... ok
+test identity::tests::a_token_is_held_to_its_issuer_audience_expiry_and_nonce ... ok
+test identity::tests::an_origin_is_a_scheme_a_host_and_a_port ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
+test identity::tests::an_unsafe_request_from_another_origin_is_refused ... ok
+test identity::tests::ids_are_random_and_forms_are_decoded ... ok
+test identity::tests::requires_starts_as_the_development_model ... ok
+test identity::tests::s256_is_rfc_7636s_worked_example ... ok
+test identity::tests::the_guest_model_runs_only_in_development_on_this_machine ... ok
+test tests::receiver_identity::a_local_receiver_getter_runs_instead_of_a_namesake_type_constructor ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 817 filtered out; finished in 0.09s
+
+    Finished `test` profile [unoptimized] target(s) in 0.08s
+     Running unittests src/main.rs (/home/haki/code/pw-wt/scheduler-replay-20261026/target/debug/deps/pw_dev_server-4beb2a4e31121d83)
+
+running 16 tests
+test tests::session_commands::a_browser_order_helper_cannot_commit_as_a_revoked_admitted_reader ... ok
+test tests::session_commands::a_logged_out_cookie_cannot_recall_an_old_page_receipt ... ok
+test tests::session_commands::a_reopened_cookie_cannot_borrow_or_reexecute_an_old_generations_receipt ... ok
+test tests::session_commands::an_admitted_memory_command_holds_authority_until_publication ... ok
+test tests::session_commands::an_initial_page_uses_its_admitted_reader_after_a_later_cache_installation ... ok
+test tests::session_commands::an_old_document_cannot_authorize_a_fresh_interaction_after_same_cookie_reopen ... ok
+test tests::session_commands::an_unbound_legacy_receipt_refuses_without_returning_or_reexecuting_it ... ok
+test tests::session_commands::another_cookie_cannot_recall_a_page_owners_committed_receipt ... ok
+test tests::session_commands::automatic_delivery_polls_do_not_renew_client_idle_time ... ok
+test tests::session_commands::command_traces_disclose_only_bounded_outcome_metadata ... ok
+test tests::session_commands::invalid_interaction_metadata_is_a_known_refusal_before_any_execution ... ok
+test tests::session_commands::logout_after_commit_refuses_private_delivery_without_claiming_rollback ... ok
+test tests::session_commands::memory_expiry_during_evaluation_rolls_back_rows_events_and_receipt ... ok
+test tests::session_commands::memory_revocation_before_fence_refuses_the_captured_actor_and_all_writes ... ok
+test tests::session_commands::one_render_does_not_merge_principal_operations_between_actor_generations ... ok
+test tests::session_commands::same_cookie_reopening_does_not_inherit_prior_interaction_acknowledgements_or_basis ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 818 filtered out; finished in 13.54s
+

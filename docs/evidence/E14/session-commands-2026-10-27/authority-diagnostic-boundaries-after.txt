@@ -1,0 +1,10 @@
+   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/spikes/own-renderer/server)
+    Finished `test` profile [unoptimized] target(s) in 8.39s
+     Running unittests src/main.rs (/home/haki/code/pw-wt/scheduler-replay-20261026/target/debug/deps/pw_dev_server-4beb2a4e31121d83)
+
+running 2 tests
+test identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity ... ok
+test tests::session_commands::command_traces_disclose_only_bounded_outcome_metadata ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 832 filtered out; finished in 0.00s
+

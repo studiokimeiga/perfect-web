@@ -79,3 +79,60 @@ Three child self-probes could not reopen its replaced path. That setup-invalid
 run is preserved, not a product failure or a passing gate. Final compilation and
 native/control execution must run serially. Earlier d8c8 source/control evidence
 remains historical and cannot be restamped onto the protocol repair commit.
+
+
+## Complete check audit and private diagnostics
+
+All local gates at a46d47b0 completed: 822 default native passes (nine existing
+Kiokun data measurements ignored and not counted as passes), reader controls 3/3,
+command controls 24/24, and scheduled replay 21/21. Independent reviews verified
+the command artifacts and all 1,799 compiled inputs/restored bytes, including 22
+package files, plus owned-schema absence on both configured databases. Scheduler
+review retains its recorded native-output durability and one-URL scope limits.
+These exact-a46 results are historical after the next source change.
+
+The final complete PR-check audit found two additional blockers missed by looking
+only at the successful PR-triggered workflows. The separate push CI run 40463525070
+failed `test_producer_ownership`: it treated a PID file's existence as readiness
+before its writer had supplied the number. The aggregate CodeQL check 122053616987
+reported 125 alerts even though the dedicated analysis workflow succeeded. Neither
+failure is waived or replaced by the other run's green status.
+
+The PID fixture now closes an adjacent staging record before an atomic rename
+publishes readiness. A controlled writer pause reproduced all four producer
+subcases failing before repair; the full module now passes 11 tests. The child
+reaping and original-source restoration checks run unchanged before the added
+publication assertion. The publication seam has bounded failure cleanup.
+
+Independent SARIF review traced 121 new high findings to the two Account reader
+constructors and overtaint through Result/control-flow error paths; 122 of the 123
+high sinks were test diagnostics. This is not proof that principal bytes reach
+every error string. It did identify a real independent Debug exposure: the six
+principal/reader/actor/cache debug surfaces could disclose cookies, user fields
+and generations. A regression failed all six and passes after kind-only Debug
+and session-map redaction; actual equality and authority checks still succeed.
+
+Authority admission, inspection and actor checks now return a fieldless AuthorityError.
+Its fixed Display categories contain no backend payload. Existing adapter/HTTP
+boundaries convert that typed failure to String, preserving known changed-reader
+and uncertain-outcome handling. Kept session/inspection failure maps to SourceUnavailable; failed admission evicts the old cache entry before advancing its revision;
+cached identity cannot grant authority, and a same-generation source recovery
+still succeeds. A real unavailable-source probe and an unsafe legacy trace probe
+both fail their intended native confidentiality assertions, then pass with the
+restored repair. Command traces emit only operation/outcome metadata, never raw
+why, result or request identifiers. Two old privacy-test diagnostics no longer
+print token/secret bytes; two network-test diagnostics escape line separators.
+Their boolean predicates and legitimate neighboring cases remain intact.
+
+The CodeQL query configuration, severities, Account variant, results and business
+receipt payloads are unchanged. No alert is dismissed or suppressed. The next
+frozen commit requires its own aggregate security gate and all planned exact-head
+CI/browser/recipe checks. Source guidance: the official cleartext-logging query
+help and the pinned CodeQL2.27.3 fieldless-enum barrier reviewed separately.
+
+Reproduce the focused probes with `python3 -m unittest -v
+scripts/tests/test_producer_ownership.py`, `cargo test --locked -p pw-dev-server
+--bin pw-dev-server -- identity::invocation_tests:: --test-threads=1`, and the
+session_commands native module. The raw red/green records are under the dated
+evidence directory. The initial Debug selection matched zero tests; its explicitly
+INVALID log is retained and supplies no red or green credit.

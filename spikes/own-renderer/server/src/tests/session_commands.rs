@@ -664,3 +664,29 @@ fn invalid_interaction_metadata_is_a_known_refusal_before_any_execution() {
         "legitimate receipt exists"
     );
 }
+
+#[test]
+fn command_traces_disclose_only_bounded_outcome_metadata() {
+    let mut answered = Answered {
+        committed: false,
+        result: Some(serde_json::json!("private-command-result-do-not-log")),
+        why: Some("private-backend-reason-do-not-log\nforged log entry".into()),
+        refused: None,
+    };
+    let record = command_trace(&answered).expect("a refusal has trace metadata");
+    assert!(
+        record == "command outcome committed=false",
+        "the trace includes only an operation and outcome category"
+    );
+    answered.committed = true;
+    assert!(
+        command_trace(&answered).expect("acknowledgement metadata")
+            == "command outcome committed=true",
+        "a trace retains the actual commit flag"
+    );
+    answered.why = None;
+    assert!(
+        command_trace(&answered).is_none(),
+        "ordinary successful commands add no trace"
+    );
+}

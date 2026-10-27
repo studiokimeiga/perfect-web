@@ -247,7 +247,7 @@ pub(crate) fn now_secs() -> u64 {
 /// `user` is the program's `UserId`: the provider's `sub`, "locally unique
 /// and never reassigned identifier within the Issuer" (OpenID Connect Core
 /// §2), or a guest's.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Principal {
     pub user: String,
     pub handle: String,
@@ -256,8 +256,45 @@ pub struct Principal {
     pub issuer: String,
 }
 
+/// Authority failures contain no session, principal, generation or source
+/// error payload. Only this bounded category may cross into diagnostics.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum AuthorityError {
+    NotBrowserActor,
+    NotBrowserReader,
+    NotBrowserAdmission,
+    Superseded,
+    MissingPlatformContext,
+    MissingPlatformBinding,
+    SourceUnavailable,
+    Changed,
+    ChangedBeforeCommit,
+}
+
+impl std::fmt::Display for AuthorityError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::NotBrowserActor => "a platform principal is not a browser command actor",
+            Self::NotBrowserReader => "a platform principal is not a browser reader",
+            Self::NotBrowserAdmission => "a platform principal is not a browser admission",
+            Self::Superseded => "session admission was superseded",
+            Self::MissingPlatformContext => "platform invocation has no on-behalf principal",
+            Self::MissingPlatformBinding => "platform invocation principal is no longer held",
+            Self::SourceUnavailable => "session authority source is unavailable",
+            Self::Changed => "session authority changed; command outcome may have committed",
+            Self::ChangedBeforeCommit => "session authority changed before commit",
+        })
+    }
+}
+
+impl From<AuthorityError> for String {
+    fn from(error: AuthorityError) -> Self {
+        error.to_string()
+    }
+}
+
 /// A server-side actor generation, never a browser value or a bearer token.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub(crate) struct SessionIdentity {
     pub(crate) principal: Principal,
     pub(crate) epoch: [u8; 16],
@@ -265,7 +302,7 @@ pub(crate) struct SessionIdentity {
 
 /// The reader a document binds. Anonymous is explicit; absence of a binding
 /// must never be silently interpreted as an anonymous reader after revocation.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub(crate) enum ReaderIdentity {
     Guest,
     Anonymous,
@@ -282,6 +319,45 @@ impl ReaderIdentity {
             Self::Account(identity) => format!("a:{}", hex(&identity.epoch)),
         };
         format!("v1:{}:{reader}", hex(session.as_bytes()))
+    }
+}
+
+// Diagnostics must not turn admission state into another private delivery
+// channel. These values retain full equality and authority semantics, while
+// Debug exposes only their kind, never cookie, principal or generation bytes.
+impl std::fmt::Debug for Principal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Principal").finish_non_exhaustive()
+    }
+}
+
+impl std::fmt::Debug for SessionIdentity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SessionIdentity").finish_non_exhaustive()
+    }
+}
+
+impl std::fmt::Debug for ReaderIdentity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Guest => "Guest",
+            Self::Anonymous => "Anonymous",
+            Self::Account(_) => "Account([redacted])",
+        })
+    }
+}
+
+impl std::fmt::Debug for CommandActor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CommandActor")
+            .field("reader", &self.reader)
+            .finish_non_exhaustive()
+    }
+}
+
+impl std::fmt::Debug for Held {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Held").finish_non_exhaustive()
     }
 }
 
@@ -329,7 +405,6 @@ struct PrincipalsInner {
 /// and last used here, by which a session in this host's memory alone
 /// expires (ADR-0369). Where sessions are kept beyond the host, the
 /// database's clock decides, and this is each request's copy.
-#[derive(Debug)]
 struct Held {
     principal: Principal,
     epoch: [u8; 16],
@@ -366,7 +441,7 @@ impl std::fmt::Debug for PrincipalsInner {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PrincipalsInner")
             .field("accounts", &self.accounts)
-            .field("sessions", &self.sessions)
+            .field("sessions", &"[redacted]")
             .field("kept", &self.kept.get().is_some())
             .field("lifetimes", &self.lifetimes)
             .finish()
@@ -531,7 +606,7 @@ thread_local! {
 
 /// Fixed authority for one browser invocation. Platform invocations never
 /// manufacture this from an on-behalf cookie.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub(crate) struct CommandActor {
     pub(crate) reader: ReaderIdentity,
     session: String,
@@ -553,19 +628,19 @@ impl CommandActor {
             .kept()
             .is_some_and(|own| Arc::ptr_eq(&own, source))
     }
-    pub(crate) fn ensure_current(&self) -> Result<(), String> {
+    pub(crate) fn ensure_current(&self) -> Result<(), AuthorityError> {
         if self.principals.inspect_reader(&self.session)? == self.reader {
             Ok(())
         } else {
-            Err("session authority changed; command outcome may have committed".into())
+            Err(AuthorityError::Changed)
         }
     }
 
-    pub(crate) fn ensure_local_current(&self) -> Result<(), String> {
+    pub(crate) fn ensure_local_current(&self) -> Result<(), AuthorityError> {
         if self.is_local() && self.principals.cached_reader(&self.session) == self.reader {
             Ok(())
         } else {
-            Err("session authority changed before commit".into())
+            Err(AuthorityError::ChangedBeforeCommit)
         }
     }
 }
@@ -582,9 +657,9 @@ impl Principals {
         gate
     }
 
-    pub(crate) fn platform_reader(&self, session: &str) -> Result<ReaderIdentity, String> {
+    pub(crate) fn platform_reader(&self, session: &str) -> Result<ReaderIdentity, AuthorityError> {
         if !session.starts_with(ON_BEHALF) {
-            return Err("platform invocation has no on-behalf principal".into());
+            return Err(AuthorityError::MissingPlatformContext);
         }
         if let Some(reader) = self.invocation_reader(session) {
             return Ok(reader);
@@ -600,12 +675,12 @@ impl Principals {
                     epoch: held.epoch,
                 })
             })
-            .ok_or_else(|| "platform invocation principal is no longer held".into())
+            .ok_or(AuthorityError::MissingPlatformBinding)
     }
 
-    pub(crate) fn command_actor(&self, session: &str) -> Result<CommandActor, String> {
+    pub(crate) fn command_actor(&self, session: &str) -> Result<CommandActor, AuthorityError> {
         if session.starts_with(ON_BEHALF) {
-            return Err("a platform principal is not a browser command actor".into());
+            return Err(AuthorityError::NotBrowserActor);
         }
         let reader = match self.invocation_reader(session) {
             Some(reader) => reader,
@@ -798,9 +873,9 @@ impl Principals {
 
     /// Read-only current authority. Neither long-held subscriptions nor
     /// internal rederivation renew client activity or the absolute deadline.
-    pub(crate) fn inspect_reader(&self, session: &str) -> Result<ReaderIdentity, String> {
+    pub(crate) fn inspect_reader(&self, session: &str) -> Result<ReaderIdentity, AuthorityError> {
         if session.starts_with(ON_BEHALF) {
-            return Err("a platform principal is not a browser reader".into());
+            return Err(AuthorityError::NotBrowserReader);
         }
         if !self.0.accounts.load(Ordering::SeqCst) {
             return Ok(ReaderIdentity::Guest);
@@ -808,6 +883,7 @@ impl Principals {
         if let Some(kept) = self.0.kept.get() {
             return kept
                 .inspect(&kept_hash(session), &self.lifetimes())
+                .map_err(|_| AuthorityError::SourceUnavailable)
                 .map(|identity| {
                     identity
                         .map(ReaderIdentity::Account)
@@ -863,9 +939,9 @@ impl Principals {
 
     /// An explicit per-request result: stale/error results never borrow a
     /// newer cache entry. Network reads hold neither gate nor cache locks.
-    pub(crate) fn admit(&self, session: &str) -> Result<ReaderIdentity, String> {
+    pub(crate) fn admit(&self, session: &str) -> Result<ReaderIdentity, AuthorityError> {
         if session.starts_with(ON_BEHALF) {
-            return Err("a platform principal is not a browser admission".into());
+            return Err(AuthorityError::NotBrowserAdmission);
         }
         let Some(kept) = self.0.kept.get() else {
             let gate = self.command_gate(session);
@@ -909,7 +985,7 @@ impl Principals {
         let _authority = gate.write().expect("session authority gate");
         let mut sessions = self.0.sessions.write().expect("principals");
         if !Arc::ptr_eq(&revision.lock().expect("admission revision"), &before) {
-            return Err("session admission was superseded".into());
+            return Err(AuthorityError::Superseded);
         }
         let result = match read {
             Ok(Some(identity)) => {
@@ -920,9 +996,9 @@ impl Principals {
                 sessions.remove(session);
                 Ok(ReaderIdentity::Anonymous)
             }
-            Err(why) => {
+            Err(_) => {
                 sessions.remove(session);
-                Err(why)
+                Err(AuthorityError::SourceUnavailable)
             }
         };
         self.advance_revision(session);
@@ -2258,6 +2334,197 @@ mod invocation_tests {
             );
         });
         assert_eq!(p.user_of("reader"), "u-alice");
+    }
+
+    #[test]
+    fn authority_source_failures_are_bounded_without_borrowing_cached_identity() {
+        struct Source {
+            unavailable: AtomicBool,
+            identity: SessionIdentity,
+        }
+        impl Kept for Source {
+            fn session(
+                &self,
+                hash: &[u8],
+                life: &SessionLifetimes,
+            ) -> Result<Option<SessionIdentity>, String> {
+                self.inspect(hash, life)
+            }
+            fn inspect(
+                &self,
+                _: &[u8],
+                _: &SessionLifetimes,
+            ) -> Result<Option<SessionIdentity>, String> {
+                if self.unavailable.load(Ordering::SeqCst) {
+                    Err("private-backend-fixture-do-not-log".into())
+                } else {
+                    Ok(Some(self.identity.clone()))
+                }
+            }
+            fn open(&self, _: &[u8], _: &Principal, _: &[u8; 16]) -> Result<(), String> {
+                Ok(())
+            }
+            fn close(&self, _: &[u8]) -> Result<(), String> {
+                Ok(())
+            }
+            fn begin_sign_in(&self, _: &[u8], _: &str, _: &str) -> Result<(), String> {
+                Ok(())
+            }
+            fn take_sign_in(&self, _: &[u8]) -> Result<Option<(String, String, Duration)>, String> {
+                Ok(None)
+            }
+        }
+        let p = Principals::default();
+        p.set_accounts(true);
+        p.open("reader", Principal::guest("fixture"));
+        let bound = p.bound_reader("reader");
+        let actor = p.command_actor("reader").expect("admitted neighbor");
+        actor.ensure_current().expect("current neighbor");
+        let ReaderIdentity::Account(identity) = bound.clone() else {
+            panic!("account fixture")
+        };
+        let backend = Arc::new(Source {
+            unavailable: AtomicBool::new(true),
+            identity,
+        });
+        p.keep_in(backend.clone());
+        let failures = [
+            p.inspect_reader("reader")
+                .expect_err("source failure refuses inspection")
+                .to_string(),
+            p.command_actor("reader")
+                .expect_err("source failure refuses admission")
+                .to_string(),
+            actor
+                .ensure_current()
+                .expect_err("source failure refuses existing actor")
+                .to_string(),
+        ];
+        for failure in failures {
+            assert!(
+                failure == "session authority source is unavailable",
+                "authority diagnostics must expose only a bounded failure category"
+            );
+        }
+        assert!(
+            p.of("reader").is_some(),
+            "a cached principal is present but grants no authority"
+        );
+        assert!(
+            actor.ensure_local_current().is_err(),
+            "persistent authority cannot use a local fence"
+        );
+        let admission = p
+            .admit("reader")
+            .expect_err("failed admission refuses cached identity");
+        assert!(
+            admission.to_string() == "session authority source is unavailable",
+            "admission diagnostics are bounded too"
+        );
+        assert!(
+            p.of("reader").is_none(),
+            "failed admission removes the cached principal"
+        );
+        backend.unavailable.store(false, Ordering::SeqCst);
+        actor
+            .ensure_current()
+            .expect("same-generation source recovery");
+        assert!(
+            p.admit("reader")
+                .expect("same-generation admission recovery")
+                == bound,
+            "recovery installs only the successful source generation"
+        );
+        assert!(
+            p.inspect_reader("reader").expect("recovered source") == bound,
+            "successful authority retains the exact reader generation"
+        );
+    }
+
+    #[test]
+    fn debug_output_never_discloses_session_authority_or_principal_fields() {
+        let session = "debug-fixture-cookie-do-not-log";
+        let principal = Principal {
+            user: "debug-fixture-user-do-not-log".into(),
+            handle: "debug-fixture-handle-do-not-log".into(),
+            name: "debug-fixture-name-do-not-log".into(),
+            issuer: "debug-fixture-issuer-do-not-log".into(),
+        };
+        let p = Principals::default();
+        p.set_accounts(true);
+        p.open(session, principal.clone());
+        let other_session = "debug-other-cookie-do-not-log";
+        let other_principal = Principal::guest("debug-other-principal-do-not-log");
+        p.open(other_session, other_principal.clone());
+        let other_reader = p.bound_reader(other_session);
+        let reader = p.bound_reader(session);
+        let actor = p.command_actor(session).expect("current fixture authority");
+        let held = p.0.sessions.read().expect("fixture sessions");
+        let identity = SessionIdentity {
+            principal: principal.clone(),
+            epoch: held.get(session).expect("opened fixture").epoch,
+        };
+        let epoch_debug = format!("{:?}", identity.epoch);
+        assert!(
+            reader != other_reader,
+            "distinct opaque readers retain different identities"
+        );
+        assert!(
+            reader.partition(session) != other_reader.partition(other_session),
+            "redacted Debug never becomes a partition key"
+        );
+        assert!(
+            format!("{reader:?}") == format!("{other_reader:?}"),
+            "private identities share only their non-identifying debug kind"
+        );
+        let snapshots = [
+            ("principal", format!("{principal:?} {principal:#?}")),
+            ("generation", format!("{identity:?} {identity:#?}")),
+            ("reader", format!("{reader:?} {reader:#?}")),
+            ("actor", format!("{actor:?} {actor:#?}")),
+            ("store", format!("{p:?} {p:#?}")),
+            (
+                "held",
+                format!("{:?}", held.get(session).expect("opened fixture")),
+            ),
+        ];
+        drop(held);
+        let secrets = [
+            session,
+            &principal.user,
+            &principal.handle,
+            &principal.name,
+            &principal.issuer,
+            &epoch_debug,
+            other_session,
+            &other_principal.user,
+            &other_principal.handle,
+            &other_principal.name,
+        ];
+        let leaking: Vec<_> = snapshots
+            .iter()
+            .filter_map(|(kind, snapshot)| {
+                secrets
+                    .iter()
+                    .any(|secret| snapshot.contains(secret))
+                    .then_some(*kind)
+            })
+            .collect();
+        assert!(
+            leaking.is_empty(),
+            "identity Debug disclosed private fields in: {leaking:?}"
+        );
+        actor
+            .ensure_current()
+            .expect("debugging retains current authority");
+        assert!(
+            p.of(session) == Some(principal),
+            "debugging retains principal data"
+        );
+        assert!(
+            p.inspect_reader(session).expect("inspection") == reader,
+            "debugging retains the reader generation"
+        );
     }
 
     #[test]
