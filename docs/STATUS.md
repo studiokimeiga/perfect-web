@@ -2,6 +2,14 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+
+Local continuation 2026-10-26: `wip/session-revocation-20261026` is an
+unmerged implementation branch; its immutable-reader slice and remaining gates
+are recorded in [the scoped continuation record](diagnostics/session-readers-2026-10-26.md).
+The master worktree was observed at `a13b3c3806b928d4a7e135819d58ff5f39c2a6a6`,
+matching fetched origin/master. The dated integration ledger below is historical;
+no new hosted-CI or complete-session acceptance is asserted by this local work.
+
 Reviewed 2026-10-21 against master `e7664d2eb01aa8c6e91df594bd7270a84a8bf8de`,
 train-12's landing, and its completed hosted runs. The
 [snapshot at that landing](STATUS-HISTORY-2026-10-21.md) and

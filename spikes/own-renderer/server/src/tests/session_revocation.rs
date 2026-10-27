@@ -505,7 +505,112 @@ fn an_anonymous_render_never_borrows_a_transient_authenticated_actor() {
         "the real render must cross anonymous/authenticated/anonymous source states"
     );
     assert!(
+        response.starts_with("HTTP/1.1 200"),
+        "the valid anonymous page must still be served after the account cycle"
+    );
+    let manifest = manifest_of(response.split_once("\r\n\r\n").expect("HTTP body").1);
+    assert_eq!(
+        manifest["holds"]["SignedIn~holds"], false,
+        "the successful response is still an anonymous document"
+    );
+    assert!(
         !response.contains("TRANSIENT_PRIVATE_ACTOR"),
         "an anonymous-labeled response cannot borrow an intermediate actor's private value: {response}"
     );
+}
+
+fn streamed_viewer_as(s: &Server, reader: &identity::ReaderIdentity) -> Value {
+    let principals = s.identity.principals();
+    let binding = s.plan_of("feed.app.Home~ui")["bindings"]
+        .as_array()
+        .expect("bindings")
+        .iter()
+        .find(|b| b["resource"] == "feed.app.Me")
+        .expect("compiled Me binding")
+        .clone();
+    let result = principals.with_reader("b", reader, || {
+        std::thread::scope(|scope| {
+            let mut settling = Settling::start(
+                scope,
+                s,
+                "b",
+                vec![StreamRun {
+                    part: 1,
+                    stream: binding,
+                    args: vec![Val::String("b".into())],
+                    streamed: false,
+                }],
+            );
+            let mut settled = settling.for_document();
+            assert_eq!(
+                settled.len(),
+                1,
+                "the real worker completes its compiled query"
+            );
+            let (_, outcome) = settled.pop().expect("settled worker");
+            match outcome {
+                Settled::Ready(value) => value,
+                Settled::Failed(why) => panic!("worker query failed, no actor evidence: {why:?}"),
+            }
+        })
+    });
+    let key = s
+        .queries
+        .trace()
+        .iter()
+        .rev()
+        .find_map(|trace| match trace {
+            pw_resource::Trace::RequestStarted { key, .. } if key.resource == "feed.app.Me" => {
+                Some(key.clone())
+            }
+            _ => None,
+        })
+        .expect("actual private worker flight");
+    assert!(
+        key.key
+            .starts_with(&format!("session={}\u{1f}", reader.partition("b"))),
+        "worker query partition must follow the same frozen actor as its host calls: {key:?}"
+    );
+    result
+}
+
+#[test]
+fn a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change() {
+    let (s, _) = private_feed();
+    let principals = s.identity.principals();
+    let bob = principals.bound_reader("b");
+    s.identity
+        .signed_in_for_test("b", "carol", "REPLACEMENT_ACTOR");
+    let value = streamed_viewer_as(&s, &bob);
+    let Value::Record(fields) = &value else {
+        panic!("viewer is a record")
+    };
+    assert_eq!(
+        fields.get("name"),
+        Some(&Value::Text("bob".into())),
+        "a child worker must execute as the render's original actor"
+    );
+    assert!(
+        !s.delivery_allowed(&("b".into(), 0), Some(&bob)),
+        "frozen computation does not authorize delivery after account rotation"
+    );
+    assert_eq!(
+        principals.of("b").expect("replacement live").name,
+        "REPLACEMENT_ACTOR"
+    );
+}
+
+#[test]
+fn an_anonymous_stream_worker_cannot_borrow_the_live_account() {
+    let (s, _) = private_feed();
+    let value = streamed_viewer_as(&s, &identity::ReaderIdentity::Anonymous);
+    let Value::Record(fields) = &value else {
+        panic!("viewer is a record")
+    };
+    assert_eq!(
+        fields.get("signed_in"),
+        Some(&Value::Bool(false)),
+        "a worker's explicitly anonymous actor cannot become the cache's current account"
+    );
+    assert!(!s.delivery_allowed(&("b".into(), 0), Some(&identity::ReaderIdentity::Anonymous)));
 }

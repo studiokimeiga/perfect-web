@@ -32,16 +32,16 @@ MUTANTS = [
         SERVER,
         # Re-anchored by ADR-0161: each attempt reads one document's.
         # Re-anchored by ADR-0190: a document of any page is read so.
-        "                let read = self.render_document(&doc, settled)?;\n"
-        "                let mut queue = self.pending.lock().expect(\"pending\");\n",
-        "                let mut queue = self.pending.lock().expect(\"pending\");\n"
-        "                let read = self.render_document(&doc, settled)?;\n",
+        "                    let read = self.render_document(&doc, settled)?;\n"
+        "                    let mut queue = self.pending.lock().expect(\"pending\");\n",
+        "                    let mut queue = self.pending.lock().expect(\"pending\");\n"
+        "                    let read = self.render_document(&doc, settled)?;\n",
     ),
     (
         "a document is installed after a change reached its session",
         SERVER,
-        "        if pushed.is_some_and(|pushed| waiting.pushed != pushed) {\n",
-        "        if pushed.is_some_and(|pushed| waiting.pushed != pushed) && false {\n",
+        "        if pushed.is_some_and(|pushed| waiting.pushed != pushed)\n",
+        "        if (pushed.is_some_and(|pushed| waiting.pushed != pushed) && false)\n",
     ),
     (
         "a frame pushed to a session is not counted",

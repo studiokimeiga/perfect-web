@@ -77,9 +77,9 @@ MUTANTS = [
         "an open long poll is not ended",
         "server",
         SERVER,
-        "        // Cut off since it opened (ADR-0175): no answer.\n"
+        "    for _ in 0..40 {\n"
         "        if server.cut_off(session, opened) {\n",
-        "        // Cut off since it opened (ADR-0175): no answer.\n"
+        "    for _ in 0..40 {\n"
         "        if false && server.cut_off(session, opened) {\n",
     ),
     (

@@ -1,5 +1,18 @@
 # Known limitations
 
+
+## Unmerged session repair, 2026-10-26
+
+ADR-0389's synchronous-reader binding is incremental local work. It does not
+complete browser-command transaction/receipt fencing, explicit request-local
+admission, existing-document/keyed/background read binding, teardown, or session-
+specific PostgreSQL/two-host/browser acceptance. Successful-page delivery checks
+do not cover query-derived redirects/errors in the unavailable/not_found paths.
+Nine legacy mutation anchors were retargeted; anchor uniqueness is not a claim
+that their full campaigns ran. See the
+[scoped record](diagnostics/session-readers-2026-10-26.md). No production session
+migration, publication or merge is authorized by these local results.
+
 Reviewed 2026-09-15 against master `4a9bcddc095b3b4d0eac0e0c2ddb8a0143de03d9`
 and the evidence-gate repair. Current milestone state is owned by
 [STATUS](STATUS.md); implementation order is in [NEXT](NEXT.md).

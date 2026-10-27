@@ -512,7 +512,61 @@ impl Drop for OnBehalf {
 #[derive(Debug, Clone, Default)]
 pub struct Principals(Arc<PrincipalsInner>);
 
+// This synchronous host already scopes render snapshots and clock reads to a
+// thread. Reader bindings follow that lifetime too. Child workers must receive
+// their binding explicitly; a thread-local value is never inherited by spawn.
+struct InvocationReader {
+    principals: Principals,
+    session: String,
+    reader: ReaderIdentity,
+}
+
+thread_local! {
+    static INVOCATION_READERS: std::cell::RefCell<Vec<InvocationReader>> = const {
+        std::cell::RefCell::new(Vec::new())
+    };
+}
+
 impl Principals {
+    /// Execute synchronous reads as this fixed actor, including explicit
+    /// Anonymous. This is not authority: delivery still inspects the source.
+    /// No cache write, logout, or nested invocation changes this binding.
+    pub(crate) fn with_reader<T>(
+        &self,
+        session: &str,
+        reader: &ReaderIdentity,
+        run: impl FnOnce() -> T,
+    ) -> T {
+        struct Restore;
+        impl Drop for Restore {
+            fn drop(&mut self) {
+                INVOCATION_READERS.with(|readers| {
+                    readers.borrow_mut().pop();
+                });
+            }
+        }
+        INVOCATION_READERS.with(|readers| {
+            readers.borrow_mut().push(InvocationReader {
+                principals: self.clone(),
+                session: session.to_string(),
+                reader: reader.clone(),
+            });
+        });
+        let _restore = Restore;
+        run()
+    }
+
+    fn invocation_reader(&self, session: &str) -> Option<ReaderIdentity> {
+        INVOCATION_READERS.with(|readers| {
+            readers
+                .borrow()
+                .iter()
+                .rev()
+                .find(|bound| Arc::ptr_eq(&bound.principals.0, &self.0) && bound.session == session)
+                .map(|bound| bound.reader.clone())
+        })
+    }
+
     fn revision(&self, session: &str) -> Arc<AdmissionClock> {
         let mut revisions = self.0.revisions.lock().expect("admission revisions");
         revisions.retain(|_, clock| clock.strong_count() != 0);
@@ -535,6 +589,13 @@ impl Principals {
     pub fn of(&self, session: &str) -> Option<Principal> {
         if session.is_empty() {
             return None;
+        }
+        if let Some(reader) = self.invocation_reader(session) {
+            return match reader {
+                ReaderIdentity::Guest => Some(Principal::guest(session)),
+                ReaderIdentity::Anonymous => None,
+                ReaderIdentity::Account(identity) => Some(identity.principal),
+            };
         }
         let lifetimes = self.lifetimes();
         let expired = match self.0.sessions.read().expect("principals").get(session) {
@@ -602,6 +663,12 @@ impl Principals {
     /// The reader used to begin a render, from its admitted local identity.
     /// It is a binding, not current authority; delivery must inspect again.
     pub(crate) fn bound_reader(&self, session: &str) -> ReaderIdentity {
+        self.invocation_reader(session)
+            .unwrap_or_else(|| self.cached_reader(session))
+    }
+
+    // Live local authority, deliberately bypassing any invocation binding.
+    fn cached_reader(&self, session: &str) -> ReaderIdentity {
         if !self.0.accounts.load(Ordering::SeqCst) {
             return ReaderIdentity::Guest;
         }
@@ -639,7 +706,7 @@ impl Principals {
                         .unwrap_or(ReaderIdentity::Anonymous)
                 });
         }
-        Ok(self.bound_reader(session))
+        Ok(self.cached_reader(session))
     }
 
     /// TRACK SEAM (second-host): **how long its sessions live**, as the
@@ -1997,5 +2064,73 @@ mod tests {
         assert_eq!(identity.requires("OwnsPost", &[], "s-1", &host), Ok(false));
         assert_eq!(take_refusal().as_deref(), Some("SignedIn"));
         assert_eq!(take_refusal(), None);
+    }
+}
+
+#[cfg(test)]
+mod invocation_tests {
+    use super::*;
+
+    #[test]
+    fn a_read_keeps_its_actor_while_live_inspection_observes_revocation() {
+        let p = Principals::default();
+        p.set_accounts(true);
+        p.open("reader", Principal::guest("alice"));
+        let bound = p.bound_reader("reader");
+        p.with_reader("reader", &bound, || {
+            p.close("reader");
+            assert_eq!(p.of("reader"), Some(Principal::guest("alice")));
+            assert_eq!(p.bound_reader("reader"), bound);
+            assert_eq!(
+                p.inspect_reader("reader").expect("local inspection"),
+                ReaderIdentity::Anonymous
+            );
+        });
+        assert!(p.of("reader").is_none());
+        assert_eq!(p.bound_reader("reader"), ReaderIdentity::Anonymous);
+    }
+
+    #[test]
+    fn anonymous_and_nested_bindings_are_scoped_to_their_store_and_cookie() {
+        let p = Principals::default();
+        let other = Principals::default();
+        for store in [&p, &other] {
+            store.set_accounts(true);
+            store.open("reader", Principal::guest("alice"));
+            store.open("other-cookie", Principal::guest("bob"));
+        }
+        let alice = p.bound_reader("reader");
+        p.with_reader("reader", &ReaderIdentity::Anonymous, || {
+            assert!(p.of("reader").is_none());
+            assert_eq!(p.user_of("other-cookie"), "u-bob");
+            assert_eq!(other.user_of("reader"), "u-alice");
+            p.with_reader("reader", &alice, || {
+                assert_eq!(p.user_of("reader"), "u-alice")
+            });
+            assert!(
+                p.of("reader").is_none(),
+                "the explicit anonymous outer binding is restored"
+            );
+        });
+        assert_eq!(p.user_of("reader"), "u-alice");
+    }
+
+    #[test]
+    fn a_panicking_read_restores_the_previous_invocation_binding() {
+        let p = Principals::default();
+        p.set_accounts(true);
+        p.open("reader", Principal::guest("alice"));
+        let bound = p.bound_reader("reader");
+        p.with_reader("reader", &ReaderIdentity::Anonymous, || {
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                p.with_reader("reader", &bound, || panic!("fixture read unwinds"));
+            }));
+            assert!(result.is_err(), "the read actually unwinds");
+            assert!(
+                p.of("reader").is_none(),
+                "unwinding restores explicit anonymous context"
+            );
+        });
+        assert_eq!(p.user_of("reader"), "u-alice");
     }
 }

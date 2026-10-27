@@ -1,5 +1,26 @@
 # Next
 
+
+## Local session continuation, 2026-10-26
+
+The active unmerged slice binds synchronous initial renders and stream workers
+to one immutable actor (ADR-0389). See the
+[continuation record](diagnostics/session-readers-2026-10-26.md); historical
+integration queues below are retained and must be reconciled against current
+master before any landing.
+
+1. Guard query-derived redirects/errors at their final response boundary,
+   with a revocation regression and a valid neighboring response. Complete
+   immutable-reader binding for existing-document rederivations and keyed reads,
+   including stale install/last-document/timer teardown cases.
+2. Make request-local admission results explicit; bind browser commands after
+   waits/body reads, and fence current actor/session authority plus receipt recall
+   inside the same business/platform transaction. Exercise the actual new
+   PostgreSQL session migrations and two-host races specifically.
+3. Finish scoped and affected legacy campaigns, actual browser/HTTP acceptance,
+   canonical evidence, independent final review and exact-head hosted quality
+   gates before publication or merge. The broader session branch remains open.
+
 The next executable tasks, in order, with acceptance criteria. Charter §3.4.
 
 ## Current, 2026-10-22: train-13

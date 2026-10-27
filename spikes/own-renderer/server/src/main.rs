@@ -5991,75 +5991,79 @@ impl Server {
         params: &Params,
         settled: &[(u32, Settled)],
     ) -> Result<(String, u64, serde_json::Value, Env), Unread> {
-        self.drain(session);
-        self.forget_idle_subscribers();
-        // The store's menu brought to its query's value first, and the pages
-        // that show it told (ADR-0178), before this document is a reader:
-        // it is then rendered from what they show. Another page shows no
-        // menu fragment (ADR-0190).
-        if page == self.store_page()
-            && let Some(store) = params.get("id")
-            && let Err(why) = self.refresh_menu(store)
-            && std::env::var("PW_TRACE").is_ok()
-        {
-            eprintln!("the menu of {store} was not brought up to date: {why}");
-        }
-        // The document's values are read, and it is rendered, OUTSIDE the
-        // subscriber table (ADR-0151). Until 2026-10-03 the table was held
-        // throughout, so a page waiting for a slow query kept every other
-        // page waiting, and every command's frames; and two pages read at
-        // once never shared a query's flight, whatever its `concurrency`
-        // said. The table is held only to install the document.
-        // The document's number first (ADR-0161), and its subscriber with
-        // it, so a change that reaches the session while it is read reaches
-        // it too.
-        let doc: Doc = (
-            session.to_string(),
-            self.documents
-                .fetch_add(1, std::sync::atomic::Ordering::SeqCst),
-        );
-        // Its parameters with it (ADR-0162): which store it reads. And its
-        // page (ADR-0190).
-        self.params
-            .lock()
-            .expect("params")
-            .insert(doc.clone(), params.clone());
-        self.pages
-            .lock()
-            .expect("pages")
-            .insert(doc.clone(), page.to_string());
-        // One binding for the whole render, including retries and the last
-        // serialized attempt. Regeneration must never rebind an old document.
         let reader = self.identity.principals().bound_reader(session);
-        let served = (|| {
-            for _ in 1..DOCUMENT_ATTEMPTS {
-                let pushed = self.subscribed_for(&doc, &reader);
-                let read = self.render_document(&doc, settled)?;
-                let mut queue = self.pending.lock().expect("pending");
-                if let Some(served) = self.installed(&mut queue, &doc, read, Some(pushed), &reader)
-                {
-                    return Ok(served);
-                }
+        let principals = self.identity.principals();
+        principals.with_reader(session, &reader, || {
+            self.drain(session);
+            self.forget_idle_subscribers();
+            // The store's menu brought to its query's value first, and the pages
+            // that show it told (ADR-0178), before this document is a reader:
+            // it is then rendered from what they show. Another page shows no
+            // menu fragment (ADR-0190).
+            if page == self.store_page()
+                && let Some(store) = params.get("id")
+                && let Err(why) = self.refresh_menu(store)
+                && std::env::var("PW_TRACE").is_ok()
+            {
+                eprintln!("the menu of {store} was not brought up to date: {why}");
             }
-            // The last attempt is read inside the table, as every document
-            // was before: nothing can reach the session between the read and
-            // the install, so a page is always served.
-            let mut queue = self.pending.lock().expect("pending");
-            let _held = self.held("a document's last attempt, read in the table");
-            let read = self.render_document(&doc, settled)?;
-            self.installed(&mut queue, &doc, read, None, &reader)
-                .ok_or_else(|| {
-                    Unread::Failed("the document reader changed while it rendered".into())
-                })
-        })();
-        // A document that could not be read is no page, and waits for
-        // nothing.
-        if served.is_err() {
-            self.pending.lock().expect("pending").remove(&doc);
-            self.params.lock().expect("params").remove(&doc);
-            self.pages.lock().expect("pages").remove(&doc);
-        }
-        served
+            // The document's values are read, and it is rendered, OUTSIDE the
+            // subscriber table (ADR-0151). Until 2026-10-03 the table was held
+            // throughout, so a page waiting for a slow query kept every other
+            // page waiting, and every command's frames; and two pages read at
+            // once never shared a query's flight, whatever its `concurrency`
+            // said. The table is held only to install the document.
+            // The document's number first (ADR-0161), and its subscriber with
+            // it, so a change that reaches the session while it is read reaches
+            // it too.
+            let doc: Doc = (
+                session.to_string(),
+                self.documents
+                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst),
+            );
+            // Its parameters with it (ADR-0162): which store it reads. And its
+            // page (ADR-0190).
+            self.params
+                .lock()
+                .expect("params")
+                .insert(doc.clone(), params.clone());
+            self.pages
+                .lock()
+                .expect("pages")
+                .insert(doc.clone(), page.to_string());
+            // One binding for the whole render, including retries and the last
+            // serialized attempt. Regeneration must never rebind an old document.
+            let served = (|| {
+                for _ in 1..DOCUMENT_ATTEMPTS {
+                    let pushed = self.subscribed_for(&doc, &reader);
+                    let read = self.render_document(&doc, settled)?;
+                    let mut queue = self.pending.lock().expect("pending");
+                    if let Some(served) =
+                        self.installed(&mut queue, &doc, read, Some(pushed), &reader)
+                    {
+                        return Ok(served);
+                    }
+                }
+                // The last attempt is read inside the table, as every document
+                // was before: nothing can reach the session between the read and
+                // the install, so a page is always served.
+                let mut queue = self.pending.lock().expect("pending");
+                let _held = self.held("a document's last attempt, read in the table");
+                let read = self.render_document(&doc, settled)?;
+                self.installed(&mut queue, &doc, read, None, &reader)
+                    .ok_or_else(|| {
+                        Unread::Failed("the document reader changed while it rendered".into())
+                    })
+            })();
+            // A document that could not be read is no page, and waits for
+            // nothing.
+            if served.is_err() {
+                self.pending.lock().expect("pending").remove(&doc);
+                self.params.lock().expect("params").remove(&doc);
+                self.pages.lock().expect("pages").remove(&doc);
+            }
+            served
+        })
     }
 
     /// **The document's subscriber, before it is read** (ADR-0151,
@@ -7674,8 +7678,12 @@ impl Settling {
                 .map(|ms| started + std::time::Duration::from_millis(ms));
             waiting.insert(run.part, (run.streamed, budget));
             let tx = tx.clone();
+            let principals = server.identity.principals();
+            let reader = principals.bound_reader(session);
             scope.spawn(move || {
-                let answer = server.fetch_answer(session, &run.stream, &run.args);
+                let answer = principals.with_reader(session, &reader, || {
+                    server.fetch_answer(session, &run.stream, &run.args)
+                });
                 let _ = tx.send((run.part, answer));
             });
         }
@@ -10456,144 +10464,149 @@ fn serve_bound(
     query: &str,
 ) {
     let reader_identity = server.identity.principals().bound_reader(session);
-    let template = server.template_of(page);
-    let unavailable = |stream: &mut TcpStream, why: Unread| match why {
-        // A page whose address is another of the page's, as the page
-        // declares it (ADR-0295), is moved there.
-        Unread::Moved { to, permanent } => moved(
-            server, stream, session, fresh, page, &params, query, &to, permanent,
-        ),
-        // A page whose address names nothing, as the page declares it
-        // (ADR-0163), is not found.
-        Unread::NotFound(_) => respond(
-            stream,
-            404,
-            "text/html; charset=utf-8",
-            session,
-            fresh,
-            NOT_FOUND_PAGE.as_bytes(),
-        ),
-        // A page whose values could not be read is answered as
-        // unavailable, and the server goes on (E14, T04).
-        Unread::Failed(why) => respond(
-            stream,
-            503,
-            "text/plain; charset=utf-8",
-            session,
-            fresh,
-            format!("`{}` cannot be shown: {why}", template.name).as_bytes(),
-        ),
-    };
-    // Each stream's query, started before the document is rendered
-    // (ADR-0148): the page waits for the ones it is declared to wait
-    // for, and the rest fill their regions in the same response.
-    let reader = notifications::user_of(&server.identity.principals(), session);
-    let runs = match stream_runs(server.plan_of(page), session, &reader, &params) {
-        Ok(runs) => runs,
-        Err(why) => return unavailable(stream, Unread::Failed(why)),
-    };
-    std::thread::scope(|scope| {
-        let mut settling = Settling::start(scope, server, session, runs);
-        let settled = settling.for_document();
-        // Registering the subscriber HERE, when the document is
-        // served, rather than when it first subscribes: the page
-        // holds instances from this moment on, so a structural change
-        // after this moment has an address in it. A registration
-        // deferred to the first poll would silently drop every change
-        // that raced it.
-        let (rendered, cursor, entries, env) =
-            match server.serve_document_settled(session, page, &params, &settled) {
-                Ok(served) => served,
-                Err(why) => return unavailable(stream, why),
+    let principals = server.identity.principals();
+    principals.with_reader(session, &reader_identity, || {
+        let template = server.template_of(page);
+        let unavailable = |stream: &mut TcpStream, why: Unread| match why {
+            // A page whose address is another of the page's, as the page
+            // declares it (ADR-0295), is moved there.
+            Unread::Moved { to, permanent } => moved(
+                server, stream, session, fresh, page, &params, query, &to, permanent,
+            ),
+            // A page whose address names nothing, as the page declares it
+            // (ADR-0163), is not found.
+            Unread::NotFound(_) => respond(
+                stream,
+                404,
+                "text/html; charset=utf-8",
+                session,
+                fresh,
+                NOT_FOUND_PAGE.as_bytes(),
+            ),
+            // A page whose values could not be read is answered as
+            // unavailable, and the server goes on (E14, T04).
+            Unread::Failed(why) => respond(
+                stream,
+                503,
+                "text/plain; charset=utf-8",
+                session,
+                fresh,
+                format!("`{}` cannot be shown: {why}", template.name).as_bytes(),
+            ),
+        };
+        // Each stream's query, started before the document is rendered
+        // (ADR-0148): the page waits for the ones it is declared to wait
+        // for, and the rest fill their regions in the same response.
+        let reader = notifications::user_of(&server.identity.principals(), session);
+        let runs = match stream_runs(server.plan_of(page), session, &reader, &params) {
+            Ok(runs) => runs,
+            Err(why) => return unavailable(stream, Unread::Failed(why)),
+        };
+        std::thread::scope(|scope| {
+            let mut settling = Settling::start(scope, server, session, runs);
+            let settled = settling.for_document();
+            // Registering the subscriber HERE, when the document is
+            // served, rather than when it first subscribes: the page
+            // holds instances from this moment on, so a structural change
+            // after this moment has an address in it. A registration
+            // deferred to the first poll would silently drop every change
+            // that raced it.
+            let (rendered, cursor, entries, env) =
+                match server.serve_document_settled(session, page, &params, &settled) {
+                    Ok(served) => served,
+                    Err(why) => return unavailable(stream, why),
+                };
+            // Its page's speculation, by its own manifest (ADR-0191).
+            let speculation = server.speculations.get(page).and_then(|m| {
+                let module = m["module"].as_str()?;
+                // Each part the browser renders again with a speculation
+                // (ADR-0172), whose template the document carries.
+                let regions: Vec<u32> = m["regions"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|r| r.as_u64().map(|r| r as u32))
+                    .collect();
+                Some((
+                    format!("/speculation/{module}"),
+                    entries,
+                    regions,
+                    params.clone(),
+                ))
+            });
+            // The page's title, from the values it was rendered with
+            // (ADR-0183). A store's program that states none, the benchmark's
+            // copy, is titled as every store's page was, and another page that
+            // states none by its name, as a page of signals is.
+            let title = match pw_render::title_text(template, &env) {
+                Ok(title) => title.unwrap_or_else(|| {
+                    if page == server.store_page() {
+                        "Store".to_string()
+                    } else {
+                        template.name.clone()
+                    }
+                }),
+                Err(why) => {
+                    return unavailable(stream, Unread::Failed(format!("its title: {why:?}")));
+                }
             };
-        // Its page's speculation, by its own manifest (ADR-0191).
-        let speculation = server.speculations.get(page).and_then(|m| {
-            let module = m["module"].as_str()?;
-            // Each part the browser renders again with a speculation
-            // (ADR-0172), whose template the document carries.
-            let regions: Vec<u32> = m["regions"]
+            // And what it says of itself to what reads it unshown (ADR-0186).
+            let metadata = match pw_render::head_metadata(template, &env) {
+                Ok(metadata) => metadata,
+                Err(why) => {
+                    return unavailable(stream, Unread::Failed(format!("its metadata: {why:?}")));
+                }
+            };
+            // And the address it names its own (ADR-0311).
+            let origin = server.origin.get().map(String::as_str);
+            let metadata = match pw_render::head_canonical(template, &env, origin) {
+                Ok(canonical) => metadata + &canonical,
+                Err(why) => {
+                    return unavailable(
+                        stream,
+                        Unread::Failed(format!("its canonical address: {why:?}")),
+                    );
+                }
+            };
+            // What it asked of its reader, as the host answered for it (ADR-0307).
+            let holds: BTreeMap<String, bool> = server.plan_of(page)["predicates"]
                 .as_array()
                 .into_iter()
                 .flatten()
-                .filter_map(|r| r.as_u64().map(|r| r as u32))
+                .filter_map(|p| p.as_str())
+                .filter_map(|p| {
+                    let name = asked_name(p);
+                    match env.value(&name) {
+                        Some(Value::Bool(b)) => Some((name, *b)),
+                        _ => None,
+                    }
+                })
                 .collect();
-            Some((
-                format!("/speculation/{module}"),
-                entries,
-                regions,
-                params.clone(),
-            ))
+            let html = document(
+                &rendered,
+                &title,
+                &metadata,
+                server.data.style(),
+                template,
+                &server.templates,
+                server.plan_of(page),
+                cursor,
+                speculation,
+                &holds,
+                &server.build_id,
+            );
+            server.respond_streaming(
+                stream,
+                session,
+                fresh,
+                &reader_identity,
+                &html,
+                template,
+                &env,
+                &mut settling,
+            );
         });
-        // The page's title, from the values it was rendered with
-        // (ADR-0183). A store's program that states none, the benchmark's
-        // copy, is titled as every store's page was, and another page that
-        // states none by its name, as a page of signals is.
-        let title = match pw_render::title_text(template, &env) {
-            Ok(title) => title.unwrap_or_else(|| {
-                if page == server.store_page() {
-                    "Store".to_string()
-                } else {
-                    template.name.clone()
-                }
-            }),
-            Err(why) => return unavailable(stream, Unread::Failed(format!("its title: {why:?}"))),
-        };
-        // And what it says of itself to what reads it unshown (ADR-0186).
-        let metadata = match pw_render::head_metadata(template, &env) {
-            Ok(metadata) => metadata,
-            Err(why) => {
-                return unavailable(stream, Unread::Failed(format!("its metadata: {why:?}")));
-            }
-        };
-        // And the address it names its own (ADR-0311).
-        let origin = server.origin.get().map(String::as_str);
-        let metadata = match pw_render::head_canonical(template, &env, origin) {
-            Ok(canonical) => metadata + &canonical,
-            Err(why) => {
-                return unavailable(
-                    stream,
-                    Unread::Failed(format!("its canonical address: {why:?}")),
-                );
-            }
-        };
-        // What it asked of its reader, as the host answered for it (ADR-0307).
-        let holds: BTreeMap<String, bool> = server.plan_of(page)["predicates"]
-            .as_array()
-            .into_iter()
-            .flatten()
-            .filter_map(|p| p.as_str())
-            .filter_map(|p| {
-                let name = asked_name(p);
-                match env.value(&name) {
-                    Some(Value::Bool(b)) => Some((name, *b)),
-                    _ => None,
-                }
-            })
-            .collect();
-        let html = document(
-            &rendered,
-            &title,
-            &metadata,
-            server.data.style(),
-            template,
-            &server.templates,
-            server.plan_of(page),
-            cursor,
-            speculation,
-            &holds,
-            &server.build_id,
-        );
-        server.respond_streaming(
-            stream,
-            session,
-            fresh,
-            &reader_identity,
-            &html,
-            template,
-            &env,
-            &mut settling,
-        );
-    });
+    })
 }
 
 /// **A page moved** (ADR-0295): 308 where the move is permanent and 307
@@ -10708,44 +10721,47 @@ fn serve_page(
     params: Params,
 ) {
     let reader_identity = server.identity.principals().bound_reader(session);
-    let not_found = |stream: &mut TcpStream, why: String| {
-        respond(
-            stream,
-            404,
-            "text/plain; charset=utf-8",
-            session,
-            fresh,
-            why.as_bytes(),
-        );
-    };
-    let runs = match server
-        .plans
-        .get(path)
-        .ok_or_else(|| format!("no page `{path}` in this build"))
-        .and_then(|plan| {
-            let reader = notifications::user_of(&server.identity.principals(), session);
-            stream_runs(plan, session, &reader, &params)
-        }) {
-        Ok(runs) => runs,
-        Err(why) => return not_found(stream, why),
-    };
-    std::thread::scope(|scope| {
-        let mut settling = Settling::start(scope, server, session, runs);
-        let settled = settling.for_document();
-        match server.render_page(path, &params, session, &settled) {
-            Ok((page, env, template)) => server.respond_streaming(
+    let principals = server.identity.principals();
+    principals.with_reader(session, &reader_identity, || {
+        let not_found = |stream: &mut TcpStream, why: String| {
+            respond(
                 stream,
+                404,
+                "text/plain; charset=utf-8",
                 session,
                 fresh,
-                &reader_identity,
-                &page,
-                template,
-                &env,
-                &mut settling,
-            ),
-            Err(why) => not_found(stream, why),
-        }
-    });
+                why.as_bytes(),
+            );
+        };
+        let runs = match server
+            .plans
+            .get(path)
+            .ok_or_else(|| format!("no page `{path}` in this build"))
+            .and_then(|plan| {
+                let reader = notifications::user_of(&server.identity.principals(), session);
+                stream_runs(plan, session, &reader, &params)
+            }) {
+            Ok(runs) => runs,
+            Err(why) => return not_found(stream, why),
+        };
+        std::thread::scope(|scope| {
+            let mut settling = Settling::start(scope, server, session, runs);
+            let settled = settling.for_document();
+            match server.render_page(path, &params, session, &settled) {
+                Ok((page, env, template)) => server.respond_streaming(
+                    stream,
+                    session,
+                    fresh,
+                    &reader_identity,
+                    &page,
+                    template,
+                    &env,
+                    &mut settling,
+                ),
+                Err(why) => not_found(stream, why),
+            }
+        });
+    })
 }
 
 /// **The parameters a path gives a route** (ADR-0162), or `None` when it is

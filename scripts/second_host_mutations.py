@@ -331,7 +331,7 @@ MUTANTS = [
         "a sign-in is not kept where the hosts keep sessions",
         "hosts",
         IDENTITY,
-        "            kept.open(&kept_hash(session), &principal)?;\n",
+        "            kept.open(&kept_hash(session), &principal, &epoch)?;\n",
         "",
     ),
     (
@@ -366,7 +366,9 @@ MUTANTS = [
         "a session the database no longer has stays signed in here",
         "hosts",
         IDENTITY,
-        "            Ok(None) => self.close(session),\n",
+        "            Ok(None) => {\n"
+        "                sessions.remove(session);\n"
+        "            }\n",
         "            Ok(None) => {}\n",
     ),
     (
@@ -513,8 +515,8 @@ MUTANTS = [
         "a host holds its kept sessions to the defaults, not its deployment's",
         "hosts",
         IDENTITY,
-        "        match kept.session(&kept_hash(session), &self.lifetimes()) {\n",
-        "        match kept.session(&kept_hash(session), &SessionLifetimes::default()) {\n",
+        "        let read = kept.session(&kept_hash(session), &self.lifetimes());\n",
+        "        let read = kept.session(&kept_hash(session), &SessionLifetimes::default());\n",
     ),
     (
         "signing in keeps the session the browser came with",
@@ -552,10 +554,10 @@ MUTANTS = [
         "in memory, an expired session is not forgotten",
         "hosts",
         IDENTITY,
-        "        if expired {\n"
-        "            self.close(session);\n"
-        "        }\n",
-        "        let _ = expired;\n",
+        "            Some(held) if !held.expired(&lifetimes) => {\n"
+        "                return Some(held.principal.clone());\n",
+        "            Some(held) if true => {\n"
+        "                return Some(held.principal.clone());\n",
     ),
 ]
 

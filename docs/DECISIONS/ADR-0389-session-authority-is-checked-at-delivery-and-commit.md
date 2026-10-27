@@ -90,3 +90,41 @@ or counter wrap/address ABA. The identity cache write lock precedes a short tick
 lock; no network request holds either. The same-session request still needs its
 own explicit admission result and immutable invocation actor; this cache ordering
 repair does not by itself supply transaction or render authority.
+
+
+## Immutable read actors (2026-10-26 continuation)
+
+A deterministic real HTTP regression starts an anonymous feed render, signs
+in a transient named account between bindings, then signs out after Me is
+read. Before the repair the initial response contains that transient account's
+private display name despite beginning and ending anonymous. A reader label
+and a final authority comparison alone cannot prevent that cycle.
+
+Synchronous reads now scope one immutable ReaderIdentity to the owning
+Principals instance and cookie. Both data-layer principal lookups and platform
+current_user/requires calls use that binding, including explicit Anonymous;
+private query keys use the same actor generation. Initial route handling binds
+before query/stream argument evaluation; direct document callers bind before
+drain and retain it across retries. Settling explicitly copies the binding into
+each child worker. Nested scopes restore the previous binding on return or
+unwind. Live authority inspection deliberately bypasses this context. This
+mechanism follows the synchronous host's existing clock/render-snapshot scope;
+it is not an async task-local contract or a replacement for transaction fencing.
+
+The [Rust LocalKey documentation](https://doc.rust-lang.org/std/thread/struct.LocalKey.html)
+was checked 2026-10-26: each child thread has its own storage. Therefore worker
+propagation is explicit and separately regression-tested with compiled Me
+queries, for both account and anonymous readers. Live revocation must still
+refuse their delivery. Request-local admission ordering, all background
+rederivations/keyed paths, PostgreSQL acceptance and atomic command/receipt
+fences remain separate acceptance obligations; this slice does not close them.
+
+
+Independent review of the immutable-reader slice found no new actor-scope
+blocker. Its requested valid-neighbor check now requires HTTP200 and an
+anonymous SignedIn manifest after the account cycle, as well as no private
+marker. The same review identified a remaining initial-response path: query-
+derived redirects/errors in serve_bound's unavailable closure bypass the
+successful-page delivery check. Those outcomes, and serve_page's error paths,
+need their own final authority decision and regressions before complete
+initial-response protection can be claimed. They remain unmerged/open here.
