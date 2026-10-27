@@ -981,6 +981,9 @@ fn placing_and_settling_where_payments_are_taken_is_bounded() {
 // and `settle_payment` the order's time where it settles one paid (1 more).
 // Track `second-host` (ADR-0369): and each commit's lock and notify on the
 // outbox (1), as [`PAGES`]' commands.
+// ADR-0388: each Clock transaction also consumes its exact queue generation:
+// a locked current-row read and a conditional delete (2). Browser and Payments
+// transactions keep their previous budgets.
 const AWAITING: &[(&str, u64)] = &[
     ("place_order, taking payments: its transaction", 39),
     (
@@ -992,7 +995,7 @@ const AWAITING: &[(&str, u64)] = &[
         "settle_payment, on the provider's word of the cancel: its transaction",
         15,
     ),
-    ("expire_order, run thirty minutes on: its transaction", 27),
+    ("expire_order, run thirty minutes on: its transaction", 29),
     (
         "settle_payment, on the provider's word of the sweep's cancel: its transaction",
         15,
@@ -1014,7 +1017,7 @@ const AWAITING: &[(&str, u64)] = &[
     ),
     (
         "send_to_store, run when its preparation is due: its transaction",
-        10,
+        12,
     ),
 ];
 
@@ -1178,8 +1181,9 @@ impl<T: Send + 'static> Watched<T> {
     }
 }
 
-/// Separate the clock command and its actual Runs::ran cleanup only to
-/// control the production boundary that run_scheduled crosses in this order.
+/// A consumed sweep's late conditional retry shares the payment transaction's
+/// write guard. The real Clock driver consumes its queue row atomically; no
+/// separate cleanup is fabricated after that commit (ADR-0388).
 #[test]
 fn sweep_cleanup_and_payment_commit_share_the_same_write_guard() {
     if std::env::var("PW_STORE_TEST_LAYER").as_deref() != Ok("postgres") {
@@ -1204,28 +1208,29 @@ fn sweep_cleanup_and_payment_commit_share_the_same_write_guard() {
             .expect("placed")
             .committed
         );
-        let runs = s.runs().all_runs().expect("the actual pending sweep");
-        let [run] = runs.as_slice() else {
-            panic!("one sweep: {runs:?}");
-        };
         provider.hold();
         s.query_clock.0.advance(30 * 60 * 1000);
+        let runs = crate::schedules::select(s.runs(), s.now(), 16)
+            .expect("the actual adapter-bound due sweep");
+        let [run] = runs.as_slice() else {
+            panic!("one due sweep");
+        };
         let before = s.data.statements_by_transaction().len();
-        let behalf =
-            s.identity
-                .principals()
-                .on_behalf("clock", &format!("schedule-{}", run.id), &run.user);
-        let args: Vec<serde_json::Value> =
-            serde_json::from_str(&run.args).expect("the actual arguments");
-        let expired = s
-            .command_answer(
-                &run.command,
-                behalf.session(),
-                &args,
-                Some(&format!("schedule-{}", run.id)),
-            )
-            .expect("the actual clock command");
-        assert!(expired.committed, "{expired:?}");
+        assert!(!s.run_scheduled(run), "the real Clock driver was not blocked");
+        assert_eq!(
+            s.counted_runs.ran.load(std::sync::atomic::Ordering::SeqCst),
+            1,
+            "the actual Clock action completed"
+        );
+        assert!(
+            s.runs().all_runs().expect("the consumed sweep").is_empty(),
+            "the Clock transaction already consumed its queue generation"
+        );
+        assert_eq!(
+            super::store_payments::status_of(s, "a"),
+            Some(("canceled".to_string(), None)),
+            "the real sweep changed its order before the late retry"
+        );
 
         let (at_commit, arrived) = std::sync::mpsc::channel();
         let (resume, paused) = std::sync::mpsc::channel();
@@ -1242,12 +1247,19 @@ fn sweep_cleanup_and_payment_commit_share_the_same_write_guard() {
             arrived
                 .recv_timeout(std::time::Duration::from_secs(10))
                 .expect("the real signed webhook reached the commit barrier");
-            // The actual cleanup meets the guard the payment's transaction holds.
-            let mut cleanup = Watched::spawn(scope, || s.runs().ran(run.id));
-            let cleanup_waited = cleanup.waited();
+            // An older dispatcher may still attempt a retry of this consumed
+            // generation. Its production conditional update must meet the same
+            // guard, then report no current row without resurrecting the sweep.
+            let mut retry = Watched::spawn(scope, || {
+                let failures = run.attempts.saturating_add(1);
+                let due = s.now().saturating_add(crate::schedules::backoff_ms(failures));
+                s.runs().retry_current(run, failures, due, None)
+            });
+            let retry_waited = retry.waited();
+            let while_waiting = s.runs().all_runs().expect("runs during the late retry");
             // Release and drain every real operation before failure assertions.
             resume.send(()).expect("release settlement");
-            cleanup.returned().expect("the sweep row cleaned up");
+            let retried = retry.returned().expect("the conditional late retry");
             provider_request
                 .join()
                 .expect("the actual HTTP webhook completed");
@@ -1261,11 +1273,16 @@ fn sweep_cleanup_and_payment_commit_share_the_same_write_guard() {
                 .expect("settled")
                 .len();
             eprintln!(
-                "forced overlap: cleanup_waited={cleanup_waited}; completed_markers={completed}; transactions={finished:?}"
+                "forced overlap: retry_waited={retry_waited}; retried={retried}; completed_markers={completed}; transactions={finished:?}"
             );
             assert!(
-                cleanup_waited,
-                "cleanup crossed the active serializable payment transaction"
+                retry_waited,
+                "conditional retry crossed the active serializable payment transaction"
+            );
+            assert!(!retried, "a consumed queue generation cannot be retried");
+            assert!(
+                while_waiting.is_empty(),
+                "the consumed sweep remains absent during the payment transaction"
             );
             assert_eq!(
                 completed, 1,
@@ -1275,7 +1292,7 @@ fn sweep_cleanup_and_payment_commit_share_the_same_write_guard() {
             // `second-host`, ADR-0369), as `AWAITING`'s.
             assert_eq!(
                 finished,
-                [27, 15],
+                [29, 15],
                 "the exact completed clock and payment transactions"
             );
             assert_eq!(
