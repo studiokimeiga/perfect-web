@@ -449,12 +449,28 @@ fn on_postgres_a_command_refused_at_its_commit_leaves_nothing() {
         0,
         "no event written by any committed transaction"
     );
-    assert_eq!(
-        sets_of(&s, &mine).len(),
-        mine_before,
-        "the author shown nothing"
+    // An unknown acknowledgement triggers an authoritative refresh even
+    // when this deferred constraint actually rolled back. Empty convergence
+    // frames are allowed; attempted business patches/events are not.
+    assert!(
+        sets_of(&s, &mine)
+            .into_iter()
+            .skip(mine_before)
+            .all(|set| set.patches.is_empty()),
+        "the author receives no attempted write"
     );
-    assert_eq!(sets_of(&s, &theirs).len(), theirs_before, "no one told");
+    assert!(
+        sets_of(&s, &theirs)
+            .into_iter()
+            .skip(theirs_before)
+            .all(|set| set.patches.is_empty()),
+        "other readers receive no attempted write"
+    );
+    assert_eq!(
+        s.db.count("SELECT count(*) FROM interactions"),
+        0,
+        "no receipt survived either refused transaction"
+    );
     // The control: the next post commits, and is told.
     let answer = posted(
         &s,

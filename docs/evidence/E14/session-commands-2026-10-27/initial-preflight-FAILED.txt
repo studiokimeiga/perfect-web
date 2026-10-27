@@ -1,0 +1,63 @@
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+    Checking pw-resource v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/runtime/pw-resource)
+    Checking pw-document v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/runtime/pw-document)
+    Checking pw-materialize v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/runtime/pw-materialize)
+    Checking pw-render v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/runtime/pw-render)
+    Checking pw-protocol v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/runtime/pw-protocol)
+    Checking pw-core v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/compiler/pw-core)
+    Checking kiokun-server v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/spikes/kiokun/server)
+    Checking pw-dev-server v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/spikes/own-renderer/server)
+    Checking pw-render-wasm v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/runtime/pw-render-wasm)
+error: methods `command_answered` and `command_recorded` are never used
+    --> spikes/own-renderer/server/src/main.rs:2609:8
+     |
+1614 | impl Server {
+     | ----------- methods in this implementation
+...
+2609 |     fn command_answered(
+     |        ^^^^^^^^^^^^^^^^
+...
+2622 |     fn command_recorded(
+     |        ^^^^^^^^^^^^^^^^
+     |
+     = note: `-D dead-code` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
+
+error: method `into_answer` is never used
+     --> spikes/own-renderer/server/src/main.rs:12048:8
+      |
+12047 | impl CommandOutcome {
+      | ------------------- method in this implementation
+12048 |     fn into_answer(self) -> Result<Answered, String> {
+      |        ^^^^^^^^^^^
+
+error: method `refresh` is never used
+   --> spikes/own-renderer/server/src/identity.rs:857:12
+    |
+573 | impl Principals {
+    | --------------- method in this implementation
+...
+857 |     pub fn refresh(&self, session: &str) {
+    |            ^^^^^^^
+
+error: this function has too many arguments (8/7)
+    --> spikes/own-renderer/server/src/main.rs:3064:5
+     |
+3064 | /     fn commit_staged(
+3065 | |         &self,
+3066 | |         staging: &mut dyn data::Staged,
+3067 | |         emitted: &[data::Handed],
+...    |
+3072 | |         actor: Option<&identity::CommandActor>,
+3073 | |     ) -> Result<CommitOutcome, String> {
+     | |______________________________________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#too_many_arguments
+     = note: `-D clippy::too-many-arguments` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::too_many_arguments)]`
+
+error: could not compile `pw-dev-server` (bin "pw-dev-server") due to 4 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `pw-dev-server` (bin "pw-dev-server" test) due to 1 previous error
+error: recipe `lint` failed on line 110 with exit code 101

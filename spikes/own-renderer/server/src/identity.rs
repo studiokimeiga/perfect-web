@@ -854,6 +854,7 @@ impl Principals {
     /// statement, in the accounts model where sessions are kept; nothing
     /// otherwise. A read that fails signs the request out: it is no one
     /// rather than someone it may no longer be.
+    #[cfg(test)]
     pub fn refresh(&self, session: &str) {
         if let Err(why) = self.admit(session) {
             eprintln!("pw dev server: session admission refused: {why}");

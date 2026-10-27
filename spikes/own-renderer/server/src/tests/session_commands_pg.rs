@@ -426,6 +426,22 @@ fn unknown_commit(kind: Kind) {
                 && !response.contains("\"result\""),
             "an inconclusive receipt read cannot become a cached rollback answer: {response}"
         );
+        let original_document = manifest_of(warm.split_once("\r\n\r\n").expect("body").1)["cursor"]
+            .as_u64()
+            .expect("warm document");
+        let updated_values = entry_values(a, &("owner".into(), original_document));
+        let converged = updated_values.iter().any(|(_, value, _, _)| match kind {
+            Kind::Feed => value.to_string().contains("PG_SESSION_FENCE"),
+            Kind::Store => value["lines"].as_array().is_some_and(|lines| {
+                lines
+                    .iter()
+                    .any(|line| line["quantity"] == 1 && line["item_id"] == "espresso")
+            }),
+        });
+        assert!(
+            converged,
+            "the original warm document must receive the actual committed value before any new GET or source restoration: {updated_values:?}"
+        );
         // Model bounded-bookkeeping eviction through the exact production
         // forget API: an unknown reservation is retained after its sent row goes.
         let (_, cache_key, _) = a.receipt_keys("owner", component(kind), "lost-ack", &payload);

@@ -157,6 +157,7 @@ NEEDS_DATABASE = {
     # The scheduled-commands track: a run kept in each layer's database.
     "e14-scheduled",
     "e14-scheduled-replay",
+    "e14-session-command-authority",
     # Track `reviews`: a store's ratings, on PostgreSQL too.
     "e14-reviews",
     # Track `scheduled-orders` (ADR-0347): without a database it says it

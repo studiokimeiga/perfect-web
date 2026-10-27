@@ -2606,6 +2606,7 @@ impl Server {
     /// value, `Ok` or a declared `Err`, for the handler that called it. The
     /// outer error is a command that trapped or was refused, which answered
     /// no value.
+    #[cfg(test)]
     fn command_answered(
         &self,
         component_id: &str,
@@ -2619,6 +2620,7 @@ impl Server {
     /// [`Server::command_answered`], an idempotent command's answer committed
     /// with its writes by its interaction's key and the arguments it was sent
     /// with (ADR-0325).
+    #[cfg(test)]
     fn command_recorded(
         &self,
         component_id: &str,
@@ -2964,6 +2966,10 @@ impl Server {
     ) {
         let reached = self.invalidate_queries(session, invalidated, events);
         if self.data.session_entry() {
+            // A lost acknowledgement may precede local event/materializer
+            // installation. Mark the fixed actor's entry stale explicitly;
+            // the adapter's real data, never attempted events, rebuilds it.
+            self.materializer.invalidate(&self.cart_key(session), 0);
             self.drain_held(session);
         } else {
             self.clock.advance(1);
@@ -3057,6 +3063,7 @@ impl Server {
     ///
     /// Returns what is delivered, and the materializer's ids for its events,
     /// which are consumed once delivered ([`Materializer::delivered`]).
+    #[allow(clippy::too_many_arguments)]
     fn commit_staged(
         &self,
         staging: &mut dyn data::Staged,
@@ -12040,6 +12047,7 @@ enum CommandOutcome {
     NotCurrent,
     Uncertain(String),
 }
+#[cfg(test)]
 impl CommandOutcome {
     fn into_answer(self) -> Result<Answered, String> {
         match self {

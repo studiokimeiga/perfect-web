@@ -327,3 +327,24 @@ to older frame attribution.
    brief; run nothing paid on an assumed choice.
 3. Device-local durability (ADR-0366's boundary), and the remaining
    [NEXT](NEXT.md) follow-ups, the unexplained feed timeout among them.
+
+
+### Session command authority continuation (2026-10-27, acceptance pending)
+
+ADR-0389 now specifies immutable browser command actors, transaction fences,
+reader-bound receipt metadata/reservations, request admission and final private
+response checks. Same-cookie reopening also partitions applied interaction and
+speculated-version history. Independent review found a real lost-ACK warm Store
+refresh defect; a queued original-document frame regression first failed, then
+passed after explicit authoritative materializer regeneration.
+
+Reproduce the new bounded native/real-PG acceptance with
+`just e14-session-command-authority` (both PW_FEED_DATABASE_URL and
+PW_STORE_DATABASE_URL required). It records the exact source commit, frozen
+binary inventories, raw native logs, strict controls and independent owned-schema
+cleanup under docs/evidence/E14/session-commands.*/. A test declared passed while
+skipped, an assertion outside the test boundary, a source drift or an uncertain
+cleanup cannot pass. Browser/affected legacy recipes, independent final review,
+preflight, full native tests and hosted exact-head CI remain separate merge
+gates. The initial actual failures are preserved under
+`docs/evidence/E14/session-commands-2026-10-27/`. No pending gate is waived here.
