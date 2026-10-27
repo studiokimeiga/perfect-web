@@ -59,3 +59,23 @@ failures remain under docs/evidence/E14/session-commands-2026-10-27. Preliminary
 passing runs are not credited to the final candidate commit. Final gates and
 separate source review must identify the exact immutable SHA. Existing scheduler
 changes remain in the integration ancestry and require their own affected gate.
+
+
+## Browser protocol classification and final-run discipline
+
+The first hosted three-engine run at d8c84940 had the same single failure in
+all engines: a request missing an interaction ID returned an unknown outcome,
+while no evaluation could start. The shared interaction validator now runs in
+HTTP preflight as well as the command gateway. Missing, empty, malformed and
+oversized IDs are known negative protocol refusals; commit/recall uncertainty
+retains its existing meaning. An actual HTTP native regression failed before
+repair and passes with a legitimate write/receipt neighbor; the focused browser
+spec passes all nine tests across Chromium, Firefox and WebKit. No browser
+expectation was weakened. Packages containing compiled Pleris standard/platform
+sources are also included in the canonical committed-input guard and manifest.
+
+A local broad native run overlapped a rebuild of the same test executable.
+Three child self-probes could not reopen its replaced path. That setup-invalid
+run is preserved, not a product failure or a passing gate. Final compilation and
+native/control execution must run serially. Earlier d8c8 source/control evidence
+remains historical and cannot be restamped onto the protocol repair commit.

@@ -3397,6 +3397,28 @@ impl Server {
         Ok((export, args))
     }
 
+    /// Validate protocol metadata before any command evaluation or receipt work.
+    fn command_interaction<'a>(
+        component_id: &str,
+        key_type: &str,
+        interaction: Option<&'a str>,
+    ) -> Result<&'a str, String> {
+        let id = interaction.ok_or_else(|| {
+            format!(
+                "`{component_id}` is idempotent_by {key_type}, and the request carries no interaction id"
+            )
+        })?;
+        if id.is_empty()
+            || id.len() > 128
+            || !id
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        {
+            return Err(format!("`{id}` is not an interaction id"));
+        }
+        Ok(id)
+    }
+
     fn command_platform_answer(
         &self,
         component_id: &str,
@@ -3470,19 +3492,7 @@ impl Server {
                 None,
             ));
         };
-        let id = interaction.ok_or_else(|| {
-            format!(
-                "`{component_id}` is idempotent_by {key_type}, and the request carries no interaction id"
-            )
-        })?;
-        if id.is_empty()
-            || id.len() > 128
-            || !id
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
-        {
-            return Err(format!("`{id}` is not an interaction id"));
-        }
+        let id = Self::command_interaction(component_id, key_type, interaction)?;
         let (key, cache_key, sent) = self.receipt_keys(session, component_id, id, json);
         // **A committed record answers it** (ADR-0325): sent again after the
         // host restarted, past the session's last 64, or to another host, the
@@ -9418,12 +9428,6 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                         return;
                     }
                 };
-                // Type/invariant rejection happens before any staged operation.
-                if let Err(why) = server.command_arguments(id, &args) {
-                    respond_json(&mut stream, 400, &session, fresh,
-                        &serde_json::json!({"committed":false,"error":why}).to_string());
-                    return;
-                }
                 // The interaction this request belongs to, sent by the runtime
                 // once per press and kept by a retry (ADR-0121).
                 let header = |name: &str| {
@@ -9435,6 +9439,19 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                     })
                 };
                 let interaction = header("pw-interaction");
+                // Typed arguments and protocol metadata are known pre-execution
+                // refusals. Keep them distinct from uncertain commit outcomes.
+                let checked = server.command_arguments(id, &args).and_then(|(export, _)| {
+                    if let Some(key_type) = &export.idempotent_by {
+                        Server::command_interaction(id, key_type, interaction.as_deref())?;
+                    }
+                    Ok(())
+                });
+                if let Err(why) = checked {
+                    respond_json(&mut stream, 400, &session, fresh,
+                        &serde_json::json!({"committed":false,"error":why}).to_string());
+                    return;
+                }
                 // Here for the order (ADR-0305), whatever its answer: a command
                 // refused below is answered, and what follows it may run.
                 let arrival = interaction

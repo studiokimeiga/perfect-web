@@ -197,7 +197,7 @@ def git(*arguments):
     return subprocess.check_output(["git", *arguments], cwd=ROOT, text=True).strip()
 
 
-INPUT_PATHS = ("compiler", "runtime", "spikes/own-renderer/server", "examples", "scripts",
+INPUT_PATHS = ("compiler", "runtime", "packages", "spikes/own-renderer/server", "examples", "scripts",
                "just", "justfile", "Cargo.toml", "Cargo.lock", "rust-toolchain.toml")
 
 
@@ -210,7 +210,7 @@ def committed_inputs():
 def inputs():
     paths = git("ls-files", "-z").split("\0")
     paths += git("ls-files", "--others", "--exclude-standard", "-z").split("\0")
-    starts = ("compiler/", "runtime/", "spikes/own-renderer/server/", "examples/", "scripts/", "just/")
+    starts = ("compiler/", "runtime/", "packages/", "spikes/own-renderer/server/", "examples/", "scripts/", "just/")
     paths = {p for p in paths if p and (p.startswith(starts) or p in ("Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "justfile"))}
     return {p: digest(ROOT / p) for p in sorted(paths) if (ROOT / p).is_file()}
 

@@ -605,3 +605,62 @@ fn a_browser_order_helper_cannot_commit_as_a_revoked_admitted_reader() {
         "revoked helper cannot mutate predecessor's order"
     );
 }
+
+#[test]
+fn invalid_interaction_metadata_is_a_known_refusal_before_any_execution() {
+    let s = fixture();
+    let payload = serde_json::json!(["INVALID_INTERACTION_NEVER_WRITES"]).to_string();
+    let too_long = "x".repeat(129);
+    for id in [None, Some(""), Some("bad id"), Some(too_long.as_str())] {
+        let header = id
+            .map(|id| format!("pw-interaction: {id}\r\n"))
+            .unwrap_or_default();
+        let response = super::sign_in::exchanged(
+            &s,
+            &format!(
+                "POST /command/feed.app.post HTTP/1.1\r\nHost: t\r\nCookie: pw-session=owner\r\nSec-Fetch-Site: same-origin\r\n{header}Content-Length: {}\r\n\r\n{payload}",
+                payload.len()
+            ),
+        );
+        assert!(
+            response.starts_with("HTTP/1.1 400"),
+            "invalid protocol is refused: {response}"
+        );
+        let body: serde_json::Value =
+            serde_json::from_str(response.split_once("\r\n\r\n").expect("body").1).expect("JSON");
+        assert_eq!(body["committed"], false, "no evaluation could start");
+        assert!(
+            body.get("outcome").is_none()
+                && body.get("result").is_none()
+                && body.get("basis").is_none(),
+            "known protocol refusal is not a possibly committed result"
+        );
+        assert_eq!(
+            post_count(&s, "INVALID_INTERACTION_NEVER_WRITES"),
+            0,
+            "no business writes"
+        );
+    }
+    let allowed = post(
+        &s,
+        "owner",
+        None,
+        "valid-after-protocol-refusals",
+        "INVALID_INTERACTION_NEVER_WRITES",
+    );
+    assert!(
+        allowed.contains("\"committed\":true"),
+        "valid current-reader neighbor executes"
+    );
+    assert_eq!(
+        post_count(&s, "INVALID_INTERACTION_NEVER_WRITES"),
+        1,
+        "only the legitimate command committed"
+    );
+    assert!(
+        s.recalled_interaction("owner\u{1f}feed.app.post\u{1f}valid-after-protocol-refusals")
+            .expect("lookup")
+            .is_some(),
+        "legitimate receipt exists"
+    );
+}
