@@ -691,7 +691,7 @@ fn a_restarted_host_keeps_its_readers_signed_in() {
 }
 
 /// **An existing session is admitted once, and inspected before delivery**:
-/// one activity read plus one read-only authority check (ADR-0389). A fresh
+/// one atomic five-statement activity admission plus one read-only check (ADR-0389). A fresh
 /// cookie has no admission read and still needs its anonymous delivery check.
 #[test]
 fn a_request_admits_once_and_inspects_before_private_delivery() {
@@ -706,8 +706,8 @@ fn a_request_admits_once_and_inspects_before_private_delivery() {
     assert!(page.starts_with("HTTP/1.1 200"), "{page}");
     assert_eq!(
         kept.ran() - before,
-        2,
-        "exactly one activity admission and one final read-only authority check"
+        6,
+        "one atomic five-statement activity admission and one final read-only authority check"
     );
     let before = kept.ran();
     let fresh = get(&a, "/", "");

@@ -614,3 +614,7 @@ fn an_anonymous_stream_worker_cannot_borrow_the_live_account() {
     );
     assert!(!s.delivery_allowed(&("b".into(), 0), Some(&identity::ReaderIdentity::Anonymous)));
 }
+
+pub(super) fn private_feed_for_commands() -> (Served, u64) {
+    private_feed()
+}

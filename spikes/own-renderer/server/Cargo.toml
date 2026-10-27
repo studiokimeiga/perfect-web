@@ -16,6 +16,7 @@ publish = false
 [features]
 # Explicit actualPG gate; selected tests fail setup when their database is absent.
 scheduler-postgres-tests = []
+session-postgres-tests = []
 
 [dependencies]
 pw-document = { path = "../../../runtime/pw-document" }

@@ -168,15 +168,8 @@ MUTANTS = [
         "each document read again is a render of its own",
         "memory",
         MAIN,
-        "        let mut read = Vec::new();\n"
-        "        let mut unread = Vec::new();\n"
-        "        for doc in live {\n",
-        "        drop(render);\n"
-        "        let render = ();\n"
-        "        let mut read = Vec::new();\n"
-        "        let mut unread = Vec::new();\n"
-        "        for doc in live {\n"
-        "            let _own = render_merge::begin(&*self.data, self.queries.epoch());\n",
+        '        let mut read = Vec::new();\n        let mut unread = Vec::new();\n        for (doc, reader) in live {\n',
+        '        drop(render);\n        let render = ();\n        let mut read = Vec::new();\n        let mut unread = Vec::new();\n        for (doc, reader) in live {\n            let _own = render_merge::begin(&*self.data, self.queries.epoch());\n',
     ),
     (
         "a page's bindings are not one render",
@@ -190,16 +183,8 @@ MUTANTS = [
         "a call answered again is counted as made",
         "memory",
         MAIN,
-        "                let f = counted(&name, f);\n"
-        "                let f = match &render {\n"
-        "                    Some(render) => render.once(session, &name, f),\n"
-        "                    None => f,\n"
-        "                };\n",
-        "                let f = match &render {\n"
-        "                    Some(render) => render.once(session, &name, f),\n"
-        "                    None => f,\n"
-        "                };\n"
-        "                let f = counted(&name, f);\n",
+        '                let f = counted(&name, f);\n                let f = match &render {\n                    Some(render) => render.once(\n                        &self\n                            .identity\n                            .principals()\n                            .receipt_reader(session)\n                            .to_string(),\n                        &name,\n                        f,\n                    ),\n                    None => f,\n                };\n',
+        '                let f = match &render {\n                    Some(render) => render.once(\n                        &self\n                            .identity\n                            .principals()\n                            .receipt_reader(session)\n                            .to_string(),\n                        &name,\n                        f,\n                    ),\n                    None => f,\n                };\n                let f = counted(&name, f);\n',
     ),
     (
         "the platform's calls are merged",

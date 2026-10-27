@@ -353,8 +353,8 @@ MUTANTS = [
         "a page shown to another session is answered as the reader's",
         "server",
         SERVER,
-        "            Some((shown_to, _)) if shown_to == session => None,\n",
-        "            Some((shown_to, _)) if shown_to == session || !session.is_empty() => None,\n",
+        '            Some(_) => Some(ANOTHER_READER),\n',
+        '            Some(_) => None,\n',
     ),
     (
         "a page the host no longer holds is answered",
@@ -385,11 +385,11 @@ MUTANTS = [
         "                {\n                    let _ = document;\n                    None\n                }\n",
     ),
     (
-        "a press's kept answer is looked for under the session the retry came from",
+        "a current reader's kept answer is ignored when its page is gone",
         "server",
         SERVER,
-        "            .map(|(shown_to, _)| shown_to.clone())\n",
-        "            .map(|_| session.to_string())\n",
+        '            Some(Ok(kept)) => Ok(Some(Answered::from_kept(&kept))),\n',
+        '            Some(Ok(_kept)) => Ok(None),\n',
     ),
     (
         "the runtime names no document",

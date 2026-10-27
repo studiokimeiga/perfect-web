@@ -456,7 +456,7 @@ fn on_postgres_a_second_hosts_commit_answers_what_the_first_committed() {
     let s = host();
     let request = [shown("espresso"), serde_json::json!(1)];
     let key = format!("a\u{1f}{ADD}\u{1f}press-1");
-    let sent = serde_json::Value::Array(request.to_vec()).to_string();
+    let (_, _, sent) = s.receipt_keys("a", ADD, "press-1", &request);
     let first = r#"{"committed":true,"why":null,"refused":null,"result":{"first":true}}"#;
     {
         let (layer, key, sent) = (layer.clone(), key.clone(), sent.clone());

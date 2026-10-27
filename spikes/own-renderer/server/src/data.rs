@@ -205,6 +205,20 @@ pub(crate) enum ProjectionScope {
 }
 
 pub(crate) trait Staged {
+    /// Admit a fixed browser actor before executing any host operation.
+    /// A persistent authority needs its adapter's same-transaction fence.
+    fn authorize(&mut self, actor: &crate::identity::CommandActor) -> Result<(), String> {
+        if actor.is_local() {
+            actor.ensure_local_current()
+        } else {
+            Err("this data adapter cannot fence the session authority".into())
+        }
+    }
+    /// No-write and declared-error results still require current authority.
+    fn revalidate(&mut self) -> Result<(), String> {
+        Ok(())
+    }
+
     /// The command's operations: the layer's reads, and its writes, which
     /// stage.
     fn ops(&self) -> Ops;

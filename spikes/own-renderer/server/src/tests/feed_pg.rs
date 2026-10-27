@@ -427,7 +427,10 @@ fn on_postgres_a_command_refused_at_its_commit_leaves_nothing() {
         "i-1",
         "[\"Refused at commit\"]",
     );
-    assert!(answer.contains("\"committed\":false"), "{answer}");
+    assert!(
+        answer.contains("\"outcome\":\"unknown\"") && !answer.contains("\"committed\":false"),
+        "commit errors are conservatively unknown without a confirming receipt: {answer}"
+    );
     // Why, as the host has it: the database's refusal, at the commit.
     let why = s
         .command_answered(

@@ -46,23 +46,15 @@ MUTANTS = [
         "`before` runs the command",
         "server",
         SERVER,
-        "            if drop_at == Some(DropAt::Before) {\n"
-        "                // Never run: what follows it waits for it to be sent again.\n"
-        "                if let Some(arrival) = arrival {\n"
-        "                    arrival.vanish();\n"
-        "                }\n"
-        "                return;\n"
-        "            }\n",
-        "",
+        '                if drop_at == Some(DropAt::Before) {\n                    // Never run: what follows it waits for it to be sent again.\n                    if let Some(arrival) = arrival {\n                        arrival.vanish();\n                    }\n                    return;\n                }\n',
+        '',
     ),
     (
         "`after` sends the answer",
         "server",
         SERVER,
-        "            if drop_at == Some(DropAt::After) {\n"
-        "                return;\n"
-        "            }\n",
-        "",
+        '                if drop_at == Some(DropAt::After) {\n                    return;\n                }\n',
+        '',
     ),
     (
         "an open stream is not ended",

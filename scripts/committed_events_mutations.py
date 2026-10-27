@@ -21,7 +21,7 @@ SERVER = ROOT / "spikes/own-renderer/server/src/main.rs"
 
 # (what is undone, file, anchor, replacement)
 MUTANTS = [
-    ("`CartChanged` is committed whatever is computed", SERVER, '                    schedules::write(tx, scheduled)?;\n                    Ok::<_, String>(events)\n', '                    schedules::write(tx, scheduled)?;\n                    let _ = events;\n                    let session = rows.first()\n                        .map(|(k, _)| k.trim_start_matches("cart:").to_string())\n                        .unwrap_or_default();\n                    Ok::<_, String>(vec![pw_materialize::Event::new(\n                        &["Events", ".CartChanged"].concat(), &[session.as_str()],\n                    )])\n'),
+    ("`CartChanged` is committed whatever is computed", SERVER, '                    schedules::write(tx, scheduled)?;\n                    if let Some(actor) = actor.filter(|actor| actor.is_local()) {\n                        actor.ensure_local_current()?;\n                    }\n                    Ok::<_, String>(events)\n', '                    schedules::write(tx, scheduled)?;\n                    if let Some(actor) = actor.filter(|actor| actor.is_local()) {\n                        actor.ensure_local_current()?;\n                    }\n                    let _ = events;\n                    let session = rows.first().map(|(k,_)| k.trim_start_matches("cart:").to_string()).unwrap_or_default();\n                    Ok::<_, String>(vec![pw_materialize::Event::new(&["Events", ".CartChanged"].concat(), &[session.as_str()])])\n'),
     # ADR-0208: the command computes its events and hands them to the
     # outbox. ADR-0104's four controls of the server's key evaluation are
     # retired with it.

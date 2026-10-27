@@ -700,7 +700,7 @@ impl SessionsPg {
             let c = taken.client.as_mut().expect("a connection taken");
             (|| {
                 self.counted();
-                c.batch_execute("BEGIN")?;
+                c.batch_execute("BEGIN ISOLATION LEVEL READ COMMITTED")?;
                 self.counted();
                 c.batch_execute(SESSION_LOCK_TIMEOUT)?;
                 self.counted();
@@ -785,7 +785,7 @@ impl crate::identity::Kept for SessionsPg {
         let absolute = lifetimes.absolute.as_secs_f64();
         let idle = lifetimes.idle.as_secs_f64();
         let touch = touched_after(lifetimes).as_secs_f64();
-        let row = self.with(|c| {
+        let row = self.mutation(hash, |c| {
             c.query_opt(
                 "WITH live AS (SELECT user_id, handle, name, issuer, seen, epoch FROM sessions \
                      WHERE hash = $1 \

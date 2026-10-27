@@ -345,31 +345,22 @@ MUTANTS = [
         "a request does not read its session",
         "hosts",
         SERVER,
-        "    if !fresh {\n"
-        "        server.identity.principals().refresh(&session);\n"
-        "    }\n",
-        "",
+        '        let admitted = if fresh {\n            Ok(principals.bound_reader(&session))\n        } else {\n            principals.admit(&session)\n        };\n',
+        '        let admitted = Ok::<_, String>(principals.bound_reader(&session));\n',
     ),
     (
         "a request reads its session twice",
         "hosts",
         SERVER,
-        "    if !fresh {\n"
-        "        server.identity.principals().refresh(&session);\n"
-        "    }\n",
-        "    if !fresh {\n"
-        "        server.identity.principals().refresh(&session);\n"
-        "        server.identity.principals().refresh(&session);\n"
-        "    }\n",
+        '        let admitted = if fresh {\n            Ok(principals.bound_reader(&session))\n        } else {\n            principals.admit(&session)\n        };\n',
+        '        let admitted = if fresh {\n            Ok(principals.bound_reader(&session))\n        } else {\n            let _ = principals.admit(&session);\n            principals.admit(&session)\n        };\n',
     ),
     (
         "a session the database no longer has stays signed in here",
         "hosts",
         IDENTITY,
-        "            Ok(None) => {\n"
-        "                sessions.remove(session);\n"
-        "            }\n",
-        "            Ok(None) => {}\n",
+        '            Ok(None) => {\n                sessions.remove(session);\n                Ok(ReaderIdentity::Anonymous)\n            }\n',
+        '            Ok(None) => {\n                Ok(sessions.get(session).map(|held| ReaderIdentity::Account(SessionIdentity {\n                    principal: held.principal.clone(), epoch: held.epoch,\n                })).unwrap_or(ReaderIdentity::Anonymous))\n            }\n',
     ),
     (
         "a sign-in is completed twice",
@@ -416,8 +407,8 @@ MUTANTS = [
         "a press on another host's page is not answered from its record",
         "hosts",
         SERVER,
-        "                Ok(Some((first, answer))) if first == sent => Some(Answered::from_kept(&answer)),\n",
-        "                Ok(Some((first, _))) if first == sent => None,\n",
+        '                Some((first, answer)) if first == sent => Some(Answered::from_kept(&answer)),\n',
+        '                Some((first, _)) if first == sent => None,\n',
     ),
     # --- The deployment's schema.
     (

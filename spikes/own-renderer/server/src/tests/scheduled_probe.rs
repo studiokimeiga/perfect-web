@@ -7,9 +7,19 @@ struct CommitProbe {
     before: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     lose_ack: bool,
     hide_receipt: bool,
+    client_commands: bool,
     crossed: Arc<std::sync::atomic::AtomicUsize>,
 }
 impl data::DataLayer for CommitProbe {
+    fn sessions(&self) -> Option<Arc<dyn identity::Kept>> {
+        self.inner.sessions()
+    }
+    fn snapshot(&self) -> Option<data::Snapshot> {
+        self.inner.snapshot()
+    }
+    fn reads_in(&self, snapshot: &data::Snapshot, s: &str, stop: Option<Stopped>) -> data::Ops {
+        self.inner.reads_in(snapshot, s, stop)
+    }
     fn reads(&self, s: &str, stop: Option<Stopped>) -> data::Ops {
         self.inner.reads(s, stop)
     }
@@ -35,7 +45,7 @@ impl data::DataLayer for CommitProbe {
         self.inner.keeps_interactions()
     }
     fn recalled(&self, k: &str, since: u64) -> Result<Option<(String, String)>, String> {
-        if self.hide_receipt && k.contains("schedule-") {
+        if self.hide_receipt && (self.client_commands || k.contains("schedule-")) {
             Ok(None)
         } else {
             self.inner.recalled(k, since)
@@ -56,6 +66,12 @@ struct ProbeStaged<'a> {
     probe: &'a CommitProbe,
 }
 impl data::Staged for ProbeStaged<'_> {
+    fn authorize(&mut self, actor: &identity::CommandActor) -> Result<(), String> {
+        self.inner.authorize(actor)
+    }
+    fn revalidate(&mut self) -> Result<(), String> {
+        self.inner.revalidate()
+    }
     fn ops(&self) -> data::Ops {
         self.inner.ops()
     }
@@ -79,13 +95,15 @@ impl data::Staged for ProbeStaged<'_> {
         s: &[schedules::Scheduled],
         c: Option<schedules::Completing<'_>>,
     ) -> Result<data::Commit, String> {
-        if c.is_some()
+        if (c.is_some() || self.probe.client_commands)
             && let Some(before) = self.probe.before.lock().expect("probe hook").take()
         {
             before();
         }
         let outcome = self.inner.commit(e, i, r, s, c)?;
-        if c.is_some() && matches!(outcome, data::Commit::Applied(_)) {
+        if (c.is_some() || self.probe.client_commands)
+            && matches!(outcome, data::Commit::Applied(_))
+        {
             self.probe
                 .crossed
                 .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -108,7 +126,29 @@ pub(super) fn probe(
         before: Mutex::new(before),
         lose_ack,
         hide_receipt,
+        client_commands: false,
         crossed: crossed.clone(),
     });
     crossed
+}
+
+#[cfg(feature = "session-postgres-tests")]
+pub(super) fn client_probe(
+    s: &mut Server,
+    hide_receipt: bool,
+) -> (
+    Arc<dyn data::DataLayer>,
+    Arc<std::sync::atomic::AtomicUsize>,
+) {
+    let original = s.data.clone();
+    let crossed = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    s.data = Arc::new(CommitProbe {
+        inner: original.clone(),
+        before: Mutex::new(None),
+        lose_ack: true,
+        hide_receipt,
+        client_commands: true,
+        crossed: crossed.clone(),
+    });
+    (original, crossed)
 }

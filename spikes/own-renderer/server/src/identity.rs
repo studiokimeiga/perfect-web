@@ -313,6 +313,8 @@ struct PrincipalsInner {
     // Weak per-session tickets: unrelated admissions cannot suppress a
     // revocation. A live old reader retains its opaque token, preventing ABA.
     revisions: Mutex<HashMap<String, Weak<AdmissionClock>>>,
+    // Separate authority gates; acquisition order is gate, sessions, ticket.
+    gates: Mutex<HashMap<String, Weak<RwLock<()>>>>,
     /// TRACK SEAM (second-host): **where sessions are kept beyond this
     /// host's memory** (ADR-0369), the database the hosts share, where the
     /// data layer has one. `sessions` is then each request's copy of it.
@@ -527,7 +529,109 @@ thread_local! {
     };
 }
 
+/// Fixed authority for one browser invocation. Platform invocations never
+/// manufacture this from an on-behalf cookie.
+#[derive(Debug, Clone)]
+pub(crate) struct CommandActor {
+    pub(crate) reader: ReaderIdentity,
+    session: String,
+    principals: Principals,
+}
+
+impl CommandActor {
+    pub(crate) fn hash(&self) -> Vec<u8> {
+        kept_hash(&self.session)
+    }
+    pub(crate) fn lifetimes(&self) -> SessionLifetimes {
+        self.principals.lifetimes()
+    }
+    pub(crate) fn is_local(&self) -> bool {
+        matches!(self.reader, ReaderIdentity::Guest) || self.principals.kept().is_none()
+    }
+    pub(crate) fn belongs_to(&self, source: &Arc<dyn Kept>) -> bool {
+        self.principals
+            .kept()
+            .is_some_and(|own| Arc::ptr_eq(&own, source))
+    }
+    pub(crate) fn ensure_current(&self) -> Result<(), String> {
+        if self.principals.inspect_reader(&self.session)? == self.reader {
+            Ok(())
+        } else {
+            Err("session authority changed; command outcome may have committed".into())
+        }
+    }
+
+    pub(crate) fn ensure_local_current(&self) -> Result<(), String> {
+        if self.is_local() && self.principals.cached_reader(&self.session) == self.reader {
+            Ok(())
+        } else {
+            Err("session authority changed before commit".into())
+        }
+    }
+}
+
 impl Principals {
+    pub(crate) fn command_gate(&self, session: &str) -> Arc<RwLock<()>> {
+        let mut gates = self.0.gates.lock().expect("session authority gates");
+        gates.retain(|_, weak| weak.strong_count() != 0);
+        if let Some(gate) = gates.get(session).and_then(Weak::upgrade) {
+            return gate;
+        }
+        let gate = Arc::new(RwLock::new(()));
+        gates.insert(session.to_string(), Arc::downgrade(&gate));
+        gate
+    }
+
+    pub(crate) fn platform_reader(&self, session: &str) -> Result<ReaderIdentity, String> {
+        if !session.starts_with(ON_BEHALF) {
+            return Err("platform invocation has no on-behalf principal".into());
+        }
+        if let Some(reader) = self.invocation_reader(session) {
+            return Ok(reader);
+        }
+        self.0
+            .sessions
+            .read()
+            .expect("principals")
+            .get(session)
+            .map(|held| {
+                ReaderIdentity::Account(SessionIdentity {
+                    principal: held.principal.clone(),
+                    epoch: held.epoch,
+                })
+            })
+            .ok_or_else(|| "platform invocation principal is no longer held".into())
+    }
+
+    pub(crate) fn command_actor(&self, session: &str) -> Result<CommandActor, String> {
+        if session.starts_with(ON_BEHALF) {
+            return Err("a platform principal is not a browser command actor".into());
+        }
+        let reader = match self.invocation_reader(session) {
+            Some(reader) => reader,
+            None => self.inspect_reader(session)?,
+        };
+        Ok(CommandActor {
+            reader,
+            session: session.into(),
+            principals: self.clone(),
+        })
+    }
+
+    /// Receipt identity includes the entire immutable actor, not only a cookie
+    /// or epoch that an unsupported external row edit might accidentally reuse.
+    pub(crate) fn receipt_reader(&self, session: &str) -> serde_json::Value {
+        let reader = self.bound_reader(session);
+        let principal = match &reader {
+            ReaderIdentity::Account(identity) => serde_json::json!({
+                "user":identity.principal.user, "handle":identity.principal.handle,
+                "name":identity.principal.name, "issuer":identity.principal.issuer,
+            }),
+            _ => serde_json::Value::Null,
+        };
+        serde_json::json!({"partition":reader.partition(session), "principal":principal})
+    }
+
     /// Execute synchronous reads as this fixed actor, including explicit
     /// Anonymous. This is not authority: delivery still inspects the source.
     /// No cache write, logout, or nested invocation changes this binding.
@@ -609,6 +713,8 @@ impl Principals {
         // out** (ADR-0369), here as where it is kept: it is no one, or its
         // own guest in the guest model, from now on.
         if let Some(epoch) = expired {
+            let gate = self.command_gate(session);
+            let _authority = gate.write().expect("session authority gate");
             let mut sessions = self.0.sessions.write().expect("principals");
             if sessions
                 .get(session)
@@ -640,6 +746,8 @@ impl Principals {
     }
 
     fn open_identity(&self, session: &str, identity: SessionIdentity) {
+        let gate = self.command_gate(session);
+        let _authority = gate.write().expect("session authority gate");
         let mut sessions = self.0.sessions.write().expect("principals");
         Self::install(&mut sessions, session, identity);
         self.advance_revision(session);
@@ -721,6 +829,8 @@ impl Principals {
     }
 
     fn close(&self, session: &str) {
+        let gate = self.command_gate(session);
+        let _authority = gate.write().expect("session authority gate");
         let mut sessions = self.0.sessions.write().expect("principals");
         sessions.remove(session);
         self.advance_revision(session);
@@ -745,7 +855,20 @@ impl Principals {
     /// otherwise. A read that fails signs the request out: it is no one
     /// rather than someone it may no longer be.
     pub fn refresh(&self, session: &str) {
+        if let Err(why) = self.admit(session) {
+            eprintln!("pw dev server: session admission refused: {why}");
+        }
+    }
+
+    /// An explicit per-request result: stale/error results never borrow a
+    /// newer cache entry. Network reads hold neither gate nor cache locks.
+    pub(crate) fn admit(&self, session: &str) -> Result<ReaderIdentity, String> {
+        if session.starts_with(ON_BEHALF) {
+            return Err("a platform principal is not a browser admission".into());
+        }
         let Some(kept) = self.0.kept.get() else {
+            let gate = self.command_gate(session);
+            let _authority = gate.write().expect("session authority gate");
             let lifetimes = self.lifetimes();
             let mut sessions = self.0.sessions.write().expect("principals");
             if sessions
@@ -757,33 +880,52 @@ impl Principals {
             } else if let Some(held) = sessions.get(session) {
                 held.touch();
             }
-            return;
+            let reader = if !self.0.accounts.load(Ordering::SeqCst) {
+                ReaderIdentity::Guest
+            } else {
+                sessions
+                    .get(session)
+                    .map(|held| {
+                        ReaderIdentity::Account(SessionIdentity {
+                            principal: held.principal.clone(),
+                            epoch: held.epoch,
+                        })
+                    })
+                    .unwrap_or(ReaderIdentity::Anonymous)
+            };
+            return Ok(reader);
         };
-        if !self.0.accounts.load(Ordering::SeqCst)
-            || session.is_empty()
-            || session.starts_with(ON_BEHALF)
-        {
-            return;
+        if !self.0.accounts.load(Ordering::SeqCst) {
+            return Ok(ReaderIdentity::Guest);
+        }
+        if session.is_empty() {
+            return Ok(ReaderIdentity::Anonymous);
         }
         let revision = self.revision(session);
         let before = revision.lock().expect("admission revision").clone();
         let read = kept.session(&kept_hash(session), &self.lifetimes());
+        let gate = self.command_gate(session);
+        let _authority = gate.write().expect("session authority gate");
         let mut sessions = self.0.sessions.write().expect("principals");
         if !Arc::ptr_eq(&revision.lock().expect("admission revision"), &before) {
-            // A local close/newer admission wins over this old result.
-            return;
+            return Err("session admission was superseded".into());
         }
-        match read {
-            Ok(Some(identity)) => Self::install(&mut sessions, session, identity),
+        let result = match read {
+            Ok(Some(identity)) => {
+                Self::install(&mut sessions, session, identity.clone());
+                Ok(ReaderIdentity::Account(identity))
+            }
             Ok(None) => {
                 sessions.remove(session);
+                Ok(ReaderIdentity::Anonymous)
             }
             Err(why) => {
-                eprintln!("pw dev server: a session was not read: {why}");
                 sessions.remove(session);
+                Err(why)
             }
-        }
+        };
         self.advance_revision(session);
+        result
     }
 
     /// **`session` signed in as `principal`**: kept first where sessions are
@@ -853,6 +995,8 @@ impl Principals {
         opened_ago: Duration,
         seen_after: Duration,
     ) {
+        let gate = self.command_gate(session);
+        let _authority = gate.write().expect("session authority gate");
         let epoch = self
             .0
             .sessions

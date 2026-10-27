@@ -140,3 +140,81 @@ a fresh cookie exactly one inspection. The lifetime witness now separately prove
 internal of does not touch seen and explicit refresh does. These are contract
 updates to legacy tests, not removal of privacy assertions or arbitrary budget
 increases. The failed first run is retained, and affected/final runs are separate.
+
+
+## Browser command and receipt fence, selected 2026-10-27
+
+The three new native witnesses first fail: another cookie recalls a page owner's
+receipt, a logged-out cookie recalls its old receipt, and a replacement actor
+under the same cookie receives the predecessor's success. No repair is credited
+by those red runs.
+
+A browser command carries an immutable CommandActor, distinct from trusted
+platform/Clock invocations. Its generation comes from an explicit request-local
+admission result after the body, survives turn waits, and is checked again before
+staged operations. A separate weak per-cookie local read/write gate coordinates
+memory command evaluation, materializer commit and publish with open/close and
+cache admission; its lock order is gate then sessions map, never the existing
+revision ticket followed by a cache lock. Expiry is checked at the final commit
+admission point; a command already admitted cannot retrospectively be recalled.
+All staging/authority locks end before post-commit derivation or receipt recovery.
+
+PG staging validates source identity against its own SessionsPg. It acquires one
+cookie-hash advisory session lock outside the business transaction, then starts
+the business transaction so its MVCC snapshot follows any lock wait, locks the
+session row by hash FOR UPDATE, and compares full principal/epoch/lifetimes after
+waiting. Identity open/close take the same advisory key in their own real atomic
+transaction, including absent anonymous rows. Final DB-clock inspection is on
+the business Client after blocking claim/outbox work, immediately before COMMIT.
+Lock acquisition is bounded; repeated acquisition refuses; rollback/unlock
+uncertainty discards the socket, and unlock's boolean must be true before reuse.
+All old workers must be quiesced; raw privileged SQL that ignores the advisory
+protocol is not a supported session-open operation. Existing-row UPDATE/DELETE
+still conflicts with FOR UPDATE.
+
+Persisted receipt keys stay cookie+component+interaction. The stored sent value
+becomes a versioned envelope of immutable reader identity and arguments. Thus a
+known unbound legacy record or another generation's record refuses without
+returning its private answer or rerunning writes; there is no unsafe migration
+miss that treats an old committed operation as new. In-process reservations and
+outcomes additionally use a reader-bound key, so another generation cannot join
+a flight. Stale-page receipt lookup uses only the caller's cookie, never a page
+owner chosen by an untrusted document number. Document ownership also includes
+the retained generation. Authorized same-reader retries after page loss remain
+valid neighbors. This explicitly supersedes the old cross-cookie guest-to-account
+receipt exception: cart adoption does not grant access to an old receipt.
+
+The immutable actor remains active through fixed response/basis construction.
+Every cached, deduplicated, persisted, no-write and declared-error outcome needs
+current delivery authority. If revocation wins after a legitimate commit, the
+response says its outcome is unknown to this reader and omits result/basis; it
+must not assert rollback. Failed source reads refuse. Unknown commit recovery
+first releases all old staging/claims/locks, then reads an authorized receipt.
+The independently reviewed design is still pending implementation and all gates.
+
+
+### Review refinements, 2026-10-27
+
+Initial page handlers now retain the explicit admission result through render,
+including redirect/error delivery, rather than consulting a later cache write.
+Automatic stream polls do not renew client activity. Background telling/keyed
+reads use each document's immutable reader. Interaction acknowledgements and
+speculated-version histories carry the same full reader tag: a reopened cookie
+cannot inherit its predecessor's acknowledgements or committed basis.
+
+The browser-facing store-write helpers use explicit request admission and the
+same command fence. The order helper computes its owner under that reader before
+staging; trusted maintenance retains its separate internal entry. Ordinary
+uncertain acknowledgements refresh from authoritative state after releasing old
+staging, without publishing attempted business events. Only uncertain commit
+outcomes poison a resource reservation; pre-commit argument/invariant failures
+remain known negative outcomes. An evicted interaction bookkeeping row cannot
+hide a retained unknown reservation on stale-page retry.
+
+The selected PostgreSQL expiry witness waits for the actual database clock to
+cross a nonzero original session deadline after evaluation, then checks physical
+business rows, receipt and outbox rollback. A frozen transaction clock must fail
+that witness. A false advisory-unlock helper result is separately witnessed;
+that helper test alone does not prove the adapter's pool-discard branch. These
+statements specify required behavior; final source review and exact-commit gate
+receipts remain the acceptance authority.

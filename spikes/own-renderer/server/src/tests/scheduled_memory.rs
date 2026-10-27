@@ -173,7 +173,7 @@ fn clock_jobs_do_not_retain_synthetic_presentations_or_private_query_values() {
             .lock()
             .expect("client applied")
             .keys()
-            .all(|k| !k.starts_with("on-behalf:"))
+            .all(|(cookie, _)| !cookie.starts_with("on-behalf:"))
     );
     assert!(s.scheduled_locks.lock().expect("scoped locks").len() <= 1);
 }

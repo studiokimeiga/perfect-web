@@ -150,12 +150,8 @@ MUTANTS = [
         "a page that is not found is answered as one that failed",
         "server",
         SERVER,
-        "            Unread::NotFound(_) => respond(\n"
-        "                stream,\n"
-        "                404,\n",
-        "            Unread::NotFound(_) => respond(\n"
-        "                stream,\n"
-        "                503,\n",
+        '                Unread::NotFound(_) => respond(\n                    stream,\n                    404,\n',
+        '                Unread::NotFound(_) => respond(\n                    stream,\n                    503,\n',
     ),
     (
         "every response says OK",

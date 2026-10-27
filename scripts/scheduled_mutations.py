@@ -227,7 +227,7 @@ MUTANTS = [
         '            &format!("schedule-{}", run.id),\n            "nobody",\n',
     ),
     ("a run answered is kept", MEMORY, MATERIALIZE.with_name("scheduled.rs"), '        let changed = tx.execute(\n            "DELETE FROM schedules WHERE id = ?1 AND command = ?2 AND args = ?3 AND user_id = ?4 AND due_ms = ?5 AND attempts = ?6 AND failed IS NULL AND protocol = 1",\n            params![expected.id, expected.command, expected.args, expected.user, expected.due_ms, expected.attempts],\n        ).map_err(|_| "scheduled completion was refused".to_string())?;\n', '        let changed = 1;\n'),
-    ("a refused run is taken as answered", MEMORY, SERVER, '            Err(why) => why,\n        };\n        let failures = run.attempts.saturating_add(1);\n', '            Err(_why) => return false,\n        };\n        let failures = run.attempts.saturating_add(1);\n'),
+    ("a refused run is taken as answered", MEMORY, SERVER, '            Err(why) | Ok(CommandOutcome::Uncertain(why)) => why,\n        };\n        let failures = run.attempts.saturating_add(1);\n', '            Err(_why) | Ok(CommandOutcome::Uncertain(_why)) => return false,\n        };\n        let failures = run.attempts.saturating_add(1);\n'),
     (
         "a refused run runs again at once",
         MEMORY,

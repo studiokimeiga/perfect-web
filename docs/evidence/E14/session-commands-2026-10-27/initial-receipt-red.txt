@@ -1,0 +1,50 @@
+   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/spikes/own-renderer/server)
+    Finished `test` profile [unoptimized] target(s) in 4.36s
+     Running unittests src/main.rs (/home/haki/code/pw-wt/scheduler-replay-20261026/target/debug/deps/pw_dev_server-4beb2a4e31121d83)
+
+running 3 tests
+test tests::session_commands::a_logged_out_cookie_cannot_recall_an_old_page_receipt ... FAILED
+test tests::session_commands::a_reopened_cookie_cannot_borrow_or_reexecute_an_old_generations_receipt ... FAILED
+test tests::session_commands::another_cookie_cannot_recall_a_page_owners_committed_receipt ... FAILED
+
+failures:
+
+---- tests::session_commands::a_logged_out_cookie_cannot_recall_an_old_page_receipt stdout ----
+
+thread 'tests::session_commands::a_logged_out_cookie_cannot_recall_an_old_page_receipt' (367358) panicked at spikes/own-renderer/server/src/tests/session_commands.rs:102:5:
+a revoked cookie cannot deliver its old receipt: HTTP/1.1 202 
+content-type: application/json; charset=utf-8
+content-length: 109
+x-content-type-options: nosniff
+cache-control: private, no-store
+connection: close
+
+{"basis":[{"entry":"1d5cc079565e6b15120fe59f8c9efcdc","version":2}],"committed":true,"result":{"$case":"ok"}}
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::session_commands::a_reopened_cookie_cannot_borrow_or_reexecute_an_old_generations_receipt stdout ----
+
+thread 'tests::session_commands::a_reopened_cookie_cannot_borrow_or_reexecute_an_old_generations_receipt' (367398) panicked at spikes/own-renderer/server/src/tests/session_commands.rs:121:5:
+new generation must neither return old success nor silently run it anew
+
+---- tests::session_commands::another_cookie_cannot_recall_a_page_owners_committed_receipt stdout ----
+
+thread 'tests::session_commands::another_cookie_cannot_recall_a_page_owners_committed_receipt' (367399) panicked at spikes/own-renderer/server/src/tests/session_commands.rs:70:5:
+a document number cannot grant another cookie its owners receipt: HTTP/1.1 202 
+content-type: application/json; charset=utf-8
+content-length: 53
+x-content-type-options: nosniff
+cache-control: private, no-store
+connection: close
+
+{"basis":[],"committed":true,"result":{"$case":"ok"}}
+
+
+failures:
+    tests::session_commands::a_logged_out_cookie_cannot_recall_an_old_page_receipt
+    tests::session_commands::a_reopened_cookie_cannot_borrow_or_reexecute_an_old_generations_receipt
+    tests::session_commands::another_cookie_cannot_recall_a_page_owners_committed_receipt
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 816 filtered out; finished in 2.05s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
