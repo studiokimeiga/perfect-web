@@ -1,4 +1,5 @@
 """Adversarial calibration of the bounded command producer's acceptance seams."""
+from importlib import import_module
 from pathlib import Path
 import sys
 import tempfile
@@ -7,7 +8,7 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
-import session_command_mutations as gate
+gate = import_module("session_command_mutations")
 
 
 class SessionCommandProducer(unittest.TestCase):

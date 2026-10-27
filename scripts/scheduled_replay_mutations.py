@@ -130,7 +130,7 @@ def run_tests():
             try:
                 child = producer_process.run(command, cwd=ROOT, env=env, timeout=1200)
             except BaseException as error:
-                mutation_source.release(lambda: report_abort(receipt, error), error)
+                mutation_source.release(lambda error=error: report_abort(receipt, error), error)
                 if not isinstance(error, (OSError, subprocess.TimeoutExpired)):
                     raise
                 print("INVALID: native producer did not complete", flush=True)
