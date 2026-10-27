@@ -1,0 +1,38 @@
+command: bash work/run-store-signout-boundary-probe.sh
+exit_code: 0
+{
+  "scope": "real Firefox, controlled serial-response/redirect mechanism; no Pleris build or app acceptance",
+  "source_sha256": "ffa2e79ca9291bcb1d615bb0d1627c7ed62cf5a2f4fd94043f0e18ffaf723ae5",
+  "before": false,
+  "control": false,
+  "result": {
+    "accountDocument": 26,
+    "shown": 26
+  },
+  "events": [
+    {
+      "event": "stream-open",
+      "doc": 26
+    },
+    {
+      "event": "stream-open",
+      "doc": 25
+    },
+    {
+      "event": "route-installed",
+      "page": "here"
+    },
+    {
+      "event": "route-installed",
+      "page": "there"
+    },
+    {
+      "event": "sign-out",
+      "method": "POST",
+      "status": 303
+    },
+    {
+      "event": "redirect-get"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+
+running 2 tests
+test tests::bounded_statements::placing_and_settling_where_payments_are_taken_is_bounded ... ok
+test tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_write_guard ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 833 filtered out; finished in 10.80s

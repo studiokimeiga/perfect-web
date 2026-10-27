@@ -1,0 +1,12 @@
+command: python3 -m unittest -v scripts/tests/test_verify_recipe_database_env.py
+base: 2f5798b14fbe26ec000f066cdf4becb584262691
+workflow: store adapter export added
+exit_code: 0
+test_a_database_shard_exports_both_adapter_urls_to_its_recipes (scripts.tests.test_verify_recipe_database_env.VerifyRecipeDatabaseEnvironment) ... ok
+test_a_shard_without_a_database_leaves_both_adapter_urls_unset (scripts.tests.test_verify_recipe_database_env.VerifyRecipeDatabaseEnvironment) ... ok
+test_the_command_gate_still_refuses_either_missing_adapter_url (scripts.tests.test_verify_recipe_database_env.VerifyRecipeDatabaseEnvironment) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.168s
+
+OK

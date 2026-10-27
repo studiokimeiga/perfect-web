@@ -1,0 +1,525 @@
+ADR-0376 - producer process ownership
+produced by: just e14-producer-ownership
+commit: f8ac86daa39a4283b955243ebdd1980a34485eff
+test_child_default_and_ignored_signals_keep_native_semantics (test_producer_ownership.ProducerOwnership) ... ok
+test_child_does_not_inherit_a_blocked_cancellation_signal (test_producer_ownership.ProducerOwnership) ... ok
+test_default_cancellation_raises_through_source_restoration (test_producer_ownership.ProducerOwnership) ... ok
+test_ignored_parent_cancellation_stays_ignored (test_producer_ownership.ProducerOwnership) ... ok
+test_launch_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) ... ok
+test_launch_error_restores_original_handlers (test_producer_ownership.ProducerOwnership) ... ok
+test_native_output_and_nonzero_status_are_unchanged (test_producer_ownership.ProducerOwnership) ... ok
+test_pid_readiness_is_published_only_after_complete_record_for_all_four (test_producer_ownership.ProducerOwnership) ... ok
+test_repeated_cancellation_during_cleanup_cannot_skip_restoration (test_producer_ownership.ProducerOwnership) ... ok
+test_running_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) ... ok
+test_timeout_reaps_and_preserves_native_partial_output (test_producer_ownership.ProducerOwnership) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 1.469s
+
+OK
+test_child_default_and_ignored_signals_keep_native_semantics (test_producer_ownership.ProducerOwnership) ... ok
+test_child_does_not_inherit_a_blocked_cancellation_signal (test_producer_ownership.ProducerOwnership) ... ok
+test_default_cancellation_raises_through_source_restoration (test_producer_ownership.ProducerOwnership) ... ok
+test_ignored_parent_cancellation_stays_ignored (test_producer_ownership.ProducerOwnership) ... ok
+test_launch_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) ... ok
+test_launch_error_restores_original_handlers (test_producer_ownership.ProducerOwnership) ... ok
+test_native_output_and_nonzero_status_are_unchanged (test_producer_ownership.ProducerOwnership) ... ok
+test_pid_readiness_is_published_only_after_complete_record_for_all_four (test_producer_ownership.ProducerOwnership) ... ok
+test_repeated_cancellation_during_cleanup_cannot_skip_restoration (test_producer_ownership.ProducerOwnership) ... ok
+test_running_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) ... ok
+test_timeout_reaps_and_preserves_native_partial_output (test_producer_ownership.ProducerOwnership) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 2.728s
+
+OK
+
+Python structured receipt: /tmp/pw-producer-ownership-8xv30n9x/pw-guide-result-q_i60ktz
+{"valid": true, "reason": "complete", "passed": ["test_producer_ownership.ProducerOwnership.test_child_default_and_ignored_signals_keep_native_semantics", "test_producer_ownership.ProducerOwnership.test_child_does_not_inherit_a_blocked_cancellation_signal", "test_producer_ownership.ProducerOwnership.test_default_cancellation_raises_through_source_restoration", "test_producer_ownership.ProducerOwnership.test_ignored_parent_cancellation_stays_ignored", "test_producer_ownership.ProducerOwnership.test_launch_cancellation_reaps_before_all_four_restore", "test_producer_ownership.ProducerOwnership.test_launch_error_restores_original_handlers", "test_producer_ownership.ProducerOwnership.test_native_output_and_nonzero_status_are_unchanged", "test_producer_ownership.ProducerOwnership.test_pid_readiness_is_published_only_after_complete_record_for_all_four", "test_producer_ownership.ProducerOwnership.test_repeated_cancellation_during_cleanup_cannot_skip_restoration", "test_producer_ownership.ProducerOwnership.test_running_cancellation_reaps_before_all_four_restore", "test_producer_ownership.ProducerOwnership.test_timeout_reaps_and_preserves_native_partial_output"], "assertion_failed": [], "body_errors": [], "executed": 11, "report_sha256": "1c11d82781e873015f7179a443cf42aa6a75311edb9cd3662b12d54086ddd47d"}
+
+baseline: 11 passed, 0 failed
+test_launch_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) ...
+======================================================================
+FAIL: test_launch_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) (producer='case_and_delivery_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 150, in test_launch_cancellation_reaps_before_all_four_restore
+    self.probe(producer, 'launch')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertEqual(json.loads(receipt.read_text()),
+AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
+- {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
+?                      ^^^             ^^^^
+
++ {'alive_at_restore': False, 'reaped': True, 'source': 'original'}
+?                      ^^^^             ^^^
+ :
+
+======================================================================
+FAIL: test_launch_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) (producer='template_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 150, in test_launch_cancellation_reaps_before_all_four_restore
+    self.probe(producer, 'launch')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertEqual(json.loads(receipt.read_text()),
+AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
+- {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
+?                      ^^^             ^^^^
+
++ {'alive_at_restore': False, 'reaped': True, 'source': 'original'}
+?                      ^^^^             ^^^
+ :
+
+======================================================================
+FAIL: test_launch_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) (producer='device_store_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 150, in test_launch_cancellation_reaps_before_all_four_restore
+    self.probe(producer, 'launch')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertEqual(json.loads(receipt.read_text()),
+AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
+- {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
+?                      ^^^             ^^^^
+
++ {'alive_at_restore': False, 'reaped': True, 'source': 'original'}
+?                      ^^^^             ^^^
+ :
+
+======================================================================
+FAIL: test_launch_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) (producer='qualified_device_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 150, in test_launch_cancellation_reaps_before_all_four_restore
+    self.probe(producer, 'launch')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertEqual(json.loads(receipt.read_text()),
+AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
+- {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
+?                      ^^^             ^^^^
+
++ {'alive_at_restore': False, 'reaped': True, 'source': 'original'}
+?                      ^^^^             ^^^
+ :
+
+----------------------------------------------------------------------
+Ran 1 test in 0.322s
+
+FAILED (failures=4)
+
+Python structured receipt: /tmp/pw-producer-ownership-8xv30n9x/pw-guide-result-wkck38xz
+{"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_producer_ownership.ProducerOwnership.test_launch_cancellation_reaps_before_all_four_restore"], "body_errors": [], "executed": 1, "report_sha256": "9da11c6d0a485c6a9fa75330a64ac0df84866275a11b0c3b0ecfe49e3fa0585c"}
+
+launch cancellation is delivered before ownership: KILLED by test_producer_ownership.ProducerOwnership.test_launch_cancellation_reaps_before_all_four_restore (1 assertion methods fail)
+test_running_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) ...
+======================================================================
+FAIL: test_running_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) (producer='case_and_delivery_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 155, in test_running_cancellation_reaps_before_all_four_restore
+    self.probe(producer, 'running')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertEqual(json.loads(receipt.read_text()),
+AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
+- {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
+?                      ^^^             ^^^^
+
++ {'alive_at_restore': False, 'reaped': True, 'source': 'original'}
+?                      ^^^^             ^^^
+ :
+
+======================================================================
+FAIL: test_running_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) (producer='template_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 155, in test_running_cancellation_reaps_before_all_four_restore
+    self.probe(producer, 'running')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertEqual(json.loads(receipt.read_text()),
+AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
+- {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
+?                      ^^^             ^^^^
+
++ {'alive_at_restore': False, 'reaped': True, 'source': 'original'}
+?                      ^^^^             ^^^
+ :
+
+======================================================================
+FAIL: test_running_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) (producer='device_store_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 155, in test_running_cancellation_reaps_before_all_four_restore
+    self.probe(producer, 'running')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertEqual(json.loads(receipt.read_text()),
+AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
+- {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
+?                      ^^^             ^^^^
+
++ {'alive_at_restore': False, 'reaped': True, 'source': 'original'}
+?                      ^^^^             ^^^
+ :
+
+======================================================================
+FAIL: test_running_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) (producer='qualified_device_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 155, in test_running_cancellation_reaps_before_all_four_restore
+    self.probe(producer, 'running')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertEqual(json.loads(receipt.read_text()),
+AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
+- {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
+?                      ^^^             ^^^^
+
++ {'alive_at_restore': False, 'reaped': True, 'source': 'original'}
+?                      ^^^^             ^^^
+ :
+
+----------------------------------------------------------------------
+Ran 1 test in 0.728s
+
+FAILED (failures=4)
+
+Python structured receipt: /tmp/pw-producer-ownership-8xv30n9x/pw-guide-result-mv_j_ecy
+{"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_producer_ownership.ProducerOwnership.test_running_cancellation_reaps_before_all_four_restore"], "body_errors": [], "executed": 1, "report_sha256": "5d0c77c6fdd6b2e81e0c4de008492eba34d3778a70f4fd31c73cefbc4f3902b9"}
+
+cancellation omits owned cleanup: KILLED by test_producer_ownership.ProducerOwnership.test_running_cancellation_reaps_before_all_four_restore (1 assertion methods fail)
+test_launch_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) ...
+======================================================================
+FAIL: test_launch_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) (producer='case_and_delivery_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 150, in test_launch_cancellation_reaps_before_all_four_restore
+    self.probe(producer, 'launch')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertEqual(json.loads(receipt.read_text()),
+AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
+- {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
+?                      ^^^             ^^^^
+
++ {'alive_at_restore': False, 'reaped': True, 'source': 'original'}
+?                      ^^^^             ^^^
+ :
+
+======================================================================
+FAIL: test_launch_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) (producer='template_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 150, in test_launch_cancellation_reaps_before_all_four_restore
+    self.probe(producer, 'launch')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertEqual(json.loads(receipt.read_text()),
+AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
+- {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
+?                      ^^^             ^^^^
+
++ {'alive_at_restore': False, 'reaped': True, 'source': 'original'}
+?                      ^^^^             ^^^
+ :
+
+======================================================================
+FAIL: test_launch_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) (producer='device_store_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 150, in test_launch_cancellation_reaps_before_all_four_restore
+    self.probe(producer, 'launch')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertEqual(json.loads(receipt.read_text()),
+AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
+- {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
+?                      ^^^             ^^^^
+
++ {'alive_at_restore': False, 'reaped': True, 'source': 'original'}
+?                      ^^^^             ^^^
+ :
+
+======================================================================
+FAIL: test_launch_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership) (producer='qualified_device_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 150, in test_launch_cancellation_reaps_before_all_four_restore
+    self.probe(producer, 'launch')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertEqual(json.loads(receipt.read_text()),
+AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
+- {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
+?                      ^^^             ^^^^
+
++ {'alive_at_restore': False, 'reaped': True, 'source': 'original'}
+?                      ^^^^             ^^^
+ :
+
+----------------------------------------------------------------------
+Ran 1 test in 0.324s
+
+FAILED (failures=4)
+
+Python structured receipt: /tmp/pw-producer-ownership-8xv30n9x/pw-guide-result-9hzpcuib
+{"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_producer_ownership.ProducerOwnership.test_launch_cancellation_reaps_before_all_four_restore"], "body_errors": [], "executed": 1, "report_sha256": "9da11c6d0a485c6a9fa75330a64ac0df84866275a11b0c3b0ecfe49e3fa0585c"}
+
+cleanup does not finish native reaping: KILLED by test_producer_ownership.ProducerOwnership.test_launch_cancellation_reaps_before_all_four_restore (1 assertion methods fail)
+test_repeated_cancellation_during_cleanup_cannot_skip_restoration (test_producer_ownership.ProducerOwnership) ...
+======================================================================
+FAIL: test_repeated_cancellation_during_cleanup_cannot_skip_restoration (test_producer_ownership.ProducerOwnership) (producer='case_and_delivery_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 160, in test_repeated_cancellation_during_cleanup_cannot_skip_restoration
+    self.probe(producer, 'cleanup')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertEqual(json.loads(receipt.read_text()),
+AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
+- {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
+?                      ^^^             ^^^^
+
++ {'alive_at_restore': False, 'reaped': True, 'source': 'original'}
+?                      ^^^^             ^^^
+ :
+
+======================================================================
+FAIL: test_repeated_cancellation_during_cleanup_cannot_skip_restoration (test_producer_ownership.ProducerOwnership) (producer='template_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 160, in test_repeated_cancellation_during_cleanup_cannot_skip_restoration
+    self.probe(producer, 'cleanup')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertEqual(json.loads(receipt.read_text()),
+AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
+- {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
+?                      ^^^             ^^^^
+
++ {'alive_at_restore': False, 'reaped': True, 'source': 'original'}
+?                      ^^^^             ^^^
+ :
+
+======================================================================
+FAIL: test_repeated_cancellation_during_cleanup_cannot_skip_restoration (test_producer_ownership.ProducerOwnership) (producer='device_store_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 160, in test_repeated_cancellation_during_cleanup_cannot_skip_restoration
+    self.probe(producer, 'cleanup')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertEqual(json.loads(receipt.read_text()),
+AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
+- {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
+?                      ^^^             ^^^^
+
++ {'alive_at_restore': False, 'reaped': True, 'source': 'original'}
+?                      ^^^^             ^^^
+ :
+
+======================================================================
+FAIL: test_repeated_cancellation_during_cleanup_cannot_skip_restoration (test_producer_ownership.ProducerOwnership) (producer='qualified_device_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 160, in test_repeated_cancellation_during_cleanup_cannot_skip_restoration
+    self.probe(producer, 'cleanup')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertEqual(json.loads(receipt.read_text()),
+AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
+- {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
+?                      ^^^             ^^^^
+
++ {'alive_at_restore': False, 'reaped': True, 'source': 'original'}
+?                      ^^^^             ^^^
+ :
+
+----------------------------------------------------------------------
+Ran 1 test in 0.331s
+
+FAILED (failures=4)
+
+Python structured receipt: /tmp/pw-producer-ownership-8xv30n9x/pw-guide-result-6wyh4xlq
+{"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_producer_ownership.ProducerOwnership.test_repeated_cancellation_during_cleanup_cannot_skip_restoration"], "body_errors": [], "executed": 1, "report_sha256": "adad3e1265eab0e5af00ac0989bca1ea7c1757c0f662e8146b87d6faa5ca9e9f"}
+
+cleanup cancellation escapes before reaping: KILLED by test_producer_ownership.ProducerOwnership.test_repeated_cancellation_during_cleanup_cannot_skip_restoration (1 assertion methods fail)
+test_default_cancellation_raises_through_source_restoration (test_producer_ownership.ProducerOwnership) ...
+======================================================================
+FAIL: test_default_cancellation_raises_through_source_restoration (test_producer_ownership.ProducerOwnership) (producer='case_and_delivery_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 165, in test_default_cancellation_raises_through_source_restoration
+    self.probe(producer, 'launch', 'default')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 120, in probe
+    self.assertEqual(wrapper.returncode, expected, output)
+AssertionError: -15 != 143 :
+
+======================================================================
+FAIL: test_default_cancellation_raises_through_source_restoration (test_producer_ownership.ProducerOwnership) (producer='template_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 165, in test_default_cancellation_raises_through_source_restoration
+    self.probe(producer, 'launch', 'default')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 120, in probe
+    self.assertEqual(wrapper.returncode, expected, output)
+AssertionError: -15 != 143 :
+
+======================================================================
+FAIL: test_default_cancellation_raises_through_source_restoration (test_producer_ownership.ProducerOwnership) (producer='device_store_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 165, in test_default_cancellation_raises_through_source_restoration
+    self.probe(producer, 'launch', 'default')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 120, in probe
+    self.assertEqual(wrapper.returncode, expected, output)
+AssertionError: -15 != 143 :
+
+======================================================================
+FAIL: test_default_cancellation_raises_through_source_restoration (test_producer_ownership.ProducerOwnership) (producer='qualified_device_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 348, in subtest
+    yield
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 165, in test_default_cancellation_raises_through_source_restoration
+    self.probe(producer, 'launch', 'default')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 120, in probe
+    self.assertEqual(wrapper.returncode, expected, output)
+AssertionError: -15 != 143 :
+
+----------------------------------------------------------------------
+Ran 1 test in 0.339s
+
+FAILED (failures=4)
+
+Python structured receipt: /tmp/pw-producer-ownership-8xv30n9x/pw-guide-result-3oo023dq
+{"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_producer_ownership.ProducerOwnership.test_default_cancellation_raises_through_source_restoration"], "body_errors": [], "executed": 1, "report_sha256": "d4cc6d7dbd6b7ec2be5c4926f61d6b0c2904aaee31df654da0757ede941136c7"}
+
+default cancellation kills the parent without restoring source: KILLED by test_producer_ownership.ProducerOwnership.test_default_cancellation_raises_through_source_restoration (1 assertion methods fail)
+test_ignored_parent_cancellation_stays_ignored (test_producer_ownership.ProducerOwnership) ... FAIL
+
+======================================================================
+FAIL: test_ignored_parent_cancellation_stays_ignored (test_producer_ownership.ProducerOwnership)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 214, in test_ignored_parent_cancellation_stays_ignored
+    result = producer_process.run([sys.executable, '-c',
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/producer_process.py", line 123, in run
+    raise SystemExit(128 + number)
+SystemExit: 143
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 302, in body
+    return self.checked(original(*args, **kwargs), identity + ' body')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 217, in test_ignored_parent_cancellation_stays_ignored
+    self.fail(f'an ignored signal cancelled the parent: {stopped}')
+AssertionError: an ignored signal cancelled the parent: 143
+
+----------------------------------------------------------------------
+Ran 1 test in 0.023s
+
+FAILED (failures=1)
+
+Python structured receipt: /tmp/pw-producer-ownership-8xv30n9x/pw-guide-result-xpykjz9s
+{"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_producer_ownership.ProducerOwnership.test_ignored_parent_cancellation_stays_ignored"], "body_errors": [], "executed": 1, "report_sha256": "1cfa651b6414df34e76d2293dbfe4343e01852ba99921dc28a4bae2cd32d53ab"}
+
+ignored cancellation is captured: KILLED by test_producer_ownership.ProducerOwnership.test_ignored_parent_cancellation_stays_ignored (1 assertion methods fail)
+test_native_output_and_nonzero_status_are_unchanged (test_producer_ownership.ProducerOwnership) ... FAIL
+
+======================================================================
+FAIL: test_native_output_and_nonzero_status_are_unchanged (test_producer_ownership.ProducerOwnership)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 302, in body
+    return self.checked(original(*args, **kwargs), identity + ' body')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 171, in test_native_output_and_nonzero_status_are_unchanged
+    self.assertEqual(result.returncode, 17)
+AssertionError: 0 != 17
+
+----------------------------------------------------------------------
+Ran 1 test in 0.019s
+
+FAILED (failures=1)
+
+Python structured receipt: /tmp/pw-producer-ownership-8xv30n9x/pw-guide-result-7j27w1qk
+{"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_producer_ownership.ProducerOwnership.test_native_output_and_nonzero_status_are_unchanged"], "body_errors": [], "executed": 1, "report_sha256": "88735b0ce39c8eb23619d8ec61ccadcc7c20a67163848e6ab9fc342a3030a6aa"}
+
+native failed status is changed to success: KILLED by test_producer_ownership.ProducerOwnership.test_native_output_and_nonzero_status_are_unchanged (1 assertion methods fail)
+test_timeout_reaps_and_preserves_native_partial_output (test_producer_ownership.ProducerOwnership) ... FAIL
+
+======================================================================
+FAIL: test_timeout_reaps_and_preserves_native_partial_output (test_producer_ownership.ProducerOwnership)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 302, in body
+    return self.checked(original(*args, **kwargs), identity + ' body')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 180, in test_timeout_reaps_and_preserves_native_partial_output
+    with self.assertRaises(subprocess.TimeoutExpired) as expired:
+AssertionError: TimeoutExpired not raised
+
+----------------------------------------------------------------------
+Ran 1 test in 0.204s
+
+FAILED (failures=1)
+
+Python structured receipt: /tmp/pw-producer-ownership-8xv30n9x/pw-guide-result-x7f40kmt
+{"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_producer_ownership.ProducerOwnership.test_timeout_reaps_and_preserves_native_partial_output"], "body_errors": [], "executed": 1, "report_sha256": "56ef14d1c4f7c0d108d9f15ae13361f3b4ed8c9f47f9701f0350dd164e554d9a"}
+
+timeout is reported as native completion: KILLED by test_producer_ownership.ProducerOwnership.test_timeout_reaps_and_preserves_native_partial_output (1 assertion methods fail)
+test_launch_error_restores_original_handlers (test_producer_ownership.ProducerOwnership) ... FAIL
+
+======================================================================
+FAIL: test_launch_error_restores_original_handlers (test_producer_ownership.ProducerOwnership)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/unittest_producer.py", line 302, in body
+    return self.checked(original(*args, **kwargs), identity + ' body')
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership.py", line 233, in test_launch_error_restores_original_handlers
+    self.assertEqual({number: signal.getsignal(number) for number in before}, before)
+AssertionError: {<Sig[13 chars]2>: <function run.<locals>.defer at 0x73ef78a5[73 chars]f70>} != {<Sig[13 chars]2>: <built-in function default_int_handler>, <[39 chars]: 0>}
+- {<Signals.SIGINT: 2>: <function run.<locals>.defer at 0x73ef78a54f70>,
+-  <Signals.SIGTERM: 15>: <function run.<locals>.defer at 0x73ef78a54f70>}
++ {<Signals.SIGINT: 2>: <built-in function default_int_handler>,
++  <Signals.SIGTERM: 15>: <Handlers.SIG_DFL: 0>}
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+FAILED (failures=1)
+
+Python structured receipt: /tmp/pw-producer-ownership-8xv30n9x/pw-guide-result-__8qukak
+{"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_producer_ownership.ProducerOwnership.test_launch_error_restores_original_handlers"], "body_errors": [], "executed": 1, "report_sha256": "f4ce66fe9d2feb8fa3f81cbc95a855367c04d2ab4b6d94fd895e869bf163cda9"}
+
+original handlers are not restored: KILLED by test_producer_ownership.ProducerOwnership.test_launch_error_restores_original_handlers (1 assertion methods fail)
+9 of 9 mutants killed
+memory bound: no process was stopped

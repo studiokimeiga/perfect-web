@@ -1216,7 +1216,10 @@ fn sweep_cleanup_and_payment_commit_share_the_same_write_guard() {
             panic!("one due sweep");
         };
         let before = s.data.statements_by_transaction().len();
-        assert!(!s.run_scheduled(run), "the real Clock driver was not blocked");
+        assert!(
+            !s.run_scheduled(run),
+            "the real Clock driver was not blocked"
+        );
         assert_eq!(
             s.counted_runs.ran.load(std::sync::atomic::Ordering::SeqCst),
             1,
@@ -1252,7 +1255,9 @@ fn sweep_cleanup_and_payment_commit_share_the_same_write_guard() {
             // guard, then report no current row without resurrecting the sweep.
             let mut retry = Watched::spawn(scope, || {
                 let failures = run.attempts.saturating_add(1);
-                let due = s.now().saturating_add(crate::schedules::backoff_ms(failures));
+                let due = s
+                    .now()
+                    .saturating_add(crate::schedules::backoff_ms(failures));
                 s.runs().retry_current(run, failures, due, None)
             });
             let retry_waited = retry.waited();

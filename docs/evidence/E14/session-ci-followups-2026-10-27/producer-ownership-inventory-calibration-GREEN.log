@@ -1,0 +1,8 @@
+test_actual_native_verdicts_have_exact_owner_and_catalog (scripts.tests.test_producer_ownership_metadata.Metadata) ... ok
+test_native_freeze_still_refuses_the_stale_ten_test_count (scripts.tests.test_producer_ownership_metadata.Metadata) ... ok
+test_production_freeze_includes_the_pid_publication_witness (scripts.tests.test_producer_ownership_metadata.Metadata) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.629s
+
+OK

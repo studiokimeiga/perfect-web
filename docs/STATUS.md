@@ -25,6 +25,15 @@ prior controls retained. The 9fed campaign was cancelled and supplies no full
 acceptance. Its aggregate security findings also remain failed historical
 evidence; only the next exact-head result can clear them.
 
+CI follow-up 2026-10-27: actual recipe artifacts refused the `2f5798b1`
+candidate despite passed local gates and green runner shell jobs. The database
+environment, real Clock/payment fixture, explicit producer inventory and second
+tab's sign-out boundary are repaired with separate reviews and raw regressions
+in [the CI follow-up record](diagnostics/session-ci-followups-2026-10-27.md).
+The next exact composed head must include the full PostgreSQL server partition,
+bounded-statement and ownership mutation recipes, and the final hosted artifact
+summary. No old-head or incomplete result clears those obligations.
+
 Reviewed 2026-10-21 against master `e7664d2eb01aa8c6e91df594bd7270a84a8bf8de`,
 train-12's landing, and its completed hosted runs. The
 [snapshot at that landing](STATUS-HISTORY-2026-10-21.md) and

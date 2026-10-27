@@ -1,0 +1,95 @@
+{
+  "normalization": "Readable copies use LF and trim trailing whitespace/blank EOF lines; .gz retains exact original bytes.",
+  "files": {
+    "2f5798b1-store-pg-regression-RED.log": {
+      "original_sha256": "d953fa50499fec1517abdde119dd59ad7a2717303f07da0295ab7dd9ccd99519",
+      "readable_sha256": "1eb968e0fbf5c5b66fe39ffeb9435c7f2b6ce9dd3e3b05393e96ecca8c92b6aa",
+      "gzip_file": "2f5798b1-store-pg-regression-RED.log.gz",
+      "gzip_sha256": "7b4898072a7f7d14ae83d7fcefe6497e24119888b503b5918b3b9cf3176c42fd"
+    },
+    "bounded-clock-proposal-baseline-GREEN.log": {
+      "original_sha256": "d0fd32a26683ed2c959ea278b0e63646d13fb962cb31bc43a3e9a5735d598701",
+      "readable_sha256": "e8f69e09052b8030a65d4c277d6b66d78f0ef3196759beb86cab0231e88a5b32",
+      "gzip_file": "bounded-clock-proposal-baseline-GREEN.log.gz",
+      "gzip_sha256": "d1a38f1ebde67ab1b410f873e3188692ee500f9bfb1963c70f4d0041db9e43d0"
+    },
+    "bounded-clock-proposal-native-decision.json": {
+      "original_sha256": "1d3c79dd61b45048d610ee9fc41f50ece1bf41dda4b72e2653885b5b4cdeab1e",
+      "readable_sha256": "1d3c79dd61b45048d610ee9fc41f50ece1bf41dda4b72e2653885b5b4cdeab1e",
+      "gzip_file": "bounded-clock-proposal-native-decision.json.gz",
+      "gzip_sha256": "05a9253595f81bb966336bf70b3248b4e26e80f357a3619eb0e87fc1ce0ade75"
+    },
+    "bounded-clock-proposal-restored-GREEN.log": {
+      "original_sha256": "8e39441f958ee7fade2a7be20ed53aba169eaf6d5011ddda7233120aecad434f",
+      "readable_sha256": "c827d1bf57cdedfe0c4428a1cbfc0bf40c55676bca46b505d8c8a8a475b9dc1c",
+      "gzip_file": "bounded-clock-proposal-restored-GREEN.log.gz",
+      "gzip_sha256": "a595ca620234048448d940c3414a260e91a38cd16ebba80b7fc07ca47a25ed38"
+    },
+    "bounded-clock-proposal-retry-guard-RED.log": {
+      "original_sha256": "c15bff9400cc4dad1c010f23a0f4452a6945f62faa42fbf1a592ef205106b1ee",
+      "readable_sha256": "c15bff9400cc4dad1c010f23a0f4452a6945f62faa42fbf1a592ef205106b1ee",
+      "gzip_file": "bounded-clock-proposal-retry-guard-RED.log.gz",
+      "gzip_sha256": "a3b493f4e37835e38737e66bf70edfdd1d5ae8e1c56218d581ac8c9559bc2565"
+    },
+    "producer-ownership-inventory-calibration-GREEN.log": {
+      "original_sha256": "d911e110f680d119c2c259c12aacd6037c48412ae02b9b75aac3a3f3ba5bb692",
+      "readable_sha256": "d911e110f680d119c2c259c12aacd6037c48412ae02b9b75aac3a3f3ba5bb692",
+      "gzip_file": "producer-ownership-inventory-calibration-GREEN.log.gz",
+      "gzip_sha256": "dfdb8ae3f0d7c0d8dfdc16306dbef70139d2ede3edc2bd0b4c9436677666c498"
+    },
+    "producer-ownership-inventory-calibration-RED.log": {
+      "original_sha256": "72d130f3d60e6d4e89fcb7d7d063d69543fca45afbcc686d491c9ca1efc9b97c",
+      "readable_sha256": "72d130f3d60e6d4e89fcb7d7d063d69543fca45afbcc686d491c9ca1efc9b97c",
+      "gzip_file": "producer-ownership-inventory-calibration-RED.log.gz",
+      "gzip_sha256": "4dfd1cbcf0219632272594a5c1bb62936ee35ac36766c031cb4098b6a4ba1902"
+    },
+    "producer-ownership-inventory-f8ac86da-GREEN-evidence.txt": {
+      "original_sha256": "0b44e143b7c712f5a046564db49fac302099805cdff57a561712e2320024573a",
+      "readable_sha256": "6d577a55fead353c04f652fe70a81343b06862843872419183a4f39d3cf6d068",
+      "gzip_file": "producer-ownership-inventory-f8ac86da-GREEN-evidence.txt.gz",
+      "gzip_sha256": "80449c9671d7b87867943f443007e4c104bea68c2e0b6445d68a3308a968c23b"
+    },
+    "producer-ownership-inventory-f8ac86da-RED-evidence.txt": {
+      "original_sha256": "e26d9c35efe45bb8aa73adab2538028fbb19738708a0d0bb9ae52df8489fe8a4",
+      "readable_sha256": "e26d9c35efe45bb8aa73adab2538028fbb19738708a0d0bb9ae52df8489fe8a4",
+      "gzip_file": "producer-ownership-inventory-f8ac86da-RED-evidence.txt.gz",
+      "gzip_sha256": "b347f7c0b8cbbe249a78e7066697e4704cbbf57b3b8663140e8e1d6cbcb537fd"
+    },
+    "store-signout-boundary-before-raw.txt": {
+      "original_sha256": "48382cb2a6ac4f7a8a1e413202b0f5b03998a1c22d5f59673e1df833aaa1e2db",
+      "readable_sha256": "2e66f62e33967299b84f85166b9549424486203f3f4737ff59b89daa3cd19384",
+      "gzip_file": "store-signout-boundary-before-raw.txt.gz",
+      "gzip_sha256": "14cf9b792d30d964cc11ab0e9d4f7b0254403096faea3ab613ed5384118d7b91"
+    },
+    "store-signout-boundary-control-final.txt": {
+      "original_sha256": "bd3b664bf06d8ddcabd35569dfb6014a0d3c95b12f2b502f524243695fa6a503",
+      "readable_sha256": "359f46ce72e796bff367a70de9740566ac03ffc9d98f9eb1c75e1a3f3ad30741",
+      "gzip_file": "store-signout-boundary-control-final.txt.gz",
+      "gzip_sha256": "b8b90afdb2dfccfcb1142587f7c13f79ec9ebb6418c7179b3f787768f5b3e543"
+    },
+    "store-signout-boundary-green-final.txt": {
+      "original_sha256": "341128de0992a450eeba4ea5882d40d325feecc082894e82273823c0183b81b8",
+      "readable_sha256": "de3b07c2077d15419949f919136e9bc252eda758a9d697d6eeb99934abf3650b",
+      "gzip_file": "store-signout-boundary-green-final.txt.gz",
+      "gzip_sha256": "f52a38acbab6d67465300ce9f690a61ac6efc839b8fc5dbd0d7bffa9b6042bd1"
+    },
+    "verify-recipe-database-env-ci-tests-green.txt": {
+      "original_sha256": "14c3299b72405bf05c680b1b2ef5fafb8a2e65bed74a48749d92273e120fe6e2",
+      "readable_sha256": "8c1223f4d9d3151804506e1587baedc0769de26a41b31a31a860628c7fd87cd8",
+      "gzip_file": "verify-recipe-database-env-ci-tests-green.txt.gz",
+      "gzip_sha256": "ecaa490902c35f156edd4ff1c8341b571caf56b80feab9968f6a8819a1fcd690"
+    },
+    "verify-recipe-database-env-green.txt": {
+      "original_sha256": "50ecc443278eb0130a9fe63d4738d4512bdcf200af825be2063ab7422a1d2050",
+      "readable_sha256": "70209e94033c089f48ce844bc84dece5c8ecd74cd25f36476fcc265b7762af97",
+      "gzip_file": "verify-recipe-database-env-green.txt.gz",
+      "gzip_sha256": "34887ae86dc2bf0c5f194ce81c22535507414cf056246be454a13196da4a33de"
+    },
+    "verify-recipe-database-env-red.txt": {
+      "original_sha256": "1434bc0e1d46157677ce73e7d70e6f3ed4a80691c59d2d1cbb98550b4551a7d6",
+      "readable_sha256": "a8218d2ce79081a4cfed25dc777a8c99cdfdedf79f26fb2052583dff21586bc0",
+      "gzip_file": "verify-recipe-database-env-red.txt.gz",
+      "gzip_sha256": "ee77e0abcfd2b6338eb3883b2b93d1aea6f4da91ddd0747ec35aadb9f002508e"
+    }
+  }
+}
