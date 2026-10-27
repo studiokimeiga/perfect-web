@@ -107,6 +107,8 @@ struct Subscriber {
     /// frames, never mistaken for a new one.
     last_seq: u64,
     frames: Vec<(u64, StreamFrame)>,
+    /// The reader generation captured before this document's render.
+    reader: Option<identity::ReaderIdentity>,
     /// When it last asked for frames or was served a document.
     seen: std::time::Instant,
     /// It fell more than [`MAX_WAITING`] frames behind: its queue is one
@@ -251,6 +253,7 @@ impl Subscriber {
         Subscriber {
             last_seq: cursor,
             frames: Vec::new(),
+            reader: None,
             seen: std::time::Instant::now(),
             behind: false,
             pushed: 0,
@@ -3391,6 +3394,30 @@ impl Server {
         self.send_documents(session, entry, version, false);
     }
 
+    /// Current authority for a frozen delivery batch. Never refreshes/touches
+    /// activity and never installs an identity in the local cache.
+    fn delivery_allowed(&self, doc: &Doc, bound: Option<&identity::ReaderIdentity>) -> bool {
+        let current = self.identity.principals().inspect_reader(&doc.0);
+        match (bound, current) {
+            (Some(bound), Ok(current)) => *bound == current,
+            // Bare unserved cursors exist only for the development guest
+            // transport. An absent binding is never an anonymous account.
+            (None, Ok(identity::ReaderIdentity::Guest)) => true,
+            _ => false,
+        }
+    }
+
+    fn revoke_document(&self, doc: &Doc) {
+        // Each hold is released before the next: no data/materializer lock
+        // is acquired while the subscriber table is held.
+        self.pending.lock().expect("pending").remove(doc);
+        self.keyed.lock().expect("keyed").remove(doc);
+        self.shown.lock().expect("shown").remove(doc);
+        self.params.lock().expect("params").remove(doc);
+        self.pages.lock().expect("pages").remove(doc);
+        self.answers.lock().expect("answers").remove(doc);
+    }
+
     /// **Forget the subscribers that stopped asking, and what was kept for
     /// them.** Their queues go, and so do their sessions' materialized cart
     /// entries: a returning page is served a new document, and `drain`
@@ -3441,8 +3468,7 @@ impl Server {
             self.materializer.evict(&self.cart_key(&session));
             // And the query values kept for it alone (ADR-0127): a private
             // entry's key begins with its session.
-            let own = format!("session={session}");
-            let mine = |k: &str| k == own || k.starts_with(&format!("{own}\u{1f}"));
+            let mine = |k: &str| private_entry_belongs_to(k, &session);
             self.queries.evict_where(|k| mine(&k.key));
             // And its interactions: a forgotten session's retry runs again,
             // which is the bound's stated cost (ADR-0121).
@@ -3990,7 +4016,12 @@ impl Server {
     ) -> Result<pw_resource::Key, String> {
         let resource = binding["resource"].as_str().unwrap_or_default();
         let policy = &binding["policy"];
-        let mut key = entry_key(session, policy, args)
+        let partition = self
+            .identity
+            .principals()
+            .bound_reader(session)
+            .partition(session);
+        let mut key = entry_key(&partition, policy, args)
             .ok_or_else(|| format!("`{resource}`'s key names an argument it was not given"))?;
         if policy["parallel"] == true {
             // `concurrency parallel`: no shared flight, so a key of its own.
@@ -5997,12 +6028,16 @@ impl Server {
             .lock()
             .expect("pages")
             .insert(doc.clone(), page.to_string());
+        // One binding for the whole render, including retries and the last
+        // serialized attempt. Regeneration must never rebind an old document.
+        let reader = self.identity.principals().bound_reader(session);
         let served = (|| {
             for _ in 1..DOCUMENT_ATTEMPTS {
-                let pushed = self.subscribed(&doc);
+                let pushed = self.subscribed_for(&doc, &reader);
                 let read = self.render_document(&doc, settled)?;
                 let mut queue = self.pending.lock().expect("pending");
-                if let Some(served) = self.installed(&mut queue, &doc, read, Some(pushed)) {
+                if let Some(served) = self.installed(&mut queue, &doc, read, Some(pushed), &reader)
+                {
                     return Ok(served);
                 }
             }
@@ -6012,9 +6047,10 @@ impl Server {
             let mut queue = self.pending.lock().expect("pending");
             let _held = self.held("a document's last attempt, read in the table");
             let read = self.render_document(&doc, settled)?;
-            Ok(self
-                .installed(&mut queue, &doc, read, None)
-                .expect("nothing reaches a session inside the table"))
+            self.installed(&mut queue, &doc, read, None, &reader)
+                .ok_or_else(|| {
+                    Unread::Failed("the document reader changed while it rendered".into())
+                })
         })();
         // A document that could not be read is no page, and waits for
         // nothing.
@@ -6088,11 +6124,18 @@ impl Server {
         }
     }
 
+    #[cfg(test)]
     fn subscribed(&self, doc: &Doc) -> u64 {
+        let reader = self.identity.principals().bound_reader(&doc.0);
+        self.subscribed_for(doc, &reader)
+    }
+
+    fn subscribed_for(&self, doc: &Doc, reader: &identity::ReaderIdentity) -> u64 {
         let mut queue = self.pending.lock().expect("pending");
         let waiting = queue
             .entry(doc.clone())
             .or_insert_with(|| Subscriber::at(doc.1));
+        waiting.reader.get_or_insert_with(|| reader.clone());
         waiting.seen = Subscriber::asked_at();
         waiting.pushed
     }
@@ -6109,13 +6152,17 @@ impl Server {
         doc: &Doc,
         (html, shown, env): (String, Shown, Env),
         pushed: Option<u64>,
+        reader: &identity::ReaderIdentity,
     ) -> Option<(String, u64, serde_json::Value, Env)> {
         let waiting = queue
             .entry(doc.clone())
             .or_insert_with(|| Subscriber::at(doc.1));
-        if pushed.is_some_and(|pushed| waiting.pushed != pushed) {
+        if pushed.is_some_and(|pushed| waiting.pushed != pushed)
+            || waiting.reader.as_ref().is_some_and(|bound| bound != reader)
+        {
             return None;
         }
+        waiting.reader.get_or_insert_with(|| reader.clone());
         // What reached it while an attempt before this one was read: this
         // read includes it.
         waiting.frames.clear();
@@ -7050,11 +7097,26 @@ impl Server {
         stream: &mut TcpStream,
         session: &str,
         fresh: bool,
+        reader: &identity::ReaderIdentity,
         page: &str,
         template: &Template,
         env: &Env,
         settling: &mut Settling,
     ) {
+        // The whole initial shell is fixed before this decision. A later
+        // progressive fill needs its own decision over its own fixed bytes.
+        let scope = (session.to_string(), 0);
+        if !self.delivery_allowed(&scope, Some(reader)) {
+            respond(
+                stream,
+                503,
+                "text/plain; charset=utf-8",
+                session,
+                fresh,
+                b"Your session changed. Reload the page.",
+            );
+            return;
+        }
         let cookie = if fresh {
             // TRACK SEAM (identity): the session cookie, HttpOnly and Secure
             // outside this machine.
@@ -7108,6 +7170,9 @@ impl Server {
                 patch(Settled::Failed(None))
             });
             let Ok(written) = written else { continue };
+            if !self.delivery_allowed(&scope, Some(reader)) {
+                return;
+            }
             // In two parts, a pause between them, where a test asks for it
             // (ADR-0223): the browser then parses a template it has only part
             // of.
@@ -7905,6 +7970,22 @@ fn entry_key(session: &str, policy: &serde_json::Value, args: &[Val]) -> Option<
 
 /// **Whether each of a query's entries is one session's**, as `entry_key`
 /// keys it: a private cache, or a value that is not public.
+/// Each generation is one private-prefix field. Invalidation removes exactly
+/// that field; cleanup recognizes all epochs of only the named cookie.
+fn private_entry_belongs_to(key: &str, session: &str) -> bool {
+    let field = key.split('\u{1f}').next().unwrap_or_default();
+    let prefix = format!("session=v1:{}:", identity::hex(session.as_bytes()));
+    if let Some(reader) = field.strip_prefix(&prefix) {
+        return matches!(reader, "g" | "n")
+            || reader.strip_prefix("a:").is_some_and(|epoch| {
+                epoch.len() == 32 && epoch.bytes().all(|byte| byte.is_ascii_hexdigit())
+            });
+    }
+    // Older synthetic/guest keys remain cleanable, but a versioned field
+    // can never be reinterpreted as an attacker-chosen legacy cookie.
+    !field.starts_with("session=v1:") && field == format!("session={session}")
+}
+
 fn entry_is_private(policy: &serde_json::Value) -> bool {
     policy["cache"] == "private" || policy["privacy"] != "public"
 }
@@ -9583,10 +9664,9 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 .entry(session.clone())
                 .or_default()
                 .delay_ms = delay;
-            let own = format!("session={session}");
             server
                 .queries
-                .evict_where(|k| k.key == own || k.key.starts_with(&format!("{own}\u{1f}")));
+                .evict_where(|k| private_entry_belongs_to(&k.key, &session));
             respond_json(&mut stream, 200, &session, fresh, "{}");
         }
         // **A one-shot database error** (charter §15.5, ADR-0174): this
@@ -9620,10 +9700,9 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             }
             drop(faults);
             // A read the page kept would not reach the database.
-            let own = format!("session={session}");
             server
                 .queries
-                .evict_where(|k| k.key == own || k.key.starts_with(&format!("{own}\u{1f}")));
+                .evict_where(|k| private_entry_belongs_to(&k.key, &session));
             respond_json(&mut stream, 200, &session, fresh, "{}");
         }
         // **A one-shot network error** (charter §15.5, ADR-0175): this
@@ -9760,10 +9839,9 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 .lock()
                 .expect("estimators")
                 .insert(session.clone(), set);
-            let own = format!("session={session}");
             server
                 .queries
-                .evict_where(|k| k.key == own || k.key.starts_with(&format!("{own}\u{1f}")));
+                .evict_where(|k| private_entry_belongs_to(&k.key, &session));
             respond_json(&mut stream, 200, &session, fresh, "{}");
         }
         // E7-P's structural commands. Each mutates the keyed collection and
@@ -10232,11 +10310,20 @@ fn stream_open(
                     .into_iter()
                     .map(|f| serde_json::to_value(f).expect("frame"))
                     .collect();
-                Some((cursor, serde_json::to_string(&body).expect("frames")))
+                Some((
+                    waiting.reader.clone(),
+                    cursor,
+                    serde_json::to_string(&body).expect("frames"),
+                ))
             }
         };
 
-        if let Some((cursor, frames)) = batch {
+        if let Some((reader, cursor, frames)) = batch {
+            if !server.delivery_allowed(&doc, reader.as_ref()) {
+                server.revoke_document(&doc);
+                let _ = stream.write_all(format!("{}\n", reload_batch(written)).as_bytes());
+                return;
+            }
             // Written, but NOT acknowledged. The cursor advances here only for
             // this connection's own reads; the subscriber's copy is dropped on
             // the next request, which is the client saying it applied them.
@@ -10307,33 +10394,40 @@ fn stream_frames(
     }
 
     for _ in 0..40 {
-        // Cut off since it opened (ADR-0175): no answer.
         if server.cut_off(session, opened) {
             return;
         }
-        {
+        let batch = {
             let mut queue = server.pending.lock().expect("pending");
             let waiting = queue
                 .entry(doc.clone())
                 .or_insert_with(|| Subscriber::at(document));
             waiting.seen = std::time::Instant::now();
-            // This request is the client's acknowledgement of everything up to
-            // `since`: it applied those frames and asked for what follows.
             waiting.acknowledge(since);
             let (cursor, frames) = waiting.after(since);
-            if !frames.is_empty() {
+            if frames.is_empty() {
+                None
+            } else {
                 let body: Vec<serde_json::Value> = frames
                     .into_iter()
-                    .map(|f| serde_json::to_value(f).expect("frame"))
+                    .map(|frame| serde_json::to_value(frame).expect("frame"))
                     .collect();
-                let json = format!(
-                    "{{\"cursor\":{cursor},\"frames\":{}}}",
-                    serde_json::to_string(&body).expect("frames")
-                );
-                // Left in place until the next request proves they arrived.
-                respond_json(stream, 200, session, fresh, &json);
+                Some((
+                    waiting.reader.clone(),
+                    cursor,
+                    serde_json::to_string(&body).expect("frames"),
+                ))
+            }
+        };
+        if let Some((reader, cursor, frames)) = batch {
+            if !server.delivery_allowed(&doc, reader.as_ref()) {
+                server.revoke_document(&doc);
+                respond_json(stream, 200, session, fresh, &reload_batch(since));
                 return;
             }
+            let json = format!("{{\"cursor\":{cursor},\"frames\":{frames}}}");
+            respond_json(stream, 200, session, fresh, &json);
+            return;
         }
         std::thread::sleep(std::time::Duration::from_millis(25));
     }
@@ -10361,6 +10455,7 @@ fn serve_bound(
     params: Params,
     query: &str,
 ) {
+    let reader_identity = server.identity.principals().bound_reader(session);
     let template = server.template_of(page);
     let unavailable = |stream: &mut TcpStream, why: Unread| match why {
         // A page whose address is another of the page's, as the page
@@ -10488,7 +10583,16 @@ fn serve_bound(
             &holds,
             &server.build_id,
         );
-        server.respond_streaming(stream, session, fresh, &html, template, &env, &mut settling);
+        server.respond_streaming(
+            stream,
+            session,
+            fresh,
+            &reader_identity,
+            &html,
+            template,
+            &env,
+            &mut settling,
+        );
     });
 }
 
@@ -10603,6 +10707,7 @@ fn serve_page(
     path: &str,
     params: Params,
 ) {
+    let reader_identity = server.identity.principals().bound_reader(session);
     let not_found = |stream: &mut TcpStream, why: String| {
         respond(
             stream,
@@ -10632,6 +10737,7 @@ fn serve_page(
                 stream,
                 session,
                 fresh,
+                &reader_identity,
                 &page,
                 template,
                 &env,
@@ -12772,8 +12878,14 @@ public query Store(",
             .expect("the command commits");
         let mut queue = s.pending.lock().expect("pending");
         assert!(
-            s.installed(&mut queue, &doc, before, Some(pushed))
-                .is_none()
+            s.installed(
+                &mut queue,
+                &doc,
+                before,
+                Some(pushed),
+                &s.identity.principals().bound_reader("a")
+            )
+            .is_none()
         );
         drop(queue);
         // Served whole, it shows the change.

@@ -26,7 +26,7 @@ use std::collections::HashMap;
 use std::io::Write;
 use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex, OnceLock, RwLock};
+use std::sync::{Arc, Mutex, OnceLock, RwLock, Weak};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use pw_host::engine::{HostFn, Val};
@@ -256,6 +256,35 @@ pub struct Principal {
     pub issuer: String,
 }
 
+/// A server-side actor generation, never a browser value or a bearer token.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct SessionIdentity {
+    pub(crate) principal: Principal,
+    pub(crate) epoch: [u8; 16],
+}
+
+/// The reader a document binds. Anonymous is explicit; absence of a binding
+/// must never be silently interpreted as an anonymous reader after revocation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum ReaderIdentity {
+    Guest,
+    Anonymous,
+    Account(SessionIdentity),
+}
+
+impl ReaderIdentity {
+    /// One private-partition field. Hex encodes the cookie bytes so a caller's
+    /// delimiters cannot add a query-key field or alias another generation.
+    pub(crate) fn partition(&self, session: &str) -> String {
+        let reader = match self {
+            Self::Guest => "g".to_string(),
+            Self::Anonymous => "n".to_string(),
+            Self::Account(identity) => format!("a:{}", hex(&identity.epoch)),
+        };
+        format!("v1:{}:{reader}", hex(session.as_bytes()))
+    }
+}
+
 impl Principal {
     /// **A session's own guest** (the guest model): named for its session,
     /// as the feed named one before accounts (ADR-0220).
@@ -273,12 +302,17 @@ impl Principal {
     }
 }
 
+type AdmissionClock = Mutex<Arc<()>>;
+
 #[derive(Default)]
 struct PrincipalsInner {
     /// The accounts model: a session is signed in only where a sign-in put
     /// it in `sessions`. Otherwise every session is its own guest.
     accounts: AtomicBool,
     sessions: RwLock<HashMap<String, Held>>,
+    // Weak per-session tickets: unrelated admissions cannot suppress a
+    // revocation. A live old reader retains its opaque token, preventing ABA.
+    revisions: Mutex<HashMap<String, Weak<AdmissionClock>>>,
     /// TRACK SEAM (second-host): **where sessions are kept beyond this
     /// host's memory** (ADR-0369), the database the hosts share, where the
     /// data layer has one. `sessions` is then each request's copy of it.
@@ -296,15 +330,17 @@ struct PrincipalsInner {
 #[derive(Debug)]
 struct Held {
     principal: Principal,
+    epoch: [u8; 16],
     opened: std::time::Instant,
     /// Milliseconds after `opened` it was last used.
     seen: std::sync::atomic::AtomicU64,
 }
 
 impl Held {
-    fn new(principal: Principal) -> Held {
+    fn new(principal: Principal, epoch: [u8; 16]) -> Held {
         Held {
             principal,
+            epoch,
             opened: std::time::Instant::now(),
             seen: std::sync::atomic::AtomicU64::new(0),
         }
@@ -421,9 +457,15 @@ pub(crate) trait Kept: Send + Sync {
         &self,
         hash: &[u8],
         lifetimes: &SessionLifetimes,
-    ) -> Result<Option<Principal>, String>;
-    /// A session opened for `principal`.
-    fn open(&self, hash: &[u8], principal: &Principal) -> Result<(), String>;
+    ) -> Result<Option<SessionIdentity>, String>;
+    /// Current authority only: no idle touch, deletion or lifetime reset.
+    fn inspect(
+        &self,
+        hash: &[u8],
+        lifetimes: &SessionLifetimes,
+    ) -> Result<Option<SessionIdentity>, String>;
+    /// A session opened for `principal`, in a fresh generation.
+    fn open(&self, hash: &[u8], principal: &Principal, epoch: &[u8; 16]) -> Result<(), String>;
     /// A session closed: no one from now on.
     fn close(&self, hash: &[u8]) -> Result<(), String>;
     /// A sign-in begun: its nonce and its PKCE verifier, which the token
@@ -471,6 +513,23 @@ impl Drop for OnBehalf {
 pub struct Principals(Arc<PrincipalsInner>);
 
 impl Principals {
+    fn revision(&self, session: &str) -> Arc<AdmissionClock> {
+        let mut revisions = self.0.revisions.lock().expect("admission revisions");
+        revisions.retain(|_, clock| clock.strong_count() != 0);
+        if let Some(clock) = revisions.get(session).and_then(Weak::upgrade) {
+            return clock;
+        }
+        let clock = Arc::new(Mutex::new(Arc::new(())));
+        revisions.insert(session.to_string(), Arc::downgrade(&clock));
+        clock
+    }
+
+    // Called while the sessions write lock is held. No network operation
+    // holds this ticket's lock, and no ticket lock waits for a cache lock.
+    fn advance_revision(&self, session: &str) {
+        *self.revision(session).lock().expect("admission revision") = Arc::new(());
+    }
+
     /// **The principal `session` is**, or none. A session no sign-in opened
     /// is its own guest in the guest model, and no one in the accounts one.
     pub fn of(&self, session: &str) -> Option<Principal> {
@@ -480,17 +539,23 @@ impl Principals {
         let lifetimes = self.lifetimes();
         let expired = match self.0.sessions.read().expect("principals").get(session) {
             Some(held) if !held.expired(&lifetimes) => {
-                held.touch();
                 return Some(held.principal.clone());
             }
-            Some(_) => true,
-            None => false,
+            Some(held) => Some(held.epoch),
+            None => None,
         };
         // TRACK SEAM (second-host): **a session past its lifetimes is signed
         // out** (ADR-0369), here as where it is kept: it is no one, or its
         // own guest in the guest model, from now on.
-        if expired {
-            self.close(session);
+        if let Some(epoch) = expired {
+            let mut sessions = self.0.sessions.write().expect("principals");
+            if sessions
+                .get(session)
+                .is_some_and(|held| held.epoch == epoch && held.expired(&lifetimes))
+            {
+                sessions.remove(session);
+                self.advance_revision(session);
+            }
         }
         (!self.0.accounts.load(Ordering::SeqCst)).then(|| Principal::guest(session))
     }
@@ -504,11 +569,77 @@ impl Principals {
     }
 
     fn open(&self, session: &str, principal: Principal) {
+        self.open_identity(
+            session,
+            SessionIdentity {
+                principal,
+                epoch: random_bytes(),
+            },
+        );
+    }
+
+    fn open_identity(&self, session: &str, identity: SessionIdentity) {
+        let mut sessions = self.0.sessions.write().expect("principals");
+        Self::install(&mut sessions, session, identity);
+        self.advance_revision(session);
+    }
+
+    fn install(sessions: &mut HashMap<String, Held>, session: &str, identity: SessionIdentity) {
+        if let Some(held) = sessions.get_mut(session)
+            && held.epoch == identity.epoch
+        {
+            held.principal = identity.principal;
+            // An actual client admission, never a background inspection.
+            held.touch();
+        } else {
+            sessions.insert(
+                session.to_string(),
+                Held::new(identity.principal, identity.epoch),
+            );
+        }
+    }
+
+    /// The reader used to begin a render, from its admitted local identity.
+    /// It is a binding, not current authority; delivery must inspect again.
+    pub(crate) fn bound_reader(&self, session: &str) -> ReaderIdentity {
+        if !self.0.accounts.load(Ordering::SeqCst) {
+            return ReaderIdentity::Guest;
+        }
+        let lifetimes = self.lifetimes();
         self.0
             .sessions
-            .write()
+            .read()
             .expect("principals")
-            .insert(session.to_string(), Held::new(principal));
+            .get(session)
+            .filter(|held| !held.expired(&lifetimes))
+            .map(|held| {
+                ReaderIdentity::Account(SessionIdentity {
+                    principal: held.principal.clone(),
+                    epoch: held.epoch,
+                })
+            })
+            .unwrap_or(ReaderIdentity::Anonymous)
+    }
+
+    /// Read-only current authority. Neither long-held subscriptions nor
+    /// internal rederivation renew client activity or the absolute deadline.
+    pub(crate) fn inspect_reader(&self, session: &str) -> Result<ReaderIdentity, String> {
+        if session.starts_with(ON_BEHALF) {
+            return Err("a platform principal is not a browser reader".into());
+        }
+        if !self.0.accounts.load(Ordering::SeqCst) {
+            return Ok(ReaderIdentity::Guest);
+        }
+        if let Some(kept) = self.0.kept.get() {
+            return kept
+                .inspect(&kept_hash(session), &self.lifetimes())
+                .map(|identity| {
+                    identity
+                        .map(ReaderIdentity::Account)
+                        .unwrap_or(ReaderIdentity::Anonymous)
+                });
+        }
+        Ok(self.bound_reader(session))
     }
 
     /// TRACK SEAM (second-host): **how long its sessions live**, as the
@@ -523,7 +654,9 @@ impl Principals {
     }
 
     fn close(&self, session: &str) {
-        self.0.sessions.write().expect("principals").remove(session);
+        let mut sessions = self.0.sessions.write().expect("principals");
+        sessions.remove(session);
+        self.advance_revision(session);
     }
 
     /// TRACK SEAM (second-host): **sessions kept in `kept`** (ADR-0369),
@@ -546,6 +679,17 @@ impl Principals {
     /// rather than someone it may no longer be.
     pub fn refresh(&self, session: &str) {
         let Some(kept) = self.0.kept.get() else {
+            let lifetimes = self.lifetimes();
+            let mut sessions = self.0.sessions.write().expect("principals");
+            if sessions
+                .get(session)
+                .is_some_and(|held| held.expired(&lifetimes))
+            {
+                sessions.remove(session);
+                self.advance_revision(session);
+            } else if let Some(held) = sessions.get(session) {
+                held.touch();
+            }
             return;
         };
         if !self.0.accounts.load(Ordering::SeqCst)
@@ -554,23 +698,35 @@ impl Principals {
         {
             return;
         }
-        match kept.session(&kept_hash(session), &self.lifetimes()) {
-            Ok(Some(principal)) => self.open(session, principal),
-            Ok(None) => self.close(session),
+        let revision = self.revision(session);
+        let before = revision.lock().expect("admission revision").clone();
+        let read = kept.session(&kept_hash(session), &self.lifetimes());
+        let mut sessions = self.0.sessions.write().expect("principals");
+        if !Arc::ptr_eq(&revision.lock().expect("admission revision"), &before) {
+            // A local close/newer admission wins over this old result.
+            return;
+        }
+        match read {
+            Ok(Some(identity)) => Self::install(&mut sessions, session, identity),
+            Ok(None) => {
+                sessions.remove(session);
+            }
             Err(why) => {
                 eprintln!("pw dev server: a session was not read: {why}");
-                self.close(session);
+                sessions.remove(session);
             }
         }
+        self.advance_revision(session);
     }
 
     /// **`session` signed in as `principal`**: kept first where sessions are
     /// kept, so that no host knows a sign-in the others cannot.
     fn sign_in(&self, session: &str, principal: Principal) -> Result<(), String> {
+        let epoch = random_bytes();
         if let Some(kept) = self.0.kept.get() {
-            kept.open(&kept_hash(session), &principal)?;
+            kept.open(&kept_hash(session), &principal, &epoch)?;
         }
-        self.open(session, principal);
+        self.open_identity(session, SessionIdentity { principal, epoch });
         Ok(())
     }
 
@@ -630,8 +786,17 @@ impl Principals {
         opened_ago: Duration,
         seen_after: Duration,
     ) {
+        let epoch = self
+            .0
+            .sessions
+            .read()
+            .expect("principals")
+            .get(session)
+            .map(|held| held.epoch)
+            .unwrap_or_else(random_bytes);
         let held = Held {
             principal,
+            epoch,
             opened: std::time::Instant::now()
                 .checked_sub(opened_ago)
                 .expect("the host has run that long"),
@@ -1521,6 +1686,88 @@ impl Reply {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct PausedRevocation {
+        entered: Arc<std::sync::Barrier>,
+        release: Arc<std::sync::Barrier>,
+        fails: bool,
+    }
+
+    impl Kept for PausedRevocation {
+        fn session(
+            &self,
+            _hash: &[u8],
+            _life: &SessionLifetimes,
+        ) -> Result<Option<SessionIdentity>, String> {
+            self.entered.wait();
+            self.release.wait();
+            if self.fails {
+                Err("authority read unavailable".into())
+            } else {
+                Ok(None)
+            }
+        }
+        fn inspect(
+            &self,
+            _hash: &[u8],
+            _life: &SessionLifetimes,
+        ) -> Result<Option<SessionIdentity>, String> {
+            Ok(None)
+        }
+        fn open(&self, _hash: &[u8], _p: &Principal, _epoch: &[u8; 16]) -> Result<(), String> {
+            Ok(())
+        }
+        fn close(&self, _hash: &[u8]) -> Result<(), String> {
+            Ok(())
+        }
+        fn begin_sign_in(&self, _hash: &[u8], _nonce: &str, _verifier: &str) -> Result<(), String> {
+            Ok(())
+        }
+        fn take_sign_in(&self, _hash: &[u8]) -> Result<Option<(String, String, Duration)>, String> {
+            Ok(None)
+        }
+    }
+
+    fn an_unrelated_admission_cannot_cancel_this_revocation(fails: bool) {
+        let principals = Principals::default();
+        principals.set_accounts(true);
+        principals.open("target", Principal::guest("target"));
+        let entered = Arc::new(std::sync::Barrier::new(2));
+        let release = Arc::new(std::sync::Barrier::new(2));
+        principals.keep_in(Arc::new(PausedRevocation {
+            entered: entered.clone(),
+            release: release.clone(),
+            fails,
+        }));
+        std::thread::scope(|scope| {
+            let request = scope.spawn(|| principals.refresh("target"));
+            entered.wait();
+            principals.open("unrelated", Principal::guest("unrelated"));
+            release.wait();
+            request
+                .join()
+                .expect("authority request completed normally");
+        });
+        assert!(
+            principals.of("target").is_none(),
+            "an unrelated session cannot suppress authoritative revocation/refusal"
+        );
+        assert!(
+            principals.of("unrelated").is_some(),
+            "the other session stays live"
+        );
+    }
+
+    #[test]
+    fn an_unrelated_admission_does_not_suppress_a_revoked_session() {
+        an_unrelated_admission_cannot_cancel_this_revocation(false);
+    }
+
+    #[test]
+    fn an_unrelated_admission_does_not_suppress_an_authority_read_failure() {
+        an_unrelated_admission_cannot_cancel_this_revocation(true);
+    }
+
     use std::collections::BTreeMap;
 
     /// The development model the track started from, as `Server::run` held

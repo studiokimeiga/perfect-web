@@ -75,6 +75,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "0012_scheduled_commit",
         include_str!("../migrations/feed/0012_scheduled_commit.sql"),
     ),
+    (
+        "0013_session_epoch",
+        include_str!("../migrations/feed/0013_session_epoch.sql"),
+    ),
 ];
 
 /// **How a command's transaction is opened.** The layer sets serializable on

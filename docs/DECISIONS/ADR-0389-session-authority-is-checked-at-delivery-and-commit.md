@@ -60,3 +60,33 @@ each actual delivery/commit authority check and produce complete native assertio
 failures; setup/SQL/compiler/IO/timeouts/worker crashes earn no kill credit.
 Actual browser application and all reached legacy recipes remain separate gates.
 No source or complete-app readiness is claimed by a red characterization.
+
+## Delivery foundation, selected before implementation
+
+The retained reader identity includes an OS-random16-byte epoch, changed on
+ every open, even when an internal caller repeats a session id and principal.
+Its authority source is the server's fixed identity adapter; its cookie/session
+key, principal and epoch are compared together. PostgreSQL adds a NOT NULL,
+16-byte-checked epoch to both session schemas. Existing rows receive a zero
+epoch scoped to their existing hashed cookie, which is not a new credential.
+Old workers must be quiesced before rollout, as they do not know this column
+or the new delivery checks. A fresh sign-in assigns a fresh nonce.
+
+Read-only inspection uses the database clock and writes no seen/opened state.
+The local equivalent never touches Held.seen. Internal principal reads cease
+being client activity. Actual request admission is explicit activity; cache
+refreshes preserve the same epoch's local timing origin and cannot install over
+an intervening local close/newer admission. These are delivery prerequisites;
+the transaction-bound command actor/fence remains a separate unfinished step.
+
+## Independent review: local admission ordering
+
+The first delivery implementation used one global cache revision. A deterministic
+barrier regression reproduces both authoritative None and failed authority read
+being suppressed by an unrelated session's open, retaining the target principal.
+Both native cases fail before the repair. Per-session weak opaque tickets now
+coordinate completed cache writes without unbounded abandoned ticket retention
+or counter wrap/address ABA. The identity cache write lock precedes a short ticket
+lock; no network request holds either. The same-session request still needs its
+own explicit admission result and immutable invocation actor; this cache ordering
+repair does not by itself supply transaction or render authority.

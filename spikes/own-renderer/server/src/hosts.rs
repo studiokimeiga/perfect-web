@@ -572,6 +572,32 @@ impl SessionsPg {
     }
 }
 
+fn session_identity(row: postgres::Row) -> Result<crate::identity::SessionIdentity, String> {
+    let bytes: Vec<u8> = row
+        .try_get(4)
+        .map_err(|_| "session epoch could not be decoded")?;
+    let epoch = bytes
+        .try_into()
+        .map_err(|_| "session epoch has an invalid length")?;
+    Ok(crate::identity::SessionIdentity {
+        principal: crate::identity::Principal {
+            user: row
+                .try_get(0)
+                .map_err(|_| "session user could not be decoded")?,
+            handle: row
+                .try_get(1)
+                .map_err(|_| "session handle could not be decoded")?,
+            name: row
+                .try_get(2)
+                .map_err(|_| "session name could not be decoded")?,
+            issuer: row
+                .try_get(3)
+                .map_err(|_| "session issuer could not be decoded")?,
+        },
+        epoch,
+    })
+}
+
 impl crate::identity::Kept for SessionsPg {
     #[cfg(test)]
     fn ran(&self) -> u64 {
@@ -587,13 +613,13 @@ impl crate::identity::Kept for SessionsPg {
         &self,
         hash: &[u8],
         lifetimes: &crate::identity::SessionLifetimes,
-    ) -> Result<Option<crate::identity::Principal>, String> {
+    ) -> Result<Option<crate::identity::SessionIdentity>, String> {
         let absolute = lifetimes.absolute.as_secs_f64();
         let idle = lifetimes.idle.as_secs_f64();
         let touch = touched_after(lifetimes).as_secs_f64();
-        self.with(|c| {
-            Ok(c.query_opt(
-                "WITH live AS (SELECT user_id, handle, name, issuer, seen FROM sessions \
+        let row = self.with(|c| {
+            c.query_opt(
+                "WITH live AS (SELECT user_id, handle, name, issuer, seen, epoch FROM sessions \
                      WHERE hash = $1 \
                      AND opened > clock_timestamp() - make_interval(secs => $2) \
                      AND seen > clock_timestamp() - make_interval(secs => $3)), \
@@ -602,26 +628,45 @@ impl crate::identity::Kept for SessionsPg {
                          WHERE seen < clock_timestamp() - make_interval(secs => $4))), \
                  gone AS (DELETE FROM sessions WHERE hash = $1 \
                      AND NOT EXISTS (SELECT 1 FROM live)) \
-                 SELECT user_id, handle, name, issuer FROM live",
+                 SELECT user_id, handle, name, issuer, epoch FROM live",
                 &[&hash, &absolute, &idle, &touch],
-            )?
-            .map(|r| crate::identity::Principal {
-                user: r.get(0),
-                handle: r.get(1),
-                name: r.get(2),
-                issuer: r.get(3),
-            }))
-        })
+            )
+        })?;
+        row.map(session_identity).transpose()
     }
 
-    fn open(&self, hash: &[u8], p: &crate::identity::Principal) -> Result<(), String> {
+    fn inspect(
+        &self,
+        hash: &[u8],
+        lifetimes: &crate::identity::SessionLifetimes,
+    ) -> Result<Option<crate::identity::SessionIdentity>, String> {
+        let absolute = lifetimes.absolute.as_secs_f64();
+        let idle = lifetimes.idle.as_secs_f64();
+        let row = self.with(|c| {
+            c.query_opt(
+                "SELECT user_id, handle, name, issuer, epoch FROM sessions \
+                 WHERE hash = $1 \
+                 AND opened > clock_timestamp() - make_interval(secs => $2) \
+                 AND seen > clock_timestamp() - make_interval(secs => $3)",
+                &[&hash, &absolute, &idle],
+            )
+        })?;
+        row.map(session_identity).transpose()
+    }
+
+    fn open(
+        &self,
+        hash: &[u8],
+        p: &crate::identity::Principal,
+        epoch: &[u8; 16],
+    ) -> Result<(), String> {
         self.with(|c| {
             c.execute(
-                "INSERT INTO sessions (hash, user_id, handle, name, issuer) \
-                 VALUES ($1, $2, $3, $4, $5) \
+                "INSERT INTO sessions (hash, user_id, handle, name, issuer, epoch) \
+                 VALUES ($1, $2, $3, $4, $5, $6) \
                  ON CONFLICT (hash) DO UPDATE SET user_id = EXCLUDED.user_id, \
-                 handle = EXCLUDED.handle, name = EXCLUDED.name, issuer = EXCLUDED.issuer",
-                &[&hash, &p.user, &p.handle, &p.name, &p.issuer],
+                 handle = EXCLUDED.handle, name = EXCLUDED.name, issuer = EXCLUDED.issuer, epoch = EXCLUDED.epoch, opened = clock_timestamp(), seen = clock_timestamp()",
+                &[&hash, &p.user, &p.handle, &p.name, &p.issuer, &&epoch[..]],
             )
             .map(|_| ())
         })

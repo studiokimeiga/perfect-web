@@ -109,6 +109,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "0020_scheduled_commit",
         include_str!("../migrations/store/0020_scheduled_commit.sql"),
     ),
+    (
+        "0021_session_epoch",
+        include_str!("../migrations/store/0021_session_epoch.sql"),
+    ),
 ];
 
 /// **The schema a deployment's store is in**, unless it names another.
