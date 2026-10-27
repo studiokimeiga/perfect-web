@@ -12,6 +12,14 @@ gate = import_module("session_command_mutations")
 
 
 class SessionCommandProducer(unittest.TestCase):
+    def test_generic_ci_catalogue_exports_every_canonical_control_and_edit(self):
+        self.assertEqual({entry[0] for entry in gate.MUTANTS},
+                         {control[0] for control in gate.CONTROLS})
+        self.assertEqual(len(gate.MUTANTS),
+                         sum(len(control[3]) for control in gate.CONTROLS))
+        self.assertTrue({"private-trace-payload", "private-trace-error"}
+                        <= {entry[0] for entry in gate.MUTANTS})
+
     def test_exact_head_requires_tracked_and_untracked_source_and_recipes_to_be_committed(self):
         from types import SimpleNamespace
         for status, untracked, expected in [(0, "", True), (1, "", False), (0, "runtime/extra.rs", False), (0, "packages/pw-std/extra.pw", False), (0, "just/extra.just", False)]:

@@ -193,3 +193,13 @@ pw-dev-server -- tests::session_commands::tracing_an_actual_store_command_never_
 dated evidence directory. The two trace controls must be killed at the parent
 privacy assertion after the complete actual child fixture, never at a setup
 expectation. A fresh unchanged aggregate CodeQL result remains required.
+
+
+The independent 5180e8a6 review found a catalogue-order gap: canonical CONTROLS
+already included both new privacy faults, but the generic MUTANTS export was
+computed before they were appended. Thus canonical --check/execution saw all26
+while generic CI discovery saw only24. The export now follows every extension.
+A new cross-catalogue contract failed with both missing IDs before repair and
+passes afterward; all14 command-producer calibrations pass. This changes no
+native runtime code, but the next immutable commit still requires fresh gates.
+The prior run is superseded rather than credited across the catalogue change.

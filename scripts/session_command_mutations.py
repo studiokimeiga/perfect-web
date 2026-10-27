@@ -173,10 +173,6 @@ CONTROLS.extend([
     ]),
 ])
 
-MUTANTS = [(identifier, description, path, anchor, replacement)
-           for identifier, _, description, edits in CONTROLS
-           for path, anchor, replacement in edits]
-
 CONTROLS.extend([
     ("private-trace-payload", "memory", "private materializer trace prints bearer cookie and derived query data", [
         (MAIN, '        trace(TraceEvent::Drain {\n            invalidated: invalidated.len(),\n            existing,\n        });\n',
@@ -188,6 +184,10 @@ CONTROLS.extend([
         (MAIN, '        trace(TraceEvent::DocumentRecovery);\n',
          '        trace(TraceEvent::DocumentRecovery);\n        if std::env::var("PW_TRACE").is_ok() {\n            eprintln!("private recovery {doc:?}: {_why:?}");\n        }\n')]),
 ])
+
+MUTANTS = [(identifier, description, path, anchor, replacement)
+           for identifier, _, description, edits in CONTROLS
+           for path, anchor, replacement in edits]
 
 LIMITS = [
     "Commands and receipts only; private-media, browser journeys and full framework are separate.",
