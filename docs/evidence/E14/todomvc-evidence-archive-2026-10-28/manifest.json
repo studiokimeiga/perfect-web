@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "failed_head": "a67c2111e13073bdb8a80358db7ca8c227e18159",
+  "scope": "Actual local Ruff/Fallow red reproductions of hosted failures, no passing gate credit",
+  "ruff_introduced": 15,
+  "fallow_introduced": 8,
+  "originals": {
+    "ruff.log.gz": {
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-a67-archive-analyzer-red/ruff.log",
+      "raw_sha256": "a4233506d27975fbc8bc5ec1457ab1c884152bd265b1265b8bb669d302805f0c",
+      "raw_bytes": 939
+    },
+    "fallow.log.gz": {
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-a67-archive-analyzer-red/fallow.log",
+      "raw_sha256": "47bdba03727d9944958b005b8f14a383620ad9f534774c2b839aaa9b45d8a31a",
+      "raw_bytes": 161108
+    },
+    "analyzer-capture.py.gz": {
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session_followup_archive_analyzers.py",
+      "raw_sha256": "c1475edc6f520c1e7bd2aded9529b32beba35aeb3a6800f141666b8d08f6c593",
+      "raw_bytes": 2504
+    }
+  },
+  "files": [
+    {
+      "path": "analyzer-capture.py.gz",
+      "sha256": "c555ddbfd2ce76220de417b5090ce06b1ff12a29b84b484a50f647a5836f9b1b",
+      "bytes": 1219
+    },
+    {
+      "path": "complete.json",
+      "sha256": "0c17c0c9c02a2caed442173c38eb675c4ba73062928a379e6b5e4158258576e3",
+      "bytes": 1532
+    },
+    {
+      "path": "fallow.log.gz",
+      "sha256": "60807a297d1380ff23bc98846c8c5fee0aea173a30a7d40ab4724acc70654d4c",
+      "bytes": 15379
+    },
+    {
+      "path": "fallow.result.json",
+      "sha256": "f917977bf657bf698706cf53ab4f84d327b2f56e09fec5c3c65f9fd8ccbd6bee",
+      "bytes": 594
+    },
+    {
+      "path": "ruff.log.gz",
+      "sha256": "69b1718c5a0a50a81d0ac62037abbaf13464ffb0bd533f927daade09a95d0798",
+      "bytes": 269
+    },
+    {
+      "path": "ruff.result.json",
+      "sha256": "d632847fbeb3066696ccda78f320773743b98b5f8c03f3e503179ad16cd5064c",
+      "bytes": 492
+    }
+  ],
+  "source_archive_repairs": [
+    {
+      "path": "after/pilot-executed.py.gz",
+      "original_path": "after/pilot-executed.py",
+      "raw_bytes": 5464,
+      "raw_sha256": "c003ed84fa4242f27437a4d8dbb8a32263b3c94c0542144c35e42f9758620d25"
+    },
+    {
+      "path": "before/pilot-executed.py.gz",
+      "original_path": "before/pilot-executed.py",
+      "raw_bytes": 5174,
+      "raw_sha256": "1e2a9f22adeeb6a85a3c2a84e1baa171d44fbeacc4300935b39fe063e57848ca"
+    },
+    {
+      "path": "initial-helper-refused/pilot-executed.py.gz",
+      "original_path": "initial-helper-refused/pilot-executed.py",
+      "raw_bytes": 5075,
+      "raw_sha256": "960674f01425218f8a10d4e27165cd06497e4d9e936a384ae1278e1d8d3add8c"
+    },
+    {
+      "path": "spec-before.mjs.gz",
+      "original_path": "spec-before.mjs",
+      "raw_bytes": 36393,
+      "raw_sha256": "a02de954856f40227d757319aa4fa3f9ef5bdf0f504cee7a97290b5de1a7353d"
+    },
+    {
+      "path": "spec-after.mjs.gz",
+      "original_path": "spec-after.mjs",
+      "raw_bytes": 36532,
+      "raw_sha256": "8d1119ed0516421a14892b8d3b42cb5cc51ea7f0c136934d971570f98c10cba2"
+    }
+  ]
+}

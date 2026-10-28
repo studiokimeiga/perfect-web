@@ -893,3 +893,22 @@ Dated statements above that call landing or combined gates pending describe
 the candidate before it landed and are kept as written. The
 [acceptance record](../diagnostics/train-12/acceptance-record-2026-10-21.md)
 states what the landing's evidence does and does not prove.
+
+## Evidence archive follow-up, 2026-10-28
+
+Published `a67c2111` correctly failed fresh Ruff/Fallow gates. Three copied
+historical Python helpers were treated as live project modules (15 new Ruff
+findings), and two relocated historical browser specs had unresolved relative
+imports, unused files and duplication (eight new Fallow issues). The executed
+TodoMVC spec and session repair were not the cause. Both failures were also
+reproduced locally before changing their storage.
+
+Those five historical source copies are now lossless gzip evidence data. Their
+decoded bytes, sizes and SHA-256 hashes remain identical to the original failed
+and focused executions. Actual project entrypoints, analyzer rules, ignores,
+thresholds and severity policy are unchanged. The archive manifest binds both
+stored and decoded hashes. This prevents archived source from being mistaken
+for runnable project code; it does not turn a67's failed checks into passes.
+[Raw analyzer reproductions](../evidence/E14/todomvc-evidence-archive-2026-10-28/manifest.json)
+remain failed historical evidence. Fresh analyzers and all planned exact-head
+gates are still required before merge.

@@ -1,0 +1,22 @@
+{
+  "head": "a67c2111e13073bdb8a80358db7ca8c227e18159",
+  "name": "ruff",
+  "cmd": [
+    "python3",
+    "scripts/quality_delta.py",
+    "--base",
+    "a0db8884deb2b3ba37faee59afcdee44a92c6b1c"
+  ],
+  "started": 1793161628.9492867,
+  "finished": 1793161631.7774937,
+  "exit": 1,
+  "owned_reaped": [
+    {
+      "pid": 1637986,
+      "status": 1,
+      "timed_out": false,
+      "cancelled": false
+    }
+  ],
+  "log_sha256": "a4233506d27975fbc8bc5ec1457ab1c884152bd265b1265b8bb669d302805f0c"
+}

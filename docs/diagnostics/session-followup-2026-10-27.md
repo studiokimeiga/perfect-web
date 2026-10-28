@@ -85,3 +85,12 @@ No producer, operator, retry, timeout or skip rule is relaxed. These are working
 source diagnostics. Required final commands remain `just preflight`,
 `just e14-todomvc`, the whole command/upload/receipt/scheduler recipes and all
 actual hosted planned checks at the next immutable head. No merge has occurred.
+
+
+The next published candidate `a67c2111` also remains failed: fresh analyzers
+correctly treated three historical Python helper copies and two relocated
+browser spec copies as executable modules. Local raw reproductions retain15
+Ruff and8Fallow introduced findings. Only their evidence storage changes to
+lossless gzip; decoded executed source is preserved and hash-bound. No product,
+actual test, producer, policy, ignore or threshold changes. Fresh final-head
+gates remain mandatory; the earlier focused native passes are historical.

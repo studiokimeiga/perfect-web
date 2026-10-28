@@ -123,9 +123,9 @@
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
-      "path": "after/pilot-executed.py",
-      "bytes": 5464,
-      "sha256": "c003ed84fa4242f27437a4d8dbb8a32263b3c94c0542144c35e42f9758620d25"
+      "path": "after/pilot-executed.py.gz",
+      "bytes": 2140,
+      "sha256": "0046b972523b56159ffd35fed653ca6fa155640c71659fdd34f6ecc71c94a0e8"
     },
     {
       "path": "after/runs.json",
@@ -213,9 +213,9 @@
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
-      "path": "before/pilot-executed.py",
-      "bytes": 5174,
-      "sha256": "1e2a9f22adeeb6a85a3c2a84e1baa171d44fbeacc4300935b39fe063e57848ca"
+      "path": "before/pilot-executed.py.gz",
+      "bytes": 2042,
+      "sha256": "4e3aa168117aece202426953b2f429ea2e27e42820919afd6ee1475145878bf3"
     },
     {
       "path": "before/runs.json",
@@ -273,19 +273,19 @@
       "sha256": "101bee5cf6b2348a3af7b9446e8366be2178d94f13053bc34d673f3a734e13ca"
     },
     {
-      "path": "initial-helper-refused/pilot-executed.py",
-      "bytes": 5075,
-      "sha256": "960674f01425218f8a10d4e27165cd06497e4d9e936a384ae1278e1d8d3add8c"
+      "path": "initial-helper-refused/pilot-executed.py.gz",
+      "bytes": 2002,
+      "sha256": "bb336a3323bd8df56585da28b6c781603128ed1c3f8368b849e278ce6f97e286"
     },
     {
-      "path": "spec-after.mjs",
-      "bytes": 36532,
-      "sha256": "8d1119ed0516421a14892b8d3b42cb5cc51ea7f0c136934d971570f98c10cba2"
+      "path": "spec-after.mjs.gz",
+      "bytes": 6509,
+      "sha256": "d596880c0497833b929d524d02920ff3c8345ae4e9c1ef5874f3425dc640f3de"
     },
     {
-      "path": "spec-before.mjs",
-      "bytes": 36393,
-      "sha256": "a02de954856f40227d757319aa4fa3f9ef5bdf0f504cee7a97290b5de1a7353d"
+      "path": "spec-before.mjs.gz",
+      "bytes": 6480,
+      "sha256": "5ff06aece72ff2d3ff9d6126b08e89629cd9f56bc0b70a3bc7da4d474878df55"
     }
   ],
   "losslessly_compressed_raw_records": [
@@ -306,6 +306,37 @@
       "original_path": "initial-helper-refused/HELPER-REFUSED.txt",
       "raw_bytes": 608,
       "raw_sha256": "0c288805714727396a5fbd97bce3c461a5fefb3bb23fde5b176bd0ebc6ae8993"
+    },
+    {
+      "path": "after/pilot-executed.py.gz",
+      "original_path": "after/pilot-executed.py",
+      "raw_bytes": 5464,
+      "raw_sha256": "c003ed84fa4242f27437a4d8dbb8a32263b3c94c0542144c35e42f9758620d25"
+    },
+    {
+      "path": "before/pilot-executed.py.gz",
+      "original_path": "before/pilot-executed.py",
+      "raw_bytes": 5174,
+      "raw_sha256": "1e2a9f22adeeb6a85a3c2a84e1baa171d44fbeacc4300935b39fe063e57848ca"
+    },
+    {
+      "path": "initial-helper-refused/pilot-executed.py.gz",
+      "original_path": "initial-helper-refused/pilot-executed.py",
+      "raw_bytes": 5075,
+      "raw_sha256": "960674f01425218f8a10d4e27165cd06497e4d9e936a384ae1278e1d8d3add8c"
+    },
+    {
+      "path": "spec-before.mjs.gz",
+      "original_path": "spec-before.mjs",
+      "raw_bytes": 36393,
+      "raw_sha256": "a02de954856f40227d757319aa4fa3f9ef5bdf0f504cee7a97290b5de1a7353d"
+    },
+    {
+      "path": "spec-after.mjs.gz",
+      "original_path": "spec-after.mjs",
+      "raw_bytes": 36532,
+      "raw_sha256": "8d1119ed0516421a14892b8d3b42cb5cc51ea7f0c136934d971570f98c10cba2"
     }
-  ]
+  ],
+  "archival_source_storage": "Executed source snapshots are lossless gzip evidence data, not relocated executable project modules. Decoded bytes and original raw hashes retained. No analyzer rule, ignore, threshold or real entrypoint change."
 }

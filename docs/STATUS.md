@@ -2,6 +2,15 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Evidence archive follow-up, 2026-10-28:** `a67c2111` failed its fresh Ruff
+and Fallow gates because five historical source snapshots were stored with
+executable extensions. Raw local red reproductions and byte-preserving gzip
+storage repair are recorded under ADR0367. Actual source/spec/producer and
+analyzer policy are unchanged. Require `just preflight`,
+`python3 scripts/quality_delta.py --base a0db8884deb2b3ba37faee59afcdee44a92c6b1c`,
+Fallow audit against that base, and every planned final-head hosted gate before
+merge. Both f1 and a67 failed candidates stay unaccepted.
+
 **PR62 gate follow-up, 2026-10-28:** `f1d19c8e` remains failed:
 verify40617180819's actual `e14-todomvc` returned1 although the recipe shell
 job succeeded. The clear-count control timed out clicking after a transient
