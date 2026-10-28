@@ -1,0 +1,6 @@
+{
+  "valid": false,
+  "acceptance_credit": false,
+  "reason": "Second intended native-stderr fault loaded prior same-size/mtime Python bytecode and failed the wrong test. Native mismatch validator correctly refused. Source restored; raw report.json is incomplete external-tooling output, not accepted controls.",
+  "helper_sha256": "cfb3c835327ec1e2d2d0b9a86676897d8d15cbd776016f5af0273948fc73291a"
+}

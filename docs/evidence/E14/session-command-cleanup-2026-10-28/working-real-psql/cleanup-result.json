@@ -1,0 +1,30 @@
+{
+  "receipt": "owned-synthetic.schemas.txt",
+  "receipt_sha256": "0768a85b07910869150713b2baeb80cdd53542b91eb98e50d5d0700409418e95",
+  "valid": false,
+  "owned": {
+    "feed": [
+      "pw_session_feed_0000000000000001"
+    ],
+    "store": [
+      "pw_session_store_0000000000000002"
+    ]
+  },
+  "inventory_valid": true,
+  "checks": {
+    "feed": {
+      "status": 2,
+      "log": "invalid-uri.cleanup-feed.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_policy": "discarded at child launch",
+      "valid": false
+    },
+    "store": {
+      "status": 2,
+      "log": "invalid-uri.cleanup-store.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_policy": "discarded at child launch",
+      "valid": false
+    }
+  }
+}

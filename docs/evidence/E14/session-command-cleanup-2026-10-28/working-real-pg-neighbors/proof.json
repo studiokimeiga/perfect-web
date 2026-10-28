@@ -1,0 +1,228 @@
+{
+  "scope": "WORKING SOURCE two-database owned-schema neighbor only; no full26 or exact-parent credit",
+  "head": "5371f0f20d7fcb50826d3a775b5bbac72c1b14b0",
+  "source_sha256": "82303162b32a42bbd195da416ce9b0ef9749ccf6e65efd88832249a672f26803",
+  "success": true,
+  "neighbors": {
+    "present_refused": true,
+    "present_exact_stdout_retained": true,
+    "absent_accepted": true,
+    "configured_database_count": 2,
+    "owned_schemas": {
+      "feed": "pw_session_feed_42db876ad2af40b8",
+      "store": "pw_session_store_2ccc3b4ab9ed4312"
+    }
+  },
+  "owned_process_records": [
+    {
+      "kind": "feed",
+      "label": "before",
+      "command": [
+        "psql",
+        "--no-psqlrc",
+        "--tuples-only",
+        "--no-align",
+        "--dbname",
+        "<configured PW_FEED_DATABASE_URL>",
+        "--command",
+        "SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname = 'pw_session_feed_42db876ad2af40b8'"
+      ],
+      "status": 0,
+      "log": "before-feed.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reaped": [
+        {
+          "pid": 1691048,
+          "status": 0,
+          "timed_out": false,
+          "cancelled": false
+        }
+      ],
+      "stderr_policy": "discarded at child launch"
+    },
+    {
+      "kind": "feed",
+      "label": "create",
+      "command": [
+        "psql",
+        "--no-psqlrc",
+        "--tuples-only",
+        "--no-align",
+        "--dbname",
+        "<configured PW_FEED_DATABASE_URL>",
+        "--command",
+        "CREATE SCHEMA \"pw_session_feed_42db876ad2af40b8\""
+      ],
+      "status": 0,
+      "log": "create-feed.log",
+      "log_sha256": "185d73c49badd0f588a9427d2faf8d7b6a1d27e98a490aef920f65667d9feaf6",
+      "reaped": [
+        {
+          "pid": 1691050,
+          "status": 0,
+          "timed_out": false,
+          "cancelled": false
+        }
+      ],
+      "stderr_policy": "discarded at child launch"
+    },
+    {
+      "kind": "store",
+      "label": "before",
+      "command": [
+        "psql",
+        "--no-psqlrc",
+        "--tuples-only",
+        "--no-align",
+        "--dbname",
+        "<configured PW_STORE_DATABASE_URL>",
+        "--command",
+        "SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname = 'pw_session_store_2ccc3b4ab9ed4312'"
+      ],
+      "status": 0,
+      "log": "before-store.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reaped": [
+        {
+          "pid": 1691052,
+          "status": 0,
+          "timed_out": false,
+          "cancelled": false
+        }
+      ],
+      "stderr_policy": "discarded at child launch"
+    },
+    {
+      "kind": "store",
+      "label": "create",
+      "command": [
+        "psql",
+        "--no-psqlrc",
+        "--tuples-only",
+        "--no-align",
+        "--dbname",
+        "<configured PW_STORE_DATABASE_URL>",
+        "--command",
+        "CREATE SCHEMA \"pw_session_store_2ccc3b4ab9ed4312\""
+      ],
+      "status": 0,
+      "log": "create-store.log",
+      "log_sha256": "185d73c49badd0f588a9427d2faf8d7b6a1d27e98a490aef920f65667d9feaf6",
+      "reaped": [
+        {
+          "pid": 1691054,
+          "status": 0,
+          "timed_out": false,
+          "cancelled": false
+        }
+      ],
+      "stderr_policy": "discarded at child launch"
+    },
+    {
+      "kind": "feed",
+      "label": "drop",
+      "command": [
+        "psql",
+        "--no-psqlrc",
+        "--tuples-only",
+        "--no-align",
+        "--dbname",
+        "<configured PW_FEED_DATABASE_URL>",
+        "--command",
+        "DROP SCHEMA \"pw_session_feed_42db876ad2af40b8\""
+      ],
+      "status": 0,
+      "log": "drop-feed.log",
+      "log_sha256": "5fd4dd983ae182329483d342c600c771914d0dccac3ac4e65f1978d5f8ab0a35",
+      "reaped": [
+        {
+          "pid": 1691060,
+          "status": 0,
+          "timed_out": false,
+          "cancelled": false
+        }
+      ],
+      "stderr_policy": "discarded at child launch"
+    },
+    {
+      "kind": "store",
+      "label": "drop",
+      "command": [
+        "psql",
+        "--no-psqlrc",
+        "--tuples-only",
+        "--no-align",
+        "--dbname",
+        "<configured PW_STORE_DATABASE_URL>",
+        "--command",
+        "DROP SCHEMA \"pw_session_store_2ccc3b4ab9ed4312\""
+      ],
+      "status": 0,
+      "log": "drop-store.log",
+      "log_sha256": "5fd4dd983ae182329483d342c600c771914d0dccac3ac4e65f1978d5f8ab0a35",
+      "reaped": [
+        {
+          "pid": 1691062,
+          "status": 0,
+          "timed_out": false,
+          "cancelled": false
+        }
+      ],
+      "stderr_policy": "discarded at child launch"
+    },
+    {
+      "kind": "feed",
+      "label": "final-absence",
+      "command": [
+        "psql",
+        "--no-psqlrc",
+        "--tuples-only",
+        "--no-align",
+        "--dbname",
+        "<configured PW_FEED_DATABASE_URL>",
+        "--command",
+        "SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname = 'pw_session_feed_42db876ad2af40b8'"
+      ],
+      "status": 0,
+      "log": "final-absence-feed.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reaped": [
+        {
+          "pid": 1691068,
+          "status": 0,
+          "timed_out": false,
+          "cancelled": false
+        }
+      ],
+      "stderr_policy": "discarded at child launch"
+    },
+    {
+      "kind": "store",
+      "label": "final-absence",
+      "command": [
+        "psql",
+        "--no-psqlrc",
+        "--tuples-only",
+        "--no-align",
+        "--dbname",
+        "<configured PW_STORE_DATABASE_URL>",
+        "--command",
+        "SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname = 'pw_session_store_2ccc3b4ab9ed4312'"
+      ],
+      "status": 0,
+      "log": "final-absence-store.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "reaped": [
+        {
+          "pid": 1691070,
+          "status": 0,
+          "timed_out": false,
+          "cancelled": false
+        }
+      ],
+      "stderr_policy": "discarded at child launch"
+    }
+  ],
+  "source_unchanged": true,
+  "actual_endpoint_values_saved": false
+}

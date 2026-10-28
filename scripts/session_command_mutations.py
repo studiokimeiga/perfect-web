@@ -288,9 +288,10 @@ def schema_names(text, expected):
             for kind in ("feed", "store")}
 
 
-def process(command, log, *, timeout, env):
+def process(command, log, *, timeout, env, suppress_stderr=False):
     try:
-        child = producer_process.run(command, cwd=ROOT, timeout=timeout, env=env)
+        child = producer_process.run(command, cwd=ROOT, timeout=timeout, env=env,
+                                     stderr=subprocess.DEVNULL if suppress_stderr else subprocess.STDOUT)
     except BaseException as error:
         output = getattr(error, "output", "") or ""
         log.write_text(output if isinstance(output, str) else output.decode(errors="replace"))
@@ -298,7 +299,8 @@ def process(command, log, *, timeout, env):
             raise
         return {"status": None, "error": type(error).__name__, "log": log.name}, log.read_text()
     log.write_text(child.stdout)
-    return {"status": child.returncode, "log": log.name, "log_sha256": digest(log)}, child.stdout
+    return {"status": child.returncode, "log": log.name, "log_sha256": digest(log),
+            "stderr_policy": "discarded at child launch" if suppress_stderr else "raw merged stdout/stderr"}, child.stdout
 
 
 def cleanup(receipt, expected, output, label, env):
@@ -321,7 +323,10 @@ def cleanup(receipt, expected, output, label, env):
         values = ",".join("'" + name + "'" for name in names)
         command = ["psql", "--no-psqlrc", "--tuples-only", "--no-align", "--dbname", url,
                    "--command", f"SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname IN ({values})"]
-        check, text = process(command, output / f"{label}.cleanup-{kind}.log", timeout=30, env=env)
+        # libpq may echo a malformed URI before connecting. Cleanup evidence is
+        # its native status and fixed owned-name SELECT stdout, never stderr.
+        check, text = process(command, output / f"{label}.cleanup-{kind}.log", timeout=30, env=env,
+                              suppress_stderr=True)
         check["valid"] = check["status"] == 0 and not text.strip()
         checks[kind] = check
     record["checks"] = checks

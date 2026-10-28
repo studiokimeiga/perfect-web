@@ -94,3 +94,21 @@ Ruff and8Fallow introduced findings. Only their evidence storage changes to
 lossless gzip; decoded executed source is preserved and hash-bound. No product,
 actual test, producer, policy, ignore or threshold changes. Fresh final-head
 gates remain mandatory; the earlier focused native passes are historical.
+
+
+A further direct cleanup-helper probe at `5371f0f2` reproduced a synthetic URI
+password in actual libpq stderr logs despite correct acceptance refusal. The
+working command-producer repair discards only cleanup stderr at launch and
+records that policy; SELECT stdout/status and ordinary native diagnostics stay
+intact. Three additive real-child regressions produce a green17-case inventory;
+original-source privacy and two controlled faults fail intended assertions.
+Actual `psql` parser refusal and owned-schema presence/absence neighbors on both
+configured databases corroborate the boundary. These are working helper/proof
+results, not authority or whole-campaign acceptance. All26 controls remain.
+See [the retained diagnostic record](../evidence/E14/session-command-cleanup-2026-10-28/manifest.json).
+The initial RED predates later metadata assertions, and an initial external pilot
+hit stale Python bytecode; both are explicitly qualified and uncredited. The
+corrected pilot captures exact source/test bytes under a fresh empty bytecode
+prefix for each native child. A fresh immutable head and complete planned
+verification remain required. Earlier5371 CI/security/browser success does not
+clear this newly reproduced privacy defect or authorize merge.

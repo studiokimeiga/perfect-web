@@ -274,3 +274,40 @@ that writer records only committed business operations. Cached known negatives
 and Clock terminal negatives retain their generic decoder and valid neighbors.
 This is validation of receipt shape, coherence and writer context, not
 cryptographic authentication of arbitrary coherent stored values.
+
+
+## Command producer cleanup keeps URI diagnostics private, 2026-10-28
+
+A direct helper probe at `5371f0f2` found a further evidence defect. Actual
+`psql` parsing of a synthetic malformed URI echoed its sentinel password into
+both cleanup logs. Cleanup correctly refused acceptance, but retained private
+input in diagnostics. This probe used no actual endpoint or database connection;
+whole-campaign reachability under that malformed environment was not executed.
+
+The command producer now applies the receipt producer's cleanup policy: discard
+`psql` stderr at child launch, retain the fixed owned-name SELECT stdout and
+native status, and record the capture policy on completed processes. Ordinary
+native test stderr stays merged and retained. Missing/leftover schemas, nonzero
+status, setup/process errors and incomplete inventories still refuse. Exception
+records without a completed policy receipt remain invalid. This deliberately
+removes cleanup stderr as independently reparsable evidence; it does not filter
+stdout or turn a failed query into absence.
+
+Three additive real-child regressions cover both URI logs and result metadata,
+stdout/status neighbors, and ordinary native diagnostics. The final 17-test
+working baseline/restored runs pass. A captured final privacy testcase against
+the exact old producer fails its log-content assertion; two scoped diagnostic
+faults each fail one intended assertion across the complete 17-case inventory.
+These are producer calibrations, not additional authority controls. All original
+26 authority controls and their native inventory rules remain unchanged.
+
+Independent actual `psql` probing on the working repair retains empty logs but
+still returns both native exit2 refusals. A separate two-database working fixture
+creates only two fresh owned schemas: their presence is refused with exact stdout
+retained, their later absence is accepted, and final read-only queries verify
+both owned names absent. No configured connection value is saved. The
+[raw diagnostic manifest](../evidence/E14/session-command-cleanup-2026-10-28/manifest.json)
+separates working results from final-head gates and retains the initial test
+provenance and refused stale-bytecode pilot without acceptance credit.
+Fresh `just preflight`, producer calibrations, `just e14-session-command-authority`
+and every planned exact-head hosted gate remain required before merge.

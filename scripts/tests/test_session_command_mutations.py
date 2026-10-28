@@ -1,5 +1,6 @@
 """Adversarial calibration of the bounded command producer's acceptance seams."""
 from importlib import import_module
+import json
 from pathlib import Path
 import sys
 import tempfile
@@ -104,6 +105,62 @@ class SessionCommandProducer(unittest.TestCase):
                 self.assertFalse(result["valid"], "incomplete inventory never passes")
                 self.assertTrue(result["checks"]["feed"]["valid"], "partial owned names are still independently inspected")
                 self.assertEqual(process.call_count, 1)
+
+    def test_cleanup_discards_child_stderr_before_retaining_logs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            receipt = output / "owned.txt"
+            receipt.write_text("pw_session_feed_0123456789abcdef\npw_session_store_fedcba9876543210\n")
+            env = {"PW_FEED_DATABASE_URL": "postgresql://fixture:SYNTHETIC_PASSWORD%2@invalid/feed",
+                   "PW_STORE_DATABASE_URL": "postgresql://fixture:SYNTHETIC_PASSWORD%2@invalid/store"}
+            launch = gate.producer_process.run
+            seen = []
+
+            def diagnostic_child(command, **kwargs):
+                seen.append(command)
+                url = command[command.index("--dbname") + 1]
+                return launch([sys.executable, "-c",
+                               "import sys; sys.stderr.write(sys.argv[1]); sys.exit(2)", url], **kwargs)
+
+            with patch.object(gate.producer_process, "run", side_effect=diagnostic_child):
+                result = gate.cleanup(receipt, 2, output, "invalid-uri", env)
+            self.assertFalse(result["valid"])
+            self.assertEqual(len(seen), 2)
+            self.assertNotIn("SYNTHETIC_PASSWORD", json.dumps(result))
+            for kind in ("feed", "store"):
+                self.assertEqual((output / f"invalid-uri.cleanup-{kind}.log").read_text(), "")
+                self.assertEqual(result["checks"][kind]["status"], 2)
+                self.assertEqual(result["checks"][kind]["stderr_policy"], "discarded at child launch")
+
+    def test_cleanup_retains_stdout_and_native_exit_for_owned_name_queries(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            receipt = output / "owned.txt"
+            name = "pw_session_feed_0123456789abcdef"
+            receipt.write_text(name + "\n")
+            env = {"PW_FEED_DATABASE_URL": "fixture-only"}
+            launch = gate.producer_process.run
+            for index, (stdout, status, valid) in enumerate([("", 0, True), (name + "\n", 0, False), ("", 2, False)]):
+                def owned_query(_command, **kwargs):
+                    return launch([sys.executable, "-c",
+                                   "import sys; sys.stdout.write(sys.argv[1]); sys.exit(int(sys.argv[2]))",
+                                   stdout, str(status)], **kwargs)
+                with patch.object(gate.producer_process, "run", side_effect=owned_query):
+                    result = gate.cleanup(receipt, 1, output, f"query-{index}", env)
+                self.assertEqual(result["valid"], valid)
+                self.assertEqual(result["checks"]["feed"]["status"], status)
+                self.assertEqual((output / f"query-{index}.cleanup-feed.log").read_text(), stdout)
+
+    def test_ordinary_native_process_still_retains_stderr_diagnostics(self):
+        with tempfile.TemporaryDirectory() as directory:
+            log = Path(directory) / "native.log"
+            native, text = gate.process([sys.executable, "-c",
+                                         "import sys; sys.stderr.write('safe native diagnostic\\n')"],
+                                        log, timeout=5, env={})
+            self.assertEqual(native["status"], 0)
+            self.assertEqual(text, "safe native diagnostic\n")
+            self.assertEqual(native["stderr_policy"], "raw merged stdout/stderr")
+            self.assertEqual(log.read_text(), text)
 
     def test_cancellation_keeps_raw_log_and_is_not_converted_to_success(self):
         with tempfile.TemporaryDirectory() as directory:

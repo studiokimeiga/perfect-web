@@ -2,6 +2,18 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Command cleanup diagnostic follow-up, 2026-10-28:** a direct real-`psql`
+synthetic-URI probe found command-producer cleanup stderr retaining its password.
+The working cleanup-only launch policy and three additive real-child regressions
+are recorded under ADR0389. Actual two-database owned-schema neighbors preserve
+stdout/status evidence; ordinary native diagnostics remain unchanged. The26
+command authority controls stay intact. Reproduce with
+`python3 -m unittest -v scripts/tests/test_session_command_mutations.py`,
+`just preflight` and `just e14-session-command-authority`; require all fresh
+planned hosted gates at the next immutable head before merge. `5371f0f2` passed
+CI/security/full browsers but remains unaccepted with this finding and unfinished
+recipes; no prior execution is transferred to the successor.
+
 **Evidence archive follow-up, 2026-10-28:** `a67c2111` failed its fresh Ruff
 and Fallow gates because five historical source snapshots were stored with
 executable extensions. Raw local red reproductions and byte-preserving gzip
