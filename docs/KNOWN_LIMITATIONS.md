@@ -1451,3 +1451,10 @@ A separate preexisting upload lifecycle limit remains: unclaimed lease expiry
 is swept on a later upload, while preview/shown/claim do not independently sweep
 the nominal sixty-minute lease age. It is not repaired or credited by this
 session-revocation change. Public committed images retain ADR0260/0261's policy.
+
+**2026-10-27 — Temporary benchmark merge-helper fork (ADR-0390).** The Svelte
+baseline build tools need a local MIT deepmerge compatibility fork until
+upstream offers a reviewed fixed dependency. Reserved object keys are omitted;
+hostile custom callbacks/getters/proxies and cyclic input are outside its
+contract. The workspace and isolated sandbox must install the same fixed entry.
+The failed PR62 `4f28b257` audit is retained and gives no passing gate credit.

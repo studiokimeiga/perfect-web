@@ -9,6 +9,7 @@ overrides:
   brace-expansion@>=5.0.0 <5.0.12: 5.0.12
   cookie@<0.7.0: 0.7.2
   zod: 4.6.7
+  deepmerge: file:benchmarks/baselines/sveltekit/vendor/deepmerge
 
 importers:
 
@@ -712,6 +713,10 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
+  '@pleris/deepmerge@file:benchmarks/baselines/sveltekit/vendor/deepmerge':
+    resolution: {directory: benchmarks/baselines/sveltekit/vendor/deepmerge, type: directory}
+    engines: {node: '>=22.12.0'}
+
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
 
@@ -1400,10 +1405,6 @@ packages:
     peerDependenciesMeta:
       supports-color:
         optional: true
-
-  deepmerge@4.3.1:
-    resolution: {integrity: sha512-3sUqbMEc77XqpdNO7FRyRog+eW3ph+GYCbj+rK+uYyRMuwsVy0rMiVtPn+QJlKFvWP/1PYpapqYn0Me2knFn+A==}
-    engines: {node: '>=0.10.0'}
 
   delayed-stream@1.0.0:
     resolution: {integrity: sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ==}
@@ -3032,6 +3033,8 @@ snapshots:
     dependencies:
       playwright: 1.58.0
 
+  '@pleris/deepmerge@file:benchmarks/baselines/sveltekit/vendor/deepmerge': {}
+
   '@polka/url@1.0.0-next.29': {}
 
   '@remix-run/form-data-parser@0.17.4':
@@ -3155,7 +3158,7 @@ snapshots:
     dependencies:
       '@rollup/pluginutils': 5.4.0(rollup@4.63.6)
       '@types/resolve': 1.20.2
-      deepmerge: 4.3.1
+      deepmerge: '@pleris/deepmerge@file:benchmarks/baselines/sveltekit/vendor/deepmerge'
       is-module: 1.0.0
       resolve: 1.22.12
     optionalDependencies:
@@ -3290,7 +3293,7 @@ snapshots:
 
   '@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.1)(vite@8.3.3(@types/node@22.20.5)(esbuild@0.28.2))':
     dependencies:
-      deepmerge: 4.3.1
+      deepmerge: '@pleris/deepmerge@file:benchmarks/baselines/sveltekit/vendor/deepmerge'
       magic-string: 1.4.2
       obug: 2.2.1
       svelte: 5.57.1
@@ -3597,8 +3600,6 @@ snapshots:
       ms: 2.1.3
     optionalDependencies:
       supports-color: 8.1.1
-
-  deepmerge@4.3.1: {}
 
   delayed-stream@1.0.0: {}
 

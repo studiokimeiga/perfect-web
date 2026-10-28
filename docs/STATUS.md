@@ -384,3 +384,15 @@ cleanup cannot pass. Browser/affected legacy recipes, independent final review,
 preflight, full native tests and hosted exact-head CI remain separate merge
 gates. The initial actual failures are preserved under
 `docs/evidence/E14/session-commands-2026-10-27/`. No pending gate is waived here.
+
+**PR62 supply-chain continuation (2026-10-27):** candidate `4f28b257` failed
+both hosted `just audit` jobs on GHSA-gcqx-w48m-w2h4. ADR-0390 records the
+temporary private MIT merge-helper fork and both lockfile repairs. The
+unchanged published helper fails 9 of 17 regressions; the repaired helper
+passes 17. Scratch frozen/offline install, Svelte check/build and the unchanged
+workspace node-audit policy pass on the working tree. These diagnostics are
+in `evidence/E14/session-followup-deepmerge-2026-10-27/`; none supplies a new
+commit's execution credit. Independent review and all exact repaired-head
+local/hosted gates remain pending before merge.
+
+Both actual installed consumer-resolution checks also pass (19 total tests) in fresh workspace and isolated frozen installs. Initial test-resolution and environment refusals are retained separately in the characterization manifest.

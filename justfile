@@ -149,6 +149,7 @@ audit:
 # This tests the harness, not the compiler or the browser.
 evidence-gates:
     @python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
+    @node --test benchmarks/baselines/sveltekit/vendor/deepmerge/test.cjs benchmarks/baselines/sveltekit/vendor/deepmerge/consumer-test.cjs
 
 # ADR-0245: a verification run's evidence, fetched into docs/evidence/. The
 # run is a GitHub Actions run of `verify`, by its id; each file it fetches

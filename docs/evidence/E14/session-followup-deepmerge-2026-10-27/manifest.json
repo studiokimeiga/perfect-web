@@ -1,0 +1,137 @@
+{
+  "scope": "Working-tree characterization before the repaired commit; no final-head execution credit",
+  "upstream": "deepmerge@4.3.1 published CommonJS",
+  "red": {
+    "command": "node --test benchmarks/baselines/sveltekit/vendor/deepmerge/test.cjs",
+    "exit": 1,
+    "tests": 17,
+    "passed": 8,
+    "failed": 9
+  },
+  "green": {
+    "tests": 17,
+    "passed": 17,
+    "failed": 0
+  },
+  "artifacts": [
+    {
+      "path": "unpatched-red.log.gz",
+      "raw_sha256": "465b30ec978c9874793a6974c8c9df263558f48a990b84ff8326f9dff3c14c49",
+      "gzip_sha256": "7171147eaf0c5c491c0caf8cafa59599b2253b3190820d36c2b917b7fe0f6e90",
+      "raw_bytes": 12041
+    },
+    {
+      "path": "unpatched-red.exit.gz",
+      "raw_sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "gzip_sha256": "c28cc69d141393e44a931229323624ef7b8c5bde3ee047ca9b87332daef23c82",
+      "raw_bytes": 2
+    },
+    {
+      "path": "fixed-green.log.gz",
+      "raw_sha256": "b75162f8da2f8dcb514f28bd100f319730cbae9c5f4b1025f6870aa6e9f7bba8",
+      "gzip_sha256": "9d301ff110dbc73cf9af4e65c656ec32d2139cc51fbffa50532d51a0682a69c8",
+      "raw_bytes": 3109
+    },
+    {
+      "path": "root-lock-update.log.gz",
+      "raw_sha256": "ab0f5004692f20e64b6797e86d1253b8678c3f2e907db2002b4599a29aa8dc61",
+      "gzip_sha256": "26609076c623878e4b3b2c5886a09fbbae7b9fdf3fd03aa2f9341f5d0735b8fe",
+      "raw_bytes": 1416
+    },
+    {
+      "path": "sandbox-lock-update.log.gz",
+      "raw_sha256": "690c9e6d12ecf3847d6b4659efb22bea1ea7ed8e240bab39dae75897a9f8b8c4",
+      "gzip_sha256": "1cbc2714e74f8fbb1dfaf83242069b7d482c8230367f5696c20bf47c45cae173",
+      "raw_bytes": 778
+    },
+    {
+      "path": "sandbox-lock-update-pinned.log.gz",
+      "raw_sha256": "e48b24bd6b42c9d8cecd98ee75a8dc9f93ba59f376e1fe4767af30440e1e1e0b",
+      "gzip_sha256": "bc365c440386e50453aea22aee4fcc7dd38cb53eee7cf249631f972a463d5a32",
+      "raw_bytes": 151
+    },
+    {
+      "path": "sandbox-frozen-install.log.gz",
+      "raw_sha256": "8aeb545b54bd52b232132dcfd40cc90060444b25e13bd36f987c5e6244c38207",
+      "gzip_sha256": "fd3a55eee033061438cde88cd062ea66e2fe1fe41fe8a30000fc3e2171e1ba2c",
+      "raw_bytes": 1405
+    },
+    {
+      "path": "sandbox-offline-install.log.gz",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_bytes": 0
+    },
+    {
+      "path": "sandbox-typecheck.log.gz",
+      "raw_sha256": "3385abc7211c5c93c871f00a1a1c9d8478005f1bead9e7d53073a8373649258a",
+      "gzip_sha256": "e61176235386add429034657b06ffc03552c6968558a10d36102da23c9afc091",
+      "raw_bytes": 155
+    },
+    {
+      "path": "sandbox-build.log.gz",
+      "raw_sha256": "392f1c317a6dfb8e2014b73d50780aa30d5645f2667a09b3781eb6e1af72477a",
+      "gzip_sha256": "6ee762cb7ca49420f374875939a6ef67e998c4a1530686fd7f5c653dd23b93e7",
+      "raw_bytes": 3632
+    },
+    {
+      "path": "root-audit-green.log.gz",
+      "raw_sha256": "77ee2ba353de06c7e052d41192d438e8fcfe8b24116b1901e88e379cdbe1bfe0",
+      "gzip_sha256": "b36efa4aa84631d628f4dc0d47e3909fd4f222f2c05e5e2ddc1a8d2082facec3",
+      "raw_bytes": 62
+    },
+    {
+      "path": "sandbox-consumer-green.log.gz",
+      "raw_sha256": "9224921591591af0b485a4416187b1e87a63d9354d8fa0e6421865e6474f8fad",
+      "gzip_sha256": "dfbd9eeb194006f578727d103b0927c1aeabbcec30b59fb99521fb3e7d523323",
+      "raw_bytes": 4502
+    },
+    {
+      "path": "sandbox-consumer-green-v2.log.gz",
+      "raw_sha256": "1a126c19a9d56c7059ebf13337f2c6241ac25e569847b6d54d6395569e01bf3a",
+      "gzip_sha256": "da76c09c13cc42e8e83290358b7f23f9239c077df7148c7b13093a8a10414dcf",
+      "raw_bytes": 3494
+    },
+    {
+      "path": "root-frozen-install.log.gz",
+      "raw_sha256": "51c979b5f8ace2b558cde21947f7292b88e4d49c878f3ead4eeb43192e03ed21",
+      "gzip_sha256": "0506b27ca747a4f364207c2819796aa2e0b7f40bab8c07688b6340f5ca846519",
+      "raw_bytes": 480
+    },
+    {
+      "path": "root-frozen-install-isolated.log.gz",
+      "raw_sha256": "bba4e6d42208188d957b514fd456a45a58fd1f20092daf2e1f8819006869be02",
+      "gzip_sha256": "d4274a5bd981192d90cdb4f276ccb7ca3afb1b7ffd302306509c0dae013f00f9",
+      "raw_bytes": 1513
+    },
+    {
+      "path": "root-consumer-green.log.gz",
+      "raw_sha256": "c6478a99968fba837323762a8c5701c79d7660028c35effb67d8cfab182f534d",
+      "gzip_sha256": "9f34e9408ca3dc31dc7212e911b9c6b20d86900dcafdff53b172c4548fba3147",
+      "raw_bytes": 3494
+    },
+    {
+      "path": "precommit-preflight.log.gz",
+      "raw_sha256": "625999433f0a92aa26b9e67b53d698633055d0824ad1682b1b15510834935811",
+      "gzip_sha256": "793bb10f6c412c6b979d3d4def12c2c325a5e647de89fd71f5b81dc552d2b7bf",
+      "raw_bytes": 871
+    },
+    {
+      "path": "precommit-quality.log.gz",
+      "raw_sha256": "9ec3e76c21e84c48cdb435b42eb87057362f638ac9099dca3fd5ee234aa4d8f7",
+      "gzip_sha256": "5c772354ef681efc1d70db0a3aa71a265a905ba034137222fa7c474819ed67b9",
+      "raw_bytes": 80
+    }
+  ],
+  "consumer_green": {
+    "tests": 19,
+    "passed": 19,
+    "failed": 0,
+    "scope": "Fresh frozen root and scratch Svelte installs; includes both actual consumer resolutions"
+  },
+  "corrections": [
+    "Initial unpinned scratch Corepack selection failed; baseline packageManager now pinned.",
+    "Initial consumer test attempted CommonJS resolution of ESM-only adapter main; corrected to its exported package.json; no pass credited to that run.",
+    "Initial root install refused to replace inherited symlinked modules; only verified task-owned symlinks were unlinked, then a fresh root installation succeeded; prior module trees preserved."
+  ]
+}
