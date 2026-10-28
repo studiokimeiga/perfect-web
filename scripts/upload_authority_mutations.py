@@ -9,12 +9,13 @@ restored after its owned child is reaped; a final green baseline is mandatory.
 The full source manifest, exact head, raw logs and process receipts are retained.
 """
 import argparse
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
+import signal
 import subprocess
 import sys
 
@@ -63,10 +64,12 @@ CONTROLS = [
     ("preview-lease-reader", "private preview accepts another invocation reader's lease", [
         (UPLOADS, '                .filter(|l| l.id == id && l.reader == reader)\n',
          '                .filter(|l| l.id == id)\n')], [
-        (PREFIX + "stale_bound_reader_cannot_take_replacement_generations_lease",
-         "stale request cannot read replacement's image"),
-        (HTTP_PREFIX + "upload_http_dispatch_keeps_admitted_reader_when_same_cookie_is_reopened",
-         "HTTP upload dispatch must not recapture a replacement generation")]),
+        # Here the new/anonymous actor is live, but the lease is old. The
+        # opposite stale-actor/new-lease case also has the live-source guard.
+        (PREFIX + "completed_logout_refuses_old_cookie_preview_shown_and_claim",
+         "logout must hide the private preview"),
+        (PREFIX + "same_cookie_same_account_new_generation_cannot_preview_or_claim_old_lease",
+         "a new generation cannot inherit private bytes")]),
     ("shown-lease-reader", "attachment metadata accepts another generation's lease", [
         (UPLOADS, '            .filter(|lease| lease.reader == reader)?;\n',
          '            .filter(|_| true)?;\n')], [
@@ -96,19 +99,19 @@ CONTROLS = [
          "source revocation must hide preview even before this host refreshes"),
         (PREFIX + "preview_live_inspection_follows_the_complete_staged_blob_read",
          "preview must revalidate authority after staged storage finishes reading private bytes")]),
-    ("post-body-current-composite", "COMPOSITE publication omits all three post-body current-authority checks", [
+    ("post-body-current-composite", "COMPOSITE publication inspects but ignores all three post-body authority results", [
         (UPLOADS, '''            .map(|gate| gate.read().expect("session authority gate"));
         if !self.reader_current(session, reader) {
 ''', '''            .map(|gate| gate.read().expect("session authority gate"));
-        if false && !self.reader_current(session, reader) {
+        if self.reader_current(session, reader) && false {
 '''),
         (UPLOADS, '''        // command retains the existing transaction-bound commit fence.
         if !self.reader_current(session, reader) {
 ''', '''        // command retains the existing transaction-bound commit fence.
-        if false && !self.reader_current(session, reader) {
+        if self.reader_current(session, reader) && false {
 '''),
         (UPLOADS, '        if local && !self.reader_current(session, reader) {\n',
-         '        if false && local && !self.reader_current(session, reader) {\n')], [
+         '        if local && self.reader_current(session, reader) && false {\n')], [
         (PREFIX + "upload_held_in_body_cannot_publish_a_lease_after_completed_logout",
          "an upload cannot publish after its reader was revoked"),
         (PREFIX + "remote_revocation_while_upload_body_is_held_refuses_staging",
@@ -122,25 +125,17 @@ CONTROLS = [
         (PREFIX + "source_failure_after_staged_put_refuses_new_lease_and_removes_unheld_bytes",
          "source failure during storage must refuse publication"),
         (PREFIX + "source_failure_after_same_key_put_preserves_existing_lease_and_shared_bytes",
-         "failed same-key replacement must not publish"),
-        (PREFIX + "a_lease_claimed_during_final_inspection_is_not_replaced",
-         "an incoming upload cannot replace a lease claimed during source inspection"),
-        (PREFIX + "a_lease_replaced_during_final_inspection_is_not_overwritten",
-         "an incoming upload cannot overwrite a different lease installed during source inspection")]),
-    ("post-storage-source-inspection", "prepared lease skips its independent current-source inspection outside the state mutex", [
+         "failed same-key replacement must not publish")]),
+    ("post-storage-source-inspection", "prepared lease inspects its current source but ignores the result", [
         (UPLOADS, '''        // command retains the existing transaction-bound commit fence.
         if !self.reader_current(session, reader) {
 ''', '''        // command retains the existing transaction-bound commit fence.
-        if false && !self.reader_current(session, reader) {
+        if self.reader_current(session, reader) && false {
 ''')], [
         (PREFIX + "source_failure_after_staged_put_refuses_new_lease_and_removes_unheld_bytes",
          "source failure during storage must refuse publication"),
         (PREFIX + "source_failure_after_same_key_put_preserves_existing_lease_and_shared_bytes",
-         "failed same-key replacement must not publish"),
-        (PREFIX + "a_lease_claimed_during_final_inspection_is_not_replaced",
-         "an incoming upload cannot replace a lease claimed during source inspection"),
-        (PREFIX + "a_lease_replaced_during_final_inspection_is_not_overwritten",
-         "an incoming upload cannot overwrite a different lease installed during source inspection")]),
+         "failed same-key replacement must not publish")]),
     ("preview-inspection-order", "preview authority is checked before the complete private blob is read", [
         (UPLOADS, '''        match self.staged.get(&key) {
             // Freeze all bytes before current inspection; an old binding
@@ -191,13 +186,72 @@ LIMITS = [
     "Temporary upload leases, their private previews and HTTP admission only; public committed images retain their declared policy.",
     "Native fixtures exercise memory authority and the existing Kept inspection seam; no real PostgreSQL or browser execution is claimed here.",
     "The existing whole uploads gate remains separate; this producer credits only the listed authority controls and domain assertions.",
-    "The post-body control removes all three current checks together; the local check under the final mutex is redundant in the current expiry witness and is not independently credited.",
-    "The independent post-storage source control uses Kept callbacks; the local expiry check remains intact. Predecessor ID and concurrent-claim removals are one explicitly composite control.",
+    "The post-body control evaluates all three inspections but ignores their results; inspection callbacks remain real. The local final-mutex check is redundant in the current expiry witness and is not independently credited.",
+    "The independent post-storage source control evaluates but ignores its Kept result; concurrent claim/replacement witnesses remain real and must pass. Predecessor ID and concurrent-claim removals are one explicitly composite control.",
     "The gate witness observes a real held read guard during staged put; it does not claim a remote database transaction fence for ephemeral lease publication.",
     "Reserved command/stream upload routes run in every native baseline/control inventory; their native panic regression is not advertised as an assertion-only mutation kill.",
 ]
 INPUT_PATHS = ("compiler", "runtime", "packages", "spikes/own-renderer/server", "examples", "scripts",
                "just", "justfile", "Cargo.toml", "Cargo.lock", "rust-toolchain.toml", ".cargo", ".github")
+
+
+class TerminationScope:
+    """Unwind TERM through source ownership; defer signals during restoration."""
+    def __init__(self):
+        self.pending = None
+        self.raised = False
+        self.restoring = 0
+        self.finalizers = []
+
+    def __enter__(self):
+        self.previous = signal.getsignal(signal.SIGTERM)
+        if self.previous != signal.SIG_IGN:
+            signal.signal(signal.SIGTERM, self.cancel)
+        return self
+
+    def __exit__(self, *exception):
+        signal.signal(signal.SIGTERM, self.previous)
+
+    def cancel(self, number, frame):
+        if self.pending is None:
+            self.pending = (number, frame)
+        if not self.restoring and not self.raised:
+            self.deliver()
+
+    def deliver(self):
+        self.raised = True
+        number, frame = self.pending
+        for finalize in reversed(self.finalizers):
+            mutation_source.release(finalize, SystemExit(128 + number))
+        if callable(self.previous):
+            self.previous(number, frame)
+        raise SystemExit(128 + number)
+
+    @contextmanager
+    def deferred(self, on_cancel=None):
+        self.restoring += 1
+        if on_cancel is not None:
+            self.finalizers.append(on_cancel)
+        try:
+            yield
+        finally:
+            try:
+                self.restoring -= 1
+                if not self.restoring and self.pending is not None and not self.raised:
+                    self.deliver()
+            finally:
+                if on_cancel is not None:
+                    self.finalizers.pop()
+
+
+class RestoringStack(ExitStack):
+    def __init__(self, termination):
+        super().__init__()
+        self.termination = termination
+
+    def __exit__(self, *exception):
+        with self.termination.deferred():
+            return super().__exit__(*exception)
 
 
 def digest(path):
@@ -240,7 +294,7 @@ def native_list(output, prefixes):
     names = re.findall(r"^(\S+): test$", output, re.M)
     if (not names or len(names) != len(set(names))
             or any(not name.startswith(tuple(prefixes)) for name in names)
-            or re.search(r"^\S+: (?:test\b(?!$)|benchmark\b).+$", output, re.M)):
+            or re.search(r"^\S+: (?!test$)[^\n]*$", output, re.M)):
         raise ValueError("empty, duplicate or unexpected binary test inventory")
     return tuple(sorted(names))
 
@@ -351,7 +405,7 @@ def inventory(output, env, expected, timeout):
     prefixes = tuple(prefix for _, prefix in SOURCES)
     command = CARGO + ["--", *prefixes, "--list", "--format=terse"]
     record, text = process(command, output / "inventory.log", timeout, env)
-    if record["status"] != 0 or not record["reaped"] or drift(expected):
+    if record["error"] is not None or record["status"] != 0 or not record["reaped"] or drift(expected):
         raise ValueError("native inventory build, reaping or source stability failed")
     actual = native_list(text, prefixes)
     declared = tuple(sorted(name for source, prefix in SOURCES for name in declarations(source, prefix)))
@@ -374,7 +428,7 @@ def run_native(frozen, output, label, env, expected, timeout, sites=None):
     command = CARGO + ["--", *frozen["names"], "--exact", "--test-threads=1", "--format=pretty"]
     record, text = process(command, output / f"{label}.log", timeout, env)
     record.update(evaluate(record["status"], text, frozen, expected, sites))
-    record["valid"] = record["valid"] and record["reaped"]
+    record["valid"] = record["valid"] and record["reaped"] and record["error"] is None
     record["command"] = command
     return record
 
@@ -387,7 +441,7 @@ def killed(record):
     return bool(record) and record["valid"] and record["native"]["failed"] > 0
 
 
-def main(argv=None):
+def campaign(argv, termination):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--list", action="store_true")
     parser.add_argument("--check", action="store_true")
@@ -452,7 +506,7 @@ def main(argv=None):
                 expected = dict(before)
                 for path, text in changed.items():
                     expected[str(path.relative_to(ROOT))] = hashlib.sha256(text.encode()).hexdigest()
-                with ExitStack() as stack:
+                with RestoringStack(termination) as stack:
                     for path, text in changed.items():
                         stack.enter_context(mutation_source.changed(path, originals[path], text))
                     sites = witness_sites(SOURCES, witnesses)
@@ -469,19 +523,42 @@ def main(argv=None):
             raise ValueError("final restored baseline is not complete and green")
         report["valid"] = True
     except (ValueError, OSError) as error:
+        report["valid"] = False
         report["error"] = str(error)
         print(f"INVALID: {error}", flush=True)
     except BaseException as error:
+        report["valid"] = False
         report["abort"] = type(error).__name__
         raise
     finally:
-        report["restored"] = not drift(before)
-        report["head_unchanged"] = git("rev-parse", "HEAD") == head
-        report["valid"] = report["valid"] and report["restored"] and report["head_unchanged"]
-        report["artifacts"] = {path.name:digest(path) for path in sorted(output.iterdir()) if path.is_file()}
-        (output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
-        print(f"scope={report['scope']}, controls={len(report['controls'])}/{len(controls)}, valid={report['valid']}, restored={report['restored']}", flush=True)
+        def write_report():
+            (output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
+        def cancelled_report():
+            report["valid"] = False
+            report["abort"] = "SystemExit"
+            write_report()
+        with termination.deferred(cancelled_report):
+            try:
+                report["restored"] = not drift(before)
+                report["head_unchanged"] = git("rev-parse", "HEAD") == head
+                report["valid"] = (report["valid"] and report["restored"] and report["head_unchanged"]
+                                   and termination.pending is None)
+                report["artifacts"] = {path.name:digest(path) for path in sorted(output.iterdir()) if path.is_file()}
+                if termination.pending is not None:
+                    report["abort"] = "SystemExit"
+                write_report()
+            except BaseException as error:
+                report["valid"] = False
+                report["abort"] = type(error).__name__
+                mutation_source.release(write_report, error)
+                raise
+            print(f"scope={report['scope']}, controls={len(report['controls'])}/{len(controls)}, valid={report['valid']}, restored={report['restored']}", flush=True)
     return 0 if report["valid"] else 1
+
+
+def main(argv=None):
+    with TerminationScope() as termination:
+        return campaign(argv, termination)
 
 
 if __name__ == "__main__":

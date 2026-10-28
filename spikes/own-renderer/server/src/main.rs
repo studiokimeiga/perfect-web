@@ -320,14 +320,43 @@ impl Answered {
         kept.to_string()
     }
 
-    fn from_kept(kept: &str) -> Answered {
-        let v: serde_json::Value = serde_json::from_str(kept).unwrap_or_default();
-        Answered {
-            committed: v["committed"] == true,
-            result: v.get("result").cloned(),
-            why: v["why"].as_str().map(str::to_string),
-            refused: v["refused"].as_str().map(str::to_string),
+    /// A browser's durable record is written only with committed business
+    /// state. Cached negative answers and Clock terminal errors use from_kept.
+    fn from_browser_receipt(kept: &str) -> Result<Answered, String> {
+        let answer = Self::from_kept(kept)?;
+        if !answer.committed {
+            return Err("browser receipt does not confirm a committed outcome".into());
         }
+        Ok(answer)
+    }
+
+    fn from_kept(kept: &str) -> Result<Answered, String> {
+        // Invalid persisted state is uncertainty, never proof of rollback.
+        // Keep the diagnostic bounded: the record may contain private values.
+        let malformed = || "interaction outcome could not be decoded".to_string();
+        let v: serde_json::Value = serde_json::from_str(kept).map_err(|_| malformed())?;
+        let object = v.as_object().ok_or_else(malformed)?;
+        let committed = object
+            .get("committed")
+            .and_then(serde_json::Value::as_bool)
+            .ok_or_else(malformed)?;
+        let optional_text = |name| match object.get(name) {
+            None | Some(serde_json::Value::Null) => Ok(None),
+            Some(serde_json::Value::String(text)) => Ok(Some(text.clone())),
+            _ => Err(malformed()),
+        };
+        let why = optional_text("why")?;
+        let refused = optional_text("refused")?;
+        if committed && (why.is_some() || refused.is_some()) {
+            return Err(malformed());
+        }
+        Ok(Answered {
+            committed,
+            // Some(null) and no result are distinct valid outcomes.
+            result: object.get("result").cloned(),
+            why,
+            refused,
+        })
     }
 }
 
@@ -2871,10 +2900,16 @@ impl Server {
                             Err(why) => return Ok((CommandOutcome::Uncertain(why), Vec::new())),
                             Ok(receipt) => match receipt {
                                 Some((first, answer)) if first == sent => {
-                                    return Ok((
-                                        CommandOutcome::Answered(Answered::from_kept(&answer)),
-                                        Vec::new(),
-                                    ));
+                                    let decoded = if actor.is_some() {
+                                        Answered::from_browser_receipt(&answer)
+                                    } else {
+                                        Answered::from_kept(&answer)
+                                    };
+                                    let outcome = match decoded {
+                                        Ok(answer) => CommandOutcome::Answered(answer),
+                                        Err(why) => CommandOutcome::Uncertain(why),
+                                    };
+                                    return Ok((outcome, Vec::new()));
                                 }
                                 _ => return Ok((CommandOutcome::Uncertain(why), Vec::new())),
                             },
@@ -3529,7 +3564,11 @@ impl Server {
                     "interaction `{id}` was first sent with other arguments"
                 ));
             }
-            return Ok(Answered::from_kept(&answer));
+            return if self.invoked_by_platform(component_id) {
+                Answered::from_kept(&answer)
+            } else {
+                Answered::from_browser_receipt(&answer)
+            };
         }
         {
             let mut held = self.interactions.lock().expect("interactions");
@@ -3566,7 +3605,7 @@ impl Server {
                 .map_err(|_| pw_resource::CommandError::OutcomeUnknown)
             })
             .map_err(|e| format!("interaction `{id}`'s outcome is unknown: {e:?}"))?;
-        Ok(Answered::from_kept(&outcome))
+        Answered::from_kept(&outcome)
     }
 
     fn receipt_keys(
@@ -3600,7 +3639,7 @@ impl Server {
         if self.data.keeps_interactions() {
             self.data.recalled(key, since)
         } else {
-            Ok(self.materializer.recalled(key, since))
+            self.materializer.recalled(key, since)
         }
     }
 
@@ -3858,7 +3897,15 @@ impl Server {
                 }
                 let (key, cache_key, sent) = self.receipt_keys(session, component_id, id, json);
                 if matches!(self.commands.command_result(&cache_key), Some(Err(_))) {
-                    return Err("interaction outcome could not be confirmed".into());
+                    // A lost acknowledgement may become a known commit once
+                    // its exact durable receipt is visible. Absence/read failure
+                    // still preserves the unknown reservation and never reruns.
+                    return match self.recalled_interaction(&key)? {
+                        Some((first, answer)) if first == sent => {
+                            Answered::from_browser_receipt(&answer).map(Some)
+                        }
+                        _ => Err("interaction outcome could not be confirmed".into()),
+                    };
                 }
                 let first_sent = self
                     .interactions
@@ -3881,13 +3928,13 @@ impl Server {
                     // a page number never supplies another cookie's receipt identity.
                     return Ok(match self.recalled_interaction(&key)? {
                         Some((first, answer)) if first == sent => {
-                            Some(Answered::from_kept(&answer))
+                            Some(Answered::from_browser_receipt(&answer)?)
                         }
                         _ => None,
                     });
                 }
                 match self.commands.command_result(&cache_key) {
-                    Some(Ok(kept)) => Ok(Some(Answered::from_kept(&kept))),
+                    Some(Ok(kept)) => Answered::from_kept(&kept).map(Some),
                     Some(Err(_)) => Err("interaction outcome could not be confirmed".into()),
                     None => Ok(None),
                 }
@@ -9265,8 +9312,10 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
     // TRACK SEAM (second-host): the session as the hosts keep it, read once
     // for the request (ADR-0369): signed in or out on another host, it is so
     // here too.
-    let request_reader = if (method == "POST" && path.starts_with("/command/"))
-        || path.split('?').next() == Some("/stream")
+    let route = path.split('?').next().unwrap_or("/");
+    let upload_request = server.uploads.claims(method, route);
+    let request_reader = if !upload_request
+        && ((method == "POST" && path.starts_with("/command/")) || route == "/stream")
     {
         None
     } else {
@@ -9304,16 +9353,21 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
 
     // TRACK SEAM (uploads, ADR-0253): an upload reads its own body, within
     // its own limits, before the bound a command's body is held to.
-    let route = path.split('?').next().unwrap_or("/");
-    if server.uploads.claims(method, route) {
-        server.uploads.answer(
-            method,
-            route,
-            &headers,
+    if upload_request {
+        server.identity.principals().with_reader(
             &session,
-            fresh,
-            &mut reader,
-            &mut stream,
+            request_reader.as_ref().expect("upload request admission"),
+            || {
+                server.uploads.answer(
+                    method,
+                    route,
+                    &headers,
+                    &session,
+                    fresh,
+                    &mut reader,
+                    &mut stream,
+                )
+            },
         );
         return;
     }
@@ -16094,7 +16148,10 @@ public query Store(",
     mod session_commands;
     #[cfg(feature = "session-postgres-tests")]
     mod session_commands_pg;
+    mod session_receipt_recovery;
     mod session_revocation;
+    mod session_upload_authority;
+    mod session_upload_reserved_routes;
     mod store_scheduled;
     // TRACK SEAM (reviews): a store's ratings and reviews, in memory and on
     // PostgreSQL where a database is named.
@@ -20586,7 +20643,7 @@ public query Store(",
                 refused: None,
             },
         ] {
-            assert_eq!(Answered::from_kept(&answered.kept()), answered);
+            assert_eq!(Answered::from_kept(&answered.kept()), Ok(answered));
         }
     }
 

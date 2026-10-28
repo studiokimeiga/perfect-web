@@ -157,8 +157,8 @@ MUTANTS = [
         "a kept answer forgets null",
         "cargo",
         SERVER,
-        "            result: v.get(\"result\").cloned(),\n",
-        "            result: v.get(\"result\").cloned().filter(|r| !r.is_null()),\n",
+        "            result: object.get(\"result\").cloned(),\n",
+        "            result: object.get(\"result\").cloned().filter(|r| !r.is_null()),\n",
     ),
     (
         "the store adds whatever the item",

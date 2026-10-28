@@ -1,5 +1,6 @@
 """Adversarial calibration of upload authority's strict native acceptance."""
 from importlib import import_module
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -18,7 +19,9 @@ class UploadAuthorityProducer(unittest.TestCase):
         expected = ("scope::one", "scope::two")
         self.assertEqual(gate.native_list("scope::one: test\nscope::two: test\n", ("scope::",)), expected)
         for raw in ["", "scope::one: test\nscope::one: test\n", "foreign::one: test\n",
-                    "scope::one: benchmark\n", "scope::one: test (ignored)\n"]:
+                    "scope::one: benchmark\n", "scope::one: test (ignored)\n",
+                    "scope::one: test\nscope::bench: benchmark\n",
+                    "scope::one: test\nscope::other: unknown-kind\n"]:
             with self.subTest(raw=raw), self.assertRaises(ValueError):
                 gate.native_list(raw, ("scope::",))
 
@@ -158,7 +161,7 @@ class UploadAuthorityProducer(unittest.TestCase):
             source.write_text('#[test]\nfn one() {}\n')
             for native, expected in [("p::one: test\n", True), ("p::other: test\n", False)]:
                 with patch.object(gate, "ROOT", root), patch.object(gate, "SOURCES", [(source, "p::")]), \
-                     patch.object(gate, "process", return_value=({"status":0,"reaped":True}, native)), \
+                     patch.object(gate, "process", return_value=({"status":0,"reaped":True,"error":None}, native)), \
                      patch.object(gate, "drift", return_value=False):
                     if expected:
                         self.assertEqual(gate.inventory(root, {}, {}, 1)["names"], ("p::one",))
@@ -171,9 +174,137 @@ class UploadAuthorityProducer(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory)
             frozen = {"names":["p::one"],"sources":[]}
-            with patch.object(gate, "process", return_value=({"status":0,"reaped":False}, good)), \
+            with patch.object(gate, "process", return_value=({"status":0,"reaped":False,"error":None}, good)), \
                  patch.object(gate, "drift", return_value=False):
                 self.assertFalse(gate.run_native(frozen, output, "test", {}, {}, 1)["valid"])
+
+    def close_error_process(self, root, label, command, callback):
+        """Real child, real reaping, then deterministic evidence-close failure."""
+        original = Path.open
+        target = root / f"{label}.log"
+        class FailClose:
+            def __init__(self, stream):
+                self.stream = stream
+            def __enter__(self):
+                return self.stream.__enter__()
+            def __exit__(self, *args):
+                self.stream.__exit__(*args)
+                raise OSError("controlled log-close failure after owned child reaping")
+        def opened(path, *args, **kwargs):
+            stream = original(path, *args, **kwargs)
+            return FailClose(stream) if path == target and args and args[0] == "w" else stream
+        with patch.object(Path, "open", opened), patch.object(gate, "ROOT", root), \
+             patch.object(gate, "CARGO", command), patch.object(gate, "drift", return_value=False):
+            return callback()
+
+    def test_reaped_assertion_exit_followed_by_log_io_error_is_not_a_kill(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "tests.rs"
+            source.write_text('#[test]\nfn one() {\n    assert!(false, "privacy refusal");\n}\n')
+            frozen = {"names":["p::one"], "sources":["tests.rs"]}
+            raw = self.failed("p::one", "tests.rs", 3, 5)
+            command = [sys.executable, "-c", f'import sys; sys.stdout.write({raw!r}); sys.exit(101)']
+            record = self.close_error_process(root, "after-reap", command,
+                lambda: gate.run_native(frozen, root, "after-reap", {}, {}, 5,
+                    {"p::one":(str(source), 3, 5)}))
+            self.assertEqual(record["status"], 101)
+            self.assertTrue(record["reaped"])
+            self.assertEqual(record["error"], "OSError")
+            self.assertTrue(record["native"]["valid"], "the synthetic native text itself is complete")
+            self.assertFalse(record["valid"], "evidence I/O failure invalidates an otherwise attributed assertion exit")
+            self.assertFalse(gate.killed(record))
+
+    def test_reaped_inventory_exit_followed_by_log_io_error_is_refused(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "tests.rs"
+            source.write_text('#[test]\nfn one() {}\n')
+            command = [sys.executable, "-c", 'print("p::one: test")']
+            with patch.object(gate, "SOURCES", [(source, "p::")]):
+                with self.assertRaises(ValueError):
+                    self.close_error_process(root, "inventory", command,
+                        lambda: gate.inventory(root, {}, {}, 5))
+            receipt = json.loads((root / "inventory.log.process.json").read_text())
+            self.assertEqual(receipt["error"], "OSError")
+            self.assertEqual(receipt["reaped"]["status"], 0)
+            self.assertEqual((root / "inventory.log").read_text(), "p::one: test\n")
+
+    def test_actual_sigterm_before_launch_during_restore_and_final_report_is_invalid(self):
+        script = r'''
+import json, os, signal, sys
+from contextlib import contextmanager
+from pathlib import Path
+from unittest.mock import patch
+sys.path.insert(0, sys.argv[1])
+import upload_authority_mutations as gate
+root, phase = Path(sys.argv[2]), sys.argv[3]
+source = root / "source.rs"
+source.write_text("anchor\n")
+good = {"valid":True,"native":{"failed":0}}
+kill = {"valid":True,"native":{"failed":1}}
+original_changed, original_write = gate.mutation_source.changed, Path.write_text
+report_signalled = False
+@contextmanager
+def changed(path, original, replacement):
+    with original_changed(path, original, replacement):
+        if phase == "before-launch":
+            os.kill(os.getpid(), signal.SIGTERM)
+        yield
+def write(path, text, *args, **kwargs):
+    global report_signalled
+    if phase in ("before-launch", "restore") and path == source and text == "anchor\n" and path.read_text() == "replacement\n":
+        # A first TERM during normal restore, or another TERM while already
+        # unwinding cancellation, must both leave restoration uninterrupted.
+        os.kill(os.getpid(), signal.SIGTERM)
+        os.kill(os.getpid(), signal.SIGTERM)
+    if phase == "finalize" and path == root / "evidence/report.json" and not report_signalled:
+        report_signalled = True
+        os.kill(os.getpid(), signal.SIGTERM)
+    return original_write(path, text, *args, **kwargs)
+def run(*args):
+    if args[2] == "baseline":
+        return good
+    if args[2] == "one" and phase in ("restore", "finalize"):
+        return kill
+    if args[2] == "final-baseline" and phase == "finalize":
+        return good
+    (root / "unexpected-native-launch").write_text(args[2])
+    raise AssertionError("no native launch is allowed after the controlled cancellation boundary")
+control = [("one", "controlled source edit", [(source,"anchor","replacement")], [])]
+with patch.object(gate,"ROOT",root), patch.object(gate,"CONTROLS",control), \
+     patch.object(gate,"SOURCES",[]), patch.object(gate,"witness_sites",return_value={}), \
+     patch.object(gate,"inputs",side_effect=lambda:{"source.rs":gate.digest(source)}), \
+     patch.object(gate,"git",side_effect=lambda *a:"fixed" if a == ("rev-parse","HEAD") else ""), \
+     patch.object(gate,"inventory",return_value={"names":["p::one"]}), \
+     patch.object(gate,"run_native",side_effect=run), \
+     patch.object(gate.mutation_source,"changed",changed), patch.object(Path,"write_text",write):
+    raise SystemExit(gate.main(["--output",str(root / "evidence")]))
+'''
+        for phase in ("before-launch", "restore", "finalize"):
+            with self.subTest(phase=phase), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                child = subprocess.run([sys.executable, "-c", script, str(ROOT / "scripts"), str(root), phase],
+                                       text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=10)
+                self.assertEqual(child.returncode, 143, child.stdout)
+                self.assertEqual((root / "source.rs").read_text(), "anchor\n", child.stdout)
+                self.assertFalse((root / "unexpected-native-launch").exists(), child.stdout)
+                report = json.loads((root / "evidence/report.json").read_text())
+                self.assertEqual(report["abort"], "SystemExit")
+                self.assertFalse(report["valid"])
+                self.assertTrue(report["restored"])
+
+    def test_main_restores_the_previous_term_handler_on_success_and_preflight_failure(self):
+        import signal
+        previous = signal.getsignal(signal.SIGTERM)
+        with patch.object(sys, "stdout", io.StringIO()):
+            self.assertEqual(gate.main(["--list"]), 0)
+        self.assertIs(signal.getsignal(signal.SIGTERM), previous)
+        with patch.object(gate, "SOURCES", [(Path("missing-fixture-source.rs"), "p::")]), \
+             patch.object(gate, "CONTROLS", [("one", "calibration", [], [])]), \
+             patch.object(sys, "stdout", io.StringIO()):
+            self.assertEqual(gate.main(["--check"]), 1)
+        self.assertIs(signal.getsignal(signal.SIGTERM), previous)
 
     def fake_campaign(self, directory, native):
         root = Path(directory)
@@ -221,6 +352,33 @@ class UploadAuthorityProducer(unittest.TestCase):
             self.assertEqual(report["abort"], "KeyboardInterrupt")
             self.assertFalse(report["valid"])
             self.assertTrue(report["restored"])
+
+    def test_baseexception_after_final_green_is_recorded_as_invalid(self):
+        from contextlib import ExitStack
+        good = {"valid":True,"native":{"failed":0}}
+        killed = {"valid":True,"native":{"failed":1}}
+        with tempfile.TemporaryDirectory() as directory:
+            source, output, patches = self.fake_campaign(directory, [good, killed, good])
+            heads = 0
+            def head(*arguments):
+                nonlocal heads
+                if arguments == ("rev-parse", "HEAD"):
+                    heads += 1
+                    if heads == 2:
+                        raise KeyboardInterrupt
+                    return "fixed"
+                return ""
+            with ExitStack() as stack:
+                for p in patches:
+                    stack.enter_context(p)
+                stack.enter_context(patch.object(gate, "git", side_effect=head))
+                with self.assertRaises(KeyboardInterrupt):
+                    gate.main(["--output", str(output)])
+            report = json.loads((output / "report.json").read_text())
+            self.assertFalse(report["valid"])
+            self.assertEqual(report["abort"], "KeyboardInterrupt")
+            self.assertTrue(report["restored"])
+            self.assertEqual(source.read_text(), "anchor\n")
 
     def test_survivor_or_invalid_native_run_is_never_credited(self):
         self.assertFalse(gate.green({"valid":False,"native":{"failed":0}}))

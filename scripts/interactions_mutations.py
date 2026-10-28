@@ -67,7 +67,7 @@ MUTANTS = [
         "            .saturating_sub(INTERACTIONS_KEPT_MS);\n        if self.data.keeps_interactions() {\n",
         "            .saturating_sub(u64::MAX);\n        if self.data.keeps_interactions() {\n",
     ),
-    ("a commit that met another host's record is answered as refused", SERVER, '                                Some((first, answer)) if first == sent => {\n                                    return Ok((\n                                        CommandOutcome::Answered(Answered::from_kept(&answer)),\n                                        Vec::new(),\n                                    ));\n                                }\n', ''),
+    ("a commit that met another host's record is answered as refused", SERVER, '                                Some((first, answer)) if first == sent => {\n                                    let decoded = if actor.is_some() {\n                                        Answered::from_browser_receipt(&answer)\n                                    } else {\n                                        Answered::from_kept(&answer)\n                                    };\n                                    let outcome = match decoded {\n                                        Ok(answer) => CommandOutcome::Answered(answer),\n                                        Err(why) => CommandOutcome::Uncertain(why),\n                                    };\n                                    return Ok((outcome, Vec::new()));\n                                }\n', ''),
     (
         "on PostgreSQL, the store's record is not written with its writes",
         STORE_PG,

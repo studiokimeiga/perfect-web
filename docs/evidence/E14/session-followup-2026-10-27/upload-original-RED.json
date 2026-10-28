@@ -1,0 +1,24 @@
+{
+  "scope": "real pre-repair upload bytes plus new tests; no green gate credit",
+  "base": "a0db8884deb2b3ba37faee59afcdee44a92c6b1c",
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "pw-dev-server",
+    "--bin",
+    "pw-dev-server",
+    "--",
+    "uploads::tests::session_authority_tests::",
+    "tests::session_upload_authority::",
+    "--test-threads=1",
+    "--nocapture"
+  ],
+  "started": "2026-10-28T00:10:49.183056+00:00",
+  "production_before_sha256": "3e27edfa10b3e0851ebc85604d26c84ca8434d5316ad64ff335c84a812feb774",
+  "red_source_sha256": "32fbcca92b1fff479f75c37a41c7c930c0b8530a7101f74f308dc74f7f5cd6b2",
+  "native_exit": 101,
+  "restored": true,
+  "finished": "2026-10-28T00:10:56.405755+00:00"
+}

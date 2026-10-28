@@ -496,7 +496,7 @@ fn on_postgres_a_second_hosts_commit_answers_what_the_first_committed() {
         .expect("a well-formed request");
     assert_eq!(
         answered,
-        Answered::from_kept(first),
+        Answered::from_kept(first).expect("a typed committed receipt"),
         "the first host's answer"
     );
     assert_eq!(

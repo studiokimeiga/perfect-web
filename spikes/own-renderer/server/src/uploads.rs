@@ -94,6 +94,8 @@ const READ_TIMEOUT: Duration = Duration::from_secs(30);
 /// discard, by a second upload, or by its time.
 #[derive(Debug)]
 struct Lease {
+    /// The immutable reader that staged this private lease.
+    reader: crate::identity::ReaderIdentity,
     id: String,
     key: BlobKey,
     kind: Kind,
@@ -118,6 +120,27 @@ pub(crate) struct Claimed {
     pub width: u32,
     pub height: u32,
 }
+
+/// A prepared blob owns one provisional reference and capacity charge while
+/// the authoritative source is inspected outside the upload-state mutex.
+/// Refusal releases only this reference; another lease's bytes remain held.
+struct PendingLease<'a> {
+    shared: &'a Shared,
+    key: BlobKey,
+    bytes: u64,
+    held: bool,
+}
+
+impl Drop for PendingLease<'_> {
+    fn drop(&mut self) {
+        if self.held {
+            let mut state = self.shared.state.lock().expect("uploads");
+            self.shared.release(&mut state, &self.key, self.bytes);
+        }
+    }
+}
+
+type LeaseRefusal = (u16, &'static str, Option<Duration>);
 
 /// **What a page shows of its session's lease**: where, and how large.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -554,6 +577,26 @@ fn megabytes(bytes: u64) -> String {
 }
 
 impl Shared {
+    fn reader(&self, session: &str) -> crate::identity::ReaderIdentity {
+        self.principals
+            .get()
+            .map_or(crate::identity::ReaderIdentity::Guest, |principals| {
+                principals.bound_reader(session)
+            })
+    }
+
+    /// Read-only authority, deliberately bypassing the frozen invocation.
+    fn reader_current(&self, session: &str, reader: &crate::identity::ReaderIdentity) -> bool {
+        self.principals.get().map_or(
+            *reader == crate::identity::ReaderIdentity::Guest,
+            |principals| {
+                principals
+                    .inspect_reader(session)
+                    .is_ok_and(|current| current == *reader)
+            },
+        )
+    }
+
     pub(crate) fn answer(
         &self,
         method: &str,
@@ -598,11 +641,8 @@ impl Shared {
         }
         // Who uploads: a session's principal, which `requires SignedIn`
         // holds a post to. One signed out has nothing to post it with.
-        let user = match self.principals.get() {
-            Some(principals) => principals.of(session).map(|p| p.user),
-            None => Some(format!("u-{session}")),
-        };
-        let Some(user) = user else {
+        let reader_identity = self.reader(session);
+        if matches!(reader_identity, crate::identity::ReaderIdentity::Anonymous) {
             return Answer::refused(403, "Sign in to attach an image.", &back);
         };
         if header(headers, "transfer-encoding").is_some() {
@@ -700,7 +740,7 @@ impl Shared {
         }
         match self.lease(
             session,
-            &user,
+            &reader_identity,
             declared,
             &kept,
             bytes.len() as u64,
@@ -728,20 +768,122 @@ impl Shared {
     fn lease(
         &self,
         session: &str,
-        user: &str,
+        reader: &crate::identity::ReaderIdentity,
         declared: &Declared,
         bytes: &[u8],
         sent: u64,
         m: Measured,
-    ) -> Result<(), (u16, &'static str, Option<Duration>)> {
-        let mut state = self.state.lock().expect("uploads");
-        self.sweep(&mut state);
-        if state.leases.get(session).is_some_and(|l| l.claimed) {
-            return Err((409, "The image attached before is being posted.", None));
+    ) -> Result<(), LeaseRefusal> {
+        // Body reads and rewriting hold no gate. Local publication shares the
+        // existing gate-before-state order with open/close and command claims.
+        let local = self.principals.get().is_none_or(|p| p.kept().is_none());
+        let gate = self
+            .principals
+            .get()
+            .filter(|_| local)
+            .map(|principals| principals.command_gate(session));
+        let _authority = gate
+            .as_ref()
+            .map(|gate| gate.read().expect("session authority gate"));
+        if !self.reader_current(session, reader) {
+            return Err((403, "Your session changed. Open the page again.", None));
         }
+        let user = match reader {
+            crate::identity::ReaderIdentity::Account(identity) => identity.principal.user.clone(),
+            _ => format!("u-{session}"),
+        };
         let size = sent;
         let staged_size = size.max(bytes.len() as u64);
-        // The user's budget, for the hour before now.
+        let (key, previous) = {
+            let mut state = self.state.lock().expect("uploads");
+            self.sweep(&mut state);
+            if state.leases.get(session).is_some_and(|l| l.claimed) {
+                return Err((409, "The image attached before is being posted.", None));
+            }
+            Self::budget(&mut state, &user, size, declared)?;
+            // Pending uploads count too. Near the cap a replacement may wait
+            // until capacity exists for both its old and prepared image.
+            if state.staged_bytes + staged_size > STAGED_CAP {
+                return Err((
+                    503,
+                    "Too many images are waiting to be posted; try again later.",
+                    None,
+                ));
+            }
+            let previous = state.leases.get(session).map(|lease| lease.id.clone());
+            let key = self
+                .staged
+                .put(bytes)
+                .map_err(|_| (500, "The image could not be kept.", None))?;
+            *state.holds.entry(key.clone()).or_default() += 1;
+            state.staged_bytes += staged_size;
+            (key, previous)
+        };
+        // Construct after the first mutex guard is gone. Its Drop may lock
+        // state, including while unwinding an authority failure.
+        let mut pending = PendingLease {
+            shared: self,
+            key,
+            bytes: staged_size,
+            held: true,
+        };
+        // No database/network inspection holds the upload mutex. PostgreSQL
+        // leases are ephemeral reader-bound cache entries; their later business
+        // command retains the existing transaction-bound commit fence.
+        if !self.reader_current(session, reader) {
+            return Err((403, "Your session changed. Open the page again.", None));
+        }
+        let mut state = self.state.lock().expect("uploads");
+        // Local expiry can cross while reacquiring state, despite the gate.
+        // This branch has no Kept source and performs no network inspection.
+        if local && !self.reader_current(session, reader) {
+            return Err((403, "Your session changed. Open the page again.", None));
+        }
+        if state.leases.get(session).map(|lease| &lease.id) != previous.as_ref()
+            || state.leases.get(session).is_some_and(|lease| lease.claimed)
+        {
+            return Err((
+                409,
+                "The attached image changed while this upload was checked.",
+                None,
+            ));
+        }
+        Self::budget(&mut state, &user, size, declared)?;
+        if let Some(old) = state.leases.remove(session) {
+            self.end(&mut state, old);
+        }
+        state.next += 1;
+        let id = format!("up-{}", state.next);
+        state
+            .spent
+            .entry(user)
+            .or_default()
+            .push_back((Instant::now(), size));
+        state.leases.insert(
+            session.to_string(),
+            Lease {
+                reader: reader.clone(),
+                id,
+                key: pending.key.clone(),
+                kind: m.kind,
+                width: m.width,
+                height: m.height,
+                bytes: staged_size,
+                made: Instant::now(),
+                claimed: false,
+            },
+        );
+        // Transfer its one hold/charge into the final lease; do not add a second.
+        pending.held = false;
+        Ok(())
+    }
+
+    fn budget(
+        state: &mut State,
+        user: &str,
+        size: u64,
+        declared: &Declared,
+    ) -> Result<(), LeaseRefusal> {
         let now = Instant::now();
         let spent = state.spent.entry(user.to_string()).or_default();
         while spent
@@ -762,59 +904,24 @@ impl Shared {
                 retry,
             ));
         }
-        let replaced = state.leases.get(session).map_or(0, |l| l.bytes);
-        if state.staged_bytes - replaced + staged_size > STAGED_CAP {
-            return Err((
-                503,
-                "Too many images are waiting to be posted; try again later.",
-                None,
-            ));
-        }
-        let key = self
-            .staged
-            .put(bytes)
-            .map_err(|_| (500, "The image could not be kept.", None))?;
-        // Held before the earlier lease lets its bytes go: the same bytes
-        // attached again are the same blob, which ending it first forgot.
-        *state.holds.entry(key.clone()).or_default() += 1;
-        if let Some(old) = state.leases.remove(session) {
-            self.end(&mut state, old);
-        }
-        state.next += 1;
-        let id = format!("up-{}", state.next);
-        state.staged_bytes += staged_size;
-        state
-            .spent
-            .entry(user.to_string())
-            .or_default()
-            .push_back((now, size));
-        state.leases.insert(
-            session.to_string(),
-            Lease {
-                id,
-                key,
-                kind: m.kind,
-                width: m.width,
-                height: m.height,
-                bytes: staged_size,
-                made: Instant::now(),
-                claimed: false,
-            },
-        );
         Ok(())
     }
 
-    /// **A lease ended**: its hold on its staged blob given up, and the blob
-    /// forgotten where no other lease holds it.
-    fn end(&self, state: &mut State, lease: Lease) {
-        state.staged_bytes -= lease.bytes;
-        if let Some(holds) = state.holds.get_mut(&lease.key) {
+    /// Release exactly one final or provisional reference and capacity charge.
+    fn release(&self, state: &mut State, key: &BlobKey, bytes: u64) {
+        state.staged_bytes -= bytes;
+        if let Some(holds) = state.holds.get_mut(key) {
             *holds -= 1;
             if *holds == 0 {
-                state.holds.remove(&lease.key);
-                let _ = self.staged.delete(&lease.key);
+                state.holds.remove(key);
+                let _ = self.staged.delete(key);
             }
         }
+    }
+
+    /// A lease ended; its blob remains while another lease or preparation holds it.
+    fn end(&self, state: &mut State, lease: Lease) {
+        self.release(state, &lease.key, lease.bytes);
     }
 
     /// Every lease whose time is up and that nothing claims, ended.
@@ -886,19 +993,24 @@ impl Shared {
     /// **A session's own lease**, shown to it before it posts: kept by no
     /// cache, and to no other session.
     fn preview(&self, id: &str, session: &str) -> Answer {
+        let reader = self.reader(session);
         let lease = {
             let state = self.state.lock().expect("uploads");
             state
                 .leases
                 .get(session)
-                .filter(|l| l.id == id)
+                .filter(|l| l.id == id && l.reader == reader)
                 .map(|l| (l.key.clone(), l.kind))
         };
         let Some((key, kind)) = lease else {
             return Answer::text(404, "not found");
         };
         match self.staged.get(&key) {
-            Ok(Some(bytes)) => Answer::new(200, kind.mime(), bytes),
+            // Freeze all bytes before current inspection; an old binding
+            // never borrows the reader that happens to be cached now.
+            Ok(Some(bytes)) if self.reader_current(session, &reader) => {
+                Answer::new(200, kind.mime(), bytes)
+            }
             _ => Answer::text(404, "not found"),
         }
     }
@@ -907,8 +1019,12 @@ impl Shared {
 
     /// **What `session` has leased**, as its page shows it.
     pub(crate) fn shown(&self, session: &str) -> Option<Shown> {
+        let reader = self.reader(session);
         let state = self.state.lock().expect("uploads");
-        let lease = state.leases.get(session)?;
+        let lease = state
+            .leases
+            .get(session)
+            .filter(|lease| lease.reader == reader)?;
         let route = &self.declared.first()?.route;
         Some(Shown {
             src: format!("{route}/{}", lease.id),
@@ -920,8 +1036,12 @@ impl Shared {
     /// **A command claims `session`'s lease** until its transaction ends: no
     /// other command can, and no upload or sweep ends it.
     pub(crate) fn claim(&self, session: &str) -> Option<Claimed> {
+        let reader = self.reader(session);
         let mut state = self.state.lock().expect("uploads");
-        let lease = state.leases.get_mut(session).filter(|l| !l.claimed)?;
+        let lease = state
+            .leases
+            .get_mut(session)
+            .filter(|l| !l.claimed && l.reader == reader)?;
         lease.claimed = true;
         Some(Claimed {
             session: session.to_string(),
@@ -2104,4 +2224,5 @@ pub(crate) mod tests {
         assert_eq!(files(&d.path().join("blobs")), 0, "a discard keeps nothing");
     }
     include!("uploads/privacy_lifecycle_tests.rs");
+    include!("uploads/session_authority_tests.rs");
 }

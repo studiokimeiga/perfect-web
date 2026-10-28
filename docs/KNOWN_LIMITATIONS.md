@@ -1433,3 +1433,21 @@ The new queue fence is implemented locally, with adversarial PG/materializer tes
 
 
 ADR0388 follow-up: Clock commit-error reconciliation now uses queue state rather than a result receipt and conservatively refreshes affected local reads after releasing staging. ActualPG adapter-ACK-loss/known-refusal neighbors and concrete server PatchSets are tested; browser DOM delivery under injected ACK loss, private keyed/kept-materialization neighbors, real transport/process failures, upload-claim uncertainty and ordinary-client uncertain-view recovery remain unproved. Earlier bc0 full campaign40342504105 failed and receives no whole-campaign credit; the repaired source still requires full21strict and all reached legacy campaigns plus final published gates.
+
+
+### Temporary upload authority follow-up (ADR0389, 2026-10-27)
+
+The follow-up binds private leases to the admitted reader and inspects current
+source authority for preview/publication. The upload fixtures exercise memory
+and the Kept source seam; they do not prove a two-host PostgreSQL upload race.
+Remote lease publication is ephemeral cache state, with the business command's
+transaction fence still governing committed posts. Already authorized fixed
+preview bytes can finish in flight. Pending capacity counts an old lease and
+its prepared replacement together, so replacement near the cap can refuse
+before the former implementation did. Poisoned mutex/process-abort cleanup is
+not established by normal refusal/authority-unwind tests.
+
+A separate preexisting upload lifecycle limit remains: unclaimed lease expiry
+is swept on a later upload, while preview/shown/claim do not independently sweep
+the nominal sixty-minute lease age. It is not repaired or credited by this
+session-revocation change. Public committed images retain ADR0260/0261's policy.

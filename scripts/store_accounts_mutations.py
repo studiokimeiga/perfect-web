@@ -388,7 +388,7 @@ MUTANTS = [
         "a current reader's kept answer is ignored when its page is gone",
         "server",
         SERVER,
-        '            Some(Ok(kept)) => Ok(Some(Answered::from_kept(&kept))),\n',
+        '            Some(Ok(kept)) => Answered::from_kept(&kept).map(Some),\n',
         '            Some(Ok(_kept)) => Ok(None),\n',
     ),
     (

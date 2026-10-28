@@ -107,7 +107,7 @@ mod tests {
         .expect("a bounded record");
         assert_eq!(
             m.recalled("future", i64::MAX as u64),
-            Some(("[]".into(), "answer".into()))
+            Ok(Some(("[]".into(), "answer".into())))
         );
         m.command(|tx| {
             Materializer::record_interaction(tx, "old", "[]", "old-answer", 1)?;
@@ -115,6 +115,6 @@ mod tests {
             Ok::<_, String>(Vec::new())
         })
         .expect("pruned at the signed database bound");
-        assert_eq!(m.recalled("old", 0), None);
+        assert_eq!(m.recalled("old", 0), Ok(None));
     }
 }

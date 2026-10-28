@@ -773,14 +773,9 @@ MUTANTS = [
         "a lease replaced by the same bytes forgets them",
         RUST,
         UPLOADS,
-        "        *state.holds.entry(key.clone()).or_default() += 1;\n"
-        "        if let Some(old) = state.leases.remove(session) {\n"
-        "            self.end(&mut state, old);\n"
-        "        }\n",
-        "        if let Some(old) = state.leases.remove(session) {\n"
-        "            self.end(&mut state, old);\n"
-        "        }\n"
-        "        *state.holds.entry(key.clone()).or_default() += 1;\n",
+        "        self.release(state, &lease.key, lease.bytes);\n",
+        "        self.release(state, &lease.key, lease.bytes);\n"
+        "        let _ = self.staged.delete(&lease.key);\n",
     ),
 ]
 

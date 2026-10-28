@@ -218,3 +218,59 @@ that witness. A false advisory-unlock helper result is separately witnessed;
 that helper test alone does not prove the adapter's pool-discard branch. These
 statements specify required behavior; final source review and exact-commit gate
 receipts remain the acceptance authority.
+
+
+## Upload leases and receipt recovery follow-up, 2026-10-27
+
+PR61 landed at a0db8884. A further audit of that source demonstrates private
+upload previews after completed logout and account-generation replacement,
+a body-held upload publishing after logout, and a request borrowing a later
+upload actor. Ten of eleven native witnesses fail on the original upload
+source; the current-reader/public-committed-image neighbor passes. The raw
+[diagnostics](../evidence/E14/session-followup-2026-10-27/manifest.json) retain
+that characterization and the review follow-ups separately.
+
+Temporary upload leases now retain the full immutable reader. The request's
+explicit admission governs dispatch even for declared upload routes named
+under `/command/` or at `/stream`. Metadata and command claims compare the
+retained reader; private previews freeze all staged bytes before read-only
+current inspection. Failed source reads and changed/expired authority refuse.
+
+Publication holds the existing local authority gate after body parsing and
+rewriting. One provisional blob reference and capacity charge survive while
+source inspection runs outside the upload-state mutex. Final publication
+requires the exact observed predecessor lease to remain unclaimed and unchanged;
+quota is checked again, and local expiry is checked after the last state wait.
+An owned reservation releases only its own reference on refusal, preserving a
+shared or concurrently replaced image. Capacity counts the prepared and old
+images together, so a near-cap replacement can refuse earlier. A PostgreSQL
+lease is ephemeral private cache state, not an atomic business transaction;
+the later compiled command retains the existing database commit fence.
+
+The receipt audit also reproduces three failures after actual business commits:
+a SQLite decode error treated as a missing receipt, malformed stored answers
+converted into a known negative outcome, and a now-visible exact receipt blocked
+by an old unknown reservation on a stale page. `recalled` now distinguishes a
+real no-row result from read/decode failure. Answer decoding requires an object
+and boolean commitment, validates optional text fields, and preserves null versus
+absent results. Invalid records yield bounded uncertainty without reexecution.
+Unknown stale-page recovery may consult the same reader's exact durable receipt;
+absence/read failure preserves uncertainty, and the existing known-refusal cache
+remains valid when no durable record exists.
+
+These are implementation refinements of this ADR, with local characterizations
+and working-tree neighbors, not final immutable-head acceptance. Strict native
+controls, full reached legacy recipes, actual browser suites, independent source
+review and all published exact-head checks remain required before merge. The
+source-seam upload revocation fixtures do not claim a two-host PostgreSQL upload
+proof, and the actual PostgreSQL receipt witness uses one selected database URL.
+
+
+Independent follow-up review additionally reproduced typed but incoherent
+`committed: true` plus refusal/error fields, and a typed negative browser
+receipt after an actual commit. The generic decoder rejects commitment combined
+with error/refusal; the browser durable decoder also requires commitment, since
+that writer records only committed business operations. Cached known negatives
+and Clock terminal negatives retain their generic decoder and valid neighbors.
+This is validation of receipt shape, coherence and writer context, not
+cryptographic authentication of arbitrary coherent stored values.

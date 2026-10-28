@@ -1,0 +1,126 @@
+{
+  "scope": "diagnostic source-characterizations, not final-head acceptance",
+  "files": {
+    "upload-original-RED.json": {
+      "sha256": "2c719e01ad86b946fcc9930323cc45d0017768beb1568fcf4008551f6ab529bf",
+      "source_work_file": "session-followup-upload-original-red/decision.json",
+      "bytes": 735
+    },
+    "upload-lock-order-RED.json": {
+      "sha256": "38c44523a9a8cca47c6164f109eb225522e40370ce736b19e5f279d24cf722a2",
+      "source_work_file": "session-followup-upload-lock-red/decision.json",
+      "bytes": 720
+    },
+    "server-working-GREEN.log.gz": {
+      "sha256": "ecce5eb6d2e530cff3603a57f5ef828c29fe34266ae514b8fa4fe16b7bf73418",
+      "raw_sha256": "c3e1b0b5aa869fe401cb5a562196ca932b6d1138f9caf5aaf159492869044390",
+      "source_work_file": "session-followup-cheap-checks/memory-server.log",
+      "bytes": 16176
+    },
+    "clippy-working-GREEN.log.gz": {
+      "sha256": "9db00cf2b60f6281b9f042c80d3700cea35ec88e5f20676c171f178ce320194b",
+      "raw_sha256": "a845b0d5ca48342a020344c310c97d23911c80470807e4d52379fec80e1cafd6",
+      "source_work_file": "session-followup-cheap-checks/clippy.log",
+      "bytes": 293
+    },
+    "upload-original-RED.log.gz": {
+      "sha256": "f6ec1bc9e84a8f744fd73254f2d05b2e94519957d63646ebf8f3cf0cbd147d79",
+      "source_work_file": "session-followup-upload-original-red/native.log",
+      "bytes": 1316,
+      "raw_sha256": "a90bea04cceb3dc3fa31b1e5766e46d1c5dd7d8ef0a277b3a25618aefde0c3c6",
+      "encoding": "gzip; exact original bytes, including native whitespace"
+    },
+    "upload-lock-order-RED.log.gz": {
+      "sha256": "78e0bbaa84faa9a7df4d399be6594ac178d9b7993ceccfd7dbddd8b4e60d1a48",
+      "source_work_file": "session-followup-upload-lock-red/native.log",
+      "bytes": 628,
+      "raw_sha256": "156f802e22bdbf89a6aeb2057537316d1170d29f4817705ed1b2fcf2eadb69bf",
+      "encoding": "gzip; exact original bytes, including native whitespace"
+    },
+    "upload-reserved-routes-RED.log.gz": {
+      "sha256": "fb2b7e145e8ccf6cdf12892bca35da42005a1f03a6134bdfad0cfb784d6b9489",
+      "source_work_file": "session-followup-upload-routes-red/native.log",
+      "bytes": 625,
+      "raw_sha256": "1904870e5d81bfb224dc32c86c32480c6b1a61b05ae8f950154b5cbe41dc133e",
+      "encoding": "gzip; exact original bytes, including native whitespace"
+    },
+    "upload-reservation-working-GREEN.log.gz": {
+      "sha256": "ed88500f6c5ed94d5c379515179bd269a90006819f2fbf4da607ebe924e9b17d",
+      "source_work_file": "session-followup-upload-reservation-green/native.log",
+      "bytes": 840,
+      "raw_sha256": "3cc05b05d2c41d1dca5a61e42cbebe912d14545b31c80d844064bd7ea9c411f1",
+      "encoding": "gzip; exact original bytes, including native whitespace"
+    },
+    "receipt-materializer-RED.log.gz": {
+      "sha256": "c681d6ecf24c77c45abf1628a9b82e868ac05a1419731c2819f352e3097dd995",
+      "source_work_file": "session-followup-receipt-red/materializer.log",
+      "bytes": 524,
+      "raw_sha256": "ee3301c5f783716d0876c1f6b12f4163736b61111c42758e0443be5c5c30fb49",
+      "encoding": "gzip; exact original bytes, including native whitespace"
+    },
+    "receipt-server-RED.log.gz": {
+      "sha256": "2090003e7e8b184c62408128080c02402113d6b8b55af7befdd9267c972ace43",
+      "source_work_file": "session-followup-receipt-red/server.log",
+      "bytes": 815,
+      "raw_sha256": "95a054f60a2376a473a3c666c0d2e6b65c02d257ea3bcfd826df99dca925eece",
+      "encoding": "gzip; exact original bytes, including native whitespace"
+    },
+    "receipt-materializer-working-GREEN.log.gz": {
+      "sha256": "2badc1ac2347d9dc8d2b7dd8c8a91ca5f2e13055f323c0fa587e865da08ddfb2",
+      "source_work_file": "session-followup-receipt-green-2/materializer.log",
+      "bytes": 450,
+      "raw_sha256": "cf57008d31a1b7cc85d1a18f79b2c299d134f125010104d8760c8158fe9d0ce0",
+      "encoding": "gzip; exact original bytes, including native whitespace"
+    },
+    "receipt-server-working-GREEN.log.gz": {
+      "sha256": "f5c530f674844dd04f9b0426dc48f6c4dc8a198c8edb56951b80859f2009dde2",
+      "source_work_file": "session-followup-receipt-green-2/server.log",
+      "bytes": 477,
+      "raw_sha256": "a165cc9e916f36472b07d08e0384b72e7f5061a200af29679fb5c45f3581e115",
+      "encoding": "gzip; exact original bytes, including native whitespace"
+    },
+    "retarget-preflight-RED.log.gz": {
+      "sha256": "3a149b06b1fe289c826e7f388a89e9d6d1a92b68d16d3a05c18448c5e9d97651",
+      "source_work_file": "session-followup-receipt-green/preflight-red.log",
+      "bytes": 200,
+      "raw_sha256": "f5b424fe70e7e03baca1f8c8436c60d490f02f7e8cd64124cacd66ac54f9cc14",
+      "encoding": "gzip; exact original bytes, including native whitespace"
+    },
+    "receipt-coherence-RED.log.gz": {
+      "sha256": "080761aaf21ee8740ef2efb3ef60d3481b424bf0ea55de45a27e556720e3b929",
+      "raw_sha256": "5c6ccf0f8ceea90c3aaf69d27718f893313814c006a58afc9a96a55b61653d9f",
+      "source_work_file": "session-followup-receipt-coherence-red/native.log",
+      "bytes": 554,
+      "encoding": "gzip; exact original bytes, including native whitespace"
+    },
+    "receipt-browser-negative-RED.log.gz": {
+      "sha256": "2dec3fb109be213685a4b921e16aeeec41b133aef7cf87d78432e43b6819e433",
+      "raw_sha256": "62ab0591094d7f95ab28514c4935b9761a5d40bc20333a836f0ffeeab8418b2c",
+      "source_work_file": "session-followup-receipt-negative-red/native.log",
+      "bytes": 629,
+      "encoding": "gzip; exact original bytes, including native whitespace"
+    },
+    "receipt-context-working-GREEN.log.gz": {
+      "sha256": "236029d0550264185a340366285ae4e7f3e97b970170b06d2646682bfdd352e8",
+      "raw_sha256": "e7ca1b2f3e396416c0f54ade4aadea9896288a94b981d1380439397ce63b4cdc",
+      "source_work_file": "session-followup-receipt-context-green/server.log",
+      "bytes": 561,
+      "encoding": "gzip; exact original bytes, including native whitespace"
+    },
+    "receipt-context-materializer-working-GREEN.log.gz": {
+      "sha256": "5d72c100cf5616ebfeb4059690d969d356a3e62e4b7e9120e358ebf4f21f4f80",
+      "raw_sha256": "b9368a4a161d2ae63cba80a7d2d0f5fe4abd1cee4bb02957ab678b36eb12d30a",
+      "source_work_file": "session-followup-receipt-context-green/materializer.log",
+      "bytes": 404,
+      "encoding": "gzip; exact original bytes, including native whitespace"
+    },
+    "upload-producer-calibrations-working-GREEN.log.gz": {
+      "sha256": "e250db7b3ce8b570c0cb3ac13930bc8d004385abf2e226d1ef798854f937067c",
+      "raw_sha256": "8b04558303e9312a81d375c34bb35f82fbd95fae563703d08488f419ac4ad7e7",
+      "source_work_file": "session-followup-upload-calibrations-root.log",
+      "bytes": 829,
+      "encoding": "gzip; exact original bytes, including native whitespace"
+    }
+  },
+  "storage": "Raw log archives preserve byte-exact native transcripts; no whitespace was removed."
+}

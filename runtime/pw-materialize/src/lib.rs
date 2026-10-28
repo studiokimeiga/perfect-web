@@ -38,7 +38,7 @@ use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex};
 
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension, params};
 
 pub mod graph;
 pub use graph::{Dimension, EdgeKind, Graph};
@@ -531,14 +531,15 @@ impl Materializer {
     /// **An interaction's committed record** (ADR-0325), recorded at
     /// `since_ms` or later: the arguments it was sent with, and what it
     /// answered. One older is forgotten, pruned or not.
-    pub fn recalled(&self, key: &str, since_ms: u64) -> Option<(String, String)> {
+    pub fn recalled(&self, key: &str, since_ms: u64) -> Result<Option<(String, String)>, String> {
         let db = self.db();
         db.query_row(
             "SELECT sent, answer FROM interactions WHERE key = ?1 AND at_ms >= ?2",
             params![key, i64::try_from(since_ms).unwrap_or(i64::MAX)],
             |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)),
         )
-        .ok()
+        .optional()
+        .map_err(|_| "interaction receipt could not be read".to_string())
     }
 
     /// **A run scheduled in a command's transaction** (the
@@ -985,6 +986,54 @@ pub use scheduled::QueueAuthority;
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_receipt_decode_error_is_not_a_missing_committed_interaction() {
+        let m = Materializer::new(Clock::new(), "receipt-read-fault");
+        m.command::<String>(|tx| {
+            Materializer::set_state(tx, "receipt-business", "committed");
+            Materializer::record_interaction(tx, "receipt-key", "sent", "answer", 10)?;
+            Ok(Vec::new())
+        })
+        .expect("the state and receipt actually committed");
+        assert_eq!(
+            m.recalled("receipt-key", 0),
+            Ok(Some(("sent".to_string(), "answer".to_string()))),
+            "healthy committed receipt neighbor"
+        );
+        assert!(
+            m.recalled("absent-key", 0) == Ok(None),
+            "genuine missing neighbor"
+        );
+        {
+            let db = m.db();
+            db.execute(
+                "UPDATE interactions SET answer = ?1 WHERE key = 'receipt-key'",
+                params![vec![0xff_u8]],
+            )
+            .expect("only the stored answer is faulted");
+            let physical: (String, String) = db
+                .query_row(
+                    "SELECT sent, typeof(answer) FROM interactions WHERE key = 'receipt-key'",
+                    [],
+                    |row| Ok((row.get(0)?, row.get(1)?)),
+                )
+                .expect("the actual row remains");
+            assert_eq!(physical, ("sent".to_string(), "blob".to_string()));
+            let decoded = db.query_row(
+                "SELECT answer FROM interactions WHERE key = 'receipt-key'",
+                [],
+                |row| row.get::<_, String>(0),
+            );
+            decoded.expect_err("the owned read fault is an actual decode error");
+        }
+        // A physically committed but unreadable receipt is an error, never
+        // an absence that permits the host to evaluate the command again.
+        assert!(
+            m.recalled("receipt-key", 0).is_err(),
+            "a committed receipt decode failure was silently reported as a miss"
+        );
+    }
 
     #[test]
     fn an_entry_key_is_its_dimensions_too() {

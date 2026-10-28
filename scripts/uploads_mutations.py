@@ -149,11 +149,11 @@ MUTANTS = [
         "            state\n"
         "                .leases\n"
         "                .get(session)\n"
-        "                .filter(|l| l.id == id)\n",
+        "                .filter(|l| l.id == id && l.reader == reader)\n",
         "            state\n"
         "                .leases\n"
         "                .values()\n"
-        "                .find(|l| l.id == id && !session.is_empty())\n",
+        "                .find(|l| l.id == id && l.reader == reader && !session.is_empty())\n",
     ),
     (
         "an upload from another origin is taken",
@@ -188,8 +188,8 @@ MUTANTS = [
         "one signed out may attach an image",
         RUST,
         UPLOADS,
-        "            Some(principals) => principals.of(session).map(|p| p.user),\n",
-        "            Some(principals) => Some(principals.user_of(session)),\n",
+        "        if matches!(reader_identity, crate::identity::ReaderIdentity::Anonymous) {\n",
+        "        if matches!(reader_identity, crate::identity::ReaderIdentity::Anonymous) && false {\n",
     ),
     (
         "a user's hourly count of images is not held",

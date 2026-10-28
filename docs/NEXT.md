@@ -1,3 +1,9 @@
+> Session authority follow-up snapshot, 2026-10-27: freeze the reviewed
+> upload/receipt repairs and strict instruments; execute their whole exact-source
+> controls and all reached CI/browser recipes; merge only after independent
+> final-head review and successful published gates. The older milestone queue
+> below retains its historical scope. See `diagnostics/session-followup-2026-10-27.md`.
+
 # Next
 
 

@@ -2,6 +2,18 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Session follow-up, 2026-10-27:** PR61 merged at
+`a0db8884deb2b3ba37faee59afcdee44a92c6b1c`; the earlier continuation notes
+below retain their historical scope. The current follow-up remains unmerged.
+Private upload generation/dispatch/publication and receipt decode/recovery
+failures are reproduced and repaired locally under ADR0389. See the
+[follow-up record](diagnostics/session-followup-2026-10-27.md). Local diagnostic
+runs do not satisfy final-head gates. Required commands are `just preflight`,
+`just e14-upload-authority`, `just e14-session-receipt-recovery`, the unchanged
+whole command/scheduler and reached legacy recipes, and the final published
+CI/CodeQL/browser/recipe plan before merge.
+
+
 
 Local continuation 2026-10-26: `wip/session-revocation-20261026` is an
 unmerged implementation branch; its immutable-reader slice and remaining gates
