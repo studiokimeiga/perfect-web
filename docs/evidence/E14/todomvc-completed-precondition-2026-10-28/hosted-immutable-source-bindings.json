@@ -1,0 +1,223 @@
+{
+  "head": "f1d19c8eb3342fcc8d9b526b77c2c5f0144d4192",
+  "sources": [
+    {
+      "path": "scripts/todomvc_mutations.py",
+      "git_blob": "4894836717c8ecf1d5da7aa333ecd32d53495e64",
+      "sha256": "54389c924615a85a9ffa7eb0fb801a11718dc4d266ffd0be78ac93c3e0dc5d5e",
+      "excerpts": [
+        {
+          "first_line": 49,
+          "last_line": 70,
+          "lines": [
+            "import browser_test_results",
+            "import cargo_assertion_results",
+            "import mutation_source",
+            "import producer_process",
+            "",
+            "ROOT = pathlib.Path(__file__).resolve().parent.parent",
+            "APP = ROOT / \"examples/todomvc/app.pw\"",
+            "SERVER = ROOT / \"spikes/own-renderer/server/src/main.rs\"",
+            "RUNTIME_FILE = ROOT / \"spikes/own-renderer/public/pw-runtime.mjs\"",
+            "",
+            "PROGRAM = \"program\"",
+            "HOST = \"host\"",
+            "RUNTIME = \"runtime\"",
+            "",
+            "# The program mutants the checker refuses, by the rule that is the protection",
+            "# each takes away (`scripts/mutant_programs.py`): every other program mutant",
+            "# here leaves a program that checks. Each is killed by the checker, and no test",
+            "# is run for it.",
+            "CHECKED = {",
+            "    # The todos kept on the device say not whose they are.",
+            "    \"the todos say not whose they are\": {\"PW6805\"},",
+            "}"
+          ]
+        },
+        {
+          "first_line": 170,
+          "last_line": 179,
+          "lines": [
+            "        \"    List.map(todos, (t) => Row {\\n\",",
+            "    ),",
+            "    (",
+            "        \"the clear button counts what is left\",",
+            "        PROGRAM,",
+            "        APP,",
+            "        \"fn done(todos: List<Todo>) -> Int !{} {\\n    List.length(List.filter(todos, (t) => t.completed))\\n\",",
+            "        \"fn done(todos: List<Todo>) -> Int !{} {\\n    List.length(List.filter(todos, (t) => !t.completed))\\n\",",
+            "    ),",
+            "    ("
+          ]
+        },
+        {
+          "first_line": 487,
+          "last_line": 512,
+          "lines": [
+            "def browser_tests(_what=None, pages=False):",
+            "    \"\"\"Fresh complete assertion receipt, with the baseline's frozen fifty IDs.\"\"\"",
+            "    if not build(pages):",
+            "        return False, 0, 0",
+            "    with tempfile.TemporaryDirectory(prefix=\"pw-todomvc-browser-\") as directory:",
+            "        receipt = pathlib.Path(directory) / \"result.json\"",
+            "        nonce = secrets.token_hex(32)",
+            "        out, code = bounded(",
+            "            [\"bash\", str(ROOT / \"scripts/run_suite.sh\"), \"-C\", \".\", \"--\",",
+            "             \"pnpm\", \"exec\", \"playwright\", \"test\", *SPEC, \"--retries=0\",",
+            "             \"--reporter=line,./assertion-result-reporter.mjs\"],",
+            "            cwd=ROOT / \"spikes/own-renderer\",",
+            "            env={**os.environ, \"PW_ASSERTION_REPORT\": str(receipt), \"PW_ASSERTION_NONCE\": nonce},",
+            "        )",
+            "        try:",
+            "            report = json.loads(receipt.read_text())",
+            "        except (OSError, ValueError):",
+            "            report = None",
+            "        result = browser_test_results.parse(code, report, nonce, INVENTORIES.get(\"browser\"))",
+            "        if not result.valid or result.failed:",
+            "            print(out, flush=True)",
+            "        if not result.valid or result.passed + result.failed != BROWSER_COUNT:",
+            "            print(f\"REFUSED browser producer: {result.reason or 'expected fifty tests'}\", flush=True)",
+            "            return False, 0, 0",
+            "        INVENTORIES.setdefault(\"browser\", result.inventory)",
+            "        return True, result.passed, result.failed"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "spikes/own-renderer/e2e/todomvc.spec.mjs",
+      "git_blob": "ffa926ae460a3a636eb52f90d223614c48ec48b6",
+      "sha256": "a02de954856f40227d757319aa4fa3f9ef5bdf0f504cee7a97290b5de1a7353d",
+      "excerpts": [
+        {
+          "first_line": 219,
+          "last_line": 234,
+          "lines": [
+            "test(\"the toggle-all, pressed, is not checked for a todo added once the completed are cleared\", async ({",
+            "  page,",
+            "}) => {",
+            "  await open(page);",
+            "  await add(page, ONE);",
+            "  await page.locator(\".toggle-all\").check({ force: true });",
+            "  await expect(page.locator(\".toggle-all\")).toBeChecked();",
+            "  const clearCompleted = page.locator(\".clear-completed\");",
+            "  await expect(clearCompleted).toBeVisible();",
+            "  await clearCompleted.click();",
+            "  await expect(items(page)).toHaveCount(0);",
+            "  await expect(page.locator(\".toggle-all\")).not.toBeChecked();",
+            "  await add(page, TWO);",
+            "  await expect(items(page).nth(0)).not.toHaveClass(/completed/);",
+            "  await expect(page.locator(\".toggle-all\")).not.toBeChecked();",
+            "});"
+          ]
+        },
+        {
+          "first_line": 500,
+          "last_line": 510,
+          "lines": [
+            "test(\"clear completed is hidden where none is completed\", async ({ page }) => {",
+            "  await open(page);",
+            "  await add(page, ONE, TWO);",
+            "  await expect(page.locator(\".clear-completed\")).toHaveCount(1);",
+            "  await expect(page.locator(\".clear-completed\")).toBeHidden();",
+            "  await items(page).nth(0).locator(\".toggle\").check();",
+            "  await expect(page.locator(\".clear-completed\")).toBeVisible();",
+            "  await page.locator(\".clear-completed\").click();",
+            "  await expect(page.locator(\".clear-completed\")).toBeHidden();",
+            "});",
+            ""
+          ]
+        }
+      ]
+    },
+    {
+      "path": "spikes/own-renderer/assertion-result-reporter.mjs",
+      "git_blob": "ffd740f116c92e13f45b71f38d11136371233f56",
+      "sha256": "ba3bb0900f0c50bb835a2cdaf09e2bb3fc626e7472344007750426fee1e0d265",
+      "excerpts": [
+        {
+          "first_line": 46,
+          "last_line": 76,
+          "lines": [
+            "    if (!this.expected.has(test.id) || this.started.has(test.id) || result.retry !== 0) this.problem = true;",
+            "    this.started.add(test.id);",
+            "  }",
+            "  onTestEnd(test, result) {",
+            "    if (!this.started.has(test.id) || this.results.has(test.id)",
+            "        || test.expectedStatus !== \"passed\" || ![\"passed\", \"failed\"].includes(result.status)) this.problem = true;",
+            "    if (result.status === \"failed\" && (!bodyAssertions(result)",
+            "        || !result.errors.every(error => error.cause?.message === `Error: PW_ASSERTION:${this.nonce}`))) this.problem = true;",
+            "    if (result.status === \"passed\" && result.errors.length) this.problem = true;",
+            "    this.results.set(test.id, result.status);",
+            "  }",
+            "  onEnd(result) {",
+            "    this.ends++;",
+            "    const failed = [...this.results.values()].includes(\"failed\");",
+            "    if (this.ends !== 1 || result.status !== (failed ? \"failed\" : \"passed\")",
+            "        || this.results.size !== this.expected.size || this.started.size !== this.expected.size) this.problem = true;",
+            "  }",
+            "  onExit() {",
+            "    try {",
+            "      if (this.problem || this.begins !== 1 || this.ends !== 1) return;",
+            "      if (existsSync(this.report)) throw new Error(\"receipt already exists\");",
+            "      const receipt = { schema: 1, complete: true, nonce: this.nonce,",
+            "        tests: [...this.results].sort(([a], [b]) => a.localeCompare(b)),",
+            "        inventory: [...this.expected].sort() };",
+            "      writeFileSync(`${this.report}.part`, JSON.stringify(receipt), { flag: \"wx\", mode: 0o600 });",
+            "      renameSync(`${this.report}.part`, this.report);",
+            "    } catch (error) {",
+            "      this.problem = true;",
+            "      console.error(`assertion receipt refused: ${error.message}`);",
+            "    }",
+            "  }"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "just/todomvc.just",
+      "git_blob": "7c15d764ab15dfdc6724b64d180840fcdfa1149f",
+      "sha256": "24214c4dbb61614662aca00f9bb0076763ac7ffe0370aa722c9433199425abaa",
+      "excerpts": [
+        {
+          "first_line": 103,
+          "last_line": 134,
+          "lines": [
+            "e14-todomvc:",
+            "    @BUILD_ONLY=1 bash spikes/own-renderer/run.sh > /dev/null",
+            "    @bash spikes/own-renderer/todomvc.sh > /dev/null",
+            "    @cargo build --quiet --locked -p pw-dev-server -p kiokun-server",
+            "    @cd spikes/todomvc-cypress && pnpm exec cypress install > /dev/null",
+            "    @mkdir -p docs/evidence/E14",
+            "    @{ echo \"ADR-0367 - TodoMVC in Pleris, held to its own spec and its own tests\"; echo; \\",
+            "       echo \"produced by: just e14-todomvc\"; \\",
+            "       echo \"commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' ':(exclude)spikes/own-renderer/store-ir.json' || echo ' + uncommitted changes')\"; \\",
+            "       echo \"rust: $(rustc --version)\"; echo \"node: $(node --version)\"; \\",
+            "       echo \"playwright: $(cd spikes/own-renderer && pnpm exec playwright --version)\"; \\",
+            "       echo \"todomvc-app-css: $(node -p \"require('./spikes/own-renderer/node_modules/todomvc-app-css/package.json').version\") ($(node -p \"require('./spikes/own-renderer/node_modules/todomvc-app-css/package.json').license\"))\"; \\",
+            "       echo \"todomvc-common: $(node -p \"require('./spikes/own-renderer/node_modules/todomvc-common/package.json').version\") ($(node -p \"require('./spikes/own-renderer/node_modules/todomvc-common/package.json').license\"))\"; \\",
+            "       echo \"cypress: $(cd spikes/todomvc-cypress && pnpm exec cypress --version | tr '\\n' ' ')\"; echo; \\",
+            "       echo \"== the host: the page's document, its defaults and what the device decides (tests::todomvc::)\"; echo; \\",
+            "       cargo test --locked -p pw-dev-server -- tests::todomvc:: 2>&1 | grep -E '^(test |test result)|panicked at'; \\",
+            "       echo; echo \"== the browser in three engines (e2e/todomvc.spec.mjs)\"; echo; \\",
+            "       bash scripts/run_suite.sh -- pnpm exec playwright test e2e/todomvc.spec.mjs --reporter=line; \\",
+            "       echo; echo \"== compatibility v1 identity and drift controls (original seven upstream blobs remain unchanged)\"; echo; \\",
+            "       python3 scripts/todomvc_compat_mutations.py; \\",
+            "       echo; echo \"== TodoMVC Cypress compatibility v1: the 29-test acceptance (spikes/todomvc-cypress/run.sh)\"; echo; \\",
+            "       bash spikes/todomvc-cypress/run.sh; \\",
+            "       echo; echo \"== TodoMVC Cypress compatibility v1: the diagnostic, not the acceptance (DIAGNOSTIC=1)\"; echo; \\",
+            "       DIAGNOSTIC=1 bash spikes/todomvc-cypress/run.sh; \\",
+            "       echo; echo \"== mutation controls: the Cypress acceptance's checks (scripts/todomvc_cypress_mutations.py)\"; echo; \\",
+            "       python3 scripts/todomvc_cypress_mutations.py; \\",
+            "       echo; echo \"== native mutation-result authority controls (scripts/todomvc_producer_mutations.py)\"; echo; \\",
+            "       python3 scripts/todomvc_producer_mutations.py; \\",
+            "       echo; echo \"== mutation controls (scripts/todomvc_mutations.py)\"; echo; \\",
+            "       CARGO_INCREMENTAL=0 python3 scripts/todomvc_mutations.py; \\",
+            "     } > docs/evidence/E14/todomvc.txt",
+            "    @grep -E \"^test result|passed|mutants killed|^---- |panicked at\" docs/evidence/E14/todomvc.txt"
+          ]
+        }
+      ]
+    }
+  ]
+}

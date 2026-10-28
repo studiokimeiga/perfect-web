@@ -130,6 +130,40 @@ and no complete receipt. That invalid attempt is retained separately under
 and is not counted as a kill. The corrected proof above is the accepted local
 result; whole 43-control hosted verification remains due.
 
+## Amendment: clear actions wait for completed model state, 2026-10-28
+
+PR62 verify40617180819 at `f1d19c8e` returned actual `e14-todomvc`
+status1 despite its enclosing shell job succeeding. The unchanged control
+"the clear button counts what is left" produced one genuine hidden-state
+assertion and a clear-button click timeout in the dirty-toggle-all test.
+The strict reporter correctly refused its incomplete assertion receipt:
+14/43 controls killed, one refused. That campaign remains failed.
+
+The test already asserted the native toggle-all checkbox and clear visibility.
+The native checkbox can change before the device's completed state renders;
+the faulty done count can show the clear button while its todo is still active,
+then hide it before the click. This interleaving is an inference from source
+and the actual hidden-element timeout: the failed trace was over the retained
+trace budget. A local original-source control did not reproduce that timeout.
+
+The test now awaits the existing completed-row invariant after checking the
+native checkbox, before its unchanged clear visibility assertion and click.
+The same 50 test identities and all43 operators remain. No application,
+runtime, producer, reporter, timeout, retry, skip or acceptance rule changes.
+Under the exact done-count control, the new row assertion passes before the
+existing visibility assertion fails through the complete nonce-bound reporter.
+
+Focused before and after diagnostics each ran50/0 baseline,48/2 valid mutant
+assertions,50/0 restored Chromium results with identical inventories. They are
+uncommitted-source diagnostics, not final-head or whole-campaign acceptance.
+The initial external helper callback error is retained as refused tooling;
+it reached no mutation. Successful build child output is discarded by the
+existing builder, so its empty wrapper logs are not native build transcripts.
+Raw hosted failure, native receipts, source snapshots and hashes are in
+[the focused record](../evidence/E14/todomvc-completed-precondition-2026-10-28/manifest.json).
+`just e14-todomvc`, all planned recipes, browsers, CI and security gates still
+must pass at the next exact published head before merge.
+
 ## Context
 
 - **The owner's reference app, familiar to everyone** ("something people are

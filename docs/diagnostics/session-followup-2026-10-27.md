@@ -61,3 +61,27 @@ restoration/reporting gaps and skipped callback fixtures. Twenty controlled
 Python calibrations pass; those synthetic libtest calibration outputs are not
 Rust or application execution evidence. Whole native mutation and hosted gates
 remain pending at a final immutable commit.
+
+## Hosted TodoMVC failure at the first fully audited candidate
+
+The actual original evidence-4 ZIP in verify40617180819 reports
+`e14-todomvc` status1 at `f1d19c8e` (source-equivalent PR merge8c153f42).
+The mutation script refused a30-second clear-button click timeout even though
+another case failed a real assertion. Its14/43 kills are partial and failed;
+the green wrapper job is not acceptance. The trace budget retained no trace
+for that control. Original logs and metadata remain preserved.
+
+The dirty-toggle-all browser test now waits for its todo's completed row before
+checking clear visibility and clicking. Both reviews support this semantic
+precondition; actual interleaving remains an inference and the original local
+control produced valid assertions rather than reproducing the hosted timeout.
+Before and after focused runs each have50green baseline,48pass/2assertion-fail
+control,50green restored results, with the exact same50identities. After the
+repair the added row assertion passes and the existing clear visibility fails.
+See [the raw record](../evidence/E14/todomvc-completed-precondition-2026-10-28/manifest.json).
+The initial external helper callback bug receives no acceptance credit.
+
+No producer, operator, retry, timeout or skip rule is relaxed. These are working
+source diagnostics. Required final commands remain `just preflight`,
+`just e14-todomvc`, the whole command/upload/receipt/scheduler recipes and all
+actual hosted planned checks at the next immutable head. No merge has occurred.

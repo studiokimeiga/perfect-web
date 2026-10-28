@@ -223,6 +223,8 @@ test("the toggle-all, pressed, is not checked for a todo added once the complete
   await add(page, ONE);
   await page.locator(".toggle-all").check({ force: true });
   await expect(page.locator(".toggle-all")).toBeChecked();
+  // The native checkbox changes before the device's completed state renders.
+  await expect(items(page).nth(0)).toHaveClass(/completed/);
   const clearCompleted = page.locator(".clear-completed");
   await expect(clearCompleted).toBeVisible();
   await clearCompleted.click();

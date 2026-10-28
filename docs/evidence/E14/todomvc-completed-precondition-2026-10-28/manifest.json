@@ -1,0 +1,311 @@
+{
+  "schema": 1,
+  "kind": "focused uncommitted-source diagnostic; not final-head or whole recipe acceptance",
+  "parent_head": "f1d19c8eb3342fcc8d9b526b77c2c5f0144d4192",
+  "hosted_failed_run": 40617180819,
+  "hosted_failed_artifact": 12791205819,
+  "operator": "the clear button counts what is left",
+  "before_and_after_inventory": 50,
+  "whole_catalog": 43,
+  "whole_catalog_executed": false,
+  "timing_interleaving_trace_proven": false,
+  "local_original_timeout_reproduced": false,
+  "before": {
+    "baseline": [
+      50,
+      0
+    ],
+    "mutant": [
+      48,
+      2
+    ],
+    "restored": [
+      50,
+      0
+    ]
+  },
+  "after": {
+    "baseline": [
+      50,
+      0
+    ],
+    "mutant": [
+      48,
+      2
+    ],
+    "restored": [
+      50,
+      0
+    ]
+  },
+  "initial_helper_attempt": "REFUSED orchestration callback TypeError after native children reaped; no mutation reached or credit",
+  "build_log_scope": "gate.build returns success only after its actual commands; successful child output is discarded by unchanged producer, so zero-length wrapper build logs are not raw native build transcripts",
+  "copied_external_manifests": "hosted-failure-manifest and source-bindings preserve original external paths; their entire original package remains outside this Git diagnostic",
+  "files": [
+    {
+      "path": "after/after-baseline.build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "after/after-baseline.receipt.json",
+      "bytes": 5077,
+      "sha256": "7a2d611cdd831f3618f5853825896e65da56ef1b2be7ffbf856e58fb523db0df"
+    },
+    {
+      "path": "after/after-baseline.result.json",
+      "bytes": 3355,
+      "sha256": "152df39cde4c103e0021c31f1ed1e2ff8b1d1521e5ff80c1b04243c04044c604"
+    },
+    {
+      "path": "after/after-baseline.stdout.log",
+      "bytes": 19,
+      "sha256": "fa4b1edcdac6e3db0f41034993732eb49b20d09ae03ac1d74b6be78abf1ce867"
+    },
+    {
+      "path": "after/after-mutant.build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "after/after-mutant.receipt.json",
+      "bytes": 5077,
+      "sha256": "19274323a4e5ac3c96a37e329e40d1bb0065ff48e01bdb3b1cd4031e0339b983"
+    },
+    {
+      "path": "after/after-mutant.result.json",
+      "bytes": 3353,
+      "sha256": "6cab6d9506f69bda00b5dc23afc440bc294d776e1e0a661eabe08c28365457fb"
+    },
+    {
+      "path": "after/after-mutant.stdout.log.gz",
+      "bytes": 497,
+      "sha256": "e602159317044684fbe3f08e6ba424872356bf73280b6586b59a5a66a898ce6e"
+    },
+    {
+      "path": "after/after-restored-baseline.build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "after/after-restored-baseline.receipt.json",
+      "bytes": 5077,
+      "sha256": "b1bd60be7208653b4588f653ea891e14f28ca71215756966058ac914bfdd6398"
+    },
+    {
+      "path": "after/after-restored-baseline.result.json",
+      "bytes": 3362,
+      "sha256": "bb80cf684c142109af714608d0ea5f8ce165f357fd6985a5ff7eb887e6672927"
+    },
+    {
+      "path": "after/after-restored-baseline.stdout.log",
+      "bytes": 19,
+      "sha256": "83bb24ab57ffdf2ed95ec98438c8b1a533056f840338fd43c1159eb20f876171"
+    },
+    {
+      "path": "after/inputs-after.json",
+      "bytes": 636,
+      "sha256": "4bc75c5a33a8c40225ee6e3e438353ff55492457a44ac94787bce1c16520e2ba"
+    },
+    {
+      "path": "after/inputs-before.json",
+      "bytes": 655,
+      "sha256": "98ca1bddde3306b27813e8855194156e470639bc125babca7f9d28415a8c2e3e"
+    },
+    {
+      "path": "after/mutant-check.json",
+      "bytes": 17,
+      "sha256": "78dcfd2f08e2f2ba570ddfd7f3e3a67eb805dc3413dd4b5700fd57ea3cc3ef5d"
+    },
+    {
+      "path": "after/mutant-check.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "after/pilot-executed.py",
+      "bytes": 5464,
+      "sha256": "c003ed84fa4242f27437a4d8dbb8a32263b3c94c0542144c35e42f9758620d25"
+    },
+    {
+      "path": "after/runs.json",
+      "bytes": 10610,
+      "sha256": "374677ac2a0adb08e6b418ae2fe791bedc6050bd499d8ddf8d05bf3a8e829bb1"
+    },
+    {
+      "path": "before/before-baseline.build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "before/before-baseline.receipt.json",
+      "bytes": 5077,
+      "sha256": "ddc2e653ecf4a48ee9d6eb3feab3d0cd776b4c666cb90c0de376150262e5eb1f"
+    },
+    {
+      "path": "before/before-baseline.result.json",
+      "bytes": 3355,
+      "sha256": "cc84241fb7ec5d7f44627ea2393d8f9f24973f28a7241d7d18b2f65577fd9ab8"
+    },
+    {
+      "path": "before/before-baseline.stdout.log",
+      "bytes": 19,
+      "sha256": "b1ecf1d9950c396b1c74832a1b04d6b1a98b482331abd68ae0264c62aba8d21e"
+    },
+    {
+      "path": "before/before-mutant.build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "before/before-mutant.receipt.json",
+      "bytes": 5077,
+      "sha256": "921f0b2f26d49ccda60ec37363c55d94ce25c4f7d22d74f075f943efeefe7ed2"
+    },
+    {
+      "path": "before/before-mutant.result.json",
+      "bytes": 3352,
+      "sha256": "1da62022b23f645fcbb58b2a9cf2695b8b2e01ca6c05c66c0f1fb1a7233f26f7"
+    },
+    {
+      "path": "before/before-mutant.stdout.log.gz",
+      "bytes": 499,
+      "sha256": "d5a7b8972cb381dca73363b8609a517cb5110d5c9a1a934c5c32f6e5be6095f1"
+    },
+    {
+      "path": "before/before-restored-baseline.build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "before/before-restored-baseline.receipt.json",
+      "bytes": 5077,
+      "sha256": "ef87b5859efcf2321a3e24d056ebb44202a450fdb39d691dd278de418580f890"
+    },
+    {
+      "path": "before/before-restored-baseline.result.json",
+      "bytes": 3365,
+      "sha256": "4b90e3b28b661445c0afe3b27d83cce9e5be30aaff5146c28a597562607eb3f2"
+    },
+    {
+      "path": "before/before-restored-baseline.stdout.log",
+      "bytes": 19,
+      "sha256": "bbc1d016994f028d3957dcb5304086ce3c575754b1041b02e6d01d64273d5b96"
+    },
+    {
+      "path": "before/inputs-after.json",
+      "bytes": 636,
+      "sha256": "18c5dce7213ecf4e0de54bacde82b19d30c753c3b26aa04a694342822c629772"
+    },
+    {
+      "path": "before/inputs-before.json",
+      "bytes": 656,
+      "sha256": "101bee5cf6b2348a3af7b9446e8366be2178d94f13053bc34d673f3a734e13ca"
+    },
+    {
+      "path": "before/mutant-check.json",
+      "bytes": 17,
+      "sha256": "78dcfd2f08e2f2ba570ddfd7f3e3a67eb805dc3413dd4b5700fd57ea3cc3ef5d"
+    },
+    {
+      "path": "before/mutant-check.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "before/pilot-executed.py",
+      "bytes": 5174,
+      "sha256": "1e2a9f22adeeb6a85a3c2a84e1baa171d44fbeacc4300935b39fe063e57848ca"
+    },
+    {
+      "path": "before/runs.json",
+      "bytes": 10612,
+      "sha256": "8240287dff3e3c3bc87387331e9eed857f66681f8e94913e3120b8900eb8f9ff"
+    },
+    {
+      "path": "hosted-cause-review.md",
+      "bytes": 2375,
+      "sha256": "733251bd9dc55cddd3ac87c0fe918ea35fa704556fa5fc67a929a24bc8752095"
+    },
+    {
+      "path": "hosted-f1-todomvc.txt.gz",
+      "bytes": 30282,
+      "sha256": "9e76d6667b864adbac5b6ee22e705e157295750a89c36a0adb1d877e206917d0"
+    },
+    {
+      "path": "hosted-failure-manifest.json",
+      "bytes": 3453,
+      "sha256": "760b9c5d387f3eaa3159a7fb4e909ec654902317f97a40c626830b610cd56416"
+    },
+    {
+      "path": "hosted-immutable-source-bindings.json",
+      "bytes": 12409,
+      "sha256": "6f47a524fe08cbb9af0fa88e8611db2a6b612b202fa52453b98d52eea06a3919"
+    },
+    {
+      "path": "initial-helper-refused/HELPER-REFUSED.txt.gz",
+      "bytes": 375,
+      "sha256": "ce6ed7637f9b5b8b939a9bf50c92956b10b5c869cea715bbaf43ec06f3b1a62b"
+    },
+    {
+      "path": "initial-helper-refused/before-baseline.build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "initial-helper-refused/before-baseline.receipt.json",
+      "bytes": 5077,
+      "sha256": "790f65f982ac0a08d09fa657408288d07354293dbdf4c2bb78e4ec5dad7e4de1"
+    },
+    {
+      "path": "initial-helper-refused/before-restored-baseline.build.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "initial-helper-refused/before-restored-baseline.receipt.json",
+      "bytes": 5077,
+      "sha256": "4b5096df625e7db76c56020f702bce36a218cbbe87770cc8b6d0a4328e239b92"
+    },
+    {
+      "path": "initial-helper-refused/inputs-before.json",
+      "bytes": 656,
+      "sha256": "101bee5cf6b2348a3af7b9446e8366be2178d94f13053bc34d673f3a734e13ca"
+    },
+    {
+      "path": "initial-helper-refused/pilot-executed.py",
+      "bytes": 5075,
+      "sha256": "960674f01425218f8a10d4e27165cd06497e4d9e936a384ae1278e1d8d3add8c"
+    },
+    {
+      "path": "spec-after.mjs",
+      "bytes": 36532,
+      "sha256": "8d1119ed0516421a14892b8d3b42cb5cc51ea7f0c136934d971570f98c10cba2"
+    },
+    {
+      "path": "spec-before.mjs",
+      "bytes": 36393,
+      "sha256": "a02de954856f40227d757319aa4fa3f9ef5bdf0f504cee7a97290b5de1a7353d"
+    }
+  ],
+  "losslessly_compressed_raw_records": [
+    {
+      "path": "after/after-mutant.stdout.log.gz",
+      "original_path": "after/after-mutant.stdout.log",
+      "raw_bytes": 1058,
+      "raw_sha256": "62f236fe04025e07353cac82466a409ca84a0350e2f9022633825ed967673c87"
+    },
+    {
+      "path": "before/before-mutant.stdout.log.gz",
+      "original_path": "before/before-mutant.stdout.log",
+      "raw_bytes": 1058,
+      "raw_sha256": "770884776f7ff806739abd009b4d4b5ba11e081e02467616097700066b04729a"
+    },
+    {
+      "path": "initial-helper-refused/HELPER-REFUSED.txt.gz",
+      "original_path": "initial-helper-refused/HELPER-REFUSED.txt",
+      "raw_bytes": 608,
+      "raw_sha256": "0c288805714727396a5fbd97bce3c461a5fefb3bb23fde5b176bd0ebc6ae8993"
+    }
+  ]
+}

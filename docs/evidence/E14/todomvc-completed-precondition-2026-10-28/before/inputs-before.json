@@ -1,0 +1,11 @@
+{
+  "head": "f1d19c8eb3342fcc8d9b526b77c2c5f0144d4192",
+  "mode": "before",
+  "inputs": {
+    "examples/todomvc/app.pw": "39e6a335f3b6ca326081a4fc2e64e44485d74480edf398c57cb87f72e88a26eb",
+    "spikes/own-renderer/public/pw-runtime.mjs": "1250f7f2580b5f7fe650581c5af5123935d6fe63e144e150d3a7edc7c80bdb7d",
+    "spikes/own-renderer/e2e/todomvc.spec.mjs": "a02de954856f40227d757319aa4fa3f9ef5bdf0f504cee7a97290b5de1a7353d",
+    "scripts/todomvc_mutations.py": "54389c924615a85a9ffa7eb0fb801a11718dc4d266ffd0be78ac93c3e0dc5d5e",
+    "spikes/own-renderer/assertion-result-reporter.mjs": "ba3bb0900f0c50bb835a2cdaf09e2bb3fc626e7472344007750426fee1e0d265"
+  }
+}

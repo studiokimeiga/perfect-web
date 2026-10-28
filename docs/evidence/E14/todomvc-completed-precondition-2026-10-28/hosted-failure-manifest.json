@@ -1,0 +1,83 @@
+{
+  "observed_utc": "2026-10-28T04:02:46.029917+00:00",
+  "head": "f1d19c8eb3342fcc8d9b526b77c2c5f0144d4192",
+  "merge": "8c153f421cf222c519bef2d8015a527e3922b173",
+  "run": 40617180819,
+  "attempt": 1,
+  "recipe": "e14-todomvc",
+  "actual_status": 1,
+  "enclosing_job_status": "success",
+  "finding": "Final program mutant refused after non-assertion clearCompleted.click timeout; no complete browser receipt; baseline and restored suites passed. No recipe acceptance credit.",
+  "raw_files": [
+    {
+      "path": "session-followup-f1d19c8e-hosted-recipe-artifacts/evidence-4-artifact-12791205819.zip",
+      "bytes": 105483,
+      "sha256": "6e58c33dc13f8711d65246af6d363cbd808cf146fd05ada450db10b3c138d01b"
+    },
+    {
+      "path": "session-followup-f1d19c8e-hosted-recipe-artifacts/evidence-4-artifact-12791205819.api.json",
+      "bytes": 1202,
+      "sha256": "c460e42ff4159710e262fcc981e29b9ce207dbed8c3d94a2276061bf0d530823"
+    },
+    {
+      "path": "session-followup-f1d19c8e-hosted-job-logs/recipes-4-122583483816.log",
+      "bytes": 297170,
+      "sha256": "1e0a177b27e6bab33fcd4447e48dbb68ed506f3b6b04e14c22dd2d296da9ccbd"
+    },
+    {
+      "path": "session-followup-f1d19c8e-hosted-job-logs/recipes-4-122583483816.metadata.json",
+      "bytes": 5946,
+      "sha256": "e0fd128e8c330eba4f2bc1d6e589eeda16c9c5ca104d3d67038fcc9986342ccf"
+    },
+    {
+      "path": "session-followup-f1d19c8e-hosted-artifact-audits/evidence-4-12791205819.json",
+      "bytes": 8454,
+      "sha256": "99d2bee3ae4f7bfb021ade9a080f5f6ee5f14fa4254fd089115f2218f075fbc7"
+    },
+    {
+      "path": "session-followup-f1d19c8e-hosted-artifact-audits/evidence-4-12791205819-INITIAL-FINDINGS.json",
+      "bytes": 8454,
+      "sha256": "99d2bee3ae4f7bfb021ade9a080f5f6ee5f14fa4254fd089115f2218f075fbc7"
+    },
+    {
+      "path": "session-followup-f1d19c8e-hosted-todomvc-failure/actual-row.json",
+      "bytes": 142,
+      "sha256": "ed0f10d831730dbdfd37c86cb518fda9caf3df2cfc7576d09a56537c122675ff"
+    },
+    {
+      "path": "session-followup-f1d19c8e-hosted-todomvc-failure/immutable-source-bindings.json",
+      "bytes": 12409,
+      "sha256": "6f47a524fe08cbb9af0fa88e8611db2a6b612b202fa52453b98d52eea06a3919"
+    },
+    {
+      "path": "session-followup-f1d19c8e-hosted-todomvc-failure/last-control-NOT-KEPT.txt",
+      "bytes": 295,
+      "sha256": "b459e034efd92680e583206582781abf84499f74082f55efffda7191742a46ca"
+    },
+    {
+      "path": "session-followup-f1d19c8e-hosted-todomvc-failure/recipe-stdout.log",
+      "bytes": 367,
+      "sha256": "188f061c23809cfacca95861b921afe4ab47cef921a5f4baebdbbd79e7673fbb"
+    },
+    {
+      "path": "session-followup-f1d19c8e-hosted-todomvc-failure/todomvc.txt",
+      "bytes": 615758,
+      "sha256": "723fadf5097ab740a28537dc1a0edfe8880bc07fd0d9c5b67c6834348fd4adb3"
+    },
+    {
+      "path": "session-followup-f1d19c8e-hosted-todomvc-failure/traces-4-api.json",
+      "bytes": 1089,
+      "sha256": "77e15bcc0f3ec368e79ff77cccce080e3824a985a2888b38bf843cab0b77a170"
+    },
+    {
+      "path": "session-followup-f1d19c8e-hosted-todomvc-failure/traces-4-artifact-12790846836.zip",
+      "bytes": 24535580,
+      "sha256": "6e1421e494363929a1df166cc6e38650d821c4be6f8518ec8f6bd55fc2637d61"
+    },
+    {
+      "path": "session-followup-f1d19c8e-hosted-todomvc-failure/traces-4-inventory.json",
+      "bytes": 96203,
+      "sha256": "84f316c47de5708674c4cf0f291281568ee4b5e4ac103826791ce1777ba70573"
+    }
+  ]
+}

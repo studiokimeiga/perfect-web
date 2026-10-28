@@ -2,6 +2,15 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**PR62 gate follow-up, 2026-10-28:** `f1d19c8e` remains failed:
+verify40617180819's actual `e14-todomvc` returned1 although the recipe shell
+job succeeded. The clear-count control timed out clicking after a transient
+visibility check. ADR0367 records the completed-row precondition repair and
+its bounded50-case diagnostics; the timing explanation remains inferential.
+Reproduce the whole affected gate with `just e14-todomvc`. All43 controls,
+full browsers and every planned recipe/CI/security gate require a fresh exact
+published commit before merge. Earlier green jobs do not clear this failure.
+
 **Session follow-up, 2026-10-27:** PR61 merged at
 `a0db8884deb2b3ba37faee59afcdee44a92c6b1c`; the earlier continuation notes
 below retain their historical scope. The current follow-up remains unmerged.
