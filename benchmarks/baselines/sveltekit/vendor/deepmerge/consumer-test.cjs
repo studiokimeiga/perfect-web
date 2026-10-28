@@ -11,7 +11,7 @@ function resolvedMerge(consumer) {
   const entry = fromConsumer.resolve('deepmerge');
   const metadata = fromConsumer('deepmerge/package.json');
   assert.equal(metadata.name, '@pleris/deepmerge');
-  assert.equal(metadata.version, '4.3.1-pw.1');
+  assert.equal(metadata.version, '4.3.1-pw.2');
   assert.equal(metadata.private, true);
   assert.deepEqual(fs.readFileSync(entry), canonical);
   const merge = fromConsumer('deepmerge');

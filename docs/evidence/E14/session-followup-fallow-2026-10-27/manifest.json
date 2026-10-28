@@ -1,0 +1,59 @@
+{
+  "scope": "Working-tree characterization; no execution credit for the following commit",
+  "fallow": {
+    "version": "3.23.0",
+    "base": "a0db8884deb2b3ba37faee59afcdee44a92c6b1c",
+    "red_head": "9f21a8e8f699b50a82123947bd631bcd2c3d2d6d",
+    "red_exit": 1,
+    "red_introduced_unused_files": 3,
+    "red_introduced_complexity": 2,
+    "green_exit": 0,
+    "green_introduced_findings": 0,
+    "stderr_empty": true
+  },
+  "node": {
+    "tests": 19,
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0
+  },
+  "artifacts": [
+    {
+      "path": "fallow-9f-red.json.gz",
+      "raw_bytes": 9566,
+      "raw_sha256": "433cd9d43d84bb8d1c71670e1e580664dd34062c80de12b69ca693232e80b381",
+      "gzip_sha256": "44f4386b6241d6d0aa58a8dd63f7536266caffecf10f1d95e7a38041cc42bf03"
+    },
+    {
+      "path": "fallow-9f-red.stderr.gz",
+      "raw_bytes": 726,
+      "raw_sha256": "99d475edd3ec506ff58e97bbde7898cb888fd14b98c88d8255e5a0773e77d4da",
+      "gzip_sha256": "24f4b22df2bd942e71984e33c22b64173b17ebcd612d5d60c8be3c3a85f59946"
+    },
+    {
+      "path": "fallow-working-green.json.gz",
+      "raw_bytes": 6486,
+      "raw_sha256": "2095fede9e499b10f6d9c6256b0262cef40b1419bad372fb43b1146192c7913e",
+      "gzip_sha256": "2894cc60589c41956ead254ac5ab488f30c4d147ea6bc7756a3f15c93951fa9c"
+    },
+    {
+      "path": "fallow-working-green.stderr.gz",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "fresh-module-install.log.gz",
+      "raw_bytes": 2254,
+      "raw_sha256": "2e919073b5590228ee8f22d36ecb26c83f9c23bb62c00581f2d2073718401bec",
+      "gzip_sha256": "32f080cb41fa926ec430ab84090f49b17e508b02279d0ece33706ede52ac79d6"
+    },
+    {
+      "path": "node-regression-green.log.gz",
+      "raw_bytes": 3496,
+      "raw_sha256": "acafd005fc42dbb0694a1259a3e10da1d6ffe81b78f749caee2422aae491aa28",
+      "gzip_sha256": "895b6999c1975f7e9d78c0ecc691d698ae27b7fb8c2d1bee9d49a91e8e8f4479"
+    }
+  ]
+}

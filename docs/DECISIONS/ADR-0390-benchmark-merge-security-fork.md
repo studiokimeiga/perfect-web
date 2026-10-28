@@ -42,3 +42,18 @@ The first unpinned scratch install's environment failure is retained.
 Two additional consumer-resolution tests require each installed consumer to
 load the byte-exact fixed entry and reject the payload. They run alongside
 the 17 API/security regressions in `just evidence-gates`.
+
+## Fallow continuation
+
+Candidate9f's Fallow job found the two directly executed Node test files and
+their imported helper unreachable, plus two inherited upstream functions at
+CRAP30/42 without supplied coverage. The same five findings reproduce locally
+with pinned Fallow3.23.0 and basea0db. Register only the two actual Node test
+entry points using the documented `entry` configuration; this adds their real
+dependency graph rather than suppressing any file or finding. Keep all ignore,
+threshold, policy and workflow values unchanged. Extract the existing per-key
+merge selection and options normalization into named cohesive helpers, preserving
+guard/value/callback order and same-object option mutation. Identify this local
+revision as4.3.1-pw.2. Existing security/API and actual installed-consumer tests,
+fresh frozen install/build and an actual passing Fallow audit remain required.
+The failed9f run and local reproduction retain their original failure scope.

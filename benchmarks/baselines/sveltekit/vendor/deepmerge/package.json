@@ -1,6 +1,6 @@
 {
   "name": "@pleris/deepmerge",
-  "version": "4.3.1-pw.1",
+  "version": "4.3.1-pw.2",
   "private": true,
   "description": "Temporary security fork of deepmerge 4.3.1 for benchmark build tools",
   "license": "MIT",

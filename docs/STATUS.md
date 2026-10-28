@@ -396,3 +396,15 @@ commit's execution credit. Independent review and all exact repaired-head
 local/hosted gates remain pending before merge.
 
 Both actual installed consumer-resolution checks also pass (19 total tests) in fresh workspace and isolated frozen installs. Initial test-resolution and environment refusals are retained separately in the characterization manifest.
+
+**PR62 Fallow continuation:**9f21a8e8 passed both hosted Rust+Node supply-chain
+jobs, but Fallow refused five new findings: three unreachable files and two
+inherited helper complexity findings. The exact5 reproduce with Fallow3.23.0.
+Registering the two actual Node test entries and extracting cohesive option/
+property helpers gives a working-tree audit PASS with zero introduced findings;
+all19 security/API/installed-consumer tests pass. No ignore, threshold, waiver
+or workflow change is used. ADR0390 and the raw characterization under
+`evidence/E14/session-followup-fallow-2026-10-27/` record the cause and repair.
+Fresh exact new-head gates and independent review remain pending before merge;
+9f's local native stage1 completed successfully, while its whole-controller
+stage2 was not started because hosted Fallow already blocked the candidate.

@@ -87,6 +87,13 @@ function setOwn(destination, key, value) {
 	});
 }
 
+function mergedProperty(target, source, key, options) {
+	if (propertyIsOnObject(target, key) && options.isMergeableObject(source[key])) {
+		return getMergeFunction(key, options)(target[key], source[key], options)
+	}
+	return cloneUnlessOtherwiseSpecified(source[key], options)
+}
+
 function mergeObject(target, source, options) {
 	var destination = {};
 	if (options.isMergeableObject(target)) {
@@ -102,22 +109,23 @@ function mergeObject(target, source, options) {
 			return
 		}
 
-		if (propertyIsOnObject(target, key) && options.isMergeableObject(source[key])) {
-			setOwn(destination, key, getMergeFunction(key, options)(target[key], source[key], options));
-		} else {
-			setOwn(destination, key, cloneUnlessOtherwiseSpecified(source[key], options));
-		}
+		setOwn(destination, key, mergedProperty(target, source, key, options));
 	});
 	return destination
 }
 
-function deepmerge(target, source, options) {
+function mergeOptions(options) {
 	options = options || {};
 	options.arrayMerge = options.arrayMerge || defaultArrayMerge;
 	options.isMergeableObject = options.isMergeableObject || isMergeableObject;
 	// cloneUnlessOtherwiseSpecified is added to `options` so that custom arrayMerge()
 	// implementations can use it. The caller may not replace it.
 	options.cloneUnlessOtherwiseSpecified = cloneUnlessOtherwiseSpecified;
+	return options
+}
+
+function deepmerge(target, source, options) {
+	options = mergeOptions(options);
 
 	var sourceIsArray = Array.isArray(source);
 	var targetIsArray = Array.isArray(target);
