@@ -2,6 +2,16 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Supply-chain follow-up, 2026-10-29:** published `88f577a2` is blocked by
+both actual CI Node audits: HIGH GHSA-3f7j-7jwc-fxfj in Cypress's
+`systeminformation` 5.33.15. Rust audits passed. ADR0371 records the verified
+upstream 5.33.16 patch, range-scoped override, unchanged audit policy and real
+Windows sanitizer regression. Require a fresh complete audit, frozen installs,
+affected Cypress verification, all local/session checks and every planned
+hosted gate on the successor commit before merge. Earlier partial results
+remain historical.
+See the [dependency follow-up](diagnostics/systeminformation-security-2026-10-29.md).
+
 **Pre-publication follow-up, 2026-10-29:** local candidate `8da9ab54` passed
 preflight and Ruff but failed Fallow on three introduced complexity findings.
 It was never pushed. ADR0172 records the small ownership/helper refactor, with

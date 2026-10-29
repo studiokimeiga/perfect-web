@@ -1,0 +1,423 @@
+{
+  "kind": "FAILED_88_CANDIDATE_AND_WORKING_DEPENDENCY_REPAIR_ONLY",
+  "at_utc": "2026-10-29T17:40:37.090048+00:00",
+  "failed_candidate": "88f577a299f26da90ee52654d9debd9b22c45dd6",
+  "advisory": "GHSA-3f7j-7jwc-fxfj",
+  "affected": "<5.33.16",
+  "patched": "5.33.16",
+  "maintainer_advisory": "https://github.com/sebhildebrandt/systeminformation/security/advisories/GHSA-3f7j-7jwc-fxfj",
+  "maintainer_patch": "https://github.com/sebhildebrandt/systeminformation/commit/5014c6d25cfce7363b937977327baa853cdba0bf",
+  "scope": [
+    "One root range-scoped override and matching root lock resolution only; unchanged audit allowances/policy.",
+    "First real Windows pure sanitizer RED1fail/1ASCIIpass before dependency change, GREEN2/0 after.",
+    "Owned old/new Windows comparison is POST_REPAIR, not restamped pre-repair execution.",
+    "No services(), PowerShell invocation, whitelist or exploitability coverage is claimed.",
+    "Original consumer-resolution probe used a symlink require origin and was refused; final realpath probe is distinct.",
+    "Actual compatibility-copy Cypress29/0 includes persistence; it is not unchanged upstream execution.",
+    "All working reports remain uncredited to any immutable successor; fresh exact-commit gates still required."
+  ],
+  "working_results": {
+    "windows_cases": 2,
+    "windows_failed_after": 0,
+    "cypress_cases": 29,
+    "cypress_failed": 0,
+    "cypress_skipped": 0,
+    "cypress_pending": 0,
+    "audit_new_findings": 0,
+    "existing_documented_allowances": 4
+  },
+  "files": [
+    {
+      "path": "upstream/systeminformation-upstream-before-5.33.15/lib/util.js.gz",
+      "bytes": 11699,
+      "sha256": "d31abd625395c8d1bf30ebdec8c7b7a88441e55013da57256c1d8c2ca472e782",
+      "decoded_bytes": 69203,
+      "decoded_sha256": "c996d8b2d151b57b16b0424d89dba84c74473cb9e44aa2172cf287855937453e",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-upstream-before-5.33.15/lib/util.js"
+    },
+    {
+      "path": "upstream/systeminformation-upstream-before-5.33.15/lib/processes.js.gz",
+      "bytes": 10173,
+      "sha256": "2f98e529843a3a4fdc48da0c7480704f35ca26667db8e4ee4d5c2dfbdc3d09cc",
+      "decoded_bytes": 55935,
+      "decoded_sha256": "3a2bfbddb0b102ec6f2b5f0882b615d125771e66573c42ae43baa15ad7e438f4",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-upstream-before-5.33.15/lib/processes.js"
+    },
+    {
+      "path": "upstream/systeminformation-upstream-before-5.33.15/package.json.gz",
+      "bytes": 734,
+      "sha256": "ce9d746aa2050a3838743ffe3a17cca148648ffa3978eb1c4a7eb4a28ae83fce",
+      "decoded_bytes": 1949,
+      "decoded_sha256": "dd187675fb9596af47aee040e41c7419532cdf15f092552a0dc3c97b85315d81",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-upstream-before-5.33.15/package.json"
+    },
+    {
+      "path": "upstream/systeminformation-upstream-before-5.33.15/LICENSE.gz",
+      "bytes": 668,
+      "sha256": "d9c6864841c9b431ce5a7f1c42223f02a8f2e5d102f41e0db68d2de8724de169",
+      "decoded_bytes": 1093,
+      "decoded_sha256": "6d8a81695f864778d1fa5bb09cf8a8743049ca472b48658b1fff24a4d41300bd",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-upstream-before-5.33.15/LICENSE"
+    },
+    {
+      "path": "upstream/systeminformation-upstream-after-5.33.16/lib/util.js.gz",
+      "bytes": 11801,
+      "sha256": "a4e3f00895078046b65f12d2aad27de680621245e6482b0bd0176b5d89cb91fe",
+      "decoded_bytes": 69395,
+      "decoded_sha256": "02b6ca1a0c37bef6a207583577d711f46f21875a7439463ba99426b3ebaa209d",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-upstream-after-5.33.16/lib/util.js"
+    },
+    {
+      "path": "upstream/systeminformation-upstream-after-5.33.16/lib/processes.js.gz",
+      "bytes": 10192,
+      "sha256": "7d70f2cee778e2c378e5ed33633f86abda92c938f7c5145bc59c9e7180d1a2ec",
+      "decoded_bytes": 55637,
+      "decoded_sha256": "441c0b97978e0fa6e9964e879fc57cc40df9111e5918a96371209009fa852f6a",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-upstream-after-5.33.16/lib/processes.js"
+    },
+    {
+      "path": "upstream/systeminformation-upstream-after-5.33.16/package.json.gz",
+      "bytes": 735,
+      "sha256": "f4a87b5d3d1bfb8419cc4610aba5dc4dfbf04090e60b77079bf866b4fbd26301",
+      "decoded_bytes": 1949,
+      "decoded_sha256": "b34a40f4462b599e057e3e51efdedff551ea40dc2c132a2635130754e5a537a1",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-upstream-after-5.33.16/package.json"
+    },
+    {
+      "path": "upstream/systeminformation-upstream-after-5.33.16/LICENSE.gz",
+      "bytes": 668,
+      "sha256": "d9c6864841c9b431ce5a7f1c42223f02a8f2e5d102f41e0db68d2de8724de169",
+      "decoded_bytes": 1093,
+      "decoded_sha256": "6d8a81695f864778d1fa5bb09cf8a8743049ca472b48658b1fff24a4d41300bd",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-upstream-after-5.33.16/LICENSE"
+    },
+    {
+      "path": "working-diagnostics/systeminformation_windows_sanitizer_regression.cjs.gz",
+      "bytes": 383,
+      "sha256": "c9576f8291c1597476ef84994ddc1be85858ab94cb9f8d192e27340896b64d79",
+      "decoded_bytes": 667,
+      "decoded_sha256": "0665d8083aea5490dc05a95192f4eb04a63239249199ae4cb424823cea8ff310",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation_windows_sanitizer_regression.cjs"
+    },
+    {
+      "path": "working-diagnostics/systeminformation-windows-sanitizer-red-20261029.log.gz",
+      "bytes": 592,
+      "sha256": "70a67cdb7f18351591c40cb296b0943bef896d1269ab393b22dcc09e31ff9b11",
+      "decoded_bytes": 1156,
+      "decoded_sha256": "3aead2feb58c2301b57118a63de0e7be3546d1ce000de2e6ea31a78e723547fd",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-windows-sanitizer-red-20261029.log"
+    },
+    {
+      "path": "working-diagnostics/systeminformation-windows-sanitizer-green-20261029.log.gz",
+      "bytes": 199,
+      "sha256": "09aebada58f1843f0608e21eb07a30e78a7aa0dbe10b3a64b0fdc1a5094067b1",
+      "decoded_bytes": 259,
+      "decoded_sha256": "255261a2c69ccc2bb7902401fab53157f2b5dc57166521691c195d2c92828939",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-windows-sanitizer-green-20261029.log"
+    },
+    {
+      "path": "working-diagnostics/systeminformation-audit-red-20261029.log.gz",
+      "bytes": 164,
+      "sha256": "e51e4c35d2d97c8ff8e3b0f795e5edd20b0237143fd18a6646657be9323b3e3b",
+      "decoded_bytes": 199,
+      "decoded_sha256": "32ba841bdbb3b37c30704949ecf71a53701dc5a864fe036be508a33860dd1efb",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-audit-red-20261029.log"
+    },
+    {
+      "path": "working-diagnostics/systeminformation-audit-green-20261029.log.gz",
+      "bytes": 80,
+      "sha256": "b36efa4aa84631d628f4dc0d47e3909fd4f222f2c05e5e2ddc1a8d2082facec3",
+      "decoded_bytes": 62,
+      "decoded_sha256": "77ee2ba353de06c7e052d41192d438e8fcfe8b24116b1901e88e379cdbe1bfe0",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-audit-green-20261029.log"
+    },
+    {
+      "path": "working-diagnostics/systeminformation-registry-5.33.16-20261029.json.gz",
+      "bytes": 286,
+      "sha256": "5cc00fcd2345f0ea57f842e3291b085d431f104973985f7fff93d483455c4586",
+      "decoded_bytes": 405,
+      "decoded_sha256": "b351ff1e9e9ac86794a9bce4e1e7a80f6c6955838d0b6a0da896a7ee031f398a",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-registry-5.33.16-20261029.json"
+    },
+    {
+      "path": "working-diagnostics/systeminformation-lock-refresh-20261029.log.gz",
+      "bytes": 593,
+      "sha256": "d229fac2db7d75c255ccf4b9bee0639c5779cd92349067b28a4a5cb0fa38cb3c",
+      "decoded_bytes": 1358,
+      "decoded_sha256": "dd22a6549a11eea0ce1bbad451f211f50e324a08f84e6e4fd1eb2c16ba521867",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-lock-refresh-20261029.log"
+    },
+    {
+      "path": "working-diagnostics/systeminformation-frozen-install-green-20261029.log.gz",
+      "bytes": 348,
+      "sha256": "3e5fd891deceb31b5c129f108d4892b631026aa52c88110dfcdb9b43f098185c",
+      "decoded_bytes": 543,
+      "decoded_sha256": "ca1408a90e3d21ee66135bfae386a0ed1835fafc73c6982a25c2ef120939de5c",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-frozen-install-green-20261029.log"
+    },
+    {
+      "path": "working-diagnostics/systeminformation_cypress_resolution.initial.cjs.gz",
+      "bytes": 415,
+      "sha256": "7a92e0cd02d919fc09b1626d85e1f61b68c30915afa01e03d18a6da12c85a108",
+      "decoded_bytes": 889,
+      "decoded_sha256": "70dcbebfdc457919c51b59343ed2e4a2dda4bb824d7c563a919069f413cc630a",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation_cypress_resolution.initial.cjs"
+    },
+    {
+      "path": "working-diagnostics/systeminformation-cypress-resolution-initial-REFUSED.json.gz",
+      "bytes": 224,
+      "sha256": "a60086e3b96ceb94e1226c4aa37c8cbc1cafa74ccd94be15482f3687fd0589a0",
+      "decoded_bytes": 267,
+      "decoded_sha256": "0e29b64a4f07ca1b327fc9fc4aa5265bc9253565333fc65fc41517b8427cfe6c",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-cypress-resolution-initial-REFUSED.json"
+    },
+    {
+      "path": "working-diagnostics/systeminformation_cypress_resolution.cjs.gz",
+      "bytes": 429,
+      "sha256": "7de4d31a824328c07e03ec1a4f1609b53cfde86fe7a80c5a9e784b0a4a8d0fa1",
+      "decoded_bytes": 917,
+      "decoded_sha256": "6044cc9c0e33a27629b6884a2b79644d9ed093ad93241cbb2a0fdb927740b23d",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation_cypress_resolution.cjs"
+    },
+    {
+      "path": "working-diagnostics/systeminformation-cypress-resolution-final-20261029.json.gz",
+      "bytes": 306,
+      "sha256": "497180e69774c537bb63478ff96c0e276f227a954222dee053cd0180693c8887",
+      "decoded_bytes": 505,
+      "decoded_sha256": "3da0aa19bd063e6dbbe57d31a53c23fc15b865c5c08e1aa73bca036a28099bc8",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-cypress-resolution-final-20261029.json"
+    },
+    {
+      "path": "post-repair-windows-comparison/fixture.cjs.gz",
+      "bytes": 383,
+      "sha256": "c9576f8291c1597476ef84994ddc1be85858ab94cb9f8d192e27340896b64d79",
+      "decoded_bytes": 667,
+      "decoded_sha256": "0665d8083aea5490dc05a95192f4eb04a63239249199ae4cb424823cea8ff310",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-windows-owned-20261029T1734501132Z/fixture.cjs"
+    },
+    {
+      "path": "post-repair-windows-comparison/launcher.ps1.gz",
+      "bytes": 1616,
+      "sha256": "5ffd4cae4242bf72c68563a8452b1b39c801b42e93fe479b479a06320c79103c",
+      "decoded_bytes": 3922,
+      "decoded_sha256": "bb66ed0c6ff51a9a9bf0bb3387a80e3ed2baf2f9dda76b613468abf4a55ee669",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-windows-owned-20261029T1734501132Z/launcher.ps1"
+    },
+    {
+      "path": "post-repair-windows-comparison/old-source-negative-control.stderr.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "decoded_bytes": 0,
+      "decoded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-windows-owned-20261029T1734501132Z/old-source-negative-control.stderr.log"
+    },
+    {
+      "path": "post-repair-windows-comparison/old-source-negative-control.stdout.log.gz",
+      "bytes": 586,
+      "sha256": "20b41d1b0d62fbee85325bd563d1cebf0e01c652a1efda3bfaf3af3d586bedb9",
+      "decoded_bytes": 1121,
+      "decoded_sha256": "63bf8e09febe3f5c11450b4935faf387519ba8759c1c570e496ceff3bd954a83",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-windows-owned-20261029T1734501132Z/old-source-negative-control.stdout.log"
+    },
+    {
+      "path": "post-repair-windows-comparison/patched.stderr.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "decoded_bytes": 0,
+      "decoded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-windows-owned-20261029T1734501132Z/patched.stderr.log"
+    },
+    {
+      "path": "post-repair-windows-comparison/patched.stdout.log.gz",
+      "bytes": 195,
+      "sha256": "d8da5707b57b30a2ea5675b0f8a619e3e161d979ef6cc7d8e20c193880435daa",
+      "decoded_bytes": 247,
+      "decoded_sha256": "ad3954bcbaa7b8607a044e613bc993bca9dd55243eb286239356b28ce6f8f3fb",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-windows-owned-20261029T1734501132Z/patched.stdout.log"
+    },
+    {
+      "path": "post-repair-windows-comparison/receipt.json.gz",
+      "bytes": 822,
+      "sha256": "d95634eac3687ab24569e4ebf2c1491a57711b73954723fab4fa48a704b99d6f",
+      "decoded_bytes": 1552,
+      "decoded_sha256": "df91a2bc2a238349b3ce121e0428aa4d7ff89f474eef4fe28ef21eb5f1f6b82d",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-windows-owned-20261029T1734501132Z/receipt.json"
+    },
+    {
+      "path": "working-cypress/complete.json.gz",
+      "bytes": 671,
+      "sha256": "0303a6b87d0b2bd926e435d8c7dec172c319117a403ded43d3199698be6d0557",
+      "decoded_bytes": 1949,
+      "decoded_sha256": "1abbfcd053116f1e9cbad42921e3e22d7478285641e58c882299b7869ba8b975",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-working-cypress-20261029T172745Z/complete.json"
+    },
+    {
+      "path": "working-cypress/cypress-native.txt.gz",
+      "bytes": 2158,
+      "sha256": "05e61185acb504b0a4d89d2d419c93e805f0aa06825bf8901180e559a157c356",
+      "decoded_bytes": 17311,
+      "decoded_sha256": "ede139a6ffd95868fe70e30f8178548bf8d75c92c975b82cd82dadbf8536e9b2",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-working-cypress-20261029T172745Z/cypress-native.txt"
+    },
+    {
+      "path": "working-cypress/cypress-native.txt.host.log.gz",
+      "bytes": 145,
+      "sha256": "e5786c827c1756f704a532b5820427258ccaefc55475119b7711437a9399ceda",
+      "decoded_bytes": 184,
+      "decoded_sha256": "2a9e4499910555ea9007883d5809a086f854c19be9aed9ca8b8095181e7dad10",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-working-cypress-20261029T172745Z/cypress-native.txt.host.log"
+    },
+    {
+      "path": "working-cypress/cypress.log.gz",
+      "bytes": 1984,
+      "sha256": "f96107f1a7d8474494187afb5de7131318c66f358d17c94b1949e2a161aaea85",
+      "decoded_bytes": 5055,
+      "decoded_sha256": "61cb48703a099648229b14132f18a9ed951261794a33ca87e87adeedfe7d3d8d",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-working-cypress-20261029T172745Z/cypress.log"
+    },
+    {
+      "path": "working-cypress/inputs-after.json.gz",
+      "bytes": 205664,
+      "sha256": "82c3d2b046abcf26c67ef1a5d92fd30a5da8874235debeca3ac952908b903bee",
+      "decoded_bytes": 548261,
+      "decoded_sha256": "987b8e686e46140b528c22374f313745a3a00531e0a58e2f82d6e258ee88e4dc",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-working-cypress-20261029T172745Z/inputs-after.json"
+    },
+    {
+      "path": "working-cypress/inputs-before.json.gz",
+      "bytes": 205664,
+      "sha256": "82c3d2b046abcf26c67ef1a5d92fd30a5da8874235debeca3ac952908b903bee",
+      "decoded_bytes": 548261,
+      "decoded_sha256": "987b8e686e46140b528c22374f313745a3a00531e0a58e2f82d6e258ee88e4dc",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-working-cypress-20261029T172745Z/inputs-before.json"
+    },
+    {
+      "path": "working-cypress/launcher.py.gz",
+      "bytes": 1512,
+      "sha256": "4ffa574a25beee66f92fdc9957a12468c4b1ca4e17bffca6ba9e4c23b485b971",
+      "decoded_bytes": 3191,
+      "decoded_sha256": "71bbae1e89f8cf35108ccc4c34c376bb4122184ab2a5ca66112ac237958f6508",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-working-cypress-20261029T172745Z/launcher.py"
+    },
+    {
+      "path": "working-cypress/progress.json.gz",
+      "bytes": 506,
+      "sha256": "ecbde9498d80daea72d8dc8ccede5eae1e4002055f1614306d17e638b078ed17",
+      "decoded_bytes": 1544,
+      "decoded_sha256": "aca51b0b636709bad087939a6a85d2bd9124ca145e251475eeb1cc6e4a8772c2",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-working-cypress-20261029T172745Z/progress.json"
+    },
+    {
+      "path": "working-cypress/server-build.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "decoded_bytes": 0,
+      "decoded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-working-cypress-20261029T172745Z/server-build.log"
+    },
+    {
+      "path": "working-cypress/todo-build.log.gz",
+      "bytes": 609,
+      "sha256": "22d247d982cb551510eed2bcafafb10f20d76951dc0b31e3fc8d849a49af437a",
+      "decoded_bytes": 2152,
+      "decoded_sha256": "e37b90121010f4e5e0a9a98a07eddaf5656610676eeeae73c7b2ec8aff9ce6d6",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-working-cypress-20261029T172745Z/todo-build.log"
+    },
+    {
+      "path": "working-cypress/working.diff.gz",
+      "bytes": 2373,
+      "sha256": "f68b47176e05f30072512eb89b3fa6baaf34016a5c238697d625c27e6ea989b8",
+      "decoded_bytes": 4876,
+      "decoded_sha256": "f50f846bea4d6d531db2e6a6a12bf84b4207699500b58becffbf50d544fb9902",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/systeminformation-working-cypress-20261029T172745Z/working.diff"
+    },
+    {
+      "path": "failed-hosted-88/job-123606576476.log.gz",
+      "bytes": 21594,
+      "sha256": "0790b9ad3ecf8b4a4b47c82a935c0dc8a667ae1d4b0677bda633b7c8109d9dba",
+      "decoded_bytes": 144523,
+      "decoded_sha256": "60a34e98650e65b73239eb33eecd9363d34195edd31b43561524e5e6578e4574",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-88f577a2-ci-independent/original-job-logs/job-123606576476.log"
+    },
+    {
+      "path": "failed-hosted-88/job-123606576476.json.gz",
+      "bytes": 950,
+      "sha256": "cb7dcd0b368ccbeccb441516d2a9c3e8384ded9f1a294a6708b6445c0c76a718",
+      "decoded_bytes": 4605,
+      "decoded_sha256": "4515a17e964d6b2d6e171f3200b6271387ec59d9707bac9af3f082aa4eac3b19",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-88f577a2-ci-independent/original-job-logs/job-123606576476.json"
+    },
+    {
+      "path": "failed-hosted-88/job-123606607616.log.gz",
+      "bytes": 21947,
+      "sha256": "08d392ba2f1cbc70722191cfb2da18a78cc731f7d6127da931c76b94e6a5acfb",
+      "decoded_bytes": 145342,
+      "decoded_sha256": "97077e80a1fc76e723f813af87bd61ea25044c1b45085539e351eb09c67f1a42",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-88f577a2-ci-independent/original-job-logs/job-123606607616.log"
+    },
+    {
+      "path": "failed-hosted-88/job-123606607616.json.gz",
+      "bytes": 960,
+      "sha256": "25933dcf7c7362a51d15d6193c1ab12e3ce0c2e32edf19bd3bb8bc9f8bb641ab",
+      "decoded_bytes": 4603,
+      "decoded_sha256": "7eb784f1d6178eacddc5540976b4a3baca08b8fbb9d9c56fcc5014341f9632f5",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-88f577a2-ci-independent/original-job-logs/job-123606607616.json"
+    },
+    {
+      "path": "failed-hosted-88/decision.json.gz",
+      "bytes": 1293,
+      "sha256": "a7ecde92b3baca065b79d0e3c8e22319968ee1011dabf00a9a6c3bd196e72cc8",
+      "decoded_bytes": 3559,
+      "decoded_sha256": "ddfb5fe2fdc397bafa46e44b791062113ca5941fa69b590d3f6d1d79f9ed4161",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-88f577a2-ci-independent-decision.json"
+    },
+    {
+      "path": "failed-hosted-88/failed-proof.json.gz",
+      "bytes": 2837,
+      "sha256": "7cf7eb46cc16e4b65dfecc06241a9872606c5cdfc0cae14927c023340eb46741",
+      "decoded_bytes": 12983,
+      "decoded_sha256": "a932d3f490e85723aa60a653cf9c3ed83ee555c7ca986af0750d2a63cf4b3ec6",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-88f577a2-ci-independent-failed-proof.json"
+    },
+    {
+      "path": "failed-hosted-88/review.md.gz",
+      "bytes": 1691,
+      "sha256": "45feb6c92d1f79bb48d4742cf027762d1d1b3ccdb85008a05007b1e53d70faa0",
+      "decoded_bytes": 3190,
+      "decoded_sha256": "3cc552c94af7f5ebf7bf2abf2b0a535ea248aea4de0e11c012bf7927f7a22e75",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-88f577a2-ci-independent-review.md"
+    },
+    {
+      "path": "failed-hosted-88/seal-manifest.json.gz",
+      "bytes": 3834,
+      "sha256": "1c696f0b0e2ed407e458f70c917277506d331be3435c980ba53b98fc56feb5ae",
+      "decoded_bytes": 13993,
+      "decoded_sha256": "bba7531a1492634b06cf456643fc9d1e2964aaa05604a3116b1a068a50fc147f",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-88f577a2-ci-independent-seal-manifest.json"
+    },
+    {
+      "path": "working-source/package.json.gz",
+      "bytes": 478,
+      "sha256": "d276a8060b1d26cdfaeba9cf7e0b79f961c3ec4280339164345056eb977748ac",
+      "decoded_bytes": 831,
+      "decoded_sha256": "495a46eca06be62392f23358094131115635f3da40b442f5b19fe7b40fc6b270",
+      "original_local_path": "/home/haki/code/pw-wt/session-followup-20261027/package.json"
+    },
+    {
+      "path": "working-source/pnpm-lock.yaml.gz",
+      "bytes": 53263,
+      "sha256": "327db5f3f314fd188d3cccc1a09f3ba6e28cc409687389f3c689a06fb528f460",
+      "decoded_bytes": 153394,
+      "decoded_sha256": "bab441f7ffbca16971a5abf0e3bcd1ff658f685b9b7c97c805d328add6359301",
+      "original_local_path": "/home/haki/code/pw-wt/session-followup-20261027/pnpm-lock.yaml"
+    },
+    {
+      "path": "collector.py.gz",
+      "bytes": 2316,
+      "sha256": "a3f31533c35ec2aac5383d72cc2e52508fb049ae70ac9c1d2407f36c16058fa6",
+      "decoded_bytes": 5333,
+      "decoded_sha256": "44c2130a2ec4a1527824a56ecebeee43ce201c97c38f209625b54e2bcc3f1c4e",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session_followup_archive_systeminformation.py"
+    }
+  ]
+}
