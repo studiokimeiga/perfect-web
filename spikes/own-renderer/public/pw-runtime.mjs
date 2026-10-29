@@ -799,6 +799,10 @@ for (const [binding, e] of Object.entries(parts.entries ?? {})) {
 }
 
 let speculationModule = null;
+let speculationOwner = null;
+
+// A known native execution failure is never the load-only fallback.
+class RetiredRenderer extends Error {}
 
 /** The page's speculation module, loaded with the first press that needs it,
  * and the renderer with it where a speculation renders a region (ADR-0172):
@@ -814,25 +818,46 @@ function speculations() {
   if (speculationModule) return speculationModule;
   const url =
     speculationAttempts === 0 ? parts.speculation : `${parts.speculation}?attempt=${speculationAttempts}`;
-  speculationModule = within(
-    Promise.all([import(url), parts.regions ? renderModule() : null]),
+  const rendering = parts.regions ? renderModule() : null;
+  const owner = { renderer: null, retired: false };
+  const trackedRenderer = rendering?.then((exports) => {
+    owner.renderer = exports;
+    owner.retired ||= rendererLoaded !== exports;
+    return exports;
+  }) ?? null;
+  const loading = within(
+    Promise.all([speculationLoaded ?? import(url), trackedRenderer]),
     "the speculation module",
   ).then(
     ([module, renderer]) => {
+      if (speculationModule !== loading || owner.retired || (renderer && rendererLoaded !== renderer)) {
+        if (speculationModule === loading) {
+          speculationModule = null;
+          speculationOwner = null;
+        }
+        throw new RetiredRenderer("the renderer was retired while speculation loaded");
+      }
       if (renderer) wasm = renderer;
       speculationLoaded = module;
       return module;
     },
     (error) => {
+      // Retirement belongs to this load even if its import rejects later.
+      // A newer renderer/load must not inherit an older owner's failure.
+      if (owner.retired) error = new RetiredRenderer("the renderer was retired while speculation loaded");
+      if (speculationModule !== loading) throw error;
       speculationModule = null;
+      speculationOwner = null;
       speculationAttempts += 1;
       // A renderer still loading is forgotten with it: the next press asks
       // for it again rather than wait on the load this one gave up.
-      forgetRenderer();
+      forgetRenderer(rendering);
       throw error;
     },
   );
-  return speculationModule;
+  speculationModule = loading;
+  speculationOwner = owner;
+  return loading;
 }
 
 /** How many loads of the page's speculation module have failed (ADR-0382). */
@@ -887,18 +912,29 @@ async function speculate(component, args, interaction) {
   try {
     module = await speculations();
   } catch (error) {
+    if (error instanceof RetiredRenderer) throw error;
     log.push(`${component} sent unspeculated: ${error.message ?? error}`);
     return [];
   }
   const ids = [];
-  for (const s of module?.commands?.[component] ?? []) {
-    const state = current(module, s.binding);
-    if (!state || state.value === undefined) continue;
-    const id = nextSpeculation++;
-    state.pending.push({ id, transition: s.transition, args, until: undefined, interaction });
-    ids.push([s.binding, id]);
-    render(module, s.binding);
-    log.push(`speculated ${component} on ${s.binding}`);
+  try {
+    for (const s of module?.commands?.[component] ?? []) {
+      const state = current(module, s.binding);
+      if (!state || state.value === undefined) continue;
+      if (parts.regions && (!wasm || wasm !== rendererLoaded)) {
+        throw new RetiredRenderer("the renderer was retired before speculation resumed");
+      }
+      const id = nextSpeculation++;
+      state.pending.push({ id, transition: s.transition, args, until: undefined, interaction });
+      ids.push([s.binding, id]);
+      render(module, s.binding);
+      log.push(`speculated ${component} on ${s.binding}`);
+    }
+  } catch (error) {
+    // The request has not been sent, and these IDs never reach its caller.
+    // Remove all of them even if the redraw cannot load or render either.
+    await restoreSpeculation(ids);
+    throw error;
   }
   return ids;
 }
@@ -906,7 +942,7 @@ async function speculate(component, args, interaction) {
 /** The command answered: reconciled when its version arrives, or restored. */
 async function resolveSpeculation(ids, committed, basis) {
   if (ids.length === 0) return;
-  const module = await speculations();
+  const touched = new Set();
   for (const [binding, id] of ids) {
     const state = speculated.get(binding);
     const i = state?.pending.findIndex((p) => p.id === id) ?? -1;
@@ -922,7 +958,20 @@ async function resolveSpeculation(ids, committed, basis) {
     } else {
       state.pending[i].until = version;
     }
-    render(module, binding);
+    touched.add(binding);
+  }
+  // Ownership is settled before any fallible await or redraw. A frame that
+  // arrives during the load remains authoritative when rendering resumes.
+  const module = await speculations();
+  for (const binding of touched) render(module, binding);
+}
+
+/** A redraw failure must not replace the press's original failure. */
+async function restoreSpeculation(ids) {
+  try {
+    await resolveSpeculation(ids, false);
+  } catch (error) {
+    log.push(`speculation rollback failed: ${error.message ?? error}`);
   }
 }
 
@@ -989,14 +1038,27 @@ let speculationLoaded = null;
 
 /** One call into the renderer: the request as JSON, the answer as text. */
 function renderCall(name, request) {
+  return callRenderer(wasm, name, request);
+}
+
+/** Retire the exact native instance that threw, keeping a newer owner. */
+function callRenderer(exports, name, request, label = name) {
   const bytes = new TextEncoder().encode(withTemplates(request));
-  const ptr = wasm.alloc(bytes.length);
-  new Uint8Array(wasm.memory.buffer, ptr, bytes.length).set(bytes);
-  const code = wasm[name](ptr, bytes.length);
-  const out = new TextDecoder().decode(
-    new Uint8Array(wasm.memory.buffer, wasm.out_ptr(), wasm.out_len()),
-  );
-  if (code !== 0) throw new Error(`${name} did not render: ${out}`);
+  let code, out;
+  try {
+    const ptr = exports.alloc(bytes.length);
+    new Uint8Array(exports.memory.buffer, ptr, bytes.length).set(bytes);
+    code = exports[name](ptr, bytes.length);
+    out = new TextDecoder().decode(
+      new Uint8Array(exports.memory.buffer, exports.out_ptr(), exports.out_len()),
+    );
+  } catch (error) {
+    retireRenderer(exports);
+    log.push(`renderer ${name} failed: ${error.message ?? error}`);
+    throw error;
+  }
+  // A normal refusal is not a native execution failure.
+  if (code !== 0) throw new Error(`${label} did not render: ${out}`);
   return out;
 }
 
@@ -1388,7 +1450,10 @@ function renderModule() {
   const loading = fetch("/pw-render.wasm")
     .then((r) => WebAssembly.instantiateStreaming(r, {}))
     .then(
-      ({ instance }) => (rendererLoaded = instance.exports),
+      ({ instance }) => {
+        if (renderer === loading) rendererLoaded = instance.exports;
+        return instance.exports;
+      },
       (error) => {
         if (renderer === loading) renderer = null;
         log.push(`renderer not loaded: ${error.message ?? error}`);
@@ -1401,8 +1466,23 @@ function renderModule() {
 
 /** **A renderer load a press gave up on** (ADR-0382): forgotten unless it
  * has loaded, so the next need asks the network again. */
-function forgetRenderer() {
-  if (!rendererLoaded) renderer = null;
+function forgetRenderer(loading = renderer) {
+  if (!rendererLoaded && renderer === loading) renderer = null;
+}
+
+/** Native execution failed: only caches owned by these exports are retired. */
+function retireRenderer(failed) {
+  if (!failed) return;
+  if (speculationOwner?.renderer === failed) speculationOwner.retired = true;
+  if (rendererLoaded === failed) {
+    rendererLoaded = null;
+    renderer = null;
+  }
+  if (wasm === failed) {
+    wasm = null;
+    speculationModule = null;
+    speculationOwner = null;
+  }
 }
 
 /** A path read from the signals' values: `greeting`, or `panel.item`. */
@@ -1444,15 +1524,9 @@ async function renderBlock(id) {
   const values = [...signals, ...(await computedNow())]
     .map(([k, v]) => `${JSON.stringify(k)}:${wire(v)}`)
     .join(",");
-  const request = new TextEncoder().encode(
-    withTemplates(`{"part":${JSON.stringify(parts.blocks[id])},"values":{${values}}}`),
+  return callRenderer(
+    x, "render_part", `{"part":${JSON.stringify(parts.blocks[id])},"values":{${values}}}`, `block ${id}`,
   );
-  const ptr = x.alloc(request.length);
-  new Uint8Array(x.memory.buffer, ptr, request.length).set(request);
-  const code = x.render_part(ptr, request.length);
-  const out = new TextDecoder().decode(new Uint8Array(x.memory.buffer, x.out_ptr(), x.out_len()));
-  if (code !== 0) throw new Error(`block ${id} did not render: ${out}`);
-  return out;
 }
 
 /** The nodes from `start` to `end`, both included. */
@@ -2911,7 +2985,7 @@ function bindEvent(template, part) {
             try {
               answer = await command(component, args, interaction, how.retry);
             } catch (error) {
-              await resolveSpeculation(ids, false);
+              await restoreSpeculation(ids);
               throw error;
             }
             await resolveSpeculation(ids, answer.committed === true, answer.basis);

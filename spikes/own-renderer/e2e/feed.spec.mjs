@@ -35,6 +35,7 @@
 import { test } from "@playwright/test";
 import { expect } from "../assertion-expect.mjs";
 import { FEED_PORTS } from "../host-metadata.mjs";
+import { rendererWithTraps } from "../renderer-fault.mjs";
 
 test.use({
   baseURL: async ({}, use, testInfo) => {
@@ -792,4 +793,104 @@ test("a post's request is kept alive, counted by its bytes", async ({ page }, te
   release();
   await expect.poll(inFlight).toBe(0);
   await expect(post(page, text).locator(".author")).toHaveText(/^Guest /);
+});
+
+/** A real renderer export fails, rather than a fake of the page's runtime. */
+async function failingReplyRenderer(page, rollbackFails) {
+  let loads = 0;
+  await page.route("**/pw-render.wasm", async (route) => {
+    const ordinal = ++loads;
+    if (ordinal === 2 && rollbackFails) {
+      await route.abort("failed");
+      return;
+    }
+    const response = await route.fetch();
+    if (ordinal === 1) {
+      const body = rendererWithTraps(await response.body(), ["render_part"]);
+      await route.fulfill({ response, body: Buffer.from(body), contentType: "application/wasm" });
+    } else {
+      await route.fulfill({ response });
+    }
+  });
+  return () => loads;
+}
+
+/** A later user press sends once, showing no transition from the failed one. */
+async function retryReplyAfterRendererFailure(page, reply, sent, release) {
+  await page.getByRole("button", { name: "Reply" }).click();
+  const row = page.locator("main article li").filter({ hasText: reply });
+  await expect(row).toHaveCount(1);
+  await expect(page.locator("#counts")).toHaveText("1 reply · 0 likes");
+  await expect.poll(sent).toBe(1);
+  const answered = page.waitForResponse("**/command/feed.app.reply");
+  release();
+  await answered;
+  await expect(row.getByRole("link")).toHaveText(/^Guest /);
+  await page.reload();
+  await expect(page.locator("main article li").filter({ hasText: reply })).toHaveCount(1);
+  await expect(page.locator("#counts")).toHaveText("1 reply · 0 likes");
+  expect(sent()).toBe(1);
+}
+
+test("a renderer trap discards an unsent reply before a later user press", async ({ page }, testInfo) => {
+  await newThread(page, testInfo, "A renderer failure");
+  const reply = `Not sent by the failed renderer in ${testInfo.project.name}`;
+  const field = page.getByLabel("Your reply");
+  await field.fill(reply);
+  await expect(page.getByRole("button", { name: "Reply" })).toBeEnabled();
+  const loads = await failingReplyRenderer(page, false);
+  let sent = 0;
+  let release;
+  const held = new Promise((resolve) => (release = resolve));
+  await page.route("**/command/feed.app.reply", async (route) => {
+    sent += 1;
+    await held;
+    await route.continue();
+  });
+  const logStart = await page.evaluate(() => window.__pw.log.length);
+  try {
+    await page.getByRole("button", { name: "Reply" }).click();
+    await expect(page.getByRole("status")).toHaveText("This did not work. Try again.");
+    await expect.poll(() => page.evaluate((start) => window.__pw.log.slice(start).some(
+      (line) => /handler .*failed:.*unreachable/i.test(line),
+    ), logStart)).toBe(true);
+    expect(sent).toBe(0);
+    await expect(page.locator("#counts")).toHaveText("0 replies · 0 likes");
+    await expect(page.locator("#quiet")).toHaveText("No replies yet.");
+    await expect(field).toHaveValue(reply);
+    await retryReplyAfterRendererFailure(page, reply, () => sent, release);
+    expect(loads()).toBe(2);
+  } finally {
+    release();
+  }
+});
+
+test("a rollback that cannot load its renderer keeps no unsent reply", async ({ page }, testInfo) => {
+  await newThread(page, testInfo, "A failed renderer rollback");
+  const reply = `No ghost after rollback in ${testInfo.project.name}`;
+  await page.getByLabel("Your reply").fill(reply);
+  await expect(page.getByRole("button", { name: "Reply" })).toBeEnabled();
+  const loads = await failingReplyRenderer(page, true);
+  let sent = 0;
+  let release;
+  const held = new Promise((resolve) => (release = resolve));
+  await page.route("**/command/feed.app.reply", async (route) => {
+    sent += 1;
+    await held;
+    await route.continue();
+  });
+  const logStart = await page.evaluate(() => window.__pw.log.length);
+  try {
+    await page.getByRole("button", { name: "Reply" }).click();
+    await expect(page.getByRole("status")).toHaveText("This did not work. Try again.");
+    await expect.poll(() => page.evaluate((start) => window.__pw.log.slice(start).some(
+      (line) => /handler .*failed:.*unreachable/i.test(line),
+    ), logStart)).toBe(true);
+    expect(sent).toBe(0);
+    await expect(page.getByLabel("Your reply")).toHaveValue(reply);
+    await retryReplyAfterRendererFailure(page, reply, () => sent, release);
+    expect(loads()).toBe(3);
+  } finally {
+    release();
+  }
 });

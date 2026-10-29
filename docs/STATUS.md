@@ -2,6 +2,17 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Renderer failure follow-up, 2026-10-29:** `eb28ac01` remains failed and
+unmerged. Verify run 40637144982's actual 153-recipe inventory contains two failed
+computed-renderer recipes; all 14 green shell jobs do not clear them. Reading
+those errors exposed unsent speculation retained after a native render failure
+and renderer-generation publication/retirement gaps. ADR0172 records the
+working repair, real-Wasm browser regressions and thirteen lifecycle seam tests.
+See the [diagnostic record](diagnostics/session-renderer-failures-2026-10-29.md).
+Reproduce with `python3 -m unittest -v scripts/tests/test_renderer_contract.py`,
+`just preflight` and `just e14-press-modules`; require full browser and every
+planned recipe/CI/security gate at the final immutable commit before merge.
+
 **Command cleanup diagnostic follow-up, 2026-10-28:** a direct real-`psql`
 synthetic-URI probe found command-producer cleanup stderr retaining its password.
 The working cleanup-only launch policy and three additive real-child regressions

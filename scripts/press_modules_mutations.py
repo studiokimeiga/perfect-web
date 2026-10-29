@@ -47,17 +47,18 @@ MUTANTS = [
     (
         "the speculation module is waited for without a deadline",
         RUNTIME,
-        "  speculationModule = within(\n"
-        "    Promise.all([import(url), parts.regions ? renderModule() : null]),\n"
+        "  const loading = within(\n"
+        "    Promise.all([speculationLoaded ?? import(url), trackedRenderer]),\n"
         '    "the speculation module",\n'
         "  ).then(\n",
-        "  speculationModule = Promise.all([import(url), parts.regions ? renderModule() : null]).then(\n",
+        "  const loading = Promise.all([speculationLoaded ?? import(url), trackedRenderer]).then(\n",
     ),
     (
         "a failed speculation load is kept",
         RUNTIME,
+        "      if (speculationModule !== loading) throw error;\n"
         "      speculationModule = null;\n",
-        "",
+        "      if (speculationModule !== loading) throw error;\n",
     ),
     (
         "a failed speculation load is asked for again under the same specifier",
@@ -74,7 +75,7 @@ MUTANTS = [
     (
         "a renderer load a press gave up on is kept",
         RUNTIME,
-        "      forgetRenderer();\n",
+        "      forgetRenderer(rendering);\n",
         "",
     ),
     (
@@ -102,6 +103,7 @@ MUTANTS = [
         "  try {\n"
         "    module = await speculations();\n"
         "  } catch (error) {\n"
+        "    if (error instanceof RetiredRenderer) throw error;\n"
         "    log.push(`${component} sent unspeculated: ${error.message ?? error}`);\n"
         "    return [];\n"
         "  }\n",

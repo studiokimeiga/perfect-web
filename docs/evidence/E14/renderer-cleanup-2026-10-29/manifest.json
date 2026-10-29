@@ -1,0 +1,574 @@
+{
+  "kind": "BOUNDED_WORKING_DIAGNOSTICS_NOT_IMMUTABLE_HEAD_GATES",
+  "at_utc": "2026-10-29T16:49:12.834242+00:00",
+  "baseline_git_head": "eb28ac01946367cff453000eed4d39e83beacd9b",
+  "original_hosted_candidate_failed": true,
+  "original_trap_low_level_cause_resolved": false,
+  "working_broad": {
+    "node_cases": 13,
+    "browser_cases": 93,
+    "skipped": 0,
+    "flaky": 0,
+    "failed": 0,
+    "press_module_controls_killed": 10,
+    "refused": 0,
+    "survived": 0,
+    "memory_stop": false
+  },
+  "qualifications": [
+    "Initial wrong-export and wrong-message-role attempts are invalid cleanup witnesses.",
+    "Cached-JS owner-red proposals did not order retirement before module completion and are uncredited for adoption.",
+    "The first rejected-import green-named log failed in fixture retry; it is not green evidence.",
+    "Final fixture bytes changed after the initial RED. Their post-repair old-runtime negative control is separately labeled.",
+    "The Python hook was additionally hardened and rerun after the broad diagnostic; browser/runtime/test JS bytes did not change.",
+    "Source seams do not boot a page or prove deadlines. Node experimental VM import warning is retained.",
+    "Legacy press-module canonical evidence is controller output, not a per-control raw native/PID receipt archive.",
+    "All final immutable-head gates and independent evidence review remain required before merge."
+  ],
+  "files": [
+    {
+      "path": "invalid-wrong-export/browser.log.gz",
+      "bytes": 2117,
+      "sha256": "097808d8c0696f9344d94e4f96a6c74e160ad6a15296d3c8c06f96ca39995df3",
+      "decoded_bytes": 11798,
+      "decoded_sha256": "1b08bbaf54e7eded36e597df9c4ffab1fcc2f13591eaaf0b48df215d949c46a2",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-failure-red-20261028T092128Z/browser.log"
+    },
+    {
+      "path": "invalid-wrong-export/receipt.json.gz",
+      "bytes": 633,
+      "sha256": "0d597fac8a419bd0001d5339c129715ddebe023e2940fc80f588e0ba97ef9fbe",
+      "decoded_bytes": 1062,
+      "decoded_sha256": "c75ab1f9bcf4a5829a9dde2563edbdab8fac097e81340c6c15fe6ec0bf09caa8",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-failure-red-20261028T092128Z/receipt.json"
+    },
+    {
+      "path": "invalid-wrong-export/results.json.gz",
+      "bytes": 5671,
+      "sha256": "984993f32e2029b24ca3aa2252185cbefab214a1a7eabd86b5bd97adf727aded",
+      "decoded_bytes": 32390,
+      "decoded_sha256": "79e4654f4b1bd618423f2664e05cda2ffb26345edae20a16a0753ccf3ae8d704",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-failure-red-20261028T092128Z/results.json"
+    },
+    {
+      "path": "invalid-message-role/browser.log.gz",
+      "bytes": 1930,
+      "sha256": "b8a3de7864f8e68455f0435e1bfefc8c6ae67c9a466cd30fdd759f8993cd989f",
+      "decoded_bytes": 9944,
+      "decoded_sha256": "ed796955b344a253d031b9b626a8b4b243917c56de778533455bcddcaa591b57",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-failure-red-20261029T161235Z/browser.log"
+    },
+    {
+      "path": "invalid-message-role/receipt.json.gz",
+      "bytes": 635,
+      "sha256": "372901c2c02a8c6e24281af9f6b3b68f5d238496dc6bd852d9cb0f921e557506",
+      "decoded_bytes": 1062,
+      "decoded_sha256": "54ca9c564789f43a373f07320d2641092dcac1681e6b1cc15a180d3230b95668",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-failure-red-20261029T161235Z/receipt.json"
+    },
+    {
+      "path": "invalid-message-role/results.json.gz",
+      "bytes": 4956,
+      "sha256": "b9b9ba60e29a7f461cdc57fc28c58ee34128498ec2030002d2ed518c7da3a74c",
+      "decoded_bytes": 27832,
+      "decoded_sha256": "1252af26c67da82361195bce36988ba32d52dc6c9e614d0462da827d4646e993",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-failure-red-20261029T161235Z/results.json"
+    },
+    {
+      "path": "cleanup-red/browser.log.gz",
+      "bytes": 2133,
+      "sha256": "28965601e1da124ab606a71564e0d2b9a1a7b3c3f3f35ef69115ced3b7bb10d5",
+      "decoded_bytes": 10632,
+      "decoded_sha256": "84ad80ac8daa5ef0db0df2e8f95765b966ec75de7d77294a6825de1e816be699",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-failure-red-20261029T161457Z/browser.log"
+    },
+    {
+      "path": "cleanup-red/receipt.json.gz",
+      "bytes": 634,
+      "sha256": "c8a3d767082abcfc9d7aa1d76a762b1a176f208457231602bcebf3ee46f6d5af",
+      "decoded_bytes": 1062,
+      "decoded_sha256": "f8ae2dd0474c5297fa193515b6050242a0048b6251c1be9a11d7269a91605d45",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-failure-red-20261029T161457Z/receipt.json"
+    },
+    {
+      "path": "cleanup-red/results.json.gz",
+      "bytes": 5461,
+      "sha256": "10b58b5326cdb002c089421448717b6dc6a75885116910fd4d1ee84181fe27e1",
+      "decoded_bytes": 29924,
+      "decoded_sha256": "49930b0ed059e80bc99bba332d670539cfb3fbf882eafcc95efadbd7618d980e",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-failure-red-20261029T161457Z/results.json"
+    },
+    {
+      "path": "cleanup-red/working-inputs-before.json.gz",
+      "bytes": 201694,
+      "sha256": "045575a4d8f7dde878ccf8628d46a15fbc5b175bd685508340dbd498a4bf10bd",
+      "decoded_bytes": 533871,
+      "decoded_sha256": "5188560d39ac9f9bc636b6ac30668e3581295209c1caa9b12ce2f3c4c877b285",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-failure-red-20261029T161457Z/working-inputs-before.json"
+    },
+    {
+      "path": "cleanup-red/working-inputs-after.json.gz",
+      "bytes": 201694,
+      "sha256": "045575a4d8f7dde878ccf8628d46a15fbc5b175bd685508340dbd498a4bf10bd",
+      "decoded_bytes": 533871,
+      "decoded_sha256": "5188560d39ac9f9bc636b6ac30668e3581295209c1caa9b12ce2f3c4c877b285",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-failure-red-20261029T161457Z/working-inputs-after.json"
+    },
+    {
+      "path": "node-history/renderer-contract-red-20261029.log.gz",
+      "bytes": 864,
+      "sha256": "7dafe4cdbf98974e97c9469cb4bdc69ae6569343821a1326f7df6f7433ca7e8a",
+      "decoded_bytes": 3020,
+      "decoded_sha256": "1d540dd447a902ee2fa0269ba646a178ee423913794b9a6dfc04eb6bad34914d",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-contract-red-20261029.log"
+    },
+    {
+      "path": "node-history/renderer-owner-red-20261029.log.gz",
+      "bytes": 943,
+      "sha256": "09d7dec1b8aef377a53f1095be6d50aa81e46028a64fd76bd2315c8b3f6e4777",
+      "decoded_bytes": 2627,
+      "decoded_sha256": "5e31e43dc33f17fa526856e1802cbcd767b2d3cb90d8d19ec0ccc06a9bef10fd",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-owner-red-20261029.log"
+    },
+    {
+      "path": "node-history/renderer-owner-red-final-20261029.log.gz",
+      "bytes": 1045,
+      "sha256": "7224ec2759a05a8fc4bc65db0c0c6e0854a7d2bb14fc4aea8b438e95340486e9",
+      "decoded_bytes": 3391,
+      "decoded_sha256": "13eedde6930a0f7d6bcc8f5023814e681ca73252ae8b536dce021baff20039d1",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-owner-red-final-20261029.log"
+    },
+    {
+      "path": "node-history/renderer-owner-native-import-red-20261029.log.gz",
+      "bytes": 1173,
+      "sha256": "a4ed8d58b457645af88883a9351ee5616c3b4b2054edff574ed11264648b4e0f",
+      "decoded_bytes": 3589,
+      "decoded_sha256": "db6c7844e7486de2bb39fb261919daa1d38dff3ce24c034dcdb83da6c2baafd5",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-owner-native-import-red-20261029.log"
+    },
+    {
+      "path": "node-history/renderer-owner-native-import-green-20261029.log.gz",
+      "bytes": 592,
+      "sha256": "001ee3593580563e8fc7c1ee85fd954009728419e81d7eb96b6cf6fb0cd93af8",
+      "decoded_bytes": 1059,
+      "decoded_sha256": "6d2f38681ef9f640c0be31e5bee759782fdca1523613f2159323c434a1c06788",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-owner-native-import-green-20261029.log"
+    },
+    {
+      "path": "node-history/renderer-retirement-caller-red-20261029.log.gz",
+      "bytes": 924,
+      "sha256": "9354fa623aa7b2a7862284f9c3a07a9da590e373c0131de673621b9c0f91b218",
+      "decoded_bytes": 1839,
+      "decoded_sha256": "45340e8b123c252514813a740c5c27b9dbbb8a148422eb738d481ab0869e7603",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-retirement-caller-red-20261029.log"
+    },
+    {
+      "path": "node-history/renderer-retirement-caller-green-20261029.log.gz",
+      "bytes": 603,
+      "sha256": "baba075c8eb362cc5c54360896a911dcf3ef099de1b7f9a54ab96be009f3c8f2",
+      "decoded_bytes": 1140,
+      "decoded_sha256": "a4bb42b0c863d51576748b483432e590e272369b8a725593851e98abeb9984a8",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-retirement-caller-green-20261029.log"
+    },
+    {
+      "path": "node-history/renderer-rejected-import-red-20261029.log.gz",
+      "bytes": 1098,
+      "sha256": "b0efa1ac02b14fe3463447d74729af3551702d8af3b9ae5a27cb344395873fde",
+      "decoded_bytes": 2963,
+      "decoded_sha256": "c0d3c5286d55f3882fbb5902e84bbc72da65c241d21c386442a9061720b13a06",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-rejected-import-red-20261029.log"
+    },
+    {
+      "path": "node-history/renderer-rejected-import-green-20261029.log.gz",
+      "bytes": 993,
+      "sha256": "cb57dfa473c81588c9c6051a676fe9b53c63ebcbbc0839d57c31ece4321b993d",
+      "decoded_bytes": 3214,
+      "decoded_sha256": "730bbebdb8490671bcc2590b693d20a6015f2e3ada2d266e4a33a4849a18b3c4",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-rejected-import-green-20261029.log"
+    },
+    {
+      "path": "node-history/renderer-rejected-import-green-final-20261029.log.gz",
+      "bytes": 678,
+      "sha256": "5bcdd923833c19990e0c33aba692922aef47b78a21ad3a181e37929b16705ac1",
+      "decoded_bytes": 1447,
+      "decoded_sha256": "583ad30d3168848956b5808af81a25d53edfce1c8e082ed31913b8dce64147d5",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-rejected-import-green-final-20261029.log"
+    },
+    {
+      "path": "node-history/renderer-hook-final-green-20261029.log.gz",
+      "bytes": 111,
+      "sha256": "741c3697b37940705d89687b580950fa32fc962cfa1df5d6db412caf351beb09",
+      "decoded_bytes": 184,
+      "decoded_sha256": "0ec579b32c8579f3a61f27c777f944686c3e1e1d6f08f7a901343dd98c7afe74",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-hook-final-green-20261029.log"
+    },
+    {
+      "path": "source-history/renderer-cleanup-valid-red-source-20261029/feed.spec.mjs.gz",
+      "bytes": 8880,
+      "sha256": "10799b87e7b1dd4f999120fafd3ba768672f88b003ad47eb32b1c8380c3dad23",
+      "decoded_bytes": 40475,
+      "decoded_sha256": "bcac007753e51e886021e80d1d68780d4b2f5ed3c9e0855efff0044305a2144f",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-cleanup-valid-red-source-20261029/feed.spec.mjs"
+    },
+    {
+      "path": "source-history/renderer-cleanup-valid-red-source-20261029/pw-runtime-before.mjs.gz",
+      "bytes": 48379,
+      "sha256": "44e02bdaba8d75db8bbe39df36efe097b9c858c423a0bcd98b98e8948c0626a5",
+      "decoded_bytes": 154052,
+      "decoded_sha256": "1250f7f2580b5f7fe650581c5af5123935d6fe63e144e150d3a7edc7c80bdb7d",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-cleanup-valid-red-source-20261029/pw-runtime-before.mjs"
+    },
+    {
+      "path": "source-history/renderer-cleanup-valid-red-source-20261029/renderer-contract.test.mjs.gz",
+      "bytes": 1548,
+      "sha256": "1383fbf11736b708619ac495ddaac7cf98284cd98e672d5acf31b887e40e17c2",
+      "decoded_bytes": 4608,
+      "decoded_sha256": "7ac325eddf24109e270e4cd9bf6fd97e0460fa02e903d52d8cd9553c7c712877",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-cleanup-valid-red-source-20261029/renderer-contract.test.mjs"
+    },
+    {
+      "path": "source-history/renderer-cleanup-valid-red-source-20261029/renderer-fault.mjs.gz",
+      "bytes": 1413,
+      "sha256": "edc52c257bf17665486a3df154d79387a1f61a0e4a9f364569abca5135a32c62",
+      "decoded_bytes": 4151,
+      "decoded_sha256": "b3fa48a2a569f3920a6f84e970938606e47813b1ae25d9c6e61724779cdb3824",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-cleanup-valid-red-source-20261029/renderer-fault.mjs"
+    },
+    {
+      "path": "source-history/renderer-cleanup-valid-red-source-20261029/test_renderer_contract.py.gz",
+      "bytes": 466,
+      "sha256": "55305d3774f165ad780e82741a6afd477be62dbf38359318ea4f047d4b7046d4",
+      "decoded_bytes": 856,
+      "decoded_sha256": "c2dba5cc33f51eb09e3c0c998e37afd09de652122ca1fc96455c7c0d5498c009",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-cleanup-valid-red-source-20261029/test_renderer_contract.py"
+    },
+    {
+      "path": "source-history/renderer-owner-native-import-red-source-20261029/pw-runtime.mjs.gz",
+      "bytes": 48795,
+      "sha256": "c4f4bd4ff5ff1e85e139f6f921c16e64dbab2191b2ad92f20cdcdd4a25dbf2fe",
+      "decoded_bytes": 155454,
+      "decoded_sha256": "e76e4a8a72d2545173eb0aa4677d25965ba36e9da08441934fc19c7930a03cd8",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-owner-native-import-red-source-20261029/pw-runtime.mjs"
+    },
+    {
+      "path": "source-history/renderer-owner-native-import-red-source-20261029/renderer-contract.test.mjs.gz",
+      "bytes": 3233,
+      "sha256": "1e8ca1a1aa05b1ad4a7863170abb8a2cb428a669860c41e9202703c5e6a3c5c4",
+      "decoded_bytes": 10551,
+      "decoded_sha256": "05d6d9934c0275d0fb04033b44b1937388896f3fd6e41b0d55247d26fb55bde4",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-owner-native-import-red-source-20261029/renderer-contract.test.mjs"
+    },
+    {
+      "path": "source-history/renderer-retirement-caller-red-source-20261029/pw-runtime.mjs.gz",
+      "bytes": 48889,
+      "sha256": "114ced28d25b1855cbab0f9e8d0bd8a79944b8cb09edb1636f3715201080365c",
+      "decoded_bytes": 155818,
+      "decoded_sha256": "0739379362b781f668a2ee7a351e640acd7783e166b2dc063b9d488be79b49b4",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-retirement-caller-red-source-20261029/pw-runtime.mjs"
+    },
+    {
+      "path": "source-history/renderer-retirement-caller-red-source-20261029/renderer-contract.test.mjs.gz",
+      "bytes": 3273,
+      "sha256": "8a3b1f011b407b7d198a7934e48ebe90f8a6a5597edd13ff6f02c212543e04e6",
+      "decoded_bytes": 10711,
+      "decoded_sha256": "da0ed7c6602e400c50cb9df5a69a5cadfcd0092f778cbbf64ceafc41c13226df",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-retirement-caller-red-source-20261029/renderer-contract.test.mjs"
+    },
+    {
+      "path": "source-history/renderer-rejected-import-red-source-20261029/pw-runtime.mjs.gz",
+      "bytes": 48951,
+      "sha256": "0e673c10d409049f766236f02ea02fe0b2cf2c75d01fd287b8419d873d4acadd",
+      "decoded_bytes": 156002,
+      "decoded_sha256": "c5c3c30846e87ae1df8dff7c9914e7aaddaaa864f9c2a9d335fb8eab5a57610f",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-rejected-import-red-source-20261029/pw-runtime.mjs"
+    },
+    {
+      "path": "source-history/renderer-rejected-import-red-source-20261029/renderer-contract.test.mjs.gz",
+      "bytes": 3509,
+      "sha256": "b2777fdc444b1fcde4d42d034fa238577473940306a17ba2895fa5829180162d",
+      "decoded_bytes": 11953,
+      "decoded_sha256": "0741f507d88561be4e72af66d705e0c3a0a0f953ec2013f210878908332dc88b",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-rejected-import-red-source-20261029/renderer-contract.test.mjs"
+    },
+    {
+      "path": "post-repair-negative-control/native.log.gz",
+      "bytes": 1128,
+      "sha256": "d4dc25cea5972a4784822c33c8cd9b1e268f3bb2f6ef4d1ee60a0418659c6e4f",
+      "decoded_bytes": 3006,
+      "decoded_sha256": "98cb27952f207791ba22e69f28e5a28dbd4c3099022e92f97558e9cd7473a0e2",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-final-fixture-negative-control-20261029T164248Z/native.log"
+    },
+    {
+      "path": "post-repair-negative-control/receipt.json.gz",
+      "bytes": 502,
+      "sha256": "d611f9bef3614439ef2b9e74c35b4494ab6ea1b98dacdfa8239e4ed767703f1e",
+      "decoded_bytes": 759,
+      "decoded_sha256": "3efec71d33c7e53e0891dfa7cce56c9a694926ff51dcd5b154ac10fc91cc2092",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-final-fixture-negative-control-20261029T164248Z/receipt.json"
+    },
+    {
+      "path": "post-repair-negative-control/launcher.py.gz",
+      "bytes": 1214,
+      "sha256": "700ff870f16973fab2965e2e3356bee53455c19ce7868145682d62afa375b74d",
+      "decoded_bytes": 2394,
+      "decoded_sha256": "961c21dcebb77014edb7c8d009144eb79be86eb8713c96e79cbf7c5810a973dd",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-final-fixture-negative-control-20261029T164248Z/launcher.py"
+    },
+    {
+      "path": "post-repair-negative-control/renderer-contract.test.mjs.gz",
+      "bytes": 3626,
+      "sha256": "b4bb81888605efb51dda7aa21ab4dcdee292e3bbded1131bff5ebf759532a92c",
+      "decoded_bytes": 12306,
+      "decoded_sha256": "adc099567d0babc815c3fe7ba4b855ce40a8bb9b5935d89574d9f36a21e7602e",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-final-fixture-negative-control-20261029T164248Z/renderer-contract.test.mjs"
+    },
+    {
+      "path": "post-repair-negative-control/public/pw-runtime.mjs.gz",
+      "bytes": 48951,
+      "sha256": "0e673c10d409049f766236f02ea02fe0b2cf2c75d01fd287b8419d873d4acadd",
+      "decoded_bytes": 156002,
+      "decoded_sha256": "c5c3c30846e87ae1df8dff7c9914e7aaddaaa864f9c2a9d335fb8eab5a57610f",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/renderer-final-fixture-negative-control-20261029T164248Z/public/pw-runtime.mjs"
+    },
+    {
+      "path": "working-broad/browser.log.gz",
+      "bytes": 1829,
+      "sha256": "4c651dd665fa73b0a64ff24b7e9ab8a6749b52e3b5c7693c01d083cdb333a75e",
+      "decoded_bytes": 12392,
+      "decoded_sha256": "92e06b85a6f7657737927c0162b4cfb7de79ce63df1f605da272e35bf2040920",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-broad-20261029T164107Z/browser.log"
+    },
+    {
+      "path": "working-broad/canonical-restoration.json.gz",
+      "bytes": 259,
+      "sha256": "6495219f148148d33c6d4170f8ab712aba4cf1ee8ed780b74d1dfa16ba138394",
+      "decoded_bytes": 405,
+      "decoded_sha256": "12e27cd9c0e3add057ab55cfe67417bbefd63da84f008bae20a7842c41434bb5",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-broad-20261029T164107Z/canonical-restoration.json"
+    },
+    {
+      "path": "working-broad/feed-build.log.gz",
+      "bytes": 1925,
+      "sha256": "72b9743618459dd3df356933b1ca8413ab701af47e7ae4515a79db43f99f9326",
+      "decoded_bytes": 10105,
+      "decoded_sha256": "9e1924cc724404cb36653bf216aeefaafa53ee900586013813028a260a7c653a",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-broad-20261029T164107Z/feed-build.log"
+    },
+    {
+      "path": "working-broad/inputs-after.json.gz",
+      "bytes": 201801,
+      "sha256": "d572b591f2bf04246575c4927e748f176d19ac7f0357962a6a7cf0ec85262509",
+      "decoded_bytes": 534104,
+      "decoded_sha256": "861d13a99f2d1a4a4947d2d0369d70f7e2d934f77e1216987c8bdabbadd11482",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-broad-20261029T164107Z/inputs-after.json"
+    },
+    {
+      "path": "working-broad/inputs-before.json.gz",
+      "bytes": 201801,
+      "sha256": "d572b591f2bf04246575c4927e748f176d19ac7f0357962a6a7cf0ec85262509",
+      "decoded_bytes": 534104,
+      "decoded_sha256": "861d13a99f2d1a4a4947d2d0369d70f7e2d934f77e1216987c8bdabbadd11482",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-broad-20261029T164107Z/inputs-before.json"
+    },
+    {
+      "path": "working-broad/launcher.py.gz",
+      "bytes": 1947,
+      "sha256": "6fb83f43bfb0a7726e5f1a5d8f41fbb256574232eeb5533f9f92c35986495ea8",
+      "decoded_bytes": 4518,
+      "decoded_sha256": "9830a329d690550227ac2329d393186b32a86dc30dc7745600d9b5f0a4bfb4be",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-broad-20261029T164107Z/launcher.py"
+    },
+    {
+      "path": "working-broad/node.log.gz",
+      "bytes": 111,
+      "sha256": "b7e61981e087667a3ec70dbb2f1f3cb93ee1007147c0a42f2f23a309094895f1",
+      "decoded_bytes": 184,
+      "decoded_sha256": "b828ac68584309547afb48eaac00477a659d0abf205176d8e44d5edc0efed5e0",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-broad-20261029T164107Z/node.log"
+    },
+    {
+      "path": "working-broad/preflight.log.gz",
+      "bytes": 464,
+      "sha256": "904936038b7c0022671c83134ccca849e973decb5b6401ba5cd2b310807aea93",
+      "decoded_bytes": 763,
+      "decoded_sha256": "ef6ca19d3cdf9a73736f5193495643472a612ef569ecd00b7836285b78053dd7",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-broad-20261029T164107Z/preflight.log"
+    },
+    {
+      "path": "working-broad/press-modules-canonical.txt.gz",
+      "bytes": 1902,
+      "sha256": "4de80b57577058a2549f0aae726252051fac7e21e354302698ed383f5c9cf15a",
+      "decoded_bytes": 10575,
+      "decoded_sha256": "273abb6c6663779de2a79404f84b77718892e53dbb30f1babe4cc4051f96950c",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-broad-20261029T164107Z/press-modules-canonical.txt"
+    },
+    {
+      "path": "working-broad/press-modules.log.gz",
+      "bytes": 660,
+      "sha256": "f72a6af12d79a4e5254183e9674188e5a6338aa0f04e96377394e4e225ff423e",
+      "decoded_bytes": 2821,
+      "decoded_sha256": "40011350dfbb944d5fe05dbca969e952866ba1b96348192431febeb42a20b264",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-broad-20261029T164107Z/press-modules.log"
+    },
+    {
+      "path": "working-broad/progress.json.gz",
+      "bytes": 783,
+      "sha256": "4476518d854a467177b363f7b3e3ad04b765800aaf1f8ad287318fe5b8479503",
+      "decoded_bytes": 2827,
+      "decoded_sha256": "518ce514356ccb15ffc8e5810a4dca31e343b7aa7921dbf1b0162ee2cbd6de35",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-broad-20261029T164107Z/progress.json"
+    },
+    {
+      "path": "working-broad/receipt.json.gz",
+      "bytes": 938,
+      "sha256": "c2ca53d19d9a91f499790a825afde5bccabba1984c523107aaa3d777a5b362db",
+      "decoded_bytes": 3306,
+      "decoded_sha256": "09cbabf04c0f0e9ec445c78db3c75cbcef25e708c21173104768d65411676e5e",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-broad-20261029T164107Z/receipt.json"
+    },
+    {
+      "path": "working-broad/renderer-contract.test.mjs.gz",
+      "bytes": 3626,
+      "sha256": "b4bb81888605efb51dda7aa21ab4dcdee292e3bbded1131bff5ebf759532a92c",
+      "decoded_bytes": 12306,
+      "decoded_sha256": "adc099567d0babc815c3fe7ba4b855ce40a8bb9b5935d89574d9f36a21e7602e",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-broad-20261029T164107Z/renderer-contract.test.mjs"
+    },
+    {
+      "path": "working-broad/renderer-fault.mjs.gz",
+      "bytes": 1413,
+      "sha256": "edc52c257bf17665486a3df154d79387a1f61a0e4a9f364569abca5135a32c62",
+      "decoded_bytes": 4151,
+      "decoded_sha256": "b3fa48a2a569f3920a6f84e970938606e47813b1ae25d9c6e61724779cdb3824",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-broad-20261029T164107Z/renderer-fault.mjs"
+    },
+    {
+      "path": "working-broad/results.json.gz",
+      "bytes": 4906,
+      "sha256": "a5ed6ef24154c3f858881ae5e38adcf24f11dac0425021f435d76194d743ada2",
+      "decoded_bytes": 102550,
+      "decoded_sha256": "2919bba9a967f3b9b53ffaf21ca47c30e85c2bc47c0117f4c82a117b36515425",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-broad-20261029T164107Z/results.json"
+    },
+    {
+      "path": "working-broad/source.diff.gz",
+      "bytes": 7693,
+      "sha256": "cec820cd68054b094a8ca53b826eb98beb50f455099c8242cc6fff42b77fca4b",
+      "decoded_bytes": 23794,
+      "decoded_sha256": "ecf1ac80b4b9eeb54c28b7df6ed456e689b3ee3e2489972beefee8a3aedecf66",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-broad-20261029T164107Z/source.diff"
+    },
+    {
+      "path": "working-broad/store-build.log.gz",
+      "bytes": 4389,
+      "sha256": "3c1779dfa6d9a48b3722abcd427d9f7e11304407e84a02d38ab89b285890e2bf",
+      "decoded_bytes": 23970,
+      "decoded_sha256": "9ca5c22d3c049897b281bca8cfe50fb9c20e48ab0d2d9ac3d8b6b8efcd878036",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-broad-20261029T164107Z/store-build.log"
+    },
+    {
+      "path": "working-broad/test_renderer_contract.py.gz",
+      "bytes": 467,
+      "sha256": "d0e0d13c883d73591381d56a1019ab82b9b0351dc1a730b38596be7ee2718548",
+      "decoded_bytes": 857,
+      "decoded_sha256": "daa116444f95e4bced70e1f7fc07ab5228a2fda253a703b635a678cfbc70635a",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-renderer-broad-20261029T164107Z/test_renderer_contract.py"
+    },
+    {
+      "path": "historical-hosted-failures/e14-computed-conditions-0-e14-computed-conditions.log.gz",
+      "bytes": 165,
+      "sha256": "c83c612fd0200dbc8cb79564808dd9dd86986e1b631e185c648df51bdbc674de",
+      "decoded_bytes": 380,
+      "decoded_sha256": "ed94d00a548d42608c809de03dde922b9aa403d754f3e7119c90be9b262e401d",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-eb28ac01-actual-computed-failures/e14-computed-conditions-0-e14-computed-conditions.log"
+    },
+    {
+      "path": "historical-hosted-failures/e14-computed-conditions-1-computed-conditions.txt.gz",
+      "bytes": 959,
+      "sha256": "5b447ebf12c7cc367195b8084c746fe6f80d89a69f2e7e9f4eb96784134071ef",
+      "decoded_bytes": 1989,
+      "decoded_sha256": "045881a7c7a0677360b48495281bc5d20be8cf29d757ff8fd0ba46e27d8ea038",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-eb28ac01-actual-computed-failures/e14-computed-conditions-1-computed-conditions.txt"
+    },
+    {
+      "path": "historical-hosted-failures/e14-computed-signals-0-e14-computed-signals.log.gz",
+      "bytes": 164,
+      "sha256": "4ae009cabcf5a6a2987989dc6d140db968cc7a6c950d0d47f8406e9e63362973",
+      "decoded_bytes": 377,
+      "decoded_sha256": "914786f0c9456d9332d1d133ef84ebefe5cab4ef8874e8dcc16eae97745dc0fd",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-eb28ac01-actual-computed-failures/e14-computed-signals-0-e14-computed-signals.log"
+    },
+    {
+      "path": "historical-hosted-failures/e14-computed-signals-1-computed-signals.txt.gz",
+      "bytes": 2310,
+      "sha256": "8e20481148044edb7e50df1c8afaafc003608638a3c5b04bb81080c124400e05",
+      "decoded_bytes": 6991,
+      "decoded_sha256": "d6a307c95771e3c5323cfb97cf6ff15973ce6b74277453674c87467409cfde94",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-eb28ac01-actual-computed-failures/e14-computed-signals-1-computed-signals.txt"
+    },
+    {
+      "path": "historical-hosted-failures/manifest.json.gz",
+      "bytes": 601,
+      "sha256": "dec60995ab28ddb681dccea7d63db7983b258195f5ebcfb6469f43bc57b2db3f",
+      "decoded_bytes": 2028,
+      "decoded_sha256": "ab8d167213163060d1332a1635674cab670618df0f74289e0f5b21dc88abdff0",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-eb28ac01-actual-computed-failures/manifest.json"
+    },
+    {
+      "path": "working-source/spikes/own-renderer/public/pw-runtime.mjs.gz",
+      "bytes": 49162,
+      "sha256": "6cf3754cfabbf741f9a36234e459743d9540ad7948667601cd0286f6bc76355f",
+      "decoded_bytes": 156756,
+      "decoded_sha256": "2428f91db5884413b6cd4e0972b4b75cee09cea78612d874b00af552d7d5105f",
+      "original_local_path": "/home/haki/code/pw-wt/session-followup-20261027/spikes/own-renderer/public/pw-runtime.mjs"
+    },
+    {
+      "path": "working-source/spikes/own-renderer/renderer-contract.test.mjs.gz",
+      "bytes": 3626,
+      "sha256": "b4bb81888605efb51dda7aa21ab4dcdee292e3bbded1131bff5ebf759532a92c",
+      "decoded_bytes": 12306,
+      "decoded_sha256": "adc099567d0babc815c3fe7ba4b855ce40a8bb9b5935d89574d9f36a21e7602e",
+      "original_local_path": "/home/haki/code/pw-wt/session-followup-20261027/spikes/own-renderer/renderer-contract.test.mjs"
+    },
+    {
+      "path": "working-source/spikes/own-renderer/renderer-fault.mjs.gz",
+      "bytes": 1413,
+      "sha256": "edc52c257bf17665486a3df154d79387a1f61a0e4a9f364569abca5135a32c62",
+      "decoded_bytes": 4151,
+      "decoded_sha256": "b3fa48a2a569f3920a6f84e970938606e47813b1ae25d9c6e61724779cdb3824",
+      "original_local_path": "/home/haki/code/pw-wt/session-followup-20261027/spikes/own-renderer/renderer-fault.mjs"
+    },
+    {
+      "path": "working-source/spikes/own-renderer/e2e/feed.spec.mjs.gz",
+      "bytes": 8879,
+      "sha256": "6a019c2f35ca1a3ae38828addb3b49d73bb140ec5a2897b1c3f0a1c80a8dfb98",
+      "decoded_bytes": 40475,
+      "decoded_sha256": "dc3894aa36ebbe8471b6f1b128614213533cf933be08d586c39feeb179087d48",
+      "original_local_path": "/home/haki/code/pw-wt/session-followup-20261027/spikes/own-renderer/e2e/feed.spec.mjs"
+    },
+    {
+      "path": "working-source/scripts/tests/test_renderer_contract.py.gz",
+      "bytes": 535,
+      "sha256": "5ec0818066130982a8af4393ddb7365b0c1a52e79ad4c113ca6157e0fc545318",
+      "decoded_bytes": 1024,
+      "decoded_sha256": "6400c373a728c5fd3fb547ade5a778eee14abfbfbb130af4164751901a2509ed",
+      "original_local_path": "/home/haki/code/pw-wt/session-followup-20261027/scripts/tests/test_renderer_contract.py"
+    },
+    {
+      "path": "working-source/scripts/press_modules_mutations.py.gz",
+      "bytes": 2654,
+      "sha256": "e4aba199c0561af2f558713dbd6dce73647478803fb7052ec9d2d435f5071d9c",
+      "decoded_bytes": 7805,
+      "decoded_sha256": "80cc0021c2d1f6003b9141c826deb4a28a2c3adf91452a30cd23d71ded57639e",
+      "original_local_path": "/home/haki/code/pw-wt/session-followup-20261027/scripts/press_modules_mutations.py"
+    },
+    {
+      "path": "collector-source.py.gz",
+      "bytes": 2197,
+      "sha256": "70300712d2c1bc339f63ca87d21e2c9b1461313a320b395fa364a054c404549a",
+      "decoded_bytes": 5673,
+      "decoded_sha256": "107beb1b4cf42b113a4459b63db0c90b2065b0d69b177d0ee56674af3a9c622e",
+      "original_local_path": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session_followup_archive_renderer_diagnostics.py"
+    }
+  ]
+}

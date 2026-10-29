@@ -203,3 +203,58 @@ The prefix rule is asked first now, and `pw-syntax` tests that `!(..)` and
   `s64` (the audit's eighth gap).
 - **Safari does not focus a button it is clicked on**, as MDN's table of
   click focus records, so the focus tests press from the keyboard.
+
+## 2026-10-28 amendment: a rendering failure owns no unsent speculation
+
+Status: implementation under independent review, 2026-10-29; immutable-head
+gates and merge remain pending.
+
+Verify run 40637144982 at `eb28ac01` retained two real WebKit renderer
+traps before a like/reply command was sent. Their low-level cause remains
+unresolved: the ready waits and module loads completed, and local replay
+with the captured renderer has not reproduced them. These failures block
+that candidate; no earlier passing execution clears them.
+
+Reading the error path found a separate reproducible defect: `speculate()`
+records a pending transition before rendering it. A render exception rejects
+before its IDs reach the caller, leaving a transition for an unsent command.
+The failed renderer instance also remains cached.
+
+The repair must keep a failure after loading as a failed press (ADR-0382).
+It must remove every speculation owned by that press before any fallible
+load or redraw, retire only the renderer instance that actually failed, and
+attempt to redraw the held state within the existing module-load deadline.
+A failed rollback must not retain those pending transitions or replace the
+original failure. A later user press may load a healthy renderer. Rendering
+failure must never send a command unspeculated, retry a business command,
+discard another press's speculation, or claim a commit that did not occur.
+Ordinary renderer refusal codes remain refusals, not a reason to replay.
+
+The regression will use the real renderer with selected export bodies
+replaced by a valid Wasm `unreachable`, followed by the unchanged renderer.
+It must observe no request for the failed press, no ghost reply, and one
+optimistic then committed reply for a later healthy press. It must also
+exercise a rollback that fails. Existing healthy and request-failure
+assertions stay unchanged. The observed WebKit trap's underlying cause is
+not claimed repaired by an error-path fix; all fresh exact-commit gates and
+independent review remain required before merge.
+
+Review also found that an abandoned renderer load could publish over its
+replacement, and that a speculation still awaiting its JS module could adopt
+an instance already retired by a signal's native call. Publication must match
+both the loading promise and current native owner. An absent or older owner
+cannot retire a newer cache. A press resuming after retirement fails before
+creating any transition. Known retirement has a distinct platform error type:
+it cannot enter ADR-0382's fallback for ordinary import/fetch failures.
+The coordinator retains retirement provenance for its own native instance
+through either import completion path, including an import rejection or its
+existing deadline after retirement. A later healthy coordinator cannot inherit
+that older instance's failure. Thirteen lifecycle cases include both import
+outcomes through both callers and an ordinary rejection/fallback neighbor.
+
+`renderer-contract.test.mjs` executes selected source fragments from the actual
+runtime to control these orderings, alongside real native Wasm instances. Its
+held-import cases use Node's experimental main-context VM loader only in tests;
+the warning is retained. These seams do not boot a browser or prove a deadline.
+The real browser regressions and unchanged module-loading tests cover those
+separate boundaries. See the [diagnostic record](../diagnostics/session-renderer-failures-2026-10-29.md).

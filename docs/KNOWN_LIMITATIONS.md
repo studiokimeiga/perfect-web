@@ -1,5 +1,16 @@
 # Known limitations
 
+## Renderer failure follow-up, 2026-10-29
+
+Verify run 40637144982 at `eb28ac01` failed two actual computed-renderer recipes
+despite green recipe shell jobs. The intermittent WebKit native traps remain
+unexplained; local replay did not reproduce them. ADR0172's error-path repair
+removes unsent speculation and fences renderer ownership. It does not establish
+the trap's low-level cause or clear that failed candidate. All fresh immutable-
+head gates remain required. The lifecycle seam tests use Node's experimental
+main-context VM import loader, with its warning retained; production uses no
+Node VM API. See the [diagnostic record](diagnostics/session-renderer-failures-2026-10-29.md).
+
 
 ## Unmerged session repair, 2026-10-26
 

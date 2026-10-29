@@ -13,6 +13,19 @@ Status values: `open` · `validated` · `invalidated` · `superseded`
 
 ---
 
+## Renderer lifecycle test loader, 2026-10-29
+
+**Status:** `open`. The test-only held-import ordering seam uses
+`vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER`, documented as experimental by
+[Node's VM documentation](https://nodejs.org/api/vm.html#support-of-dynamic-import-in-compilation-apis).
+It has been exercised with the installed Node22.21.1, including its retained
+warning. Ordinary CI runs the thirteen named cases through
+`scripts/tests/test_renderer_contract.py`; a missing/changed API is a failed
+test, never a skip or a production fallback. Revalidate on Node upgrades.
+
+The original hosted WebKit renderer traps are not assumed repaired by these
+tests; their cause and acceptance limits remain in KNOWN_LIMITATIONS and ADR0172.
+
 ## A-001 — Host hardware differs from the charter's stated target
 
 **Status:** `validated` (measured 2026-08-05) — the deviation is real and permanent.
