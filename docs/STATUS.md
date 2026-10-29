@@ -2,6 +2,14 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Pre-publication follow-up, 2026-10-29:** local candidate `8da9ab54` passed
+preflight and Ruff but failed Fallow on three introduced complexity findings.
+It was never pushed. ADR0172 records the small ownership/helper refactor, with
+the original failure retained. Require fresh preflight, Ruff, Fallow, thirteen
+lifecycle cases, the affected browser/module campaign and every planned hosted
+gate at the successor's immutable commit before merge. No `8da9ab54` gate credit
+transfers to that successor.
+
 **Renderer failure follow-up, 2026-10-29:** `eb28ac01` remains failed and
 unmerged. Verify run 40637144982's actual 153-recipe inventory contains two failed
 computed-renderer recipes; all 14 green shell jobs do not clear them. Reading

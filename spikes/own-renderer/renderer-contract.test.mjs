@@ -20,15 +20,23 @@ function deferred() {
   const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
   return { promise, resolve, reject };
 }
+function speculationScenario(enabled) {
+  if (!enabled) return { code: "", exports: "" };
+  return {
+    code: source("let speculationModule = null;", "function current(") +
+      source("async function renderBlock(", "/** The nodes from `start`") +
+      source("async function speculate(", "/** The command answered:"),
+    exports: "speculations, renderBlock, speculate,",
+  };
+}
 function loader(fetch, speculate = false, speculationUrl = null) {
+  const scenario = speculationScenario(speculate);
   const code = source("let renderer = null;", "/** A path read from the signals") +
     source("function renderCall(", "/** A value as the renderer reads it:") +
-    (speculate ? source("let speculationModule = null;", "function current(") +
-      source("async function renderBlock(", "/** The nodes from `start`") +
-      source("async function speculate(", "/** The command answered:") : "");
+    scenario.code;
   const module = { commands: {} };
   return vm.runInNewContext(code + `\n({ renderModule, forgetRenderer, retireRenderer, callRenderer,
-    ${speculate ? "speculations, renderBlock, speculate," : ""}
+    ${scenario.exports}
     bind: (owner) => {
       wasm = owner; speculationModule = Promise.resolve({});
       speculationOwner = { renderer: owner, retired: false };

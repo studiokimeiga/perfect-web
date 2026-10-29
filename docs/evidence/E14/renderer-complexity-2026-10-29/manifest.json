@@ -1,0 +1,141 @@
+{
+  "kind": "LOCAL_FAILED_CANDIDATE_AND_WORKING_REFACTOR_ONLY",
+  "at_utc": "2026-10-29T17:01:38.030656+00:00",
+  "failed_candidate": "8da9ab54e1e462628efbe8e71c2b32647f5d1a33",
+  "candidate_was_pushed": false,
+  "refactor_behavior_claim": "Same coordinator predicate, retirement phase order, source seams and assertions.",
+  "failed_immutable_gates": {
+    "preflight": 0,
+    "ruff": 0,
+    "fallow": 1,
+    "new_complexity_findings": 3
+  },
+  "working_checks": [
+    {
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=spec",
+        "spikes/own-renderer/renderer-contract.test.mjs"
+      ],
+      "exit": 0,
+      "cases": 13,
+      "failed": 0,
+      "skipped": 0,
+      "retries": 0
+    },
+    {
+      "command": [
+        "fallow",
+        "--format",
+        "json",
+        "--quiet",
+        "audit",
+        "--base",
+        "a0db8884deb2b3ba37faee59afcdee44a92c6b1c"
+      ],
+      "exit": 0,
+      "new_findings": 0
+    }
+  ],
+  "qualifications": [
+    "Working green reports do not check an immutable successor.",
+    "Working native/analyzer commands were directly launched; no separate durable PID receipt is claimed.",
+    "The successor still requires fresh owned pre-publication, browser, recipe and all hosted gates.",
+    "No analyzer threshold, suppression, policy or domain assertion changed.",
+    "The original WebKit trap low-level cause remains unresolved."
+  ],
+  "files": [
+    {
+      "path": "failed-immutable-8da9/preflight.log.gz",
+      "bytes": 464,
+      "sha256": "0e7877defec23ffa4142da17a2533d3f0196b8c01bd516e6571b3e0ee5d4060e",
+      "decoded_bytes": 763,
+      "decoded_sha256": "d8b941bb852c384fdf0ac421b8f1c7a1010dd7200b674ba624557ee4d1ad15b7"
+    },
+    {
+      "path": "failed-immutable-8da9/ruff.log.gz",
+      "bytes": 98,
+      "sha256": "24fd2a7c2be071711305380175fe0516ce1b58686ad65174c7f4e7fb2fd73087",
+      "decoded_bytes": 80,
+      "decoded_sha256": "812d65fee1fe1aec5eb82546562fb9373dcce518279457c45dff6e4bb6e4c31a"
+    },
+    {
+      "path": "failed-immutable-8da9/fallow.log.gz",
+      "bytes": 5862,
+      "sha256": "aa373be5553095d0d0bd505954f55de52da774f2320498a771958a7d284ef908",
+      "decoded_bytes": 82515,
+      "decoded_sha256": "329cb9030c39dd179d03f6766be8b14425bc3a1c1bf72b9eec5def919e804320"
+    },
+    {
+      "path": "failed-immutable-8da9/progress.json.gz",
+      "bytes": 620,
+      "sha256": "38b7f9015d5f12ec16eff83bd55abc061c67970c9b2ad8ff12265d1dfa48cf20",
+      "decoded_bytes": 1868,
+      "decoded_sha256": "5b6c3e53488a986fd0101d19ef10a038414f68d8ae775eae8a951d7fbbf485d5"
+    },
+    {
+      "path": "failed-immutable-8da9/inputs-before.json.gz",
+      "bytes": 205112,
+      "sha256": "63d819ca93df93024bba9cca5c725e03ac3b015adc74bbaa33c9606f097ff96f",
+      "decoded_bytes": 546009,
+      "decoded_sha256": "ca41c4dcb29163dce032f88e271494d2a99a57957c843865b65807f111ac8802"
+    },
+    {
+      "path": "working-green/fallow.json.gz",
+      "bytes": 5780,
+      "sha256": "091babd30725695befb03bf3d847e3ea5b187c28c76b9c2ca04c5a2761e6eac0",
+      "decoded_bytes": 80180,
+      "decoded_sha256": "f3dd405844f34d13e2ba5555b4d1485a3664940413bc62457daf3b88f4ab5b07"
+    },
+    {
+      "path": "working-green/node.log.gz",
+      "bytes": 679,
+      "sha256": "8b6b7786bb9e455da3790da0d52fe39ab1651979b22a85f14bf179ec9a4a7f89",
+      "decoded_bytes": 1449,
+      "decoded_sha256": "b22d03aece6d27bff53a36eccc63467fac37f240c31fe89bbf10352382109815"
+    },
+    {
+      "path": "source-8da9/spikes/own-renderer/public/pw-runtime.mjs.gz",
+      "bytes": 49162,
+      "sha256": "6cf3754cfabbf741f9a36234e459743d9540ad7948667601cd0286f6bc76355f",
+      "decoded_bytes": 156756,
+      "decoded_sha256": "2428f91db5884413b6cd4e0972b4b75cee09cea78612d874b00af552d7d5105f"
+    },
+    {
+      "path": "working-source/spikes/own-renderer/public/pw-runtime.mjs.gz",
+      "bytes": 49303,
+      "sha256": "437e3b0e3ff09b63d487a91884c3ef927d6bf6bd88f6b7ba664336a414ed1f0a",
+      "decoded_bytes": 157269,
+      "decoded_sha256": "2525b7822b8939646c23c8583575985946b01ff07e8d74a6c9432670e8715a0f"
+    },
+    {
+      "path": "source-8da9/spikes/own-renderer/renderer-contract.test.mjs.gz",
+      "bytes": 3626,
+      "sha256": "b4bb81888605efb51dda7aa21ab4dcdee292e3bbded1131bff5ebf759532a92c",
+      "decoded_bytes": 12306,
+      "decoded_sha256": "adc099567d0babc815c3fe7ba4b855ce40a8bb9b5935d89574d9f36a21e7602e"
+    },
+    {
+      "path": "working-source/spikes/own-renderer/renderer-contract.test.mjs.gz",
+      "bytes": 3679,
+      "sha256": "c6335d720814b28768c2c20bd6086bbf72bebbe83f93843c5b9a51fe5349d6a7",
+      "decoded_bytes": 12485,
+      "decoded_sha256": "073d1df9a39b9e88b2a63a814e9fb603d2041c8987644ec767633407f7fb29fe"
+    },
+    {
+      "path": "working-source.diff.gz",
+      "bytes": 2714,
+      "sha256": "d471037b36567dee8aa9a8ef8c7a15a5bde31c2b357fd01ebf16366cd0c8fb82",
+      "decoded_bytes": 7443,
+      "decoded_sha256": "c4ad0d6cb0a5112312c74f395097721de84c000698584ed035e07449a53bdf11"
+    },
+    {
+      "path": "collector.py.gz",
+      "bytes": 1855,
+      "sha256": "5ffd9ef81035bdf164635d886ee9dc20d5e9eb3615be06b225f0feb2a48b0178",
+      "decoded_bytes": 4032,
+      "decoded_sha256": "2d2d89740db2a6e3f296b99606860494049789533f3451d57d348836892a8c98"
+    }
+  ]
+}

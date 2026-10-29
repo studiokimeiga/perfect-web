@@ -101,3 +101,16 @@ test bytes were unchanged. The final thirteen-case Node fixture was also run
 against the preserved earlier runtime as a separately labeled post-repair
 negative control: 11 passed and the two rejection-classification assertions
 failed. That does not assert those final fixture bytes ran before repair.
+
+## Pre-publication complexity repair
+
+The first local immutable candidate, `8da9ab54`, passed preflight and Ruff,
+then failed Fallow with three introduced complexity findings: the loading
+success callback, native retirement and the test loader. It was not pushed.
+The successor extracts a read-only coordinator-coherence predicate, names the
+retirement phases in their original synchronous order, and separates the test
+scenario's source/export selection. Existing assertions and analyzer policy
+are unchanged. The thirteen lifecycle cases and Fallow pass on those working
+refactor bytes; raw before/after source and reports are retained under
+`docs/evidence/E14/renderer-complexity-2026-10-29/`. They do not clear the failed
+candidate or satisfy the successor's immutable-head gates.

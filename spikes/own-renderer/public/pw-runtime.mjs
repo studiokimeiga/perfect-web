@@ -830,7 +830,7 @@ function speculations() {
     "the speculation module",
   ).then(
     ([module, renderer]) => {
-      if (speculationModule !== loading || owner.retired || (renderer && rendererLoaded !== renderer)) {
+      if (!currentSpeculation(loading, owner, renderer)) {
         if (speculationModule === loading) {
           speculationModule = null;
           speculationOwner = null;
@@ -858,6 +858,11 @@ function speculations() {
   speculationModule = loading;
   speculationOwner = owner;
   return loading;
+}
+
+/** Publication needs both the coordinator and its native owner still current. */
+function currentSpeculation(loading, owner, renderer) {
+  return speculationModule === loading && !owner.retired && (!renderer || rendererLoaded === renderer);
 }
 
 /** How many loads of the page's speculation module have failed (ADR-0382). */
@@ -1473,16 +1478,25 @@ function forgetRenderer(loading = renderer) {
 /** Native execution failed: only caches owned by these exports are retired. */
 function retireRenderer(failed) {
   if (!failed) return;
-  if (speculationOwner?.renderer === failed) speculationOwner.retired = true;
+  markSpeculationRetired(failed);
   if (rendererLoaded === failed) {
     rendererLoaded = null;
     renderer = null;
   }
-  if (wasm === failed) {
-    wasm = null;
-    speculationModule = null;
-    speculationOwner = null;
-  }
+  retireSpeculationRenderer(failed);
+}
+
+/** Retain this coordinator's failure before either cache is released. */
+function markSpeculationRetired(failed) {
+  if (speculationOwner?.renderer === failed) speculationOwner.retired = true;
+}
+
+/** The native owner may be shared; the speculation cache has its own owner. */
+function retireSpeculationRenderer(failed) {
+  if (wasm !== failed) return;
+  wasm = null;
+  speculationModule = null;
+  speculationOwner = null;
 }
 
 /** A path read from the signals' values: `greeting`, or `panel.item`. */

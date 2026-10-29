@@ -258,3 +258,12 @@ held-import cases use Node's experimental main-context VM loader only in tests;
 the warning is retained. These seams do not boot a browser or prove a deadline.
 The real browser regressions and unchanged module-loading tests cover those
 separate boundaries. See the [diagnostic record](../diagnostics/session-renderer-failures-2026-10-29.md).
+
+Local candidate `8da9ab54` then failed Fallow before publication: the loading
+success callback, native retirement and test loader introduced three complexity
+findings. The successor names the coordinator's coherence predicate, preserves
+the synchronous mark/native-clear/speculation-clear phases, and selects test
+source fragments in a separate helper. No analyzer policy or domain assertion
+changes. The actual failing report and bounded refactor checks are retained
+under `docs/evidence/E14/renderer-complexity-2026-10-29/`; fresh successor gates
+remain required.
