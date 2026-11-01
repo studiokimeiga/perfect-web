@@ -16777,12 +16777,15 @@ public query Store(",
             );
             assert!(response.ends_with(body), "{file}: {response}");
         }
-        // Session-dependent routes remain fail-closed.
-        let page = get_as(&s, "existing", "/");
-        assert!(
-            page.starts_with("HTTP/1.1 503 Service Unavailable"),
-            "{page}"
-        );
+        // Session-dependent routes (pages and handler manifests) remain
+        // fail-closed even when public build artifacts are available.
+        for path in ["/", "/pw-handlers"] {
+            let response = get_as(&s, "existing", path);
+            assert!(
+                response.starts_with("HTTP/1.1 503 Service Unavailable"),
+                "{path}: {response}"
+            );
+        }
     }
 
     /// **A document's trail says what happened to its frames** (ADR-0296):
