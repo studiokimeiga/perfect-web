@@ -16715,9 +16715,6 @@ public query Store(",
         })
     }
 
-    /// **A document's trail says what happened to its frames** (ADR-0296):
-    /// each frame pushed, and the telling that pushed it, kept with the
-    /// document and answered to its own session alone (`/bench/records`).
     /// A failing session authority source must not make public assets fail.
     struct FailingSessionSource;
 
@@ -16745,7 +16742,10 @@ public query Store(",
         fn begin_sign_in(&self, _: &[u8], _: &str, _: &str) -> Result<(), String> {
             Err("unavailable".into())
         }
-        fn take_sign_in(&self, _: &[u8]) -> Result<Option<(String, String, std::time::Duration)>, String> {
+        fn take_sign_in(
+            &self,
+            _: &[u8],
+        ) -> Result<Option<(String, String, std::time::Duration)>, String> {
             Err("unavailable".into())
         }
     }
@@ -16777,6 +16777,9 @@ public query Store(",
         assert!(page.starts_with("HTTP/1.1 503 Service Unavailable"), "{page}");
     }
 
+    /// **A document's trail says what happened to its frames** (ADR-0296):
+    /// each frame pushed, and the telling that pushed it, kept with the
+    /// document and answered to its own session alone (`/bench/records`).
     #[test]
     fn a_documents_trail_says_what_happened_to_its_frames() {
         let s = served_feed();
