@@ -58,8 +58,8 @@ serde_json = "1.0.151"
 # Wasmtime host + guest bindings for spikes/wasmtime-component (Milestone 0 task 10).
 # ADR0317: in-process component caching remains; unused upstream disk cache
 # pulls vulnerable zstd. Preserve all other upstream48.0.7 defaults explicitly.
-wasmtime = { version = "48.0.7", default-features = false, features = ["anyhow", "async", "backtrace", "gc", "gc-copying", "gc-drc", "gc-null", "wat", "profiling", "parallel-compilation", "cranelift", "pooling-allocator", "demangle", "addr2line", "coredump", "debug-builtins", "runtime", "component-model", "component-model-async", "threads", "stack-switching", "std", "debug", "compile-time-builtins", "wit-parser"] }
-wasmtime-wasi = "48.0.7"
+wasmtime = { version = "48.0.8", default-features = false, features = ["anyhow", "async", "backtrace", "gc", "gc-copying", "gc-drc", "gc-null", "wat", "profiling", "parallel-compilation", "cranelift", "pooling-allocator", "demangle", "addr2line", "coredump", "debug-builtins", "runtime", "component-model", "component-model-async", "threads", "stack-switching", "std", "debug", "compile-time-builtins", "wit-parser"] }
+wasmtime-wasi = "48.0.8"
 wit-bindgen = "0.60.0"
 # E6's materializer store and transactional outbox (ADR-0019). Verified on
 # crates.io 2026-08-06: 0.40.1, MIT. `bundled` compiles SQLite from source, so

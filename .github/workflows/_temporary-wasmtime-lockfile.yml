@@ -1,0 +1,23 @@
+name: Temporary Wasmtime lockfile repair
+on:
+  push:
+    branches:
+      - fix/verify-census-table-fixture-20261101
+permissions:
+  contents: read
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve patched Wasmtime
+        run: |
+          cargo update -p wasmtime --precise 48.0.8
+          cargo metadata --locked --no-deps --format-version 1 > /dev/null
+          git diff --stat -- Cargo.lock
+      - uses: actions/upload-artifact@v4
+        with:
+          name: patched-wasmtime-lockfile
+          path: Cargo.lock
+          retention-days: 1
