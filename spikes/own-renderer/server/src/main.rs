@@ -9318,7 +9318,10 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
     // and commands, serving these files reads no session-scoped state.
     // The files are served from this build's dist directory only.
     if method == "GET"
-        && matches!(route, "/pw-runtime.mjs" | "/pw-resume.wasm" | "/pw-render.wasm")
+        && matches!(
+            route,
+            "/pw-runtime.mjs" | "/pw-resume.wasm" | "/pw-render.wasm"
+        )
     {
         serve_file(server, &mut stream, route);
         return;
@@ -16769,12 +16772,18 @@ public query Store(",
             ("pw-render.wasm", "public renderer"),
         ] {
             let response = get_as(&s, "existing", &format!("/{file}"));
-            assert!(response.starts_with("HTTP/1.1 200 OK"), "{file}: {response}");
+            assert!(
+                response.starts_with("HTTP/1.1 200 OK"),
+                "{file}: {response}"
+            );
             assert!(response.ends_with(body), "{file}: {response}");
         }
         // Session-dependent routes remain fail-closed.
         let page = get_as(&s, "existing", "/");
-        assert!(page.starts_with("HTTP/1.1 503 Service Unavailable"), "{page}");
+        assert!(
+            page.starts_with("HTTP/1.1 503 Service Unavailable"),
+            "{page}"
+        );
     }
 
     /// **A document's trail says what happened to its frames** (ADR-0296):
