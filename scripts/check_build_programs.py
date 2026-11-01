@@ -44,6 +44,11 @@ def programs():
         ('rules (the program of rule_fixtures.rs)', base + paths('examples/rules/**/*.pw'))]
     for group in ['counter', 'guestbook', 'hello-static', 'koka', 'render', 'streamed']:
         out.append((group, base + paths(f'examples/{group}/*.pw')))
+    # Keep standalone compiler test fixtures in the complete source census.
+    # The duplicate-index-fields witness is rejected by semantic checking;
+    # it must still be checked as an executable program in isolation.
+    for fixture in paths('compiler/pw-core/tests/fixtures/*.pw'):
+        out.append((str(fixture.relative_to(ROOT)), std + [fixture]))
     for fixture in paths('examples/rejected/*.pw'):
         out.append((str(fixture.relative_to(ROOT)), base + imported(fixture, accepted) + [fixture]))
     for fixture in paths('examples/generality/**/*.pw'):
