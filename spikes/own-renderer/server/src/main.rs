@@ -16763,9 +16763,8 @@ public query Store(",
         ] {
             std::fs::write(s.dist.join(file), body).expect("asset written");
         }
-        let principals = s.identity.principals();
-        principals.set_accounts(true);
-        principals.keep_in(Arc::new(FailingSessionSource));
+        s.identity.signed_in_for_test("existing", "reader", "Reader");
+        s.identity.principals().keep_in(Arc::new(FailingSessionSource));
         for (file, body) in [
             ("pw-runtime.mjs", "public JS"),
             ("pw-resume.wasm", "public WASM"),
