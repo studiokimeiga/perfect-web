@@ -9313,6 +9313,16 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
     // for the request (ADR-0369): signed in or out on another host, it is so
     // here too.
     let route = path.split('?').next().unwrap_or("/");
+    // These build artifacts are identical for every reader. A session database
+    // outage must not stop the browser's runtime from loading; unlike pages
+    // and commands, serving these files reads no session-scoped state.
+    // The files are served from this build's dist directory only.
+    if method == "GET"
+        && matches!(route, "/pw-runtime.mjs" | "/pw-resume.wasm" | "/pw-render.wasm")
+    {
+        serve_file(server, &mut stream, route);
+        return;
+    }
     let upload_request = server.uploads.claims(method, route);
     let request_reader = if !upload_request
         && ((method == "POST" && path.starts_with("/command/")) || route == "/stream")
