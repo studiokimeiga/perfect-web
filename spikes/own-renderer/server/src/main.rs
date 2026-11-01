@@ -16718,6 +16718,65 @@ public query Store(",
     /// **A document's trail says what happened to its frames** (ADR-0296):
     /// each frame pushed, and the telling that pushed it, kept with the
     /// document and answered to its own session alone (`/bench/records`).
+    /// A failing session authority source must not make public assets fail.
+    struct FailingSessionSource;
+
+    impl identity::Kept for FailingSessionSource {
+        fn session(
+            &self,
+            _: &[u8],
+            _: &identity::SessionLifetimes,
+        ) -> Result<Option<identity::SessionIdentity>, String> {
+            Err("unavailable".into())
+        }
+        fn inspect(
+            &self,
+            _: &[u8],
+            _: &identity::SessionLifetimes,
+        ) -> Result<Option<identity::SessionIdentity>, String> {
+            Err("unavailable".into())
+        }
+        fn open(&self, _: &[u8], _: &identity::Principal, _: &[u8; 16]) -> Result<(), String> {
+            Err("unavailable".into())
+        }
+        fn close(&self, _: &[u8]) -> Result<(), String> {
+            Err("unavailable".into())
+        }
+        fn begin_sign_in(&self, _: &[u8], _: &str, _: &str) -> Result<(), String> {
+            Err("unavailable".into())
+        }
+        fn take_sign_in(&self, _: &[u8]) -> Result<Option<(String, String, std::time::Duration)>, String> {
+            Err("unavailable".into())
+        }
+    }
+
+    #[test]
+    fn public_runtime_assets_load_while_session_authority_is_unavailable() {
+        let s = served_feed();
+        for (file, body) in [
+            ("pw-runtime.mjs", "public JS"),
+            ("pw-resume.wasm", "public WASM"),
+            ("pw-render.wasm", "public renderer"),
+        ] {
+            std::fs::write(s.dist.join(file), body).expect("asset written");
+        }
+        let principals = s.identity.principals();
+        principals.set_accounts(true);
+        principals.keep_in(Arc::new(FailingSessionSource));
+        for (file, body) in [
+            ("pw-runtime.mjs", "public JS"),
+            ("pw-resume.wasm", "public WASM"),
+            ("pw-render.wasm", "public renderer"),
+        ] {
+            let response = get_as(&s, "existing", &format!("/{file}"));
+            assert!(response.starts_with("HTTP/1.1 200 OK"), "{file}: {response}");
+            assert!(response.ends_with(body), "{file}: {response}");
+        }
+        // Session-dependent routes remain fail-closed.
+        let page = get_as(&s, "existing", "/");
+        assert!(page.starts_with("HTTP/1.1 503 Service Unavailable"), "{page}");
+    }
+
     #[test]
     fn a_documents_trail_says_what_happened_to_its_frames() {
         let s = served_feed();
