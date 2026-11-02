@@ -19,17 +19,17 @@ use crate::hir::{DeclKind, Hir};
 /// under it, segment by segment (`/command` holds `/command/x`, not
 /// `/commands`). The host keeps the same list (`production::RESERVED` in
 /// the development server, which a test there holds to this one, and every
-/// route it answers itself to that).
+/// route it answers itself to that). A development server's own routes
+/// elsewhere (`/menu`, `/menu-entry`, `/page/…`) yield to a page a program
+/// declares there, and are not among them: `/menu` is a restaurant's.
 pub const RESERVED: &[&str] = &[
     "/_pw",
     "/bench",
     "/command",
     "/computed",
+    "/dev-idp",
     "/handler",
-    "/menu",
-    "/menu-entry",
     "/metrics",
-    "/page",
     "/payments",
     "/pw-handlers",
     "/pw-read",
@@ -144,7 +144,7 @@ mod tests {
             ("/stream{?doc}", "/stream"),
             ("/sign-in/callback", "/sign-in"),
             ("/pw-runtime.mjs", "/pw-runtime.mjs"),
-            ("/menu", "/menu"),
+            ("/dev-idp/authorize", "/dev-idp"),
             ("/handler/{id}", "/handler"),
         ] {
             assert_eq!(reserved_by(path), Some(by), "{path}");
@@ -153,6 +153,8 @@ mod tests {
             "/",
             "/benchmark",
             "/commands",
+            "/menu",
+            "/page/{slug}",
             "/menus/{name}",
             "/streams",
             "/stores/{id}",

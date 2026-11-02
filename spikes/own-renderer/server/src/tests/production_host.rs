@@ -202,7 +202,9 @@ fn a_production_host_serves_an_uploads_paths_by_their_pattern() {
 /// **The paths the host keeps are the ones `pw check` refuses a program**
 /// (PW7001), and every route the development server answers itself is
 /// under one: a route answered before the program's that the compiler did
-/// not refuse would be a page its program could never be served at.
+/// not refuse would be a page its program could never be served at. A
+/// route that yields to the program's page (its arm guarded by
+/// `routed.is_none()`) is no such route.
 #[test]
 fn the_paths_the_host_keeps_are_the_ones_the_compiler_refuses() {
     assert_eq!(production::RESERVED, pw_core::reserved::RESERVED);
@@ -221,6 +223,10 @@ fn the_paths_the_host_keeps_are_the_ones_the_compiler_refuses() {
     ] {
         for (at, _) in own.match_indices(pattern) {
             let rest = &own[at + pattern.len()..];
+            let arm = rest.lines().next().unwrap_or("");
+            if arm.contains("routed.is_none()") {
+                continue;
+            }
             let literal: String = rest.chars().take_while(|c| *c != '"').collect();
             let literal = if pattern.starts_with("strip_prefix") {
                 format!("/{literal}")
@@ -239,6 +245,84 @@ fn the_paths_the_host_keeps_are_the_ones_the_compiler_refuses() {
             production::reserved(route),
             "main.rs answers `{route}` itself, a path `pw check` does not refuse a program"
         );
+    }
+}
+
+/// The store, with a page of its own at each path a development server
+/// answers only where no page is declared: `/menu`, `/menu-entry` and one
+/// under `/page/`.
+const PAGES_THERE: &str = r#"
+
+page MenuBoard() {
+    route     "/menu"
+    placement origin
+
+    view {
+        <title>Menu board</title>
+        <main><h1>Menu board</h1></main>
+    }
+}
+
+page MenuEntryPage() {
+    route     "/menu-entry"
+    placement origin
+
+    view {
+        <title>Menu entry</title>
+        <main><h1>Menu entry</h1></main>
+    }
+}
+
+page AboutUs() {
+    route     "/page/about"
+    placement origin
+
+    view {
+        <title>About us</title>
+        <main><h1>About us</h1></main>
+    }
+}
+"#;
+
+/// **A development server's own route yields to the program's page there**
+/// (the review's finding 5b): `/menu` (store 47's menu, as JSON),
+/// `/menu-entry` and `/page/…` answer a program that declares no page at
+/// them as before, and one that does gets its page, in development and in
+/// production; `pw check` reserves none of them, so a restaurant may have
+/// its `/menu`.
+#[test]
+fn a_development_servers_own_route_yields_to_the_programs_page() {
+    let plain = store();
+    let (head, body) = got(&plain, "/menu", "");
+    assert_eq!(status(&head), 200, "{head}");
+    assert!(
+        String::from_utf8_lossy(&body).starts_with("{\"items\""),
+        "{}",
+        String::from_utf8_lossy(&body)
+    );
+    let paged = served_from_patches_in("examples", |app| format!("{app}{PAGES_THERE}"), &[]);
+    let production = served_from_patches_in("examples", |app| format!("{app}{PAGES_THERE}"), &[]);
+    let own = production::Production::of(
+        &production,
+        &production::secrets::Secrets::default(),
+        production::Layer::Store,
+    )
+    .expect("a production host's own");
+    assert!(production.production.set(own).is_ok());
+    for (path, title) in [
+        ("/menu", "Menu board"),
+        ("/menu-entry", "Menu entry"),
+        ("/page/about", "About us"),
+    ] {
+        for server in [&paged, &production] {
+            let (head, body) = got(server, path, "");
+            assert_eq!(status(&head), 200, "{path}: {head}");
+            assert!(
+                String::from_utf8_lossy(&body).contains(&format!("<title>{title}</title>")),
+                "{path}: {}",
+                String::from_utf8_lossy(&body)
+            );
+        }
     }
 }
 

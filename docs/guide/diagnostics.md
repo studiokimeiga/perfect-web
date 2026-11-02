@@ -14,7 +14,7 @@ code the compiler can emit, from its registry, `compiler/pw-core/src/codes.rs`.
 - **What the program must hold to**: the registry's own sentence.
 - **ADR**: the decisions its registry entry cites, where it cites one.
 
-220 codes are registered; 94 of them cite an ADR in the registry.
+221 codes are registered; 94 of them cite an ADR in the registry.
 A code whose entry cites none is marked `—`: search `docs/DECISIONS/` for its
 number or its symbol.
 
@@ -342,6 +342,12 @@ number or its symbol.
 | PW6806 | `device_signal_versions` | a signal the device keeps has a pure migration for each version before its own, each taking the one before it to the next | — |
 | PW6807 | `device_signal_form` | a signal the device keeps is of a type the device can hold: data, no function, no type that contains itself, no opaque type with a `where` | — |
 | PW6808 | `device_signal_provided` | a signal the device keeps is provided by the device: no `provide` gives it a value | — |
+
+## Deploy
+
+| Code | Symbol | What the program must hold to | ADR |
+|---|---|---|---|
+| PW7001 | `route_reserved` | a page's route and an upload's paths are the program's own: none is under a path the platform's host answers itself | — |
 
 ## Retired codes
 

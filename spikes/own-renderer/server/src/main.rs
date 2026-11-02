@@ -10734,7 +10734,9 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
         // show that a second reader reads rather than regenerates, and no
         // more: the storage key never appears, because the browser has no
         // business knowing how an entry is stored.
-        ("GET", "/menu-entry") => {
+        // TRACK SEAM (deploy): a development server's own, which yields to
+        // a page the program declares at the path (PW7001 reserves it not).
+        ("GET", "/menu-entry") if routed.is_none() => {
             let identity = menu_identity(STORE_ID);
             let entry = ResourceEntryId::derive(&identity, &IDENTITY);
             let version = server.menu_version(STORE_ID);
@@ -10847,8 +10849,10 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             }
         }
         // A page whose values are its signals and its streams (ADR-0130,
-        // ADR-0148).
-        ("GET", route) if route.starts_with("/page/") => {
+        // ADR-0148). TRACK SEAM (deploy): by its internal path, a
+        // development server's way to a page with no route, which yields to
+        // a page the program declares at the path (PW7001 reserves it not).
+        ("GET", route) if route.starts_with("/page/") && routed.is_none() => {
             let path = route.trim_start_matches("/page/");
             // TRACK SEAM (argument-invariants): a parameter its type refuses
             // is a request refused, 400 and why, as a routed page's is
@@ -10946,7 +10950,10 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             });
             respond_json(&mut stream, 200, &session, fresh, &body.to_string());
         }
-        ("GET", "/menu") => {
+        // TRACK SEAM (deploy): a development server's own, which yields to a
+        // page the program declares at the path (PW7001 reserves it not): a
+        // restaurant's program may well have one.
+        ("GET", "/menu") if routed.is_none() => {
             // Store 47's menu, read through the layer (track `store-pg`).
             let ids: Vec<String> = match server.menu_ids(STORE_ID) {
                 Ok(ids) => ids.iter().map(|k| format!("\"{k}\"")).collect(),

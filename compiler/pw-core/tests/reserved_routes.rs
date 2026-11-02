@@ -115,7 +115,7 @@ fn a_page_under_a_reserved_path_is_refused() {
         ("/stream", "/stream"),
         ("/command/x", "/command"),
         ("/metrics", "/metrics"),
-        ("/menu", "/menu"),
+        ("/dev-idp/authorize", "/dev-idp"),
         ("/sign-in", "/sign-in"),
         ("/sign-in/callback", "/sign-in"),
         ("/pw-runtime.mjs", "/pw-runtime.mjs"),
@@ -145,7 +145,8 @@ fn a_page_under_a_reserved_path_is_refused() {
 }
 
 /// **A page at a path of the program's own is not**, though it begins with
-/// a reserved path's letters.
+/// a reserved path's letters; nor one where a development server answers
+/// only what no page claims (`/menu`, `/menu-entry`), which yields to it.
 #[test]
 fn a_page_at_a_path_of_its_own_is_not_reserved() {
     for route in [
@@ -153,6 +154,8 @@ fn a_page_at_a_path_of_its_own_is_not_reserved() {
         "/benchmark",
         "/streams",
         "/commands",
+        "/menu",
+        "/menu-entry",
         "/menus",
         "/metrics-report",
         "/sign-inside",

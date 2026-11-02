@@ -78,7 +78,8 @@ const READ_TIMEOUT: Duration = Duration::from_secs(30);
 /// any one write on a connection (`connections::Sending`), as Go's
 /// `Server.WriteTimeout` bounds an answer: a client that reads nothing, or a
 /// byte at a time, holds its thread no longer. Thirty seconds: the largest
-/// answer, the renderer's WebAssembly, is 1 MB.
+/// answer, the renderer's WebAssembly, is 386 KB, written within it at
+/// 0.1 Mbit/s.
 const WRITE_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// **How many connections a production host holds open at once**, each a
@@ -593,22 +594,22 @@ pub(crate) fn instance_key_of(keys: &Keys) -> &str {
 /// **The paths the platform's host answers itself**, each with every path
 /// under it, segment by segment: its runtime's subscription, reads and
 /// handler table, its build's modules and runtime, its commands, its health,
-/// readiness and metrics, the relying party's sign-in, the payments
-/// provider's word, and a development server's test controls and
-/// measurement pages. The host answers each before any page of the
-/// program's, so no program route may be one: `pw check` refuses it
-/// (PW7001, `pw_core::reserved::RESERVED`, which a test holds this list to,
-/// and every route `main.rs` answers itself to this list).
+/// readiness and metrics, the relying party's sign-in and a development
+/// server's provider of it, the payments provider's word, a development
+/// server's test controls and E7's measurement page. The host answers each
+/// before any page of the program's, so no program route may be one: `pw
+/// check` refuses it (PW7001, `pw_core::reserved::RESERVED`, which a test
+/// holds this list to, and every route `main.rs` answers itself to this
+/// list). A development server's `/menu`, `/menu-entry` and `/page/…` are
+/// not among them: each yields to a page the program declares there.
 pub(crate) const RESERVED: &[&str] = &[
     "/_pw",
     "/bench",
     "/command",
     "/computed",
+    "/dev-idp",
     "/handler",
-    "/menu",
-    "/menu-entry",
     "/metrics",
-    "/page",
     "/payments",
     "/pw-handlers",
     "/pw-read",
@@ -1611,8 +1612,7 @@ mod tests {
             "/_pw/health",
             "/command/menu",
             "/command/store.page.add_to_cart",
-            "/menu",
-            "/menu-entry",
+            "/dev-idp/authorize",
             "/StorePage.html",
             "/stream",
             "/sign-in/callback",
@@ -1620,10 +1620,15 @@ mod tests {
         ] {
             assert!(reserved(path), "{path}");
         }
+        // A development server's own that yield to the program's page:
+        // `/menu`, `/menu-entry`, `/page/…`.
         for path in [
             "/",
             "/benchmark",
             "/stores/47",
+            "/menu",
+            "/menu-entry",
+            "/page/about",
             "/menus/espresso",
             "/streams",
             "/storepage.html",

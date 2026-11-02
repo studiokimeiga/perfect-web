@@ -18,7 +18,8 @@ Each mutant undoes one piece:
 - the answers: anything production does not serve answered, a command the
   program does not declare served, the handler table, the program's pages
   or an upload's paths not served, a path the platform keeps that the
-  compiler does not refuse; a stopping host or one whose database does not
+  compiler does not refuse, a development server's own route shadowing the
+  program's page there; a stopping host or one whose database does not
   answer said ready; a readiness check that waits without bound, holds its
   lock while it waits, or asks the database once for each question;
   metrics read with no token, by a token's prefix, or by a token of another
@@ -309,8 +310,15 @@ MUTANTS = [
         "the host keeps a path the compiler does not refuse",
         UNIT,
         PRODUCTION,
-        '    "/handler",\n    "/menu",\n    "/menu-entry",',
-        '    "/handler",\n    "/menu-entry",',
+        '    "/StorePage.html",\n    "/stream",\n];',
+        '    "/StorePage.html",\n];',
+    ),
+    (
+        "a development server's own route shadows the program's page",
+        UNIT,
+        MAIN,
+        '        ("GET", "/menu") if routed.is_none() => {',
+        '        ("GET", "/menu") => {',
     ),
     (
         "a stopping host is ready",
