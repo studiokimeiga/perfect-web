@@ -1,5 +1,39 @@
 # Known limitations
 
+## Declared tables on PostgreSQL, 2026-11-02 (ADR-0393)
+
+`runtime/pw-table-postgres` serves any program's declared tables as the
+memory adapter does (ADR-0338's D3), with these limits:
+
+- **The development server serves neither adapter yet.** Its layer over
+  `PgTables` is track `data-path`'s routing; until then no page, browser
+  test or TodoMVC run reads a declared table from PostgreSQL.
+- **Not built in the adapter:** scheduled runs (ADR-0334) in its
+  transaction, the second host's reader of the outbox (ADR-0369) and
+  sessions kept in the database; one adapter interface (a trait the memory
+  and PostgreSQL adapters share) waits for `data-path`'s routing.
+- **A `Float` given as a JSON integer through the Rust API** (`3`) is kept
+  an integer by the memory adapter and answered a float by PostgreSQL's; the
+  engine always gives a float, so no component sees it (ruled: the memory
+  adapter is to keep a `Float` as a float).
+- **A refinement inside a list or a record, and a `String` column's UTF-8,
+  are held by the adapter, not by a `CHECK`.** Another writer of the
+  database can store a row breaking one; every read of it then refuses, and
+  a write over it fails its command.
+- **A field named as one of PostgreSQL's system columns** (`xmin`, `xmax`,
+  `cmin`, `cmax`, `ctid`, `tableoid`) is refused where the adapter opens,
+  by PostgreSQL's `CREATE TABLE`, though memory serves it.
+- **The platform's own tables are not held by the catalog at start**; a
+  trigger or rule another hand puts on them is met at a commit (a dropped
+  outbox row refuses it).
+- **Two hosts' concurrent growth of one bounded table conflict** (each
+  growth write counts the table to its bound), and one is refused; the
+  interaction record's forgetting, in every command that records one, may
+  make two hosts' commands conflict too. Neither is measured under load;
+  latency and throughput are not claimed (statement counts only).
+- **References of a composite key or across sources** are refused, as
+  memory refuses them; CockroachDB (T5) is not tried.
+
 ## Renderer failure follow-up, 2026-10-29
 
 Verify run 40637144982 at `eb28ac01` failed two actual computed-renderer recipes
@@ -859,9 +893,9 @@ awaited in order. What remains:
     60-line script: 3 of 750 such navigations. It does not reproduce with
     a plain Python server serving the same paths (0 of 1,200). What in our
     traffic trips it is open (NEXT).
-  - A person cannot navigate that soon after a page appears. The two tests
+  - A person cannot navigate that soon after a page appears. The five tests
     that did, right after a soft navigation, now let the page settle first
-    in WebKit.
+    in WebKit, through one shared helper (`e2e/next-document.mjs`, PR #63).
   - Safari on macOS uses another network stack, and nothing here says it
     is affected.
 - **A page's commands are ordered by one host** (ADR-0305): the host that

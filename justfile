@@ -70,6 +70,7 @@ import 'just/press-modules.just'
 import 'just/e14-readiness.just'
 import 'just/table-host.just'
 import 'just/d2-writes.just'
+import 'just/d3-postgres.just'
 import 'just/outbound-https.just'
 import 'just/head-to-head.just'
 
