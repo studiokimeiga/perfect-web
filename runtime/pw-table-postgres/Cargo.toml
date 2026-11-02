@@ -1,0 +1,25 @@
+[package]
+name = "pw-table-postgres"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+# ADR-0338 D3: the declared tables of any program, on PostgreSQL. It reads
+# the compiler's tables.json, as the memory adapter (`pw-table-memory`, D2)
+# does, and serves every primitive behind the same interface; the host's gate
+# and codecs (`pw-host`'s `engine`) are the memory adapter's.
+[dependencies]
+pw-core = { path = "../../compiler/pw-core" }
+pw-host = { path = "../pw-host", features = ["engine"] }
+# The workspace's client (ADR-0246): rust-postgres's synchronous client,
+# 0.19.14, already in Cargo.lock; no new database client.
+postgres.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+# The compiled fixtures (`examples/tables`) are parsed by the tests.
+pw-syntax = { path = "../../compiler/pw-syntax" }
+# The reference adapter, which every answer here is held equal to.
+pw-table-memory = { path = "../pw-table-memory" }

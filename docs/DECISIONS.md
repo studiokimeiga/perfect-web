@@ -3144,8 +3144,9 @@ guide mutation kills require valid producer outcomes (track
   refused, not a kill.
 [ADR-0363](DECISIONS/ADR-0363-wasmtime-48-0-7.md):
 Wasmtime 48.0.7, for RUSTSEC-2026-0378 and 0379 (the integrator's, the
-downloads the owner's; train-11).
-- Every pin is 48.0.7 (28 crates in each lockfile, the CLI on three
+downloads the owner's; train-11); amended 2026-11-02 to 48.0.8, for
+RUSTSEC-2026-0422 to 0424 (PR #63): every live pin is 48.0.8.
+- Every pin was 48.0.7 (28 crates in each lockfile, the CLI on three
   platforms by GitHub's digests); 0378 needs host-made streams the host
   never makes; 0379 (aarch64 Cranelift, a br_table of 256k targets) no
   emitted component reaches, a hostile one could on an aarch64 host; the
@@ -3285,4 +3286,8 @@ Session authority is checked at delivery and commit (proposed; reproduced curren
 
 **2026-10-27 — Benchmark merge dependency security repair.** [ADR-0390](DECISIONS/ADR-0390-benchmark-merge-security-fork.md) records the narrow temporary MIT fork, unchanged audit policy and offline sandbox requirement.
 
-**2026-11-01 — E14 agent usage and failed-run attribution (proposed).** [ADR-0391](DECISIONS/ADR-0391-benchmark-agent-usage.md) adds adapter-reported token/cost usage and distinguishes ungraded infrastructure failures from unsuccessful agent patches. No comparative benchmark has run.
+**2026-11-02 — E14 agent usage measured apart from the grade (accepted, with the integrator's rulings).** [ADR-0391](DECISIONS/ADR-0391-benchmark-agent-usage.md) adds adapter-reported token/cost usage; a refused usage sidecar is a refused measurement and never changes a grade; a timeout scores 0, told apart; only infrastructure is ungraded. No comparative benchmark has run.
+
+[ADR-0393](DECISIONS/ADR-0393-declared-tables-on-postgresql.md):
+Any program's declared tables on PostgreSQL, answering as the memory adapter does (ADR-0338's D3, track `d3-postgres`; independently reviewed and repaired 2026-11-02, its PR holds the landing record).
+- `runtime/pw-table-postgres` behind the memory adapter's interface: the schema made from tables.json once under an advisory lock and recorded, an unstated destructive change or a drifted catalog refused at start; one prepared statement per primitive (`= ANY`, `unnest`); a command one serializable transaction with the interaction's record and the outbox in commit order; a `COMMIT` never answered an unknown outcome. The review's eight repairs: nested floats exact (serde_json `float_roundtrip`, workspace-wide), a key field's retype and two objects of one name refused, the migration at read committed, backfills as hex or quoted, five more drifts seen, a write whose answer is unread failing its command, a lost outbox row refusing the commit. The development server does not serve it yet (`data-path`); a shared trait, scheduled runs and the outbox's reader are its follow-ups.
