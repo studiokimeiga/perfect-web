@@ -1123,6 +1123,37 @@ pub mod engine {
         Ok(())
     }
 
+    /// **Every `requires` predicate, asked in the order of asking** (ADR-0115
+    /// as amended by ADR-0384's H2): each requirement in the order the export
+    /// states it; one the program gives a body (`component`) is asked of
+    /// `program`, which runs that compiled component, and the deployment is
+    /// never asked it; any other is the deployment's (`deployment`), as
+    /// before. The first that does not hold, or cannot be asked, refuses the
+    /// invocation before its component runs.
+    pub fn authorize_export_with<P, D>(
+        contract: &crate::ComponentContract,
+        export: &[&str],
+        args: &[Val],
+        mut program: P,
+        mut deployment: D,
+    ) -> Result<(), String>
+    where
+        P: FnMut(&str, &[&Val]) -> Result<bool, String>,
+        D: FnMut(&str, &[&Val]) -> Result<bool, String>,
+    {
+        let requirements = authorization_for(contract, export)?;
+        authorize_export(contract, export, args, |predicate, selected| {
+            let requirement = requirements
+                .iter()
+                .find(|r| r.predicate == predicate)
+                .ok_or_else(|| format!("`{predicate}` is no requirement of this export"))?;
+            match &requirement.component {
+                Some(component) => program(component, selected),
+                None => deployment(predicate, selected),
+            }
+        })
+    }
+
     fn refuse_unevaluated_authorization(
         contract: &crate::ComponentContract,
         export: &[&str],
@@ -1463,6 +1494,48 @@ pub mod engine {
                 host,
                 tables,
                 &crate::tables::Caller::Nobody,
+                export,
+                args,
+            )
+        }
+
+        /// **[`Prepared::call_with_tables_as`], once every `requires`
+        /// predicate holds, asked in the order of asking**
+        /// ([`authorize_export_with`]; ADR-0384's H2): a command's or a
+        /// query's predicates are asked before it runs, the program's by
+        /// `program` (which runs its compiled component, in the command's
+        /// transaction or the read's snapshot), the deployment's by
+        /// `deployment`.
+        #[allow(clippy::too_many_arguments)]
+        pub fn call_authorized_with_tables_as<P, D>(
+            &self,
+            contract: &crate::ComponentContract,
+            granted: &crate::Granted,
+            limits: &crate::Limits,
+            host: &std::collections::BTreeMap<String, HostFn>,
+            tables: &crate::tables::Manifest,
+            caller: &crate::tables::Caller,
+            export: &[&str],
+            args: &[wasmtime::component::Val],
+            program: P,
+            deployment: D,
+        ) -> Result<Vec<wasmtime::component::Val>, String>
+        where
+            P: FnMut(&str, &[&Val]) -> Result<bool, String>,
+            D: FnMut(&str, &[&Val]) -> Result<bool, String>,
+        {
+            // Its arguments decoded before a predicate reads them.
+            self.hold_arguments(contract, export, args)?;
+            authorize_export_with(contract, export, args, program, deployment)?;
+            run(
+                &self.engine,
+                &self.component,
+                contract,
+                granted,
+                limits,
+                host,
+                Some(tables),
+                caller,
                 export,
                 args,
             )
