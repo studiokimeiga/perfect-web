@@ -140,8 +140,8 @@ fn on_postgres_a_cart_change_commits_with_its_event_in_one_transaction() {
     let rows = sql
         .query(
             "SELECT s.name, s.committed_in = c.committed_in \
-             FROM outbox_seen s, cart_lines c WHERE c.owner = 'u-a'",
-            &[],
+             FROM outbox_seen s, cart_lines c WHERE c.owner = $1",
+            &[&crate::identity::guest_user("a")],
         )
         .expect("read");
     let seen: Vec<(String, bool)> = rows.iter().map(|r| (r.get(0), r.get(1))).collect();
@@ -190,8 +190,8 @@ fn on_postgres_a_routes_change_commits_with_its_event_in_one_transaction() {
         .sql()
         .query(
             "SELECT s.name, s.committed_in = o.committed_in \
-             FROM outbox_seen s, orders o WHERE o.owner = 'u-a'",
-            &[],
+             FROM outbox_seen s, orders o WHERE o.owner = $1",
+            &[&crate::identity::guest_user("a")],
         )
         .expect("read");
     let seen: Vec<(String, bool)> = rows.iter().map(|r| (r.get(0), r.get(1))).collect();
@@ -556,8 +556,11 @@ fn on_postgres_an_order_keeps_its_lines_and_the_outboxes_hold_only_its_hosts_row
             (session.to_string(), "cortado".to_string(), 1),
         ]
     };
-    // Each the reader's, its session's guest's (track `store-accounts`).
-    assert_eq!(lines, [want("u-a"), want("u-b")].concat());
+    // Each the reader's, its session's guest's (track `store-accounts`),
+    // whose id is its session's digest (track `data-path`), in their order.
+    let mut owners = ["a", "b"].map(crate::identity::guest_user);
+    owners.sort();
+    assert_eq!(lines, [want(&owners[0]), want(&owners[1])].concat());
     assert_eq!(
         s.count("SELECT count(*) FROM cart_lines"),
         0,

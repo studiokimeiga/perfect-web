@@ -361,14 +361,47 @@ impl std::fmt::Debug for Held {
     }
 }
 
+/// **What a guest's digest is taken over, before its session** (track
+/// `data-path`, the integrator's ruling 1 of 2026-11-02): so a guest's id is
+/// no other digest of the session this server takes, such as the one a
+/// session is kept by ([`kept_hash`], SHA-256 of the session alone).
+const GUEST_DOMAIN: &str = "pw-guest-v1:";
+
+/// **A guest's user id**: `u-` and 128 bits, in hex, of SHA-256 over
+/// [`GUEST_DOMAIN`] and its session (track `data-path`, the integrator's
+/// ruling 1 of 2026-11-02). The guest model's guest is this user, and so is
+/// a signed-out reader. Until then it was `u-` and the session itself, the
+/// `pw-session` cookie's value: a credential, handed to every program, page
+/// and table that saw a guest's id (a row's author, a scheduled run's user,
+/// a payment's owner). The digest is one way: from the id no one recovers
+/// the session, or makes the id of a session they do not hold.
+pub fn guest_user(session: &str) -> String {
+    use sha2::Digest;
+    let digest = sha2::Sha256::digest(format!("{GUEST_DOMAIN}{session}").as_bytes());
+    format!("u-{}", hex(&digest[..16]))
+}
+
+/// **What a guest is shown as**: the first ten digits of its id, as the feed
+/// shows an author it knows no profile of (`feed::user_record`).
+fn guest_shown(user: &str) -> String {
+    user.strip_prefix("u-")
+        .unwrap_or(user)
+        .chars()
+        .take(10)
+        .collect()
+}
+
 impl Principal {
-    /// **A session's own guest** (the guest model): named for its session,
-    /// as the feed named one before accounts (ADR-0220).
+    /// **A session's own guest** (the guest model): its id, handle and name
+    /// made from its session's digest ([`guest_user`]), never from the
+    /// session, and named as the feed names a guest (ADR-0220).
     pub fn guest(session: &str) -> Principal {
+        let user = guest_user(session);
+        let shown = guest_shown(&user);
         Principal {
-            user: format!("u-{session}"),
-            handle: format!("@{session}"),
-            name: format!("Guest {session}"),
+            handle: format!("@{shown}"),
+            name: format!("Guest {shown}"),
+            user,
             issuer: "guest".to_string(),
         }
     }
@@ -399,6 +432,15 @@ struct PrincipalsInner {
     /// all (the integrator's ruling 2 of 2026-10-20 on this track), as the
     /// deployment states them.
     lifetimes: RwLock<SessionLifetimes>,
+    /// **The platform's record of accounts** (track `data-path`, the
+    /// integrator's ruling 2 of 2026-11-02): each user a sign-in here signed
+    /// in to an account, by their id, and the name their provider last gave
+    /// them. Kept past a sign-out: the account is still theirs. No guest is
+    /// in it (no sign-in opens one), and no session the platform opens on a
+    /// reader's behalf ([`Principals::on_behalf`] signs no one in). What
+    /// `context.account_of` answers a command the platform runs on a
+    /// reader's behalf ([`Principals::account_name`]).
+    account_names: RwLock<HashMap<String, String>>,
 }
 
 /// **A session's principal as this host holds it**, and when it was opened
@@ -803,11 +845,35 @@ impl Principals {
     }
 
     /// The user `session` acts as: its principal's, or its guest's, who can
-    /// write nothing where `requires SignedIn` is held.
+    /// write nothing where `requires SignedIn` is held. A guest's is its
+    /// session's digest ([`guest_user`]), never the session.
     pub fn user_of(&self, session: &str) -> String {
         self.of(session)
             .map(|p| p.user)
-            .unwrap_or_else(|| format!("u-{session}"))
+            .unwrap_or_else(|| guest_user(session))
+    }
+
+    /// **The account `user` signed in to, as the platform records it**
+    /// (track `data-path`): the name their provider last gave them; none
+    /// where no sign-in here signed them in to one, a guest's id and a
+    /// signed-out reader's among them.
+    pub(crate) fn account_name(&self, user: &str) -> Option<String> {
+        self.0
+            .account_names
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .get(user)
+            .cloned()
+    }
+
+    /// `principal`'s account recorded, by its user's id, as a sign-in has
+    /// just vouched for it.
+    fn record_account(&self, principal: &Principal) {
+        self.0
+            .account_names
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(principal.user.clone(), principal.name.clone());
     }
 
     fn open(&self, session: &str, principal: Principal) {
@@ -1012,6 +1078,8 @@ impl Principals {
         if let Some(kept) = self.0.kept.get() {
             kept.open(&kept_hash(session), &principal, &epoch)?;
         }
+        // TRACK SEAM (data-path): the account recorded, as the platform's.
+        self.record_account(&principal);
         self.open_identity(session, SessionIdentity { principal, epoch });
         Ok(())
     }
@@ -1338,6 +1406,15 @@ impl Identity {
                 },
             )
             .expect("signed in where sessions are kept");
+    }
+
+    /// **`session` signed out, without the flow** (track `data-path`): as
+    /// `/sign-out` signs it out, wherever sessions are kept.
+    #[cfg(test)]
+    pub fn signed_out_for_test(&self, session: &str) {
+        self.principals
+            .sign_out(session)
+            .expect("signed out where sessions are kept");
     }
 
     /// **A request the identity track answers**, before any other route.
@@ -2323,17 +2400,17 @@ mod invocation_tests {
         let alice = p.bound_reader("reader");
         p.with_reader("reader", &ReaderIdentity::Anonymous, || {
             assert!(p.of("reader").is_none());
-            assert_eq!(p.user_of("other-cookie"), "u-bob");
-            assert_eq!(other.user_of("reader"), "u-alice");
+            assert_eq!(p.user_of("other-cookie"), guest_user("bob"));
+            assert_eq!(other.user_of("reader"), guest_user("alice"));
             p.with_reader("reader", &alice, || {
-                assert_eq!(p.user_of("reader"), "u-alice")
+                assert_eq!(p.user_of("reader"), guest_user("alice"))
             });
             assert!(
                 p.of("reader").is_none(),
                 "the explicit anonymous outer binding is restored"
             );
         });
-        assert_eq!(p.user_of("reader"), "u-alice");
+        assert_eq!(p.user_of("reader"), guest_user("alice"));
     }
 
     #[test]
@@ -2543,6 +2620,6 @@ mod invocation_tests {
                 "unwinding restores explicit anonymous context"
             );
         });
-        assert_eq!(p.user_of("reader"), "u-alice");
+        assert_eq!(p.user_of("reader"), guest_user("alice"));
     }
 }

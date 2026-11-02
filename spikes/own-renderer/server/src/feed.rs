@@ -144,9 +144,9 @@ impl FeedData {
 }
 
 /// The user a session posts as where it has no principal: one of its own,
-/// named for it.
+/// its session's digest, never the session (`identity::guest_user`).
 pub(crate) fn user_of(session: &str) -> String {
-    format!("u-{session}")
+    crate::identity::guest_user(session)
 }
 
 /// **Who `session` reads as** (track `identity`, ADR-0258), the program's
@@ -177,12 +177,13 @@ fn user_val(state: &State, id: &str) -> Val {
 
 /// **A user as the program's `User` is**: its handle and name where it has
 /// them. A session's own user, which signed up as no one, is a guest named
-/// for its session, the same to every reader. Until ADR-0220 it was "You" to
+/// for its id, the same to every reader. Until ADR-0220 it was "You" to
 /// every reader.
 pub(crate) fn user_record(id: &str, known: Option<(String, String)>) -> Val {
     let (handle, name) = known.unwrap_or_else(|| {
-        // A session's id is long since it is random (track `identity`): a
-        // guest is named for its first ten characters.
+        // A guest's id is its session's digest (track `data-path`), long
+        // since it is random: a guest is named for its first ten characters,
+        // as `identity::Principal::guest` names it.
         let session: String = id
             .strip_prefix("u-")
             .unwrap_or(id)

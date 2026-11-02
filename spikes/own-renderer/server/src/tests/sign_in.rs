@@ -894,13 +894,20 @@ fn two_users_pages_never_share_private_parts() {
 }
 
 /// **The guest model's reader is its session's guest**, the development
-/// model the server held before the track: signed in, named for the
-/// session, posting as it, and with no account to sign out of.
+/// model the server held before the track: signed in, named for its
+/// session's digest and never the session (track `data-path`, the
+/// integrator's ruling 1 of 2026-11-02), posting as it, and with no account
+/// to sign out of.
 #[test]
 fn the_guest_models_reader_is_its_sessions_guest() {
     let s = served_feed();
     let html = home(&s, "s-guest");
-    assert!(html.contains("Signed in as Guest s-guest"), "{html}");
+    let guest = Principal::guest("s-guest").name;
+    assert!(
+        html.contains(&format!("Signed in as {guest}")),
+        "{guest}: {html}"
+    );
+    assert!(!html.contains("s-guest"), "the session is no name: {html}");
     assert!(!html.contains("action=\"/sign-out\""), "{html}");
     assert!(!html.contains("Sign in to post"), "{html}");
     let answer = command(&s, "feed.app.post", "s-guest", "i-1", "[\"As a guest\"]");

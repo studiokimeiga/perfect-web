@@ -494,6 +494,218 @@ fn a_guarded_command_writes_its_tables_once_its_predicate_holds() {
     );
 }
 
+/// A table of what each command was answered of its reader's account, by
+/// the row's id: the account's id and name, or none.
+const SEENS: &str = "module Seens
+
+import capability.{ UserId }
+
+type Seen = Seen { id: String, who: Option<UserId>, name: String }
+
+table Seens
+    row Seen
+    key id
+";
+
+const SEEN_DATA: &str = "module SeenData
+
+import Seens
+
+source SeenData
+    holds        Seens
+    transactions serializable
+    reads        strong
+    changes      none
+";
+
+/// **A program that writes its reader's account three ways**: by a call of
+/// the reader's own (`now`), by a run the platform makes when the clock
+/// passes its time (`later` schedules `noted`), and by the platform's
+/// settling of a payment the reader began (`settled`).
+const BEHALF: &str = "module tables.behalf
+
+import context.{ current_user, account_of, Account }
+import clock.{ minutes }
+import payments.{ Settled }
+import Seens.{ Seen }
+import Seens
+
+opaque type InteractionId = String
+
+fn seen(id: String, account: Option<Account>) -> Seen !{} {
+    match account {
+        Some(account) => Seen { id: id, who: Some(account.id), name: account.name },
+        None => Seen { id: id, who: None, name: \"\" },
+    }
+}
+
+command now(id: String) -> Result<Int, String>
+    idempotent_by InteractionId
+    invalidates   Who(id)
+{
+    Seens.put(seen(id, account_of(current_user())))
+    Ok(1)
+}
+
+command noted(id: String) -> Result<Int, String>
+    invoked_by    Clock
+    idempotent_by InteractionId
+    invalidates   Who(id)
+{
+    Seens.put(seen(id, account_of(current_user())))
+    Ok(1)
+}
+
+command later(id: String) -> Result<Int, String> !{ clock.schedule }
+    idempotent_by InteractionId
+{
+    schedule noted(id) after minutes(1)
+    Ok(1)
+}
+
+command settled(outcome: Settled) -> Result<Int, String>
+    invoked_by    Payments
+    idempotent_by InteractionId
+    invalidates   Who(_)
+{
+    Seens.put(seen(outcome.order, account_of(current_user())))
+    Ok(1)
+}
+
+query Who(id: String) -> Option<Seen>
+    consistency strong
+{
+    Seens.get(id)
+}
+";
+
+/// The program that writes its reader's account, built.
+fn built_behalf() -> (tempfile::TempDir, std::path::PathBuf) {
+    built(
+        &[],
+        &[
+            ("Seens.pw", SEENS),
+            ("SeenData.pw", SEEN_DATA),
+            ("behalf.pw", BEHALF),
+        ],
+    )
+}
+
+/// A `Seen` row as `Who` answers it: the account's id and name, or none.
+fn seen(id: &str, account: Option<(&str, &str)>) -> Val {
+    Val::Option(Some(Box::new(Val::Record(vec![
+        ("id".into(), text(id)),
+        (
+            "who".into(),
+            Val::Option(account.map(|(who, _)| Box::new(text(who)))),
+        ),
+        ("name".into(), text(account.map_or("", |(_, name)| name))),
+    ]))))
+}
+
+/// **`session`'s reader's account, as the program is answered it three
+/// ways**: by a call of theirs (`<tag>-now`), by the run the clock makes
+/// on their behalf (`<tag>-later`), and by the settling of a payment they
+/// began (`<tag>-paid`); each row as another session reads it.
+fn answered_three_ways(s: &Server, session: &str, tag: &str) -> [Val; 3] {
+    for (command, id, interaction) in [
+        (
+            "tables.behalf.now",
+            format!("{tag}-now"),
+            format!("{tag}-1"),
+        ),
+        (
+            "tables.behalf.later",
+            format!("{tag}-later"),
+            format!("{tag}-2"),
+        ),
+    ] {
+        let answered = s
+            .command_answer(
+                command,
+                session,
+                &[serde_json::json!(id)],
+                Some(&interaction),
+            )
+            .asserted(command);
+        assert!(answered.committed, "{command}: {answered:?}");
+    }
+    s.query_clock.0.advance(2 * 60 * 1000);
+    let (ran, _) = s.run_due();
+    assert_eq!(ran, 1, "{tag}: its run was due, and ran");
+    let settled = s.settle_payment(&payments::Settled {
+        intent: format!("pi_{tag}"),
+        order: format!("{tag}-paid"),
+        owner: s.identity.principals().user_of(session),
+        amount: 1,
+        status: "succeeded".into(),
+    });
+    assert!(settled.is_ok(), "{tag}: the payment settled: {settled:?}");
+    ["now", "later", "paid"].map(|way| {
+        s.answer(
+            "tables.behalf.Who",
+            "another-reader",
+            &[text(&format!("{tag}-{way}"))],
+        )
+        .asserted("the row, read by another session")
+    })
+}
+
+/// **A command the platform runs on a reader's behalf is answered the
+/// reader's account, as their own call is, and never their session** (the
+/// review's B1; the integrator's rulings 1 and 2 of 2026-11-02): a run the
+/// clock makes, and a payment's settlement, each in a session the platform
+/// opens on the reader's behalf. Until then the stand-in passed for an
+/// account: a guest's and a signed-out reader's run handed the program `u-`
+/// and their session's cookie as an account's id, which it stored where
+/// another session read it, and an account's run the name `""`. Now a
+/// guest's and a signed-out reader's are answered none, three ways, and
+/// their session is nowhere another reader reads; Ada's are her account,
+/// three ways alike.
+#[test]
+fn a_run_on_a_readers_behalf_is_answered_their_account_and_never_their_session() {
+    let (_dir, out) = built_behalf();
+    // The guest model: every session its own guest, and none an account.
+    let s = Server::from_build(out.clone(), out.clone()).asserted("served");
+    let guest = "s-SECRET-guest-0123456789abcdef";
+    let rows = answered_three_ways(&s, guest, "g");
+    assert_eq!(
+        rows,
+        [
+            seen("g-now", None),
+            seen("g-later", None),
+            seen("g-paid", None)
+        ],
+        "a guest has no account, run by the clock or a payment as by itself"
+    );
+    assert!(!format!("{rows:?}").contains("SECRET"), "{rows:?}");
+    // The accounts model: Ada signed in, and a reader signed out.
+    let s = Server::from_build(out.clone(), out).asserted("served");
+    s.identity.signed_in_for_test("s-ada", "u-ada", "Ada");
+    let ada = Some(("u-ada", "Ada"));
+    assert_eq!(
+        answered_three_ways(&s, "s-ada", "a"),
+        [
+            seen("a-now", ada),
+            seen("a-later", ada),
+            seen("a-paid", ada)
+        ],
+        "Ada's account, id and name, however her command runs"
+    );
+    let out_session = "s-SECRET-signed-out-0123456789";
+    let rows = answered_three_ways(&s, out_session, "o");
+    assert_eq!(
+        rows,
+        [
+            seen("o-now", None),
+            seen("o-later", None),
+            seen("o-paid", None)
+        ],
+        "a signed-out reader has no account"
+    );
+    assert!(!format!("{rows:?}").contains("SECRET"), "{rows:?}");
+}
+
 /// **One layer a program**: a program that imports a hand-written data
 /// layer's operation beside its tables is refused where it is served, by
 /// name, before anything is served (T1 routes several layers, ADR-0338 5.1).

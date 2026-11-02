@@ -253,8 +253,14 @@ fn store_database() -> Option<String> {
 }
 
 /// A notification for the guest `a` reads as, as another writer commits it.
-const NOTIFIED: &str =
-    "INSERT INTO notifications (recipient, actor, act) VALUES ('u-a', 'u-grace', 'followed')";
+/// Another writer's commit: a notification for session `a`'s reader, its
+/// guest, whose id is its session's digest (track `data-path`).
+fn notified() -> String {
+    format!(
+        "INSERT INTO notifications (recipient, actor, act) VALUES ('{}', 'u-grace', 'followed')",
+        crate::identity::guest_user("a")
+    )
+}
 
 /// How many notifications a list binding shows.
 fn listed(notes: &Val) -> usize {
@@ -276,7 +282,7 @@ fn on_postgres_a_feed_renders_bindings_read_one_snapshot() {
         .expect("served");
     *s.between_bindings.lock().expect("between") = Some(Box::new(|s: &Server| {
         s.data
-            .execute_for_test(NOTIFIED)
+            .execute_for_test(&notified())
             .expect("another writer's commit");
     }));
     let read = s.bindings("a", doc).expect("read");
@@ -306,7 +312,7 @@ fn on_postgres_a_feeds_two_renders_straddle_a_commit_between_them() {
     };
     let notes = one("notes");
     s.data
-        .execute_for_test(NOTIFIED)
+        .execute_for_test(&notified())
         .expect("another writer's commit");
     let unread = one("unread");
     assert_eq!((listed(&notes), unread), (0, Val::S64(1)));
@@ -933,11 +939,12 @@ fn the_memory_feeds_snapshot_is_the_feed_as_a_render_first_read_it() {
 fn on_postgres_the_feeds_snapshot_is_a_renders_read_transaction() {
     let Some(url) = feed_database() else { return };
     let s = super::feed_pg::served_on(&url, "render_merge_layer");
-    let unread = |ops: Ops| ops["feed:data/notifications#unread"](&[text("u-a")]).expect("read");
+    let reader = crate::identity::guest_user("a");
+    let unread = |ops: Ops| ops["feed:data/notifications#unread"](&[text(&reader)]).expect("read");
     let snapshot = s.data.snapshot().expect("a render's snapshot");
     assert_eq!(unread(s.data.reads_in(&snapshot, "a", None)), [Val::S64(0)]);
     s.data
-        .execute_for_test(NOTIFIED)
+        .execute_for_test(&notified())
         .expect("another writer's commit");
     assert_eq!(
         unread(s.data.reads_in(&snapshot, "a", None)),

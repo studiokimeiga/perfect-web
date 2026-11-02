@@ -790,7 +790,7 @@ impl Shared {
         }
         let user = match reader {
             crate::identity::ReaderIdentity::Account(identity) => identity.principal.user.clone(),
-            _ => format!("u-{session}"),
+            _ => crate::identity::guest_user(session),
         };
         let size = sent;
         let staged_size = size.max(bytes.len() as u64);
@@ -2049,7 +2049,10 @@ pub(crate) mod tests {
                 "actual retained bytes accounted"
             );
             assert_eq!(
-                state.spent["u-growth"].back().unwrap().1,
+                state.spent[&crate::identity::guest_user("growth")]
+                    .back()
+                    .unwrap()
+                    .1,
                 sent.len() as u64,
                 "hourly incoming bytes"
             );
@@ -2082,7 +2085,7 @@ pub(crate) mod tests {
         let state = shared.state.lock().unwrap();
         assert_eq!(state.staged_bytes, occupied);
         assert!(!state.leases.contains_key("growth"));
-        assert!(state.spent["u-growth"].is_empty());
+        assert!(state.spent[&crate::identity::guest_user("growth")].is_empty());
     }
 
     /// **A user's budget**: so many images an hour, and so many times the

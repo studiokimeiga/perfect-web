@@ -17142,7 +17142,8 @@ public query Store(",
         .expect("runs");
         s.tell_waiting();
         let set = format!("{:?}", sets_of(&s, &theirs).pop().expect("a patch set"));
-        assert!(set.contains("Guest a"), "{set}");
+        let guest = crate::identity::Principal::guest("a").name;
+        assert!(set.contains(&guest), "{guest}: {set}");
         assert!(!set.contains("You"), "{set}");
     }
 

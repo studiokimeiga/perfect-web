@@ -270,7 +270,8 @@ fn on_postgres_a_post_reaches_another_session() {
     s.tell_waiting();
     let set = format!("{:?}", sets_of(&s, &theirs).pop().expect("a patch set"));
     assert!(set.contains("Seen by everyone, from PostgreSQL"), "{set}");
-    assert!(set.contains("Guest a"), "{set}");
+    let guest = crate::identity::Principal::guest("a").name;
+    assert!(set.contains(&guest), "{guest}: {set}");
 }
 
 /// **A like counts, and reaches the thread another session shows**.
