@@ -315,13 +315,19 @@ fn sessions_are_kept_by_their_hash_and_live_by_their_lifetimes() {
         "{taken:?}"
     );
     assert_eq!(tables.take_sign_in(&hash(4)), Ok(None));
+    assert_eq!(
+        scratch.texts("SELECT count(*)::text FROM pw_sign_ins"),
+        ["0"],
+        "a sign-in's nonce and verifier are forgotten as it is taken"
+    );
 }
 
 /// **A fenced command commits only as the session it was admitted as**:
 /// admitted as a session still open, it commits; as one closed, or opened
-/// again in another generation, it is refused where it is fenced; as no
-/// one, still no one, it commits; and a session past its lifetime between
-/// the fence and the commit refuses the commit, keeping nothing.
+/// again in another generation, it is refused where it begins; as no one,
+/// still no one, it commits; and a session past its lifetime between the
+/// fence and the commit refuses the commit, keeping nothing. A refused
+/// fence gives its lock back.
 #[test]
 fn a_fenced_command_commits_only_as_the_session_it_was_admitted_as() {
     let Some(url) = database() else { return };
@@ -329,33 +335,41 @@ fn a_fenced_command_commits_only_as_the_session_it_was_admitted_as() {
     let tables = open_things(&scratch);
     let ada = session("ada", 1);
     tables.open_session(&hash(1), &ada).assert_ok("opened");
-    let mut tx = tables.begin().assert_ok("a command");
-    tx.fence(fence(1, Some(ada.clone()), lifetimes()))
+    let mut tx = tables
+        .begin_fenced(fence(1, Some(ada.clone()), lifetimes()))
         .assert_ok("fenced");
     tx.write(&owner("insert"), &[owner_row("a")])
         .assert_ok("written");
     assert_eq!(tx.revalidate(), Ok(()));
     tx.commit().assert_ok("committed as Ada");
     assert_eq!(owner_of(&tables, "a"), owner_row("a"));
-    // Signed out before the command was fenced: refused, nothing written.
+    // Signed out before the command began: refused, nothing written, and
+    // its lock given back (a change of the session waits for nothing).
     tables.close_session(&hash(1)).assert_ok("closed");
-    let mut tx = tables.begin().assert_ok("a command");
-    let refused = tx.fence(fence(1, Some(ada.clone()), lifetimes()));
-    assert!(matches!(refused, Err(Error::Refused(_))), "{refused:?}");
-    assert!(tx.write(&owner("insert"), &[owner_row("b")]).is_err());
-    drop(tx);
-    assert_eq!(owner_of(&tables, "b"), Value::Null);
-    // Signed in again, in another generation: not the session admitted.
+    let refused = tables.begin_fenced(fence(1, Some(ada.clone()), lifetimes()));
+    assert!(
+        matches!(&refused, Err(Error::Refused(_))),
+        "{:?}",
+        refused.as_ref().err()
+    );
+    drop(refused);
+    let started = std::time::Instant::now();
     tables
         .open_session(&hash(1), &session("ada", 2))
         .assert_ok("opened again");
-    let mut tx = tables.begin().assert_ok("a command");
-    let refused = tx.fence(fence(1, Some(ada.clone()), lifetimes()));
-    assert!(matches!(refused, Err(Error::Refused(_))), "{refused:?}");
-    drop(tx);
+    assert!(started.elapsed() < Duration::from_secs(3));
+    // Signed in again, in another generation: not the session admitted.
+    let refused = tables.begin_fenced(fence(1, Some(ada.clone()), lifetimes()));
+    assert!(
+        matches!(&refused, Err(Error::Refused(_))),
+        "{:?}",
+        refused.as_ref().err()
+    );
+    drop(refused);
     // No one, still no one: an anonymous reader's command commits.
-    let mut tx = tables.begin().assert_ok("a command");
-    tx.fence(fence(9, None, lifetimes())).assert_ok("no one");
+    let mut tx = tables
+        .begin_fenced(fence(9, None, lifetimes()))
+        .assert_ok("no one");
     tx.write(&owner("insert"), &[owner_row("n")])
         .assert_ok("written");
     tx.commit().assert_ok("committed as no one");
@@ -364,10 +378,13 @@ fn a_fenced_command_commits_only_as_the_session_it_was_admitted_as() {
     tables
         .open_session(&hash(9), &session("nina", 1))
         .assert_ok("opened");
-    let mut tx = tables.begin().assert_ok("a command");
-    let refused = tx.fence(fence(9, None, lifetimes()));
-    assert!(matches!(refused, Err(Error::Refused(_))), "{refused:?}");
-    drop(tx);
+    let refused = tables.begin_fenced(fence(9, None, lifetimes()));
+    assert!(
+        matches!(&refused, Err(Error::Refused(_))),
+        "{:?}",
+        refused.as_ref().err()
+    );
+    drop(refused);
     // Past its lifetime between the fence and the commit: refused there.
     let brief = Lifetimes {
         idle: Duration::from_millis(1500),
@@ -375,8 +392,8 @@ fn a_fenced_command_commits_only_as_the_session_it_was_admitted_as() {
     };
     let cy = session("cy", 1);
     tables.open_session(&hash(5), &cy).assert_ok("opened");
-    let mut tx = tables.begin().assert_ok("a command");
-    tx.fence(fence(5, Some(cy.clone()), brief))
+    let mut tx = tables
+        .begin_fenced(fence(5, Some(cy.clone()), brief))
         .assert_ok("fenced in time");
     tx.write(&owner("insert"), &[owner_row("c")])
         .assert_ok("written");
@@ -385,8 +402,8 @@ fn a_fenced_command_commits_only_as_the_session_it_was_admitted_as() {
     assert!(matches!(late, Err(Error::Refused(_))), "{late:?}");
     drop(tx);
     tables.open_session(&hash(5), &cy).assert_ok("opened anew");
-    let mut tx = tables.begin().assert_ok("a command");
-    tx.fence(fence(5, Some(cy), brief))
+    let mut tx = tables
+        .begin_fenced(fence(5, Some(cy), brief))
         .assert_ok("fenced in time");
     tx.write(&owner("insert"), &[owner_row("c")])
         .assert_ok("written");
@@ -410,8 +427,8 @@ fn a_sessions_change_waits_for_the_command_fenced_on_it() {
         PgTables::open(&named(&url, &app), scratch.schema(), things()).assert_ok("another host");
     let ada = session("ada", 1);
     a.open_session(&hash(1), &ada).assert_ok("opened");
-    let mut tx = a.begin().assert_ok("a command");
-    tx.fence(fence(1, Some(ada.clone()), lifetimes()))
+    let mut tx = a
+        .begin_fenced(fence(1, Some(ada.clone()), lifetimes()))
         .assert_ok("fenced");
     tx.write(&owner("insert"), &[owner_row("a")])
         .assert_ok("written");
@@ -433,8 +450,8 @@ fn a_sessions_change_waits_for_the_command_fenced_on_it() {
     // another host waits for nothing: it would wait out the lock otherwise.
     a.open_session(&hash(2), &session("bo", 1))
         .assert_ok("opened");
-    let mut tx = a.begin().assert_ok("a command");
-    tx.fence(fence(2, Some(session("bo", 1)), lifetimes()))
+    let tx = a
+        .begin_fenced(fence(2, Some(session("bo", 1)), lifetimes()))
         .assert_ok("fenced");
     drop(tx);
     let started = std::time::Instant::now();
@@ -442,8 +459,8 @@ fn a_sessions_change_waits_for_the_command_fenced_on_it() {
     assert!(started.elapsed() < Duration::from_secs(3));
     a.open_session(&hash(3), &session("di", 1))
         .assert_ok("opened");
-    let mut tx = a.begin().assert_ok("a command");
-    tx.fence(fence(3, Some(session("di", 1)), lifetimes()))
+    let tx = a
+        .begin_fenced(fence(3, Some(session("di", 1)), lifetimes()))
         .assert_ok("fenced");
     tx.commit().assert_ok("committed, writing nothing");
     let started = std::time::Instant::now();
@@ -451,24 +468,354 @@ fn a_sessions_change_waits_for_the_command_fenced_on_it() {
     assert!(started.elapsed() < Duration::from_secs(3));
 }
 
-/// **A command is fenced once, before its first statement**: a fence after
-/// a write, or a second fence, is refused.
+/// **A command waiting for its session holds no other command of its host
+/// up**: the session's lock is taken before the host's turn, so while one
+/// command waits for a session another host's command holds, the host's
+/// other commands begin and commit at once.
 #[test]
-fn a_command_is_fenced_once_before_its_first_statement() {
+fn a_command_waiting_for_its_session_holds_no_other_command_up() {
     let Some(url) = database() else { return };
-    let scratch = Scratch::new(&url, "fence_once");
+    let scratch = Scratch::new(&url, "fence_turn");
+    let a = open_things(&scratch);
+    let app = format!("pw_turn_{}", std::process::id());
+    let b =
+        PgTables::open(&named(&url, &app), scratch.schema(), things()).assert_ok("another host");
+    let ada = session("ada", 1);
+    a.open_session(&hash(1), &ada).assert_ok("opened");
+    let held = a
+        .begin_fenced(fence(1, Some(ada.clone()), lifetimes()))
+        .assert_ok("another host's command, fenced on Ada's session");
+    let (waited, other, elapsed, still, late) = std::thread::scope(|scope| {
+        let waiting = scope.spawn(|| {
+            b.begin_fenced(fence(1, Some(ada.clone()), lifetimes()))
+                .and_then(|tx| tx.commit().map(|_| ()))
+        });
+        let waited = until(|| waiting_on_advisory(&scratch, &app) == 1);
+        let started = std::time::Instant::now();
+        let other = b
+            .transaction(|tx| tx.write(&owner("insert"), &[owner_row("o")]))
+            .map(|_| ());
+        let elapsed = started.elapsed();
+        // The waiting command waits until the lock is given back, below;
+        // one holding the turn through its wait let the other run only once
+        // its own wait had failed.
+        let still = !waiting.is_finished();
+        drop(held);
+        (waited, other, elapsed, still, waiting.join())
+    });
+    assert!(waited, "a command waits for the session another holds");
+    assert_eq!(other, Ok(()), "the host's other command commits");
+    assert!(
+        still && elapsed < Duration::from_secs(4),
+        "and is not held up by the waiting one: {elapsed:?}, which still waits: {still}"
+    );
+    assert!(matches!(late, Ok(Ok(()))), "{late:?}");
+    assert_eq!(owner_of(&a, "o"), owner_row("o"));
+}
+
+/// **A command holding the host's turn never waits for a connection**: each
+/// command takes its place among the pool's connections before its turn,
+/// so the commands waiting for the turn or for a place (a fenced command's
+/// holds its session's lock on its place) never leave the one holding the
+/// turn without a connection; and each of them commits after it.
+#[test]
+fn a_command_holding_the_turn_never_waits_for_a_connection() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "places");
+    let options = pw_table_postgres::Options {
+        connections: 2,
+        wait: Duration::from_secs(5),
+        ..pw_table_postgres::Options::default()
+    };
+    let tables = std::sync::Arc::new(
+        PgTables::open_with(&url, scratch.schema(), things(), options).assert_ok("two connections"),
+    );
+    for n in [2, 3] {
+        tables
+            .open_session(&hash(n), &session(&format!("u{n}"), n))
+            .assert_ok("opened");
+    }
+    let (told, waits) = std::sync::mpsc::channel();
+    let told = std::sync::Mutex::new(told);
+    tables.tell_on_wait(move || {
+        let _ = told.lock().map(|t| t.send(()));
+    });
+    let mut first = tables.begin().assert_ok("the command holding the turn");
+    let waiting: Vec<_> = [2u8, 3]
+        .into_iter()
+        .map(|n| {
+            let tables = std::sync::Arc::clone(&tables);
+            std::thread::spawn(move || {
+                let expected = Some(session(&format!("u{n}"), n));
+                let mut tx = tables.begin_fenced(fence(n, expected, lifetimes()))?;
+                tx.write(&owner("insert"), &[owner_row(&format!("w{n}"))])?;
+                tx.commit().map(|_| ())
+            })
+        })
+        .collect();
+    // One waits for the turn, holding the pool's other place; the other
+    // waits for a place (had the command holding the turn none, both would
+    // hold one, and it none).
+    let one = waits.recv_timeout(Duration::from_secs(10)).is_ok();
+    std::thread::sleep(Duration::from_millis(300));
+    let started = std::time::Instant::now();
+    let wrote = first.write(&owner("insert"), &[owner_row("t")]);
+    let committed = first.commit().map(|_| ());
+    let elapsed = started.elapsed();
+    let joined: Vec<_> = waiting.into_iter().map(|w| w.join()).collect();
+    assert!(one, "a fenced command waits for the turn, holding a place");
+    assert_eq!(
+        (wrote, committed),
+        (Ok(()), Ok(())),
+        "the command holding the turn runs"
+    );
+    assert!(
+        elapsed < Duration::from_secs(3),
+        "without waiting for a connection: {elapsed:?}"
+    );
+    assert!(joined.iter().all(|j| matches!(j, Ok(Ok(())))), "{joined:?}");
+    assert_eq!(owner_of(&tables, "w3"), owner_row("w3"));
+}
+
+/// **A connection a session's change did not commit on is closed, not
+/// kept** (as the other PostgreSQL layers' changes are): it is marked so
+/// before its transaction begins, so a change the database refuses (a hash
+/// of 31 bytes, which the table's check refuses) leaves behind no
+/// connection whose transaction or lock is not known; one that commits
+/// keeps its connection for the next.
+#[test]
+fn a_connection_whose_session_change_failed_is_closed() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "change_failed");
+    let app = format!("pw_change_{}", std::process::id());
+    let tables = PgTables::open(&named(&url, &app), scratch.schema(), things()).assert_ok("open");
+    let open = || {
+        scratch
+            .texts(&format!(
+                "SELECT count(*)::text FROM pg_stat_activity WHERE application_name = '{app}'"
+            ))
+            .join(",")
+    };
+    tables
+        .open_session(&hash(1), &session("ada", 1))
+        .assert_ok("opened");
+    let before = open();
+    let refused = tables.open_session(&[7u8; 31], &session("cy", 1));
+    assert!(matches!(refused, Err(Error::Database(_))), "{refused:?}");
+    let closed =
+        until(|| open().parse::<usize>().ok() == before.parse::<usize>().ok().map(|n| n - 1));
+    assert!(closed, "its connection closed: {before} then {}", open());
+    // The neighbour: changes that commit keep their connection.
+    tables
+        .open_session(&hash(2), &session("bo", 1))
+        .assert_ok("opened");
+    let kept = open();
+    tables
+        .open_session(&hash(3), &session("di", 1))
+        .assert_ok("opened");
+    tables.close_session(&hash(3)).assert_ok("closed");
+    assert_eq!(open(), kept, "a committed change's connection is kept");
+}
+
+/// **A run whose deletion is suppressed is refused, not taken for a run
+/// done**: its row is the run selected, and the deletion another hand's
+/// trigger answers `NULL` removes nothing; the taking is a refusal, the
+/// command's transaction fails, and the run is kept.
+#[test]
+fn a_run_whose_deletion_is_suppressed_is_refused() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "suppressed");
+    let tables = open_things(&scratch);
+    tables
+        .transaction(|tx| tx.schedule(&[scheduling("k", Some(1000))]))
+        .assert_ok("scheduled");
+    let run = due(&tables, 1000);
+    scratch
+        .sql(
+            "CREATE FUNCTION keep() RETURNS trigger LANGUAGE plpgsql AS \
+             $$ BEGIN RETURN NULL; END $$; \
+             CREATE TRIGGER keep BEFORE DELETE ON pw_runs FOR EACH ROW EXECUTE FUNCTION keep();",
+        )
+        .assert_ok("a trigger suppressing every deletion of a run");
+    let mut tx = tables.begin().assert_ok("a command");
+    let taken = tx.consume(&run, 1000);
+    assert!(matches!(taken, Err(Error::Refused(_))), "{taken:?}");
+    assert!(
+        tx.write(&owner("insert"), &[owner_row("x")]).is_err(),
+        "the command's transaction fails with it"
+    );
+    drop(tx);
+    assert_eq!(tables.run_current(&run, 1000), Ok(true), "the run is kept");
+    assert_eq!(owner_of(&tables, "x"), Value::Null);
+    // The neighbour: another generation is not current, and no refusal.
+    let mut tx = tables.begin().assert_ok("a command");
+    let stale = Run {
+        attempts: run.attempts + 1,
+        ..run.clone()
+    };
+    assert_eq!(tx.consume(&stale, 1000), Ok(false));
+}
+
+/// **The sessions past their lifetimes and the sign-ins past theirs are
+/// swept, a bounded batch at a time**, those alive kept, and a session a
+/// command holds left for the next sweep.
+#[test]
+fn sessions_and_sign_ins_past_their_lifetimes_are_swept() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "swept");
+    let tables = open_things(&scratch);
+    for n in 1..=4 {
+        tables
+            .open_session(&hash(n), &session(&format!("u{n}"), n))
+            .assert_ok("opened");
+    }
+    // Three of them past their idle time; the fourth alive.
+    scratch
+        .sql(
+            "UPDATE pw_sessions SET seen = seen - interval '3 days' \
+             WHERE get_byte(hash, 0) IN (1, 2, 3)",
+        )
+        .assert_ok("aged");
+    let brief = Lifetimes {
+        idle: DAY,
+        absolute: DAY * 30,
+    };
+    assert_eq!(tables.sweep_sessions(brief, 2), Ok(2), "two at most");
+    assert_eq!(tables.sweep_sessions(brief, 10), Ok(1), "then the third");
+    assert_eq!(tables.sweep_sessions(brief, 10), Ok(0));
+    assert_eq!(
+        tables.inspect_session(&hash(4), brief),
+        Ok(Some(session("u4", 4))),
+        "the live session kept"
+    );
+    // Sign-ins: one begun eleven minutes ago, one now.
+    tables
+        .begin_sign_in(&hash(5), "old-nonce", "old-verifier")
+        .assert_ok("begun");
+    scratch
+        .sql("UPDATE pw_sign_ins SET started = started - interval '11 minutes'")
+        .assert_ok("aged");
+    tables
+        .begin_sign_in(&hash(6), "new-nonce", "new-verifier")
+        .assert_ok("begun");
+    // The second sign-in's own statement forgets the first; aged again, the
+    // sweep forgets what remains past its ten minutes.
+    tables
+        .begin_sign_in(&hash(7), "late-nonce", "late-verifier")
+        .assert_ok("begun");
+    scratch
+        .sql(
+            "UPDATE pw_sign_ins SET started = started - interval '11 minutes' \
+             WHERE get_byte(hash, 0) = 7",
+        )
+        .assert_ok("aged");
+    assert_eq!(tables.sweep_sign_ins(Duration::from_secs(600), 10), Ok(1));
+    assert_eq!(
+        scratch.texts("SELECT nonce FROM pw_sign_ins"),
+        ["new-nonce"],
+        "only the sign-in under way keeps its nonce and verifier"
+    );
+}
+
+/// **A session a fenced command holds is not swept from under it**: its row
+/// is locked by the command, and the sweep passes it by, waiting for nothing.
+#[test]
+fn a_session_a_command_holds_is_left_for_the_next_sweep() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "swept_held");
     let tables = open_things(&scratch);
     let ada = session("ada", 1);
     tables.open_session(&hash(1), &ada).assert_ok("opened");
-    let mut tx = tables.begin().assert_ok("a command");
-    tx.write(&owner("insert"), &[owner_row("a")])
-        .assert_ok("written");
-    let late = tx.fence(fence(1, Some(ada.clone()), lifetimes()));
-    assert!(matches!(late, Err(Error::Input(_))), "{late:?}");
-    drop(tx);
-    let mut tx = tables.begin().assert_ok("a command");
-    tx.fence(fence(1, Some(ada.clone()), lifetimes()))
+    let tx = tables
+        .begin_fenced(fence(1, Some(ada.clone()), lifetimes()))
         .assert_ok("fenced");
-    let twice = tx.fence(fence(1, Some(ada), lifetimes()));
-    assert!(matches!(twice, Err(Error::Input(_))), "{twice:?}");
+    let brief = Lifetimes {
+        idle: Duration::from_secs(1),
+        absolute: DAY,
+    };
+    std::thread::sleep(Duration::from_millis(1200));
+    let started = std::time::Instant::now();
+    assert_eq!(tables.sweep_sessions(brief, 10), Ok(0), "held, passed by");
+    assert!(
+        started.elapsed() < Duration::from_secs(2),
+        "without waiting"
+    );
+    drop(tx);
+    assert_eq!(tables.sweep_sessions(brief, 10), Ok(1), "then swept");
+}
+
+/// **The outbox's delivered rows are forgotten**: those named, and no
+/// other; those a host left behind, once older than a given age.
+#[test]
+fn the_outboxs_delivered_rows_are_forgotten() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "outbox");
+    let tables = open_things(&scratch);
+    let event = |name: &str| Outboxed {
+        kind: OutboxKind::Event,
+        name: name.into(),
+        values: vec![],
+    };
+    let mut ids = Vec::new();
+    for name in ["a", "b", "c"] {
+        let mut tx = tables.begin().assert_ok("a command");
+        tx.write(&owner("insert"), &[owner_row(name)])
+            .assert_ok("written");
+        let committed = tx
+            .prepare()
+            .assert_ok("prepared")
+            .publish_with(Records {
+                interaction: None,
+                outbox: &[event(name)],
+            })
+            .assert_ok("committed");
+        ids.extend(committed.outbox.iter().map(|(id, _)| *id));
+    }
+    assert_eq!(ids.len(), 3);
+    assert_eq!(tables.forget_outbox(&ids[..2]), Ok(2));
+    assert_eq!(scratch.texts("SELECT name FROM pw_outbox"), ["c"]);
+    assert_eq!(tables.forget_outbox(&[]), Ok(0));
+    // Left behind: kept while young, forgotten once older than the age.
+    assert_eq!(tables.trim_outbox(Duration::from_secs(60), 10), Ok(0));
+    scratch
+        .sql("UPDATE pw_outbox SET created = created - interval '2 minutes'")
+        .assert_ok("aged");
+    assert_eq!(tables.trim_outbox(Duration::from_secs(60), 10), Ok(1));
+    assert_eq!(scratch.texts("SELECT count(*)::text FROM pw_outbox"), ["0"]);
+}
+
+/// **A render's reads end at a read that fails**: the snapshot's
+/// transaction ended with it, and a later read of the render fails rather
+/// than open another transaction, which would read a later state.
+#[test]
+fn a_renders_reads_end_at_a_read_that_fails() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "render_fails");
+    let tables = open_things(&scratch);
+    tables
+        .transaction(|tx| tx.write(&owner("insert"), &[owner_row("a")]))
+        .assert_ok("a");
+    let snapshot = tables.snapshot().assert_ok("a seat");
+    assert_eq!(
+        snapshot.read(&owner("all"), &[]),
+        Ok(json!([owner_row("a")]))
+    );
+    tables
+        .transaction(|tx| tx.write(&owner("insert"), &[owner_row("b")]))
+        .assert_ok("b, committed during the render");
+    assert!(
+        snapshot.read(&owner("get"), &[json!(42)]).is_err(),
+        "a read given what its function does not take fails"
+    );
+    let after = snapshot.read(&owner("all"), &[]);
+    assert!(
+        after.is_err(),
+        "a later read of the render fails, and reads no other state: {after:?}"
+    );
+    // The neighbour: a snapshot of its own reads what is committed now.
+    let fresh = tables.snapshot().assert_ok("a seat");
+    assert_eq!(
+        fresh.read(&owner("all"), &[]),
+        Ok(json!([owner_row("a"), owner_row("b")]))
+    );
 }

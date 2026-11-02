@@ -3003,11 +3003,19 @@ impl Server {
                     return Err(why);
                 }
                 Err(why) => {
+                    // TRACK SEAM (durable-tables): **a commit known to have
+                    // kept nothing** (the database answered its rollback, or
+                    // it never reached its COMMIT) is answered refused, at
+                    // once: there is nothing to reconcile.
+                    let refused = staging.definitely_refused();
                     drop(out);
                     drop(host);
                     drop(staged_events);
                     drop(staging);
                     drop(memory_hold.take());
+                    if refused {
+                        return Err(why);
+                    }
                     self.refresh_uncertain_browser(session, &invalidated, &emitted);
                     if let Some(actor) = &actor
                         && let Err(why) = actor.ensure_current()
@@ -4106,6 +4114,10 @@ impl Server {
     /// many, and how long until the next, a second at most.
     fn run_due(&self) -> (usize, u64) {
         let now = self.now();
+        // TRACK SEAM (durable-tables): what the data layer keeps beyond the
+        // host, kept bounded on the scheduler's passes.
+        self.data
+            .housekeeping(now, &self.identity.principals().lifetimes());
         let due = match schedules::select(self.runs(), now, 16) {
             Ok(due) => due,
             Err(why) => {

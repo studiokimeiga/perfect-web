@@ -416,10 +416,76 @@ fn a_signing_reaches_every_other_open_page_on_postgresql() {
     assert_eq!(committer, "a");
     assert!(reached.iter().any(|r| r.resource == LATEST), "{reached:?}");
     assert_eq!(s.others_reading("a", reached), ["b"]);
+}
+
+/// **What the outbox was handed, as each commit wrote it**: another hand's
+/// trigger copies each row the outbox takes into `outbox_seen`, with the
+/// transaction that wrote it (the host forgets its own rows once it has
+/// delivered them, so the outbox itself keeps none for a test to read).
+fn audit_outbox(schema: &Schema) {
+    let s = crate::feed_pg::ident(&schema.name);
+    schema
+        .sql(&format!(
+            "CREATE TABLE outbox_seen (xid text, row text); \
+             CREATE FUNCTION seen() RETURNS trigger LANGUAGE plpgsql AS \
+             $$ BEGIN INSERT INTO {s}.outbox_seen VALUES (pg_current_xact_id()::xid::text, \
+                 NEW.kind || ':' || NEW.name || ':' || NEW.args::text); RETURN NEW; END $$; \
+             CREATE TRIGGER seen AFTER INSERT ON pw_outbox FOR EACH ROW EXECUTE FUNCTION seen();"
+        ))
+        .asserted("an audit of the outbox");
+}
+
+/// **The outbox keeps no row its host delivered** (the review of 3ccd083a,
+/// finding 1): each commit's events are written with it, read back and
+/// delivered, then forgotten, so the outbox holds no more than what is not
+/// delivered yet, however many commits there were; a row a host that ended
+/// left behind is forgotten by the layer's housekeeping once it is a minute
+/// old, and one younger is kept until then.
+#[test]
+fn the_outbox_keeps_no_row_its_host_delivered() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = guestbook();
+    let schema = Schema::new(&url, "outbox");
+    let s = serve(&out, &schema);
+    audit_outbox(&schema);
+    s.identity.signed_in_for_test("a", "u-ada", "Ada");
+    s.identity.signed_in_for_test("b", "u-bob", "Bob");
+    for n in 1..=3 {
+        shown(&s, "b");
+        s.telling.lock().expect("telling").clear();
+        assert!(sign(&s, "a", &format!("Entry {n}"), &format!("i-{n}")).committed);
+        let telling = s.telling.lock().expect("telling").clone();
+        assert!(
+            telling
+                .iter()
+                .any(|(_, reached)| reached.iter().any(|r| r.resource == LATEST)),
+            "commit {n} delivered: {telling:?}"
+        );
+        assert_eq!(schema.count("pw_outbox"), "0", "after commit {n}");
+    }
     assert_eq!(
-        schema.texts("SELECT kind || ':' || name || ':' || args::text FROM pw_outbox"),
-        ["event:guestbook.book.Signed:[\"guestbook\"]"]
+        schema.texts("SELECT row FROM outbox_seen"),
+        ["event:guestbook.book.Signed:[\"guestbook\"]"; 3],
+        "each commit wrote its event"
     );
+    // Left behind by a host that ended between a commit and its forgetting:
+    // one two minutes old, one written now.
+    schema
+        .sql(
+            "INSERT INTO pw_outbox (kind, name, args, host, created) VALUES \
+             ('event', 'left.Old', '[]', 'ended', clock_timestamp() - interval '2 minutes'), \
+             ('event', 'left.Young', '[]', 'ended', clock_timestamp())",
+        )
+        .asserted("rows a host left behind");
+    s.run_due();
+    assert_eq!(schema.texts("SELECT name FROM pw_outbox"), ["left.Young"]);
+    // A minute on, the young one is old.
+    schema
+        .sql("UPDATE pw_outbox SET created = created - interval '2 minutes'")
+        .asserted("aged");
+    s.query_clock.0.advance(61 * 1000);
+    s.run_due();
+    assert_eq!(schema.count("pw_outbox"), "0");
 }
 
 /// A page of two bindings, each reading the table: what one render of it
@@ -513,11 +579,14 @@ fn a_commands_rows_record_and_outbox_commit_as_one_transaction() {
     let (_dir, out) = guestbook();
     let schema = Schema::new(&url, "one");
     let s = serve(&out, &schema);
+    audit_outbox(&schema);
     s.identity.signed_in_for_test("a", "u-ada", "Ada");
     assert!(sign(&s, "a", "Together", "i-1").committed);
+    // The event's row is forgotten once delivered: the audit kept the
+    // transaction that wrote it.
     let xmins = schema.texts(
         "SELECT xmin::text FROM \"Entries\" UNION ALL SELECT xmin::text FROM \"Books\" \
-         UNION ALL SELECT xmin::text FROM pw_interactions UNION ALL SELECT xmin::text FROM pw_outbox",
+         UNION ALL SELECT xmin::text FROM pw_interactions UNION ALL SELECT xid FROM outbox_seen",
     );
     assert_eq!(xmins.len(), 4, "{xmins:?}");
     assert!(
@@ -533,15 +602,13 @@ fn a_commands_rows_record_and_outbox_commit_as_one_transaction() {
              DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION refuse();",
         )
         .asserted("a trigger refusing at the commit");
+    // The database answered its rollback: refused, not an outcome unknown.
     let refused = s.command_answer(SIGN, "a", &[serde_json::json!("Refused")], Some("i-2"));
-    assert!(
-        refused.is_err() || refused.as_ref().is_ok_and(|a| !a.committed),
-        "{refused:?}"
-    );
+    assert!(refused.as_ref().is_ok_and(|a| !a.committed), "{refused:?}");
     assert_eq!(schema.count(ENTRIES), "1");
     assert_eq!(schema.texts("SELECT signed::text FROM \"Books\""), ["1"]);
     assert_eq!(schema.count("pw_interactions"), "1");
-    assert_eq!(schema.count("pw_outbox"), "1");
+    assert_eq!(schema.count("outbox_seen"), "1", "its event rolled back");
     // And once the database takes it, a signing commits whole.
     schema
         .sql("DROP TRIGGER refuse ON \"Entries\"")
@@ -941,6 +1008,538 @@ fn a_session_past_its_lifetime_at_the_commit_keeps_nothing() {
     assert_eq!(schema.count(ENTRIES), "0");
     assert_eq!(schema.count("pw_interactions"), "0");
     assert_eq!(schema.count("pw_outbox"), "0");
+}
+
+/// **A command waiting for its session holds no other session's command
+/// up** (the review of 3ccd083a, finding 2): a reader's command, admitted,
+/// waits for its session's lock, which another host's command fenced on
+/// the session took meanwhile, before it takes its host's turn, so another
+/// reader's command on the host commits at once; once the lock is given
+/// back, the waiting command commits too. (The other host's command writes
+/// nothing, and each reader's writes a note of its own: commands writing
+/// what another reads wait, or are refused, as they should, which is not
+/// what is held here.)
+#[test]
+fn a_command_waiting_for_its_session_holds_no_other_session_up() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = super::tables::built(&[], &[("Notes.pw", NOTES), ("later.pw", LATER)]);
+    let schema = Schema::new(&url, "turns");
+    let (a, b) = pair(&out, &schema);
+    a.identity.signed_in_for_test("other", "u-bob", "Bob");
+    // The command here is admitted, then held before its authority until the
+    // command there holds the session's lock (an admission waits for that
+    // lock too, so it is admitted first).
+    let (admitted, admission) = std::sync::mpsc::channel();
+    let (proceed, onward) = std::sync::mpsc::channel::<()>();
+    *a.before_command_authority.lock().expect("hook") = Some(Box::new(move |_| {
+        let _ = admitted.send(());
+        let _ = onward.recv_timeout(Duration::from_secs(20));
+    }));
+    let noted = |s: &Server, session: &str, id: &str| {
+        s.command_answer(NOTE_LATER, session, &[serde_json::json!(id)], None)
+    };
+    let actor = b
+        .identity
+        .principals()
+        .command_actor("owner")
+        .asserted("the session, on the other host");
+    let (held, waited, other, elapsed, still, here) = std::thread::scope(|scope| {
+        let here = scope.spawn(|| noted(&a, "owner", "here"));
+        let first = admission.recv_timeout(Duration::from_secs(20)).is_ok();
+        // The other host's command, fenced on the session: its lock taken.
+        let mut there = b.data.begin("owner");
+        let held = first && there.authorize(&actor).is_ok();
+        let _ = proceed.send(());
+        let until = Instant::now() + Duration::from_secs(4);
+        let mut waited = false;
+        while Instant::now() < until {
+            if schema.waiting() == "1" {
+                waited = true;
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        let started = Instant::now();
+        let other = noted(&a, "other", "meanwhile");
+        let elapsed = started.elapsed();
+        // Whether the waiting command still waits: it does until the lock
+        // is given back, below; one that held the turn through its wait let
+        // the other command run only once its own wait had failed.
+        let still = !here.is_finished();
+        drop(there);
+        (held, waited, other, elapsed, still, here.join())
+    });
+    assert!(held, "another host's command holds the session's lock");
+    assert!(waited, "the session's command on this host waits for it");
+    assert!(matches!(&other, Ok(a) if a.committed), "{other:?}");
+    assert!(
+        still && elapsed < Duration::from_secs(4),
+        "another session's command is not held up by the one waiting: {elapsed:?}, \
+         the waiting one still waiting: {still}"
+    );
+    assert!(matches!(&here, Ok(Ok(a)) if a.committed), "{here:?}");
+    assert_eq!(schema.count("\"Notes\""), "2");
+}
+
+/// **A run whose taking another hand suppresses is retried after its
+/// backoff, never taken for a run another command completed** (the review
+/// of 3ccd083a, finding 3): a trigger answers `NULL` to every deletion of a
+/// run, so its command's transaction is refused, nothing of it kept, and
+/// the run is retried two seconds on; not found stale and selected again
+/// at once, which ran a thousand transactions a second.
+#[test]
+fn a_run_whose_taking_is_suppressed_is_retried_after_its_backoff() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = super::tables::built(&[], &[("Notes.pw", NOTES), ("later.pw", LATER)]);
+    let schema = Schema::new(&url, "suppressed");
+    let s = serve(&out, &schema);
+    let noted = s
+        .command_answered(NOTE_LATER, "a", &[Val::String("x".into())], None)
+        .asserted("answered");
+    assert!(noted.committed, "{noted:?}");
+    schema
+        .sql(
+            "CREATE FUNCTION keep() RETURNS trigger LANGUAGE plpgsql AS \
+             $$ BEGIN RETURN NULL; END $$; \
+             CREATE TRIGGER keep BEFORE DELETE ON pw_runs FOR EACH ROW EXECUTE FUNCTION keep();",
+        )
+        .asserted("a trigger suppressing every deletion of a run");
+    s.query_clock.0.advance(31 * 60 * 1000);
+    assert_eq!(s.run_due().0, 1, "selected and run");
+    let counted = |n: &std::sync::atomic::AtomicU64| n.load(Ordering::SeqCst);
+    assert_eq!(
+        (
+            counted(&s.counted_runs.stale),
+            counted(&s.counted_runs.retried)
+        ),
+        (0, 1),
+        "retried, not found stale"
+    );
+    let kept = s.runs().all_runs().asserted("the runs");
+    assert_eq!(kept.len(), 1, "{kept:?}");
+    assert!(
+        kept[0].attempts == 1 && kept[0].due_ms > s.now(),
+        "due after its backoff: {kept:?}"
+    );
+    assert_eq!(s.run_due().0, 0, "not selected again at once");
+    assert_eq!(
+        schema.texts("SELECT convert_from(text, 'UTF8') FROM \"Notes\""),
+        ["noted"],
+        "nothing of its command kept"
+    );
+    assert_eq!(schema.count("pw_interactions"), "0");
+}
+
+/// A table of counts, and a command the clock invokes that counts and
+/// schedules itself again.
+const COUNTS: &str = "module Counts
+
+type Count = Count { id: String, n: Int }
+
+table Counts
+    row Count
+    key id
+";
+
+const TICKS: &str = "module durable.ticks
+
+import clock.{ minutes }
+import Counts.{ Count }
+import Counts
+
+opaque type InteractionId = String
+
+command tick(id: String) -> Result<Int, String> !{ clock.schedule, database.read<Counts>, database.write<Counts> }
+    invoked_by    Clock
+    idempotent_by InteractionId
+{
+    let n = match Counts.get(id) {
+        Some(c) => c.n + 1,
+        None => 1,
+    }
+    Counts.put(Count { id: id, n: n })
+    schedule tick(id) after minutes(30)
+    Ok(n)
+}
+
+command start(id: String) -> Result<Int, String> !{ clock.schedule, database.write<Counts> }
+{
+    Counts.put(Count { id: id, n: 0 })
+    schedule tick(id) after minutes(30)
+    Ok(0)
+}
+";
+
+/// **A run that schedules itself again runs each generation once** (the
+/// review of 3ccd083a, finding 6): its command takes the run it completes
+/// before it writes the next generation under the same key, so the taking
+/// finds the run selected, and the generation it writes is the one kept,
+/// due a half hour on; each runs once it is due, and none sooner.
+#[test]
+fn a_run_that_schedules_itself_again_runs_each_generation_once() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = super::tables::built(&[], &[("Counts.pw", COUNTS), ("ticks.pw", TICKS)]);
+    let schema = Schema::new(&url, "ticks");
+    let s = serve(&out, &schema);
+    let started = s
+        .command_answered("durable.ticks.start", "a", &[Val::String("t".into())], None)
+        .asserted("answered");
+    assert!(started.committed, "{started:?}");
+    let counts = || schema.texts("SELECT n::text FROM \"Counts\"");
+    for n in 1..=3 {
+        let before = s.runs().all_runs().asserted("the runs");
+        assert_eq!(before.len(), 1, "{before:?}");
+        assert_eq!(
+            s.run_due().0,
+            0,
+            "generation {n} is not due before its time"
+        );
+        s.query_clock.0.advance(31 * 60 * 1000);
+        assert_eq!(s.run_due().0, 1, "generation {n} is selected");
+        assert_eq!(counts(), [n.to_string()], "generation {n} ran once");
+        let after = s.runs().all_runs().asserted("the runs");
+        assert!(
+            after.len() == 1 && after[0].id != before[0].id && after[0].due_ms > s.now(),
+            "the next generation kept, due on: {before:?} then {after:?}"
+        );
+    }
+    assert_eq!(s.counted_runs.stale.load(Ordering::SeqCst), 0);
+}
+
+/// **A commit whose connection ends under its `COMMIT` is reconciled, not
+/// answered refused** (the review of 3ccd083a, finding 6): the database's
+/// session ends as the commit runs (a deferred trigger of another hand's
+/// ends its own backend), so whether it committed is unknown to the
+/// adapter; the host reconciles it from the interaction's record, finds
+/// none, and says the outcome is unknown, never that it did not commit.
+/// Nothing was kept, and the host's next command commits.
+#[test]
+fn a_commit_whose_connection_ends_under_it_is_reconciled_not_refused() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = guestbook();
+    let schema = Schema::new(&url, "ended");
+    let s = serve(&out, &schema);
+    s.identity.signed_in_for_test("a", "u-ada", "Ada");
+    schema
+        .sql(
+            "CREATE FUNCTION die() RETURNS trigger LANGUAGE plpgsql AS \
+             $$ BEGIN PERFORM pg_terminate_backend(pg_backend_pid()); RETURN NULL; END $$; \
+             CREATE CONSTRAINT TRIGGER die AFTER INSERT ON \"Entries\" \
+             DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION die();",
+        )
+        .asserted("a trigger ending its own backend at the commit");
+    let ended = s.command_answer(SIGN, "a", &[serde_json::json!("Ended")], Some("i-1"));
+    assert!(
+        matches!(&ended, Err(why) if why.contains("unknown")),
+        "{ended:?}"
+    );
+    assert_eq!(schema.count(ENTRIES), "0");
+    assert_eq!(schema.count("pw_interactions"), "0");
+    schema
+        .sql("DROP TRIGGER die ON \"Entries\"")
+        .asserted("the trigger dropped");
+    assert!(sign(&s, "a", "After", "i-2").committed);
+    assert_eq!(schema.count(ENTRIES), "1");
+}
+
+/// **A path to the database that loses one `COMMIT`'s answer**: every byte
+/// passed both ways until it is armed; then the next `COMMIT` a client
+/// sends is passed on, the database's answer read and dropped, and both
+/// ends closed (the database's session ends with them, and every lock it
+/// held), so the commit landed and its client cannot know it.
+struct LosingProxy {
+    port: u16,
+    upstream: String,
+    armed: Arc<std::sync::atomic::AtomicBool>,
+    lost: Arc<AtomicUsize>,
+    stopped: Arc<std::sync::atomic::AtomicBool>,
+}
+
+impl LosingProxy {
+    /// A proxy to the database `url` names (`host:port`, after its `@`).
+    fn start(url: &str) -> LosingProxy {
+        use std::io::{Read, Write};
+        use std::net::{Shutdown, TcpListener, TcpStream};
+        let authority = url
+            .split_once("://")
+            .and_then(|(_, rest)| rest.split('/').next())
+            .and_then(|a| a.rsplit('@').next())
+            .map(|hp| {
+                if hp.contains(':') {
+                    hp.to_string()
+                } else {
+                    format!("{hp}:5432")
+                }
+            });
+        let upstream = authority.asserted_some("a database URL with a host");
+        let listener = TcpListener::bind("127.0.0.1:0").asserted("a port for the proxy");
+        let port = listener.local_addr().asserted("its address").port();
+        let armed = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let lost = Arc::new(AtomicUsize::new(0));
+        let stopped = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let (to, arm, losses, stop) = (
+            upstream.clone(),
+            armed.clone(),
+            lost.clone(),
+            stopped.clone(),
+        );
+        std::thread::spawn(move || {
+            for client in listener.incoming() {
+                if stop.load(Ordering::SeqCst) {
+                    break;
+                }
+                let (Ok(client), Ok(server)) = (client, TcpStream::connect(&to)) else {
+                    continue;
+                };
+                let cut = Arc::new(std::sync::atomic::AtomicBool::new(false));
+                // The database's answers: passed, unless its COMMIT was cut.
+                if let (Ok(mut from), Ok(mut back)) = (server.try_clone(), client.try_clone()) {
+                    let (cut, losses) = (cut.clone(), losses.clone());
+                    std::thread::spawn(move || {
+                        let mut buf = [0u8; 16384];
+                        loop {
+                            let n = match from.read(&mut buf) {
+                                Ok(0) | Err(_) => break,
+                                Ok(n) => n,
+                            };
+                            if cut.load(Ordering::SeqCst) {
+                                losses.fetch_add(1, Ordering::SeqCst);
+                                let _ = back.shutdown(Shutdown::Both);
+                                let _ = from.shutdown(Shutdown::Both);
+                                break;
+                            }
+                            if back.write_all(&buf[..n]).is_err() {
+                                break;
+                            }
+                        }
+                    });
+                }
+                // The client's messages, one at a time: the first untyped.
+                let (arm, cut) = (arm.clone(), cut);
+                std::thread::spawn(move || {
+                    let (mut from, mut onward) = (client, server);
+                    let mut length = [0u8; 4];
+                    if from.read_exact(&mut length).is_err() {
+                        return;
+                    }
+                    let mut body =
+                        vec![0u8; (u32::from_be_bytes(length) as usize).saturating_sub(4)];
+                    if from.read_exact(&mut body).is_err()
+                        || onward.write_all(&length).is_err()
+                        || onward.write_all(&body).is_err()
+                    {
+                        return;
+                    }
+                    loop {
+                        let mut head = [0u8; 5];
+                        if from.read_exact(&mut head).is_err() {
+                            break;
+                        }
+                        let n = u32::from_be_bytes([head[1], head[2], head[3], head[4]]) as usize;
+                        let mut body = vec![0u8; n.saturating_sub(4)];
+                        if from.read_exact(&mut body).is_err() {
+                            break;
+                        }
+                        if head[0] == b'Q'
+                            && body.starts_with(b"COMMIT")
+                            && arm.swap(false, Ordering::SeqCst)
+                        {
+                            cut.store(true, Ordering::SeqCst);
+                        }
+                        if onward.write_all(&head).is_err() || onward.write_all(&body).is_err() {
+                            break;
+                        }
+                    }
+                    let _ = onward.shutdown(Shutdown::Write);
+                });
+            }
+        });
+        LosingProxy {
+            port,
+            upstream,
+            armed,
+            lost,
+            stopped,
+        }
+    }
+
+    /// `url`, its database reached through the proxy.
+    fn url(&self, url: &str) -> String {
+        url.replacen(
+            &format!("@{}", self.upstream),
+            &format!("@127.0.0.1:{}", self.port),
+            1,
+        )
+        .replacen(
+            &format!("@{}/", self.upstream.trim_end_matches(":5432")),
+            &format!("@127.0.0.1:{}/", self.port),
+            1,
+        )
+    }
+}
+
+impl Drop for LosingProxy {
+    fn drop(&mut self) {
+        self.stopped.store(true, Ordering::SeqCst);
+        let _ = std::net::TcpStream::connect(("127.0.0.1", self.port));
+    }
+}
+
+/// **A commit that landed and whose answer was lost is answered committed,
+/// from its record** (the review of 3ccd083a, finding 6): the connection's
+/// path to the database passes the `COMMIT` on and loses its answer, so the
+/// adapter cannot know whether it committed; the host reconciles it from
+/// the interaction's record the commit kept, and answers it committed,
+/// once, and the same again when it is sent again.
+#[test]
+fn a_commit_whose_answer_was_lost_is_answered_from_its_record() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = guestbook();
+    let schema = Schema::new(&url, "lost");
+    let proxy = LosingProxy::start(&url);
+    let mut database = schema.database();
+    database.url = proxy.url(&database.url);
+    assert!(
+        database.url.contains(&format!("@127.0.0.1:{}", proxy.port)),
+        "{}",
+        database.url
+    );
+    let s = Server::from_build_tables(out.clone(), out.clone(), Some(&database))
+        .asserted("served through the proxy");
+    s.identity.signed_in_for_test("a", "u-ada", "Ada");
+    let armed = proxy.armed.clone();
+    *s.before_commit.lock().expect("hook") = Some(Box::new(move |_| {
+        armed.store(true, Ordering::SeqCst);
+    }));
+    let landed = s.command_answer(SIGN, "a", &[serde_json::json!("Landed")], Some("i-1"));
+    assert_eq!(
+        proxy.lost.load(Ordering::SeqCst),
+        1,
+        "the COMMIT's answer was lost"
+    );
+    assert!(matches!(&landed, Ok(a) if a.committed), "{landed:?}");
+    assert_eq!(schema.count(ENTRIES), "1");
+    assert_eq!(schema.count("pw_interactions"), "1");
+    let again = s.command_answer(SIGN, "a", &[serde_json::json!("Landed")], Some("i-1"));
+    assert_eq!(again, landed, "answered as it was");
+    assert_eq!(schema.count(ENTRIES), "1");
+}
+
+/// **A commit the database rolled back is answered refused, at once** (the
+/// review of 3ccd083a, finding 6): a serialization failure at its `COMMIT`
+/// (SQLSTATE 40001, as a deferred trigger of another hand's raises it)
+/// keeps nothing, and the host knows it: the reader is told the command did
+/// not commit, never that its outcome is unknown.
+#[test]
+fn a_commit_the_database_rolled_back_is_answered_refused() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = guestbook();
+    let schema = Schema::new(&url, "rolled");
+    let s = serve(&out, &schema);
+    s.identity.signed_in_for_test("a", "u-ada", "Ada");
+    schema
+        .sql(
+            "CREATE FUNCTION conflict() RETURNS trigger LANGUAGE plpgsql AS \
+             $$ BEGIN RAISE EXCEPTION 'could not serialize' USING ERRCODE = '40001'; END $$; \
+             CREATE CONSTRAINT TRIGGER conflict AFTER INSERT ON \"Entries\" \
+             DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION conflict();",
+        )
+        .asserted("a trigger failing the commit's serialization");
+    let refused = s.command_answer(SIGN, "a", &[serde_json::json!("Conflict")], Some("i-1"));
+    assert!(
+        matches!(&refused, Ok(a) if !a.committed
+            && a.why.as_deref().is_some_and(|why| why.contains("Serialization"))),
+        "{refused:?}"
+    );
+    assert_eq!(schema.count(ENTRIES), "0");
+    assert_eq!(schema.count("pw_interactions"), "0");
+}
+
+/// **The sessions past their lifetimes and the sign-ins past theirs are
+/// swept by the host** (the review of 3ccd083a, finding 4), not only where
+/// the same cookie comes back: the scheduler's passes sweep them, a minute
+/// apart at most, a bounded batch at a time; the sessions alive and the
+/// sign-ins under way are kept.
+#[test]
+fn sessions_and_sign_ins_past_their_lifetimes_are_swept_by_the_host() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = guestbook();
+    let schema = Schema::new(&url, "swept");
+    let s = serve(&out, &schema);
+    s.identity
+        .principals()
+        .expire_after(identity::SessionLifetimes {
+            idle: Duration::from_secs(3600),
+            absolute: Duration::from_secs(7200),
+        });
+    s.identity.signed_in_for_test("a", "u-ada", "Ada");
+    s.identity.signed_in_for_test("b", "u-bob", "Bob");
+    s.run_due();
+    assert_eq!(schema.count("pw_sessions"), "2");
+    // Ada's idle past her hour; a sign-in begun eleven minutes ago, and one
+    // begun now.
+    schema
+        .sql(
+            "UPDATE pw_sessions SET seen = seen - interval '2 hours' WHERE user_id = 'u-ada'; \
+             INSERT INTO pw_sign_ins (hash, nonce, verifier, started) VALUES \
+             (decode(repeat('01', 32), 'hex'), 'old-nonce', 'old-verifier', \
+              clock_timestamp() - interval '11 minutes'), \
+             (decode(repeat('02', 32), 'hex'), 'new-nonce', 'new-verifier', clock_timestamp());",
+        )
+        .asserted("aged");
+    s.run_due();
+    assert_eq!(
+        (schema.count("pw_sessions"), schema.count("pw_sign_ins")),
+        ("2".to_string(), "2".to_string()),
+        "a minute apart at most"
+    );
+    s.query_clock.0.advance(61 * 1000);
+    s.run_due();
+    assert_eq!(schema.texts("SELECT user_id FROM pw_sessions"), ["u-bob"]);
+    assert_eq!(schema.texts("SELECT nonce FROM pw_sign_ins"), ["new-nonce"]);
+}
+
+/// **A command is fenced from its first statement or never** (the review of
+/// 3ccd083a, finding 6): a staging whose transaction began before its
+/// reader's session authority was asked for (its table functions linked
+/// first) is refused that authority, and is unusable from then on: it links
+/// nothing more and commits nothing, knowing it kept nothing. Asked first,
+/// the authority fences the command, which commits.
+#[test]
+fn a_command_is_fenced_from_its_first_statement_or_never() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = guestbook();
+    let schema = Schema::new(&url, "fenced");
+    let s = serve(&out, &schema);
+    s.identity.signed_in_for_test("a", "u-ada", "Ada");
+    let tables = super::conformance::tables_of(&out);
+    let [_, (writes, granted)] = super::conformance::suite_contracts(&tables);
+    let actor = s
+        .identity
+        .principals()
+        .command_actor("a")
+        .asserted("admitted");
+    let mut late = s.data.begin("a");
+    let linked = late.table_ops(&writes, &granted).map(|_| ());
+    let refused = late.authorize(&actor);
+    let relinked = late.table_ops(&writes, &granted).map(|_| ());
+    let committed = late.commit(&[], &[], None, &[], None).map(|_| ());
+    let definite = late.definitely_refused();
+    drop(late);
+    assert_eq!(linked, Ok(()), "linked before its authority");
+    assert!(refused.is_err(), "and refused it after");
+    assert!(
+        relinked.is_err() && committed.is_err() && definite,
+        "unusable: {relinked:?} {committed:?} {definite}"
+    );
+    // The neighbour: asked first, it fences the command, which commits.
+    let mut first = s.data.begin("a");
+    assert_eq!(first.authorize(&actor), Ok(()));
+    assert!(first.table_ops(&writes, &granted).is_ok());
+    assert!(matches!(
+        first.commit(&[], &[], None, &[], None),
+        Ok(data::Commit::Applied(_))
+    ));
 }
 
 /// A server on a fresh schema for each part of the suite, each schema

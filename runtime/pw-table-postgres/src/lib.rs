@@ -17,23 +17,27 @@
 //!   transaction whole, as the memory adapter answers it: a value.
 //! - **A command is one transaction** ([`Command`]): `SERIALIZABLE`, set on
 //!   each; one command of this adapter at a time, as the memory adapter's
-//!   and every PostgreSQL layer's (ADR-0246); its reads see its writes, no
-//!   other read sees them until it commits; its references held at
-//!   [`Command::prepare`]; and its commit takes the platform's records with
-//!   it ([`Prepared::publish_with`]): the interaction's (ADR-0325) and the
+//!   and every PostgreSQL layer's (ADR-0246), its connection's place taken
+//!   before its turn; its reads see its writes, no other read sees them
+//!   until it commits; its references held at [`Command::prepare`]; and its
+//!   commit takes the platform's records with it
+//!   ([`Prepared::publish_with`]): the interaction's (ADR-0325) and the
 //!   outbox's rows (ADR-0208), in commit order (ADR-0369). A commit the
 //!   database refuses keeps nothing, and says whether it may be run again
-//!   ([`Error::Serialization`]) or was answered at all
-//!   ([`Error::OutcomeUnknown`]).
+//!   ([`Error::Serialization`]), was answered at all
+//!   ([`Error::OutcomeUnknown`]), or met its interaction recorded already
+//!   ([`Error::Recorded`]).
 //! - **Answers are the memory adapter's**: the same rows, each exactly its
 //!   table's, in the same order (tables.json's, a `String` by its bytes),
 //!   refused alike; `tests/parity.rs` holds them equal.
 //! - **A render reads one snapshot in a bounded few seats** ([`Snapshot`],
-//!   ADR-0354): repeatable read, read only, opened at its first read.
+//!   ADR-0354): repeatable read, read only, opened at its first read, and
+//!   ended by a read that fails, every later read of it failing too.
 //! - **The platform's other tables** ([`platform`], track `durable-tables`):
 //!   the runs a command schedules, written in its transaction; the sessions
-//!   and sign-ins a deployment keeps; and a command fenced on the session it
-//!   acts for, to its end.
+//!   and sign-ins a deployment keeps, swept past their lifetimes; the
+//!   outbox's delivered rows forgotten; and a command fenced on the session
+//!   it acts for, from its first statement to its end.
 
 mod migrate;
 pub mod platform;
@@ -81,6 +85,11 @@ pub enum Error {
     Serialization(String),
     /// The database refused the commit for another reason: nothing is kept.
     Refused(String),
+    /// **The interaction's record is kept already** (ADR-0325): the same
+    /// interaction committed before, on another host or on this one before
+    /// it restarted. Nothing of this command is kept, and the record is what
+    /// answers it (track `durable-tables`).
+    Recorded(String),
     /// **A commit sent and never answered**: whether it committed is not
     /// known here, and is reconciled from what the database holds (the
     /// interaction's record), never taken for a refusal.
@@ -502,46 +511,45 @@ impl PgTables {
     }
 
     /// **A command's transaction**: begun once the command before it has
-    /// ended, one at a time. Its connection and `BEGIN` wait for its first
-    /// statement, so a command that touches no table costs the database
-    /// nothing. Its writes are kept only when it commits, and undone whole
-    /// where it is dropped instead.
+    /// ended, one at a time. Its place among the pool's connections is taken
+    /// first, before its turn (track `durable-tables`): a command holding the
+    /// turn never waits for a place, which the commands waiting for the turn
+    /// would hold. Its connection and `BEGIN` wait for its first statement,
+    /// so a command that touches no table costs the database nothing. Its
+    /// writes are kept only when it commits, and undone whole where it is
+    /// dropped instead.
     pub fn begin(&self) -> Result<Command, Error> {
-        let inner = &self.inner;
-        let mut turn = inner.turn.lock().map_err(|_| Error::StoragePoisoned)?;
-        if turn.0.is_some() {
-            let tell = inner
-                .told
-                .lock()
-                .map_err(|_| Error::StoragePoisoned)?
-                .clone();
-            drop(turn);
-            if let Some(tell) = tell {
-                tell();
+        let place = self.inner.pool.take()?;
+        self.turn(place, None)
+    }
+
+    /// **The host's turn, for a command whose connection's place is
+    /// `place`**, and whose fence, where it has one, is `fenced`: waited for
+    /// while another command holds it. Not taken, `place` is closed rather
+    /// than kept, and whatever lock its connection holds goes with it.
+    pub(crate) fn turn(
+        &self,
+        mut place: Lease,
+        fenced: Option<platform::Fenced>,
+    ) -> Result<Command, Error> {
+        let id = match self.inner.take_turn() {
+            Ok(id) => id,
+            Err(error) => {
+                place.discard();
+                return Err(error);
             }
-            turn = inner.turn.lock().map_err(|_| Error::StoragePoisoned)?;
-        }
-        while turn.0.is_some() {
-            turn = inner
-                .turned
-                .wait(turn)
-                .map_err(|_| Error::StoragePoisoned)?;
-        }
-        let id = turn.1;
-        turn.1 += 1;
-        turn.0 = Some(id);
-        drop(turn);
+        };
         Ok(Command {
-            inner: Arc::clone(inner),
+            inner: Arc::clone(&self.inner),
             state: Arc::new(Mutex::new(Open {
                 id,
-                lease: None,
+                lease: Some(place),
                 begun: false,
                 prepared: false,
                 ended: false,
                 failed: None,
                 touched: BTreeMap::new(),
-                fence: None,
+                fence: fenced,
             })),
             ended: false,
         })
@@ -594,6 +602,7 @@ impl PgTables {
             state: Arc::new(SnapshotState {
                 inner: Arc::clone(&self.inner),
                 seat: Mutex::new((lease, false)),
+                ended: Mutex::new(None),
             }),
         })
     }
@@ -695,11 +704,36 @@ struct Open {
     /// Each key it wrote, by its table: the row it held before the command
     /// first wrote it, and the row it holds now.
     touched: BTreeMap<(usize, Key), (Option<Row>, Option<Row>)>,
-    /// The session it acts for, held to its end ([`Command::fence`]).
+    /// The session it acts for, held to its end ([`PgTables::begin_fenced`]).
     fence: Option<platform::Fenced>,
 }
 
 impl Inner {
+    /// **The host's turn**, once the command holding it has ended: its id.
+    /// A test that asked is told first where it waits ([`PgTables::tell_on_wait`]).
+    fn take_turn(&self) -> Result<u64, Error> {
+        let mut turn = self.turn.lock().map_err(|_| Error::StoragePoisoned)?;
+        if turn.0.is_some() {
+            let tell = self
+                .told
+                .lock()
+                .map_err(|_| Error::StoragePoisoned)?
+                .clone();
+            drop(turn);
+            if let Some(tell) = tell {
+                tell();
+            }
+            turn = self.turn.lock().map_err(|_| Error::StoragePoisoned)?;
+        }
+        while turn.0.is_some() {
+            turn = self.turned.wait(turn).map_err(|_| Error::StoragePoisoned)?;
+        }
+        let id = turn.1;
+        turn.1 += 1;
+        turn.0 = Some(id);
+        Ok(id)
+    }
+
     fn begin_command(&self, conn: &mut Conn) -> Result<(), Error> {
         let sql = match self.options.isolation {
             Isolation::Serializable => "BEGIN ISOLATION LEVEL SERIALIZABLE",
@@ -724,10 +758,9 @@ impl Inner {
         if let Some(failed) = &open.failed {
             return Err(failed.clone());
         }
-        if open.lease.is_none() {
-            open.lease = Some(self.pool.take()?);
-        }
-        let lease = open.lease.as_mut().ok_or(Error::StoragePoisoned)?;
+        // Its place was taken before its turn ([`PgTables::begin`]): a
+        // command never waits for one while it holds the turn.
+        let lease = open.lease.as_mut().ok_or(Error::Ended)?;
         let conn = lease.conn()?;
         if !open.begun {
             if let Err(error) = self.begin_command(conn) {
@@ -931,7 +964,6 @@ impl Inner {
             // connection once its transaction has ended (a connection
             // closed above gave it back as it closed).
             if let Some(fenced) = &open.fence
-                && fenced.locked
                 && lease.connected()
             {
                 self.unfence(&mut lease, fenced.key);
@@ -1267,7 +1299,7 @@ impl Prepared {
                         )
                         .map_err(refusal)?;
                     if recorded.is_empty() {
-                        return Err(Error::Refused(format!(
+                        return Err(Error::Recorded(format!(
                             "interaction {} is recorded already",
                             r.key
                         )));
@@ -1381,11 +1413,26 @@ impl Prepared {
 struct SnapshotState {
     inner: Arc<Inner>,
     seat: Mutex<(Lease, bool)>,
+    /// **The read that failed, where one did** (track `durable-tables`): it
+    /// ended the render's transaction, and every later read of the render
+    /// fails with it, rather than read another state of the tables.
+    ended: Mutex<Option<Error>>,
 }
 
 impl SnapshotState {
     fn read(&self, import: &str, args: &[Value]) -> Result<Value, Error> {
         let mut seat = self.seat.lock().map_err(|_| Error::StoragePoisoned)?;
+        if let Some(first) = self
+            .ended
+            .lock()
+            .map_err(|_| Error::StoragePoisoned)?
+            .clone()
+        {
+            return Err(Error::Database(format!(
+                "this render's snapshot ended at a read that failed ({first:?}): no later \
+                 read of it reads another state"
+            )));
+        }
         let (lease, open) = &mut *seat;
         let conn = lease.conn()?;
         if !*open {
@@ -1394,13 +1441,15 @@ impl SnapshotState {
             *open = true;
         }
         let read = read(&self.inner, conn, import, args);
-        if read.is_err() {
-            // A read that fails ends the transaction, as it may have aborted
-            // it; the render's next read opens another.
+        if let Err(error) = &read {
+            // A read that fails ends the transaction (it may have aborted
+            // it), and the render's reads with it: another transaction would
+            // read another state, which one render never does.
             if conn.batch(&self.inner.counters, "ROLLBACK").is_err() {
                 lease.discard();
             }
             *open = false;
+            *self.ended.lock().map_err(|_| Error::StoragePoisoned)? = Some(error.clone());
         }
         read
     }

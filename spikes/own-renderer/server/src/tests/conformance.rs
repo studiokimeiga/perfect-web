@@ -411,7 +411,7 @@ fn oracle(
 /// admitted on a node granting each table's read and write; so the gate
 /// admits each to the whole manifest, as it admits a program's components
 /// each to theirs.
-fn suite_contracts(tables: &[Table]) -> [(ComponentContract, Granted); 2] {
+pub(super) fn suite_contracts(tables: &[Table]) -> [(ComponentContract, Granted); 2] {
     let contract = |id: &str, kind: &str, writes: bool| {
         let imports: Vec<pw_host::Import> = tables
             .iter()

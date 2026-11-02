@@ -5,33 +5,43 @@
 //! its platform migration `0002_runs_and_sessions` (`migrate.rs`).
 //!
 //! - **A command's runs are statements of its transaction**:
-//!   [`Command::schedule`] writes each scheduling (the run pending for its
-//!   key replaced, or cancelled), and [`Command::consume`] takes the run the
-//!   command completes. Both commit with the command's rows, its
-//!   interaction's record and its outbox ([`crate::Prepared::publish_with`]),
-//!   or not at all: a host never keeps a run whose scheduling command rolled
-//!   back, or a scheduling whose run it lost.
+//!   [`Command::consume`] takes the run the command completes (first: a run
+//!   that schedules itself again is taken before its next generation is
+//!   written), and [`Command::schedule`] writes each scheduling (the run
+//!   pending for its key replaced, or cancelled). Both commit with the
+//!   command's rows, its interaction's record and its outbox
+//!   ([`crate::Prepared::publish_with`]), or not at all: a host never keeps
+//!   a run whose scheduling command rolled back, or a scheduling whose run it
+//!   lost. A run no longer the one selected is told apart from one whose
+//!   deletion another hand suppressed: the first is not current, the second
+//!   a refusal.
 //! - **A command acts for a session it holds to its end**
-//!   ([`Command::fence`], the PostgreSQL layers' fence of ADR-0369): the
-//!   session's lock, taken on the command's own connection before its
-//!   transaction begins (so the transaction's snapshot is taken after the
-//!   wait) and given back once it ended; the session's row locked in the
-//!   transaction; and the session as the command was admitted, still, at its
-//!   start and again just before its `COMMIT`. A session signed out, or past
-//!   its lifetimes on the database's clock, refuses the command, which keeps
-//!   nothing.
+//!   ([`PgTables::begin_fenced`], the PostgreSQL layers' fence of ADR-0369):
+//!   the session's lock taken on the command's own connection before the
+//!   command takes the host's turn, so a command waiting for its session
+//!   holds no other session's command up; its transaction begun after the
+//!   wait; the session's row locked in it; and the session as the command
+//!   was admitted, still, at its start and again just before its `COMMIT`.
+//!   The lock is given back once the command ends. A command is fenced from
+//!   its first statement or never: there is no fencing a command that ran.
 //! - **Sessions and sign-ins**, on connections of their own (at most
 //!   [`SESSION_CONNECTIONS`]): an admission (its use recorded, one past its
 //!   lifetimes forgotten), an opening and a closing, each a read-committed
-//!   transaction under the session's lock, so that it waits for a command
-//!   fenced on the session and a fenced command waits for it; an inspection,
-//!   which reads and locks nothing.
+//!   transaction under the session's lock, its connection closed rather than
+//!   kept wherever it does not commit; an inspection, which reads and locks
+//!   nothing; and sweeps, a bounded batch at a time, of the sessions past
+//!   their lifetimes and the sign-ins past theirs (a sign-in's nonce and PKCE
+//!   verifier are kept no longer than it lives).
+//! - **The outbox's delivered rows forgotten**: a host that reads no other
+//!   host's commits forgets each commit's rows once it has delivered them
+//!   ([`PgTables::forget_outbox`]), and those a host that ended left behind
+//!   ([`PgTables::trim_outbox`]).
 
 use std::time::Duration;
 
-use crate::pool::Conn;
+use crate::pool::{Conn, Lease};
 use crate::sql::ident;
-use crate::{Command, Error, Inner, Open, PgTables, database};
+use crate::{Command, Error, Inner, PgTables, database};
 
 /// **How long a fenced command, or a session's change, waits for the
 /// session's lock or a row**, as the other PostgreSQL layers wait
@@ -97,12 +107,12 @@ pub struct Fence {
     pub expected: Option<Session>,
 }
 
-/// A command's fence, and whether its connection holds the session's lock.
+/// A command's fence, and the key of the session's lock its connection
+/// holds from before its turn to its end.
 #[derive(Debug)]
 pub(crate) struct Fenced {
     pub(crate) fence: Fence,
     pub(crate) key: i64,
-    pub(crate) locked: bool,
 }
 
 /// **The platform's statements for runs and sessions**, in the adapter's
@@ -111,6 +121,7 @@ pub(crate) struct Statements {
     due: String,
     next: String,
     one: String,
+    held_run: String,
     retry: String,
     consume: String,
     unschedule: String,
@@ -125,6 +136,10 @@ pub(crate) struct Statements {
     close: String,
     begin_sign_in: String,
     take_sign_in: String,
+    sweep_sessions: String,
+    sweep_sign_ins: String,
+    forget_outbox: String,
+    trim_outbox: String,
 }
 
 const RUN: &str = "id, command, args, user_id, due_ms, attempts, failed";
@@ -136,6 +151,7 @@ impl Statements {
         let runs = format!("{s}.pw_runs");
         let sessions = format!("{s}.pw_sessions");
         let sign_ins = format!("{s}.pw_sign_ins");
+        let outbox = format!("{s}.pw_outbox");
         // A session alive by both lifetimes on the database's clock.
         let alive = "hash = $1 \
              AND opened > clock_timestamp() - make_interval(secs => $2) \
@@ -147,6 +163,7 @@ impl Statements {
             ),
             next: format!("SELECT min(due_ms) FROM {runs} WHERE failed IS NULL"),
             one: format!("SELECT {RUN} FROM {runs} WHERE id = $1"),
+            held_run: format!("SELECT {RUN} FROM {runs} WHERE id = $1 FOR UPDATE"),
             retry: format!(
                 "UPDATE {runs} SET attempts = $7, due_ms = $8, failed = $9 \
                  WHERE id = $1 AND command = $2 AND args = $3 AND user_id = $4 \
@@ -193,6 +210,25 @@ impl Statements {
             take_sign_in: format!(
                 "DELETE FROM {sign_ins} WHERE hash = $1 RETURNING nonce, verifier, \
                  (extract(epoch FROM clock_timestamp() - started) * 1000)::bigint"
+            ),
+            // A bounded batch, never waiting: a row a command or a session's
+            // change holds is the next sweep's.
+            sweep_sessions: format!(
+                "DELETE FROM {sessions} WHERE hash IN (SELECT hash FROM {sessions} \
+                 WHERE opened <= clock_timestamp() - make_interval(secs => $1) \
+                 OR seen <= clock_timestamp() - make_interval(secs => $2) \
+                 LIMIT $3 FOR UPDATE SKIP LOCKED) RETURNING 1"
+            ),
+            sweep_sign_ins: format!(
+                "DELETE FROM {sign_ins} WHERE hash IN (SELECT hash FROM {sign_ins} \
+                 WHERE started < clock_timestamp() - make_interval(secs => $1) \
+                 LIMIT $2 FOR UPDATE SKIP LOCKED) RETURNING 1"
+            ),
+            forget_outbox: format!("DELETE FROM {outbox} WHERE id = ANY($1) RETURNING 1"),
+            trim_outbox: format!(
+                "DELETE FROM {outbox} WHERE id IN (SELECT id FROM {outbox} \
+                 WHERE created < clock_timestamp() - make_interval(secs => $1) \
+                 LIMIT $2 FOR UPDATE SKIP LOCKED) RETURNING 1"
             ),
         }
     }
@@ -259,31 +295,31 @@ fn still(inner: &Inner, conn: &mut Conn, fence: &Fence) -> Result<(), Error> {
     }
 }
 
+/// **A connection that is kept only where its transaction committed**: a
+/// session's change marks its connection so before it begins (as the other
+/// PostgreSQL layers' session changes do), and closes it on every other way
+/// out, a panic's unwinding among them: whether such a connection's
+/// transaction or lock is still held is not known.
+struct KeptIfCommitted<'a> {
+    lease: &'a mut Lease,
+    committed: bool,
+}
+
+impl Drop for KeptIfCommitted<'_> {
+    fn drop(&mut self) {
+        if !self.committed {
+            self.lease.discard();
+        }
+    }
+}
+
 impl Inner {
-    /// [`Command::fence`], on the command's state.
-    fn fence(&self, open: &mut Open, fence: Fence) -> Result<(), Error> {
-        if open.ended {
-            return Err(Error::Ended);
-        }
-        if let Some(failed) = &open.failed {
-            return Err(failed.clone());
-        }
-        if open.begun || open.lease.is_some() || open.fence.is_some() {
-            return Err(Error::Input(
-                "a command is fenced once, before its first statement".into(),
-            ));
-        }
-        let key = session_key(&self.names.schema, &fence.hash);
-        let mut lease = match self.pool.take() {
-            Ok(lease) => lease,
-            Err(error) => {
-                open.failed = Some(error.clone());
-                return Err(error);
-            }
-        };
-        // The session's lock, in a transaction of its own that ends at once:
-        // a session lock outlives it, and the command's transaction, begun
-        // after the wait, takes its snapshot after it.
+    /// **The session's lock, taken on a connection of the pool's** in a
+    /// transaction of its own that ends at once (a session lock outlives
+    /// it), outside any command's turn. Failed, the connection is closed,
+    /// which gives back whatever lock it holds.
+    fn lock_session(&self, key: i64) -> Result<Lease, Error> {
+        let mut lease = self.pool.take()?;
         let locked = (|| {
             let conn = lease.conn()?;
             conn.batch(&self.counters, "BEGIN").map_err(database)?;
@@ -296,41 +332,20 @@ impl Inner {
             .map_err(database)?;
             conn.batch(&self.counters, "COMMIT").map_err(database)
         })();
-        if let Err(error) = locked {
-            // Whether it holds the lock is not known: its connection is
-            // closed, which gives back every lock it holds.
-            lease.discard();
-            open.failed = Some(error.clone());
-            return Err(error);
+        match locked {
+            Ok(()) => Ok(lease),
+            Err(error) => {
+                lease.discard();
+                Err(error)
+            }
         }
-        open.lease = Some(lease);
-        open.fence = Some(Fenced {
-            fence: fence.clone(),
-            key,
-            locked: true,
-        });
-        let held = (|| {
-            let conn = self.command_conn(open)?;
-            conn.batch(&self.counters, LOCK_TIMEOUT).map_err(database)?;
-            conn.query(
-                &self.counters,
-                &self.places.row,
-                &[Box::new(fence.hash.clone())],
-            )
-            .map_err(database)?;
-            still(self, conn, &fence)
-        })();
-        if let Err(error) = &held {
-            open.failed = Some(error.clone());
-        }
-        held
     }
 
     /// **The session's lock given back**, on the connection that holds it,
     /// once its command has ended. An answer that is not "given back" (an
     /// error, or `false`: the lock was not held) closes the connection,
     /// which gives back whatever it holds.
-    pub(crate) fn unfence(&self, lease: &mut crate::pool::Lease, key: i64) {
+    pub(crate) fn unfence(&self, lease: &mut Lease, key: i64) {
         let given = lease.conn().and_then(|conn| {
             conn.query(
                 &self.counters,
@@ -352,8 +367,8 @@ impl Inner {
 
     /// **A session's change**: one transaction at read committed (whatever
     /// the connection's default, so that a change that waited reads what
-    /// the command it waited for committed), under the session's lock.
-    /// Failed, it is rolled back where it can be, and its connection closed.
+    /// the command it waited for committed), under the session's lock. Its
+    /// connection is kept only where the transaction committed.
     fn session_change<T>(
         &self,
         hash: &[u8],
@@ -361,8 +376,12 @@ impl Inner {
     ) -> Result<T, Error> {
         let mut lease = self.sessions.take()?;
         let key = session_key(&self.names.schema, hash);
+        let mut kept = KeptIfCommitted {
+            lease: &mut lease,
+            committed: false,
+        };
         let done = (|| {
-            let conn = lease.conn()?;
+            let conn = kept.lease.conn()?;
             conn.batch(&self.counters, "BEGIN ISOLATION LEVEL READ COMMITTED")
                 .map_err(database)?;
             conn.batch(&self.counters, LOCK_TIMEOUT).map_err(database)?;
@@ -376,13 +395,16 @@ impl Inner {
             conn.batch(&self.counters, "COMMIT").map_err(database)?;
             Ok(out)
         })();
-        if done.is_err() {
-            if lease.connected()
-                && let Ok(conn) = lease.conn()
-            {
-                let _ = conn.batch(&self.counters, "ROLLBACK");
+        match &done {
+            Ok(_) => kept.committed = true,
+            // Rolled back where it can be; closed either way.
+            Err(_) => {
+                if kept.lease.connected()
+                    && let Ok(conn) = kept.lease.conn()
+                {
+                    let _ = conn.batch(&self.counters, "ROLLBACK");
+                }
             }
-            lease.discard();
         }
         done
     }
@@ -415,18 +437,6 @@ impl Inner {
 }
 
 impl Command {
-    /// **Fence this command on the session it acts for** (ADR-0369): before
-    /// its first statement, the session's lock taken on its connection and
-    /// held until the command ends; its transaction begun after the wait;
-    /// the session's row locked in it; and the session held to `fence`'s
-    /// `expected`, now and again just before the command commits
-    /// ([`crate::Prepared::publish_with`]). Refused, the command does nothing
-    /// more and keeps nothing.
-    pub fn fence(&mut self, fence: Fence) -> Result<(), Error> {
-        let mut open = self.state.lock().map_err(|_| Error::StoragePoisoned)?;
-        self.inner.fence(&mut open, fence)
-    }
-
     /// **The session a fenced command acts for, held to its fence again**,
     /// in its transaction: what a command that writes nothing, or answers a
     /// declared error, is answered by. A command not fenced holds nothing.
@@ -450,6 +460,9 @@ impl Command {
     /// **The runs this command schedules, or cancels**, written in its
     /// transaction (ADR-0334): for each, the run pending for its key
     /// removed, and, where it is due, one made in its place, under a new id.
+    /// A command that completes a run takes it first ([`Command::consume`]),
+    /// so a run that schedules itself again is taken before its next
+    /// generation replaces it.
     pub fn schedule(&mut self, runs: &[Scheduling]) -> Result<(), Error> {
         if runs.is_empty() {
             return Ok(());
@@ -492,10 +505,13 @@ impl Command {
         written
     }
 
-    /// **The run this command completes, taken in its transaction**: true
-    /// where it is still the run selected (the same generation, unfailed,
-    /// due at `now_ms`), removed now and for good once the command commits;
-    /// false where it is not, and nothing of the command should commit.
+    /// **The run this command completes, taken in its transaction**: its
+    /// row locked and held to the run selected (the same generation,
+    /// unfailed, due at `now_ms`), then removed, for good once the command
+    /// commits. `Ok(false)` where it is not the run selected any more, and
+    /// nothing of the command should commit; a refusal where it is, and its
+    /// deletion removed nothing (another hand's trigger or rule suppressed
+    /// it), which must not be taken for a run already done.
     pub fn consume(&mut self, run: &Run, now_ms: i64) -> Result<bool, Error> {
         if run.failed.is_some() || run.due_ms > now_ms {
             return Ok(false);
@@ -508,28 +524,40 @@ impl Command {
         let inner = &self.inner;
         let taken = (|| {
             let conn = inner.command_conn(open)?;
-            conn.query(
-                &inner.counters,
-                &inner.places.consume,
-                &[
-                    Box::new(run.id),
-                    Box::new(run.command.clone()),
-                    Box::new(run.args.clone()),
-                    Box::new(run.user.clone()),
-                    Box::new(run.due_ms),
-                    Box::new(run.attempts),
-                    Box::new(now_ms),
-                ],
-            )
-            .map_err(database)
-        })();
-        match taken {
-            Ok(rows) => Ok(rows.len() == 1),
-            Err(error) => {
-                open.failed = Some(error.clone());
-                Err(error)
+            let held = conn
+                .query(&inner.counters, &inner.places.held_run, &[Box::new(run.id)])
+                .map_err(database)?;
+            if held.first().map(run_of).transpose()?.as_ref() != Some(run) {
+                return Ok(false);
             }
+            let removed = conn
+                .query(
+                    &inner.counters,
+                    &inner.places.consume,
+                    &[
+                        Box::new(run.id),
+                        Box::new(run.command.clone()),
+                        Box::new(run.args.clone()),
+                        Box::new(run.user.clone()),
+                        Box::new(run.due_ms),
+                        Box::new(run.attempts),
+                        Box::new(now_ms),
+                    ],
+                )
+                .map_err(database)?;
+            if removed.len() == 1 {
+                Ok(true)
+            } else {
+                Err(Error::Refused(format!(
+                    "run {} is the run selected, and its deletion removed nothing",
+                    run.id
+                )))
+            }
+        })();
+        if let Err(error) = &taken {
+            open.failed = Some(error.clone());
         }
+        taken
     }
 }
 
@@ -547,6 +575,52 @@ pub(crate) fn still_fenced(
 }
 
 impl PgTables {
+    /// **A command fenced on the session it acts for** (ADR-0369): the
+    /// session's lock taken first, on a connection of the pool's, outside
+    /// the host's turn (a command waiting for its session holds no other
+    /// session's command up; a session's commands are one at a time on a
+    /// host already, so no two wait on each other); then the turn, as
+    /// [`PgTables::begin`] takes it; then, on that connection, the command's
+    /// transaction begun, the session's row locked in it, and the session
+    /// held to `fence`'s `expected`, now and again just before the command
+    /// commits ([`crate::Prepared::publish_with`]). The lock is held until
+    /// the command ends. Refused, nothing of it ran and nothing is kept.
+    pub fn begin_fenced(&self, fence: Fence) -> Result<Command, Error> {
+        let key = session_key(&self.inner.names.schema, &fence.hash);
+        let place = self.inner.lock_session(key)?;
+        // The lock is the command's from here, given back as it ends, by
+        // its commit, its refusal or its drop.
+        let command = self.turn(
+            place,
+            Some(Fenced {
+                fence: fence.clone(),
+                key,
+            }),
+        )?;
+        {
+            let mut open = command.state.lock().map_err(|_| Error::StoragePoisoned)?;
+            let open = &mut *open;
+            let inner = &self.inner;
+            let held = (|| {
+                let conn = inner.command_conn(open)?;
+                conn.batch(&inner.counters, LOCK_TIMEOUT)
+                    .map_err(database)?;
+                conn.query(
+                    &inner.counters,
+                    &inner.places.row,
+                    &[Box::new(fence.hash.clone())],
+                )
+                .map_err(database)?;
+                still(inner, conn, &fence)
+            })();
+            if let Err(error) = held {
+                open.failed = Some(error.clone());
+                return Err(error);
+            }
+        }
+        Ok(command)
+    }
+
     /// **The runs due at `now_ms`**, at most `limit`, earliest first; those
     /// failed for good aside. One statement.
     pub fn due_runs(&self, now_ms: i64, limit: usize) -> Result<Vec<Run>, Error> {
@@ -749,7 +823,8 @@ impl PgTables {
     }
 
     /// **A sign-in taken, once**: its nonce, its verifier and how long ago
-    /// it began; none where it was never begun or was taken already.
+    /// it began, forgotten as they are taken; none where it was never begun
+    /// or was taken already.
     pub fn take_sign_in(&self, hash: &[u8]) -> Result<Option<(String, String, Duration)>, Error> {
         let rows = self
             .inner
@@ -764,5 +839,59 @@ impl PgTables {
             row.try_get(1).map_err(read)?,
             Duration::from_millis(u64::try_from(ms).unwrap_or(0)),
         )))
+    }
+
+    /// **The sessions past either of `lifetimes`, forgotten**, `limit` at
+    /// most, those a command or a session's change holds aside (the next
+    /// sweep's): how many. One statement, which waits for nothing.
+    pub fn sweep_sessions(&self, lifetimes: Lifetimes, limit: usize) -> Result<u64, Error> {
+        let limit = i64::try_from(limit).unwrap_or(i64::MAX);
+        self.inner
+            .session_read(
+                &self.inner.places.sweep_sessions,
+                &[
+                    Box::new(lifetimes.absolute.as_secs_f64()),
+                    Box::new(lifetimes.idle.as_secs_f64()),
+                    Box::new(limit),
+                ],
+            )
+            .map(|rows| rows.len() as u64)
+    }
+
+    /// **The sign-ins begun more than `lifetime` ago, forgotten**, their
+    /// nonces and verifiers with them, `limit` at most: how many.
+    pub fn sweep_sign_ins(&self, lifetime: Duration, limit: usize) -> Result<u64, Error> {
+        let limit = i64::try_from(limit).unwrap_or(i64::MAX);
+        self.inner
+            .session_read(
+                &self.inner.places.sweep_sign_ins,
+                &[Box::new(lifetime.as_secs_f64()), Box::new(limit)],
+            )
+            .map(|rows| rows.len() as u64)
+    }
+
+    /// **The outbox's rows `ids`, delivered, forgotten**: a host that reads
+    /// no other host's commits (ADR-0369's reader) forgets each commit's rows
+    /// once it has delivered them. How many.
+    pub fn forget_outbox(&self, ids: &[i64]) -> Result<u64, Error> {
+        if ids.is_empty() {
+            return Ok(0);
+        }
+        self.inner
+            .run_read(&self.inner.places.forget_outbox, &[Box::new(ids.to_vec())])
+            .map(|rows| rows.len() as u64)
+    }
+
+    /// **The outbox's rows older than `age`, forgotten**, `limit` at most:
+    /// those a host left behind (it ended between a commit and forgetting
+    /// its rows). How many.
+    pub fn trim_outbox(&self, age: Duration, limit: usize) -> Result<u64, Error> {
+        let limit = i64::try_from(limit).unwrap_or(i64::MAX);
+        self.inner
+            .run_read(
+                &self.inner.places.trim_outbox,
+                &[Box::new(age.as_secs_f64()), Box::new(limit)],
+            )
+            .map(|rows| rows.len() as u64)
     }
 }

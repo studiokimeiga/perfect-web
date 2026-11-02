@@ -1206,7 +1206,7 @@ pub struct SignedIn<'a> {
     pub principal: &'a Principal,
 }
 /// How long a sign-in may be in flight.
-const SIGN_IN_LIFETIME: Duration = Duration::from_secs(600);
+pub(crate) const SIGN_IN_LIFETIME: Duration = Duration::from_secs(600);
 
 /// **Which principals a deployment has.**
 pub enum Mode {

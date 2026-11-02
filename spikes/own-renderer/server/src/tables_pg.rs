@@ -27,12 +27,34 @@
 //! - **The reader's session is the database's** (ADR-0369): kept by its
 //!   id's hash where a restarted host, or a second one, finds it; and each
 //!   command fenced on it in its own transaction, so that a session signed
-//!   out before the command commits keeps nothing of it.
+//!   out before the command commits keeps nothing of it. The session's lock
+//!   is waited for before the host's turn is taken, so a command waiting for
+//!   its session holds no other session's command up (the review of
+//!   3ccd083a, 2026-11-02).
+//! - **What the host is answered is what the database did**: a commit the
+//!   database rolled back, or that never reached its `COMMIT`, is refused at
+//!   once ([`Staged::definitely_refused`]); one whose `COMMIT` was sent and
+//!   never answered, or whose interaction another commit recorded, is
+//!   reconciled by the host from the record.
+//! - **What the database keeps of the platform's stays bounded**: each
+//!   commit's outbox rows are forgotten once delivered (no host tails this
+//!   layer's outbox yet), and the scheduler's passes sweep the sessions and
+//!   sign-ins past their lifetimes and the outbox rows a host that ended
+//!   left behind ([`DataLayer::housekeeping`]).
 
 use super::*;
 use crate::data::{Commit, DataLayer, Ops, Provided, Snapshot, Staged};
 use crate::identity::{CommandActor, ReaderIdentity};
 use pw_table_postgres::{Command, Lifetimes, PgTables, Records};
+
+/// **The most rows one sweep of the layer's housekeeping forgets**, of each
+/// kind: one statement's batch, short whatever the backlog.
+const SWEPT: usize = 500;
+
+/// **How old an outbox row a host left behind is before it is forgotten**:
+/// a committing host forgets its own as it delivers them, so a row older
+/// than this is one whose host ended between its commit and its forgetting.
+const OUTBOX_LEFT: std::time::Duration = std::time::Duration::from_secs(60);
 
 /// **Where a deployment keeps a program's tables**: its database, the schema
 /// its tables are in (a test's setting; the connection's own otherwise),
@@ -71,6 +93,9 @@ pub(crate) struct TablesPg {
     grants: Vec<&'static str>,
     kept: Arc<dyn identity::Kept>,
     queue_authority: pw_materialize::QueueAuthority,
+    /// When its housekeeping next sweeps, on the host's clock
+    /// ([`DataLayer::housekeeping`]): at once, where the host starts.
+    housekept: Mutex<i64>,
     /// The database and the schema, for a test's SQL.
     #[cfg(test)]
     url: String,
@@ -136,6 +161,7 @@ impl TablesPg {
             tables,
             grants,
             queue_authority: pw_materialize::QueueAuthority::new(),
+            housekept: Mutex::new(i64::MIN),
             #[cfg(test)]
             url: database.url.clone(),
             #[cfg(test)]
@@ -210,15 +236,15 @@ impl DataLayer for TablesPg {
         read.map_err(|e| format!("`{}`'s tables: {e:?}", contract.component_id))
     }
 
+    /// A command's staging, its transaction not begun: the host's turn is
+    /// taken where the command first needs it ([`PgStaging`]).
     fn begin<'a>(&'a self, _session: &str) -> Box<dyn Staged + 'a> {
         Box::new(PgStaging {
             layer: self,
-            turn: match self.tables.begin() {
-                Ok(command) => Turn::Open(command),
-                Err(e) => Turn::Failed(format!("the tables began no command: {e:?}")),
-            },
+            turn: std::cell::RefCell::new(Turn::NotBegun),
             actor: None,
             authorization: Authorization::NotAttempted,
+            refused: false,
         })
     }
 
@@ -266,6 +292,47 @@ impl DataLayer for TablesPg {
         Some(Arc::clone(&self.kept))
     }
 
+    /// **What the database keeps of the platform's, kept bounded** (track
+    /// `durable-tables`), a minute apart at most on the host's clock, and a
+    /// second apart while a batch comes back full: the sessions past their
+    /// lifetimes, the sign-ins past theirs (a sign-in's nonce and PKCE
+    /// verifier with them), and the outbox rows a host that ended left
+    /// behind, each a bounded batch of rows no transaction holds, waiting
+    /// for none. A sweep that fails is said in the host's log, and the next
+    /// pass sweeps again.
+    fn housekeeping(&self, now_ms: i64, sessions: &identity::SessionLifetimes) {
+        let mut next = self
+            .housekept
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if now_ms < *next {
+            return;
+        }
+        let swept = [
+            (
+                "sessions past their lifetimes",
+                self.tables.sweep_sessions(lifetimes_of(sessions), SWEPT),
+            ),
+            (
+                "sign-ins past their lifetime",
+                self.tables
+                    .sweep_sign_ins(identity::SIGN_IN_LIFETIME, SWEPT),
+            ),
+            (
+                "outbox rows a host left behind",
+                self.tables.trim_outbox(OUTBOX_LEFT, SWEPT),
+            ),
+        ];
+        let mut full = false;
+        for (what, done) in swept {
+            match done {
+                Ok(n) => full |= n >= SWEPT as u64,
+                Err(e) => eprintln!("pw dev server: the tables' {what} were not swept: {e:?}"),
+            }
+        }
+        *next = now_ms.saturating_add(if full { 1_000 } else { 60_000 });
+    }
+
     #[cfg(test)]
     fn statements(&self) -> Option<u64> {
         Some(self.tables.statements())
@@ -290,12 +357,35 @@ impl DataLayer for TablesPg {
 
 /// **Where one command's transaction is.**
 enum Turn {
+    /// Not begun: begun fenced on its reader's session where the session's
+    /// authority is acquired first ([`Staged::authorize`]), and unfenced at
+    /// its first need otherwise (a scheduled run's, a guest's).
+    NotBegun,
     /// Begun: its functions stage in it.
     Open(Command),
     /// Committed, with every record of the platform's.
     Committed,
     /// Refused, or failed: it keeps nothing, and says why.
     Failed(String),
+}
+
+impl Turn {
+    /// **The command's transaction**, begun on `tables` unfenced where
+    /// nothing began it yet.
+    fn begun(&mut self, tables: &PgTables) -> Result<&mut Command, String> {
+        if matches!(self, Turn::NotBegun) {
+            *self = match tables.begin() {
+                Ok(command) => Turn::Open(command),
+                Err(e) => Turn::Failed(format!("the tables began no command: {e:?}")),
+            };
+        }
+        match self {
+            Turn::Open(command) => Ok(command),
+            Turn::Failed(why) => Err(why.clone()),
+            Turn::Committed => Err("a command's tables commit once".into()),
+            Turn::NotBegun => Err("the tables began no command".into()),
+        }
+    }
 }
 
 /// **Whether the command's session authority was acquired** (the fence).
@@ -309,21 +399,66 @@ enum Authorization {
 /// **One command's transaction on a program's tables**: its writes, its
 /// runs and its records, committed by the adapter at once, or undone whole
 /// where it is dropped before (the adapter's own `Drop`).
+///
+/// Its transaction, and the host's turn with it, is taken where the
+/// command first needs it, not where the host begins the staging: a
+/// command acting for a reader's session waits for the session's lock
+/// before it takes the turn ([`PgTables::begin_fenced`]), so that a command
+/// waiting for its session holds no other session's command up.
 pub(crate) struct PgStaging<'a> {
     layer: &'a TablesPg,
-    turn: Turn,
+    turn: std::cell::RefCell<Turn>,
     /// The browser actor admitted, whose session the command is fenced on.
     actor: Option<CommandActor>,
     authorization: Authorization,
+    /// The commit failed knowing it kept nothing ([`Staged::definitely_refused`]).
+    refused: bool,
 }
 
 impl PgStaging<'_> {
     fn command(&mut self) -> Result<&mut Command, String> {
-        match &mut self.turn {
-            Turn::Open(command) => Ok(command),
-            Turn::Failed(why) => Err(why.clone()),
-            Turn::Committed => Err("a command's tables commit once".into()),
+        self.turn.get_mut().begun(&self.layer.tables)
+    }
+
+    /// A commit refused, knowing it kept nothing.
+    fn refuse(&mut self, why: String) -> Result<Commit, String> {
+        self.refused = true;
+        Err(why)
+    }
+
+    /// **The session's authority, for `actor`**, as [`Staged::authorize`]
+    /// acquires it: the command's transaction begun fenced on its reader's
+    /// session, or a guest's own held.
+    fn acquire(&mut self, actor: &CommandActor) -> Result<(), String> {
+        if self.authorization != Authorization::NotAttempted {
+            return Err("a staging cannot acquire session authority twice".into());
         }
+        if !matches!(self.turn.get_mut(), Turn::NotBegun) {
+            return Err(
+                "a command's session authority is acquired before its transaction begins".into(),
+            );
+        }
+        if matches!(actor.reader, ReaderIdentity::Guest) {
+            actor.ensure_local_current()?;
+            self.actor = Some(actor.clone());
+            return Ok(());
+        }
+        if actor.is_local() || !actor.belongs_to(&self.layer.kept) {
+            return Err("command session belongs to another authority adapter".into());
+        }
+        let fence = pw_table_postgres::Fence {
+            hash: actor.hash(),
+            lifetimes: lifetimes_of(&actor.lifetimes()),
+            expected: admitted_as(actor),
+        };
+        let command = self
+            .layer
+            .tables
+            .begin_fenced(fence)
+            .map_err(|e| format!("session authority changed before commit: {e:?}"))?;
+        *self.turn.get_mut() = Turn::Open(command);
+        self.actor = Some(actor.clone());
+        Ok(())
     }
 }
 
@@ -407,35 +542,24 @@ fn delivered(committed: Vec<(i64, pw_table_postgres::Outboxed)>) -> Result<data:
 
 impl Staged for PgStaging<'_> {
     /// **The command fenced on its reader's session** (ADR-0369), before it
-    /// runs: the session's lock on the command's connection, held to its
+    /// runs: the session's lock taken, outside the host's turn, on the
+    /// connection the command's transaction then begins on and holds to its
     /// end, and the session as the actor was admitted, held now and again
-    /// just before the commit. A guest is the host's own, as in memory.
+    /// just before the commit. A guest is the host's own, as in memory. A
+    /// command is fenced from its first statement or never: one whose
+    /// transaction began unfenced is refused here, and keeps nothing.
     fn authorize(&mut self, actor: &CommandActor) -> Result<(), String> {
-        if self.authorization != Authorization::NotAttempted {
-            self.authorization = Authorization::Failed;
-            return Err("a staging cannot acquire session authority twice".into());
+        let acquired = self.acquire(actor);
+        match &acquired {
+            Ok(()) => self.authorization = Authorization::Acquired,
+            // Refused, the staging is unusable: whatever began is undone,
+            // and nothing links, runs or commits in it from now on.
+            Err(why) => {
+                self.authorization = Authorization::Failed;
+                *self.turn.get_mut() = Turn::Failed(why.clone());
+            }
         }
-        self.authorization = Authorization::Failed;
-        if matches!(actor.reader, ReaderIdentity::Guest) {
-            actor.ensure_local_current()?;
-            self.actor = Some(actor.clone());
-            self.authorization = Authorization::Acquired;
-            return Ok(());
-        }
-        if actor.is_local() || !actor.belongs_to(&self.layer.kept) {
-            return Err("command session belongs to another authority adapter".into());
-        }
-        let fence = pw_table_postgres::Fence {
-            hash: actor.hash(),
-            lifetimes: lifetimes_of(&actor.lifetimes()),
-            expected: admitted_as(actor),
-        };
-        self.command()?
-            .fence(fence)
-            .map_err(|e| format!("session authority changed before commit: {e:?}"))?;
-        self.actor = Some(actor.clone());
-        self.authorization = Authorization::Acquired;
-        Ok(())
+        acquired
     }
 
     /// A command that writes nothing, or answers a declared error, is held
@@ -462,12 +586,14 @@ impl Staged for PgStaging<'_> {
     }
 
     fn table_ops(&self, contract: &ComponentContract, granted: &Granted) -> Result<Ops, String> {
-        let linked = match &self.turn {
-            Turn::Open(command) => command
+        let linked = {
+            let mut turn = self.turn.borrow_mut();
+            if matches!(*turn, Turn::Committed) {
+                return Err("a command's tables are linked before it commits".into());
+            }
+            turn.begun(&self.layer.tables)?
                 .host_fns(contract, granted)
-                .map_err(|e| format!("`{}`'s tables: {e:?}", contract.component_id))?,
-            Turn::Failed(why) => return Err(why.clone()),
-            Turn::Committed => return Err("a command's tables are linked before it commits".into()),
+                .map_err(|e| format!("`{}`'s tables: {e:?}", contract.component_id))?
         };
         // A test counts each call of them.
         #[cfg(test)]
@@ -489,7 +615,9 @@ impl Staged for PgStaging<'_> {
     /// keeps its rows, and the host's materializer none. A command whose
     /// writes cannot be read goes on to its commit, which refuses it.
     fn rows(&self) -> Option<Vec<(String, String)>> {
-        match &self.turn {
+        match &*self.turn.borrow() {
+            // Nothing ran: nothing was written.
+            Turn::NotBegun => None,
             Turn::Open(command) => match command.written() {
                 Ok(written) if written.is_empty() => None,
                 _ => Some(Vec::new()),
@@ -516,9 +644,8 @@ impl Staged for PgStaging<'_> {
         scheduled: &[schedules::Scheduled],
         completing: Option<schedules::Completing<'_>>,
     ) -> Result<Commit, String> {
-        if self.authorization == Authorization::Failed {
-            return Err("command session authority was not acquired".into());
-        }
+        // Every way out before the `COMMIT` is sent keeps nothing, and is
+        // said so ([`Staged::definitely_refused`]).
         let outbox = events
             .iter()
             .map(|(name, values)| {
@@ -541,33 +668,26 @@ impl Staged for PgStaging<'_> {
                         .collect::<Result<_, String>>()?,
                 })
             }))
-            .collect::<Result<Vec<_>, String>>()?;
-        let mut command = match std::mem::replace(&mut self.turn, Turn::Failed("committing".into()))
-        {
-            Turn::Open(command) => command,
-            Turn::Failed(why) => {
-                self.turn = Turn::Failed(why.clone());
+            .collect::<Result<Vec<_>, String>>();
+        let outbox = match outbox {
+            Ok(outbox) => outbox,
+            Err(why) => return self.refuse(why),
+        };
+        // Its transaction: begun where nothing began it (a run's command
+        // that wrote nothing before it completes the run, a guest's that
+        // only schedules).
+        if let Err(why) = self.turn.get_mut().begun(&self.layer.tables) {
+            // Committed once already: not a refusal of anything.
+            if matches!(*self.turn.get_mut(), Turn::Committed) {
                 return Err(why);
             }
-            Turn::Committed => {
-                self.turn = Turn::Committed;
-                return Err("a command's tables commit once".into());
-            }
-        };
-        if let Some(completion) = completing {
-            if !completion.belongs_to(&self.layer.queue_authority) {
-                return Err("scheduled completion belongs to another queue adapter".into());
-            }
-            let run = run_of(completion.run)
-                .ok_or("scheduled completion of a run this layer never kept")?;
-            match command.consume(&run, completion.now_ms) {
-                Ok(true) => {}
-                // Not the run selected any more: nothing of the command
-                // commits, and its transaction is undone as it is dropped.
-                Ok(false) => return Ok(Commit::NotCurrent),
-                Err(e) => return Err(format!("the scheduled run was not taken: {e:?}")),
-            }
+            return self.refuse(why);
         }
+        let mut command =
+            match std::mem::replace(self.turn.get_mut(), Turn::Failed("committing".into())) {
+                Turn::Open(command) => command,
+                _ => return self.refuse("the tables began no command".into()),
+            };
         let schedulings: Vec<pw_table_postgres::Scheduling> = scheduled
             .iter()
             .map(|s| pw_table_postgres::Scheduling {
@@ -578,37 +698,78 @@ impl Staged for PgStaging<'_> {
                 due_ms: s.due_ms,
             })
             .collect();
-        command
-            .schedule(&schedulings)
-            .map_err(|e| format!("the runs were not scheduled: {e:?}"))?;
+        if let Some(completion) = completing {
+            if !completion.belongs_to(&self.layer.queue_authority) {
+                return self.refuse("scheduled completion belongs to another queue adapter".into());
+            }
+            let Some(run) = run_of(completion.run) else {
+                return self.refuse("scheduled completion of a run this layer never kept".into());
+            };
+            // Taken first, before its schedulings are written: a run that
+            // schedules itself again is taken before its next generation
+            // replaces it under its key.
+            match command.consume(&run, completion.now_ms) {
+                Ok(true) => {}
+                // Not the run selected any more: nothing of the command
+                // commits, and its transaction is undone as it is dropped.
+                Ok(false) => return Ok(Commit::NotCurrent),
+                // The run selected, and not taken (its deletion suppressed,
+                // or the statement failed): refused, never taken for a run
+                // another command completed.
+                Err(e) => return self.refuse(format!("the scheduled run was not taken: {e:?}")),
+            }
+        }
+        if let Err(e) = command.schedule(&schedulings) {
+            return self.refuse(format!("the runs were not scheduled: {e:?}"));
+        }
         if let Some(actor) = &self.actor
             && matches!(actor.reader, ReaderIdentity::Guest)
+            && let Err(e) = actor.ensure_local_current()
         {
-            actor.ensure_local_current()?;
+            return self.refuse(e.into());
         }
-        let prepared = command
-            .prepare()
-            .map_err(|e| format!("the tables refused the commit: {e:?}"))?;
+        let prepared = match command.prepare() {
+            Ok(prepared) => prepared,
+            Err(e) => return self.refuse(format!("the tables refused the commit: {e:?}")),
+        };
         #[cfg(test)]
         if crate::tables::FAIL_NEXT_PUBLISH.with(|fail| fail.replace(false)) {
             // A test's: the commit refused as the database refuses it, its
             // transaction undone as the prepared command is dropped.
             drop(prepared);
-            return Err("the tables did not commit: a test's refusal".into());
+            return self.refuse("the tables did not commit: a test's refusal".into());
         }
-        let committed = prepared
-            .publish_with(Records {
-                interaction: interaction.map(|r| pw_table_postgres::Interaction {
-                    key: r.key,
-                    sent: r.sent,
-                    answer: r.answer,
-                    at_ms: r.at_ms,
-                    forget_before_ms: r.forget_before_ms,
-                }),
-                outbox: &outbox,
-            })
-            .map_err(|e| format!("the tables did not commit: {e:?}"))?;
-        self.turn = Turn::Committed;
+        let committed = match prepared.publish_with(Records {
+            interaction: interaction.map(|r| pw_table_postgres::Interaction {
+                key: r.key,
+                sent: r.sent,
+                answer: r.answer,
+                at_ms: r.at_ms,
+                forget_before_ms: r.forget_before_ms,
+            }),
+            outbox: &outbox,
+        }) {
+            Ok(committed) => committed,
+            // A `COMMIT` sent and never answered may have committed, and the
+            // interaction recorded by another commit is what answers this
+            // one: both are reconciled from the record, by the host.
+            Err(
+                e @ (pw_table_postgres::Error::OutcomeUnknown(_)
+                | pw_table_postgres::Error::Recorded(_)),
+            ) => return Err(format!("the tables did not commit: {e:?}")),
+            // Rolled back, as the database answered: a serialization
+            // failure, a deadlock, a refusal, a statement that failed.
+            Err(e) => return self.refuse(format!("the tables did not commit: {e:?}")),
+        };
+        *self.turn.get_mut() = Turn::Committed;
+        // Delivered by this host, and read by no other (no host tails this
+        // layer's outbox yet, track `durable-tables`): its rows are forgotten
+        // at once, and any a host that ended left behind by the layer's
+        // housekeeping ([`DataLayer::housekeeping`]).
+        let ids: Vec<i64> = committed.outbox.iter().map(|(id, _)| *id).collect();
+        if let Err(e) = self.layer.tables.forget_outbox(&ids) {
+            eprintln!("pw dev server: the tables' delivered outbox rows were kept: {e:?}");
+        }
         // Committed: what the outbox kept is what is delivered. One that
         // cannot be read back is what the command handed it.
         match delivered(committed.outbox) {
@@ -618,6 +779,10 @@ impl Staged for PgStaging<'_> {
                 Ok(Commit::Applied((events.to_vec(), invalidated.to_vec())))
             }
         }
+    }
+
+    fn definitely_refused(&self) -> bool {
+        self.refused
     }
 }
 
