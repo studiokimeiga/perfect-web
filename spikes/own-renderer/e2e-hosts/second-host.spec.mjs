@@ -15,7 +15,9 @@
 //   - B stopped while A commits, and started again: its page, told by the
 //     new process to reload, shows what A committed meanwhile, its reader
 //     signed in still, and is told A's next post live;
-//   - a session signed out on B is no one on A.
+//   - a session signed out on B is no one on A;
+//   - pages loading their runtime and modules while commands of their
+//     session run are each answered (ADR-0389, amended 2026-11-02).
 import { execFileSync, spawn } from "node:child_process";
 import { mkdirSync, openSync, readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
@@ -309,5 +311,60 @@ test("a session signed out on B is no one on A", async ({ browser }, testInfo) =
   await home(old, A);
   await expect(old.locator("#signed-out")).toBeVisible();
   await replayed.close();
+  await context.close();
+});
+
+test("pages loading their runtime and modules while commands run are each answered", async ({
+  browser,
+}, testInfo) => {
+  // ADR-0389, amended 2026-11-02 (track session-overlap): a browser asks for
+  // a page, its runtime, its handler manifest and its handler modules at
+  // once, and its commands run meanwhile; each request is admitted, reading
+  // its session where the hosts keep it, and each is answered. Until then,
+  // of two admissions of one session that overlapped, one was refused: a
+  // page or a file 503 "The session could not be confirmed", a command 403.
+  // Each round opens new pages rather than navigating one again, so that no
+  // navigation cancels what a page has just asked for (WebKitGTK's network
+  // process, `e2e/next-document.mjs`).
+  const context = await browser.newContext();
+  const first = await context.newPage();
+  await signUp(first, A, handle(testInfo, "ida"), `Ida ${testInfo.project.name}`);
+  const logged = readFileSync(A.log, "utf8").length;
+  const refused = [];
+  context.on("response", (r) => {
+    if (r.status() === 503 || r.status() === 403) {
+      refused.push(`${r.status()} ${r.request().method()} ${r.url()}`);
+    }
+  });
+  for (let n = 0; n < 4; n += 1) {
+    // A page loads while a command of its session runs, sent as the
+    // runtime sends one.
+    const loading = await context.newPage();
+    const text = `Posted while a page loaded, ${n}, at ${Date.now()}`;
+    const [, answer] = await Promise.all([
+      home(loading, A),
+      context.request.post(`${A.origin}/command/feed.app.post`, {
+        headers: {
+          origin: A.origin,
+          "content-type": "application/json",
+          "pw-interaction": `overlap-${testInfo.project.name}-${n}-${Date.now()}`,
+        },
+        data: JSON.stringify([text]),
+      }),
+    ]);
+    expect(answer.status(), `the command beside a page load: ${await answer.text()}`).toBe(202);
+    expect((await answer.json()).committed).toBe(true);
+    // And a press on that page, which asks for its handler's module and
+    // sends its command, while another page loads.
+    const another = await context.newPage();
+    await Promise.all([
+      home(another, A),
+      posted(loading, `Pressed while a page loaded, ${n}, at ${Date.now()}`),
+    ]);
+  }
+  expect(refused, "every request of the session answered").toEqual([]);
+  expect(readFileSync(A.log, "utf8").slice(logged), "no admission refused").not.toContain(
+    "session admission refused",
+  );
   await context.close();
 });

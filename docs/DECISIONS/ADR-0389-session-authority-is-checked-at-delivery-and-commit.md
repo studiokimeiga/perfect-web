@@ -359,3 +359,81 @@ changes where admission begins, so it is recorded here.
   handler manifest is built from the build alone (`#build`, `#page` and
   handler lines) and could be exempted as the three files are; it is not,
   pending the repair above.
+
+## Overlapping admissions of one session are each answered, 2026-11-02 (track session-overlap)
+
+- **Corrections first.**
+  - The section above recorded PR #63's exemption as the change and the
+    overlap as found and not changed. The overlap is now repaired where it
+    arose, and **the exemption is removed**: `pw-runtime.mjs`,
+    `pw-resume.wasm` and `pw-render.wasm` are admitted as every other
+    request is. Its test,
+    `public_runtime_assets_load_while_session_authority_is_unavailable`,
+    and the three `assets` mutants of `scripts/second_host_mutations.py`
+    went with it.
+  - The overlap refused more than a page or a file. A command whose
+    admission overlapped another of its session was answered 403
+    `session-changed` ("Your session changed. Reload the page."), though
+    nothing had changed: reproduced below, beside a page and beside another
+    command.
+  - "`Principals::admit` reads the kept session without a lock" is so in
+    this host, not in the database: on PostgreSQL each admission's statement
+    takes the session's advisory transaction lock (`SessionsPg::session`),
+    so the database already took one session's admissions one at a time. The
+    refusal came from this host's ticket alone.
+- **Cause.** One opaque ticket per session, replaced at every write of this
+  host's copy: an open, a close, an expiry, and every admission's own
+  install or removal. An admission took the ticket, read the source holding
+  nothing, then refused its read `Superseded` if the ticket had moved. Of
+  two admissions of one session whose reads overlapped, the second to end
+  always found it moved by the first. Memory alone (no source beyond this
+  host) reads under its lock, and was never refused.
+- **Characterized first**, at 1fded1a7 (the tests, before any repair):
+  `cargo test -p pw-dev-server --bin pw-dev-server -- identity::
+  tests::session_overlap::` failed the four admission tests, each
+  `Err(Superseded)`, and both overlap tests, each trying every pair and
+  naming every refusal: in this process, with a source whose reads meet in
+  pairs, a page beside a page, beside `/pw-handlers` and beside a handler
+  module, 503 each time; on PostgreSQL, where the test holds the session's
+  advisory lock until both admissions wait on it, the same three 503, a post
+  beside a page 403 and a post beside a post 403. The runtime's files were
+  not admitted at all (the exemption): their pairs' reads met no one. The
+  memory guard passed.
+- **Repair.** Two tickets per session (`Revision`): `authority`, replaced
+  only when this host opens, closes or expires the session, and `written`,
+  replaced at every write of its copy, an admission's too. An admission
+  answers from its own read, a read made during its request, as a lone
+  request's is. A read another admission overtook installs no principal
+  over that one's write; a removal (no one, or a failed read) still
+  removes, failing closed. A read this host's open, close or expiry
+  overtook may predate it, so it is read again, at most `ADMISSION_READS`
+  (3) times, then refused `Superseded`: a session is opened once and closed
+  once, so a real request reads at most twice. Nothing is held across a
+  read, as before, and the lock order (gate, sessions, ticket) is
+  unchanged. A refused admission, a page's 503 and a command's 403, now
+  writes one line naming its bounded kind (`pw dev server: session
+  admission refused: <kind>`), which no session, reader or source error
+  reaches: a failed read and a superseded admission are told apart.
+- **What still holds.** The admission is the request's own read, never this
+  host's copy. Delivery still inspects the source and refuses a changed or
+  revoked reader; a command's PostgreSQL fence (advisory lock, row lock,
+  final database-clock check) is unchanged; a failed read refuses; no
+  overtaken read puts a revoked principal back in the copy. A request
+  answered from an overtaken read was admitted on a read made while it was
+  under way, which is all a lone request ever had.
+- **Not taken: one admission of a session at a time in this host.** The
+  database already orders them; a host-side lock would be held across a
+  network read, which this ADR's admission ordering forbids, and would
+  queue a page's five or more requests behind each other for no authority
+  gained.
+- **The exemption.** Its stated reason was a database outage: the page is
+  admitted first and is refused in one, so the exemption served only a page
+  loaded just before an outage, whose handler manifest and modules were
+  still refused (the section above says so). Its occasion, run
+  41202348600's 503 on `pw-resume.wasm` 38 ms after the runtime was
+  answered, is what this repair answers: a page asks for its runtime, its
+  WebAssembly, its handler manifest and its stream at once. Every request is
+  admitted again; `every_request_is_admitted_and_a_failed_read_refuses_it`
+  holds that, the runtime's files, the next document's runtime with its
+  query, a page, the manifest, a handler module and a command each refused
+  on a failed read, each refusal logged by its kind.
