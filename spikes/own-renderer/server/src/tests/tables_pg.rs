@@ -389,10 +389,15 @@ fn a_signing_sent_twice_is_one_entry_on_any_host() {
     // The second host reads what the first committed.
     assert_eq!(latest(&b, "owner"), [line(1, "Ada", "Once", true)]);
     // A session's change waits for no command that has ended: each gave
-    // its session's lock back.
+    // its session's lock back. (An admission takes no lock since PR #67; a
+    // closing takes the session's, and would wait out its timeout.)
+    let kept = b.data.sessions().asserted_some("the sessions, kept");
+    let started = Instant::now();
+    let closed = kept.close(&identity::kept_hash("owner"));
+    let elapsed = started.elapsed();
     assert!(
-        b.identity.principals().admit("owner").is_ok(),
-        "the session's lock is held by no ended command"
+        closed.is_ok() && elapsed < Duration::from_secs(4),
+        "the session's lock is held by no ended command: {closed:?} in {elapsed:?}"
     );
     // Signed in anew, as another: the old receipt is not theirs.
     a.identity.signed_in_for_test("owner", "u-cy", "Cy");
