@@ -15,10 +15,13 @@
 //   - B stopped while A commits, and started again: its page, told by the
 //     new process to reload, shows what A committed meanwhile, its reader
 //     signed in still, and is told A's next post live;
-//   - a session signed out on B is no one on A.
+//   - a session signed out on B is no one on A;
+//   - pages loading their runtime and modules while commands of their
+//     session run are each answered (ADR-0389, amended 2026-11-02).
 import { execFileSync, spawn } from "node:child_process";
-import { mkdirSync, openSync, readFileSync } from "node:fs";
+import { closeSync, mkdirSync, openSync, readSync } from "node:fs";
 import { expect, test } from "@playwright/test";
+import { nextDocument } from "../e2e/next-document.mjs";
 
 const PORT = Number(process.env.PORT ?? 3141);
 const ENGINES = ["chromium", "firefox", "webkit"];
@@ -38,6 +41,20 @@ function dropped(schema) {
   }
 }
 
+/** What the file open on `fd` holds, read from its start through that
+ * descriptor: positioned reads, which leave the offset a writer appending to
+ * it shares untouched. */
+function contents(fd) {
+  const chunks = [];
+  const chunk = Buffer.alloc(64 * 1024);
+  for (let at = 0; ; ) {
+    const n = readSync(fd, chunk, 0, chunk.length, at);
+    if (n === 0) return Buffer.concat(chunks).toString("utf8");
+    chunks.push(Buffer.from(chunk.subarray(0, n)));
+    at += n;
+  }
+}
+
 /** **One host**: a development server of the feed on `port`, on `schema`. */
 class Host {
   constructor(name, port, schema) {
@@ -51,7 +68,11 @@ class Host {
   /** Started, and answering; on the shared database, as it says at its start. */
   async start() {
     mkdirSync("test-results", { recursive: true });
-    const out = openSync(this.log, "a");
+    // The log is opened once, by its name: the host appends to it, and this
+    // suite reads it back through the same descriptor, never by its name
+    // again, so what it reads is the file the host writes.
+    const out = openSync(this.log, "a+");
+    this.out = out;
     const env = {
       ...process.env,
       PORT: String(this.port),
@@ -71,26 +92,38 @@ class Host {
       if (this.child.exitCode !== null) {
         throw new Error(`host ${this.name} exited (${this.child.exitCode}): see ${this.log}`);
       }
+      let answering = false;
       try {
-        if ((await fetch(`${this.origin}/`)).ok) {
-          expect(readFileSync(this.log, "utf8")).toContain(
-            `on a shared database, schema ${this.schema},`,
-          );
-          return;
-        }
+        answering = (await fetch(`${this.origin}/`)).ok;
       } catch {
         // Not listening yet.
+      }
+      // Outside the `try`, so that a host on the wrong database fails here,
+      // by what its log says, and not as one that never answered.
+      if (answering) {
+        expect(this.written()).toContain(`on a shared database, schema ${this.schema},`);
+        return;
       }
       await new Promise((resolve) => setTimeout(resolve, 200));
     }
     throw new Error(`host ${this.name} did not answer on ${this.port} within 60 s: see ${this.log}`);
   }
 
-  /** Stopped, and its port let go. */
+  /** What its processes have written to its log, an earlier one's too. */
+  written() {
+    return contents(this.out);
+  }
+
+  /** Stopped, its port let go and its log closed. */
   async stop() {
-    if (!this.child || this.child.exitCode !== null) return;
-    this.child.kill("SIGTERM");
-    await this.exited;
+    if (this.child && this.child.exitCode === null) {
+      this.child.kill("SIGTERM");
+      await this.exited;
+    }
+    if (this.out !== undefined) {
+      closeSync(this.out);
+      this.out = undefined;
+    }
   }
 }
 
@@ -309,5 +342,84 @@ test("a session signed out on B is no one on A", async ({ browser }, testInfo) =
   await home(old, A);
   await expect(old.locator("#signed-out")).toBeVisible();
   await replayed.close();
+  await context.close();
+});
+
+test("pages loading their runtime and modules while commands run are each answered", async ({
+  browser,
+  browserName,
+}, testInfo) => {
+  // ADR-0389, amended 2026-11-02 (track session-overlap): a browser asks for
+  // a page, its runtime, its handler manifest and its handler modules at
+  // once, and its commands run meanwhile; each request is admitted, reading
+  // its session where the hosts keep it, and each is answered. Until then,
+  // of two admissions of one session that overlapped, one was refused: a
+  // page or a file 503 "The session could not be confirmed", a command 403.
+  // Two pages of one session, as a reader with two tabs has: each round
+  // loads one again while a command runs, then presses on it while the
+  // other loads again. No more pages than that: each open page holds a
+  // streaming connection, and past six of one origin Firefox queues every
+  // other request behind them (found by this test; ADR-0389, amended
+  // 2026-11-02).
+  const context = await browser.newContext();
+  const [page, tab] = [await context.newPage(), await context.newPage()];
+  await signUp(page, A, handle(testInfo, "ida"), `Ida ${testInfo.project.name}`);
+  await home(tab, A);
+  const logged = A.written().length;
+  // A refusal fails the round at once, by name: a page whose runtime is
+  // refused never boots, and its wait would last to the test's timeout.
+  const refused = [];
+  let refuse;
+  const refusal = new Promise((_, reject) => {
+    refuse = reject;
+  });
+  refusal.catch(() => {});
+  context.on("response", (r) => {
+    if (r.status() === 503 || r.status() === 403) {
+      refused.push(`${r.status()} ${r.request().method()} ${r.url()}`);
+      refuse(new Error(`refused: ${refused.join(", ")}`));
+    }
+  });
+  const answered = (step) => Promise.race([step, refusal]);
+  // A page loaded again once what its document asked for is answered, so
+  // that no navigation cancels a request just made (WebKitGTK's network
+  // process, `e2e/next-document.mjs`).
+  const again = async (p) => {
+    const next = await nextDocument(p, browserName);
+    await home(p, A);
+    await next.settled();
+  };
+  for (let n = 0; n < 4; n += 1) {
+    const text = `Posted while a page loaded, ${n}, at ${Date.now()}`;
+    const [, answer] = await answered(
+      Promise.all([
+        again(page),
+        context.request.post(`${A.origin}/command/feed.app.post`, {
+          headers: {
+            origin: A.origin,
+            "content-type": "application/json",
+            "pw-interaction": `overlap-${testInfo.project.name}-${n}-${Date.now()}`,
+          },
+          data: JSON.stringify([text]),
+        }),
+      ]),
+    );
+    expect(answer.status(), `the command beside a page load: ${await answer.text()}`).toBe(202);
+    expect((await answer.json()).committed).toBe(true);
+    // A press on the page loaded again, which asks for its handler's module
+    // and sends its command, while the other page loads again.
+    const pressed = page.waitForResponse((r) => r.url().includes("/command/feed.app.post"));
+    await answered(
+      Promise.all([
+        again(tab),
+        posted(page, `Pressed while a page loaded, ${n}, at ${Date.now()}`),
+      ]),
+    );
+    expect((await pressed).status(), "the press beside a page load").toBe(202);
+  }
+  expect(refused, "every request of the session answered").toEqual([]);
+  expect(A.written().slice(logged), "no admission refused").not.toContain(
+    "session admission refused",
+  );
   await context.close();
 });

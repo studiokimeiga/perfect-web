@@ -1,0 +1,26 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--quiet",
+    "--locked",
+    "-p",
+    "pw-dev-server",
+    "--bin",
+    "pw-dev-server",
+    "--features",
+    "session-postgres-tests",
+    "--",
+    "tests::session_receipt_recovery::",
+    "--list",
+    "--format=terse"
+  ],
+  "error": null,
+  "reaped": {
+    "pid": 17898,
+    "status": 0,
+    "timed_out": false,
+    "cancelled": false
+  },
+  "stderr_policy": "raw merged stdout/stderr"
+}

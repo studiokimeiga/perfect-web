@@ -12,7 +12,7 @@ use crate::store_pg::StorePg;
 
 /// The database the feed's tests run against, where the environment names
 /// one.
-fn database() -> Option<String> {
+pub(super) fn database() -> Option<String> {
     match std::env::var("PW_FEED_DATABASE_URL") {
         Ok(url) if !url.is_empty() => Some(url),
         _ => {
@@ -23,13 +23,13 @@ fn database() -> Option<String> {
 }
 
 /// **A schema of the test's own**, dropped when the test is done with it.
-struct Schema {
+pub(super) struct Schema {
     url: String,
     name: String,
 }
 
 impl Schema {
-    fn new(url: &str, test: &str) -> Schema {
+    pub(super) fn new(url: &str, test: &str) -> Schema {
         let schema = Schema {
             url: url.to_string(),
             name: format!("pw_hosts_{}_{test}", std::process::id()),
@@ -45,11 +45,16 @@ impl Schema {
         postgres::Client::connect(&self.url, postgres::NoTls).expect("connected")
     }
 
-    fn sql(&self) -> postgres::Client {
+    pub(super) fn sql(&self) -> postgres::Client {
         let mut c = self.admin();
         c.batch_execute(&format!("SET search_path TO {}", self.name))
             .expect("the test's schema");
         c
+    }
+
+    /// The schema's name, which another host's layer opens.
+    pub(super) fn name(&self) -> &str {
+        &self.name
     }
 
     fn count(&self, query: &str) -> i64 {
@@ -495,7 +500,11 @@ fn outbox_ids_are_taken_in_commit_order() {
 // ---------------------------------------------------------------------------
 
 /// [`feed_host`], its readers signed in through `provider`.
-fn feed_host_signing_in(url: &str, schema: &Schema, provider: &Arc<TestProvider>) -> Served {
+pub(super) fn feed_host_signing_in(
+    url: &str,
+    schema: &Schema,
+    provider: &Arc<TestProvider>,
+) -> Served {
     let s = feed_host(url, schema);
     s.identity.use_provider(provider.clone(), REDIRECT);
     s
@@ -691,8 +700,11 @@ fn a_restarted_host_keeps_its_readers_signed_in() {
 }
 
 /// **An existing session is admitted once, and inspected before delivery**:
-/// one atomic five-statement activity admission plus one read-only check (ADR-0389). A fresh
-/// cookie has no admission read and still needs its anonymous delivery check.
+/// one admission statement, a read that takes no lock, its use recorded
+/// within the minute, plus one read-only check (ADR-0389, amended
+/// 2026-11-02: until then the admission was a five-statement transaction
+/// holding the session's lock). A fresh cookie has no admission read and
+/// still needs its anonymous delivery check.
 #[test]
 fn a_request_admits_once_and_inspects_before_private_delivery() {
     let Some(url) = database() else { return };
@@ -706,8 +718,8 @@ fn a_request_admits_once_and_inspects_before_private_delivery() {
     assert!(page.starts_with("HTTP/1.1 200"), "{page}");
     assert_eq!(
         kept.ran() - before,
-        6,
-        "one atomic five-statement activity admission and one final read-only authority check"
+        2,
+        "one admission read, which takes no lock, and one final read-only authority check"
     );
     let before = kept.ran();
     let fresh = get(&a, "/", "");
