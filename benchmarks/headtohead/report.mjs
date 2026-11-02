@@ -91,14 +91,16 @@ function addRequests(out, qs, fromPlaywright) {
   }
 }
 
-/** What Chromium's DevTools protocol counted of one request in the phase. */
-const phaseBytes = (c, inPhase) =>
+/** The byte counts Chromium's DevTools protocol gave of one request in the phase. */
+const phaseCounts = (c, inPhase) =>
   Object.entries(c.byPhase ?? {})
     .filter(([p]) => inPhase(p))
-    .reduce((sum, [, n]) => sum + n, 0);
+    .map(([, n]) => n);
 
 function addChromium(out, received, inPhase, common, withCommon) {
-  for (const c of received.filter((x) => counted(x.url, common, withCommon))) out.received += phaseBytes(c, inPhase);
+  for (const c of received.filter((x) => counted(x.url, common, withCommon))) {
+    for (const n of phaseCounts(c, inPhase)) out.received += n;
+  }
 }
 
 /**

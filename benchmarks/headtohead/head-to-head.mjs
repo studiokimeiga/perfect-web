@@ -128,7 +128,7 @@ function planApp(appName, args, log) {
   const stackNames = Object.keys(app.stacks).filter((s) => !args.stacks || args.stacks.includes(s));
   const targets = stackNames.map((s) => target(appName, s));
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), `h2h-${appName}-`));
-  return { appName, app, args, log, stackNames, targets, tmp, servers: {}, runs: [], browsers: {}, loads: [], idle: [], presses: [] };
+  return { appName, app, args, log, stackNames, targets, tmp, servers: {}, chromium: null, runs: [], browsers: {}, loads: [], idle: [], presses: [] };
 }
 
 const targetOf = (ctx, stack) => ctx.targets.find((x) => x.stack === stack);
@@ -190,6 +190,7 @@ async function measureBlock(ctx, block, blockIndex, launchers) {
 
 async function measurePages(ctx) {
   const { chromium, firefox, webkit } = playwright();
+  ctx.chromium = chromium;
   const launchers = { chromium, firefox, webkit };
   for (const [index, block] of pageBlocks(ctx.args).entries()) await measureBlock(ctx, block, index, launchers);
 }
@@ -270,7 +271,7 @@ async function measureIdleAndPress(ctx, browser, stack, i, order) {
 }
 
 async function pressRounds(ctx) {
-  const browser = await playwright().chromium.launch();
+  const browser = await ctx.chromium.launch();
   try {
     for (const [i, order] of rounds(ctx, 32452843).entries()) {
       for (const stack of order) await measureIdleAndPress(ctx, browser, stack, i, order);
