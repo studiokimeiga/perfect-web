@@ -34,7 +34,8 @@ function counts(value) {
 }
 
 function modelName(value) {
-  if (typeof value !== "string" || value.length === 0 || value.length > 128 || value.trim() !== value) {
+  if (typeof value !== "string") throw new Error("BENCH_USAGE model must be a string");
+  if (value.length === 0 || value.length > 128 || value.trim() !== value) {
     throw new Error("BENCH_USAGE model must be a nonempty trimmed string of at most 128 characters");
   }
   return value;
@@ -84,12 +85,15 @@ export function agentFailureKind({ status, signal, error_code }) {
 
 // A null score means the run was not gradable. Do not count it as an agent
 // failure in subsequent model comparisons.
+function failedAgentScore(agentRun) {
+  if (agentRun.failure_kind === "infra") return { score: null, failedAt: "infra" };
+  return { score: 0, failedAt: "agent" };
+}
+
 export function scoreAgentRun(agentRun, stages) {
-  if (!agentRun.ok) {
-    const failedAt = agentRun.failure_kind ?? "agent";
-    return { score: failedAt === "infra" ? null : 0, failedAt };
-  }
+  if (!agentRun.ok) return failedAgentScore(agentRun);
   const failed = stages.find((stage) => !stage.ok);
   if (failed) return { score: 0, failedAt: failed.name };
-  return stages.length ? { score: 1, failedAt: null } : { score: null, failedAt: "infra" };
+  if (stages.length === 0) return { score: null, failedAt: "infra" };
+  return { score: 1, failedAt: null };
 }
