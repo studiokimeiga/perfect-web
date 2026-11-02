@@ -18,10 +18,12 @@ state).
 ## Corrections: the independent review of 2026-11-02
 
 The review reproduced each finding with a probe test against the track's
-head (`28d24310`); each probe is now a regression of the suite, failing on
-that head and passing here, beside a valid neighbour and a negative
-control, and each repair has a mutant its test kills. The integrator's
-rulings, and what changed:
+head (`28d24310`), each probe failing there or showing the defect; each is
+now a regression of the suite, beside a valid neighbour and a negative
+control, and each repair has a mutant (`scripts/data_path_mutations.py`)
+that takes it away, which its regression must fail on: the failing-first
+proof, made again on every run of the catalog. The integrator's rulings,
+and what changed:
 
 1. **B1, a blocker: `account_of` handed a program the session credential
    when the platform ran a command on a reader's behalf.** `account_of`
@@ -428,8 +430,10 @@ again: `computed_holes` (`e14-computed-holes`), `notifications` and
 - **CORRECTION (security) of the platform's guest identity**, made here at
   the integrator's ruling (correction 1): a guest's and a signed-out
   reader's user id held the session cookie's value, and so did a guest's
-  handle and name, which the feed and the guestbook showed and a payment
-  sent to its provider as metadata.
+  handle and name: the feed's page said "Signed in as Guest" and the whole
+  session to its reader, named a guest's posts to every reader by the
+  session's first ten characters, kept it as their author, and a payment
+  sent it to its provider as its owner's metadata.
 - **A stand-in passes the identity's `is_guest()` as an account**: the
   feed's `profile_of` and `viewer_val` read it so, and would write or show
   its empty name. No feed command runs on a reader's behalf today; the
