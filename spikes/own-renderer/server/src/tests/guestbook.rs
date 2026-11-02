@@ -225,6 +225,156 @@ fn a_signing_reaches_every_other_open_page_of_the_entries() {
     assert_eq!(s.others_reading("a", reached), ["b"]);
 }
 
+/// The texts `Latest` answers `session`, newest first.
+fn texts(s: &Server, session: &str) -> Vec<String> {
+    latest(s, session)
+        .into_iter()
+        .map(|(_, _, text, _)| text)
+        .collect()
+}
+
+/// Ada's signing's interaction, by the key its record is kept by.
+fn signing(interaction: &str) -> String {
+    format!("a\u{1f}{SIGN}\u{1f}{interaction}")
+}
+
+/// **A fault in the materializer's database**, as a test injects one (as
+/// `scheduled_memory.rs` does): `sql`, run in a transaction of its own.
+fn fault(s: &Server, sql: &str) {
+    let installed = s.materializer.command(|tx| {
+        tx.execute_batch(sql).map_err(|e| e.to_string())?;
+        Ok::<_, String>(Vec::new())
+    });
+    assert!(installed.is_ok(), "{sql}: {installed:?}");
+}
+
+/// **An outbox that refuses a signing's event publishes none of its rows**
+/// (the review's S1; the integrator's ruling of 2026-11-02: the rows are
+/// published after the outbox is written, immediately before the COMMIT).
+/// The materializer's outbox refusing every insert (a trigger, the
+/// review's), a signing is answered refused, never a panic: no other reader
+/// sees its entry, and its interaction keeps no record. Until then its rows
+/// were published first: the command panicked at the outbox, another reader
+/// read the entry, and its record and its event were lost. The fault taken
+/// away, Ada signs it again and it is kept, once.
+#[test]
+fn an_outbox_that_refuses_a_signings_event_publishes_none_of_its_rows() {
+    let s = served_guestbook();
+    s.identity.signed_in_for_test("a", "u-ada", "Ada");
+    assert!(sign(&s, "a", "First", "i-1").committed);
+    fault(
+        &s,
+        "CREATE TRIGGER refuse_outbox BEFORE INSERT ON outbox \
+         BEGIN SELECT RAISE(ABORT, 'outbox refused'); END;",
+    );
+    // As the browser's press is answered: an error, never a panic (the
+    // route answers any interaction whose commit failed as one whose
+    // outcome it cannot tell, ADR-0325).
+    let pressed = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        s.command_answer(SIGN, "a", &[serde_json::json!("Second")], Some("i-2"))
+    }));
+    assert!(pressed.is_ok(), "the refusal is an answer, not a panic");
+    let Ok(pressed) = pressed else {
+        unreachable!("asserted above")
+    };
+    assert!(pressed.is_err(), "{pressed:?}");
+    // And why, as the command's commit says it.
+    let refused = signed_directly(&s, "Second", "i-3");
+    assert!(
+        refused
+            .as_ref()
+            .is_err_and(|why| why.contains("outbox refused")),
+        "{refused:?}"
+    );
+    assert_eq!(
+        texts(&s, "b"),
+        ["First"],
+        "no reader sees a write whose records were refused"
+    );
+    for refused in ["i-2", "i-3"] {
+        assert_eq!(
+            s.recalled_interaction(&signing(refused)).asserted("recall"),
+            None,
+            "and no record of it is kept"
+        );
+    }
+    fault(&s, "DROP TRIGGER refuse_outbox");
+    assert!(sign(&s, "a", "Second", "i-4").committed);
+    assert_eq!(texts(&s, "b"), ["Second", "First"]);
+    assert!(
+        s.recalled_interaction(&signing("i-4"))
+            .asserted("recall")
+            .is_some()
+    );
+}
+
+/// Ada signs `text` with its record keyed by `interaction`, as the press
+/// runs it past the route that answers it: what its commit said.
+fn signed_directly(s: &Server, text: &str, interaction: &str) -> Result<Answered, String> {
+    let key = signing(interaction);
+    s.command_recorded(
+        SIGN,
+        "a",
+        &[Val::String(text.into())],
+        Some(interaction),
+        Some((&key, "[]")),
+    )
+}
+
+/// **A COMMIT that fails after a signing's rows are published closes the
+/// tables** (the review's S1; the integrator's ruling of 2026-11-02: a
+/// failure after publishing fails closed). A deferred foreign key the
+/// outbox's trigger breaks, which SQLite holds at COMMIT, fails the
+/// materializer's COMMIT after the entry was published: the signing is
+/// answered refused, its interaction keeps no record, and every read and
+/// write of the tables is refused from then on, so no reader goes on
+/// reading an entry whose records were lost. The neighbour: before the
+/// fault, a signing is kept.
+#[test]
+fn a_commit_failing_after_its_rows_are_published_closes_the_tables() {
+    let s = served_guestbook();
+    s.identity.signed_in_for_test("a", "u-ada", "Ada");
+    assert!(sign(&s, "a", "First", "i-1").committed);
+    assert_eq!(texts(&s, "b"), ["First"]);
+    // SQLite enforces foreign keys where a connection asks, outside a
+    // transaction: the fault's own transaction is ended, and begun again,
+    // around the asking.
+    fault(&s, "COMMIT; PRAGMA foreign_keys = ON; BEGIN;");
+    fault(
+        &s,
+        "CREATE TABLE fault_parent (id TEXT PRIMARY KEY); \
+         CREATE TABLE fault_child (parent TEXT REFERENCES fault_parent (id) \
+             DEFERRABLE INITIALLY DEFERRED); \
+         CREATE TRIGGER break_commit AFTER INSERT ON outbox \
+         BEGIN INSERT INTO fault_child VALUES ('missing'); END;",
+    );
+    let failed = signed_directly(&s, "Second", "i-2");
+    assert!(
+        failed
+            .as_ref()
+            .is_err_and(|why| why.contains("did not commit")),
+        "{failed:?}"
+    );
+    assert_eq!(
+        s.recalled_interaction(&signing("i-2")).asserted("recall"),
+        None,
+        "no record of the signing is kept"
+    );
+    let reader = Val::String(s.identity.principals().user_of("b"));
+    let read = s.answer(LATEST, "b", &[reader, Val::S64(20)]);
+    assert!(
+        read.as_ref()
+            .is_err_and(|why| why.contains("StoragePoisoned")),
+        "the tables are closed, not read with the entry in them: {read:?}"
+    );
+    let next = signed_directly(&s, "Third", "i-3");
+    assert!(
+        next.as_ref()
+            .is_err_and(|why| why.contains("StoragePoisoned")),
+        "and no command writes them: {next:?}"
+    );
+}
+
 /// **One render reads one state of the tables** (NEXT 4c; the adapter's
 /// snapshot): a commit landing between the page's bindings, after `me` and
 /// before `entries`, is not read by that render, whose every table read is

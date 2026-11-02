@@ -15,13 +15,16 @@
 //!   (ADR-0208, ADR-0325, ADR-0334): its writes staged in the adapter's
 //!   command; every refusal its commit can make (a bound, a reference) made
 //!   before the materializer's transaction ([`Staged::commit`] prepares it);
-//!   and its rows published as that transaction's last step
-//!   ([`Staged::publish_within`]), after its outbox, its interaction's record
-//!   and its runs, so an error rolls them all back and a commit keeps all of
-//!   them. ADR-0386's decision 5 asked for this before a host might publish
-//!   the adapter's writes: the adapter's publication may fail (its storage
+//!   and its rows published as that transaction's last step before its
+//!   COMMIT ([`Staged::publish_within`]): after its state rows, its
+//!   interaction's record, its runs and its outbox are written, each of
+//!   which may refuse it and roll all of it back, with nothing published.
+//!   ADR-0386's decision 5 asked for this before a host might publish the
+//!   adapter's writes: the adapter's publication may fail (its storage
 //!   failed closed), and a failure after the records committed would have
-//!   kept records of writes no reader sees.
+//!   kept records of writes no reader sees. A COMMIT that fails after the
+//!   rows were published fails the tables closed ([`Staged::unpublished`]):
+//!   no reader reads a write whose records were lost.
 //! - **Which queries a commit makes stale is what the command declares**
 //!   (ADR-0007, PW5106), delivered by the outbox as for every layer.
 //! - **What a build's tables may be at all** ([`servable`]), whichever
@@ -244,6 +247,7 @@ impl DataLayer for TablesLayer {
 
     fn begin<'a>(&'a self, _session: &str) -> Box<dyn Staged + 'a> {
         Box::new(TablesStaging {
+            tables: &self.tables,
             turn: match self.tables.begin() {
                 Ok(command) => Turn::Open(command),
                 Err(e) => Turn::Failed(format!("the tables began no command: {e:?}")),
@@ -283,11 +287,13 @@ enum Turn {
 /// **One command's writes to a program's tables**, staged in the adapter's
 /// command until the platform's transaction publishes them, and undone
 /// whole where it is dropped before (the adapter's own `Drop`).
-pub(crate) struct TablesStaging {
+pub(crate) struct TablesStaging<'a> {
+    /// The adapter, which a COMMIT failing after it published fails closed.
+    tables: &'a MemoryTables,
     turn: Turn,
 }
 
-impl Staged for TablesStaging {
+impl Staged for TablesStaging<'_> {
     /// No operation by name ([`Staged::table_ops`]).
     fn ops(&self) -> Ops {
         Ops::new()
@@ -358,11 +364,11 @@ impl Staged for TablesStaging {
         }
     }
 
-    /// **Its rows published, as the materializer's transaction's last
-    /// step**: after the outbox, the interaction's record and the runs are
-    /// written in it, before it commits. Refused (the adapter's storage has
-    /// failed), the transaction rolls back, and nothing of the command is
-    /// kept.
+    /// **Its rows published, as the materializer's transaction's last step
+    /// before its COMMIT**: after its state rows, the interaction's record,
+    /// the runs and the outbox are written in it. Refused (the adapter's
+    /// storage has failed), the transaction rolls back, and nothing of the
+    /// command is kept.
     fn publish_within(&mut self) -> Result<(), String> {
         #[cfg(test)]
         if FAIL_NEXT_PUBLISH.with(|fail| fail.replace(false)) {
@@ -384,6 +390,21 @@ impl Staged for TablesStaging {
                 Err("a command's tables are published once, after they are prepared".into())
             }
         }
+    }
+
+    /// **The materializer's COMMIT failed after its rows were published**
+    /// (the integrator's ruling on S1, 2026-11-02): readers may have read
+    /// them already, and their records are lost, so a publication cannot be
+    /// taken back. The tables fail closed: every read and write of them is
+    /// refused from now on, so no reader goes on reading a write without its
+    /// records, and the host says so.
+    fn unpublished(&mut self, why: &str) {
+        eprintln!(
+            "pw dev server: a commit's records did not commit after its tables were published: \
+             the tables are closed, and every read and write of them is refused: {why}"
+        );
+        self.tables.fail_closed();
+        self.turn = Turn::Failed(format!("the tables are closed: {why}"));
     }
 
     /// **After the commit, what it staged is the layer's**: published

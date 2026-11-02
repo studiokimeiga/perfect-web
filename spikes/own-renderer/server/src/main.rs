@@ -3298,42 +3298,52 @@ impl Server {
                 // The state the data layer staged and the outbox's events, in
                 // one transaction (ADR-0019, ADR-0208); and the interaction's
                 // answer, where the command has one (ADR-0325).
-                let mut current = true;
-                let ids = self.materializer.command(|tx| {
-                    if let Some(completion) = completing {
-                        if !completion.belongs_to(self.materializer.queue_authority()) {
-                            return Err(
-                                "scheduled completion belongs to another queue adapter".to_string()
-                            );
+                let current = std::cell::Cell::new(true);
+                let layer = std::cell::RefCell::new(&mut *staging);
+                let ids = self.materializer.command_then(
+                    |tx| {
+                        if let Some(completion) = completing {
+                            if !completion.belongs_to(self.materializer.queue_authority()) {
+                                return Err(
+                                    "scheduled completion belongs to another queue adapter"
+                                        .to_string(),
+                                );
+                            }
+                            if !Materializer::consume_run(tx, completion.run, completion.now_ms)? {
+                                current.set(false);
+                                return Ok(Vec::new());
+                            }
                         }
-                        if !Materializer::consume_run(tx, completion.run, completion.now_ms)? {
-                            current = false;
-                            return Ok(Vec::new());
+                        layer.borrow_mut().prepare_materialized()?;
+                        for (key, value) in &rows {
+                            Materializer::set_state(tx, key, value);
                         }
-                    }
-                    staging.prepare_materialized()?;
-                    for (key, value) in &rows {
-                        Materializer::set_state(tx, key, value);
-                    }
-                    if let Some(r) = interaction {
-                        Materializer::prune_interactions(tx, r.forget_before_ms);
-                        Materializer::record_interaction(tx, r.key, r.sent, r.answer, r.at_ms)?;
-                    }
-                    // And the runs it scheduled, or cancelled (the
-                    // scheduled-commands track).
-                    schedules::write(tx, scheduled)?;
-                    if let Some(actor) = actor.filter(|actor| actor.is_local()) {
-                        actor.ensure_local_current()?;
-                    }
+                        if let Some(r) = interaction {
+                            Materializer::prune_interactions(tx, r.forget_before_ms);
+                            Materializer::record_interaction(tx, r.key, r.sent, r.answer, r.at_ms)?;
+                        }
+                        // And the runs it scheduled, or cancelled (the
+                        // scheduled-commands track).
+                        schedules::write(tx, scheduled)?;
+                        if let Some(actor) = actor.filter(|actor| actor.is_local()) {
+                            actor.ensure_local_current()?;
+                        }
+                        Ok::<_, String>(events)
+                    },
                     // TRACK SEAM (tables): **what the layer staged, the
-                    // transaction's last step** (track `data-path`): a
-                    // program's tables published after every record above is
-                    // written, before it commits; refused, all of it rolls
-                    // back.
-                    staging.publish_within()?;
-                    Ok::<_, String>(events)
-                })?;
-                if !current {
+                    // transaction's last step before its COMMIT** (track
+                    // `data-path`): a program's tables published after every
+                    // record above and the outbox are written; refused, all
+                    // of it rolls back.
+                    || match current.get() {
+                        true => layer.borrow_mut().publish_within(),
+                        false => Ok(()),
+                    },
+                    // And a COMMIT that fails after it: the layer takes back,
+                    // or closes, what no record keeps.
+                    |why| layer.borrow_mut().unpublished(why),
+                )?;
+                if !current.get() {
                     return Ok(CommitOutcome::NotCurrent);
                 }
                 ((emitted.to_vec(), invalidated.to_vec()), ids)

@@ -56,14 +56,14 @@ CONTROLS = [
         (IDENTITY, '        if self.is_local() && self.principals.cached_reader(&self.session) == self.reader {\n',
          '        if true || (self.is_local() && self.principals.cached_reader(&self.session) == self.reader) {\n')]),
     ("memory-final-expiry", "memory", "materializer publication omits its final local expiry check", [
-        (MAIN, '''                    schedules::write(tx, scheduled)?;
-                    if let Some(actor) = actor.filter(|actor| actor.is_local()) {
-                        actor.ensure_local_current()?;
-                    }
-''', '''                    schedules::write(tx, scheduled)?;
-                    if let Some(actor) = actor.filter(|actor| actor.is_local()) {
-                        let _ = actor;
-                    }
+        (MAIN, '''                        schedules::write(tx, scheduled)?;
+                        if let Some(actor) = actor.filter(|actor| actor.is_local()) {
+                            actor.ensure_local_current()?;
+                        }
+''', '''                        schedules::write(tx, scheduled)?;
+                        if let Some(actor) = actor.filter(|actor| actor.is_local()) {
+                            let _ = actor;
+                        }
 ''')]),
     ("receipt-generation", "memory", "durable receipt metadata binds arguments but omits reader generation", [
         (MAIN, '        let sent = serde_json::json!({"v":1,"reader":reader,"args":args}).to_string();\n',

@@ -484,6 +484,84 @@ impl Materializer {
         Ok(ids)
     }
 
+    /// **A command whose last step before its COMMIT is another store's**
+    /// (track `data-path`, the integrator's ruling on S1 of 2026-11-02):
+    /// [`Materializer::command`]'s transaction, `apply`'s change and its
+    /// events written to the outbox, then `last` (a data layer publishing
+    /// the command's rows, which readers may read at once), immediately
+    /// before the COMMIT.
+    ///
+    /// - **Every refusal comes before `last`**: `apply`'s, and the outbox's,
+    ///   an insert it refuses answered and rolled back, never a panic.
+    ///   Refused, nothing is kept, and `last` never runs: no reader reads a
+    ///   write whose records were not written.
+    /// - **`last` refusing** rolls everything back.
+    /// - **After `last`, only the COMMIT can fail.** It is rolled back, and
+    ///   `uncommitted` is told why before the command is answered refused:
+    ///   what `last` published has lost its records, and it is the caller's
+    ///   to take back, or to stop serving.
+    ///
+    /// Until 2026-11-02 the data-path track's layer published inside
+    /// `apply`, before the outbox: an outbox insert refused (an injected
+    /// trigger) then panicked with the rows already read by others, and the
+    /// interaction's record and the event lost.
+    pub fn command_then<E: From<String>>(
+        &self,
+        apply: impl FnOnce(&rusqlite::Transaction<'_>) -> Result<Vec<Event>, E>,
+        last: impl FnOnce() -> Result<(), E>,
+        uncommitted: impl FnOnce(&str),
+    ) -> Result<Vec<i64>, E> {
+        let mut db = self.db();
+        let tx = db
+            .transaction()
+            .map_err(|e| E::from(format!("the transaction did not begin: {e}")))?;
+        // Each refusal before `last` rolls the transaction back; a rollback
+        // that fails is made again by the transaction's drop.
+        let events = match apply(&tx) {
+            Ok(events) => events,
+            Err(e) => {
+                let _ = tx.rollback();
+                return Err(e);
+            }
+        };
+        let mut ids = Vec::new();
+        for ev in &events {
+            let written = serde_json::to_string(&ev.args)
+                .map_err(|e| e.to_string())
+                .and_then(|args| {
+                    tx.execute(
+                        "INSERT INTO outbox (event, args) VALUES (?1, ?2)",
+                        params![ev.name, args],
+                    )
+                    .map_err(|e| e.to_string())
+                });
+            if let Err(why) = written {
+                let _ = tx.rollback();
+                return Err(E::from(format!(
+                    "the outbox refused the event `{}`: {why}",
+                    ev.name
+                )));
+            }
+            ids.push(tx.last_insert_rowid());
+        }
+        if let Err(e) = last() {
+            let _ = tx.rollback();
+            return Err(e);
+        }
+        if let Err(e) = tx.commit() {
+            let why = format!("the transaction did not commit after its last step: {e}");
+            uncommitted(&why);
+            return Err(E::from(why));
+        }
+        for (id, ev) in ids.iter().zip(&events) {
+            self.record(Trace::Emitted {
+                id: *id,
+                event: ev.name.clone(),
+            });
+        }
+        Ok(ids)
+    }
+
     /// Set a state value inside a command's transaction.
     ///
     /// Exposed so a caller writes state without composing SQL. The transaction
@@ -1033,6 +1111,141 @@ mod tests {
             m.recalled("receipt-key", 0).is_err(),
             "a committed receipt decode failure was silently reported as a miss"
         );
+    }
+
+    /// What [`Materializer::command_then`] did, step by step: whether its
+    /// last step ran, and whether it was told the COMMIT failed after it.
+    #[derive(Debug, Default, PartialEq)]
+    struct Steps {
+        last: bool,
+        uncommitted: Option<String>,
+    }
+
+    /// `command_then` writing a state row and one event, with `last` given.
+    fn then(
+        m: &Materializer,
+        value: &str,
+        last: Result<(), String>,
+    ) -> (Result<Vec<i64>, String>, Steps) {
+        let steps = std::cell::RefCell::new(Steps::default());
+        let answer = m.command_then::<String>(
+            |tx| {
+                Materializer::set_state(tx, "row", value);
+                Ok(vec![Event::new("Events.Changed", &[value])])
+            },
+            || {
+                steps.borrow_mut().last = true;
+                last
+            },
+            |why| steps.borrow_mut().uncommitted = Some(why.to_string()),
+        );
+        (answer, steps.into_inner())
+    }
+
+    /// **A command's last step comes after its every record, immediately
+    /// before its COMMIT** (track `data-path`, the integrator's ruling on S1
+    /// of 2026-11-02): an outbox that refuses the event is answered, rolled
+    /// back, and its last step never runs (no panic, nothing published); a
+    /// last step that refuses rolls it all back; and a COMMIT that fails
+    /// after the last step is rolled back and told, so its caller takes back
+    /// or closes what the last step published. The neighbour commits all.
+    #[test]
+    fn a_commands_last_step_runs_after_its_records_and_a_commit_failing_after_it_is_told() {
+        // The neighbour: committed, the last step run once, nothing told.
+        let m = Materializer::new(Clock::new(), "then");
+        let (answer, steps) = then(&m, "first", Ok(()));
+        assert!(
+            answer.as_ref().is_ok_and(|ids| ids.len() == 1),
+            "{answer:?}"
+        );
+        assert_eq!(
+            steps,
+            Steps {
+                last: true,
+                uncommitted: None
+            }
+        );
+        assert_eq!(m.state("row").as_deref(), Some("first"));
+        assert_eq!(m.retained_events(), 1);
+        // The outbox refuses: answered, rolled back, the last step not run.
+        m.db()
+            .execute_batch(
+                "CREATE TRIGGER refuse_outbox BEFORE INSERT ON outbox \
+                 BEGIN SELECT RAISE(ABORT, 'outbox refused'); END;",
+            )
+            .expect("the outbox's fault");
+        let (answer, steps) = then(&m, "second", Ok(()));
+        assert!(
+            answer
+                .as_ref()
+                .is_err_and(|why| why.contains("outbox refused")),
+            "{answer:?}"
+        );
+        assert_eq!(
+            steps,
+            Steps::default(),
+            "no last step after a refused record"
+        );
+        assert_eq!(m.state("row").as_deref(), Some("first"));
+        m.db()
+            .execute_batch("DROP TRIGGER refuse_outbox")
+            .expect("the fault removed");
+        // The last step refuses: everything rolls back.
+        let (answer, steps) = then(&m, "third", Err("the layer refused".into()));
+        assert_eq!(answer, Err("the layer refused".to_string()));
+        assert_eq!(
+            steps,
+            Steps {
+                last: true,
+                uncommitted: None
+            }
+        );
+        assert_eq!(m.state("row").as_deref(), Some("first"));
+        assert_eq!(m.retained_events(), 1, "no event of a refused command");
+        // The COMMIT fails after the last step (a deferred foreign key the
+        // outbox's trigger breaks, which SQLite holds at COMMIT): rolled
+        // back, and told.
+        m.db()
+            .execute_batch(
+                "PRAGMA foreign_keys = ON; \
+                 CREATE TABLE fault_parent (id TEXT PRIMARY KEY); \
+                 CREATE TABLE fault_child (parent TEXT REFERENCES fault_parent (id) \
+                     DEFERRABLE INITIALLY DEFERRED); \
+                 CREATE TRIGGER break_commit AFTER INSERT ON outbox \
+                 BEGIN INSERT INTO fault_child VALUES ('missing'); END;",
+            )
+            .expect("the commit's fault");
+        let (answer, steps) = then(&m, "fourth", Ok(()));
+        assert!(
+            answer
+                .as_ref()
+                .is_err_and(|why| why.contains("did not commit")),
+            "{answer:?}"
+        );
+        assert!(steps.last, "the last step ran, before the COMMIT");
+        assert!(
+            steps
+                .uncommitted
+                .as_deref()
+                .is_some_and(|why| why.contains("FOREIGN KEY")),
+            "{steps:?}"
+        );
+        assert_eq!(m.state("row").as_deref(), Some("first"), "rolled back");
+        assert_eq!(m.retained_events(), 1);
+        // The fault taken away, the next command commits.
+        m.db()
+            .execute_batch("DROP TRIGGER break_commit")
+            .expect("the fault removed");
+        let (answer, steps) = then(&m, "fifth", Ok(()));
+        assert!(answer.is_ok(), "{answer:?}");
+        assert_eq!(
+            steps,
+            Steps {
+                last: true,
+                uncommitted: None
+            }
+        );
+        assert_eq!(m.state("row").as_deref(), Some("fifth"));
     }
 
     #[test]

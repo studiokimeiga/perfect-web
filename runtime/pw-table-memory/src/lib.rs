@@ -350,6 +350,17 @@ impl MemoryTables {
         })
     }
 
+    /// **The database failed closed** (track `data-path`): every read and
+    /// write after it is refused (`StoragePoisoned`), and every command
+    /// waiting its turn is woken to be refused, as where its storage failed.
+    /// For a host whose own records of a commit this database has published
+    /// did not commit: no reader may go on reading a write whose records
+    /// were lost, and the commit cannot be taken back from readers who may
+    /// have read it.
+    pub fn fail_closed(&self) {
+        self.inner.fail();
+    }
+
     /// **The adapter for a build's `tables.json`, as `pw build` wrote it**
     /// (track `data-path`): what a host serving the build is given, read
     /// whole and held as [`MemoryTables::new`] holds it.
