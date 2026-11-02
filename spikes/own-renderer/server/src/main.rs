@@ -9316,7 +9316,8 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
     // These build artifacts are identical for every reader. A session database
     // outage must not stop the browser's runtime from loading; unlike pages
     // and commands, serving these files reads no session-scoped state.
-    // The files are served from this build's dist directory only.
+    // The files are served from this build's dist directory only (ADR-0389,
+    // amended 2026-11-02).
     if method == "GET"
         && matches!(
             route,
@@ -16768,8 +16769,12 @@ public query Store(",
         s.identity
             .principals()
             .keep_in(Arc::new(FailingSessionSource));
+        // The next document's runtime is asked for with a query after a soft
+        // navigation (`pw-runtime.mjs?document=N`): it is the same file, and
+        // exempt as the bare one is.
         for (file, body) in [
             ("pw-runtime.mjs", "public JS"),
+            ("pw-runtime.mjs?document=1", "public JS"),
             ("pw-resume.wasm", "public WASM"),
             ("pw-render.wasm", "public renderer"),
         ] {
@@ -16780,8 +16785,9 @@ public query Store(",
             );
             assert!(response.ends_with(body), "{file}: {response}");
         }
-        // Session-dependent routes (pages and handler manifests) remain
-        // fail-closed even when public build artifacts are available.
+        // Every other route is still admitted first, and fails closed: a
+        // page, and the handler manifest, which is the build's alone too but
+        // is not exempted (ADR-0389, amended 2026-11-02).
         for path in ["/", "/pw-handlers"] {
             let response = get_as(&s, "existing", path);
             assert!(
