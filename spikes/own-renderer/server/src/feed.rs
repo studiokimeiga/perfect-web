@@ -581,7 +581,10 @@ impl crate::data::Staged for Staging<'_> {
             for key in released {
                 let named = names(&self.state.posts, &key);
                 if let Err(why) = leases.collect(&key, named) {
-                    eprintln!("pw dev server: blob {key} was not collected: {why}");
+                    // TRACK SEAM (deploy): an error line, JSON in production.
+                    crate::production::log::error_line!(
+                        "pw dev server: blob {key} was not collected: {why}"
+                    );
                 }
             }
         }

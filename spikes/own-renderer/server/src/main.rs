@@ -64,7 +64,7 @@ use pw_protocol::{
     Targeted, Version,
 };
 use pw_render::{Env, PartId, Settled, Template, Value};
-use pw_resource::{DevelopmentIdentityKey, EntryIdentity};
+use pw_resource::EntryIdentity;
 
 /// One subscriber's undelivered frames, and where its cursor is.
 ///
@@ -641,7 +641,10 @@ const BUILD: &str = "B1";
 const COMMITTED_ARTIFACTS: &str = "b-committed-artifacts";
 
 /// The deployment's PRF key, from a provider rather than a literal.
-const IDENTITY: DevelopmentIdentityKey = DevelopmentIdentityKey;
+/// TRACK SEAM (deploy): the deployment's own where it states one
+/// (`PW_IDENTITY_KEY`, which production requires), the development key
+/// otherwise.
+const IDENTITY: production::HostKey = production::HostKey;
 
 /// **What a session's document shows** (ADR-0145): each part's text, by its
 /// number, and each list its queries fill, item by item. A change is sent as
@@ -989,6 +992,9 @@ mod render_merge;
 // Track `second-host` (ADR-0369): hosts on one database hear each other's
 // commits.
 mod hosts;
+// TRACK SEAM (deploy): a production host (ADR-XXXX, a production host):
+// what `PW_DEPLOYMENT=production` refuses at start and answers itself.
+mod production;
 
 struct Server {
     /// **The build this host serves, by its name** (ADR-0300): on each
@@ -1267,6 +1273,10 @@ struct Server {
     /// them (`PW_PAYMENTS`), set once as the server starts; none where it
     /// names none.
     payments: std::sync::OnceLock<Arc<payments::Payments>>,
+    /// TRACK SEAM (deploy): **a production host's own** (its build's
+    /// assets, its metrics' token, its readiness), set once as a production
+    /// deployment starts; none in development.
+    production: std::sync::OnceLock<production::Production>,
 }
 
 /// How many interactions' outcomes one session keeps (ADR-0121). A retry of
@@ -1584,6 +1594,26 @@ fn contracts() -> Vec<ComponentContract> {
     ComponentContract::from_json(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
 }
 
+/// **The data layer a program's contracts import** (ADR-0218): the feed's
+/// where they import `feed:…`, kiokun's files where they import
+/// `kiokun:…`, and the store's otherwise. One answer, which the server is
+/// built by and a production deployment is held to (track `deploy`).
+fn layer_of(contracts: &[ComponentContract]) -> production::Layer {
+    let imports = |prefix: &str| {
+        contracts
+            .iter()
+            .flat_map(|c| &c.imports)
+            .any(|i| i.interface.starts_with(prefix))
+    };
+    if imports("feed:") {
+        production::Layer::Feed
+    } else if imports("kiokun:") {
+        production::Layer::Kiokun
+    } else {
+        production::Layer::Store
+    }
+}
+
 /// **The node this dev server is.**
 ///
 /// An origin with the five capabilities the store demo's contracts require —
@@ -1710,36 +1740,31 @@ impl Server {
         // TRACK SEAM (uploads, ADR-0253): the uploads the program declares
         // (`uploads.json`), their blobs where the deployment keeps them.
         let uploads = uploads::Uploads::from_build(&build, &uploads::blob_root(&dist))?;
-        let (store, data): (Arc<dyn store::StoreLayer>, Arc<dyn data::DataLayer>) = if contracts
-            .iter()
-            .flat_map(|c| &c.imports)
-            .any(|i| i.interface.starts_with("feed:"))
-        {
-            (
-                Arc::new(store::StoreData::new()),
-                feed.unwrap_or_else(|| Arc::new(feed::FeedData::new())),
-            )
-        } else if contracts
-            .iter()
-            .flat_map(|c| &c.imports)
-            .any(|i| i.interface.starts_with("kiokun:"))
-        {
-            // TRACK SEAM (kiokun): kiokun's files, read-only, where the
-            // program imports `kiokun:data/…` (docs/PARALLEL.md, W6, Q2).
-            // Unit tests assert the committed sample's answers. A developer's
-            // deployment environment must not replace that test fixture.
-            #[cfg(test)]
-            let kiokun = kiokun::KiokunData::at(kiokun::sample(), None);
-            #[cfg(not(test))]
-            let kiokun = kiokun::KiokunData::new()?;
-            (Arc::new(store::StoreData::new()), Arc::new(kiokun))
-        } else {
-            #[cfg(test)]
-            let store = store.unwrap_or_else(store::layer_for_tests);
-            #[cfg(not(test))]
-            let store = store.unwrap_or_else(|| Arc::new(store::StoreData::new()));
-            (store.clone(), store)
-        };
+        let (store, data): (Arc<dyn store::StoreLayer>, Arc<dyn data::DataLayer>) =
+            match layer_of(&contracts) {
+                production::Layer::Feed => (
+                    Arc::new(store::StoreData::new()),
+                    feed.unwrap_or_else(|| Arc::new(feed::FeedData::new())),
+                ),
+                production::Layer::Kiokun => {
+                    // TRACK SEAM (kiokun): kiokun's files, read-only, where the
+                    // program imports `kiokun:data/…` (docs/PARALLEL.md, W6, Q2).
+                    // Unit tests assert the committed sample's answers. A developer's
+                    // deployment environment must not replace that test fixture.
+                    #[cfg(test)]
+                    let kiokun = kiokun::KiokunData::at(kiokun::sample(), None);
+                    #[cfg(not(test))]
+                    let kiokun = kiokun::KiokunData::new()?;
+                    (Arc::new(store::StoreData::new()), Arc::new(kiokun))
+                }
+                production::Layer::Store => {
+                    #[cfg(test)]
+                    let store = store.unwrap_or_else(store::layer_for_tests);
+                    #[cfg(not(test))]
+                    let store = store.unwrap_or_else(|| Arc::new(store::StoreData::new()));
+                    (store.clone(), store)
+                }
+            };
         // TRACK SEAM (uploads, ADR-0253): the layer commits a post's image
         // from the uploads' leases, in the post's own transaction.
         if let Some(leases) = uploads.leases() {
@@ -1994,6 +2019,7 @@ impl Server {
             tellings: Mutex::new(std::collections::VecDeque::new()),
             origin: std::sync::OnceLock::new(),
             payments: std::sync::OnceLock::new(),
+            production: std::sync::OnceLock::new(),
             shown: Mutex::new(BTreeMap::new()),
             documents: std::sync::atomic::AtomicU64::new(first_page),
             first_page,
@@ -2229,7 +2255,7 @@ impl Server {
             },
         );
         if let Err(why) = joined {
-            eprintln!(
+            production::log::error_line!(
                 "pw dev server: a guest's cart did not join its user's at sign-in, and stays the guest's: {why}"
             );
         }
@@ -3169,7 +3195,7 @@ impl Server {
                         });
                     match recorded {
                         Ok(recorded) => ids = recorded,
-                        Err(why) => eprintln!(
+                        Err(why) => production::log::error_line!(
                             "pw dev server: a commit was not recorded in the materializer: {why}"
                         ),
                     }
@@ -3984,7 +4010,9 @@ impl Server {
         let due = match schedules::select(self.runs(), now, 16) {
             Ok(due) => due,
             Err(why) => {
-                eprintln!("pw dev server: the scheduled runs were not read: {why}");
+                production::log::error_line!(
+                    "pw dev server: the scheduled runs were not read: {why}"
+                );
                 return (0, 1000);
             }
         };
@@ -4033,7 +4061,9 @@ impl Server {
         let _one = lock.lock().expect("one scheduled generation on this host");
         let source = self.runs();
         if !run.belongs_to(source.authority()) {
-            eprintln!("pw dev server: scheduled candidate belongs to another adapter");
+            production::log::error_line!(
+                "pw dev server: scheduled candidate belongs to another adapter"
+            );
             return false;
         }
         match source.current(run, self.now()) {
@@ -4045,7 +4075,9 @@ impl Server {
                 return false;
             }
             Err(why) => {
-                eprintln!("pw dev server: scheduled authority could not be checked: {why}");
+                production::log::error_line!(
+                    "pw dev server: scheduled authority could not be checked: {why}"
+                );
                 return true;
             }
         }
@@ -4064,7 +4096,9 @@ impl Server {
                 }
                 Ok(false) => self.scheduled_update_blocked(source, run),
                 Err(why) => {
-                    eprintln!("pw dev server: legacy scheduled quarantine failed: {why}");
+                    production::log::error_line!(
+                        "pw dev server: legacy scheduled quarantine failed: {why}"
+                    );
                     true
                 }
             };
@@ -4110,16 +4144,17 @@ impl Server {
                 };
                 counted.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
                 if terminal {
-                    eprintln!(
+                    production::log::error_line!(
                         "pw dev server: scheduled command {} failed after {} attempts",
-                        run.command, failures
+                        run.command,
+                        failures
                     );
                 }
                 false
             }
             Ok(false) => self.scheduled_update_blocked(source, run),
             Err(why) => {
-                eprintln!("pw dev server: scheduled retry was not kept: {why}");
+                production::log::error_line!("pw dev server: scheduled retry was not kept: {why}");
                 true
             }
         }
@@ -4140,11 +4175,15 @@ impl Server {
                 false
             }
             Ok(true) => {
-                eprintln!("pw dev server: scheduled persistence left its due generation unchanged");
+                production::log::error_line!(
+                    "pw dev server: scheduled persistence left its due generation unchanged"
+                );
                 true
             }
             Err(why) => {
-                eprintln!("pw dev server: scheduled update could not be reconciled: {why}");
+                production::log::error_line!(
+                    "pw dev server: scheduled update could not be reconciled: {why}"
+                );
                 true
             }
         }
@@ -4213,7 +4252,9 @@ impl Server {
         let heard = match tail.heard() {
             Ok(heard) => heard,
             Err(why) => {
-                eprintln!("pw dev server: the other hosts' commits were not read: {why}");
+                production::log::error_line!(
+                    "pw dev server: the other hosts' commits were not read: {why}"
+                );
                 return false;
             }
         };
@@ -5962,7 +6003,7 @@ impl Server {
             },
             BUILD,
         )
-        .keyed("own-renderer-spike-key")
+        .keyed(production::instance_key())
     }
 
     /// **The identity domain a session's document of `page` is rendered in**
@@ -5979,7 +6020,7 @@ impl Server {
             },
             BUILD,
         )
-        .keyed("own-renderer-spike-key")
+        .keyed(production::instance_key())
     }
 
     /// The menu fragment's OWN identity domain — public, and the same for
@@ -5997,7 +6038,7 @@ impl Server {
             Partition::Public,
             BUILD,
         )
-        .keyed("own-renderer-spike-key")
+        .keyed(production::instance_key())
     }
 
     /// The fragment's render environment.
@@ -6877,7 +6918,7 @@ impl Server {
                 },
                 BUILD,
             )
-            .keyed("own-renderer-spike-key"),
+            .keyed(production::instance_key()),
         );
         let body = pw_render::render(template, &env, &self.templates)
             .map_err(|e| format!("`{path}` does not render: {e:?}"))?;
@@ -7513,7 +7554,12 @@ impl Server {
             frames: self.payments.get().map(|p| p.provider.clone()),
             forms: self.identity.sign_in_origin(),
         };
-        csp::document(RUNTIME_SOURCE, self.data.style(), &self.needs, &deployment)
+        csp::document(
+            runtime_source(),
+            self.data.style(),
+            &self.needs,
+            &deployment,
+        )
     }
 
     /// **A document, and each streamed region's arm as its query settles**
@@ -7570,9 +7616,11 @@ impl Server {
             );
             return;
         }
+        // TRACK SEAM (deploy): the status, and a production host's lines.
         let head = format!(
             "HTTP/1.1 200 OK\r\ncontent-type: text/html; charset=utf-8\r\n{NOSNIFF}{PRIVATE}{cookie}\
-             {build}{policy}connection: close\r\n\r\n"
+             {build}{policy}{}connection: close\r\n\r\n",
+            production::head(200),
         );
         let shell = page.strip_suffix(DOCUMENT_END).unwrap_or(page);
         if stream
@@ -9075,6 +9123,29 @@ fn outboxed(event: &str, values: &[Val]) -> Result<pw_materialize::Event, String
 const GRAPH: &str = include_str!("../../../../runtime/pw-materialize/tests/store-graph.json");
 
 fn main() {
+    // TRACK SEAM (deploy): **what the deployment states, refused at start
+    // where it may not run** (ADR-XXXX, a production host). Read first,
+    // before any thread starts: a production host blocks its stopping
+    // signals here, so every thread inherits the mask and only the one that
+    // waits for them receives them.
+    let settings = production::Settings::read(&production::process_env)
+        .unwrap_or_else(|reasons| production::refuse(&reasons));
+    if settings.production {
+        production::log::use_json();
+        #[cfg(unix)]
+        if let Err(e) = production::shutdown::block() {
+            production::refuse(&[e]);
+        }
+        production::install_headers(production::HSTS);
+    }
+    // The deployment's identity key, where it states one: its addresses'
+    // keys from now on, in place of the development ones.
+    if let Some(key) = settings.secrets.get("PW_IDENTITY_KEY") {
+        match production::HostKeys::from_secret(key) {
+            Ok(keys) => production::install_keys(keys),
+            Err(e) => production::refuse(&[e]),
+        }
+    }
     let dist = std::env::args()
         .nth(1)
         .unwrap_or_else(|| "dist".to_string());
@@ -9106,10 +9177,7 @@ fn main() {
         std::env::var("PW_RENDER_SEATS").ok().as_deref(),
         std::env::var("PW_RENDER_SEAT_WAIT").ok().as_deref(),
     )
-    .unwrap_or_else(|e| {
-        eprintln!("pw dev server: {e}");
-        std::process::exit(1);
-    });
+    .unwrap_or_else(|e| production::refuse(&[e]));
     // TRACK SEAM (second-host): the schema a test run's hosts keep the
     // feed's tables in (`PW_FEED_SCHEMA`, ADR-0369): a test's setting, not a
     // deployment's (the integrator's ruling 4 of 2026-10-20), honored only
@@ -9117,53 +9185,46 @@ fn main() {
     // any other; the connection's own search path otherwise, as before.
     let feed_schema = identity::Deployment::from_env(port)
         .and_then(|d| hosts::test_schema(std::env::var("PW_FEED_SCHEMA").ok().as_deref(), &d))
-        .unwrap_or_else(|e| {
-            eprintln!("pw dev server: {e}");
-            std::process::exit(1);
-        });
-    let feed = match std::env::var("PW_FEED_DATABASE_URL") {
-        Ok(url) if !url.is_empty() => {
-            match feed_pg::FeedPg::open_with(&url, feed_schema.as_deref(), isolation, seats) {
+        .unwrap_or_else(|e| production::refuse(&[e]));
+    // TRACK SEAM (deploy): a database's address is a secret (it may hold a
+    // password), from the environment or the deployment's secrets file,
+    // and never said.
+    let feed = match settings.secrets.get("PW_FEED_DATABASE_URL") {
+        Some(url) => {
+            match feed_pg::FeedPg::open_with(url.expose(), feed_schema.as_deref(), isolation, seats)
+            {
                 Ok(layer) => Some(Arc::new(layer) as Arc<dyn data::DataLayer>),
-                Err(e) => {
-                    eprintln!("pw dev server: PW_FEED_DATABASE_URL: {e}");
-                    std::process::exit(1);
-                }
+                Err(e) => production::refuse(&[format!("PW_FEED_DATABASE_URL: {e}")]),
             }
         }
-        _ => None,
+        None => None,
     };
     // **The store's data in PostgreSQL** (track `store-pg`), where the
     // deployment names a database, in its own schema, `pw_store`; in memory
     // otherwise. Its command's isolation is set as the feed's is.
-    let store = match std::env::var("PW_STORE_DATABASE_URL") {
-        Ok(url) if !url.is_empty() => {
-            match store_pg::StorePg::open_with(&url, store_pg::SCHEMA, isolation, seats) {
+    let store = match settings.secrets.get("PW_STORE_DATABASE_URL") {
+        Some(url) => {
+            match store_pg::StorePg::open_with(url.expose(), store_pg::SCHEMA, isolation, seats) {
                 Ok(layer) => Some(Arc::new(layer) as Arc<dyn store::StoreLayer>),
-                Err(e) => {
-                    eprintln!("pw dev server: PW_STORE_DATABASE_URL: {e}");
-                    std::process::exit(1);
-                }
+                Err(e) => production::refuse(&[format!("PW_STORE_DATABASE_URL: {e}")]),
             }
         }
-        _ => None,
+        None => None,
     };
     let server = match Server::from_build_layers(dist.into(), build.into(), feed, store) {
         Ok(s) => Arc::new(s),
-        Err(e) => {
-            eprintln!("pw dev server: {e}\nrun spikes/own-renderer/run.sh, which runs `pw build`");
-            std::process::exit(1);
-        }
+        Err(e) => production::refuse(&[format!(
+            "{e}\nrun spikes/own-renderer/run.sh, which runs `pw build`"
+        )]),
     };
     let missing = server.uncompiled_handlers();
     if !missing.is_empty() {
-        eprintln!(
-            "pw dev server: no compiled module for handler(s) {} under {}/handlers; \
+        production::refuse(&[format!(
+            "no compiled module for handler(s) {} under {}/handlers; \
              run spikes/own-renderer/run.sh, which runs `pw emit-handlers`",
             missing.join(", "),
             server.dist.display()
-        );
-        std::process::exit(1);
+        )]);
     }
     // TRACK SEAM (identity): the deployment's identity, as its configuration
     // states it, refused at start where it may not run.
@@ -9173,10 +9234,7 @@ fn main() {
             let choice = std::env::var("PW_IDENTITY").ok();
             server.identity.configure(&d, choice.as_deref()).map(|_| d)
         })
-        .unwrap_or_else(|e| {
-            eprintln!("pw dev server: {e}");
-            std::process::exit(1);
-        });
+        .unwrap_or_else(|e| production::refuse(&[e]));
     // TRACK SEAM (second-host): **how long a session lives** (ADR-0369, the
     // integrator's ruling 2 of 2026-10-20), the deployment's to say
     // (`PW_SESSION_IDLE`, `PW_SESSION_LIFETIME`, in seconds; fourteen days
@@ -9187,10 +9245,7 @@ fn main() {
         std::env::var("PW_SESSION_LIFETIME").ok().as_deref(),
     ) {
         Ok(lifetimes) => server.identity.principals().expire_after(lifetimes),
-        Err(e) => {
-            eprintln!("pw dev server: {e}");
-            std::process::exit(1);
-        }
+        Err(e) => production::refuse(&[e]),
     }
     // NEXT 6c: the deployment's payments, as its configuration states them,
     // refused at start where they may not run.
@@ -9202,14 +9257,14 @@ fn main() {
         std::env::var("PW_PAYMENTS_PORT").ok().as_deref(),
     ) {
         Ok(Some(p)) => {
-            println!("pw dev server payments: {}", p.describe());
+            production::log::info(
+                "payments",
+                &format!("pw dev server payments: {}", p.describe()),
+            );
             let _ = server.payments.set(p);
         }
         Ok(None) => {}
-        Err(e) => {
-            eprintln!("pw dev server: {e}");
-            std::process::exit(1);
-        }
+        Err(e) => production::refuse(&[e]),
     }
     // A page's canonical address is written with the public origin
     // (ADR-0311), or the server does not start.
@@ -9218,22 +9273,62 @@ fn main() {
         Ok(origin) => {
             let _ = server.origin.set(origin);
         }
-        Err(e) => {
-            eprintln!("pw dev server: {e}");
-            std::process::exit(1);
-        }
+        Err(e) => production::refuse(&[e]),
     }
-    let listener = TcpListener::bind(("127.0.0.1", port)).expect("bind");
-    println!("pw dev server on {port}");
+    // TRACK SEAM (deploy): **a production host's program, held to what
+    // production needs of it**, and its own answers made from its build:
+    // its assets, read now, and the version its documents start their
+    // runtime at.
+    if settings.production {
+        let layer = layer_of(&server.contracts);
+        let uploads = server.uploads.describe().is_some();
+        let refused = production::program_refusals(
+            layer,
+            &settings.secrets,
+            uploads,
+            &production::process_env,
+        );
+        if !refused.is_empty() {
+            production::refuse(&refused);
+        }
+        match production::Production::of(&server, &settings.secrets, layer) {
+            Ok(own) => {
+                production::install_runtime(own.assets.version());
+                production::log::info(
+                    "assets",
+                    &format!(
+                        "pw dev server assets: {} from memory, at version {}",
+                        own.assets.routes().count(),
+                        own.assets.version()
+                    ),
+                );
+                let _ = server.production.set(own);
+            }
+            Err(e) => production::refuse(&[e]),
+        }
+        production::log::info(
+            "secrets",
+            &format!(
+                "pw dev server secrets: {} (their values are never said)",
+                settings.secrets.names().join(", ")
+            ),
+        );
+    }
+    let listener = TcpListener::bind((settings.bind, port))
+        .unwrap_or_else(|e| production::refuse(&[format!("{}:{port}: {e}", settings.bind)]));
+    production::log::info("listening", &format!("pw dev server on {port}"));
     // TRACK SEAM (identity): which identity model runs.
-    println!(
-        "pw dev server identity: {} ({})",
-        server.identity.describe(),
-        deployment.origin
+    production::log::info(
+        "identity",
+        &format!(
+            "pw dev server identity: {} ({})",
+            server.identity.describe(),
+            deployment.origin
+        ),
     );
     // TRACK SEAM (uploads, ADR-0253): what it holds a browser's file to.
     if let Some(uploads) = server.uploads.describe() {
-        println!("pw dev server uploads: {uploads}");
+        production::log::info("uploads", &format!("pw dev server uploads: {uploads}"));
     }
 
     // **Each live document read again when what it shows holds no longer**
@@ -9252,25 +9347,74 @@ fn main() {
     // track `second-host`), where its data layer's database is shared.
     match server.data.tail() {
         Some(tail) => {
-            println!(
-                "pw dev server hosts: {} on a shared database, schema {}, hearing every \
-                 host's commits",
-                tail.host(),
-                tail.outbox().schema
+            production::log::info(
+                "hosts",
+                &format!(
+                    "pw dev server hosts: {} on a shared database, schema {}, hearing every \
+                     host's commits",
+                    tail.host(),
+                    tail.outbox().schema
+                ),
             );
             let server = server.clone();
             std::thread::spawn(move || server.hear_other_hosts());
         }
-        None => println!("pw dev server hosts: one; its data layer shares no database"),
+        None => production::log::info(
+            "hosts",
+            "pw dev server hosts: one; its data layer shares no database",
+        ),
+    }
+
+    // TRACK SEAM (deploy): **a production host stops when told**: SIGTERM or
+    // SIGINT, waited for in a thread of its own, takes no new connection
+    // (a connection of its own wakes the loop below) and finishes the open
+    // ones within the grace.
+    #[cfg(unix)]
+    if settings.production {
+        let wake = production::shutdown::waking_address(settings.bind, port);
+        let waited = production::shutdown::wait_in_thread(move |signal| {
+            production::log::info(
+                "stopping",
+                &format!("pw dev server: {signal}: no new connection; the open ones finish first"),
+            );
+            production::shutdown::GATE.drain();
+            let _ = TcpStream::connect_timeout(&wake, std::time::Duration::from_secs(1));
+        });
+        if let Err(e) = waited {
+            production::refuse(&[e]);
+        }
     }
 
     for stream in listener.incoming() {
+        // TRACK SEAM (deploy): a host told to stop takes no new connection.
+        if production::shutdown::GATE.draining() {
+            break;
+        }
         let Ok(stream) = stream else { continue };
+        // TRACK SEAM (deploy): a production host gives a request's head and
+        // body thirty seconds a read, so a connection that sends nothing
+        // does not hold its thread for good.
+        if settings.production {
+            let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(30)));
+        }
         let server = server.clone();
+        // TRACK SEAM (deploy): open until its thread is done, which a stop
+        // waits for; counted here, before the thread starts, so a stop
+        // that comes between cannot miss it.
+        let open = production::shutdown::GATE.open();
         // A thread per connection. The subscription blocks, and a
         // single-threaded loop would make the first subscriber the last.
-        std::thread::spawn(move || handle(&server, stream));
+        std::thread::spawn(move || {
+            handle(&server, stream);
+            drop(open);
+        });
     }
+    let left = production::shutdown::GATE.drained(settings.grace);
+    production::log::info(
+        "stopped",
+        &format!("pw dev server: stopped; {left} connection(s) still open at the grace were cut"),
+    );
+    std::process::exit(0);
 }
 
 /// **A connection's request answered, and then what its commit dropped told
@@ -9293,20 +9437,53 @@ fn session_changed(stream: &mut TcpStream, session: &str, fresh: bool) {
 
 fn answer_connection(server: &Server, mut stream: TcpStream) {
     let mut reader = BufReader::new(stream.try_clone().expect("clone"));
+    // TRACK SEAM (deploy): **a request's head is bounded**, its line and its
+    // fields together, as a body is: a line nothing bounds is memory anyone
+    // can ask for. Past the bound it is refused (RFC 6585 §5's 431).
     let mut request = String::new();
-    if reader.read_line(&mut request).is_err() {
+    if reader
+        .by_ref()
+        .take(MAX_HEAD)
+        .read_line(&mut request)
+        .is_err()
+    {
         return;
     }
     let mut parts = request.split_whitespace();
     let (method, path) = (parts.next().unwrap_or(""), parts.next().unwrap_or("/"));
+    // TRACK SEAM (deploy): the request's line in a production host's log,
+    // said when it is answered, whichever way it returns.
+    let _logged = production::log::Logged::new(method, path);
 
     let mut headers = String::new();
-    loop {
+    let mut whole = request.ends_with('\n');
+    while whole {
+        let left = MAX_HEAD.saturating_sub((request.len() + headers.len()) as u64);
         let mut line = String::new();
-        if reader.read_line(&mut line).unwrap_or(0) == 0 || line == "\r\n" {
+        let read = reader.by_ref().take(left).read_line(&mut line).unwrap_or(0);
+        if read == 0 || line == "\r\n" {
             break;
         }
+        whole = line.ends_with('\n');
         headers.push_str(&line);
+    }
+    if !whole {
+        respond_build(
+            &mut stream,
+            431,
+            "text/plain; charset=utf-8",
+            b"the request's head is too large",
+        );
+        return;
+    }
+    // TRACK SEAM (deploy): **a production host's own answers, before a
+    // session is read**: a test's control refused, its health and
+    // readiness, its metrics refused without their token, and its build's
+    // assets, which name no session.
+    if let Some(production) = server.production.get()
+        && production.answer(method, path, &headers, &mut stream)
+    {
+        return;
     }
     let (session, fresh) = session_of(&headers);
     // TRACK SEAM (second-host): the session as the hosts keep it, read once
@@ -10813,9 +10990,13 @@ fn stream_open(
     } else {
         String::new()
     };
+    // TRACK SEAM (deploy): the status, and a production host's lines; and
+    // `nosniff`, which every answer carries (ADR-0333's ruling 4) and this
+    // one did not.
     let head = format!(
         "HTTP/1.1 200 OK\r\ncontent-type: application/x-ndjson\r\n\
-         {PRIVATE}{cookie}connection: close\r\n\r\n"
+         {NOSNIFF}{PRIVATE}{cookie}{}connection: close\r\n\r\n",
+        production::head(200),
     );
     if stream.write_all(head.as_bytes()).is_err() {
         return;
@@ -11207,7 +11388,7 @@ fn moved(
         .filter_map(|s| s.strip_prefix('{').and_then(|s| s.strip_suffix('}')))
         .collect();
     let fault = |stream: &mut TcpStream, why: String| {
-        eprintln!("pw-dev-server: `{page}` cannot be moved: {why}");
+        production::log::error_line!("pw-dev-server: `{page}` cannot be moved: {why}");
         respond(
             stream,
             500,
@@ -11471,6 +11652,14 @@ fn path_decoded(v: &str) -> Option<String> {
 }
 
 fn serve_file(server: &Server, stream: &mut TcpStream, route: &str) {
+    // TRACK SEAM (deploy): a production host serves its build's assets from
+    // memory (`production::assets`), and no other file of its build: not a
+    // page, not `sources.json`, which names the paths of the machine that
+    // built it.
+    if server.production.get().is_some() {
+        respond_build(stream, 404, "text/plain", b"not found");
+        return;
+    }
     let name = route.trim_start_matches('/');
     // No traversal: a request names a file in `dist` and nothing above it.
     if name.contains("..") || name.contains('/') {
@@ -11677,8 +11866,9 @@ fn signal_document(
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
          <title>{}</title>\n{metadata}{device}</head>\n<body>\n{body}\n\
          {announcer}\n<script type=\"application/json\" id=\"pw-parts\">{json}</script>\n\
-         {RUNTIME}\n{DOCUMENT_END}",
-        pw_render::escape::text(title)
+         {runtime}\n{DOCUMENT_END}",
+        pw_render::escape::text(title),
+        runtime = runtime_script(),
     )
 }
 
@@ -11931,8 +12121,9 @@ fn document(
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
          <title>{title}</title>\n{metadata}{style}{device}</head>\n<body>\n{body}\n\
          {announcer}\n<script type=\"application/json\" id=\"pw-parts\">{json}</script>\n\
-         {RUNTIME}\n{DOCUMENT_END}",
-        title = pw_render::escape::text(title)
+         {runtime}\n{DOCUMENT_END}",
+        title = pw_render::escape::text(title),
+        runtime = runtime_script(),
     )
 }
 
@@ -11947,6 +12138,24 @@ const RUNTIME: &str = "<script>import(\"/pw-runtime.mjs\")</script>";
 /// **Its text**, which a document's policy allows by its hash (`csp`).
 /// `RUNTIME`'s, as a test holds it.
 const RUNTIME_SOURCE: &str = "import(\"/pw-runtime.mjs\")";
+
+/// TRACK SEAM (deploy): **the script a document starts its runtime with**:
+/// `RUNTIME`, or a production host's, which starts it at the build's
+/// version (`production::bootstrap`).
+fn runtime_script() -> &'static str {
+    production::runtime_script().unwrap_or(RUNTIME)
+}
+
+/// TRACK SEAM (deploy): **the text the document's policy hashes**:
+/// `RUNTIME_SOURCE`, or a production host's.
+fn runtime_source() -> &'static str {
+    production::runtime_source().unwrap_or(RUNTIME_SOURCE)
+}
+
+/// TRACK SEAM (deploy): **how long a request's head may be**, its line and
+/// its fields: 64 KiB, as a command's body is bounded, and eight times what
+/// Node's HTTP server takes by default (16 KiB, `--max-http-header-size`).
+const MAX_HEAD: u64 = 64 * 1024;
 
 /// The store page's speculation manifest, if the build wrote one (ADR-0122).
 /// **Every page's speculation manifest** (ADR-0191), by the page it names.
@@ -12016,9 +12225,11 @@ fn respond_in_part(stream: &mut TcpStream, code: u16, session: &str, fresh: bool
     };
     let head = format!(
         "HTTP/1.1 {code} {reason}\r\ncontent-type: application/json; charset=utf-8\r\n\
-         content-length: {length}\r\n{NOSNIFF}{PRIVATE}{cookie}connection: close\r\n\r\n",
+         content-length: {length}\r\n{NOSNIFF}{PRIVATE}{cookie}{lines}connection: close\r\n\r\n",
         reason = reason(code),
         length = body.len(),
+        // TRACK SEAM (deploy): the status, and a production host's lines.
+        lines = production::head(code),
     );
     let _ = stream.write_all(head.as_bytes());
     let _ = stream.write_all(&body.as_bytes()[..body.len() / 2]);
@@ -12054,11 +12265,13 @@ fn hold_open(stream: &mut TcpStream) {
 fn reason(code: u16) -> &'static str {
     match code {
         200 => "OK",
+        304 => "Not Modified",
         307 => "Temporary Redirect",
         308 => "Permanent Redirect",
         404 => "Not Found",
         405 => "Method Not Allowed",
         413 => "Content Too Large",
+        431 => "Request Header Fields Too Large",
         500 => "Internal Server Error",
         503 => "Service Unavailable",
         _ => "",
@@ -12120,10 +12333,13 @@ fn respond_build(stream: &mut TcpStream, code: u16, mime: &str, body: &[u8]) {
 const NOSNIFF: &str = "x-content-type-options: nosniff\r\n";
 
 fn write_response(stream: &mut TcpStream, code: u16, mime: &str, headers: &str, body: &[u8]) {
+    // TRACK SEAM (deploy): the status, for the request's log line, and the
+    // lines a production host's every answer carries.
     let head = format!(
-        "HTTP/1.1 {code} {}\r\ncontent-type: {mime}\r\ncontent-length: {}\r\n{NOSNIFF}{headers}connection: close\r\n\r\n",
+        "HTTP/1.1 {code} {}\r\ncontent-type: {mime}\r\ncontent-length: {}\r\n{NOSNIFF}{headers}{}connection: close\r\n\r\n",
         reason(code),
-        body.len()
+        body.len(),
+        production::head(code),
     );
     let _ = stream.write_all(head.as_bytes());
     let _ = stream.write_all(body);
@@ -12171,7 +12387,8 @@ impl std::fmt::Display for TraceEvent {
 
 fn trace(event: TraceEvent) {
     if std::env::var("PW_TRACE").is_ok() {
-        eprintln!("{event}");
+        // TRACK SEAM (deploy): a production host's trace is a log line.
+        production::log::trace(&event.to_string());
     }
 }
 

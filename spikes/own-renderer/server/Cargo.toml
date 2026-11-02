@@ -59,6 +59,21 @@ miniz_oxide = "0.9.1"
 # `-DSQLITE_ENABLE_FTS5`). The workspace's crate, already in Cargo.lock
 # through pw-materialize; no new crate.
 rusqlite.workspace = true
+# Track `deploy` (a production host): each crate already in Cargo.lock at
+# this version, so nothing is downloaded (checked 2026-11-02 with `cargo
+# tree --locked -i`):
+# - crc32fast 1.5.0 (MIT OR Apache-2.0, through wasmtime's `object`): the
+#   CRC-32 a gzip member ends with (RFC 1952 §2.3.1), around miniz_oxide's
+#   DEFLATE above; `crc32fast::hash`, checked in the crate's source;
+# - blake3 1.8.6 (the workspace's): `derive_key`, the key derivation the
+#   deployment's identity key is split by, one key for each use;
+# - libc 0.2.189 (MIT OR Apache-2.0, through tokio and wasmtime): SIGTERM
+#   waited for (`pthread_sigmask`, `sigwait`), which std has no API for.
+crc32fast = "=1.5.0"
+blake3.workspace = true
+
+[target.'cfg(unix)'.dependencies]
+libc = "=0.2.189"
 
 [dev-dependencies]
 # Track outbound-https (ADR-0387): a test's certificate authority and TLS

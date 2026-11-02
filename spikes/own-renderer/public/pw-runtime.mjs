@@ -30,6 +30,22 @@ const parts = JSON.parse(document.getElementById("pw-parts")?.textContent ?? "{}
  */
 const life = new AbortController();
 
+/**
+ * **The build's version, carried to every asset this runtime loads** (track
+ * `deploy`, a production host): a production host starts the runtime at
+ * `/pw-runtime.mjs?v=<version>`, a digest of every asset of its build, and an
+ * address at its build's version is one a cache keeps for good. A development
+ * server gives none, and every address is as it always was.
+ */
+const assetVersion = new URL(import.meta.url).searchParams.get("v");
+
+/** `path` at this build's version, with `extra`, a query's own pairs. */
+function asset(path, extra = "") {
+  const version = assetVersion === null ? "" : `v=${encodeURIComponent(assetVersion)}`;
+  const query = [version, extra].filter(Boolean).join("&");
+  return query ? `${path}?${query}` : path;
+}
+
 // --- addressing ----------------------------------------------------------
 //
 // Architect ruling, 2026-08-06:
@@ -384,7 +400,7 @@ let decide = null;
 let servedBuild = "";
 
 async function bootDecision() {
-  const response = await fetch("/pw-resume.wasm");
+  const response = await fetch(asset("/pw-resume.wasm"));
   const { instance } = await WebAssembly.instantiateStreaming(response, {});
   const { memory, alloc, decide_manifest, last_recovery, know, know_document } =
     instance.exports;
@@ -555,7 +571,10 @@ function loadHandler(identity) {
   // permanently dead. The identity still names the module; the counter only
   // makes the failed attempt distinguishable from the next one.
   const attempt = attempts.get(identity) ?? 0;
-  const url = attempt === 0 ? `/handler/${identity}.mjs` : `/handler/${identity}.mjs?attempt=${attempt}`;
+  const url =
+    attempt === 0
+      ? asset(`/handler/${identity}.mjs`)
+      : asset(`/handler/${identity}.mjs`, `attempt=${attempt}`);
   const pending = within(import(url), `the handler ${identity}`).then((module) => {
     loaded.set(identity, module);
     log.push(`loaded ${identity}`);
@@ -1452,7 +1471,7 @@ function renderModule() {
   if (rendererLoaded) return Promise.resolve(rendererLoaded);
   if (renderer) return renderer;
   // Not kept failed (ADR-0382): the next need asks the network again.
-  const loading = fetch("/pw-render.wasm")
+  const loading = fetch(asset("/pw-render.wasm"))
     .then((r) => WebAssembly.instantiateStreaming(r, {}))
     .then(
       ({ instance }) => {
@@ -3781,7 +3800,7 @@ function handOver() {
   delete document.documentElement.dataset.pwNavigating;
   document.documentElement.dataset.pwReady = "0";
   life.abort();
-  import(`/pw-runtime.mjs?document=${window.__pwSoftNavigations}`).catch((e) => {
+  import(asset("/pw-runtime.mjs", `document=${window.__pwSoftNavigations}`)).catch((e) => {
     log.push(`the next runtime did not load: ${e}`);
     showAgain();
   });

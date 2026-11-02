@@ -1158,6 +1158,20 @@ pub trait Provider: Send + Sync {
 /// `PW_IDENTITY`'s name for the development provider.
 pub const DEV_ACCOUNTS: &str = "dev-accounts";
 
+/// TRACK SEAM (deploy): `PW_IDENTITY`'s word for no sign-in.
+pub const NO_SIGN_IN: &str = "none";
+
+/// TRACK SEAM (deploy): **a sign-in where there is none**: said, as a route
+/// this deployment does not have.
+fn no_sign_in() -> Reply {
+    Reply::page(
+        404,
+        "No sign-in here",
+        "<p role=\"alert\">This deployment has no sign-in yet: every visit is a guest's.</p>\
+         <p><a href=\"/\">Go on as a guest</a></p>",
+    )
+}
+
 /// **The authentication request a browser is sent with** (Core
 /// §3.1.2.1, RFC 7636 §4.3): `scope openid`, `response_type code`, the
 /// client and its redirect URI, `state`, `nonce`, and the S256 challenge.
@@ -1216,6 +1230,12 @@ pub enum Mode {
     Guest,
     /// Sessions are signed in through a provider.
     Accounts(Accounts),
+    /// TRACK SEAM (deploy): **no sign-in** (`PW_IDENTITY=none`): every
+    /// session is anonymous, so `requires SignedIn` refuses, and a sign-in
+    /// is answered that there is none here. What a production deployment
+    /// runs until it has a provider of its own (OIDC, NEXT), and the one
+    /// model that needs none.
+    Closed,
 }
 
 /// The accounts model: a provider, this client's redirect URI, and each
@@ -1271,7 +1291,8 @@ impl Identity {
     /// `PW_IDENTITY` is `guest` (or unset) for the guest model, or
     /// `dev-accounts` for the development provider. Neither runs outside a
     /// development deployment on this machine: a production deployment
-    /// supplies a [`Provider`] of its own.
+    /// supplies a [`Provider`] of its own. TRACK SEAM (deploy): or `none`,
+    /// no sign-in, which runs anywhere, since it signs no one in.
     pub fn configure(&self, deployment: &Deployment, choice: Option<&str>) -> Result<(), String> {
         match choice.unwrap_or("guest") {
             "" | "guest" => {
@@ -1287,8 +1308,13 @@ impl Identity {
                 Ok(())
             }
             DEV_ACCOUNTS => self.use_dev_accounts(deployment),
+            NO_SIGN_IN => {
+                self.use_no_sign_in();
+                Ok(())
+            }
             other => Err(format!(
-                "PW_IDENTITY is `{other}`: this server knows `guest` and `{DEV_ACCOUNTS}`"
+                "PW_IDENTITY is `{other}`: this server knows `guest`, `{DEV_ACCOUNTS}` and \
+                 `{NO_SIGN_IN}`"
             )),
         }
     }
@@ -1298,6 +1324,7 @@ impl Identity {
         match &*self.mode.read().expect("mode") {
             Mode::Guest => "guest (development: every session is its own guest)".to_string(),
             Mode::Accounts(a) => format!("accounts, signed in through {}", a.provider.issuer()),
+            Mode::Closed => "none (no sign-in: every session is anonymous)".to_string(),
         }
     }
 
@@ -1305,6 +1332,13 @@ impl Identity {
     pub fn use_guests(&self) {
         *self.mode.write().expect("mode") = Mode::Guest;
         self.principals.set_accounts(false);
+    }
+
+    /// TRACK SEAM (deploy): **no sign-in**: every session anonymous, as a
+    /// session no sign-in put in the accounts model is.
+    pub fn use_no_sign_in(&self) {
+        *self.mode.write().expect("mode") = Mode::Closed;
+        self.principals.set_accounts(true);
     }
 
     /// **Sign-in through `provider`**, sent back to `redirect_uri`: the
@@ -1387,7 +1421,7 @@ impl Identity {
     fn served(&self, method: &str, route: &str, query: &str, body: &[u8]) -> Option<Reply> {
         let provider = match &*self.mode.read().expect("mode") {
             Mode::Accounts(a) => a.provider.clone(),
-            Mode::Guest => return None,
+            Mode::Guest | Mode::Closed => return None,
         };
         provider.serve(method, route, query, body)
     }
@@ -1399,6 +1433,9 @@ impl Identity {
     /// browser sent to the provider. None in the guest model.
     fn start(&self, _headers: &str, sign_up: bool) -> Option<Reply> {
         let mode = self.mode.read().expect("mode");
+        if let Mode::Closed = &*mode {
+            return Some(no_sign_in());
+        }
         let Mode::Accounts(accounts) = &*mode else {
             return None;
         };
@@ -1463,6 +1500,9 @@ impl Identity {
         on_sign_in: &dyn Fn(&SignedIn),
     ) -> Option<Reply> {
         let mode = self.mode.read().expect("mode");
+        if let Mode::Closed = &*mode {
+            return Some(no_sign_in());
+        }
         let Mode::Accounts(accounts) = &*mode else {
             return None;
         };
@@ -1928,17 +1968,21 @@ impl Reply {
             400 => "Bad Request",
             401 => "Unauthorized",
             403 => "Forbidden",
+            404 => "Not Found",
             405 => "Method Not Allowed",
             409 => "Conflict",
             _ => "",
         };
         let mut head = format!(
-            "HTTP/1.1 {} {reason}\r\ncontent-type: {}\r\ncontent-length: {}\r\n{}{}",
+            "HTTP/1.1 {} {reason}\r\ncontent-type: {}\r\ncontent-length: {}\r\n{}{}{}",
             self.status,
             self.mime,
             self.body.len(),
             super::NOSNIFF,
-            super::PRIVATE
+            super::PRIVATE,
+            // TRACK SEAM (deploy): the status, for the request's log line,
+            // and the lines a production host's every answer carries.
+            crate::production::head(self.status),
         );
         if let Some(location) = &self.location {
             head.push_str(&format!("location: {location}\r\n"));
