@@ -378,7 +378,30 @@ impl Principal {
     }
 }
 
-type AdmissionClock = Mutex<Arc<()>>;
+/// **A session's two tickets as this host holds them** (ADR-0389, amended
+/// 2026-11-02): each an opaque token, replaced when it moves. `authority`
+/// moves when this host opens, closes or expires the session; `written`
+/// moves at every write of its copy here, an admission's too. A live
+/// snapshot keeps its tokens, so a replaced token's address is never reused
+/// (no ABA). Until 2026-11-02 there was one ticket, and every admission
+/// moved it: of two admissions of one session whose reads overlapped, the
+/// second to end was refused `Superseded`.
+#[derive(Clone)]
+struct Revision {
+    authority: Arc<()>,
+    written: Arc<()>,
+}
+
+impl Revision {
+    fn new() -> Revision {
+        Revision {
+            authority: Arc::new(()),
+            written: Arc::new(()),
+        }
+    }
+}
+
+type AdmissionClock = Mutex<Revision>;
 
 /// **How many times one admission reads its session** (ADR-0389, amended
 /// 2026-11-02) when this host opens, closes or expires that session during
@@ -759,15 +782,31 @@ impl Principals {
         if let Some(clock) = revisions.get(session).and_then(Weak::upgrade) {
             return clock;
         }
-        let clock = Arc::new(Mutex::new(Arc::new(())));
+        let clock = Arc::new(Mutex::new(Revision::new()));
         revisions.insert(session.to_string(), Arc::downgrade(&clock));
         clock
     }
 
-    // Called while the sessions write lock is held. No network operation
-    // holds this ticket's lock, and no ticket lock waits for a cache lock.
-    fn advance_revision(&self, session: &str) {
-        *self.revision(session).lock().expect("admission revision") = Arc::new(());
+    // Both are called while the sessions write lock is held. No network
+    // operation holds a ticket's lock, and no ticket lock waits for a cache
+    // lock.
+
+    /// This host opened, closed or expired `session`: an admission whose read
+    /// began before reads again.
+    fn authority_moved(&self, session: &str) {
+        let clock = self.revision(session);
+        let mut revision = clock.lock().expect("admission revision");
+        revision.authority = Arc::new(());
+        revision.written = Arc::new(());
+    }
+
+    /// An admission wrote `session`'s copy here: a principal another
+    /// admission read before it is not installed over it.
+    fn copy_written(&self, session: &str) {
+        self.revision(session)
+            .lock()
+            .expect("admission revision")
+            .written = Arc::new(());
     }
 
     /// **The principal `session` is**, or none. A session no sign-in opened
@@ -803,7 +842,7 @@ impl Principals {
                 .is_some_and(|held| held.epoch == epoch && held.expired(&lifetimes))
             {
                 sessions.remove(session);
-                self.advance_revision(session);
+                self.authority_moved(session);
             }
         }
         (!self.0.accounts.load(Ordering::SeqCst)).then(|| Principal::guest(session))
@@ -832,7 +871,7 @@ impl Principals {
         let _authority = gate.write().expect("session authority gate");
         let mut sessions = self.0.sessions.write().expect("principals");
         Self::install(&mut sessions, session, identity);
-        self.advance_revision(session);
+        self.authority_moved(session);
     }
 
     fn install(sessions: &mut HashMap<String, Held>, session: &str, identity: SessionIdentity) {
@@ -916,7 +955,7 @@ impl Principals {
         let _authority = gate.write().expect("session authority gate");
         let mut sessions = self.0.sessions.write().expect("principals");
         sessions.remove(session);
-        self.advance_revision(session);
+        self.authority_moved(session);
     }
 
     /// TRACK SEAM (second-host): **sessions kept in `kept`** (ADR-0369),
@@ -946,6 +985,13 @@ impl Principals {
 
     /// An explicit per-request result: stale/error results never borrow a
     /// newer cache entry. Network reads hold neither gate nor cache locks.
+    ///
+    /// **Admissions of one session may overlap** (ADR-0389, amended
+    /// 2026-11-02): a browser asks for a page, its modules and a command at
+    /// once. Each answers from its own read. A read another admission
+    /// overtook installs no principal over that one's write (a removal still
+    /// removes: it fails closed), and a read this host's open, close or
+    /// expiry overtook is read again, at most [`ADMISSION_READS`] times.
     pub(crate) fn admit(&self, session: &str) -> Result<ReaderIdentity, AuthorityError> {
         if session.starts_with(ON_BEHALF) {
             return Err(AuthorityError::NotBrowserAdmission);
@@ -960,7 +1006,7 @@ impl Principals {
                 .is_some_and(|held| held.expired(&lifetimes))
             {
                 sessions.remove(session);
-                self.advance_revision(session);
+                self.authority_moved(session);
             } else if let Some(held) = sessions.get(session) {
                 held.touch();
             }
@@ -986,30 +1032,45 @@ impl Principals {
             return Ok(ReaderIdentity::Anonymous);
         }
         let revision = self.revision(session);
-        let before = revision.lock().expect("admission revision").clone();
-        let read = kept.session(&kept_hash(session), &self.lifetimes());
-        let gate = self.command_gate(session);
-        let _authority = gate.write().expect("session authority gate");
-        let mut sessions = self.0.sessions.write().expect("principals");
-        if !Arc::ptr_eq(&revision.lock().expect("admission revision"), &before) {
-            return Err(AuthorityError::Superseded);
+        for _ in 0..ADMISSION_READS {
+            let before = revision.lock().expect("admission revision").clone();
+            let read = kept.session(&kept_hash(session), &self.lifetimes());
+            let gate = self.command_gate(session);
+            let _authority = gate.write().expect("session authority gate");
+            let mut sessions = self.0.sessions.write().expect("principals");
+            let now = revision.lock().expect("admission revision").clone();
+            // This host opened, closed or expired the session during the
+            // read, which may predate that: read again, holding nothing.
+            if !Arc::ptr_eq(&now.authority, &before.authority) {
+                continue;
+            }
+            // Another admission wrote the copy here during the read. The two
+            // reads' order is unknown: this one answers its own request (its
+            // delivery inspects the source again) and installs nothing.
+            let unwritten = Arc::ptr_eq(&now.written, &before.written);
+            return match read {
+                Ok(Some(identity)) => {
+                    if unwritten {
+                        Self::install(&mut sessions, session, identity.clone());
+                        self.copy_written(session);
+                    }
+                    Ok(ReaderIdentity::Account(identity))
+                }
+                // No one, or a read that failed, removes the copy whatever was
+                // written meanwhile: it fails closed.
+                Ok(None) => {
+                    sessions.remove(session);
+                    self.copy_written(session);
+                    Ok(ReaderIdentity::Anonymous)
+                }
+                Err(_) => {
+                    sessions.remove(session);
+                    self.copy_written(session);
+                    Err(AuthorityError::SourceUnavailable)
+                }
+            };
         }
-        let result = match read {
-            Ok(Some(identity)) => {
-                Self::install(&mut sessions, session, identity.clone());
-                Ok(ReaderIdentity::Account(identity))
-            }
-            Ok(None) => {
-                sessions.remove(session);
-                Ok(ReaderIdentity::Anonymous)
-            }
-            Err(_) => {
-                sessions.remove(session);
-                Err(AuthorityError::SourceUnavailable)
-            }
-        };
-        self.advance_revision(session);
-        result
+        Err(AuthorityError::Superseded)
     }
 
     /// **`session` signed in as `principal`**: kept first where sessions are

@@ -9281,6 +9281,14 @@ fn handle(server: &Server, stream: TcpStream) {
     server.tell_waiting();
 }
 
+/// **A refused admission, told by its kind** (ADR-0389, amended 2026-11-02):
+/// a failed read and an admission superseded past its bound answer the same
+/// body, and only the host's log tells them apart. The kind names no session,
+/// reader or source error (`identity::AuthorityError`).
+fn refused_admission(why: &dyn std::fmt::Display) {
+    eprintln!("pw dev server: session admission refused: {why}");
+}
+
 fn session_changed(stream: &mut TcpStream, session: &str, fresh: bool) {
     respond_json(
         stream,
@@ -9311,22 +9319,10 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
     let (session, fresh) = session_of(&headers);
     // TRACK SEAM (second-host): the session as the hosts keep it, read once
     // for the request (ADR-0369): signed in or out on another host, it is so
-    // here too.
+    // here too. Every request is admitted, the runtime's own files too: the
+    // requests a page sends at once are each answered (ADR-0389, amended
+    // 2026-11-02, which removed PR #63's exemption of those three files).
     let route = path.split('?').next().unwrap_or("/");
-    // These build artifacts are identical for every reader. A session database
-    // outage must not stop the browser's runtime from loading; unlike pages
-    // and commands, serving these files reads no session-scoped state.
-    // The files are served from this build's dist directory only (ADR-0389,
-    // amended 2026-11-02).
-    if method == "GET"
-        && matches!(
-            route,
-            "/pw-runtime.mjs" | "/pw-resume.wasm" | "/pw-render.wasm"
-        )
-    {
-        serve_file(server, &mut stream, route);
-        return;
-    }
     let upload_request = server.uploads.claims(method, route);
     let request_reader = if !upload_request
         && ((method == "POST" && path.starts_with("/command/")) || route == "/stream")
@@ -9341,7 +9337,8 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
         };
         match admitted {
             Ok(reader) => Some(reader),
-            Err(_) => {
+            Err(why) => {
+                refused_admission(&why);
                 respond_json(
                     &mut stream,
                     503,
@@ -9502,7 +9499,8 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             let principals = server.identity.principals();
             let reader_identity = match principals.admit(&session) {
                 Ok(reader) => reader,
-                Err(_) => {
+                Err(why) => {
+                    refused_admission(&why);
                     session_changed(&mut stream, &session, fresh);
                     return;
                 }
@@ -16723,84 +16721,6 @@ public query Store(",
             let _ = std::io::Read::read_to_string(&mut client, &mut answer);
             answer
         })
-    }
-
-    /// A failing session authority source must not make public assets fail.
-    struct FailingSessionSource;
-
-    impl identity::Kept for FailingSessionSource {
-        fn session(
-            &self,
-            _: &[u8],
-            _: &identity::SessionLifetimes,
-        ) -> Result<Option<identity::SessionIdentity>, String> {
-            Err("unavailable".into())
-        }
-        fn inspect(
-            &self,
-            _: &[u8],
-            _: &identity::SessionLifetimes,
-        ) -> Result<Option<identity::SessionIdentity>, String> {
-            Err("unavailable".into())
-        }
-        fn open(&self, _: &[u8], _: &identity::Principal, _: &[u8; 16]) -> Result<(), String> {
-            Err("unavailable".into())
-        }
-        fn close(&self, _: &[u8]) -> Result<(), String> {
-            Err("unavailable".into())
-        }
-        fn begin_sign_in(&self, _: &[u8], _: &str, _: &str) -> Result<(), String> {
-            Err("unavailable".into())
-        }
-        fn take_sign_in(
-            &self,
-            _: &[u8],
-        ) -> Result<Option<(String, String, std::time::Duration)>, String> {
-            Err("unavailable".into())
-        }
-    }
-
-    #[test]
-    fn public_runtime_assets_load_while_session_authority_is_unavailable() {
-        let s = served_feed();
-        for (file, body) in [
-            ("pw-runtime.mjs", "public JS"),
-            ("pw-resume.wasm", "public WASM"),
-            ("pw-render.wasm", "public renderer"),
-        ] {
-            std::fs::write(s.dist.join(file), body).expect("asset written");
-        }
-        s.identity
-            .signed_in_for_test("existing", "reader", "Reader");
-        s.identity
-            .principals()
-            .keep_in(Arc::new(FailingSessionSource));
-        // The next document's runtime is asked for with a query after a soft
-        // navigation (`pw-runtime.mjs?document=N`): it is the same file, and
-        // exempt as the bare one is.
-        for (file, body) in [
-            ("pw-runtime.mjs", "public JS"),
-            ("pw-runtime.mjs?document=1", "public JS"),
-            ("pw-resume.wasm", "public WASM"),
-            ("pw-render.wasm", "public renderer"),
-        ] {
-            let response = get_as(&s, "existing", &format!("/{file}"));
-            assert!(
-                response.starts_with("HTTP/1.1 200 OK"),
-                "{file}: {response}"
-            );
-            assert!(response.ends_with(body), "{file}: {response}");
-        }
-        // Every other route is still admitted first, and fails closed: a
-        // page, and the handler manifest, which is the build's alone too but
-        // is not exempted (ADR-0389, amended 2026-11-02).
-        for path in ["/", "/pw-handlers"] {
-            let response = get_as(&s, "existing", path);
-            assert!(
-                response.starts_with("HTTP/1.1 503 Service Unavailable"),
-                "{path}: {response}"
-            );
-        }
     }
 
     /// **A document's trail says what happened to its frames** (ADR-0296):

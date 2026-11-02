@@ -327,3 +327,66 @@ fn on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_ans
     }
     assert!(failures.is_empty(), "{failures:#?}");
 }
+
+/// A source of sessions that fails every read.
+struct Unavailable;
+
+impl identity::Kept for Unavailable {
+    fn session(
+        &self,
+        _: &[u8],
+        _: &identity::SessionLifetimes,
+    ) -> Result<Option<identity::SessionIdentity>, String> {
+        Err("unavailable".into())
+    }
+    fn inspect(
+        &self,
+        _: &[u8],
+        _: &identity::SessionLifetimes,
+    ) -> Result<Option<identity::SessionIdentity>, String> {
+        Err("unavailable".into())
+    }
+    fn open(&self, _: &[u8], _: &identity::Principal, _: &[u8; 16]) -> Result<(), String> {
+        Err("unavailable".into())
+    }
+    fn close(&self, _: &[u8]) -> Result<(), String> {
+        Err("unavailable".into())
+    }
+    fn begin_sign_in(&self, _: &[u8], _: &str, _: &str) -> Result<(), String> {
+        Err("unavailable".into())
+    }
+    fn take_sign_in(&self, _: &[u8]) -> Result<Option<(String, String, Duration)>, String> {
+        Err("unavailable".into())
+    }
+}
+
+/// **Every request is admitted, the runtime's own files too, and a read
+/// that fails refuses it** (ADR-0389, amended 2026-11-02). PR #63 answered
+/// `pw-runtime.mjs`, `pw-resume.wasm` and `pw-render.wasm` before admission,
+/// for a 503 that overlapping admissions most likely caused (its run cannot
+/// tell); with overlapping admissions answered, the three files are admitted
+/// as every other request is, and no request is answered on no read. Its
+/// test, `public_runtime_assets_load_while_session_authority_is_unavailable`,
+/// held the opposite and is replaced by this one.
+#[test]
+fn every_request_is_admitted_and_a_failed_read_refuses_it() {
+    let s = served_feed();
+    with_runtime_files(&s);
+    s.identity.signed_in_for_test("reader", "ada", "Ada");
+    s.identity.principals().keep_in(Arc::new(Unavailable));
+    let answers: Vec<(Ask, String)> = Ask::every(&s)
+        .into_iter()
+        .enumerate()
+        .map(|(n, ask)| {
+            let answer = ask.sent(&s, "reader", n);
+            (ask, answer)
+        })
+        .collect();
+    for (ask, answer) in answers {
+        let refused = match ask {
+            Ask::Get(_) => "HTTP/1.1 503 Service Unavailable",
+            Ask::Post(_) => "HTTP/1.1 403",
+        };
+        assert!(answer.starts_with(refused), "{ask:?}: {answer}");
+    }
+}
