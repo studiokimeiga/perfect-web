@@ -9397,10 +9397,11 @@ fn main() {
         }
         let Ok(stream) = stream else { continue };
         // TRACK SEAM (deploy): a production host gives a request's head and
-        // body thirty seconds a read, so a connection that sends nothing
-        // does not hold its thread for good.
+        // body a bounded wait for each read (`PW_READ_TIMEOUT`, thirty
+        // seconds), so a connection that sends nothing does not hold its
+        // thread for good.
         if settings.production {
-            let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(30)));
+            let _ = stream.set_read_timeout(Some(settings.read_timeout));
         }
         let server = server.clone();
         // TRACK SEAM (deploy): open until its thread is done, which a stop

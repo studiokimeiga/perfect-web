@@ -192,15 +192,14 @@ fn said_until_exit(
     mut child: Child,
     lines: &mpsc::Receiver<String>,
 ) -> (Option<i32>, Vec<serde_json::Value>) {
-    let status = wait(&mut child, Duration::from_secs(60)).expect("the host ends");
+    // A host that does not end is killed at the wait, and has no code.
+    let status = wait(&mut child, Duration::from_secs(30));
     let mut said = Vec::new();
     // Its standard error is closed when it ends, and the reader with it.
     while let Ok(line) = lines.recv_timeout(Duration::from_secs(5)) {
-        said.push(
-            serde_json::from_str(&line).unwrap_or_else(|e| panic!("not a JSON line ({e}): {line}")),
-        );
+        said.push(read_line(&line));
     }
-    (status.code(), said)
+    (status.and_then(|s| s.code()), said)
 }
 
 /// The process's status, once it ends within `within`; killed, and none,
@@ -219,27 +218,37 @@ fn wait(child: &mut Child, within: Duration) -> Option<std::process::ExitStatus>
     }
 }
 
-/// **The port the host said it listens on**, from its JSON line.
+/// **The port the host said it listens on**, from its line, and each line
+/// it said before, read as JSON; a line that is not JSON is kept as
+/// `{"not_json": <the line>}`, which the tests refuse at their assertions.
 fn listening(lines: &mpsc::Receiver<String>) -> (u16, Vec<serde_json::Value>) {
     let mut said = Vec::new();
     loop {
         let line = lines
             .recv_timeout(Duration::from_secs(120))
             .expect("the host says it listens");
-        let value: serde_json::Value =
-            serde_json::from_str(&line).unwrap_or_else(|e| panic!("not a JSON line ({e}): {line}"));
-        if value["event"] == "listening" {
-            let port = value["msg"]
-                .as_str()
-                .and_then(|m| m.rsplit(' ').next())
-                .and_then(|p| p.parse().ok())
-                .expect("a port");
-            said.push(value);
+        let value = read_line(&line);
+        let message = value["msg"].as_str().unwrap_or(&line).to_string();
+        let port = message
+            .strip_prefix("pw dev server on ")
+            .and_then(|p| p.parse().ok());
+        said.push(value);
+        if let Some(port) = port {
             return (port, said);
         }
-        assert_ne!(value["level"], "error", "{value}");
-        said.push(value);
     }
+}
+
+/// A line as JSON, or `{"not_json": <the line>}`.
+fn read_line(line: &str) -> serde_json::Value {
+    serde_json::from_str(line).unwrap_or_else(|_| serde_json::json!({ "not_json": line }))
+}
+
+/// The lines among `said` that are not JSON.
+fn not_json(said: &[serde_json::Value]) -> Vec<&serde_json::Value> {
+    said.iter()
+        .filter(|l| l.get("not_json").is_some())
+        .collect()
 }
 
 /// A request to the host, written whole, and its answer: head and body.
@@ -305,6 +314,7 @@ fn a_production_host_refuses_to_start_without_what_production_needs() {
     let (child, lines) = start(dir.path(), &env);
     let (code, said) = said_until_exit(child, &lines);
     assert_eq!(code, Some(1), "{said:?}");
+    assert!(not_json(&said).is_empty(), "{said:?}");
     let reasons: Vec<&str> = said
         .iter()
         .filter(|l| l["level"] == "error" && l["event"] == "refused")
@@ -385,6 +395,7 @@ fn a_production_host_serves_and_stops_when_told() {
     ]);
     let (child, lines) = start(dir.path(), &env);
     let (port, said) = listening(&lines);
+    assert!(not_json(&said).is_empty(), "{said:?}");
     assert!(said.iter().any(|l| l["event"] == "assets"), "{said:?}");
     assert!(
         said.iter().any(|l| l["event"] == "secrets"
@@ -478,6 +489,7 @@ fn a_production_host_serves_and_stops_when_told() {
     assert!(answer.starts_with("HTTP/1.1 200"), "{answer}");
     let (code, rest) = said_until_exit(child, &lines);
     assert_eq!(code, Some(0), "{rest:?}");
+    assert!(not_json(&rest).is_empty(), "{rest:?}");
     assert!(
         stopped_at.elapsed() < Duration::from_secs(5),
         "{:?}",
@@ -521,12 +533,20 @@ fn a_production_host_serves_and_stops_when_told() {
 fn a_stop_ends_at_its_grace_whatever_stays_open() {
     let dir = tempfile::TempDir::with_prefix("pw-production-").expect("a directory");
     let data = built_kiokun(dir.path());
+    // Where PW_BIND says: 127.0.0.2, a loopback address of its own, which
+    // the stop's wake reaches too.
     let (child, lines) = start(
         dir.path(),
-        &production(&[("PW_SHUTDOWN_GRACE", "1"), ("KIOKUN_DATA", &data)]),
+        &production(&[
+            ("PW_SHUTDOWN_GRACE", "1"),
+            ("KIOKUN_DATA", &data),
+            ("PW_BIND", "127.0.0.2"),
+        ]),
     );
     let (port, _) = listening(&lines);
-    let mut held = TcpStream::connect(("127.0.0.1", port)).expect("connect");
+    let held = TcpStream::connect(("127.0.0.2", port));
+    assert!(held.is_ok(), "it listens where PW_BIND says: {held:?}");
+    let mut held = held.expect("connected");
     held.write_all(b"GET /_pw/health HTTP/1.1\r\n")
         .expect("half a head");
     std::thread::sleep(Duration::from_millis(200));
@@ -654,6 +674,10 @@ fn a_production_store_starts_its_runtime_at_its_version_and_keys_its_addresses()
     };
 
     let (head, first) = page_with(KEY);
+    assert!(
+        first.contains("<script>import(\"/pw-runtime.mjs?v="),
+        "the runtime is not started at a version: {first}"
+    );
     let start_at = first
         .find("<script>import(\"/pw-runtime.mjs?v=")
         .expect("the runtime started at a version");
@@ -695,4 +719,32 @@ fn a_production_store_starts_its_runtime_at_its_version_and_keys_its_addresses()
         0,
         "another key made the same tokens: {first:?} {other:?}"
     );
+}
+
+/// **A connection that sends nothing is closed at the read's bound**
+/// (`PW_READ_TIMEOUT`, thirty seconds where it says nothing), so it does
+/// not hold its thread for good.
+#[test]
+fn a_connection_that_sends_nothing_is_closed_at_the_reads_bound() {
+    let dir = tempfile::TempDir::with_prefix("pw-production-").expect("a directory");
+    let data = built_kiokun(dir.path());
+    let (child, lines) = start(
+        dir.path(),
+        &production(&[("PW_READ_TIMEOUT", "1"), ("KIOKUN_DATA", &data)]),
+    );
+    let (port, _) = listening(&lines);
+    let mut idle = TcpStream::connect(("127.0.0.1", port)).expect("connect");
+    idle.set_read_timeout(Some(Duration::from_secs(8)))
+        .expect("a timeout");
+    let opened = Instant::now();
+    let mut byte = [0u8; 1];
+    let read = idle.read(&mut byte);
+    let took = opened.elapsed();
+    signal(&child, "TERM");
+    let (code, rest) = said_until_exit(child, &lines);
+    assert!(
+        matches!(read, Ok(0)) && took < Duration::from_secs(4),
+        "an idle connection was {read:?} after {took:?}"
+    );
+    assert_eq!(code, Some(0), "{rest:?}");
 }

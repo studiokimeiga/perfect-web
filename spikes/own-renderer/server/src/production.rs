@@ -64,6 +64,34 @@ pub(crate) const READY: &str = "/_pw/ready";
 /// Docker and Podman wait before they kill (`docker stop`'s default).
 const GRACE: Duration = Duration::from_secs(8);
 
+/// How long a production host waits for one read of a request's head or
+/// body: a connection that sends nothing for this long is closed, so that
+/// it does not hold its thread for good.
+const READ_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// **Whole seconds from `low` to `high`**, the setting `name` states, or
+/// `default` where it states none; a refusal where it states another.
+fn seconds(
+    env: Env,
+    name: &str,
+    (low, high): (u64, u64),
+    default: Duration,
+    refused: &mut Vec<String>,
+) -> Duration {
+    match env(name) {
+        None => default,
+        Some(text) => match text.parse::<u64>() {
+            Ok(seconds) if (low..=high).contains(&seconds) => Duration::from_secs(seconds),
+            _ => {
+                refused.push(format!(
+                    "{name} is `{text}`: whole seconds, from {low} to {high}"
+                ));
+                default
+            }
+        },
+    }
+}
+
 // ---------------------------------------------------------------------------
 // What the deployment states, before the server is built
 // ---------------------------------------------------------------------------
@@ -76,6 +104,8 @@ pub(crate) struct Settings {
     pub(crate) bind: IpAddr,
     pub(crate) secrets: Secrets,
     pub(crate) grace: Duration,
+    /// How long one read of a request may wait (`PW_READ_TIMEOUT`).
+    pub(crate) read_timeout: Duration,
 }
 
 /// **Whether the deployment says it is production** (`PW_DEPLOYMENT`; any
@@ -111,18 +141,14 @@ impl Settings {
                 }
             },
         };
-        let grace = match env("PW_SHUTDOWN_GRACE") {
-            None => GRACE,
-            Some(text) => match text.parse::<u64>() {
-                Ok(seconds @ 1..=600) => Duration::from_secs(seconds),
-                _ => {
-                    refused.push(format!(
-                        "PW_SHUTDOWN_GRACE is `{text}`: whole seconds, from 1 to 600"
-                    ));
-                    GRACE
-                }
-            },
-        };
+        let grace = seconds(env, "PW_SHUTDOWN_GRACE", (1, 600), GRACE, &mut refused);
+        let read_timeout = seconds(
+            env,
+            "PW_READ_TIMEOUT",
+            (1, 3600),
+            READ_TIMEOUT,
+            &mut refused,
+        );
         if production {
             refused.extend(production_refusals(env, &secrets));
         }
@@ -132,6 +158,7 @@ impl Settings {
                 bind,
                 secrets,
                 grace,
+                read_timeout,
             })
         } else {
             Err(refused)
@@ -702,20 +729,23 @@ mod tests {
     /// is refused**, every reason said at once.
     #[test]
     fn a_production_deployment_refuses_an_origin_not_https() {
-        let refused = production(&[("PW_ORIGIN", "")]).expect_err("refused");
+        let refused = production(&[("PW_ORIGIN", "")]).err().unwrap_or_default();
         assert!(
             refused
                 .iter()
                 .any(|r| r.contains("states its public origin")),
             "{refused:?}"
         );
-        let refused = production(&[("PW_ORIGIN", "http://preview.example")]).expect_err("refused");
+        let refused = production(&[("PW_ORIGIN", "http://preview.example")])
+            .err()
+            .unwrap_or_default();
         assert!(
             refused.iter().any(|r| r.contains("served over https")),
             "{refused:?}"
         );
-        let refused =
-            production(&[("PW_ORIGIN", ""), ("PW_IDENTITY_KEY", "")]).expect_err("refused");
+        let refused = production(&[("PW_ORIGIN", ""), ("PW_IDENTITY_KEY", "")])
+            .err()
+            .unwrap_or_default();
         assert_eq!(refused.len(), 2, "{refused:?}");
     }
 
@@ -723,7 +753,9 @@ mod tests {
     /// or not hexadecimal, is refused**, and the key is never quoted.
     #[test]
     fn a_production_deployment_refuses_a_key_not_its_own() {
-        let refused = production(&[("PW_IDENTITY_KEY", "")]).expect_err("refused");
+        let refused = production(&[("PW_IDENTITY_KEY", "")])
+            .err()
+            .unwrap_or_default();
         assert!(
             refused.iter().any(|r| r.contains("openssl rand -hex 32")),
             "{refused:?}"
@@ -734,7 +766,9 @@ mod tests {
             &format!("{}zz", &KEY[..62]),
             &format!("{KEY}0"),
         ] {
-            let refused = production(&[("PW_IDENTITY_KEY", key)]).expect_err("refused");
+            let refused = production(&[("PW_IDENTITY_KEY", key)])
+                .err()
+                .unwrap_or_default();
             assert!(
                 refused.iter().any(|r| r.contains("not 64 or more")),
                 "{key}: {refused:?}"
@@ -749,7 +783,9 @@ mod tests {
     /// development.
     #[test]
     fn a_tests_setting_is_refused_in_production() {
-        let refused = production(&[("PW_FEED_TRANSACTIONS", "connection")]).expect_err("refused");
+        let refused = production(&[("PW_FEED_TRANSACTIONS", "connection")])
+            .err()
+            .unwrap_or_default();
         assert!(
             refused
                 .iter()
@@ -772,9 +808,18 @@ mod tests {
         let development = |bind: &str| Settings::read(&env_of(vec![("PW_BIND", bind.into())]));
         assert!(development("127.0.0.1").is_ok());
         assert!(development("::1").is_ok());
-        let refused = development("0.0.0.0").expect_err("refused");
+        let refused = development("0.0.0.0").err().unwrap_or_default();
         assert!(refused[0].contains("loopback alone"), "{refused:?}");
         assert!(development("localhost").is_err());
+        assert_eq!(settings.read_timeout, READ_TIMEOUT);
+        let read = production(&[("PW_READ_TIMEOUT", "5")]).expect("starts");
+        assert_eq!(read.read_timeout, Duration::from_secs(5));
+        for timeout in ["0", "3601", "half"] {
+            assert!(
+                production(&[("PW_READ_TIMEOUT", timeout)]).is_err(),
+                "{timeout}"
+            );
+        }
         for grace in ["0", "601", "ten", "-1"] {
             assert!(
                 production(&[("PW_SHUTDOWN_GRACE", grace)]).is_err(),

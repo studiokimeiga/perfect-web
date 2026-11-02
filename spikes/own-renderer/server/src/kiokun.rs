@@ -63,9 +63,39 @@ pub(crate) struct Search {
 /// which a production host requires: its build's paths are not where it
 /// runs, and its filesystem is read-only but there.
 fn search_cache() -> PathBuf {
-    match std::env::var_os("PW_CACHE_DIR").filter(|d| !d.is_empty()) {
+    search_cache_in(std::env::var_os("PW_CACHE_DIR"))
+}
+
+/// [`search_cache`], given the deployment's cache directory, where it
+/// names one.
+fn search_cache_in(directory: Option<std::ffi::OsString>) -> PathBuf {
+    match directory.filter(|d| !d.is_empty()) {
         Some(dir) => PathBuf::from(dir).join("kiokun-search"),
         None => Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../target/kiokun-search"),
+    }
+}
+
+/// TRACK SEAM (deploy): the search cache, where a production deployment
+/// keeps it.
+#[cfg(test)]
+mod production_cache_tests {
+    use super::*;
+
+    /// **A production deployment's search index is cached in its cache
+    /// directory**; with none named, under the build's `target/`, as
+    /// before.
+    #[test]
+    fn the_search_index_is_cached_in_the_production_cache_directory() {
+        assert_eq!(
+            search_cache_in(Some("/var/cache/pleris".into())),
+            PathBuf::from("/var/cache/pleris/kiokun-search")
+        );
+        let development = search_cache_in(None);
+        assert!(
+            development.ends_with("target/kiokun-search"),
+            "{development:?}"
+        );
+        assert_eq!(search_cache_in(Some("".into())), development);
     }
 }
 

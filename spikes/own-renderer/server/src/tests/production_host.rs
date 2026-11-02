@@ -287,16 +287,23 @@ fn with_no_sign_in_every_session_is_anonymous() {
         origin: "https://preview.example".to_string(),
     };
     let s = production_store(None);
+    // Read so that a model that ran where it may not fails at the
+    // assertion (the mutation controls count only an assertion's failure).
     for model in ["guest", identity::DEV_ACCOUNTS] {
         let refused = s
             .identity
             .configure(&production, Some(model))
-            .expect_err(model);
+            .err()
+            .unwrap_or_default();
         assert!(refused.contains("development"), "{model}: {refused}");
     }
-    s.identity
-        .configure(&production, Some(identity::NO_SIGN_IN))
-        .expect("no sign-in runs in production");
+    let configured = s
+        .identity
+        .configure(&production, Some(identity::NO_SIGN_IN));
+    assert!(
+        configured.is_ok(),
+        "no sign-in runs in production: {configured:?}"
+    );
     assert!(
         s.identity.describe().starts_with("none"),
         "{}",
