@@ -55,7 +55,15 @@ annotate-snippets = "0.12.16"
 rowan = "0.17.0"
 anyhow = "1.0.104"
 serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.151"
+# `float_roundtrip`: a float's JSON text read back as the very double it was
+# written from. Without it serde_json's parser answers one or two units in the
+# last place off for many (measured 2026-11-02 on 1.0.151: 593,094 of
+# 2,000,000 random doubles, 26,747 of 199,999 values like 1.5666666666666667;
+# none with it), so a float nested in a PostgreSQL `json` column (ADR-0393), or
+# a command's argument a browser sends (the development server reads them with
+# serde_json), was not always the float written. The feature is serde_json's
+# own (its Cargo.toml, 1.0.151); no crate is added.
+serde_json = { version = "1.0.151", features = ["float_roundtrip"] }
 # Wasmtime host + guest bindings for spikes/wasmtime-component (Milestone 0 task 10).
 # ADR0317: in-process component caching remains; unused upstream disk cache
 # pulls vulnerable zstd. Preserve all other upstream 48.0.8 defaults explicitly
