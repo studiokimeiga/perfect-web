@@ -107,6 +107,13 @@ MUTANTS = [
     ("an older build takes a newer database back", MIGRATE,
      "    if !stated_applies {\n",
      "    if false && !stated_applies {\n"),
+    # The review of PR #66: a table a change adds was shaped alone, so its
+    # reference to a table held, or added with it, resolved against nothing.
+    ("a table a change adds is shaped alone", MIGRATE,
+     "            tables_sql.push(sql::create_table(names, shape));\n",
+     "            let alone = built.tables.iter().filter(|t| t.name == shape.name);\n"
+     "            let alone: Vec<TableSchema> = alone.cloned().collect();\n"
+     "            tables_sql.push(sql::create_table(names, &shapes_of(&alone)?[0]));\n"),
     ("a refinement is held by no check", SQL,
      "            if let Some(check) = check_of(names, column) {\n",
      "            if let Some(check) = check_of(names, column).filter(|_| false) {\n"),
