@@ -3,8 +3,9 @@
 <!-- guide-program: examples/guestbook -->
 
 This tutorial builds a small app end to end: a guestbook. Anyone can read
-it. A signed-in reader can sign it, and remove what they wrote. Every open
-page shows a new entry, and a removed one goes, without a reload.
+it. A reader signed in to an account can sign it, and remove what they
+wrote. Every open page shows a new entry, and a removed one goes, without
+a reload. It keeps at most 1,000 entries, and says so when it is full.
 
 You write four files:
 
@@ -109,18 +110,29 @@ table Books
 type Entry = Entry { book: String, number: Int, author: UserId, name: String, text: Words }
 
 table Entries
-    row    Entry
-    key    book, number
-    refers book to Books
+    row     Entry
+    key     book, number
+    refers  book to Books
+    bounded 1000
+
+fn most() -> Int !{} {
+    1000
+}
 ```
 
 - `row` names the record each row is. Its fields are what the table
   stores: an entry's text is stored as `Words`, so no row can hold an empty
-  text, or one longer than 280 characters.
+  text, or one longer than 280 characters. An entry's author is a `UserId`,
+  an id that names someone and grants nothing: a row never holds a reader's
+  handle, which every reader of the table would then read (PW6901).
 - `key` is the fields that find one row: a book by its name, an entry by
   its book and its number. No two rows have one key.
 - `refers book to Books`: an entry's book is a row of `Books`. A commit
   that would leave an entry of no book is refused.
+- `bounded 1000`: the table holds at most 1,000 entries, and a write past
+  that is refused. The page reads every entry (step 4), so the bound is
+  what keeps that read, and the page, the same size however many sign.
+  `most` says the same number to the code that signs (step 5).
 
 From these the compiler writes each table's functions, which are the
 program's only way to its rows:
@@ -131,6 +143,7 @@ program's only way to its rows:
 | `Books.put(book)` | the book, whole, written by its key |
 | `Entries.get(book, number)` | the entry of that key, or `None` |
 | `Entries.of_book(book)` | every entry of a book, in the key's order |
+| `Entries.all()` | every entry, of a table that states `bounded` |
 | `Entries.insert(entry)` | a new entry: `Err(row)` where its key is held |
 | `Entries.delete(book, number)` | the entry of that key, gone |
 
@@ -156,7 +169,7 @@ import context.{ current_user, account_of, Account }
 import capability.{ User, UserId }
 import Books.{ Book }
 import Books
-import Entries.{ Entry, Words, text_of }
+import Entries.{ Entry, Words, text_of, most }
 import Entries
 ```
 
@@ -175,6 +188,7 @@ repeated sends are told apart by (step 5).
 ```pw file=guestbook/book.pw
 type BookError =
     | SignedOut
+    | Full
     | NotFound
     | NotYours
     | Unavailable
@@ -229,12 +243,23 @@ fn mine(entry: Entry, reader: Option<Account>) -> Bool !{} {
 fn line(entry: Entry, reader: Option<Account>) -> Line !{} {
     Line { number: entry.number, name: entry.name, text: text_of(entry.text), mine: mine(entry, reader) }
 }
+
+fn refused(error: BookError) -> String !{} {
+    match error {
+        SignedOut => "Sign in to sign the guestbook.",
+        Full => "The guestbook is full: it keeps 1,000 entries.",
+        NotFound => "That entry is gone.",
+        NotYours => "Only its author removes an entry.",
+        Unavailable => "The guestbook was not signed. Try again.",
+    }
+}
 ```
 
 The app keeps one book, named `"guestbook"`. `viewer`, `mine` and `line`
 are pure: what the page is told, made from what the tables and the
 platform answer. An `Account` is the platform's: a signed-in reader's id
-and the name their sign-in provider gave them (step 4).
+and the name their sign-in provider gave them (step 4). `refused` is what
+the page says when a command answers one of its errors (step 6).
 
 ## 4. Queries the page reads
 
@@ -278,13 +303,14 @@ user query Latest(reader: User<UserId>, limit: Int) -> List<Line>
 - `account_of(reader)` is the account the reader signed in to: the id their
   handle names, a plain `UserId` the program can store in a row and compare
   with one, and the name their sign-in provider gave them; `None` where no
-  one signed in. Whose account it is says who reads, so the compiler treats
+  one signed in to an account, a guest's session and a signed-out reader's
+  among them. Whose account it is says who reads, so the compiler treats
   it as the reader's too: return it from a query cached for every reader
   and it refuses the query (PW5001).
 - `Entries.of_book` reads every entry of the book, in number order;
   `List.reverse` puts the newest first, and `List.take` the first `limit`.
-  Pleris has no paged read of a table yet, so a larger guestbook is read
-  whole each time.
+  Pleris has no paged read of a table yet, so the guestbook is read whole
+  each time, which is why `Entries` states its bound.
 - `invalidates_on Signed(_), Removed(_)`: when a command announces either
   event, every open page that shows this query is read again and told the
   new value, live. This is how the guestbook updates without a reload.
@@ -313,7 +339,9 @@ command sign(text: Words) -> Result<Entry, BookError>
 {
     match account_of(current_user()) {
         None => Err(SignedOut),
-        Some(account) => {
+        Some(account) => if List.length(Entries.all()) >= most() {
+            Err(Full)
+        } else {
             let number = match Books.get(guestbook()) {
                 Some(book) => book.signed + 1,
                 None => 1,
@@ -338,6 +366,13 @@ fn pending(shown: List<Line>, text: Words) -> List<Line> !{} {
   higher, and inserts the entry. They commit together or not at all, and
   no other command sees either before they do. Two readers signing at once
   are given two numbers.
+- A reader with no account (no one signed in, or a guest of a development
+  server that names every session) is answered `SignedOut`: an entry names
+  its author by their account.
+- A full guestbook is answered `Full`, before anything is written: the
+  table would refuse the 1,001st entry anyway, but as a failed write, which
+  says nothing a reader can read. `Full` is the program's own answer, and
+  the page says it (step 6).
 - `Entries.insert` answers `Err(row)` where the key is held already, and
   the compiler makes the program handle it. Here it cannot be (the number
   was just counted), so it answers `Unavailable`, and a declared error
@@ -391,7 +426,7 @@ import List
 import String
 import context.{ current_user }
 import Entries.{ words }
-import guestbook.book.{ Me, Latest, SignedIn, sign, remove }
+import guestbook.book.{ Me, Latest, SignedIn, sign, remove, refused }
 ```
 
 ```pw file=guestbook/pages.pw
@@ -402,6 +437,7 @@ user page Book() {
 
     signal shown: Int = 20
     signal draft: String = ""
+    signal said: String = ""
     let me = query Me(current_user())
     let entries = query Latest(current_user(), shown)
 
@@ -417,16 +453,22 @@ user page Book() {
                 <form method="get" action="/sign-in"><button type="submit">Sign in</button></form>
                 <form method="get" action="/sign-up"><button type="submit">Sign up</button></form>
             {/if}
-            <form hidden={!SignedIn} on:submit|prevent={() => match words(draft) {
-                Some(text) => match sign(text) {
-                    Ok(_) => draft = "",
-                    Err(_) => (),
-                },
-                None => (),
-            }}>
-                <label>Your message <textarea bind:value={draft}></textarea></label>
-                <button type="submit" disabled={String.length(draft) == 0}>Sign</button>
-            </form>
+            <div hidden={!me.signed_in}>
+                <form hidden={!SignedIn} on:submit|prevent={() => match words(draft) {
+                    Some(text) => match sign(text) {
+                        Ok(_) => {
+                            draft = ""
+                            said = ""
+                        },
+                        Err(error) => said = refused(error),
+                    },
+                    None => (),
+                }}>
+                    <label>Your message <textarea bind:value={draft}></textarea></label>
+                    <button type="submit" disabled={String.length(draft) == 0}>Sign</button>
+                </form>
+                <p id="said" role="status">{said}</p>
+            </div>
             {#if List.length(entries) == 0}<p id="empty">No one has signed yet.</p>{/if}
             <ul>
                 {#each entries as entry (entry.number)}
@@ -434,8 +476,8 @@ user page Book() {
                         <p>{entry.text}</p>
                         <p class="by">{entry.name}</p>
                         {#if SignedIn}{#if entry.mine}<button type="button" on:press={() => match remove(entry.number) {
-                            Ok(_) => (),
-                            Err(_) => (),
+                            Ok(_) => said = "",
+                            Err(error) => said = refused(error),
                         }}>Remove</button>{/if}{/if}
                     </li>
                 {/each}
@@ -453,13 +495,19 @@ Read it from the top:
   because its rows are the reader's (`mine` was computed with their id),
   and a Remove button's handler holds one: a page that names no reader
   could not give it one (PW5007).
-- `signal shown: Int = 20` and `signal draft: String = ""` are the page's
-  own state, in the browser. A handler assigns them; the page shows them.
+- `signal shown: Int = 20`, `signal draft: String = ""` and `signal said:
+  String = ""` are the page's own state, in the browser. A handler assigns
+  them; the page shows them.
 - `let me = query Me(current_user())` reads a query. The page renders on
   the server with its value, and the browser is told when it changes.
 - `{#if me.signed_in} .. {:else} .. {/if}`, `{#each entries as entry
   (entry.number)} .. {/each}`: markup blocks, as in Svelte. A list is
   keyed, so each row keeps its place as rows come and go.
+- `<div hidden={!me.signed_in}>`: the composer is shown to a reader with an
+  account, the one `sign` takes an entry from. It is hidden, not inside the
+  `{#if}`: the browser renders again what reads a signal (`draft`, `said`)
+  only outside a block a query's value decides (ADR-0137), and the compiler
+  says so where it is not.
 - `hidden={!SignedIn}` and `{#if SignedIn}`: the page asks the predicate
   of its reader, as the server will. A control that sends a command which
   `requires SignedIn` must be shown only where the page asks it: the
@@ -467,8 +515,12 @@ Read it from the top:
   given a button that can only be refused.
 - `on:submit|prevent={() => ...}`: the handler, run in the browser. It
   makes `Words` from the draft, calls the command, and matches on the
-  answer, which says only whether the command committed: the new entry
-  reaches the page through `Latest`. An arm that does nothing is `()`.
+  answer: committed, it clears the draft, and the new entry reaches the
+  page through `Latest`; refused, `said` takes the words `refused` gives
+  the error, which the page shows in `<p id="said" role="status">`, so a
+  full guestbook, or a reader signed out meanwhile, is told and not left
+  wondering. An arm of two statements is a block, `{ .. }`; an arm that
+  does nothing is `()`.
 - `bind:value={draft}`: the textarea and the signal are kept equal.
 - `on:press={() => match remove(entry.number) { .. }}` inside a list row:
   the handler reads `entry` from its row. The compiler writes what a

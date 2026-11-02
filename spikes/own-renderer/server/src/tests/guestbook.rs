@@ -143,6 +143,44 @@ fn the_guestbook_is_served_from_the_tables_it_declares() {
     assert_eq!(latest(&s, "b"), [line(2, "Bob", "Hello from Bob", true)]);
 }
 
+/// **Whether the composer is hidden on `session`'s page**, as it is served:
+/// the element it sits in, the `<div>` before "Your message", says `hidden`.
+fn composer_hidden(s: &Server, session: &str) -> bool {
+    let raw: String = fetched_as(s, "/", Some(session))
+        .into_iter()
+        .map(|(_, c)| c)
+        .collect();
+    let at = raw.find("Your message");
+    assert!(at.is_some(), "the composer is in the page: {raw}");
+    let before = &raw[..at.unwrap_or_default()];
+    let div = before.rfind("<div").map_or("", |d| &before[d..]);
+    let tag = &div[..div.find('>').unwrap_or(div.len())];
+    tag.split_whitespace().any(|word| word == "hidden")
+}
+
+/// **The composer is a reader's with an account alone** (the integrator's
+/// note a of 2026-11-02): an entry names its author by their account, so a
+/// reader with none is given no composer. Until then a guest of the guest
+/// model (whom `SignedIn` holds) was given one, and its signing answered
+/// `SignedOut`, which the page's handler dropped silently; now the page
+/// says it (`refused`), were it ever pressed. Ada, signed in, is given the
+/// composer; a reader signed out is not.
+#[test]
+fn the_composer_is_a_reader_with_an_accounts_alone() {
+    let s = served_guestbook();
+    assert!(composer_hidden(&s, "g-1"), "a guest has no account");
+    let guest = sign(&s, "g-1", "As a guest", "i-1");
+    assert!(!guest.committed);
+    assert_eq!(
+        guest.result,
+        Some(serde_json::json!({"$case": "err", "value": {"$case": "signed-out"}})),
+        "a guest's signing is the program's refusal, which the page says"
+    );
+    s.identity.signed_in_for_test("a", "u-ada", "Ada");
+    assert!(!composer_hidden(&s, "a"), "Ada has an account");
+    assert!(composer_hidden(&s, "c"), "a reader signed out has none");
+}
+
 /// **An entry is its author's alone to remove**: another reader's removal
 /// answers `NotYours`, and keeps it; one not there, `NotFound`.
 #[test]
@@ -372,6 +410,93 @@ fn a_commit_failing_after_its_rows_are_published_closes_the_tables() {
         next.as_ref()
             .is_err_and(|why| why.contains("StoragePoisoned")),
         "and no command writes them: {next:?}"
+    );
+}
+
+/// **The guestbook keeps at most its bound of entries, and its page is
+/// measured at it** (the review's S3; the integrator's ruling of
+/// 2026-11-02). `Entries` is `bounded 1000`, since `Latest` reads every
+/// entry (no paged read yet): 16,000 entries took 274 ms, and 48,000
+/// exhausted a component's memory. At the bound, a signing is refused
+/// `Full`, a declared error that commits nothing, whose words the page
+/// shows; one entry removed, a signing is kept again. The page rendered at
+/// the bound, and `Latest` read whole there, are each within the query's
+/// timeout (2 s), and their times are printed.
+#[test]
+fn the_guestbook_keeps_its_bound_and_its_page_is_measured_at_it() {
+    let (_dir, out) = super::tables::built(&["examples/guestbook"], &[]);
+    let s = Server::from_build(out.clone(), out.clone()).asserted("served");
+    s.identity.signed_in_for_test("a", "u-ada", "Ada");
+    let bound: i64 = 1000;
+    let tables = super::conformance::tables_of(&out);
+    let row = |value: serde_json::Value| -> serde_json::Map<String, serde_json::Value> {
+        serde_json::from_value(value).asserted("a row")
+    };
+    let mut rows = BTreeMap::new();
+    rows.insert(
+        "Books".to_string(),
+        vec![row(
+            serde_json::json!({"name": "guestbook", "signed": bound}),
+        )],
+    );
+    rows.insert(
+        "Entries".to_string(),
+        (1..=bound)
+            .map(|number| {
+                row(serde_json::json!({
+                    "book": "guestbook", "number": number, "author": "u-ada", "name": "Ada",
+                    "text": format!("entry {number:04} {}", "w".repeat(269)),
+                }))
+            })
+            .collect(),
+    );
+    assert_eq!(
+        super::conformance::write_rows(&s, &tables, &rows),
+        Ok(()),
+        "the guestbook at its bound"
+    );
+    let started = std::time::Instant::now();
+    let page = shown(&s, "a");
+    let rendered = started.elapsed();
+    assert!(
+        page.contains("entry 1000") && page.contains("entry 0981"),
+        "the newest twenty: {page}"
+    );
+    assert!(!page.contains("entry 0980"), "twenty, and no more");
+    let reader = Val::String(s.identity.principals().user_of("a"));
+    let started = std::time::Instant::now();
+    let whole = s
+        .answer(LATEST, "a", &[reader, Val::S64(bound)])
+        .asserted("Latest, whole");
+    let read = started.elapsed();
+    assert!(
+        matches!(&whole, Val::List(lines) if lines.len() == bound as usize),
+        "every entry: {}",
+        format!("{whole:?}").len()
+    );
+    eprintln!(
+        "the guestbook at its bound of {bound} entries: its page rendered in {rendered:?}, \
+         `Latest` read whole in {read:?}"
+    );
+    let timeout = std::time::Duration::from_secs(2);
+    assert!(
+        rendered < timeout && read < timeout,
+        "{rendered:?}, {read:?}"
+    );
+    // Past the bound, refused, its words the program's.
+    let full = sign(&s, "a", "One too many", "i-full");
+    assert!(!full.committed);
+    assert_eq!(
+        full.result,
+        Some(serde_json::json!({"$case": "err", "value": {"$case": "full"}}))
+    );
+    assert_eq!(latest(&s, "a")[0].0, bound, "nothing kept");
+    // One removed, there is room.
+    assert!(remove(&s, "a", 1, "i-remove").committed);
+    assert!(sign(&s, "a", "Room again", "i-room").committed);
+    assert_eq!(
+        latest(&s, "a")[0],
+        line(bound + 1, "Ada", "Room again", true)
     );
 }
 

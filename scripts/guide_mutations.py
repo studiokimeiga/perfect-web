@@ -586,8 +586,15 @@ MUTANTS = [
         "a signed entry does not clear the draft",
         "browser",
         PAGES,
-        '                    Ok(_) => draft = "",\n',
-        "                    Ok(_) => (),\n",
+        '                            draft = ""\n',
+        "                            draft = draft\n",
+    ),
+    (
+        "a refused signing is said nowhere",
+        "browser",
+        PAGES,
+        "                        },\n                        Err(error) => said = refused(error),\n",
+        "                        },\n                        Err(_) => (),\n",
     ),
     (
         "Remove is offered on another reader's entry and not on one's own",
@@ -710,6 +717,7 @@ MUST = {
     "the retired codes are left out of the page": {CURRENT},
     "the last code of each owner is left out of the page": {CURRENT},
     "a signed entry does not clear the draft": {"signs, and the entry is theirs alone to remove"},
+    "a refused signing is said nowhere": {"a signing the server refuses is said"},
     "Remove is offered on another reader's entry and not on one's own": {
         "signs, and the entry is theirs alone to remove"
     },

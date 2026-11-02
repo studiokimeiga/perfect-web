@@ -5,7 +5,7 @@ import context.{ current_user, account_of, Account }
 import capability.{ User, UserId }
 import Books.{ Book }
 import Books
-import Entries.{ Entry, Words, text_of }
+import Entries.{ Entry, Words, text_of, most }
 import Entries
 
 opaque type InteractionId = String
@@ -16,6 +16,7 @@ type Viewer = Viewer { signed_in: Bool, name: String }
 
 type BookError =
     | SignedOut
+    | Full
     | NotFound
     | NotYours
     | Unavailable
@@ -50,6 +51,16 @@ fn mine(entry: Entry, reader: Option<Account>) -> Bool !{} {
 
 fn line(entry: Entry, reader: Option<Account>) -> Line !{} {
     Line { number: entry.number, name: entry.name, text: text_of(entry.text), mine: mine(entry, reader) }
+}
+
+fn refused(error: BookError) -> String !{} {
+    match error {
+        SignedOut => "Sign in to sign the guestbook.",
+        Full => "The guestbook is full: it keeps 1,000 entries.",
+        NotFound => "That entry is gone.",
+        NotYours => "Only its author removes an entry.",
+        Unavailable => "The guestbook was not signed. Try again.",
+    }
 }
 
 user query Me(reader: User<UserId>) -> Viewer
@@ -89,7 +100,9 @@ command sign(text: Words) -> Result<Entry, BookError>
 {
     match account_of(current_user()) {
         None => Err(SignedOut),
-        Some(account) => {
+        Some(account) => if List.length(Entries.all()) >= most() {
+            Err(Full)
+        } else {
             let number = match Books.get(guestbook()) {
                 Some(book) => book.signed + 1,
                 None => 1,

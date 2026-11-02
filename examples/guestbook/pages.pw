@@ -4,7 +4,7 @@ import List
 import String
 import context.{ current_user }
 import Entries.{ words }
-import guestbook.book.{ Me, Latest, SignedIn, sign, remove }
+import guestbook.book.{ Me, Latest, SignedIn, sign, remove, refused }
 
 user page Book() {
     route     "/"
@@ -13,6 +13,7 @@ user page Book() {
 
     signal shown: Int = 20
     signal draft: String = ""
+    signal said: String = ""
     let me = query Me(current_user())
     let entries = query Latest(current_user(), shown)
 
@@ -28,16 +29,22 @@ user page Book() {
                 <form method="get" action="/sign-in"><button type="submit">Sign in</button></form>
                 <form method="get" action="/sign-up"><button type="submit">Sign up</button></form>
             {/if}
-            <form hidden={!SignedIn} on:submit|prevent={() => match words(draft) {
-                Some(text) => match sign(text) {
-                    Ok(_) => draft = "",
-                    Err(_) => (),
-                },
-                None => (),
-            }}>
-                <label>Your message <textarea bind:value={draft}></textarea></label>
-                <button type="submit" disabled={String.length(draft) == 0}>Sign</button>
-            </form>
+            <div hidden={!me.signed_in}>
+                <form hidden={!SignedIn} on:submit|prevent={() => match words(draft) {
+                    Some(text) => match sign(text) {
+                        Ok(_) => {
+                            draft = ""
+                            said = ""
+                        },
+                        Err(error) => said = refused(error),
+                    },
+                    None => (),
+                }}>
+                    <label>Your message <textarea bind:value={draft}></textarea></label>
+                    <button type="submit" disabled={String.length(draft) == 0}>Sign</button>
+                </form>
+                <p id="said" role="status">{said}</p>
+            </div>
             {#if List.length(entries) == 0}<p id="empty">No one has signed yet.</p>{/if}
             <ul>
                 {#each entries as entry (entry.number)}
@@ -45,8 +52,8 @@ user page Book() {
                         <p>{entry.text}</p>
                         <p class="by">{entry.name}</p>
                         {#if SignedIn}{#if entry.mine}<button type="button" on:press={() => match remove(entry.number) {
-                            Ok(_) => (),
-                            Err(_) => (),
+                            Ok(_) => said = "",
+                            Err(error) => said = refused(error),
                         }}>Remove</button>{/if}{/if}
                     </li>
                 {/each}

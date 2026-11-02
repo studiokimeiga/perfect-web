@@ -11,7 +11,10 @@
 //     before the server answers, then as the server wrote it, under their
 //     name, theirs to remove and no one else's;
 //   - another reader's open page is told of the entry, and of its removal,
-//     without a reload.
+//     without a reload;
+//   - a signing the server refuses is said where the composer is, and the
+//     entry shown at once goes (track `data-path`, the integrator's note a
+//     and ruling S3 of 2026-11-02).
 import { test } from "@playwright/test";
 import { expect } from "../assertion-expect.mjs";
 import { GUESTBOOK_PORTS } from "../host-metadata.mjs";
@@ -132,6 +135,36 @@ test("an entry is shown before the server answers, and offers no Remove until it
   await expect(entry(page, words).locator(".by")).toHaveText(name);
   await expect(entry(page, words)).toHaveCount(1);
   await expect(entry(page, words).getByRole("button", { name: "Remove" })).toHaveCount(1);
+  await context.close();
+});
+
+test("a signing the server refuses is said, and the entry shown at once goes", async ({ browser }, testInfo) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  const name = `Ida ${testInfo.project.name}`;
+  await signUp(page, handle(testInfo, "ida"), name);
+  // The answer the server gives a full guestbook, `Err(Full)` (the server's
+  // own tests reach it at the table's bound of 1,000 entries), given here
+  // at the network, so what is observed is the page's handling of it.
+  await page.route("**/command/guestbook.book.sign", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ committed: false, result: { $case: "err", value: { $case: "full" } } }),
+    }),
+  );
+  const words = `One too many, from ${testInfo.project.name} ${Date.now()}`;
+  await page.getByLabel("Your message").fill(words);
+  await page.getByRole("button", { name: "Sign", exact: true }).click();
+  await expect(page.locator("#said")).toHaveText("The guestbook is full: it keeps 1,000 entries.");
+  await expect(entry(page, words)).toHaveCount(0);
+  // The draft is kept, to send again; sent once there is room, it is kept,
+  // and what was said is cleared.
+  await expect(page.getByLabel("Your message")).toHaveValue(words);
+  await page.unroute("**/command/guestbook.book.sign");
+  await page.getByRole("button", { name: "Sign", exact: true }).click();
+  await expect(entry(page, words).locator(".by")).toHaveText(name);
+  await expect(page.locator("#said")).toHaveText("");
   await context.close();
 });
 
