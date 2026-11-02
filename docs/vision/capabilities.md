@@ -128,8 +128,8 @@ it is done, [STATUS](../STATUS.md) and the ADRs are the current record.
   secrets.
 - Queued in NEXT and not built: migrations across live deploys, secrets
   management, rate limiting and backups. Wasmtime's advisories of
-  2026-10-14 are fixed by 48.0.6 (0335), and those of 2026-10-19 by 48.0.7
-  (0363).
+  2026-10-14 are fixed by 48.0.6 (0335), those of 2026-10-19 by 48.0.7
+  (0363), and those of 2026-10-29 by 48.0.8 (0363's amendment).
 
 **Interop**
 
