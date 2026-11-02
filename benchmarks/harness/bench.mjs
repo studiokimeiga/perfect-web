@@ -17,6 +17,7 @@
 
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { agentFailureKind, readAgentUsage, scoreAgentRun } from "./agent-telemetry.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -75,7 +76,7 @@ const STACKS = {
 
 function sh(cmd, args, opts = {}) {
   const r = spawnSync(cmd, args, { encoding: "utf8", maxBuffer: 64 << 20, ...opts });
-  return { ok: r.status === 0, status: r.status, out: `${r.stdout ?? ""}${r.stderr ?? ""}` };
+  return { ok: r.status === 0, status: r.status, signal: r.signal ?? null, error_code: r.error?.code ?? null, out: `${r.stdout ?? ""}${r.stderr ?? ""}` };
 }
 
 function tail(text, n = 40) {
@@ -224,7 +225,7 @@ export function changedLines(app) {
 
 // --- the agent -------------------------------------------------------------
 
-function runAgent(task, stack, agent, box) {
+export function runAgent(task, stack, agent, box) {
   const started = Date.now();
   if (agent === "noop") {
     return { ok: true, seconds: 0, out: "" };
@@ -236,13 +237,22 @@ function runAgent(task, stack, agent, box) {
     const r = sh("git", ["apply", patch], { cwd: box.app });
     return { ok: r.ok, seconds: (Date.now() - started) / 1000, out: tail(r.out) };
   }
+  // Real agent telemetry lives outside the graded app.
+  const usageFile = path.join(box.root, "AGENT_USAGE.json");
   // A real agent: a shell command, run in the sandbox, with the prompt's path.
   const r = sh("bash", ["-c", agent], {
     cwd: box.app,
-    env: { ...process.env, BENCH_PROMPT: path.join(box.root, "PROMPT.md"), BENCH_STACK: stack },
+    env: { ...process.env, BENCH_PROMPT: path.join(box.root, "PROMPT.md"), BENCH_STACK: stack, BENCH_USAGE: usageFile },
     timeout: Number(process.env.BENCH_AGENT_SECONDS ?? 1800) * 1000,
   });
-  return { ok: r.ok, seconds: (Date.now() - started) / 1000, out: tail(r.out) };
+  const seconds = (Date.now() - started) / 1000;
+  let usage = null;
+  try {
+    usage = readAgentUsage(usageFile);
+  } catch (error) {
+    return { ok: false, seconds, out: tail(r.out), usage: null, failure_kind: "infra", problem: error.message };
+  }
+  return { ok: r.ok, seconds, out: tail(r.out), usage, failure_kind: r.ok ? null : agentFailureKind(r) };
 }
 
 // --- grading ---------------------------------------------------------------
@@ -396,8 +406,7 @@ export async function run({ task: id, stack, agent }) {
     const agentRun = runAgent(task, stack, agent, box);
     const changed = changedLines(box.app);
     const stages = agentRun.ok ? await grade(task, stack, box) : [];
-    const score = agentRun.ok && stages.length > 0 && stages.every((s) => s.ok) ? 1 : 0;
-    const failedAt = !agentRun.ok ? "agent" : stages.find((s) => !s.ok)?.name ?? null;
+    const { score, failedAt } = scoreAgentRun(agentRun, stages);
     const result = {
       task: task.id,
       stack,
@@ -489,7 +498,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (command === "run") {
     const r = await run({ task: arg("task"), stack: arg("stack"), agent: arg("agent") ?? "noop" });
     console.log(
-      `${r.task} ${r.stack} ${r.agent}: score ${r.score}${r.failed_at ? ` (failed at ${r.failed_at})` : ""}, ` +
+      `${r.task} ${r.stack} ${r.agent}: ${r.score === null ? "ungraded" : "score " + r.score}${r.failed_at ? ` (failed at ${r.failed_at})` : ""}, ` +
         `${r.changed_lines} line(s) changed -> ${path.relative(REPO, r.file)}`,
     );
   } else if (command === "controls") {
