@@ -72,15 +72,23 @@ impl Scratch {
     }
 
     /// The first column of each row `query` answers, as text.
+    /// A query that fails answers its error as its one line, for the
+    /// asserting test to show.
     pub fn texts(&self, query: &str) -> Vec<String> {
-        let mut c = postgres::Client::connect(&self.url, postgres::NoTls).expect("a connection");
-        c.batch_execute(&format!("SET search_path TO \"{}\"", self.schema))
-            .expect("the schema");
-        c.query(query, &[])
-            .expect("the query")
-            .iter()
-            .map(|r| r.get::<_, String>(0))
-            .collect()
+        let answered = postgres::Client::connect(&self.url, postgres::NoTls).and_then(|mut c| {
+            c.batch_execute(&format!("SET search_path TO \"{}\"", self.schema))?;
+            c.query(query, &[])
+        });
+        match answered {
+            Ok(rows) => rows
+                .iter()
+                .map(|r| {
+                    r.try_get::<_, String>(0)
+                        .unwrap_or_else(|e| format!("error: {e}"))
+                })
+                .collect(),
+            Err(e) => vec![format!("error: {e}")],
+        }
     }
 }
 

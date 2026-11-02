@@ -613,3 +613,25 @@ fn a_statement_is_prepared_once_on_a_connection_never_per_call() {
     // `of-owner` prepared once, `get` not again.
     assert_eq!(tables.prepared(), prepared + 1);
 }
+
+/// **`all` answers no more rows than its table's bound**, even where another
+/// writer of the database grew the table past it: refused, never a longer
+/// list (a read bounded by construction, ADR-0337).
+#[test]
+fn all_refuses_a_table_another_writer_grew_past_its_bound() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "pastbound");
+    let tables = open_things(&scratch);
+    seed(&tables, &["a", "b", "c", "d", "e"], &[]);
+    assert_eq!(
+        tables
+            .read(&owner("all"), &[])
+            .map(|a| a.as_array().map(Vec::len)),
+        Ok(Some(5))
+    );
+    scratch
+        .sql("INSERT INTO \"Owners\" (id, name) VALUES (convert_to('f', 'UTF8'), ''::bytea)")
+        .assert_ok("a sixth owner, by another writer");
+    let answer = tables.read(&owner("all"), &[]);
+    assert!(matches!(answer, Err(Error::Input(_))), "{answer:?}");
+}

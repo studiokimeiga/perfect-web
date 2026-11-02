@@ -115,11 +115,16 @@ fn a_schema_is_applied_once_whoever_opens_it_and_whenever() {
     let Some(url) = database() else { return };
     let scratch = Arc::new(Scratch::new(&url, "once"));
     let manifest = things();
+    let at_once = Arc::new(std::sync::Barrier::new(8));
     let opened: Vec<_> = (0..8)
         .map(|_| {
             let scratch = Arc::clone(&scratch);
             let manifest = manifest.clone();
-            std::thread::spawn(move || open(&scratch, manifest).map(|_| ()))
+            let at_once = Arc::clone(&at_once);
+            std::thread::spawn(move || {
+                at_once.wait();
+                open(&scratch, manifest).map(|_| ())
+            })
         })
         .collect();
     for host in opened {
@@ -382,4 +387,31 @@ fn a_bound_no_row_released_holds_refuses_the_migration_whole() {
             .map(|r| r["n"].clone()),
         Ok(json!(1))
     );
+}
+
+/// **An older build never takes a newer database back**, even where its only
+/// change from the schema recorded would drop an index, which loses no row:
+/// its migration is not from the schema recorded, so only what adds is made.
+#[test]
+fn an_older_build_that_would_only_drop_an_index_is_refused() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "older");
+    drop(seeded(&scratch));
+    let (newer, _) = things_where(
+        |t| {
+            t.replace(
+                "    refers  owner to Owners
+",
+                "    refers  owner to Owners
+    index   by_rank on rank
+",
+            )
+        },
+        Some(&released()),
+    );
+    drop(open(&scratch, newer).assert_ok("the newer build, its index made"));
+    let older = open(&scratch, things()).err();
+    assert!(matches!(older, Some(Error::Migration(_))), "{older:?}");
+    let why = format!("{older:?}");
+    assert!(why.contains("Things__by_rank"), "{why}");
 }

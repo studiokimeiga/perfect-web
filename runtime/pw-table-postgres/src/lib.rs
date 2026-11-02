@@ -42,7 +42,7 @@ use std::sync::atomic::Ordering;
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
 
-use postgres::error::SqlState;
+use postgres::error::{Severity, SqlState};
 use pw_core::tables::{Primitive, Schema, TablesJson};
 use serde_json::{Map, Value};
 
@@ -1262,9 +1262,18 @@ impl Prepared {
             // answered may have committed.
             if let Err(e) = conn.batch(&inner.counters, "COMMIT") {
                 let error = match e.as_db_error() {
-                    Some(_) if serialization(&e) => Error::Serialization(pg(&e)),
-                    Some(_) => Error::Refused(pg(&e)),
-                    None => Error::OutcomeUnknown(pg(&e)),
+                    // An ERROR the server answered the COMMIT with: the
+                    // transaction rolled back.
+                    Some(db) if db.parsed_severity() == Some(Severity::Error) => {
+                        if serialization(&e) {
+                            Error::Serialization(pg(&e))
+                        } else {
+                            Error::Refused(pg(&e))
+                        }
+                    }
+                    // No answer, or the session ended (FATAL, PANIC): it
+                    // may have committed before it ended.
+                    _ => Error::OutcomeUnknown(pg(&e)),
                 };
                 if let Some(lease) = open.lease.as_mut() {
                     lease.discard();

@@ -668,3 +668,55 @@ fn the_compiled_writers_answer_alike_on_memory_and_postgresql() {
         .collect();
     assert_eq!(kept_memory, kept_postgres);
 }
+
+/// **An ended command's functions act on nothing**, on either adapter: its
+/// write through a host function after the command prepared, its write and
+/// its read after it committed, each fail, and none is kept.
+#[test]
+fn an_ended_commands_functions_act_on_nothing_on_either_adapter() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "ended");
+    let (manifest, components) = compiled("writer.pw", &[INSERT_THEN_GET]);
+    let memory = MemoryTables::new(manifest.clone()).assert_ok("memory");
+    let postgres = PgTables::open(&url, scratch.schema(), manifest).assert_ok("postgres");
+    let c = &components[INSERT_THEN_GET];
+    let granted = c.granted();
+    let (insert, get) = ("pw:tables/lists#insert", "pw:tables/lists#get");
+    let call = |host: &BTreeMap<String, HostFn>, import: &str, args: &[Val]| {
+        host.get(import).map(|f| f(args).is_err()).unwrap_or(false)
+    };
+    let on_memory = {
+        let staged = memory.begin().assert_ok("a command");
+        let host = staged
+            .host_fns(&c.contract, &granted)
+            .assert_ok("its functions");
+        let prepared = staged.prepare().assert_ok("prepared");
+        let after_prepare = call(&host, insert, &[todo_list("x", "x", 1)]);
+        prepared.publish().assert_ok("published");
+        let after_commit = call(&host, insert, &[todo_list("y", "y", 1)]);
+        let read_after = call(&host, get, &[s("x")]);
+        (after_prepare, after_commit, read_after)
+    };
+    let on_postgres = {
+        let staged = postgres.begin().assert_ok("a command");
+        let host = staged
+            .host_fns(&c.contract, &granted)
+            .assert_ok("its functions");
+        let prepared = staged.prepare().assert_ok("prepared");
+        let after_prepare = call(&host, insert, &[todo_list("x", "x", 1)]);
+        prepared.publish().assert_ok("published");
+        let after_commit = call(&host, insert, &[todo_list("y", "y", 1)]);
+        let read_after = call(&host, get, &[s("x")]);
+        (after_prepare, after_commit, read_after)
+    };
+    assert_eq!(on_memory, (true, true, true));
+    assert_eq!(on_postgres, (true, true, true));
+    for id in ["x", "y"] {
+        assert_eq!(
+            postgres.read(get, &[json!(id)]),
+            Ok(Value::Null),
+            "nothing of an ended command kept"
+        );
+        assert_eq!(memory.read(get, &[json!(id)]), Ok(Value::Null));
+    }
+}

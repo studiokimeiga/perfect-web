@@ -602,3 +602,142 @@ fn render_seats_are_bounded_and_every_one_given_back() {
     drop(second);
     assert_eq!(tables.seats(), (0, 2, 0));
 }
+
+/// **A reference may be written before the row it refers to**: references
+/// are held where the command prepares, as the memory adapter holds them,
+/// so related rows are written in either order.
+#[test]
+fn a_reference_may_be_written_before_the_row_it_refers_to() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "either");
+    let tables = open_things(&scratch);
+    let committed = tables.transaction(|tx| {
+        tx.write(&thing("insert"), &[thing_row("q", 1, 5, "one", true)])?;
+        tx.write(&owner("insert"), &[owner_row("q")])
+    });
+    assert_eq!(committed, Ok(()));
+    assert_eq!(
+        tables.read(&thing("of-owner"), &[json!("q")]),
+        Ok(json!([thing_row("q", 1, 5, "one", true)]))
+    );
+}
+
+/// How many of the adapter's connections named `name` wait for an advisory
+/// lock now.
+fn waiting_on_advisory(scratch: &Scratch, name: &str) -> usize {
+    scratch
+        .texts(&format!(
+            "SELECT count(*)::text FROM pg_stat_activity \
+             WHERE application_name = '{name}' AND wait_event_type = 'Lock' AND wait_event = 'advisory'"
+        ))
+        .first()
+        .and_then(|n| n.parse().ok())
+        .unwrap_or(0)
+}
+
+fn until(mut condition: impl FnMut() -> bool) -> bool {
+    for _ in 0..4000 {
+        if condition() {
+            return true;
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    false
+}
+
+/// **The outbox's ids are in commit order** (ADR-0369): a commit takes the
+/// outbox's lock before its rows take their ids and holds it to its end, so
+/// a second host's commit waits for the first's, and its rows come after
+/// (a reader at a cursor misses none). The first commit is held at its end
+/// by a lock this test holds; the second is seen waiting for the outbox's.
+#[test]
+fn the_outbox_takes_its_ids_in_commit_order() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "ordered");
+    let joiner = if url.contains('?') { '&' } else { '?' };
+    let named = format!("{url}{joiner}application_name={}", scratch.schema);
+    let one =
+        Arc::new(PgTables::open(&named, scratch.schema(), things()).assert_ok("the first host"));
+    let two =
+        Arc::new(PgTables::open(&named, scratch.schema(), things()).assert_ok("the second host"));
+    scratch
+        .sql(
+            "CREATE FUNCTION held() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN \
+             IF NEW.name = 'held' THEN PERFORM pg_advisory_xact_lock(hashtext(TG_TABLE_SCHEMA)); END IF; \
+             RETURN NULL; END $$; \
+             CREATE CONSTRAINT TRIGGER held AFTER INSERT ON pw_outbox \
+             DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION held();",
+        )
+        .assert_ok("a commit held at its end");
+    let mut holder = postgres::Client::connect(&url, postgres::NoTls).assert_ok("the holder");
+    holder
+        .batch_execute(&format!(
+            "BEGIN; SELECT pg_advisory_xact_lock(hashtext('{}'))",
+            scratch.schema
+        ))
+        .assert_ok("the lock held");
+    // Each writes a thing of its own owner: no row the other reads, so the
+    // two commits never conflict, and only the outbox's order orders them.
+    seed_owners(&one, &["a", "b"]);
+    let publish = |tables: Arc<PgTables>, name: &'static str, of: &'static str| {
+        std::thread::spawn(move || {
+            let mut tx = tables.begin()?;
+            tx.write(&thing("insert"), &[thing_row(of, 1, 5, of, true)])?;
+            tx.prepare()?.publish_with(Records {
+                interaction: None,
+                outbox: &[event(name, vec![])],
+            })
+        })
+    };
+    let first = publish(Arc::clone(&one), "held", "a");
+    let first_held = until(|| waiting_on_advisory(&scratch, &scratch.schema) == 1);
+    let second = publish(Arc::clone(&two), "after", "b");
+    let second_waits = until(|| waiting_on_advisory(&scratch, &scratch.schema) == 2);
+    holder
+        .batch_execute("COMMIT")
+        .assert_ok("the lock given up");
+    let first = first.join();
+    let second = second.join();
+    assert!(first_held, "the first commit is held at its end");
+    assert!(
+        second_waits,
+        "the second commit waits for the first's outbox lock"
+    );
+    let ids =
+        |joined: &std::thread::Result<Result<pw_table_postgres::Committed, Error>>| match joined {
+            Ok(Ok(committed)) => committed.outbox.iter().map(|(id, _)| *id).collect(),
+            _ => Vec::new(),
+        };
+    let (first, second) = (ids(&first), ids(&second));
+    assert_eq!((first.len(), second.len()), (1, 1), "{first:?} {second:?}");
+    assert!(first[0] < second[0], "{first:?} {second:?}");
+}
+
+/// **A commit never answered is not taken for a refusal**: the command's
+/// session ended under it (its backend terminated) before its `COMMIT` was
+/// answered, so whether it committed is not known to the adapter, and it
+/// says so; what the database holds decides (here, nothing was kept).
+#[test]
+fn a_commit_never_answered_is_not_taken_for_a_refusal() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "unknown");
+    let joiner = if url.contains('?') { '&' } else { '?' };
+    let named = format!("{url}{joiner}application_name={}", scratch.schema);
+    let tables = PgTables::open(&named, scratch.schema(), things()).assert_ok("open");
+    let mut tx = tables.begin().assert_ok("a command");
+    tx.write(&owner("insert"), &[owner_row("a")])
+        .assert_ok("written");
+    let prepared = tx.prepare().assert_ok("prepared");
+    let ended = scratch.texts(&format!(
+        "SELECT pg_terminate_backend(pid)::text FROM pg_stat_activity \
+         WHERE application_name = '{}' AND state = 'idle in transaction'",
+        scratch.schema
+    ));
+    assert_eq!(ended, ["true"], "the command's session ended");
+    let published = prepared.publish();
+    assert!(
+        matches!(published, Err(Error::OutcomeUnknown(_))),
+        "{published:?}"
+    );
+    assert_eq!(tables.read(&owner("get"), &[json!("a")]), Ok(Value::Null));
+}
