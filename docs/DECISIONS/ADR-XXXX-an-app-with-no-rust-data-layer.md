@@ -173,19 +173,26 @@ NEXT 4c (a render reads one state).
 
 ## Evidence
 
-`docs/evidence/E14/data-path.txt`, by `just e14-data-path`: (recorded at
-the track's last commit; counts below).
+`docs/evidence/E14/data-path.txt`, by `just e14-data-path` at `ea192e1b`
+(a clean tree):
 
-- Server, `pw-dev-server`: `tests::tables` (7), `tests::guestbook` (6),
-  `tests::conformance` (4: the suite for both programs, idempotency, the
-  query pins), the account operation's unit test.
+- Server, `pw-dev-server`, 18: `tests::tables` (7), `tests::guestbook`
+  (6), `tests::conformance` (4: the suite for both programs, 111 reads of
+  the guestbook's tables and 164 of the lists app's checked against the
+  oracle; idempotency; the query pins), the account operation's unit test.
 - Engine and adapter: `pw-table-memory --test compiled_guarded` (3),
   `--test compiled_snapshot` (2).
-- Compiler: `pw-core --test handles` (the reader's account labelled),
-  `--test platform_contracts` (the platform's hash, moved for `Account` and
-  `account_of`); `pw-cli --test guide` (15: the tutorial is the app).
+- Compiler: `pw-core --test handles` (5, the reader's account labelled),
+  `--test platform_contracts` (4, the platform's hash, moved for `Account`
+  and `account_of`); `pw-cli --test guide` (15: the tutorial is the app).
 - `scripts/data_path_mutations.py`, whole, D2's strict producer (a kill is
-  a test failing at its assertion): see the evidence for the count.
+  a test failing at its assertion, each binary's inventory frozen at the
+  baseline of 28): **25 of 25 mutants killed**. Two earlier whole runs are
+  history, not the record: the first (before the account change) read 24
+  of 26, two INVALID (a `debug_assert!` in the layer's `publish`, and an
+  assertion inside a render's hook on the server's thread, each a panic
+  site outside the tests; both repaired); the second 24 of 25 (one anchor
+  `cargo fmt` had joined onto one line; re-anchored, killed alone).
 - The guestbook's browser spec (`e2e/guestbook.spec.mjs`, 4 tests), 12 of
   12 in Chromium, Firefox and WebKit, run locally; `just e14-guide` runs it.
 - Six mutants of other tracks' scripts re-anchored where this track moved
