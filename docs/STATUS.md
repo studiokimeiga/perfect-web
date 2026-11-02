@@ -401,6 +401,21 @@ exit or an existing evidence file is never a successful result.
 
 ## last benchmark summary
 
+**The head-to-head, 2026-11-02 ([ADR-0392](DECISIONS/ADR-0392-head-to-head.md)):**
+TodoMVC against TodoMVC's own React and Svelte apps, the store against
+Next.js and SvelteKit, `PORT=13441 just e14-head-to-head` at `dbd37a8c` on
+the PC (local only; [evidence](evidence/E14/head-to-head.txt)): every rule
+held, 41 of 41 mutants killed, 4 of 4 integrity controls caught, measured
+under a load of 10 from other sessions. Pleris loses 61 rows first: bytes
+(TodoMVC's first load 237,218 against 70,085 and 20,821; its first press
+fetches the 386 KB renderer, 3,889 ms under Slow 4G against 44 and 40),
+every interaction's time, Slow 4G, a press with 19 tabs open (10,084 ms
+against 54 and 46), idle visitors and the store's source. It is best in
+behaviour (60/60, 29/29), the twelve changes (140 lines, one language, 9
+of 12 unsafe versions refused, the frameworks' 0), the museum (0 of 5) and
+the store server's cost (0.32 ms a request; 7.28 and 1.68). NEXT's
+head-to-head section orders the fixes.
+
 The E10 close benchmark retained here is 2026-10-02 at
 `bff437c6ae641529461ca56410b1f0337e06557a`, Apple M2 Pro arm64:
 [raw evidence](evidence/E10/close-bench.txt), `just e10-close-bench 8`.

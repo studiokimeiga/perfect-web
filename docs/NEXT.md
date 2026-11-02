@@ -7,6 +7,53 @@
 # Next
 
 
+## The head-to-head's findings, 2026-11-02 (ADR-0392)
+
+Measured by `just e14-head-to-head` (local only: record it on the PC in a
+quiet window) at `dbd37a8c`; each item is done when that recipe's next
+record moves its rows out of "where Pleris loses". In the order the losses
+cost a user:
+
+1. **The first press downloads the renderer** (TodoMVC: 395,444 bytes,
+   `pw-render.wasm` 386,022 of them, uncompressed; the first add under Slow
+   4G 3,889 ms against React's 44 and Svelte's 40): preload it once the
+   page is interactive, serve it compressed, or render a keyed row without
+   it.
+2. **A production host**: precompressed Brotli and gzip, content-hashed
+   immutable names or `ETag`s answered `304`, keep-alive (the host sends
+   `connection: close` and no validator or `Cache-Control`). Done when
+   TodoMVC's first load receives about its Brotli figure (67,828 of
+   237,218 bytes) and a warm load kilobytes (it receives 237,127; React
+   1,338), and Slow 4G's interactive (4,101 ms; 1,711 and 1,307) moves.
+3. **Minify the runtime in the build**: `pw-runtime.mjs` 157,269 bytes,
+   56,873 by esbuild 0.28.2 (in the workspace).
+4. **Live updates per origin, not per tab**: one subscription an origin's
+   tabs share (a `BroadcastChannel` or `SharedWorker` leader) or HTTP/2, and
+   held streams woken by writes, not a 25 ms timer (`stream_open`). Done
+   when a press with 19 other store tabs open (10,084 ms; 54 and 46) is in
+   the tens of milliseconds and twenty idle visitors (30 requests a page a
+   minute, 16.0 ms of host CPU a second) cost about what the Node servers'
+   timers do.
+5. **Where each interaction's time goes**: TodoMVC's add takes 32 ms in
+   Chromium (React 11, Svelte 9.9) and 113 in WebKit (25, 22), and its
+   toggle and filter land a frame behind React's, on the loopback too.
+   Trace one add in each engine (a handler module fetched at first use, the
+   renderer's compilation) before choosing a repair.
+6. **The store's data layer is Rust** (`store.rs`, 2,110 lines, beside 294
+   lines of Pleris; Next.js's whole store is 151): serve D2's declared
+   tables to pages, read and written; then add T13, "favorite stores", to
+   `benchmarks/tasks` and so to the head-to-head.
+7. **Checker rules for the three unsafe changes it passes**: shared reads
+   (T02), stale answers (T07), freshness bounds (T09).
+8. **Prerender device-only pages** (TodoMVC in Pleris needs an application
+   server; a plain static host answers React's and Svelte's faster) and
+   **one stylesheet per page** (7 requests against 5).
+9. **The instrument**: accessibility (Playwright's snapshot and roles now;
+   axe-core waits on the owner's download decision, ADR-0342); Event
+   Timing beside its own interaction times; ADR-0120's contract in three
+   engines; the feed as a third app; a quiet machine for its record (this
+   one measured under a load of 10).
+
 ## Local session continuation, 2026-10-26
 
 The active unmerged slice binds synchronous initial renders and stream workers
