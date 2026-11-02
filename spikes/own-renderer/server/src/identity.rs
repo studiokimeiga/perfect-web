@@ -2548,39 +2548,53 @@ pub(crate) mod tests {
                 Err("unused".into())
             }
         }
+        // Each nonce made as a sign-in makes its own (`start`), never one
+        // written here.
+        let (nonce, another) = (token(), token());
         let good = Claims {
             iss: "https://id.test".into(),
             sub: "u1".into(),
             aud: vec!["other".into(), "c".into()],
             exp: now_secs() + 60,
-            nonce: Some("n".into()),
+            nonce: Some(nonce.clone()),
             preferred_username: None,
             name: None,
         };
-        assert_eq!(check_claims(&good, &P, "n"), Ok(()));
-        let wrong: [fn(&mut Claims); 6] = [
+        assert_eq!(check_claims(&good, &P, &nonce), Ok(()));
+        let wrong: [fn(&mut Claims); 5] = [
             |c| c.iss = "https://id.test/".into(),
             |c| c.aud = vec!["other".into()],
             |c| c.exp = now_secs() - 1,
             |c| c.nonce = None,
-            |c| c.nonce = Some("m".into()),
             |c| c.sub = String::new(),
         ];
         for (n, change) in wrong.iter().enumerate() {
             let mut claims = good.clone();
             change(&mut claims);
-            assert!(check_claims(&claims, &P, "n").is_err(), "change {n}");
+            assert!(check_claims(&claims, &P, &nonce).is_err(), "change {n}");
         }
+        assert!(
+            check_claims(&good, &P, &another).is_err(),
+            "a token carrying another sign-in's nonce"
+        );
     }
 
     /// **A fresh session's id is 128 random bits**, and a form's fields are
     /// read as a browser encodes them.
     #[test]
     fn ids_are_random_and_forms_are_decoded() {
+        // No message names an id: a session id is a credential, and a
+        // failure's message is a log.
         let (a, b) = (new_session_id(), new_session_id());
-        assert_ne!(a, b);
-        assert!(a.starts_with("s-") && a.len() == 34, "{a}");
-        assert!(a[2..].bytes().all(|c| c.is_ascii_hexdigit()), "{a}");
+        assert!(a != b, "two fresh session ids are different");
+        assert!(
+            a.starts_with("s-") && a.len() == 34,
+            "a fresh session id is `s-` and 32 more characters"
+        );
+        assert!(
+            a[2..].bytes().all(|c| c.is_ascii_hexdigit()),
+            "a fresh session id's 32 characters are hexadecimal digits"
+        );
         let form = parse_form("handle=ada&name=Ada+L%C3%B6velace&bad=%zz&cut=%4");
         assert_eq!(form["handle"], "ada");
         assert_eq!(form["name"], "Ada Lövelace");

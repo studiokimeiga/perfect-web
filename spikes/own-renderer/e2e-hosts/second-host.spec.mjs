@@ -19,7 +19,7 @@
 //   - pages loading their runtime and modules while commands of their
 //     session run are each answered (ADR-0389, amended 2026-11-02).
 import { execFileSync, spawn } from "node:child_process";
-import { mkdirSync, openSync, readFileSync } from "node:fs";
+import { closeSync, mkdirSync, openSync, readSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { nextDocument } from "../e2e/next-document.mjs";
 
@@ -41,6 +41,20 @@ function dropped(schema) {
   }
 }
 
+/** What the file open on `fd` holds, read from its start through that
+ * descriptor: positioned reads, which leave the offset a writer appending to
+ * it shares untouched. */
+function contents(fd) {
+  const chunks = [];
+  const chunk = Buffer.alloc(64 * 1024);
+  for (let at = 0; ; ) {
+    const n = readSync(fd, chunk, 0, chunk.length, at);
+    if (n === 0) return Buffer.concat(chunks).toString("utf8");
+    chunks.push(Buffer.from(chunk.subarray(0, n)));
+    at += n;
+  }
+}
+
 /** **One host**: a development server of the feed on `port`, on `schema`. */
 class Host {
   constructor(name, port, schema) {
@@ -54,7 +68,11 @@ class Host {
   /** Started, and answering; on the shared database, as it says at its start. */
   async start() {
     mkdirSync("test-results", { recursive: true });
-    const out = openSync(this.log, "a");
+    // The log is opened once, by its name: the host appends to it, and this
+    // suite reads it back through the same descriptor, never by its name
+    // again, so what it reads is the file the host writes.
+    const out = openSync(this.log, "a+");
+    this.out = out;
     const env = {
       ...process.env,
       PORT: String(this.port),
@@ -74,26 +92,38 @@ class Host {
       if (this.child.exitCode !== null) {
         throw new Error(`host ${this.name} exited (${this.child.exitCode}): see ${this.log}`);
       }
+      let answering = false;
       try {
-        if ((await fetch(`${this.origin}/`)).ok) {
-          expect(readFileSync(this.log, "utf8")).toContain(
-            `on a shared database, schema ${this.schema},`,
-          );
-          return;
-        }
+        answering = (await fetch(`${this.origin}/`)).ok;
       } catch {
         // Not listening yet.
+      }
+      // Outside the `try`, so that a host on the wrong database fails here,
+      // by what its log says, and not as one that never answered.
+      if (answering) {
+        expect(this.written()).toContain(`on a shared database, schema ${this.schema},`);
+        return;
       }
       await new Promise((resolve) => setTimeout(resolve, 200));
     }
     throw new Error(`host ${this.name} did not answer on ${this.port} within 60 s: see ${this.log}`);
   }
 
-  /** Stopped, and its port let go. */
+  /** What its processes have written to its log, an earlier one's too. */
+  written() {
+    return contents(this.out);
+  }
+
+  /** Stopped, its port let go and its log closed. */
   async stop() {
-    if (!this.child || this.child.exitCode !== null) return;
-    this.child.kill("SIGTERM");
-    await this.exited;
+    if (this.child && this.child.exitCode === null) {
+      this.child.kill("SIGTERM");
+      await this.exited;
+    }
+    if (this.out !== undefined) {
+      closeSync(this.out);
+      this.out = undefined;
+    }
   }
 }
 
@@ -335,7 +365,7 @@ test("pages loading their runtime and modules while commands run are each answer
   const [page, tab] = [await context.newPage(), await context.newPage()];
   await signUp(page, A, handle(testInfo, "ida"), `Ida ${testInfo.project.name}`);
   await home(tab, A);
-  const logged = readFileSync(A.log, "utf8").length;
+  const logged = A.written().length;
   // A refusal fails the round at once, by name: a page whose runtime is
   // refused never boots, and its wait would last to the test's timeout.
   const refused = [];
@@ -388,7 +418,7 @@ test("pages loading their runtime and modules while commands run are each answer
     expect((await pressed).status(), "the press beside a page load").toBe(202);
   }
   expect(refused, "every request of the session answered").toEqual([]);
-  expect(readFileSync(A.log, "utf8").slice(logged), "no admission refused").not.toContain(
+  expect(A.written().slice(logged), "no admission refused").not.toContain(
     "session admission refused",
   );
   await context.close();
