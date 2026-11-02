@@ -494,10 +494,13 @@ pub(crate) fn changes(
         kept.references.retain(|r| !gone.contains(&r.field));
         model.push(kept);
     }
-    for now in &built.tables {
-        if !recorded.tables.iter().any(|t| t.name == now.name) {
-            let shape = shapes_of(std::slice::from_ref(now))?;
-            tables_sql.push(sql::create_table(names, &shape[0]));
+    // Each table the change adds is shaped with the whole build, so that a
+    // reference to a table held, or to one added with it, resolves (the
+    // review of PR #66: shaped alone, it refused `unknown referenced table`).
+    let built_shapes = shapes_of(&built.tables)?;
+    for shape in &built_shapes {
+        if !recorded.tables.iter().any(|t| t.name == shape.name) {
+            tables_sql.push(sql::create_table(names, shape));
         }
     }
     // A statement this change does not use states nothing this database
@@ -521,7 +524,6 @@ pub(crate) fn changes(
     }
     // The objects: each the build makes and the catalog does not hold made,
     // each the catalog holds and the build does not make dropped.
-    let built_shapes = shapes_of(&built.tables)?;
     let model_tables: Vec<TableSchema> = model;
     let old = objects_where(names, &model_tables)?;
     let new = sql::objects(names, &built_shapes);
