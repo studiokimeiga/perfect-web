@@ -9415,6 +9415,11 @@ fn main() {
             drop(open);
         });
     }
+    // TRACK SEAM (deploy): closed at once, so that a connection made now is
+    // refused, which a proxy retries elsewhere or after the restart
+    // (Caddy's `lb_try_duration`), rather than queued for a host that will
+    // not answer it.
+    drop(listener);
     let left = production::shutdown::GATE.drained(settings.grace);
     production::log::info(
         "stopped",
@@ -9447,11 +9452,13 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
     // fields together, as a body is: a line nothing bounds is memory anyone
     // can ask for. Past the bound it is refused (RFC 6585 §5's 431).
     let mut request = String::new();
+    // A connection that asks nothing (a platform's TCP check, a stop's own
+    // wake) is answered nothing, and said nowhere.
     if reader
         .by_ref()
         .take(MAX_HEAD)
         .read_line(&mut request)
-        .is_err()
+        .map_or(true, |read| read == 0)
     {
         return;
     }

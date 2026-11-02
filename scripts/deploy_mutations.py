@@ -30,7 +30,8 @@ Each mutant undoes one piece:
 - the process (the binary run as production runs it): no HSTS, the runtime
   started at no version, the deployment's key not installed, lines not
   JSON, a stop that does not drain, an open connection not waited for, no
-  read bound, and the listener on the loopback whatever PW_BIND says.
+  read bound, a stopping host taking connections, and the listener on the
+  loopback whatever PW_BIND says.
 
 A unit mutant must fail the server's tests of production (`cargo test -p
 pw-dev-server --bin pw-dev-server -- production`); a process mutant, the
@@ -489,6 +490,13 @@ MUTANTS = [
         MAIN,
         "            let _ = stream.set_read_timeout(Some(settings.read_timeout));",
         "            let _ = settings.read_timeout;",
+    ),
+    (
+        "a stopping host keeps taking connections",
+        PROCESS,
+        MAIN,
+        "    drop(listener);\n",
+        "    let _ = &listener;\n",
     ),
     (
         "the host listens on the loopback whatever PW_BIND says",

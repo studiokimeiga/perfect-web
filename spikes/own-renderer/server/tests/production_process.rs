@@ -478,8 +478,15 @@ fn a_production_host_serves_and_stops_when_told() {
     std::thread::sleep(Duration::from_millis(200));
     let stopped_at = Instant::now();
     signal(&child, "TERM");
-    // Not ready from now on, and no new connection is served.
+    // No new connection from now on: one made is refused, which a proxy
+    // retries after the restart, not queued for a host that will not
+    // answer it.
     std::thread::sleep(Duration::from_millis(300));
+    let refused = TcpStream::connect(("127.0.0.1", port));
+    assert!(
+        refused.is_err(),
+        "a connection made after the stop was taken: {refused:?}"
+    );
     under_way.write_all(b"\r\n").expect("the head's end");
     under_way
         .set_read_timeout(Some(Duration::from_secs(10)))
