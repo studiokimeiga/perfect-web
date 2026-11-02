@@ -16236,6 +16236,10 @@ public query Store(",
     // gate by the generic memory adapter (track `data-path`).
     mod tables;
 
+    // TRACK SEAM (tables): the guide's guestbook, on the tables it declares,
+    // with no data layer of its own (track `data-path`).
+    mod guestbook;
+
     // TRACK SEAM (device-store): a page that holds a value the device keeps,
     // served (ADR-0366).
     mod device_store;

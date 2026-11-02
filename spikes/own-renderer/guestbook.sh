@@ -2,8 +2,10 @@
 # The guide's tutorial app (ADR-0343, a guide whose examples compile): the
 # guestbook in `examples/guestbook`, which `docs/guide/tutorial.md` builds
 # step by step, built for the browser suite into `dist-guestbook`. The
-# development server serves it with the feed's data layer, which its
-# contracts import (`feed:data/...`, ADR-0218). As `feed.sh` builds the feed.
+# program declares its data as tables, and the development server serves
+# them from the build's `tables.json` with the generic memory adapter, no
+# data layer of the app's own (track `data-path`, ADR-0338 D2). As
+# `feed.sh` builds the feed.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"

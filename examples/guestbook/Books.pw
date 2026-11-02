@@ -1,0 +1,7 @@
+module Books
+
+type Book = Book { name: String, signed: Int }
+
+table Books
+    row Book
+    key name

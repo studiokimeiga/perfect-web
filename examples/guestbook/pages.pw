@@ -2,18 +2,19 @@ module guestbook.pages
 
 import List
 import String
-import context.{ current_session }
-import guestbook.book.{ Me, Entries, SignedIn, words, sign, remove }
+import context.{ current_user }
+import Entries.{ words }
+import guestbook.book.{ Me, Latest, SignedIn, sign, remove }
 
-session page Book() {
+user page Book() {
     route     "/"
     placement origin
     cache     private
 
     signal shown: Int = 20
     signal draft: String = ""
-    let me = query Me(current_session())
-    let entries = query Entries(current_session(), shown)
+    let me = query Me(current_user())
+    let entries = query Latest(current_user(), shown)
 
     view {
         <title>Guestbook</title>
@@ -39,11 +40,11 @@ session page Book() {
             </form>
             {#if List.length(entries) == 0}<p id="empty">No one has signed yet.</p>{/if}
             <ul>
-                {#each entries as entry (entry.id)}
+                {#each entries as entry (entry.number)}
                     <li>
                         <p>{entry.text}</p>
-                        <p class="by">{entry.author.name}</p>
-                        {#if SignedIn}{#if entry.mine}<button type="button" on:press={() => match remove(entry.id) {
+                        <p class="by">{entry.name}</p>
+                        {#if SignedIn}{#if entry.mine}<button type="button" on:press={() => match remove(entry.number) {
                             Ok(_) => (),
                             Err(_) => (),
                         }}>Remove</button>{/if}{/if}
