@@ -176,14 +176,16 @@ own registry.
 
 Pleris is a research project, and these are true today (2026-10-15):
 
-- **Your app's storage is Rust.** A program reads and writes through *host
-  bindings*, functions whose body is an operation the server supplies
-  (`host "feed:data/posts#timeline"`, ADR-0218, ADR-0262). The development
-  server has three data layers, written in Rust for the reference apps: a
-  social feed's, a food-delivery store's and a dictionary's. A new app uses
-  one of them, as the [tutorial](tutorial.md)'s guestbook uses the feed's,
-  or someone writes a new one in Rust. A program cannot yet declare its own
-  storage.
+- **Your app's tables live in memory.** A program declares its data as
+  tables, and the development server serves every program's with one
+  generic adapter, as it serves the [tutorial](tutorial.md)'s guestbook
+  (ADR-0338): its rows are gone when the server stops, until a database
+  behind the same declarations (PostgreSQL first) is built. A table has no
+  owner yet: who may read or write a row is the program's own code (a
+  command comparing a row's author with its reader). The reference apps'
+  feed and store still read and write through data layers written in Rust
+  (`host "feed:data/posts#timeline"`, ADR-0218), until their data is
+  declared too.
 - **What a predicate means is the server's.** A command `requires SignedIn`
   or `OwnsPost(post)`, and the development server knows three predicates by
   name (ADR-0302).

@@ -59,6 +59,7 @@ TITLES = {
     "StoreSearch": "The store's search",
     "Payments": "Payments",
     "Schedules": "Scheduled commands",
+    "DataPath": "Declared tables, served",
 }
 
 

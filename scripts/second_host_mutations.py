@@ -397,7 +397,7 @@ MUTANTS = [
         "a session is kept by its id, not its hash",
         "hosts",
         IDENTITY,
-        "    sha2::Sha256::digest(secret.as_bytes()).to_vec()\n",
+        "    session_digest(KEPT_DOMAIN, secret).to_vec()\n",
         "    secret.as_bytes().to_vec()\n",
     ),
     (

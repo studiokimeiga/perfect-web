@@ -137,11 +137,13 @@ fn a_reopened_cookie_cannot_borrow_or_reexecute_an_old_generations_receipt() {
 }
 
 fn post_count(s: &Server, text: &str) -> usize {
+    // The session as the program passes it, its handle (track `data-path`).
+    let other = crate::identity::session_handle("other");
     let value = s
         .query(
             "feed.app.Timeline",
             "other",
-            &[Val::String("other".into()), Val::S64(100)],
+            &[Val::String(other), Val::S64(100)],
         )
         .expect("actual timeline query");
     val_to_json(&value)
@@ -202,9 +204,13 @@ fn memory_revocation_before_fence_refuses_the_captured_actor_and_all_writes() {
         "no business row published"
     );
     assert!(
-        s.recalled_interaction("owner\u{1f}feed.app.post\u{1f}revoked-id")
-            .expect("receipt lookup")
-            .is_none(),
+        s.recalled_interaction(&identity::interaction_key(
+            "owner",
+            "feed.app.post",
+            "revoked-id"
+        ))
+        .expect("receipt lookup")
+        .is_none(),
         "no receipt committed"
     );
 }
@@ -239,9 +245,13 @@ fn memory_expiry_during_evaluation_rolls_back_rows_events_and_receipt() {
         "business rows rolled back"
     );
     assert!(
-        s.recalled_interaction("owner\u{1f}feed.app.post\u{1f}expired-id")
-            .expect("receipt lookup")
-            .is_none(),
+        s.recalled_interaction(&identity::interaction_key(
+            "owner",
+            "feed.app.post",
+            "expired-id"
+        ))
+        .expect("receipt lookup")
+        .is_none(),
         "receipt rolled back too"
     );
     assert_eq!(
@@ -264,9 +274,9 @@ fn an_unbound_legacy_receipt_refuses_without_returning_or_reexecuting_it() {
         .command_answer("feed.app.post", "owner", &args, Some("legacy-id"))
         .expect("first actual operation");
     assert!(first.committed, "real business operation committed");
-    let key = "owner\u{1f}feed.app.post\u{1f}legacy-id";
+    let key = identity::interaction_key("owner", "feed.app.post", "legacy-id");
     let (_, answer) = s
-        .recalled_interaction(key)
+        .recalled_interaction(&key)
         .expect("lookup")
         .expect("real receipt");
     let old_sent = serde_json::Value::Array(args.to_vec()).to_string();
@@ -274,7 +284,7 @@ fn an_unbound_legacy_receipt_refuses_without_returning_or_reexecuting_it() {
     s.materializer
         .command(|tx| {
             Materializer::prune_interactions(tx, u64::MAX);
-            Materializer::record_interaction(tx, key, &old_sent, &answer, now)?;
+            Materializer::record_interaction(tx, &key, &old_sent, &answer, now)?;
             Ok::<_, String>(Vec::new())
         })
         .expect("owned fixture models an old unbound receipt");
@@ -313,9 +323,13 @@ fn logout_after_commit_refuses_private_delivery_without_claiming_rollback() {
         "the transaction really committed before revocation"
     );
     assert!(
-        s.recalled_interaction("owner\u{1f}feed.app.post\u{1f}committed-before-logout")
-            .expect("lookup")
-            .is_some(),
+        s.recalled_interaction(&identity::interaction_key(
+            "owner",
+            "feed.app.post",
+            "committed-before-logout",
+        ))
+        .expect("lookup")
+        .is_some(),
         "the authoritative receipt is preserved"
     );
     assert!(
@@ -367,9 +381,10 @@ fn one_render_does_not_merge_principal_operations_between_actor_generations() {
     let principals = s.identity.principals();
     let bob = principals.bound_reader("owner");
     let render = crate::render_merge::begin(&*s.data, s.queries.epoch());
+    let owner = || Val::String(crate::identity::session_handle("owner"));
     let first = principals
         .with_reader("owner", &bob, || {
-            s.query("feed.app.Me", "owner", &[Val::String("owner".into())])
+            s.query("feed.app.Me", "owner", &[owner()])
         })
         .expect("first actual compiled Me");
     s.identity
@@ -377,7 +392,7 @@ fn one_render_does_not_merge_principal_operations_between_actor_generations() {
     let carol = principals.bound_reader("owner");
     let second = principals
         .with_reader("owner", &carol, || {
-            s.query("feed.app.Me", "owner", &[Val::String("owner".into())])
+            s.query("feed.app.Me", "owner", &[owner()])
         })
         .expect("second actual compiled Me");
     drop(render);
@@ -447,9 +462,13 @@ fn an_admitted_memory_command_holds_authority_until_publication() {
         "authority acquired first stays held through memory publication"
     );
     assert!(
-        s.recalled_interaction("owner\u{1f}feed.app.post\u{1f}admitted-first")
-            .expect("lookup")
-            .is_some(),
+        s.recalled_interaction(&identity::interaction_key(
+            "owner",
+            "feed.app.post",
+            "admitted-first"
+        ))
+        .expect("lookup")
+        .is_some(),
         "row and receipt commit together before logout"
     );
 }
@@ -658,9 +677,13 @@ fn invalid_interaction_metadata_is_a_known_refusal_before_any_execution() {
         "only the legitimate command committed"
     );
     assert!(
-        s.recalled_interaction("owner\u{1f}feed.app.post\u{1f}valid-after-protocol-refusals")
-            .expect("lookup")
-            .is_some(),
+        s.recalled_interaction(&identity::interaction_key(
+            "owner",
+            "feed.app.post",
+            "valid-after-protocol-refusals",
+        ))
+        .expect("lookup")
+        .is_some(),
         "legitimate receipt exists"
     );
 }

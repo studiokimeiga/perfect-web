@@ -501,7 +501,13 @@ fn the_trusted_platform_contract_is_hashed() {
     // painter's draw binder and `rect` with four Float arguments and
     // `paint.custom`, so A-021's operation is typed and its effect observed
     // (ADR-0351-generic-effects; declaration-only platform scope).
-    const EXPECTED: u64 = 0x5636d21c1f9cab88;
+    // 2026-11-02 (track `data-path`): `context` declares `Account` and
+    // `account_of` (`pw:host/principal#account`), the reader's account: the
+    // id their handle names (ADR-0384's H1 `id_of`) and the name their
+    // provider gave them, none for no one and for a guest, whose user's id
+    // holds its session: what a program that declares its data needs of its
+    // reader, which the guestbook read through the feed's layer.
+    const EXPECTED: u64 = 0x7ccc0f75433153c8;
     eprintln!(
         "  platform contract: {} files, hash {hash:#018x}",
         names.len()

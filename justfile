@@ -73,6 +73,7 @@ import 'just/table-host.just'
 import 'just/d2-writes.just'
 import 'just/d3-postgres.just'
 import 'just/outbound-https.just'
+import 'just/data-path.just'
 
 default:
     @just --list

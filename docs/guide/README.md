@@ -12,8 +12,8 @@ Read it in this order:
 2. A tour of the language, in three parts:
    - [the language](tour.md): modules, types, records, sum types,
      functions, effects, results and money;
-   - [data on the server](tour-server.md): host bindings, sources, queries
-     and live updates, commands, predicates, privacy and time;
+   - [data on the server](tour-server.md): host bindings, tables, sources,
+     queries and live updates, commands, predicates, privacy and time;
    - [pages](tour-pages.md): routes and query parameters, markup, signals
      and handlers, forms, layouts and navigation.
 3. [Errors and diagnostics](errors.md): reading what the compiler says,

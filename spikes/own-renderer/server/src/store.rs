@@ -379,16 +379,27 @@ pub(crate) struct Written {
 
 impl Written {
     /// **What the commit writes in the materializer's transaction**, by key,
-    /// or none where nothing was written: the session's cart's total.
+    /// or none where nothing was written: the session's cart's total, keyed
+    /// by the session's digest, never the session (track `data-path`, the
+    /// integrator's ruling of 2026-11-02: `cart:` and the cookie until then).
     pub(crate) fn rows(&self, session: &str) -> Option<Vec<(String, String)>> {
         if !self.wrote {
             return None;
         }
         Some(match self.cart_total {
-            Some(total) => vec![(format!("cart:{session}"), total.to_string())],
+            Some(total) => vec![(cart_state_key(session), total.to_string())],
             None => Vec::new(),
         })
     }
+}
+
+/// **The materializer's key for a session's cart's total**: `cart:` and the
+/// session's digest ([`crate::identity::STATE_DOMAIN`]).
+pub(crate) fn cart_state_key(session: &str) -> String {
+    format!(
+        "cart:{}",
+        crate::identity::session_field(crate::identity::STATE_DOMAIN, session)
+    )
 }
 
 /// An order's status as the program reads it (NEXT 6c): its case, and an
@@ -552,12 +563,15 @@ fn sections(store: &str, menu: &[Item]) -> Val {
 }
 
 /// The session an operation was passed, which must be the one the host gave
-/// the component, or the component is acting for someone else.
-fn own_session<'v>(op: &str, session: &str, args: &'v [Val]) -> Result<&'v [Val], String> {
+/// the component, or the component is acting for someone else. `handle` is
+/// the request's session as the program holds it, its handle
+/// (`identity::session_handle`, track `data-path`), and so are the rows the
+/// operation keys by the session: no row the store writes holds the cookie.
+fn own_session<'v>(op: &str, handle: &str, args: &'v [Val]) -> Result<&'v [Val], String> {
     let Some(Val::String(s)) = args.first() else {
         return Err(format!("{op} received {args:?}"));
     };
-    if s != session {
+    if s != handle {
         return Err(format!("{op} was passed another session"));
     }
     Ok(&args[1..])
@@ -653,7 +667,7 @@ pub(crate) fn reads(with: With, session: &str, faults: &Faults, stopped: Option<
 /// [`reads`], before the cart's faults meet them.
 fn unfaulted(with: With, session: &str, faults: &Faults) -> Ops {
     let mut ops: Ops = BTreeMap::new();
-    let this = session.to_string();
+    let this = crate::identity::session_handle(session);
     let w = with.clone();
     ops.insert(
         "store:data/carts#current".to_string(),
@@ -689,7 +703,7 @@ fn unfaulted(with: With, session: &str, faults: &Faults) -> Ops {
     // `store-accounts`): a user's order is read by its user alone, as a
     // notification is (ADR-0274).
     for (interface, by_reader) in [("orders", false), ("user-orders", true)] {
-        let (this, w) = (session.to_string(), with.clone());
+        let (this, w) = (crate::identity::session_handle(session), with.clone());
         ops.insert(
             format!("store:data/{interface}#current"),
             Arc::new(move |args: &[Val]| {
@@ -709,7 +723,7 @@ fn unfaulted(with: With, session: &str, faults: &Faults) -> Ops {
                 })
             }),
         );
-        let (this, w) = (session.to_string(), with.clone());
+        let (this, w) = (crate::identity::session_handle(session), with.clone());
         ops.insert(
             format!("store:data/{interface}#placed"),
             Arc::new(move |args: &[Val]| {
@@ -759,7 +773,7 @@ fn unfaulted(with: With, session: &str, faults: &Faults) -> Ops {
         .get(session)
         .cloned()
         .unwrap_or_default();
-    let (this, w) = (session.to_string(), with.clone());
+    let (this, w) = (crate::identity::session_handle(session), with.clone());
     ops.insert(
         "store:data/estimates#current".to_string(),
         Arc::new(move |args: &[Val]| {
@@ -802,7 +816,7 @@ fn unfaulted(with: With, session: &str, faults: &Faults) -> Ops {
         .get(session)
         .cloned()
         .unwrap_or_default();
-    let (this, w) = (session.to_string(), with.clone());
+    let (this, w) = (crate::identity::session_handle(session), with.clone());
     ops.insert(
         "store:data/user-estimates#for-store".to_string(),
         Arc::new(move |args: &[Val]| {
@@ -848,7 +862,7 @@ fn unfaulted(with: With, session: &str, faults: &Faults) -> Ops {
         .get(session)
         .cloned()
         .unwrap_or_default();
-    let (this, w) = (session.to_string(), with.clone());
+    let (this, w) = (crate::identity::session_handle(session), with.clone());
     ops.insert(
         "store:data/user-estimates#for-stores".to_string(),
         Arc::new(move |args: &[Val]| {
@@ -1385,7 +1399,11 @@ pub(crate) fn writes(
     // names.
     let mut cart = |name: &'static str, change: Change| {
         for (interface, by_reader) in [("carts", false), ("user-carts", true)] {
-            let (this, w, written) = (session.to_string(), with.clone(), written.clone());
+            let (this, w, written) = (
+                crate::identity::session_handle(session),
+                with.clone(),
+                written.clone(),
+            );
             ops.insert(
                 format!("store:data/{interface}#{name}"),
                 Arc::new(move |args: &[Val]| {
@@ -1472,7 +1490,11 @@ pub(crate) fn writes(
     // By the session, and by the reader's handle (track `store-accounts`):
     // a user's order is placed from the user's cart.
     for (interface, by_reader) in [("orders", false), ("user-orders", true)] {
-        let (this, w, placed) = (session.to_string(), with.clone(), written.clone());
+        let (this, w, placed) = (
+            crate::identity::session_handle(session),
+            with.clone(),
+            written.clone(),
+        );
         ops.insert(
             format!("store:data/{interface}#place"),
             Arc::new(move |args: &[Val]| {
@@ -1799,7 +1821,11 @@ fn host_writes(with: With, session: &str, written: Arc<Mutex<Written>>) -> Ops {
     type Write = fn(&mut dyn Rows, &str, &[Val]) -> Result<Result<Option<Val>, String>, String>;
     let mut ops: Ops = BTreeMap::new();
     let mut write = |name: &'static str, f: Write| {
-        let (this, w, written) = (session.to_string(), with.clone(), written.clone());
+        let (this, w, written) = (
+            crate::identity::session_handle(session),
+            with.clone(),
+            written.clone(),
+        );
         ops.insert(
             format!("{HOST_OPS}{name}"),
             Arc::new(move |args: &[Val]| {

@@ -1,112 +1,139 @@
 module guestbook.book
 
 import List
-import String
-import context.{ current_session }
-import capability.{ Session, SessionId, UserId }
-
-opaque type PostId = String
+import context.{ current_user, account_of, Account }
+import capability.{ User, UserId }
+import Books.{ Book }
+import Books
+import Entries.{ Entry, Words, text_of, most }
+import Entries
 
 opaque type InteractionId = String
 
-opaque type Words = String where String.length(value) >= 1 & String.length(value) <= 280
-
-fn words(draft: String) -> Option<Words> !{} {
-    let text = String.trim(draft)
-    if String.length(text) >= 1 & String.length(text) <= 280 {
-        Some(Words(text))
-    } else {
-        None
-    }
-}
-
-type User = User { id: UserId, name: String }
-
-type Post = Post { id: PostId, author: User, text: String }
-
-type Entry = Entry { id: PostId, author: User, text: String, mine: Bool }
+type Line = Line { number: Int, name: String, text: String, mine: Bool }
 
 type Viewer = Viewer { signed_in: Bool, name: String }
 
 type BookError =
-    | Unavailable
+    | SignedOut
+    | Full
     | NotFound
+    | NotYours
+    | Unavailable
 
-event Signed(author: UserId)
+event Signed(book: String)
 
-event Removed(post: PostId)
+event Removed(number: Int)
 
 source Guestbook
-    holds        Post, User
+    holds        Books, Entries
     transactions serializable
     reads        strong
     changes      none
 
-fn entries(s: Session<SessionId>, limit: Int) -> List<Entry> !{ database.read<Post> }
-    host "feed:data/posts#timeline"
+fn guestbook() -> String !{} {
+    "guestbook"
+}
 
-fn publish(s: Session<SessionId>, text: Words) -> Result<Post, BookError> !{ database.write<Post> }
-    host "feed:data/posts#publish"
+fn viewer(account: Option<Account>) -> Viewer !{} {
+    match account {
+        Some(account) => Viewer { signed_in: true, name: account.name },
+        None => Viewer { signed_in: false, name: "" },
+    }
+}
 
-fn delete(s: Session<SessionId>, post: PostId) -> Result<PostId, BookError> !{ database.write<Post> }
-    host "feed:data/posts#delete"
+fn mine(entry: Entry, reader: Option<Account>) -> Bool !{} {
+    match reader {
+        Some(account) => entry.author == account.id,
+        None => false,
+    }
+}
 
-fn author(s: Session<SessionId>) -> UserId !{ database.read<User> }
-    host "feed:data/users#of-session"
+fn line(entry: Entry, reader: Option<Account>) -> Line !{} {
+    Line { number: entry.number, name: entry.name, text: text_of(entry.text), mine: mine(entry, reader) }
+}
 
-fn viewer(s: Session<SessionId>) -> Viewer !{ session.read }
-    host "feed:data/users#viewer"
+fn refused(error: BookError) -> String !{} {
+    match error {
+        SignedOut => "Sign in to sign the guestbook.",
+        Full => "The guestbook is full: it keeps 1,000 entries.",
+        NotFound => "That entry is gone.",
+        NotYours => "Only its author removes an entry.",
+        Unavailable => "The guestbook was not signed. Try again.",
+    }
+}
 
-session query Me(session: Session<SessionId>) -> Viewer
+user query Me(reader: User<UserId>) -> Viewer
     freshness     0.seconds
     consistency   read_your_writes
     cache         private
-    key           session
+    key           reader
     concurrency   one_per_key
     on_key_change cancel
     timeout       2.seconds
 {
-    viewer(session)
+    viewer(account_of(reader))
 }
 
-session query Entries(session: Session<SessionId>, limit: Int) -> List<Entry>
+user query Latest(reader: User<UserId>, limit: Int) -> List<Line>
     freshness      0.seconds
     consistency    read_your_writes
     cache          private
-    key            session, limit
+    key            reader, limit
     invalidates_on Signed(_), Removed(_)
     concurrency    one_per_key
     on_key_change  cancel
     timeout        2.seconds
 {
-    entries(session, limit)
+    let account = account_of(reader)
+    List.map(List.take(List.reverse(Entries.of_book(guestbook())), limit), e => line(e, account))
 }
 
 predicate SignedIn
     says "Sign in to sign the guestbook."
 
-predicate OwnsPost(post: PostId)
-    says "Only its author can remove an entry."
-
-command sign(text: Words) -> Result<Post, BookError>
+command sign(text: Words) -> Result<Entry, BookError>
     requires      SignedIn
     idempotent_by InteractionId
-    emits         Signed(author(current_session()))
-    optimistic    Entries(current_session(), _) as shown => pending(shown, text)
+    emits         Signed(guestbook())
+    optimistic    Latest(current_user(), _) as shown => pending(shown, text)
 {
-    publish(current_session(), text)
+    match account_of(current_user()) {
+        None => Err(SignedOut),
+        Some(account) => if List.length(Entries.all()) >= most() {
+            Err(Full)
+        } else {
+            let number = match Books.get(guestbook()) {
+                Some(book) => book.signed + 1,
+                None => 1,
+            }
+            Books.put(Book { name: guestbook(), signed: number })
+            let entry = Entry { book: guestbook(), number: number, author: account.id, name: account.name, text: text }
+            match Entries.insert(entry) {
+                Ok(_) => Ok(entry),
+                Err(_) => Err(Unavailable),
+            }
+        },
+    }
 }
 
-fn pending(shown: List<Entry>, text: Words) -> List<Entry> !{} {
-    let you = User { id: UserId("you"), name: "You" }
-    let entry = Entry { id: PostId("pending-{List.length(shown)}"), author: you, text: text.value, mine: false }
+fn pending(shown: List<Line>, text: Words) -> List<Line> !{} {
+    let entry = Line { number: 0 - 1 - List.length(shown), name: "You", text: text_of(text), mine: false }
     List.concat([entry], shown)
 }
 
-command remove(post: PostId) -> Result<PostId, BookError>
-    requires      SignedIn, OwnsPost(post)
+command remove(number: Int) -> Result<Int, BookError>
+    requires      SignedIn
     idempotent_by InteractionId
-    emits         Removed(post)
+    emits         Removed(number)
 {
-    delete(current_session(), post)
+    match Entries.get(guestbook(), number) {
+        None => Err(NotFound),
+        Some(entry) => if mine(entry, account_of(current_user())) {
+            Entries.delete(guestbook(), number)
+            Ok(number)
+        } else {
+            Err(NotYours)
+        },
+    }
 }

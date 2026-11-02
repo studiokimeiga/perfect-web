@@ -26,6 +26,7 @@
 //! PW64xx   the payments track's (NEXT 6c): a command the platform invokes
 //! PW66xx   check-is-build: executable program support
 //! PW68xx   the device-store track's: a value the reader's device keeps
+//! PW69xx   the data-path track's: a program's declared tables, served
 //! ```
 //!
 //! A parallel track registers its codes in its own block, with its own
@@ -137,6 +138,11 @@ pub enum Owner {
     /// the integrator): a value the reader's device keeps, charter §9.1's
     /// fourth kind of state, and the `Device` label that keeps it there.
     DeviceStore,
+    /// The data-path track's codes, PW69xx (ADR-0338's D2, an app with no
+    /// Rust data layer; the next free block, the integrator's ruling 3 of
+    /// 2026-11-02 asking the track's own): a program's declared tables, as
+    /// the development server serves them.
+    DataPath,
 }
 
 impl fmt::Display for Code {
@@ -983,6 +989,13 @@ codes! {
         "a signal the device keeps is of a type the device can hold: data, no function, no type that contains itself, no opaque type with a `where`";
     DEVICE_SIGNAL_PROVIDED = "PW6808" / device_signal_provided / 1, DeviceStore,
         "a signal the device keeps is provided by the device: no `provide` gives it a value";
+
+    // --- the data-path track (PW69xx; ADR-0338's D2) ----------------------
+    //
+    // `type Held = Held { id: String, who: User<UserId> }` as a table's row:
+    // a handle stored where every reader of the table reads it.
+    ROW_HOLDS_HANDLE = "PW6901" / row_holds_handle / 1, DataPath,
+        "a table's row holds no session's, user's or organization's handle: every reader of the table reads its rows, and a handle is its own reader's alone; a row names someone by their id";
 }
 
 /// Codes that were registered, are no longer emitted, and whose numbers must
@@ -1079,6 +1092,7 @@ impl Owner {
             Owner::Schedules => "PW65",
             Owner::CheckIsBuild => "PW66",
             Owner::DeviceStore => "PW68",
+            Owner::DataPath => "PW69",
             Owner::Syntax | Owner::Resolution => "PW00",
             Owner::Placement | Owner::Privacy | Owner::Markup => "PW50",
             Owner::Types => "PW06",
@@ -1149,6 +1163,7 @@ mod tests {
                 (Owner::Schedules, "PW65"),
                 (Owner::CheckIsBuild, "PW66"),
                 (Owner::DeviceStore, "PW68"),
+                (Owner::DataPath, "PW69"),
             ] {
                 assert!(
                     !c.id.starts_with(block) || c.owner == owner,

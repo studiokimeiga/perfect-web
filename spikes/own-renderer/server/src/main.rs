@@ -152,10 +152,10 @@ const TELLERS: usize = 8;
 /// **A session, as a record names it**: a hash of its id, which is its
 /// cookie and never written where another session can read it.
 fn masked(session: &str) -> String {
-    use std::hash::{Hash, Hasher};
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    session.hash(&mut hasher);
-    format!("s{:08x}", hasher.finish() as u32)
+    // The session's digest in its own domain, as every value the host logs
+    // of one is (track `data-path`, the integrator's ruling of 2026-11-02).
+    let digest = identity::session_field(identity::LOG_DOMAIN, session);
+    format!("s{}", &digest[..8])
 }
 
 /// **Milliseconds since this server started**, the clock its records read.
@@ -989,6 +989,20 @@ mod render_merge;
 // Track `second-host` (ADR-0369): hosts on one database hear each other's
 // commits.
 mod hosts;
+// TRACK SEAM (tables): a program's declared tables, served by the generic
+// memory adapter, through the gate alone (track `data-path`, ADR-0338 D2).
+mod tables;
+
+/// **The table functions a call links, by its component's contract and
+/// grant** (TRACK SEAM (tables), track `data-path`): a query's reads, a
+/// command's staged reads and writes, or none.
+type TableFns<'a> = dyn Fn(&ComponentContract, &Granted) -> Result<data::Ops, String> + 'a;
+
+/// **A call that links no table function**: a pure one (a member, a
+/// computed part), or a materialization's, which reads through its queries.
+fn no_tables(_: &ComponentContract, _: &Granted) -> Result<data::Ops, String> {
+    Ok(data::Ops::new())
+}
 
 struct Server {
     /// **The build this host serves, by its name** (ADR-0300): on each
@@ -1199,6 +1213,11 @@ struct Server {
     /// held in flight, its key's, while another render reads the key.
     #[cfg(test)]
     in_flight: Mutex<Option<KeyedFetched>>,
+    /// **The table functions each call's host map held** (track
+    /// `data-path`): by component, each `pw:tables/…` key the engine was
+    /// handed, which a test holds to the component's own.
+    #[cfg(test)]
+    table_maps: Mutex<Vec<(String, Vec<String>)>>,
     /// **What each session's connections meet** (charter §15.5's one-shot
     /// network error and forced reconnect, ADR-0175): whether its next
     /// command's connection is dropped, and when its subscriptions are cut
@@ -1283,6 +1302,16 @@ const INTERACTIONS_PER_SESSION: usize = 64;
 /// later than that is a new request.
 const INTERACTIONS_KEPT_MS: u64 = 24 * 60 * 60 * 1000;
 
+/// **A session's partition, as an entry names it** (track `data-path`, the
+/// integrator's ruling of 2026-11-02): the session's handle
+/// (`identity::session_handle`), never the cookie. An entry's storage key
+/// spells its partition out, and the materializer keeps it.
+fn session_partition(session: &str) -> Partition {
+    Partition::Session {
+        id: identity::session_handle(session),
+    }
+}
+
 /// The semantic identity of one session's cart.
 ///
 /// Built from the shape the compiler's bridge produces. The server does not
@@ -1293,14 +1322,7 @@ const INTERACTIONS_KEPT_MS: u64 = 24 * 60 * 60 * 1000;
 /// the reader's user where it reads a cart by the reader's handle, so that
 /// the program's event naming the user reaches it, or the session.
 fn cart_identity(owner: &str, session: &str) -> EntryIdentity {
-    EntryIdentity::new(
-        "store.page.Cart",
-        &[owner],
-        Partition::Session {
-            id: session.to_string(),
-        },
-    )
-    .generation(BUILD)
+    EntryIdentity::new("store.page.Cart", &[owner], session_partition(session)).generation(BUILD)
 }
 
 /// A store's menu's entry identity — PUBLIC, and carrying the same
@@ -1327,16 +1349,15 @@ fn cart_entry(owner: &str, session: &str) -> ResourceEntryId {
 fn speculated_entry(session: &str, page: &str, binding: &str, route: &[String]) -> ResourceEntryId {
     // **And the page's parameters its key reads** (ADR-0236): two threads
     // one session has open are two entries.
-    let key: Vec<&str> = std::iter::once(session)
+    let handle = identity::session_handle(session);
+    let key: Vec<&str> = std::iter::once(handle.as_str())
         .chain(route.iter().map(String::as_str))
         .collect();
     ResourceEntryId::derive(
         &EntryIdentity::new(
             &format!("pw.speculated.{page}#{binding}"),
             &key,
-            Partition::Session {
-                id: session.to_string(),
-            },
+            session_partition(session),
         )
         .generation(BUILD),
         &IDENTITY,
@@ -1422,10 +1443,8 @@ fn session_documents(session: &str) -> ResourceEntryId {
     ResourceEntryId::derive(
         &EntryIdentity::new(
             "pw.session.documents",
-            &[session],
-            Partition::Session {
-                id: session.to_string(),
-            },
+            &[&identity::session_handle(session)],
+            session_partition(session),
         )
         .generation(BUILD),
         &IDENTITY,
@@ -1436,14 +1455,8 @@ fn session_documents(session: &str) -> ResourceEntryId {
 /// to it is sent against, as the cart's is.
 fn order_entry(owner: &str, session: &str) -> ResourceEntryId {
     ResourceEntryId::derive(
-        &EntryIdentity::new(
-            "store.page.Order",
-            &[owner],
-            Partition::Session {
-                id: session.to_string(),
-            },
-        )
-        .generation(BUILD),
+        &EntryIdentity::new("store.page.Order", &[owner], session_partition(session))
+            .generation(BUILD),
         &IDENTITY,
     )
 }
@@ -1678,6 +1691,33 @@ impl Server {
         feed: Option<Arc<dyn data::DataLayer>>,
         store: Option<Arc<dyn store::StoreLayer>>,
     ) -> Result<Server, String> {
+        Server::from_build_served(dist, build, feed, store, None)
+    }
+
+    /// TRACK SEAM (tables): **[`Server::from_build`], a program's declared
+    /// tables served by `layer`** (track `data-path`): the conformance
+    /// suite's layer under test, which it is handed, so that one suite runs
+    /// for every adapter (ADR-0338's ruling 7). The build is held to what
+    /// any layer may serve of it first (`tables::servable`).
+    #[cfg(test)]
+    fn from_build_tables(
+        dist: std::path::PathBuf,
+        build: std::path::PathBuf,
+        layer: Arc<dyn data::DataLayer>,
+    ) -> Result<Server, String> {
+        Server::from_build_served(dist, build, None, None, Some(layer))
+    }
+
+    /// [`Server::from_build_layers`], and a program's declared tables served
+    /// by `tables_layer` where one is given, by the memory adapter otherwise
+    /// (track `data-path`).
+    fn from_build_served(
+        dist: std::path::PathBuf,
+        build: std::path::PathBuf,
+        feed: Option<Arc<dyn data::DataLayer>>,
+        store: Option<Arc<dyn store::StoreLayer>>,
+        tables_layer: Option<Arc<dyn data::DataLayer>>,
+    ) -> Result<Server, String> {
         let read = |rel: &str| {
             std::fs::read_to_string(build.join(rel))
                 .map_err(|e| format!("{}: {e}", build.join(rel).display()))
@@ -1696,7 +1736,14 @@ impl Server {
             .map_err(|e| format!("graph.json: {e:?}"))?;
         let components = components_in(&build.join("components"))?;
         let mut plans = BTreeMap::new();
-        for entry in std::fs::read_dir(build.join("pages")).map_err(|e| format!("pages: {e}"))? {
+        // A program of queries and commands alone (`examples/tables`'s) has
+        // no page, and its build no `pages` directory (track `data-path`).
+        let pages = match std::fs::read_dir(build.join("pages")) {
+            Ok(pages) => pages.collect::<Vec<_>>(),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+            Err(e) => return Err(format!("pages: {e}")),
+        };
+        for entry in pages {
             let path = entry.map_err(|e| format!("pages: {e}"))?.path();
             let Some(page) = path.file_stem().and_then(|s| s.to_str()) else {
                 continue;
@@ -1714,36 +1761,50 @@ impl Server {
         // TRACK SEAM (uploads, ADR-0253): the uploads the program declares
         // (`uploads.json`), their blobs where the deployment keeps them.
         let uploads = uploads::Uploads::from_build(&build, &uploads::blob_root(&dist))?;
-        let (store, data): (Arc<dyn store::StoreLayer>, Arc<dyn data::DataLayer>) = if contracts
-            .iter()
-            .flat_map(|c| &c.imports)
-            .any(|i| i.interface.starts_with("feed:"))
-        {
-            (
-                Arc::new(store::StoreData::new()),
-                feed.unwrap_or_else(|| Arc::new(feed::FeedData::new())),
-            )
-        } else if contracts
-            .iter()
-            .flat_map(|c| &c.imports)
-            .any(|i| i.interface.starts_with("kiokun:"))
-        {
-            // TRACK SEAM (kiokun): kiokun's files, read-only, where the
-            // program imports `kiokun:data/…` (docs/PARALLEL.md, W6, Q2).
-            // Unit tests assert the committed sample's answers. A developer's
-            // deployment environment must not replace that test fixture.
-            #[cfg(test)]
-            let kiokun = kiokun::KiokunData::at(kiokun::sample(), None);
-            #[cfg(not(test))]
-            let kiokun = kiokun::KiokunData::new()?;
-            (Arc::new(store::StoreData::new()), Arc::new(kiokun))
-        } else {
-            #[cfg(test)]
-            let store = store.unwrap_or_else(store::layer_for_tests);
-            #[cfg(not(test))]
-            let store = store.unwrap_or_else(|| Arc::new(store::StoreData::new()));
-            (store.clone(), store)
-        };
+        let (store, data): (Arc<dyn store::StoreLayer>, Arc<dyn data::DataLayer>) =
+            if tables::imports_tables(&contracts) {
+                // TRACK SEAM (tables): **a program that declares its data**
+                // (track `data-path`): its build's tables.json, held to what
+                // any layer may serve of it, in the layer given or the
+                // generic memory adapter, and no hand-written layer beside it.
+                tables::servable(&build, &contracts)?;
+                let layer: Arc<dyn data::DataLayer> = match tables_layer {
+                    Some(layer) => layer,
+                    None => Arc::new(tables::TablesLayer::from_build(&build, &contracts)?),
+                };
+                (Arc::new(store::StoreData::new()), layer)
+            } else if tables_layer.is_some() {
+                return Err("a tables layer was given, and the program declares no tables".into());
+            } else if contracts
+                .iter()
+                .flat_map(|c| &c.imports)
+                .any(|i| i.interface.starts_with("feed:"))
+            {
+                (
+                    Arc::new(store::StoreData::new()),
+                    feed.unwrap_or_else(|| Arc::new(feed::FeedData::new())),
+                )
+            } else if contracts
+                .iter()
+                .flat_map(|c| &c.imports)
+                .any(|i| i.interface.starts_with("kiokun:"))
+            {
+                // TRACK SEAM (kiokun): kiokun's files, read-only, where the
+                // program imports `kiokun:data/…` (docs/PARALLEL.md, W6, Q2).
+                // Unit tests assert the committed sample's answers. A developer's
+                // deployment environment must not replace that test fixture.
+                #[cfg(test)]
+                let kiokun = kiokun::KiokunData::at(kiokun::sample(), None);
+                #[cfg(not(test))]
+                let kiokun = kiokun::KiokunData::new()?;
+                (Arc::new(store::StoreData::new()), Arc::new(kiokun))
+            } else {
+                #[cfg(test)]
+                let store = store.unwrap_or_else(store::layer_for_tests);
+                #[cfg(not(test))]
+                let store = store.unwrap_or_else(|| Arc::new(store::StoreData::new()));
+                (store.clone(), store)
+            };
         // TRACK SEAM (uploads, ADR-0253): the layer commits a post's image
         // from the uploads' leases, in the post's own transaction.
         if let Some(leases) = uploads.leases() {
@@ -2031,6 +2092,8 @@ impl Server {
             while_reading: Mutex::new(None),
             #[cfg(test)]
             in_flight: Mutex::new(None),
+            #[cfg(test)]
+            table_maps: Mutex::new(Vec::new()),
             connection_faults: Mutex::new(BTreeMap::new()),
             materializer_faults: Mutex::new(std::collections::BTreeSet::new()),
             keyed: Mutex::new(BTreeMap::new()),
@@ -2167,7 +2230,8 @@ impl Server {
     fn owner(&self, session: &str) -> String {
         match self.cart_by_reader {
             Some(true) => notifications::user_of(&self.identity.principals(), session),
-            _ => session.to_string(),
+            // The session as the program holds it (track `data-path`).
+            _ => identity::session_handle(session),
         }
     }
 
@@ -2212,7 +2276,7 @@ impl Server {
         let user = if by_reader {
             signed.principal.user.clone()
         } else {
-            signed.session.to_string()
+            identity::session_handle(signed.session)
         };
         let event = (
             self.cart_event().to_string(),
@@ -2525,11 +2589,18 @@ impl Server {
     /// Authority first — `admit` against the artifact's real imports — then
     /// the component, with the deployment's implementation of each granted
     /// operation. The command's result is whatever the COMPONENT returns.
+    ///
+    /// TRACK SEAM (tables): `tables` gives the table functions the gate
+    /// admits for the component, by its contract and grant: a query's reads,
+    /// a command's staged reads and writes, or none. Where the program
+    /// declares its tables, every call goes through the gate with them, and
+    /// its host map is `host` and those functions, no other table's.
     fn run(
         &self,
         component_id: &str,
         session: &str,
         host: &BTreeMap<String, HostFn>,
+        tables: &TableFns<'_>,
         args: &[Val],
     ) -> Result<Vec<Val>, String> {
         let granted = self.authorise(component_id)?;
@@ -2547,33 +2618,68 @@ impl Server {
             .get(component_id)
             .ok_or_else(|| format!("no compiled component `{component_id}`"))?
             .prepared;
-        let results = prepared.call_authorized_within(
-            contract,
-            &granted,
-            &Limits {
-                fuel: Some(50_000_000),
-                memory_bytes: Some(16 * 1024 * 1024),
-                table_elements: Some(1_000),
-            },
-            host,
-            &[&export.interface, &export.function],
-            args,
-            // TRACK SEAM (identity, ADR-0253): what `requires` is told. The
-            // important property is that each predicate is evaluated, and an
-            // unknown one cannot run. A predicate over the command's
-            // parameters reads through the command's own operations.
-            |predicate, bound| self.identity.requires(predicate, bound, session, host),
-        )?;
+        let limits = Limits {
+            fuel: Some(50_000_000),
+            memory_bytes: Some(16 * 1024 * 1024),
+            table_elements: Some(1_000),
+        };
+        let path = [&export.interface[..], &export.function[..]];
+        let results = match self.data.tables() {
+            // TRACK SEAM (tables): **a program's tables link through the gate
+            // alone** (track `data-path`), each component's host map holding
+            // the platform's operations and its own admitted functions.
+            Some(manifest) => {
+                let mut linked = host.clone();
+                linked.extend(tables(contract, &granted)?);
+                #[cfg(test)]
+                self.table_maps.lock().expect("table maps").push((
+                    component_id.to_string(),
+                    linked
+                        .keys()
+                        .filter(|key| pw_host::tables::is_table_import(key))
+                        .cloned()
+                        .collect(),
+                ));
+                prepared.call_authorized_with_tables(
+                    contract,
+                    &granted,
+                    &limits,
+                    &linked,
+                    manifest,
+                    &path,
+                    args,
+                    |predicate, bound| self.identity.requires(predicate, bound, session, &linked),
+                )?
+            }
+            None => prepared.call_authorized_within(
+                contract,
+                &granted,
+                &limits,
+                host,
+                &path,
+                args,
+                // TRACK SEAM (identity, ADR-0253): what `requires` is told.
+                // The important property is that each predicate is
+                // evaluated, and an unknown one cannot run. A predicate over
+                // the command's parameters reads through the command's own
+                // operations.
+                |predicate, bound| self.identity.requires(predicate, bound, session, host),
+            )?,
+        };
         // A type that contains itself arrives as its nodes, and a page reads
         // it nested (ADR-0194).
-        prepared.untangled(&[&export.interface, &export.function], results)
+        prepared.untangled(&path, results)
     }
 
     /// The platform's session operation: the request's session, and nothing
-    /// else the component could ask it for.
+    /// else the component could ask it for. As its handle
+    /// (`identity::session_handle`), never the cookie (track `data-path`, the
+    /// integrator's ruling of 2026-11-02): what a program makes of its
+    /// session (a key, an event, an invalidation the outbox keeps, a row) is
+    /// made of the handle.
     fn session_operation(session: &str) -> HostFn {
-        let session = session.to_string();
-        Arc::new(move |_args: &[Val]| Ok(vec![Val::String(session.clone())]))
+        let handle = identity::session_handle(session);
+        Arc::new(move |_args: &[Val]| Ok(vec![Val::String(handle.clone())]))
     }
 
     /// The materializer's version for this entry.
@@ -2773,6 +2879,11 @@ impl Server {
                 notifications::PRINCIPAL_READ.to_string(),
                 notifications::principal_operation(&self.identity.principals(), session),
             );
+            // And the account they signed in to (track `data-path`).
+            host.insert(
+                notifications::PRINCIPAL_ACCOUNT.to_string(),
+                notifications::account_operation(&self.identity.principals(), session),
+            );
             // The platform's clock (ADR-0304), for the command's moment.
             host.extend(clock::operations(self.now(), &self.zones));
             // NEXT 6c: the deployment's payments, keyed by this interaction,
@@ -2796,7 +2907,12 @@ impl Server {
             // values itself and hands them to the platform's outbox, which
             // stages them here with its writes.
             let staged_events = self.outbox(component_id, &mut host)?;
-            let out = self.run(component_id, session, &host, args)?;
+            // TRACK SEAM (tables): its tables' reads and writes, staged in
+            // this command's transaction, as the gate admits them.
+            let tables = |contract: &ComponentContract, granted: &Granted| {
+                staging.table_ops(contract, granted)
+            };
+            let out = self.run(component_id, session, &host, &tables, args)?;
             let result = out.first().map(answer_json);
             if let [Val::Result(Err(_))] = out.as_slice() {
                 staging.revalidate()?;
@@ -3187,36 +3303,52 @@ impl Server {
                 // The state the data layer staged and the outbox's events, in
                 // one transaction (ADR-0019, ADR-0208); and the interaction's
                 // answer, where the command has one (ADR-0325).
-                let mut current = true;
-                let ids = self.materializer.command(|tx| {
-                    if let Some(completion) = completing {
-                        if !completion.belongs_to(self.materializer.queue_authority()) {
-                            return Err(
-                                "scheduled completion belongs to another queue adapter".to_string()
-                            );
+                let current = std::cell::Cell::new(true);
+                let layer = std::cell::RefCell::new(&mut *staging);
+                let ids = self.materializer.command_then(
+                    |tx| {
+                        if let Some(completion) = completing {
+                            if !completion.belongs_to(self.materializer.queue_authority()) {
+                                return Err(
+                                    "scheduled completion belongs to another queue adapter"
+                                        .to_string(),
+                                );
+                            }
+                            if !Materializer::consume_run(tx, completion.run, completion.now_ms)? {
+                                current.set(false);
+                                return Ok(Vec::new());
+                            }
                         }
-                        if !Materializer::consume_run(tx, completion.run, completion.now_ms)? {
-                            current = false;
-                            return Ok(Vec::new());
+                        layer.borrow_mut().prepare_materialized()?;
+                        for (key, value) in &rows {
+                            Materializer::set_state(tx, key, value);
                         }
-                    }
-                    staging.prepare_materialized()?;
-                    for (key, value) in &rows {
-                        Materializer::set_state(tx, key, value);
-                    }
-                    if let Some(r) = interaction {
-                        Materializer::prune_interactions(tx, r.forget_before_ms);
-                        Materializer::record_interaction(tx, r.key, r.sent, r.answer, r.at_ms)?;
-                    }
-                    // And the runs it scheduled, or cancelled (the
-                    // scheduled-commands track).
-                    schedules::write(tx, scheduled)?;
-                    if let Some(actor) = actor.filter(|actor| actor.is_local()) {
-                        actor.ensure_local_current()?;
-                    }
-                    Ok::<_, String>(events)
-                })?;
-                if !current {
+                        if let Some(r) = interaction {
+                            Materializer::prune_interactions(tx, r.forget_before_ms);
+                            Materializer::record_interaction(tx, r.key, r.sent, r.answer, r.at_ms)?;
+                        }
+                        // And the runs it scheduled, or cancelled (the
+                        // scheduled-commands track).
+                        schedules::write(tx, scheduled)?;
+                        if let Some(actor) = actor.filter(|actor| actor.is_local()) {
+                            actor.ensure_local_current()?;
+                        }
+                        Ok::<_, String>(events)
+                    },
+                    // TRACK SEAM (tables): **what the layer staged, the
+                    // transaction's last step before its COMMIT** (track
+                    // `data-path`): a program's tables published after every
+                    // record above and the outbox are written; refused, all
+                    // of it rolls back.
+                    || match current.get() {
+                        true => layer.borrow_mut().publish_within(),
+                        false => Ok(()),
+                    },
+                    // And a COMMIT that fails after it: the layer takes back,
+                    // or closes, what no record keeps.
+                    |why| layer.borrow_mut().unpublished(why),
+                )?;
+                if !current.get() {
                     return Ok(CommitOutcome::NotCurrent);
                 }
                 ((emitted.to_vec(), invalidated.to_vec()), ids)
@@ -3364,7 +3496,7 @@ impl Server {
             session,
             "store:host/estimates#set",
             &[
-                Val::String(session.to_string()),
+                Val::String(identity::session_handle(session)),
                 Val::S64(minutes),
                 Val::Option(max.map(|m| Box::new(Val::S64(m)))),
             ],
@@ -3622,13 +3754,16 @@ impl Server {
         args: &[serde_json::Value],
     ) -> (String, String, String) {
         let principals = self.identity.principals();
+        // TRACK SEAM (data-path): the session's digests, never the session
+        // (the integrator's ruling of 2026-11-02): the record keeps the key
+        // and what was sent a day, where a database reader reads them.
         let reader = if self.invoked_by_platform(component) {
-            serde_json::json!({"platform":component,"session":identity::hex(session.as_bytes()),"user":principals.user_of(session)})
+            serde_json::json!({"platform":component,"session":identity::session_field(identity::PARTITION_DOMAIN, session),"user":principals.user_of(session)})
         } else {
             principals.receipt_reader(session)
         };
         let digest = identity::hex(&identity::kept_hash(&reader.to_string()));
-        let key = format!("{session}\u{1f}{component}\u{1f}{id}");
+        let key = identity::interaction_key(session, component, id);
         let cache = format!("receipt-v1:{digest}\u{1f}{component}\u{1f}{id}");
         let sent = serde_json::json!({"v":1,"reader":reader,"args":args}).to_string();
         (key, cache, sent)
@@ -4168,7 +4303,7 @@ impl Server {
             return Err("scheduled target is not an idempotent Clock command".into());
         }
         let interaction = format!("schedule-{}", run.id);
-        let key = format!("{session}\u{1f}{}\u{1f}{interaction}", run.command);
+        let key = identity::interaction_key(session, &run.command, &interaction);
         let sent = serde_json::Value::Array(json).to_string();
         // One evaluator/commit core; no browser memoization/session history for Clock.
         let result = self.command_recorded_for(
@@ -4576,6 +4711,9 @@ impl Server {
         // `store-accounts`, telling by principal): the user at the key
         // position a binding fills with `current_user()`, where the drop
         // names one. ADR-0270's superset told every reader of the query.
+        // A key holds the session as the program holds it, its handle
+        // (`identity::session_handle`, track `data-path`).
+        let handle = identity::session_handle(session);
         let drop_entries = |resource: &str, args: &[Option<Val>]| -> Option<Reached> {
             // No binding reads it, so nothing of it is kept.
             let binding = binding_of(resource)?;
@@ -4585,7 +4723,7 @@ impl Server {
             let positions = key_positions(&policy);
             let pinned = positions
                 .iter()
-                .any(|i| matches!(args.get(*i), Some(Some(Val::String(s))) if s == session));
+                .any(|i| matches!(args.get(*i), Some(Some(Val::String(s))) if *s == handle));
             if entry_is_private(&policy) && pinned {
                 return None;
             }
@@ -4755,7 +4893,7 @@ impl Server {
                     }),
                 );
             }
-            match self.run(path, "", &host, args) {
+            match self.run(path, "", &host, &no_tables, args) {
                 Ok(out) => {
                     return out
                         .into_iter()
@@ -5117,25 +5255,43 @@ impl Server {
             Some(render) => render.reads(&*self.data, session, stopped),
             None => self.data.reads(session, stopped),
         };
+        let merged = |name: &str, f: HostFn| -> HostFn {
+            let f = counted(name, f);
+            match &render {
+                Some(render) => render.once(
+                    &self
+                        .identity
+                        .principals()
+                        .receipt_reader(session)
+                        .to_string(),
+                    name,
+                    f,
+                ),
+                None => f,
+            }
+        };
         let mut host: BTreeMap<String, HostFn> = layer
             .into_iter()
             .map(|(name, f)| {
-                let f = counted(&name, f);
-                let f = match &render {
-                    Some(render) => render.once(
-                        &self
-                            .identity
-                            .principals()
-                            .receipt_reader(session)
-                            .to_string(),
-                        &name,
-                        f,
-                    ),
-                    None => f,
-                };
+                let f = merged(&name, f);
                 (name, f)
             })
             .collect();
+        // TRACK SEAM (tables): its tables' reads, as the gate admits them for
+        // this query, reading the render's snapshot where it reads one, each
+        // counted and merged as the layer's reads are (NEXT 4c).
+        let snapshot = render.as_ref().and_then(|render| render.snapshot());
+        let tables = |contract: &ComponentContract, granted: &Granted| {
+            Ok(self
+                .data
+                .table_reads(contract, granted, snapshot)?
+                .into_iter()
+                .map(|(name, f)| {
+                    let f = merged(&name, f);
+                    (name, f)
+                })
+                .collect())
+        };
         // And the platform's session, each read its own: never merged.
         let mut platform: BTreeMap<String, HostFn> = BTreeMap::new();
         platform.insert(
@@ -5147,6 +5303,11 @@ impl Server {
             notifications::PRINCIPAL_READ.to_string(),
             notifications::principal_operation(&self.identity.principals(), session),
         );
+        // And the account they signed in to (track `data-path`).
+        platform.insert(
+            notifications::PRINCIPAL_ACCOUNT.to_string(),
+            notifications::account_operation(&self.identity.principals(), session),
+        );
         // The platform's clock (ADR-0304): every comparison in one read
         // answers for one instant, and notes what the read holds until.
         platform.extend(clock::operations(self.now(), &self.zones));
@@ -5154,7 +5315,7 @@ impl Server {
             let f = counted(&name, f);
             (name, f)
         }));
-        let out = self.run(component_id, session, &host, args)?;
+        let out = self.run(component_id, session, &host, &tables, args)?;
         out.into_iter()
             .next()
             .ok_or_else(|| format!("{component_id} returned nothing"))
@@ -5328,7 +5489,9 @@ impl Server {
                         })
                         .ok_or_else(|| format!("the page's `{name}` is given no value here"))
                 }
-                Some("current_session()") => Ok(Val::String(session.into())),
+                // The program's handle on the session, never the cookie
+                // (track `data-path`).
+                Some("current_session()") => Ok(Val::String(identity::session_handle(session))),
                 // TRACK SEAM (notifications): the reader's user, from the
                 // session's principal: never a value the browser sends.
                 Some(arg) if notifications::is_current_user(arg) => Ok(Val::String(
@@ -5401,14 +5564,14 @@ impl Server {
                     other => return Err(format!("`.{field}` read from {other:?}")),
                 }
             } else if let Some(member) = step["member"].as_str() {
-                let out = self.run(member, "", &BTreeMap::new(), &[value])?;
+                let out = self.run(member, "", &BTreeMap::new(), &no_tables, &[value])?;
                 out.into_iter()
                     .next()
                     .ok_or_else(|| format!("{member} returned nothing"))?
             } else if let Some(derived) = step["derived"].as_str() {
                 // A computed part's function (ADR-0226), run as a member is:
                 // pure, with the value it reads.
-                let out = self.run(derived, "", &BTreeMap::new(), &[value])?;
+                let out = self.run(derived, "", &BTreeMap::new(), &no_tables, &[value])?;
                 out.into_iter()
                     .next()
                     .ok_or_else(|| format!("{derived} returned nothing"))?
@@ -5961,14 +6124,8 @@ impl Server {
     /// token in a patch is the token already in the page. Two derivations
     /// would agree until one of them changed.
     fn domain(&self, session: &str) -> IdentityDomain {
-        IdentityDomain::document(
-            "StorePage(47)",
-            Partition::Session {
-                id: session.to_string(),
-            },
-            BUILD,
-        )
-        .keyed("own-renderer-spike-key")
+        IdentityDomain::document("StorePage(47)", session_partition(session), BUILD)
+            .keyed("own-renderer-spike-key")
     }
 
     /// **The identity domain a session's document of `page` is rendered in**
@@ -5978,14 +6135,8 @@ impl Server {
         if page == self.store_page() {
             return self.domain(session);
         }
-        IdentityDomain::document(
-            page,
-            Partition::Session {
-                id: session.to_string(),
-            },
-            BUILD,
-        )
-        .keyed("own-renderer-spike-key")
+        IdentityDomain::document(page, session_partition(session), BUILD)
+            .keyed("own-renderer-spike-key")
     }
 
     /// The menu fragment's OWN identity domain — public, and the same for
@@ -6876,14 +7027,8 @@ impl Server {
         // What it computes from its signals, at their first values (ADR-0227).
         let env = self.with_computed_signals(env, plan, template)?;
         let env = with_signals(env, plan).in_domain(
-            IdentityDomain::document(
-                path,
-                Partition::Session {
-                    id: session.to_string(),
-                },
-                BUILD,
-            )
-            .keyed("own-renderer-spike-key"),
+            IdentityDomain::document(path, session_partition(session), BUILD)
+                .keyed("own-renderer-spike-key"),
         );
         let body = pw_render::render(template, &env, &self.templates)
             .map_err(|e| format!("`{path}` does not render: {e:?}"))?;
@@ -7083,7 +7228,7 @@ impl Server {
             .and_then(|e| e.component.clone())
             .ok_or_else(|| format!("`{id}`'s contract does not locate its export"))?;
         let args = loaded.prepared.arguments_for(&export, inputs)?;
-        self.run(id, "", &BTreeMap::new(), &args)?
+        self.run(id, "", &BTreeMap::new(), &no_tables, &args)?
             .into_iter()
             .next()
             .ok_or_else(|| format!("{id} returned nothing"))
@@ -8059,7 +8204,7 @@ fn stream_runs(
             .into_iter()
             .flatten()
             .map(|a| match a.as_str() {
-                Some("current_session()") => Ok(Val::String(session.into())),
+                Some("current_session()") => Ok(Val::String(identity::session_handle(session))),
                 Some(arg) if notifications::is_current_user(arg) => Ok(Val::String(user.into())),
                 Some(name) => param_val(plan, name, params).ok_or_else(|| {
                     format!("a stream's query is given `{name}`, which is not given")
@@ -8413,7 +8558,12 @@ fn entry_key(session: &str, policy: &serde_json::Value, args: &[Val]) -> Option<
 /// that field; cleanup recognizes all epochs of only the named cookie.
 fn private_entry_belongs_to(key: &str, session: &str) -> bool {
     let field = key.split('\u{1f}').next().unwrap_or_default();
-    let prefix = format!("session=v1:{}:", identity::hex(session.as_bytes()));
+    // The session's partition is its digest (`ReaderIdentity::partition`,
+    // version 2, track `data-path`), never its cookie.
+    let prefix = format!(
+        "session=v2:{}:",
+        identity::session_field(identity::PARTITION_DOMAIN, session)
+    );
     if let Some(reader) = field.strip_prefix(&prefix) {
         return matches!(reader, "g" | "n")
             || reader.strip_prefix("a:").is_some_and(|epoch| {
@@ -8422,7 +8572,9 @@ fn private_entry_belongs_to(key: &str, session: &str) -> bool {
     }
     // Older synthetic/guest keys remain cleanable, but a versioned field
     // can never be reinterpreted as an attacker-chosen legacy cookie.
-    !field.starts_with("session=v1:") && field == format!("session={session}")
+    !field.starts_with("session=v1:")
+        && !field.starts_with("session=v2:")
+        && field == format!("session={session}")
 }
 
 fn entry_is_private(policy: &serde_json::Value) -> bool {
@@ -8487,10 +8639,8 @@ fn keyed_entry(session: &str, binding: &str) -> ResourceEntryId {
     ResourceEntryId::derive(
         &EntryIdentity::new(
             &format!("store.page.{binding}#key"),
-            &[session],
-            Partition::Session {
-                id: session.to_string(),
-            },
+            &[&identity::session_handle(session)],
+            session_partition(session),
         )
         .generation(BUILD),
         &IDENTITY,
@@ -15473,7 +15623,7 @@ public query Store(",
         let body =
             &server_code[start..start + server_code[start..].find("\n    }\n").expect("its end")];
         assert!(
-            body.contains("self.run(component_id, session, &host, args)"),
+            body.contains("self.run(component_id, session, &host, &tables, args)"),
             "every command runs its compiled component"
         );
         assert!(
@@ -16016,13 +16166,20 @@ public query Store(",
         let s = rendering_server();
         s.command(ADD, "session-6", &add_shown("espresso", 3), false)
             .expect("runs");
-        assert_eq!(s.materializer.state("cart:session-6").as_deref(), Some("3"));
+        assert_eq!(
+            s.materializer
+                .state(&store::cart_state_key("session-6"))
+                .as_deref(),
+            Some("3")
+        );
         s.command_json(CLEAR, "session-6", &[], Some("clear-1"))
             .expect("well-formed")
             .expect("and it committed");
         assert_eq!(s.cart_value("session-6"), 0);
         assert_eq!(
-            s.materializer.state("cart:session-6").as_deref(),
+            s.materializer
+                .state(&store::cart_state_key("session-6"))
+                .as_deref(),
             Some("0"),
             "the cleared cart's state, not the old total"
         );
@@ -16144,6 +16301,18 @@ public query Store(",
 
     // TRACK SEAM (todomvc): TodoMVC, built and served (docs/PARALLEL.md, W7).
     mod todomvc;
+
+    // TRACK SEAM (tables): a program's declared tables, served through the
+    // gate by the generic memory adapter (track `data-path`).
+    mod tables;
+
+    // TRACK SEAM (tables): the guide's guestbook, on the tables it declares,
+    // with no data layer of its own (track `data-path`).
+    mod guestbook;
+
+    // TRACK SEAM (tables): the conformance suite over the `DataLayer` seam,
+    // generated for every declared table (ADR-0338 5.5, track `data-path`).
+    mod conformance;
 
     // TRACK SEAM (device-store): a page that holds a value the device keeps,
     // served (ADR-0366).
@@ -16953,7 +17122,8 @@ public query Store(",
         .expect("runs");
         s.tell_waiting();
         let set = format!("{:?}", sets_of(&s, &theirs).pop().expect("a patch set"));
-        assert!(set.contains("Guest a"), "{set}");
+        let guest = crate::identity::Principal::guest("a").name;
+        assert!(set.contains(&guest), "{guest}: {set}");
         assert!(!set.contains("You"), "{set}");
     }
 
