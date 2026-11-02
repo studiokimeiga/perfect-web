@@ -45,7 +45,7 @@ import { lossesFirst, renderReport } from "./report.mjs";
 /** How often a press's change is looked for: what its time can tell apart. */
 const PRESS_POLL_MS = 10;
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const a = {
     apps: ["todomvc", "store"],
     engines: ["chromium", "firefox", "webkit"],
@@ -243,7 +243,7 @@ async function measureApp(appName, args, log) {
 
 /** Waits, at most `seconds`, for the one-minute load average to fall below a
  * quarter of the logical CPUs; returns what it saw. */
-async function settle(seconds, log) {
+export async function settle(seconds, log) {
   const goal = Math.max(2, os.cpus().length / 4);
   const before = os.loadavg()[0];
   const startedAt = Date.now();
@@ -265,7 +265,7 @@ async function settle(seconds, log) {
  * section's text, printed whole after the summary, and its data, which the
  * summary's rows read. A section that is not there is left out, and says so.
  */
-function readSections(dir) {
+export function readSections(dir) {
   if (!dir) return {};
   const json = (name) => {
     const f = path.join(dir, `${name}.json`);
@@ -290,7 +290,7 @@ function readSections(dir) {
   };
 }
 
-function describe(t) {
+export function describe(t) {
   return {
     stack: t.stack,
     label: t.label,

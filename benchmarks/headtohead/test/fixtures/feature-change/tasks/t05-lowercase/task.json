@@ -1,0 +1,6 @@
+{
+  "id": "t05",
+  "title": "A directory whose name begins with a lower-case t is no task's",
+  "stacks": ["pleris"],
+  "hidden": "hidden/t05.spec.mjs"
+}

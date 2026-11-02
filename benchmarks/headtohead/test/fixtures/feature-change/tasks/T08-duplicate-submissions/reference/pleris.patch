@@ -1,0 +1,20 @@
+diff --git a/store/app.pw b/store/app.pw
+index 2ee0b7c..bec40ea 100644
+--- a/store/app.pw
++++ b/store/app.pw
+@@ -102,6 +102,7 @@ session query Cart(session: Session<SessionId>) -> Result<Cart, CartError>
+ command add_to_cart(item: MenuItemId, quantity: PositiveInt)
+     -> Result<Cart, CartError>
+     requires      SignedIn
++    idempotent_by InteractionId
+     optimistic    Cart(current_session()) as cart => Carts.with_line(cart, item, quantity)
+     invalidates   Cart(current_session())
+     emits         CartChanged(current_session())
+@@ -118,6 +119,7 @@ command add_to_cart(item: MenuItemId, quantity: PositiveInt)
+ command clear_cart()
+     -> Result<Cart, CartError>
+     requires      SignedIn
++    idempotent_by InteractionId
+     invalidates   Cart(current_session())
+     emits         CartChanged(current_session())
+ {

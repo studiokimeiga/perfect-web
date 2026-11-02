@@ -1,0 +1,33 @@
+{
+  "id": "J08-shared-server-state",
+  "leaf": "J08",
+  "also": [
+    "E01"
+  ],
+  "title": "One customer's cart shown to another, from state the server shares",
+  "source": {
+    "ref": "S54",
+    "kind": "framework documentation",
+    "url": "https://svelte.dev/docs/kit/state-management",
+    "date": "2026-09-10, as read for the census",
+    "says": "the census's reading (SOURCES.md S54): the documented server-global example leaks one user's data to another and loses state across restart"
+  },
+  "claim": "charter §7.8 (privacy labels); ADR-0128 (a key naming the reader does not make a shared cache safe)",
+  "related": [
+    "examples/rejected/R-004-private-cart-in-shared-cache.pw",
+    "benchmarks/tasks/T12-repair-cart-cache"
+  ],
+  "repro": {
+    "stack": "sveltekit",
+    "bug": "sveltekit.patch",
+    "fixed": "fixed.sveltekit.patch",
+    "how": "the count kept in a module-level `let` the actions set and the load returns, the docs' own shape applied to the store; the repair reads the session's cart in the load, as the docs advise (the data belongs to the request's user, found by its cookie)"
+  },
+  "pleris": {
+    "kind": "diagnostic",
+    "code": "PW5001",
+    "patch": "benchmarks/tasks/T12-repair-cart-cache/setup/pleris.patch",
+    "faithful": "A Pleris program has no module-level mutable state: the one place it keeps a value across requests is a resource's cache. The same change, keeping the cart once for every request, is the cart's query declaring `cache shared` (T12's setup). Its neighbour is the store as it is, `cache private`."
+  },
+  "expect": "refused"
+}

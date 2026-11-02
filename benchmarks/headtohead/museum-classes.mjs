@@ -44,8 +44,8 @@ export function parseEvidence(text) {
   return out;
 }
 
-export function collect() {
-  const text = fs.existsSync(EVIDENCE) ? fs.readFileSync(EVIDENCE, "utf8") : "";
+export function collect({ museum = MUSEUM, evidence = EVIDENCE } = {}) {
+  const text = fs.existsSync(evidence) ? fs.readFileSync(evidence, "utf8") : "";
   const meta = {
     commit: /^commit: (\S+)/m.exec(text)?.[1] ?? null,
     ci: /^ci: (\S+)/m.exec(text)?.[1] ?? null,
@@ -53,8 +53,8 @@ export function collect() {
   };
   const recorded = parseEvidence(text);
   const exhibits = [];
-  for (const dir of fs.readdirSync(MUSEUM).sort()) {
-    const file = path.join(MUSEUM, dir, "exhibit.json");
+  for (const dir of fs.readdirSync(museum).sort()) {
+    const file = path.join(museum, dir, "exhibit.json");
     if (!fs.existsSync(file)) continue;
     const ex = JSON.parse(fs.readFileSync(file, "utf8"));
     const r = recorded[ex.id] ?? null;

@@ -89,7 +89,7 @@ export function chooseEncoding(accept = "") {
   return null;
 }
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const out = { port: 0, mounts: [], log: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];

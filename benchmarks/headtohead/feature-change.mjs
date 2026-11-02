@@ -170,7 +170,7 @@ export function newWarnings(reference = [], unsafe = []) {
 }
 
 /** The stack's checker on its baseline as it stands: clean, or its first error. */
-export function runChecker(stack) {
+export function runChecker(stack, shell = sh) {
   const dir = path.join(REPO, STACKS[stack].dir);
   if (stack === "pleris") {
     const pw = path.join(process.env.CARGO_TARGET_DIR ?? path.join(REPO, "target"), "debug/pw");
@@ -183,19 +183,19 @@ export function runChecker(stack) {
         fs.readdirSync(path.join(dir, d)).filter((f) => f.endsWith(".pw")).map((f) => path.join(dir, d, f)),
       ),
     ];
-    const r = sh(pw, ["check", ...files]);
+    const r = shell(pw, ["check", ...files]);
     const lines = r.out.replace(ANSI, "").split("\n").map((l) => l.trim());
     const error = lines.find((l) => /^error/.test(l));
     const warnings = lines.filter((l) => /^warning/.test(l));
     return { clean: r.ok, error: r.ok ? null : (error ?? r.out.trim().split("\n")[0]).trim(), warnings };
   }
   if (stack === "next-react") {
-    const r = sh("pnpm", ["--silent", "typecheck"], { cwd: dir });
+    const r = shell("pnpm", ["--silent", "typecheck"], { cwd: dir });
     const error = r.out.replace(ANSI, "").split("\n").find((l) => /error TS\d+/.test(l));
     // `tsc` has errors only.
     return { clean: r.ok, error: r.ok ? null : (error ?? r.out.trim().split("\n")[0]).trim(), warnings: [] };
   }
-  const r = sh("pnpm", ["--silent", "typecheck", "--output", "machine"], { cwd: dir });
+  const r = shell("pnpm", ["--silent", "typecheck", "--output", "machine"], { cwd: dir });
   const summary = /(\d+) ERRORS (\d+) WARNINGS/.exec(r.out);
   const errors = summary ? Number(summary[1]) : null;
   const error = r.out.split("\n").find((l) => /\bERROR\b/.test(l) && !/ERRORS/.test(l));
@@ -244,16 +244,16 @@ export function harnessCaught(evidenceDir = path.join(REPO, "docs/evidence/E14")
   return out;
 }
 
-export function collect({ checks = true } = {}) {
-  const tasks = fs.readdirSync(TASKS).filter((d) => /^T\d+-/.test(d)).sort();
-  const caught = harnessCaught();
+export function collect({ checks = true, tasksDir = TASKS, evidenceDir } = {}) {
+  const tasks = fs.readdirSync(tasksDir).filter((d) => /^T\d+-/.test(d)).sort();
+  const caught = harnessCaught(evidenceDir);
   const rows = [];
   for (const task of tasks) {
     const id = task.split("-")[0];
-    const meta = JSON.parse(fs.readFileSync(path.join(TASKS, task, "task.json"), "utf8"));
+    const meta = JSON.parse(fs.readFileSync(path.join(tasksDir, task, "task.json"), "utf8"));
     const row = { id, task, title: meta.title, class: CLASS[id] ?? "", stacks: {} };
     for (const stack of Object.keys(STACKS)) {
-      const ref = path.join(TASKS, task, "reference", `${stack}.patch`);
+      const ref = path.join(tasksDir, task, "reference", `${stack}.patch`);
       if (!fs.existsSync(ref)) continue;
       const cell = { pr: diffStats(fs.readFileSync(ref, "utf8")), harness: caught[id]?.[stack] ?? null };
       if (checks) {

@@ -1,0 +1,43 @@
+diff --git a/src/routes/stores/[storeId]/+page.svelte b/src/routes/stores/[storeId]/+page.svelte
+index 26deb29..bcf6905 100644
+--- a/src/routes/stores/[storeId]/+page.svelte
++++ b/src/routes/stores/[storeId]/+page.svelte
+@@ -3,6 +3,10 @@
+   import type { PageProps } from "./$types";
+ 
+   let { data }: PageProps = $props();
++  // Adds pressed and not yet answered: shown at once, dropped when answered.
++  // A refused or failed add is dropped without refreshing, so the count is
++  // the server's again.
++  let pending = $state(0);
+ </script>
+ 
+ <main>
+@@ -13,7 +17,17 @@
+       {#each data.menu as item (item.id)}
+         <li>
+           <span>{item.name}</span>
+-          <form method="POST" action="?/add" use:enhance>
++          <form
++            method="POST"
++            action="?/add"
++            use:enhance={() => {
++              pending += 1;
++              return async ({ result, update }) => {
++                if (result.type === "success" || result.type === "redirect") await update();
++                pending -= 1;
++              };
++            }}
++          >
+             <input type="hidden" name="item" value={item.id} />
+             <button type="submit">Add</button>
+           </form>
+@@ -23,7 +37,7 @@
+   </section>
+ 
+   <section aria-label="Cart">
+-    <p id="cart-count">{data.cartCount}</p>
++    <p id="cart-count">{data.cartCount + pending}</p>
+     <form method="POST" action="?/clear" use:enhance>
+       <button id="clear-cart" type="submit">Clear</button>
+     </form>
