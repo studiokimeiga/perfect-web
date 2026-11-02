@@ -38,13 +38,20 @@ deploy-smoke:
 deploy-vm program="kiokun" *flags:
     deploy/vm/release.sh {{program}} {{flags}}
 
-# ADR-XXXX: a production host. The server's production tests (its refusals at
-# start, its keys, its own answers, its assets, its secrets, its log, its
-# stop, no sign-in), the binary as production runs it (tests/production_process.rs,
-# the store on a database of its own), the image's minifier locked from
-# pnpm-lock.yaml, the local production smoke test (deploy/smoke.sh: playwright
-# in Chromium, Firefox and WebKit through a TLS front, before and after a
-# SIGTERM restart), and the mutation controls (scripts/deploy_mutations.py).
+# ADR-XXXX: a production host. Everything its ADR claims, each by the command
+# that holds it: the server's production tests (its refusals at start, its
+# keys, its own answers and what it serves, its connections' bounds, its
+# assets, its secrets, its log, its stop, no sign-in) and an upload under a
+# path the platform keeps; the compiler's refusal of a program route the
+# platform keeps (PW7001, its code block); a domain that never says its key;
+# the binary as production runs it (tests/production_process.rs, the store on
+# a database of its own); the unit as systemd reads it and the scripts as
+# shellcheck does, where each is installed; what release.sh hands a machine
+# (deploy/vm/release-checks.sh); the image's minifier locked from
+# pnpm-lock.yaml; the local production smoke test (deploy/smoke.sh:
+# playwright in Chromium, Firefox and WebKit through a TLS front, before and
+# after a SIGTERM restart); and the mutation controls
+# (scripts/deploy_mutations.py).
 e14-deploy:
     @mkdir -p docs/evidence/E14
     @{ echo "ADR-XXXX - a production host"; echo; \
@@ -55,8 +62,30 @@ e14-deploy:
        echo "postgresql: $(psql "$PW_STORE_DATABASE_URL" -Atc 'SHOW server_version' 2>/dev/null)"; echo; \
        echo "== the production host's tests (production::, tests::production_host::, kiokun's cache)"; echo; \
        cargo test --locked -p pw-dev-server --bin pw-dev-server -- production 2>&1 | grep -E '^(test |test result)|panicked at'; \
+       echo; echo "== an upload under a path the platform keeps, its build made by hand (tests::session_upload_reserved_routes::)"; echo; \
+       cargo test --locked -p pw-dev-server --bin pw-dev-server -- tests::session_upload_reserved_routes:: 2>&1 | grep -E '^(test |test result)|panicked at'; \
+       echo; echo "== the compiler refuses a program route the platform keeps (PW7001, the deploy block)"; echo; \
+       cargo test --locked -p pw-core --test reserved_routes 2>&1 | grep -E '^(test |test result)|panicked at'; \
+       cargo test --locked -p pw-core --lib -- reserved:: codes::tests:: 2>&1 | grep -E '^(test |test result)|panicked at'; \
+       echo; echo "== a domain never says its key (pw-document)"; echo; \
+       cargo test --locked -p pw-document -- domain::tests:: 2>&1 | grep -E '^(test |test result)|panicked at'; \
        echo; echo "== the host as a process (tests/production_process.rs)"; echo; \
        cargo test --locked -p pw-dev-server --test production_process 2>&1 | grep -E '^(test |test result)|panicked at|skipped'; \
+       echo; echo "== the unit, as systemd reads it (systemd-analyze verify)"; echo; \
+       if command -v systemd-analyze >/dev/null; then \
+         unit_dir="$(mktemp -d)"; cp deploy/vm/pleris.service "$unit_dir/"; \
+         echo "systemd-analyze: $(systemd-analyze --version | head -1)"; \
+         systemd-analyze verify "$unit_dir/pleris.service" 2>&1 | grep 'pleris.service' || echo "pleris.service: no finding"; \
+         rm -rf "$unit_dir"; \
+       else echo "systemd-analyze: not installed here"; fi; \
+       echo; echo "== the deploy scripts, as shellcheck reads them"; echo; \
+       if command -v shellcheck >/dev/null; then \
+         echo "shellcheck: $(shellcheck --version | sed -n 's/^version: //p')"; \
+         if shellcheck -S warning deploy/smoke.sh deploy/build-dist.sh deploy/vm/release.sh deploy/vm/setup.sh deploy/vm/release-checks.sh; \
+         then echo "shellcheck: no warning"; else echo "shellcheck: the warnings above"; fi; \
+       else echo "shellcheck: not installed here"; fi; \
+       echo; echo "== what release.sh hands a machine, and what it refuses to (deploy/vm/release-checks.sh)"; echo; \
+       bash deploy/vm/release-checks.sh; \
        echo; echo "== the image's minifier, locked from pnpm-lock.yaml"; echo; \
        python3 scripts/deploy_minify_lock.py --check; \
        echo; echo "== the local production smoke (deploy/smoke.sh: playwright, three engines)"; echo; \
@@ -64,4 +93,4 @@ e14-deploy:
        echo; echo "== mutation controls (scripts/deploy_mutations.py)"; echo; \
        python3 scripts/deploy_mutations.py; \
      } > docs/evidence/E14/deploy.txt
-    @grep -E "^test result|mutants killed|panicked at|deploy smoke:|FAIL" docs/evidence/E14/deploy.txt
+    @grep -E "^test result|mutants killed|panicked at|deploy smoke:|release checks:|shellcheck:|systemd-analyze:|FAIL" docs/evidence/E14/deploy.txt
