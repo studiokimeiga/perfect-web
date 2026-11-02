@@ -176,9 +176,19 @@ ADR-0208, ADR-0246, ADR-0325, ADR-0334, ADR-0354 and ADR-0369.
 
 ## Evidence
 
-`docs/evidence/E14/durable-tables.txt`, by `just e14-durable-tables` in a
-verification run at the track's commit, fetched by `just evidence-fetch`
-(its run named in the file): the adapter's `tests/platform.rs` (7: runs
+`docs/evidence/E14/durable-tables.txt`, by `just e14-durable-tables` in
+verify 41480579645 at `d13a6059` (PostgreSQL 18.6), fetched by
+`scripts/evidence_fetch.py 41480579645 --known summary --skip e14-guide`;
+the same run recorded what the change reaches as the brief named it:
+`e14-d3-postgres` 53 of 53 mutants killed (its baseline 56 tests, this
+track's platform binary among them), `e14-data-path` 25 of 25,
+`e14-browser-host-map` 54 of 54; and `e14-guide` failed, on a mutant of
+its own the checker refuses (finding 2). `ci` passed at `ce8ec461`
+(41469462379) and `d13a6059` (41480567122). The planner reaches about 150
+recipes from this change (finding 5); the four were chosen as those whose
+inputs it changes in substance, the rest by the rebuilt server alone.
+
+The record: the adapter's `tests/platform.rs` (7: runs
 committed with their command or not at all, taken once by their
 generation, retried by it alone; sessions by their lifetimes; a fenced
 command committing only as its session, a session's change waiting for it);
@@ -226,6 +236,13 @@ killed (3 of 3).
   (`uploaded_by` is the default).
 - **The platform's own tables held by the catalog at start** (ADR-0393's
   "Not claimed" extends to `pw_runs`, `pw_sessions`, `pw_sign_ins`).
+- **A session's change at read committed whatever the connection's
+  default** is reasoned (ADR-0393's finding 4: a change that waited for a
+  command must read what it committed), not held by a test: no test runs
+  the host under a serializable default, so its mutant would survive, and
+  none is planted. Nor is the session's row lock inside a fenced command,
+  which guards against a writer that takes no session lock, and no test
+  has one.
 - **A graceful stop**: the development server has no handler for SIGTERM,
   which ends it as SIGKILL does; what a stop keeps is what each `COMMIT`
   kept.
@@ -247,6 +264,14 @@ killed (3 of 3).
   sessions the same way. The spec now waits for the page's own reload before
   its reader's; the race is the identity track's to repair (an admission
   whose read is the identity installed meanwhile could answer it).
+- **CORRECTION (track `data-path`'s, open): `e14-guide` fails at this
+  track's commit**, and would at `data-path`'s: `scripts/guide_mutations.py`'s
+  mutant "the entries are not told of a signed entry" (`invalidates_on
+  Removed(_)` for `Signed(_), Removed(_)`) is a program the checker refuses
+  (PW5107, `sign` speculates on `Latest` and does not invalidate it), since
+  `data-path`'s guestbook speculates on `Latest`; the script counts it
+  refused, 73 of 74 (verify 41480579645). Neither file is this track's; the
+  mutant needs a well-typed replacement.
 - **A render's state on PostgreSQL is its first table read's.**
   `data-path`'s render test commits between `Me` (which reads no table) and
   `Latest`, so on PostgreSQL that commit is the render's; the PostgreSQL
@@ -258,6 +283,11 @@ killed (3 of 3).
   PostgreSQL, every engine's host in one schema. Corrected, with its test.
 - **A change to the server's `main.rs` or `data.rs` plans about 150
   recipes** (`ci_plan.py --changed`): every recipe that builds the server.
+- **Two small pieces of the memory layer are repeated** in `tables_pg.rs`:
+  the refusal of a hand-written layer beside declared tables, and the
+  interning of the grants' words. `tables.rs` is under `data-path`'s review
+  repairs, and this track leaves its files alone meanwhile; they are one
+  function each once those land.
 
 ## Questions for the integrator
 
