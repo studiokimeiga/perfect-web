@@ -136,8 +136,8 @@ fn a_row_is_answered_exactly_as_it_was_written() {
     tables
         .transaction(|tx| {
             tx.write(&owner("insert"), &[json!({"id": "a\u{0}b", "name": ""})])?;
-            tx.write(&thing("insert"), &[row.clone()])?;
-            tx.write(&thing("insert"), &[other.clone()])
+            tx.write(&thing("insert"), std::slice::from_ref(&row))?;
+            tx.write(&thing("insert"), std::slice::from_ref(&other))
         })
         .assert_ok("written");
     let got = tables

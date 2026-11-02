@@ -133,6 +133,11 @@ fn units(sources: &[(&str, &str)], fixtures: &[&str]) -> Vec<Unit> {
         .collect()
 }
 
+/// `examples/tables`' fixtures, with the platform's sources, as units.
+pub fn fixture_units(fixtures: &[&str]) -> Vec<Unit> {
+    units(&[], fixtures)
+}
+
 /// **The program `sources` declare, as `pw build` builds it** against the
 /// schema `released` (its `schema.lock`), or none: its build.
 pub fn build(sources: &[(&str, &str)], released: Option<&Schema>) -> pw_core::build::Build {

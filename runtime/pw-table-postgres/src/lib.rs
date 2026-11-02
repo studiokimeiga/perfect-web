@@ -639,6 +639,12 @@ impl PgTables {
     }
 }
 
+/// A row, its fields by name.
+type Row = Map<String, Value>;
+
+/// What a write binds, and the key and row it writes where it writes one.
+type Bound = (Vec<Param>, Option<(Key, Row)>);
+
 /// The open command's state, shared with its host functions.
 struct Open {
     id: u64,
@@ -653,7 +659,7 @@ struct Open {
     failed: Option<Error>,
     /// Each key it wrote, by its table: the row it held before the command
     /// first wrote it, and the row it holds now.
-    touched: BTreeMap<(usize, Key), (Option<Map<String, Value>>, Option<Map<String, Value>>)>,
+    touched: BTreeMap<(usize, Key), (Option<Row>, Option<Row>)>,
 }
 
 impl Inner {
@@ -733,37 +739,36 @@ impl Inner {
             .get(import)
             .ok_or_else(|| Error::Input(format!("undeclared table operation {import}")))?;
         // Everything a write is given is held before the database sees it.
-        let (params, written): (Vec<Param>, Option<(Key, Map<String, Value>)>) =
-            match function.primitive {
-                Primitive::Insert | Primitive::Put => {
-                    let [value] = args else {
-                        return Err(Error::Input("insert/put expects one row".into()));
-                    };
-                    let (key, row) = check_row(table, value)?;
-                    let params = table
-                        .columns
-                        .iter()
-                        .map(|c| {
-                            let value = row.get(&c.name).ok_or_else(|| {
-                                Error::Input(format!("{} row is missing {}", table.name, c.name))
-                            })?;
-                            bind(c, value)
-                        })
-                        .collect::<Result<_, _>>()?;
-                    (params, Some((key, row)))
-                }
-                Primitive::Delete | Primitive::DeletePrefix => {
-                    let key = typed_selector(table, function, import, args)?;
-                    let params = function
-                        .by
-                        .iter()
-                        .zip(&key)
-                        .map(|(&f, atom)| bind_atom(&table.columns[f], atom))
-                        .collect::<Result<_, _>>()?;
-                    (params, None)
-                }
-                _ => return Err(Error::Input(format!("{import} is not a table write"))),
-            };
+        let (params, written): Bound = match function.primitive {
+            Primitive::Insert | Primitive::Put => {
+                let [value] = args else {
+                    return Err(Error::Input("insert/put expects one row".into()));
+                };
+                let (key, row) = check_row(table, value)?;
+                let params = table
+                    .columns
+                    .iter()
+                    .map(|c| {
+                        let value = row.get(&c.name).ok_or_else(|| {
+                            Error::Input(format!("{} row is missing {}", table.name, c.name))
+                        })?;
+                        bind(c, value)
+                    })
+                    .collect::<Result<_, _>>()?;
+                (params, Some((key, row)))
+            }
+            Primitive::Delete | Primitive::DeletePrefix => {
+                let key = typed_selector(table, function, import, args)?;
+                let params = function
+                    .by
+                    .iter()
+                    .zip(&key)
+                    .map(|(&f, atom)| bind_atom(&table.columns[f], atom))
+                    .collect::<Result<_, _>>()?;
+                (params, None)
+            }
+            _ => return Err(Error::Input(format!("{import} is not a table write"))),
+        };
         let conn = self.command_conn(open)?;
         let rows = match conn.query(&self.counters, sql, &params) {
             Ok(rows) => rows,
