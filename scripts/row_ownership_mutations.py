@@ -106,7 +106,7 @@ MUTANTS = [
      "    if access.handle().is_some() && false {\n"),
     ("the engine admits no handle", HOST,
      "                            Some(function) => table_owners::admit(function, &caller, args)\n",
-     "                            Some(_) if false => table_owners::admit(function.as_ref().unwrap(), &caller, args)\n"),
+     "                            Some(function) => Ok::<Vec<Val>, String>({ let _ = (function, &caller); args })\n"),
     # 3. predicates
     ("a predicate's body is not held to its Bool", VALUES,
      "        || (decl.kind == DeclKind::Predicate && decl.body.is_some())\n",

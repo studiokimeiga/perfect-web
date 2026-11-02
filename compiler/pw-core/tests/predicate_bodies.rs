@@ -55,6 +55,25 @@ fn probe(rest: &str) -> String {
     format!("{HEAD}{rest}")
 }
 
+/// A domain result held by an assertion, so a test fails at an `assert!`
+/// (the mutation producer's native assertion rule), never at an `expect`.
+fn held<T, E: std::fmt::Debug>(result: Result<T, E>, what: &str) -> T {
+    assert!(result.is_ok(), "{what}: {:?}", result.as_ref().err());
+    match result {
+        Ok(value) => value,
+        Err(_) => unreachable!(),
+    }
+}
+
+/// An optional domain value held by an assertion.
+fn found_one<T>(value: Option<T>, what: &str) -> T {
+    assert!(value.is_some(), "{what}");
+    match value {
+        Some(value) => value,
+        None => unreachable!(),
+    }
+}
+
 #[test]
 fn a_body_answers_a_bool() {
     let got = found(&[(
@@ -144,14 +163,13 @@ fn a_bodied_predicate_is_a_component_its_requirements_name() {
             }
         })
         .collect();
-    let build = pw_core::build::build(&units).expect("the probe builds");
+    let build = held(pw_core::build::build(&units), "the probe builds");
     assert!(build.refusals().is_empty(), "{:?}", build.refusals());
     let contract = |id: &str| {
-        build
-            .contracts
-            .iter()
-            .find(|c| c.component_id == id)
-            .unwrap_or_else(|| panic!("no contract {id}"))
+        found_one(
+            build.contracts.iter().find(|c| c.component_id == id),
+            &format!("no contract {id}"),
+        )
     };
     assert_eq!(contract("probe.Wrote").exports[0].kind, "predicate");
     assert!(
@@ -161,10 +179,11 @@ fn a_bodied_predicate_is_a_component_its_requirements_name() {
         "{}",
         build.wit
     );
-    let required: Vec<(String, Option<String>)> = contract("probe.touch").exports[0]
-        .component
-        .as_ref()
-        .expect("an export's place")
+    let place = found_one(
+        contract("probe.touch").exports[0].component.as_ref(),
+        "an export's place",
+    );
+    let required: Vec<(String, Option<String>)> = place
         .authorization
         .iter()
         .map(|r| (r.predicate.clone(), r.component.clone()))

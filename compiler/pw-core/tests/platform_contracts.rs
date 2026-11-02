@@ -501,7 +501,7 @@ fn the_trusted_platform_contract_is_hashed() {
     // painter's draw binder and `rect` with four Float arguments and
     // `paint.custom`, so A-021's operation is typed and its effect observed
     // (ADR-0351-generic-effects; declaration-only platform scope).
-    const EXPECTED: u64 = 0x5636d21c1f9cab88;
+    const EXPECTED: u64 = 0x269dbcddd857bfcd;
     eprintln!(
         "  platform contract: {} files, hash {hash:#018x}",
         names.len()

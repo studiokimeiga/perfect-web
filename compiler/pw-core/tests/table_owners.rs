@@ -40,6 +40,25 @@ fn fixture(name: &str) -> String {
     std::fs::read_to_string(root().join("examples/owned").join(name)).expect("fixture")
 }
 
+/// A domain result held by an assertion, so a test fails at an `assert!`
+/// (the mutation producer's native assertion rule), never at an `expect`.
+fn held<T, E: std::fmt::Debug>(result: Result<T, E>, what: &str) -> T {
+    assert!(result.is_ok(), "{what}: {:?}", result.as_ref().err());
+    match result {
+        Ok(value) => value,
+        Err(_) => unreachable!(),
+    }
+}
+
+/// An optional domain value held by an assertion.
+fn found_one<T>(value: Option<T>, what: &str) -> T {
+    assert!(value.is_some(), "{what}");
+    match value {
+        Some(value) => value,
+        None => unreachable!(),
+    }
+}
+
 /// The platform, the fixture's table and source, and `files`: the fixture's
 /// `app.pw` only where `files` names it, since a probe of a changed table
 /// is the table's, not the app's.
@@ -70,7 +89,6 @@ fn found(files: &[(&str, &str)]) -> Vec<(String, String)> {
         .collect()
 }
 
-#[track_caller]
 fn assert_refused(files: &[(&str, &str)], code: &str, says: &str) {
     let got = found(files);
     assert!(
@@ -79,7 +97,6 @@ fn assert_refused(files: &[(&str, &str)], code: &str, says: &str) {
     );
 }
 
-#[track_caller]
 fn assert_clean(files: &[(&str, &str)]) {
     let got = found(files);
     assert!(got.is_empty(), "expected no diagnostics, got {got:#?}");
@@ -288,10 +305,12 @@ fn a_set_form_takes_the_handle_and_a_list_of_what_follows_it() {
     .replacen("index   by_to on to", "index   by_to on to, shelf", 1);
     let got = generated(&src);
     let sig = |name: &str| {
-        got.iter()
-            .find(|(n, ..)| n == name)
-            .map(|(_, s, ..)| s.clone())
-            .unwrap_or_else(|| panic!("`{name}` is not given: {got:#?}"))
+        found_one(
+            got.iter()
+                .find(|(n, ..)| n == name)
+                .map(|(_, s, ..)| s.clone()),
+            &format!("`{name}` is not given: {got:#?}"),
+        )
     };
     let handle = "capability.User<UserId>";
     assert_eq!(
@@ -339,10 +358,12 @@ fn an_unowned_table_gives_what_it_gave() {
     );
     let got = generated(&src);
     let sig = |name: &str| {
-        got.iter()
-            .find(|(n, ..)| n == name)
-            .map(|(_, s, ..)| s.clone())
-            .unwrap_or_else(|| panic!("`{name}` is not given: {got:#?}"))
+        found_one(
+            got.iter()
+                .find(|(n, ..)| n == name)
+                .map(|(_, s, ..)| s.clone()),
+            &format!("`{name}` is not given: {got:#?}"),
+        )
     };
     assert_eq!(sig("get"), "(UserId, NoteId) -> Option<Note>");
     assert_eq!(sig("by_to"), "(UserId) -> List<Note>");
@@ -353,14 +374,11 @@ fn an_unowned_table_gives_what_it_gave() {
 #[test]
 fn tables_json_states_whose_rows_and_each_functions_reader() {
     let files = program(&[("app.pw", &fixture("app.pw"))]);
-    let build = pw_core::build::build(&units(&files)).expect("the fixture builds");
+    let build = held(pw_core::build::build(&units(&files)), "the fixture builds");
     assert!(build.refusals().is_empty(), "{:?}", build.refusals());
     let json = &build.tables;
-    let notes = json
-        .tables
-        .iter()
-        .find(|t| t.schema.name == "Notes")
-        .expect("Notes");
+    let notes = json.tables.iter().find(|t| t.schema.name == "Notes");
+    let notes = found_one(notes, "Notes");
     assert_eq!(notes.owner.as_deref(), Some("author"));
     assert_eq!(notes.shares, ["to"]);
     assert_eq!(notes.private, ["draft"]);
