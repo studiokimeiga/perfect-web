@@ -183,7 +183,11 @@ impl Lease {
     pub(crate) fn conn(&mut self) -> Result<&mut Conn, Error> {
         if self.conn.is_none() {
             let idle = {
-                let mut places = self.pool.places.lock().map_err(|_| Error::StoragePoisoned)?;
+                let mut places = self
+                    .pool
+                    .places
+                    .lock()
+                    .map_err(|_| Error::StoragePoisoned)?;
                 let mut found = None;
                 while let Some(c) = places.idle.pop() {
                     if !c.is_closed() {

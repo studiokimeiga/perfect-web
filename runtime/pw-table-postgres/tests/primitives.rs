@@ -150,7 +150,10 @@ fn a_row_is_answered_exactly_as_it_was_written() {
         .assert_ok("read back");
     assert_eq!(got.to_string(), other.to_string());
     // Exactly its fields: none more, none less.
-    let fields: Vec<&String> = got.as_object().map(|o| o.keys().collect()).unwrap_or_default();
+    let fields: Vec<&String> = got
+        .as_object()
+        .map(|o| o.keys().collect())
+        .unwrap_or_default();
     assert_eq!(fields.len(), 12);
     // A row with a key no row has: none.
     assert_eq!(
@@ -185,7 +188,9 @@ fn reads_come_in_tables_json_order_strings_by_their_bytes() {
         .unwrap_or_default();
     assert_eq!(ids, ["B", "a", "z", "é"]);
     // A prefix's rows: by the order (rank), then the key.
-    let of_a = tables.read(&thing("of-owner"), &[json!("a")]).assert_ok("of a");
+    let of_a = tables
+        .read(&thing("of-owner"), &[json!("a")])
+        .assert_ok("of a");
     assert_eq!(keys(&of_a), pairs(&[("a", 2), ("a", 3), ("a", 1)]));
     // Its set form: grouped by what it was given, then the order, the key.
     let of_many = tables
@@ -204,8 +209,13 @@ fn reads_come_in_tables_json_order_strings_by_their_bytes() {
         .assert_ok("get many");
     assert_eq!(keys(&got), pairs(&[("a", 3), ("z", 9)]));
     // An index: its value's rows by the order, then the key.
-    let flagged = tables.read(&thing("by-flag"), &[json!(true)]).assert_ok("flag");
-    assert_eq!(keys(&flagged), pairs(&[("é", 1), ("B", 4), ("a", 2), ("a", 3)]));
+    let flagged = tables
+        .read(&thing("by-flag"), &[json!(true)])
+        .assert_ok("flag");
+    assert_eq!(
+        keys(&flagged),
+        pairs(&[("é", 1), ("B", 4), ("a", 2), ("a", 3)])
+    );
     let both = tables
         .read(&thing("by-flag-many"), &[json!([true, false])])
         .assert_ok("flags");
@@ -226,7 +236,9 @@ fn reads_come_in_tables_json_order_strings_by_their_bytes() {
         .assert_ok("owner ranks");
     assert_eq!(keys(&many), pairs(&[("B", 4), ("a", 1)]));
     // A unique index: one row, or none.
-    let one = tables.read(&thing("by-slug"), &[json!("s5")]).assert_ok("slug");
+    let one = tables
+        .read(&thing("by-slug"), &[json!("s5")])
+        .assert_ok("slug");
     assert_eq!(one["owner"], json!("z"));
     assert_eq!(
         tables.read(&thing("by-slug"), &[json!("none")]),
@@ -237,10 +249,7 @@ fn reads_come_in_tables_json_order_strings_by_their_bytes() {
         .assert_ok("slugs");
     assert_eq!(keys(&slugs), pairs(&[("a", 3), ("B", 4)]));
     // A set read given nothing answers nothing.
-    assert_eq!(
-        tables.read(&thing("get-many"), &[json!([])]),
-        Ok(json!([]))
-    );
+    assert_eq!(tables.read(&thing("get-many"), &[json!([])]), Ok(json!([])));
 }
 
 #[test]
@@ -284,7 +293,9 @@ fn a_write_is_refused_by_the_row_holding_its_key_then_a_unique_value() {
     tx.write(&thing("put"), &[thing_row("a", 1, 6, "one", false)])
         .assert_ok("its own slug, kept");
     // The transaction is whole after each refusal: the put is read back.
-    let got = tx.read(&thing("get"), &[json!("a"), json!(1)]).assert_ok("read");
+    let got = tx
+        .read(&thing("get"), &[json!("a"), json!(1)])
+        .assert_ok("read");
     assert_eq!(got, thing_row("a", 1, 6, "one", false));
     tx.commit().assert_ok("committed");
     assert_eq!(
@@ -312,8 +323,10 @@ fn a_bounded_table_grows_no_further_than_its_bound() {
     // A row replaced at the bound is no growth; one deleted makes room.
     tx.write(&owner("put"), &[json!({"id": "a", "name": "renamed"})])
         .assert_ok("replaced at the bound");
-    tx.write(&owner("delete"), &[json!("b")]).assert_ok("deleted");
-    tx.write(&owner("insert"), &[owner_row("f")]).assert_ok("room made");
+    tx.write(&owner("delete"), &[json!("b")])
+        .assert_ok("deleted");
+    tx.write(&owner("insert"), &[owner_row("f")])
+        .assert_ok("room made");
     let all = tx.read(&owner("all"), &[]).assert_ok("all");
     assert_eq!(all.as_array().map(Vec::len), Some(5));
     tx.commit().assert_ok("committed");
@@ -341,7 +354,9 @@ fn a_delete_deletes_its_key_and_a_prefix_its_rows_alone() {
             tx.write(&thing("delete-of-owner"), &[json!("a")])
         })
         .assert_ok("deleted");
-    let left = tables.read(&thing("by-flag"), &[json!(true)]).assert_ok("left");
+    let left = tables
+        .read(&thing("by-flag"), &[json!(true)])
+        .assert_ok("left");
     assert_eq!(keys(&left), pairs(&[("ab", 1)]));
 }
 
@@ -427,14 +442,26 @@ fn a_refinement_is_held_by_its_check_whoever_writes() {
         ))
     };
     // Another writer of the database meets the declaration's bounds.
-    assert!(insert(1001, "x", "NULL", "1.0").is_err(), "a rank past 1000");
+    assert!(
+        insert(1001, "x", "NULL", "1.0").is_err(),
+        "a rank past 1000"
+    );
     assert!(insert(-1, "x", "NULL", "1.0").is_err(), "a rank below 0");
     assert!(insert(7, "x", "0", "1.0").is_err(), "a count below 1");
-    assert!(insert(8, "nine99999", "NULL", "1.0").is_err(), "a slug of nine");
-    assert!(insert(9, "x", "NULL", "'NaN'").is_err(), "a float not finite");
+    assert!(
+        insert(8, "nine99999", "NULL", "1.0").is_err(),
+        "a slug of nine"
+    );
+    assert!(
+        insert(9, "x", "NULL", "'NaN'").is_err(),
+        "a float not finite"
+    );
     // Eight code points of sixteen bytes are eight.
     insert(10, "éééééééé", "NULL", "1.0").assert_ok("eight code points");
-    assert!(insert(11, "ééééééééé", "NULL", "1.0").is_err(), "nine code points");
+    assert!(
+        insert(11, "ééééééééé", "NULL", "1.0").is_err(),
+        "nine code points"
+    );
     let json_shapes = scratch.sql(
         "INSERT INTO \"Things\" (owner, n, rank, slug, flag, score, note, tags, point, nothing, maybe, count) \
          VALUES ('\\x61'::bytea, 12, 1, '\\x'::bytea, true, 1.0, NULL, '{}', '{}', 'null', NULL, NULL)",
@@ -511,16 +538,23 @@ fn each_primitive_is_one_statement_at_two_sizes() {
             (thing("by-flag"), vec![json!(true)]),
             (thing("by-flag-many"), vec![json!([true, false])]),
             (thing("by-owner-rank"), vec![json!("a"), json!(0)]),
-            (thing("by-owner-rank-many"), vec![json!([{"owner": "a", "rank": 0}, {"owner": "b", "rank": 1}])]),
+            (
+                thing("by-owner-rank-many"),
+                vec![json!([{"owner": "a", "rank": 0}, {"owner": "b", "rank": 1}])],
+            ),
         ];
         let mut counts = Vec::new();
         for (import, args) in &calls {
             let before = tables.statements();
             tables.read(import, args).assert_ok("read");
-            counts.push((format!("{import} {}", args.len()), tables.statements() - before));
+            counts.push((
+                format!("{import} {}", args.len()),
+                tables.statements() - before,
+            ));
         }
         let mut tx = tables.begin().assert_ok("a command");
-        tx.read(&owner("get"), &[json!("a")]).assert_ok("the transaction begun");
+        tx.read(&owner("get"), &[json!("a")])
+            .assert_ok("the transaction begun");
         let writes: Vec<(String, Vec<Value>)> = vec![
             (thing("insert"), vec![thing_row("a", -1, 1, "new", true)]),
             (thing("insert"), vec![thing_row("a", -1, 1, "new", true)]),
@@ -534,14 +568,21 @@ fn each_primitive_is_one_statement_at_two_sizes() {
         for (import, args) in &writes {
             let before = tables.statements();
             let _ = tx.write(import, args);
-            counts.push((format!("{import} {}", args.len()), tables.statements() - before));
+            counts.push((
+                format!("{import} {}", args.len()),
+                tables.statements() - before,
+            ));
         }
         drop(tx);
         pinned.push(counts);
     }
     for (at_four, at_four_hundred) in pinned[0].iter().zip(&pinned[1]) {
         assert_eq!(at_four.1, 1, "{}: at four rows", at_four.0);
-        assert_eq!(at_four_hundred.1, 1, "{}: at four hundred rows", at_four_hundred.0);
+        assert_eq!(
+            at_four_hundred.1, 1,
+            "{}: at four hundred rows",
+            at_four_hundred.0
+        );
     }
     assert_eq!(pinned[0].len(), 22);
 }
@@ -554,13 +595,20 @@ fn a_statement_is_prepared_once_on_a_connection_never_per_call() {
         connections: 1,
         ..Default::default()
     };
-    let tables = PgTables::open_with(&url, scratch.schema(), things(), options).assert_ok("one connection");
+    let tables =
+        PgTables::open_with(&url, scratch.schema(), things(), options).assert_ok("one connection");
     seed(&tables, &["a"], &[("a", 1, 5, "one", true)]);
-    tables.read(&thing("get"), &[json!("a"), json!(1)]).assert_ok("first");
+    tables
+        .read(&thing("get"), &[json!("a"), json!(1)])
+        .assert_ok("first");
     let prepared = tables.prepared();
     for n in 0..20 {
-        tables.read(&thing("get"), &[json!("a"), json!(n)]).assert_ok("again");
-        tables.read(&thing("of-owner"), &[json!("a")]).assert_ok("another");
+        tables
+            .read(&thing("get"), &[json!("a"), json!(n)])
+            .assert_ok("again");
+        tables
+            .read(&thing("of-owner"), &[json!("a")])
+            .assert_ok("another");
     }
     // `of-owner` prepared once, `get` not again.
     assert_eq!(tables.prepared(), prepared + 1);

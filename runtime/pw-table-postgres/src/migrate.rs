@@ -125,7 +125,12 @@ ORDER BY 1, 2, 3";
 /// One line of the catalog: (table, what, name, definition).
 type Line = (String, String, String, String);
 
-fn catalog(conn: &mut Conn, counters: &Counters, names: &Names, tables: &[String]) -> Result<Vec<Line>, Error> {
+fn catalog(
+    conn: &mut Conn,
+    counters: &Counters,
+    names: &Names,
+    tables: &[String],
+) -> Result<Vec<Line>, Error> {
     let rows = conn
         .query(
             counters,
@@ -168,10 +173,16 @@ fn differences(recorded: &[String], now: &[String]) -> String {
     let after: BTreeSet<&String> = now.iter().collect();
     let mut out: Vec<String> = Vec::new();
     for gone in before.difference(&after).take(5) {
-        out.push(format!("recorded, and no longer: {}", gone.replace('\t', " ")));
+        out.push(format!(
+            "recorded, and no longer: {}",
+            gone.replace('\t', " ")
+        ));
     }
     for new in after.difference(&before).take(5) {
-        out.push(format!("found, and never recorded: {}", new.replace('\t', " ")));
+        out.push(format!(
+            "found, and never recorded: {}",
+            new.replace('\t', " ")
+        ));
     }
     out.join("; ")
 }
@@ -440,9 +451,8 @@ pub(crate) fn changes(
         }
         // An index holding a column gone was dropped with it; a plain one
         // holds the order too.
-        kept.indexes.retain(|i| {
-            !i.fields.iter().any(|f| gone.contains(f)) && (i.unique || !order_gone)
-        });
+        kept.indexes
+            .retain(|i| !i.fields.iter().any(|f| gone.contains(f)) && (i.unique || !order_gone));
         kept.references.retain(|r| !gone.contains(&r.field));
         model.push(kept);
     }
@@ -587,7 +597,10 @@ fn apply_in(
     conn.query(
         counters,
         "SELECT pg_advisory_xact_lock($1)",
-        &[Box::new(lock_key(&format!("pw_tables_migrations:{}", names.schema)))],
+        &[Box::new(lock_key(&format!(
+            "pw_tables_migrations:{}",
+            names.schema
+        )))],
     )
     .map_err(database)?;
     conn.batch(counters, &format!("CREATE SCHEMA IF NOT EXISTS {s}"))
@@ -626,7 +639,12 @@ fn apply_in(
             continue;
         }
         conn.batch(counters, &text.replace("{s}", &s))
-            .map_err(|e| Error::Schema(format!("the platform's migration {version}: {}", crate::pg(&e))))?;
+            .map_err(|e| {
+                Error::Schema(format!(
+                    "the platform's migration {version}: {}",
+                    crate::pg(&e)
+                ))
+            })?;
         conn.query(
             counters,
             &format!("INSERT INTO {s}.pw_platform (version) VALUES ($1)"),
@@ -637,7 +655,11 @@ fn apply_in(
     let built = Schema::of(manifest.tables.iter().map(|t| t.schema.clone()).collect());
     let tables: Vec<String> = shape.tables.iter().map(|t| t.name.clone()).collect();
     let server_version: i32 = conn
-        .query(counters, "SELECT current_setting('server_version_num')::integer", &[])
+        .query(
+            counters,
+            "SELECT current_setting('server_version_num')::integer",
+            &[],
+        )
         .map_err(database)?
         .first()
         .map(|r| r.get(0))
@@ -646,7 +668,7 @@ fn apply_in(
         .query(
             counters,
             &format!(
-                "SELECT schema::text, catalog, server_version FROM {s}.pw_schema ORDER BY applied DESC LIMIT 1"
+                "SELECT schema::text, catalog, server_version, hash FROM {s}.pw_schema ORDER BY applied DESC LIMIT 1"
             ),
             &[],
         )
@@ -654,32 +676,49 @@ fn apply_in(
         .first()
         .map(|r| {
             let text: String = r.get(0);
-            Schema::read(&text)
-                .map(|schema| Recorded {
-                    schema,
-                    catalog: r.get(1),
-                    server_version: r.get(2),
-                })
-                .map_err(|why| Error::Drift(format!("the schema recorded in {s}.pw_schema: {why}")))
+            let hash: String = r.get(3);
+            let schema = Schema::read(&text).map_err(|why| {
+                Error::Drift(format!("the schema recorded in {s}.pw_schema: {why}"))
+            })?;
+            if schema.hash != hash {
+                return Err(Error::Drift(format!(
+                    "{s}.pw_schema records hash {hash} beside a schema whose hash is {}",
+                    schema.hash
+                )));
+            }
+            Ok(Recorded {
+                schema,
+                catalog: r.get(1),
+                server_version: r.get(2),
+            })
         })
         .transpose()?;
     let ddl = match &recorded {
         None => {
             let lines = catalog(conn, counters, names, &tables)?;
-            if let Some((table, ..)) = lines.iter().find(|(t, w, ..)| !t.is_empty() && w == "table") {
+            if let Some((table, ..)) = lines
+                .iter()
+                .find(|(t, w, ..)| !t.is_empty() && w == "table")
+            {
                 return Err(Error::Drift(format!(
                     "{s} holds a table `{table}`, and no schema is recorded there: \
                      it was made by something other than this adapter"
                 )));
             }
-            let mut out: Vec<String> = shape.tables.iter().map(|t| sql::create_table(names, t)).collect();
-            let mut objects: Vec<Object> = sql::objects(names, &shape.tables).into_values().collect();
+            let mut out: Vec<String> = shape
+                .tables
+                .iter()
+                .map(|t| sql::create_table(names, t))
+                .collect();
+            let mut objects: Vec<Object> =
+                sql::objects(names, &shape.tables).into_values().collect();
             objects.sort_by_key(|o| std::cmp::Reverse(o.kind));
             out.extend(objects.into_iter().map(|o| o.create));
             out
         }
         Some(rec) => {
-            let recorded_tables: Vec<String> = rec.schema.tables.iter().map(|t| t.name.clone()).collect();
+            let recorded_tables: Vec<String> =
+                rec.schema.tables.iter().map(|t| t.name.clone()).collect();
             let now = written(&catalog(conn, counters, names, &recorded_tables)?);
             let same_major = rec.server_version / 10000 == server_version / 10000;
             let (was, is) = if same_major {

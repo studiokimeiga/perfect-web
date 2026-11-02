@@ -25,12 +25,7 @@ pub(crate) fn refs(params: &[Param]) -> Vec<&(dyn ToSql + Sync)> {
 /// SQL's `NULL`; a `json` column's value as its JSON text, a `Unit`'s
 /// `null` among them (a value, not SQL's `NULL`).
 pub(crate) fn bind(column: &Column, value: &Value) -> Result<Param, Error> {
-    let wrong = || {
-        Error::Input(format!(
-            "field {} is not of its column's type",
-            column.name
-        ))
-    };
+    let wrong = || Error::Input(format!("field {} is not of its column's type", column.name));
     if column.nullable && value.is_null() {
         return Ok(match column.kind {
             Kind::Int => Box::new(None::<i64>),
@@ -46,7 +41,8 @@ pub(crate) fn bind(column: &Column, value: &Value) -> Result<Param, Error> {
         Kind::Bool => Box::new(value.as_bool().ok_or_else(wrong)?),
         Kind::Float => Box::new(value.as_f64().ok_or_else(wrong)?),
         Kind::Json => Box::new(
-            serde_json::to_string(value).map_err(|e| Error::Input(format!("{}: {e}", column.name)))?,
+            serde_json::to_string(value)
+                .map_err(|e| Error::Input(format!("{}: {e}", column.name)))?,
         ),
     })
 }
@@ -116,7 +112,11 @@ fn stored_wrong(table: &TableShape, column: &Column, why: impl std::fmt::Display
 /// the memory adapter answers, its fields in their declared order, each held
 /// to its stored type and bounds; a row stored otherwise (by another writer
 /// of the database) fails, never reaching a component.
-pub(crate) fn decode(table: &TableShape, row: &Row, first: usize) -> Result<Map<String, Value>, Error> {
+pub(crate) fn decode(
+    table: &TableShape,
+    row: &Row,
+    first: usize,
+) -> Result<Map<String, Value>, Error> {
     let mut out = Map::new();
     for (i, column) in table.columns.iter().enumerate() {
         let at = first + i;
@@ -152,7 +152,11 @@ pub(crate) fn decode(table: &TableShape, row: &Row, first: usize) -> Result<Map<
             None => return Err(stored_wrong(table, column, "is NULL")),
         };
         if !validates(&value, &column.stored) {
-            return Err(stored_wrong(table, column, "fails its stored type or bound"));
+            return Err(stored_wrong(
+                table,
+                column,
+                "fails its stored type or bound",
+            ));
         }
         out.insert(column.name.clone(), value);
     }

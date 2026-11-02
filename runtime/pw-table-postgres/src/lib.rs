@@ -116,6 +116,17 @@ pub(crate) fn database(e: postgres::Error) -> Error {
     }
 }
 
+/// A statement of a commit's records that the database refused: the commit
+/// refused (nothing of the command is kept, its transaction aborted), or one
+/// it could not serialize.
+fn refusal(e: postgres::Error) -> Error {
+    match e.as_db_error() {
+        Some(_) if serialization(&e) => Error::Serialization(pg(&e)),
+        Some(_) => Error::Refused(pg(&e)),
+        None => Error::Database(pg(&e)),
+    }
+}
+
 /// **How a command's transaction is opened.** The adapter sets serializable
 /// on each; a deployment that leaves it to the connection gets the
 /// database's `default_transaction_isolation`, which [`PgTables::provides`]
@@ -261,6 +272,10 @@ struct Inner {
     /// Each reference's foreign key, by its name: the referring table and
     /// the referred, which a refusal names.
     foreign: BTreeMap<String, (String, String)>,
+    /// `SET CONSTRAINTS <each foreign key> IMMEDIATE`: the program's
+    /// references held where a command prepares, and nothing else of the
+    /// database's deferred to its commit.
+    hold_references: Option<String>,
 }
 
 /// **One isolated program's tables, on one PostgreSQL schema.** Every read
@@ -322,7 +337,9 @@ impl PgTables {
                 .ok_or_else(|| Error::Schema("the connection has no current schema".into()))?,
         };
         if schema.is_empty() || schema.len() > shape::LONGEST_NAME {
-            return Err(Error::Schema(format!("`{schema}` is no PostgreSQL schema name")));
+            return Err(Error::Schema(format!(
+                "`{schema}` is no PostgreSQL schema name"
+            )));
         }
         let names = Names { schema };
         migrate::apply(conn, &counters, &names, &manifest, &shape)?;
@@ -353,10 +370,17 @@ impl PgTables {
                 let field = &table.columns[reference.field].name;
                 foreign.insert(
                     sql::object_name(&table.name, &format!("{field}__fkey")),
-                    (table.name.clone(), shape.tables[reference.target].name.clone()),
+                    (
+                        table.name.clone(),
+                        shape.tables[reference.target].name.clone(),
+                    ),
                 );
             }
         }
+        let hold_references = (!foreign.is_empty()).then(|| {
+            let named: Vec<String> = foreign.keys().map(|name| names.qualified(name)).collect();
+            format!("SET CONSTRAINTS {} IMMEDIATE", named.join(", "))
+        });
         let statements = sql::statements(&names, &shape);
         let versions = vec![0; shape.tables.len()];
         Ok(PgTables {
@@ -375,6 +399,7 @@ impl PgTables {
                 told: Mutex::new(None),
                 versions: Mutex::new(versions),
                 foreign,
+                hold_references,
             }),
         })
     }
@@ -463,7 +488,10 @@ impl PgTables {
             turn = inner.turn.lock().map_err(|_| Error::StoragePoisoned)?;
         }
         while turn.0.is_some() {
-            turn = inner.turned.wait(turn).map_err(|_| Error::StoragePoisoned)?;
+            turn = inner
+                .turned
+                .wait(turn)
+                .map_err(|_| Error::StoragePoisoned)?;
         }
         let id = turn.1;
         turn.1 += 1;
@@ -668,7 +696,12 @@ impl Inner {
         Ok(conn)
     }
 
-    fn command_read(&self, state: &Mutex<Open>, import: &str, args: &[Value]) -> Result<Value, Error> {
+    fn command_read(
+        &self,
+        state: &Mutex<Open>,
+        import: &str,
+        args: &[Value],
+    ) -> Result<Value, Error> {
         let mut open = state.lock().map_err(|_| Error::StoragePoisoned)?;
         let open = &mut *open;
         let conn = self.command_conn(open)?;
@@ -679,7 +712,12 @@ impl Inner {
         answer
     }
 
-    fn command_write(&self, state: &Mutex<Open>, import: &str, args: &[Value]) -> Result<(), Error> {
+    fn command_write(
+        &self,
+        state: &Mutex<Open>,
+        import: &str,
+        args: &[Value],
+    ) -> Result<(), Error> {
         let mut open = state.lock().map_err(|_| Error::StoragePoisoned)?;
         let open = &mut *open;
         if open.ended || open.prepared {
@@ -737,7 +775,10 @@ impl Inner {
         };
         let n = table.columns.len();
         let at = function.table;
-        let first = |open: &mut Open, key: Key, before: Option<Map<String, Value>>, now: Option<Map<String, Value>>| {
+        let first = |open: &mut Open,
+                     key: Key,
+                     before: Option<Map<String, Value>>,
+                     now: Option<Map<String, Value>>| {
             open.touched
                 .entry((at, key))
                 .and_modify(|(_, current)| *current = now.clone())
@@ -891,7 +932,9 @@ fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<
         }
         _ => return Err(Error::Input(format!("{import} is a write, not a read"))),
     };
-    let rows = conn.query(&inner.counters, sql, &params).map_err(database)?;
+    let rows = conn
+        .query(&inner.counters, sql, &params)
+        .map_err(database)?;
     if function.primitive == Primitive::All
         && let Some(bound) = table.bounded
         && rows.len() as u64 > bound
@@ -978,13 +1021,13 @@ impl Command {
                 ),
                 Access::Write(write) => table_write_host::host_fn(
                     write,
-                    Arc::new(
-                        move |args: &[Value]| match inner.command_write(&state, &bound, args) {
+                    Arc::new(move |args: &[Value]| {
+                        match inner.command_write(&state, &bound, args) {
                             Ok(()) => Ok(None),
                             Err(Error::Conflict { existing, .. }) => Ok(Some(existing)),
                             Err(error) => Err(format!("`{bound}`: {error:?}")),
-                        },
-                    ),
+                        }
+                    }),
                 ),
             };
             out.insert(import, host);
@@ -1011,7 +1054,7 @@ impl Command {
 
     /// **Hold this command's writes to what a commit keeps**: each reference
     /// written to a row that exists, and no row referring to one it deleted
-    /// (its deferred foreign keys checked now, `SET CONSTRAINTS ALL
+    /// (the program's deferred foreign keys checked now, `SET CONSTRAINTS ..
     /// IMMEDIATE`, one statement). Refused, the command is rolled back whole;
     /// held, it writes nothing more and is published by [`Prepared::publish`].
     /// Its bound and its unique indexes need no check here: no write ever
@@ -1028,9 +1071,11 @@ impl Command {
                 return Err(failed.clone());
             }
             let changed = inner.changed(open);
-            if !changed.is_empty() && !inner.foreign.is_empty() {
+            if !changed.is_empty()
+                && let Some(hold) = &inner.hold_references
+            {
                 let conn = inner.command_conn(open)?;
-                if let Err(e) = conn.batch(&inner.counters, "SET CONSTRAINTS ALL IMMEDIATE") {
+                if let Err(e) = conn.batch(&inner.counters, hold) {
                     let error = match e.as_db_error() {
                         Some(db) if *db.code() == SqlState::FOREIGN_KEY_VIOLATION => {
                             match db.constraint().and_then(|c| inner.foreign.get(c)) {
@@ -1154,7 +1199,7 @@ impl Prepared {
                                 Box::new(at),
                             ],
                         )
-                        .map_err(database)?;
+                        .map_err(refusal)?;
                     if recorded.is_empty() {
                         return Err(Error::Refused(format!(
                             "interaction {} is recorded already",
@@ -1178,7 +1223,7 @@ impl Prepared {
                                 Box::new(inner.options.host.clone()),
                             ],
                         )
-                        .map_err(database)?;
+                        .map_err(refusal)?;
                     for row in &rows {
                         let id: i64 = row.get(0);
                         let kind: String = row.get(1);

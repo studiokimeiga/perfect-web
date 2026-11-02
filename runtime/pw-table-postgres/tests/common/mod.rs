@@ -59,7 +59,8 @@ impl Scratch {
     /// `statements`, run as one batch on a connection of its own, in this
     /// schema: what another writer of the database does.
     pub fn sql(&self, statements: &str) -> Result<(), String> {
-        let mut c = postgres::Client::connect(&self.url, postgres::NoTls).map_err(|e| e.to_string())?;
+        let mut c =
+            postgres::Client::connect(&self.url, postgres::NoTls).map_err(|e| e.to_string())?;
         c.batch_execute(&format!(
             "SET search_path TO \"{}\"; {statements}",
             self.schema
@@ -135,8 +136,8 @@ fn units(sources: &[(&str, &str)], fixtures: &[&str]) -> Vec<Unit> {
 /// **The program `sources` declare, as `pw build` builds it** against the
 /// schema `released` (its `schema.lock`), or none: its build.
 pub fn build(sources: &[(&str, &str)], released: Option<&Schema>) -> pw_core::build::Build {
-    let build = pw_core::build::build_with(&units(sources, &[]), released)
-        .assert_ok("the program builds");
+    let build =
+        pw_core::build::build_with(&units(sources, &[]), released).assert_ok("the program builds");
     assert!(build.refusals().is_empty(), "{:?}", build.refusals());
     build
 }

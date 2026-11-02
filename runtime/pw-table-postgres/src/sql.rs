@@ -387,7 +387,12 @@ pub(crate) fn create_table(names: &Names, table: &TableShape) -> String {
 
 /// `ALTER TABLE .. ADD COLUMN`, for a field no release had: an `Option`'s,
 /// holding none, or one `backfilled with` a value every row holds.
-pub(crate) fn add_column(names: &Names, table: &str, column: &Column, backfill: Option<&str>) -> Vec<String> {
+pub(crate) fn add_column(
+    names: &Names,
+    table: &str,
+    column: &Column,
+    backfill: Option<&str>,
+) -> Vec<String> {
     let t = names.qualified(table);
     let c = ident(&column.name);
     match backfill {
@@ -480,7 +485,10 @@ pub(crate) fn objects(names: &Names, tables: &[TableShape]) -> BTreeMap<String, 
                     name.clone(),
                     Object {
                         kind: ObjectKind::Check,
-                        create: format!("ALTER TABLE {t} ADD CONSTRAINT {} CHECK ({check})", ident(&name)),
+                        create: format!(
+                            "ALTER TABLE {t} ADD CONSTRAINT {} CHECK ({check})",
+                            ident(&name)
+                        ),
                         drop: format!("ALTER TABLE {t} DROP CONSTRAINT {}", ident(&name)),
                     },
                 );

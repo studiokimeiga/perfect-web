@@ -227,12 +227,8 @@ pub(crate) const LONGEST_NAME: usize = 63;
 
 /// The tables the adapter keeps beside the program's, which no table of the
 /// program may be named.
-pub(crate) const PLATFORM_TABLES: &[&str] = &[
-    "pw_platform",
-    "pw_schema",
-    "pw_outbox",
-    "pw_interactions",
-];
+pub(crate) const PLATFORM_TABLES: &[&str] =
+    &["pw_platform", "pw_schema", "pw_outbox", "pw_interactions"];
 
 fn named(what: &str, name: &str) -> Result<(), Error> {
     if name.is_empty() || name.len() > LONGEST_NAME || name.contains('\0') {
@@ -450,10 +446,7 @@ pub(crate) fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
                     .collect::<Result<_, _>>()?,
                 one,
             };
-            if functions
-                .insert(function.import.clone(), shaped)
-                .is_some()
-            {
+            if functions.insert(function.import.clone(), shaped).is_some() {
                 return Err(Error::Schema(format!(
                     "duplicate host import {}",
                     function.import
@@ -480,7 +473,10 @@ pub(crate) fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
 /// object of exactly its fields, each of its stored type and within its
 /// bounds; its key; and the row as this adapter answers it once stored,
 /// its fields in their declared order, a `Float` as a float.
-pub(crate) fn check_row(table: &TableShape, value: &Value) -> Result<(Key, Map<String, Value>), Error> {
+pub(crate) fn check_row(
+    table: &TableShape,
+    value: &Value,
+) -> Result<(Key, Map<String, Value>), Error> {
     let row = value
         .as_object()
         .ok_or_else(|| Error::Input("row must be an object".into()))?;
@@ -492,9 +488,9 @@ pub(crate) fn check_row(table: &TableShape, value: &Value) -> Result<(Key, Map<S
     }
     let mut stored = Map::new();
     for column in &table.columns {
-        let v = row
-            .get(&column.name)
-            .ok_or_else(|| Error::Input(format!("{} row is missing {}", table.name, column.name)))?;
+        let v = row.get(&column.name).ok_or_else(|| {
+            Error::Input(format!("{} row is missing {}", table.name, column.name))
+        })?;
         if !validates(v, &column.stored) {
             return Err(Error::Input(format!(
                 "{} field {} fails its stored type or bound",
@@ -517,7 +513,11 @@ fn as_stored(column: &Column, value: &Value) -> Value {
     }
 }
 
-pub(crate) fn row_key(row: &Map<String, Value>, columns: &[Column], fields: &[usize]) -> Result<Key, Error> {
+pub(crate) fn row_key(
+    row: &Map<String, Value>,
+    columns: &[Column],
+    fields: &[usize],
+) -> Result<Key, Error> {
     fields
         .iter()
         .map(|&f| {
@@ -541,7 +541,12 @@ fn selector(by: &[usize], args: &[Value]) -> Result<Key, Error> {
     args.iter().map(Atom::parse).collect()
 }
 
-fn selections(table: &TableShape, by: &[usize], args: &[Value], many: bool) -> Result<BTreeSet<Key>, Error> {
+fn selections(
+    table: &TableShape,
+    by: &[usize],
+    args: &[Value],
+    many: bool,
+) -> Result<BTreeSet<Key>, Error> {
     if !many {
         return Ok(BTreeSet::from([selector(by, args)?]));
     }
@@ -616,7 +621,10 @@ pub(crate) fn typed_selector(
 /// **Two rows the same, as stored**: a float compared by its bits, so that
 /// `-0.0` and `0.0` differ (ADR-0386's review repair); the memory adapter's
 /// `same_rows`.
-pub(crate) fn same_rows(left: &Option<Map<String, Value>>, right: &Option<Map<String, Value>>) -> bool {
+pub(crate) fn same_rows(
+    left: &Option<Map<String, Value>>,
+    right: &Option<Map<String, Value>>,
+) -> bool {
     match (left, right) {
         (Some(left), Some(right)) => same_fields(left, right),
         (None, None) => true,
