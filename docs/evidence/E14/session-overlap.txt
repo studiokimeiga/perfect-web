@@ -1,0 +1,635 @@
+ADR-0389, amended 2026-11-02 - two requests of one session whose admissions overlap are each answered, and every request is admitted
+
+produced by: just e14-session-overlap
+commit: 9996d7f0f93f4795ba67aeb678d7b9131d2fd207
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/41447989240 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+node: v22.21.1
+playwright: Version 1.58.0
+postgres: 18.6 (Debian 18.6-1.pgdg13+2)
+
+== admission, in this process and on PostgreSQL (identity.rs, tests/session_overlap.rs)
+
+test identity::invocation_tests::a_read_keeps_its_actor_while_live_inspection_observes_revocation ... ok
+test identity::invocation_tests::anonymous_and_nested_bindings_are_scoped_to_their_store_and_cookie ... ok
+test identity::invocation_tests::a_panicking_read_restores_the_previous_invocation_binding ... ok
+test identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity ... ok
+test identity::tests::a_cookie_is_http_only_and_secure_outside_this_machine ... ok
+test identity::invocation_tests::debug_output_never_discloses_session_authority_or_principal_fields ... ok
+test identity::tests::a_refusal_is_taken_once ... ok
+test identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader ... ok
+test identity::tests::a_token_is_held_to_its_issuer_audience_expiry_and_nonce ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal ... ok
+test identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound ... ok
+test identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again ... ok
+test identity::tests::an_origin_is_a_scheme_a_host_and_a_port ... ok
+test identity::tests::an_unsafe_request_from_another_origin_is_refused ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
+test identity::tests::requires_starts_as_the_development_model ... ok
+test identity::tests::s256_is_rfc_7636s_worked_example ... ok
+test identity::tests::the_guest_model_runs_only_in_development_on_this_machine ... ok
+test identity::tests::ids_are_random_and_forms_are_decoded ... ok
+test identity::tests::two_overlapping_admissions_of_one_session_are_each_answered ... ok
+test tests::receiver_identity::a_local_receiver_getter_runs_instead_of_a_namesake_type_constructor ... ok
+test tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it ... ok
+test tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+test tests::session_overlap::in_memory_a_request_admitted_while_another_is_under_way_is_answered ... ok
+test tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 840 filtered out; finished in 5.18s
+
+== pages loading their runtime and modules while commands run, in three engines (e2e-hosts/second-host.spec.mjs)
+
+  3 passed (28.0s)
+
+== mutation controls (scripts/session_overlap_mutations.py)
+
+
+running 13 tests
+test identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity ... ok
+test identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read ... ok
+test identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound ... ok
+test identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
+test identity::tests::two_overlapping_admissions_of_one_session_are_each_answered ... ok
+test tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it ... ok
+test tests::session_overlap::in_memory_a_request_admitted_while_another_is_under_way_is_answered ... ok
+test tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+test tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 854 filtered out; finished in 8.29s
+
+
+
+running 13 tests
+test identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity ... ok
+test identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader ... FAILED
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal ... FAILED
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read ... FAILED
+test identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound ... ok
+test identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
+test identity::tests::two_overlapping_admissions_of_one_session_are_each_answered ... FAILED
+test tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it ... ok
+test tests::session_overlap::in_memory_a_request_admitted_while_another_is_under_way_is_answered ... ok
+test tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... FAILED
+test tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... FAILED
+
+failures:
+
+---- identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader stdout ----
+
+thread 'identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader' (14061) panicked at spikes/own-renderer/server/src/identity.rs:2334:9:
+assertion `left == right` failed: each answered from its own read; the copy here is the later write's
+  left: (Err(Superseded), Ok(Account([redacted])), Some(Principal { .. }))
+ right: (Ok(Account([redacted])), Ok(Account([redacted])), Some(Principal { .. }))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal stdout ----
+
+thread 'identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal' (14063) panicked at spikes/own-renderer/server/src/identity.rs:2334:9:
+assertion `left == right` failed: each answered from its own read; the copy here is the later write's
+  left: (Err(Superseded), Ok(Anonymous), None)
+ right: (Ok(Account([redacted])), Ok(Anonymous), None)
+
+---- identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read stdout ----
+
+thread 'identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read' (14065) panicked at spikes/own-renderer/server/src/identity.rs:2334:9:
+assertion `left == right` failed: each answered from its own read; the copy here is the later write's
+  left: (Err(Superseded), Err(SourceUnavailable), None)
+ right: (Ok(Account([redacted])), Err(SourceUnavailable), None)
+
+---- identity::tests::two_overlapping_admissions_of_one_session_are_each_answered stdout ----
+
+thread 'identity::tests::two_overlapping_admissions_of_one_session_are_each_answered' (14073) panicked at spikes/own-renderer/server/src/identity.rs:2266:13:
+assertion `left == right` failed
+  left: Err(Superseded)
+ right: Ok(Account([redacted]))
+
+---- tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered stdout ----
+pw dev server: session admission refused: session admission was superseded
+pw dev server: session admission refused: session admission was superseded
+pw dev server: session admission refused: session admission was superseded
+pw dev server: session admission refused: session admission was superseded
+pw dev server: session admission refused: session admission was superseded
+pw dev server: session admission refused: session admission was superseded
+pw dev server: session admission refused: session admission was superseded
+pw dev server: session admission refused: session admission was superseded
+pw dev server: session admission refused: session admission was superseded
+
+thread 'tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered' (14138) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:328:5:
+[
+    "Get(\"/\") beside Get(\"/\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/pw-handlers\") beside Get(\"/\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/\") beside Get(\"/handler/060d9ca5e0da84eb.mjs\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/pw-runtime.mjs\") beside Get(\"/\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/pw-runtime.mjs?document=1\") beside Get(\"/\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/\") beside Get(\"/pw-resume.wasm\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/\") beside Get(\"/pw-render.wasm\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/\") beside Post(\"overlap\"): HTTP/1.1 503 Service Unavailable",
+    "Post(\"overlap\") beside Post(\"overlap\"): HTTP/1.1 403 ",
+]
+
+---- tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered stdout ----
+pw dev server: session admission refused: session admission was superseded
+pw dev server: session admission refused: session admission was superseded
+pw dev server: session admission refused: session admission was superseded
+pw dev server: session admission refused: session admission was superseded
+pw dev server: session admission refused: session admission was superseded
+pw dev server: session admission refused: session admission was superseded
+pw dev server: session admission refused: session admission was superseded
+
+thread 'tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered' (14196) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:248:5:
+[
+    "Get(\"/\") beside Get(\"/\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/\") beside Get(\"/pw-handlers\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/\") beside Get(\"/handler/060d9ca5e0da84eb.mjs\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/\") beside Get(\"/pw-runtime.mjs\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/\") beside Get(\"/pw-runtime.mjs?document=1\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/pw-resume.wasm\") beside Get(\"/\"): HTTP/1.1 503 Service Unavailable",
+    "Get(\"/\") beside Get(\"/pw-render.wasm\"): HTTP/1.1 503 Service Unavailable",
+]
+
+
+failures:
+    identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader
+    identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal
+    identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read
+    identity::tests::two_overlapping_admissions_of_one_session_are_each_answered
+    tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered
+    tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered
+
+test result: FAILED. 7 passed; 6 failed; 0 ignored; 0 measured; 854 filtered out; finished in 7.63s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+an admission another admission overtook is refused Superseded again: KILLED (6 of 13 tests fail)
+
+running 13 tests
+test identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity ... ok
+test identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read ... ok
+test identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound ... FAILED
+test identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again ... FAILED
+test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
+test identity::tests::two_overlapping_admissions_of_one_session_are_each_answered ... ok
+test tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it ... ok
+test tests::session_overlap::in_memory_a_request_admitted_while_another_is_under_way_is_answered ... ok
+test tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+test tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+
+failures:
+
+---- identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound stdout ----
+
+thread 'identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound' (14378) panicked at spikes/own-renderer/server/src/identity.rs:2371:9:
+assertion `left == right` failed
+  left: Ok(Account([redacted]))
+ right: Err(Superseded)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again stdout ----
+
+thread 'identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again' (14379) panicked at spikes/own-renderer/server/src/identity.rs:2285:9:
+assertion `left == right` failed
+  left: Ok(Account([redacted]))
+ right: Ok(Anonymous)
+
+
+failures:
+    identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound
+    identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again
+
+test result: FAILED. 11 passed; 2 failed; 0 ignored; 0 measured; 854 filtered out; finished in 8.14s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a read this host's open, close or expiry overtook answers its stale read: KILLED (2 of 13 tests fail)
+
+running 13 tests
+test identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity ... ok
+test identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read ... ok
+test identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound ... FAILED
+test identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again ... FAILED
+test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
+test identity::tests::two_overlapping_admissions_of_one_session_are_each_answered ... ok
+test tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it ... ok
+test tests::session_overlap::in_memory_a_request_admitted_while_another_is_under_way_is_answered ... ok
+test tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+test tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+
+failures:
+
+---- identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound stdout ----
+
+thread 'identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound' (14670) panicked at spikes/own-renderer/server/src/identity.rs:2372:9:
+assertion `left == right` failed: exactly ADMISSION_READS reads
+  left: 3
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again stdout ----
+
+thread 'identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again' (14671) panicked at spikes/own-renderer/server/src/identity.rs:2285:9:
+assertion `left == right` failed
+  left: Err(Superseded)
+ right: Ok(Anonymous)
+
+
+failures:
+    identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound
+    identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again
+
+test result: FAILED. 11 passed; 2 failed; 0 ignored; 0 measured; 854 filtered out; finished in 8.12s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a read this host's open, close or expiry overtook is refused, not read again: KILLED (2 of 13 tests fail)
+
+running 13 tests
+test identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity ... ok
+test identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read ... ok
+test identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound ... FAILED
+test identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
+test identity::tests::two_overlapping_admissions_of_one_session_are_each_answered ... ok
+test tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it ... ok
+test tests::session_overlap::in_memory_a_request_admitted_while_another_is_under_way_is_answered ... ok
+test tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+test tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+
+failures:
+
+---- identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound stdout ----
+
+thread 'identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound' (14959) panicked at spikes/own-renderer/server/src/identity.rs:2371:9:
+assertion `left == right` failed
+  left: Err(SourceUnavailable)
+ right: Err(Superseded)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound
+
+test result: FAILED. 12 passed; 1 failed; 0 ignored; 0 measured; 854 filtered out; finished in 8.05s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+an admission reads its session without a bound: KILLED (1 of 13 tests fail)
+
+running 13 tests
+test identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity ... ok
+test identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read ... ok
+test identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound ... FAILED
+test identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again ... FAILED
+test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
+test identity::tests::two_overlapping_admissions_of_one_session_are_each_answered ... ok
+test tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it ... ok
+test tests::session_overlap::in_memory_a_request_admitted_while_another_is_under_way_is_answered ... ok
+test tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+test tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+
+failures:
+
+---- identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound stdout ----
+
+thread 'identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound' (15252) panicked at spikes/own-renderer/server/src/identity.rs:2370:9:
+assertion `left == right` failed
+  left: Ok(Account([redacted]))
+ right: Err(Superseded)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again stdout ----
+
+thread 'identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again' (15253) panicked at spikes/own-renderer/server/src/identity.rs:2284:9:
+assertion `left == right` failed
+  left: Ok(Account([redacted]))
+ right: Ok(Anonymous)
+
+
+failures:
+    identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound
+    identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again
+
+test result: FAILED. 11 passed; 2 failed; 0 ignored; 0 measured; 854 filtered out; finished in 8.23s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+this host's open, close or expiry moves no authority ticket: KILLED (2 of 13 tests fail)
+
+running 13 tests
+test identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity ... ok
+test identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader ... FAILED
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal ... FAILED
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read ... FAILED
+test identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound ... ok
+test identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
+test identity::tests::two_overlapping_admissions_of_one_session_are_each_answered ... ok
+test tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it ... ok
+test tests::session_overlap::in_memory_a_request_admitted_while_another_is_under_way_is_answered ... ok
+test tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+test tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+
+failures:
+
+---- identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader stdout ----
+
+thread 'identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader' (15536) panicked at spikes/own-renderer/server/src/identity.rs:2331:9:
+assertion `left == right` failed: each answered from its own read; the copy here is the later write's
+  left: (Ok(Account([redacted])), Ok(Account([redacted])), Some(Principal { .. }))
+ right: (Ok(Account([redacted])), Ok(Account([redacted])), Some(Principal { .. }))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal stdout ----
+
+thread 'identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal' (15538) panicked at spikes/own-renderer/server/src/identity.rs:2331:9:
+assertion `left == right` failed: each answered from its own read; the copy here is the later write's
+  left: (Ok(Account([redacted])), Ok(Anonymous), Some(Principal { .. }))
+ right: (Ok(Account([redacted])), Ok(Anonymous), None)
+
+---- identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read stdout ----
+
+thread 'identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read' (15540) panicked at spikes/own-renderer/server/src/identity.rs:2331:9:
+assertion `left == right` failed: each answered from its own read; the copy here is the later write's
+  left: (Ok(Account([redacted])), Err(SourceUnavailable), Some(Principal { .. }))
+ right: (Ok(Account([redacted])), Err(SourceUnavailable), None)
+
+
+failures:
+    identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader
+    identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal
+    identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read
+
+test result: FAILED. 10 passed; 3 failed; 0 ignored; 0 measured; 854 filtered out; finished in 8.53s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a read another admission overtook installs its principal anyway: KILLED (3 of 13 tests fail)
+
+running 13 tests
+test identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity ... ok
+test identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader ... FAILED
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read ... ok
+test identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound ... ok
+test identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
+test identity::tests::two_overlapping_admissions_of_one_session_are_each_answered ... ok
+test tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it ... ok
+test tests::session_overlap::in_memory_a_request_admitted_while_another_is_under_way_is_answered ... ok
+test tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+test tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+
+failures:
+
+---- identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader stdout ----
+
+thread 'identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader' (15851) panicked at spikes/own-renderer/server/src/identity.rs:2330:9:
+assertion `left == right` failed: each answered from its own read; the copy here is the later write's
+  left: (Ok(Account([redacted])), Ok(Account([redacted])), Some(Principal { .. }))
+ right: (Ok(Account([redacted])), Ok(Account([redacted])), Some(Principal { .. }))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader
+
+test result: FAILED. 12 passed; 1 failed; 0 ignored; 0 measured; 854 filtered out; finished in 7.95s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+an install moves no ticket: KILLED (1 of 13 tests fail)
+
+running 13 tests
+test identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity ... ok
+test identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal ... FAILED
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read ... ok
+test identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound ... ok
+test identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
+test identity::tests::two_overlapping_admissions_of_one_session_are_each_answered ... ok
+test tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it ... ok
+test tests::session_overlap::in_memory_a_request_admitted_while_another_is_under_way_is_answered ... ok
+test tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+test tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+
+failures:
+
+---- identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal stdout ----
+
+thread 'identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal' (16142) panicked at spikes/own-renderer/server/src/identity.rs:2330:9:
+assertion `left == right` failed: each answered from its own read; the copy here is the later write's
+  left: (Ok(Account([redacted])), Ok(Anonymous), Some(Principal { .. }))
+ right: (Ok(Account([redacted])), Ok(Anonymous), None)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal
+
+test result: FAILED. 12 passed; 1 failed; 0 ignored; 0 measured; 854 filtered out; finished in 8.49s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a removal moves no ticket: KILLED (1 of 13 tests fail)
+
+running 13 tests
+test identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity ... ok
+test identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read ... FAILED
+test identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound ... ok
+test identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
+test identity::tests::two_overlapping_admissions_of_one_session_are_each_answered ... ok
+test tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it ... ok
+test tests::session_overlap::in_memory_a_request_admitted_while_another_is_under_way_is_answered ... ok
+test tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+test tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+
+failures:
+
+---- identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read stdout ----
+
+thread 'identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read' (16448) panicked at spikes/own-renderer/server/src/identity.rs:2330:9:
+assertion `left == right` failed: each answered from its own read; the copy here is the later write's
+  left: (Ok(Account([redacted])), Err(SourceUnavailable), Some(Principal { .. }))
+ right: (Ok(Account([redacted])), Err(SourceUnavailable), None)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read
+
+test result: FAILED. 12 passed; 1 failed; 0 ignored; 0 measured; 854 filtered out; finished in 8.40s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a failed read's removal moves no ticket: KILLED (1 of 13 tests fail)
+
+running 13 tests
+test identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity ... ok
+test identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read ... ok
+test identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound ... ok
+test identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
+test identity::tests::two_overlapping_admissions_of_one_session_are_each_answered ... ok
+test tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it ... FAILED
+test tests::session_overlap::in_memory_a_request_admitted_while_another_is_under_way_is_answered ... ok
+test tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... FAILED
+test tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... FAILED
+
+failures:
+
+---- tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it stdout ----
+pw dev server: session admission refused: session authority source is unavailable
+pw dev server: session admission refused: session authority source is unavailable
+pw dev server: session admission refused: session authority source is unavailable
+pw dev server: session admission refused: session authority source is unavailable
+
+thread 'tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it' (16777) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:391:9:
+Get("/pw-runtime.mjs"): HTTP/1.1 200 OK
+content-type: text/javascript; charset=utf-8
+content-length: 10
+x-content-type-options: nosniff
+connection: close
+
+export {};
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered stdout ----
+
+thread 'tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered' (16815) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:328:5:
+[
+    "Get(\"/\") and Get(\"/pw-runtime.mjs\") did not both wait for the session's lock: 1 did",
+    "Get(\"/\") and Get(\"/pw-runtime.mjs?document=1\") did not both wait for the session's lock: 1 did",
+    "Get(\"/\") and Get(\"/pw-resume.wasm\") did not both wait for the session's lock: 1 did",
+    "Get(\"/\") and Get(\"/pw-render.wasm\") did not both wait for the session's lock: 1 did",
+]
+
+---- tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered stdout ----
+
+thread 'tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered' (16941) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:248:5:
+[
+    "the page and Get(\"/pw-runtime.mjs\") were not each admitted at once: (reads, alone) (1, 1)",
+    "the page and Get(\"/pw-runtime.mjs?document=1\") were not each admitted at once: (reads, alone) (1, 1)",
+    "the page and Get(\"/pw-resume.wasm\") were not each admitted at once: (reads, alone) (1, 1)",
+    "the page and Get(\"/pw-render.wasm\") were not each admitted at once: (reads, alone) (1, 1)",
+]
+
+
+failures:
+    tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it
+    tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered
+    tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered
+
+test result: FAILED. 10 passed; 3 failed; 0 ignored; 0 measured; 854 filtered out; finished in 60.27s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+the runtime's three files are answered before admission (PR #63's exemption): KILLED (3 of 13 tests fail)
+
+running 13 tests
+test identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity ... ok
+test identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read ... ok
+test identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound ... ok
+test identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
+test identity::tests::two_overlapping_admissions_of_one_session_are_each_answered ... ok
+test tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it ... FAILED
+test tests::session_overlap::in_memory_a_request_admitted_while_another_is_under_way_is_answered ... ok
+test tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+test tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+
+failures:
+
+---- tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it stdout ----
+pw dev server: session admission refused: session authority source is unavailable
+
+thread 'tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it' (17289) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:397:5:
+assertion `left == right` failed
+  left: ["pw dev server: session admission refused: session authority source is unavailable"]
+ right: ["pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it
+
+test result: FAILED. 12 passed; 1 failed; 0 ignored; 0 measured; 854 filtered out; finished in 8.34s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a page's refused admission is not logged: KILLED (1 of 13 tests fail)
+
+running 13 tests
+test identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity ... ok
+test identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read ... ok
+test identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound ... ok
+test identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
+test identity::tests::two_overlapping_admissions_of_one_session_are_each_answered ... ok
+test tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it ... FAILED
+test tests::session_overlap::in_memory_a_request_admitted_while_another_is_under_way_is_answered ... ok
+test tests::session_overlap::on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+test tests::session_overlap::two_requests_of_one_session_whose_admissions_overlap_are_each_answered ... ok
+
+failures:
+
+---- tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it stdout ----
+pw dev server: session admission refused: session authority source is unavailable
+pw dev server: session admission refused: session authority source is unavailable
+pw dev server: session admission refused: session authority source is unavailable
+pw dev server: session admission refused: session authority source is unavailable
+pw dev server: session admission refused: session authority source is unavailable
+pw dev server: session admission refused: session authority source is unavailable
+pw dev server: session admission refused: session authority source is unavailable
+
+thread 'tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it' (17581) panicked at spikes/own-renderer/server/src/tests/session_overlap.rs:397:5:
+assertion `left == right` failed
+  left: ["pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable"]
+ right: ["pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable", "pw dev server: session admission refused: session authority source is unavailable"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it
+
+test result: FAILED. 12 passed; 1 failed; 0 ignored; 0 measured; 854 filtered out; finished in 8.38s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a command's refused admission is not logged: KILLED (1 of 13 tests fail)
+12 of 12 mutants killed; valid=True, restored=True
