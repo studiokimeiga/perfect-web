@@ -428,6 +428,33 @@ of 12 unsafe versions refused, the frameworks' 0), the museum (0 of 5) and
 the store server's cost (0.32 ms a request; 7.28 and 1.68). NEXT's
 head-to-head section orders the fixes.
 
+**The head-to-head's code gates, 2026-11-02:** `35f1943d` failed Fallow
+(202 findings in changed files: 141 dead code, 50 complexity, 6
+duplication, 5 styling), CodeQL (`js/file-system-race`, `lib.mjs`'s log read
+by name after it was opened by name) and Ruff (E741). Configuration now
+states facts only (the instrument's scripts, specification and tests are
+entries; TodoMVC's two vendored apps are excluded as `pw-to-marko`'s routes
+are). Fallow has no coverage here, so a function's CRAP is CC(CC+1) and a
+cyclomatic complexity of 5 reaches its threshold: the instrument's 48 such
+functions are split into helpers, after their behaviour was pinned: 517
+node tests (the 29 it had and 488 characterization tests) pass on the
+instrument as it was, with only exports and defaulted parameters added, and
+523 pass on the result (the recorded run renders to the evidence's report
+line for line; `scripts/head_to_head_mutations.py`: 41 of 41 mutants, 4 of 4
+integrity controls). Two live runs, of the instrument as it was and as it
+is, agree in shape, order, requests and verdicts in 48 cells, but for two
+requests that race the end of an interaction, which the instrument as it was
+differs from itself in as well. One new test raced the host's log on a slow
+machine (2 failures in 12 runs on two loaded cores) and was fixed (30 such
+runs pass). The server's log is read through its descriptor. No ignore,
+threshold, waiver or workflow change; `head-to-head.txt` is not re-recorded.
+Reproduce:
+`npx -y fallow@3.23.0 audit --root . --quiet --format json --changed-since 45e0c1a6e9f6331bcce7fb3fb35528b169397934 --gate new-only`,
+`node --test benchmarks/headtohead/test/*.mjs`,
+`python3 scripts/head_to_head_mutations.py` (the raw outputs are in
+[`evidence/E14/head-to-head-gates-2026-11-02/`](evidence/E14/head-to-head-gates-2026-11-02/)).
+These are local diagnostics: the hosted gates at the final head decide.
+
 The E10 close benchmark retained here is 2026-10-02 at
 `bff437c6ae641529461ca56410b1f0337e06557a`, Apple M2 Pro arm64:
 [raw evidence](evidence/E10/close-bench.txt), `just e10-close-bench 8`.

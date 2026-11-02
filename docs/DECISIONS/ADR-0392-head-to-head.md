@@ -186,8 +186,26 @@ tables, and the controls. Ports: `PORT` + 220..249. It is a measurement of
 the machine it runs on, so it is `LOCAL_ONLY` (`scripts/ci_plan.py`;
 ADR-0281's decision 5): recorded on the development machine, never fetched
 from a runner, whose two shared cores would measure their own contention.
-The instrument's 29 node tests and 18 Python tests run in `just ci`
-(`scripts/tests/test_head_to_head.py`).
+The instrument's node tests (523) and 18 Python tests run in `just ci`
+(`scripts/tests/test_head_to_head.py`). 517 of the node tests (the 29 it was
+written with, and 488 characterization tests of every module) were written
+before its functions were split into helpers for the code gates, and pass on
+the instrument as it was, with only exports and defaulted parameters added;
+two of them tested exports that were dead and are gone, and 8 test what
+`lib.mjs` now shares (`sleep`, `sh`, `isMain`, `pathAfter`, its two roots).
+The recorded run renders to the evidence's report line for line
+(`test/report.test.mjs`).
+
+The code gates (2026-11-02) read the instrument as code. Fallow's audit
+(new-only) has no coverage here, so it estimates every function at 0%: a
+function's CRAP score is CC(CC+1) for its cyclomatic complexity CC, and a CC
+of 5 reaches the threshold of 30. Every function of the instrument therefore
+has a CC of at most 4 (three branches). Its scripts,
+specification and tests are `.fallowrc.json` entries; the two vendored apps
+(`todomvc/react`, `todomvc/svelte`) are excluded from findings, duplicates
+and health as `spikes/pw-to-marko`'s routes are, and nothing of the
+instrument's own is ignored. A server's log is read through the descriptor it
+was written by, not by its name again (CodeQL, `js/file-system-race`).
 
 ## Downloads made
 
