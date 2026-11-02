@@ -233,6 +233,21 @@ pub(crate) fn program_refusals(
                 .to_string(),
         );
     }
+    // kiokun's files are the deployment's, and its search index's cache is
+    // written where the deployment says: the repository's sample and the
+    // build's `target/` are a development's, at the build machine's paths.
+    if layer == Layer::Kiokun {
+        for (name, what) in [
+            ("KIOKUN_DATA", "its dictionary's files"),
+            ("PW_CACHE_DIR", "where its search index is cached"),
+        ] {
+            if env(name).is_none() {
+                refused.push(format!(
+                    "this program is kiokun's: a production deployment names {what} ({name})"
+                ));
+            }
+        }
+    }
     refused
 }
 
@@ -769,7 +784,8 @@ mod tests {
 
     /// **A program whose data would live in memory is refused in
     /// production**: the store's and the feed's without their database, and
-    /// uploads without their directory; kiokun's files need neither.
+    /// uploads without their directory, and kiokun without its files and
+    /// its cache.
     #[test]
     fn a_program_whose_data_would_live_in_memory_is_refused() {
         let none = Secrets::default();
@@ -782,7 +798,16 @@ mod tests {
         let refused = program_refusals(Layer::Feed, &none, true, &no_env);
         assert_eq!(refused.len(), 2, "{refused:?}");
         assert!(refused[0].contains("PW_FEED_DATABASE_URL") && refused[1].contains("PW_BLOB_DIR"));
-        assert!(program_refusals(Layer::Kiokun, &none, false, &no_env).is_empty());
+        // kiokun's: its files and its cache, not the repository's sample and
+        // the build machine's `target/`.
+        let refused = program_refusals(Layer::Kiokun, &none, false, &no_env);
+        assert_eq!(refused.len(), 2, "{refused:?}");
+        assert!(refused[0].contains("KIOKUN_DATA") && refused[1].contains("PW_CACHE_DIR"));
+        let kiokun = env_of(vec![
+            ("KIOKUN_DATA", "/srv/kiokun/output_dictionary".into()),
+            ("PW_CACHE_DIR", "/var/cache/pleris".into()),
+        ]);
+        assert!(program_refusals(Layer::Kiokun, &none, false, &kiokun).is_empty());
         let store = Secrets::of(&[("PW_STORE_DATABASE_URL", "postgresql:///pleris")]);
         assert!(program_refusals(Layer::Store, &store, false, &no_env).is_empty());
         let blobs = env_of(vec![("PW_BLOB_DIR", "/var/lib/pleris/blobs".into())]);

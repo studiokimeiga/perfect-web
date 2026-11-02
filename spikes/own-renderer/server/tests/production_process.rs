@@ -27,8 +27,11 @@ fn root() -> PathBuf {
 }
 
 /// **kiokun's program, built as `pw build` builds it**, into `dir/build`,
-/// with the runtime beside it in `dir`, as `run.sh` lays a build out.
-fn built_kiokun(dir: &Path) {
+/// with the runtime beside it in `dir`, as `run.sh` lays a build out; and
+/// its data laid out as kiokun-data's are, `output_dictionary` beside
+/// `output_search_index.csv`, from the repository's sample. The data's
+/// directory is returned, as `KIOKUN_DATA` names it.
+fn built_kiokun(dir: &Path) -> String {
     let root = root();
     let mut paths: Vec<PathBuf> = Vec::new();
     for d in [
@@ -71,6 +74,33 @@ fn built_kiokun(dir: &Path) {
     // build's sources, which name the paths of the machine that built it.
     std::fs::write(dir.join("sources.json"), "{\"files\":[]}").expect("sources");
     std::fs::write(dir.join("Old.html"), "<p>old</p>").expect("a page");
+    // Copied, not linked: kiokun reads `KIOKUN_DATA/..`, which a link's
+    // target's parent would answer (29 files, 288 KiB).
+    let data = dir.join("kiokun");
+    copy_tree(
+        &root.join("examples/kiokun/data/han-1char-3"),
+        &data.join("output_dictionary"),
+    );
+    std::fs::copy(
+        root.join("examples/kiokun/data/search-sample.csv"),
+        data.join("output_search_index.csv"),
+    )
+    .expect("the search index");
+    data.join("output_dictionary").display().to_string()
+}
+
+/// Every file under `from`, copied to the same place under `to`.
+fn copy_tree(from: &Path, to: &Path) {
+    std::fs::create_dir_all(to).expect("a directory");
+    for entry in std::fs::read_dir(from).expect("a directory") {
+        let path = entry.expect("an entry").path();
+        let into = to.join(path.file_name().expect("a name"));
+        if path.is_dir() {
+            copy_tree(&path, &into);
+        } else {
+            std::fs::copy(&path, &into).expect("a file");
+        }
+    }
 }
 
 /// **The host, started** on `dist` with `env` (and nothing of this
@@ -102,8 +132,12 @@ fn start(dist: &Path, env: &[(&str, String)]) -> (Child, mpsc::Receiver<String>)
     (child, lines)
 }
 
-/// A production deployment's environment, `extra` added or replacing.
+/// A production deployment's environment, `extra` added or replacing:
+/// kiokun's files the repository's sample, named as a deployment names its
+/// own, and its search cache a directory no search here writes to.
 fn production(extra: &[(&str, &str)]) -> Vec<(&'static str, String)> {
+    let sample = root().join("examples/kiokun/data/han-1char-3");
+    let cache = std::env::temp_dir().join(format!("pw-production-cache-{}", std::process::id()));
     let mut env: Vec<(&'static str, String)> = vec![
         ("PW_DEPLOYMENT", "production".into()),
         ("PW_ORIGIN", ORIGIN.into()),
@@ -111,6 +145,8 @@ fn production(extra: &[(&str, &str)]) -> Vec<(&'static str, String)> {
         ("PW_IDENTITY", "none".into()),
         ("PORT", "0".into()),
         ("PW_SHUTDOWN_GRACE", "5".into()),
+        ("KIOKUN_DATA", sample.display().to_string()),
+        ("PW_CACHE_DIR", cache.display().to_string()),
     ];
     for (name, value) in extra {
         env.retain(|(n, _)| n != name);
@@ -303,7 +339,7 @@ fn a_production_host_never_says_a_secret() {
 #[test]
 fn a_production_host_serves_and_stops_when_told() {
     let dir = tempfile::TempDir::with_prefix("pw-production-").expect("a directory");
-    built_kiokun(dir.path());
+    let data = built_kiokun(dir.path());
     // Read from a secrets file only its owner may read, as systemd's
     // credentials are.
     use std::os::unix::fs::PermissionsExt;
@@ -317,6 +353,7 @@ fn a_production_host_serves_and_stops_when_told() {
     let env = production(&[
         ("PW_IDENTITY_KEY", ""),
         ("PW_SECRETS_FILE", file.to_str().expect("a path")),
+        ("KIOKUN_DATA", &data),
     ]);
     let (child, lines) = start(dir.path(), &env);
     let (port, said) = listening(&lines);
@@ -342,7 +379,12 @@ fn a_production_host_serves_and_stops_when_told() {
 
     // A page: the program's, with its policy, HSTS and a Secure cookie.
     let (head, page) = get(port, "/word/%E4%BA%BA", "");
-    assert_eq!(status(&head), 200, "{head}");
+    assert_eq!(
+        status(&head),
+        200,
+        "{head}\n{}",
+        String::from_utf8_lossy(&page)
+    );
     assert_eq!(
         field(&head, "strict-transport-security"),
         Some("max-age=31536000"),
@@ -450,8 +492,11 @@ fn a_production_host_serves_and_stops_when_told() {
 #[test]
 fn a_stop_ends_at_its_grace_whatever_stays_open() {
     let dir = tempfile::TempDir::with_prefix("pw-production-").expect("a directory");
-    built_kiokun(dir.path());
-    let (child, lines) = start(dir.path(), &production(&[("PW_SHUTDOWN_GRACE", "1")]));
+    let data = built_kiokun(dir.path());
+    let (child, lines) = start(
+        dir.path(),
+        &production(&[("PW_SHUTDOWN_GRACE", "1"), ("KIOKUN_DATA", &data)]),
+    );
     let (port, _) = listening(&lines);
     let mut held = TcpStream::connect(("127.0.0.1", port)).expect("connect");
     held.write_all(b"GET /_pw/health HTTP/1.1\r\n")

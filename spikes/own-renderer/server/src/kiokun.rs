@@ -58,9 +58,15 @@ pub(crate) struct Search {
 }
 
 /// Where the index's cache goes: the workspace's `target/`, gone with
-/// `cargo clean` (the integrator's ruling of 2026-10-10, B5).
+/// `cargo clean` (the integrator's ruling of 2026-10-10, B5). TRACK SEAM
+/// (deploy): or under the deployment's cache directory (`PW_CACHE_DIR`),
+/// which a production host requires: its build's paths are not where it
+/// runs, and its filesystem is read-only but there.
 fn search_cache() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../target/kiokun-search")
+    match std::env::var_os("PW_CACHE_DIR").filter(|d| !d.is_empty()) {
+        Some(dir) => PathBuf::from(dir).join("kiokun-search"),
+        None => Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../target/kiokun-search"),
+    }
 }
 
 impl Search {
