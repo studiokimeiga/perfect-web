@@ -84,19 +84,17 @@ pub fn admit(access: &Access, caller: &Caller, args: Vec<Val>) -> Result<Vec<Val
                     "`{import}` is given its owner's handle and one row"
                 ));
             };
-            let owner = table_link::exact_row(&write.row, row)
-                .ok()
-                .and_then(|fields| {
-                    let wit = crate::tables::wit_name(&handle.field);
-                    fields.iter().find(|(name, _)| *name == wit)
-                })
-                .map(|(_, value)| value);
-            match owner {
-                Some(Val::String(owner)) if owner == user => Ok(vec![row.clone()]),
-                // A row that is not exactly the table's is the write
-                // decoder's to refuse, in its own words.
-                None => Ok(vec![row.clone()]),
-                Some(_) => Err(format!(
+            // A row that is not exactly the table's is refused here, before
+            // any adapter reads it (the review's note 7a): an owner check
+            // that passed what it could not read would trust a decoder
+            // further on to refuse it.
+            let fields = table_link::exact_row(&write.row, row).map_err(|why| {
+                format!("`{import}` was given a row that is not exactly its table's: {why}")
+            })?;
+            let wit = crate::tables::wit_name(&handle.field);
+            match fields.iter().find(|(name, _)| *name == wit) {
+                Some((_, Val::String(owner))) if owner == user => Ok(vec![row.clone()]),
+                _ => Err(format!(
                     "`{import}` was given a row whose `{}` is not its writer: an owned row is \
                      written by its owner alone",
                     handle.field
@@ -291,27 +289,31 @@ mod tests {
         );
     }
 
-    #[test]
-    fn an_owned_row_is_written_by_its_owner_alone() {
-        let row = vec![
-            string("author"),
-            string("id"),
-            string("to"),
-            string("draft"),
-        ];
-        let put = Access::Write(Write {
+    /// `Notes`' `put`, its owner `author`.
+    fn put() -> Access {
+        Access::Write(Write {
             import: "pw:tables/notes#put".into(),
             table: "Notes".into(),
             primitive: Primitive::Put,
             by: Vec::new(),
-            row,
+            row: vec![
+                string("author"),
+                string("id"),
+                string("to"),
+                string("draft"),
+            ],
             key: vec!["author".into(), "id".into()],
             unique: Vec::new(),
             handle: Some(Handle {
                 field: "author".into(),
                 seen: None,
             }),
-        });
+        })
+    }
+
+    #[test]
+    fn an_owned_row_is_written_by_its_owner_alone() {
+        let put = put();
         let alice = Caller::User("alice".into());
         let given = |author: &str| vec![Val::String("alice".into()), note(author, "d")];
         assert_eq!(
@@ -324,6 +326,58 @@ mod tests {
                 .as_ref()
                 .is_err_and(|why| why.contains("is not its writer")),
             "{forged:?}"
+        );
+    }
+
+    #[test]
+    fn a_row_not_exactly_its_tables_is_refused_before_any_adapter() {
+        // The review's note 7a: the owner check passed a row it could not
+        // read, trusting a decoder further on to refuse it.
+        let put = put();
+        let alice = Caller::User("alice".into());
+        let field = |name: &str, value: &str| (name.to_string(), Val::String(value.into()));
+        let rows = [
+            // A field the table does not declare, after its own.
+            Val::Record(vec![
+                field("author", "alice"),
+                field("id", "n1"),
+                field("to", "bob"),
+                field("draft", "d"),
+                field("extra", "x"),
+            ]),
+            // Its owner missing: nothing to hold to its writer.
+            Val::Record(vec![
+                field("id", "n1"),
+                field("to", "bob"),
+                field("draft", "d"),
+            ]),
+            // Its fields out of their order.
+            Val::Record(vec![
+                field("id", "n1"),
+                field("author", "alice"),
+                field("to", "bob"),
+                field("draft", "d"),
+            ]),
+            // No record.
+            Val::String("alice".into()),
+        ];
+        for row in rows {
+            let refused = admit(&put, &alice, vec![Val::String("alice".into()), row.clone()]);
+            assert!(
+                refused
+                    .as_ref()
+                    .is_err_and(|why| why.contains("a row that is not exactly its table's")),
+                "{row:?}: {refused:?}"
+            );
+        }
+        // The neighbour: exactly the table's row, written by its owner.
+        assert_eq!(
+            admit(
+                &put,
+                &alice,
+                vec![Val::String("alice".into()), note("alice", "d")]
+            ),
+            Ok(vec![note("alice", "d")])
         );
     }
 }

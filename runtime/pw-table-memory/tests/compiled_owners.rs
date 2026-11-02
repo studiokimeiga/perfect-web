@@ -321,6 +321,208 @@ fn the_manifest_is_held_whole_for_its_owners() {
         },
         "is read whole by `all`",
     );
+    // A bound with no `all` (the review's finding 2, probe B): it counts
+    // every owner's rows, so one owner's would refuse another's write.
+    refused(
+        &|t| t["bounded"] = json!(10),
+        "is owned, and its bound of 10 rows counts every owner's",
+    );
+}
+
+/// An owned table keyed by its owner alone, and one owned by `from` whose
+/// `from` refers to it: each crush names its owner's own premium.
+const PREMIUMS: &str = "module Premiums\n\nimport capability.{ UserId }\n\ntype Premium = Premium { user: UserId, tier: Int }\n\ntable Premiums\n    row     Premium\n    key     user\n    owned   by user\n";
+
+const CRUSHES: &str = "module Crushes\n\nimport capability.{ UserId }\nimport Premiums\n\ntype Crush = Crush { from: UserId, target: UserId, added: Int }\n\ntable Crushes\n    row     Crush\n    key     from, target\n    owned   by from\n    refers  from to Premiums\n";
+
+const CRUSHES_APP: &str = "module owned.app\n\nimport capability.{ User, UserId, id_of }\nimport context.{ current_user }\nimport Crushes.{ Crush }\nimport Crushes\nimport Premiums.{ Premium }\nimport Premiums\n\ncommand crush(target: UserId) -> Result<(), Crush>\n    transaction serializable\n{\n    let me = current_user()\n    Crushes.insert(me, Crush { from: id_of(me), target: target, added: 0 })\n}\n\ncommand subscribe() -> Result<(), Premium>\n    transaction serializable\n{\n    let me = current_user()\n    Premiums.insert(me, Premium { user: id_of(me), tier: 1 })\n}\n\ncommand cancel() -> ()\n    transaction serializable\n{\n    Premiums.delete(current_user())\n}\n";
+
+#[test]
+fn a_reference_stays_within_one_owners_rows() {
+    // The review's finding 1 (probe A): `refers target to Premiums` let
+    // eve learn whether bob held a premium row, by whether her write
+    // committed, and kept bob from cancelling his while hers named him.
+    let program = built_from(&[
+        ("Premiums.pw", PREMIUMS),
+        ("Crushes.pw", CRUSHES),
+        ("app.pw", CRUSHES_APP),
+    ]);
+    let tables = MemoryTables::new(program.tables.clone()).assert_ok("the adapter");
+    let eve = "eve";
+    // Eve's crush names her own premium, which she has not taken.
+    let refused =
+        command(&program, &tables, "crush", eve, &[handle(BOB)]).assert_err("eve holds no premium");
+    assert!(
+        refused.contains("references a missing Premiums"),
+        "{refused}"
+    );
+    assert_eq!(
+        command(&program, &tables, "subscribe", eve, &[]),
+        Ok(vec![Val::Result(Ok(None))])
+    );
+    // Now hers commits, whatever bob holds.
+    assert_eq!(
+        command(&program, &tables, "crush", eve, &[handle(BOB)]),
+        Ok(vec![Val::Result(Ok(None))])
+    );
+    // Bob's premium is his alone: taken and cancelled, whoever's crush
+    // names him.
+    assert_eq!(
+        command(&program, &tables, "subscribe", BOB, &[]),
+        Ok(vec![Val::Result(Ok(None))])
+    );
+    assert_eq!(command(&program, &tables, "cancel", BOB, &[]), Ok(vec![]));
+    // Eve's own crush names her own premium: hers to keep.
+    let refused =
+        command(&program, &tables, "cancel", eve, &[]).assert_err("her own crush names it");
+    assert!(
+        refused.contains("references a missing Premiums"),
+        "{refused}"
+    );
+    // The host refuses every reference across owners' rows, whatever
+    // compiled it (the compiler's PW6924): by another field, from a table
+    // no one owns, into one no one owns; and one it cannot hold to its
+    // tables.
+    let refused = |change: &dyn Fn(&mut serde_json::Value), says: &str| {
+        let mut json = serde_json::to_value(&program.tables).expect("tables.json as JSON");
+        change(&mut json);
+        let why = pw_host::tables::Manifest::from_json(&json.to_string())
+            .assert_err("the host refuses the manifest");
+        assert!(why.contains(says), "{why}");
+    };
+    let table = |json: &mut serde_json::Value, name: &str| -> serde_json::Value {
+        json["tables"]
+            .as_array()
+            .and_then(|tables| tables.iter().position(|t| t["name"] == name))
+            .map(|at| json["tables"][at].take())
+            .unwrap_or_default()
+    };
+    let put = |json: &mut serde_json::Value, t: serde_json::Value| {
+        if let Some(tables) = json["tables"].as_array_mut()
+            && let Some(at) = tables.iter().position(|old| old.is_null())
+        {
+            tables[at] = t;
+        }
+    };
+    // No one owns it: no owner, and no function given a handle.
+    let unowned = |t: &mut serde_json::Value| {
+        if let Some(t) = t.as_object_mut() {
+            t.remove("owner");
+        }
+        if let Some(functions) = t["functions"].as_array_mut() {
+            for f in functions {
+                if let Some(f) = f.as_object_mut() {
+                    f.remove("reader");
+                }
+            }
+        }
+    };
+    let across = "across owners' rows";
+    refused(
+        &|json| {
+            let mut t = table(json, "Crushes");
+            t["references"][0]["field"] = json!("target");
+            put(json, t);
+        },
+        &format!("Crushes refers `target` to Premiums, {across}"),
+    );
+    refused(
+        &|json| {
+            let mut t = table(json, "Crushes");
+            unowned(&mut t);
+            put(json, t);
+        },
+        &format!("Crushes refers `from` to Premiums, {across}"),
+    );
+    refused(
+        &|json| {
+            let mut t = table(json, "Premiums");
+            unowned(&mut t);
+            put(json, t);
+        },
+        &format!("Crushes refers `from` to Premiums, {across}"),
+    );
+    refused(
+        &|json| {
+            let mut t = table(json, "Crushes");
+            t["references"][0]["table"] = json!("Profiles");
+            put(json, t);
+        },
+        "Crushes refers `from` to Profiles, which it does not declare",
+    );
+    refused(
+        &|json| {
+            let mut t = table(json, "Crushes");
+            t["references"][0]["field"] = json!("since");
+            put(json, t);
+        },
+        "Crushes refers by `since`, which is not its field",
+    );
+}
+
+/// Likes, whose row names the one liked first: its owner, `from`, is no
+/// row's first field (the review's finding 6).
+const LIKES: &str = "module Likes\n\nimport capability.{ UserId }\n\ntype Like = Like { to: UserId, from: UserId, added: Int }\n\ntable Likes\n    row     Like\n    key     from, to\n    index   by_to on to\n    owned   by from\n    shares  with to\n";
+
+const LIKES_APP: &str = "module owned.app\n\nimport capability.{ User, UserId, id_of }\nimport context.{ current_user }\nimport Likes.{ Like }\nimport Likes\n\ncommand like(to: UserId) -> Result<(), Like>\n    transaction serializable\n{\n    let me = current_user()\n    Likes.insert(me, Like { to: to, from: id_of(me), added: 0 })\n}\n\ncommand keep(like: Like) -> ()\n    transaction serializable\n{\n    Likes.put(current_user(), like)\n}\n";
+
+/// A like as the component's WIT declares it.
+fn like(to: &str, from: &str) -> Val {
+    Val::Record(vec![
+        ("to".into(), Val::String(to.into())),
+        ("from".into(), Val::String(from.into())),
+        ("added".into(), Val::S64(0)),
+    ])
+}
+
+#[test]
+fn an_owner_who_is_not_the_rows_first_field_writes_their_rows_alone() {
+    // Every fixture put its owner first, so an owner check that read a
+    // row's first field passed every test (the review's finding 6).
+    let program = built_from(&[("Likes.pw", LIKES), ("app.pw", LIKES_APP)]);
+    let tables = MemoryTables::new(program.tables.clone()).assert_ok("the adapter");
+    // Alice likes bob: her own row, its first field bob's.
+    assert_eq!(
+        command(&program, &tables, "like", ALICE, &[handle(BOB)]),
+        Ok(vec![Val::Result(Ok(None))])
+    );
+    // A like from bob, its first field alice's, kept by alice: refused
+    // before it is written.
+    let refused = command(&program, &tables, "keep", ALICE, &[like(ALICE, BOB)])
+        .assert_err("a like from bob is bob's");
+    assert!(
+        refused.contains("whose `from` is not its writer"),
+        "{refused}"
+    );
+    // Her own, its first field carol's: kept.
+    assert_eq!(
+        command(&program, &tables, "keep", ALICE, &[like(CAROL, ALICE)]),
+        Ok(vec![])
+    );
+    let liked: Vec<(String, String)> = [ALICE, BOB]
+        .iter()
+        .flat_map(|from| {
+            tables
+                .read("pw:tables/likes#of-from", &[json!(from)])
+                .assert_ok("the adapter reads a liker's likes")
+                .as_array()
+                .cloned()
+                .unwrap_or_default()
+        })
+        .map(|row| {
+            (
+                row["from"].as_str().unwrap_or_default().to_string(),
+                row["to"].as_str().unwrap_or_default().to_string(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        liked,
+        [
+            (ALICE.to_string(), BOB.to_string()),
+            (ALICE.to_string(), CAROL.to_string())
+        ]
+    );
 }
 
 #[test]

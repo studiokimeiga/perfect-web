@@ -20,9 +20,8 @@ fn root() -> std::path::PathBuf {
     std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
-/// The platform's sources, and `examples/owned/`'s, `Notes.pw` and
-/// `app.pw` written as `edited` gives them where it does.
-fn units(edited: &[(&str, &str)]) -> Vec<Unit> {
+/// The platform's sources, then `files`, each a path and its source.
+fn units_of(files: Vec<(String, String)>) -> Vec<Unit> {
     let mut sources = Vec::new();
     for directory in ["packages/pw-std", "packages/pw-platform-web"] {
         let mut paths: Vec<_> = std::fs::read_dir(root().join(directory))
@@ -38,14 +37,7 @@ fn units(edited: &[(&str, &str)]) -> Vec<Unit> {
             ));
         }
     }
-    for name in ["Notes.pw", "NoteData.pw", "app.pw"] {
-        let path = root().join("examples/owned").join(name);
-        let src = match edited.iter().find(|(n, _)| *n == name) {
-            Some((_, src)) => src.to_string(),
-            None => std::fs::read_to_string(&path).expect("fixture source"),
-        };
-        sources.push((path.display().to_string(), src));
-    }
+    sources.extend(files);
     sources
         .into_iter()
         .map(|(path, src)| {
@@ -55,6 +47,21 @@ fn units(edited: &[(&str, &str)]) -> Vec<Unit> {
             Unit { path, src, hir }
         })
         .collect()
+}
+
+/// The platform's sources, and `examples/owned/`'s, `Notes.pw` and
+/// `app.pw` written as `edited` gives them where it does.
+fn units(edited: &[(&str, &str)]) -> Vec<Unit> {
+    let mut files = Vec::new();
+    for name in ["Notes.pw", "NoteData.pw", "app.pw"] {
+        let path = root().join("examples/owned").join(name);
+        let src = match edited.iter().find(|(n, _)| *n == name) {
+            Some((_, src)) => src.to_string(),
+            None => std::fs::read_to_string(&path).expect("fixture source"),
+        };
+        files.push((path.display().to_string(), src));
+    }
+    units_of(files)
 }
 
 /// One compiled query or command.
@@ -104,6 +111,36 @@ impl Program {
             .get(&format!("owned.app.{id}"))
             .unwrap_or_else(|| panic!("no component owned.app.{id}"))
     }
+
+    /// **The program's predicates with a body, compiled**, by the component
+    /// that answers each: what the engine asks for a requirement naming one.
+    fn predicates(&self) -> pw_host::engine::Predicates {
+        let predicates = self
+            .components
+            .values()
+            .filter(|c| c.contract.exports.iter().any(|e| e.kind == "predicate"))
+            .map(|c| {
+                pw_host::engine::Predicate::new(
+                    pw_host::engine::Prepared::compile(&c.bytes).assert_ok("a predicate compiles"),
+                    c.contract.clone(),
+                    c.granted(),
+                )
+                .assert_ok("a program predicate")
+            });
+        pw_host::engine::Predicates::new(predicates).assert_ok("each predicate once")
+    }
+
+    /// **The platform's operations every component of the program imports**,
+    /// but the tables': the reader's principal, answering `user`, and the
+    /// outbox's, answering nothing. One map serves an export and the
+    /// predicates it requires, as a host's does.
+    fn platform(&self, user: &str) -> BTreeMap<String, HostFn> {
+        let mut host = BTreeMap::new();
+        for component in self.components.values() {
+            host.extend(platform(component, user));
+        }
+        host
+    }
 }
 
 /// The fixture program, as the compiler builds it.
@@ -111,8 +148,23 @@ fn program() -> Program {
     built(&[])
 }
 
+/// **A program of the platform and `files` alone**, each a name and its
+/// source, as the compiler builds it.
+fn built_from(files: &[(&str, &str)]) -> Program {
+    from_units(units_of(
+        files
+            .iter()
+            .map(|(name, src)| (name.to_string(), src.to_string()))
+            .collect(),
+    ))
+}
+
 fn built(edited: &[(&str, &str)]) -> Program {
-    let build = pw_core::build::build(&units(edited)).assert_ok("the owned program builds");
+    from_units(units(edited))
+}
+
+fn from_units(units: Vec<Unit>) -> Program {
+    let build = pw_core::build::build(&units).assert_ok("the owned program builds");
     assert!(build.refusals().is_empty(), "{:?}", build.refusals());
     let contracts = pw_host::ComponentContract::from_json(
         &serde_json::to_string(&build.contracts).expect("serialize compiled contracts"),
@@ -238,6 +290,110 @@ fn counted(inner: HostFn, calls: &Arc<AtomicUsize>) -> HostFn {
     })
 }
 
+/// **A call's tables, watched** (track `row-ownership`'s tests): what
+/// `inner` gives the engine, each of the export's table functions counted in
+/// `body` (so a test sees whether a body ran), each predicate's asking in
+/// `asked`, and `after_read`, where given, run once each of a predicate's
+/// reads has answered (where a test stands between a predicate and the body
+/// it guards).
+#[allow(dead_code)]
+struct Watched<'a> {
+    inner: &'a dyn pw_host::engine::CallTables,
+    body: Arc<AtomicUsize>,
+    asked: Arc<AtomicUsize>,
+    after_read: Option<Arc<dyn Fn() + Send + Sync>>,
+}
+
+#[allow(dead_code)]
+impl<'a> Watched<'a> {
+    fn new(inner: &'a dyn pw_host::engine::CallTables) -> Watched<'a> {
+        Watched {
+            inner,
+            body: Arc::default(),
+            asked: Arc::default(),
+            after_read: None,
+        }
+    }
+}
+
+impl pw_host::engine::CallTables for Watched<'_> {
+    fn manifest(&self) -> &pw_host::tables::Manifest {
+        self.inner.manifest()
+    }
+
+    fn functions(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, HostFn>, String> {
+        Ok(self
+            .inner
+            .functions(contract, granted)?
+            .into_iter()
+            .map(|(key, function)| (key, counted(function, &self.body)))
+            .collect())
+    }
+
+    fn predicate_reads(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, HostFn>, String> {
+        self.asked.fetch_add(1, Ordering::SeqCst);
+        let reads = self.inner.predicate_reads(contract, granted)?;
+        let Some(after) = self.after_read.clone() else {
+            return Ok(reads);
+        };
+        Ok(reads
+            .into_iter()
+            .map(|(key, read)| {
+                let after = Arc::clone(&after);
+                let watched: HostFn = Arc::new(move |args: &[Val]| {
+                    let answer = read(args);
+                    after();
+                    answer
+                });
+                (key, watched)
+            })
+            .collect())
+    }
+}
+
+/// **An export, made as `user`, its predicates asked first, as the engine
+/// asks them**: the program's by the engine itself, on `tables` (a command's
+/// transaction, or the published tables), the deployment's answering
+/// `deployment`, under `limits`. Counts in `deployment_asked`.
+#[allow(dead_code, clippy::too_many_arguments)]
+fn authorized(
+    program: &Program,
+    id: &str,
+    user: &str,
+    tables: &dyn pw_host::engine::CallTables,
+    limits: &pw_host::Limits,
+    args: &[Val],
+    deployment: bool,
+    deployment_asked: &AtomicUsize,
+) -> Result<Vec<Val>, String> {
+    let component = program.component(id);
+    let prepared =
+        pw_host::engine::Prepared::compile(&component.bytes).assert_ok("the export compiles");
+    prepared.call_authorized_with_tables_as(
+        &component.contract,
+        &component.granted(),
+        limits,
+        &program.platform(user),
+        tables,
+        &program.predicates(),
+        &as_user(user),
+        &component.export(),
+        args,
+        |_, _| {
+            deployment_asked.fetch_add(1, Ordering::SeqCst);
+            Ok(deployment)
+        },
+    )
+}
+
 /// **A query, made as `caller`**, from the published tables, its table
 /// reads counted in `reads`.
 fn query_counted(
@@ -286,7 +442,8 @@ fn query(
 
 /// **A command, made as `user`**, as the platform runs one: in a command of
 /// its own, committed where it answers, undone where it fails or answers a
-/// declared error.
+/// declared error. A commit the adapter refuses (a reference, a bound) is
+/// the command's refusal, told as the browser would be told it.
 fn command(
     program: &Program,
     tables: &MemoryTables,
@@ -314,7 +471,9 @@ fn command(
     );
     let declared_error = matches!(answer.as_deref(), Ok([Val::Result(Err(_))]));
     if answer.is_ok() && !declared_error {
-        staged.commit().assert_ok("its commit");
+        staged
+            .commit()
+            .map_err(|error| format!("commit refused: {error:?}"))?;
     }
     answer
 }

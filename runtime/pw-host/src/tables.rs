@@ -68,7 +68,18 @@ struct Table {
     shares: Vec<String>,
     #[serde(default)]
     private: Vec<String>,
+    /// Each `refers <field> to <Table>`: a foreign key its database holds
+    /// across every row of both tables, whoever owns them.
+    #[serde(default)]
+    references: Vec<Reference>,
     functions: Vec<Function>,
+}
+
+/// `refers owner to Users`, as tables.json states it.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+struct Reference {
+    field: String,
+    table: String,
 }
 
 /// An index a table declares: `index by_done on done`, `unique by_slug on
@@ -580,6 +591,14 @@ impl Table {
                 ));
             }
         }
+        // A bound counts every owner's rows (the review of track
+        // `row-ownership`, finding 2; the compiler's PW0368): one owner's
+        // rows would refuse another's write, and tell them how many.
+        if let Some(bound) = self.bounded {
+            return refused(format!(
+                "is owned, and its bound of {bound} rows counts every owner's"
+            ));
+        }
         Ok(())
     }
 
@@ -723,6 +742,48 @@ impl Manifest {
         // Whose each table's rows are (track `row-ownership`).
         for table in &self.tables {
             table.owned_whole()?;
+        }
+        self.references_within_one_owner()
+    }
+
+    /// **Each reference stays within one owner's rows** (track
+    /// `row-ownership`, the review's finding 1; the compiler's PW6924, held
+    /// again where the host reads the manifest): its field is its table's,
+    /// it names a table of this manifest, and a reference into an owned
+    /// table is made by an owned table from its own owner field, naming the
+    /// owner's own row; a table no one owns refers to no owned table, and an
+    /// owned table to no table no one owns. A database checks a reference
+    /// across every row, whoever owns it (PostgreSQL's foreign keys are
+    /// checked past its row security), so any other reference would answer
+    /// one owner's write with another's rows.
+    fn references_within_one_owner(&self) -> Result<(), String> {
+        for table in &self.tables {
+            let name = &table.name;
+            for reference in &table.references {
+                let (field, to) = (&reference.field, &reference.table);
+                if !table.fields.iter().any(|f| f.name == *field) {
+                    return Err(format!(
+                        "tables.json: {name} refers by `{field}`, which is not its field"
+                    ));
+                }
+                let Some(target) = self.tables.iter().find(|t| t.name == *to) else {
+                    return Err(format!(
+                        "tables.json: {name} refers `{field}` to {to}, which it does not declare"
+                    ));
+                };
+                let within = match (&table.owner, &target.owner) {
+                    (None, None) => true,
+                    (Some(owner), Some(_)) => field == owner,
+                    _ => false,
+                };
+                if !within {
+                    return Err(format!(
+                        "tables.json: {name} refers `{field}` to {to}, across owners' rows: a \
+                         reference into an owned table is made from its referring table's \
+                         owner, and an owned table refers to no table no one owns"
+                    ));
+                }
+            }
         }
         Ok(())
     }

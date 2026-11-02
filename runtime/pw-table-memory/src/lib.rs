@@ -576,13 +576,7 @@ impl Command {
         granted: &pw_host::Granted,
     ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, Error> {
         use pw_host::engine::table_read_host;
-        let one_predicate =
-            matches!(contract.exports.as_slice(), [only] if only.kind == "predicate");
-        if !one_predicate {
-            return Err(Error::Input(
-                "a predicate's reads are a predicate's: one predicate export".into(),
-            ));
-        }
+        one_predicate(contract)?;
         let mut out = BTreeMap::new();
         let reads = self
             .inner
@@ -652,6 +646,77 @@ impl Command {
     /// [`Command::prepare`], then [`Prepared::publish`].
     pub fn commit(self) -> Result<Committed, Error> {
         self.prepare()?.publish()
+    }
+}
+
+/// A predicate's reads are a predicate's: its contract is one `predicate`
+/// export (ADR-0384's H2), never a command's or a query's.
+fn one_predicate(contract: &pw_host::ComponentContract) -> Result<(), Error> {
+    match contract.exports.as_slice() {
+        [only] if only.kind == "predicate" => Ok(()),
+        _ => Err(Error::Input(
+            "a predicate's reads are a predicate's: one predicate export".into(),
+        )),
+    }
+}
+
+/// **A command's transaction, as the engine asks it** (track
+/// `row-ownership`; `pw_host::engine::CallTables`): the command's reads and
+/// writes ([`Command::host_fns`]), and each program predicate's reads
+/// ([`Command::predicate_host_fns`]), all on this transaction, so a
+/// predicate the engine asks before the command's body reads what the body
+/// writes against.
+impl pw_host::engine::CallTables for Command {
+    fn manifest(&self) -> &pw_host::tables::Manifest {
+        &self.inner.host
+    }
+
+    fn functions(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, String> {
+        self.host_fns(contract, granted)
+            .map_err(|error| format!("{error:?}"))
+    }
+
+    fn predicate_reads(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, String> {
+        self.predicate_host_fns(contract, granted)
+            .map_err(|error| format!("{error:?}"))
+    }
+}
+
+/// **The published tables, as the engine asks them for a query** (track
+/// `row-ownership`): the query's reads ([`MemoryTables::read_host_fns`]) and
+/// its program predicates' reads, each reading the tables as published when
+/// it reads. Two reads of one call may see a commit between them; one
+/// snapshot for a query and its predicates is a snapshot's to give.
+impl pw_host::engine::CallTables for MemoryTables {
+    fn manifest(&self) -> &pw_host::tables::Manifest {
+        &self.inner.host
+    }
+
+    fn functions(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, String> {
+        self.read_host_fns(contract, granted)
+            .map_err(|error| format!("{error:?}"))
+    }
+
+    fn predicate_reads(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, String> {
+        one_predicate(contract).map_err(|error| format!("{error:?}"))?;
+        self.read_host_fns(contract, granted)
+            .map_err(|error| format!("{error:?}"))
     }
 }
 
