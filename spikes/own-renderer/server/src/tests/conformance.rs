@@ -31,6 +31,7 @@
 //! second host (ADR-0338 5.5's parts 2, 3 and 6), which D3 runs on
 //! PostgreSQL through this same seam.
 
+use super::tables::Asserted;
 use super::*;
 use std::collections::BTreeSet;
 
@@ -305,8 +306,12 @@ fn wit_row(table: &Table, row: &Map<String, Json>) -> Val {
 
 /// A WIT record as a row, by the table's Pleris names.
 fn row_of(table: &Table, record: &Val) -> Map<String, Json> {
+    assert!(
+        matches!(record, Val::Record(_)),
+        "a row is a record: {record:?}"
+    );
     let Val::Record(fields) = record else {
-        panic!("a row is a record: {record:?}")
+        unreachable!("asserted above")
     };
     assert_eq!(fields.len(), table.fields.len(), "a row of {}", table.name);
     fields
@@ -499,21 +504,27 @@ fn suite_contracts(tables: &[Table]) -> [(ComponentContract, Granted); 2] {
 
 /// A host function called, and what it answered.
 fn call(ops: &data::Ops, import: &str, args: &[Val]) -> Vec<Val> {
-    let f = ops
-        .get(import)
-        .unwrap_or_else(|| panic!("the gate admitted `{import}`"));
-    f(args).unwrap_or_else(|why| panic!("`{import}`: {why}"))
+    let f = ops.get(import);
+    assert!(f.is_some(), "the gate admitted `{import}`");
+    let Some(f) = f else {
+        unreachable!("asserted above")
+    };
+    f(args).asserted(import)
 }
 
 /// **Rows written through the seam and committed through the server's own
 /// commit**: one command inserting each row, which the materializer's
 /// transaction publishes.
-fn written(s: &Server, tables: &[Table], rows: &BTreeMap<String, Vec<Map<String, Json>>>) {
+pub(super) fn written(
+    s: &Server,
+    tables: &[Table],
+    rows: &BTreeMap<String, Vec<Map<String, Json>>>,
+) {
     let [_, (writes, granted)] = suite_contracts(tables);
     let mut staging = s.data.begin("conformance");
     let ops = staging
         .table_ops(&writes, &granted)
-        .expect("the command's functions");
+        .asserted("the command's functions");
     for table in tables {
         let insert = &table.function("insert").import;
         for row in &rows[&table.name] {
@@ -539,7 +550,7 @@ fn published(s: &Server, table: &Table, row: &Map<String, Json>) -> Vec<Val> {
     let ops = s
         .data
         .table_reads(&reads, &granted, None)
-        .expect("its reads");
+        .asserted("its reads");
     let get = table.function("get");
     let key: Vec<Json> = get.by.iter().map(|f| row[f].clone()).collect();
     call(&ops, &get.import, &arguments(table, get, &[key]))
@@ -565,7 +576,7 @@ fn answers_and_costs(
     let ops: data::Ops = s
         .data
         .table_reads(&reads, &granted, None)
-        .expect("the reads")
+        .asserted("the reads")
         .into_iter()
         .map(|(name, f)| {
             let calls = calls.clone();
@@ -631,15 +642,17 @@ fn answers_and_costs(
                 );
                 // Part 1: the oracle's rows, in its order.
                 let expected = oracle(function, all, &selectors);
-                let got: Vec<Map<String, Json>> = match answer.as_slice() {
+                let got: Option<Vec<Map<String, Json>>> = match answer.as_slice() {
                     [Val::Option(found)] if table.one(function) => {
-                        found.iter().map(|r| row_of(table, r)).collect()
+                        Some(found.iter().map(|r| row_of(table, r)).collect())
                     }
                     [Val::List(found)] if !table.one(function) => {
-                        found.iter().map(|r| row_of(table, r)).collect()
+                        Some(found.iter().map(|r| row_of(table, r)).collect())
                     }
-                    other => panic!("{} answered {other:?}", function.import),
+                    _ => None,
                 };
+                assert!(got.is_some(), "{} answered {answer:?}", function.import);
+                let got = got.unwrap_or_default();
                 assert_eq!(
                     got, expected,
                     "{} given {selectors:?}, at {n} rows a table",
@@ -682,14 +695,20 @@ fn staging_and_refusals(s: &Server, tables: &[Table]) {
         let key: Vec<Json> = get.by.iter().map(|f| row[f].clone()).collect();
         // Part 3: staged, read by its command alone; committed, by every read.
         let mut staging = s.data.begin("conformance");
-        let ops = staging.table_ops(&writes, &granted).expect("its functions");
+        let ops = staging
+            .table_ops(&writes, &granted)
+            .asserted("its functions");
         call(
             &ops,
             &table.function("insert").import,
             &[wit_row(table, &row)],
         );
         assert_eq!(
-            call(&ops, &get.import, &arguments(table, get, &[key.clone()])),
+            call(
+                &ops,
+                &get.import,
+                &arguments(table, get, std::slice::from_ref(&key))
+            ),
             some_row(table, &row),
             "{}: a command reads its own write",
             table.name
@@ -710,7 +729,9 @@ fn staging_and_refusals(s: &Server, tables: &[Table]) {
         // Part 4: dropped without its commit, it keeps nothing.
         let other = fresh(tables, table, &base, 60_000);
         let staging = s.data.begin("conformance");
-        let ops = staging.table_ops(&writes, &granted).expect("its functions");
+        let ops = staging
+            .table_ops(&writes, &granted)
+            .asserted("its functions");
         call(
             &ops,
             &table.function("insert").import,
@@ -723,7 +744,9 @@ fn staging_and_refusals(s: &Server, tables: &[Table]) {
         // where the table has one, by its publication where it has none.
         let mut refused = other.clone();
         let mut staging = s.data.begin("conformance");
-        let ops = staging.table_ops(&writes, &granted).expect("its functions");
+        let ops = staging
+            .table_ops(&writes, &granted)
+            .asserted("its functions");
         match table.references.first() {
             Some((field, to)) => {
                 let target = tables.iter().find(|t| &t.name == to).expect("its target");
@@ -786,7 +809,7 @@ fn build_of(sources: &[&str]) -> (tempfile::TempDir, std::path::PathBuf) {
 fn the_suite_holds_for_the_guestbooks_tables() {
     let (_dir, out) = build_of(&["examples/guestbook"]);
     let checked = conformance(&out, || {
-        Server::from_build(out.clone(), out.clone()).expect("served")
+        Server::from_build(out.clone(), out.clone()).asserted("served")
     });
     assert!(checked > 0);
     eprintln!("conformance: the guestbook's tables, {checked} reads checked");
@@ -799,7 +822,7 @@ fn the_suite_holds_for_the_lists_apps_tables() {
     sources.push("examples/tables/app.pw");
     let (_dir, out) = build_of(&sources);
     let checked = conformance(&out, || {
-        Server::from_build(out.clone(), out.clone()).expect("served")
+        Server::from_build(out.clone(), out.clone()).asserted("served")
     });
     assert!(checked > 0);
     eprintln!("conformance: the lists app's tables, {checked} reads checked");
@@ -813,7 +836,7 @@ fn the_suite_holds_for_the_lists_apps_tables() {
 #[test]
 fn each_idempotent_command_sent_again_is_answered_once() {
     let (_dir, out) = build_of(&["examples/guestbook"]);
-    let s = Server::from_build(out.clone(), out.clone()).expect("served");
+    let s = Server::from_build(out.clone(), out.clone()).asserted("served");
     let idempotent: Vec<String> = s
         .contracts
         .iter()
@@ -836,7 +859,7 @@ fn each_idempotent_command_sent_again_is_answered_once() {
         let ops = s
             .data
             .table_reads(&reads, &granted, None)
-            .expect("the entries' reads");
+            .asserted("the entries' reads");
         call(
             &ops,
             "pw:tables/entries#of-book",
@@ -850,12 +873,12 @@ fn each_idempotent_command_sent_again_is_answered_once() {
         let args = args.as_array().expect("arguments").clone();
         let first = s
             .command_answer(command, "a", &args, Some("i-again"))
-            .expect("answered");
+            .asserted("answered");
         assert!(first.committed, "{command}: {first:?}");
         let after_first = entries(&s);
         let again = s
             .command_answer(command, "a", &args, Some("i-again"))
-            .expect("answered");
+            .asserted("answered");
         assert_eq!(again, first, "{command}: the retry is answered as it was");
         assert_eq!(
             entries(&s),
@@ -869,8 +892,7 @@ fn each_idempotent_command_sent_again_is_answered_once() {
 /// path (`Server::answer`, its reads counted as `/metrics` counts them).
 fn table_calls(s: &Server, query: &str, args: &[Val]) -> BTreeMap<String, u64> {
     let before = s.calls.lock().expect("calls").clone();
-    s.answer(query, "conformance", args)
-        .unwrap_or_else(|why| panic!("{query}: {why}"));
+    s.answer(query, "conformance", args).asserted(query);
     let after = s.calls.lock().expect("calls").clone();
     after
         .into_iter()
@@ -941,7 +963,7 @@ fn each_query_reads_its_tables_a_fixed_number_of_times_at_two_sizes() {
     ];
     for n in [3, 24] {
         for (build, query, args, reads) in &pins {
-            let s = Server::from_build(build.to_path_buf(), build.to_path_buf()).expect("served");
+            let s = Server::from_build(build.to_path_buf(), build.to_path_buf()).asserted("served");
             let tables = tables_of(build);
             written(&s, &tables, &generated(&tables, n, 0));
             let expected: BTreeMap<String, u64> =

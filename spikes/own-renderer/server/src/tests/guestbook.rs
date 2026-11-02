@@ -6,6 +6,7 @@
 //! removing, who may remove what, its numbers, a retry answered once, and
 //! the other readers told of a commit.
 
+use super::tables::Asserted;
 use super::*;
 
 const SIGN: &str = "guestbook.book.sign";
@@ -16,7 +17,7 @@ const LATEST: &str = "guestbook.book.Latest";
 fn served_guestbook() -> Served {
     let (dir, out) = super::tables::built(&["examples/guestbook"], &[]);
     Served {
-        server: Server::from_build(out.clone(), out).expect("served"),
+        server: Server::from_build(out.clone(), out).asserted("served"),
         _dir: dir,
     }
 }
@@ -35,7 +36,7 @@ fn shown(s: &Server, session: &str) -> String {
 /// `interaction`: what it was answered.
 fn sign(s: &Server, session: &str, text: &str, interaction: &str) -> Answered {
     s.command_answer(SIGN, session, &[serde_json::json!(text)], Some(interaction))
-        .unwrap_or_else(|why| panic!("signing is answered: {why}"))
+        .asserted("signing is answered")
 }
 
 /// `session` removes entry `number`.
@@ -46,31 +47,45 @@ fn remove(s: &Server, session: &str, number: i64, interaction: &str) -> Answered
         &[serde_json::json!(number)],
         Some(interaction),
     )
-    .unwrap_or_else(|why| panic!("removing is answered: {why}"))
+    .asserted("removing is answered")
 }
 
 /// The entries `Latest` answers `session`: each one's number, name, text,
 /// and whether it is the reader's.
 fn latest(s: &Server, session: &str) -> Vec<(i64, String, String, bool)> {
     let reader = Val::String(s.identity.principals().user_of(session));
-    let Val::List(lines) = s
+    let lines = s
         .answer(LATEST, session, &[reader, Val::S64(20)])
-        .expect("read")
-    else {
-        panic!("a list")
+        .asserted("read");
+    assert!(matches!(lines, Val::List(_)), "a list: {lines:?}");
+    let Val::List(lines) = lines else {
+        unreachable!("asserted above")
     };
     lines
         .iter()
         .map(|line| {
             let field = |name: &str| val_at(line, &[name]).cloned();
-            match (field("number"), field("name"), field("text"), field("mine")) {
+            let fields = (field("number"), field("name"), field("text"), field("mine"));
+            assert!(
+                matches!(
+                    fields,
+                    (
+                        Some(Val::S64(_)),
+                        Some(Val::String(_)),
+                        Some(Val::String(_)),
+                        Some(Val::Bool(_))
+                    )
+                ),
+                "a line: {fields:?}"
+            );
+            match fields {
                 (
                     Some(Val::S64(number)),
                     Some(Val::String(name)),
                     Some(Val::String(text)),
                     Some(Val::Bool(mine)),
                 ) => (number, name, text, mine),
-                other => panic!("a line: {other:?}"),
+                _ => unreachable!("asserted above"),
             }
         })
         .collect()
@@ -153,7 +168,7 @@ fn an_entry_is_its_authors_alone_to_remove() {
     // Signed out, `requires SignedIn` refuses it before it runs.
     let refused = s
         .command_answer(REMOVE, "c", &[serde_json::json!(1)], Some("i-4"))
-        .expect("answered");
+        .asserted("answered");
     assert_eq!(refused.refused.as_deref(), Some("SignedIn"));
     assert_eq!(latest(&s, "a"), [line(1, "Ada", "Mine", true)]);
 }
@@ -198,11 +213,54 @@ fn a_signing_reaches_every_other_open_page_of_the_entries() {
     s.telling.lock().expect("telling").clear();
     assert!(sign(&s, "a", "Live", "i-1").committed);
     let telling = s.telling.lock().expect("telling").clone();
-    let (committer, reached) = telling.last().expect("a commit to tell of");
+    assert!(!telling.is_empty(), "a commit to tell of");
+    let Some((committer, reached)) = telling.last() else {
+        unreachable!("asserted above")
+    };
     assert_eq!(committer, "a");
     assert!(
         reached.iter().any(|r| r.resource == LATEST),
         "the commit dropped the entries' query: {reached:?}"
     );
     assert_eq!(s.others_reading("a", reached), ["b"]);
+}
+
+/// **One render reads one state of the tables** (NEXT 4c; the adapter's
+/// snapshot): a commit landing between the page's bindings, after `me` and
+/// before `entries`, is not read by that render, whose every table read is
+/// its snapshot's; the page read after it shows it.
+#[test]
+fn a_render_reads_one_state_of_the_tables() {
+    let (_dir, out) = super::tables::built(&["examples/guestbook"], &[]);
+    let s = Server::from_build(out.clone(), out.clone()).asserted("served");
+    s.identity.signed_in_for_test("a", "u-ada", "Ada");
+    assert!(sign(&s, "a", "Before", "i-1").committed);
+    let tables = super::conformance::tables_of(&out);
+    let mut between: BTreeMap<String, Vec<serde_json::Map<String, serde_json::Value>>> =
+        BTreeMap::new();
+    between.insert(
+        "Books".into(),
+        vec![
+            serde_json::from_value(serde_json::json!({"name": "other", "signed": 0}))
+                .asserted("a book"),
+        ],
+    );
+    between.insert(
+        "Entries".into(),
+        vec![serde_json::from_value(serde_json::json!({
+            "book": "guestbook", "number": 9, "author": "u-bob", "name": "Bob", "text": "Between"
+        }))
+        .asserted("an entry")],
+    );
+    *s.between_bindings.lock().expect("between") = Some(Box::new(move |server: &Server| {
+        super::conformance::written(server, &tables, &between);
+    }));
+    let page = shown(&s, "c");
+    assert!(page.contains("Before"), "{page}");
+    assert!(
+        !page.contains("Between"),
+        "a commit during the render is not the render's: {page}"
+    );
+    let again = shown(&s, "c");
+    assert!(again.contains("Between"), "{again}");
 }

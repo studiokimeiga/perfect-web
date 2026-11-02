@@ -9,6 +9,23 @@
 
 use super::*;
 
+/// **A domain result, asserted before it is read**: a test of this track
+/// fails at an assertion, never at an `expect` (D2's strict mutation
+/// producer counts only an assertion's failure as a kill).
+pub(super) trait Asserted<T> {
+    fn asserted(self, what: &str) -> T;
+}
+
+impl<T, E: std::fmt::Debug> Asserted<T> for Result<T, E> {
+    fn asserted(self, what: &str) -> T {
+        assert!(self.is_ok(), "{what}: {:?}", self.as_ref().err());
+        match self {
+            Ok(value) => value,
+            Err(_) => unreachable!("asserted above"),
+        }
+    }
+}
+
 pub(super) const EVERY_LIST: &str = "tables.app.EveryList";
 const LIST_AT: &str = "tables.app.ListAt";
 const ITEMS_OF: &str = "tables.app.ItemsOf";
@@ -91,7 +108,7 @@ fn served_program(program: &str) -> Served {
     sources.push(&file);
     let (dir, out) = built(&sources, &[]);
     Served {
-        server: Server::from_build(out.clone(), out).expect("served"),
+        server: Server::from_build(out.clone(), out).asserted("served"),
         _dir: dir,
     }
 }
@@ -130,13 +147,18 @@ fn item(list: &str, id: &str, done: bool, added: i64) -> Val {
 
 /// The ids of a list of lists, or of items, as a query answered it.
 fn ids(value: &Val) -> Vec<String> {
+    assert!(matches!(value, Val::List(_)), "a list: {value:?}");
     let Val::List(rows) = value else {
-        panic!("a list: {value:?}")
+        unreachable!("asserted above")
     };
     rows.iter()
-        .map(|row| match val_at(row, &["id"]) {
-            Some(Val::String(id)) => id.clone(),
-            other => panic!("a row's id: {other:?}"),
+        .map(|row| {
+            let id = val_at(row, &["id"]);
+            assert!(matches!(id, Some(Val::String(_))), "a row's id: {id:?}");
+            match id {
+                Some(Val::String(id)) => id.clone(),
+                _ => unreachable!("asserted above"),
+            }
         })
         .collect()
 }
@@ -145,7 +167,7 @@ fn ids(value: &Val) -> Vec<String> {
 fn committed(s: &Server, command: &str, session: &str, args: &[Val]) -> Answered {
     let answered = s
         .command_answered(command, session, args, None)
-        .unwrap_or_else(|why| panic!("{command} is answered: {why}"));
+        .asserted(command);
     assert!(
         answered.committed,
         "{command} commits: {:?}",
@@ -162,7 +184,7 @@ fn committed(s: &Server, command: &str, session: &str, args: &[Val]) -> Answered
 fn a_program_that_declares_its_tables_is_served_by_the_generic_adapter() {
     let s = served_tables();
     assert_eq!(
-        s.answer(EVERY_LIST, "a", &[]).expect("read"),
+        s.answer(EVERY_LIST, "a", &[]).asserted("read"),
         Val::List(vec![]),
         "no list yet"
     );
@@ -174,33 +196,38 @@ fn a_program_that_declares_its_tables_is_served_by_the_generic_adapter() {
     // Read by another session: the tables are the program's, in their
     // declared order (`order added`).
     assert_eq!(
-        ids(&s.answer(EVERY_LIST, "b", &[]).expect("read")),
+        ids(&s.answer(EVERY_LIST, "b", &[]).asserted("read")),
         ["chores", "groceries"]
     );
-    match s.answer(LIST_AT, "b", &[text("food")]).expect("read") {
-        Val::Option(Some(found)) => assert_eq!(val_at(&found, &["id"]), Some(&text("groceries"))),
-        other => panic!("the list at its slug: {other:?}"),
-    }
+    let at = s.answer(LIST_AT, "b", &[text("food")]).asserted("read");
+    assert!(
+        matches!(&at, Val::Option(Some(found)) if val_at(found, &["id"]) == Some(&text("groceries"))),
+        "the list at its slug: {at:?}"
+    );
     assert_eq!(
-        ids(&s.answer(ITEMS_OF, "b", &[text("groceries")]).expect("read")),
+        ids(&s
+            .answer(ITEMS_OF, "b", &[text("groceries")])
+            .asserted("read")),
         ["eggs", "milk"]
     );
     assert_eq!(
-        ids(&s.answer(OPEN_ITEMS, "b", &[]).expect("read")),
+        ids(&s.answer(OPEN_ITEMS, "b", &[]).asserted("read")),
         ["sweep", "milk"]
     );
     assert_eq!(
-        ids(&s.answer(EVERY_ITEM, "b", &[]).expect("read")),
+        ids(&s.answer(EVERY_ITEM, "b", &[]).asserted("read")),
         ["sweep", "eggs", "milk"]
     );
     committed(&s, DROP_ITEM, "a", &[text("groceries"), text("milk")]);
     assert_eq!(
-        ids(&s.answer(ITEMS_OF, "b", &[text("groceries")]).expect("read")),
+        ids(&s
+            .answer(ITEMS_OF, "b", &[text("groceries")])
+            .asserted("read")),
         ["eggs"]
     );
     committed(&s, CLEAR_LIST, "a", &[text("groceries")]);
     assert_eq!(
-        ids(&s.answer(EVERY_ITEM, "b", &[]).expect("read")),
+        ids(&s.answer(EVERY_ITEM, "b", &[]).asserted("read")),
         ["sweep"]
     );
 }
@@ -222,7 +249,7 @@ fn each_components_host_map_holds_its_own_table_functions_alone() {
         (OPEN_ITEMS, vec![]),
         (EVERY_ITEM, vec![]),
     ] {
-        s.answer(query, "a", &args).expect("read");
+        s.answer(query, "a", &args).asserted("read");
     }
     let maps = s.table_maps.lock().expect("table maps").clone();
     let expected: Vec<(&str, Vec<&str>)> = vec![
@@ -272,7 +299,7 @@ fn a_staged_write_is_invisible_until_its_commit() {
     let seen: Arc<Mutex<Option<Val>>> = Arc::default();
     let into = seen.clone();
     *s.before_commit.lock().expect("hook") = Some(Box::new(move |server| {
-        *into.lock().expect("seen") = Some(server.answer(EVERY_LIST, "b", &[]).expect("read"));
+        *into.lock().expect("seen") = Some(server.answer(EVERY_LIST, "b", &[]).asserted("read"));
     }));
     committed(&s, MAKE_LIST, "a", &[list("groceries", "food", 20)]);
     assert_eq!(
@@ -281,7 +308,7 @@ fn a_staged_write_is_invisible_until_its_commit() {
         "staged, it was read by no other query"
     );
     assert_eq!(
-        ids(&s.answer(EVERY_LIST, "b", &[]).expect("read")),
+        ids(&s.answer(EVERY_LIST, "b", &[]).asserted("read")),
         ["groceries"],
         "committed, it is read"
     );
@@ -303,7 +330,7 @@ fn a_command_that_does_not_commit_keeps_nothing() {
     // A declared error: the slug another list holds.
     let refused = s
         .command_answered(MAKE_LIST, "a", &[list("other", "food", 30)], None)
-        .expect("answered");
+        .asserted("answered");
     assert!(!refused.committed, "{:?}", refused.result);
     // A commit its tables refuse: an item of no list.
     let orphan = s.command_answered(KEEP_ITEM, "a", &[item("nowhere", "milk", false, 3)], None);
@@ -314,11 +341,11 @@ fn a_command_that_does_not_commit_keeps_nothing() {
         "{orphan:?}"
     );
     assert_eq!(
-        ids(&s.answer(EVERY_LIST, "b", &[]).expect("read")),
+        ids(&s.answer(EVERY_LIST, "b", &[]).asserted("read")),
         ["groceries"]
     );
     assert_eq!(
-        s.answer(EVERY_ITEM, "b", &[]).expect("read"),
+        s.answer(EVERY_ITEM, "b", &[]).asserted("read"),
         Val::List(vec![])
     );
     assert_eq!(
@@ -370,7 +397,7 @@ fn a_commits_rows_and_records_are_kept_together_or_not_at_all() {
             None,
             Some(("a:make:1", "[1]")),
         )
-        .expect("answered");
+        .asserted("answered");
     assert!(first.committed);
     // The same interaction's record again, for another list: the
     // materializer refuses its record, and the list is not published.
@@ -383,7 +410,7 @@ fn a_commits_rows_and_records_are_kept_together_or_not_at_all() {
     );
     assert!(again.is_err(), "{again:?}");
     assert_eq!(
-        ids(&s.answer(EVERY_LIST, "b", &[]).expect("read")),
+        ids(&s.answer(EVERY_LIST, "b", &[]).asserted("read")),
         ["groceries"],
         "a commit whose records were refused published no row"
     );
@@ -403,12 +430,12 @@ fn a_commits_rows_and_records_are_kept_together_or_not_at_all() {
         "{failed:?}"
     );
     assert_eq!(
-        s.recalled_interaction("a:make:2").expect("recall"),
+        s.recalled_interaction("a:make:2").asserted("recall"),
         None,
         "no record of a commit no reader sees"
     );
     assert_eq!(
-        ids(&s.answer(EVERY_LIST, "b", &[]).expect("read")),
+        ids(&s.answer(EVERY_LIST, "b", &[]).asserted("read")),
         ["groceries"],
         "and no row of it"
     );
@@ -421,15 +448,15 @@ fn a_commits_rows_and_records_are_kept_together_or_not_at_all() {
             None,
             Some(("a:make:3", "[4]")),
         )
-        .expect("answered");
+        .asserted("answered");
     assert!(kept.committed);
     assert!(
         s.recalled_interaction("a:make:3")
-            .expect("recall")
+            .asserted("recall")
             .is_some()
     );
     assert_eq!(
-        ids(&s.answer(EVERY_LIST, "b", &[]).expect("read")),
+        ids(&s.answer(EVERY_LIST, "b", &[]).asserted("read")),
         ["chores", "groceries"]
     );
 }
@@ -447,7 +474,7 @@ fn a_guarded_command_writes_its_tables_once_its_predicate_holds() {
         [serde_json::json!({"id": "signed", "name": "List signed", "slug": "signed", "added": 1})];
     let refused = s
         .command_answer(MAKE_SIGNED, "a", &sent, None)
-        .expect("answered");
+        .asserted("answered");
     assert!(!refused.committed, "{:?}", refused.result);
     assert_eq!(refused.refused.as_deref(), Some("SignedIn"));
     assert_eq!(
@@ -458,7 +485,7 @@ fn a_guarded_command_writes_its_tables_once_its_predicate_holds() {
     s.identity.signed_in_for_test("a", "u-ada", "Ada");
     let made = s
         .command_answer(MAKE_SIGNED, "a", &sent, None)
-        .expect("answered");
+        .asserted("answered");
     assert!(made.committed, "{:?} {:?}", made.result, made.why);
     assert_eq!(
         s.materializer.state("pw:tables/Lists").as_deref(),
@@ -482,9 +509,9 @@ fn a_program_mixing_its_tables_with_a_hand_written_layer_is_refused() {
     let mut sources = TABLES.to_vec();
     sources.push("examples/tables/app.pw");
     let (_dir, out) = built(&sources, &[("mixed.pw", mixed)]);
-    let refused = Server::from_build(out.clone(), out)
-        .err()
-        .expect("a mixed program is refused");
+    let refused = Server::from_build(out.clone(), out);
+    assert!(refused.is_err(), "a mixed program is refused");
+    let refused = refused.err().unwrap_or_default();
     assert!(
         refused.contains("`feed:data/users#viewer-name`, a hand-written data layer's"),
         "{refused}"

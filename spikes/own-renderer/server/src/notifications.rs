@@ -280,23 +280,22 @@ mod tests {
         let name = |session: &str| name_operation(&principals, session);
         let given = |user: &str| [Val::String(user.to_string())];
         // The guest model: every session its own guest, named by no provider.
-        assert_eq!(
-            name("s-1")(&given("u-s-1")).expect("read"),
-            vec![Val::Option(None)]
-        );
+        assert_eq!(name("s-1")(&given("u-s-1")), Ok(vec![Val::Option(None)]));
         identity.signed_in_for_test("s-2", "u-ada", "Ada");
         assert_eq!(
-            name("s-2")(&given("u-ada")).expect("read"),
-            vec![Val::Option(Some(Box::new(Val::String("Ada".into()))))]
+            name("s-2")(&given("u-ada")),
+            Ok(vec![Val::Option(Some(Box::new(Val::String("Ada".into()))))])
         );
         // Signed out, in the accounts model: no one.
-        assert_eq!(
-            name("s-3")(&given("u-s-3")).expect("read"),
-            vec![Val::Option(None)]
-        );
+        assert_eq!(name("s-3")(&given("u-s-3")), Ok(vec![Val::Option(None)]));
         // Another user's handle is no handle a program holds.
-        let refused = name("s-3")(&given("u-ada")).expect_err("another's handle");
-        assert!(refused.contains("reader's own handle"), "{refused}");
+        let refused = name("s-3")(&given("u-ada"));
+        assert!(
+            refused
+                .as_ref()
+                .is_err_and(|why| why.contains("reader's own handle")),
+            "{refused:?}"
+        );
     }
 
     #[test]
