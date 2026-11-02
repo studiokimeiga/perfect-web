@@ -1,8 +1,8 @@
 ADR-0290 - a verification run is dealt by the seconds its recipes last took
 
 produced by: just e14-dealt-by-time
-commit: 34f3c2d1de6bfa075a1db82ae5a61fddf4af4e95
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39538607183 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: bfe0c4a376b6f60c80566a834794fb31a6bcd339
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/41450961585 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 python: Python 3.12.3
 
 == the plan and the fetch (scripts/tests/test_ci_scripts.py)
@@ -21,7 +21,7 @@ test_any_error_leaves_a_recipe_planned (scripts.tests.test_ci_scripts.CurrentEvi
 test_evidence_of_a_commit_the_head_does_not_descend_from_is_not_current (scripts.tests.test_ci_scripts.CurrentEvidence.test_evidence_of_a_commit_the_head_does_not_descend_from_is_not_current) ... ok
 test_main_runs_no_current_recipe_only_where_asked (scripts.tests.test_ci_scripts.CurrentEvidence.test_main_runs_no_current_recipe_only_where_asked) ... ci_plan: e10-attribute-case is current, recorded at aaaaaaaa
 test_the_evidence_is_read_as_the_head_holds_it (scripts.tests.test_ci_scripts.CurrentEvidence.test_the_evidence_is_read_as_the_head_holds_it) ... ok
-test_the_workflow_plans_each_push_with_the_evidence (scripts.tests.test_ci_scripts.CurrentEvidence.test_the_workflow_plans_each_push_with_the_evidence) ... ok
+test_the_workflow_plans_each_push_and_pr_with_the_evidence (scripts.tests.test_ci_scripts.CurrentEvidence.test_the_workflow_plans_each_push_and_pr_with_the_evidence) ... ok
 test_a_file_of_another_commit_is_refused (scripts.tests.test_ci_scripts.Fetch.test_a_file_of_another_commit_is_refused) ... ok
 test_a_file_whose_recipe_reads_what_changed_since_its_run_is_refused (scripts.tests.test_ci_scripts.Fetch.test_a_file_whose_recipe_reads_what_changed_since_its_run_is_refused) ... ok
 test_a_file_with_no_commit_is_copied_as_it_is (scripts.tests.test_ci_scripts.Fetch.test_a_file_with_no_commit_is_copied_as_it_is) ... ok
@@ -103,7 +103,7 @@ test_master_plans_from_the_newest_commit_a_run_passed_at (scripts.tests.test_ci_
 test_the_browser_suites_run_again_only_where_more_than_records_changed (scripts.tests.test_ci_scripts.VerifiedBase.test_the_browser_suites_run_again_only_where_more_than_records_changed) ... ok
 test_the_runs_are_read_through_gh_by_their_commit (scripts.tests.test_ci_scripts.VerifiedBase.test_the_runs_are_read_through_gh_by_their_commit) ... ok
 test_where_no_run_passed_master_plans_from_the_commit_before (scripts.tests.test_ci_scripts.VerifiedBase.test_where_no_run_passed_master_plans_from_the_commit_before) ... ok
-Ran 96 tests in 30.207s
+Ran 96 tests in 32.760s
 OK
 
 == mutation controls (scripts/dealt_by_time_mutations.py)
