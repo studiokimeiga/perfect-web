@@ -156,6 +156,127 @@ pub fn seen(access: &Access, out: Vec<Val>) -> Result<Vec<Val>, String> {
         .collect()
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::tables::{Handle, Read, Stored, Write};
+
+    fn string(name: &str) -> Column {
+        Column::new(
+            name,
+            Stored::String {
+                min_length: None,
+                max_length: None,
+            },
+        )
+    }
+
+    /// `Notes`' read by `to`, a sharer's, its seen row without `draft`.
+    fn by_to() -> Access {
+        let row = vec![
+            string("author"),
+            string("id"),
+            string("to"),
+            string("draft"),
+        ];
+        Access::Read(Read {
+            import: "pw:tables/notes#by-to".into(),
+            table: "Notes".into(),
+            primitive: Primitive::Index,
+            by: vec![string("to")],
+            row: row.clone(),
+            key: vec!["author".into(), "id".into()],
+            order: None,
+            sorted_by: Vec::new(),
+            unique: false,
+            bounded: None,
+            handle: Some(Handle {
+                field: "to".into(),
+                seen: Some(row[..3].to_vec()),
+            }),
+        })
+    }
+
+    fn note(author: &str, draft: &str) -> Val {
+        Val::Record(vec![
+            ("author".into(), Val::String(author.into())),
+            ("id".into(), Val::String("n1".into())),
+            ("to".into(), Val::String("bob".into())),
+            ("draft".into(), Val::String(draft.into())),
+        ])
+    }
+
+    #[test]
+    fn a_sharer_is_answered_the_seen_row() {
+        let shown = seen(&by_to(), vec![Val::List(vec![note("alice", "secret")])]);
+        assert_eq!(
+            shown,
+            Ok(vec![Val::List(vec![Val::Record(vec![
+                ("author".into(), Val::String("alice".into())),
+                ("id".into(), Val::String("n1".into())),
+                ("to".into(), Val::String("bob".into())),
+            ])])])
+        );
+    }
+
+    #[test]
+    fn a_handle_is_its_callers_or_nothing_is_read() {
+        let user = |u: &str| Caller::User(u.into());
+        let bob = vec![Val::String("bob".into())];
+        assert_eq!(admit(&by_to(), &user("bob"), bob.clone()), Ok(bob.clone()));
+        let forged = admit(&by_to(), &user("eve"), bob.clone());
+        assert!(
+            forged
+                .as_ref()
+                .is_err_and(|why| why.contains("not its caller's")),
+            "{forged:?}"
+        );
+        let nobody = admit(&by_to(), &Caller::Nobody, bob);
+        assert!(
+            nobody
+                .as_ref()
+                .is_err_and(|why| why.contains("no one makes this call")),
+            "{nobody:?}"
+        );
+    }
+
+    #[test]
+    fn an_owned_row_is_written_by_its_owner_alone() {
+        let row = vec![
+            string("author"),
+            string("id"),
+            string("to"),
+            string("draft"),
+        ];
+        let put = Access::Write(Write {
+            import: "pw:tables/notes#put".into(),
+            table: "Notes".into(),
+            primitive: Primitive::Put,
+            by: Vec::new(),
+            row,
+            key: vec!["author".into(), "id".into()],
+            unique: Vec::new(),
+            handle: Some(Handle {
+                field: "author".into(),
+                seen: None,
+            }),
+        });
+        let alice = Caller::User("alice".into());
+        let given = |author: &str| vec![Val::String("alice".into()), note(author, "d")];
+        assert_eq!(
+            admit(&put, &alice, given("alice")),
+            Ok(vec![note("alice", "d")])
+        );
+        let forged = admit(&put, &alice, given("bob"));
+        assert!(
+            forged
+                .as_ref()
+                .is_err_and(|why| why.contains("is not its writer")),
+            "{forged:?}"
+        );
+    }
+}
+
 /// **Is this owned function's import typed as it is given?** A read takes
 /// its fields with the handle, a string, first, or the handle and one list
 /// of what follows it; and answers the seen row where its reader is one the

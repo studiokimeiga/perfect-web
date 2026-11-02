@@ -261,3 +261,40 @@ fn a_requirement_with_no_component_is_the_deployments() {
     assert_eq!(asked.program.load(Ordering::SeqCst), 0);
     assert_eq!(asked.deployment.load(Ordering::SeqCst), 1);
 }
+
+#[test]
+fn a_predicates_reads_see_its_commands_writes_and_no_other_reads_do() {
+    // A command that wrote alice's `n9` and has not committed: its
+    // predicate reads it, as the command's own reads do; a query does not.
+    let program = program();
+    let tables = seeded(&program);
+    let mut staged = tables.begin().assert_ok("its turn");
+    staged
+        .write("pw:tables/notes#insert", &[note_json(ALICE, "n9", BOB, 9)])
+        .assert_ok("staged");
+    let wrote = &program.components["owned.app.Wrote"];
+    let reads = staged
+        .predicate_host_fns(&wrote.contract, &wrote.granted())
+        .assert_ok("a predicate's reads");
+    let n9 = Val::String("n9".into());
+    assert_eq!(
+        ask(&program, "owned.app.Wrote", ALICE, reads, &[&n9]),
+        Ok(true)
+    );
+    let published = tables
+        .read_host_fns(&wrote.contract, &wrote.granted())
+        .assert_ok("the published reads");
+    assert_eq!(
+        ask(&program, "owned.app.Wrote", ALICE, published, &[&n9]),
+        Ok(false)
+    );
+    // A command's contract is no predicate's.
+    let edit = program.component("edit");
+    let refused = staged
+        .predicate_host_fns(&edit.contract, &edit.granted())
+        .assert_err("a command is no predicate");
+    assert!(
+        format!("{refused:?}").contains("one predicate export"),
+        "{refused:?}"
+    );
+}
