@@ -294,3 +294,30 @@ e14-refusal, alone in its shard, was stopped at 20,507 s.
   `dealt_by_time_mutations.py` (54): a recipe past the limit planned, its
   shard's setup not counted, a note read as a recipe's, a recorded run
   keeping its lower bound.
+
+## Amendment, 2026-11-02: a pull request's run asks for 24 shards
+
+- **Found.** The repository moved to the `studiokimeiga` organization on
+  GitHub Team (2026-10-20), which runs 60 jobs at once, not the Free
+  plan's 20 the shard numbers were chosen for. A pull request's run is now
+  the merge's gate (PRs #63 onward), and it asked for 9 shards, the planner
+  adding shards only where 9 would end past `CEILING` (2.9 h of recorded
+  seconds, a shard's recipes then running up to twice theirs). PR #67's
+  full run (149 recipes, verify 41476687327) was dealt into 16 shards, the
+  longest of which ran 231 minutes: the merge waited nearly four hours,
+  with most of the organization's 60 jobs unused.
+- **Measured with the planner's own model**, on PR #72's plan (159 recipes,
+  35.7 recorded recipe-hours, the slowest `e14-kiokun-word` at 1.54 h):
+  9 asked, 2.63 h; 17, 2.25 h; 24, 1.66 h; 32, 40 and 48, 1.65 h each.
+  Past 24 the run ends no sooner than its slowest recipe and its shard's
+  setup.
+- **Decision.** A pull request's run asks for 24 shards. With its three
+  browser jobs, the plan and the summary that is 28 jobs, so two pull
+  requests' whole runs fit the organization's 60 together. A track's push
+  (9), the nightly (17), a dispatch (17 by default) and `CEILING` and
+  `MOST` are unchanged: no merge waits on them.
+- **Next.** The run is then bounded by its slowest recipes
+  (`e14-kiokun-word`, `e14-page-policy`, `e14-computed-holes`,
+  `e10-browser`, each one to two hours on a 4-vCPU runner): splitting their
+  mutants across recipes, as ADR-0302 did for `e14-refusal`, is what makes
+  it end sooner still.
