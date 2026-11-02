@@ -296,6 +296,9 @@ pub(crate) fn check_inferred_prepared(
             // parameters, and one route is one page's.
             out.extend(crate::routes::parameters_agree(&u.hir, i, sigs));
             out.extend(crate::routes::declared_twice(hirs, i));
+            // Track `deploy`: a program's routes are its own, none under a
+            // path the platform's host answers itself (PW7001).
+            out.extend(crate::reserved::check(&u.hir));
             // ADR-0302: a predicate is declared once, with one set of words.
             out.extend(crate::predicates::declared_twice(hirs, i));
             // Track `uploads` (ADR-0260): an upload's clauses, its paths, and

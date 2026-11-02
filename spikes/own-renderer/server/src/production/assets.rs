@@ -130,6 +130,11 @@ impl Assets {
         self.files.keys().map(String::as_str)
     }
 
+    /// Whether the table holds `route`, as the build names it.
+    pub(crate) fn holds(&self, route: &str) -> bool {
+        self.files.contains_key(route)
+    }
+
     /// **The answer to a `GET` of `route`**, or none where it is no asset.
     pub(crate) fn answer(&self, route: &str, query: &str, headers: &str) -> Option<Answer<'_>> {
         let asset = self.files.get(route)?;

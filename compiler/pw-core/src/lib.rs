@@ -64,6 +64,9 @@ pub mod privacy;
 pub mod program;
 pub mod provenance;
 pub mod recursion;
+// Track `deploy` (a production host): the paths the platform's host answers
+// itself, which no program route may be (PW7001).
+pub mod reserved;
 pub mod resolve;
 pub mod resolved;
 pub mod resume;

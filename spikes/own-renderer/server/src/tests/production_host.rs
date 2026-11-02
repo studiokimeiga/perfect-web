@@ -31,7 +31,8 @@ fn production_store(token: Option<&str>) -> Served {
 }
 
 /// **A request, written whole, and its answer**: its head as text and its
-/// body as bytes, which a compressed body is.
+/// body as bytes, which a compressed body is. An answer with no head is
+/// `(no answer)`, whose status is none, for a test's assertion to refuse.
 fn asked(s: &Server, request: &str) -> (String, Vec<u8>) {
     let listener = TcpListener::bind(("127.0.0.1", 0)).expect("bind");
     let at = listener.local_addr().expect("address");
@@ -41,17 +42,16 @@ fn asked(s: &Server, request: &str) -> (String, Vec<u8>) {
             handle(s, stream);
         });
         let mut client = TcpStream::connect(at).expect("connect");
-        client.write_all(request.as_bytes()).expect("request");
+        let _ = client.write_all(request.as_bytes());
         let mut answer = Vec::new();
         let _ = client.read_to_end(&mut answer);
-        let split = answer
-            .windows(4)
-            .position(|w| w == b"\r\n\r\n")
-            .expect("a head");
-        (
-            String::from_utf8(answer[..split].to_vec()).expect("a head in text"),
-            answer[split + 4..].to_vec(),
-        )
+        match answer.windows(4).position(|w| w == b"\r\n\r\n") {
+            Some(split) => (
+                String::from_utf8_lossy(&answer[..split]).into_owned(),
+                answer[split + 4..].to_vec(),
+            ),
+            None => ("(no answer)".to_string(), answer),
+        }
     })
 }
 
@@ -71,11 +71,12 @@ fn posted_empty(s: &Server, path: &str) -> (String, Vec<u8>) {
     )
 }
 
+/// The status an answer's head says, or 0 where it says none.
 fn status(head: &str) -> u16 {
     head.split_whitespace()
         .nth(1)
         .and_then(|s| s.parse().ok())
-        .expect("a status")
+        .unwrap_or(0)
 }
 
 fn field<'h>(head: &'h str, name: &str) -> Option<&'h str> {
@@ -109,7 +110,7 @@ fn a_production_host_answers_no_test_control() {
         );
     }
     // The menu is the build's still: no control rewrote it.
-    let (head, page) = got(&production, "/StorePage.html", "");
+    let (head, page) = got(&production, "/stores/47", "");
     assert_eq!(status(&head), 200, "{head}");
     assert!(String::from_utf8_lossy(&page).contains("Blue Bottle"));
 
@@ -118,6 +119,204 @@ fn a_production_host_answers_no_test_control() {
     assert_eq!(status(&head), 200, "{head}");
     let (head, _) = posted_empty(&development, "/command/menu_changed");
     assert_eq!(status(&head), 202, "{head}");
+}
+
+/// **A production host serves the program's routes and the platform's own,
+/// and nothing else** (the review's finding 5b: `GET /menu`, a development
+/// server's, answered in production): a development server's other routes
+/// are refused as routes it does not have, with no session; the program's
+/// pages, its commands and what a page's runtime asks are served. Each
+/// refusal's control is the development server answering it.
+#[test]
+fn a_production_host_serves_only_the_programs_routes_and_its_own() {
+    let production = production_store(None);
+    let development = store();
+    for path in [
+        "/menu",
+        "/StorePage.html",
+        "/page/store.page.CartPage~ui",
+        "/templates.json",
+    ] {
+        let (head, _) = got(&production, path, "");
+        assert_eq!(status(&head), 404, "{path}: {head}");
+        assert!(field(&head, "set-cookie").is_none(), "{path}: {head}");
+        let (head, _) = got(&development, path, "");
+        assert_eq!(status(&head), 200, "development {path}: {head}");
+    }
+    // The program's pages at their routes, and the platform's own.
+    for path in [
+        "/stores/47",
+        "/cart",
+        "/pw-handlers",
+        "/stream?doc=1&since=0",
+        "/_pw/health",
+    ] {
+        let (head, _) = got(&production, path, "");
+        assert_eq!(status(&head), 200, "{path}: {head}");
+    }
+    // A command the program declares is the program's to answer; one it
+    // does not is no route at all.
+    let (head, _) = posted_empty(&production, "/command/store.page.add_to_cart");
+    assert_ne!(status(&head), 404, "{head}");
+    let (head, _) = posted_empty(&production, "/command/store.page.no_such_command");
+    assert_eq!(status(&head), 404, "{head}");
+    assert!(field(&head, "set-cookie").is_none(), "{head}");
+}
+
+/// **What a production host serves of a program with uploads, by the
+/// pattern its log says** (the review's findings 5b and 5e): an upload's
+/// route, a lease under it and a committed image, each by its pattern and
+/// never the lease or key a reader holds; a page by its route's; and none
+/// of a development server's own, or a command the program does not
+/// declare.
+#[test]
+fn a_production_host_serves_an_uploads_paths_by_their_pattern() {
+    let feed = served_feed_with(|app| app.to_string());
+    let assets = production::assets::Assets::of(vec![]);
+    let served = |method: &str, route: &str| production::served_as(&feed, &assets, method, route);
+    assert_eq!(
+        served("POST", "/uploads/post-image").as_deref(),
+        Some("/uploads/post-image")
+    );
+    assert_eq!(
+        served("GET", "/uploads/post-image/0f3a9c").as_deref(),
+        Some("/uploads/post-image/{lease}")
+    );
+    assert_eq!(
+        served("GET", "/images/9b1e2d.png").as_deref(),
+        Some("/images/{key}")
+    );
+    assert_eq!(served("GET", "/post/42").as_deref(), Some("/post/{id}"));
+    assert_eq!(served("GET", "/stream").as_deref(), Some("/stream"));
+    for (method, route) in [
+        ("GET", "/bench/clock"),
+        ("GET", "/menu"),
+        ("GET", "/page/feed.page.HomePage~ui"),
+        ("POST", "/command/feed.page.no_such_command"),
+        ("GET", "/images"),
+    ] {
+        assert_eq!(served(method, route), None, "{method} {route}");
+    }
+}
+
+/// **The paths the host keeps are the ones `pw check` refuses a program**
+/// (PW7001), and every route the development server answers itself is
+/// under one: a route answered before the program's that the compiler did
+/// not refuse would be a page its program could never be served at.
+#[test]
+fn the_paths_the_host_keeps_are_the_ones_the_compiler_refuses() {
+    assert_eq!(production::RESERVED, pw_core::reserved::RESERVED);
+    let source = include_str!("../main.rs");
+    let own = source
+        .split("\n#[cfg(test)]\nmod tests {")
+        .next()
+        .unwrap_or(source);
+    let mut answered = Vec::new();
+    for pattern in [
+        "(\"GET\", \"",
+        "(\"POST\", \"",
+        "route == \"",
+        "route.starts_with(\"",
+        "strip_prefix(\"/",
+    ] {
+        for (at, _) in own.match_indices(pattern) {
+            let rest = &own[at + pattern.len()..];
+            let literal: String = rest.chars().take_while(|c| *c != '"').collect();
+            let literal = if pattern.starts_with("strip_prefix") {
+                format!("/{literal}")
+            } else {
+                literal
+            };
+            if literal.starts_with('/') {
+                answered.push(literal);
+            }
+        }
+    }
+    assert!(answered.len() > 30, "the routes were read: {answered:?}");
+    for route in &answered {
+        let route = route.trim_end_matches('/');
+        assert!(
+            production::reserved(route),
+            "main.rs answers `{route}` itself, a path `pw check` does not refuse a program"
+        );
+    }
+}
+
+/// **Every response head is written through `production::head`** (the
+/// review's finding 5a: an upload's answer wrote its own head, without
+/// HSTS or its status for the log): each place a server source formats a
+/// response's status line calls it, but two: the development payment
+/// provider's own server (another origin, refused in production), and the
+/// busy answer of a host at its limit, which no request's thread writes
+/// and which carries `production::lines()`.
+#[test]
+fn every_response_head_is_written_through_the_head_function() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let mut files = Vec::new();
+    let mut dirs = vec![root];
+    while let Some(dir) = dirs.pop() {
+        for entry in std::fs::read_dir(&dir).expect("a directory") {
+            let path = entry.expect("an entry").path();
+            if path.is_dir() {
+                if path.file_name().is_none_or(|n| n != "tests") {
+                    dirs.push(path);
+                }
+            } else if path.extension().is_some_and(|e| e == "rs") {
+                files.push(path);
+            }
+        }
+    }
+    let mut heads = 0;
+    for file in files {
+        let text = std::fs::read_to_string(&file).expect("a source");
+        let own = text
+            .split("#[cfg(test)]\nmod tests")
+            .next()
+            .unwrap_or(&text);
+        let lines: Vec<&str> = own.lines().collect();
+        for (at, line) in lines.iter().enumerate() {
+            if !line.contains("\"HTTP/1.1 {") && !line.contains("\"HTTP/1.1 200 OK") {
+                continue;
+            }
+            let name = file.display().to_string();
+            if name.ends_with("payments.rs") || name.ends_with("connections.rs") {
+                continue;
+            }
+            heads += 1;
+            let after = lines[at..(at + 14).min(lines.len())].join("\n");
+            assert!(
+                after.contains("production::head("),
+                "{name}:{}: a response head written without `production::head`:\n{after}",
+                at + 1
+            );
+        }
+    }
+    assert!(heads >= 6, "the heads were found: {heads}");
+}
+
+/// **A production host refuses a build that serves a path the platform
+/// keeps** (the review's finding 5b): an upload a build made by hand
+/// declares at `/stream`, which `pw check` would have refused; the store as
+/// `pw build` builds it is refused nothing.
+#[test]
+fn a_production_host_refuses_a_build_serving_a_kept_path() {
+    assert!(production::build_refusals(&store()).is_empty());
+    let (dir, out) = built_feed_with(|app| app.to_string());
+    let declared = out.join("uploads.json");
+    let text = std::fs::read_to_string(&declared).expect("uploads.json");
+    std::fs::write(
+        &declared,
+        text.replace("\"/uploads/post-image\"", "\"/stream\""),
+    )
+    .expect("written");
+    let feed = Server::from_build(out.clone(), out).expect("served");
+    let refused = production::build_refusals(&feed);
+    assert_eq!(refused.len(), 1, "{refused:?}");
+    assert!(
+        refused[0].contains("`PostImage` at `/stream`") && refused[0].contains("PW7001"),
+        "{refused:?}"
+    );
+    drop(dir);
 }
 
 /// **A production host says it lives, and whether it is ready**, to anyone,
@@ -274,6 +473,77 @@ fn a_requests_head_is_bounded() {
     let within = "d".repeat(60 * 1024);
     let (head, _) = got(&s, "/stores/47", &format!("X-Long: {within}\r\n"));
     assert_eq!(status(&head), 200, "{head}");
+}
+
+/// A field of `len` bytes, its line break among them, named `X-<n>`.
+fn field_of(n: usize, len: usize) -> String {
+    let name = format!("X-{n}: ");
+    format!("{name}{}\r\n", "f".repeat(len - name.len() - 2))
+}
+
+/// **A head past its bound is refused wherever its lines break** (the
+/// review's finding 5c): one of 70,559 bytes whose first 65,536 end on a
+/// line break was taken, the rest read as its body. Its neighbours: a head
+/// of exactly 65,536 bytes, its blank line the last two, is answered; one
+/// byte more, refused.
+#[test]
+fn a_head_past_its_bound_is_refused_wherever_its_lines_break() {
+    let s = store();
+    let line = "GET /stores/47 HTTP/1.1\r\nHost: t\r\n";
+    // Fields to `to` bytes from the request's first, each line whole.
+    let fields_to = |to: usize| {
+        let mut head = line.to_string();
+        let mut n = 0;
+        while to - head.len() > 2000 {
+            head.push_str(&field_of(n, 1000));
+            n += 1;
+        }
+        head.push_str(&field_of(n, to - head.len()));
+        head
+    };
+    let at_bound = fields_to(65_536);
+    assert_eq!(at_bound.len(), 65_536);
+    let mut past = at_bound.clone();
+    past.push_str(&field_of(999, 70_559 - 65_536 - 2));
+    past.push_str("\r\n");
+    assert_eq!(past.len(), 70_559);
+    let (head, _) = asked(&s, &past);
+    assert_eq!(status(&head), 431, "{head}");
+
+    let exactly = fields_to(65_536 - 2) + "\r\n";
+    assert_eq!(exactly.len(), 65_536);
+    let (head, _) = asked(&s, &exactly);
+    assert_eq!(status(&head), 200, "{head}");
+    let over = fields_to(65_536 - 1) + "\r\n";
+    assert_eq!(over.len(), 65_537);
+    let (head, _) = asked(&s, &over);
+    assert_eq!(status(&head), 431, "{head}");
+}
+
+/// **A head's lines are read to its blank line**: its request line and its
+/// fields, `\r\n` or a bare `\n` ending each (RFC 9112 §2.2); a connection
+/// closed before its head ended is answered nothing.
+#[test]
+fn a_heads_lines_are_read_to_its_blank_line() {
+    let read = |bytes: &str| read_head(&mut std::io::BufReader::new(bytes.as_bytes()));
+    assert_eq!(
+        read("GET / HTTP/1.1\r\nHost: t\r\nA: b\r\n\r\nbody"),
+        Head::Read {
+            line: "GET / HTTP/1.1\r\n".into(),
+            fields: "Host: t\r\nA: b\r\n".into()
+        }
+    );
+    assert_eq!(
+        read("GET / HTTP/1.1\nHost: t\n\n"),
+        Head::Read {
+            line: "GET / HTTP/1.1\n".into(),
+            fields: "Host: t\n".into()
+        }
+    );
+    assert_eq!(read(""), Head::Nothing);
+    assert_eq!(read("GET / HTTP/1.1\r\nHost: t\r\n"), Head::Cut);
+    assert_eq!(read("GET / HTTP"), Head::Cut);
+    assert_eq!(read(&"a".repeat(70_000)), Head::TooLarge);
 }
 
 /// **With no sign-in, every session is anonymous**: a sign-in, a sign-up

@@ -328,8 +328,8 @@ MUTANTS = [
         "a served host never reads the other hosts' commits",
         "browser",
         SERVER,
-        "            std::thread::spawn(move || server.hear_other_hosts());\n",
-        "            let _ = server;\n",
+        "                production::connections::spawn(move || server.hear_other_hosts()),\n",
+        "                Ok(drop(server)),\n",
     ),
     # --- Sessions kept by hash.
     (

@@ -26,6 +26,7 @@
 //! PW64xx   the payments track's (NEXT 6c): a command the platform invokes
 //! PW66xx   check-is-build: executable program support
 //! PW68xx   the device-store track's: a value the reader's device keeps
+//! PW70xx   the deploy track's: a production host and what it reserves
 //! ```
 //!
 //! A parallel track registers its codes in its own block, with its own
@@ -137,6 +138,10 @@ pub enum Owner {
     /// the integrator): a value the reader's device keeps, charter §9.1's
     /// fourth kind of state, and the `Device` label that keeps it there.
     DeviceStore,
+    /// The deploy track's codes, PW70xx (a production host; the block the
+    /// first unclaimed after ADR-0339's PW67xx and ADR-0384's PW69xx, the
+    /// integrator's to confirm): the paths the platform's host reserves.
+    Deploy,
 }
 
 impl fmt::Display for Code {
@@ -983,6 +988,16 @@ codes! {
         "a signal the device keeps is of a type the device can hold: data, no function, no type that contains itself, no opaque type with a `where`";
     DEVICE_SIGNAL_PROVIDED = "PW6808" / device_signal_provided / 1, DeviceStore,
         "a signal the device keeps is provided by the device: no `provide` gives it a value";
+
+    // --- the deploy track (PW70xx; a production host) ----------------------
+    //
+    // The host answers its own routes before a program's: its runtime's
+    // subscription and reads, its build's modules, its commands, its health
+    // and readiness (`/_pw/`), the relying party's sign-in, and a
+    // development server's test controls (`/bench/`). A production host
+    // serves the program's routes and the platform's own, nothing else.
+    ROUTE_RESERVED = "PW7001" / route_reserved / 1, Deploy,
+        "a page's route and an upload's paths are the program's own: none is under a path the platform's host answers itself";
 }
 
 /// Codes that were registered, are no longer emitted, and whose numbers must
@@ -1079,6 +1094,7 @@ impl Owner {
             Owner::Schedules => "PW65",
             Owner::CheckIsBuild => "PW66",
             Owner::DeviceStore => "PW68",
+            Owner::Deploy => "PW70",
             Owner::Syntax | Owner::Resolution => "PW00",
             Owner::Placement | Owner::Privacy | Owner::Markup => "PW50",
             Owner::Types => "PW06",
@@ -1149,6 +1165,7 @@ mod tests {
                 (Owner::Schedules, "PW65"),
                 (Owner::CheckIsBuild, "PW66"),
                 (Owner::DeviceStore, "PW68"),
+                (Owner::Deploy, "PW70"),
             ] {
                 assert!(
                     !c.id.starts_with(block) || c.owner == owner,

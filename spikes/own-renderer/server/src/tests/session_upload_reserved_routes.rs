@@ -40,8 +40,29 @@ fn answer(bytes: &[u8]) -> (&str, &[u8]) {
     )
 }
 
-fn uploaded_at(change: fn(&str) -> String, route: &str) {
-    let server = served_feed_with(change);
+/// **The feed, its upload declared at `route` by its build alone**: `pw
+/// check` refuses a program an upload under a path the platform answers
+/// itself (PW7001, track `deploy`), so only a build made by other means
+/// names one, and the host's admission is held for that build all the same.
+/// The feed is built as it is, and its `uploads.json` then names `route`.
+fn served_feed_uploading_at(route: &str) -> Served {
+    let (dir, out) = built_feed_with(|app| app.to_string());
+    let declared = out.join("uploads.json");
+    let text = std::fs::read_to_string(&declared).expect("uploads.json");
+    assert!(text.contains("\"/uploads/post-image\""), "{text}");
+    std::fs::write(
+        &declared,
+        text.replace("\"/uploads/post-image\"", &format!("\"{route}\"")),
+    )
+    .expect("uploads.json written");
+    Served {
+        server: Server::from_build(out.clone(), out).expect("served"),
+        _dir: dir,
+    }
+}
+
+fn uploaded_at(route: &str) {
+    let server = served_feed_uploading_at(route);
     assert!(
         server.identity.principals().kept().is_none(),
         "this fixture selects memory explicitly"
@@ -92,16 +113,10 @@ fn uploaded_at(change: fn(&str) -> String, route: &str) {
 
 #[test]
 fn a_declared_upload_under_command_prefix_is_admitted_before_dispatch() {
-    uploaded_at(
-        |app| app.replace("/uploads/post-image", "/command/attach"),
-        "/command/attach",
-    );
+    uploaded_at("/command/attach");
 }
 
 #[test]
 fn a_declared_upload_at_stream_path_is_admitted_before_dispatch() {
-    uploaded_at(
-        |app| app.replace("/uploads/post-image", "/stream"),
-        "/stream",
-    );
+    uploaded_at("/stream");
 }

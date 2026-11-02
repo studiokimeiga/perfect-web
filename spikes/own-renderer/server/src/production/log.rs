@@ -5,9 +5,10 @@
 //!
 //! Every line has `ts` (RFC 3339, UTC, milliseconds), `level`, `event` (a
 //! fixed word a query can select on) and `msg`; a request's line adds its
-//! method, its route without its query (which may hold what a reader
-//! searched for), its status and how long it took. No line holds a secret,
-//! a cookie or a body: the callers give text the server already printed.
+//! method, the pattern of the route that answered it (`/word/{word}`, never
+//! the path, whose words and query are what a reader looked up), its status
+//! and how long it took. No line holds a secret, a cookie or a body: the
+//! callers give text the server already printed.
 
 use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -80,25 +81,23 @@ pub(crate) fn trace(message: &str) {
     }
 }
 
-/// **A request, said when it is answered** (production only): created
-/// as its line is read, and said as it is dropped, whichever way the
-/// answer returned.
+/// **A request, said when it is answered** (production only): created as
+/// its connection's thread begins, and said as it is dropped, whichever way
+/// the answer returned. What it says of the request is what [`asked`] and
+/// [`routed`] were told: its method, and the **pattern** of the route that
+/// answered it, `/word/{word}`, never the path it was asked by, which holds
+/// what a reader looked up (the review's finding 5e); none where nothing
+/// the host serves answered it. A connection that asked nothing and was
+/// answered nothing is said nowhere.
 pub(crate) struct Logged {
-    method: String,
-    route: String,
     started: std::time::Instant,
 }
 
 impl Logged {
-    pub(crate) fn new(method: &str, path: &str) -> Logged {
-        // Its route without its query, which may hold what a reader
-        // searched for; and bounded, as a line in a log should be.
-        let route = path.split('?').next().unwrap_or(path);
-        let route: String = route.chars().take(512).collect();
-        let method: String = method.chars().take(16).collect();
+    pub(crate) fn new() -> Logged {
+        ASKED.with(|a| *a.borrow_mut() = Asked::default());
+        let _ = take_status();
         Logged {
-            method,
-            route,
             started: std::time::Instant::now(),
         }
     }
@@ -106,13 +105,38 @@ impl Logged {
 
 impl Drop for Logged {
     fn drop(&mut self) {
+        let asked = ASKED.with(|a| std::mem::take(&mut *a.borrow_mut()));
+        let status = take_status();
+        if asked.method.is_empty() && status.is_none() {
+            return;
+        }
         request(
-            &self.method,
-            &self.route,
-            take_status(),
+            &asked.method,
+            asked.route.as_deref(),
+            status,
             self.started.elapsed().as_millis(),
         );
     }
+}
+
+/// What this thread's request is known to be, as it becomes known.
+#[derive(Default)]
+struct Asked {
+    method: String,
+    route: Option<String>,
+}
+
+/// **The method this thread's request asks with**, bounded, as a line in a
+/// log should be.
+pub(crate) fn asked(method: &str) {
+    ASKED.with(|a| a.borrow_mut().method = method.chars().take(16).collect());
+}
+
+/// **The pattern of the route this thread's request reached**: a page's as
+/// its program declares it, `/stores/{id}`, or one of the platform's own;
+/// never a path a reader asked by.
+pub(crate) fn routed(pattern: &str) {
+    ASKED.with(|a| a.borrow_mut().route = Some(pattern.chars().take(512).collect()));
 }
 
 /// Something the host did, said.
@@ -144,12 +168,12 @@ pub(crate) fn emit(level: Level, event: &str, message: &str, fields: &[(&str, se
     }
 }
 
-/// **A request answered**, in production: its method, its route, its
-/// status (none where nothing was written) and how long it took. A page's
-/// subscription asks again within a second all the while it is open, and a
-/// platform asks for health every few seconds: those are said only where
-/// they failed.
-pub(crate) fn request(method: &str, route: &str, status: Option<u16>, ms: u128) {
+/// **A request answered**, in production: its method, its route's pattern
+/// (none where nothing the host serves answered it), its status (none where
+/// nothing was written) and how long it took. A page's subscription asks
+/// again within a second all the while it is open, and a platform asks for
+/// health every few seconds: those are said only where they failed.
+pub(crate) fn request(method: &str, route: Option<&str>, status: Option<u16>, ms: u128) {
     if !json() {
         return;
     }
@@ -162,7 +186,10 @@ pub(crate) fn request(method: &str, route: &str, status: Option<u16>, ms: u128) 
     };
     let fields = [
         ("method", serde_json::Value::from(method)),
-        ("route", serde_json::Value::from(route)),
+        (
+            "route",
+            route.map_or(serde_json::Value::Null, serde_json::Value::from),
+        ),
         (
             "status",
             status.map_or(serde_json::Value::Null, serde_json::Value::from),
@@ -177,8 +204,8 @@ pub(crate) fn request(method: &str, route: &str, status: Option<u16>, ms: u128) 
 
 /// Whether a request's line is said: every one but a subscription's and a
 /// health check's, unless it failed.
-pub(crate) fn said(route: &str, status: Option<u16>) -> bool {
-    let routine = matches!(route, "/stream" | "/_pw/health" | "/_pw/ready");
+pub(crate) fn said(route: Option<&str>, status: Option<u16>) -> bool {
+    let routine = matches!(route, Some("/stream" | "/_pw/health" | "/_pw/ready"));
     !routine || status.is_none_or(|s| s >= 500)
 }
 
@@ -186,6 +213,8 @@ thread_local! {
     /// The status of the answer this thread's request was given: a
     /// connection is one request and one thread (`main.rs`'s `handle`).
     static STATUS: std::cell::Cell<Option<u16>> = const { std::cell::Cell::new(None) };
+    /// What this thread's request is known to be.
+    static ASKED: std::cell::RefCell<Asked> = std::cell::RefCell::new(Asked::default());
 }
 
 /// **The status the request on this thread was answered with**, as a
@@ -295,13 +324,36 @@ mod tests {
     #[test]
     fn routine_requests_are_said_only_where_they_failed() {
         for route in ["/stream", "/_pw/health", "/_pw/ready"] {
-            assert!(!said(route, Some(200)), "{route}");
-            assert!(!said(route, Some(404)), "{route}");
-            assert!(said(route, Some(503)), "{route}");
-            assert!(said(route, None), "{route}");
+            assert!(!said(Some(route), Some(200)), "{route}");
+            assert!(!said(Some(route), Some(404)), "{route}");
+            assert!(said(Some(route), Some(503)), "{route}");
+            assert!(said(Some(route), None), "{route}");
         }
-        assert!(said("/stores/47", Some(200)));
-        assert!(said("/bench/clock", Some(404)));
+        assert!(said(Some("/stores/{id}"), Some(200)));
+        assert!(said(None, Some(404)));
+    }
+
+    /// **A request is said by its route's pattern, never its path**, and
+    /// one that asked nothing is not said (the review's finding 5e).
+    #[test]
+    fn a_request_is_known_by_its_routes_pattern() {
+        {
+            let _logged = Logged::new();
+            asked("GET");
+            routed("/word/{word}");
+            assert_eq!(
+                ASKED.with(|a| a.borrow().route.clone()),
+                Some("/word/{word}".to_string())
+            );
+            answered(200);
+        }
+        assert_eq!(ASKED.with(|a| a.borrow().route.clone()), None);
+        assert_eq!(take_status(), None, "its status was said with it");
+        {
+            let _logged = Logged::new();
+            asked(&"M".repeat(100));
+            assert_eq!(ASKED.with(|a| a.borrow().method.len()), 16);
+        }
     }
 
     /// **A thread's status is its request's**, taken once.

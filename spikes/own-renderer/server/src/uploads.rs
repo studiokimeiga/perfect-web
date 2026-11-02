@@ -388,6 +388,44 @@ impl Uploads {
         })
     }
 
+    /// TRACK SEAM (deploy): **every path an upload declares**, its route and
+    /// what it serves at, each with its declaration's name: what a
+    /// production host holds to the paths the platform keeps.
+    pub(crate) fn paths(&self) -> Vec<(String, String)> {
+        self.shared.as_ref().map_or_else(Vec::new, |shared| {
+            shared
+                .declared
+                .iter()
+                .flat_map(|d| {
+                    [
+                        (d.name.clone(), d.route.clone()),
+                        (d.name.clone(), d.serves.clone()),
+                    ]
+                })
+                .collect()
+        })
+    }
+
+    /// TRACK SEAM (deploy): **the pattern of the path a claimed request
+    /// reached**, as a production host's log says it (the review's finding
+    /// 5e): a declaration's route, `<route>/{lease}`, or `<serves>/{key}`;
+    /// never the lease or the key a reader holds.
+    pub(crate) fn pattern(&self, method: &str, route: &str) -> Option<String> {
+        if !self.claims(method, route) {
+            return None;
+        }
+        let shared = self.shared.as_ref()?;
+        shared.declared.iter().find_map(|d| {
+            if route == d.route {
+                Some(d.route.clone())
+            } else if under(route, &d.serves).is_some() {
+                Some(format!("{}/{{key}}", d.serves))
+            } else {
+                under(route, &d.route).map(|_| format!("{}/{{lease}}", d.route))
+            }
+        })
+    }
+
     /// **Answer a request this module claimed**: read its body from
     /// `reader`, within the upload's limits, and respond on `stream`.
     #[allow(clippy::too_many_arguments)]
@@ -406,7 +444,12 @@ impl Uploads {
             Some(shared) => shared.answer(method, route, headers, session, fresh, reader),
             None => Answer::text(404, "no upload is declared"),
         };
-        answer.write(method == "HEAD", stream);
+        // TRACK SEAM (deploy): written by one deadline in a production host,
+        // as every answer is (`production::connections::Sending`).
+        answer.write(
+            method == "HEAD",
+            &mut crate::production::connections::Sending::new(stream),
+        );
         // A body not read, where the answer came first: read up to what the
         // declaration allows, so the sender reads the answer and not a
         // reset connection.
@@ -534,9 +577,13 @@ impl Answer {
         for (k, v) in &self.headers {
             head.push_str(&format!("{k}: {v}\r\n"));
         }
+        // TRACK SEAM (deploy): the status, for the request's log line, and
+        // the lines a production host's every answer carries (HSTS): this
+        // head was written beside them until the review's finding 5a.
         head.push_str(&format!(
-            "content-length: {}\r\nconnection: close\r\n\r\n",
-            self.body.len()
+            "content-length: {}\r\n{}connection: close\r\n\r\n",
+            self.body.len(),
+            crate::production::head(self.status),
         ));
         let _ = stream.write_all(head.as_bytes());
         if !head_only {

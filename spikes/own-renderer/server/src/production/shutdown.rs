@@ -55,6 +55,19 @@ impl Gate {
         Open(self)
     }
 
+    /// **A connection open until the guard is dropped, where fewer than
+    /// `limit` are**; none where `limit` are open already, which the host
+    /// turns away (`connections::turn_away`). Counted and checked at once,
+    /// so two connections taken together cannot both pass the last place.
+    pub(crate) fn try_open(&self, limit: usize) -> Option<Open<'_>> {
+        let mut open = self.open.lock().expect("open connections");
+        if *open >= limit {
+            return None;
+        }
+        *open += 1;
+        Some(Open(self))
+    }
+
     /// **Waits until no connection is open, or `grace` has passed**: how
     /// many were still open.
     pub(crate) fn drained(&self, grace: Duration) -> usize {
@@ -86,6 +99,84 @@ impl Drop for Open<'_> {
             self.0.closed.notify_all();
         }
     }
+}
+
+/// **Where the host listens, once it does**: the address a stop wakes its
+/// accepting loop at. None while the host starts: a stop then ends the
+/// process, whatever its start is doing (the review's finding 5f).
+static LISTENING: std::sync::OnceLock<std::net::SocketAddr> = std::sync::OnceLock::new();
+
+/// **The host listens from now on**, and a stop wakes it at `wake`.
+pub(crate) fn listening(wake: std::net::SocketAddr) {
+    let _ = LISTENING.set(wake);
+}
+
+/// **What a stopping signal does**, by how many have come and whether the
+/// host listens yet.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Stop {
+    /// The first, while the host starts (migrating its database, warming its
+    /// data): the process ends now. Nothing is lost: a migration is one
+    /// transaction, which the closed connection rolls back, its advisory
+    /// lock released with it, and a search index is built aside and moved
+    /// into place whole.
+    Starting,
+    /// The first, once it listens: no new connection, and the open ones
+    /// finished within the grace.
+    Drain(std::net::SocketAddr),
+    /// Any after the first: the process ends now, the open connections cut,
+    /// as a person who asks twice means (the review's finding 5f).
+    AtOnce,
+}
+
+/// What the `nth` stopping signal does, where the host listens at
+/// `listening`.
+pub(crate) fn stop_for(nth: usize, listening: Option<std::net::SocketAddr>) -> Stop {
+    match (nth, listening) {
+        (1, None) => Stop::Starting,
+        (1, Some(wake)) => Stop::Drain(wake),
+        _ => Stop::AtOnce,
+    }
+}
+
+/// **A stopping signal, acted on**: the `nth` to come, `signal` by name.
+pub(crate) fn stop(signal: &'static str, nth: usize) {
+    match stop_for(nth, LISTENING.get().copied()) {
+        Stop::Starting => {
+            super::log::info(
+                "stopped",
+                &format!("pw dev server: {signal} while it started: stopped before it listened"),
+            );
+            end(0);
+        }
+        Stop::Drain(wake) => {
+            super::log::info(
+                "stopping",
+                &format!("pw dev server: {signal}: no new connection; the open ones finish first"),
+            );
+            GATE.drain();
+            let _ = std::net::TcpStream::connect_timeout(&wake, Duration::from_secs(1));
+        }
+        Stop::AtOnce => {
+            let open = *GATE.open.lock().unwrap_or_else(|e| e.into_inner());
+            super::log::info(
+                "stopped",
+                &format!(
+                    "pw dev server: {signal} again: stopped at once; {open} connection(s) still \
+                     open were cut"
+                ),
+            );
+            end(0);
+        }
+    }
+}
+
+/// The process ended with `code`, what it said first written.
+fn end(code: i32) -> ! {
+    use std::io::Write;
+    let _ = std::io::stderr().flush();
+    let _ = std::io::stdout().flush();
+    std::process::exit(code);
 }
 
 /// **The address a stop connects to, to wake the accept loop**: the one the
@@ -133,28 +224,30 @@ fn stopping_signals() -> Result<libc::sigset_t, String> {
     }
 }
 
-/// **One of the stopping signals, waited for in a thread of its own**;
-/// `then` is called with its name when it comes. Only a thread whose mask
-/// blocks them waits: [`block`] first.
+/// **The stopping signals, waited for in a thread of its own**, each as it
+/// comes: `then` is called with its name and how many have come, the first
+/// being 1. Only a thread whose mask blocks them waits: [`block`] first.
 #[cfg(unix)]
 pub(crate) fn wait_in_thread(
-    then: impl FnOnce(&'static str) + Send + 'static,
+    then: impl Fn(&'static str, usize) + Send + 'static,
 ) -> Result<(), String> {
     let set = stopping_signals()?;
     std::thread::Builder::new()
         .name("pw-stop".into())
         .spawn(move || {
-            let mut signal: libc::c_int = 0;
-            // SAFETY: `set` is initialized, `signal` is written by sigwait.
-            let failed = unsafe { libc::sigwait(&set, &mut signal) };
-            let name = match (failed, signal) {
-                (0, libc::SIGTERM) => "SIGTERM",
-                (0, libc::SIGINT) => "SIGINT",
-                // A wait that failed stops the host too: a signal blocked
-                // with no one waiting would be a host nothing can stop.
-                _ => "a failed wait for a signal",
-            };
-            then(name);
+            for nth in 1.. {
+                let mut signal: libc::c_int = 0;
+                // SAFETY: `set` is initialized, `signal` is written by sigwait.
+                let failed = unsafe { libc::sigwait(&set, &mut signal) };
+                let name = match (failed, signal) {
+                    (0, libc::SIGTERM) => "SIGTERM",
+                    (0, libc::SIGINT) => "SIGINT",
+                    // A wait that failed stops the host too: a signal blocked
+                    // with no one waiting would be a host nothing can stop.
+                    _ => "a failed wait for a signal",
+                };
+                then(name, nth);
+            }
         })
         .map(|_| ())
         .map_err(|e| format!("the thread that waits for a stop: {e}"))
@@ -213,6 +306,39 @@ mod tests {
         assert_eq!(at("::"), "[::1]:9");
         assert_eq!(at("127.0.0.1"), "127.0.0.1:9");
         assert_eq!(at("10.0.0.7"), "10.0.0.7:9");
+    }
+
+    /// **What a stop does, by how many came**: the first while the host
+    /// starts ends it; the first once it listens drains it; any after the
+    /// first ends it at once.
+    #[test]
+    fn what_a_stop_does_by_how_many_came() {
+        let at: std::net::SocketAddr = "127.0.0.1:9".parse().expect("an address");
+        assert_eq!(stop_for(1, None), Stop::Starting);
+        assert_eq!(stop_for(1, Some(at)), Stop::Drain(at));
+        assert_eq!(stop_for(2, Some(at)), Stop::AtOnce);
+        assert_eq!(stop_for(2, None), Stop::AtOnce);
+        assert_eq!(stop_for(5, Some(at)), Stop::AtOnce);
+    }
+
+    /// **A gate takes connections up to its limit and no more**, and one
+    /// again once one closes; each counted while it is open.
+    #[test]
+    fn a_gate_takes_connections_up_to_its_limit() {
+        let gate = Gate::new();
+        let first = gate.try_open(2);
+        let second = gate.try_open(2);
+        assert!(first.is_some() && second.is_some());
+        assert!(
+            gate.try_open(2).is_none(),
+            "a third was taken at a limit of two"
+        );
+        drop(first);
+        let third = gate.try_open(2);
+        assert!(third.is_some(), "no place again once one closed");
+        assert_eq!(gate.drained(Duration::from_millis(10)), 2);
+        drop((second, third));
+        assert_eq!(gate.drained(Duration::from_millis(10)), 0);
     }
 
     /// **A gate with nothing open has drained at once.**

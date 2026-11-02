@@ -9132,20 +9132,38 @@ fn main() {
         // Every line JSON from the first, its refusals at start among them.
         production::log::use_json();
         production::log::panics_as_lines();
+        // Its stopping signals waited for from the first (the review's
+        // finding 5f): a stop that comes while its database migrates or its
+        // data warms ends the start, rather than waiting, unheard, for it.
         #[cfg(unix)]
-        if let Err(e) = production::shutdown::block() {
+        if let Err(e) = production::shutdown::block()
+            .and_then(|()| production::shutdown::wait_in_thread(production::shutdown::stop))
+        {
             production::refuse(&[e]);
         }
         production::install_headers(production::HSTS);
     }
-    let settings = production::Settings::read(&production::process_env)
+    let mut settings = production::Settings::read(&production::process_env)
         .unwrap_or_else(|reasons| production::refuse(&reasons));
-    // The deployment's identity key, where it states one: its addresses'
-    // keys from now on, in place of the development ones.
-    if let Some(key) = settings.secrets.get("PW_IDENTITY_KEY") {
-        match production::HostKeys::from_secret(key) {
-            Ok(keys) => production::install_keys(keys),
-            Err(e) => production::refuse(&[e]),
+    // TRACK SEAM (deploy): **the keys its addresses are derived with**, from
+    // now on (the review's finding 2): a production deployment's own,
+    // always; the development server's only in development, where no key is
+    // stated.
+    if let Err(e) = production::install_keys(settings.take_keys()) {
+        production::refuse(&[e]);
+    }
+    // TRACK SEAM (deploy): a production host's connections bounded from its
+    // first (`production::connections`): a request's whole head and body,
+    // an answer's whole writing, and the descriptors its limit of
+    // connections needs.
+    if settings.production {
+        production::connections::install(production::connections::Bounds {
+            read: settings.read_timeout,
+            write: settings.write_timeout,
+        });
+        #[cfg(unix)]
+        if let Err(e) = production::connections::enough_descriptors(settings.max_connections) {
+            production::refuse(&[e]);
         }
     }
     let dist = std::env::args()
@@ -9284,12 +9302,13 @@ fn main() {
     if settings.production {
         let layer = layer_of(&server.contracts);
         let uploads = server.uploads.describe().is_some();
-        let refused = production::program_refusals(
+        let mut refused = production::program_refusals(
             layer,
             &settings.secrets,
             uploads,
             &production::process_env,
         );
+        refused.extend(production::build_refusals(&server));
         if !refused.is_empty() {
             production::refuse(&refused);
         }
@@ -9336,7 +9355,6 @@ fn main() {
     // TRACK SEAM (deploy): the port it listens on, as the system gave it
     // where the deployment asked for any (`PORT=0`).
     let port = listener.local_addr().map_or(port, |a| a.port());
-    production::log::info("listening", &format!("pw dev server on {port}"));
     // TRACK SEAM (identity): which identity model runs.
     production::log::info(
         "identity",
@@ -9351,17 +9369,31 @@ fn main() {
         production::log::info("uploads", &format!("pw dev server uploads: {uploads}"));
     }
 
+    // TRACK SEAM (deploy): each of the host's own threads below started, or
+    // the start refused: never `std::thread::spawn`'s panic where the system
+    // gives no thread.
+    let started = |what: &str, spawned: std::io::Result<()>| {
+        if let Err(e) = spawned {
+            production::refuse(&[format!("{what}'s thread could not be started: {e}")]);
+        }
+    };
     // **Each live document read again when what it shows holds no longer**
     // (ADR-0304): the host's timer.
     {
         let server = server.clone();
-        std::thread::spawn(move || server.tell_when_time_passes());
+        started(
+            "the clock",
+            production::connections::spawn(move || server.tell_when_time_passes()),
+        );
     }
     // **Each scheduled run, run once the clock passes its time** (the
     // scheduled-commands track).
     {
         let server = server.clone();
-        std::thread::spawn(move || server.run_when_due());
+        started(
+            "the scheduler",
+            production::connections::spawn(move || server.run_when_due()),
+        );
     }
     // **Every other host's commits, told to this host's pages** (ADR-0369,
     // track `second-host`), where its data layer's database is shared.
@@ -9377,7 +9409,10 @@ fn main() {
                 ),
             );
             let server = server.clone();
-            std::thread::spawn(move || server.hear_other_hosts());
+            started(
+                "the other hosts' commits",
+                production::connections::spawn(move || server.hear_other_hosts()),
+            );
         }
         None => production::log::info(
             "hosts",
@@ -9386,49 +9421,70 @@ fn main() {
     }
 
     // TRACK SEAM (deploy): **a production host stops when told**: SIGTERM or
-    // SIGINT, waited for in a thread of its own, takes no new connection
-    // (a connection of its own wakes the loop below) and finishes the open
-    // ones within the grace.
-    #[cfg(unix)]
-    if settings.production {
-        let wake = production::shutdown::waking_address(settings.bind, port);
-        let waited = production::shutdown::wait_in_thread(move |signal| {
-            production::log::info(
-                "stopping",
-                &format!("pw dev server: {signal}: no new connection; the open ones finish first"),
-            );
-            production::shutdown::GATE.drain();
-            let _ = TcpStream::connect_timeout(&wake, std::time::Duration::from_secs(1));
-        });
-        if let Err(e) = waited {
-            production::refuse(&[e]);
-        }
-    }
+    // SIGINT, waited for in a thread of its own since the process began,
+    // from now on takes no new connection (a connection of its own wakes the
+    // loop below) and finishes the open ones within the grace.
+    production::shutdown::listening(production::shutdown::waking_address(settings.bind, port));
+    // TRACK SEAM (deploy): the port it listens on, said once everything it
+    // runs beside its connections has started: a host that says it listens
+    // is one that takes its next connection.
+    production::log::info("listening", &format!("pw dev server on {port}"));
 
+    // TRACK SEAM (deploy): **a production host's connections are bounded**
+    // (`production::connections`, the review's finding 1): at most
+    // `PW_MAX_CONNECTIONS` open, one more answered 503 by this thread, which
+    // starts none for it; each request read by one deadline and each answer
+    // written by another; and a connection the system gives no thread
+    // dropped, the host living on.
+    let mut failures = 0u32;
     for stream in listener.incoming() {
         // TRACK SEAM (deploy): a host told to stop takes no new connection.
         if production::shutdown::GATE.draining() {
             break;
         }
-        let Ok(stream) = stream else { continue };
-        // TRACK SEAM (deploy): a production host gives a request's head and
-        // body a bounded wait for each read (`PW_READ_TIMEOUT`, thirty
-        // seconds), so a connection that sends nothing does not hold its
-        // thread for good.
-        if settings.production {
-            let _ = stream.set_read_timeout(Some(settings.read_timeout));
-        }
-        let server = server.clone();
+        let stream = match stream {
+            Ok(stream) => {
+                failures = 0;
+                stream
+            }
+            Err(e) => {
+                if settings.production {
+                    production::connections::accept_failed(&e, &mut failures);
+                }
+                continue;
+            }
+        };
         // TRACK SEAM (deploy): open until its thread is done, which a stop
         // waits for; counted here, before the thread starts, so a stop
-        // that comes between cannot miss it.
-        let open = production::shutdown::GATE.open();
+        // that comes between cannot miss it, and checked against the limit
+        // in the same step.
+        let open = if settings.production {
+            match production::shutdown::GATE.try_open(settings.max_connections) {
+                Some(open) => open,
+                None => {
+                    production::connections::turn_away(stream, production::lines());
+                    continue;
+                }
+            }
+        } else {
+            production::shutdown::GATE.open()
+        };
+        if settings.production {
+            production::connections::prepare(&stream);
+        }
+        let server = server.clone();
         // A thread per connection. The subscription blocks, and a
         // single-threaded loop would make the first subscriber the last.
-        std::thread::spawn(move || {
+        // A thread the system refuses is this connection dropped, unanswered,
+        // and never this loop's panic (`std::thread::spawn`'s), which ended
+        // the process and every connection after it.
+        let spawned = production::connections::spawn(move || {
             handle(&server, stream);
             drop(open);
         });
+        if let Err(e) = spawned {
+            production::connections::not_spawned(&e);
+        }
     }
     // TRACK SEAM (deploy): closed at once, so that a connection made now is
     // refused, which a proxy retries elsewhere or after the restart
@@ -9462,54 +9518,51 @@ fn session_changed(stream: &mut TcpStream, session: &str, fresh: bool) {
 }
 
 fn answer_connection(server: &Server, mut stream: TcpStream) {
-    let mut reader = BufReader::new(stream.try_clone().expect("clone"));
-    // TRACK SEAM (deploy): **a request's head is bounded**, its line and its
-    // fields together, as a body is: a line nothing bounds is memory anyone
-    // can ask for. Past the bound it is refused (RFC 6585 §5's 431).
-    let mut request = String::new();
-    // A connection that asks nothing (a platform's TCP check, a stop's own
-    // wake) is answered nothing, and said nowhere.
-    if reader
-        .by_ref()
-        .take(MAX_HEAD)
-        .read_line(&mut request)
-        .map_or(true, |read| read == 0)
-    {
+    // TRACK SEAM (deploy): **a request arrives by one deadline** in a
+    // production host (`production::connections::Arriving`): its whole head
+    // and body within `PW_READ_TIMEOUT`, however its bytes are spaced. A
+    // connection with no second descriptor is closed, not a panic.
+    let Ok(arriving) = stream.try_clone() else {
         return;
-    }
+    };
+    let mut reader = BufReader::new(production::connections::Arriving::new(arriving));
+    // TRACK SEAM (deploy): the request's line in a production host's log,
+    // said when it is answered, whichever way it returns: its method, and
+    // its route's pattern once it is known, never the path it was asked by.
+    let _logged = production::log::Logged::new();
+    let (request, headers) = match read_head(&mut reader) {
+        Head::Read { line, fields } => (line, fields),
+        // A connection that asks nothing (a platform's TCP check, a stop's
+        // own wake) is answered nothing, and said nowhere.
+        Head::Nothing | Head::Cut => return,
+        Head::TooLarge => {
+            respond_build(
+                &mut stream,
+                431,
+                "text/plain; charset=utf-8",
+                b"the request's head is too large",
+            );
+            return;
+        }
+        Head::Late => {
+            respond_build(
+                &mut stream,
+                408,
+                "text/plain; charset=utf-8",
+                b"the request did not arrive in time",
+            );
+            return;
+        }
+    };
     let mut parts = request.split_whitespace();
     let (method, path) = (parts.next().unwrap_or(""), parts.next().unwrap_or("/"));
-    // TRACK SEAM (deploy): the request's line in a production host's log,
-    // said when it is answered, whichever way it returns.
-    let _logged = production::log::Logged::new(method, path);
-
-    let mut headers = String::new();
-    let mut whole = request.ends_with('\n');
-    while whole {
-        let left = MAX_HEAD.saturating_sub((request.len() + headers.len()) as u64);
-        let mut line = String::new();
-        let read = reader.by_ref().take(left).read_line(&mut line).unwrap_or(0);
-        if read == 0 || line == "\r\n" {
-            break;
-        }
-        whole = line.ends_with('\n');
-        headers.push_str(&line);
-    }
-    if !whole {
-        respond_build(
-            &mut stream,
-            431,
-            "text/plain; charset=utf-8",
-            b"the request's head is too large",
-        );
-        return;
-    }
+    production::log::asked(method);
     // TRACK SEAM (deploy): **a production host's own answers, before a
-    // session is read**: a test's control refused, its health and
-    // readiness, its metrics refused without their token, and its build's
-    // assets, which name no session.
+    // session is read**: what it does not serve refused as a route it does
+    // not have, its health and readiness, its metrics refused without
+    // their token, and its build's assets, which name no session.
     if let Some(production) = server.production.get()
-        && production.answer(method, path, &headers, &mut stream)
+        && production.answer(server, method, path, &headers, &mut stream)
     {
         return;
     }
@@ -9616,7 +9669,17 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
         return;
     }
     let mut body = vec![0; length];
-    if reader.read_exact(&mut body).is_err() {
+    if let Err(e) = reader.read_exact(&mut body) {
+        // TRACK SEAM (deploy): a body that did not arrive by the request's
+        // deadline is answered so (RFC 9110 §15.5.9); one cut short, not.
+        if production::connections::timed_out(&e) {
+            respond_build(
+                &mut stream,
+                408,
+                "text/plain; charset=utf-8",
+                b"the request did not arrive in time",
+            );
+        }
         return;
     }
 
@@ -11082,6 +11145,13 @@ fn stream_open(
             ended(format_args!("stream cut off at pass {pass}"));
             return;
         }
+        // TRACK SEAM (deploy): **a host that stops ends its subscriptions at
+        // once** (the review's finding 5f), rather than holding its stop
+        // for their passes: the page asks again, of the host after it.
+        if production::shutdown::GATE.draining() {
+            ended(format_args!("stream ended by a stop at pass {pass}"));
+            return;
+        }
         let batch = {
             let asked = std::time::Instant::now();
             let mut queue = server.pending.lock().expect("pending");
@@ -11189,6 +11259,11 @@ fn stream_frames(
     for _ in 0..40 {
         if server.cut_off(session, opened) {
             return;
+        }
+        // TRACK SEAM (deploy): a host that stops answers its long polls at
+        // once, with what they have (the review's finding 5f).
+        if production::shutdown::GATE.draining() {
+            break;
         }
         let batch = {
             let mut queue = server.pending.lock().expect("pending");
@@ -12199,6 +12274,65 @@ fn runtime_source() -> &'static str {
 /// Node's HTTP server takes by default (16 KiB, `--max-http-header-size`).
 const MAX_HEAD: u64 = 64 * 1024;
 
+/// TRACK SEAM (deploy): **a request's head, as it was read**.
+#[derive(Debug, PartialEq, Eq)]
+enum Head {
+    /// Its line and its fields, each line with its line break, the blank
+    /// line that ends them read and dropped.
+    Read { line: String, fields: String },
+    /// Nothing: the connection closed, or its time passed, before a byte.
+    Nothing,
+    /// Past [`MAX_HEAD`] before it ended, wherever its lines break: 431
+    /// (RFC 6585 §5). Until the review a head whose first 64 KiB ended on a
+    /// line break was taken, and the rest read as its body.
+    TooLarge,
+    /// Begun, and its time passed before it ended: 408 (RFC 9110 §15.5.9).
+    Late,
+    /// Begun, and closed or not text before it ended: answered nothing.
+    Cut,
+}
+
+/// TRACK SEAM (deploy): **a request's head, read within [`MAX_HEAD`]**: its
+/// line and its fields, together, to the blank line that ends them, which
+/// must come within the bound too.
+fn read_head(reader: &mut impl BufRead) -> Head {
+    let mut used = 0u64;
+    let mut line = String::new();
+    let mut fields = String::new();
+    loop {
+        let left = MAX_HEAD - used;
+        if left == 0 {
+            return Head::TooLarge;
+        }
+        let mut next = String::new();
+        match reader.by_ref().take(left).read_line(&mut next) {
+            Ok(0) if used == 0 => return Head::Nothing,
+            Ok(0) => return Head::Cut,
+            Ok(read) => used += read as u64,
+            Err(e) if used == 0 && next.is_empty() && production::connections::timed_out(&e) => {
+                return Head::Nothing;
+            }
+            Err(e) if production::connections::timed_out(&e) => return Head::Late,
+            Err(_) => return Head::Cut,
+        }
+        if !next.ends_with('\n') {
+            // The bound reached within a line, or the connection closed in it.
+            return if used == MAX_HEAD {
+                Head::TooLarge
+            } else {
+                Head::Cut
+            };
+        }
+        if line.is_empty() {
+            line = next;
+        } else if next == "\r\n" || next == "\n" {
+            return Head::Read { line, fields };
+        } else {
+            fields.push_str(&next);
+        }
+    }
+}
+
 /// The store page's speculation manifest, if the build wrote one (ADR-0122).
 /// **Every page's speculation manifest** (ADR-0191), by the page it names.
 fn speculation_manifests(dist: &std::path::Path) -> BTreeMap<String, serde_json::Value> {
@@ -12312,6 +12446,8 @@ fn reason(code: u16) -> &'static str {
         308 => "Permanent Redirect",
         404 => "Not Found",
         405 => "Method Not Allowed",
+        // TRACK SEAM (deploy): a request that did not arrive in time.
+        408 => "Request Timeout",
         413 => "Content Too Large",
         431 => "Request Header Fields Too Large",
         500 => "Internal Server Error",
@@ -12383,9 +12519,14 @@ fn write_response(stream: &mut TcpStream, code: u16, mime: &str, headers: &str, 
         body.len(),
         production::head(code),
     );
-    let _ = stream.write_all(head.as_bytes());
-    let _ = stream.write_all(body);
-    let _ = stream.flush();
+    // TRACK SEAM (deploy): **an answer written by one deadline** in a
+    // production host (`production::connections::Sending`): its head and
+    // its body within `PW_WRITE_TIMEOUT`, to a client that reads at any pace.
+    let mut sending = production::connections::Sending::new(stream);
+    let _ = sending.write_all(head.as_bytes());
+    let _ = sending.write_all(body);
+    let _ = sending.flush();
+    drop(sending);
     let mut sink = Vec::new();
     let _ = stream.take(0).read_to_end(&mut sink);
 }

@@ -30,6 +30,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::Partition;
 
+/// The key a domain holds where no deployment gave one: the development
+/// server's, which this repository publishes.
+const DEVELOPMENT_KEY: &str = "pw-development-identity-key-not-for-deployment";
+
 /// The partition's canonical text, through the shared type so there is one
 /// spelling. A `match` here would be a second definition wearing another name.
 fn partition_text(p: &Partition) -> String {
@@ -40,26 +44,49 @@ fn partition_text(p: &Partition) -> String {
 ///
 /// Two documents in the same domain derive the same token for the same key;
 /// two documents in different domains derive unrelated ones.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+///
+/// **It holds the deployment's PRF key, and never says it** (track `deploy`,
+/// the review's finding 5g): no `Serialize` or `Deserialize`, which would
+/// write the key wherever the domain went, and a `Debug` that shows the
+/// domain without it. Until then it derived both, holding a production
+/// host's instance key.
+#[derive(Clone, PartialEq, Eq)]
 pub struct IdentityDomain {
     /// The materialization's physical key, or the document's logical key.
     pub key: String,
     pub partition: Partition,
     /// The build that produced the artifact — the same generation E6 injects.
     pub compatibility: String,
-    /// The deployment's PRF key.
+    /// The deployment's PRF key, given by [`IdentityDomain::keyed`] and read
+    /// by [`IdentityDomain::instance_token`] alone.
     ///
     /// Public by type and secret by deployment. With the default below the
     /// tokens are enumerable by anyone who knows the document and can guess the
     /// keys; with a deployment's own key they are not. The default exists so
     /// the renderer runs out of the box and it is named so that shipping it is
     /// a visible choice.
-    #[serde(default = "default_identity_key")]
-    pub identity_key: String,
+    identity_key: String,
 }
 
-fn default_identity_key() -> String {
-    "pw-development-identity-key-not-for-deployment".to_string()
+impl std::fmt::Debug for IdentityDomain {
+    /// The domain, its key named and never shown: a log or a panic that
+    /// formats a domain, or a renderer's environment holding one, says no
+    /// byte of a deployment's key.
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("IdentityDomain")
+            .field("key", &self.key)
+            .field("partition", &self.partition)
+            .field("compatibility", &self.compatibility)
+            .field(
+                "identity_key",
+                &if self.identity_key == DEVELOPMENT_KEY {
+                    "the development key"
+                } else {
+                    "a deployment's key (not shown)"
+                },
+            )
+            .finish()
+    }
 }
 
 impl Default for IdentityDomain {
@@ -68,7 +95,7 @@ impl Default for IdentityDomain {
             key: "document".to_string(),
             partition: Partition::Public,
             compatibility: "dev".to_string(),
-            identity_key: default_identity_key(),
+            identity_key: DEVELOPMENT_KEY.to_string(),
         }
     }
 }
@@ -203,6 +230,35 @@ mod tests {
 
     fn domain() -> IdentityDomain {
         IdentityDomain::materialization("MenuFragment(47)", Partition::Public, "B1")
+    }
+
+    /// **A domain never says its key** (track `deploy`, the review's finding
+    /// 5g): its `Debug` holds no eight characters of a deployment's key, and
+    /// names the development key without showing it; the rest of the domain
+    /// is shown.
+    #[test]
+    fn a_domain_never_says_its_key() {
+        let key = "9f3c2b7a51e04d8c9b6a2f1e0d4c8b7a6e5f4d3c2b1a0f9e8d7c6b5a4f3e2d1c";
+        let shown = format!("{:?}", domain().keyed(key));
+        for at in 0..=key.len() - 8 {
+            assert!(!shown.contains(&key[at..at + 8]), "{shown}");
+        }
+        assert!(
+            shown.contains("MenuFragment(47)") && shown.contains("not shown"),
+            "{shown}"
+        );
+        let development = format!("{:?}", domain());
+        assert!(
+            !development.contains(DEVELOPMENT_KEY) && development.contains("the development key"),
+            "{development}"
+        );
+        // The key still keys: two keys, two tokens.
+        assert_ne!(
+            domain()
+                .keyed(key)
+                .instance_token(&[], LocalPartId(1), "espresso"),
+            domain().instance_token(&[], LocalPartId(1), "espresso")
+        );
     }
 
     #[test]
