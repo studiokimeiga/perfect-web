@@ -1,0 +1,124 @@
+row-ownership - owned tables read and written by their reader; predicates in Pleris
+
+produced by: just e14-row-ownership
+commit: cfc32cded0c4b56bbb40bc72be1c7adf18f47fd7
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/41441594505 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+    Updating crates.io index
+   Compiling pw-resource v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-resource)
+   Compiling pw-syntax v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-syntax)
+   Compiling pw-document v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-document)
+   Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
+   Compiling pw-render v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-render)
+    Finished `test` profile [unoptimized] target(s) in 17.16s
+     Running tests/table_owners.rs (target/debug/deps/table_owners-1b039827f02132f4)
+
+running 17 tests
+test a_set_form_takes_the_handle_and_a_list_of_what_follows_it ... ok
+test an_unowned_table_gives_what_it_gave ... ok
+test an_owned_table_gives_each_read_and_write_by_its_readers_handle ... ok
+test private_is_still_a_declarations_visibility_after_a_table ... ok
+test pw0362_a_binding_by_hand_reaches_no_owned_row ... ok
+test an_owned_read_in_a_shared_cache_is_pw5001 ... ok
+test each_clause_is_read_as_its_grammar_says ... ok
+test pw0367_owned_by_names_a_field_holding_a_principals_id ... ok
+test pw0368_an_owned_table_is_never_read_whole ... ok
+test no_program_reads_anothers_rows_by_naming_an_id ... ok
+test pw0369_the_seen_row_is_the_compilers_to_declare ... ok
+test pw0367_shares_with_names_others_fields_holding_principals_ids ... ok
+test pw0368_every_read_of_an_owned_table_leads_with_a_reader ... ok
+test without_a_private_field_a_sharer_is_answered_the_row ... ok
+test the_fixture_checks_clean_and_reads_each_clause ... ok
+test tables_json_states_whose_rows_and_each_functions_reader ... ok
+test pw0369_a_private_field_is_one_no_other_reader_reads_rows_by ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.25s
+
+   Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
+    Finished `test` profile [unoptimized] target(s) in 0.47s
+     Running tests/predicate_bodies.rs (target/debug/deps/predicate_bodies-3bd3d3f76dee451a)
+
+running 4 tests
+test a_bodied_predicate_is_a_component_its_requirements_name ... ok
+test pw6905_a_body_reads_and_does_nothing_else ... ok
+test a_body_answers_a_bool ... ok
+test a_query_requires_a_predicate_as_a_command_does ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
+
+   Compiling pw-host v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-host)
+    Finished `test` profile [unoptimized] target(s) in 2.25s
+     Running unittests src/lib.rs (target/debug/deps/pw_host-573b54ba19b5c411)
+
+running 3 tests
+test engine::table_owners::tests::a_handle_is_its_callers_or_nothing_is_read ... ok
+test engine::table_owners::tests::a_sharer_is_answered_the_seen_row ... ok
+test engine::table_owners::tests::an_owned_row_is_written_by_its_owner_alone ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 25 filtered out; finished in 0.00s
+
+   Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
+   Compiling pw-host v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-host)
+   Compiling pw-table-memory v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-table-memory)
+    Finished `test` profile [unoptimized] target(s) in 17.24s
+     Running tests/compiled_owners.rs (target/debug/deps/compiled_owners-3b90966c80581d79)
+
+running 9 tests
+test a_command_deletes_its_callers_notes_alone ... ok
+test a_call_no_one_makes_reads_no_owned_row ... ok
+test a_command_writes_its_callers_notes_alone ... ok
+test a_forged_reader_is_refused_before_any_row_is_read ... ok
+test a_reader_a_note_is_sent_to_reads_it_without_its_draft ... ok
+test a_sharers_read_answered_another_readers_row_is_refused ... ok
+test a_reader_reads_their_own_notes_alone ... ok
+test an_import_typed_as_an_unowned_tables_is_refused_where_it_links ... ok
+test the_manifest_is_held_whole_for_its_owners ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.40s
+
+   Compiling pw-table-memory v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-table-memory)
+    Finished `test` profile [unoptimized] target(s) in 1.17s
+     Running tests/compiled_predicates.rs (target/debug/deps/compiled_predicates-1469ef64796ac9b8)
+
+running 5 tests
+test a_command_is_refused_where_it_does_not_hold_before_it_writes ... ok
+test a_command_runs_where_its_programs_predicate_holds ... ok
+test a_query_is_refused_where_its_predicate_does_not_hold ... ok
+test a_predicates_reads_see_its_commands_writes_and_no_other_reads_do ... ok
+test a_requirement_with_no_component_is_the_deployments ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.98s
+
+
+== mutation controls (scripts/row_ownership_mutations.py)
+baseline: 63 passed, 0 failed
+an owned read takes a plain id: KILLED (23 of 63 tests fail)
+a sharer is answered the whole row: KILLED (18 of 63 tests fail)
+an owned table gives all: KILLED (2 of 63 tests fail)
+tables.json names no reader: KILLED (15 of 63 tests fail)
+PW0367 an owner may be no principal's id: KILLED (2 of 63 tests fail)
+PW0368 an owned key may lead with another: KILLED (1 of 63 tests fail)
+PW0368 an owned index may lead with no reader: KILLED (1 of 63 tests fail)
+PW0368 a unique index may hold no owner: KILLED (1 of 63 tests fail)
+PW0368 all of an owned table is not refused: KILLED (1 of 63 tests fail)
+PW0369 a private field may be the order of a shared table: KILLED (1 of 63 tests fail)
+PW0369 a private field may be the owner: KILLED (1 of 63 tests fail)
+private before a declaration's word heads a clause: KILLED (1 of 63 tests fail)
+a forged handle is believed: KILLED (2 of 63 tests fail)
+a call no one makes reads owned rows: KILLED (2 of 63 tests fail)
+an owned row may be written for another: KILLED (2 of 63 tests fail)
+a set form's handle is not given back to its keys: KILLED (1 of 63 tests fail)
+a sharer is answered the private fields: KILLED (1 of 63 tests fail)
+the manifest holds no owners: KILLED (1 of 63 tests fail)
+an owned import is typed as an unowned one: KILLED (7 of 63 tests fail)
+the engine admits no handle: KILLED (5 of 63 tests fail)
+a predicate's body is not held to its Bool: KILLED (1 of 63 tests fail)
+PW6905 a predicate's body may write: KILLED (1 of 63 tests fail)
+a query may not require a predicate: KILLED (17 of 63 tests fail)
+a requirement names no component: KILLED (4 of 63 tests fail)
+the deployment is asked the program's predicate: KILLED (3 of 63 tests fail)
+a predicate's reads leave its command's transaction: KILLED (1 of 63 tests fail)
+a predicate's reads are given to a command: KILLED (1 of 63 tests fail)
+27 of 27 mutants killed
+memory bound: no process was stopped

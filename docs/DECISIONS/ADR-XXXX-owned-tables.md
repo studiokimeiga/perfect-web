@@ -120,13 +120,28 @@ predicate Wrote(id: NoteId)
 
 ## Evidence
 
-`just e14-row-ownership` (`docs/evidence/E14/row-ownership.txt`), on GitHub
-(verify run at the track's head): `pw-core --test table_owners` (16),
-`--test predicate_bodies` (4), `pw-host --lib table_owners` (3),
-`pw-table-memory --test compiled_owners` (9), `--test compiled_predicates`
-(5); `scripts/row_ownership_mutations.py`, 27 controls (counts recorded by
-the run). `tables_mutations.py`'s two re-anchored controls run whole with
-`e14-tables`.
+- `docs/evidence/E14/row-ownership.txt`, by `just e14-row-ownership` on
+  verify 41441594505 at `cfc32cde` (fetched by `python3
+  scripts/evidence_fetch.py 41441594505 --any-commit`): `pw-core --test
+  table_owners` 17, `--test predicate_bodies` 4, `pw-host --lib
+  table_owners` 3, `pw-table-memory --test compiled_owners` 9, `--test
+  compiled_predicates` 5; `scripts/row_ownership_mutations.py`, baseline 63
+  passed, **27 of 27 controls killed**, each at a native assertion. Its
+  first whole run (verify 41400646151) judged 11 compiler controls invalid,
+  their tests failing at an `expect` or a `#[track_caller]` site; the tests
+  now hold results with assertions, and none was credited.
+- `docs/evidence/E14/d2-writes.txt`: 69 of 69 at `cfc32cde` (the script's
+  files changed here). One earlier whole run at `f5f29a5a` reported "a
+  working lock unwind does not announce failure" surviving, in code this
+  track does not touch: a flake, recorded as a finding.
+- `e14-tables` and `e14-table-host` (the scripts this track re-anchored or
+  whose files it changed) passed whole on verify 41400646151 at `f5f29a5a`,
+  a run that failed for this track's own recipe; their files are fetched
+  from a green run before landing.
+- The corpus: R-110 to R-113 and A-055; a GENERAL witness and a neighbour
+  for each of the four invariants (generality 69 / 69);
+  `docs/evidence/E2D/corpus-enforcement.txt` 99 / 99. `just ci` passed
+  locally at the track's head.
 
 ## Not claimed
 
