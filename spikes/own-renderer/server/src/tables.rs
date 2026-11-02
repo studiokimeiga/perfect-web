@@ -262,6 +262,15 @@ impl DataLayer for TablesLayer {
     fn default_page(&self) -> Option<&'static str> {
         None
     }
+
+    /// **The statements its adapter has run**, each primitive one, reads
+    /// and writes (`MemoryTables::statements`): what the conformance suite
+    /// holds a read's cost to, below this layer, so a layer that calls the
+    /// adapter twice for one read is seen.
+    #[cfg(test)]
+    fn statements(&self) -> Option<u64> {
+        Some(self.tables.statements())
+    }
 }
 
 #[cfg(test)]
