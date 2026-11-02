@@ -14,20 +14,32 @@ anywhere but an assertion is no kill):
 1. the routing: a database named for the tables, not read, or not used;
 2. one transaction: the interaction's record, the runs, or the recall left
    to the host's materializer; a command's runs not written, a completed
-   run not taken, a run no longer current completed anyway; a refused
-   commit answered committed;
+   run not taken, a run no longer current completed anyway, a run's next
+   generation written before the run is taken; a refused commit answered
+   committed;
 3. one state a render: each query of a render in a seat of its own; a
-   render with no seat reading the latest commit;
+   render with no seat reading the latest commit; a render reading again
+   after a read that failed;
 4. the authority: a command not fenced on its session, a fence admitting
    the reader as no one, a guest's command refused, a fence's last check
    not made, a fence holding a command to any session, the session's lock
    not held to the command's end or never given back, a session's change
    taking no lock, a session living past its lifetimes, an admission
    forgetting nothing, a sign-in taken twice, sessions kept in the host's
-   memory, a test's schema honoured outside a development deployment;
+   memory, a test's schema honoured outside a development deployment, a
+   command left usable after its authority came too late, a failed
+   session's change keeping its connection;
 5. the runs the adapter keeps: a run scheduled again keeping its old
    generation, a cancelled run kept, a run taken or retried whatever the
-   generation it was selected as, a stale taking answered taken.
+   generation it was selected as, a taking another hand suppressed answered
+   taken or not current;
+6. the review of 3ccd083a (2026-11-02): a command waiting for its session
+   while it holds its host's turn, a command holding the turn waiting for a
+   connection; the outbox's delivered rows kept, its leftovers never
+   trimmed; the host never sweeping, or sweeping at every pass, sessions or
+   sign-ins never swept, a sweep unbounded or waiting for a row a command
+   holds; a rolled-back commit answered as unknown, by the layer or by the
+   host, and an unanswered one answered refused.
 
 The tests: the adapter's (`runtime/pw-table-postgres/tests/platform.rs`),
 the server's on PostgreSQL (`tests::tables_pg::`, the conformance suite over
@@ -84,22 +96,24 @@ MUTANTS = [
      "    fn runs(&self) -> Option<&dyn schedules::Runs> {\n        Some(self)\n    }\n",
      "    fn runs(&self) -> Option<&dyn schedules::Runs> {\n        None\n    }\n"),
     ("a command's scheduled runs are not written", LAYER,
-     "            .schedule(&schedulings)\n",
-     "            .schedule(&schedulings[..0])\n"),
+     "        if let Err(e) = command.schedule(&schedulings) {\n",
+     "        if let Err(e) = command.schedule(&schedulings[..0]) {\n"),
     ("a completed run is not taken in its command's transaction", LAYER,
      "            match command.consume(&run, completion.now_ms) {\n",
      "            match Ok::<bool, pw_table_postgres::Error>(!run.command.is_empty()) {\n"),
+    ("a run's next generation is written before the run is taken", LAYER,
+     "            match command.consume(&run, completion.now_ms) {\n",
+     "            let _ = command.schedule(&schedulings);\n"
+     "            match command.consume(&run, completion.now_ms) {\n"),
     ("a run no longer current completes anyway", LAYER,
      "                Ok(false) => return Ok(Commit::NotCurrent),\n",
      "                Ok(false) => {}\n"),
     ("a commit the database refused is answered committed", LAYER,
-     "            .map_err(|e| format!(\"the tables did not commit: {e:?}\"))?;\n"
-     "        self.turn = Turn::Committed;\n",
-     "            .unwrap_or(pw_table_postgres::Committed {\n"
+     "            Err(e) => return self.refuse(format!(\"the tables did not commit: {e:?}\")),\n",
+     "            Err(_) => pw_table_postgres::Committed {\n"
      "                written: Default::default(),\n"
      "                outbox: Vec::new(),\n"
-     "            });\n"
-     "        self.turn = Turn::Committed;\n"),
+     "            },\n"),
     # 3. one state a render
     ("each query of a render reads in a seat of its own", LAYER,
      "                Some(PgSnapshot(Ok(taken))) => taken.read_host_fns(contract, granted),\n",
@@ -110,12 +124,20 @@ MUTANTS = [
     ("a render with no seat reads the latest commit", LAYER,
      "                Some(PgSnapshot(Err(why))) => return Err(why.clone()),\n",
      "                Some(PgSnapshot(Err(_))) => self.tables.read_host_fns(contract, granted),\n"),
+    ("a render reads again after a read that failed", LIB,
+     "            *self.ended.lock().map_err(|_| Error::StoragePoisoned)? = Some(error.clone());\n",
+     "            let _ = error;\n"),
     # 4. the authority
     ("a command is not fenced on its reader's session", LAYER,
-     "            .fence(fence)\n"
-     "            .map_err(|e| format!(\"session authority changed before commit: {e:?}\"))?;\n",
-     "            .revalidate()\n"
-     "            .map_err(|e| format!(\"session authority changed before commit: {e:?}{fence:?}\"))?;\n"),
+     "            .begin_fenced(fence)\n",
+     "            .begin()\n"
+     "            .map_err(|e| (e, &fence).0)\n"),
+    ("a command whose authority came too late is left usable", LAYER,
+     "                *self.turn.get_mut() = Turn::Failed(why.clone());\n",
+     "                let _ = why;\n"),
+    ("a failed session's change keeps its connection", PLATFORM,
+     "        if !self.committed {\n",
+     "        if !self.committed && false {\n"),
     ("a fence admits a signed-in reader as no one", LAYER,
      "        ReaderIdentity::Account(identity) => Some(session_of(identity)),\n",
      "        ReaderIdentity::Account(_) => None,\n"),
@@ -167,16 +189,65 @@ MUTANTS = [
      "                if let Some(due) = run.due_ms {\n",
      "                if let Some(due) = run.due_ms.or(Some(0)) {\n"),
     ("a run is taken whatever the generation it was selected as", PLATFORM,
-     "                 AND user_id = $4 AND due_ms = $5 AND attempts = $6 AND failed IS NULL \\\n",
-     "                 AND $4::text IS NOT NULL AND $5::bigint IS NOT NULL AND $6::bigint IS NOT NULL \\\n"
-     "                 AND failed IS NULL \\\n"),
-    ("a stale taking is answered taken", PLATFORM,
-     "            Ok(rows) => Ok(rows.len() == 1),\n",
-     "            Ok(rows) => Ok(rows.len() <= 1),\n"),
+     "            if held.first().map(run_of).transpose()?.as_ref() != Some(run) {\n",
+     "            if held.first().map(run_of).transpose()?.map(|h| h.id) != Some(run.id) {\n"),
+    ("a taking another hand suppressed is answered taken", PLATFORM,
+     "            if removed.len() == 1 {\n",
+     "            if removed.len() <= 1 {\n"),
+    ("a taking another hand suppressed is answered not current", PLATFORM,
+     "                Err(Error::Refused(format!(\n"
+     "                    \"run {} is the run selected, and its deletion removed nothing\",\n"
+     "                    run.id\n"
+     "                )))\n",
+     "                Ok::<bool, Error>(false)\n"),
     ("a failed run is retried whatever its generation", PLATFORM,
      "                 AND due_ms = $5 AND attempts = $6 AND failed IS NOT DISTINCT FROM $10 \\\n",
      "                 AND $5::bigint IS NOT NULL AND $6::bigint IS NOT NULL \\\n"
      "                 AND failed IS NOT DISTINCT FROM $10 \\\n"),
+    # 6. the review of 3ccd083a
+    ("a command waits for its session holding its host's turn", PLATFORM,
+     "        let place = self.inner.lock_session(key)?;\n",
+     "        let holding = self.begin()?;\n"
+     "        let place = self.inner.lock_session(key)?;\n"
+     "        drop(holding);\n"),
+    ("a command holding the turn waits for a connection", LIB,
+     "        let lease = open.lease.as_mut().ok_or(Error::Ended)?;\n",
+     "        drop(self.pool.take()?);\n"
+     "        let lease = open.lease.as_mut().ok_or(Error::Ended)?;\n"),
+    ("a commit's delivered outbox rows are kept", LAYER,
+     "        if let Err(e) = self.layer.tables.forget_outbox(&ids) {\n",
+     "        if let Err(e) = self.layer.tables.forget_outbox(&ids[..0]) {\n"),
+    ("the outbox rows a host left behind are never trimmed", LAYER,
+     "                self.tables.trim_outbox(OUTBOX_LEFT, SWEPT),\n",
+     "                self.tables.trim_outbox(OUTBOX_LEFT, 0),\n"),
+    ("the host never sweeps", MAIN,
+     "        self.data\n"
+     "            .housekeeping(now, &self.identity.principals().lifetimes());\n",
+     "        let _ = &self.data;\n"),
+    ("the host sweeps at every pass of its scheduler", LAYER,
+     "        if now_ms < *next {\n",
+     "        if now_ms < *next && false {\n"),
+    ("sessions past their lifetimes are never swept", LAYER,
+     "                self.tables.sweep_sessions(lifetimes_of(sessions), SWEPT),\n",
+     "                self.tables.sweep_sessions(lifetimes_of(sessions), 0),\n"),
+    ("sign-ins past their lifetime are never swept", LAYER,
+     "                    .sweep_sign_ins(identity::SIGN_IN_LIFETIME, SWEPT),\n",
+     "                    .sweep_sign_ins(identity::SIGN_IN_LIFETIME, 0),\n"),
+    ("a sweep of sessions is unbounded", PLATFORM,
+     "                 LIMIT $3 FOR UPDATE SKIP LOCKED) RETURNING 1\"\n",
+     "                 LIMIT $3::bigint * 0 + 1000000 FOR UPDATE SKIP LOCKED) RETURNING 1\"\n"),
+    ("a sweep waits for a session a command holds", PLATFORM,
+     "                 LIMIT $3 FOR UPDATE SKIP LOCKED) RETURNING 1\"\n",
+     "                 LIMIT $3 FOR UPDATE NOWAIT) RETURNING 1\"\n"),
+    ("a commit the database rolled back is answered as unknown", LAYER,
+     "    fn definitely_refused(&self) -> bool {\n        self.refused\n    }\n",
+     "    fn definitely_refused(&self) -> bool {\n        self.refused && false\n    }\n"),
+    ("the host answers a refused commit as unknown", MAIN,
+     "                    if refused {\n                        return Err(why);\n                    }\n",
+     "                    if refused && false {\n                        return Err(why);\n                    }\n"),
+    ("a commit never answered is answered refused", LAYER,
+     "            ) => return Err(format!(\"the tables did not commit: {e:?}\")),\n",
+     "            ) => return self.refuse(format!(\"the tables did not commit: {e:?}\")),\n"),
 ]
 
 # Each Cargo test binary apart: names can repeat between binaries, and the
