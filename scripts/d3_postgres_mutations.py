@@ -1,0 +1,288 @@
+#!/usr/bin/env python3
+"""Mutation controls for D3 (ADR-0338): any program's declared tables on
+PostgreSQL, behind the memory adapter's interface (`runtime/pw-table-postgres`).
+
+Each mutant undoes one guarantee and must be killed by a test of the crate,
+at a native assertion (the strict producer of `d2_writes_mutations.py`:
+each test binary's complete named inventory, every failure an assertion's):
+
+1. ADR-0338's named controls for D3: a set read looped per key; a
+   transaction at the connection's default; a migration applied twice;
+   drift accepted;
+2. the schema: the platform's tables applied twice, the migration's lock
+   not taken, a record's hash or a table made by another hand accepted, a
+   destructive change made unstated, an older build taking a newer database
+   back, a refinement with no check, a string's bytes counted for its code
+   points, nested values kept as `jsonb` (a negative zero's sign lost);
+3. the primitives: rows in another order, the key's holder answered after a
+   unique value's, a refused insert answered as written, a put refused by
+   its own row, a unique value refused by the database (the transaction
+   aborted), a growth write past the bound, `all` past its bound, a selector,
+   a written row or a stored row unchecked, a statement prepared every call;
+4. the commands: two at once, writes outside a transaction, reads outside
+   it, a prepared command writing on, a row put back taken for a write,
+   references held at each write or only at the commit;
+5. the commit: the records committed outside the command's transaction, an
+   interaction recorded twice, a live record overwritten, a refused commit
+   answered committed, an unanswered one answered refused, a serialization
+   failure taken for another error or not run again, the outbox's ids out of
+   commit order;
+6. renders: seats unbounded, a snapshot reading the latest commit.
+
+They need a database: `PW_TABLES_DATABASE_URL` (or `PW_STORE_DATABASE_URL`,
+`PW_FEED_DATABASE_URL`), a throwaway one, which each test uses in a schema
+of its own. Without it every test passes doing nothing, and no mutant could
+be killed, so this refuses to run.
+
+Run whole from the repository root (`just e14-d3-postgres`). Every source is
+restored in finally; the unmutated baseline must pass before any mutant
+means anything. Words given as arguments run only the mutants whose
+description holds one of them, for a quick look while working; the record is
+a whole run.
+"""
+import os
+import pathlib
+import subprocess
+import sys
+
+import cargo_assertion_results
+import mutation_source
+import producer_process
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+CRATE = ROOT / "runtime/pw-table-postgres"
+LIB = CRATE / "src/lib.rs"
+SQL = CRATE / "src/sql.rs"
+MIGRATE = CRATE / "src/migrate.rs"
+SHAPE = CRATE / "src/shape.rs"
+VALUES = CRATE / "src/values.rs"
+POOL = CRATE / "src/pool.rs"
+
+MUTANTS = [
+    # 1. ADR-0338's named controls for D3
+    ("a set read is looped per key", LIB,
+     "            let keys = typed_selections(table, function, import, args)?;\n"
+     "            if keys.is_empty() {\n",
+     "            let keys = typed_selections(table, function, import, args)?;\n"
+     "            for _ in 1..keys.len() {\n"
+     "                let _ = conn.query(&inner.counters, \"SELECT 1\", &[]);\n"
+     "            }\n"
+     "            if keys.is_empty() {\n"),
+    ("a command's transaction is the connection's default", LIB,
+     '            Isolation::Serializable => "BEGIN ISOLATION LEVEL SERIALIZABLE",\n',
+     '            Isolation::Serializable => "BEGIN",\n'),
+    ("a migration is applied twice", MIGRATE,
+     "    let ddl = match &recorded {\n",
+     "    let ddl = match &None::<Recorded> {\n"),
+    ("drift is accepted", MIGRATE,
+     "            if was != is {\n",
+     "            if false && was != is {\n"),
+    # 2. the schema
+    ("the platform's tables are applied twice", MIGRATE,
+     "        if applied {\n",
+     "        if false && applied {\n"),
+    ("the migration's lock is not taken", MIGRATE,
+     '        "SELECT pg_advisory_xact_lock($1)",\n',
+     '        "SELECT $1::bigint",\n'),
+    ("a record's hash is not held to its schema's", MIGRATE,
+     "            if schema.hash != hash {\n",
+     "            if false && schema.hash != hash {\n"),
+    ("a table made by another hand is taken for none", MIGRATE,
+     '                .find(|(t, w, ..)| !t.is_empty() && w == "table")\n',
+     '                .find(|(t, w, ..)| !t.is_empty() && w == "no table")\n'),
+    ("a field is dropped though no migrate states it", MIGRATE,
+     "                    match stated_drop {\n",
+     "                    match stated_drop.or(Some(usize::MAX)) {\n"),
+    ("an older build takes a newer database back", MIGRATE,
+     "    if !stated_applies {\n",
+     "    if false && !stated_applies {\n"),
+    ("a refinement is held by no check", SQL,
+     "            if let Some(check) = check_of(names, column) {\n",
+     "            if let Some(check) = check_of(names, column).filter(|_| false) {\n"),
+    ("a string's bytes are counted for its code points", MIGRATE,
+     "               WHERE get_byte($1, i) & 192 <> 128 $$;\",\n",
+     "               WHERE true $$;\",\n"),
+    ("nested values are kept as jsonb", SHAPE,
+     '            Kind::Json => "json",\n',
+     '            Kind::Json => "jsonb",\n'),
+    # 3. the primitives
+    ("rows come in another order than tables.json's", SQL,
+     '        .map(|&f| format!("{alias}.{} ASC", ident(&table.columns[f].name)))\n',
+     '        .map(|&f| format!("{alias}.{} DESC", ident(&table.columns[f].name)))\n'),
+    ("a write is answered by a unique value's holder before its key's", SQL,
+     '        "SELECT {}, CASE {} END AS pw_rank FROM {t} t WHERE {condition} ORDER BY pw_rank LIMIT 1",\n',
+     '        "SELECT {}, CASE {} END AS pw_rank FROM {t} t WHERE {condition} ORDER BY pw_rank DESC LIMIT 1",\n'),
+    ("a refused insert is answered as written", LIB,
+     "                if count == 1 {\n",
+     "                if count == 1 || holder.is_some() {\n"),
+    ("a put is refused by its own row's unique value", SQL,
+     '        condition = format!("{condition} AND NOT ({key})");\n',
+     '        condition = format!("{condition} AND true");\n'),
+    ("a unique value is left to the database, which aborts the transaction", SQL,
+     "    for index in table.indexes.iter().filter(|i| i.unique) {\n",
+     "    for index in table.indexes.iter().filter(|i| i.unique && false) {\n"),
+    ("a growth write passes the bound", SQL,
+     '        "(SELECT count(*) FROM (SELECT 1 FROM {} LIMIT {bound}) AS rows) < {bound}",\n',
+     '        "(SELECT count(*) FROM (SELECT 1 FROM {} LIMIT {bound}) AS rows) <= {bound}",\n'),
+    ("all answers past its bound", LIB,
+     "        && rows.len() as u64 > bound\n",
+     "        && rows.len() as u64 > bound + 1\n"),
+    ("a selector is not held to its declared type", SHAPE,
+     "            if !validates(&atom.value(), &column.stored) {\n",
+     "            if false && !validates(&atom.value(), &column.stored) {\n"),
+    ("a written row is not held to its table", SHAPE,
+     "        if !validates(v, &column.stored) {\n",
+     "        if false && !validates(v, &column.stored) {\n"),
+    ("a stored row is answered unchecked", VALUES,
+     "        if !validates(&value, &column.stored) {\n",
+     "        if false && !validates(&value, &column.stored) {\n"),
+    ("a statement is prepared on every call", POOL,
+     "        let statement = match self.prepared.get(sql) {\n",
+     "        let statement = match None::<&Statement> {\n"),
+    # 4. the commands
+    ("two commands of a host run at once", LIB,
+     "        while turn.0.is_some() {\n",
+     "        while false && turn.0.is_some() {\n"),
+    ("a command writes outside a transaction", LIB,
+     "        if !open.begun {\n"
+     "            if let Err(error) = self.begin_command(conn) {\n",
+     "        if false && !open.begun {\n"
+     "            if let Err(error) = self.begin_command(conn) {\n"),
+    ("a command reads outside its transaction", LIB,
+     "        let conn = self.command_conn(open)?;\n"
+     "        let answer = read(self, conn, import, args);\n",
+     "        let _ = self.command_conn(open)?;\n"
+     "        let answer = self.read_published(import, args);\n"),
+    ("a prepared command writes on", LIB,
+     "        if open.ended || open.prepared {\n",
+     "        if open.ended {\n"),
+    ("a row put back as it was is a write", LIB,
+     "            .filter(|(_, (before, now))| !same_rows(before, now))\n",
+     "            .filter(|(_, (_before, _now))| true)\n"),
+    ("references are held at the commit, not where the command prepares", LIB,
+     "                && let Some(hold) = &inner.hold_references\n",
+     "                && let Some(hold) = &None::<String>\n"),
+    ("references are held at each write", SQL,
+     "                         DEFERRABLE INITIALLY DEFERRED\",\n",
+     "                         NOT DEFERRABLE\",\n"),
+    # 5. the commit
+    ("the records commit outside the command's transaction", LIB,
+     "            let conn = inner.command_conn(open)?;\n"
+     "            let ran = (|| {\n",
+     "            let conn = inner.command_conn(open)?;\n"
+     "            conn.batch(&inner.counters, \"COMMIT\").map_err(database)?;\n"
+     "            conn.batch(&inner.counters, \"BEGIN\").map_err(database)?;\n"
+     "            let ran = (|| {\n"),
+    ("an interaction is recorded twice", LIB,
+     "                    if recorded.is_empty() {\n",
+     "                    if false && recorded.is_empty() {\n"),
+    ("a live interaction's record is overwritten", LIB,
+     "                 at_ms = EXCLUDED.at_ms WHERE i.at_ms < $1 RETURNING 1\"\n",
+     "                 at_ms = EXCLUDED.at_ms WHERE true RETURNING 1\"\n"),
+    ("a refused commit is answered as committed", LIB,
+     '            if let Err(e) = conn.batch(&inner.counters, "COMMIT") {\n',
+     '            if let Some(e) = conn.batch(&inner.counters, "COMMIT").err().filter(|_| false) {\n'),
+    ("a commit never answered is answered refused", LIB,
+     "                    _ => Error::OutcomeUnknown(pg(&e)),\n",
+     "                    _ => Error::Refused(pg(&e)),\n"),
+    ("a serialization failure is taken for another error", LIB,
+     "        *code == SqlState::T_R_SERIALIZATION_FAILURE || *code == SqlState::T_R_DEADLOCK_DETECTED\n",
+     "        *code == SqlState::T_R_DEADLOCK_DETECTED\n"),
+    ("a serialization failure is not run again", LIB,
+     "                Err(Error::Serialization(_)) if attempt < ATTEMPTS => attempt += 1,\n",
+     "                Err(Error::Serialization(_)) if false && attempt < ATTEMPTS => attempt += 1,\n"),
+    ("the outbox's ids are taken out of commit order", LIB,
+     '                "WITH ordered AS (SELECT pg_advisory_xact_lock($1)) \\\n',
+     '                "WITH ordered AS (SELECT $1::bigint) \\\n'),
+    # 6. renders
+    ("render seats are unbounded", POOL,
+     "        while places.taken >= self.bound {\n",
+     "        while false && places.taken >= self.bound {\n"),
+    ("a render's snapshot reads the latest commit", LIB,
+     'pub const READ_SNAPSHOT: &str = "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY";\n',
+     'pub const READ_SNAPSHOT: &str = "BEGIN READ ONLY";\n'),
+]
+
+# Each test binary apart: names can repeat between binaries, and the native
+# assertion validator expects one complete inventory each.
+TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "commands"],
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "durability"],
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "migrations"],
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "parity"],
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "primitives"],
+]
+# Every test binary of the crate is one of them.
+assert sorted(t[-1] for t in TESTS) == sorted(p.stem for p in (CRATE / "tests").glob("*.rs"))
+
+SOURCES = sorted((CRATE / "tests").rglob("*.rs"))
+INVENTORY = {}
+
+
+def database():
+    return next(
+        (os.environ[name] for name in
+         ("PW_TABLES_DATABASE_URL", "PW_STORE_DATABASE_URL", "PW_FEED_DATABASE_URL")
+         if os.environ.get(name)),
+        None,
+    )
+
+
+def run_tests():
+    passed, failed = 0, 0
+    for cmd in TESTS:
+        full = [*cmd, "--", "--format=pretty"]
+        try:
+            child = producer_process.run(full, cwd=ROOT, timeout=900)
+        except subprocess.TimeoutExpired:
+            return False, passed, failed
+        key = tuple(cmd)
+        result = cargo_assertion_results.validate(child.returncode, child.stdout,
+            root=ROOT, sources=SOURCES, expected=INVENTORY.get(key))
+        if not result.valid:
+            print(child.stdout[-4000:], flush=True)
+            return False, passed, failed
+        INVENTORY.setdefault(key, cargo_assertion_results.names(child.stdout))
+        passed += result.passed
+        failed += result.failed
+    return True, passed, failed
+
+
+def main():
+    import mutation_baseline  # keeps every command and reports a red baseline
+    if not database():
+        print("FAIL: no database is named (PW_TABLES_DATABASE_URL, PW_STORE_DATABASE_URL or")
+        print("PW_FEED_DATABASE_URL); without one every test passes doing nothing, and no")
+        print("mutant can mean anything")
+        return 2
+    built, passed, failed = run_tests()
+    print(f"baseline: {passed} passed, {failed} failed", flush=True)
+    if not built or failed or not passed:
+        print("FAIL: the unmutated baseline is not green; no mutant can mean anything")
+        mutation_baseline.explain()
+        return 1
+    chosen = [m for m in MUTANTS if not sys.argv[1:] or any(w in m[0] for w in sys.argv[1:])]
+    survivors = 0
+    for what, path, anchor, replacement in chosen:
+        original = path.read_text()
+        if original.count(anchor) != 1:
+            print(f"{what}: ANCHOR NOT FOUND EXACTLY ONCE in {path.name}", flush=True)
+            survivors += 1
+            continue
+        with mutation_source.changed(path, original, original.replace(anchor, replacement, 1)):
+            built, passed, failed = run_tests()
+        if not built:
+            verdict = "INVALID (build, infrastructure or native assertion producer)"
+            survivors += 1
+        elif failed:
+            verdict = f"KILLED ({failed} of {passed + failed} tests fail)"
+        else:
+            verdict = "SURVIVED"
+            survivors += 1
+        print(f"{what}: {verdict}", flush=True)
+    print(f"{len(chosen) - survivors} of {len(chosen)} mutants killed")
+    return 1 if survivors else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -141,25 +141,37 @@ fn one_command_of_a_host_writes_at_a_time() {
     tables.tell_on_wait(move || {
         let _ = told.lock().map(|t| t.send(()));
     });
-    let first = tables.begin().assert_ok("the first command");
+    let mut first = tables.begin().assert_ok("the first command");
+    first
+        .write(&owner("put"), &[json!({"id": "a", "name": "first"})])
+        .assert_ok("the first writes");
+    let (begun, began) = mpsc::channel();
     let second = {
         let tables = Arc::clone(&tables);
         std::thread::spawn(move || {
             let mut tx = tables.begin()?;
+            let _ = begun.send(());
+            let seen = tx.read(&owner("get"), &[json!("a")])?;
             tx.write(&owner("put"), &[json!({"id": "a", "name": "second"})])?;
-            tx.commit().map(|_| ())
+            tx.commit().map(|_| seen)
         })
     };
-    // The second is held at its turn, and says so.
+    // The second is held at its turn, and says so; and it does not begin
+    // while the first is open (it would within microseconds of saying so).
     let waited = waiting.recv_timeout(Duration::from_secs(10));
     assert!(waited.is_ok(), "the second command waits its turn");
-    let mut first = first;
-    first
-        .write(&owner("put"), &[json!({"id": "a", "name": "first"})])
-        .assert_ok("the first writes");
+    let early = began.recv_timeout(Duration::from_millis(250));
+    assert!(
+        early.is_err(),
+        "the second command began while the first was open"
+    );
     first.commit().assert_ok("the first commits");
     let joined = second.join();
-    assert!(matches!(joined, Ok(Ok(()))), "{joined:?}");
+    // It began after the first ended: it read what the first committed.
+    assert!(
+        matches!(&joined, Ok(Ok(seen)) if *seen == json!({"id": "a", "name": "first"})),
+        "{joined:?}"
+    );
     assert_eq!(
         tables.read(&owner("get"), &[json!("a")]),
         Ok(json!({"id": "a", "name": "second"}))

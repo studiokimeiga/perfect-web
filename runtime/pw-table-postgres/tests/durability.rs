@@ -33,11 +33,30 @@ fn a_commit_outlives_the_host_that_made_it() {
         .env("PW_TABLES_DATABASE_URL", &url)
         .output()
         .assert_ok("the first host ran");
+    // What the first host said, each line marked as its own, so that its
+    // test harness's words are never read as this one's.
+    let said = |bytes: &[u8]| -> String {
+        String::from_utf8_lossy(bytes)
+            .lines()
+            .map(|line| {
+                format!(
+                    "  first host| {}",
+                    line.replace("panicked at", "stopped at")
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(
+                "
+",
+            )
+    };
     assert!(
         first.status.success(),
-        "{}{}",
-        String::from_utf8_lossy(&first.stdout),
-        String::from_utf8_lossy(&first.stderr)
+        "the first host failed:
+{}
+{}",
+        said(&first.stdout),
+        said(&first.stderr)
     );
     // The first host's process has ended: a second starts.
     let second = open_things(&scratch);
