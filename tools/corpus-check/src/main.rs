@@ -89,6 +89,9 @@ const ACCEPTED_CATEGORIES: &[&str] = &[
     // ADR-0351-generic-effects, assembled corpus C29: generic/member reads
     // retain their types and effects, and a receiver has a known type.
     "generic results preserve pure member types",
+    // Track `row-ownership` (ADR-0384's H1 and H2): the control of PW0367,
+    // PW0368, PW0369 and PW6905.
+    "an owned table read and written by its reader, and a predicate that reads",
 ];
 
 /// Charter §16.2: "Create at least one minimal file for each".
@@ -229,6 +232,12 @@ const REJECTED_CATEGORIES: &[&str] = &[
     "a rigid parameter declares no members",
     "a function value receiver keeps its effect",
     "a recursive generic invocation keeps its effect",
+    // Track `row-ownership` (ADR-0384's H1 and H2): PW0367, PW0368, PW0369
+    // and PW6905, beside their accepted control (A-055).
+    "a table owned by a field that holds no principal's id",
+    "an owned table read by a field no reader holds",
+    "a private field another reader selects rows by",
+    "a predicate whose body writes",
 ];
 
 /// Milestone 0 gate (charter §14 M0): ">= 10 accepted and 20 rejected".
