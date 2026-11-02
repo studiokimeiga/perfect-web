@@ -33,12 +33,16 @@ function counts(value) {
   return out;
 }
 
-function modelName(value) {
-  if (typeof value !== "string") throw new Error("BENCH_USAGE model must be a string");
+function sizedModelName(value) {
   if (value.length === 0 || value.length > 128 || value.trim() !== value) {
     throw new Error("BENCH_USAGE model must be a nonempty trimmed string of at most 128 characters");
   }
   return value;
+}
+
+function modelName(value) {
+  if (typeof value !== "string") throw new Error("BENCH_USAGE model must be a string");
+  return sizedModelName(value);
 }
 
 function costAmount(value) {
@@ -61,25 +65,32 @@ export function validateAgentUsage(value) {
   return { ...counts(value), ...extras(value) };
 }
 
-export function readAgentUsage(file) {
-  if (!fs.existsSync(file)) return null;
+function regularUsageFile(file) {
+  if (!fs.existsSync(file)) return false;
   const stat = fs.lstatSync(file);
   if (!stat.isFile() || stat.size > 8192) {
     throw new Error("BENCH_USAGE must be a regular file of at most 8192 bytes");
   }
-  let data;
+  return true;
+}
+
+function parseUsageJson(file) {
   try {
-    data = JSON.parse(fs.readFileSync(file, "utf8"));
+    return JSON.parse(fs.readFileSync(file, "utf8"));
   } catch {
     throw new Error("BENCH_USAGE must contain valid JSON");
   }
-  return validateAgentUsage(data);
+}
+
+export function readAgentUsage(file) {
+  if (!regularUsageFile(file)) return null;
+  return validateAgentUsage(parseUsageJson(file));
 }
 
 // 75 is an explicit temporary-infrastructure failure. 126/127 mean the
 // wrapper could not execute its command. Ordinary agent nonzero exits score 0.
-export function agentFailureKind({ status, signal, error_code }) {
-  if (signal || error_code || [75, 126, 127].includes(status)) return "infra";
+export function agentFailureKind({ status }) {
+  if (status === null || [75, 126, 127].includes(status)) return "infra";
   return "agent";
 }
 
