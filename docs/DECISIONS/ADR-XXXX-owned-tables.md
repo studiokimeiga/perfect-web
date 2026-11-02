@@ -18,8 +18,10 @@ ruling 3 (`requires` on a query).
 
 An independent review of `485b10b2` (probes under the session's
 `rowown-review/`) reproduced each of the following. Every one is refused
-or held now, each with a failing-first regression, a valid neighbour and a
-mutation control (`scripts/row_ownership_mutations.py`).
+or held now, each with a regression that fails without its repair (the
+compiler's run with the repair stashed, the host's manifest tests too, and
+every one undone by its mutation control), a valid neighbour, and the
+control itself (`scripts/row_ownership_mutations.py`, 46 of 46 killed).
 
 1. **(Blocker) A reference check read and blocked another owner's rows.**
    Neither the compiler's ownership rules (PW0367 to PW0369) nor the host's
@@ -251,22 +253,48 @@ predicate Wrote(id: NoteId)
 ## Evidence
 
 - `docs/evidence/E14/row-ownership.txt`, by `just e14-row-ownership` on
-  verify 41441594505 at `cfc32cde` (before the review; fetched by `python3
-  scripts/evidence_fetch.py 41441594505 --any-commit`): 27 of 27 controls
-  killed. **The repaired track's record is to be fetched from a verify run
-  at its head** (the integrator's; see Questions): the tests and 46
-  controls, each new rule's and test's among them.
-- Locally, at the repair's working tree (Linux, PostgreSQL 18):
-  `cargo test --locked -p pw-core --test table_owners --test
-  predicate_bodies` 20 and 10 passed; `-p pw-host --features engine` every
-  binary passed; `-p pw-table-memory` every binary passed
-  (`compiled_owners` 11, `compiled_predicates` 10);
-  `PW_TABLES_DATABASE_URL=… cargo test --locked -p pw-table-postgres` 49
-  passed. Each new compiler test failed with the compiler's changes
-  stashed (6 of 6), and the host's manifest tests with the host's.
+  verify 41491093145 at `83761ca3` (fetched by `just evidence-fetch
+  41491093145 --any-commit --known summary`): `pw-core --test table_owners`
+  20, `--test predicate_bodies` 7, `pw-host --lib table_owners` 4,
+  `pw-table-memory --test compiled_owners` 11, `--test compiled_predicates`
+  10; `scripts/row_ownership_mutations.py`, baseline 77 passed, **46 of 46
+  controls killed**, each at a native assertion. Before the review, 27 of
+  27 (verify 41441594505 at `cfc32cde`).
+- The same run: every other recipe the track's change reaches (`ci_plan.py
+  --changed 45e0c1a6 HEAD --current`), and `e14-d3-postgres` beside them,
+  since the host's manifest check runs inside D3's adapter. 50 of 51 passed
+  with every control killed, among them `e14-tables` 44 of 44,
+  `e14-table-host` 49 of 49, `e14-d2-writes` 69 of 69 and `e14-d3-postgres`
+  (49 tests, 53 of 53 on PostgreSQL). **`e14-check-is-build` failed**: its
+  census (`scripts/check_build_programs.py`) held no program for
+  `examples/owned/`, the track's fixture since its first round, which no
+  run of that recipe had reached before. The census checks it now, as its
+  own program (`1e237ccf`), and the recipe passed again on its own, the
+  census being all that changed since `83761ca3` (`ci_plan.py --changed
+  83761ca3 1e237ccf` plans it alone): verify 41519854384, `owned: clean`,
+  657 of 657 tracked sources covered, 51 of 51 controls killed, and the
+  browser suites in three engines green beside it.
+- CI: run 41489790837 at `83761ca3`, every job green. The repair's first CI
+  run (41485542822 at `0f63750f`) found two things the local runs had not:
+  the concurrency test's log raced the command it let in (the
+  serialization held; "edit committed" was written after the commit
+  returned), and `pw-resource` pins the accepted corpus's written
+  resources (A-058 adds two). Both were fixed in `83761ca3`, the test read
+  where each fact is made, then 100 runs clean locally, 25 of them beside
+  forty busy loops; the verify dispatched at `0f63750f` was cancelled for
+  them.
+- Locally (Linux, PostgreSQL 18): `cargo test --locked -p pw-core`, every
+  binary (243); `-p pw-host --features engine`, `-p pw-table-memory`, `-p
+  pw-cli`, and the workspace less `pw-core` and `pw-dev-server`, every
+  binary; `PW_TABLES_DATABASE_URL=… cargo test --locked -p
+  pw-table-postgres` 49; `just preflight`, `just test-compile` and `just
+  evidence-gates` (1169 tests). Each new compiler test failed with the
+  compiler's changes stashed (6 of 6), and the host's manifest tests with
+  the host's.
 - The corpus: R-114 to R-116 beside A-056 to A-058; a GENERAL witness and a
   neighbour for each new invariant (generality 72 / 72);
-  `docs/evidence/E2D/corpus-enforcement.txt` regenerated.
+  `docs/evidence/E2D/corpus-enforcement.txt` 102 / 102 (`just
+  evidence-corpus`).
 
 ## Not claimed
 
@@ -321,6 +349,10 @@ predicate Wrote(id: NoteId)
   query that requires a predicate read by a materialization (no reader to
   ask). Two-owner rows (`owned by a, b`), `shares when`, `written when` and
   `reveals` are H3's.
+- **A page asking a predicate whose body reads a table** is told PW0401 ("a
+  page may not perform `database.read`") beside PW6925: the effect
+  inference counts the ask as a call of the body. One defect told twice,
+  until a host asks the body for the document.
 - **`!=` on an `Option`** does not lower in the backend; a body matches.
 
 ## Next
@@ -361,6 +393,10 @@ predicate Wrote(id: NoteId)
    the engine path.
 4. **PW6925's page clause** is a finding beyond the review's: a page asking
    a predicate with a body was answered by the deployment by name.
-5. The guestbook (track `data-path`) could declare its posts `owned by
+5. **Figures for STATUS and NEXT**, which this track does not edit:
+   generality 72 / 72 (was 69), corpus enforcement 102 / 102 (was 99), 227
+   registered codes (was 224), and the accepted corpus's written resources
+   22 (`pw-resource`, was 20).
+6. The guestbook (track `data-path`) could declare its posts `owned by
    author` and drop `OwnsPost`: `remove(post)` then deletes the reader's own
    post by construction.
