@@ -3284,3 +3284,5 @@ Session authority is checked at delivery and commit (proposed; reproduced curren
 - Separate current inspection from activity, bind each document/command to its reader generation, and fence command publication with revocation; notification/cache cleanup alone provides no authority.
 
 **2026-10-27 — Benchmark merge dependency security repair.** [ADR-0390](DECISIONS/ADR-0390-benchmark-merge-security-fork.md) records the narrow temporary MIT fork, unchanged audit policy and offline sandbox requirement.
+
+**2026-11-01 — E14 agent usage and failed-run attribution (proposed).** [ADR-0391](DECISIONS/ADR-0391-benchmark-agent-usage.md) adds adapter-reported token/cost usage and distinguishes ungraded infrastructure failures from unsuccessful agent patches. No comparative benchmark has run.
