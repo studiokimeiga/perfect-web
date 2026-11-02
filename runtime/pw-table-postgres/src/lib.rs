@@ -404,11 +404,12 @@ impl PgTables {
         let statements = sql::statements(&names, &shape);
         let versions = vec![0; shape.tables.len()];
         let places = platform::Statements::of(&names.schema);
-        let sessions = Pool::new(
+        let sessions = Pool::with_setup(
             url,
             platform::SESSION_CONNECTIONS,
             options.wait,
             "session connections",
+            Some(platform::SESSION_CONNECTION_LOCK_TIMEOUT),
         );
         Ok(PgTables {
             inner: Arc::new(Inner {

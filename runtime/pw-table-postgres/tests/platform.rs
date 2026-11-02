@@ -322,6 +322,75 @@ fn sessions_are_kept_by_their_hash_and_live_by_their_lifetimes() {
     );
 }
 
+/// **An admission never waits for a command holding its session**
+/// (ADR-0389, amended 2026-11-02; the integrator's ruling for this layer):
+/// it reads the session in one statement that takes no session lock. A
+/// write it finds due (its use recorded, or, past a lifetime, its row
+/// forgotten) is made only where nobody holds the session's lock: under a
+/// fenced command's lock it is left, the read answering (a session past its
+/// lifetime no one all the same), and made by the first admission once the
+/// command has ended.
+#[test]
+fn an_admission_never_waits_for_a_command_holding_its_session() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "admitted");
+    let a = open_things(&scratch);
+    let b = open_things(&scratch);
+    let seen = |n: u8| {
+        scratch
+            .texts(&format!(
+                "SELECT (extract(epoch FROM seen) * 1000000)::bigint::text FROM pw_sessions \
+                 WHERE get_byte(hash, 0) = {n}"
+            ))
+            .join(",")
+    };
+    let ada = session("ada", 1);
+    a.open_session(&hash(1), &ada).assert_ok("opened");
+    let held = b
+        .begin_fenced(fence(1, Some(ada.clone()), lifetimes()))
+        .assert_ok("another host's command, fenced on Ada's session");
+    let before = seen(1);
+    let started = std::time::Instant::now();
+    let admitted = a.admit_session(&hash(1), lifetimes(), Duration::ZERO);
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed < Duration::from_secs(2) && admitted == Ok(Some(ada.clone())),
+        "admitted from its read at once: {admitted:?} in {elapsed:?}"
+    );
+    assert_eq!(
+        seen(1),
+        before,
+        "its use, due, left under the command's lock"
+    );
+    // Past its lifetime under the lock: no one, its row left.
+    let brief = Lifetimes {
+        idle: Duration::from_millis(1),
+        absolute: DAY,
+    };
+    std::thread::sleep(Duration::from_millis(20));
+    let started = std::time::Instant::now();
+    assert_eq!(a.admit_session(&hash(1), brief, Duration::ZERO), Ok(None));
+    assert!(started.elapsed() < Duration::from_secs(2));
+    assert_eq!(
+        a.inspect_session(&hash(1), lifetimes()),
+        Ok(Some(ada.clone())),
+        "its row left under the lock"
+    );
+    // The command ended: the first admission makes what was due.
+    drop(held);
+    assert_eq!(
+        a.admit_session(&hash(1), lifetimes(), Duration::ZERO),
+        Ok(Some(ada.clone()))
+    );
+    assert_ne!(seen(1), before, "its use recorded once the lock is free");
+    assert_eq!(a.admit_session(&hash(1), brief, Duration::ZERO), Ok(None));
+    assert_eq!(
+        a.inspect_session(&hash(1), lifetimes()),
+        Ok(None),
+        "and its row forgotten past its lifetime"
+    );
+}
+
 /// **A fenced command commits only as the session it was admitted as**:
 /// admitted as a session still open, it commits; as one closed, or opened
 /// again in another generation, it is refused where it begins; as no one,

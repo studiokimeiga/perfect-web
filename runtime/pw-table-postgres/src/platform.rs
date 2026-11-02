@@ -48,6 +48,13 @@ use crate::{Command, Error, Inner, PgTables, database};
 /// (ADR-0369's five seconds), set in each transaction that may wait.
 const LOCK_TIMEOUT: &str = "SET LOCAL lock_timeout = '5s'";
 
+/// **How long any statement on a session connection waits for a lock**, set
+/// once on each (ADR-0389, amended 2026-11-02, as the other PostgreSQL
+/// layers' session connections): an admission's read waits on no session
+/// lock, but a lock on the table itself (a migration's) would hold it; past
+/// the bound it fails, and its request is refused.
+pub(crate) const SESSION_CONNECTION_LOCK_TIMEOUT: &str = "SET lock_timeout = '5s'";
+
 /// **How many connections the sessions are read and written on at once**:
 /// the PostgreSQL layers' bound (ADR-0369's `SESSION_CONNECTIONS`), apart
 /// from the connections commands and reads take, so that a reader's
@@ -131,6 +138,7 @@ pub(crate) struct Statements {
     set: String,
     live: String,
     row: String,
+    admission: String,
     admit: String,
     open: String,
     close: String,
@@ -152,10 +160,12 @@ impl Statements {
         let sessions = format!("{s}.pw_sessions");
         let sign_ins = format!("{s}.pw_sign_ins");
         let outbox = format!("{s}.pw_outbox");
-        // A session alive by both lifetimes on the database's clock.
-        let alive = "hash = $1 \
-             AND opened > clock_timestamp() - make_interval(secs => $2) \
+        // A session alive by both lifetimes on the database's clock; and its
+        // use due to be recorded, last recorded more than `$4` seconds ago.
+        let lifetimes = "opened > clock_timestamp() - make_interval(secs => $2) \
              AND seen > clock_timestamp() - make_interval(secs => $3)";
+        let alive = format!("hash = $1 AND {lifetimes}");
+        let stale = "seen < clock_timestamp() - make_interval(secs => $4)";
         Statements {
             due: format!(
                 "SELECT {RUN} FROM {runs} WHERE failed IS NULL AND due_ms <= $1 \
@@ -185,11 +195,20 @@ impl Statements {
             set: format!("UPDATE {runs} SET attempts = $2, due_ms = $3, failed = $4 WHERE id = $1"),
             live: format!("SELECT {SESSION} FROM {sessions} WHERE {alive}"),
             row: format!("SELECT 1 FROM {sessions} WHERE hash = $1 FOR UPDATE"),
+            // An admission's read: the session's row, whether it lives, and
+            // whether its use is due to be recorded. One statement, in no
+            // transaction of its own, taking no lock of a session's.
+            admission: format!(
+                "SELECT {SESSION}, ({lifetimes}) AS live, ({stale}) AS stale \
+                 FROM {sessions} WHERE hash = $1"
+            ),
+            // An admission's write, made only under the session's lock: its
+            // use recorded where that is due, and one past either lifetime
+            // forgotten. Its answer is the live row.
             admit: format!(
                 "WITH live AS (SELECT {SESSION}, seen FROM {sessions} WHERE {alive}), \
                  touched AS (UPDATE {sessions} SET seen = clock_timestamp() WHERE hash = $1 \
-                     AND EXISTS (SELECT 1 FROM live \
-                         WHERE seen < clock_timestamp() - make_interval(secs => $4))), \
+                     AND EXISTS (SELECT 1 FROM live WHERE {stale})), \
                  gone AS (DELETE FROM {sessions} WHERE hash = $1 \
                      AND NOT EXISTS (SELECT 1 FROM live)) \
                  SELECT {SESSION} FROM live"
@@ -295,19 +314,20 @@ fn still(inner: &Inner, conn: &mut Conn, fence: &Fence) -> Result<(), Error> {
     }
 }
 
-/// **A connection that is kept only where its transaction committed**: a
-/// session's change marks its connection so before it begins (as the other
-/// PostgreSQL layers' session changes do), and closes it on every other way
-/// out, a panic's unwinding among them: whether such a connection's
-/// transaction or lock is still held is not known.
-struct KeptIfCommitted<'a> {
+/// **A connection that is kept only where its transaction ended as it
+/// meant to** (committed, or rolled back on purpose): a session's change or
+/// write marks its connection so before it begins (as the other PostgreSQL
+/// layers' session changes do), and closes it on every other way out, a
+/// panic's unwinding among them: whether such a connection's transaction or
+/// lock is still held is not known.
+struct KeptIfEnded<'a> {
     lease: &'a mut Lease,
-    committed: bool,
+    ended: bool,
 }
 
-impl Drop for KeptIfCommitted<'_> {
+impl Drop for KeptIfEnded<'_> {
     fn drop(&mut self) {
-        if !self.committed {
+        if !self.ended {
             self.lease.discard();
         }
     }
@@ -376,9 +396,9 @@ impl Inner {
     ) -> Result<T, Error> {
         let mut lease = self.sessions.take()?;
         let key = session_key(&self.names.schema, hash);
-        let mut kept = KeptIfCommitted {
+        let mut kept = KeptIfEnded {
             lease: &mut lease,
-            committed: false,
+            ended: false,
         };
         let done = (|| {
             let conn = kept.lease.conn()?;
@@ -396,8 +416,63 @@ impl Inner {
             Ok(out)
         })();
         match &done {
-            Ok(_) => kept.committed = true,
+            Ok(_) => kept.ended = true,
             // Rolled back where it can be; closed either way.
+            Err(_) => {
+                if kept.lease.connected()
+                    && let Ok(conn) = kept.lease.conn()
+                {
+                    let _ = conn.batch(&self.counters, "ROLLBACK");
+                }
+            }
+        }
+        done
+    }
+
+    /// **A due write, made where nobody holds the session's lock** (ADR-0389,
+    /// amended 2026-11-02, as the other PostgreSQL layers' admissions make
+    /// theirs), on `lease`: a transaction at read committed of its own that
+    /// tries the session's lock and never waits for it. Taken, `write` runs
+    /// under it, its snapshot after the lock, so no change or command of the
+    /// session, which take the same lock, changes the row under it; and its
+    /// answer is the write's. Held by another, nothing is written, and the
+    /// answer is none. A failed statement closes the connection.
+    fn written_if_free<T>(
+        &self,
+        lease: &mut Lease,
+        hash: &[u8],
+        write: impl FnOnce(&Inner, &mut Conn) -> Result<T, Error>,
+    ) -> Result<Option<T>, Error> {
+        let key = session_key(&self.names.schema, hash);
+        let mut kept = KeptIfEnded {
+            lease,
+            ended: false,
+        };
+        let done = (|| {
+            let conn = kept.lease.conn()?;
+            conn.batch(&self.counters, "BEGIN ISOLATION LEVEL READ COMMITTED")
+                .map_err(database)?;
+            let free = conn
+                .query(
+                    &self.counters,
+                    "SELECT pg_try_advisory_xact_lock($1)",
+                    &[Box::new(key)],
+                )
+                .map_err(database)?
+                .first()
+                .map(|row| row.try_get::<_, bool>(0))
+                .transpose()
+                .map_err(|e| Error::Database(format!("the session's lock, tried: {e}")))?;
+            if free != Some(true) {
+                conn.batch(&self.counters, "ROLLBACK").map_err(database)?;
+                return Ok(None);
+            }
+            let out = write(self, conn)?;
+            conn.batch(&self.counters, "COMMIT").map_err(database)?;
+            Ok(Some(out))
+        })();
+        match &done {
+            Ok(_) => kept.ended = true,
             Err(_) => {
                 if kept.lease.connected()
                     && let Ok(conn) = kept.lease.conn()
@@ -721,33 +796,57 @@ impl PgTables {
             .map(|_| ())
     }
 
-    /// **A session admitted for a request** (ADR-0369): the one alive by
-    /// both `lifetimes` whose id hashes to `hash`, its use recorded where
-    /// the last was more than `touch_after` ago; one past either lifetime
-    /// forgotten, and none answered.
+    /// **A session admitted for a request** (ADR-0369; ADR-0389, amended
+    /// 2026-11-02, as the other PostgreSQL layers admit theirs): the one
+    /// alive by both `lifetimes` whose id hashes to `hash`, read by one
+    /// statement that takes no session lock, so that no admission waits for
+    /// a command holding its session. A live session whose use was recorded
+    /// within `touch_after` is answered from the read. Otherwise a write is
+    /// due (its use recorded, or, past either lifetime, its row forgotten),
+    /// and it is made only where nobody holds the session's lock, under it;
+    /// where a command, an opening or a closing holds it, nothing is written
+    /// and the read answers: a session past its lifetimes is no one all the
+    /// same, forgotten by a later admission or the host's sweep.
     pub fn admit_session(
         &self,
         hash: &[u8],
         lifetimes: Lifetimes,
         touch_after: Duration,
     ) -> Result<Option<Session>, Error> {
-        let hash = hash.to_vec();
-        self.inner.session_change(&hash, |inner, conn| {
-            conn.query(
-                &inner.counters,
-                &inner.places.admit,
-                &[
-                    Box::new(hash.clone()),
-                    Box::new(lifetimes.absolute.as_secs_f64()),
-                    Box::new(lifetimes.idle.as_secs_f64()),
-                    Box::new(touch_after.as_secs_f64()),
-                ],
-            )
-            .map_err(database)?
-            .first()
-            .map(session_of)
-            .transpose()
-        })
+        let inner = &self.inner;
+        let params = || -> Vec<crate::values::Param> {
+            vec![
+                Box::new(hash.to_vec()),
+                Box::new(lifetimes.absolute.as_secs_f64()),
+                Box::new(lifetimes.idle.as_secs_f64()),
+                Box::new(touch_after.as_secs_f64()),
+            ]
+        };
+        let mut lease = inner.sessions.take()?;
+        let read = lease
+            .conn()?
+            .query(&inner.counters, &inner.places.admission, &params())
+            .map_err(database)?;
+        let Some(row) = read.first() else {
+            return Ok(None);
+        };
+        let flag = |at: usize| {
+            row.try_get::<_, bool>(at)
+                .map_err(|e| Error::Database(format!("a session as kept: {e}")))
+        };
+        let (live, stale) = (flag(5)?, flag(6)?);
+        let answer = if live { Some(session_of(row)?) } else { None };
+        if live && !stale {
+            return Ok(answer);
+        }
+        let written = inner.written_if_free(&mut lease, hash, |inner, conn| {
+            conn.query(&inner.counters, &inner.places.admit, &params())
+                .map_err(database)?
+                .first()
+                .map(session_of)
+                .transpose()
+        })?;
+        Ok(written.unwrap_or(answer))
     }
 
     /// **A session as it is now**, alive by both `lifetimes`: read, and
