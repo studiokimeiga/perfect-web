@@ -28,7 +28,9 @@ anywhere but an assertion is no kill):
    forgetting nothing, a sign-in taken twice, sessions kept in the host's
    memory, a test's schema honoured outside a development deployment, a
    command left usable after its authority came too late, a failed
-   session's change keeping its connection;
+   session's change keeping its connection, an admission waiting for a
+   command holding its session or making its due write under that
+   command's lock (ADR-0389, amended by PR #67);
 5. the runs the adapter keeps: a run scheduled again keeping its old
    generation, a cancelled run kept, a run taken or retried whatever the
    generation it was selected as, a taking another hand suppressed answered
@@ -80,8 +82,8 @@ MUTANTS = [
      '    let tables = match std::env::var("PW_TABLES_DATABASE_URL") {\n',
      '    let tables = match std::env::var("PW_TABLES_DATABASE_URL_NOT_NAMED") {\n'),
     ("a database named for the tables is not used", MAIN,
-     "                let layer: Arc<dyn data::DataLayer> = match tables {\n",
-     "                let layer: Arc<dyn data::DataLayer> = match None::<&tables_pg::Database> {\n"),
+     "    let tables_layer = match &tables {\n",
+     "    let tables_layer = match &None::<tables_pg::Database> {\n"),
     # 2. one transaction
     ("an interaction's record is left to the host's materializer", LAYER,
      "    fn keeps_interactions(&self) -> bool {\n        true\n    }\n",
@@ -136,8 +138,8 @@ MUTANTS = [
      "                *self.turn.get_mut() = Turn::Failed(why.clone());\n",
      "                let _ = why;\n"),
     ("a failed session's change keeps its connection", PLATFORM,
-     "        if !self.committed {\n",
-     "        if !self.committed && false {\n"),
+     "        if !self.ended {\n",
+     "        if !self.ended && false {\n"),
     ("a fence admits a signed-in reader as no one", LAYER,
      "        ReaderIdentity::Account(identity) => Some(session_of(identity)),\n",
      "        ReaderIdentity::Account(_) => None,\n"),
@@ -168,10 +170,16 @@ MUTANTS = [
      '                "SELECT pg_advisory_xact_lock($1)",\n',
      '                "SELECT $1::bigint",\n'),
     ("a session lives past its lifetimes", PLATFORM,
-     "             AND opened > clock_timestamp() - make_interval(secs => $2) \\\n"
+     "        let lifetimes = \"opened > clock_timestamp() - make_interval(secs => $2) \\\n"
      "             AND seen > clock_timestamp() - make_interval(secs => $3)\";\n",
-     "             AND $2::float8 IS NOT NULL \\\n"
+     "        let lifetimes = \"$2::float8 IS NOT NULL \\\n"
      "             AND $3::float8 IS NOT NULL\";\n"),
+    ("an admission waits for a command holding its session", PLATFORM,
+     "                    \"SELECT pg_try_advisory_xact_lock($1)\",\n",
+     "                    \"SELECT (pg_advisory_xact_lock($1) IS NULL) OR true\",\n"),
+    ("an admission's due write is made under a command's lock", PLATFORM,
+     "            if free != Some(true) {\n",
+     "            if free != Some(true) && false {\n"),
     ("an admission forgets no session past its lifetime", PLATFORM,
      "                 gone AS (DELETE FROM {sessions} WHERE hash = $1 \\\n",
      "                 gone AS (DELETE FROM {sessions} WHERE false AND hash = $1 \\\n"),

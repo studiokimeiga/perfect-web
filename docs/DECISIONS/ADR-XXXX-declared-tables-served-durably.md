@@ -6,7 +6,10 @@ the integrator numbers it (ADR-0397 reserved) and lands it after an
 independent review. Date: 2026-11-02; revised the same day after the
 independent review of `3ccd083a` and the integrator's rulings on it (its
 findings 1 to 6 repaired here, 7 left to the tracks that own it: see
-"Corrections" and "Depends on"). Milestone: E14, the app layer.
+"Corrections" and "Depends on"), and again once `data-path`'s repairs
+(`origin/wip/data-path` at `a431dddc`, PR #72) and PR #67
+(`session-overlap`, `master` at `bae4f531`) were merged in, as the
+integrator ruled. Milestone: E14, the app layer.
 ADR-0338's D3 joined to D2's routing: track `data-path`'s server (its ADR,
 ADR-0394 reserved, `an-app-with-no-rust-data-layer`) serves a program's
 declared tables through the gate from memory; ADR-0393's adapter
@@ -63,11 +66,16 @@ ADR-0208, ADR-0246, ADR-0325, ADR-0334, ADR-0354 and ADR-0369.
    no operation by name; a query links the reads the gate admits for its
    contract and grant, a command its reads and writes staged in its
    transaction; the build's `tables.json` applied or held to (ADR-0393's
-   migration, drift refused); a program importing a hand-written layer's
-   operation beside its tables refused at start, as in memory. No table,
-   contract or route of any program is named in it: the guestbook and the
-   lists app are served alike. `Server::from_build_all` takes the database,
-   `from_build_layers` and `main` are unchanged for every other program.
+   migration, drift refused); a build no layer may serve refused before the
+   database is touched, by the memory layer's own check
+   (`tables::servable`: a hand-written layer's operation beside the tables,
+   a row's field of a handle's type, an upload). No table, contract or route
+   of any program is named in it: the guestbook and the lists app are served
+   alike. It reaches the server through `data-path`'s seam, the layer handed
+   to `Server::from_build_served` (`TablesPg::for_build` makes it where the
+   deployment names a database and the program declares tables; a program
+   that declares none is served as before, the database unused); the
+   server's tests and the conformance suite hand it the same way.
 3. **A command is one PostgreSQL transaction, with every record of the
    platform's** (`Staged::commit` answers `Commit::Applied`;
    `keeps_interactions`, `recalled` and `runs` are the layer's, so the
@@ -131,14 +139,23 @@ ADR-0208, ADR-0246, ADR-0325, ADR-0334, ADR-0354 and ADR-0369.
    read failed first; ADR-0393's snapshot opened another transaction at the
    next read, which read a later state.
 5. **The reader's session is the database's** (ADR-0369): kept by its id's
-   SHA-256 with its principal and generation, alive by its two lifetimes on
-   the database's clock, its use recorded at most once a minute, one past a
-   lifetime forgotten by the admission that finds it and by the host's
-   sweeps (decision 6), a sign-in under way taken once and deleted as it is
-   taken; each change a read-committed transaction under the session's
-   lock, on connections of their own (at most eight), each connection
-   marked not to be kept before its transaction begins and kept only where
-   it committed (as `SessionsPg::mutation` keeps its own). **A command is
+   SHA-256 (`identity::kept_hash`, its domain `data-path`'s) with its
+   principal and generation, alive by its two lifetimes on the database's
+   clock, a sign-in under way taken once and deleted as it is taken; each
+   change (an opening, a closing) a read-committed transaction under the
+   session's lock, on connections of their own (at most eight, each with a
+   five-second lock timeout of its own), each connection marked not to be
+   kept before its transaction begins and kept only where its transaction
+   ended as meant (as `SessionsPg::mutation` keeps its own). **An admission
+   takes no session lock** (ADR-0389, amended by PR #67, as the other
+   PostgreSQL layers' admissions; the integrator's ruling for this layer):
+   one statement reads the session, whether it lives and whether its use is
+   due to be recorded; a write it finds due (its use, at most once a minute;
+   one past a lifetime, forgotten) is made only where nobody holds the
+   session's lock (`pg_try_advisory_xact_lock`, never waiting), and left to
+   a later admission, or the host's sweep (decision 6), where a command
+   holds it; so no admission waits for a command holding its session.
+   **A command is
    fenced on it** as the other PostgreSQL layers fence theirs, from its
    first statement or never (`PgTables::begin_fenced`; there is no fencing
    a command that ran): the session's lock taken first, on the connection
@@ -179,23 +196,40 @@ ADR-0208, ADR-0246, ADR-0325, ADR-0334, ADR-0354 and ADR-0369.
      verifier are deleted as it is taken, and by the sweep ten minutes after
      it began (`identity::SIGN_IN_LIFETIME`), as before by the next sign-in.
 7. **The conformance suite over this layer, as written**: `conformance.rs`'s
-   suite (answers and costs at 3 and 24 rows, staging, refused commits)
-   instantiated over PostgreSQL for the guestbook's tables and the lists
-   app's, its oracle the same (111 and 164 reads checked, as in memory), and
-   its idempotency and query pins on this layer. The suite's refused-commit
-   hook (`tables::FAIL_NEXT_PUBLISH`) is honoured by this layer as a refusal
-   before its `COMMIT`, until `data-path`'s adapter-neutral refusal lands;
-   a refusal the database itself makes at `COMMIT` (a deferred trigger of
+   suite (answers and costs at 3 and 24 rows, its costs counted at the
+   adapter; staging; refused commands) run with this layer as its layer
+   under test (`data-path`'s `Layer` parameter, a fresh schema for each
+   server it builds) for the guestbook's tables and the lists app's, its
+   oracle the same, and its idempotency and query pins on this layer. Its
+   refusals are the ones any adapter must give, provoked through what the
+   tables declare (a row referring to no row, a row deleted while another
+   refers to it, a table written past its bound); this layer gives each,
+   table by table as memory does (the guestbook's `Books` once and
+   `Entries` twice, the lists app's `Items` once and `Lists` twice), at the
+   write or at the `COMMIT`, whichever the database refuses it at. The
+   memory-only hook `tables::FAIL_NEXT_PUBLISH`, which this layer honoured
+   until `data-path`'s repair, is gone (the integrator's ruling (a)). A
+   refusal the database itself makes at `COMMIT` (a deferred trigger of
    another hand's) is tested apart, keeping none of the rows, the record,
    the event or the run.
 8. **The guestbook in three engines on PostgreSQL**:
    `playwright.tables.config.mjs` runs the main suite's own guestbook spec,
    as written, against hosts whose tables are a schema of each engine's
    own, and `e2e-tables/guestbook-durable.spec.mjs` restarts a host of its
-   own (SIGKILL, then SIGTERM) with a reader's page open. The main suite's
-   hosts keep their tables in memory whatever the caller's environment
-   names (`host-plan.mjs` clears `PW_TABLES_DATABASE_URL`, as it clears the
-   feed's and the store's).
+   own (SIGKILL, then SIGTERM) with a reader's page open, the reader's
+   reload racing the page's own (each a request of the session, each
+   answered since PR #67; until then the spec waited for the page's). The
+   main suite's hosts keep their tables in memory whatever the caller's
+   environment names (`host-plan.mjs` clears `PW_TABLES_DATABASE_URL`, as it
+   clears the feed's and the store's).
+   **Nothing kept holds a session's cookie** (the integrator's ruling of
+   2026-11-02, `data-path`'s search in its PostgreSQL form): every row of
+   every table of the schema, after a reader signed in through the flow
+   signed, removed, had a run scheduled and run, and left a sign-in under
+   way, holds neither the session nor the one the browser came with, as
+   written or in hex; the commands' records are keyed by the session's
+   digest (`identity::interaction_key`, the host's), the sessions and
+   sign-ins by theirs.
 9. **Controls and evidence**: `scripts/durable_tables_mutations.py` (the
    strict native-assertion producer), `just e14-durable-tables` writing
    `docs/evidence/E14/durable-tables.txt`, planned beside a database
@@ -367,29 +401,33 @@ killed (3 of 3).
 
 ## Depends on
 
-- **Track `data-path`'s keys of a host's interactions** (the review's
-  finding 7, theirs): the host builds an interaction's key from the raw
-  session cookie (`Server::receipt_keys`), and this layer keeps the key in
-  `pw_interactions` as it is given, so a reader of the database reads live
-  session cookies there. `data-path`'s worker is changing how the host
-  builds the keys; this layer takes whatever key it is given, and keeps no
-  cookie of its own (its sessions and sign-ins are by SHA-256). Until that
-  lands, this ADR's durability is a durability of those keys too.
 - **The deploy track's production allow-list for `/bench/*`** (the review's
   finding 7, theirs): the development server answers `/bench/*` to an
   anonymous client (a test's controls, among them its clock), which the
   development deployment binds to loopback; a production host must refuse
   them, and that list is the deploy track's.
+
+What this track depended on, and has now merged:
+
+- **Track `data-path`'s keys of a host's interactions** (the review's
+  finding 7, theirs; `c52492cc`): the host built an interaction's key from
+  the raw session cookie (`Server::receipt_keys`), and this layer kept the
+  key in `pw_interactions` as it was given, so a reader of the database read
+  live session cookies there. The host now makes every value of a session
+  a digest of its own domain (`identity::interaction_key`, `kept_hash`,
+  `session_handle`), and this layer, which keeps whatever key it is given,
+  keeps no cookie: `data-path`'s search, run over this layer in its
+  PostgreSQL form, finds none (decision 8). Records kept by a cookie before
+  stop matching, as `data-path`'s ADR accepts.
 - **PR #67 (`session-overlap`)**, the admission race of finding 1 below:
-  once it lands on `master`, this track merges `master`, takes out the
-  restart spec's wait for the page's own reload, and adds a test of one
-  session's concurrent requests on this layer (six `GET /` at once, which
-  answered five 503s, and two signing `POST`s at once, which answered one
-  403 `session-changed`; each must succeed).
-- **`data-path`'s adapter-neutral refused commit**: when it lands on
-  `wip/data-path`, this layer's honouring of `tables::FAIL_NEXT_PUBLISH`
-  goes, replaced by what the suite then asks of a layer (the integrator's
-  ruling (a) of 2026-11-02).
+  merged with `master` at `bae4f531`; the restart spec's wait for the page's
+  own reload is gone, and a test of one session's requests at once on this
+  layer (six `GET /`, which answered five 503s in the first round, and two
+  signing `POST`s, which answered one 403 `session-changed`) answers each.
+  This layer's admission follows PR #67's rule (decision 5).
+- **`data-path`'s adapter-neutral refused command** (`589f432d`): this
+  layer's honouring of `tables::FAIL_NEXT_PUBLISH` is gone; the suite's
+  refusals are provoked through what the tables declare (decision 7).
 
 ## Corrections (the review of 3ccd083a, 2026-11-02)
 
@@ -428,6 +466,16 @@ killed (3 of 3).
 - **CORRECTION (D3's): a render's read after one that failed read another
   state** (finding 5; decision 4). D3's own test pinned the old behaviour
   ("the next opens another"), and is corrected with it.
+- **CORRECTION: an admission waited for a command holding its session**
+  (the integrator's note with PR #67: no admission waits on a command's
+  session lock). `admit_session` took the session's lock as a change does,
+  so a reader's every request waited, up to five seconds, for any command
+  of the same session on any host, and held one of the eight session
+  connections meanwhile. It now reads with no lock, and makes a due write
+  only where the lock is free (decision 5);
+  `an_admission_never_waits_for_a_command_holding_its_session` holds it, and
+  its two mutants (the lock waited for, the due write made under a
+  command's lock) are killed.
 - **Hardening** (finding 6), each with its test: a run that schedules
   itself again (taken before its next generation is written: the mutant
   writing it first is killed, the generation's command then finding no run
@@ -451,16 +499,14 @@ killed (3 of 3).
   overlap always conflict. Seen in the restart spec, a reader's reload
   racing the page's own reload, told by the new process (one of three
   engines in a first run); the feed's and the store's PostgreSQL layers keep
-  sessions the same way. The spec waits for the page's own reload before its
-  reader's until PR #67 (`session-overlap`) repairs the race ("Depends on").
-- **CORRECTION (track `data-path`'s, open): `e14-guide` fails at this
-  track's commit**, and would at `data-path`'s: `scripts/guide_mutations.py`'s
-  mutant "the entries are not told of a signed entry" (`invalidates_on
-  Removed(_)` for `Signed(_), Removed(_)`) is a program the checker refuses
-  (PW5107, `sign` speculates on `Latest` and does not invalidate it), since
-  `data-path`'s guestbook speculates on `Latest`; the script counts it
-  refused, 73 of 74 (verify 41480579645). Neither file is this track's; the
-  mutant needs a well-typed replacement.
+  sessions the same way. Repaired by PR #67 (`session-overlap`), merged
+  here: the spec no longer waits for the page's own reload, and the race is
+  tested on this layer ("Depends on").
+- **CORRECTION (track `data-path`'s, repaired there): `e14-guide` failed at
+  this track's first commits**: `scripts/guide_mutations.py`'s mutant "the
+  entries are not told of a signed entry" was a program the checker refuses
+  (PW5107), counted refused, 73 of 74 (verify 41480579645). `data-path`'s
+  `da2100fb` makes that control the browser's, merged here.
 - **A render's state on PostgreSQL is its first table read's.**
   `data-path`'s render test commits between `Me` (which reads no table) and
   `Latest`, so on PostgreSQL that commit is the render's; the PostgreSQL
@@ -472,18 +518,19 @@ killed (3 of 3).
   PostgreSQL, every engine's host in one schema. Corrected, with its test.
 - **A change to the server's `main.rs` or `data.rs` plans about 150
   recipes** (`ci_plan.py --changed`): every recipe that builds the server.
-- **Two small pieces of the memory layer are repeated** in `tables_pg.rs`:
-  the refusal of a hand-written layer beside declared tables, and the
-  interning of the grants' words. `tables.rs` is under `data-path`'s review
-  repairs, and this track leaves its files alone meanwhile; they are one
-  function each once those land.
+- **Two small pieces of the memory layer were repeated** in `tables_pg.rs`
+  (the refusal of a build no layer may serve, and the interning of the
+  grants' words): with `data-path`'s repairs merged, this layer calls
+  `tables::servable` and `tables::interned`, one function each.
 
 ## Rulings taken (the integrator, 2026-11-02)
 
-- (a) `tables::FAIL_NEXT_PUBLISH` stays until `data-path`'s adapter-neutral
-  refused commit lands on `wip/data-path`; the integrator says when to
-  merge it ("Depends on").
-- (b) The admission race is PR #67's to repair ("Depends on").
+- (a) `tables::FAIL_NEXT_PUBLISH` stayed until `data-path`'s
+  adapter-neutral refused command landed on `wip/data-path`; merged, and
+  replaced (decision 7).
+- (b) The admission race was PR #67's to repair; merged, the spec's
+  workaround gone, the race tested on this layer, and this layer's
+  admission taking no session lock, as PR #67's rule asks (decision 5).
 - (c) The second host told live is not next: the target is a single VM
   ("Not claimed").
 

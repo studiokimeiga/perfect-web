@@ -1027,14 +1027,14 @@ fn a_session_past_its_lifetime_at_the_commit_keeps_nothing() {
 }
 
 /// **A command waiting for its session holds no other session's command
-/// up** (the review of 3ccd083a, finding 2): a reader's command, admitted,
-/// waits for its session's lock, which another host's command fenced on
-/// the session took meanwhile, before it takes its host's turn, so another
-/// reader's command on the host commits at once; once the lock is given
-/// back, the waiting command commits too. (The other host's command writes
-/// nothing, and each reader's writes a note of its own: commands writing
-/// what another reads wait, or are refused, as they should, which is not
-/// what is held here.)
+/// up** (the review of 3ccd083a, finding 2): a reader's command, admitted at
+/// once (an admission waits on no session lock), waits for its session's
+/// lock, which another host's command fenced on the session holds, before it
+/// takes its host's turn, so another reader's command on the host commits at
+/// once; once the lock is given back, the waiting command commits too. (The
+/// other host's command writes nothing, and each reader's writes a note of
+/// its own: commands writing what another reads wait, or are refused, as
+/// they should, which is not what is held here.)
 #[test]
 fn a_command_waiting_for_its_session_holds_no_other_session_up() {
     let Some(url) = database() else { return };
@@ -1042,15 +1042,6 @@ fn a_command_waiting_for_its_session_holds_no_other_session_up() {
     let schema = Schema::new(&url, "turns");
     let (a, b) = pair(&out, &schema);
     a.identity.signed_in_for_test("other", "u-bob", "Bob");
-    // The command here is admitted, then held before its authority until the
-    // command there holds the session's lock (an admission waits for that
-    // lock too, so it is admitted first).
-    let (admitted, admission) = std::sync::mpsc::channel();
-    let (proceed, onward) = std::sync::mpsc::channel::<()>();
-    *a.before_command_authority.lock().expect("hook") = Some(Box::new(move |_| {
-        let _ = admitted.send(());
-        let _ = onward.recv_timeout(Duration::from_secs(20));
-    }));
     let noted = |s: &Server, session: &str, id: &str| {
         s.command_answer(NOTE_LATER, session, &[serde_json::json!(id)], None)
     };
@@ -1060,12 +1051,10 @@ fn a_command_waiting_for_its_session_holds_no_other_session_up() {
         .command_actor("owner")
         .asserted("the session, on the other host");
     let (held, waited, other, elapsed, still, here) = std::thread::scope(|scope| {
-        let here = scope.spawn(|| noted(&a, "owner", "here"));
-        let first = admission.recv_timeout(Duration::from_secs(20)).is_ok();
         // The other host's command, fenced on the session: its lock taken.
         let mut there = b.data.begin("owner");
-        let held = first && there.authorize(&actor).is_ok();
-        let _ = proceed.send(());
+        let held = there.authorize(&actor).is_ok();
+        let here = scope.spawn(|| noted(&a, "owner", "here"));
         let until = Instant::now() + Duration::from_secs(4);
         let mut waited = false;
         while Instant::now() < until {
@@ -1095,6 +1084,202 @@ fn a_command_waiting_for_its_session_holds_no_other_session_up() {
     );
     assert!(matches!(&here, Ok(Ok(a)) if a.committed), "{here:?}");
     assert_eq!(schema.count("\"Notes\""), "2");
+}
+
+/// The guestbook on PostgreSQL, a reader signing in through its provider's
+/// flow: the session it gives, and the one the browser came with.
+fn signed_in_on_postgresql(s: &Server, came_with: &str) -> String {
+    let provider = Arc::new(super::sign_in::TestProvider::default());
+    s.identity
+        .use_provider(provider.clone(), super::sign_in::REDIRECT);
+    super::sign_in::signed_in(s, &provider, came_with, "ada")
+}
+
+/// **Requests of one session at once are each answered, on PostgreSQL**
+/// (ADR-0389, amended 2026-11-02 by PR #67; the integrator's ruling (b)): a
+/// reader signed in through the flow loads the page six times at once, and
+/// signs twice at once; every page is answered 200, and both signings
+/// commit. In this track's first round, before PR #67, the admissions of
+/// one session overlapping were refused: five of six such pages answered
+/// 503, and one of two such signings 403 `session-changed`.
+#[test]
+fn requests_of_one_session_at_once_are_each_answered_on_postgresql() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = guestbook();
+    let schema = Schema::new(&url, "at_once");
+    let s = serve(&out, &schema);
+    let ada = signed_in_on_postgresql(&s, "s-came-with-at-once");
+    let start = std::sync::Barrier::new(6);
+    let pages: Vec<String> = std::thread::scope(|scope| {
+        let pages: Vec<_> = (0..6)
+            .map(|_| {
+                scope.spawn(|| {
+                    start.wait();
+                    get_as(&s, &ada, "/")
+                })
+            })
+            .collect();
+        pages
+            .into_iter()
+            .map(|page| page.join().unwrap_or_default())
+            .collect()
+    });
+    let statuses: Vec<&str> = pages
+        .iter()
+        .map(|page| page.lines().next().unwrap_or("no answer"))
+        .collect();
+    assert!(
+        statuses
+            .iter()
+            .all(|status| status.starts_with("HTTP/1.1 200")),
+        "six pages of one session at once: {statuses:?}"
+    );
+    let start = std::sync::Barrier::new(2);
+    let signings: Vec<String> = std::thread::scope(|scope| {
+        let signings: Vec<_> = (0..2)
+            .map(|n| {
+                let (s, ada, start) = (&s, &ada, &start);
+                scope.spawn(move || {
+                    start.wait();
+                    super::sign_in::command(
+                        s,
+                        SIGN,
+                        ada,
+                        &format!("i-at-once-{n}"),
+                        &serde_json::json!([format!("At once, {n}")]).to_string(),
+                    )
+                })
+            })
+            .collect();
+        signings
+            .into_iter()
+            .map(|signing| signing.join().unwrap_or_default())
+            .collect()
+    });
+    assert!(
+        signings
+            .iter()
+            .all(|answer| answer.starts_with("HTTP/1.1 202")
+                && answer.contains("\"committed\":true")),
+        "two signings of one session at once: {signings:?}"
+    );
+    assert_eq!(schema.count(ENTRIES), "2");
+}
+
+/// **Every row of every table of `schema`, as text**: each row as
+/// PostgreSQL writes a row as text (its `bytea` in hex), named by its table
+/// (data-path's search, in its PostgreSQL form).
+fn every_row(schema: &Schema) -> String {
+    let tables = schema.texts(&format!(
+        "SELECT table_name::text FROM information_schema.tables \
+         WHERE table_schema = '{}' AND table_type = 'BASE TABLE' ORDER BY 1",
+        schema.name
+    ));
+    let mut text = String::new();
+    for table in tables {
+        for row in schema.texts(&format!("SELECT t::text FROM \"{table}\" t")) {
+            text.push_str(&format!("{table}: {row}\n"));
+        }
+    }
+    text
+}
+
+/// **What `schema` keeps, held to hold none of `cookies`**, as written or
+/// in hex, and to keep a row of each of `tables` (one of them holding the
+/// text paired with it, where one is).
+fn holds_no_cookie(schema: &Schema, tables: &[(&str, Option<&str>)], cookies: &[&str]) {
+    let rows = every_row(schema);
+    for (table, holding) in tables {
+        assert!(
+            rows.lines()
+                .any(|row| row.starts_with(&format!("{table}: "))
+                    && holding.is_none_or(|holding| row.contains(holding))),
+            "{table} keeps a row{}: {rows}",
+            holding.map_or(String::new(), |h| format!(" by `{h}`"))
+        );
+    }
+    for cookie in cookies {
+        let hex = crate::identity::hex(cookie.as_bytes());
+        assert!(
+            !rows.contains(cookie) && !rows.contains(&hex),
+            "a row holds the cookie `{cookie}`: {rows}"
+        );
+    }
+}
+
+/// **Nothing the tables' layer keeps holds a session's cookie** (the
+/// integrator's ruling of 2026-11-02, data-path's search over this layer in
+/// its PostgreSQL form): on the guestbook, a reader signed in through the
+/// flow signs and removes an entry, and another sign-in is left under way;
+/// on a program of runs, a reader has a run scheduled for them, which runs.
+/// No row of any table of either schema (the entries, the book, the notes,
+/// the commands' records, the outbox's rows as written, the runs, the
+/// session, the sign-in) holds the reader's session or the one the browser
+/// came with, as written or in hex, and the page shows neither; the record
+/// is there, keyed by the session's digest.
+#[test]
+fn nothing_the_tables_keep_holds_a_session_cookie_on_postgresql() {
+    let Some(url) = database() else { return };
+    let came_with = "s-came-with-0123456789";
+    // The guestbook: records, the outbox, a session, a sign-in under way.
+    let (_dir, out) = guestbook();
+    let schema = Schema::new(&url, "cookie");
+    let s = serve(&out, &schema);
+    audit_outbox(&schema);
+    let ada = signed_in_on_postgresql(&s, came_with);
+    for (command, interaction, body) in [
+        (SIGN, "i-kept", "[\"Kept on the database\"]"),
+        (SIGN, "i-gone", "[\"Removed from it\"]"),
+        (REMOVE, "i-removed", "[2]"),
+    ] {
+        let answer = super::sign_in::command(&s, command, &ada, interaction, body);
+        assert!(answer.contains("\"committed\":true"), "{command}: {answer}");
+    }
+    let begun = super::sign_in::get(&s, "/sign-in", &format!("pw-session={came_with}"));
+    assert!(begun.starts_with("HTTP/1.1 303"), "{begun}");
+    let page = get_as(&s, &ada, "/");
+    let shown = page.split_once("\r\n\r\n").map_or("", |(_, body)| body);
+    assert!(shown.contains("Kept on the database"), "{page}");
+    for cookie in [ada.as_str(), came_with] {
+        let hex = crate::identity::hex(cookie.as_bytes());
+        assert!(
+            !shown.contains(cookie) && !shown.contains(&hex),
+            "the page shows the cookie `{cookie}`"
+        );
+    }
+    let digest = crate::identity::session_field(crate::identity::INTERACTION_DOMAIN, &ada);
+    holds_no_cookie(
+        &schema,
+        &[
+            ("pw_interactions", Some(&digest)),
+            ("pw_sessions", None),
+            ("pw_sign_ins", None),
+            ("outbox_seen", None),
+        ],
+        &[&ada, came_with],
+    );
+    // A program of runs: one scheduled for the reader, then run.
+    let (_later_dir, later) =
+        super::tables::built(&[], &[("Notes.pw", NOTES), ("later.pw", LATER)]);
+    let schema = Schema::new(&url, "cookie_runs");
+    let s = serve(&later, &schema);
+    let ada = signed_in_on_postgresql(&s, came_with);
+    let answer = super::sign_in::command(&s, NOTE_LATER, &ada, "i-later", "[\"later\"]");
+    assert!(answer.contains("\"committed\":true"), "{answer}");
+    holds_no_cookie(
+        &schema,
+        &[("pw_runs", None), ("pw_sessions", None)],
+        &[&ada, came_with],
+    );
+    s.query_clock.0.advance(31 * 60 * 1000);
+    assert_eq!(s.run_due().0, 1, "the run runs");
+    // A `String` is kept as its bytes, which a row as text writes in hex.
+    let reminded = crate::identity::hex(b"reminded");
+    holds_no_cookie(
+        &schema,
+        &[("pw_interactions", None), ("Notes", Some(&reminded))],
+        &[&ada, came_with],
+    );
 }
 
 /// **A run whose taking another hand suppresses is retried after its

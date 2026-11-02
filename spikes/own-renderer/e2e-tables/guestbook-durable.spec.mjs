@@ -6,17 +6,17 @@
 // identity provider (`PW_IDENTITY=dev-accounts`), whose accounts are the
 // process's and whose sessions are the database's:
 //   - a reader signs up and signs; the host is killed (SIGKILL) while the
-//     reader's page is open, and started again; the page, told by the new
-//     process to reload (it knows no document of the old one's), and then
-//     reloaded by its reader, shows the entry, and the reader still signed
-//     in, who signs again;
-//   - the host is stopped (SIGTERM) and started again; told to reload, and
-//     reloaded, the page shows both entries, the reader's to remove, and
-//     another reader's browser reads them too, offered no Remove.
-// The reader's reload waits for the page's own: two requests of one session
-// admitted at once on a host whose sessions are the database's answer the
-// later "The session could not be confirmed" (`Principals::admit`'s
-// `Superseded`, track durable-tables' ADR records it).
+//     reader's page is open, and started again; the page, reloaded by its
+//     reader while the new process may be telling it to reload itself (it
+//     knows no document of the old one's), shows the entry, and the reader
+//     still signed in, who signs again;
+//   - the host is stopped (SIGTERM) and started again; reloaded the same
+//     way, the page shows both entries, the reader's to remove, and another
+//     reader's browser reads them too, offered no Remove.
+// The reader's reload races the page's own: two requests of one session
+// admitted at once are each answered (ADR-0389, amended by PR #67). Until
+// then the reader's reload waited for the page's, as the later of the two
+// was answered "The session could not be confirmed".
 import { spawn } from "node:child_process";
 import { mkdirSync, openSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -152,23 +152,22 @@ async function reloaded(page) {
   await page.waitForFunction(() => document.documentElement.dataset.pwReady === "1");
 }
 
-/** A mark on the page's window, which a reload of the page loses. */
-async function mark(page) {
-  await page.evaluate(() => {
-    window.durableMark = true;
-  });
-}
-
-/** **The page told to reload by a host started again**: its subscription
- * asks again, and the new process, which knows no document of it, tells it
- * to; it reloads, and its handlers are attached again. Its asks wait up to
- * five seconds apart. */
-async function toldToReload(page) {
-  await page.waitForFunction(
-    () => window.durableMark !== true && document.documentElement.dataset.pwReady === "1",
-    null,
-    { timeout: 30_000 },
-  );
+/** **`page` reloaded by its reader, as a host started again may be telling
+ * it to reload itself**: its subscription asks again, and the new process,
+ * which knows no document of it, tells it to. The two reloads race, each a
+ * request of the reader's session, and each is answered (ADR-0389, as
+ * amended); the reader's is let go only where the page's own navigation
+ * replaced it, the browser saying so. Whichever lands last, its handlers are
+ * attached again. */
+async function reloadedRacing(page) {
+  try {
+    await page.reload();
+  } catch (error) {
+    if (!/interrupted by another navigation|ERR_ABORTED|NS_BINDING_ABORTED|cancelled/i.test(String(error))) {
+      throw error;
+    }
+  }
+  await page.waitForFunction(() => document.documentElement.dataset.pwReady === "1");
 }
 
 test("the guestbook outlives its host: killed, stopped, and reloaded", async ({ browser }, testInfo) => {
@@ -179,10 +178,9 @@ test("the guestbook outlives its host: killed, stopped, and reloaded", async ({ 
   const before = `Before the crash, from ${testInfo.project.name} ${Date.now()}`;
   await sign(page, before, name);
   // Killed while the page is open: no warning, no shutdown.
-  await mark(page);
   await host.stop("SIGKILL");
   await host.start();
-  await toldToReload(page);
+  await reloadedRacing(page);
   await expect(page.locator("#me")).toHaveText(`Signed in as ${name}`);
   await expect(entry(page, before)).toHaveCount(1);
   await reloaded(page);
@@ -192,10 +190,9 @@ test("the guestbook outlives its host: killed, stopped, and reloaded", async ({ 
   const after = `After it, from ${testInfo.project.name} ${Date.now()}`;
   await sign(page, after, name);
   // Stopped as a deployment stops it, and started again.
-  await mark(page);
   await host.stop("SIGTERM");
   await host.start();
-  await toldToReload(page);
+  await reloadedRacing(page);
   await expect(entry(page, after)).toHaveCount(1);
   await reloaded(page);
   await expect(page.locator("#me")).toHaveText(`Signed in as ${name}`);
