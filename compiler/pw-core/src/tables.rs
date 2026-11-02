@@ -134,6 +134,11 @@ pub enum Wrote {
     /// The record a set form's list holds for a tuple of `fields`: a key, a
     /// prefix or an index of more than one field.
     Tuple { fields: Vec<String> },
+    /// **The seen row** (track `row-ownership`, ADR-0384 H1): the record a
+    /// reader the table shares with is answered, its row's `fields` without
+    /// the private ones, so a value only its owner reads has no field to
+    /// reach another reader through.
+    Seen { fields: Vec<String> },
 }
 
 // --- the declaration, as written ---------------------------------------------
@@ -215,8 +220,40 @@ pub struct Table {
     pub references: Vec<Clause<Reference>>,
     pub bounded: Option<Clause<u64>>,
     pub migrations: Vec<Clause<Migration>>,
+    /// **Whose its rows are** (track `row-ownership`, ADR-0384 H1): `owned by
+    /// owner`, the field holding its owner's id.
+    pub owner: Option<Clause<String>>,
+    /// **Who else reads them**: `shares with to`, the fields holding the id
+    /// of each other principal who reads a row, as its seen row.
+    pub shares: Option<Clause<Vec<String>>>,
+    /// **What its owner alone reads**: `private sent, day`, the fields no
+    /// other reader's seen row holds.
+    pub private: Option<Clause<Vec<String>>>,
     /// Each clause whose value is not one its grammar reads, and why.
     pub unread: Vec<(Span, String)>,
+}
+
+impl Table {
+    /// The owner's field, where the table is owned.
+    pub fn owner_field(&self) -> Option<&str> {
+        self.owner.as_ref().map(|o| o.value.as_str())
+    }
+
+    /// The fields whose principals read a row besides its owner.
+    pub fn sharers(&self) -> &[String] {
+        self.shares.as_ref().map_or(&[], |s| s.value.as_slice())
+    }
+
+    /// The fields its owner alone reads.
+    pub fn private_fields(&self) -> &[String] {
+        self.private.as_ref().map_or(&[], |p| p.value.as_slice())
+    }
+}
+
+/// **The record a reader the table shares with is answered** (track
+/// `row-ownership`): the row's name and `Seen`, `LikeSeen`.
+pub fn seen_name(row: &str) -> String {
+    format!("{row}Seen")
 }
 
 /// Is `s` a name: a letter or `_`, then letters, digits and `_`?
@@ -338,6 +375,31 @@ fn migration(value: &str) -> Result<Migration, String> {
     })
 }
 
+/// `by owner`: the one field holding a row's owner's id.
+fn owned_by(value: &str) -> Result<String, String> {
+    match value.trim().strip_prefix("by ").map(str::trim) {
+        Some(field) if is_name(field) => Ok(field.to_string()),
+        _ => Err(
+            "is written `owned by <field>`, one field holding the id of the principal \
+                  whose row it is: `owned by owner`"
+                .to_string(),
+        ),
+    }
+}
+
+/// `with to, cc`: the fields holding the ids of the principals who read a row
+/// besides its owner.
+fn shared_with(value: &str) -> Result<Vec<String>, String> {
+    match value.trim().strip_prefix("with ") {
+        Some(fields) => names(fields),
+        None => Err(
+            "is written `shares with <fields>`, each holding the id of a principal \
+                     who reads the row: `shares with to`"
+                .to_string(),
+        ),
+    }
+}
+
 /// **Every table `hir` declares**, as written.
 pub fn declared(hir: &Hir) -> Vec<Table> {
     hir.all_decls()
@@ -358,6 +420,9 @@ fn read(id: DeclId, d: &Decl) -> Table {
         references: Vec::new(),
         bounded: None,
         migrations: Vec::new(),
+        owner: None,
+        shares: None,
+        private: None,
         unread: Vec::new(),
     };
     for p in &d.policies {
@@ -432,6 +497,35 @@ fn read(id: DeclId, d: &Decl) -> Table {
                 }
                 Err(why) => Some(why),
             },
+            // Track `row-ownership` (ADR-0384 H1). A second of any of these
+            // is ADR-0098's, as every clause written twice is.
+            "owned" => match owned_by(v) {
+                Ok(field) => {
+                    t.owner.get_or_insert(clause(field));
+                    None
+                }
+                Err(why) => Some(why),
+            },
+            "shares" => match shared_with(v) {
+                Ok(fields) => {
+                    t.shares.get_or_insert(Clause {
+                        value: fields,
+                        span: span.clone(),
+                    });
+                    None
+                }
+                Err(why) => Some(why),
+            },
+            "private" => match names(v) {
+                Ok(fields) => {
+                    t.private.get_or_insert(Clause {
+                        value: fields,
+                        span: span.clone(),
+                    });
+                    None
+                }
+                Err(why) => Some(why),
+            },
             _ => None,
         };
         if let Some(why) = fault {
@@ -483,10 +577,79 @@ struct Planned {
     span: Span,
 }
 
+/// **Who reads a table's function** (track `row-ownership`, ADR-0384 H1).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Reading {
+    /// An unowned table's: by plain values, as D1 gives it.
+    Plain,
+    /// An owned table's, by its owner's handle in the owner's place: the row.
+    Owner,
+    /// An owned table's, by the handle of a principal it shares with, in
+    /// that field's place: the seen row where any field is private.
+    Sharer,
+    /// An owned table's that leads with no reader: not given (PW0368).
+    Refused,
+}
+
+/// **Who reads by `by`** on `t`: an owned table's reads lead with its owner
+/// or a field it shares with.
+fn reading(t: &Table, by: &[String]) -> Reading {
+    let Some(owner) = t.owner_field() else {
+        return Reading::Plain;
+    };
+    match by.first() {
+        Some(f) if f == owner => Reading::Owner,
+        Some(f) if t.sharers().contains(f) => Reading::Sharer,
+        _ => Reading::Refused,
+    }
+}
+
+/// **The tuples a table's set forms hold**, each of more than one field: of
+/// an unowned table, its key's prefixes and its indexes; of an owned table,
+/// what follows the reader in each (track `row-ownership`), whose handle is
+/// given beside the list rather than in it.
+fn set_tuples(t: &Table) -> Vec<(Vec<String>, Span)> {
+    let mut out: Vec<(Vec<String>, Span)> = Vec::new();
+    let mut selectors: Vec<(Vec<String>, Span)> = Vec::new();
+    if let Some(key) = &t.key {
+        for end in 1..=key.value.len() {
+            selectors.push((key.value[..end].to_vec(), key.span.clone()));
+        }
+    }
+    for i in &t.indexes {
+        selectors.push((i.value.fields.clone(), i.span.clone()));
+    }
+    for (by, span) in selectors {
+        let held: Vec<String> = match reading(t, &by) {
+            Reading::Plain => by,
+            Reading::Owner | Reading::Sharer => by[1..].to_vec(),
+            Reading::Refused => continue,
+        };
+        if held.len() > 1 && !out.iter().any(|(f, _)| *f == held) {
+            out.push((held, span));
+        }
+    }
+    out
+}
+
 /// **The functions and records a table gives, in the order it gives them**,
-/// over its row's fields as written. What its clauses do not read, or name
-/// outside its row, gives nothing; `check` refuses it.
-fn planned(t: &Table, row: &str, fields: &[(String, DeclaredType)]) -> (Vec<Planned>, Vec<Decl>) {
+/// over its row's fields as written, and the seen row where it gives one.
+/// What its clauses do not read, or name outside its row, gives nothing;
+/// `check` refuses it.
+///
+/// **An owned table's** (track `row-ownership`, ADR-0384 H1): each read
+/// leading with its owner takes the reader's handle (`capability.User`) in
+/// the owner's place and answers the row; each leading with a field it
+/// shares with takes the handle there and answers the seen row; a set form
+/// takes the handle and a list of what follows it, and none is given where
+/// nothing follows; no read is given that leads with neither, nor `all`; its
+/// writes take its owner's handle. So no read or write of its rows names a
+/// principal by a plain id, and a program makes no handle (ADR-0263).
+fn planned(
+    t: &Table,
+    row: &str,
+    fields: &[(String, DeclaredType)],
+) -> (Vec<Planned>, Vec<Decl>, Option<Decl>) {
     let ty = |f: &str| fields.iter().find(|(n, _)| n == f).map(|(_, t)| t.clone());
     let all_in_row = |fs: &[String]| fs.iter().all(|f| ty(f).is_some());
     let row_ty = DeclaredType::new(row, Vec::new());
@@ -499,6 +662,42 @@ fn planned(t: &Table, row: &str, fields: &[(String, DeclaredType)]) -> (Vec<Plan
             .filter_map(|f| Some((f.clone(), ty(f)?)))
             .collect()
     };
+    // The reader's handle in a field's place: the platform's `User` over the
+    // field's own type, which `owned by` and `shares with` hold to be the
+    // platform's `UserId` (PW0367).
+    let handle = |f: &str| DeclaredType::new("capability.User", vec![ty(f).unwrap_or_else(unit)]);
+    // The seen row, where a reader the table shares with is answered one.
+    let private: Vec<String> = t
+        .private_fields()
+        .iter()
+        .filter(|p| ty(p).is_some())
+        .cloned()
+        .collect();
+    let seen = match (&t.row, &t.owner) {
+        (Some(r), Some(_)) if !t.sharers().is_empty() && !private.is_empty() => {
+            let kept: Vec<(String, DeclaredType)> = fields
+                .iter()
+                .filter(|(n, _)| !private.contains(n))
+                .cloned()
+                .collect();
+            Some(record(&seen_name(row), &kept, &r.span))
+        }
+        _ => None,
+    };
+    let answer = |r: Reading| match (r, &seen) {
+        (Reading::Sharer, Some(s)) => DeclaredType::new(s.name.clone(), Vec::new()),
+        _ => row_ty.clone(),
+    };
+    // What a keyed function is given: its fields, the reader's handle in the
+    // place of the first where it has a reader.
+    let keyed = |r: Reading, by: &[String]| -> Vec<(String, DeclaredType)> {
+        match r {
+            Reading::Owner | Reading::Sharer => std::iter::once((by[0].clone(), handle(&by[0])))
+                .chain(params(&by[1..]))
+                .collect(),
+            _ => params(by),
+        }
+    };
     let mut records: Vec<Decl> = Vec::new();
     let mut tuple = |fs: &[String], span: &Span| -> DeclaredType {
         if let [one] = fs {
@@ -509,6 +708,17 @@ fn planned(t: &Table, row: &str, fields: &[(String, DeclaredType)]) -> (Vec<Plan
             records.push(record(&name, &params(fs), span));
         }
         DeclaredType::new(name, Vec::new())
+    };
+    // What a set form is given: one list of what it reads by, or, with a
+    // reader, the handle and a list of what follows it; none where nothing
+    // follows the reader, whose one value the keyed read is given already.
+    let mut many = |r: Reading, by: &[String], list_name: &str, span: &Span| match r {
+        Reading::Plain => Some(vec![(list_name.to_string(), list(tuple(by, span)))]),
+        Reading::Owner | Reading::Sharer if by.len() > 1 => Some(vec![
+            (by[0].clone(), handle(&by[0])),
+            (list_name.to_string(), list(tuple(&by[1..], span))),
+        ]),
+        _ => None,
     };
     let mut out: Vec<Planned> = Vec::new();
     let mut push = |p: Planned| {
@@ -525,40 +735,47 @@ fn planned(t: &Table, row: &str, fields: &[(String, DeclaredType)]) -> (Vec<Plan
     };
     // The reads, by the key and its prefixes.
     if let Some(k) = key {
-        push(Planned {
-            name: "get".to_string(),
-            params: params(&k.value),
-            ret: option(row_ty.clone()),
-            primitive: Primitive::Get,
-            by: k.value.clone(),
-            span: k.span.clone(),
-        });
-        push(Planned {
-            name: "get_many".to_string(),
-            params: vec![("keys".to_string(), list(tuple(&k.value, &k.span)))],
-            ret: list(row_ty.clone()),
-            primitive: Primitive::GetMany,
-            by: k.value.clone(),
-            span: k.span.clone(),
-        });
-        for prefix in prefixes(k) {
-            let name = prefix_read(&prefix);
+        let r = reading(t, &k.value);
+        if r != Reading::Refused {
             push(Planned {
-                name: name.clone(),
-                params: params(&prefix),
-                ret: list(row_ty.clone()),
-                primitive: Primitive::Prefix,
-                by: prefix.clone(),
+                name: "get".to_string(),
+                params: keyed(r, &k.value),
+                ret: option(answer(r)),
+                primitive: Primitive::Get,
+                by: k.value.clone(),
                 span: k.span.clone(),
             });
-            push(Planned {
-                name: format!("{name}_many"),
-                params: vec![("prefixes".to_string(), list(tuple(&prefix, &k.span)))],
-                ret: list(row_ty.clone()),
-                primitive: Primitive::PrefixMany,
-                by: prefix,
-                span: k.span.clone(),
-            });
+            if let Some(params) = many(r, &k.value, "keys", &k.span) {
+                push(Planned {
+                    name: "get_many".to_string(),
+                    params,
+                    ret: list(answer(r)),
+                    primitive: Primitive::GetMany,
+                    by: k.value.clone(),
+                    span: k.span.clone(),
+                });
+            }
+            for prefix in prefixes(k) {
+                let name = prefix_read(&prefix);
+                push(Planned {
+                    name: name.clone(),
+                    params: keyed(r, &prefix),
+                    ret: list(answer(r)),
+                    primitive: Primitive::Prefix,
+                    by: prefix.clone(),
+                    span: k.span.clone(),
+                });
+                if let Some(params) = many(r, &prefix, "prefixes", &k.span) {
+                    push(Planned {
+                        name: format!("{name}_many"),
+                        params,
+                        ret: list(answer(r)),
+                        primitive: Primitive::PrefixMany,
+                        by: prefix,
+                        span: k.span.clone(),
+                    });
+                }
+            }
         }
     }
     // By each index: an index's name says it reads by an index, `by_`, so it
@@ -568,28 +785,37 @@ fn planned(t: &Table, row: &str, fields: &[(String, DeclaredType)]) -> (Vec<Plan
         if !index.name.starts_with("by_") || index.fields.is_empty() || !all_in_row(&index.fields) {
             continue;
         }
+        let r = reading(t, &index.fields);
+        if r == Reading::Refused {
+            continue;
+        }
         push(Planned {
             name: index.name.clone(),
-            params: params(&index.fields),
+            params: keyed(r, &index.fields),
             ret: match index.unique {
-                true => option(row_ty.clone()),
-                false => list(row_ty.clone()),
+                true => option(answer(r)),
+                false => list(answer(r)),
             },
             primitive: Primitive::Index,
             by: index.fields.clone(),
             span: i.span.clone(),
         });
-        push(Planned {
-            name: format!("{}_many", index.name),
-            params: vec![("values".to_string(), list(tuple(&index.fields, &i.span)))],
-            ret: list(row_ty.clone()),
-            primitive: Primitive::IndexMany,
-            by: index.fields.clone(),
-            span: i.span.clone(),
-        });
+        if let Some(params) = many(r, &index.fields, "values", &i.span) {
+            push(Planned {
+                name: format!("{}_many", index.name),
+                params,
+                ret: list(answer(r)),
+                primitive: Primitive::IndexMany,
+                by: index.fields.clone(),
+                span: i.span.clone(),
+            });
+        }
     }
-    // Whole, only where bounded (PW0364).
-    if let Some(b) = &t.bounded {
+    // Whole, only where bounded (PW0364), and never an owned table: `all`
+    // would read every owner's rows (PW0368).
+    if let Some(b) = &t.bounded
+        && t.owner.is_none()
+    {
         push(Planned {
             name: "all".to_string(),
             params: Vec::new(),
@@ -599,15 +825,24 @@ fn planned(t: &Table, row: &str, fields: &[(String, DeclaredType)]) -> (Vec<Plan
             span: b.span.clone(),
         });
     }
-    // The writes.
+    // The writes: an owned table's by its owner's handle, beside the row
+    // whose owner the host holds to be the handle's (ADR-0384's `WITH
+    // CHECK`), or in the owner's place in a key that leads with it.
+    let owner = t.owner_field().filter(|o| ty(o).is_some());
     if let Some(r) = &t.row {
         let unique = t
             .indexes
             .iter()
             .any(|i| i.value.unique && all_in_row(&i.value.fields));
+        let given = |row: DeclaredType| -> Vec<(String, DeclaredType)> {
+            match owner {
+                Some(o) => vec![(o.to_string(), handle(o)), ("row".to_string(), row)],
+                None => vec![("row".to_string(), row)],
+            }
+        };
         push(Planned {
             name: "insert".to_string(),
-            params: vec![("row".to_string(), row_ty.clone())],
+            params: given(row_ty.clone()),
             ret: refused(),
             primitive: Primitive::Insert,
             by: Vec::new(),
@@ -615,7 +850,7 @@ fn planned(t: &Table, row: &str, fields: &[(String, DeclaredType)]) -> (Vec<Plan
         });
         push(Planned {
             name: "put".to_string(),
-            params: vec![("row".to_string(), row_ty.clone())],
+            params: given(row_ty.clone()),
             ret: match unique {
                 true => refused(),
                 false => unit(),
@@ -626,26 +861,31 @@ fn planned(t: &Table, row: &str, fields: &[(String, DeclaredType)]) -> (Vec<Plan
         });
     }
     if let Some(k) = key {
-        push(Planned {
-            name: "delete".to_string(),
-            params: params(&k.value),
-            ret: unit(),
-            primitive: Primitive::Delete,
-            by: k.value.clone(),
-            span: k.span.clone(),
-        });
-        for prefix in prefixes(k) {
+        // An owned table's deletes are its owner's: by a key that leads
+        // with the owner (PW0368), the handle in its place.
+        let r = reading(t, &k.value);
+        if matches!(r, Reading::Plain | Reading::Owner) {
             push(Planned {
-                name: format!("delete_{}", prefix_read(&prefix)),
-                params: params(&prefix),
+                name: "delete".to_string(),
+                params: keyed(r, &k.value),
                 ret: unit(),
-                primitive: Primitive::DeletePrefix,
-                by: prefix,
+                primitive: Primitive::Delete,
+                by: k.value.clone(),
                 span: k.span.clone(),
             });
+            for prefix in prefixes(k) {
+                push(Planned {
+                    name: format!("delete_{}", prefix_read(&prefix)),
+                    params: keyed(r, &prefix),
+                    ret: unit(),
+                    primitive: Primitive::DeletePrefix,
+                    by: prefix,
+                    span: k.span.clone(),
+                });
+            }
         }
     }
-    (out, records)
+    (out, records, seen)
 }
 
 /// A record declaration, as `type Name = Name { a: A, .. }` lowers.
@@ -776,12 +1016,19 @@ pub fn generate(hir: &mut Hir) {
     let Some(fields) = row_fields(hir, &row) else {
         return;
     };
-    let (functions, records) = planned(&t, &row, &fields);
+    let (functions, records, seen) = planned(&t, &row, &fields);
     let mut wrote: Vec<(Decl, Span, Wrote)> = Vec::new();
     for r in records {
         let fields = r.fields.iter().flatten().map(|f| f.name.clone()).collect();
         let span = r.name_span.clone();
         wrote.push((r, span, Wrote::Tuple { fields }));
+    }
+    // A reader the table shares with is answered its seen row (track
+    // `row-ownership`), declared beside the row as a tuple is.
+    if let Some(s) = seen {
+        let fields = s.fields.iter().flatten().map(|f| f.name.clone()).collect();
+        let span = s.name_span.clone();
+        wrote.push((s, span, Wrote::Seen { fields }));
     }
     for p in &functions {
         wrote.push((
@@ -1267,21 +1514,11 @@ fn shape(
         fields_of(clause, &index.fields, &i.span, &mut out);
     }
     // Pascal-casing is readable but not injective: a_b,c and a,b_c both
-    // name ABC. Never reuse a generated record for a different tuple.
-    let mut tuples = Vec::new();
-    if let Some(key) = &t.key {
-        for end in 2..=key.value.len() {
-            tuples.push((&key.value[..end], &key.span));
-        }
-    }
-    tuples.extend(
-        t.indexes
-            .iter()
-            .filter(|i| i.value.fields.len() > 1)
-            .map(|i| (i.value.fields.as_slice(), &i.span)),
-    );
+    // name ABC. Never reuse a generated record for a different tuple: those
+    // of the set forms the table gives (an owned table's hold what follows
+    // its reader, track `row-ownership`).
     let mut shapes: BTreeMap<String, Vec<String>> = BTreeMap::new();
-    for (fields, span) in tuples {
+    for (fields, span) in &set_tuples(t) {
         let name = tuple_name(&t.name, fields);
         if shapes
             .get(&name)
@@ -1299,6 +1536,14 @@ fn shape(
         }
         shapes.insert(name, fields.to_vec());
     }
+    // Whose its rows are (track `row-ownership`): PW0367 to PW0369.
+    out.extend(ownership(
+        hirs.get(unit).copied(),
+        sigs,
+        t,
+        &row.value,
+        &fields,
+    ));
     for r in &t.references {
         out.extend(referring(
             hirs,
@@ -1359,6 +1604,297 @@ fn shape(
                 "state the change the row makes from the schema released".to_string(),
             ));
         }
+    }
+    out
+}
+
+/// **Is `ty` the id of a principal**, the platform's `capability.UserId`
+/// (ADR-0270): what an owned table's owner and sharers are named by.
+pub fn principal_id(sigs: &Signatures, ty: &ResolvedType) -> bool {
+    matches!(
+        sigs.stable_type(ty),
+        Some(crate::resolved::StableTypeId::Declared { path, args })
+            if path == "capability.UserId" && args.is_empty()
+    )
+}
+
+const OWNED: &str = "An owned table's rows are its owner's (ADR-0384): `owned by` names the \
+     field holding the id of the principal whose row it is, a `capability.UserId`, and `shares \
+     with` the fields holding the ids of the others who read it. Each read of its rows takes the \
+     reader's handle in the place of one of those fields, a `capability.User` only the platform \
+     makes (ADR-0263), so no program reads another's rows by naming an id; each write takes its \
+     owner's handle, and the host holds the row's owner to it.";
+
+const READ_BY_ITS_READER: &str = "An owned table is read by its reader alone (ADR-0384): each \
+     read takes the reader's handle in the place of the field it leads with, its owner or one it \
+     shares with, so a read that leads with any other field, or reads it whole, would answer \
+     other owners' rows. A unique value is held across the table, so a unique index holds the \
+     owner: a write refused by another owner's row would answer it.";
+
+const UNSEEN: &str = "A private field is read by its owner alone (ADR-0384): a reader the table \
+     shares with is answered the seen row, the record the compiler declares beside the row \
+     without the private fields, so no page, frame, cache entry or answer of theirs can hold \
+     one. A field every reader selects or orders rows by, the owner, a sharer, the key, the order \
+     and an index a sharer reads by, tells its values to them, and is not private.";
+
+/// **PW0367 to PW0369: whose a table's rows are** (track `row-ownership`,
+/// ADR-0384 H1): `owned by` and `shares with` name fields holding a
+/// principal's id; every read leads with a reader; a private field is one
+/// no other reader selects, orders or is answered by.
+fn ownership(
+    hir: Option<&Hir>,
+    sigs: &Signatures,
+    t: &Table,
+    row: &str,
+    fields: &[(String, Option<ResolvedType>)],
+) -> Vec<Diagnostic> {
+    let mut out = Vec::new();
+    let field = |f: &str| fields.iter().find(|(n, _)| n == f);
+    let owner_refusal = |message: String, span: &Span, repair: &str| {
+        refusal(
+            codes::OWNER_NAMES_A_PRINCIPAL,
+            "owner_names_a_principal",
+            Severity::Error,
+            message,
+            span.clone(),
+            Vec::new(),
+            OWNED,
+            repair.to_string(),
+        )
+    };
+    let read_refusal = |message: String, span: &Span, repair: String| {
+        refusal(
+            codes::OWNED_READ_BY_ITS_READER,
+            "owned_read_by_its_reader",
+            Severity::Error,
+            message,
+            span.clone(),
+            Vec::new(),
+            READ_BY_ITS_READER,
+            repair,
+        )
+    };
+    let unseen = |message: String, span: &Span, repair: &str| {
+        refusal(
+            codes::PRIVATE_FIELD_UNSEEN,
+            "private_field_unseen",
+            Severity::Error,
+            message,
+            span.clone(),
+            Vec::new(),
+            UNSEEN,
+            repair.to_string(),
+        )
+    };
+    // A field holding a principal's id, or why it is not one.
+    let principal = |name: &str| -> Result<(), String> {
+        match field(name) {
+            None => Err(format!("`{name}` is no field of `{row}`")),
+            Some((_, Some(ty))) if !principal_id(sigs, ty) => Err(format!(
+                "`{name}` is a `{}`, and a principal is named by its id, `capability.UserId`",
+                ty.display_name()
+            )),
+            // A type that resolves to nothing is PW0026's.
+            Some(_) => Ok(()),
+        }
+    };
+    let Some(owned) = &t.owner else {
+        if let Some(s) = &t.shares {
+            out.push(owner_refusal(
+                format!(
+                    "`{}` shares its rows and no one owns them: `shares with` is an owned \
+                     table's",
+                    t.name
+                ),
+                &s.span,
+                "state whose its rows are, `owned by <field>`, or read it as the program's \
+                 public data",
+            ));
+        }
+        if let Some(p) = &t.private {
+            out.push(unseen(
+                format!(
+                    "`{}` keeps fields private and no one owns its rows: `private` is an \
+                     owned table's",
+                    t.name
+                ),
+                &p.span,
+                "state whose its rows are, `owned by <field>`",
+            ));
+        }
+        return out;
+    };
+    let owner = owned.value.as_str();
+    if let Err(why) = principal(owner) {
+        out.push(owner_refusal(
+            format!("`owned by {owner}`: {why}"),
+            &owned.span,
+            "name the field of the row holding its owner's `capability.UserId`",
+        ));
+    }
+    if let Some(s) = &t.shares {
+        for sharer in &s.value {
+            if sharer == owner {
+                out.push(owner_refusal(
+                    format!(
+                        "`shares with {sharer}` names `{owner}`, its owner, who reads its rows \
+                         already"
+                    ),
+                    &s.span,
+                    "name the fields holding the ids of the others who read a row",
+                ));
+                continue;
+            }
+            if let Err(why) = principal(sharer) {
+                // A name a predicate would have: who reads by a predicate
+                // is `shares when`, H3's (ADR-0384 decision 1), not built.
+                let predicate =
+                    sharer.starts_with(|c: char| c.is_ascii_uppercase()) && field(sharer).is_none();
+                out.push(owner_refusal(
+                    match predicate {
+                        true => format!(
+                            "`shares with {sharer}`: {why}; a predicate deciding who reads \
+                             a row is not built (ADR-0384's `shares when`, track H3)"
+                        ),
+                        false => format!("`shares with {sharer}`: {why}"),
+                    },
+                    &s.span,
+                    "name the fields of the row holding the ids of the others who read it",
+                ));
+            }
+        }
+    }
+    let sharers = t.sharers();
+    let is_reader = |f: &String| f == owner || sharers.contains(f);
+    // Every read leads with a reader: the key with the owner, each index
+    // with the owner or a sharer.
+    if let Some(k) = &t.key
+        && k.value.first().is_some_and(|f| f != owner)
+    {
+        out.push(read_refusal(
+            format!(
+                "`key {}` leads with `{}`: an owned table's key leads with its owner, `{owner}`, \
+                 so a read by it, a prefix of it or its whole is by the owner's handle",
+                k.value.join(", "),
+                k.value[0]
+            ),
+            &k.span,
+            format!(
+                "lead the key with `{owner}`: `key {owner}{}`",
+                k.value
+                    .iter()
+                    .filter(|f| *f != owner)
+                    .map(|f| format!(", {f}"))
+                    .collect::<String>()
+            ),
+        ));
+    }
+    for i in &t.indexes {
+        let index = &i.value;
+        let clause = if index.unique { "unique" } else { "index" };
+        if index.fields.first().is_some_and(|f| !is_reader(f)) {
+            out.push(read_refusal(
+                format!(
+                    "`{clause} {} on {}` leads with `{}`, and a read by it would answer every \
+                     owner's rows: an owned table's index leads with its owner or a field it \
+                     shares with",
+                    index.name,
+                    index.fields.join(", "),
+                    index.fields[0]
+                ),
+                &i.span,
+                format!(
+                    "lead it with `{owner}`, read by its owner's handle, or with a field it \
+                     shares with"
+                ),
+            ));
+        }
+        if index.unique && !index.fields.iter().any(|f| f == owner) {
+            out.push(read_refusal(
+                format!(
+                    "`unique {} on {}` holds no `{owner}`: a value unique across owners refuses \
+                     one owner's write with another's row",
+                    index.name,
+                    index.fields.join(", ")
+                ),
+                &i.span,
+                format!(
+                    "make it unique per owner, `unique {} on {owner}, ..`, or keep the values \
+                     unique across owners in a table no one owns",
+                    index.name
+                ),
+            ));
+        }
+    }
+    // A private field: one its owner alone reads.
+    let Some(p) = &t.private else {
+        return out;
+    };
+    for name in &p.value {
+        let fault = if field(name).is_none() {
+            Some(format!("`private {name}` names no field of `{row}`"))
+        } else if name == owner {
+            Some(format!(
+                "`private {name}` names its owner, which every reader reads its rows by"
+            ))
+        } else if sharers.contains(name) {
+            Some(format!(
+                "`private {name}` names a field it shares with, which that reader reads its rows \
+                 by"
+            ))
+        } else if t.key.as_ref().is_some_and(|k| k.value.contains(name)) {
+            Some(format!(
+                "`private {name}` names a field of its key, which tells one row from another to \
+                 every reader"
+            ))
+        } else if !sharers.is_empty() && t.order.as_ref().is_some_and(|o| o.value == *name) {
+            Some(format!(
+                "`private {name}` names its order: a reader it shares with is answered rows in \
+                 `{name}`'s order, which tells them how its values compare"
+            ))
+        } else if let Some(i) = t.indexes.iter().find(|i| {
+            i.value.fields.contains(name)
+                && i.value.fields.first().is_some_and(|f| sharers.contains(f))
+        }) {
+            Some(format!(
+                "`private {name}` is in `{}`, which a reader it shares with reads its rows by",
+                i.value.name
+            ))
+        } else {
+            None
+        };
+        if let Some(message) = fault {
+            out.push(unseen(
+                message,
+                &p.span,
+                "keep private only what no reader but the owner selects, orders or is answered \
+                 rows by",
+            ));
+        }
+    }
+    // The seen row's name is the compiler's to declare.
+    let seen = seen_name(row);
+    if !sharers.is_empty()
+        && let Some(hir) = hir
+        && let Some((id, _)) = hir
+            .all_decls()
+            .find(|(id, d)| d.name == seen && !hir.generated.contains_key(id))
+    {
+        out.push(Diagnostic {
+            related: vec![Related::new(
+                hir.decl_span(id),
+                format!("`{seen}` is declared here"),
+            )],
+            ..unseen(
+                format!(
+                    "`{seen}` is the record a reader `{}` shares with is answered, and the \
+                     program declares a `{seen}` of its own",
+                    t.name
+                ),
+                &p.span,
+                "rename the program's declaration: the seen row is the compiler's",
+            )
+        });
     }
     out
 }
@@ -1657,6 +2193,33 @@ pub fn undeclared(
         Some(h) => format!("{h}.{member}"),
         None => member.to_string(),
     };
+    // An owned table is never read whole (track `row-ownership`): `all`
+    // would answer every owner's rows.
+    if member == "all"
+        && let Some(owner) = t.owner_field()
+    {
+        return Some(refusal(
+            codes::OWNED_READ_BY_ITS_READER,
+            "owned_read_by_its_reader",
+            Severity::Error,
+            format!(
+                "`{written}()` reads every row of `{}`, whose rows are each their owner's",
+                t.name
+            ),
+            span,
+            vec![Related::in_unit(
+                table_unit,
+                t.span.clone(),
+                format!("`{}` is owned by `{owner}` here", t.name),
+            )],
+            READ_BY_ITS_READER,
+            format!(
+                "read the reader's own rows by a read `{}` gives that leads with `{owner}`, \
+                 given their handle, `current_user()`",
+                t.name
+            ),
+        ));
+    }
     if member == "all" && t.bounded.is_none() {
         return Some(refusal(
             codes::ALL_UNBOUNDED,
@@ -1729,7 +2292,7 @@ pub fn functions_of(hir: &Hir, table: DeclId) -> Vec<(DeclId, Primitive, Vec<Str
         .filter(|(_, g)| g.table == table)
         .filter_map(|(id, g)| match &g.what {
             Wrote::Function { primitive, by } => Some((*id, *primitive, by.clone())),
-            Wrote::Tuple { .. } => None,
+            Wrote::Tuple { .. } | Wrote::Seen { .. } => None,
         })
         .collect()
 }
@@ -2686,6 +3249,13 @@ pub struct FunctionJson {
     /// `true`, a case by its name). Empty for what answers one row or none.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub sorted_by: Vec<String>,
+    /// **Whose handle it is given, in which field's place** (track
+    /// `row-ownership`, ADR-0384 H1): an owned table's function's. A read is
+    /// given the reader's handle in the place of the field it leads with,
+    /// its owner or one it shares with; a write its owner's. A host holds
+    /// the handle to the reader it serves, and never takes a plain id there.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reader: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -2708,6 +3278,18 @@ pub struct TableJson {
     pub row: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bounded: Option<u64>,
+    /// **Whose its rows are** (track `row-ownership`, ADR-0384 H1): the
+    /// field holding each row's owner's id. Not the schema's: who reads a
+    /// row is no part of what a database stores.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<String>,
+    /// The fields holding the ids of the others who read a row, as its seen
+    /// row.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub shares: Vec<String>,
+    /// The fields its owner alone reads: no seen row holds them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub private: Vec<String>,
     pub functions: Vec<FunctionJson>,
 }
 
@@ -2745,6 +3327,18 @@ fn sorted_by(t: &TableSchema, primitive: Primitive, by: &[String]) -> Vec<String
     out
 }
 
+/// **The field whose place a function's handle takes** (track
+/// `row-ownership`): an owned table's insert and put are given its owner's;
+/// every other function the field its selector leads with, which the table's
+/// declaration holds to be its owner or a field it shares with (PW0368).
+fn reader_of(t: &Table, primitive: Primitive, by: &[String]) -> Option<String> {
+    let owner = t.owner_field()?;
+    match primitive {
+        Primitive::Insert | Primitive::Put => Some(owner.to_string()),
+        _ => by.first().cloned(),
+    }
+}
+
 /// **What `pw build` writes as `tables.json`** (ADR-0338, 1.4), with the
 /// migration from `released`, and the refusals of PW0366.
 pub fn tables_json(
@@ -2764,6 +3358,7 @@ pub fn tables_json(
                 .into_iter()
                 .map(|(id, primitive, by)| {
                     let d = hir.decl(id);
+                    let reader = reader_of(t, primitive, &by);
                     FunctionJson {
                         name: d.name.clone(),
                         import: import_of(&t.name, &d.name),
@@ -2788,6 +3383,7 @@ pub fn tables_json(
                             .as_ref()
                             .map(DeclaredType::written)
                             .unwrap_or_default(),
+                        reader,
                     }
                 })
                 .collect();
@@ -2797,6 +3393,9 @@ pub fn tables_json(
                 row: t.row.as_ref().map(|r| r.value.clone()).unwrap_or_default(),
                 schema: schema.clone(),
                 bounded: t.bounded.as_ref().map(|b| b.value),
+                owner: t.owner_field().map(str::to_string),
+                shares: t.sharers().to_vec(),
+                private: t.private_fields().to_vec(),
                 functions,
             }
         })

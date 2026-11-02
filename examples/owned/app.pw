@@ -1,0 +1,118 @@
+// @corpus: fixture
+// @id: OWNED-app
+// @category: application — reads and writes of an owned table, each by its reader (ADR-0384 H1)
+// @charter: §7.8, §9.2
+// @milestone: E14
+//
+// Every read and write here is a function `Notes` gives, each by the
+// reader's handle: the queries are keyed by `reader`, which only the host
+// makes, from the session's principal (ADR-0270), and each command reads
+// `current_user()`. No command takes an author: `remove(id)` deletes the
+// reader's own note of that id, and can name no other, so "only its author
+// can remove a note" is no predicate a deployment must hold but the shape of
+// the read (the guestbook's `OwnsPost`, by construction). `keep(note)` is
+// given a whole note, author and all, the way a request a browser could
+// forge arrives: the host refuses it unless its author is the reader.
+
+module owned.app
+
+import capability.{ User, UserId, id_of }
+import context.{ current_user }
+import Notes.{ Note, NoteId, NoteSeen, Text }
+import Notes
+
+// A note was sent to `to`: what their view of the notes sent them listens for.
+event NoteSent(to: UserId)
+
+// A note of the reader's changed.
+event NotesChanged(author: UserId)
+
+// An author removed every note of theirs: each reader's view is read again,
+// since whom they were sent to is no longer there to say.
+event NotesForgotten(author: UserId)
+
+// **The reader's own notes**, whole, drafts and all.
+user query Mine(reader: User<UserId>) -> List<Note>
+    freshness      0.seconds
+    consistency    read_your_writes
+    cache          private
+    key            reader
+    invalidates_on NotesChanged(reader)
+    concurrency    one_per_key
+    on_key_change  cancel
+    timeout        2.seconds
+{
+    Notes.of_author(reader)
+}
+
+// **One of the reader's notes**, by its id: none where the reader wrote
+// none of that id, whoever else did.
+user query One(reader: User<UserId>, id: NoteId) -> Option<Note>
+    freshness      0.seconds
+    consistency    read_your_writes
+    cache          private
+    key            reader, id
+    invalidates_on NotesChanged(reader)
+    concurrency    one_per_key
+    on_key_change  cancel
+    timeout        2.seconds
+{
+    Notes.get(reader, id)
+}
+
+// **The notes sent to the reader**, as they are shown to them: without the
+// draft their author keeps.
+user query ToMe(reader: User<UserId>) -> List<NoteSeen>
+    freshness      0.seconds
+    consistency    read_your_writes
+    cache          private
+    key            reader
+    invalidates_on NoteSent(reader), NotesForgotten(_)
+    concurrency    one_per_key
+    on_key_change  cancel
+    timeout        2.seconds
+{
+    Notes.by_to(reader)
+}
+
+// **A note, written by the reader to `to`.** Its author is the reader's
+// id, read from their handle; a note of that id the reader wrote already
+// refuses it.
+command write(id: NoteId, to: UserId, text: Text) -> Result<(), Note>
+    transaction serializable
+    invalidates Mine(current_user()), One(current_user(), id)
+    emits       NotesChanged(id_of(current_user())), NoteSent(to)
+{
+    let me = current_user()
+    Notes.insert(me, Note { author: id_of(me), id: id, to: to, text: text, draft: text, added: 0 })
+}
+
+// **A note kept whole**, as a browser sends it. Its author is whatever the
+// request says; the host holds it to the reader's handle, and refuses a
+// note of anyone else's.
+command keep(note: Note) -> ()
+    transaction serializable
+    invalidates Mine(current_user()), One(current_user(), note.id)
+    emits       NotesChanged(id_of(current_user())), NoteSent(note.to)
+{
+    Notes.put(current_user(), note)
+}
+
+// **The reader's note of `id`, removed.** Another's of the same id is no
+// note this can name. `to` says whose view of it is read again.
+command remove(id: NoteId, to: UserId) -> ()
+    transaction serializable
+    invalidates Mine(current_user()), One(current_user(), id)
+    emits       NotesChanged(id_of(current_user())), NoteSent(to)
+{
+    Notes.delete(current_user(), id)
+}
+
+// **Every note of the reader's, removed.**
+command forget() -> ()
+    transaction serializable
+    invalidates Mine(current_user())
+    emits       NotesChanged(id_of(current_user())), NotesForgotten(id_of(current_user()))
+{
+    Notes.delete_of_author(current_user())
+}

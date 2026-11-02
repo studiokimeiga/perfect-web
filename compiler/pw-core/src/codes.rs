@@ -339,6 +339,16 @@ codes! {
         "a reference to a table another source holds is held by no database: the referred row may be missing, which `get` answers as `None`";
     MIGRATION_UNSTATED = "PW0366" / migration_unstated / 1, DeclarationRules,
         "a change from the schema released that loses or reinterprets data is stated by a `migrate`, and each `migrate` states one";
+    // Track `row-ownership` (ADR-0384's H1): whose a table's rows are, who
+    // else reads them, and what their owner alone reads. The table clauses'
+    // refusals are declaration rules, next free after D1's (the integrator's
+    // ruling 1 on ADR-0384).
+    OWNER_NAMES_A_PRINCIPAL = "PW0367" / owner_names_a_principal / 1, DeclarationRules,
+        "`owned by` names one field of an owned table's row holding a principal's id (`capability.UserId`), and `shares with` others, never its owner, each once";
+    OWNED_READ_BY_ITS_READER = "PW0368" / owned_read_by_its_reader / 1, DeclarationRules,
+        "an owned table is read by its reader alone: its key leads with its owner, each index with its owner or a field it shares with, a unique index holds its owner, and it is never read whole";
+    PRIVATE_FIELD_UNSEEN = "PW0369" / private_field_unseen / 1, DeclarationRules,
+        "a private field is read by its owner alone: a field of an owned table's row, never its owner, a field it shares with, in its key, its order where it shares, or an index another reads by; and its seen row is the table's own name";
 
     STALE_KEY_POLICY = "PW0325" / stale_key_policy / 1, DeclarationRules,
         "a keyed query must say what happens when its key changes";
