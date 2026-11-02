@@ -382,6 +382,7 @@ fn every_request_is_admitted_and_a_failed_read_refuses_it() {
             (ask, answer)
         })
         .collect();
+    let asked = answers.len();
     for (ask, answer) in answers {
         let refused = match ask {
             Ask::Get(_) => "HTTP/1.1 503 Service Unavailable",
@@ -389,4 +390,16 @@ fn every_request_is_admitted_and_a_failed_read_refuses_it() {
         };
         assert!(answer.starts_with(refused), "{ask:?}: {answer}");
     }
+    // Each refusal is logged by its kind, a page's and a command's alike: a
+    // failed read and a superseded admission answer the same body, and the
+    // host's log tells them apart (the 503 of 2026-10-31's run could not
+    // be). The line names no session and no reader.
+    assert_eq!(
+        *s.refusals.lock().expect("refusals"),
+        vec![
+            "pw dev server: session admission refused: session authority source is unavailable"
+                .to_string();
+            asked
+        ]
+    );
 }

@@ -1171,6 +1171,10 @@ struct Server {
     before_command_delivery: Mutex<Option<KeyedFetched>>,
     #[cfg(test)]
     after_page_admission: Mutex<Option<KeyedFetched>>,
+    /// **The admissions this server refused, as its log says them**
+    /// (ADR-0389, amended 2026-11-02), which a test reads.
+    #[cfg(test)]
+    refusals: Mutex<Vec<String>>,
     /// **What a test does while a change is derived outside the table**
     /// (ADR-0296), for each document derived: the table is free there, and
     /// a change that reaches the document there is derived against again.
@@ -2015,6 +2019,8 @@ impl Server {
             before_command_delivery: Mutex::new(None),
             #[cfg(test)]
             after_page_admission: Mutex::new(None),
+            #[cfg(test)]
+            refusals: Mutex::new(Vec::new()),
             #[cfg(test)]
             deriving_hook: Mutex::new(None),
             #[cfg(test)]
@@ -9285,8 +9291,13 @@ fn handle(server: &Server, stream: TcpStream) {
 /// a failed read and an admission superseded past its bound answer the same
 /// body, and only the host's log tells them apart. The kind names no session,
 /// reader or source error (`identity::AuthorityError`).
-fn refused_admission(why: &dyn std::fmt::Display) {
-    eprintln!("pw dev server: session admission refused: {why}");
+fn refused_admission(server: &Server, why: &dyn std::fmt::Display) {
+    let line = format!("pw dev server: session admission refused: {why}");
+    eprintln!("{line}");
+    #[cfg(test)]
+    server.refusals.lock().expect("refusals").push(line);
+    #[cfg(not(test))]
+    let _ = server;
 }
 
 fn session_changed(stream: &mut TcpStream, session: &str, fresh: bool) {
@@ -9338,7 +9349,7 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
         match admitted {
             Ok(reader) => Some(reader),
             Err(why) => {
-                refused_admission(&why);
+                refused_admission(server, &why);
                 respond_json(
                     &mut stream,
                     503,
@@ -9500,7 +9511,7 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             let reader_identity = match principals.admit(&session) {
                 Ok(reader) => reader,
                 Err(why) => {
-                    refused_admission(&why);
+                    refused_admission(server, &why);
                     session_changed(&mut stream, &session, fresh);
                     return;
                 }

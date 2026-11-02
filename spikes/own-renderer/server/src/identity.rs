@@ -2240,11 +2240,12 @@ pub(crate) mod tests {
     fn two_overlapping_admissions_of_one_session_are_each_answered() {
         let source = Arc::new(Scripted::default());
         let (principals, identity) = kept_reader(source.clone());
-        let meeting = Meeting::of(2);
+        let (meeting, met) = (Meeting::of(2), Arc::new(Mutex::new(Vec::new())));
         for _ in 0..2 {
-            let (meeting, identity) = (meeting.clone(), identity.clone());
+            let (meeting, met, identity) = (meeting.clone(), met.clone(), identity.clone());
             source.then(move || {
-                assert!(meeting.arrive(), "both reads are under way at once");
+                let both = meeting.arrive();
+                met.lock().expect("met").push(both);
                 Ok(Some(identity))
             });
         }
@@ -2253,6 +2254,11 @@ pub(crate) mod tests {
             let second = scope.spawn(|| principals.admit("reader"));
             [first.join(), second.join()].map(|a| a.expect("admitted without panic"))
         });
+        assert_eq!(
+            *met.lock().expect("met"),
+            [true, true],
+            "both reads were under way at once"
+        );
         for answer in answers {
             assert_eq!(answer, Ok(ReaderIdentity::Account(identity.clone())));
         }
@@ -2289,12 +2295,12 @@ pub(crate) mod tests {
     }
 
     /// **A read another admission overtook answers its own request and
-    /// installs nothing** (ADR-0389, amended 2026-11-02): the later read found
-    /// the session revoked and removed it here; the earlier read, which found
-    /// it signed in, still answers its request (its delivery inspects the
-    /// source again), but never puts the revoked principal back.
-    #[test]
-    fn a_read_another_admission_overtook_never_reinstalls_a_revoked_principal() {
+    /// installs nothing** (ADR-0389, amended 2026-11-02): an earlier read found
+    /// the session signed in; a later admission read `later` and wrote this
+    /// host's copy first. The earlier read still answers its request (its
+    /// delivery inspects the source again), but never puts its principal back
+    /// over the later write. A removal fails closed whichever read is later.
+    fn overtaken_by(later: Result<Option<SessionIdentity>, String>) {
         let source = Arc::new(Scripted::default());
         let (principals, identity) = kept_reader(source.clone());
         let (entered, inside) = std::sync::mpsc::channel();
@@ -2305,7 +2311,8 @@ pub(crate) mod tests {
             released.recv().expect("released");
             Ok(Some(earlier))
         });
-        source.then(|| Ok(None));
+        let read = later.clone();
+        source.then(move || read);
         let (first, second) = std::thread::scope(|scope| {
             let first = scope.spawn(|| principals.admit("reader"));
             inside.recv().expect("the first read is under way");
@@ -2313,12 +2320,37 @@ pub(crate) mod tests {
             release.send(()).expect("release");
             (first.join().expect("admitted without panic"), second)
         });
-        assert_eq!(second, Ok(ReaderIdentity::Anonymous));
-        assert_eq!(first, Ok(ReaderIdentity::Account(identity)));
-        assert!(
-            principals.of("reader").is_none(),
-            "the overtaken read did not reinstall the revoked principal"
+        let (answered, held) = match later {
+            Ok(Some(later)) => (
+                Ok(ReaderIdentity::Account(later.clone())),
+                Some(later.principal),
+            ),
+            Ok(None) => (Ok(ReaderIdentity::Anonymous), None),
+            Err(_) => (Err(AuthorityError::SourceUnavailable), None),
+        };
+        assert_eq!(
+            (first, second, principals.of("reader")),
+            (Ok(ReaderIdentity::Account(identity)), answered, held),
+            "each answered from its own read; the copy here is the later write's"
         );
+    }
+
+    #[test]
+    fn a_read_another_admission_overtook_never_reinstalls_a_revoked_principal() {
+        overtaken_by(Ok(None));
+    }
+
+    #[test]
+    fn a_read_another_admission_overtook_never_reinstalls_over_a_failed_read() {
+        overtaken_by(Err("authority read unavailable".into()));
+    }
+
+    #[test]
+    fn a_read_another_admission_overtook_never_installs_over_another_reader() {
+        overtaken_by(Ok(Some(SessionIdentity {
+            principal: Principal::guest("grace"),
+            epoch: [7; 16],
+        })));
     }
 
     /// **An admission reads its session a bounded number of times**
