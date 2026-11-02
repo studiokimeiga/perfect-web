@@ -76,13 +76,13 @@ const STACKS = {
 
 function sh(cmd, args, opts = {}) {
   const r = spawnSync(cmd, args, { encoding: "utf8", maxBuffer: 64 << 20, ...opts });
-  return {
-    ok: r.status === 0,
-    status: r.status,
-    signal: r.signal ?? null,
-    error_code: r.error?.code ?? null,
-    out: `${r.stdout ?? ""}${r.stderr ?? ""}`,
-  };
+  return { ok: r.status === 0, status: r.status, ...ended(r), out: `${r.stdout ?? ""}${r.stderr ?? ""}` };
+}
+
+// How a process without a status ended: the signal that stopped it, and the
+// error that kept it from running or from outliving its budget (`ETIMEDOUT`).
+function ended(r) {
+  return { signal: r.signal ?? null, error_code: r.error ? r.error.code : null };
 }
 
 function tail(text, n = 40) {
