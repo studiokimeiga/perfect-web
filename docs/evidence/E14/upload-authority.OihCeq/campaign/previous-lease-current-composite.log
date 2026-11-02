@@ -1,0 +1,47 @@
+
+running 19 tests
+test tests::session_upload_authority::upload_http_dispatch_keeps_admitted_reader_when_same_cookie_is_reopened ... ok
+test tests::session_upload_reserved_routes::a_declared_upload_at_stream_path_is_admitted_before_dispatch ... ok
+test tests::session_upload_reserved_routes::a_declared_upload_under_command_prefix_is_admitted_before_dispatch ... ok
+test uploads::tests::session_authority_tests::a_lease_claimed_during_final_inspection_is_not_replaced ... FAILED
+test uploads::tests::session_authority_tests::a_lease_replaced_during_final_inspection_is_not_overwritten ... FAILED
+test uploads::tests::session_authority_tests::completed_logout_refuses_old_cookie_preview_shown_and_claim ... ok
+test uploads::tests::session_authority_tests::current_reader_can_preview_claim_rollback_and_publish_public_image ... ok
+test uploads::tests::session_authority_tests::local_expiry_after_staged_put_refuses_publication_and_releases_gate ... ok
+test uploads::tests::session_authority_tests::original_bound_reader_cannot_preview_after_completed_logout ... ok
+test uploads::tests::session_authority_tests::preview_live_inspection_follows_the_complete_staged_blob_read ... ok
+test uploads::tests::session_authority_tests::remote_revocation_while_upload_body_is_held_refuses_staging ... ok
+test uploads::tests::session_authority_tests::remote_revocation_without_local_refresh_cannot_serve_preview ... ok
+test uploads::tests::session_authority_tests::same_cookie_same_account_new_generation_cannot_preview_or_claim_old_lease ... ok
+test uploads::tests::session_authority_tests::source_failure_after_same_key_put_preserves_existing_lease_and_shared_bytes ... ok
+test uploads::tests::session_authority_tests::source_failure_after_staged_put_refuses_new_lease_and_removes_unheld_bytes ... ok
+test uploads::tests::session_authority_tests::source_failure_while_upload_body_is_held_refuses_staging ... ok
+test uploads::tests::session_authority_tests::stale_bound_reader_cannot_take_replacement_generations_lease ... ok
+test uploads::tests::session_authority_tests::unavailable_source_cannot_serve_preview_from_cached_bound_reader ... ok
+test uploads::tests::session_authority_tests::upload_held_in_body_cannot_publish_a_lease_after_completed_logout ... ok
+
+failures:
+
+---- uploads::tests::session_authority_tests::a_lease_claimed_during_final_inspection_is_not_replaced stdout ----
+
+thread 'uploads::tests::session_authority_tests::a_lease_claimed_during_final_inspection_is_not_replaced' (7015) panicked at spikes/own-renderer/server/src/uploads/session_authority_tests.rs:640:13:
+assertion `left != right` failed: an incoming upload cannot replace a lease claimed during source inspection
+  left: 303
+ right: 303
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- uploads::tests::session_authority_tests::a_lease_replaced_during_final_inspection_is_not_overwritten stdout ----
+
+thread 'uploads::tests::session_authority_tests::a_lease_replaced_during_final_inspection_is_not_overwritten' (7016) panicked at spikes/own-renderer/server/src/uploads/session_authority_tests.rs:704:13:
+assertion `left != right` failed: an incoming upload cannot overwrite a different lease installed during source inspection
+  left: 303
+ right: 303
+
+
+failures:
+    uploads::tests::session_authority_tests::a_lease_claimed_during_final_inspection_is_not_replaced
+    uploads::tests::session_authority_tests::a_lease_replaced_during_final_inspection_is_not_overwritten
+
+test result: FAILED. 17 passed; 2 failed; 0 ignored; 0 measured; 848 filtered out; finished in 3.25s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

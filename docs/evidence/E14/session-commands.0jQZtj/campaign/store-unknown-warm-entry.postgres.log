@@ -1,0 +1,32 @@
+
+running 14 tests
+test tests::session_commands_pg::a_false_advisory_unlock_is_not_release_proof ... ok
+test tests::session_commands_pg::anonymous_authority_open_waits_for_its_admitted_store_transaction ... ok
+test tests::session_commands_pg::feed_admitted_command_precedes_revocation ... ok
+test tests::session_commands_pg::feed_expiry_after_evaluation_rolls_back ... ok
+test tests::session_commands_pg::feed_lost_ack_and_hidden_receipt_remain_unknown ... ok
+test tests::session_commands_pg::feed_receipts_keep_generation_across_hosts ... ok
+test tests::session_commands_pg::feed_revoke_before_transaction_authority ... ok
+test tests::session_commands_pg::feed_source_binding_and_repeated_acquisition_refuse ... ok
+test tests::session_commands_pg::store_admitted_command_precedes_revocation ... ok
+test tests::session_commands_pg::store_expiry_after_evaluation_rolls_back ... ok
+test tests::session_commands_pg::store_lost_ack_and_hidden_receipt_remain_unknown ... FAILED
+test tests::session_commands_pg::store_receipts_keep_generation_across_hosts ... ok
+test tests::session_commands_pg::store_revoke_before_transaction_authority ... ok
+test tests::session_commands_pg::store_source_binding_and_repeated_acquisition_refuse ... ok
+
+failures:
+
+---- tests::session_commands_pg::store_lost_ack_and_hidden_receipt_remain_unknown stdout ----
+
+thread 'tests::session_commands_pg::store_lost_ack_and_hidden_receipt_remain_unknown' (34362) panicked at spikes/own-renderer/server/src/tests/session_commands_pg.rs:441:9:
+the original warm document must receive the actual committed value before any new GET or source restoration: []
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::session_commands_pg::store_lost_ack_and_hidden_receipt_remain_unknown
+
+test result: FAILED. 13 passed; 1 failed; 0 ignored; 0 measured; 868 filtered out; finished in 46.28s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
