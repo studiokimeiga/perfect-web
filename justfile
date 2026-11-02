@@ -71,6 +71,7 @@ import 'just/e14-readiness.just'
 import 'just/table-host.just'
 import 'just/d2-writes.just'
 import 'just/outbound-https.just'
+import 'just/row-ownership.just'
 
 default:
     @just --list
