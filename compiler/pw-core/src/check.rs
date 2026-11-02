@@ -1640,10 +1640,16 @@ fn policy_value(
         // declarations. Their arguments ARE Pleris command parameters,
         // and must bind to the values the host will receive. Anything
         // richer would execute application code before authorization.
+        // A query's too (ADR-0339's ruling 3, built by ADR-0384's H2): who
+        // may read it, held where it is read.
         Some(Domain::PredicateRef) => {
-            if decl.kind != crate::hir::DeclKind::Command {
+            if !matches!(
+                decl.kind,
+                crate::hir::DeclKind::Command | crate::hir::DeclKind::Query
+            ) {
                 Some(
-                    "`requires` is an invocation precondition and belongs to a command".to_string(),
+                    "`requires` is an invocation precondition and belongs to a command or a query"
+                        .to_string(),
                 )
             } else {
                 match crate::policy::predicates(value) {
