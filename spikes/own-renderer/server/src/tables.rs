@@ -1,0 +1,306 @@
+//! **A program's declared tables, served** (track `data-path`; ADR-0338's
+//! D2, the routing ADR-0385 and ADR-0386 left): a program that declares its
+//! data in Pleris (`table Entries`, ADR-0350) is served from its build's
+//! `tables.json` by the one generic memory adapter (`pw-table-memory`), with
+//! no line of Rust of its own.
+//!
+//! - **The gate is the only way.** The layer supplies no operation by name:
+//!   each call of the program links its table functions through the engine's
+//!   gate (`call_authorized_with_tables`), and its host map holds the
+//!   platform's operations and the functions the gate admits for that
+//!   component alone: a query's reads of the published tables (or its
+//!   render's snapshot), a command's reads and writes staged in its own
+//!   transaction ([`DataLayer::table_reads`], [`Staged::table_ops`]).
+//! - **A command is one transaction with the platform's records**
+//!   (ADR-0208, ADR-0325, ADR-0334): its writes staged in the adapter's
+//!   command; every refusal its commit can make (a bound, a reference) made
+//!   before the materializer's transaction ([`Staged::commit`] prepares it);
+//!   and its rows published as that transaction's last step
+//!   ([`Staged::publish_within`]), after its outbox, its interaction's record
+//!   and its runs, so an error rolls them all back and a commit keeps all of
+//!   them. ADR-0386's decision 5 asked for this before a host might publish
+//!   the adapter's writes: the adapter's publication may fail (its storage
+//!   failed closed), and a failure after the records committed would have
+//!   kept records of writes no reader sees.
+//! - **Which queries a commit makes stale is what the command declares**
+//!   (ADR-0007, PW5106), delivered by the outbox as for every layer.
+//! - **One layer a program**: a program that imports a hand-written layer's
+//!   operation beside its tables is refused where it is served (T1 routes
+//!   several layers in one host, ADR-0338 5.1).
+
+use super::*;
+use crate::data::{Commit, DataLayer, Ops, Snapshot, Staged};
+use pw_table_memory::{Command, MemoryTables, Prepared};
+
+/// **A program's tables in memory**, as its build declares them, and what a
+/// node is granted of them: each table's read and write.
+pub(crate) struct TablesLayer {
+    tables: MemoryTables,
+    grants: Vec<&'static str>,
+}
+
+/// **Whether a contract imports a table's function** (`pw:tables/…`).
+pub(crate) fn imports_tables(contracts: &[ComponentContract]) -> bool {
+    contracts
+        .iter()
+        .flat_map(|c| &c.imports)
+        .any(|i| pw_host::tables::is_table_interface(&i.interface))
+}
+
+impl TablesLayer {
+    /// **The layer for a build whose contracts import its tables**: its
+    /// `tables.json`, held whole, in a memory adapter of its own. Refused
+    /// where the build declares no tables, and where a contract imports a
+    /// hand-written layer's operation beside them (T1's, ADR-0338 5.1).
+    pub(crate) fn from_build(
+        build: &std::path::Path,
+        contracts: &[ComponentContract],
+    ) -> Result<TablesLayer, String> {
+        if let Some((component, import)) = contracts.iter().find_map(|c| {
+            c.imports
+                .iter()
+                .find(|i| {
+                    i.kind == pw_host::ImportKind::HostCapability && !i.interface.starts_with("pw:")
+                })
+                .map(|i| (c.component_id.clone(), i.key()))
+        }) {
+            return Err(format!(
+                "`{component}` imports `{import}`, a hand-written data layer's, and the program \
+                 declares its tables: one host serves one layer of a program until its sources \
+                 are routed apart (ADR-0338 5.1)"
+            ));
+        }
+        let path = build.join("tables.json");
+        let text = std::fs::read_to_string(&path).map_err(|e| {
+            format!(
+                "{}: {e}: the program imports its tables' functions and its build declares none",
+                path.display()
+            )
+        })?;
+        let tables = MemoryTables::from_json(&text).map_err(|e| format!("tables.json: {e:?}"))?;
+        let grants = tables
+            .host_tables()
+            .names()
+            .flat_map(|table| {
+                [
+                    interned(format!("database.read<{table}>")),
+                    interned(format!("database.write<{table}>")),
+                ]
+            })
+            .collect();
+        Ok(TablesLayer { tables, grants })
+    }
+}
+
+/// **A capability as the node's grants hold it** (`DataLayer::grants`, whose
+/// words are `&'static str`): each kept once a process, however many servers
+/// a process builds, so no server leaks more than its tables' names.
+fn interned(capability: String) -> &'static str {
+    static INTERNED: std::sync::OnceLock<Mutex<std::collections::BTreeSet<&'static str>>> =
+        std::sync::OnceLock::new();
+    let mut kept = INTERNED
+        .get_or_init(Default::default)
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    if let Some(found) = kept.get(capability.as_str()) {
+        return found;
+    }
+    let leaked: &'static str = Box::leak(capability.into_boxed_str());
+    kept.insert(leaked);
+    leaked
+}
+
+/// A render's snapshot of the tables (NEXT 4c).
+struct TablesSnapshot(pw_table_memory::Snapshot);
+
+impl DataLayer for TablesLayer {
+    /// No operation by name: a program's table functions are linked through
+    /// the gate alone, per component ([`DataLayer::table_reads`]).
+    fn reads(&self, _session: &str, _stopped: Option<Stopped>) -> Ops {
+        Ops::new()
+    }
+
+    /// The published tables as they are now: every query of one render reads
+    /// them, whatever commits meanwhile. None where the adapter has failed,
+    /// whose every read then fails.
+    fn snapshot(&self) -> Option<Snapshot> {
+        self.tables
+            .snapshot()
+            .ok()
+            .map(|taken| Box::new(TablesSnapshot(taken)) as Snapshot)
+    }
+
+    fn tables(&self) -> Option<&pw_host::tables::Manifest> {
+        Some(self.tables.host_tables())
+    }
+
+    fn table_reads(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+        snapshot: Option<&Snapshot>,
+    ) -> Result<Ops, String> {
+        let read = match snapshot {
+            Some(snapshot) => match snapshot.downcast_ref::<TablesSnapshot>() {
+                Some(TablesSnapshot(taken)) => {
+                    self.tables.read_host_fns_at(taken, contract, granted)
+                }
+                None => return Err("a render's snapshot is not this program's tables'".into()),
+            },
+            None => self.tables.read_host_fns(contract, granted),
+        };
+        read.map_err(|e| format!("`{}`'s tables: {e:?}", contract.component_id))
+    }
+
+    fn begin<'a>(&'a self, _session: &str) -> Box<dyn Staged + 'a> {
+        Box::new(TablesStaging {
+            turn: match self.tables.begin() {
+                Ok(command) => Turn::Open(command),
+                Err(e) => Turn::Failed(format!("the tables began no command: {e:?}")),
+            },
+        })
+    }
+
+    fn grants(&self) -> Vec<&'static str> {
+        self.grants.clone()
+    }
+
+    fn default_page(&self) -> Option<&'static str> {
+        None
+    }
+}
+
+#[cfg(test)]
+thread_local! {
+    /// **A test's: the next publication on this thread fails**, as the
+    /// adapter's would where its storage had failed.
+    pub(crate) static FAIL_NEXT_PUBLISH: std::cell::Cell<bool> =
+        const { std::cell::Cell::new(false) };
+}
+
+/// **Where one command's transaction is.**
+enum Turn {
+    /// Begun: its functions stage in it.
+    Open(Command),
+    /// Held to what its commit keeps, before the materializer's transaction.
+    Prepared(Prepared),
+    /// Published, as that transaction's last step.
+    Published,
+    /// Refused, or failed: it keeps nothing, and says why.
+    Failed(String),
+}
+
+/// **One command's writes to a program's tables**, staged in the adapter's
+/// command until the platform's transaction publishes them, and undone
+/// whole where it is dropped before (the adapter's own `Drop`).
+pub(crate) struct TablesStaging {
+    turn: Turn,
+}
+
+impl Staged for TablesStaging {
+    /// No operation by name ([`Staged::table_ops`]).
+    fn ops(&self) -> Ops {
+        Ops::new()
+    }
+
+    fn table_ops(&self, contract: &ComponentContract, granted: &Granted) -> Result<Ops, String> {
+        match &self.turn {
+            Turn::Open(command) => command
+                .host_fns(contract, granted)
+                .map_err(|e| format!("`{}`'s tables: {e:?}", contract.component_id)),
+            Turn::Failed(why) => Err(why.clone()),
+            _ => Err("a command's tables are linked before it commits".into()),
+        }
+    }
+
+    /// Each table the command changed, which the materializer's transaction
+    /// records; none where it changed none, and nothing commits. A command
+    /// whose writes cannot be read is no command that wrote nothing: it goes
+    /// on to its commit, which refuses it.
+    fn rows(&self) -> Option<Vec<(String, String)>> {
+        match &self.turn {
+            Turn::Open(command) => match command.written() {
+                Ok(written) if written.is_empty() => None,
+                Ok(written) => Some(
+                    written
+                        .into_iter()
+                        .map(|table| (format!("pw:tables/{table}"), "written".to_string()))
+                        .collect(),
+                ),
+                Err(_) => Some(Vec::new()),
+            },
+            _ => Some(Vec::new()),
+        }
+    }
+
+    /// **Every refusal the commit can make, before the materializer's
+    /// transaction**: each written table within its bound, each reference to
+    /// a row that exists (`Command::prepare`). Refused, the command is undone
+    /// whole and nothing of it is kept anywhere.
+    fn commit(
+        &mut self,
+        _events: &[data::Handed],
+        _invalidated: &[data::Dropped],
+        _interaction: Option<&data::Recorded<'_>>,
+        _scheduled: &[schedules::Scheduled],
+        _completing: Option<schedules::Completing<'_>>,
+    ) -> Result<Commit, String> {
+        match std::mem::replace(&mut self.turn, Turn::Failed("committing".into())) {
+            Turn::Open(command) => match command.prepare() {
+                Ok(prepared) => {
+                    self.turn = Turn::Prepared(prepared);
+                    Ok(Commit::Materializer)
+                }
+                Err(e) => {
+                    let why = format!("the tables refused the commit: {e:?}");
+                    self.turn = Turn::Failed(why.clone());
+                    Err(why)
+                }
+            },
+            Turn::Failed(why) => {
+                self.turn = Turn::Failed(why.clone());
+                Err(why)
+            }
+            other => {
+                self.turn = other;
+                Err("a command's tables commit once".into())
+            }
+        }
+    }
+
+    /// **Its rows published, as the materializer's transaction's last
+    /// step**: after the outbox, the interaction's record and the runs are
+    /// written in it, before it commits. Refused (the adapter's storage has
+    /// failed), the transaction rolls back, and nothing of the command is
+    /// kept.
+    fn publish_within(&mut self) -> Result<(), String> {
+        #[cfg(test)]
+        if FAIL_NEXT_PUBLISH.with(|fail| fail.replace(false)) {
+            // Its command still prepared, undone where the staging is dropped.
+            return Err("the tables did not publish the commit: a test's failure".into());
+        }
+        match std::mem::replace(&mut self.turn, Turn::Published) {
+            Turn::Prepared(prepared) => prepared.publish().map(|_| ()).map_err(|e| {
+                let why = format!("the tables did not publish the commit: {e:?}");
+                self.turn = Turn::Failed(why.clone());
+                why
+            }),
+            Turn::Failed(why) => {
+                self.turn = Turn::Failed(why.clone());
+                Err(why)
+            }
+            other => {
+                self.turn = other;
+                Err("a command's tables are published once, after they are prepared".into())
+            }
+        }
+    }
+
+    /// After the commit: published already, within its transaction.
+    fn publish(&mut self) {
+        debug_assert!(
+            matches!(self.turn, Turn::Published),
+            "a command's tables are published within its transaction"
+        );
+    }
+}

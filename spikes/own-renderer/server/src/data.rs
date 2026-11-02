@@ -51,6 +51,28 @@ pub(crate) trait DataLayer: Send + Sync {
     /// commits nothing.
     fn begin<'a>(&'a self, session: &str) -> Box<dyn Staged + 'a>;
 
+    /// **The program's declared tables, as the engine's gate reads them**
+    /// (track `data-path`, ADR-0338 D2), where this layer serves them: every
+    /// call of the program is then made through the gate with them
+    /// (`call_authorized_with_tables`), and no table function links any other
+    /// way. None for a hand-written layer, whose calls link no table import.
+    fn tables(&self) -> Option<&pw_host::tables::Manifest> {
+        None
+    }
+
+    /// **The table reads one query links** (track `data-path`): exactly the
+    /// reads the gate admits for its contract and grant, reading `snapshot`
+    /// where a render took one ([`DataLayer::snapshot`]), the tables as last
+    /// committed otherwise. A layer that serves no tables links none.
+    fn table_reads(
+        &self,
+        _contract: &ComponentContract,
+        _granted: &Granted,
+        _snapshot: Option<&Snapshot>,
+    ) -> Result<Ops, String> {
+        Ok(Ops::new())
+    }
+
     /// **What a node grants it**, beyond the platform's session and outbox.
     fn grants(&self) -> Vec<&'static str>;
 
@@ -222,6 +244,26 @@ pub(crate) trait Staged {
     /// The command's operations: the layer's reads, and its writes, which
     /// stage.
     fn ops(&self) -> Ops;
+
+    /// **The table reads and writes one command links** (track `data-path`):
+    /// exactly the functions the gate admits for its contract and grant, each
+    /// acting on this staging alone: a read sees its writes, a write stages.
+    /// A layer that serves no tables links none.
+    fn table_ops(&self, _contract: &ComponentContract, _granted: &Granted) -> Result<Ops, String> {
+        Ok(Ops::new())
+    }
+
+    /// **What it staged, made part of the materializer's transaction**
+    /// (track `data-path`): called as that transaction's last step, after
+    /// the command's state rows, its interaction's record and its runs are
+    /// written in it, and before it commits; an error rolls all of them
+    /// back. A layer whose writes are published here keeps no record of a
+    /// write no reader sees, and no write without its records. By default
+    /// nothing: a hand-written memory layer publishes in [`Staged::publish`],
+    /// which cannot fail.
+    fn publish_within(&mut self) -> Result<(), String> {
+        Ok(())
+    }
     /// What the commit writes in the materializer's transaction, by key, or
     /// none where nothing was written.
     fn rows(&self) -> Option<Vec<(String, String)>>;

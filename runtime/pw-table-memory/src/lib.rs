@@ -350,6 +350,15 @@ impl MemoryTables {
         })
     }
 
+    /// **The adapter for a build's `tables.json`, as `pw build` wrote it**
+    /// (track `data-path`): what a host serving the build is given, read
+    /// whole and held as [`MemoryTables::new`] holds it.
+    pub fn from_json(text: &str) -> Result<Self, Error> {
+        let manifest: TablesJson = serde_json::from_str(text)
+            .map_err(|error| Error::Schema(format!("tables.json: {error}")))?;
+        Self::new(manifest)
+    }
+
     /// The manifest as the host reads it: what a call that reads or writes
     /// these tables is given (`pw_host::engine::call_with_tables`).
     pub fn host_tables(&self) -> &pw_host::tables::Manifest {

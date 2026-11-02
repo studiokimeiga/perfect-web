@@ -1264,6 +1264,7 @@ dependencies = [
  "pw-render",
  "pw-resource",
  "pw-syntax",
+ "pw-table-memory",
  "pw-time",
  "rusqlite",
  "serde",

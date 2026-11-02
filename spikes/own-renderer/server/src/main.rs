@@ -989,6 +989,20 @@ mod render_merge;
 // Track `second-host` (ADR-0369): hosts on one database hear each other's
 // commits.
 mod hosts;
+// TRACK SEAM (tables): a program's declared tables, served by the generic
+// memory adapter, through the gate alone (track `data-path`, ADR-0338 D2).
+mod tables;
+
+/// **The table functions a call links, by its component's contract and
+/// grant** (TRACK SEAM (tables), track `data-path`): a query's reads, a
+/// command's staged reads and writes, or none.
+type TableFns<'a> = dyn Fn(&ComponentContract, &Granted) -> Result<data::Ops, String> + 'a;
+
+/// **A call that links no table function**: a pure one (a member, a
+/// computed part), or a materialization's, which reads through its queries.
+fn no_tables(_: &ComponentContract, _: &Granted) -> Result<data::Ops, String> {
+    Ok(data::Ops::new())
+}
 
 struct Server {
     /// **The build this host serves, by its name** (ADR-0300): on each
@@ -1195,6 +1209,11 @@ struct Server {
     /// held in flight, its key's, while another render reads the key.
     #[cfg(test)]
     in_flight: Mutex<Option<KeyedFetched>>,
+    /// **The table functions each call's host map held** (track
+    /// `data-path`): by component, each `pw:tables/…` key the engine was
+    /// handed, which a test holds to the component's own.
+    #[cfg(test)]
+    table_maps: Mutex<Vec<(String, Vec<String>)>>,
     /// **What each session's connections meet** (charter §15.5's one-shot
     /// network error and forced reconnect, ADR-0175): whether its next
     /// command's connection is dropped, and when its subscriptions are cut
@@ -1692,7 +1711,14 @@ impl Server {
             .map_err(|e| format!("graph.json: {e:?}"))?;
         let components = components_in(&build.join("components"))?;
         let mut plans = BTreeMap::new();
-        for entry in std::fs::read_dir(build.join("pages")).map_err(|e| format!("pages: {e}"))? {
+        // A program of queries and commands alone (`examples/tables`'s) has
+        // no page, and its build no `pages` directory (track `data-path`).
+        let pages = match std::fs::read_dir(build.join("pages")) {
+            Ok(pages) => pages.collect::<Vec<_>>(),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+            Err(e) => return Err(format!("pages: {e}")),
+        };
+        for entry in pages {
             let path = entry.map_err(|e| format!("pages: {e}"))?.path();
             let Some(page) = path.file_stem().and_then(|s| s.to_str()) else {
                 continue;
@@ -1710,36 +1736,45 @@ impl Server {
         // TRACK SEAM (uploads, ADR-0253): the uploads the program declares
         // (`uploads.json`), their blobs where the deployment keeps them.
         let uploads = uploads::Uploads::from_build(&build, &uploads::blob_root(&dist))?;
-        let (store, data): (Arc<dyn store::StoreLayer>, Arc<dyn data::DataLayer>) = if contracts
-            .iter()
-            .flat_map(|c| &c.imports)
-            .any(|i| i.interface.starts_with("feed:"))
-        {
-            (
-                Arc::new(store::StoreData::new()),
-                feed.unwrap_or_else(|| Arc::new(feed::FeedData::new())),
-            )
-        } else if contracts
-            .iter()
-            .flat_map(|c| &c.imports)
-            .any(|i| i.interface.starts_with("kiokun:"))
-        {
-            // TRACK SEAM (kiokun): kiokun's files, read-only, where the
-            // program imports `kiokun:data/…` (docs/PARALLEL.md, W6, Q2).
-            // Unit tests assert the committed sample's answers. A developer's
-            // deployment environment must not replace that test fixture.
-            #[cfg(test)]
-            let kiokun = kiokun::KiokunData::at(kiokun::sample(), None);
-            #[cfg(not(test))]
-            let kiokun = kiokun::KiokunData::new()?;
-            (Arc::new(store::StoreData::new()), Arc::new(kiokun))
-        } else {
-            #[cfg(test)]
-            let store = store.unwrap_or_else(store::layer_for_tests);
-            #[cfg(not(test))]
-            let store = store.unwrap_or_else(|| Arc::new(store::StoreData::new()));
-            (store.clone(), store)
-        };
+        let (store, data): (Arc<dyn store::StoreLayer>, Arc<dyn data::DataLayer>) =
+            if tables::imports_tables(&contracts) {
+                // TRACK SEAM (tables): **a program that declares its data**
+                // (track `data-path`): its build's tables.json in the generic
+                // memory adapter, and no hand-written layer beside it.
+                (
+                    Arc::new(store::StoreData::new()),
+                    Arc::new(tables::TablesLayer::from_build(&build, &contracts)?),
+                )
+            } else if contracts
+                .iter()
+                .flat_map(|c| &c.imports)
+                .any(|i| i.interface.starts_with("feed:"))
+            {
+                (
+                    Arc::new(store::StoreData::new()),
+                    feed.unwrap_or_else(|| Arc::new(feed::FeedData::new())),
+                )
+            } else if contracts
+                .iter()
+                .flat_map(|c| &c.imports)
+                .any(|i| i.interface.starts_with("kiokun:"))
+            {
+                // TRACK SEAM (kiokun): kiokun's files, read-only, where the
+                // program imports `kiokun:data/…` (docs/PARALLEL.md, W6, Q2).
+                // Unit tests assert the committed sample's answers. A developer's
+                // deployment environment must not replace that test fixture.
+                #[cfg(test)]
+                let kiokun = kiokun::KiokunData::at(kiokun::sample(), None);
+                #[cfg(not(test))]
+                let kiokun = kiokun::KiokunData::new()?;
+                (Arc::new(store::StoreData::new()), Arc::new(kiokun))
+            } else {
+                #[cfg(test)]
+                let store = store.unwrap_or_else(store::layer_for_tests);
+                #[cfg(not(test))]
+                let store = store.unwrap_or_else(|| Arc::new(store::StoreData::new()));
+                (store.clone(), store)
+            };
         // TRACK SEAM (uploads, ADR-0253): the layer commits a post's image
         // from the uploads' leases, in the post's own transaction.
         if let Some(leases) = uploads.leases() {
@@ -2025,6 +2060,8 @@ impl Server {
             while_reading: Mutex::new(None),
             #[cfg(test)]
             in_flight: Mutex::new(None),
+            #[cfg(test)]
+            table_maps: Mutex::new(Vec::new()),
             connection_faults: Mutex::new(BTreeMap::new()),
             materializer_faults: Mutex::new(std::collections::BTreeSet::new()),
             keyed: Mutex::new(BTreeMap::new()),
@@ -2519,11 +2556,18 @@ impl Server {
     /// Authority first — `admit` against the artifact's real imports — then
     /// the component, with the deployment's implementation of each granted
     /// operation. The command's result is whatever the COMPONENT returns.
+    ///
+    /// TRACK SEAM (tables): `tables` gives the table functions the gate
+    /// admits for the component, by its contract and grant: a query's reads,
+    /// a command's staged reads and writes, or none. Where the program
+    /// declares its tables, every call goes through the gate with them, and
+    /// its host map is `host` and those functions, no other table's.
     fn run(
         &self,
         component_id: &str,
         session: &str,
         host: &BTreeMap<String, HostFn>,
+        tables: &TableFns<'_>,
         args: &[Val],
     ) -> Result<Vec<Val>, String> {
         let granted = self.authorise(component_id)?;
@@ -2541,26 +2585,57 @@ impl Server {
             .get(component_id)
             .ok_or_else(|| format!("no compiled component `{component_id}`"))?
             .prepared;
-        let results = prepared.call_authorized_within(
-            contract,
-            &granted,
-            &Limits {
-                fuel: Some(50_000_000),
-                memory_bytes: Some(16 * 1024 * 1024),
-                table_elements: Some(1_000),
-            },
-            host,
-            &[&export.interface, &export.function],
-            args,
-            // TRACK SEAM (identity, ADR-0253): what `requires` is told. The
-            // important property is that each predicate is evaluated, and an
-            // unknown one cannot run. A predicate over the command's
-            // parameters reads through the command's own operations.
-            |predicate, bound| self.identity.requires(predicate, bound, session, host),
-        )?;
+        let limits = Limits {
+            fuel: Some(50_000_000),
+            memory_bytes: Some(16 * 1024 * 1024),
+            table_elements: Some(1_000),
+        };
+        let path = [&export.interface[..], &export.function[..]];
+        let results = match self.data.tables() {
+            // TRACK SEAM (tables): **a program's tables link through the gate
+            // alone** (track `data-path`), each component's host map holding
+            // the platform's operations and its own admitted functions.
+            Some(manifest) => {
+                let mut linked = host.clone();
+                linked.extend(tables(contract, &granted)?);
+                #[cfg(test)]
+                self.table_maps.lock().expect("table maps").push((
+                    component_id.to_string(),
+                    linked
+                        .keys()
+                        .filter(|key| pw_host::tables::is_table_import(key))
+                        .cloned()
+                        .collect(),
+                ));
+                prepared.call_authorized_with_tables(
+                    contract,
+                    &granted,
+                    &limits,
+                    &linked,
+                    manifest,
+                    &path,
+                    args,
+                    |predicate, bound| self.identity.requires(predicate, bound, session, &linked),
+                )?
+            }
+            None => prepared.call_authorized_within(
+                contract,
+                &granted,
+                &limits,
+                host,
+                &path,
+                args,
+                // TRACK SEAM (identity, ADR-0253): what `requires` is told.
+                // The important property is that each predicate is
+                // evaluated, and an unknown one cannot run. A predicate over
+                // the command's parameters reads through the command's own
+                // operations.
+                |predicate, bound| self.identity.requires(predicate, bound, session, host),
+            )?,
+        };
         // A type that contains itself arrives as its nodes, and a page reads
         // it nested (ADR-0194).
-        prepared.untangled(&[&export.interface, &export.function], results)
+        prepared.untangled(&path, results)
     }
 
     /// The platform's session operation: the request's session, and nothing
@@ -2795,7 +2870,12 @@ impl Server {
             // values itself and hands them to the platform's outbox, which
             // stages them here with its writes.
             let staged_events = self.outbox(component_id, &mut host)?;
-            let out = self.run(component_id, session, &host, args)?;
+            // TRACK SEAM (tables): its tables' reads and writes, staged in
+            // this command's transaction, as the gate admits them.
+            let tables = |contract: &ComponentContract, granted: &Granted| {
+                staging.table_ops(contract, granted)
+            };
+            let out = self.run(component_id, session, &host, &tables, args)?;
             let result = out.first().map(answer_json);
             if let [Val::Result(Err(_))] = out.as_slice() {
                 staging.revalidate()?;
@@ -3213,6 +3293,12 @@ impl Server {
                     if let Some(actor) = actor.filter(|actor| actor.is_local()) {
                         actor.ensure_local_current()?;
                     }
+                    // TRACK SEAM (tables): **what the layer staged, the
+                    // transaction's last step** (track `data-path`): a
+                    // program's tables published after every record above is
+                    // written, before it commits; refused, all of it rolls
+                    // back.
+                    staging.publish_within()?;
                     Ok::<_, String>(events)
                 })?;
                 if !current {
@@ -4754,7 +4840,7 @@ impl Server {
                     }),
                 );
             }
-            match self.run(path, "", &host, args) {
+            match self.run(path, "", &host, &no_tables, args) {
                 Ok(out) => {
                     return out
                         .into_iter()
@@ -5116,25 +5202,43 @@ impl Server {
             Some(render) => render.reads(&*self.data, session, stopped),
             None => self.data.reads(session, stopped),
         };
+        let merged = |name: &str, f: HostFn| -> HostFn {
+            let f = counted(name, f);
+            match &render {
+                Some(render) => render.once(
+                    &self
+                        .identity
+                        .principals()
+                        .receipt_reader(session)
+                        .to_string(),
+                    name,
+                    f,
+                ),
+                None => f,
+            }
+        };
         let mut host: BTreeMap<String, HostFn> = layer
             .into_iter()
             .map(|(name, f)| {
-                let f = counted(&name, f);
-                let f = match &render {
-                    Some(render) => render.once(
-                        &self
-                            .identity
-                            .principals()
-                            .receipt_reader(session)
-                            .to_string(),
-                        &name,
-                        f,
-                    ),
-                    None => f,
-                };
+                let f = merged(&name, f);
                 (name, f)
             })
             .collect();
+        // TRACK SEAM (tables): its tables' reads, as the gate admits them for
+        // this query, reading the render's snapshot where it reads one, each
+        // counted and merged as the layer's reads are (NEXT 4c).
+        let snapshot = render.as_ref().and_then(|render| render.snapshot());
+        let tables = |contract: &ComponentContract, granted: &Granted| {
+            Ok(self
+                .data
+                .table_reads(contract, granted, snapshot)?
+                .into_iter()
+                .map(|(name, f)| {
+                    let f = merged(&name, f);
+                    (name, f)
+                })
+                .collect())
+        };
         // And the platform's session, each read its own: never merged.
         let mut platform: BTreeMap<String, HostFn> = BTreeMap::new();
         platform.insert(
@@ -5158,7 +5262,7 @@ impl Server {
             let f = counted(&name, f);
             (name, f)
         }));
-        let out = self.run(component_id, session, &host, args)?;
+        let out = self.run(component_id, session, &host, &tables, args)?;
         out.into_iter()
             .next()
             .ok_or_else(|| format!("{component_id} returned nothing"))
@@ -5405,14 +5509,14 @@ impl Server {
                     other => return Err(format!("`.{field}` read from {other:?}")),
                 }
             } else if let Some(member) = step["member"].as_str() {
-                let out = self.run(member, "", &BTreeMap::new(), &[value])?;
+                let out = self.run(member, "", &BTreeMap::new(), &no_tables, &[value])?;
                 out.into_iter()
                     .next()
                     .ok_or_else(|| format!("{member} returned nothing"))?
             } else if let Some(derived) = step["derived"].as_str() {
                 // A computed part's function (ADR-0226), run as a member is:
                 // pure, with the value it reads.
-                let out = self.run(derived, "", &BTreeMap::new(), &[value])?;
+                let out = self.run(derived, "", &BTreeMap::new(), &no_tables, &[value])?;
                 out.into_iter()
                     .next()
                     .ok_or_else(|| format!("{derived} returned nothing"))?
@@ -7087,7 +7191,7 @@ impl Server {
             .and_then(|e| e.component.clone())
             .ok_or_else(|| format!("`{id}`'s contract does not locate its export"))?;
         let args = loaded.prepared.arguments_for(&export, inputs)?;
-        self.run(id, "", &BTreeMap::new(), &args)?
+        self.run(id, "", &BTreeMap::new(), &no_tables, &args)?
             .into_iter()
             .next()
             .ok_or_else(|| format!("{id} returned nothing"))
@@ -15456,7 +15560,7 @@ public query Store(",
         let body =
             &server_code[start..start + server_code[start..].find("\n    }\n").expect("its end")];
         assert!(
-            body.contains("self.run(component_id, session, &host, args)"),
+            body.contains("self.run(component_id, session, &host, &tables, args)"),
             "every command runs its compiled component"
         );
         assert!(
@@ -16127,6 +16231,10 @@ public query Store(",
 
     // TRACK SEAM (todomvc): TodoMVC, built and served (docs/PARALLEL.md, W7).
     mod todomvc;
+
+    // TRACK SEAM (tables): a program's declared tables, served through the
+    // gate by the generic memory adapter (track `data-path`).
+    mod tables;
 
     // TRACK SEAM (device-store): a page that holds a value the device keeps,
     // served (ADR-0366).

@@ -161,6 +161,13 @@ impl Render {
         self.as_of
     }
 
+    /// **The layer's snapshot this render reads** (track `data-path`): what
+    /// a query's table reads read ([`DataLayer::table_reads`]), where the
+    /// layer took one.
+    pub(crate) fn snapshot(&self) -> Option<&Snapshot> {
+        self.snapshot.as_ref()
+    }
+
     /// **The layer's operations for one query of the render**, for
     /// `session`, each reading the render's snapshot.
     pub(crate) fn reads(
