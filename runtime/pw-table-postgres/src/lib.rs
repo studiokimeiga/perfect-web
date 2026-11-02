@@ -30,12 +30,19 @@
 //!   refused alike; `tests/parity.rs` holds them equal.
 //! - **A render reads one snapshot in a bounded few seats** ([`Snapshot`],
 //!   ADR-0354): repeatable read, read only, opened at its first read.
+//! - **The platform's other tables** ([`platform`], track `durable-tables`):
+//!   the runs a command schedules, written in its transaction; the sessions
+//!   and sign-ins a deployment keeps; and a command fenced on the session it
+//!   acts for, to its end.
 
 mod migrate;
+pub mod platform;
 mod pool;
 mod shape;
 mod sql;
 mod values;
+
+pub use platform::{Fence, Lifetimes, Run, Scheduling, Session};
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::Ordering;
@@ -276,6 +283,10 @@ struct Inner {
     /// references held where a command prepares, and nothing else of the
     /// database's deferred to its commit.
     hold_references: Option<String>,
+    /// The platform's statements for runs and sessions ([`platform`]).
+    places: platform::Statements,
+    /// The sessions' own connections ([`platform::SESSION_CONNECTIONS`]).
+    sessions: Arc<Pool>,
 }
 
 /// **One isolated program's tables, on one PostgreSQL schema.** Every read
@@ -383,6 +394,13 @@ impl PgTables {
         });
         let statements = sql::statements(&names, &shape);
         let versions = vec![0; shape.tables.len()];
+        let places = platform::Statements::of(&names.schema);
+        let sessions = Pool::new(
+            url,
+            platform::SESSION_CONNECTIONS,
+            options.wait,
+            "session connections",
+        );
         Ok(PgTables {
             inner: Arc::new(Inner {
                 shape,
@@ -400,6 +418,8 @@ impl PgTables {
                 versions: Mutex::new(versions),
                 foreign,
                 hold_references,
+                places,
+                sessions,
             }),
         })
     }
@@ -507,6 +527,7 @@ impl PgTables {
                 ended: false,
                 failed: None,
                 touched: BTreeMap::new(),
+                fence: None,
             })),
             ended: false,
         })
@@ -660,6 +681,8 @@ struct Open {
     /// Each key it wrote, by its table: the row it held before the command
     /// first wrote it, and the row it holds now.
     touched: BTreeMap<(usize, Key), (Option<Row>, Option<Row>)>,
+    /// The session it acts for, held to its end ([`Command::fence`]).
+    fence: Option<platform::Fenced>,
 }
 
 impl Inner {
@@ -881,16 +904,23 @@ impl Inner {
             return;
         }
         open.ended = true;
-        if let Some(mut lease) = open.lease.take()
-            && rollback
-            && open.begun
-            && lease.connected()
-        {
-            let ended = lease
-                .conn()
-                .and_then(|conn| conn.batch(&self.counters, "ROLLBACK").map_err(database));
-            if ended.is_err() {
-                lease.discard();
+        if let Some(mut lease) = open.lease.take() {
+            if rollback && open.begun && lease.connected() {
+                let ended = lease
+                    .conn()
+                    .and_then(|conn| conn.batch(&self.counters, "ROLLBACK").map_err(database));
+                if ended.is_err() {
+                    lease.discard();
+                }
+            }
+            // The session's lock a fenced command held, given back on its
+            // connection once its transaction has ended (a connection
+            // closed above gave it back as it closed).
+            if let Some(fenced) = &open.fence
+                && fenced.locked
+                && lease.connected()
+            {
+                self.unfence(&mut lease, fenced.key);
             }
         }
         let mut turn = match self.turn.lock() {
@@ -1181,6 +1211,7 @@ impl Prepared {
         if open.ended {
             return Err(Error::Ended);
         }
+        let fence = open.fence.as_ref().map(|f| f.fence.clone());
         let mut handed: Vec<(String, String, String)> = Vec::new();
         for row in records.outbox {
             let values = row
@@ -1280,6 +1311,13 @@ impl Prepared {
                 Ok(())
             })();
             if let Err(error) = ran {
+                open.failed = Some(error.clone());
+                return Err(error);
+            }
+            // A fenced command's session, still as it was admitted, just
+            // before its commit (ADR-0369's last check, track
+            // `durable-tables`): signed out meanwhile, nothing is kept.
+            if let Err(error) = platform::still_fenced(&inner, conn, fence.as_ref()) {
                 open.failed = Some(error.clone());
                 return Err(error);
             }

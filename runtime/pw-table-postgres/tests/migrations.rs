@@ -61,8 +61,8 @@ fn a_database_holding_nothing_is_made_from_tables_json_and_recorded() {
     let tables = open(&scratch, manifest).assert_ok("made");
     assert_eq!(scratch.texts("SELECT hash FROM pw_schema"), [hash]);
     assert_eq!(
-        scratch.texts("SELECT version FROM pw_platform"),
-        ["0001_platform"]
+        scratch.texts("SELECT version FROM pw_platform ORDER BY version"),
+        ["0001_platform", "0002_runs_and_sessions"]
     );
     // The tables, their keys, checks, indexes and references, as the
     // catalog holds them.
@@ -135,7 +135,7 @@ fn a_schema_is_applied_once_whoever_opens_it_and_whenever() {
     let again = open(&scratch, manifest).assert_ok("opened again");
     drop(again);
     assert_eq!(scratch.texts("SELECT hash FROM pw_schema").len(), 1);
-    assert_eq!(scratch.texts("SELECT version FROM pw_platform").len(), 1);
+    assert_eq!(scratch.texts("SELECT version FROM pw_platform").len(), 2);
 }
 
 /// **An additive change is made**, from any schema: a table, an `Option`
