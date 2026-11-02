@@ -1331,17 +1331,13 @@ pub fn program_by_declaration(
     for (unit, hir) in cx.hirs.iter().enumerate() {
         for (id, decl) in hir.all_decls() {
             let member = members.contains(&DefId { unit, decl: id.0 });
+            // And each predicate the program gives a body (ADR-0384's H2), a
+            // component the host asks, lowered as a member is.
+            let member = member || (decl.kind == DeclKind::Predicate && decl.body.is_some());
             // And each materialization that derives its value (ADR-0277), a
             // component the host runs to keep it.
             let derives = decl.kind == DeclKind::Materialize && decl.ret.is_some();
-            // And each predicate the program gives a body (ADR-0384's H2),
-            // a component the host asks.
-            let asked = decl.kind == DeclKind::Predicate && decl.body.is_some();
-            if !member
-                && !derives
-                && !asked
-                && !matches!(decl.kind, DeclKind::Command | DeclKind::Query)
-            {
+            if !member && !derives && !matches!(decl.kind, DeclKind::Command | DeclKind::Query) {
                 continue;
             }
             match function(cx, unit, decl, hir.decl_span(id)) {

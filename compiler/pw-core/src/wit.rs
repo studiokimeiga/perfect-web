@@ -737,19 +737,23 @@ pub(crate) fn package_prepared(
     let mut decls: BTreeMap<String, (DefId, &Decl)> = BTreeMap::new();
     for (unit, hir) in hirs.iter().enumerate() {
         for (id, d) in hir.all_decls() {
+            // A predicate the program gives a body is a component the host
+            // asks (ADR-0384's H2), though its name is no term.
+            if d.kind == crate::hir::DeclKind::Predicate && d.body.is_some() {
+                decls.insert(
+                    crate::contract::component_id(hir, id),
+                    (DefId { unit, decl: id.0 }, d),
+                );
+                continue;
+            }
             // Only component/callable namespaces can supply a contract's
             // declaration. An event named as a query otherwise replaces its
             // executable body with NoBody(Event), depending on source order
             // (ADR-0373); types already required the same separation.
-            // And a predicate the program gives a body (ADR-0384's H2): a
-            // component the host asks, though its name is no term.
-            let asked = d.kind == crate::hir::DeclKind::Predicate && d.body.is_some();
-            if !asked
-                && !matches!(
-                    crate::resolve::Namespace::of(d.kind),
-                    Some(crate::resolve::Namespace::Term | crate::resolve::Namespace::Ui)
-                )
-            {
+            if !matches!(
+                crate::resolve::Namespace::of(d.kind),
+                Some(crate::resolve::Namespace::Term | crate::resolve::Namespace::Ui)
+            ) {
                 continue;
             }
             decls.insert(
