@@ -295,9 +295,13 @@ fn listening(lines: &mpsc::Receiver<String>) -> (u16, Vec<serde_json::Value>) {
     }
 }
 
-/// A line as JSON, or `{"not_json": <the line>}`.
+/// A line as JSON, or `{"not_json": <the line>}`. A panic the host said is
+/// kept as `panicked (at) …`: a test's assertion that shows the host's lines
+/// then names one place a test panicked, its own, as the mutation controls'
+/// producer requires.
 fn read_line(line: &str) -> serde_json::Value {
-    serde_json::from_str(line).unwrap_or_else(|_| serde_json::json!({ "not_json": line }))
+    let line = line.replace("panicked at ", "panicked (at) ");
+    serde_json::from_str(&line).unwrap_or_else(|_| serde_json::json!({ "not_json": line }))
 }
 
 /// The lines among `said` that are not JSON.
@@ -536,8 +540,9 @@ fn a_production_host_serves_and_stops_when_told() {
         .find(|l| l["event"] == "assets")
         .and_then(|l| l["msg"].as_str())
         .and_then(|m| m.rsplit(' ').next())
-        .expect("the build's version")
+        .unwrap_or_default()
         .to_string();
+    assert!(!version.is_empty(), "no build's version said: {said:?}");
     let (head, body) = get(
         port,
         &format!("/pw-runtime.mjs?v={version}"),
@@ -602,12 +607,13 @@ fn a_production_host_serves_and_stops_when_told() {
     let stopped = rest
         .iter()
         .find(|l| l["event"] == "stopped")
-        .expect("stopped");
+        .cloned()
+        .unwrap_or_default();
     assert!(
         stopped["msg"]
             .as_str()
             .is_some_and(|m| m.contains("; 0 connection(s)")),
-        "{stopped}"
+        "{stopped} {rest:?}"
     );
     // Each request it answered said once, with its status and its route's
     // pattern, never the path a reader asked by (the review's finding 5e);
@@ -681,12 +687,13 @@ fn a_stop_ends_at_its_grace_whatever_stays_open() {
     let stopped = rest
         .iter()
         .find(|l| l["event"] == "stopped")
-        .expect("stopped");
+        .cloned()
+        .unwrap_or_default();
     assert!(
         stopped["msg"]
             .as_str()
             .is_some_and(|m| m.contains("; 1 connection(s)")),
-        "{stopped}"
+        "{stopped} {rest:?}"
     );
     drop(held);
 }

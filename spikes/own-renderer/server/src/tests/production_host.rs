@@ -498,6 +498,50 @@ fn a_production_host_serves_no_other_file_of_its_build() {
     assert_eq!(status(&head), 200, "{head}");
 }
 
+/// What `answer` writes to a connection, read as [`asked`] reads an answer.
+fn written_by(answer: impl FnOnce(&mut TcpStream) + Send) -> (String, Vec<u8>) {
+    let listener = TcpListener::bind(("127.0.0.1", 0)).expect("bind");
+    let at = listener.local_addr().expect("address");
+    std::thread::scope(|scope| {
+        scope.spawn(move || {
+            let (mut stream, _) = listener.accept().expect("accept");
+            answer(&mut stream);
+        });
+        let mut client = TcpStream::connect(at).expect("connect");
+        let mut out = Vec::new();
+        let _ = client.read_to_end(&mut out);
+        match out.windows(4).position(|w| w == b"\r\n\r\n") {
+            Some(split) => (
+                String::from_utf8_lossy(&out[..split]).into_owned(),
+                out[split + 4..].to_vec(),
+            ),
+            None => ("(no answer)".to_string(), out),
+        }
+    })
+}
+
+/// **`serve_file` refuses in production, whatever reaches it**: behind
+/// `served_as`, which passes no file of the build, a second refusal of its
+/// own (the build's metadata, the paths of the machine that built it);
+/// a development server serves its build's files as they are.
+#[test]
+fn serve_file_refuses_in_production_whatever_reaches_it() {
+    let production = production_store(None);
+    for route in [
+        "/templates.json",
+        "/contracts.json",
+        "/build-id",
+        "/graph.json",
+    ] {
+        let (head, _) = written_by(|stream| serve_file(&production, stream, route));
+        assert_eq!(status(&head), 404, "{route}: {head}");
+    }
+    let development = store();
+    let (head, body) = written_by(|stream| serve_file(&development, stream, "/templates.json"));
+    assert_eq!(status(&head), 200, "{head}");
+    assert!(!body.is_empty());
+}
+
 /// **A production host's metrics are read only with its token**; without
 /// one configured, by no one. A development server's are anyone's.
 #[test]
