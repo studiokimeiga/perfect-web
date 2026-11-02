@@ -43,14 +43,19 @@ export const SCRIPT_OR_STYLE = /^(text\/javascript|application\/javascript|text\
 
 const cellKey = (r) => `${r.app}/${r.stack}/${r.engine}/${r.condition}/${r.network ?? "none"}`;
 
-export function checkRuns(runs, minRuns = MIN_RUNS) {
-  const problems = [];
+/** How many runs each cell has. */
+function cellCounts(runs) {
   const cells = new Map();
   for (const r of runs) cells.set(cellKey(r), (cells.get(cellKey(r)) ?? 0) + 1);
+  return cells;
+}
+
+export function checkRuns(runs, minRuns = MIN_RUNS) {
+  const cells = cellCounts(runs);
   const counts = new Set(cells.values());
-  for (const [cell, n] of cells) {
-    if (n < minRuns) problems.push(`runs: ${cell} has ${n} run(s), fewer than ${minRuns}`);
-  }
+  const problems = [...cells]
+    .filter(([, n]) => n < minRuns)
+    .map(([cell, n]) => `runs: ${cell} has ${n} run(s), fewer than ${minRuns}`);
   if (counts.size > 1) {
     problems.push(`runs: cells have different run counts (${[...counts].sort().join(", ")})`);
   }
@@ -67,135 +72,208 @@ function coldBodies(runs) {
     .flatMap((r) => (r.requests ?? []).filter((q) => q.phase === "load" || q.phase.startsWith("interaction")));
 }
 
+/** A script or style with a minified verdict (the instrument could tell). */
+const judged = (q) => !!q.type && SCRIPT_OR_STYLE.test(q.type) && q.minified != null;
+
+/** A judged script or style, not one of TodoMVC's common files, that is not
+ * minified where the stack's build minifies. */
+const unminified = (q, expect, common) => judged(q) && !isCommon(q.url, common) && expect.minifies && !q.minified;
+
 export function checkMinified(stackRuns, expect, common = []) {
-  const problems = [];
-  for (const q of coldBodies(stackRuns)) {
-    if (!q.type || !SCRIPT_OR_STYLE.test(q.type) || q.minified == null) continue;
-    if (isCommon(q.url, common)) continue;
-    if (expect.minifies && !q.minified) {
-      problems.push(`minified: ${q.url} is not minified, and this stack's build minifies`);
-    }
-  }
-  return [...new Set(problems)];
+  const loose = coldBodies(stackRuns).filter((q) => unminified(q, expect, common));
+  return [...new Set(loose.map((q) => `minified: ${q.url} is not minified, and this stack's build minifies`))];
 }
 
+const small = (q) => (q.raw ?? 0) < 1024;
+
+/** A response a host that compresses must compress: of a compressible type, 1 KiB or more, answered 200. */
+const owesCompression = (q) => !!q.type && COMPRESSIBLE.test(q.type) && !small(q) && q.status === 200;
+
+/** A host that compresses only its static files owes its documents nothing. */
+const exempt = (q, expect) => expect.compresses === "static" && q.kind === "document";
+
 export function checkCompressed(stackRuns, expect) {
-  const problems = [];
-  if (!expect.compresses) return problems;
-  for (const q of coldBodies(stackRuns)) {
-    if (!q.type || !COMPRESSIBLE.test(q.type) || (q.raw ?? 0) < 1024 || q.status !== 200) continue;
-    if (expect.compresses === "static" && q.kind === "document") continue;
-    if (!q.encoding) problems.push(`compressed: ${q.url} (${q.raw} bytes of ${q.type}) was sent uncompressed`);
-  }
-  return [...new Set(problems)];
+  if (!expect.compresses) return [];
+  const plain = coldBodies(stackRuns).filter((q) => owesCompression(q) && !exempt(q, expect) && !q.encoding);
+  return [...new Set(plain.map((q) => `compressed: ${q.url} (${q.raw} bytes of ${q.type}) was sent uncompressed`))];
 }
+
+/** A served response a vendored build is judged on: under its prefix, answered 200, with a body. */
+const isServedFile = (build, q, p) => p.startsWith(build.prefix) && q.status === 200 && q.blob != null;
+
+/** A served file of a vendored build against the manifest: its problem, or null where it is upstream's. */
+function servedProblem(build, files, q, p) {
+  const rel = `${build.dir}/${p.slice(build.prefix.length) || "index.html"}`;
+  const want = files[rel];
+  if (!want) return `build: ${p} is not a file of the vendored build (${rel})`;
+  if (q.blob !== want.blob) return `build: ${p} is not upstream's ${rel} (blob ${q.blob}, upstream ${want.blob})`;
+  return null;
+}
+
+/** One verdict (a problem, or null) for each served file under the build's prefix. */
+function servedVerdicts(build, files, served) {
+  return served
+    .map((q) => [q, new URL(q.url).pathname])
+    .filter(([q, p]) => isServedFile(build, q, p))
+    .map(([q, p]) => servedProblem(build, files, q, p));
+}
+
+/** A file of the manifest against the vendored copy on disk: missing, or not upstream's. */
+function copyProblem(build, rel, want, { exists, readFile }) {
+  const p = path.join(build.root, rel);
+  if (!exists(p)) return `build: ${rel} is missing from the vendored copy`;
+  const blob = gitBlob(readFile(p));
+  return blob === want.blob ? null : `build: the vendored ${rel} is not upstream's (blob ${blob}, upstream ${want.blob})`;
+}
+
+const copyProblems = (build, files, io) =>
+  Object.entries(files).map(([rel, want]) => copyProblem(build, rel, want, io)).filter(Boolean);
+
+function checkVendored(build, served, io) {
+  const files = io.manifest?.files ?? {};
+  const verdicts = servedVerdicts(build, files, served);
+  const problems = [...verdicts.filter(Boolean), ...copyProblems(build, files, io)];
+  if (!verdicts.some((v) => v === null)) problems.push("build: no served file was matched to the vendored build");
+  return problems;
+}
+
+/** A source the Pleris build lists: gone, or changed since it was built. */
+function sourceProblem(f, { exists, readFile }) {
+  if (!exists(f.path)) return `build: its source ${f.path} is gone`;
+  if (sha256(readFile(f.path)) !== f.sha256) return `build: its source ${f.path} changed since it was built`;
+  return null;
+}
+
+const noSources = (build, files) => (files?.length ? [] : [`build: ${build.sources} lists no source`]);
+
+/** The sources a Pleris build lists (`sources.json`), each against its hash. */
+function plerisSources(build, io) {
+  if (!io.exists(build.sources)) return [`build: ${build.sources} is missing: the build did not finish`];
+  const { files } = JSON.parse(io.readFile(build.sources, "utf8"));
+  return [...noSources(build, files), ...(files ?? []).map((f) => sourceProblem(f, io)).filter(Boolean)];
+}
+
+/** The local file the build holds for a served runtime or Wasm module; only these are compared. */
+const localFile = (build, p) => (p === "/pw-runtime.mjs" || /^\/pw-[a-z]+\.wasm$/.test(p) ? path.join(build.dist, p) : null);
+
+/** A served runtime or Wasm module that is not the build's own file. */
+function servedPlerisProblem(build, q, p, io) {
+  const local = localFile(build, p);
+  if (local && io.exists(local) && gitBlob(io.readFile(local)) !== q.blob) {
+    return `build: ${p} served is not the build's ${path.relative(build.dist, local)}`;
+  }
+  return null;
+}
+
+const servedPlerisProblems = (build, served, io) =>
+  served
+    .map((q) => [q, new URL(q.url).pathname])
+    .filter(([q]) => q.status === 200 && q.blob != null)
+    .map(([q, p]) => servedPlerisProblem(build, q, p, io))
+    .filter(Boolean);
+
+const checkPleris = (build, served, io) => [...plerisSources(build, io), ...servedPlerisProblems(build, served, io)];
+
+/** Where each framework's build says it is built. */
+const MARKERS = new Map([
+  ["next", ".next/BUILD_ID"],
+  ["sveltekit", "build/index.js"],
+]);
+
+/** The sources newer than the build. */
+const staleSources = (build, built, io) =>
+  io.sources.filter((s) => io.mtime(s) > built).map((s) => `build: ${path.relative(build.dir, s)} is newer than the build`);
+
+/** Next.js writes its build id into the pages it serves: the document served must name it. */
+function unnamedBuild(marker, served, io) {
+  const id = io.readFile(marker, "utf8").trim();
+  const doc = served.find((q) => q.kind === "document" && q.status === 200);
+  return doc && doc.text != null && !doc.text.includes(id) ? [`build: the page served does not name the build ${id}`] : [];
+}
+
+function checkFramework(build, served, io) {
+  const marker = path.join(build.dir, MARKERS.get(build.kind));
+  if (!io.exists(marker)) return [`build: ${marker} is missing: the stack is not built`];
+  const stale = staleSources(build, io.mtime(marker), io);
+  return [...stale, ...(build.kind === "next" ? unnamedBuild(marker, served, io) : [])];
+}
+
+const BUILD_CHECKS = new Map([
+  ["vendored", checkVendored],
+  ["pleris", checkPleris],
+  ["next", checkFramework],
+  ["sveltekit", checkFramework],
+]);
 
 /**
  * What was served is the build named. `served` is the cold runs' load and
  * interaction responses; `build` the target's build description.
  */
 export function checkBuild(build, served, { manifest = null, readFile = fs.readFileSync, exists = fs.existsSync, mtime = (p) => fs.statSync(p).mtimeMs, sources = [] } = {}) {
-  const problems = [];
-  if (build.kind === "vendored") {
-    const files = manifest?.files ?? {};
-    let matched = 0;
-    for (const q of served) {
-      const p = new URL(q.url).pathname;
-      if (!p.startsWith(build.prefix) || q.status !== 200 || q.blob == null) continue;
-      const rel = `${build.dir}/${p.slice(build.prefix.length) || "index.html"}`;
-      const want = files[rel];
-      if (!want) {
-        problems.push(`build: ${p} is not a file of the vendored build (${rel})`);
-        continue;
-      }
-      if (q.blob !== want.blob) problems.push(`build: ${p} is not upstream's ${rel} (blob ${q.blob}, upstream ${want.blob})`);
-      else matched++;
-    }
-    for (const [rel, want] of Object.entries(files)) {
-      const p = path.join(build.root, rel);
-      if (!exists(p)) {
-        problems.push(`build: ${rel} is missing from the vendored copy`);
-        continue;
-      }
-      const blob = gitBlob(readFile(p));
-      if (blob !== want.blob) problems.push(`build: the vendored ${rel} is not upstream's (blob ${blob}, upstream ${want.blob})`);
-    }
-    if (!matched) problems.push("build: no served file was matched to the vendored build");
-  } else if (build.kind === "pleris") {
-    if (!exists(build.sources)) {
-      problems.push(`build: ${build.sources} is missing: the build did not finish`);
-    } else {
-      const { files } = JSON.parse(readFile(build.sources, "utf8"));
-      if (!files?.length) problems.push(`build: ${build.sources} lists no source`);
-      for (const f of files ?? []) {
-        if (!exists(f.path)) problems.push(`build: its source ${f.path} is gone`);
-        else if (sha256(readFile(f.path)) !== f.sha256) problems.push(`build: its source ${f.path} changed since it was built`);
-      }
-    }
-    for (const q of served) {
-      const p = new URL(q.url).pathname;
-      if (q.status !== 200 || q.blob == null) continue;
-      const local = p === "/pw-runtime.mjs" || /^\/pw-[a-z]+\.wasm$/.test(p) ? path.join(build.dist, p) : null;
-      if (local && exists(local) && gitBlob(readFile(local)) !== q.blob) {
-        problems.push(`build: ${p} served is not the build's ${path.relative(build.dist, local)}`);
-      }
-    }
-  } else if (build.kind === "next" || build.kind === "sveltekit") {
-    const marker = build.kind === "next" ? path.join(build.dir, ".next/BUILD_ID") : path.join(build.dir, "build/index.js");
-    if (!exists(marker)) {
-      problems.push(`build: ${marker} is missing: the stack is not built`);
-    } else {
-      const built = mtime(marker);
-      for (const s of sources) {
-        if (mtime(s) > built) problems.push(`build: ${path.relative(build.dir, s)} is newer than the build`);
-      }
-      if (build.kind === "next") {
-        const id = readFile(marker, "utf8").trim();
-        const doc = served.find((q) => q.kind === "document" && q.status === 200);
-        if (doc && doc.text != null && !doc.text.includes(id)) {
-          problems.push(`build: the page served does not name the build ${id}`);
-        }
-      }
-    }
-  } else {
-    problems.push(`build: unknown build kind ${build.kind}`);
-  }
+  const check = BUILD_CHECKS.get(build.kind);
+  const problems = check ? check(build, served, { manifest, readFile, exists, mtime, sources }) : [`build: unknown build kind ${build.kind}`];
   return [...new Set(problems)];
 }
 
+/** A shaped run whose document's last byte came before the profile's round trip, or never. */
+const tooFast = (r, network) => r.timings?.documentEnd == null || r.timings.documentEnd < network.latency;
+
+const shapedProblem = (r, network) =>
+  `shaped: ${cellKey(r)} run ${r.i}: its document's last byte came at ${r.timings?.documentEnd?.toFixed?.(0)} ms, under the profile's ${network.latency} ms round trip`;
+
 export function checkShaped(runs, network) {
-  const problems = [];
-  for (const r of runs) {
-    if (!r.network) continue;
-    if (r.timings?.documentEnd == null || r.timings.documentEnd < network.latency) {
-      problems.push(
-        `shaped: ${cellKey(r)} run ${r.i}: its document's last byte came at ${r.timings?.documentEnd?.toFixed?.(0)} ms, under the profile's ${network.latency} ms round trip`,
-      );
-    }
-  }
-  return problems;
+  return runs.filter((r) => r.network && tooFast(r, network)).map((r) => shapedProblem(r, network));
+}
+
+const where = (r) => `interactive: ${cellKey(r)} run ${r.i}`;
+
+const newDocument = (r) => (r.sameDocument ? [] : [`${where(r)}: an interaction loaded a new document`]);
+
+function incomplete(r, steps) {
+  const done = (r.interactions ?? []).length;
+  return done === steps.length ? [] : [`${where(r)}: ${done} of ${steps.length} interactions completed`];
+}
+
+const noLatency = (r) =>
+  (r.interactions ?? [])
+    .filter((x) => !(x.toDom >= 0) || !(x.toFrame >= x.toDom))
+    .map((x) => `${where(r)}: ${x.name} has no latency (${x.toDom}, ${x.toFrame})`);
+
+const neverReady = (r) => (r.timings?.ready == null ? [`${where(r)}: never interactive`] : []);
+
+const RUN_CHECKS = [newDocument, incomplete, noLatency, neverReady];
+
+/** A run's problems: that it failed, or the others, in order. */
+function interactiveProblems(r, steps) {
+  if (r.error) return [`${where(r)}: the run failed: ${r.error}`];
+  return RUN_CHECKS.flatMap((check) => check(r, steps));
 }
 
 export function checkInteractive(runs, steps) {
-  const problems = [];
-  for (const r of runs) {
-    if (r.error) {
-      problems.push(`interactive: ${cellKey(r)} run ${r.i}: the run failed: ${r.error}`);
-      continue;
-    }
-    if (!r.sameDocument) problems.push(`interactive: ${cellKey(r)} run ${r.i}: an interaction loaded a new document`);
-    if ((r.interactions ?? []).length !== steps.length) {
-      problems.push(`interactive: ${cellKey(r)} run ${r.i}: ${(r.interactions ?? []).length} of ${steps.length} interactions completed`);
-    }
-    for (const x of r.interactions ?? []) {
-      if (!(x.toDom >= 0) || !(x.toFrame >= x.toDom)) {
-        problems.push(`interactive: ${cellKey(r)} run ${r.i}: ${x.name} has no latency (${x.toDom}, ${x.toFrame})`);
-      }
-    }
-    if (r.timings?.ready == null) problems.push(`interactive: ${cellKey(r)} run ${r.i}: never interactive`);
-  }
-  return problems;
+  return runs.flatMap((r) => interactiveProblems(r, steps));
 }
+
+/** A cold or warm run in Chromium, not shaped. */
+const chromiumUnshaped = (condition) => (r) => r.condition === condition && !r.network && r.engine === "chromium";
+
+const loadedScripts = (run) => (run?.requests ?? []).filter((q) => q.phase === "load" && /javascript/.test(q.type ?? ""));
+
+/** The largest script (by decoded bytes) the first cold unshaped Chromium run loaded, if any. */
+function biggestCold(runs) {
+  const scripts = loadedScripts(runs.find(chromiumUnshaped("cold")));
+  return scripts.sort((a, b) => (b.raw ?? 0) - (a.raw ?? 0))[0];
+}
+
+const received = (q, fallback) => q.receivedBody ?? fallback;
+
+/** Whether a warm run's answer for the script was a download: 200, with half or more of the cold run's bytes. */
+const downloadedAgain = (again, biggest) =>
+  !!again && again.status === 200 && received(again, 0) >= 0.5 * received(biggest, biggest.raw);
+
+const againIn = (r, biggest) => (r.requests ?? []).find((q) => q.url === biggest.url && q.phase === "load");
+
+const warmProblem = (r, biggest, again) =>
+  `warm: ${cellKey(r)} run ${r.i}: ${new URL(biggest.url).pathname} was downloaded again (${again.receivedBody} bytes)`;
 
 /**
  * A warm run of a stack whose host lets a cache keep its files: its largest
@@ -206,20 +284,41 @@ export function checkInteractive(runs, steps) {
  * an immutable file the engines' sizes reported in full).
  */
 export function checkWarm(runs, expect) {
-  const problems = [];
-  if (!expect.caches) return problems;
-  const cold = runs.find((r) => r.condition === "cold" && !r.network && r.engine === "chromium");
-  if (!cold) return problems;
-  const scripts = (cold.requests ?? []).filter((q) => q.phase === "load" && /javascript/.test(q.type ?? ""));
-  const biggest = scripts.sort((a, b) => (b.raw ?? 0) - (a.raw ?? 0))[0];
-  if (!biggest) return problems;
-  for (const r of runs.filter((x) => x.condition === "warm" && !x.network && x.engine === "chromium")) {
-    const again = (r.requests ?? []).find((q) => q.url === biggest.url && q.phase === "load");
-    if (again && again.status === 200 && (again.receivedBody ?? 0) >= 0.5 * (biggest.receivedBody ?? biggest.raw)) {
-      problems.push(`warm: ${cellKey(r)} run ${r.i}: ${new URL(biggest.url).pathname} was downloaded again (${again.receivedBody} bytes)`);
-    }
-  }
+  const biggest = expect.caches ? biggestCold(runs) : undefined;
+  if (!biggest) return [];
+  const problems = runs.filter(chromiumUnshaped("warm")).flatMap((r) => {
+    const again = againIn(r, biggest);
+    return downloadedAgain(again, biggest) ? [warmProblem(r, biggest, again)] : [];
+  });
   return [...new Set(problems)];
+}
+
+/** How many runs each stack has of one server measurement. */
+function stackCounts(stacks, list) {
+  const counts = new Map(stacks.map((s) => [s, 0]));
+  for (const r of list) counts.set(r.stack, (counts.get(r.stack) ?? 0) + 1);
+  return counts;
+}
+
+/** A server measurement's run that failed or (a fixed load) left requests unanswered; null otherwise. */
+function runProblem(kind, app, r) {
+  const at = `${kind}: ${app}/${r.stack} round ${r.i}`;
+  if (r.error) return `${at}: the measurement failed: ${r.error}`;
+  if (kind === "load" && r.answered < r.sent) return `${at}: ${r.sent - r.answered} of ${r.sent} requests went unanswered`;
+  return null;
+}
+
+const unevenRuns = (kind, app, counts) =>
+  new Set(counts.values()).size > 1 ? [`${kind}: ${app}'s stacks have different run counts`] : [];
+
+/** One kind of server measurement (a fixed load, idle visitors, a press): its failed runs, then the stacks short of runs, then uneven counts. */
+function serverProblems(kind, list, { app, stacks, minRuns }) {
+  const counts = stackCounts(stacks, list);
+  const failed = list.map((r) => runProblem(kind, app, r)).filter(Boolean);
+  const few = [...counts]
+    .filter(([, n]) => n < minRuns)
+    .map(([s, n]) => `${kind}: ${app}/${s} has ${n} run(s), fewer than ${minRuns}`);
+  return [...failed, ...few, ...unevenRuns(kind, app, counts)];
 }
 
 /**
@@ -229,22 +328,8 @@ export function checkWarm(runs, expect) {
  * failure it was; and a fixed load's every request answered.
  */
 export function validateServer({ app, stacks, loads = [], idle = [], presses = [], minRuns = MIN_RUNS }) {
-  const problems = [];
-  for (const [kind, list] of [["load", loads], ["idle", idle], ["press", presses]]) {
-    const counts = new Map(stacks.map((s) => [s, 0]));
-    for (const r of list) {
-      counts.set(r.stack, (counts.get(r.stack) ?? 0) + 1);
-      if (r.error) problems.push(`${kind}: ${app}/${r.stack} round ${r.i}: the measurement failed: ${r.error}`);
-      else if (kind === "load" && r.answered < r.sent) {
-        problems.push(`load: ${app}/${r.stack} round ${r.i}: ${r.sent - r.answered} of ${r.sent} requests went unanswered`);
-      }
-    }
-    for (const [s, n] of counts) {
-      if (n < minRuns) problems.push(`${kind}: ${app}/${s} has ${n} run(s), fewer than ${minRuns}`);
-    }
-    if (new Set(counts.values()).size > 1) problems.push(`${kind}: ${app}'s stacks have different run counts`);
-  }
-  return problems;
+  const lists = [["load", loads], ["idle", idle], ["press", presses]];
+  return lists.flatMap(([kind, list]) => serverProblems(kind, list, { app, stacks, minRuns }));
 }
 
 /** Every rule, for one app's runs: a list of problems, empty when the run may be reported. */

@@ -41,6 +41,66 @@ function kindOf(q) {
   return KINDS.find(([, test]) => test(q))[0];
 }
 
+// --- bytes ------------------------------------------------------------------
+
+/** A phase's name tested: "interactions" is every interaction's. */
+const phaseMatcher = (phase) => (p) => (phase === "interactions" ? p.startsWith("interaction") : p === phase);
+
+/** Whether a response or a byte count is counted: TodoMVC's common files only where asked for. */
+const counted = (url, common, withCommon) => withCommon || !isCommon(url, common);
+
+const emptyBytes = (run) => ({
+  requests: 0,
+  aborted: 0,
+  raw: 0,
+  br: 0,
+  gzip: 0,
+  received: 0,
+  byKind: {},
+  encodings: new Set(),
+  notModified: 0,
+  source: run.received ? "chromium" : "playwright",
+});
+
+/** A response's sizes into `to`: each count named, none where it has none. */
+const addSizes = (to, q, keys) => keys.forEach((key) => (to[key] += q[key] ?? 0));
+
+/** What the engine says it received of a response (Playwright's), headers included. */
+const receivedBy = (q) => (q.receivedBody ?? 0) + (q.receivedHeaders ?? 0);
+
+function addKind(byKind, q) {
+  const kind = (byKind[kindOf(q)] ??= { requests: 0, raw: 0, br: 0 });
+  kind.requests++;
+  addSizes(kind, q, ["raw", "br"]);
+}
+
+function addResponse(out, q, fromPlaywright) {
+  out.requests++;
+  if (q.status === 304) out.notModified++;
+  addSizes(out, q, ["raw", "br", "gzip"]);
+  if (fromPlaywright) out.received += receivedBy(q);
+  if (q.encoding) out.encodings.add(q.encoding);
+  addKind(out.byKind, q);
+}
+
+/** The responses into `out`; a request that ended without one is counted apart. */
+function addRequests(out, qs, fromPlaywright) {
+  for (const q of qs) {
+    if (q.failed) out.aborted++;
+    else addResponse(out, q, fromPlaywright);
+  }
+}
+
+/** What Chromium's DevTools protocol counted of one request in the phase. */
+const phaseBytes = (c, inPhase) =>
+  Object.entries(c.byPhase ?? {})
+    .filter(([p]) => inPhase(p))
+    .reduce((sum, [, n]) => sum + n, 0);
+
+function addChromium(out, received, inPhase, common, withCommon) {
+  for (const c of received.filter((x) => counted(x.url, common, withCommon))) out.received += phaseBytes(c, inPhase);
+}
+
 /**
  * One phase's requests in one run: the responses' count and bytes (decoded,
  * and as a static host compresses them), and the bytes received: on
@@ -50,42 +110,22 @@ function kindOf(q) {
  * without a response (an aborted stream) is counted apart, not as a response.
  */
 export function bytesOf(run, phase, common = [], { withCommon = true } = {}) {
-  const inPhase = (p) => (phase === "interactions" ? p.startsWith("interaction") : p === phase);
-  const qs = (run.requests ?? []).filter((q) => inPhase(q.phase));
-  const out = { requests: 0, aborted: 0, raw: 0, br: 0, gzip: 0, received: 0, byKind: {}, encodings: new Set(), notModified: 0, source: run.received ? "chromium" : "playwright" };
-  for (const q of qs) {
-    if (!withCommon && isCommon(q.url, common)) continue;
-    if (q.failed) {
-      out.aborted++;
-      continue;
-    }
-    out.requests++;
-    if (q.status === 304) out.notModified++;
-    out.raw += q.raw ?? 0;
-    out.br += q.br ?? 0;
-    out.gzip += q.gzip ?? 0;
-    if (!run.received) out.received += (q.receivedBody ?? 0) + (q.receivedHeaders ?? 0);
-    if (q.encoding) out.encodings.add(q.encoding);
-    const k = kindOf(q);
-    out.byKind[k] = out.byKind[k] ?? { requests: 0, raw: 0, br: 0 };
-    out.byKind[k].requests++;
-    out.byKind[k].raw += q.raw ?? 0;
-    out.byKind[k].br += q.br ?? 0;
-  }
-  if (run.received) {
-    for (const c of run.received) {
-      if (!withCommon && isCommon(c.url, common)) continue;
-      for (const [p, n] of Object.entries(c.byPhase ?? {})) if (inPhase(p)) out.received += n;
-    }
-  }
+  const inPhase = phaseMatcher(phase);
+  const out = emptyBytes(run);
+  const qs = (run.requests ?? []).filter((q) => inPhase(q.phase) && counted(q.url, common, withCommon));
+  addRequests(out, qs, !run.received);
+  if (run.received) addChromium(out, run.received, inPhase, common, withCommon);
   out.encodings = [...out.encodings].sort().join("+") || "none";
   return out;
 }
 
-function runsOf(app, { stack, engine, condition, network = null }) {
-  return app.runs.filter(
-    (r) => r.stack === stack && r.engine === engine && r.condition === condition && (r.network ?? null) === network,
-  );
+// --- runs and their spreads ---------------------------------------------------
+
+const sameCell = (r, { stack, engine, condition }) => r.stack === stack && r.engine === engine && r.condition === condition;
+
+function runsOf(app, cell) {
+  const network = cell.network ?? null;
+  return app.runs.filter((r) => sameCell(r, cell) && (r.network ?? null) === network);
 }
 
 /** The same numbers in every run, or their range. */
@@ -94,8 +134,10 @@ function same(values) {
   return s.length === 1 ? { value: s[0], varies: false } : { value: Math.max(...s), min: Math.min(...s), varies: true };
 }
 
+const missingNote = (s) => (s?.missing ? `not reported (${s.missing} runs)` : "-");
+
 function spread(s, f = ms) {
-  if (!s || s.n === 0) return s?.missing ? `not reported (${s.missing} runs)` : "-";
+  if (!s || s.n === 0) return missingNote(s);
   return `${f(s.median)} [${f(s.q1)}-${f(s.q3)}] (${f(s.min)}-${f(s.max)}, n=${s.n}${s.missing ? `, ${s.missing} not reported` : ""})`;
 }
 
@@ -105,7 +147,7 @@ const asList = (x) => (Array.isArray(x) ? x : Object.entries(x ?? {}).map(([stac
 
 /** Timing summaries for a cell: first contentful paint, the app's first
  * frame, interactive, and each interaction to its frame. */
-export function timings(app, cell, steps) {
+function timings(app, cell, steps) {
   const rs = runsOf(app, cell);
   const t = (k) => summary(rs.map((r) => r.timings?.[k] ?? null));
   const out = { fcp: t("fcp"), lcp: t("lcp"), cls: t("cls"), appFrame: t("appFrame"), ready: t("ready"), ttfb: t("ttfb"), load: t("load") };
@@ -115,10 +157,9 @@ export function timings(app, cell, steps) {
   return out;
 }
 
-/** Whether `a` (Pleris) is worse than `b`: a median above, with spreads apart. */
 /** A difference in time smaller than the engines' timer resolution is no
  * difference: Firefox and WebKit give `performance.now()` to a millisecond. */
-export const RESOLUTION_MS = 1;
+const RESOLUTION_MS = 1;
 
 /**
  * A server row's resolution: what its instrument can tell apart, as each run
@@ -129,7 +170,7 @@ export const RESOLUTION_MS = 1;
  * (10 ms). Two servers' numbers differ only where their spreads are that far
  * apart, as two pages' times differ only a millisecond apart.
  */
-export function serverResolution(runs, key) {
+function serverResolution(runs, key) {
   return Math.max(0.01, ...runs.map((r) => r.resolution?.[key] ?? 0));
 }
 
@@ -137,11 +178,268 @@ export function serverResolution(runs, key) {
  * calls good (0.1) is no difference. */
 export const CLS_RESOLUTION = 0.01;
 
+const noRuns = (s) => !s || s.n === 0;
+
+/** Either has no run to judge by. */
+const unknown = (a, b) => noRuns(a) || noRuns(b);
+
+/** The first quartile of `x` is at least `resolution` above the third of `y`. */
+const apart = (x, y, resolution) => x.q1 - y.q3 >= resolution;
+
+/** Whether `a` (Pleris) is worse than `b`: a median above, with spreads apart. */
 export function compareSpread(a, b, resolution = RESOLUTION_MS) {
-  if (!a || !b || a.n === 0 || b.n === 0) return "unknown";
-  if (a.q1 - b.q3 >= resolution) return "loses";
-  if (b.q1 - a.q3 >= resolution) return "wins";
+  if (unknown(a, b)) return "unknown";
+  if (apart(a, b, resolution)) return "loses";
+  if (apart(b, a, resolution)) return "wins";
   return "within the spread";
+}
+
+// --- the rows of where Pleris loses and is best -------------------------------
+
+const STACK_LABEL = { pleris: "Pleris", react: "React", svelte: "Svelte", "next-react": "Next.js", sveltekit: "SvelteKit" };
+
+const byValue = (a, b) => (a[1] > b[1] ? "loses" : a[1] < b[1] ? "wins" : "within the spread");
+const byMore = (a, b) => (a[1] < b[1] ? "loses" : a[1] > b[1] ? "wins" : "within the spread");
+const bySpread = (a, b) => compareSpread(a[1], b[1]);
+
+/** A row: what is compared, every stack's [label, value, shown], and how
+ * Pleris's value is judged against another's (`better`). A stand-in is a
+ * stack whose server is the instrument's static host. */
+const rowOf = (app, what, values, better, standIns = new Set()) => ({ app, what, values, better, standIns });
+
+const plerisIn = (values) => values.find(([l]) => l === "Pleris");
+
+/** A stand-in (the instrument's static host, serving a client-rendered app's
+ * files as any static host or CDN would) is not its stack's cost: a static
+ * file needs no application server. Pleris's host doing better than it is no
+ * win; doing worse is a loss all the same. */
+function verdictAgainst(r, mine, v) {
+  const verdict = r.better(mine, v);
+  return [v[0], verdict === "wins" && r.standIns.has(v[0]) ? "not compared: a stand-in" : verdict];
+}
+
+const rowText = (r) => `${r.app.app ?? r.app}: ${r.what}: ${r.values.map(([l, , shown]) => `${l} ${shown}`).join(" | ")}`;
+
+/** Where a row leaves Pleris: beaten by some stack (a loss), best of all
+ * (a win), or neither. */
+function classify(r) {
+  const mine = plerisIn(r.values);
+  const verdicts = r.values.filter(([l]) => l !== "Pleris").map((v) => verdictAgainst(r, mine, v));
+  const beaten = verdicts.filter(([, v]) => v === "loses").map(([l]) => l);
+  if (beaten.length) return { kind: "loss", text: `${rowText(r)}  (better: ${beaten.join(", ")})` };
+  const best = verdicts.length > 0 && verdicts.every(([, v]) => v === "wins");
+  return best ? { kind: "win", text: rowText(r) } : { kind: "neither" };
+}
+
+const whenPresent = (data, make) => (data ? make(data) : []);
+
+const passed = (counts) => Object.entries(counts).map(([s, v]) => [STACK_LABEL[s], v.passed, `${v.passed}/${v.total}`]);
+
+const behaviourRows = (behaviour) => [
+  ...whenPresent(behaviour?.spec, (spec) => [
+    rowOf("todomvc", "TodoMVC's specification, tests passed in Chromium, Firefox and WebKit together (more is better)", passed(spec.stacks), byMore),
+  ]),
+  ...whenPresent(behaviour?.cypress, (cypress) => [rowOf("todomvc", "TodoMVC's official Cypress suite, tests passed (more is better)", passed(cypress), byMore)]),
+];
+
+const SOURCE_ROWS = [
+  ["app lines", (c) => c.app.lines],
+  ["app lines plus the code it needs in its server in another language", (c) => c.app.lines + c.host.lines],
+  ["app files", (c) => c.app.files.length],
+  ["languages (app, and server code it needs)", (c) => new Set([...Object.keys(c.app.languages), ...Object.keys(c.host.languages)]).size],
+  ["build and configuration lines", (c) => c.build.lines],
+];
+
+const sourceValues = (stacks, f) => Object.entries(stacks).map(([s, c]) => [STACK_LABEL[s], f(c), String(f(c))]);
+
+const sourceRows = (loc) =>
+  Object.entries(loc?.counts ?? {}).flatMap(([app, stacks]) =>
+    SOURCE_ROWS.map(([what, f]) => rowOf(app, `source the developer writes: ${what}`, sourceValues(stacks, f), byValue)),
+  );
+
+const changeShown = (pr) => `+${pr.added}/-${pr.removed} in ${pr.files} file(s), ${pr.languages.join("+")}`;
+
+/** One of the twelve changes: the lines each stack's pull request changes. */
+const changeRow = (r) =>
+  rowOf(
+    "store",
+    `the same change, ${r.id} (${r.title}): lines changed`,
+    Object.entries(r.stacks).map(([s, c]) => [STACK_LABEL[s], c.pr.added + c.pr.removed, changeShown(c.pr)]),
+    byValue,
+  );
+
+const newChangeTotals = () => ({ lines: 0, files: 0, languages: new Set(), refused: 0, n: 0 });
+
+/** The checker's catch: a refusal, or a warning its reference lacks. */
+const checkerCaught = (c) => !!c.unsafe && (!c.unsafe.clean || (c.unsafe.newWarnings ?? []).length > 0);
+
+function addChange(totals, stack, c) {
+  const t = (totals[stack] ??= newChangeTotals());
+  t.lines += c.pr.added + c.pr.removed;
+  t.files += c.pr.files;
+  c.pr.languages.forEach((l) => t.languages.add(l));
+  if (checkerCaught(c)) t.refused++;
+  t.n++;
+}
+
+function changeTotals(rows) {
+  const totals = {};
+  for (const r of rows) {
+    for (const [stack, c] of Object.entries(r.stacks)) addChange(totals, stack, c);
+  }
+  return totals;
+}
+
+const hasUnsafe = (r) => Object.values(r.stacks).some((c) => c.unsafe);
+
+function totalRows(totals, judged) {
+  const v = (f, show) => Object.entries(totals).map(([s, t]) => [STACK_LABEL[s], f(t), show(t)]);
+  return [
+    rowOf("store", "the twelve changes: lines changed in all", v((t) => t.lines, (t) => String(t.lines)), byValue),
+    rowOf("store", "the twelve changes: files touched in all", v((t) => t.files, (t) => String(t.files)), byValue),
+    rowOf("store", "the twelve changes: languages touched", v((t) => t.languages.size, (t) => `${t.languages.size} (${[...t.languages].sort().join("+")})`), byValue),
+    ...(judged
+      ? [rowOf("store", "the twelve changes: unsafe versions the stack's own checker refuses or warns of (more is better)", v((t) => t.refused, (t) => `${t.refused}/${t.n}`), byMore)]
+      : []),
+  ];
+}
+
+const featureRows = (feature) =>
+  whenPresent(feature?.rows, (rows) => [...rows.map(changeRow), ...totalRows(changeTotals(rows), rows.some(hasUnsafe))]);
+
+function shownValue(exhibits, stack, n) {
+  const shown = exhibits.filter((e) => e.stack === stack && e.shown).length;
+  return [STACK_LABEL[stack], shown, `${shown}/${n} (shown in it)`];
+}
+
+function museumValues(exhibits) {
+  const n = exhibits.length;
+  const open = exhibits.filter((e) => !e.refused).length;
+  return [["Pleris", open, `${open}/${n}`], ...["next-react", "sveltekit"].map((s) => shownValue(exhibits, s, n))];
+}
+
+const museumRows = (museum) =>
+  whenPresent(museum?.exhibits, (exhibits) => [
+    rowOf("store", "the museum's bug classes the stack lets ship (fewer is better)", museumValues(exhibits), byValue),
+  ]);
+
+/** The rows the other sections give: behaviour, source, the feature
+ * changes, the museum. Each in the same terms as the measured rows. */
+const sectionRows = ({ behaviour, loc, feature, museum }) => [
+  ...behaviourRows(behaviour),
+  ...sourceRows(loc),
+  ...featureRows(feature),
+  ...museumRows(museum),
+];
+
+const stepNames = (app) => app.runs[0]?.interactions?.map((x) => x.name) ?? [];
+
+const byteValues = (app, f) =>
+  app.targets
+    .map((t) => [t.label, runsOf(app, { stack: t.stack, engine: "chromium", condition: "cold" })[0], t.common])
+    .filter(([, r]) => r)
+    .map(([l, r, c]) => {
+      const v = f(r, c);
+      return [l, v, fmt(v)];
+    });
+
+/** The bytes of the first load and of each interaction, cold, in Chromium. */
+function byteRows(app) {
+  const aside = app.targets.some((t) => t.common?.length) ? ", TodoMVC's common files aside" : "";
+  const specs = [
+    ["first load, bytes received as each host sent them (Chromium, cold)", (r, c) => bytesOf(r, "load", c).received],
+    ["first load, bytes decoded (Chromium, cold)", (r, c) => bytesOf(r, "load", c).raw],
+    [`first load, bytes as a static host compresses them, Brotli 11${aside} (Chromium, cold)`, (r, c) => bytesOf(r, "load", c, { withCommon: false }).br],
+    ["first load, requests (Chromium, cold)", (r, c) => bytesOf(r, "load", c).requests],
+    ...stepNames(app).map((s) => [`interaction "${s}", bytes received (Chromium, cold)`, (r, c) => bytesOf(r, `interaction:${s}`, c).received]),
+  ];
+  return specs.map(([what, f]) => rowOf(app, what, byteValues(app, f), byValue));
+}
+
+/** The engine, condition and network each of an app's runs was made in, once each. */
+const blocksOf = (app) => [...new Set(app.runs.map((r) => `${r.engine}|${r.condition}|${r.network ?? ""}`))];
+
+const TIME_WHAT = new Map([
+  ["fcp", "first contentful paint"],
+  ["lcp", "largest contentful paint"],
+  ["ready", "interactive"],
+]);
+
+const timeWhat = (k) => TIME_WHAT.get(k) ?? `interaction "${k.slice(5)}" to its frame`;
+
+const timeRow = (app, where, tm, k) =>
+  rowOf(
+    app,
+    `${timeWhat(k)}, ms, median ${where}`,
+    Object.entries(tm).map(([l, t]) => [l, t[k], `${ms(t[k].median)} ms`]),
+    bySpread,
+  );
+
+const shiftRow = (app, where, tm) =>
+  rowOf(
+    app,
+    `cumulative layout shift, median ${where}`,
+    Object.entries(tm).map(([l, t]) => [l, t.cls, cls(t.cls.median)]),
+    (a, b) => compareSpread(a[1], b[1], CLS_RESOLUTION),
+  );
+
+/** The times of one block (an engine, a condition, a network): paints, interactive, each interaction, layout shift. */
+function blockRows(app, steps, block) {
+  const [engine, condition, network] = block.split("|");
+  const tm = Object.fromEntries(
+    app.targets.map((t) => [t.label, timings(app, { stack: t.stack, engine, condition, network: network || null }, steps)]),
+  );
+  const where = `(${engine}, ${condition}${network ? `, ${network}` : ""})`;
+  const keys = ["fcp", "lcp", "ready", ...steps.map((s) => `step:${s}`)];
+  return [...keys.map((k) => timeRow(app, where, tm, k)), shiftRow(app, where, tm)];
+}
+
+const timeRows = (app) => blocksOf(app).flatMap((block) => blockRows(app, stepNames(app), block));
+
+const standInNote = (standIns) =>
+  standIns.size
+    ? ` (${[...standIns].join("'s and ")}'s server is the instrument's static host, standing in for any static host or CDN: a static file needs no application server, so Pleris's host doing better is no win)`
+    : "";
+
+const serverValues = (app, ok, f) =>
+  app.targets
+    .map((t) => {
+      const s = summary(ok.filter((r) => r.stack === t.stack).map(f));
+      return [t.label, s, fine(s.median)];
+    })
+    .filter(([, s]) => s.n > 0);
+
+/** The servers' rows: medians of repeated runs, judged by their spreads a
+ * whole unit apart; never a win over a stand-in. [measurement, what, the
+ * resolution's key, the number, whether a stand-in's server is judged]. */
+const SERVER_ROWS = [
+  ["loads", "server CPU per request, ms, median", "cpuMsPerRequest", (l) => l.cpuMsPerRequest],
+  ["loads", "server resident memory at its peak under load, MiB, median", "rssMiB", (l) => l.rssMiB.peak],
+  ["loads", "latency under load, p50, ms, median", "latencyMs", (l) => l.latencyMs.median],
+  ["loads", "latency under load, p99, ms, median", "latencyMs", (l) => l.p99Ms],
+  ["idle", "requests an idle visitor's page makes a minute (20 visitors, a browser context each), median", "requestsPerPagePerMinute", (i) => i.requestsPerPagePerMinute],
+  ["idle", "server CPU, ms a second, for 20 idle visitors, median", "cpuMsPerSecond", (i) => i.cpuMsPerSecond],
+  // A press is the page's and its server's together, what a person waits
+  // for: every stack's own, no stand-in.
+  ["presses", "a press with 19 other tabs of the app open in one browser, ms to its change (Chromium), median", "pressMs", (p) => p.pressMs, false],
+];
+
+function serverRow(app, standIns, [list, what, key, f, standIn = true]) {
+  const ok = asList(app[list]).filter((r) => !r.error);
+  const resolution = serverResolution(ok, key);
+  const judge = (a, b) => compareSpread(a[1], b[1], resolution);
+  return rowOf(app, `${what}${standIn ? standInNote(standIns) : ""}`, serverValues(app, ok, f), judge, standIn ? standIns : new Set());
+}
+
+function serverRows(app) {
+  const standIns = new Set(app.targets.filter((t) => t.standIn).map((t) => t.label));
+  return SERVER_ROWS.map((spec) => serverRow(app, standIns, spec));
+}
+
+/** An app's rows, in the order they are reported: bytes, times, servers; none where Pleris is not one of its stacks. */
+function appRows(app) {
+  if (!app.targets.some((t) => t.stack === "pleris")) return [];
+  return [...byteRows(app), ...timeRows(app), ...serverRows(app)];
 }
 
 /**
@@ -151,224 +449,129 @@ export function compareSpread(a, b, resolution = RESOLUTION_MS) {
  * in is a win; a row where the spreads overlap is neither and is counted.
  */
 export function lossesFirst(result, sections = {}) {
-  const losses = [];
-  const wins = [];
-  let unclear = 0;
-  const row = (app, what, values, better, { standIns = new Set() } = {}) => {
-    // values: [[label, value, summary?]]; better(a, b) -> "loses" | "wins" | "within the spread"
-    const mine = values.find(([l]) => l === "Pleris");
-    if (!mine) return;
-    // A stand-in (the instrument's static host, serving a client-rendered
-    // app's files as any static host or CDN would) is not its stack's cost:
-    // a static file needs no application server. Pleris's host doing better
-    // than it is no win; doing worse is a loss all the same.
-    const verdicts = values.filter(([l]) => l !== "Pleris").map((v) => {
-      const verdict = better(mine, v);
-      return [v[0], verdict === "wins" && standIns.has(v[0]) ? "not compared: a stand-in" : verdict];
-    });
-    const text = `${app.app ?? app}: ${what}: ${values.map(([l, , shown]) => `${l} ${shown}`).join(" | ")}`;
-    const beaten = verdicts.filter(([, v]) => v === "loses").map(([l]) => l);
-    if (beaten.length) losses.push(`${text}  (better: ${beaten.join(", ")})`);
-    else if (verdicts.length && verdicts.every(([, v]) => v === "wins")) wins.push(text);
-    else unclear++;
+  const rows = [...sectionRows(sections), ...result.apps.flatMap(appRows)];
+  const verdicts = rows.filter((r) => plerisIn(r.values)).map(classify);
+  return {
+    losses: verdicts.filter((v) => v.kind === "loss").map((v) => v.text),
+    wins: verdicts.filter((v) => v.kind === "win").map((v) => v.text),
+    unclear: verdicts.filter((v) => v.kind === "neither").length,
   };
-  const byValue = (a, b) => (a[1] > b[1] ? "loses" : a[1] < b[1] ? "wins" : "within the spread");
-  const byMore = (a, b) => (a[1] < b[1] ? "loses" : a[1] > b[1] ? "wins" : "within the spread");
-  const bySpread = (a, b) => compareSpread(a[1], b[1]);
-  sectionRows(sections, row, byValue, byMore);
-  for (const app of result.apps) {
-    if (!app.targets.some((t) => t.stack === "pleris")) continue;
-    const steps = app.runs[0]?.interactions?.map((x) => x.name) ?? [];
-    const coldChromium = (stack) => runsOf(app, { stack, engine: "chromium", condition: "cold" })[0];
-    const byteRows = [
-      ["first load, bytes received as each host sent them (Chromium, cold)", (r, c) => bytesOf(r, "load", c).received],
-      ["first load, bytes decoded (Chromium, cold)", (r, c) => bytesOf(r, "load", c).raw],
-      [`first load, bytes as a static host compresses them, Brotli 11${app.targets.some((t) => t.common?.length) ? ", TodoMVC's common files aside" : ""} (Chromium, cold)`, (r, c) => bytesOf(r, "load", c, { withCommon: false }).br],
-      ["first load, requests (Chromium, cold)", (r, c) => bytesOf(r, "load", c).requests],
-      ...steps.map((s) => [`interaction "${s}", bytes received (Chromium, cold)`, (r, c) => bytesOf(r, `interaction:${s}`, c).received]),
-    ];
-    for (const [what, f] of byteRows) {
-      const values = app.targets
-        .map((t) => [t.label, coldChromium(t.stack), t.common])
-        .filter(([, r]) => r)
-        .map(([l, r, c]) => {
-          const v = f(r, c);
-          return [l, v, fmt(v)];
-        });
-      row(app, what, values, byValue);
-    }
-    const blocks = [...new Set(app.runs.map((r) => `${r.engine}|${r.condition}|${r.network ?? ""}`))];
-    for (const b of blocks) {
-      const [engine, condition, network] = b.split("|");
-      const tm = Object.fromEntries(
-        app.targets.map((t) => [t.label, timings(app, { stack: t.stack, engine, condition, network: network || null }, steps)]),
-      );
-      const where = `(${engine}, ${condition}${network ? `, ${network}` : ""})`;
-      for (const k of ["fcp", "lcp", "ready", ...steps.map((s) => `step:${s}`)]) {
-        const what = k === "fcp" ? "first contentful paint" : k === "lcp" ? "largest contentful paint" : k === "ready" ? "interactive" : `interaction "${k.slice(5)}" to its frame`;
-        const values = Object.entries(tm).map(([l, t]) => [l, t[k], `${ms(t[k].median)} ms`]);
-        row(app, `${what}, ms, median ${where}`, values, bySpread);
-      }
-      const shifts = Object.entries(tm).map(([l, t]) => [l, t.cls, cls(t.cls.median)]);
-      row(app, `cumulative layout shift, median ${where}`, shifts, (a, b) => compareSpread(a[1], b[1], CLS_RESOLUTION));
-    }
-    // The servers' rows: medians of repeated runs, judged by their spreads
-    // a whole unit apart; never a win over a stand-in.
-    const standIns = new Set(app.targets.filter((t) => t.standIn).map((t) => t.label));
-    const standInNote = standIns.size
-      ? ` (${[...standIns].join("'s and ")}'s server is the instrument's static host, standing in for any static host or CDN: a static file needs no application server, so Pleris's host doing better is no win)`
-      : "";
-    const serverRow = (list, what, key, f, { standIn = true } = {}) => {
-      const ok = asList(list).filter((r) => !r.error);
-      const values = app.targets
-        .map((t) => {
-          const s = summary(ok.filter((r) => r.stack === t.stack).map(f));
-          return [t.label, s, fine(s.median)];
-        })
-        .filter(([, s]) => s.n > 0);
-      const resolution = serverResolution(ok, key);
-      const judge = (a, b) => compareSpread(a[1], b[1], resolution);
-      row(app, `${what}${standIn ? standInNote : ""}`, values, judge, { standIns: standIn ? standIns : new Set() });
-    };
-    serverRow(app.loads, "server CPU per request, ms, median", "cpuMsPerRequest", (l) => l.cpuMsPerRequest);
-    serverRow(app.loads, "server resident memory at its peak under load, MiB, median", "rssMiB", (l) => l.rssMiB.peak);
-    serverRow(app.loads, "latency under load, p50, ms, median", "latencyMs", (l) => l.latencyMs.median);
-    serverRow(app.loads, "latency under load, p99, ms, median", "latencyMs", (l) => l.p99Ms);
-    serverRow(app.idle, "requests an idle visitor's page makes a minute (20 visitors, a browser context each), median", "requestsPerPagePerMinute", (i) => i.requestsPerPagePerMinute);
-    serverRow(app.idle, "server CPU, ms a second, for 20 idle visitors, median", "cpuMsPerSecond", (i) => i.cpuMsPerSecond);
-    // A press is the page's and its server's together, what a person waits
-    // for: every stack's own, no stand-in.
-    serverRow(app.presses, "a press with 19 other tabs of the app open in one browser, ms to its change (Chromium), median", "pressMs", (p) => p.pressMs, { standIn: false });
-  }
-  return { losses, wins, unclear };
 }
 
-const STACK_LABEL = { pleris: "Pleris", react: "React", svelte: "Svelte", "next-react": "Next.js", sveltekit: "SvelteKit" };
+// --- the tables ---------------------------------------------------------------
 
-/** The rows the other sections give: behaviour, source, the feature
- * changes, the museum. Each in the same terms as the measured rows. */
-function sectionRows({ behaviour, loc, feature, museum }, row, byValue, byMore) {
-  if (behaviour?.spec) {
-    const values = Object.entries(behaviour.spec.stacks).map(([s, v]) => [STACK_LABEL[s], v.passed, `${v.passed}/${v.total}`]);
-    row("todomvc", "TodoMVC's specification, tests passed in Chromium, Firefox and WebKit together (more is better)", values, byMore);
-  }
-  if (behaviour?.cypress) {
-    const values = Object.entries(behaviour.cypress).map(([s, v]) => [STACK_LABEL[s], v.passed, `${v.passed}/${v.total}`]);
-    row("todomvc", "TodoMVC's official Cypress suite, tests passed (more is better)", values, byMore);
-  }
-  for (const [app, stacks] of Object.entries(loc?.counts ?? {})) {
-    const v = (f) => Object.entries(stacks).map(([s, c]) => [STACK_LABEL[s], f(c), String(f(c))]);
-    row(app, "source the developer writes: app lines", v((c) => c.app.lines), byValue);
-    row(app, "source the developer writes: app lines plus the code it needs in its server in another language", v((c) => c.app.lines + c.host.lines), byValue);
-    row(app, "source the developer writes: app files", v((c) => c.app.files.length), byValue);
-    row(app, "source the developer writes: languages (app, and server code it needs)", v((c) => new Set([...Object.keys(c.app.languages), ...Object.keys(c.host.languages)]).size), byValue);
-    row(app, "source the developer writes: build and configuration lines", v((c) => c.build.lines), byValue);
-  }
-  if (feature?.rows) {
-    const totals = {};
-    for (const r of feature.rows) {
-      const values = Object.entries(r.stacks).map(([s, c]) => [STACK_LABEL[s], c.pr.added + c.pr.removed, `+${c.pr.added}/-${c.pr.removed} in ${c.pr.files} file(s), ${c.pr.languages.join("+")}`]);
-      row("store", `the same change, ${r.id} (${r.title}): lines changed`, values, byValue);
-      for (const [s, c] of Object.entries(r.stacks)) {
-        const t = (totals[s] ??= { lines: 0, files: 0, languages: new Set(), refused: 0, n: 0 });
-        t.lines += c.pr.added + c.pr.removed;
-        t.files += c.pr.files;
-        c.pr.languages.forEach((l) => t.languages.add(l));
-        // The checker's catch: a refusal, or a warning its reference lacks.
-        if (c.unsafe && (!c.unsafe.clean || (c.unsafe.newWarnings ?? []).length)) t.refused++;
-        t.n++;
-      }
-    }
-    const v = (f, show) => Object.entries(totals).map(([s, t]) => [STACK_LABEL[s], f(t), show(t)]);
-    row("store", "the twelve changes: lines changed in all", v((t) => t.lines, (t) => String(t.lines)), byValue);
-    row("store", "the twelve changes: files touched in all", v((t) => t.files, (t) => String(t.files)), byValue);
-    row("store", "the twelve changes: languages touched", v((t) => t.languages.size, (t) => `${t.languages.size} (${[...t.languages].sort().join("+")})`), byValue);
-    if (feature.rows.some((r) => Object.values(r.stacks).some((c) => c.unsafe))) {
-      row("store", "the twelve changes: unsafe versions the stack's own checker refuses or warns of (more is better)", v((t) => t.refused, (t) => `${t.refused}/${t.n}`), byMore);
-    }
-  }
-  if (museum?.exhibits) {
-    const n = museum.exhibits.length;
-    const values = [
-      ["Pleris", museum.exhibits.filter((e) => !e.refused).length, `${museum.exhibits.filter((e) => !e.refused).length}/${n}`],
-      ...["next-react", "sveltekit"].map((s) => {
-        const shown = museum.exhibits.filter((e) => e.stack === s && e.shown).length;
-        return [STACK_LABEL[s], shown, `${shown}/${n} (shown in it)`];
-      }),
-    ];
-    row("store", "the museum's bug classes the stack lets ship (fewer is better)", values, byValue);
-  }
+const rawCell = (raw) => rpad(fmt(raw.value) + (raw.varies ? "*" : ""), 9);
+const receivedCell = (received) => rpad(fmt(received.value) + (received.varies ? `~${fmt(received.min)}` : ""), 9);
+
+const cold = (app, t) => runsOf(app, { stack: t.stack, engine: "chromium", condition: "cold" });
+const warm = (app, t) => runsOf(app, { stack: t.stack, engine: "chromium", condition: "warm" });
+
+/** An app's lines, one for each stack that has them. */
+const byTarget = (app, line) => app.targets.map((t) => line(app, t)).filter(Boolean);
+
+const BYTES_HEADER = [
+  "bytes of the first load, cold, Chromium (every cold run of a stack received the same, or its range is shown):",
+  "  decoded: the responses' bodies; Brotli 11, gzip 9: those bodies as a static host compresses them, for every stack alike;",
+  "  received: what the browser received as each host sent it (headers included); app br: Brotli 11 without TodoMVC's common files (base.js, learn.json)",
+  `  ${pad("stack", 10)} ${rpad("requests", 8)} ${rpad("decoded", 9)} ${rpad("Brotli 11", 9)} ${rpad("gzip 9", 8)} ${rpad("received", 9)}  ${pad("as sent", 8)} ${rpad("app br", 14)}  by kind (decoded/br)`,
+];
+
+const kindsText = (byKind) => Object.entries(byKind).map(([k, v]) => `${k} ${v.requests}: ${fmt(v.raw)}/${fmt(v.br)}`).join("; ");
+
+const loadAbortedNote = (n) => (n ? `; ${n} request(s) aborted before their response ended (a held stream, or a read the page cut short)` : "");
+
+function loadBytesLine(app, t) {
+  const rs = cold(app, t);
+  if (!rs.length) return null;
+  const b = rs.map((r) => bytesOf(r, "load", t.common));
+  const first = b[0];
+  const wo = bytesOf(rs[0], "load", t.common, { withCommon: false });
+  const cells = [rpad(first.requests, 8), rawCell(same(b.map((x) => x.raw))), rpad(fmt(first.br), 9), rpad(fmt(first.gzip), 8), receivedCell(same(b.map((x) => x.received)))];
+  return `  ${pad(t.label, 10)} ${cells.join(" ")}  ${pad(first.encodings, 8)} ${rpad(fmt(wo.br), 14)}  ${kindsText(first.byKind)}${loadAbortedNote(first.aborted)}`;
 }
 
-function bytesTable(app, lines) {
-  const steps = app.runs[0]?.interactions?.map((x) => x.name) ?? [];
-  lines.push("bytes of the first load, cold, Chromium (every cold run of a stack received the same, or its range is shown):");
-  lines.push("  decoded: the responses' bodies; Brotli 11, gzip 9: those bodies as a static host compresses them, for every stack alike;");
-  lines.push("  received: what the browser received as each host sent it (headers included); app br: Brotli 11 without TodoMVC's common files (base.js, learn.json)");
-  lines.push(
-    `  ${pad("stack", 10)} ${rpad("requests", 8)} ${rpad("decoded", 9)} ${rpad("Brotli 11", 9)} ${rpad("gzip 9", 8)} ${rpad("received", 9)}  ${pad("as sent", 8)} ${rpad("app br", 14)}  by kind (decoded/br)`,
-  );
-  for (const t of app.targets) {
-    const rs = runsOf(app, { stack: t.stack, engine: "chromium", condition: "cold" });
-    if (!rs.length) continue;
-    const b = rs.map((r) => bytesOf(r, "load", t.common));
-    const received = same(b.map((x) => x.received));
-    const raw = same(b.map((x) => x.raw));
-    const first = b[0];
-    const wo = bytesOf(rs[0], "load", t.common, { withCommon: false });
-    const kinds = Object.entries(first.byKind).map(([k, v]) => `${k} ${v.requests}: ${fmt(v.raw)}/${fmt(v.br)}`).join("; ");
-    lines.push(
-      `  ${pad(t.label, 10)} ${rpad(first.requests, 8)} ${rpad(fmt(raw.value) + (raw.varies ? "*" : ""), 9)} ${rpad(fmt(first.br), 9)} ${rpad(fmt(first.gzip), 8)} ${rpad(fmt(received.value) + (received.varies ? `~${fmt(received.min)}` : ""), 9)}  ${pad(first.encodings, 8)} ${rpad(fmt(wo.br), 14)}  ${kinds}${first.aborted ? `; ${first.aborted} request(s) aborted before their response ended (a held stream, or a read the page cut short)` : ""}`,
-    );
-  }
-  lines.push("  scripts and styles a minifier still shrinks by 10% or more (esbuild 0.28.2's, lib.mjs's rule), as served:");
-  for (const t of app.targets) {
-    const r = runsOf(app, { stack: t.stack, engine: "chromium", condition: "cold" })[0];
-    if (!r) continue;
-    const loose = (r.requests ?? []).filter((q) => q.minified === false);
-    const shown = loose.map((q) => `${new URL(q.url).pathname} ${fmt(q.raw)} -> ${fmt(q.minifiedBytes)}${isCommon(q.url, t.common) ? " (TodoMVC's common file)" : ""}`);
-    lines.push(`    ${pad(t.label, 10)} ${shown.length ? shown.join("; ") : "none"}`);
-  }
-  for (const s of steps) {
-    lines.push(`  interaction "${s}" (cold, Chromium): requests / decoded / Brotli 11 / received`);
-    for (const t of app.targets) {
-      const r = runsOf(app, { stack: t.stack, engine: "chromium", condition: "cold" })[0];
-      if (!r) continue;
-      const b = bytesOf(r, `interaction:${s}`, t.common);
-      const urls = (r.requests ?? []).filter((q) => q.phase === `interaction:${s}` && !q.failed).map((q) => `${q.method === "GET" ? "" : `${q.method} `}${new URL(q.url).pathname} ${fmt(q.raw)}`);
-      const aborted = b.aborted ? `; ${b.aborted} request(s) aborted before their response ended (${[...new Set((r.requests ?? []).filter((q) => q.phase === `interaction:${s}` && q.failed).map((q) => new URL(q.url).pathname))].join(", ")})` : "";
-      lines.push(`    ${pad(t.label, 10)} ${rpad(b.requests, 3)} ${rpad(fmt(b.raw), 9)} ${rpad(fmt(b.br), 9)} ${rpad(fmt(b.received), 9)}  ${urls.join(", ")}${aborted}`);
-    }
-  }
-  lines.push("  warm (the same context after one whole visit; Chromium): requests / answered 304 / received");
-  for (const t of app.targets) {
-    const rs = runsOf(app, { stack: t.stack, engine: "chromium", condition: "warm" });
-    if (!rs.length) continue;
-    const b = bytesOf(rs[0], "load", t.common);
-    const received = same(rs.map((r) => bytesOf(r, "load", t.common).received));
-    lines.push(`    ${pad(t.label, 10)} ${rpad(b.requests, 3)} ${rpad(b.notModified, 3)} ${rpad(fmt(received.value) + (received.varies ? `~${fmt(received.min)}` : ""), 9)}`);
-  }
+const looseText = (t, q) => `${new URL(q.url).pathname} ${fmt(q.raw)} -> ${fmt(q.minifiedBytes)}${isCommon(q.url, t.common) ? " (TodoMVC's common file)" : ""}`;
+
+function looseLine(app, t) {
+  const r = cold(app, t)[0];
+  if (!r) return null;
+  const shown = (r.requests ?? []).filter((q) => q.minified === false).map((q) => looseText(t, q));
+  return `    ${pad(t.label, 10)} ${shown.length ? shown.join("; ") : "none"}`;
 }
 
-function timingTable(app, lines, profile) {
-  const steps = app.runs[0]?.interactions?.map((x) => x.name) ?? [];
-  const blocks = [...new Set(app.runs.map((r) => `${r.engine}|${r.condition}|${r.network ?? ""}`))];
-  lines.push("times, ms from navigation start: median [first-third quartile] (min-max, n); interactions from the input event to the frame after the change; layout shift a score");
-  for (const b of blocks) {
-    const [engine, condition, network] = b.split("|");
-    // The profile as it was applied (the run's own record), never a copy of its numbers.
-    const shaped = profile && profile.name === network ? profile.describe : "its profile not recorded";
-    lines.push(`  ${engine}, ${condition}${network ? `, ${network} (${shaped})` : ", unshaped (loopback)"}:`);
-    for (const t of app.targets) {
-      const tm = timings(app, { stack: t.stack, engine, condition, network: network || null }, steps);
-      lines.push(`    ${pad(t.label, 10)} first contentful paint ${spread(tm.fcp)}`);
-      lines.push(`    ${pad("", 10)} largest contentful p. ${spread(tm.lcp)}`);
-      lines.push(`    ${pad("", 10)} layout shift           ${spread(tm.cls, cls)}`);
-      lines.push(`    ${pad("", 10)} interactive            ${spread(tm.ready)}`);
-      for (const s of steps) lines.push(`    ${pad("", 10)} ${pad(`"${s}"`, 22)} ${spread(tm[`step:${s}`])}`);
-    }
-  }
+const urlsText = (r, phase) =>
+  (r.requests ?? [])
+    .filter((q) => q.phase === phase && !q.failed)
+    .map((q) => `${q.method === "GET" ? "" : `${q.method} `}${new URL(q.url).pathname} ${fmt(q.raw)}`);
+
+const abortedPaths = (r, phase) =>
+  [...new Set((r.requests ?? []).filter((q) => q.phase === phase && q.failed).map((q) => new URL(q.url).pathname))].join(", ");
+
+const interactionAbortedNote = (b, r, phase) =>
+  b.aborted ? `; ${b.aborted} request(s) aborted before their response ended (${abortedPaths(r, phase)})` : "";
+
+function interactionLine(app, t, step) {
+  const r = cold(app, t)[0];
+  if (!r) return null;
+  const phase = `interaction:${step}`;
+  const b = bytesOf(r, phase, t.common);
+  return `    ${pad(t.label, 10)} ${rpad(b.requests, 3)} ${rpad(fmt(b.raw), 9)} ${rpad(fmt(b.br), 9)} ${rpad(fmt(b.received), 9)}  ${urlsText(r, phase).join(", ")}${interactionAbortedNote(b, r, phase)}`;
 }
+
+function warmLine(app, t) {
+  const rs = warm(app, t);
+  if (!rs.length) return null;
+  const b = bytesOf(rs[0], "load", t.common);
+  const received = same(rs.map((r) => bytesOf(r, "load", t.common).received));
+  return `    ${pad(t.label, 10)} ${rpad(b.requests, 3)} ${rpad(b.notModified, 3)} ${receivedCell(received)}`;
+}
+
+function bytesTable(app) {
+  return [
+    ...BYTES_HEADER,
+    ...byTarget(app, loadBytesLine),
+    "  scripts and styles a minifier still shrinks by 10% or more (esbuild 0.28.2's, lib.mjs's rule), as served:",
+    ...byTarget(app, looseLine),
+    ...stepNames(app).flatMap((step) => [
+      `  interaction "${step}" (cold, Chromium): requests / decoded / Brotli 11 / received`,
+      ...byTarget(app, (a, t) => interactionLine(a, t, step)),
+    ]),
+    "  warm (the same context after one whole visit; Chromium): requests / answered 304 / received",
+    ...byTarget(app, warmLine),
+  ];
+}
+
+const TIMES_HEADER =
+  "times, ms from navigation start: median [first-third quartile] (min-max, n); interactions from the input event to the frame after the change; layout shift a score";
+
+/** The profile as it was applied (the run's own record), never a copy of its numbers. */
+const shapedLabel = (profile, network) => (profile && profile.name === network ? profile.describe : "its profile not recorded");
+
+function targetTimeLines(app, steps, [engine, condition, network], t) {
+  const tm = timings(app, { stack: t.stack, engine, condition, network: network || null }, steps);
+  return [
+    `    ${pad(t.label, 10)} first contentful paint ${spread(tm.fcp)}`,
+    `    ${pad("", 10)} largest contentful p. ${spread(tm.lcp)}`,
+    `    ${pad("", 10)} layout shift           ${spread(tm.cls, cls)}`,
+    `    ${pad("", 10)} interactive            ${spread(tm.ready)}`,
+    ...steps.map((s) => `    ${pad("", 10)} ${pad(`"${s}"`, 22)} ${spread(tm[`step:${s}`])}`),
+  ];
+}
+
+function blockLines(app, steps, profile, block) {
+  const where = block.split("|");
+  const [engine, condition, network] = where;
+  const shaped = shapedLabel(profile, network);
+  return [
+    `  ${engine}, ${condition}${network ? `, ${network} (${shaped})` : ", unshaped (loopback)"}:`,
+    ...app.targets.flatMap((t) => targetTimeLines(app, steps, where, t)),
+  ];
+}
+
+const timingTable = (app, profile) => [
+  TIMES_HEADER,
+  ...blocksOf(app).flatMap((block) => blockLines(app, stepNames(app), profile, block)),
+];
 
 /** A server measurement's runs, a stack's: their summary by `f`, and how many failed. */
 function serverRuns(list, stack, f) {
@@ -376,101 +579,152 @@ function serverRuns(list, stack, f) {
   return { s: summary(mine.filter((r) => !r.error).map(f)), failed: mine.filter((r) => r.error) };
 }
 
-function loadTable(app, lines) {
-  const list = asList(app.loads);
-  if (!list.length) return;
+const runsFor = (list, t) => list.filter((l) => l.stack === t.stack);
+
+const failedNote = (mine) => {
+  const failed = mine.filter((l) => l.error);
+  return failed.length ? `; ${failed.length} run(s) FAILED: ${failed[0].error}` : "";
+};
+
+/** A server measurement's table: nothing where it was not made; else its
+ * header (from a run that did not fail, and the most runs a stack has) and
+ * each stack's lines. */
+function serverTable(app, list, header, linesFor) {
+  if (!list.length) return [];
   const any = list.find((l) => !l.error) ?? {};
-  const n = Math.max(...app.targets.map((t) => list.filter((l) => l.stack === t.stack).length));
-  lines.push(`server under a fixed open load: ${any.rate} requests/s for ${any.seconds} s, each of the page's document (after 50 warm-up requests), ${n} runs a stack, every stack once a round in a shuffled order: median [first-third quartile] (min-max, n)`);
-  for (const t of app.targets) {
-    const mine = list.filter((l) => l.stack === t.stack);
-    if (!mine.length) continue;
-    const ok = mine.filter((l) => !l.error);
-    const statuses = {};
-    for (const l of ok) for (const [k, c] of Object.entries(l.statuses ?? {})) statuses[k] = (statuses[k] ?? 0) + c;
-    const answered = ok.reduce((c, l) => c + l.answered, 0);
-    const sent = ok.reduce((c, l) => c + l.sent, 0);
-    const failed = mine.length - ok.length;
-    lines.push(`  ${pad(t.label, 10)} answered ${answered}/${sent} ${JSON.stringify(statuses)}; processes ${ok[0]?.processes ?? "-"}${failed ? `; ${failed} run(s) FAILED: ${mine.find((l) => l.error).error}` : ""}`);
-    lines.push(`  ${pad("", 10)} CPU per request, ms         ${spread(serverRuns(list, t.stack, (l) => l.cpuMsPerRequest).s, fine)}`);
-    lines.push(`  ${pad("", 10)} latency p50, ms             ${spread(serverRuns(list, t.stack, (l) => l.latencyMs.median).s, fine)}`);
-    lines.push(`  ${pad("", 10)} latency p99, ms             ${spread(serverRuns(list, t.stack, (l) => l.p99Ms).s, fine)}`);
-    lines.push(`  ${pad("", 10)} resident memory at peak, MiB ${spread(serverRuns(list, t.stack, (l) => l.rssMiB.peak).s, fine)}`);
-  }
+  const n = Math.max(...app.targets.map((t) => runsFor(list, t).length));
+  const stacks = app.targets.filter((t) => runsFor(list, t).length > 0);
+  return [header(any, n), ...stacks.flatMap((t) => linesFor(t, runsFor(list, t), list))];
 }
 
-function idleTable(app, lines) {
-  const list = asList(app.idle);
-  if (!list.length) return;
-  const any = list.find((i) => !i.error) ?? {};
-  const n = Math.max(...app.targets.map((t) => list.filter((l) => l.stack === t.stack).length));
-  lines.push(`idle visitors: ${any.pages} pages of the app in Chromium, each in a browser context of its own (as separate people's browsers), loaded and left alone for ${any.seconds} s; ${n} runs a stack: median [first-third quartile] (min-max, n)`);
-  for (const t of app.targets) {
-    const mine = list.filter((l) => l.stack === t.stack);
-    if (!mine.length) continue;
-    const failed = mine.filter((l) => l.error);
-    lines.push(`  ${pad(t.label, 10)} requests a page a minute    ${spread(serverRuns(list, t.stack, (i) => i.requestsPerPagePerMinute).s, fine)}${failed.length ? `; ${failed.length} run(s) FAILED: ${failed[0].error}` : ""}`);
-    lines.push(`  ${pad("", 10)} server CPU, ms a second     ${spread(serverRuns(list, t.stack, (i) => i.cpuMsPerSecond).s, fine)}`);
-    lines.push(`  ${pad("", 10)} server resident memory, MiB ${spread(serverRuns(list, t.stack, (i) => i.rssMiB).s, fine)}`);
-  }
+const loadHeader = (any, n) =>
+  `server under a fixed open load: ${any.rate} requests/s for ${any.seconds} s, each of the page's document (after 50 warm-up requests), ${n} runs a stack, every stack once a round in a shuffled order: median [first-third quartile] (min-max, n)`;
+
+/** The statuses the runs of a fixed load were answered with, counted. */
+const sumStatuses = (ok) =>
+  ok
+    .flatMap((l) => Object.entries(l.statuses ?? {}))
+    .reduce((counts, [k, c]) => {
+      counts[k] = (counts[k] ?? 0) + c;
+      return counts;
+    }, {});
+
+function loadLines(t, mine, list) {
+  const ok = mine.filter((l) => !l.error);
+  const sum = (key) => ok.reduce((c, l) => c + l[key], 0);
+  return [
+    `  ${pad(t.label, 10)} answered ${sum("answered")}/${sum("sent")} ${JSON.stringify(sumStatuses(ok))}; processes ${ok[0]?.processes ?? "-"}${failedNote(mine)}`,
+    `  ${pad("", 10)} CPU per request, ms         ${spread(serverRuns(list, t.stack, (l) => l.cpuMsPerRequest).s, fine)}`,
+    `  ${pad("", 10)} latency p50, ms             ${spread(serverRuns(list, t.stack, (l) => l.latencyMs.median).s, fine)}`,
+    `  ${pad("", 10)} latency p99, ms             ${spread(serverRuns(list, t.stack, (l) => l.p99Ms).s, fine)}`,
+    `  ${pad("", 10)} resident memory at peak, MiB ${spread(serverRuns(list, t.stack, (l) => l.rssMiB.peak).s, fine)}`,
+  ];
 }
 
-function pressTable(app, lines) {
-  const list = asList(app.presses);
-  if (!list.length) return;
-  const any = list.find((i) => !i.error) ?? {};
-  const n = Math.max(...app.targets.map((t) => list.filter((l) => l.stack === t.stack).length));
-  lines.push(`a press with other tabs open: ${any.tabs} tabs of the app in ONE browser context (one person's browser, whose six connections to a host over HTTP/1.1 they share), left ${any.settleSeconds} s, then the app's first interaction in the last tab, ms to its change; ${n} runs a stack: median [first-third quartile] (min-max, n)`);
-  for (const t of app.targets) {
-    const mine = list.filter((l) => l.stack === t.stack);
-    if (!mine.length) continue;
-    const failed = mine.filter((l) => l.error);
-    lines.push(`  ${pad(t.label, 10)} ${spread(serverRuns(list, t.stack, (i) => i.pressMs).s)}${failed.length ? `; ${failed.length} run(s) FAILED: ${failed[0].error}` : ""}`);
-  }
+const loadTable = (app) => serverTable(app, asList(app.loads), loadHeader, loadLines);
+
+const idleHeader = (any, n) =>
+  `idle visitors: ${any.pages} pages of the app in Chromium, each in a browser context of its own (as separate people's browsers), loaded and left alone for ${any.seconds} s; ${n} runs a stack: median [first-third quartile] (min-max, n)`;
+
+const idleLines = (t, mine, list) => [
+  `  ${pad(t.label, 10)} requests a page a minute    ${spread(serverRuns(list, t.stack, (i) => i.requestsPerPagePerMinute).s, fine)}${failedNote(mine)}`,
+  `  ${pad("", 10)} server CPU, ms a second     ${spread(serverRuns(list, t.stack, (i) => i.cpuMsPerSecond).s, fine)}`,
+  `  ${pad("", 10)} server resident memory, MiB ${spread(serverRuns(list, t.stack, (i) => i.rssMiB).s, fine)}`,
+];
+
+const idleTable = (app) => serverTable(app, asList(app.idle), idleHeader, idleLines);
+
+const pressHeader = (any, n) =>
+  `a press with other tabs open: ${any.tabs} tabs of the app in ONE browser context (one person's browser, whose six connections to a host over HTTP/1.1 they share), left ${any.settleSeconds} s, then the app's first interaction in the last tab, ms to its change; ${n} runs a stack: median [first-third quartile] (min-max, n)`;
+
+const pressLines = (t, mine, list) => [
+  `  ${pad(t.label, 10)} ${spread(serverRuns(list, t.stack, (i) => i.pressMs).s)}${failedNote(mine)}`,
+];
+
+const pressTable = (app) => serverTable(app, asList(app.presses), pressHeader, pressLines);
+
+// --- the report -----------------------------------------------------------------
+
+const browsersOf = (result) => result.apps.map((a) => Object.entries(a.browsers).map(([k, v]) => `${k} ${v}`).join(", "))[0] ?? "-";
+
+const settledLine = (meta) =>
+  `settled before measuring: one-minute load ${meta.settled.before} -> ${meta.settled.after} in ${meta.settled.waitedSeconds} s (waits at most ${meta.args?.settleSeconds} s for under ${meta.settled.goal})`;
+
+const shapedNote = (meta) =>
+  meta.network
+    ? `${meta.network.describe} (latency ${meta.network.latency} ms, ${meta.network.download} B/s down, ${meta.network.upload} B/s up, as sent)`
+    : meta.args.shaped
+      ? "Slow 4G, its profile not recorded"
+      : "no";
+
+const serversNote = (meta) => (meta.args.load === false ? "not measured" : `${meta.args.serverRuns ?? 1} runs a stack`);
+
+const runsLine = (meta) =>
+  `runs: ${meta.args.runs} per cell (at least ${meta.minRuns}); conditions ${meta.args.conditions.join(", ")}; engines ${meta.args.engines.join(", ")}; Chromium also shaped: ${shapedNote(meta)}; servers: ${serversNote(meta)}; seed ${meta.args.seed}`;
+
+function machineLines(result) {
+  const { meta } = result;
+  const m = meta.machine;
+  return [
+    `machine: ${m.cpu}, ${m.logicalCpus} logical CPUs, ${m.memoryGiB} GiB; ${m.os}; kernel ${m.kernel}; node ${m.node}`,
+    `load average: ${m.loadAverage.join(" ")} at the start, ${meta.loadAverageAfter?.join(" ")} at the end`,
+    ...(meta.settled ? [settledLine(meta)] : []),
+    `playwright: ${meta.playwright}; browsers: ${browsersOf(result)}`,
+    runsLine(meta),
+    `commit: ${meta.commit}${meta.dirty ? ` + ${meta.dirty}` : ""}; ${meta.started} to ${meta.finished}`,
+  ];
 }
+
+function verdictLines(result, sections) {
+  const { losses, wins, unclear } = lossesFirst(result, sections);
+  return [
+    `== where Pleris loses: ${losses.length} row(s) of the tables below in which another stack does better`,
+    ...losses.map((l) => `  LOSS ${l}`),
+    ...(losses.length ? [] : ["  none in these tables"]),
+    "",
+    `== where Pleris is best: ${wins.length} row(s); ${unclear} more where it is neither (spreads overlap, or it is between the others)`,
+    ...wins.map((w) => `  BEST ${w}`),
+    "",
+  ];
+}
+
+const sectionLines = (sections) =>
+  Object.entries(sections.texts ?? {}).flatMap(([name, text]) => [`== ${name}`, text.trimEnd(), ""]);
+
+const READY_WHEN = new Map([
+  ["dom", "its field is in the document (rendered by the client, handlers attached as it renders)"],
+  ["pw", "the runtime sets data-pw-ready"],
+  ["next", "the hydrated App Router writes its state to history.state"],
+]);
+
+const readyWhen = (ready) => READY_WHEN.get(ready) ?? "SvelteKit's router starts after hydrating (history.scrollRestoration set)";
+
+const targetLine = (t) =>
+  `  ${pad(t.label, 10)} ${t.version}; written by ${t.who}; served by ${t.server.cmd} ${t.server.args.join(" ")}; interactive when ${readyWhen(t.ready)}; build minifies: ${t.expect.minifies ? "yes" : "NO"}; host compresses: ${t.expect.compresses || "NO"}; host lets a cache keep its files: ${t.expect.caches ? "yes" : "NO"}`;
+
+const appLines = (app, meta) => [
+  `== ${app.title}`,
+  ...app.targets.map(targetLine),
+  "",
+  ...bytesTable(app),
+  "",
+  ...timingTable(app, meta.network),
+  "",
+  ...loadTable(app),
+  "",
+  ...idleTable(app),
+  "",
+  ...pressTable(app),
+  "",
+];
 
 export function renderReport(result, sections = {}) {
-  const { meta } = result;
-  const lines = [];
-  const m = meta.machine;
-  lines.push(`machine: ${m.cpu}, ${m.logicalCpus} logical CPUs, ${m.memoryGiB} GiB; ${m.os}; kernel ${m.kernel}; node ${m.node}`);
-  lines.push(`load average: ${m.loadAverage.join(" ")} at the start, ${meta.loadAverageAfter?.join(" ")} at the end`);
-  if (meta.settled) {
-    lines.push(`settled before measuring: one-minute load ${meta.settled.before} -> ${meta.settled.after} in ${meta.settled.waitedSeconds} s (waits at most ${meta.args?.settleSeconds} s for under ${meta.settled.goal})`);
-  }
-  lines.push(`playwright: ${meta.playwright}; browsers: ${result.apps.map((a) => Object.entries(a.browsers).map(([k, v]) => `${k} ${v}`).join(", "))[0] ?? "-"}`);
-  lines.push(`runs: ${meta.args.runs} per cell (at least ${meta.minRuns}); conditions ${meta.args.conditions.join(", ")}; engines ${meta.args.engines.join(", ")}; Chromium also shaped: ${meta.network ? `${meta.network.describe} (latency ${meta.network.latency} ms, ${meta.network.download} B/s down, ${meta.network.upload} B/s up, as sent)` : meta.args.shaped ? "Slow 4G, its profile not recorded" : "no"}; servers: ${meta.args.load === false ? "not measured" : `${meta.args.serverRuns ?? 1} runs a stack`}; seed ${meta.args.seed}`);
-  lines.push(`commit: ${meta.commit}${meta.dirty ? ` + ${meta.dirty}` : ""}; ${meta.started} to ${meta.finished}`);
-  lines.push("");
-  const { losses, wins, unclear } = lossesFirst(result, sections);
-  lines.push(`== where Pleris loses: ${losses.length} row(s) of the tables below in which another stack does better`);
-  for (const l of losses) lines.push(`  LOSS ${l}`);
-  if (!losses.length) lines.push("  none in these tables");
-  lines.push("");
-  lines.push(`== where Pleris is best: ${wins.length} row(s); ${unclear} more where it is neither (spreads overlap, or it is between the others)`);
-  for (const w of wins) lines.push(`  BEST ${w}`);
-  lines.push("");
-  for (const [name, text] of Object.entries(sections.texts ?? {})) {
-    lines.push(`== ${name}`);
-    lines.push(text.trimEnd());
-    lines.push("");
-  }
-  for (const app of result.apps) {
-    lines.push(`== ${app.title}`);
-    for (const t of app.targets) {
-      lines.push(`  ${pad(t.label, 10)} ${t.version}; written by ${t.who}; served by ${t.server.cmd} ${t.server.args.join(" ")}; interactive when ${t.ready === "dom" ? "its field is in the document (rendered by the client, handlers attached as it renders)" : t.ready === "pw" ? "the runtime sets data-pw-ready" : t.ready === "next" ? "the hydrated App Router writes its state to history.state" : "SvelteKit's router starts after hydrating (history.scrollRestoration set)"}; build minifies: ${t.expect.minifies ? "yes" : "NO"}; host compresses: ${t.expect.compresses || "NO"}; host lets a cache keep its files: ${t.expect.caches ? "yes" : "NO"}`);
-    }
-    lines.push("");
-    bytesTable(app, lines);
-    lines.push("");
-    timingTable(app, lines, meta.network);
-    lines.push("");
-    loadTable(app, lines);
-    lines.push("");
-    idleTable(app, lines);
-    lines.push("");
-    pressTable(app, lines);
-    lines.push("");
-  }
+  const lines = [
+    ...machineLines(result),
+    "",
+    ...verdictLines(result, sections),
+    ...sectionLines(sections),
+    ...result.apps.flatMap((app) => appLines(app, result.meta)),
+  ];
   return `${lines.join("\n")}\n`;
 }

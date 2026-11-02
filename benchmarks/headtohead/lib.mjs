@@ -17,6 +17,24 @@ export const BENCH = path.resolve(HERE, "..");
 export const REPO = path.resolve(BENCH, "..");
 export const HARNESS = path.join(BENCH, "harness");
 
+/** A command run to its end: whether it succeeded, its exit status, and what
+ * it wrote to stdout and stderr, as one text. */
+export function sh(cmd, args, opts = {}) {
+  const { status, stdout, stderr } = spawnSync(cmd, args, { encoding: "utf8", maxBuffer: 64 << 20, ...opts });
+  return { ok: status === 0, status, out: `${stdout ?? ""}${stderr ?? ""}` };
+}
+
+/** Whether the module whose `import.meta.url` is given is the script this
+ * process was started with (not one imported by another). */
+export function isMain(metaUrl) {
+  return !!process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(metaUrl).pathname);
+}
+
+/** The path that follows `flag` in `argv`, made absolute, or null where the flag is absent. */
+export function pathAfter(argv, flag) {
+  return argv.includes(flag) ? path.resolve(argv[argv.indexOf(flag) + 1]) : null;
+}
+
 /** Playwright, 1.58.0, as this package pins it (`package.json`), the same
  * the benchmark's harness and the own renderer pin. */
 export function playwright() {

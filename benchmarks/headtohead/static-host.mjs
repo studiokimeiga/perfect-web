@@ -52,10 +52,10 @@ const TYPES = {
 };
 
 /** What a static host compresses: text, scripts, JSON, SVG and WebAssembly. */
-export const COMPRESSIBLE = /^(text\/|application\/(javascript|json|wasm)|image\/svg\+xml)/;
+const COMPRESSIBLE = /^(text\/|application\/(javascript|json|wasm)|image\/svg\+xml)/;
 
 /** A name that carries its content's hash, as Vite and webpack's `[contenthash]` write it. */
-export const HASHED = /[.-][A-Za-z0-9_-]{8,}\.(js|mjs|css|wasm|svg|woff2?)$/;
+const HASHED = /[.-][A-Za-z0-9_-]{8,}\.(js|mjs|css|wasm|svg|woff2?)$/;
 
 export function cacheControl(file) {
   return HASHED.test(path.basename(file)) ? "public, max-age=31536000, immutable" : "no-cache";
@@ -74,120 +74,170 @@ export function compressions(body) {
   };
 }
 
+/** One `Accept-Encoding` entry as [name, weight]: the name lower-cased, the
+ * weight 1 unless a `q=` parameter says; null for an empty name. */
+function parseOffer(part) {
+  const [name, ...params] = part.trim().split(";");
+  if (!name) return null;
+  const q = params.map((p) => p.trim()).find((p) => p.startsWith("q="));
+  return [name.trim().toLowerCase(), q ? Number(q.slice(2)) : 1];
+}
+
 /** The encoding a request accepts, best first: br, then gzip, else none. */
 export function chooseEncoding(accept = "") {
-  const offered = new Map();
-  for (const part of accept.split(",")) {
-    const [name, ...params] = part.trim().split(";");
-    if (!name) continue;
-    const q = params.map((p) => p.trim()).find((p) => p.startsWith("q="));
-    offered.set(name.trim().toLowerCase(), q ? Number(q.slice(2)) : 1);
-  }
+  const offered = new Map(accept.split(",").map(parseOffer).filter(Boolean));
   const ok = (name) => (offered.get(name) ?? offered.get("*") ?? 0) > 0;
-  if (ok("br")) return "br";
-  if (ok("gzip")) return "gzip";
-  return null;
+  return ["br", "gzip"].find(ok) ?? null;
+}
+
+/** What each option does with the argument that follows it. */
+const OPTIONS = new Map([
+  ["--port", (out, value) => (out.port = Number(value))],
+  ["--mount", (out, value) => out.mounts.push(mountOf(value))],
+  ["--log", (out, value) => (out.log = path.resolve(value))],
+]);
+
+/** A `--mount prefix=dir` argument: the prefix without its trailing slash, the directory made absolute. */
+function mountOf(value) {
+  const [prefix, dir] = value.split("=");
+  return { prefix: prefix.replace(/\/$/, ""), dir: path.resolve(dir) };
 }
 
 export function parseArgs(argv) {
   const out = { port: 0, mounts: [], log: null };
   for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === "--port") out.port = Number(argv[++i]);
-    else if (a === "--mount") {
-      const [prefix, dir] = argv[++i].split("=");
-      out.mounts.push({ prefix: prefix.replace(/\/$/, ""), dir: path.resolve(dir) });
-    } else if (a === "--log") out.log = path.resolve(argv[++i]);
-    else throw new Error(`static-host: unknown argument ${a}`);
+    const option = OPTIONS.get(argv[i]);
+    if (!option) throw new Error(`static-host: unknown argument ${argv[i]}`);
+    option(out, argv[++i]);
   }
   if (!out.mounts.length) throw new Error("static-host: no --mount");
   return out;
 }
 
+/** A file as the host holds it: its bytes, type, validator, cache policy and precompressed forms. */
+function readFile(file, name) {
+  const body = fs.readFileSync(file);
+  const type = TYPES[path.extname(name)] ?? "application/octet-stream";
+  return {
+    path: file,
+    type,
+    body,
+    etag: `"${createHash("sha256").update(body).digest("base64url")}"`,
+    cache: cacheControl(file),
+    encoded: COMPRESSIBLE.test(type) ? compressions(body) : {},
+  };
+}
+
+/** Every file under `dir`, by its address under `prefix`, into `files`. */
+function walk(files, dir, prefix) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    const url = `${prefix}/${e.name}`;
+    if (e.isDirectory()) walk(files, p, url);
+    else if (e.isFile()) files.set(url, readFile(p, e.name));
+  }
+}
+
 /** Every file under each mount, read and compressed once. */
 export function loadFiles(mounts) {
   const files = new Map();
-  const walk = (dir, prefix) => {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-      const p = path.join(dir, e.name);
-      const url = `${prefix}/${e.name}`;
-      if (e.isDirectory()) walk(p, url);
-      else if (e.isFile()) {
-        const body = fs.readFileSync(p);
-        const type = TYPES[path.extname(e.name)] ?? "application/octet-stream";
-        files.set(url, {
-          path: p,
-          type,
-          body,
-          etag: `"${createHash("sha256").update(body).digest("base64url")}"`,
-          cache: cacheControl(p),
-          encoded: COMPRESSIBLE.test(type) ? compressions(body) : {},
-        });
-      }
-    }
-  };
-  for (const m of mounts) walk(m.dir, m.prefix);
+  for (const m of mounts) walk(files, m.dir, m.prefix);
   return files;
+}
+
+/** The directories above `url`, up to the root, into `dirs`. */
+function addParents(dirs, url) {
+  let d = path.posix.dirname(url);
+  while (d && d !== "/" && !dirs.has(d)) {
+    dirs.add(d);
+    d = path.posix.dirname(d);
+  }
+}
+
+/** Each mount's prefix and every directory a file is in: the addresses redirected to their slash. */
+function directoriesOf(mounts, files) {
+  const dirs = new Set(mounts.map((m) => m.prefix));
+  for (const url of files.keys()) addParents(dirs, url);
+  return dirs;
+}
+
+/** Writes one JSON line per answer to `log` (appended to), or nothing. */
+function recorder(log) {
+  const stream = log ? fs.createWriteStream(log, { flags: "a" }) : null;
+  return (entry) => stream?.write(`${JSON.stringify(entry)}\n`);
+}
+
+/** An answer: its status, headers, body (none for undefined), the encoding
+ * sent and the bytes of body the log counts. */
+const answer = (status, headers, body, encoding, bytes) => ({ status, headers, body, encoding, bytes });
+
+const isRead = (req) => req.method === "GET" || req.method === "HEAD";
+
+/** The address without its slash, sent to the one with it, query kept. */
+function redirection(pathname, search) {
+  return answer(301, { location: `${pathname}/${search}`, "content-length": 0 }, undefined, null, 0);
+}
+
+/** An unknown address (404) or a method that does not read a file (405). */
+function refusal(file, req) {
+  const headers = { "content-type": "text/plain; charset=utf-8", "content-length": 9 };
+  return answer(file ? 405 : 404, headers, req.method === "HEAD" ? undefined : "not found", null, 0);
+}
+
+/** The encoding a request is sent a file in: none, where the file has none. */
+function encodingFor(file, req) {
+  return file.encoded.br ? chooseEncoding(req.headers["accept-encoding"]) : null;
+}
+
+/** A file's bytes as sent: a HEAD is sent no body and counts none. */
+function sentBody(req, body) {
+  return req.method === "HEAD" ? [undefined, 0] : [body, body.length];
+}
+
+function fileAnswer(file, req, headers) {
+  const encoding = encodingFor(file, req);
+  const body = encoding ? file.encoded[encoding] : file.body;
+  if (encoding) headers["content-encoding"] = encoding;
+  headers["content-length"] = body.length;
+  const [sent, bytes] = sentBody(req, body);
+  return answer(200, headers, sent, encoding, bytes);
+}
+
+/** A file's answer to a read: not modified (304) where its validator is
+ * the request's, else the file itself (200). */
+function readAnswer(file, req) {
+  const headers = {
+    "content-type": file.type,
+    "cache-control": file.cache,
+    etag: file.etag,
+    "x-content-type-options": "nosniff",
+  };
+  if (file.encoded.br) headers.vary = "Accept-Encoding";
+  if (req.headers["if-none-match"] === file.etag) return answer(304, headers, undefined, null, 0);
+  return fileAnswer(file, req, headers);
+}
+
+const answerFor = (file, req) => (file && isRead(req) ? readAnswer(file, req) : refusal(file, req));
+
+function send(host, req, res, pathname, a) {
+  res.writeHead(a.status, a.headers);
+  res.end(a.body);
+  host.record({ method: req.method, path: pathname, status: a.status, encoding: a.encoding, bytes: a.bytes });
+}
+
+function handle(host, req, res) {
+  const url = new URL(req.url, "http://host");
+  const pathname = decodeURIComponent(url.pathname);
+  if (host.dirs.has(pathname)) return send(host, req, res, pathname, redirection(pathname, url.search));
+  const served = pathname.endsWith("/") ? `${pathname}index.html` : pathname;
+  return send(host, req, res, served, answerFor(host.files.get(served), req));
 }
 
 export function createHost({ mounts, log = null }) {
   const files = loadFiles(mounts);
-  const dirs = new Set(mounts.map((m) => m.prefix));
-  for (const url of files.keys()) {
-    let d = path.posix.dirname(url);
-    while (d && d !== "/" && !dirs.has(d)) {
-      dirs.add(d);
-      d = path.posix.dirname(d);
-    }
-  }
-  const logStream = log ? fs.createWriteStream(log, { flags: "a" }) : null;
-  const record = (entry) => logStream?.write(`${JSON.stringify(entry)}\n`);
-
-  const server = http.createServer((req, res) => {
-    const url = new URL(req.url, "http://host");
-    let pathname = decodeURIComponent(url.pathname);
-    if (dirs.has(pathname)) {
-      res.writeHead(301, { location: `${pathname}/${url.search}`, "content-length": 0 });
-      res.end();
-      record({ method: req.method, path: pathname, status: 301, encoding: null, bytes: 0 });
-      return;
-    }
-    if (pathname.endsWith("/")) pathname += "index.html";
-    const file = files.get(pathname);
-    if (!file || (req.method !== "GET" && req.method !== "HEAD")) {
-      const status = file ? 405 : 404;
-      res.writeHead(status, { "content-type": "text/plain; charset=utf-8", "content-length": 9 });
-      res.end(req.method === "HEAD" ? undefined : "not found");
-      record({ method: req.method, path: pathname, status, encoding: null, bytes: 0 });
-      return;
-    }
-    const headers = {
-      "content-type": file.type,
-      "cache-control": file.cache,
-      etag: file.etag,
-      "x-content-type-options": "nosniff",
-    };
-    if (file.encoded.br) headers.vary = "Accept-Encoding";
-    if (req.headers["if-none-match"] === file.etag) {
-      res.writeHead(304, headers);
-      res.end();
-      record({ method: req.method, path: pathname, status: 304, encoding: null, bytes: 0 });
-      return;
-    }
-    const encoding = file.encoded.br ? chooseEncoding(req.headers["accept-encoding"]) : null;
-    const body = encoding ? file.encoded[encoding] : file.body;
-    if (encoding) headers["content-encoding"] = encoding;
-    headers["content-length"] = body.length;
-    res.writeHead(200, headers);
-    res.end(req.method === "HEAD" ? undefined : body);
-    record({
-      method: req.method,
-      path: pathname,
-      status: 200,
-      encoding,
-      bytes: req.method === "HEAD" ? 0 : body.length,
-    });
-  });
+  const dirs = directoriesOf(mounts, files);
+  const record = recorder(log);
+  const server = http.createServer((req, res) => handle({ files, dirs, record }, req, res));
   return { server, files };
 }
 
