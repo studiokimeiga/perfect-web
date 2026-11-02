@@ -98,6 +98,17 @@ impl Choices {
 const OWNERS_POOL: &[&str] = &["a", "b", "B", "é", "z", "a\u{0}", "nobody"];
 const SLUGS: &[&str] = &["s0", "s1", "s2", "", "é漢", "toolong!!"];
 const SCORES: &[f64] = &[0.0, -0.0, 1.5, 5e-324, -2.25];
+/// A nested float's choices: each of the last three is read back from its
+/// shortest digits one or two units in the last place off by serde_json's
+/// parser without `float_roundtrip` (the review of 2026-11-02), which the
+/// first two, like every score above, are not.
+const POINTS: &[f64] = &[
+    -0.0,
+    0.5,
+    1.5666666666666667,
+    9.011111111111111,
+    -9.643915712060552e-234,
+];
 
 fn random_thing(c: &mut Choices) -> Value {
     let owner = *c.pick(OWNERS_POOL);
@@ -119,9 +130,7 @@ fn random_thing(c: &mut Choices) -> Value {
     if c.below(4) == 0 {
         row["count"] = json!(c.below(3) as i64);
     }
-    if c.below(5) == 0 {
-        row["point"]["x"] = json!(-0.0);
-    }
+    row["point"]["x"] = json!(*c.pick(POINTS));
     if c.below(9) == 0 {
         row["rank"] = json!(5000);
     }

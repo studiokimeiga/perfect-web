@@ -635,3 +635,133 @@ fn all_refuses_a_table_another_writer_grew_past_its_bound() {
     let answer = tables.read(&owner("all"), &[]);
     assert!(matches!(answer, Err(Error::Input(_))), "{answer:?}");
 }
+
+/// **A float inside a `json` column comes back bit for bit** (the review of
+/// 2026-11-02): the column keeps the float's shortest digits, and its read
+/// must name the double those digits name. serde_json's parser without its
+/// `float_roundtrip` feature answers one or two units in the last place off
+/// for many (measured: 26,747 of 199,999 values like `1.5666666666666667`,
+/// 593,094 of 2,000,000 random doubles), where the memory adapter, holding
+/// the value, answers it exactly.
+#[test]
+fn a_nested_float_is_answered_bit_for_bit() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "floats");
+    let tables = open_things(&scratch);
+    let mut floats = vec![
+        1.5666666666666667,
+        0.1 + 0.2,
+        9.011111111111111,
+        -9.643915712060552e-234,
+        1.0715660391465826e-75,
+        -1.603964615428183e143,
+        f64::MAX,
+        f64::MIN_POSITIVE,
+        5e-324,
+    ];
+    // And doubles of every exponent, from their bits (xorshift64, seeded).
+    let mut x: u64 = 0x9e37_79b9_7f4a_7c15;
+    while floats.len() < 400 {
+        x ^= x << 13;
+        x ^= x >> 7;
+        x ^= x << 17;
+        let float = f64::from_bits(x);
+        if float.is_finite() {
+            floats.push(float);
+        }
+    }
+    let rows: Vec<Value> = floats
+        .iter()
+        .enumerate()
+        .map(|(n, x)| {
+            let mut row = thing_row("a", n as i64, 5, &format!("s{n}"), true);
+            row["point"]["x"] = json!(x);
+            row
+        })
+        .collect();
+    tables
+        .transaction(|tx| {
+            tx.write(&owner("insert"), &[owner_row("a")])?;
+            for row in &rows {
+                tx.write(&thing("insert"), std::slice::from_ref(row))?;
+            }
+            Ok(())
+        })
+        .assert_ok("written");
+    let read = tables
+        .read(&thing("of-owner"), &[json!("a")])
+        .assert_ok("read back");
+    let got: Vec<u64> = read
+        .as_array()
+        .map(|rows| {
+            rows.iter()
+                .map(|row| row["point"]["x"].as_f64().map_or(u64::MAX, f64::to_bits))
+                .collect()
+        })
+        .unwrap_or_default();
+    let mut written: Vec<(i64, u64)> = floats
+        .iter()
+        .enumerate()
+        .map(|(n, x)| (n as i64, x.to_bits()))
+        .collect();
+    // `of-owner` answers in tables.json's order: rank (all 5), then the key.
+    written.sort();
+    let expected: Vec<u64> = written.into_iter().map(|(_, bits)| bits).collect();
+    let differ = got
+        .iter()
+        .zip(&expected)
+        .filter(|(got, expected)| got != expected)
+        .count();
+    assert_eq!(got.len(), expected.len(), "every row read back");
+    assert_eq!(differ, 0, "{differ} of {} floats differ", expected.len());
+}
+
+/// **A write whose statement ran, and whose answer cannot be read, fails
+/// its command** (the review of 2026-11-02): a `put` over a row another
+/// writer left out of its type has replaced it in the transaction before
+/// the old row fails to decode, so the command must not commit as if the
+/// write had not been made (its `written` would not name the table). The
+/// same for a delete.
+#[test]
+fn a_write_whose_answer_cannot_be_read_fails_its_command() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "unread");
+    let tables = open_things(&scratch);
+    seed(&tables, &["a"], &[]);
+    // A list of strings holding a number: no check reaches inside a list.
+    scratch
+        .sql(
+            "INSERT INTO \"Things\" (owner, n, rank, slug, flag, score, note, tags, point, nothing, maybe, count) \
+             VALUES ('\\x61'::bytea, 1, 1, '\\x'::bytea, true, 1.0, NULL, '[1]', '{\"x\": 1.0, \"y\": 1}', 'null', NULL, NULL)",
+        )
+        .assert_ok("written by another writer");
+    let left = || scratch.texts("SELECT tags::text FROM \"Things\"");
+    for (what, import, args) in [
+        (
+            "a put over it",
+            thing("put"),
+            vec![thing_row("a", 1, 5, "one", true)],
+        ),
+        (
+            "a delete of it",
+            thing("delete"),
+            vec![json!("a"), json!(1)],
+        ),
+        (
+            "a delete of its prefix",
+            thing("delete-of-owner"),
+            vec![json!("a")],
+        ),
+    ] {
+        let mut tx = tables.begin().assert_ok("a command");
+        let wrote = tx.write(&import, &args);
+        assert!(matches!(wrote, Err(Error::Schema(_))), "{what}: {wrote:?}");
+        let committed = tx.commit();
+        assert!(committed.is_err(), "{what}: committed {committed:?}");
+        assert_eq!(
+            left(),
+            ["[1]"],
+            "{what}: the row as the other writer left it"
+        );
+    }
+}

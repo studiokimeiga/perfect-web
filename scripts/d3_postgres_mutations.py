@@ -27,7 +27,16 @@ each test binary's complete named inventory, every failure an assertion's):
    answered committed, an unanswered one answered refused, a serialization
    failure taken for another error or not run again, the outbox's ids out of
    commit order;
-6. renders: seats unbounded, a snapshot reading the latest commit.
+6. renders: seats unbounded, a snapshot reading the latest commit;
+7. the independent review's fixes (2026-11-02), each undone: the migration at
+   the connection's default isolation, a key field's retype taken for a
+   field's, a backfill's string or least `Int` written as a literal the
+   server reads otherwise, a rule, an inheriting table, triggers not firing
+   and an unlogged table taken for no drift, two objects given one name, a
+   write whose answer cannot be read leaving its command whole, an outbox
+   row lost, and a nested float read back inexactly (serde_json without
+   `float_roundtrip`, in the workspace's manifest: last, as it rebuilds every
+   crate that reads JSON).
 
 They need a database: `PW_TABLES_DATABASE_URL` (or `PW_STORE_DATABASE_URL`,
 `PW_FEED_DATABASE_URL`), a throwaway one, which each test uses in a schema
@@ -57,6 +66,8 @@ MIGRATE = CRATE / "src/migrate.rs"
 SHAPE = CRATE / "src/shape.rs"
 VALUES = CRATE / "src/values.rs"
 POOL = CRATE / "src/pool.rs"
+# The workspace's manifest: serde_json's `float_roundtrip` (the review of 2026-11-02).
+CARGO = ROOT / "Cargo.toml"
 
 MUTANTS = [
     # 1. ADR-0338's named controls for D3
@@ -113,8 +124,8 @@ MUTANTS = [
      '        "SELECT {}, CASE {} END AS pw_rank FROM {t} t WHERE {condition} ORDER BY pw_rank LIMIT 1",\n',
      '        "SELECT {}, CASE {} END AS pw_rank FROM {t} t WHERE {condition} ORDER BY pw_rank DESC LIMIT 1",\n'),
     ("a refused insert is answered as written", LIB,
-     "                if count == 1 {\n",
-     "                if count == 1 || holder.is_some() {\n"),
+     "                    if count == 1 {\n",
+     "                    if count == 1 || holder.is_some() {\n"),
     ("a put is refused by its own row's unique value", SQL,
      '        condition = format!("{condition} AND NOT ({key})");\n',
      '        condition = format!("{condition} AND true");\n'),
@@ -201,6 +212,44 @@ MUTANTS = [
     ("a render's snapshot reads the latest commit", LIB,
      'pub const READ_SNAPSHOT: &str = "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY";\n',
      'pub const READ_SNAPSHOT: &str = "BEGIN READ ONLY";\n'),
+    # 7. the independent review (2026-11-02), each fix undone; the last
+    # rebuilds every crate that reads JSON, once.
+    ("the migration reads at the connection's default isolation", MIGRATE,
+     "    conn.batch(counters, \"BEGIN ISOLATION LEVEL READ COMMITTED\")\n",
+     "    conn.batch(counters, \"BEGIN\")\n"),
+    ("a key field retyped is taken for a field retyped", MIGRATE,
+     "                    if unbounded(&g.stored) != unbounded(&f.stored) && now.key.contains(&to) =>\n",
+     "                    if unbounded(&g.stored) != unbounded(&f.stored) && now.key.contains(&to) && false =>\n"),
+    ("a backfilled string is a literal the server's string syntax reads", MIGRATE,
+     "            format!(\"pg_catalog.decode('{hex}', 'hex')\")\n",
+     "            format!(\"'\\\\x{hex}'::bytea\")\n"),
+    ("the least Int backfilled is a negated literal", MIGRATE,
+     "        Literal::Int(n) => format!(\"'{n}'::bigint\"),\n",
+     "        Literal::Int(n) => format!(\"{n}::bigint\"),\n"),
+    ("a rule is no drift", MIGRATE,
+     "  JOIN pg_catalog.pg_class c ON c.oid = r.ev_class\n",
+     "  JOIN pg_catalog.pg_class c ON c.oid = r.ev_class AND false\n"),
+    ("a table inheriting one is no drift", MIGRATE,
+     "  JOIN pg_catalog.pg_class c ON c.oid = i.inhparent\n",
+     "  JOIN pg_catalog.pg_class c ON c.oid = i.inhparent AND false\n"),
+    ("triggers not firing are no drift", MIGRATE,
+     "                             FROM pg_catalog.pg_trigger t WHERE t.tgrelid = c.oid AND t.tgenabled <> 'O')\n",
+     "                             FROM pg_catalog.pg_trigger t WHERE t.tgrelid = c.oid AND t.tgenabled <> 'O' AND false)\n"),
+    ("an unlogged table is no drift", MIGRATE,
+     "CASE WHEN c.relpersistence <> 'p' THEN",
+     "CASE WHEN false THEN"),
+    ("two objects given one name are made, one replacing the other", SHAPE,
+     "    crate::sql::names_held(&tables)?;\n",
+     "    let _ = crate::sql::names_held(&tables);\n"),
+    ("a write whose answer cannot be read leaves its command whole", LIB,
+     "            Err(unread) => {\n                open.failed = Some(unread.clone());\n",
+     "            Err(unread) => {\n"),
+    ("a commit keeps fewer outbox rows than it carries", LIB,
+     "                    if rows.len() != handed.len() {\n",
+     "                    if false && rows.len() != handed.len() {\n"),
+    ("a nested float is read back by serde_json's inexact parser", CARGO,
+     "serde_json = { version = \"1.0.151\", features = [\"float_roundtrip\"] }\n",
+     "serde_json = \"1.0.151\"\n"),
 ]
 
 # Each test binary apart: names can repeat between binaries, and the native

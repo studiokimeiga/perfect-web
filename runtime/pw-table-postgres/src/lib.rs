@@ -802,48 +802,64 @@ impl Inner {
                 table.bounded.unwrap_or(0)
             ))
         };
-        match function.primitive {
-            Primitive::Insert => {
-                let row = rows.first().ok_or(Error::StoragePoisoned)?;
-                let count: i64 = row.get(0);
-                let holder: Option<i32> = row.get(1);
-                let (key, written) = written.ok_or(Error::StoragePoisoned)?;
-                if count == 1 {
-                    first(open, key, None, Some(written));
-                    Ok(())
-                } else if holder.is_some() {
-                    Err(conflict(row)?)
-                } else {
-                    Err(bound())
-                }
-            }
-            Primitive::Put => {
-                let row = rows.first().ok_or(Error::StoragePoisoned)?;
-                let count: i64 = row.get(0);
-                let holder: Option<i32> = row.get(1);
-                let old_held: bool = row.get(2 + n);
-                let (key, written) = written.ok_or(Error::StoragePoisoned)?;
-                if holder.is_some() {
-                    Err(conflict(row)?)
-                } else if count == 1 || old_held {
-                    let before = if old_held {
-                        Some(decode(table, row, 3 + n)?)
+        // What the statement answered, read. A refusal (the row holding the
+        // key or a unique value, or the bound) is a value: nothing was
+        // written, and the transaction stays whole. An answer that cannot
+        // be read (a row another writer left out of its type) may follow a
+        // write the statement made, which `touched` would then not hold:
+        // the command fails, every later statement with it, and its commit
+        // is refused (the review of 2026-11-02).
+        let read_answer = |open: &mut Open| -> Result<Result<(), Error>, Error> {
+            match function.primitive {
+                Primitive::Insert => {
+                    let row = rows.first().ok_or(Error::StoragePoisoned)?;
+                    let count: i64 = row.get(0);
+                    let holder: Option<i32> = row.get(1);
+                    let (key, written) = written.ok_or(Error::StoragePoisoned)?;
+                    if count == 1 {
+                        first(open, key, None, Some(written));
+                        Ok(Ok(()))
+                    } else if holder.is_some() {
+                        Ok(Err(conflict(row)?))
                     } else {
-                        None
-                    };
-                    first(open, key, before, Some(written));
-                    Ok(())
-                } else {
-                    Err(bound())
+                        Ok(Err(bound()))
+                    }
+                }
+                Primitive::Put => {
+                    let row = rows.first().ok_or(Error::StoragePoisoned)?;
+                    let count: i64 = row.get(0);
+                    let holder: Option<i32> = row.get(1);
+                    let old_held: bool = row.get(2 + n);
+                    let (key, written) = written.ok_or(Error::StoragePoisoned)?;
+                    if holder.is_some() {
+                        Ok(Err(conflict(row)?))
+                    } else if count == 1 || old_held {
+                        let before = if old_held {
+                            Some(decode(table, row, 3 + n)?)
+                        } else {
+                            None
+                        };
+                        first(open, key, before, Some(written));
+                        Ok(Ok(()))
+                    } else {
+                        Ok(Err(bound()))
+                    }
+                }
+                _ => {
+                    for row in &rows {
+                        let before = decode(table, row, 0)?;
+                        let key = row_key(&before, &table.columns, &table.key)?;
+                        first(open, key, Some(before), None);
+                    }
+                    Ok(Ok(()))
                 }
             }
-            _ => {
-                for row in &rows {
-                    let before = decode(table, row, 0)?;
-                    let key = row_key(&before, &table.columns, &table.key)?;
-                    first(open, key, Some(before), None);
-                }
-                Ok(())
+        };
+        match read_answer(open) {
+            Ok(answer) => answer,
+            Err(unread) => {
+                open.failed = Some(unread.clone());
+                Err(unread)
             }
         }
     }
@@ -1229,6 +1245,16 @@ impl Prepared {
                             ],
                         )
                         .map_err(refusal)?;
+                    // Every row the commit carries, or no commit: a trigger
+                    // of another hand answering `NULL` drops a row with no
+                    // error (the review of 2026-11-02).
+                    if rows.len() != handed.len() {
+                        return Err(Error::Refused(format!(
+                            "the outbox kept {} of the {} rows the commit carries",
+                            rows.len(),
+                            handed.len()
+                        )));
+                    }
                     for row in &rows {
                         let id: i64 = row.get(0);
                         let kind: String = row.get(1);

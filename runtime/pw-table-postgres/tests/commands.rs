@@ -46,14 +46,6 @@ fn another_host(scratch: &Scratch, options: Options) -> PgTables {
     PgTables::open_with(&scratch.url, scratch.schema(), things(), options).assert_ok("another host")
 }
 
-/// `url` with a server setting every connection of it starts with (the
-/// startup packet's `options`, a space in a value escaped by a backslash).
-fn with_setting(url: &str, setting: &str, value: &str) -> String {
-    let joiner = if url.contains('?') { '&' } else { '?' };
-    let value = value.replace(' ', "%5C%20");
-    format!("{url}{joiner}options=-c%20{setting}%3D{value}")
-}
-
 #[test]
 fn a_command_reads_its_own_writes_and_no_other_read_sees_them_before_it_commits() {
     let Some(url) = database() else { return };
@@ -464,6 +456,35 @@ fn a_commit_the_database_refuses_keeps_nothing() {
     assert_eq!(count_owners(&tables), 1);
 }
 
+/// **A commit keeps every outbox row it was given, or nothing** (the review
+/// of 2026-11-02): a trigger of another hand that drops an outbox row
+/// (`BEFORE INSERT` answering `NULL`) would lose an event silently, the
+/// commit answered with fewer rows than it carried; the adapter counts the
+/// rows the insert answers and refuses the commit short of one.
+#[test]
+fn a_commit_keeps_every_outbox_row_it_was_given_or_nothing() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "lostrow");
+    let tables = open_things(&scratch);
+    scratch
+        .sql(
+            "CREATE FUNCTION lose() RETURNS trigger LANGUAGE plpgsql AS $$ \
+             BEGIN IF NEW.name = 'lost' THEN RETURN NULL; END IF; RETURN NEW; END $$; \
+             CREATE TRIGGER lose BEFORE INSERT ON pw_outbox FOR EACH ROW EXECUTE FUNCTION lose();",
+        )
+        .assert_ok("a trigger that drops a row");
+    let mut tx = tables.begin().assert_ok("a command");
+    tx.write(&owner("insert"), &[owner_row("a")])
+        .assert_ok("written");
+    let refused = tx.prepare().assert_ok("prepared").publish_with(Records {
+        interaction: None,
+        outbox: &[event("kept", vec![]), event("lost", vec![])],
+    });
+    assert!(matches!(refused, Err(Error::Refused(_))), "{refused:?}");
+    assert_eq!(count_owners(&tables), 0);
+    assert!(scratch.texts("SELECT name FROM pw_outbox").is_empty());
+}
+
 #[test]
 fn a_command_touching_no_table_costs_the_database_nothing() {
     let Some(url) = database() else { return };
@@ -632,29 +653,6 @@ fn a_reference_may_be_written_before_the_row_it_refers_to() {
         tables.read(&thing("of-owner"), &[json!("q")]),
         Ok(json!([thing_row("q", 1, 5, "one", true)]))
     );
-}
-
-/// How many of the adapter's connections named `name` wait for an advisory
-/// lock now.
-fn waiting_on_advisory(scratch: &Scratch, name: &str) -> usize {
-    scratch
-        .texts(&format!(
-            "SELECT count(*)::text FROM pg_stat_activity \
-             WHERE application_name = '{name}' AND wait_event_type = 'Lock' AND wait_event = 'advisory'"
-        ))
-        .first()
-        .and_then(|n| n.parse().ok())
-        .unwrap_or(0)
-}
-
-fn until(mut condition: impl FnMut() -> bool) -> bool {
-    for _ in 0..4000 {
-        if condition() {
-            return true;
-        }
-        std::thread::sleep(Duration::from_millis(5));
-    }
-    false
 }
 
 /// **The outbox's ids are in commit order** (ADR-0369): a commit takes the

@@ -466,6 +466,7 @@ pub(crate) fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
             return Err(Error::Schema(format!("{import} reads by no index")));
         }
     }
+    crate::sql::names_held(&tables)?;
     Ok(Shape { tables, functions })
 }
 

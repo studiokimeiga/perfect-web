@@ -103,6 +103,45 @@ impl Drop for Scratch {
     }
 }
 
+/// `url` with a server setting every connection of it starts with (the
+/// startup packet's `options`, a space in a value escaped by a backslash).
+pub fn with_setting(url: &str, setting: &str, value: &str) -> String {
+    let joiner = if url.contains('?') { '&' } else { '?' };
+    let value = value.replace(' ', "%5C%20");
+    format!("{url}{joiner}options=-c%20{setting}%3D{value}")
+}
+
+/// `url` with its connections named `name` (`application_name`), so that a
+/// test finds them in `pg_stat_activity`.
+pub fn named(url: &str, name: &str) -> String {
+    let joiner = if url.contains('?') { '&' } else { '?' };
+    format!("{url}{joiner}application_name={name}")
+}
+
+/// How many of the adapter's connections named `name` wait for an advisory
+/// lock now.
+pub fn waiting_on_advisory(scratch: &Scratch, name: &str) -> usize {
+    scratch
+        .texts(&format!(
+            "SELECT count(*)::text FROM pg_stat_activity \
+             WHERE application_name = '{name}' AND wait_event_type = 'Lock' AND wait_event = 'advisory'"
+        ))
+        .first()
+        .and_then(|n| n.parse().ok())
+        .unwrap_or(0)
+}
+
+/// Whether `condition` holds within 20 seconds, asked every 5 ms.
+pub fn until(mut condition: impl FnMut() -> bool) -> bool {
+    for _ in 0..4000 {
+        if condition() {
+            return true;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    false
+}
+
 fn units(sources: &[(&str, &str)], fixtures: &[&str]) -> Vec<Unit> {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let mut files: Vec<(String, String)> = Vec::new();

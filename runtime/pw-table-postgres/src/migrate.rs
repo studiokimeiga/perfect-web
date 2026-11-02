@@ -79,9 +79,10 @@ pub(crate) fn lock_key(text: &str) -> i64 {
 
 /// **What the catalog says of the program's tables**, one line each, in one
 /// order: each column's type and nullability, each constraint's and index's
-/// definition, each trigger not the database's own, each table's kind and
-/// row security, and the code points function. What is recorded with a
-/// schema, and held to at each start.
+/// definition, each trigger not the database's own, each table's kind,
+/// persistence, row security and triggers not firing (a reference's own
+/// among them), each rule, each table inheriting one, and the code points
+/// function. What is recorded with a schema, and held to at each start.
 const CATALOG: &str = "
 SELECT c.relname::text, 'column', a.attname::text,
        pg_catalog.format_type(a.atttypid, a.atttypmod) || CASE WHEN a.attnotnull THEN ' NOT NULL' ELSE '' END
@@ -104,10 +105,27 @@ SELECT c.relname::text, 'index', i.relname::text, pg_catalog.pg_get_indexdef(x.i
  WHERE n.nspname = $1 AND c.relname = ANY($2)
 UNION ALL
 SELECT c.relname::text, 'table', c.relname::text,
-       c.relkind::text || CASE WHEN c.relrowsecurity THEN ' row security' ELSE '' END
+       c.relkind::text || CASE WHEN c.relpersistence <> 'p' THEN ' persistence ' || c.relpersistence::text ELSE '' END
+                       || CASE WHEN c.relrowsecurity THEN ' row security' ELSE '' END
                        || CASE WHEN c.relforcerowsecurity THEN ' forced' ELSE '' END
+                       || (SELECT CASE WHEN count(*) > 0 THEN ' triggers not firing: ' || count(*) ELSE '' END
+                             FROM pg_catalog.pg_trigger t WHERE t.tgrelid = c.oid AND t.tgenabled <> 'O')
   FROM pg_catalog.pg_class c
   JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+ WHERE n.nspname = $1 AND c.relname = ANY($2)
+UNION ALL
+SELECT c.relname::text, 'rule', r.rulename::text, pg_catalog.pg_get_ruledef(r.oid)
+  FROM pg_catalog.pg_rewrite r
+  JOIN pg_catalog.pg_class c ON c.oid = r.ev_class
+  JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+ WHERE n.nspname = $1 AND c.relname = ANY($2)
+UNION ALL
+SELECT c.relname::text, 'inherited by', hn.nspname::text || '.' || h.relname::text, ''
+  FROM pg_catalog.pg_inherits i
+  JOIN pg_catalog.pg_class c ON c.oid = i.inhparent
+  JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+  JOIN pg_catalog.pg_class h ON h.oid = i.inhrelid
+  JOIN pg_catalog.pg_namespace hn ON hn.oid = h.relnamespace
  WHERE n.nspname = $1 AND c.relname = ANY($2)
 UNION ALL
 SELECT c.relname::text, 'trigger', t.tgname::text, pg_catalog.pg_get_triggerdef(t.oid)
@@ -249,17 +267,21 @@ fn unbounded(stored: &Stored) -> Stored {
 }
 
 /// A backfilled value as SQL writes it into its column, where it is of the
-/// column's type and within its bounds.
+/// column's type and within its bounds: an `Int` quoted (the least `Int`
+/// is no negated literal, `-9223372036854775808::bigint` being out of
+/// range), a `String`'s bytes in hex, decoded (a backslash in an ordinary
+/// literal is an escape where `standard_conforming_strings` is off, so
+/// `'\x6162'` would be `a62`; hex digits are read alike either way).
 fn literal(field: &FieldSchema, value: &Literal) -> Option<String> {
     if !field.stored.admits(value) {
         return None;
     }
     Some(match value {
-        Literal::Int(n) => format!("{n}::bigint"),
+        Literal::Int(n) => format!("'{n}'::bigint"),
         Literal::Bool(b) => format!("{b}"),
         Literal::Str(s) => {
             let hex: String = s.as_bytes().iter().map(|b| format!("{b:02x}")).collect();
-            format!("'\\x{hex}'::bytea")
+            format!("pg_catalog.decode('{hex}', 'hex')")
         }
     })
 }
@@ -346,6 +368,22 @@ pub(crate) fn changes(
         for f in &was.fields {
             let to = now_name(&f.name);
             match now.fields.iter().find(|g| g.name == to) {
+                Some(g)
+                    if unbounded(&g.stored) != unbounded(&f.stored) && now.key.contains(&to) =>
+                {
+                    // A retype drops the column and adds it backfilled: of
+                    // the key, the primary key would go with it, and every
+                    // row would hold one key (the review of 2026-11-02).
+                    // Its stated `backfilled with` is answered here.
+                    used.extend(stated.iter().position(|s| {
+                        matches!(s, Step::RetypeField { table: t, field, .. } if t == table && *field == to)
+                    }));
+                    refused.push(format!(
+                        "`{table}.{to}` is of `{table}`'s key, recorded as `{}` and declared `{}`: \
+                         each row would be found by another key (a key retyped is a new table)",
+                        f.ty, g.ty
+                    ));
+                }
                 Some(g) if unbounded(&g.stored) != unbounded(&f.stored) => {
                     let stated_retype = stated.iter().enumerate().find_map(|(i, s)| match s {
                         Step::RetypeField {
@@ -575,7 +613,16 @@ pub(crate) fn apply(
     manifest: &TablesJson,
     shape: &Shape,
 ) -> Result<(), Error> {
-    conn.batch(counters, "BEGIN").map_err(database)?;
+    // Read committed whatever the connection's default: each statement after
+    // the lock is granted reads what the host before committed. At
+    // repeatable read or serializable the snapshot would be the lock's own
+    // `SELECT`'s, taken before the lock was granted ("frozen at the start of
+    // its first query", PostgreSQL 18, 13.4.2, which advises read committed
+    // where explicit locking prevents concurrent changes), and a host that
+    // waited would not see the schema the first made (the review of
+    // 2026-11-02).
+    conn.batch(counters, "BEGIN ISOLATION LEVEL READ COMMITTED")
+        .map_err(database)?;
     let applied = apply_in(conn, counters, names, manifest, shape);
     match applied {
         Ok(()) => conn.batch(counters, "COMMIT").map_err(database),

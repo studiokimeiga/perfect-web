@@ -12,6 +12,7 @@ use std::collections::BTreeMap;
 
 use pw_core::tables::{Primitive, Stored};
 
+use crate::Error;
 use crate::shape::{Column, FunctionShape, Kind, LONGEST_NAME, Shape, TableShape};
 
 /// An identifier, quoted.
@@ -536,6 +537,79 @@ pub(crate) fn objects(names: &Names, tables: &[TableShape]) -> BTreeMap<String, 
         }
     }
     out
+}
+
+/// The relations the adapter keeps beside the program's, by name: its
+/// tables, their keys' indexes, its indexes and its identities' sequences
+/// (`migrate`'s platform version 0001).
+const PLATFORM_RELATIONS: &[&str] = &[
+    "pw_platform",
+    "pw_platform_pkey",
+    "pw_schema",
+    "pw_schema_pkey",
+    "pw_schema_applied_seq",
+    "pw_outbox",
+    "pw_outbox_pkey",
+    "pw_outbox_id_seq",
+    "pw_outbox_created",
+    "pw_interactions",
+    "pw_interactions_pkey",
+    "pw_interactions_at",
+];
+
+/// **Every name the declaration's tables and objects take, each taken
+/// once** (the review of 2026-11-02): each table, its key's constraint and
+/// index, each check, index and foreign key, beside the platform's
+/// relations. An object is named `<table>__<what>`, and a name may hold
+/// `__` (an index `by_rank__check`, a field `by_rank`'s check), so two
+/// objects could be given one name; [`objects`] keeps them by name, and one
+/// would silently replace the other: a check never made, or a reference
+/// never held. Such a declaration is refused where the adapter opens.
+pub(crate) fn names_held(tables: &[TableShape]) -> Result<(), Error> {
+    let mut held: BTreeMap<String, String> = PLATFORM_RELATIONS
+        .iter()
+        .map(|name| (name.to_string(), "a relation the adapter keeps".to_string()))
+        .collect();
+    let mut take = |name: String, what: String| match held.get(&name) {
+        Some(first) => Err(Error::Schema(format!(
+            "{what} and {first} would both be named `{name}`"
+        ))),
+        None => {
+            held.insert(name, what);
+            Ok(())
+        }
+    };
+    // Whether a column has a check: what `check_of` makes, whatever schema.
+    let unnamed = Names {
+        schema: String::new(),
+    };
+    for table in tables {
+        let t = &table.name;
+        take(t.clone(), format!("table `{t}`"))?;
+        take(object_name(t, "pkey"), format!("`{t}`'s key"))?;
+        for column in &table.columns {
+            if check_of(&unnamed, column).is_some() {
+                take(
+                    object_name(t, &format!("{}__check", column.name)),
+                    format!("`{t}.{}`'s check", column.name),
+                )?;
+            }
+        }
+        for index in &table.indexes {
+            take(
+                object_name(t, &index.name),
+                format!("`{t}`'s index `{}`", index.name),
+            )?;
+        }
+        for reference in &table.references {
+            let field = &table.columns[reference.field].name;
+            take(
+                object_name(t, &format!("{field}__fkey")),
+                format!("`{t}.{field}`'s reference"),
+            )?;
+        }
+    }
+    Ok(())
 }
 
 /// The constraint a field's check or foreign key is named, which a field

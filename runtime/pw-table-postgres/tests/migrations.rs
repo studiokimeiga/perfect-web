@@ -300,6 +300,30 @@ fn a_catalog_changed_by_hand_refuses_the_start() {
             "the code points counted otherwise",
             "CREATE OR REPLACE FUNCTION pw_code_points(bytea) RETURNS bigint LANGUAGE sql IMMUTABLE AS $$ SELECT 0::bigint $$",
         ),
+        // The review of 2026-11-02: what changes a statement's answer or a
+        // commit's fate and is no column, constraint, index or trigger.
+        (
+            "a rule added (a delete that deletes nothing)",
+            "CREATE RULE kept AS ON DELETE TO \"Owners\" DO INSTEAD NOTHING",
+        ),
+        (
+            "a table inheriting one (its rows read with it)",
+            "CREATE TABLE heir () INHERITS (\"Owners\")",
+        ),
+        (
+            "its references' triggers disabled",
+            "ALTER TABLE \"Things\" DISABLE TRIGGER ALL",
+        ),
+        (
+            "its references' triggers firing only on a replica",
+            "DO $$ DECLARE t text; BEGIN FOR t IN SELECT tgname FROM pg_trigger \
+             WHERE tgrelid = '\"Things\"'::regclass AND tgisinternal LOOP \
+             EXECUTE format('ALTER TABLE \"Things\" ENABLE REPLICA TRIGGER %I', t); END LOOP; END $$",
+        ),
+        (
+            "a table made unlogged (emptied by a crash)",
+            "ALTER TABLE \"Things\" SET UNLOGGED",
+        ),
     ] {
         let scratch = Scratch::new(&url, "drift");
         drop(seeded(&scratch));
@@ -414,4 +438,178 @@ fn an_older_build_that_would_only_drop_an_index_is_refused() {
     assert!(matches!(older, Some(Error::Migration(_))), "{older:?}");
     let why = format!("{older:?}");
     assert!(why.contains("Things__by_rank"), "{why}");
+}
+
+/// **A key field retyped is refused, its key kept** (the review of
+/// 2026-11-02): a `backfilled with` stated for a field of the key would
+/// drop the column, and with it the primary key, and give every row one
+/// key; the program states a new table for that, never a retype.
+#[test]
+fn a_key_field_retyped_is_refused_and_its_key_kept() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "rekeyed");
+    drop(seeded(&scratch));
+    let (retyped, _) = things_where(
+        |t| {
+            t.replace("    n: Int,\n", "    n: String,\n").replace(
+                "    refers  owner to Owners\n",
+                "    refers  owner to Owners\n    migrate n backfilled with \"x\"\n",
+            )
+        },
+        Some(&released()),
+    );
+    let refused = open(&scratch, retyped).err();
+    assert!(
+        matches!(refused, Some(Error::Migration(_))),
+        "not refused: {refused:?}"
+    );
+    let why = format!("{refused:?}");
+    assert!(why.contains("Things.n"), "{why}");
+    // Nothing of it kept: the build released opens, each row by its key.
+    let tables = open(&scratch, things()).assert_ok("as it was");
+    assert_eq!(
+        tables
+            .read(&thing("get"), &[json!("a"), json!(2)])
+            .map(|r| r["slug"].clone()),
+        Ok(json!("two"))
+    );
+}
+
+/// The advisory lock's key the adapter takes for `schema`'s migration:
+/// FNV-1a over its text (`migrate::lock_key`).
+fn migration_lock(schema: &str) -> i64 {
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for b in format!("pw_tables_migrations:{schema}").as_bytes() {
+        h ^= u64::from(*b);
+        h = h.wrapping_mul(0x0100_0000_01b3);
+    }
+    i64::from_ne_bytes(h.to_ne_bytes())
+}
+
+/// **Hosts racing for an empty schema each open it, where every
+/// transaction is serializable by default** (the review of 2026-11-02): a
+/// transaction at repeatable read or serializable takes its snapshot at its
+/// first statement, the lock's own, before the lock is granted; the
+/// migration reads at read committed, so the host after the first sees what
+/// the first made. The lock is held here until every host waits for it.
+#[test]
+fn hosts_racing_under_a_serializable_default_each_open_it_made_once() {
+    let Some(url) = database() else { return };
+    let scratch = Arc::new(Scratch::new(&url, "racing"));
+    let serial = Arc::new(with_setting(
+        &named(&url, &scratch.schema),
+        "default_transaction_isolation",
+        "serializable",
+    ));
+    let key = migration_lock(&scratch.schema);
+    let mut holder = postgres::Client::connect(&url, postgres::NoTls).assert_ok("the holder");
+    holder
+        .query("SELECT pg_advisory_lock($1)", &[&key])
+        .assert_ok("the lock held");
+    let hosts: Vec<_> = (0..4)
+        .map(|_| {
+            let scratch = Arc::clone(&scratch);
+            let serial = Arc::clone(&serial);
+            std::thread::spawn(move || {
+                PgTables::open(&serial, scratch.schema(), things()).map(|_| ())
+            })
+        })
+        .collect();
+    let waited = until(|| waiting_on_advisory(&scratch, &scratch.schema) == 4);
+    holder
+        .query("SELECT pg_advisory_unlock($1)", &[&key])
+        .assert_ok("the lock given up");
+    for host in hosts {
+        let joined = host.join();
+        assert!(matches!(joined, Ok(Ok(()))), "{joined:?}");
+    }
+    assert!(waited, "every host waited for the migration's lock");
+    assert_eq!(scratch.texts("SELECT hash FROM pw_schema").len(), 1);
+}
+
+/// **Two objects a declaration would give one name are refused at open**
+/// (the review of 2026-11-02): an object's name is `<table>__<what>`, and
+/// a name may hold `__`, so an index `by_rank__check` is named as the check
+/// of a field `by_rank`; the schema's objects are kept by name, and one
+/// would silently replace the other (here the check, never made).
+#[test]
+fn a_name_two_objects_would_share_is_refused_at_open() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "names");
+    let (manifest, _) = things_where(
+        |t| {
+            t.replace(
+                "    count: Option<Positive>,\n",
+                "    count: Option<Positive>,\n    by_rank: Rank,\n",
+            )
+            .replace(
+                "    refers  owner to Owners\n",
+                "    refers  owner to Owners\n    index   by_rank__check on rank\n",
+            )
+        },
+        None,
+    );
+    let opened = open(&scratch, manifest).err();
+    assert!(
+        matches!(&opened, Some(Error::Schema(why)) if why.contains("Things__by_rank__check")),
+        "{opened:?}"
+    );
+    assert!(
+        scratch.texts("SELECT hash FROM pw_schema").len() <= 1,
+        "nothing recorded"
+    );
+}
+
+/// **A backfill is the value stated, whatever the server's string syntax**
+/// (the review of 2026-11-02): with `standard_conforming_strings` off, a
+/// backslash in an ordinary string literal is an escape, so a value written
+/// `'\x6162'` would be stored as `a62`; and the least `Int` is no negated
+/// literal (`-9223372036854775808::bigint` is out of range).
+#[test]
+fn a_backfill_is_the_value_stated_whatever_the_servers_string_syntax() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "backfill");
+    drop(seeded(&scratch));
+    let (mut added, _) = things_where(
+        |t| {
+            t.replace(
+                "    count: Option<Positive>,\n",
+                "    count: Option<Positive>,\n    title: String,\n    least: Int,\n",
+            )
+            .replace(
+                "    refers  owner to Owners\n",
+                "    refers  owner to Owners\n    migrate title backfilled with \"ab\"\n    migrate least backfilled with 0\n",
+            )
+        },
+        Some(&released()),
+    );
+    // The least `Int` as its backfill (written into the plan, as a program
+    // stating it would have it).
+    let mut found = false;
+    for step in &mut added.migration.steps {
+        if let pw_core::tables::Step::AddField {
+            field,
+            backfill: Some(value),
+            ..
+        } = step
+            && field == "least"
+        {
+            *value = pw_core::tables::Literal::Int(i64::MIN);
+            found = true;
+        }
+    }
+    assert!(found, "{:?}", added.migration.steps);
+    let off = with_setting(&scratch.url, "standard_conforming_strings", "off");
+    let opened = PgTables::open(&off, scratch.schema(), added);
+    assert!(
+        opened.is_ok(),
+        "the backfills made: {:?}",
+        opened.as_ref().err()
+    );
+    let tables = opened.assert_ok("opened");
+    let got = tables
+        .read(&thing("get"), &[json!("a"), json!(1)])
+        .assert_ok("a row, backfilled");
+    assert_eq!(got["title"], json!("ab"));
+    assert_eq!(got["least"], json!(i64::MIN));
 }
