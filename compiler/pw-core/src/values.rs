@@ -5047,6 +5047,9 @@ fn returns_its_body(decl: &Decl) -> bool {
         decl.kind,
         DeclKind::Fn | DeclKind::Query | DeclKind::Command | DeclKind::Task
     ) || (decl.kind == DeclKind::Materialize && decl.ret.is_some())
+        // A predicate the program gives a body answers its `Bool` (ADR-0384
+        // H2): whether it holds.
+        || (decl.kind == DeclKind::Predicate && decl.body.is_some())
 }
 
 /// **Every written type resolves, or the program is told.** E9-V5.
