@@ -122,6 +122,12 @@ test("an order awaiting its payment is taken back, its items back in the cart", 
   await page.getByRole("button", { name: "Place order" }).click();
   await page.waitForURL(/\/order$/);
   await expect(page.locator("#order-status")).toHaveText(AWAITING);
+  // The order's page's own runtime booted before its button is pressed: the
+  // button is the next document's, shown before its handlers are bound, and
+  // a press before then is lost (feed.spec.mjs's Unfollow, the same class).
+  await page.waitForFunction(() => document.documentElement.dataset.pwReady === "1", null, {
+    polling: 50,
+  });
   const taken = page.waitForResponse("**/command/store.page.cancel_order");
   const cart = await nextDocument(page, browserName);
   await page.getByRole("button", { name: "Cancel this order" }).click();

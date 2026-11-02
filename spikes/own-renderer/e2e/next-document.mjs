@@ -15,6 +15,11 @@
  * cannot navigate that soon after a page appears. In WebKit only: Chromium
  * and Firefox still navigate at once, as when such a `goto` found ADR-0306's
  * rule that the browser's own load wins (Firefox's NS_BINDING_ABORTED).
+ *
+ * For a page that subscribes: the next document's `/stream` answer is what
+ * `settled` waits for, and a page whose manifest says `"listens": false`
+ * never asks, so `settled` would wait to the test's timeout there. Each page
+ * the specs navigate to with it reads a query, and subscribes.
  */
 export async function nextDocument(page, browserName) {
   if (browserName !== "webkit") return { settled: async () => {} };
