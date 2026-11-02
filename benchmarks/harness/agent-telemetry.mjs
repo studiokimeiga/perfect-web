@@ -65,26 +65,54 @@ export function validateAgentUsage(value) {
   return { ...counts(value), ...extras(value) };
 }
 
-function regularUsageFile(file) {
-  if (!fs.existsSync(file)) return false;
-  const stat = fs.lstatSync(file);
+function usageDescriptor(file) {
+  if (!fs.constants.O_NOFOLLOW) {
+    throw new Error("BENCH_USAGE needs O_NOFOLLOW support");
+  }
+  try {
+    return fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    throw new Error("BENCH_USAGE must be a regular file");
+  }
+}
+
+function checkUsageDescriptor(fd) {
+  const stat = fs.fstatSync(fd);
   if (!stat.isFile() || stat.size > 8192) {
     throw new Error("BENCH_USAGE must be a regular file of at most 8192 bytes");
   }
-  return true;
 }
 
-function parseUsageJson(file) {
+function usageText(fd) {
+  const buffer = Buffer.alloc(8193);
+  let length = 0;
+  while (length < buffer.length) {
+    const read = fs.readSync(fd, buffer, length, buffer.length - length, length);
+    if (read === 0) break;
+    length += read;
+  }
+  if (length > 8192) throw new Error("BENCH_USAGE must be at most 8192 bytes");
+  return buffer.subarray(0, length).toString("utf8");
+}
+
+function parseUsageJson(text) {
   try {
-    return JSON.parse(fs.readFileSync(file, "utf8"));
+    return JSON.parse(text);
   } catch {
     throw new Error("BENCH_USAGE must contain valid JSON");
   }
 }
 
 export function readAgentUsage(file) {
-  if (!regularUsageFile(file)) return null;
-  return validateAgentUsage(parseUsageJson(file));
+  const fd = usageDescriptor(file);
+  if (fd === null) return null;
+  try {
+    checkUsageDescriptor(fd);
+    return validateAgentUsage(parseUsageJson(usageText(fd)));
+  } finally {
+    fs.closeSync(fd);
+  }
 }
 
 // 75 is an explicit temporary-infrastructure failure. 126/127 mean the
