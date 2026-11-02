@@ -12,9 +12,9 @@
     "marko": "6.3.32"
   },
   "devDependencies": {
-    "@marko/run": "0.11.8",
+    "@marko/run": "0.11.16",
     "@marko/run-adapter-node": "2.0.6",
     "@playwright/test": "1.58.0",
-    "vite": "8.3.3"
+    "vite": "8.3.5"
   }
 }
