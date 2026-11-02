@@ -8,6 +8,7 @@
 import { expect, test } from "@playwright/test";
 import { STORE_SEARCH_PORTS } from "../host-metadata.mjs";
 import { violations } from "./accessibility-rules.mjs";
+import { nextDocument } from "./next-document.mjs";
 
 test.use({
   baseURL: async ({}, use, testInfo) => {
@@ -163,14 +164,25 @@ test("the home page shows each store's cuisine, and its search box goes to the s
   );
 });
 
-test("a reader's search lists the stores that reach their chosen address", async ({ page }) => {
+test("a reader's search lists the stores that reach their chosen address", async ({
+  page,
+  browserName,
+}) => {
   // Civic Center: store 47 delivers there, store 48 does not (ADR-0319).
   await ready(page, "/stores/48/address");
   await page.locator("#label").fill("Home");
   const saved = page.waitForResponse("**/command/store.page.add_address");
+  const store = await nextDocument(page, browserName);
   await page.getByRole("button", { name: "Save Civic Center, San Francisco" }).click();
   await saved;
   await page.waitForURL(/\/stores\/48$/);
+  // The store's page settled before the next `goto`, in WebKit: WebKitGTK's
+  // network process can crash when a navigation cancels requests a page has
+  // just started (docs/KNOWN_LIMITATIONS.md; ADR-0280, amended 2026-10-18 and
+  // 2026-11-02: this `goto` cancelled `pw-resume.wasm` 1 ms after the store's
+  // page asked for it, run 41333137334). Chromium and Firefox still navigate
+  // at once.
+  await store.settled();
   await ready(page, "/search?q=coffee");
   await expect(said(page)).toHaveText("1 store matches “coffee”.");
   await expect(stores(page)).toHaveText(["Blue Bottle"]);

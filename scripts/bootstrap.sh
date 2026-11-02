@@ -20,14 +20,15 @@ PREFIX="$TC/prefix"
 # Pinned in tools/versions.lock. Koka was verified 2026-08-05; Wasmtime was
 # advanced on 2026-10-01 by ADR-0116 after two RustSec advisories, on
 # 2026-10-07 by ADR-0244 after three more, on 2026-10-14 by ADR-0335 after
-# RUSTSEC-2026-0353 to 0364, and on 2026-10-20 by ADR-0363 after
-# RUSTSEC-2026-0378 and 0379.
+# RUSTSEC-2026-0353 to 0364, on 2026-10-20 by ADR-0363 after
+# RUSTSEC-2026-0378 and 0379, and on 2026-11-02 by ADR-0363's amendment after
+# RUSTSEC-2026-0422 to 0424.
 KOKA_VERSION="3.2.3"
-WASMTIME_VERSION="48.0.7"
+WASMTIME_VERSION="48.0.8"
 
 # SHA-256 of the exact artifacts accepted by this repository. Koka's values were
-# computed from downloaded artifacts on 2026-08-06. Wasmtime 48.0.7's values
-# were pinned from immutable GitHub release-asset digests on 2026-10-20;
+# computed from downloaded artifacts on 2026-08-06. Wasmtime 48.0.8's values
+# were pinned from immutable GitHub release-asset digests on 2026-11-02;
 # bootstrap still verifies every downloaded byte before installing it.
 arch="$(uname -m)"
 os="$(uname -s)"
@@ -37,19 +38,19 @@ case "$os/$arch" in
         KOKA_ASSET="koka-v${KOKA_VERSION}-macos-arm64.tar.gz"
         KOKA_SHA256="ffe84e8c679876894ac67da23066ceae1fd433e244038a7c884a4ca8b4698eb8"
         WASMTIME_DIR="wasmtime-v${WASMTIME_VERSION}-aarch64-macos"
-        WASMTIME_SHA256="7eee840798c071e9eff501fe456cf031353556fd28d05d21aa3ace866643a941"
+        WASMTIME_SHA256="17a85a062b06de38c479923ee6fca2182c998484ce71bf49a572d42926c4f1db"
         ;;
     Linux/x86_64)
         KOKA_ASSET="koka-v${KOKA_VERSION}-linux-x64.tar.gz"
         KOKA_SHA256="e82a4b497f1f8791ee171d06c45293ba16432e485d645ddd9688bafa6ccde5a5"
         WASMTIME_DIR="wasmtime-v${WASMTIME_VERSION}-x86_64-linux"
-        WASMTIME_SHA256="2192e2b5b911dc42321b9eac2b7f1f0b0d03356058c1e2b2c2b892625bdd0f45"
+        WASMTIME_SHA256="8716ce7bffa19d893b5b6dc01d8e298b1a81ab75a0455b5a2933156ea34a456e"
         ;;
     Linux/aarch64 | Linux/arm64)
         KOKA_ASSET="koka-v${KOKA_VERSION}-linux-arm64.tar.gz"
         KOKA_SHA256="ce0cf566ce2bd1dd3b4fbcc1d07f92d54ff57fb3cc6d6fa0728d4a72df464c02"
         WASMTIME_DIR="wasmtime-v${WASMTIME_VERSION}-aarch64-linux"
-        WASMTIME_SHA256="cc07a1107b53e7f3caee171249e3718a244b90ddc206eec417b3033360db8f63"
+        WASMTIME_SHA256="8d82da4d2ac187ed8200689434ef573fc15b513d7841aea8d1f7ce4bb7c295d0"
         ;;
     *)
         echo "bootstrap: no pinned artifacts for $os/$arch." >&2

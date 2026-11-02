@@ -23,6 +23,6 @@ serde_json = { workspace = true }
 [dev-dependencies]
 # ADR-0158: a test leaves nothing behind.
 tempfile.workspace = true
-# Already in the graph through pw-host (48.0.7 in Cargo.lock): the oracle reads
+# Already in the graph through pw-host (48.0.8 in Cargo.lock): the oracle reads
 # each artifact's own types to generate its inputs.
 wasmtime = { workspace = true }
