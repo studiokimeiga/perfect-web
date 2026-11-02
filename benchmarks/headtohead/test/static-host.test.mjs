@@ -794,6 +794,9 @@ test("the static host keeps a connection alive for the request that follows on i
   const first = await get(`${MOUNT}/notes.txt`);
   const second = await get(`${MOUNT}/pic.png`);
   assert.deepEqual([first, second], [{ connection: "keep-alive", reused: false }, { connection: "keep-alive", reused: true }]);
+  // The host writes its log after it answers: the test ends with both lines written,
+  // not while the second is, or the directory it is written in is gone by then.
+  assert.equal((await logLines(site.log, 2)).length, 2);
 });
 
 // --- createHost: HEAD and validators --------------------------------------------------------
