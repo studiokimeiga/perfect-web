@@ -15,3 +15,8 @@ e14-bench-footprint:
        python3 scripts/bench_footprint_mutations.py; \
      } > docs/evidence/E14/bench-footprint.txt
     @grep -E "^(ok|not ok) |mutants killed" docs/evidence/E14/bench-footprint.txt
+
+# A real no-network agent adapter reports usage without affecting grading;
+# infrastructure exits do not become model failure scores (ADR-0391).
+e14-agent-telemetry:
+    @node --test benchmarks/harness/test/agent-telemetry.test.mjs
