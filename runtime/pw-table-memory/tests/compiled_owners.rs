@@ -249,7 +249,9 @@ fn the_manifest_is_held_whole_for_its_owners() {
     };
     refused(
         &|t| {
-            t.as_object_mut().map(|t| t.remove("owner"));
+            if let Some(t) = t.as_object_mut() {
+                t.remove("owner");
+            }
         },
         "shares or keeps fields private, and no one owns it",
     );
@@ -309,13 +311,13 @@ fn the_manifest_is_held_whole_for_its_owners() {
     refused(
         &|t| {
             t["bounded"] = json!(10);
-            t["functions"].as_array_mut().map(|fs| {
+            if let Some(fs) = t["functions"].as_array_mut() {
                 fs.push(json!({
                     "name": "all", "import": "pw:tables/notes#all", "primitive": "all",
                     "effect": "read", "by": [], "params": [], "returns": "List<Note>",
                     "sorted_by": ["added", "author", "id"], "reader": "author"
                 }))
-            });
+            }
         },
         "is read whole by `all`",
     );

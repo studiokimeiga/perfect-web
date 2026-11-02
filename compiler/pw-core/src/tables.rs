@@ -1852,16 +1852,21 @@ fn ownership(
                 "`private {name}` names its order: a reader it shares with is answered rows in \
                  `{name}`'s order, which tells them how its values compare"
             ))
-        } else if let Some(i) = t.indexes.iter().find(|i| {
-            i.value.fields.contains(name)
-                && i.value.fields.first().is_some_and(|f| sharers.contains(f))
-        }) {
-            Some(format!(
-                "`private {name}` is in `{}`, which a reader it shares with reads its rows by",
-                i.value.name
-            ))
         } else {
-            None
+            // In an index a reader it shares with reads its rows by.
+            t.indexes
+                .iter()
+                .find(|i| {
+                    i.value.fields.contains(name)
+                        && i.value.fields.first().is_some_and(|f| sharers.contains(f))
+                })
+                .map(|i| {
+                    format!(
+                        "`private {name}` is in `{}`, which a reader it shares with reads its \
+                         rows by",
+                        i.value.name
+                    )
+                })
         };
         if let Some(message) = fault {
             out.push(unseen(

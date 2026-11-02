@@ -156,6 +156,57 @@ pub fn seen(access: &Access, out: Vec<Val>) -> Result<Vec<Val>, String> {
         .collect()
 }
 
+/// **Is this owned function's import typed as it is given?** A read takes
+/// its fields with the handle, a string, first, or the handle and one list
+/// of what follows it; and answers the seen row where its reader is one the
+/// table shares with. An `insert` and a `put` take the handle and a row.
+/// What else a write takes and answers is [`table_link::check_import`]'s.
+pub fn check_import(access: &Access, params: &[Type], results: &[Type]) -> Result<(), String> {
+    match access {
+        Access::Read(read) => {
+            let words = read.primitive.by_words();
+            if read.many() {
+                let [Type::String, Type::List(rest)] = params else {
+                    return Err(format!(
+                        "it takes ({}), not its reader's handle and one list of what follows it",
+                        table_link::listed(params)
+                    ));
+                };
+                table_link::selector(words, &read.by[1..], &rest.ty())?;
+            } else {
+                table_link::fields(words, &read.by, params)?;
+            }
+            let answered = read
+                .handle
+                .as_ref()
+                .and_then(|h| h.seen.as_ref())
+                .unwrap_or(&read.row);
+            let (wrapper, row) = match (read.one(), results) {
+                (true, [Type::Option(row)]) => ("option", row.ty()),
+                (false, [Type::List(rows)]) => ("list", rows.ty()),
+                _ => {
+                    return Err(format!(
+                        "it answers ({}), not {} of its rows",
+                        table_link::listed(results),
+                        if read.one() { "an option" } else { "a list" }
+                    ));
+                }
+            };
+            table_link::record(answered, &row).map_err(|why| format!("its {wrapper}'s row: {why}"))
+        }
+        Access::Write(write) if matches!(write.primitive, Primitive::Insert | Primitive::Put) => {
+            let [Type::String, rest @ ..] = params else {
+                return Err(format!(
+                    "it takes ({}), not its owner's handle and a row",
+                    table_link::listed(params)
+                ));
+            };
+            table_link::write_import(write, rest, results)
+        }
+        Access::Write(write) => table_link::write_import(write, params, results),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -274,56 +325,5 @@ mod tests {
                 .is_err_and(|why| why.contains("is not its writer")),
             "{forged:?}"
         );
-    }
-}
-
-/// **Is this owned function's import typed as it is given?** A read takes
-/// its fields with the handle, a string, first, or the handle and one list
-/// of what follows it; and answers the seen row where its reader is one the
-/// table shares with. An `insert` and a `put` take the handle and a row.
-/// What else a write takes and answers is [`table_link::check_import`]'s.
-pub fn check_import(access: &Access, params: &[Type], results: &[Type]) -> Result<(), String> {
-    match access {
-        Access::Read(read) => {
-            let words = read.primitive.by_words();
-            if read.many() {
-                let [Type::String, Type::List(rest)] = params else {
-                    return Err(format!(
-                        "it takes ({}), not its reader's handle and one list of what follows it",
-                        table_link::listed(params)
-                    ));
-                };
-                table_link::selector(words, &read.by[1..], &rest.ty())?;
-            } else {
-                table_link::fields(words, &read.by, params)?;
-            }
-            let answered = read
-                .handle
-                .as_ref()
-                .and_then(|h| h.seen.as_ref())
-                .unwrap_or(&read.row);
-            let (wrapper, row) = match (read.one(), results) {
-                (true, [Type::Option(row)]) => ("option", row.ty()),
-                (false, [Type::List(rows)]) => ("list", rows.ty()),
-                _ => {
-                    return Err(format!(
-                        "it answers ({}), not {} of its rows",
-                        table_link::listed(results),
-                        if read.one() { "an option" } else { "a list" }
-                    ));
-                }
-            };
-            table_link::record(answered, &row).map_err(|why| format!("its {wrapper}'s row: {why}"))
-        }
-        Access::Write(write) if matches!(write.primitive, Primitive::Insert | Primitive::Put) => {
-            let [Type::String, rest @ ..] = params else {
-                return Err(format!(
-                    "it takes ({}), not its owner's handle and a row",
-                    table_link::listed(params)
-                ));
-            };
-            table_link::write_import(write, rest, results)
-        }
-        Access::Write(write) => table_link::write_import(write, params, results),
     }
 }
