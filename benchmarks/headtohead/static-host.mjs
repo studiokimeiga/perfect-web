@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The head-to-head's static host (ADR-XXXX, "the head-to-head"): how a
+// The head-to-head's static host (ADR-0392, "the head-to-head"): how a
 // production static host sends a client-rendered app's files, one policy for
 // every app it serves.
 //

@@ -1,4 +1,4 @@
-// The head-to-head's small helpers (ADR-XXXX, "the head-to-head"): statistics,
+// The head-to-head's small helpers (ADR-0392, "the head-to-head"): statistics,
 // sizes as a static host sends them, the machine, processes and their cost,
 // and servers started and stopped. Nothing here measures by itself.
 

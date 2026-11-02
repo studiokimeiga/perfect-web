@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """**What TodoMVC's specification says of each stack's TodoMVC, in three
-engines** (the head-to-head, ADR-XXXX).
+engines** (the head-to-head, ADR-0392).
 
     python3 scripts/head_to_head_behaviour.py <playwright json report>
 

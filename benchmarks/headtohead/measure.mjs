@@ -1,4 +1,4 @@
-// The head-to-head's browser instrument (ADR-XXXX, "the head-to-head"): one
+// The head-to-head's browser instrument (ADR-0392, "the head-to-head"): one
 // page load of one app on one stack, in one engine, cold or warm, with or
 // without network shaping, and the interactions after it.
 //

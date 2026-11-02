@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """**The source a developer writes, counted the same way in every stack**
-(the head-to-head, ADR-XXXX; ADR-0342 §4's "lines of code").
+(the head-to-head, ADR-0392; ADR-0342 §4's "lines of code").
 
     python3 scripts/head_to_head_loc.py [--json]
 

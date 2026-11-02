@@ -1,5 +1,5 @@
 // What a head-to-head run is held to before any number of it is reported
-// (ADR-XXXX, "the head-to-head"). Each rule refuses a run that would report
+// (ADR-0392, "the head-to-head"). Each rule refuses a run that would report
 // something other than what it says it measured:
 //
 //   runs        every cell (app, stack, engine, condition, network) has the

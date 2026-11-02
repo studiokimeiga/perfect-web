@@ -1,6 +1,6 @@
 # TodoMVC's official React and Svelte apps: what is vendored here, and from where
 
-The head-to-head (ADR-XXXX, "the head-to-head") measures TodoMVC in Pleris
+The head-to-head (ADR-0392, "the head-to-head") measures TodoMVC in Pleris
 (`examples/todomvc`) against TodoMVC's **own** React and Svelte
 implementations, never rewritten here (ADR-0342 §4: "taken from TodoMVC's own
 repository and never written here"). These two directories are those

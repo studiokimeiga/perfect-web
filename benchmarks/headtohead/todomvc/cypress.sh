@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # TodoMVC's official Cypress suite against TodoMVC's own React or Svelte app
-# (the head-to-head, ADR-XXXX): the same compatibility copy TodoMVC in Pleris
+# (the head-to-head, ADR-0392): the same compatibility copy TodoMVC in Pleris
 # is held to (`todomvc-cypress-compat-v1`, spikes/todomvc-cypress/UPSTREAM.md),
 # the same Cypress (15.21.1), on the vendored production build, served by the
 # head-to-head's static host as the suite's own server lays the examples out:

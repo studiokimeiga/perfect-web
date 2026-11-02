@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The museum's bug classes each stack lets ship (the head-to-head, ADR-XXXX):
+// The museum's bug classes each stack lets ship (the head-to-head, ADR-0392):
 // ADR-0342's exhibits as `just e14-museum` last recorded them
 // (`docs/evidence/E14/museum.txt`), read per stack.
 //

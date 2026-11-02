@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """**What TodoMVC's own Cypress suite says of TodoMVC's own React and Svelte
-apps** (the head-to-head, ADR-XXXX).
+apps** (the head-to-head, ADR-0392).
 
     python3 scripts/head_to_head_cypress.py <react|svelte> <cypress output> [exit status]
 

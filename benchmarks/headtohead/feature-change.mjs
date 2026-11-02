@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The same feature change, made in each stack (the head-to-head, ADR-XXXX):
+// The same feature change, made in each stack (the head-to-head, ADR-0392):
 // what each pull request is, and what in it a reviewer must verify by hand.
 //
 //   node benchmarks/headtohead/feature-change.mjs [--json out.json] [--no-checks]

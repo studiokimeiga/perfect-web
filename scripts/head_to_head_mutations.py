@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mutation and integrity controls for the head-to-head (ADR-XXXX).
+"""Mutation and integrity controls for the head-to-head (ADR-0392).
 
 Two kinds, each of which must be caught:
 

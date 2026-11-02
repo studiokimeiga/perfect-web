@@ -1,6 +1,6 @@
 // TodoMVC's specification (`app-spec.md`, tastejs/todomvc@ff43b02e), one
 // test per behaviour it states, run on every stack the head-to-head measures
-// in three engines (ADR-XXXX, "the head-to-head"): TodoMVC in Pleris and
+// in three engines (ADR-0392, "the head-to-head"): TodoMVC in Pleris and
 // TodoMVC's own React and Svelte apps. The same tests for each; a test may
 // know only the stack's address and how it says it is ready (Pleris's
 // runtime sets `data-pw-ready`; a client-rendered app is ready when its field

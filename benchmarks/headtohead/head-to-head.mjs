@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The head-to-head (ADR-XXXX): the same apps in Pleris and in the mainstream
+// The head-to-head (ADR-0392): the same apps in Pleris and in the mainstream
 // stacks, measured by one instrument, Pleris's losses first.
 //
 //   node benchmarks/headtohead/head-to-head.mjs [--apps todomvc,store]

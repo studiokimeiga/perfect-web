@@ -1,4 +1,4 @@
-ADR-XXXX - the head-to-head: the same apps in Pleris and in the mainstream stacks, Pleris's losses first
+ADR-0392 - the head-to-head: the same apps in Pleris and in the mainstream stacks, Pleris's losses first
 
 produced by: just e14-head-to-head
 commit: acd3f4c8fefc23a37c2ef281ad4a56f8a20d4620

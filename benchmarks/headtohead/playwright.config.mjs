@@ -1,4 +1,4 @@
-// The head-to-head's behaviour checks (ADR-XXXX): TodoMVC's specification,
+// The head-to-head's behaviour checks (ADR-0392): TodoMVC's specification,
 // `todomvc/behaviour.spec.mjs`, on each stack in three engines. Each stack is
 // served as the measurement serves it: TodoMVC in Pleris by the Pleris host's
 // release build, TodoMVC's own React and Svelte apps by the head-to-head's

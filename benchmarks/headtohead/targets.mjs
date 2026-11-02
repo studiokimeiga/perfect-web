@@ -1,4 +1,4 @@
-// What the head-to-head measures (ADR-XXXX, "the head-to-head"): each app on
+// What the head-to-head measures (ADR-0392, "the head-to-head"): each app on
 // each stack, how it is built and served, how it says it is interactive, the
 // interactions a run makes, and what each stack's build is held to.
 //

@@ -1,4 +1,4 @@
-"""The head-to-head's judges and counter (ADR-XXXX), each held to real or
+"""The head-to-head's judges and counter (ADR-0392), each held to real or
 exact inputs with its control:
 
 - `head_to_head_loc.py`: a line counts when it holds anything but white

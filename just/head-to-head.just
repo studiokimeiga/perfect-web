@@ -1,10 +1,10 @@
-# The head-to-head track's recipes (ADR-XXXX, "the head-to-head"): the same
+# The head-to-head track's recipes (ADR-0392, "the head-to-head"): the same
 # apps in Pleris and in the mainstream stacks, measured by one instrument,
 # Pleris's losses first. The root justfile imports this file; an evidence
 # recipe is `e14-<name>:`, writes `docs/evidence/E14/<name>.txt`, and is
 # planned by the verification run like any other.
 
-# ADR-XXXX: the head-to-head. TodoMVC in Pleris against TodoMVC's own React
+# ADR-0392: the head-to-head. TodoMVC in Pleris against TodoMVC's own React
 # and Svelte apps (vendored at tastejs/todomvc@ff43b02e,
 # benchmarks/headtohead/todomvc/UPSTREAM.md), and ADR-0120's store in
 # Pleris, Next.js and SvelteKit. In order:
@@ -41,7 +41,7 @@ e14-head-to-head:
     @bash spikes/own-renderer/baseline-store.sh > /dev/null
     @cd spikes/todomvc-cypress && pnpm exec cypress install > /dev/null
     @mkdir -p docs/evidence/E14
-    @{ echo "ADR-XXXX - the head-to-head: the same apps in Pleris and in the mainstream stacks, Pleris's losses first"; echo; \
+    @{ echo "ADR-0392 - the head-to-head: the same apps in Pleris and in the mainstream stacks, Pleris's losses first"; echo; \
        echo "produced by: just e14-head-to-head"; \
        echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' ':(exclude)spikes/own-renderer/store-ir.json' || echo ' + uncommitted changes')"; \
        echo "rust: $(rustc --version)"; echo "node: $(node --version)  pnpm: $(pnpm --version)"; \

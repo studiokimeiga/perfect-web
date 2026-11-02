@@ -1,4 +1,4 @@
-# ADR-XXXX: the head-to-head: the same apps in Pleris and in the mainstream stacks, measured, losses first
+# ADR-0392: the head-to-head: the same apps in Pleris and in the mainstream stacks, measured, losses first
 
 Status: proposed by track `head-to-head` under the owner's delegation of
 2026-10-02 and standing order of 2026-10-25 ("deciding by best judgement

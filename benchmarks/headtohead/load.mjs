@@ -1,4 +1,4 @@
-// The head-to-head's server instrument (ADR-XXXX, "the head-to-head"): what a
+// The head-to-head's server instrument (ADR-0392, "the head-to-head"): what a
 // stack's server spends per request under a fixed load.
 //
 // The load is open: requests are sent on a fixed schedule (`rate` a second

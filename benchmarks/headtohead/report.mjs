@@ -1,4 +1,4 @@
-// The head-to-head's report (ADR-XXXX): every table read from the runs, and
+// The head-to-head's report (ADR-0392): every table read from the runs, and
 // where Pleris loses, first, in the same tables' terms.
 //
 // Bytes are the same in every cold run of a stack (a build is a build), and
