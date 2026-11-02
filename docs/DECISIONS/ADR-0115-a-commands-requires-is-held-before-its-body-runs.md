@@ -88,3 +88,38 @@ it does not define application-specific predicates such as `OwnsOrder`.
 Those are deployment integrations. The guarantee added here is narrower and
 structural: when source declares an authorization precondition, execution
 cannot bypass evaluating it.
+
+## Amendment (ADR-0384 H2, track `row-ownership`, 2026-11-02)
+
+The integrator ruled on ADR-0384 (its ruling 2) that a program may give a
+predicate a body, so who may act is in the program where the checker sees
+it. Built by `ADR-XXXX-owned-tables`:
+
+1. **Decision 1, amended**: a predicate the program declares with a body
+   (`predicate Wrote(id: NoteId) says ".." { .. }`) is the programs: its
+
+## Amendment (ADR-0384 H2, track `row-ownership`, 2026-11-02)
+
+The integrator ruled on ADR-0384 (its ruling 2) that a program may give a
+predicate a body, so who may act is in the program where the checker sees
+it. Built by `ADR-XXXX-owned-tables`:
+
+1. **Decision 1, amended**: a predicate the program declares with a body
+   (`predicate Wrote(id: NoteId) says ".." { .. }`) is the program's: its
+   body answers a `Bool` (PW0606) and only reads (PW6905), and it is compiled
+   as a component of its own, kind `predicate`. A predicate with no body is
+   the deployment's vocabulary, as before.
+2. **Decision 2, widened**: `requires` belongs to a command or a query
+   (ADR-0339's ruling 3); its arguments are still the declaration's
+   parameters, so no expression runs before authorization.
+3. **Decision 3**: an export's `authorization` entry names the component
+   that answers it (`component`) where the program gives the predicate a
+   body; it is part of `abi_schema` with the rest.
+4. **Decision 4, the order of asking**: the requirements in the order the
+   export states them; one naming a component is asked of that compiled
+   predicate (in a command's own transaction, or a query's read), and the
+   deployment is never asked it; any other is asked of the deployment's
+   evaluator as before. False, an error or an unknown predicate refuses the
+   invocation before its component runs. The deployment's Rust predicates
+   (`identity.rs`'s `holds`) keep working until each is rewritten with a
+   body.
