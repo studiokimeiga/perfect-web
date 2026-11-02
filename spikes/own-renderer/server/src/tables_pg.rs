@@ -1,0 +1,809 @@
+//! **A program's declared tables, served durably from PostgreSQL** (track
+//! `durable-tables`; ADR-0338's D3 joined to D2's routing): the same gate as
+//! the memory layer (`tables.rs`), the generic PostgreSQL adapter behind it
+//! (`pw-table-postgres`, ADR-0393), chosen where the deployment names a
+//! database for a program's tables (`PW_TABLES_DATABASE_URL`). No name of
+//! any program's tables, contracts or routes is here: it serves whatever a
+//! build's `tables.json` declares.
+//!
+//! - **The gate is the only way**, as in memory: no operation by name; a
+//!   query links the reads the gate admits for its contract and grant, of
+//!   the latest commit or of its render's snapshot; a command links its
+//!   reads and writes, staged in its own serializable transaction.
+//! - **A command is one PostgreSQL transaction, with every record of the
+//!   platform's** (ADR-0208, ADR-0325, ADR-0334, ADR-0338 1.3): its rows,
+//!   the runs it scheduled or the run it completes, its interaction's
+//!   record and its outbox's rows, committed by the adapter at once
+//!   (`Prepared::publish_with`) or not at all. The host's materializer
+//!   keeps nothing of it ([`Commit::Applied`], [`DataLayer::keeps_interactions`],
+//!   [`DataLayer::runs`]): a split between the materializer's memory and the
+//!   database would keep a record of a write a restart lost, or lose the
+//!   record of a write a restart kept, and run a retry again (the review of
+//!   track `data-path`, 2026-11-02).
+//! - **One render reads one state** (NEXT 4c, ADR-0354): its snapshot is a
+//!   seat of the adapter's, a read-only repeatable-read transaction every
+//!   query of the render reads in; one that could not be taken fails the
+//!   render's reads, never reads the latest commit instead.
+//! - **The reader's session is the database's** (ADR-0369): kept by its
+//!   id's hash where a restarted host, or a second one, finds it; and each
+//!   command fenced on it in its own transaction, so that a session signed
+//!   out before the command commits keeps nothing of it.
+
+use super::*;
+use crate::data::{Commit, DataLayer, Ops, Provided, Snapshot, Staged};
+use crate::identity::{CommandActor, ReaderIdentity};
+use pw_table_postgres::{Command, Lifetimes, PgTables, Records};
+
+/// **Where a deployment keeps a program's tables**: its database, the schema
+/// its tables are in (a test's setting; the connection's own otherwise),
+/// and how many renders read at once.
+#[derive(Debug, Clone)]
+pub(crate) struct Database {
+    pub url: String,
+    pub schema: Option<String>,
+    pub seats: feed_pg::RenderSeats,
+}
+
+/// **`PW_TABLES_SCHEMA`, a test's setting**, as `PW_FEED_SCHEMA` is (the
+/// integrator's ruling 4 of 2026-10-20 on track second-host): honoured only
+/// for a development deployment on this machine, and refused at start for
+/// any other, whose tables are where its connection's search path says.
+pub(crate) fn test_schema(
+    schema: Option<&str>,
+    deployment: &identity::Deployment,
+) -> Result<Option<String>, String> {
+    match schema.filter(|s| !s.is_empty()) {
+        None => Ok(None),
+        Some(s) if deployment.development && deployment.loopback() => Ok(Some(s.to_string())),
+        Some(_) => Err(
+            "PW_TABLES_SCHEMA is a test's setting, for a development deployment on this \
+             machine, and this deployment is not one"
+                .to_string(),
+        ),
+    }
+}
+
+/// **A program's tables on PostgreSQL**, as its build declares them, what a
+/// node is granted of them (each table's read and write), its sessions, and
+/// the authority its scheduled runs are selected under.
+pub(crate) struct TablesPg {
+    tables: Arc<PgTables>,
+    grants: Vec<&'static str>,
+    kept: Arc<dyn identity::Kept>,
+    queue_authority: pw_materialize::QueueAuthority,
+    /// The database and the schema, for a test's SQL.
+    #[cfg(test)]
+    url: String,
+    /// Each call of a table function a command linked, so far: what a test
+    /// of a guarded command counts (none until its predicates answer).
+    #[cfg(test)]
+    pub(crate) command_calls: Arc<std::sync::atomic::AtomicU64>,
+}
+
+impl TablesPg {
+    /// **The layer for a build whose contracts import its tables**, on
+    /// `database`: its `tables.json` applied to the database or held to what
+    /// was applied there (ADR-0393's migration, drift refused). Refused
+    /// where a contract imports a hand-written layer's operation beside its
+    /// tables, as the memory layer refuses it (T1's, ADR-0338 5.1).
+    pub(crate) fn from_build(
+        build: &std::path::Path,
+        contracts: &[ComponentContract],
+        database: &Database,
+    ) -> Result<TablesPg, String> {
+        if let Some((component, import)) = contracts.iter().find_map(|c| {
+            c.imports
+                .iter()
+                .find(|i| {
+                    i.kind == pw_host::ImportKind::HostCapability && !i.interface.starts_with("pw:")
+                })
+                .map(|i| (c.component_id.clone(), i.key()))
+        }) {
+            return Err(format!(
+                "`{component}` imports `{import}`, a hand-written data layer's, and the program \
+                 declares its tables: one host serves one layer of a program until its sources \
+                 are routed apart (ADR-0338 5.1)"
+            ));
+        }
+        let path = build.join("tables.json");
+        let text = std::fs::read_to_string(&path).map_err(|e| {
+            format!(
+                "{}: {e}: the program imports its tables' functions and its build declares none",
+                path.display()
+            )
+        })?;
+        let options = pw_table_postgres::Options {
+            render_seats: database.seats.seats,
+            seat_wait: database.seats.wait,
+            host: hosts::new_host(),
+            ..pw_table_postgres::Options::default()
+        };
+        let tables = PgTables::open_json(&database.url, database.schema.as_deref(), &text, options)
+            .map_err(|e| format!("PW_TABLES_DATABASE_URL: the program's tables: {e:?}"))?;
+        let tables = Arc::new(tables);
+        let grants = tables
+            .host_tables()
+            .names()
+            .flat_map(|table| {
+                [
+                    interned(format!("database.read<{table}>")),
+                    interned(format!("database.write<{table}>")),
+                ]
+            })
+            .collect();
+        Ok(TablesPg {
+            kept: Arc::new(KeptSessions(Arc::clone(&tables))),
+            tables,
+            grants,
+            queue_authority: pw_materialize::QueueAuthority::new(),
+            #[cfg(test)]
+            url: database.url.clone(),
+            #[cfg(test)]
+            command_calls: Arc::default(),
+        })
+    }
+
+    /// The schema its tables are in.
+    #[cfg(test)]
+    pub(crate) fn schema(&self) -> &str {
+        self.tables.schema()
+    }
+}
+
+/// **A capability as the node's grants hold it**, each kept once a process,
+/// as the memory layer keeps its own (`tables.rs`).
+fn interned(capability: String) -> &'static str {
+    static INTERNED: std::sync::OnceLock<Mutex<std::collections::BTreeSet<&'static str>>> =
+        std::sync::OnceLock::new();
+    let mut kept = INTERNED
+        .get_or_init(Default::default)
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    if let Some(found) = kept.get(capability.as_str()) {
+        return found;
+    }
+    let leaked: &'static str = Box::leak(capability.into_boxed_str());
+    kept.insert(leaked);
+    leaked
+}
+
+/// **A render's snapshot of the tables** (NEXT 4c): the adapter's seat,
+/// shared by every read function the render links, or why none could be
+/// taken, which every read of the render then answers.
+struct PgSnapshot(Result<pw_table_postgres::Snapshot, String>);
+
+impl DataLayer for TablesPg {
+    /// No operation by name: a program's table functions are linked through
+    /// the gate alone, per component ([`DataLayer::table_reads`]).
+    fn reads(&self, _session: &str, _stopped: Option<Stopped>) -> Ops {
+        Ops::new()
+    }
+
+    /// A seat of the adapter's, its read transaction opened at the render's
+    /// first read: every query of one render reads it, whatever commits
+    /// meanwhile. Where none could be taken within the wait, the render's
+    /// reads fail, saying so: they never read the latest commit instead.
+    fn snapshot(&self) -> Option<Snapshot> {
+        Some(Box::new(PgSnapshot(self.tables.snapshot().map_err(|e| {
+            format!("the render's snapshot of the tables: {e:?}")
+        }))))
+    }
+
+    fn tables(&self) -> Option<&pw_host::tables::Manifest> {
+        Some(self.tables.host_tables())
+    }
+
+    fn table_reads(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+        snapshot: Option<&Snapshot>,
+    ) -> Result<Ops, String> {
+        let read = match snapshot {
+            Some(snapshot) => match snapshot.downcast_ref::<PgSnapshot>() {
+                Some(PgSnapshot(Ok(taken))) => taken.read_host_fns(contract, granted),
+                Some(PgSnapshot(Err(why))) => return Err(why.clone()),
+                None => return Err("a render's snapshot is not this program's tables'".into()),
+            },
+            None => self.tables.read_host_fns(contract, granted),
+        };
+        read.map_err(|e| format!("`{}`'s tables: {e:?}", contract.component_id))
+    }
+
+    fn begin<'a>(&'a self, _session: &str) -> Box<dyn Staged + 'a> {
+        Box::new(PgStaging {
+            layer: self,
+            turn: match self.tables.begin() {
+                Ok(command) => Turn::Open(command),
+                Err(e) => Turn::Failed(format!("the tables began no command: {e:?}")),
+            },
+            actor: None,
+            authorization: Authorization::NotAttempted,
+        })
+    }
+
+    fn grants(&self) -> Vec<&'static str> {
+        self.grants.clone()
+    }
+
+    fn default_page(&self) -> Option<&'static str> {
+        None
+    }
+
+    /// What a command's transaction gets on the database opened (ADR-0246,
+    /// ADR-0393's `provides`): measured, a read-only database refused.
+    fn provides(&self) -> Result<Provided, String> {
+        let provided = self
+            .tables
+            .provides()
+            .map_err(|e| format!("the tables' database: {e:?}"))?;
+        Ok(Provided {
+            transactions: provided.transactions.to_string(),
+            reads: std::collections::BTreeSet::from([provided.reads.to_string()]),
+            feed: provided.changes == "feed",
+        })
+    }
+
+    /// Its records are the database's, committed with its writes (ADR-0325).
+    fn keeps_interactions(&self) -> bool {
+        true
+    }
+
+    fn recalled(&self, key: &str, since_ms: u64) -> Result<Option<(String, String)>, String> {
+        self.tables
+            .recalled(key, since_ms)
+            .map_err(|e| format!("the interaction's record: {e:?}"))
+    }
+
+    /// Its runs are the database's, written with its commands' writes.
+    fn runs(&self) -> Option<&dyn schedules::Runs> {
+        Some(self)
+    }
+
+    /// Its sessions are the database's (ADR-0369): a restarted host keeps
+    /// its readers signed in, and so does a second host on the database.
+    fn sessions(&self) -> Option<Arc<dyn identity::Kept>> {
+        Some(Arc::clone(&self.kept))
+    }
+
+    #[cfg(test)]
+    fn statements(&self) -> Option<u64> {
+        Some(self.tables.statements())
+    }
+
+    #[cfg(test)]
+    fn table_calls_for_test(&self) -> Option<u64> {
+        Some(self.command_calls.load(std::sync::atomic::Ordering::SeqCst))
+    }
+
+    /// SQL another writer of the database runs, in the tables' schema.
+    #[cfg(test)]
+    fn execute_for_test(&self, sql: &str) -> Result<(), String> {
+        let mut c = postgres::Client::connect(&self.url, postgres::NoTls).map_err(feed_pg::pg)?;
+        c.batch_execute(&format!(
+            "SET search_path TO {}; {sql}",
+            feed_pg::ident(self.schema())
+        ))
+        .map_err(feed_pg::pg)
+    }
+}
+
+/// **Where one command's transaction is.**
+enum Turn {
+    /// Begun: its functions stage in it.
+    Open(Command),
+    /// Committed, with every record of the platform's.
+    Committed,
+    /// Refused, or failed: it keeps nothing, and says why.
+    Failed(String),
+}
+
+/// **Whether the command's session authority was acquired** (the fence).
+#[derive(PartialEq, Eq)]
+enum Authorization {
+    NotAttempted,
+    Acquired,
+    Failed,
+}
+
+/// **One command's transaction on a program's tables**: its writes, its
+/// runs and its records, committed by the adapter at once, or undone whole
+/// where it is dropped before (the adapter's own `Drop`).
+pub(crate) struct PgStaging<'a> {
+    layer: &'a TablesPg,
+    turn: Turn,
+    /// The browser actor admitted, whose session the command is fenced on.
+    actor: Option<CommandActor>,
+    authorization: Authorization,
+}
+
+impl PgStaging<'_> {
+    fn command(&mut self) -> Result<&mut Command, String> {
+        match &mut self.turn {
+            Turn::Open(command) => Ok(command),
+            Turn::Failed(why) => Err(why.clone()),
+            Turn::Committed => Err("a command's tables commit once".into()),
+        }
+    }
+}
+
+/// The session `actor` was admitted as, as the adapter keeps one: none
+/// where it was admitted as no one.
+fn admitted_as(actor: &CommandActor) -> Option<pw_table_postgres::Session> {
+    match &actor.reader {
+        ReaderIdentity::Account(identity) => Some(session_of(identity)),
+        ReaderIdentity::Anonymous | ReaderIdentity::Guest => None,
+    }
+}
+
+fn session_of(identity: &identity::SessionIdentity) -> pw_table_postgres::Session {
+    pw_table_postgres::Session {
+        user: identity.principal.user.clone(),
+        handle: identity.principal.handle.clone(),
+        name: identity.principal.name.clone(),
+        issuer: identity.principal.issuer.clone(),
+        epoch: identity.epoch,
+    }
+}
+
+fn lifetimes_of(lifetimes: &identity::SessionLifetimes) -> Lifetimes {
+    Lifetimes {
+        idle: lifetimes.idle,
+        absolute: lifetimes.absolute,
+    }
+}
+
+/// A value an outbox row keeps: a `String`, an `Int`, a `Bool`, or an
+/// invalidated entry's `_` (ADR-0256); anything else keys no entry.
+fn kept_value(name: &str, value: Option<&Val>) -> Result<serde_json::Value, String> {
+    match value {
+        None => Ok(serde_json::Value::Null),
+        Some(Val::String(s)) => Ok(serde_json::Value::String(s.clone())),
+        Some(Val::S64(n)) => Ok(serde_json::Value::from(*n)),
+        Some(Val::Bool(b)) => Ok(serde_json::Value::Bool(*b)),
+        Some(other) => Err(format!("`{name}` carries {other:?}, which keys no entry")),
+    }
+}
+
+/// A value read back from the outbox, as it was handed it.
+fn val_of(name: &str, value: &serde_json::Value) -> Result<Option<Val>, String> {
+    match value {
+        serde_json::Value::Null => Ok(None),
+        serde_json::Value::String(s) => Ok(Some(Val::String(s.clone()))),
+        serde_json::Value::Bool(b) => Ok(Some(Val::Bool(*b))),
+        serde_json::Value::Number(n) => n
+            .as_i64()
+            .map(|n| Some(Val::S64(n)))
+            .ok_or_else(|| format!("the outbox kept `{name}`'s {n}, which is no Int")),
+        other => Err(format!(
+            "the outbox kept `{name}`'s {other}, which keys no entry"
+        )),
+    }
+}
+
+/// **What the outbox committed, as the host delivers it**: the events, then
+/// the invalidated entries, each in the order the commit took them.
+fn delivered(committed: Vec<(i64, pw_table_postgres::Outboxed)>) -> Result<data::Outboxed, String> {
+    let (mut events, mut dropped) = (Vec::new(), Vec::new());
+    for (_, row) in committed {
+        let values = row
+            .values
+            .iter()
+            .map(|v| val_of(&row.name, v))
+            .collect::<Result<Vec<_>, String>>()?;
+        match row.kind {
+            pw_table_postgres::OutboxKind::Event => {
+                let values = values
+                    .into_iter()
+                    .map(|v| v.ok_or_else(|| format!("the event `{}` kept a null", row.name)))
+                    .collect::<Result<Vec<_>, String>>()?;
+                events.push((row.name, values));
+            }
+            pw_table_postgres::OutboxKind::Invalidation => dropped.push((row.name, values)),
+        }
+    }
+    Ok((events, dropped))
+}
+
+impl Staged for PgStaging<'_> {
+    /// **The command fenced on its reader's session** (ADR-0369), before it
+    /// runs: the session's lock on the command's connection, held to its
+    /// end, and the session as the actor was admitted, held now and again
+    /// just before the commit. A guest is the host's own, as in memory.
+    fn authorize(&mut self, actor: &CommandActor) -> Result<(), String> {
+        if self.authorization != Authorization::NotAttempted {
+            self.authorization = Authorization::Failed;
+            return Err("a staging cannot acquire session authority twice".into());
+        }
+        self.authorization = Authorization::Failed;
+        if matches!(actor.reader, ReaderIdentity::Guest) {
+            actor.ensure_local_current()?;
+            self.actor = Some(actor.clone());
+            self.authorization = Authorization::Acquired;
+            return Ok(());
+        }
+        if actor.is_local() || !actor.belongs_to(&self.layer.kept) {
+            return Err("command session belongs to another authority adapter".into());
+        }
+        let fence = pw_table_postgres::Fence {
+            hash: actor.hash(),
+            lifetimes: lifetimes_of(&actor.lifetimes()),
+            expected: admitted_as(actor),
+        };
+        self.command()?
+            .fence(fence)
+            .map_err(|e| format!("session authority changed before commit: {e:?}"))?;
+        self.actor = Some(actor.clone());
+        self.authorization = Authorization::Acquired;
+        Ok(())
+    }
+
+    /// A command that writes nothing, or answers a declared error, is held
+    /// to its reader's session again, in its transaction.
+    fn revalidate(&mut self) -> Result<(), String> {
+        if self.authorization == Authorization::Failed {
+            return Err("command session authority was not acquired".into());
+        }
+        match &self.actor {
+            Some(actor) if matches!(actor.reader, ReaderIdentity::Guest) => {
+                actor.ensure_local_current().map_err(String::from)
+            }
+            Some(_) => self
+                .command()?
+                .revalidate()
+                .map_err(|e| format!("session authority changed before commit: {e:?}")),
+            None => Ok(()),
+        }
+    }
+
+    /// No operation by name ([`Staged::table_ops`]).
+    fn ops(&self) -> Ops {
+        Ops::new()
+    }
+
+    fn table_ops(&self, contract: &ComponentContract, granted: &Granted) -> Result<Ops, String> {
+        let linked = match &self.turn {
+            Turn::Open(command) => command
+                .host_fns(contract, granted)
+                .map_err(|e| format!("`{}`'s tables: {e:?}", contract.component_id))?,
+            Turn::Failed(why) => return Err(why.clone()),
+            Turn::Committed => return Err("a command's tables are linked before it commits".into()),
+        };
+        // A test counts each call of them.
+        #[cfg(test)]
+        let linked = linked
+            .into_iter()
+            .map(|(name, f)| {
+                let calls = Arc::clone(&self.layer.command_calls);
+                let counted: HostFn = Arc::new(move |args: &[Val]| {
+                    calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                    f(args)
+                });
+                (name, counted)
+            })
+            .collect();
+        Ok(linked)
+    }
+
+    /// Whether the command wrote, which its commit then keeps: the database
+    /// keeps its rows, and the host's materializer none. A command whose
+    /// writes cannot be read goes on to its commit, which refuses it.
+    fn rows(&self) -> Option<Vec<(String, String)>> {
+        match &self.turn {
+            Turn::Open(command) => match command.written() {
+                Ok(written) if written.is_empty() => None,
+                _ => Some(Vec::new()),
+            },
+            _ => Some(Vec::new()),
+        }
+    }
+
+    /// Committed in [`Staged::commit`]: nothing is left to make the layer's.
+    fn publish(&mut self) {}
+
+    /// **The command's writes, its runs, its interaction's record and its
+    /// outbox, in its one transaction** (ADR-0338 1.3): the run it completes
+    /// taken first (none taken, nothing commits: [`Commit::NotCurrent`]);
+    /// its schedulings written; its references held; then its record and
+    /// its outbox written and, its reader's session held to its fence, the
+    /// `COMMIT`. Refused anywhere, nothing of it is kept; an unanswered
+    /// `COMMIT` is said so, and the host reconciles it from the record.
+    fn commit(
+        &mut self,
+        events: &[data::Handed],
+        invalidated: &[data::Dropped],
+        interaction: Option<&data::Recorded<'_>>,
+        scheduled: &[schedules::Scheduled],
+        completing: Option<schedules::Completing<'_>>,
+    ) -> Result<Commit, String> {
+        if self.authorization == Authorization::Failed {
+            return Err("command session authority was not acquired".into());
+        }
+        let outbox = events
+            .iter()
+            .map(|(name, values)| {
+                Ok(pw_table_postgres::Outboxed {
+                    kind: pw_table_postgres::OutboxKind::Event,
+                    name: name.clone(),
+                    values: values
+                        .iter()
+                        .map(|v| kept_value(name, Some(v)))
+                        .collect::<Result<_, String>>()?,
+                })
+            })
+            .chain(invalidated.iter().map(|(name, values)| {
+                Ok(pw_table_postgres::Outboxed {
+                    kind: pw_table_postgres::OutboxKind::Invalidation,
+                    name: name.clone(),
+                    values: values
+                        .iter()
+                        .map(|v| kept_value(name, v.as_ref()))
+                        .collect::<Result<_, String>>()?,
+                })
+            }))
+            .collect::<Result<Vec<_>, String>>()?;
+        let mut command = match std::mem::replace(&mut self.turn, Turn::Failed("committing".into()))
+        {
+            Turn::Open(command) => command,
+            Turn::Failed(why) => {
+                self.turn = Turn::Failed(why.clone());
+                return Err(why);
+            }
+            Turn::Committed => {
+                self.turn = Turn::Committed;
+                return Err("a command's tables commit once".into());
+            }
+        };
+        if let Some(completion) = completing {
+            if !completion.belongs_to(&self.layer.queue_authority) {
+                return Err("scheduled completion belongs to another queue adapter".into());
+            }
+            let run = run_of(completion.run)
+                .ok_or("scheduled completion of a run this layer never kept")?;
+            match command.consume(&run, completion.now_ms) {
+                Ok(true) => {}
+                // Not the run selected any more: nothing of the command
+                // commits, and its transaction is undone as it is dropped.
+                Ok(false) => return Ok(Commit::NotCurrent),
+                Err(e) => return Err(format!("the scheduled run was not taken: {e:?}")),
+            }
+        }
+        let schedulings: Vec<pw_table_postgres::Scheduling> = scheduled
+            .iter()
+            .map(|s| pw_table_postgres::Scheduling {
+                key: s.key.clone(),
+                command: s.command.clone(),
+                args: s.args.clone(),
+                user: s.user.clone(),
+                due_ms: s.due_ms,
+            })
+            .collect();
+        command
+            .schedule(&schedulings)
+            .map_err(|e| format!("the runs were not scheduled: {e:?}"))?;
+        if let Some(actor) = &self.actor
+            && matches!(actor.reader, ReaderIdentity::Guest)
+        {
+            actor.ensure_local_current()?;
+        }
+        let prepared = command
+            .prepare()
+            .map_err(|e| format!("the tables refused the commit: {e:?}"))?;
+        #[cfg(test)]
+        if crate::tables::FAIL_NEXT_PUBLISH.with(|fail| fail.replace(false)) {
+            // A test's: the commit refused as the database refuses it, its
+            // transaction undone as the prepared command is dropped.
+            drop(prepared);
+            return Err("the tables did not commit: a test's refusal".into());
+        }
+        let committed = prepared
+            .publish_with(Records {
+                interaction: interaction.map(|r| pw_table_postgres::Interaction {
+                    key: r.key,
+                    sent: r.sent,
+                    answer: r.answer,
+                    at_ms: r.at_ms,
+                    forget_before_ms: r.forget_before_ms,
+                }),
+                outbox: &outbox,
+            })
+            .map_err(|e| format!("the tables did not commit: {e:?}"))?;
+        self.turn = Turn::Committed;
+        // Committed: what the outbox kept is what is delivered. One that
+        // cannot be read back is what the command handed it.
+        match delivered(committed.outbox) {
+            Ok(outboxed) => Ok(Commit::Applied(outboxed)),
+            Err(why) => {
+                eprintln!("pw dev server: the tables' outbox was not read back: {why}");
+                Ok(Commit::Applied((events.to_vec(), invalidated.to_vec())))
+            }
+        }
+    }
+}
+
+/// A run as the scheduler selected it, as the adapter keeps one: none for a
+/// run of another protocol than the one this layer writes.
+fn run_of(run: &pw_materialize::ScheduledRun) -> Option<pw_table_postgres::Run> {
+    (run.protocol == 1).then(|| pw_table_postgres::Run {
+        id: run.id,
+        command: run.command.clone(),
+        args: run.args.clone(),
+        user: run.user.clone(),
+        due_ms: run.due_ms,
+        attempts: run.attempts,
+        failed: run.failed.clone(),
+    })
+}
+
+/// A run as the adapter keeps it, as the scheduler selects one.
+fn scheduled_run(run: pw_table_postgres::Run) -> pw_materialize::ScheduledRun {
+    pw_materialize::ScheduledRun {
+        protocol: 1,
+        id: run.id,
+        command: run.command,
+        args: run.args,
+        user: run.user,
+        due_ms: run.due_ms,
+        attempts: run.attempts,
+        failed: run.failed,
+    }
+}
+
+/// **Its runs, outside a command** (the scheduled-commands track): those the
+/// adapter keeps, each one statement on a connection of its pool's.
+impl schedules::Runs for TablesPg {
+    fn authority(&self) -> &pw_materialize::QueueAuthority {
+        &self.queue_authority
+    }
+
+    fn current(
+        &self,
+        expected: &pw_materialize::ScheduledRun,
+        now_ms: i64,
+    ) -> Result<bool, String> {
+        let Some(run) = run_of(expected) else {
+            return Ok(false);
+        };
+        self.tables
+            .run_current(&run, now_ms)
+            .map_err(|e| format!("{e:?}"))
+    }
+
+    fn retry_current(
+        &self,
+        expected: &pw_materialize::ScheduledRun,
+        attempts: i64,
+        due_ms: i64,
+        failed: Option<&str>,
+    ) -> Result<bool, String> {
+        let Some(run) = run_of(expected) else {
+            return Ok(false);
+        };
+        self.tables
+            .retry_run(&run, attempts, due_ms, failed)
+            .map_err(|e| format!("{e:?}"))
+    }
+
+    fn due_runs(
+        &self,
+        now_ms: i64,
+        limit: usize,
+    ) -> Result<Vec<pw_materialize::ScheduledRun>, String> {
+        self.tables
+            .due_runs(now_ms, limit)
+            .map(|runs| runs.into_iter().map(scheduled_run).collect())
+            .map_err(|e| format!("{e:?}"))
+    }
+
+    fn next_run(&self) -> Result<Option<i64>, String> {
+        self.tables.next_run().map_err(|e| format!("{e:?}"))
+    }
+
+    #[cfg(test)]
+    fn ran(&self, id: i64) -> Result<(), String> {
+        self.tables.forget_run(id).map_err(|e| format!("{e:?}"))
+    }
+
+    #[cfg(test)]
+    fn retry(
+        &self,
+        id: i64,
+        attempts: i64,
+        due_ms: i64,
+        failed: Option<&str>,
+    ) -> Result<(), String> {
+        self.tables
+            .set_run(id, attempts, due_ms, failed)
+            .map_err(|e| format!("{e:?}"))
+    }
+
+    #[cfg(test)]
+    fn all_runs(&self) -> Result<Vec<pw_materialize::ScheduledRun>, String> {
+        self.tables
+            .runs()
+            .map(|runs| runs.into_iter().map(scheduled_run).collect())
+            .map_err(|e| format!("{e:?}"))
+    }
+}
+
+/// **Sessions and sign-ins kept with the program's tables** (ADR-0369): in
+/// the adapter's schema, by each secret's SHA-256, on connections of their
+/// own; a session's change under the lock each command fenced on it holds.
+struct KeptSessions(Arc<PgTables>);
+
+impl identity::Kept for KeptSessions {
+    fn session(
+        &self,
+        hash: &[u8],
+        lifetimes: &identity::SessionLifetimes,
+    ) -> Result<Option<identity::SessionIdentity>, String> {
+        self.0
+            .admit_session(
+                hash,
+                lifetimes_of(lifetimes),
+                hosts::touched_after(lifetimes),
+            )
+            .map(|kept| kept.map(identity_of))
+            .map_err(|e| format!("{e:?}"))
+    }
+
+    fn inspect(
+        &self,
+        hash: &[u8],
+        lifetimes: &identity::SessionLifetimes,
+    ) -> Result<Option<identity::SessionIdentity>, String> {
+        self.0
+            .inspect_session(hash, lifetimes_of(lifetimes))
+            .map(|kept| kept.map(identity_of))
+            .map_err(|e| format!("{e:?}"))
+    }
+
+    fn open(
+        &self,
+        hash: &[u8],
+        principal: &identity::Principal,
+        epoch: &[u8; 16],
+    ) -> Result<(), String> {
+        self.0
+            .open_session(
+                hash,
+                &pw_table_postgres::Session {
+                    user: principal.user.clone(),
+                    handle: principal.handle.clone(),
+                    name: principal.name.clone(),
+                    issuer: principal.issuer.clone(),
+                    epoch: *epoch,
+                },
+            )
+            .map_err(|e| format!("{e:?}"))
+    }
+
+    fn close(&self, hash: &[u8]) -> Result<(), String> {
+        self.0.close_session(hash).map_err(|e| format!("{e:?}"))
+    }
+
+    fn begin_sign_in(&self, hash: &[u8], nonce: &str, verifier: &str) -> Result<(), String> {
+        self.0
+            .begin_sign_in(hash, nonce, verifier)
+            .map_err(|e| format!("{e:?}"))
+    }
+
+    fn take_sign_in(
+        &self,
+        hash: &[u8],
+    ) -> Result<Option<(String, String, std::time::Duration)>, String> {
+        self.0.take_sign_in(hash).map_err(|e| format!("{e:?}"))
+    }
+}
+
+fn identity_of(kept: pw_table_postgres::Session) -> identity::SessionIdentity {
+    identity::SessionIdentity {
+        principal: identity::Principal {
+            user: kept.user,
+            handle: kept.handle,
+            name: kept.name,
+            issuer: kept.issuer,
+        },
+        epoch: kept.epoch,
+    }
+}

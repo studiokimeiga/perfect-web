@@ -992,6 +992,9 @@ mod hosts;
 // TRACK SEAM (tables): a program's declared tables, served by the generic
 // memory adapter, through the gate alone (track `data-path`, ADR-0338 D2).
 mod tables;
+// TRACK SEAM (tables): and durably, by the generic PostgreSQL adapter, where
+// the deployment names a database for them (track `durable-tables`).
+mod tables_pg;
 
 /// **The table functions a call links, by its component's contract and
 /// grant** (TRACK SEAM (tables), track `data-path`): a query's reads, a
@@ -1687,11 +1690,37 @@ impl Server {
     /// deployment opened (track `store-pg`): PostgreSQL where it names one,
     /// the in-memory layer otherwise (and, for the server's tests, the layer
     /// [`store::layer_for_tests`] says).
+    #[cfg(test)]
     fn from_build_layers(
         dist: std::path::PathBuf,
         build: std::path::PathBuf,
         feed: Option<Arc<dyn data::DataLayer>>,
         store: Option<Arc<dyn store::StoreLayer>>,
+    ) -> Result<Server, String> {
+        Server::from_build_all(dist, build, feed, store, None)
+    }
+
+    /// [`Server::from_build`], a program's declared tables on the database
+    /// `tables` names (track `durable-tables`): PostgreSQL where it names
+    /// one, the memory adapter otherwise.
+    #[cfg(test)]
+    fn from_build_tables(
+        dist: std::path::PathBuf,
+        build: std::path::PathBuf,
+        tables: Option<&tables_pg::Database>,
+    ) -> Result<Server, String> {
+        Server::from_build_all(dist, build, None, None, tables)
+    }
+
+    /// [`Server::from_build_layers`], and a program's declared tables where
+    /// the deployment keeps them (track `durable-tables`): on the database
+    /// `tables` names, in memory where it names none.
+    fn from_build_all(
+        dist: std::path::PathBuf,
+        build: std::path::PathBuf,
+        feed: Option<Arc<dyn data::DataLayer>>,
+        store: Option<Arc<dyn store::StoreLayer>>,
+        tables: Option<&tables_pg::Database>,
     ) -> Result<Server, String> {
         let read = |rel: &str| {
             std::fs::read_to_string(build.join(rel))
@@ -1740,11 +1769,16 @@ impl Server {
             if tables::imports_tables(&contracts) {
                 // TRACK SEAM (tables): **a program that declares its data**
                 // (track `data-path`): its build's tables.json in the generic
-                // memory adapter, and no hand-written layer beside it.
-                (
-                    Arc::new(store::StoreData::new()),
-                    Arc::new(tables::TablesLayer::from_build(&build, &contracts)?),
-                )
+                // memory adapter, and no hand-written layer beside it; or,
+                // where the deployment names a database for them, in the
+                // generic PostgreSQL adapter (track `durable-tables`).
+                let layer: Arc<dyn data::DataLayer> = match tables {
+                    Some(database) => Arc::new(tables_pg::TablesPg::from_build(
+                        &build, &contracts, database,
+                    )?),
+                    None => Arc::new(tables::TablesLayer::from_build(&build, &contracts)?),
+                };
+                (Arc::new(store::StoreData::new()), layer)
             } else if contracts
                 .iter()
                 .flat_map(|c| &c.imports)
@@ -9262,13 +9296,36 @@ fn main() {
         }
         _ => None,
     };
-    let server = match Server::from_build_layers(dist.into(), build.into(), feed, store) {
-        Ok(s) => Arc::new(s),
-        Err(e) => {
-            eprintln!("pw dev server: {e}\nrun spikes/own-renderer/run.sh, which runs `pw build`");
-            std::process::exit(1);
+    // TRACK SEAM (tables): **a program's declared tables on PostgreSQL**
+    // (track `durable-tables`), where the deployment names a database for
+    // them; in memory otherwise, lost when the host stops. Its URL is the
+    // environment's, never the repository's; the schema its tables are in
+    // is the connection's own, or a test's (`PW_TABLES_SCHEMA`, refused at
+    // start outside a development deployment on this machine).
+    let tables = match std::env::var("PW_TABLES_DATABASE_URL") {
+        Ok(url) if !url.is_empty() => {
+            let schema = identity::Deployment::from_env(port)
+                .and_then(|d| {
+                    tables_pg::test_schema(std::env::var("PW_TABLES_SCHEMA").ok().as_deref(), &d)
+                })
+                .unwrap_or_else(|e| {
+                    eprintln!("pw dev server: {e}");
+                    std::process::exit(1);
+                });
+            Some(tables_pg::Database { url, schema, seats })
         }
+        _ => None,
     };
+    let server =
+        match Server::from_build_all(dist.into(), build.into(), feed, store, tables.as_ref()) {
+            Ok(s) => Arc::new(s),
+            Err(e) => {
+                eprintln!(
+                    "pw dev server: {e}\nrun spikes/own-renderer/run.sh, which runs `pw build`"
+                );
+                std::process::exit(1);
+            }
+        };
     let missing = server.uncompiled_handlers();
     if !missing.is_empty() {
         eprintln!(
@@ -9348,6 +9405,19 @@ fn main() {
     // TRACK SEAM (uploads, ADR-0253): what it holds a browser's file to.
     if let Some(uploads) = server.uploads.describe() {
         println!("pw dev server uploads: {uploads}");
+    }
+    // TRACK SEAM (tables): where a program's declared tables are kept (track
+    // `durable-tables`).
+    if server.data.tables().is_some() {
+        match tables.as_ref().map(|d| d.schema.as_deref()) {
+            Some(Some(schema)) => {
+                println!("pw dev server tables: on PostgreSQL, schema {schema}")
+            }
+            Some(None) => {
+                println!("pw dev server tables: on PostgreSQL, in its connection's schema")
+            }
+            None => println!("pw dev server tables: in memory, lost when the host stops"),
+        }
     }
 
     // **Each live document read again when what it shows holds no longer**
@@ -16257,6 +16327,10 @@ public query Store(",
     // TRACK SEAM (tables): the conformance suite over the `DataLayer` seam,
     // generated for every declared table (ADR-0338 5.5, track `data-path`).
     mod conformance;
+
+    // TRACK SEAM (tables): a program's declared tables served durably from
+    // PostgreSQL, the suite over that layer too (track `durable-tables`).
+    mod tables_pg;
 
     // TRACK SEAM (device-store): a page that holds a value the device keeps,
     // served (ADR-0366).

@@ -132,6 +132,14 @@ pub(crate) trait DataLayer: Send + Sync {
         None
     }
 
+    /// **Each call of a table function its commands linked, so far** (track
+    /// `durable-tables`'s tests: a guarded command calls none until its
+    /// predicates answer), on a layer that counts them.
+    #[cfg(test)]
+    fn table_calls_for_test(&self) -> Option<u64> {
+        None
+    }
+
     fn provides(&self) -> Result<Provided, String> {
         Ok(Provided::host_database())
     }

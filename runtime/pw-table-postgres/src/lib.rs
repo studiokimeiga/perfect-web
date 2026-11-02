@@ -424,6 +424,20 @@ impl PgTables {
         })
     }
 
+    /// [`PgTables::open_with`], given tables.json's text as a build wrote
+    /// it: what a host reads, which links no compiler (track
+    /// `durable-tables`).
+    pub fn open_json(
+        url: &str,
+        schema: Option<&str>,
+        tables_json: &str,
+        options: Options,
+    ) -> Result<PgTables, Error> {
+        let manifest: TablesJson = serde_json::from_str(tables_json)
+            .map_err(|error| Error::Schema(format!("tables.json: {error}")))?;
+        PgTables::open_with(url, schema, manifest, options)
+    }
+
     /// The schema its tables are in.
     pub fn schema(&self) -> &str {
         &self.inner.names.schema
