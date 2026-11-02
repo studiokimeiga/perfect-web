@@ -442,9 +442,11 @@ impl Tail {
 /// **Sessions and sign-ins kept in a layer's schema** (ADR-0369):
 /// `sessions` and `sign_ins`, each by its secret's SHA-256
 /// ([`crate::identity::kept_hash`]), on connections of their own, so that a
-/// plain authority inspection does not lock a row. Client activity and
-/// open/close can wait on an admitted command's fence; no more than
-/// [`SESSION_CONNECTIONS`] of these connections are open at once.
+/// plain authority inspection does not lock a row. Open and close wait on
+/// an admitted command's fence; an admission never does: it reads without
+/// the session's lock, and writes only where nobody holds it (ADR-0389,
+/// amended 2026-11-02). No more than [`SESSION_CONNECTIONS`] of these
+/// connections are open at once.
 pub(crate) struct SessionsPg {
     url: String,
     schema: String,
@@ -457,14 +459,21 @@ pub(crate) struct SessionsPg {
     /// The most connections open at once.
     #[cfg(test)]
     most: std::sync::atomic::AtomicUsize,
+    /// A test's step, run after each admission read and before any write it
+    /// makes ([`crate::identity::Kept::after_each_read`]).
+    #[cfg(test)]
+    after_read: Mutex<Option<std::sync::Arc<dyn Fn() + Send + Sync>>>,
 }
 
 /// **How many connections a layer's sessions are read and written on at
 /// once** (ADR-0369; the bound the render merge's ruling holds every pool
 /// to: stated, and deadlock-free by structure): a request past it waits for
-/// one to be given back. Each is taken for an inspection/admission statement
-/// or one open/close transaction. None is borrowed by a command staging:
-/// its fence runs on the business connection, not a second session seat.
+/// one to be given back. Each is taken for one inspection, one admission
+/// (its read, and the write it may make without waiting) or one open/close
+/// transaction. None is borrowed by a command staging: its fence runs on
+/// the business connection, not a second session seat. None waits on a
+/// command's fence for an admission, so a command holding its session's
+/// lock holds none of them (ADR-0389, amended 2026-11-02).
 pub(crate) const SESSION_CONNECTIONS: usize = 8;
 
 /// **How long a kept session's use goes unrecorded**: a minute, or a
@@ -474,11 +483,68 @@ pub(crate) fn touched_after(lifetimes: &crate::identity::SessionLifetimes) -> st
     std::time::Duration::from_secs(60).min(lifetimes.idle / 4)
 }
 
+/// **Whether a kept session is live**, by both its lifetimes on the
+/// database's clock: opened less than its absolute lifetime ago (`$2`,
+/// seconds) and used less than its idle time ago (`$3`). One text for an
+/// admission's read and its write ([`ADMISSION_READ`], [`ADMISSION_WRITE`]),
+/// so that the two cannot disagree on it.
+macro_rules! live {
+    () => {
+        "opened > clock_timestamp() - make_interval(secs => $2) \
+         AND seen > clock_timestamp() - make_interval(secs => $3)"
+    };
+}
+
+/// **Whether a kept session's use is due to be recorded**: last recorded
+/// more than [`touched_after`] ago (`$4`, seconds). One text for the read
+/// and the write, as `live!`'s.
+macro_rules! stale {
+    () => {
+        "seen < clock_timestamp() - make_interval(secs => $4)"
+    };
+}
+
+/// **An admission's read** (ADR-0389, amended 2026-11-02): one statement,
+/// run in no transaction of its own, that takes no session lock: the
+/// session's row, whether it is live, and whether its use is due to be
+/// recorded.
+const ADMISSION_READ: &str = concat!(
+    "SELECT user_id, handle, name, issuer, epoch, (",
+    live!(),
+    ") AS live, (",
+    stale!(),
+    ") AS stale FROM sessions WHERE hash = $1"
+);
+
+/// **An admission's write** (ADR-0369; the integrator's ruling 2 of
+/// 2026-10-20), run only under the session's lock, its snapshot taken after
+/// it: the session live by both lifetimes, its use recorded where that is
+/// due, and one past either lifetime deleted. Its answer is the live row.
+const ADMISSION_WRITE: &str = concat!(
+    "WITH live AS (SELECT user_id, handle, name, issuer, seen, epoch FROM sessions \
+     WHERE hash = $1 AND ",
+    live!(),
+    "), touched AS (UPDATE sessions SET seen = clock_timestamp() WHERE hash = $1 \
+     AND EXISTS (SELECT 1 FROM live WHERE ",
+    stale!(),
+    ")), gone AS (DELETE FROM sessions WHERE hash = $1 \
+     AND NOT EXISTS (SELECT 1 FROM live)) \
+     SELECT user_id, handle, name, issuer, epoch FROM live"
+);
+
 /// One namespace shared by business staging and session open/close. The schema
 /// isolates applications on one database; the hash never puts a cookie in SQL.
 pub(crate) const SESSION_AUTHORITY_KEY: &str =
     "hashtextextended(current_schema() || ':pw_session:' || encode($1::bytea, 'hex'), 0)";
 const SESSION_LOCK_TIMEOUT: &str = "SET LOCAL lock_timeout = '5s'";
+
+/// **How long any statement on a session connection waits for a lock**, set
+/// once per connection: the bound [`SESSION_LOCK_TIMEOUT`] sets in each
+/// transaction, held too by what runs in none (ADR-0389, amended
+/// 2026-11-02). An admission's read waits on no session lock, but a
+/// migration's lock on the table would hold it: past the bound it fails, and
+/// its request is refused, as when the admission was a transaction.
+const SESSION_CONNECTION_LOCK_TIMEOUT: &str = "SET lock_timeout = '5s'";
 
 /// Acquire outside the business transaction: its MVCC snapshot must start only
 /// after this wait. An error leaves ownership uncertain: discard the connection.
@@ -620,6 +686,8 @@ impl SessionsPg {
             ran: std::sync::atomic::AtomicU64::new(0),
             #[cfg(test)]
             most: std::sync::atomic::AtomicUsize::new(0),
+            #[cfg(test)]
+            after_read: Mutex::new(None),
         }
     }
 
@@ -652,8 +720,11 @@ impl SessionsPg {
                     reusable: true,
                 };
                 let mut c = Client::connect(&self.url, NoTls).map_err(pg)?;
-                c.batch_execute(&format!("SET search_path TO {}", ident(&self.schema)))
-                    .map_err(pg)?;
+                c.batch_execute(&format!(
+                    "SET search_path TO {}; {SESSION_CONNECTION_LOCK_TIMEOUT}",
+                    ident(&self.schema)
+                ))
+                .map_err(pg)?;
                 taken.client = Some(c);
                 return Ok(taken);
             }
@@ -726,6 +797,63 @@ impl SessionsPg {
         result.map_err(pg)
     }
 
+    /// **A due write, made where nobody holds the session's lock** (ADR-0389,
+    /// amended 2026-11-02), on the admission's own connection: a transaction
+    /// of its own that tries the session's advisory lock and never waits for
+    /// it. Taken, `f` runs under it, its snapshot taken after the lock (READ
+    /// COMMITTED takes one per statement), so no open, close or command of
+    /// the session, which take the same lock, changes the row under it; the
+    /// answer is `f`'s. Held by another, nothing is written, and the answer
+    /// is none. As in [`SessionsPg::mutation`], a failed statement or an
+    /// unacknowledged end discards the connection.
+    fn written_if_free<T>(
+        &self,
+        taken: &mut Taken<'_>,
+        hash: &[u8],
+        f: impl FnOnce(&mut Client) -> Result<T, postgres::Error>,
+    ) -> Result<Option<T>, String> {
+        taken.reusable = false;
+        let c = taken.client.as_mut().expect("a connection taken");
+        let result = (|| {
+            self.counted();
+            c.batch_execute("BEGIN ISOLATION LEVEL READ COMMITTED")?;
+            self.counted();
+            let free: bool = c
+                .query_one(
+                    &format!("SELECT pg_try_advisory_xact_lock({SESSION_AUTHORITY_KEY})"),
+                    &[&hash],
+                )?
+                .try_get(0)?;
+            if !free {
+                self.counted();
+                c.batch_execute("ROLLBACK")?;
+                return Ok(None);
+            }
+            self.counted();
+            let out = f(c)?;
+            self.counted();
+            c.batch_execute("COMMIT")?;
+            Ok(Some(out))
+        })();
+        if result.is_ok() {
+            taken.reusable = true;
+        } else {
+            self.counted();
+            let _ = c.batch_execute("ROLLBACK");
+        }
+        result.map_err(pg)
+    }
+
+    /// A test's step after an admission read, run with the step's own lock
+    /// let go: two admissions' steps may wait for each other.
+    #[cfg(test)]
+    fn read_step(&self) {
+        let step = self.after_read.lock().expect("a test's step").clone();
+        if let Some(step) = step {
+            step();
+        }
+    }
+
     /// `seconds` of the database's sleep on one of its connections: a
     /// request holding it that long.
     #[cfg(test)]
@@ -772,11 +900,25 @@ impl crate::identity::Kept for SessionsPg {
         self.ran.load(std::sync::atomic::Ordering::SeqCst)
     }
 
-    /// One statement (the integrator's ruling 2 of 2026-10-20): the session
-    /// alive by both lifetimes on the database's clock; its use recorded
-    /// where the last was more than [`touched_after`] ago, so a session in
-    /// use writes at most that often; and one past either lifetime deleted,
-    /// signed out cleanly wherever it is read next.
+    #[cfg(test)]
+    fn after_each_read(&self, step: Option<std::sync::Arc<dyn Fn() + Send + Sync>>) {
+        *self.after_read.lock().expect("a test's step") = step;
+    }
+
+    /// **A session as an admission reads it** (ADR-0369; the integrator's
+    /// ruling 2 of 2026-10-20; ADR-0389, amended 2026-11-02): one statement
+    /// that takes no session lock ([`ADMISSION_READ`]). No row is no one. A
+    /// live session whose use was recorded within [`touched_after`] is
+    /// answered from the read, one statement in all, so a session in use
+    /// writes at most that often. Otherwise a write is due, its use recorded
+    /// or, past either lifetime, its row deleted, and it is tried without
+    /// waiting ([`SessionsPg::written_if_free`]): where nobody holds the
+    /// session's lock, [`ADMISSION_WRITE`] runs under it and answers (a
+    /// session closed since the read is no one); where a command, an open
+    /// or a close holds it, nothing is written and the read answers. An
+    /// expired session is no one all the same, and is deleted by a later
+    /// admission; a use left unrecorded is recorded by a later one, at the
+    /// cost of at most [`touched_after`] of idle time.
     fn session(
         &self,
         hash: &[u8],
@@ -785,22 +927,40 @@ impl crate::identity::Kept for SessionsPg {
         let absolute = lifetimes.absolute.as_secs_f64();
         let idle = lifetimes.idle.as_secs_f64();
         let touch = touched_after(lifetimes).as_secs_f64();
-        let row = self.mutation(hash, |c| {
-            c.query_opt(
-                "WITH live AS (SELECT user_id, handle, name, issuer, seen, epoch FROM sessions \
-                     WHERE hash = $1 \
-                     AND opened > clock_timestamp() - make_interval(secs => $2) \
-                     AND seen > clock_timestamp() - make_interval(secs => $3)), \
-                 touched AS (UPDATE sessions SET seen = clock_timestamp() WHERE hash = $1 \
-                     AND EXISTS (SELECT 1 FROM live \
-                         WHERE seen < clock_timestamp() - make_interval(secs => $4))), \
-                 gone AS (DELETE FROM sessions WHERE hash = $1 \
-                     AND NOT EXISTS (SELECT 1 FROM live)) \
-                 SELECT user_id, handle, name, issuer, epoch FROM live",
-                &[&hash, &absolute, &idle, &touch],
-            )
-        })?;
-        row.map(session_identity).transpose()
+        let params: [&(dyn postgres::types::ToSql + Sync); 4] = [&hash, &absolute, &idle, &touch];
+        let mut taken = self.take()?;
+        self.counted();
+        let read = taken
+            .client
+            .as_mut()
+            .expect("a connection taken")
+            .query_opt(ADMISSION_READ, &params)
+            .map_err(pg)?;
+        #[cfg(test)]
+        self.read_step();
+        let Some(read) = read else {
+            return Ok(None);
+        };
+        let live: bool = read
+            .try_get(5)
+            .map_err(|_| "session liveness could not be decoded")?;
+        let stale: bool = read
+            .try_get(6)
+            .map_err(|_| "session use could not be decoded")?;
+        let answer = if live {
+            Some(session_identity(read)?)
+        } else {
+            None
+        };
+        // Its deletion, or its use recorded.
+        let due = !live || stale;
+        if !due {
+            return Ok(answer);
+        }
+        match self.written_if_free(&mut taken, hash, |c| c.query_opt(ADMISSION_WRITE, &params))? {
+            Some(written) => written.map(session_identity).transpose(),
+            None => Ok(answer),
+        }
     }
 
     fn inspect(

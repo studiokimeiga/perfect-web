@@ -1185,6 +1185,10 @@ struct Server {
     before_command_delivery: Mutex<Option<KeyedFetched>>,
     #[cfg(test)]
     after_page_admission: Mutex<Option<KeyedFetched>>,
+    /// **The admissions this server refused, as its log says them**
+    /// (ADR-0389, amended 2026-11-02), which a test reads.
+    #[cfg(test)]
+    refusals: Mutex<Vec<String>>,
     /// **What a test does while a change is derived outside the table**
     /// (ADR-0296), for each document derived: the table is free there, and
     /// a change that reaches the document there is derived against again.
@@ -2076,6 +2080,8 @@ impl Server {
             before_command_delivery: Mutex::new(None),
             #[cfg(test)]
             after_page_admission: Mutex::new(None),
+            #[cfg(test)]
+            refusals: Mutex::new(Vec::new()),
             #[cfg(test)]
             deriving_hook: Mutex::new(None),
             #[cfg(test)]
@@ -9431,6 +9437,19 @@ fn handle(server: &Server, stream: TcpStream) {
     server.tell_waiting();
 }
 
+/// **A refused admission, told by its kind** (ADR-0389, amended 2026-11-02):
+/// a failed read and an admission superseded past its bound answer the same
+/// body, and only the host's log tells them apart. The kind names no session,
+/// reader or source error (`identity::AuthorityError`).
+fn refused_admission(server: &Server, why: &dyn std::fmt::Display) {
+    let line = format!("pw dev server: session admission refused: {why}");
+    eprintln!("{line}");
+    #[cfg(test)]
+    server.refusals.lock().expect("refusals").push(line);
+    #[cfg(not(test))]
+    let _ = server;
+}
+
 fn session_changed(stream: &mut TcpStream, session: &str, fresh: bool) {
     respond_json(
         stream,
@@ -9461,22 +9480,10 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
     let (session, fresh) = session_of(&headers);
     // TRACK SEAM (second-host): the session as the hosts keep it, read once
     // for the request (ADR-0369): signed in or out on another host, it is so
-    // here too.
+    // here too. Every request is admitted, the runtime's own files too: the
+    // requests a page sends at once are each answered (ADR-0389, amended
+    // 2026-11-02, which removed PR #63's exemption of those three files).
     let route = path.split('?').next().unwrap_or("/");
-    // These build artifacts are identical for every reader. A session database
-    // outage must not stop the browser's runtime from loading; unlike pages
-    // and commands, serving these files reads no session-scoped state.
-    // The files are served from this build's dist directory only (ADR-0389,
-    // amended 2026-11-02).
-    if method == "GET"
-        && matches!(
-            route,
-            "/pw-runtime.mjs" | "/pw-resume.wasm" | "/pw-render.wasm"
-        )
-    {
-        serve_file(server, &mut stream, route);
-        return;
-    }
     let upload_request = server.uploads.claims(method, route);
     let request_reader = if !upload_request
         && ((method == "POST" && path.starts_with("/command/")) || route == "/stream")
@@ -9491,7 +9498,8 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
         };
         match admitted {
             Ok(reader) => Some(reader),
-            Err(_) => {
+            Err(why) => {
+                refused_admission(server, &why);
                 respond_json(
                     &mut stream,
                     503,
@@ -9504,15 +9512,19 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
         }
     };
 
+    // The hook is taken, and its lock let go, before it runs: a hook that
+    // waits for another request of the session must not hold that request
+    // here (a `let` chain keeps its temporaries through the block).
     #[cfg(test)]
-    if method == "GET"
-        && let Some(hook) = server
+    if method == "GET" {
+        let hook = server
             .after_page_admission
             .lock()
             .expect("page admission hook")
-            .take()
-    {
-        hook(server);
+            .take();
+        if let Some(hook) = hook {
+            hook(server);
+        }
     }
 
     // TRACK SEAM (uploads, ADR-0253): an upload reads its own body, within
@@ -9648,7 +9660,8 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             let principals = server.identity.principals();
             let reader_identity = match principals.admit(&session) {
                 Ok(reader) => reader,
-                Err(_) => {
+                Err(why) => {
+                    refused_admission(server, &why);
                     session_changed(&mut stream, &session, fresh);
                     return;
                 }
@@ -16331,6 +16344,8 @@ public query Store(",
     mod session_commands;
     #[cfg(feature = "session-postgres-tests")]
     mod session_commands_pg;
+    // ADR-0389, amended 2026-11-02: overlapping admissions of one session.
+    mod session_overlap;
     mod session_receipt_recovery;
     mod session_revocation;
     mod session_upload_authority;
@@ -16886,84 +16901,6 @@ public query Store(",
             let _ = std::io::Read::read_to_string(&mut client, &mut answer);
             answer
         })
-    }
-
-    /// A failing session authority source must not make public assets fail.
-    struct FailingSessionSource;
-
-    impl identity::Kept for FailingSessionSource {
-        fn session(
-            &self,
-            _: &[u8],
-            _: &identity::SessionLifetimes,
-        ) -> Result<Option<identity::SessionIdentity>, String> {
-            Err("unavailable".into())
-        }
-        fn inspect(
-            &self,
-            _: &[u8],
-            _: &identity::SessionLifetimes,
-        ) -> Result<Option<identity::SessionIdentity>, String> {
-            Err("unavailable".into())
-        }
-        fn open(&self, _: &[u8], _: &identity::Principal, _: &[u8; 16]) -> Result<(), String> {
-            Err("unavailable".into())
-        }
-        fn close(&self, _: &[u8]) -> Result<(), String> {
-            Err("unavailable".into())
-        }
-        fn begin_sign_in(&self, _: &[u8], _: &str, _: &str) -> Result<(), String> {
-            Err("unavailable".into())
-        }
-        fn take_sign_in(
-            &self,
-            _: &[u8],
-        ) -> Result<Option<(String, String, std::time::Duration)>, String> {
-            Err("unavailable".into())
-        }
-    }
-
-    #[test]
-    fn public_runtime_assets_load_while_session_authority_is_unavailable() {
-        let s = served_feed();
-        for (file, body) in [
-            ("pw-runtime.mjs", "public JS"),
-            ("pw-resume.wasm", "public WASM"),
-            ("pw-render.wasm", "public renderer"),
-        ] {
-            std::fs::write(s.dist.join(file), body).expect("asset written");
-        }
-        s.identity
-            .signed_in_for_test("existing", "reader", "Reader");
-        s.identity
-            .principals()
-            .keep_in(Arc::new(FailingSessionSource));
-        // The next document's runtime is asked for with a query after a soft
-        // navigation (`pw-runtime.mjs?document=N`): it is the same file, and
-        // exempt as the bare one is.
-        for (file, body) in [
-            ("pw-runtime.mjs", "public JS"),
-            ("pw-runtime.mjs?document=1", "public JS"),
-            ("pw-resume.wasm", "public WASM"),
-            ("pw-render.wasm", "public renderer"),
-        ] {
-            let response = get_as(&s, "existing", &format!("/{file}"));
-            assert!(
-                response.starts_with("HTTP/1.1 200 OK"),
-                "{file}: {response}"
-            );
-            assert!(response.ends_with(body), "{file}: {response}");
-        }
-        // Every other route is still admitted first, and fails closed: a
-        // page, and the handler manifest, which is the build's alone too but
-        // is not exempted (ADR-0389, amended 2026-11-02).
-        for path in ["/", "/pw-handlers"] {
-            let response = get_as(&s, "existing", path);
-            assert!(
-                response.starts_with("HTTP/1.1 503 Service Unavailable"),
-                "{path}: {response}"
-            );
-        }
     }
 
     /// **A document's trail says what happened to its frames** (ADR-0296):

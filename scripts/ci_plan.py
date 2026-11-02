@@ -170,6 +170,9 @@ NEEDS_DATABASE = {
     "e14-argument-invariants",
     # Track `second-host`: hosts that share one database.
     "e14-second-host",
+    # Track `session-overlap` (ADR-0389, amended 2026-11-02): overlapping
+    # admissions of one session, on PostgreSQL too.
+    "e14-session-overlap",
     # Track `d3-postgres` (ADR-0338's D3): declared tables on PostgreSQL.
     "e14-d3-postgres",
     # Track `data-path`: its feed-on-PostgreSQL test holds that no row,
