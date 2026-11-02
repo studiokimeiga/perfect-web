@@ -614,8 +614,8 @@ MUTANTS = [
         "the entry can be removed before the server has it",
         "browser",
         BOOK,
-        "text: text.value, mine: false }",
-        "text: text.value, mine: true }",
+        "text: text_of(text), mine: false }",
+        "text: text_of(text), mine: true }",
     ),
     (
         "the composer is shown to a reader signed out",

@@ -183,8 +183,8 @@ MUTANTS = [
         "a call answered again is counted as made",
         "memory",
         MAIN,
-        '                let f = counted(&name, f);\n                let f = match &render {\n                    Some(render) => render.once(\n                        &self\n                            .identity\n                            .principals()\n                            .receipt_reader(session)\n                            .to_string(),\n                        &name,\n                        f,\n                    ),\n                    None => f,\n                };\n',
-        '                let f = match &render {\n                    Some(render) => render.once(\n                        &self\n                            .identity\n                            .principals()\n                            .receipt_reader(session)\n                            .to_string(),\n                        &name,\n                        f,\n                    ),\n                    None => f,\n                };\n                let f = counted(&name, f);\n',
+        '            let f = counted(name, f);\n            match &render {\n                Some(render) => render.once(\n                    &self\n                        .identity\n                        .principals()\n                        .receipt_reader(session)\n                        .to_string(),\n                    name,\n                    f,\n                ),\n                None => f,\n            }\n',
+        '            let f = match &render {\n                Some(render) => render.once(\n                    &self\n                        .identity\n                        .principals()\n                        .receipt_reader(session)\n                        .to_string(),\n                    name,\n                    f,\n                ),\n                None => f,\n            };\n            counted(name, f)\n',
     ),
     (
         "the platform's calls are merged",

@@ -38,16 +38,16 @@ SCHEMA_PATTERN = re.compile(r"pw_session_(feed|store)_[0-9a-f]{16}")
 # control; MUTANTS below exposes every individual anchor to preflight's checker.
 CONTROLS = [
     ("render-actor-cache", "memory", "render operation cache ignores actor generation", [
-        (MAIN, '''                    Some(render) => render.once(
-                        &self
-                            .identity
-                            .principals()
-                            .receipt_reader(session)
-                            .to_string(),
-                        &name,
-                        f,
-                    ),
-''', '''                    Some(render) => render.once(session, &name, f),
+        (MAIN, '''                Some(render) => render.once(
+                    &self
+                        .identity
+                        .principals()
+                        .receipt_reader(session)
+                        .to_string(),
+                    name,
+                    f,
+                ),
+''', '''                Some(render) => render.once(session, name, f),
 ''')]),
     ("memory-held-authority", "memory", "memory command drops its authority hold before publication", [
         (MAIN, '                Some(gate.read().expect("session command authority"))\n',
