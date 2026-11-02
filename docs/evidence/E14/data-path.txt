@@ -1,106 +1,137 @@
 D2 - an app with no Rust data layer: declared tables served through the gate, the guestbook on them, the conformance suite
 
 produced by: just e14-data-path
-commit: ea192e1bf3c47d3dd8396257897bc6d20dc736ad
+commit: d13a605984d019bf5311d3059c1710ea5da52912
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/41480579645 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the server: routing, the guestbook, the conformance suite, the reader's account
-   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/data-path/spikes/own-renderer/server)
-    Finished `test` profile [unoptimized] target(s) in 4.14s
-     Running unittests src/main.rs (target/debug/deps/pw_dev_server-82eb30218404e06e)
+    Updating crates.io index
+   Compiling serde_json v1.0.151
+   Compiling pw-resource v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-resource)
+   Compiling pw-syntax v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-syntax)
+   Compiling pw-outbound v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-outbound)
+   Compiling pw-document v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-document)
+   Compiling pw-outbound-testkit v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-outbound-testkit)
+   Compiling pw-time v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-time)
+   Compiling fxprof-processed-profile v0.8.1
+   Compiling wit-parser v0.257.1
+   Compiling wit-parser v0.254.2
+   Compiling pw-render v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-render)
+   Compiling pw-protocol v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-protocol)
+   Compiling pw-materialize v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-materialize)
+   Compiling wasmtime v48.0.8
+   Compiling wit-component v0.257.1
+   Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
+   Compiling pw-host v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-host)
+   Compiling pw-table-postgres v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-table-postgres)
+   Compiling pw-table-memory v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-table-memory)
+   Compiling pw-dev-server v0.0.0 (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/server)
+    Finished `test` profile [unoptimized] target(s) in 38.16s
+     Running unittests src/main.rs (target/debug/deps/pw_dev_server-9bae637619d10a7b)
 
 running 18 tests
 test notifications::tests::the_account_operation_answers_the_readers_account_for_their_handle_alone ... ok
-test tests::tables::a_guarded_command_writes_its_tables_once_its_predicate_holds ... ok
-test tests::tables::a_staged_write_is_invisible_until_its_commit ... ok
-test tests::tables::a_commits_rows_and_records_are_kept_together_or_not_at_all ... ok
-test tests::tables::each_components_host_map_holds_its_own_table_functions_alone ... ok
-test tests::tables::a_program_that_declares_its_tables_is_served_by_the_generic_adapter ... ok
-conformance: the lists app's tables, 164 reads checked
-test tests::conformance::the_suite_holds_for_the_lists_apps_tables ... ok
-test tests::guestbook::a_signing_sent_twice_is_one_entry ... ok
-test tests::guestbook::a_removed_entrys_number_is_never_given_again ... ok
-test tests::guestbook::a_signing_reaches_every_other_open_page_of_the_entries ... ok
 test tests::conformance::each_idempotent_command_sent_again_is_answered_once ... ok
-test tests::guestbook::an_entry_is_its_authors_alone_to_remove ... ok
 conformance: the guestbook's tables, 111 reads checked
 test tests::conformance::the_suite_holds_for_the_guestbooks_tables ... ok
-test tests::guestbook::a_render_reads_one_state_of_the_tables ... ok
-test tests::guestbook::the_guestbook_is_served_from_the_tables_it_declares ... ok
-test tests::tables::a_program_mixing_its_tables_with_a_hand_written_layer_is_refused ... ok
-test tests::tables::a_command_that_does_not_commit_keeps_nothing ... ok
+conformance: the lists app's tables, 164 reads checked
+test tests::conformance::the_suite_holds_for_the_lists_apps_tables ... ok
 test tests::conformance::each_query_reads_its_tables_a_fixed_number_of_times_at_two_sizes ... ok
+test tests::guestbook::a_removed_entrys_number_is_never_given_again ... ok
+test tests::guestbook::a_render_reads_one_state_of_the_tables ... ok
+test tests::guestbook::a_signing_reaches_every_other_open_page_of_the_entries ... ok
+test tests::guestbook::a_signing_sent_twice_is_one_entry ... ok
+test tests::guestbook::an_entry_is_its_authors_alone_to_remove ... ok
+test tests::tables::a_commits_rows_and_records_are_kept_together_or_not_at_all ... ok
+test tests::guestbook::the_guestbook_is_served_from_the_tables_it_declares ... ok
+test tests::tables::a_guarded_command_writes_its_tables_once_its_predicate_holds ... ok
+test tests::tables::a_program_that_declares_its_tables_is_served_by_the_generic_adapter ... ok
+test tests::tables::a_command_that_does_not_commit_keeps_nothing ... ok
+test tests::tables::a_staged_write_is_invisible_until_its_commit ... ok
+test tests::tables::each_components_host_map_holds_its_own_table_functions_alone ... ok
+test tests::tables::a_program_mixing_its_tables_with_a_hand_written_layer_is_refused ... ok
 
-test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 857 filtered out; finished in 0.39s
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 876 filtered out; finished in 1.88s
 
 
 == the engine: a guarded command through the gate; the adapter's snapshot
-    Finished `test` profile [unoptimized] target(s) in 0.08s
-     Running tests/compiled_guarded.rs (target/debug/deps/compiled_guarded-f45044dd2862a686)
+   Compiling wasmtime v48.0.8
+   Compiling pw-host v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-host)
+   Compiling pw-table-memory v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-table-memory)
+    Finished `test` profile [unoptimized] target(s) in 12.76s
+     Running tests/compiled_guarded.rs (target/debug/deps/compiled_guarded-caff36338a93162e)
 
 running 3 tests
-test a_refused_predicate_runs_nothing_and_writes_nothing ... ok
 test a_guarded_tables_command_runs_only_answered_and_through_the_gate ... ok
 test a_guarded_command_writes_through_the_gate_once_its_predicate_holds ... ok
+test a_refused_predicate_runs_nothing_and_writes_nothing ... ok
 
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
 
-     Running tests/compiled_snapshot.rs (target/debug/deps/compiled_snapshot-af0f433f8f62ba54)
+     Running tests/compiled_snapshot.rs (target/debug/deps/compiled_snapshot-41d3b8adfc9258b5)
 
 running 2 tests
 test a_snapshot_another_adapter_took_reads_none_of_these_tables ... ok
 test a_snapshot_reads_the_tables_as_it_found_them_though_a_commit_follows ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
 
 
 == the platform's reader: their account, labelled the reader's
-    Finished `test` profile [unoptimized] target(s) in 0.06s
-     Running tests/handles.rs (target/debug/deps/handles-17829808d3d67b0c)
+   Compiling serde_json v1.0.151
+   Compiling pw-resource v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-resource)
+   Compiling pw-document v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-document)
+   Compiling wit-parser v0.257.1
+   Compiling pw-render v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-render)
+   Compiling wit-component v0.257.1
+   Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
+    Finished `test` profile [unoptimized] target(s) in 17.61s
+     Running tests/handles.rs (target/debug/deps/handles-9ad5a1a55ab5398e)
 
 running 5 tests
 test a_local_callback_is_not_a_handle_constructor ... ok
-test the_readers_account_is_the_readers ... ok
 test a_data_layer_answers_ids_never_handles ... ok
 test a_program_constructs_no_handle ... ok
 test nothing_the_browser_supplies_holds_a_handle ... ok
+test the_readers_account_is_the_readers ... ok
 
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.89s
 
-     Running tests/platform_contracts.rs (target/debug/deps/platform_contracts-ccefde98f1bd330a)
+     Running tests/platform_contracts.rs (target/debug/deps/platform_contracts-299bfed2b73a694b)
 
 running 4 tests
 test the_trusted_platform_contract_is_hashed ... ok
-test every_platform_signature_is_internally_consistent ... ok
 test the_signatures_the_checkers_depend_on_are_exercised ... ok
+test every_platform_signature_is_internally_consistent ... ok
 test the_platform_library_parses_resolves_and_checks_clean ... ok
 
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
 
 
 == the tutorial is the app (compiler/pw-cli/tests/guide.rs)
-   Compiling pw-cli v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-cli)
-    Finished `test` profile [unoptimized] target(s) in 0.46s
-     Running tests/guide.rs (target/debug/deps/guide-0de43282f5124be3)
+   Compiling pw-cli v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-cli)
+    Finished `test` profile [unoptimized] target(s) in 0.79s
+     Running tests/guide.rs (target/debug/deps/guide-b0d2f1ec967908f3)
 
 running 15 tests
 test a_fence_is_read_as_commonmark_reads_it ... ok
 test a_gaps_build_output_belongs_to_the_gap_before_it ... ok
 test a_page_is_held_to_the_directory_it_names ... ok
-test a_pages_file_blocks_are_its_program_in_order ... ok
 test a_page_with_no_example_or_a_block_unseen_is_reported ... ok
+test a_pages_file_blocks_are_its_program_in_order ... ok
 test a_program_differs_from_a_directory_by_a_file_or_a_byte ... ok
 test a_refused_examples_codes_are_read_from_its_output ... ok
-test an_info_string_says_what_a_block_is ... ok
 test an_unclosed_or_indented_fence_is_refused ... ok
+test an_info_string_says_what_a_block_is ... ok
 test shown_output_belongs_to_the_refused_example_before_it ... ok
-test the_reference_is_held_to_the_registry ... ok
 test a_pages_program_is_the_directory_it_names ... ok
+test the_reference_is_held_to_the_registry ... ok
 test the_diagnostic_reference_lists_every_registered_code ... ok
 test every_example_in_the_guide_compiles_as_it_says ... ok
 test a_wrong_example_is_reported_and_a_right_one_is_not ... ok
 
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.33s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.21s
 
 
 == mutation controls (scripts/data_path_mutations.py)
