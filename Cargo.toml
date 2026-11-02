@@ -17,6 +17,7 @@ members = [
     "runtime/pw-resume",
     "runtime/pw-resume-wasm",
     "runtime/pw-table-memory",
+    "runtime/pw-table-postgres",
     "runtime/pw-tasks",
     "runtime/pw-time",
     "spikes/compiler-diagnostic",
