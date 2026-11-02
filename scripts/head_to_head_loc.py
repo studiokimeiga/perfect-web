@@ -270,7 +270,7 @@ def code_lines(path, text):
     elif ext == ".svelte":
         stripped = svelte_parts(text)
     elif ext == ".sh":
-        stripped = "\n".join("" if l.lstrip().startswith("#") else l for l in text.split("\n"))
+        stripped = "\n".join("" if line.lstrip().startswith("#") else line for line in text.split("\n"))
     else:
         stripped = text
     return sum(1 for line in stripped.split("\n") if line.strip())
