@@ -566,8 +566,9 @@ fn a_predicate_spends_the_invocations_one_budget() {
 }
 
 /// The removal the concurrency test starts between a predicate and its
-/// body: its thread, answering what the removal answered.
-type Removal = std::thread::JoinHandle<Result<Vec<Val>, String>>;
+/// body: its thread, answering the text it found the note to hold once its
+/// turn came, and what the removal answered.
+type Removal = std::thread::JoinHandle<Result<(Option<String>, Vec<Val>), String>>;
 
 #[test]
 fn a_change_between_a_predicate_and_its_body_waits_for_the_command() {
@@ -578,7 +579,11 @@ fn a_change_between_a_predicate_and_its_body_waits_for_the_command() {
     // command at a time: the removal waits its turn until the edit commits.
     // What this proves is the memory adapter's serialization, with the
     // predicate inside it; a durable adapter, whose transactions run at
-    // once and are refused on conflict, proves it again with its own.
+    // once and are refused on conflict, proves it again with its own. Each
+    // fact is read where it is made: the removal waits before the body runs
+    // (the predicate's read holds the body until it is told so), and finds
+    // the note edited once its turn comes, in its own transaction; a log
+    // written after a commit returns would race the command it let in.
     let program = Arc::new(program());
     let tables = Arc::new(seeded(&program));
     let order: Arc<Mutex<Vec<&'static str>>> = Arc::default();
@@ -622,6 +627,11 @@ fn a_change_between_a_predicate_and_its_body_waits_for_the_command() {
                 let staged = tables.begin().map_err(|e| format!("{e:?}"))?;
                 log(&order, "remove began");
                 let _ = told.send("began");
+                // What the note holds once the removal's turn has come.
+                let found = staged
+                    .read("pw:tables/notes#get", &[json!(ALICE), json!("n1")])
+                    .map_err(|e| format!("{e:?}"))?;
+                let found = found["text"].as_str().map(str::to_string);
                 let component = program.component("remove");
                 let mut host = staged
                     .host_fns(&component.contract, &component.granted())
@@ -639,8 +649,7 @@ fn a_change_between_a_predicate_and_its_body_waits_for_the_command() {
                     &[s("n1"), handle(BOB)],
                 )?;
                 staged.commit().map_err(|e| format!("{e:?}"))?;
-                log(&order, "remove committed");
-                Ok(answer)
+                Ok((found, answer))
             });
             if let Ok(mut slot) = other.lock() {
                 *slot = Some(removal);
@@ -663,28 +672,20 @@ fn a_change_between_a_predicate_and_its_body_waits_for_the_command() {
     );
     assert_eq!(edited, Ok(vec![]));
     drop(watched);
+    // Before the edit commits, the removal has waited, and not begun.
+    let before = order.lock().map(|order| order.clone()).unwrap_or_default();
+    assert_eq!(before, ["predicate read", "remove waits"]);
     staged.commit().assert_ok("the edit's commit");
-    log(&order, "edit committed");
     let removal = other
         .lock()
         .ok()
         .and_then(|mut slot| slot.take())
         .assert_ok("the removal began");
     let removed = removal.join();
+    // Its turn came after the edit committed: it found the edited note.
     assert!(
-        matches!(removed, Ok(Ok(ref answer)) if answer.is_empty()),
+        matches!(&removed, Ok(Ok((Some(found), answer))) if found == "edited" && answer.is_empty()),
         "{removed:?}"
-    );
-    let order = order.lock().map(|order| order.clone()).unwrap_or_default();
-    assert_eq!(
-        order,
-        [
-            "predicate read",
-            "remove waits",
-            "edit committed",
-            "remove began",
-            "remove committed"
-        ]
     );
     // The edit wrote against what its predicate read; the removal, after it.
     assert!(
