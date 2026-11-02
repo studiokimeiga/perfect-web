@@ -417,6 +417,63 @@ impl MemoryTables {
         Ok(out)
     }
 
+    /// **The published tables as they are now** (track `data-path`;
+    /// ADR-0386's "a render's snapshot", offered): what every read of one
+    /// render reads, whatever commits meanwhile (NEXT 4c). Taking one copies
+    /// nothing; a commit after it copies a table only while a snapshot still
+    /// holds it, as for any reader (`Arc::make_mut`).
+    pub fn snapshot(&self) -> Result<Snapshot, Error> {
+        self.inner.healthy()?;
+        let tables = match self.inner.published.lock() {
+            Ok(published) => Arc::clone(&*published),
+            Err(poisoned) => {
+                drop(poisoned);
+                return Err(self.inner.fail());
+            }
+        };
+        Ok(Snapshot {
+            inner: Arc::clone(&self.inner),
+            tables,
+        })
+    }
+
+    /// **[`MemoryTables::read_host_fns`], each reading `snapshot`** (track
+    /// `data-path`): the reads the gate admits for the query, and nothing
+    /// else, answered from the tables as the snapshot holds them, so every
+    /// query of one render reads one state. A snapshot another adapter took
+    /// is refused: its tables are not this manifest's.
+    pub fn read_host_fns_at(
+        &self,
+        snapshot: &Snapshot,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, Error> {
+        use pw_host::engine::table_read_host::host_fn;
+        if !Arc::ptr_eq(&snapshot.inner, &self.inner) {
+            return Err(Error::Input(
+                "a snapshot another adapter took reads none of these tables".into(),
+            ));
+        }
+        let reads = self
+            .inner
+            .host
+            .admit_reads(contract, granted)
+            .map_err(Error::Input)?;
+        let mut out = BTreeMap::new();
+        for (import, read) in reads {
+            let inner = Arc::clone(&self.inner);
+            let tables = Arc::clone(&snapshot.tables);
+            let bound = import.clone();
+            let data = Arc::new(move |args: &[Value]| {
+                inner
+                    .read_snapshot(&tables, &bound, args)
+                    .map_err(|error| format!("`{bound}`: {error:?}"))
+            });
+            out.insert(import, host_fn(read, data));
+        }
+        Ok(out)
+    }
+
     /// **A command's transaction** (ADR-0386): begun once the command before
     /// it has ended, one at a time. Its writes are staged until it commits
     /// ([`Command::commit`]), and undone whole where it is dropped instead.
@@ -483,6 +540,13 @@ impl MemoryTables {
         command.commit()?;
         Ok(answer)
     }
+}
+
+/// **The published tables at one moment** ([`MemoryTables::snapshot`]): read
+/// by [`MemoryTables::read_host_fns_at`], and by nothing else.
+pub struct Snapshot {
+    inner: Arc<Inner>,
+    tables: Arc<Vec<Arc<Data>>>,
 }
 
 /// **One command's transaction** (ADR-0386): its reads see its own writes,
@@ -791,6 +855,18 @@ impl Inner {
         };
         self.healthy()?;
         read(&self.shape, &tables, import, args)
+    }
+
+    /// A read of a snapshot's tables: refused once the database has failed,
+    /// as every read is.
+    fn read_snapshot(
+        &self,
+        tables: &[Arc<Data>],
+        import: &str,
+        args: &[Value],
+    ) -> Result<Value, Error> {
+        self.healthy()?;
+        read(&self.shape, tables, import, args)
     }
 
     /// The working copy, where `id` is the open command.
