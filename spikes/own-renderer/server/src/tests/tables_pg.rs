@@ -371,6 +371,12 @@ fn a_signing_sent_twice_is_one_entry_on_any_host() {
     assert_eq!(schema.count("pw_interactions"), "1");
     // The second host reads what the first committed.
     assert_eq!(latest(&b, "owner"), [line(1, "Ada", "Once", true)]);
+    // A session's change waits for no command that has ended: each gave
+    // its session's lock back.
+    assert!(
+        b.identity.principals().admit("owner").is_ok(),
+        "the session's lock is held by no ended command"
+    );
     // Signed in anew, as another: the old receipt is not theirs.
     a.identity.signed_in_for_test("owner", "u-cy", "Cy");
     b.identity
@@ -645,6 +651,124 @@ fn a_commands_scheduled_run_commits_with_its_rows() {
         "the run's write and its record, one transaction"
     );
     assert_eq!(s.run_due().0, 0, "a run runs once");
+}
+
+/// **A run's old generation does not run**: one replaced as its command
+/// begins (another host's retry, after the scheduler found it current) is
+/// taken by no transaction, so nothing of its command commits; one
+/// scheduled again before it runs is not run at all; the generation kept
+/// runs once it is due.
+#[test]
+fn an_old_generation_of_a_run_does_not_run() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = super::tables::built(&[], &[("Notes.pw", NOTES), ("later.pw", LATER)]);
+    let schema = Schema::new(&url, "generation");
+    let s = serve(&out, &schema);
+    let note_later = |s: &Server| {
+        s.command_answered(NOTE_LATER, "a", &[Val::String("x".into())], None)
+            .asserted("answered")
+    };
+    let notes = || schema.texts("SELECT convert_from(text, 'UTF8') FROM \"Notes\"");
+    assert!(note_later(&s).committed);
+    s.query_clock.0.advance(31 * 60 * 1000);
+    // Found current by the scheduler, then replaced by another hand before
+    // its command's transaction begins: its taking finds another generation.
+    let watch = schema.database().url;
+    let name = schema.name.clone();
+    *s.before_command_authority.lock().expect("hook") = Some(Box::new(move |_| {
+        if let Ok(mut c) = postgres::Client::connect(&watch, postgres::NoTls) {
+            let _ = c.batch_execute(&format!(
+                "UPDATE {}.pw_runs SET attempts = attempts + 1",
+                crate::feed_pg::ident(&name)
+            ));
+        }
+    }));
+    assert_eq!(s.run_due().0, 1, "selected and run");
+    assert_eq!(
+        notes(),
+        ["noted"],
+        "the replaced generation's command committed nothing"
+    );
+    assert_eq!(schema.count("pw_interactions"), "0");
+    let kept = s.runs().all_runs().asserted("the runs");
+    assert_eq!(kept.len(), 1, "{kept:?}");
+    assert_eq!(kept[0].attempts, 1, "the generation the other hand made");
+    // Selected, then scheduled again by its command: not run at all.
+    let old = schedules::select(s.runs(), s.now(), 16).asserted("selected");
+    assert_eq!(old.len(), 1);
+    assert!(note_later(&s).committed, "scheduled again");
+    let again = s.runs().all_runs().asserted("the runs");
+    assert_eq!(again.len(), 1, "{again:?}");
+    assert_ne!(again[0].id, old[0].id, "a new generation");
+    s.run_scheduled(&old[0]);
+    assert_eq!(notes(), ["noted"]);
+    assert_eq!(s.runs().all_runs().asserted("the runs"), again);
+    // The generation kept runs once it is due.
+    s.query_clock.0.advance(31 * 60 * 1000);
+    assert_eq!(s.run_due().0, 1);
+    assert_eq!(notes(), ["reminded"]);
+}
+
+/// **A render without a seat reads no state at all**: every seat taken for
+/// longer than a render waits, its reads fail, and the page is not served
+/// from the latest commit instead; a seat given back, it is.
+#[test]
+fn a_render_without_a_seat_reads_no_other_state() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = super::tables::built(&[], &[("Notes.pw", NOTES), ("both.pw", BOTH)]);
+    let schema = Schema::new(&url, "seatless");
+    let mut database = schema.database();
+    database.seats = crate::feed_pg::RenderSeats {
+        seats: 1,
+        wait: Duration::from_millis(200),
+    };
+    let s = Server::from_build_tables(out.clone(), out.clone(), Some(&database))
+        .asserted("served on PostgreSQL, one render at a time");
+    let tables = super::conformance::tables_of(&out);
+    let row: serde_json::Map<String, serde_json::Value> =
+        serde_json::from_value(serde_json::json!({"id": "a", "text": "kept"})).asserted("a note");
+    super::conformance::written(
+        &s,
+        &tables,
+        &BTreeMap::from([("Notes".to_string(), vec![row])]),
+    );
+    let held = s.data.snapshot();
+    let answer: String = fetched_as(&s, "/", Some("c"))
+        .into_iter()
+        .map(|(_, c)| c)
+        .collect();
+    // As a reader reads it: the renderer's part markers taken out.
+    let read = visible(&answer);
+    assert!(
+        !read.contains("first kept"),
+        "a render with no seat read the latest commit: {read}"
+    );
+    drop(held);
+    let page = shown(&s, "c");
+    assert!(page.contains("first kept"), "{page}");
+}
+
+/// **`PW_TABLES_SCHEMA` is a test's setting**: honoured for a development
+/// deployment on this machine, refused for any other, and none where it is
+/// not set.
+#[test]
+fn a_tables_schema_is_a_development_deployments_alone() {
+    let at = |development: bool, origin: &str| identity::Deployment {
+        development,
+        origin: origin.to_string(),
+    };
+    let schema = crate::tables_pg::test_schema;
+    assert_eq!(
+        schema(Some("t"), &at(true, "http://127.0.0.1:3143")),
+        Ok(Some("t".to_string()))
+    );
+    assert_eq!(schema(None, &at(false, "https://example.test")), Ok(None));
+    assert_eq!(
+        schema(Some(""), &at(false, "https://example.test")),
+        Ok(None)
+    );
+    assert!(schema(Some("t"), &at(false, "http://127.0.0.1:3143")).is_err());
+    assert!(schema(Some("t"), &at(true, "https://dev.example.test")).is_err());
 }
 
 /// Two hosts of the guestbook on one schema, a session `owner` signed in
