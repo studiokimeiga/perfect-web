@@ -152,6 +152,68 @@ pub fn check(hir: &Hir, unit: usize, sigs: &Signatures, ws: &Workspace) -> Vec<D
     out
 }
 
+/// **PW6905: a predicate's body reads, and does nothing else** (ADR-0384's
+/// H2; ADR-0115 as amended). It is the program's authorization, run by the
+/// host before the body it guards, in its transaction or its snapshot: what
+/// it may do is read the program's tables and its reader (`database.read`,
+/// `session.read`), never write, emit, schedule, fetch, log or read the
+/// clock, so asking it changes nothing and tells nothing but its answer.
+pub fn bodies(
+    hir: &Hir,
+    unit: usize,
+    inference: &crate::effects::Inference<'_>,
+) -> Vec<Diagnostic> {
+    let code = crate::codes::PREDICATE_BODY_READS_ONLY;
+    let mut out = Vec::new();
+    for (id, decl) in hir.all_decls() {
+        if decl.kind != DeclKind::Predicate || decl.body.is_none() {
+            continue;
+        }
+        let done: Vec<String> = inference
+            .effective_effects(unit, hir, id)
+            .into_iter()
+            .filter(|e| {
+                let family = e.split('<').next().unwrap_or(e);
+                !matches!(family, "database.read" | "session.read")
+            })
+            .collect();
+        if done.is_empty() {
+            continue;
+        }
+        out.push(Diagnostic {
+            code: code.id,
+            invariant: code.invariant,
+            reason: "predicate_body_reads_only",
+            detector: Detector::DeclarationRule,
+            severity: Severity::Error,
+            message: format!(
+                "`predicate {}`'s body does more than read: {}",
+                decl.name,
+                done.iter()
+                    .map(|e| format!("`{e}`"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            primary_span: decl.name_span.clone(),
+            related: vec![Related::new(hir.decl_span(id), format!("`{}`", decl.name))],
+            explanation: Some(
+                "A predicate the program gives a body is its authorization (ADR-0115 as \
+                 amended by ADR-0384): the host asks it before the command or query it guards \
+                 runs, in that command's transaction or that read's snapshot. Asking it must \
+                 change nothing and tell nothing but whether it holds, so its body reads the \
+                 program's tables and its reader, and does nothing else."
+                    .to_string(),
+            ),
+            repairs: vec![Repair {
+                description: "read what decides it, and do the rest in the command it guards"
+                    .to_string(),
+                replacement: None,
+            }],
+        });
+    }
+    out
+}
+
 /// **The words each predicate the program declares is told in**, by name,
 /// which `pw build` writes for the host (`predicates.json`). The first
 /// declaration of a name, in unit order; PW0351 refuses a second.

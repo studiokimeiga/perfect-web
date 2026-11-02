@@ -26,6 +26,7 @@
 //! PW64xx   the payments track's (NEXT 6c): a command the platform invokes
 //! PW66xx   check-is-build: executable program support
 //! PW68xx   the device-store track's: a value the reader's device keeps
+//! PW69xx   the dating-app note's H tracks (ADR-0384): predicates, private fields
 //! ```
 //!
 //! A parallel track registers its codes in its own block, with its own
@@ -137,6 +138,10 @@ pub enum Owner {
     /// the integrator): a value the reader's device keeps, charter §9.1's
     /// fourth kind of state, and the `Device` label that keeps it there.
     DeviceStore,
+    /// The dating-app note's H tracks' codes, PW69xx (ADR-0384's ruling 1):
+    /// what is not a table clause's refusal. Track `row-ownership` (H1, H2):
+    /// a predicate's body, `requires` on a query, a private field's write.
+    Dating,
 }
 
 impl fmt::Display for Code {
@@ -993,6 +998,14 @@ codes! {
         "a signal the device keeps is of a type the device can hold: data, no function, no type that contains itself, no opaque type with a `where`";
     DEVICE_SIGNAL_PROVIDED = "PW6808" / device_signal_provided / 1, DeviceStore,
         "a signal the device keeps is provided by the device: no `provide` gives it a value";
+
+    // --- the dating-app note's H tracks (PW69xx; ADR-0384) ---------------
+    //
+    // Track `row-ownership` (H2): a predicate the program gives a body, the
+    // program's authorization, evaluated by the host before the body it
+    // guards (ADR-0115 as amended).
+    PREDICATE_BODY_READS_ONLY = "PW6905" / predicate_body_reads_only / 1, Dating,
+        "a predicate's body reads and does nothing else: no write, no event, no schedule, no network, no log, no clock but its comparison";
 }
 
 /// Codes that were registered, are no longer emitted, and whose numbers must
@@ -1089,6 +1102,7 @@ impl Owner {
             Owner::Schedules => "PW65",
             Owner::CheckIsBuild => "PW66",
             Owner::DeviceStore => "PW68",
+            Owner::Dating => "PW69",
             Owner::Syntax | Owner::Resolution => "PW00",
             Owner::Placement | Owner::Privacy | Owner::Markup => "PW50",
             Owner::Types => "PW06",
@@ -1159,6 +1173,7 @@ mod tests {
                 (Owner::Schedules, "PW65"),
                 (Owner::CheckIsBuild, "PW66"),
                 (Owner::DeviceStore, "PW68"),
+                (Owner::Dating, "PW69"),
             ] {
                 assert!(
                     !c.id.starts_with(block) || c.owner == owner,

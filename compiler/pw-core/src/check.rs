@@ -321,6 +321,8 @@ pub(crate) fn check_inferred_prepared(
             // ADR-0302: a predicate the program declares says what a refusal
             // by it is told, and is given what it takes.
             out.extend(crate::predicates::check(&u.hir, i, sigs, workspace));
+            // ADR-0384's H2: and a body it is given only reads (PW6905).
+            out.extend(crate::predicates::bodies(&u.hir, i, inference));
             // ADR-0307: a control is shown where its command's predicates hold.
             out.extend(crate::holds::check(hirs, workspace, sigs, i));
             out.extend(answer_read_for_a_value(&u.hir, i, sigs));
