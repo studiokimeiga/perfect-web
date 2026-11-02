@@ -19,7 +19,7 @@ just spike-wasmtime
 
 Evidence: `docs/evidence/E0/spike-wasmtime-component.txt`.
 
-Pinned: `wasmtime` 48.0.7, `wit-bindgen` 0.60.0, Rust 1.97.1, target
+Pinned: `wasmtime` 48.0.8, `wit-bindgen` 0.60.0, Rust 1.97.1, target
 `wasm32-wasip2`.
 
 ## Layout
