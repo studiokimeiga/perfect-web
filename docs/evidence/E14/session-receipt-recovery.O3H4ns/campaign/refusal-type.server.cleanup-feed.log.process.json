@@ -1,0 +1,20 @@
+{
+  "command": [
+    "psql",
+    "--no-psqlrc",
+    "--tuples-only",
+    "--no-align",
+    "--dbname",
+    "<configured-feed-database>",
+    "--command",
+    "SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname IN ('pw_session_receipt_e4da0d48a3e39b76')"
+  ],
+  "error": null,
+  "reaped": {
+    "pid": 19137,
+    "status": 0,
+    "timed_out": false,
+    "cancelled": false
+  },
+  "stderr_policy": "discarded at child launch"
+}

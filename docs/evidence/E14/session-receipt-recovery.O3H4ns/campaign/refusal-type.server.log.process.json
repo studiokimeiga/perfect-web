@@ -1,0 +1,30 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--quiet",
+    "--locked",
+    "-p",
+    "pw-dev-server",
+    "--bin",
+    "pw-dev-server",
+    "--features",
+    "session-postgres-tests",
+    "--",
+    "tests::session_receipt_recovery::a_stale_same_reader_recalls_a_known_refusal_without_a_durable_receipt",
+    "tests::session_receipt_recovery::a_stale_same_reader_recovers_a_visible_receipt_after_actual_lost_acknowledgement",
+    "tests::session_receipt_recovery::malformed_persisted_receipts_never_invent_rollback_or_reexecute",
+    "tests::session_receipt_recovery::materializer_receipt_read_error_never_reenters_command_evaluation",
+    "--exact",
+    "--test-threads=1",
+    "--format=pretty"
+  ],
+  "error": null,
+  "reaped": {
+    "pid": 18915,
+    "status": 101,
+    "timed_out": false,
+    "cancelled": false
+  },
+  "stderr_policy": "raw merged stdout/stderr"
+}
