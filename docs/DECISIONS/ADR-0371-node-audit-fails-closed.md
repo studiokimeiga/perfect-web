@@ -98,3 +98,52 @@ no end-to-end exploit or whitelist coverage claim. Preserve those before/after
 bytes and the actual audit refusal; all fresh successor gates remain required.
 The [follow-up record](../diagnostics/systeminformation-security-2026-10-29.md)
 links the raw evidence and records the actual Cypress compatibility execution.
+
+## 2026-11-02 dependency refresh: glob and minimatch
+
+PR #63's CI at `9ddcfec5` (run 41333137363, "licenses and advisories")
+refused two moderate advisories published 2026-10-30; its Rust audit
+passed. A local normal `scripts/audit-node.sh` at the same lockfile
+refused the same two, exit 1:
+
+- [GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4)
+  (CVE-2026-118773): `glob` `>= 9.0.0, <= 14.0.1`, an `AbortSignal` that
+  does not stop an async walk; patched 14.0.2.
+- [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249)
+  (CVE-2026-118764): `minimatch` `< 11.0.1`, a denial of service by
+  amplified glob parts; patched 11.0.1.
+
+Neither has a patched release on the line the lock held: `glob` 13 ends at
+13.0.6 and `minimatch` 10 at 10.2.6 (the registry, 2026-11-02). Both reach
+the workspace only as `spikes/marko-stream-resume` and `spikes/pw-to-marko`
+-> `@marko/run@0.11.8` -> `glob@^13.0.6` -> `minimatch@^10.2.2`.
+
+Use a root range-scoped override from `glob@>=9.0.0 <14.0.2` (the advisory's
+range) to 14.0.3, and regenerate the workspace lock with pinned pnpm
+10.15.1. `minimatch` is not overridden: `glob` 14.0.3 asks for
+`^11.0.2`, all of it patched, and a future `minimatch` below 11.0.1 elsewhere
+fails this audit rather than being forced across majors unseen. The lock
+moves four packages and nothing else: `glob` 13.0.6 to 14.0.3, `minimatch`
+10.2.6 to 11.0.4, `path-scurry` 2.0.2 to 3.0.0, and the new
+`@isaacs/nonrecursive-glob-match` 1.0.3. All four are BlueOak-1.0.0, as
+`glob` 13 and `minimatch` 10 were, by the same publisher, with no install
+lifecycle script. No allowance, severity, validator or audit policy
+changes; neither benchmark sandbox lock holds either package.
+
+- **A major across `@marko/run`'s range.** `glob` 14 changes walker
+  internals, `ignore` patterns that start with `/`, and drops the `debug`
+  option (its changelog). `@marko/run` 0.11.8 calls `glob` once:
+  `glob("{.tsconfig*,tsconfig*.json}", { root })`, then `.length > 0`. That
+  call returns the same matches under 13.0.6 and 14.0.3 in both spikes and
+  the SvelteKit baseline, and `marko-run build` of
+  `spikes/marko-stream-resume` succeeds with 14.0.3 linked.
+- **A release hours old.** `minimatch` 11.0.4 was published on 2026-11-02
+  at 04:50Z. Its package is byte-identical to 11.0.3 (2026-10-28), the
+  registry's tarball checked against its integrity, but for
+  `package.json`'s `version` and `engines` (Node 18 dropped); the upstream
+  compare of the two tags shows the same.
+- **After:** `scripts/audit-node.sh` prints `audit-node: OK (no new
+  advisories; 4 accepted and documented)`, exit 0, and `pnpm install
+  --frozen-lockfile --offline` accepts the lock. Revisit when `@marko/run`
+  asks for `glob` 14 itself (the override is then removed), or when ADR-0002
+  retires Marko.

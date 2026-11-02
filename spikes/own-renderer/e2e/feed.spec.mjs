@@ -706,6 +706,10 @@ test("a follow shows before the server answers, and is the server's after", asyn
   release();
   await answered;
   await page.reload();
+  // The server can render Unfollow before its handler is bound. A click on
+  // that static button is silently lost (Oct 30 CI trace: data-pw="0"), so
+  // wait for the resumed page before asking it to undo the follow.
+  await page.waitForFunction(() => document.documentElement.dataset.pwReady === "1");
   await expect(page.locator("#unfollow")).toHaveCount(1);
   expect(await followers(page)).toBe(before + 1);
   // Left as it was found, for the next test's count, and answered before the
