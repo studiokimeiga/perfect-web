@@ -52,6 +52,11 @@ impl Schema {
         c
     }
 
+    /// The schema's name, which another host's layer opens.
+    pub(super) fn name(&self) -> &str {
+        &self.name
+    }
+
     fn count(&self, query: &str) -> i64 {
         self.sql().query_one(query, &[]).expect(query).get(0)
     }
@@ -695,8 +700,11 @@ fn a_restarted_host_keeps_its_readers_signed_in() {
 }
 
 /// **An existing session is admitted once, and inspected before delivery**:
-/// one atomic five-statement activity admission plus one read-only check (ADR-0389). A fresh
-/// cookie has no admission read and still needs its anonymous delivery check.
+/// one admission statement, a read that takes no lock, its use recorded
+/// within the minute, plus one read-only check (ADR-0389, amended
+/// 2026-11-02: until then the admission was a five-statement transaction
+/// holding the session's lock). A fresh cookie has no admission read and
+/// still needs its anonymous delivery check.
 #[test]
 fn a_request_admits_once_and_inspects_before_private_delivery() {
     let Some(url) = database() else { return };
@@ -710,8 +718,8 @@ fn a_request_admits_once_and_inspects_before_private_delivery() {
     assert!(page.starts_with("HTTP/1.1 200"), "{page}");
     assert_eq!(
         kept.ran() - before,
-        6,
-        "one atomic five-statement activity admission and one final read-only authority check"
+        2,
+        "one admission read, which takes no lock, and one final read-only authority check"
     );
     let before = kept.ran();
     let fresh = get(&a, "/", "");

@@ -9,18 +9,30 @@
 //! Three sources of sessions: this host's memory, which reads nothing outside
 //! its lock (a guard); a source in this process whose reads meet in pairs, so
 //! that two admissions overlap whatever the scheduler does; and PostgreSQL,
-//! where the test holds the session's advisory lock until both admissions
-//! wait on it, so that both read before either ends. The PostgreSQL test
-//! passes doing nothing without a database: `just e14-session-overlap`
-//! refuses to run without one.
+//! where the two reads meet after they read (a test's step in
+//! `SessionsPg::session`), so that both read before either ends.
+//!
+//! And, from the repair's review: **on PostgreSQL an admission takes no
+//! session lock**. A command holds its session's advisory lock while it
+//! runs, a payment's outbound call included; until then each admission of
+//! that session took the same lock, waited up to its 5 s timeout, and held
+//! one of the host's eight session connections meanwhile, so another
+//! reader's page waited for a connection. Now an admission is one statement
+//! that waits on no session lock, and a write it finds due (a use recorded,
+//! an expired row deleted) is made only where nobody holds the lock. The
+//! tests hold the lock as a command does (`hosts::command_session_lock`).
+//!
+//! The PostgreSQL tests pass doing nothing without a database:
+//! `just e14-session-overlap` refuses to run without one.
 
 use super::second_host::{Schema, database, feed_host_signing_in};
 use super::sign_in::{TestProvider, command, signed_in};
 use super::*;
+use crate::identity::Kept as _;
 use crate::identity::tests::Meeting;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 /// The runtime's files, as a build ships them, so that they are answered.
 fn with_runtime_files(s: &Server) {
@@ -250,11 +262,13 @@ fn two_requests_of_one_session_whose_admissions_overlap_are_each_answered() {
 
 /// **On PostgreSQL, two requests of one session whose admissions overlap are
 /// each answered** (ADR-0389, amended 2026-11-02), for every kind of request,
-/// a command beside a page and beside another command included. The test
-/// holds the session's advisory lock, which each admission's statement takes
-/// (`SessionsPg::session`), until both admissions wait on it: both have
-/// begun before either ends. Until the repair one of the two was refused: a
-/// page or a file 503, a command 403 `session-changed`.
+/// a command beside a page and beside another command included. Each pair's
+/// two admission reads meet after they read (a test's step in
+/// `SessionsPg::session`): both have read before either ends. Until the
+/// repair one of the two was refused: a page or a file 503, a command 403
+/// `session-changed`. (Until the review the test held the session's lock,
+/// which each admission took then, until both waited on it; an admission
+/// takes no lock now.)
 #[test]
 fn on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_answered() {
     let Some(url) = database() else { return };
@@ -263,14 +277,20 @@ fn on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_ans
     let a = feed_host_signing_in(&url, &db, &provider);
     with_runtime_files(&a);
     let ada = signed_in(&a, &provider, "s-came", "ada");
-    let hash = identity::kept_hash(&ada);
-    let key = crate::hosts::SESSION_AUTHORITY_KEY;
-    let mut holder = db.sql();
-    let holding: i32 = holder
-        .query_one("SELECT pg_backend_pid()", &[])
-        .expect("the holder's process")
-        .get(0);
-    let mut watcher = db.sql();
+    let kept = a.identity.principals().kept().expect("sessions kept");
+    let meeting = Arc::new(Mutex::new(Meeting::of(2)));
+    let (reads, alone) = (Arc::new(AtomicUsize::new(0)), Arc::new(AtomicUsize::new(0)));
+    let step = {
+        let (meeting, reads, alone) = (meeting.clone(), reads.clone(), alone.clone());
+        move || {
+            reads.fetch_add(1, Ordering::SeqCst);
+            let meeting = meeting.lock().expect("meeting").clone();
+            if !meeting.arrive() {
+                alone.fetch_add(1, Ordering::SeqCst);
+            }
+        }
+    };
+    kept.after_each_read(Some(Arc::new(step)));
     let every = Ask::every(&a);
     let post = every.last().expect("a post").clone();
     let pairs = every
@@ -280,42 +300,23 @@ fn on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_ans
     // Every pair is tried, and every failure said at the end.
     let mut failures = Vec::new();
     for (n, (first, second)) in pairs.enumerate() {
-        holder
-            .query_one(&format!("SELECT pg_advisory_lock({key})"), &[&hash])
-            .expect("the session's lock held");
-        let (waited, one, other) = std::thread::scope(|scope| {
+        *meeting.lock().expect("meeting") = Meeting::of(2);
+        let before = (reads.load(Ordering::SeqCst), alone.load(Ordering::SeqCst));
+        let (one, other) = std::thread::scope(|scope| {
             let one = scope.spawn(|| first.sent(&a, &ada, 2 * n));
             let other = scope.spawn(|| second.sent(&a, &ada, 2 * n + 1));
-            // Both admissions wait on the lock, or the bound passes (well
-            // inside the statement's own 5 s `lock_timeout`).
-            let since = std::time::Instant::now();
-            let waited = loop {
-                let waiting: i64 = watcher
-                    .query_one(
-                        "SELECT count(*) FROM pg_stat_activity WHERE $1 = ANY(pg_blocking_pids(pid))",
-                        &[&holding],
-                    )
-                    .expect("who waits")
-                    .get(0);
-                if waiting >= 2 || since.elapsed() > Duration::from_secs(3) {
-                    break waiting;
-                }
-                std::thread::sleep(Duration::from_millis(5));
-            };
-            let released: bool = holder
-                .query_one(&format!("SELECT pg_advisory_unlock({key})"), &[&hash])
-                .expect("the session's lock released")
-                .get(0);
-            assert!(released, "the test held the lock it released");
             (
-                waited,
                 one.join().expect("the first answered"),
                 other.join().expect("the second answered"),
             )
         });
-        if waited != 2 {
+        let read = (
+            reads.load(Ordering::SeqCst) - before.0,
+            alone.load(Ordering::SeqCst) - before.1,
+        );
+        if read != (2, 0) {
             failures.push(format!(
-                "{first:?} and {second:?} did not both wait for the session's lock: {waited} did"
+                "{first:?} and {second:?} were not each admitted at once: (reads, alone) {read:?}"
             ));
         }
         for (ask, beside, answer) in [(&first, &second, &one), (&second, &first, &other)] {
@@ -325,7 +326,341 @@ fn on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_ans
             }
         }
     }
+    kept.after_each_read(None);
     assert!(failures.is_empty(), "{failures:#?}");
+}
+
+/// **How long an admission may take while a command holds its session's
+/// lock**: well under that lock's 5 s timeout, which an admission waiting
+/// for the lock reaches (the review measured 5001 ms), and far above one
+/// statement's few milliseconds on a busy machine.
+const UNWAITED: Duration = Duration::from_secs(2);
+
+/// **A session's lock held as a command holds it**: the same session-level
+/// advisory lock, taken by `hosts::command_session_lock` on a connection of
+/// its own, as a command's staging takes it after its body and keeps it
+/// until it ends (a payment's outbound call included).
+struct CommandLock {
+    c: postgres::Client,
+    hash: Vec<u8>,
+    /// The holding connection's server process, which a waiter names.
+    pid: i32,
+}
+
+impl CommandLock {
+    fn held(db: &Schema, hash: &[u8]) -> CommandLock {
+        let mut c = db.sql();
+        let pid = c
+            .query_one("SELECT pg_backend_pid()", &[])
+            .expect("the holder's process")
+            .get(0);
+        crate::hosts::command_session_lock(&mut c, hash, || {}).expect("the session's lock held");
+        CommandLock {
+            c,
+            hash: hash.to_vec(),
+            pid,
+        }
+    }
+
+    /// Let go, as the command's staging lets go when it ends.
+    fn released(mut self) {
+        crate::hosts::command_session_unlock(&mut self.c, &self.hash, || {})
+            .expect("the session's lock let go");
+    }
+}
+
+/// **Ada signed in on a host of the feed on `db`**: the host, her session,
+/// and the reader it admitted as she signed in.
+fn ada_signed_in(url: &str, db: &Schema) -> (Served, String, identity::SessionIdentity) {
+    let provider = Arc::new(TestProvider::default());
+    let a = feed_host_signing_in(url, db, &provider);
+    let ada = signed_in(&a, &provider, "s-came", "ada");
+    let identity::ReaderIdentity::Account(reader) = a.identity.principals().bound_reader(&ada)
+    else {
+        panic!("Ada is signed in");
+    };
+    (a, ada, reader)
+}
+
+/// Whether the session `hash` names is kept, and whether its use was
+/// recorded within the last minute, on the database's clock.
+fn kept_and_recent(db: &Schema, hash: &[u8]) -> (bool, bool) {
+    db.sql()
+        .query_opt(
+            "SELECT seen > clock_timestamp() - interval '1 minute' FROM sessions WHERE hash = $1",
+            &[&hash],
+        )
+        .expect("the session read")
+        .map_or((false, false), |row| (true, row.get(0)))
+}
+
+/// The session `hash` names last recorded as used `ago` (an interval's
+/// text) before now, as a test ages it.
+fn last_used(db: &Schema, hash: &[u8], ago: &str) {
+    db.sql()
+        .execute(
+            "UPDATE sessions SET seen = clock_timestamp() - $2::text::interval WHERE hash = $1",
+            &[&hash, &ago],
+        )
+        .expect("the session aged");
+}
+
+/// **An admission never waits for a command holding its session's lock**
+/// (ADR-0389, amended 2026-11-02, from its review). Until then each
+/// admission took the lock in a five-statement transaction and waited for
+/// it, up to its 5 s timeout. Now it is one statement that takes no lock:
+/// answered, as the reader, well inside the timeout.
+#[test]
+fn on_postgres_an_admission_never_waits_for_a_command_holding_its_session() {
+    let Some(url) = database() else { return };
+    let db = Schema::new(&url, "unwaited");
+    let (a, ada, reader) = ada_signed_in(&url, &db);
+    let principals = a.identity.principals();
+    let kept = principals.kept().expect("sessions kept");
+    let command = CommandLock::held(&db, &identity::kept_hash(&ada));
+    let (before, since) = (kept.ran(), Instant::now());
+    let answer = principals.admit(&ada);
+    let (took, ran) = (since.elapsed(), kept.ran() - before);
+    command.released();
+    assert_eq!(
+        (answer, ran, took < UNWAITED),
+        (Ok(identity::ReaderIdentity::Account(reader)), 1, true),
+        "answered as the reader, by one statement, within {UNWAITED:?}: took {took:?}"
+    );
+}
+
+/// **A use due to be recorded is skipped while a command holds the session's
+/// lock, and recorded once it is free** (ADR-0389, amended 2026-11-02): a
+/// session last recorded as used two minutes ago is due a touch. With the
+/// lock held the admission writes nothing, waits for nothing, and is
+/// answered as the reader; with the lock free the next admission records
+/// the use. A touch only extends idle expiry, and comes at most a minute
+/// late, so a skipped one is made by a later admission safely.
+#[test]
+fn on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free() {
+    let Some(url) = database() else { return };
+    let db = Schema::new(&url, "touch_skipped");
+    let (a, ada, reader) = ada_signed_in(&url, &db);
+    let principals = a.identity.principals();
+    let hash = identity::kept_hash(&ada);
+    last_used(&db, &hash, "2 minutes");
+    let command = CommandLock::held(&db, &hash);
+    let since = Instant::now();
+    let held = principals.admit(&ada);
+    let took = since.elapsed();
+    let while_held = kept_and_recent(&db, &hash);
+    command.released();
+    let free = principals.admit(&ada);
+    let once_free = kept_and_recent(&db, &hash);
+    let reader = identity::ReaderIdentity::Account(reader);
+    assert_eq!(
+        (held, took < UNWAITED, while_held, free, once_free),
+        (
+            Ok(reader.clone()),
+            true,
+            (true, false),
+            Ok(reader),
+            (true, true)
+        ),
+        "answered without waiting (took {took:?}), its use unrecorded while the lock was held \
+         and recorded once it was free"
+    );
+}
+
+/// **A session past its lifetime is no one while a command holds its lock,
+/// without waiting, and its row deleted once the lock is free** (ADR-0389,
+/// amended 2026-11-02): opened sixty-one days ago and used now, only its
+/// deletion is due. With the lock held the admission deletes nothing, waits
+/// for nothing, and is no one, as an expired session is wherever it is
+/// read; with the lock free the next admission deletes its row.
+#[test]
+fn on_postgres_an_expired_session_is_no_one_under_a_commands_lock_and_deleted_once_free() {
+    let Some(url) = database() else { return };
+    let db = Schema::new(&url, "expired_held");
+    let (a, ada, _) = ada_signed_in(&url, &db);
+    let principals = a.identity.principals();
+    let hash = identity::kept_hash(&ada);
+    db.sql()
+        .execute(
+            "UPDATE sessions SET opened = clock_timestamp() - interval '61 days', \
+             seen = clock_timestamp() WHERE hash = $1",
+            &[&hash],
+        )
+        .expect("opened sixty-one days ago, used now");
+    let command = CommandLock::held(&db, &hash);
+    let since = Instant::now();
+    let held = principals.admit(&ada);
+    let took = since.elapsed();
+    let while_held = kept_and_recent(&db, &hash);
+    command.released();
+    let free = principals.admit(&ada);
+    let once_free = kept_and_recent(&db, &hash);
+    let no_one = Ok(identity::ReaderIdentity::Anonymous);
+    assert_eq!(
+        (held, took < UNWAITED, while_held, free, once_free),
+        (no_one.clone(), true, (true, true), no_one, (false, false)),
+        "no one without waiting (took {took:?}), its row kept while the lock was held and \
+         deleted once it was free"
+    );
+}
+
+/// **A due write's answer is the admission's** (ADR-0389, amended
+/// 2026-11-02): the write runs under the session's lock, its snapshot taken
+/// after the lock, and answers the request. A session another host signs
+/// out between the read (which found it live, its use due to be recorded)
+/// and the write is no one, though the read found the reader.
+#[test]
+fn on_postgres_a_session_signed_out_between_the_read_and_the_write_is_no_one() {
+    let Some(url) = database() else { return };
+    let db = Schema::new(&url, "closed_between");
+    let (a, ada, _) = ada_signed_in(&url, &db);
+    let principals = a.identity.principals();
+    let kept = principals.kept().expect("sessions kept");
+    let hash = identity::kept_hash(&ada);
+    last_used(&db, &hash, "2 minutes");
+    // Another host's sessions, on the same schema: it signs Ada out after
+    // the first read, once.
+    let other = Arc::new(crate::hosts::SessionsPg::new(&url, db.name()));
+    let closed = Arc::new(AtomicUsize::new(0));
+    let step = {
+        let (closed, other, hash) = (closed.clone(), other.clone(), hash.clone());
+        move || {
+            if closed.fetch_add(1, Ordering::SeqCst) == 0 {
+                other.close(&hash).expect("signed out on another host");
+            }
+        }
+    };
+    kept.after_each_read(Some(Arc::new(step)));
+    let answer = principals.admit(&ada);
+    kept.after_each_read(None);
+    assert_eq!(
+        (
+            answer,
+            closed.load(Ordering::SeqCst),
+            kept_and_recent(&db, &hash)
+        ),
+        (Ok(identity::ReaderIdentity::Anonymous), 1, (false, false)),
+        "the write, under the lock, found the session signed out since the read"
+    );
+}
+
+/// **Admissions of a session whose lock a command holds delay no other
+/// reader's page** (ADR-0389, amended 2026-11-02; the review's
+/// reproduction): as many of Ada's requests as the host has session
+/// connections (her page's runtime files) are asked at once while a command
+/// holds her session's lock, and then Bob's page. Until then each of hers
+/// waited on the lock, up to its 5 s timeout, holding a session connection;
+/// one was answered 503 at 5001 ms, and Bob's page, waiting for a
+/// connection, took 4969 ms where it took 18 ms alone.
+#[test]
+fn on_postgres_admissions_under_a_commands_lock_delay_no_other_readers_page() {
+    let Some(url) = database() else { return };
+    let db = Schema::new(&url, "unwaited_pages");
+    let provider = Arc::new(TestProvider::default());
+    let a = feed_host_signing_in(&url, &db, &provider);
+    with_runtime_files(&a);
+    let ada = signed_in(&a, &provider, "s-came-ada", "ada");
+    let bob = signed_in(&a, &provider, "s-came-bob", "bob");
+    let files: Vec<String> = ["/pw-runtime.mjs", "/pw-resume.wasm", "/pw-render.wasm"]
+        .into_iter()
+        .map(String::from)
+        .chain((1..).map(|n| format!("/pw-runtime.mjs?document={n}")))
+        .take(crate::hosts::SESSION_CONNECTIONS)
+        .collect();
+    let command = CommandLock::held(&db, &identity::kept_hash(&ada));
+    let mut watcher = db.sql();
+    let answered = AtomicUsize::new(0);
+    let (hers, bobs, bob_took) = std::thread::scope(|scope| {
+        let hers: Vec<_> = files
+            .iter()
+            .map(|file| {
+                let (a, ada, answered) = (&a, &ada, &answered);
+                scope.spawn(move || {
+                    let since = Instant::now();
+                    let answer = get_as(a, ada, file);
+                    answered.fetch_add(1, Ordering::SeqCst);
+                    let status = answer.lines().next().unwrap_or("no answer").to_string();
+                    (status, since.elapsed())
+                })
+            })
+            .collect();
+        // Until all of hers are answered, or all wait on her session's lock,
+        // each then holding a session connection, within a bound.
+        let since = Instant::now();
+        loop {
+            let waiting: i64 = watcher
+                .query_one(
+                    "SELECT count(*) FROM pg_stat_activity WHERE $1 = ANY(pg_blocking_pids(pid))",
+                    &[&command.pid],
+                )
+                .expect("who waits")
+                .get(0);
+            if answered.load(Ordering::SeqCst) == files.len()
+                || waiting >= files.len() as i64
+                || since.elapsed() > Duration::from_secs(3)
+            {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        let since = Instant::now();
+        let bobs = get_as(&a, &bob, "/");
+        let bob_took = since.elapsed();
+        command.released();
+        let hers: Vec<_> = hers
+            .into_iter()
+            .map(|h| h.join().expect("answered"))
+            .collect();
+        let status = bobs.lines().next().unwrap_or("no answer").to_string();
+        (hers, status, bob_took)
+    });
+    let unwaited = hers
+        .iter()
+        .all(|(status, took)| status == "HTTP/1.1 200 OK" && *took < UNWAITED);
+    assert_eq!(
+        (bobs.as_str(), bob_took < UNWAITED, unwaited),
+        ("HTTP/1.1 200 OK", true, true),
+        "Bob's page took {bob_took:?}; Ada's files: {hers:?}"
+    );
+}
+
+/// **An admission waits on a locked sessions table no longer than the lock
+/// timeout** (ADR-0389, amended 2026-11-02): its read takes no session
+/// lock, but a migration's lock on the table holds any statement on it.
+/// Each session connection bounds every lock wait at 5 s, as the
+/// admission's transaction did when it was one, so the request is refused
+/// rather than held as long as the table is.
+#[test]
+fn on_postgres_an_admission_waits_on_a_locked_table_no_longer_than_the_lock_timeout() {
+    let Some(url) = database() else { return };
+    let db = Schema::new(&url, "table_locked");
+    let (a, ada, _) = ada_signed_in(&url, &db);
+    let principals = a.identity.principals();
+    let mut migration = db.sql();
+    migration
+        .batch_execute("BEGIN; LOCK TABLE sessions IN ACCESS EXCLUSIVE MODE")
+        .expect("the table locked, as a migration locks it");
+    let (sent, answered) = mpsc::channel();
+    let within = std::thread::scope(|scope| {
+        scope.spawn(|| {
+            let since = Instant::now();
+            let answer = principals.admit(&ada);
+            let _ = sent.send((answer, since.elapsed()));
+        });
+        let within = answered.recv_timeout(Duration::from_secs(8));
+        migration
+            .batch_execute("ROLLBACK")
+            .expect("the table let go");
+        within
+    });
+    assert!(
+        matches!(
+            &within,
+            Ok((Err(identity::AuthorityError::SourceUnavailable), took))
+                if *took >= Duration::from_secs(4)
+        ),
+        "refused at the lock timeout while the table was locked, within 8 s: {within:?}"
+    );
 }
 
 /// A source of sessions that fails every read.

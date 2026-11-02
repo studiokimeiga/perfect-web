@@ -484,3 +484,177 @@ changes where admission begins, so it is recorded here.
     images) would be one structural decision, measured, not three names.
   - A command whose admission read fails is answered 403 `session-changed`,
     as before; 503 would say what happened. Unchanged here.
+
+## The overlap repair's review: an admission takes no session lock, 2026-11-02 (track session-overlap)
+
+An independent review of the section above (at 81026f05) found two rules
+it states that no test held, a defect it gave as a reason, and a filter that
+counted a test it does not own. The integrator ruled on each; this section
+records the findings and what changed.
+
+- **Corrections first.**
+  - **"The database already took one session's admissions one at a time"**
+    (the section above, twice: its corrections and "Not taken") was so, and
+    it was a defect, not a safeguard. A browser command holds its session's
+    advisory lock while it runs (`hosts::command_session_lock`, a
+    session-level lock, held from `authorize` to its staging's end, a
+    payment's outbound call of up to 10 s included). Every admission of that
+    session was a five-statement transaction that took the same lock
+    (`pg_advisory_xact_lock`), so it waited up to the 5 s `lock_timeout`,
+    holding one of the host's 8 session connections (`SESSION_CONNECTIONS`)
+    meanwhile. The review reproduced it: eight of one session's runtime-file
+    requests all waiting on the lock, one answered 503 at 5001 ms, and
+    another reader's page taking 4969 ms where it took 18 ms alone. Removing
+    PR #63's exemption added the runtime's three files to the requests so
+    exposed; pages, `/pw-handlers` and handler modules were exposed before.
+    Admissions are no longer ordered by the database, and nothing relies on
+    their being ordered (below).
+  - **Two of the repair's rules had no test.** "A removal (no one, or a
+    failed read) still removes, failing closed" and "the tickets are compared
+    under the gate and the sessions lock": the review's mutants M1 and M2 (a
+    removal made only where nothing was written meanwhile) and M3 (the
+    tickets compared right after the read, before the locks) each survived
+    all 13 tests of the frozen inventory. `overtaken_by`'s overtaken read
+    always found someone, and no test let a close land between a read's
+    return and its locks.
+  - **The recipe counted a test it does not own.** `just e14-session-overlap`
+    filtered `identity::`, which also selects
+    `tests::receiver_identity::...` (main.rs); the "27 passed" above counted
+    it. The filter is now `identity::tests:: identity::invocation_tests::
+    tests::session_overlap::`, exactly identity.rs's tests and this track's.
+  - "On PostgreSQL one five-statement transaction holding the session's
+    advisory lock" (the section above's "Not claimed") is now one statement
+    that takes no lock, where no write is due.
+- **An admission on PostgreSQL** (the integrator's ruling 3, for every
+  admitted route; `SessionsPg::session`). **One statement, run in no
+  transaction of its own, that takes no session lock** (`ADMISSION_READ`):
+  the session's row, whether it is live by both lifetimes on the database's
+  clock, and whether its use is due to be recorded (live, and recorded more
+  than `touched_after` ago, at most a minute). A write is due where its use
+  is, or where the row is present and no longer live (its deletion).
+  - No row: no one. No write due: answered from the read, one statement in
+    all, so a page is again two statements (its admission and its delivery
+    inspection), as the 2026-10-26 section above counted them before the
+    command fence made the admission a transaction.
+  - A write due is tried, never waited for (`SessionsPg::written_if_free`):
+    a transaction of its own takes `pg_try_advisory_xact_lock`. **Taken**,
+    the combined statement the admission always ran (`ADMISSION_WRITE`: its
+    use recorded, an expired row deleted) runs under it, its READ COMMITTED
+    snapshot taken after the lock, and its answer is the admission's: a
+    session closed since the read is no one. **Not taken** (a command, an
+    open or a close holds the lock), nothing is written and the read
+    answers: an expired session is no one all the same, and its row is
+    deleted by a later admission; a use left unrecorded is recorded by a
+    later one, which only delays idle expiry, by at most `touched_after`.
+  - Why the write waits for nothing yet is made only under the lock:
+    PostgreSQL's READ COMMITTED "SELECT query sees a snapshot of the
+    database as of the instant the query begins to run", and a deletion
+    decided on a snapshot taken before the lock could remove a row an open
+    rewrote meanwhile. Open, close and every command take the same lock
+    ("session-level and transaction-level lock requests for the same
+    advisory lock identifier will block each other",
+    [PostgreSQL 18, 13.3.5](https://www.postgresql.org/docs/18/explicit-locking.html#ADVISORY-LOCKS);
+    `pg_try_advisory_xact_lock` "will either obtain the lock immediately and
+    return true, or return false without waiting",
+    [9.28.10](https://www.postgresql.org/docs/18/functions-admin.html#FUNCTIONS-ADVISORY-LOCKS),
+    both checked 2026-11-02), so nothing of the session changes under the
+    write. A command holds the row's `FOR UPDATE` lock only while it holds
+    the advisory lock, so the write waits on no row lock either.
+  - The read and the write share their two conditions, live and due to be
+    recorded, as one text each (`live!` and `stale!` in hosts.rs), so they
+    cannot disagree. `scripts/second_host_mutations.py`'s five expiry
+    controls (idle, lifetime, use not recorded, use written at every
+    request, expired row kept) are anchored on those texts now, and each
+    changes both statements.
+  - **Every lock wait stays bounded.** The read runs in no transaction, so
+    `SET LOCAL lock_timeout` no longer bounds it, and a migration's lock on
+    the table would hold it as long as the migration ran. Each session
+    connection now sets `lock_timeout = '5s'` when it is made
+    (`SESSION_CONNECTION_LOCK_TIMEOUT`; "the limit applies both to explicit
+    locking requests ... and to implicitly-acquired locks",
+    [19.11.1](https://www.postgresql.org/docs/18/runtime-config-client.html#GUC-LOCK-TIMEOUT)):
+    the read fails at 5 s and its request is refused, as when the admission
+    was a transaction. Inspections and sign-ins on those connections are
+    bounded the same way; the transactions keep their own `SET LOCAL`.
+  - The lock order is unchanged: this host's gate, sessions lock and ticket
+    as before; on PostgreSQL the advisory lock before any row lock, the one
+    order every command, open and close keeps. A failed read, a failed try
+    or a failed write refuses the request, and discards the connection
+    where a transaction's end is uncertain, as before.
+- **Authority does not rest on the admission lock.** Delivery inspects the
+  source again before private bytes leave; a command's commit is fenced
+  (advisory lock, the row `FOR UPDATE`, the final database-clock check on
+  its own transaction); an upload's publication checks again. An admission
+  read without the lock may be a few milliseconds behind a close on
+  another host, as one made just before that close always could be; such a
+  request delivers nothing private and commits nothing. What relied on the
+  ordering: the section above's claim, and its PostgreSQL overlap test,
+  which held the session's lock until both admissions waited on it. The
+  test now makes the two reads meet after they read (a test's step in
+  `SessionsPg::session`, `Kept::after_each_read`), as the in-process test's
+  source does. `session_commands_pg`'s `admitted_first`, which watches a
+  logout wait for a command's commit, now sees the logout's close wait, not
+  its admission; it passes unchanged.
+- **The review's findings 1 and 2, held.** In identity.rs, adopted from the
+  review: `a_read_of_no_one_another_admission_overtook_still_removes_the_copy`
+  and `a_failed_read_another_admission_overtook_still_removes_the_copy`
+  (the overtaken read is the removal, the overtaking one installs the
+  reader; the copy holds no principal afterwards), and
+  `a_close_between_the_read_and_the_locks_is_seen` (the test holds the
+  sessions lock, waits until the admission holds the gate, then closes).
+  M1, M2 and M3 are controls of `scripts/session_overlap_mutations.py`.
+- **The new rules' tests** (tests/session_overlap.rs, on PostgreSQL, the
+  test holding the session's lock as a command does, through
+  `command_session_lock` on a connection of its own): a live session's
+  admission answered as the reader, by one statement, within 2 s (the lock
+  timeout is 5 s); a due touch skipped and answered without waiting, the use
+  unrecorded while the lock is held and recorded once it is free; a session
+  past its lifetime no one without waiting, its row kept while the lock is
+  held and deleted once it is free; a session another host signs out
+  between the read and the write no one (the write's answer); the review's
+  scenario, eight of Ada's runtime files under her command's lock and then
+  Bob's page, each answered 200 within 2 s; and an admission held by a
+  locked sessions table refused at the lock timeout. Each rule is a control,
+  killed at an assertion on the answer and the measured time: the read
+  waiting for the lock; a write due at every admission; the due write
+  waiting for the lock; the lock held, a live session refused, an expired
+  one answered as its principal, or the write made anyway; a use never
+  recorded; an expired row never deleted; the lock free, the read answering
+  instead of the write; a connection that bounds no lock wait.
+  - **Characterized first**: the four tests that hold the session's lock,
+    run against the admission as it was (hosts.rs as at 81026f05, with
+    these tests), each failed at its assertion: the admission
+    `Err(SourceUnavailable)` after 5.00 s (4 statements run), the due touch
+    and the expired session each refused after 5.00 s, and the review's
+    scenario reproduced (Ada's eight files 503 at 5.00 to 5.06 s, Bob's page
+    5.01 s); a page's statements 6, not 2. The locked-table test passed
+    there: the transaction's `SET LOCAL` bounded that wait, which the
+    connection's setting now keeps. The test of a session signed out
+    between the read and the write has no counterpart there: the read and
+    the write were one statement.
+- **Found, not changed: the sign-in callback decides `was_guest` from this
+  host's copy** (identity.rs `callback`: `self.principals.of(session)`;
+  main.rs answers the identity routes with no reader bound), not from the
+  request's admitted reader. The two differ when an admission of the same
+  session that read no one (a sign-out on another host, or an expiry)
+  empties the copy after the callback's own admission read the reader,
+  during the provider's exchange or as an overlapping admission. Then
+  `was_guest` is true for a session that was signed in, and where a store
+  keys its carts by session (`cart_by_reader` false), `joined` moves that
+  reader's cart to the next account: "what it held is its user's, never the
+  next one's", the callback's own comment, fails. A hypothesis from
+  reading; not reproduced. The fix, the admitted reader passed to the
+  callback, changes the store-accounts seam's input and needs its own
+  regression (a session-keyed store, a provider, and an admission landing
+  inside the callback), so it is not taken here.
+- **Evidence** (2026-11-02, this PC: PostgreSQL 18.6, Playwright 1.58.0).
+  Pending; recorded below when run.
+- **Not claimed, and next.**
+  - The section above's first "next" stands: a response that reads no
+    session state could be answered before admission. Admission now costs
+    such a response one statement without a lock, which makes that rule a
+    measurement, not a repair.
+  - Local runs of the whole server suite need at most 8 test threads here:
+    this PC's PostgreSQL allows 100 connections, and 32 threads of two-host
+    tests reach that before and after this change ("sorry, too many clients
+    already"); CI's runners have fewer cores.

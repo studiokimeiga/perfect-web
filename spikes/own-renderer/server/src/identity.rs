@@ -558,8 +558,10 @@ pub(crate) fn kept_hash(secret: &str) -> Vec<u8> {
 /// another. Each by its secret's [`kept_hash`].
 pub(crate) trait Kept: Send + Sync {
     /// The principal of the session whose id hashes to `hash`, or none: none
-    /// past `lifetimes` (the database's clock), and such a session signed
-    /// out where it is kept. Its use recorded.
+    /// past `lifetimes` (the database's clock). An admission's read, which
+    /// waits on no session lock: its use is recorded, and a session past its
+    /// lifetimes signed out where it is kept, when that is due and nobody
+    /// holds the session's lock (ADR-0389, amended 2026-11-02).
     fn session(
         &self,
         hash: &[u8],
@@ -586,6 +588,11 @@ pub(crate) trait Kept: Send + Sync {
     fn ran(&self) -> u64 {
         0
     }
+    /// A test's `step`, run after each admission read and before any write
+    /// it makes, or none: two admissions' reads meet there, or another host
+    /// signs the session out there. A source with no such seam ignores it.
+    #[cfg(test)]
+    fn after_each_read(&self, _step: Option<Arc<dyn Fn() + Send + Sync>>) {}
 }
 
 /// **A session open on a reader's behalf**, closed when it goes.
@@ -2351,6 +2358,113 @@ pub(crate) mod tests {
             principal: Principal::guest("grace"),
             epoch: [7; 16],
         })));
+    }
+
+    /// **A removal another admission overtook still removes** (ADR-0389,
+    /// amended 2026-11-02, from its review): the mirror of [`overtaken_by`].
+    /// The earlier read found no one, or failed (`fails`); a later admission
+    /// read the reader and wrote this host's copy first. The earlier read
+    /// answers its own request and still removes the copy: a removal fails
+    /// closed whichever read is later. Until the review no test held this:
+    /// a removal made only where nothing was written meanwhile passed every
+    /// test, since [`overtaken_by`]'s overtaken read always found someone.
+    fn an_overtaken_removal_still_removes(fails: bool) {
+        let source = Arc::new(Scripted::default());
+        let (principals, identity) = kept_reader(source.clone());
+        let (entered, inside) = std::sync::mpsc::channel();
+        let (release, released) = std::sync::mpsc::channel::<()>();
+        source.then(move || {
+            entered.send(()).expect("entered");
+            released.recv().expect("released");
+            if fails {
+                Err("authority read unavailable".into())
+            } else {
+                Ok(None)
+            }
+        });
+        let later = identity.clone();
+        source.then(move || Ok(Some(later)));
+        let (first, second) = std::thread::scope(|scope| {
+            let first = scope.spawn(|| principals.admit("reader"));
+            inside.recv().expect("the first read is under way");
+            let second = principals.admit("reader");
+            release.send(()).expect("release");
+            (first.join().expect("admitted without panic"), second)
+        });
+        let removal = if fails {
+            Err(AuthorityError::SourceUnavailable)
+        } else {
+            Ok(ReaderIdentity::Anonymous)
+        };
+        assert_eq!(
+            (first, second, principals.of("reader")),
+            (removal, Ok(ReaderIdentity::Account(identity)), None),
+            "each answered from its own read; the overtaken removal still removed the copy"
+        );
+    }
+
+    #[test]
+    fn a_read_of_no_one_another_admission_overtook_still_removes_the_copy() {
+        an_overtaken_removal_still_removes(false);
+    }
+
+    #[test]
+    fn a_failed_read_another_admission_overtook_still_removes_the_copy() {
+        an_overtaken_removal_still_removes(true);
+    }
+
+    /// **A close between an admission's read and its locks is seen**
+    /// (ADR-0389, amended 2026-11-02, from its review): the tickets are
+    /// compared under the gate and the sessions lock, never before them. The
+    /// read returns; the test, holding the sessions lock, waits until the
+    /// admission holds the gate, past any comparison made before the locks,
+    /// then closes the session as `close` does and lets go. The admission
+    /// reads again, and is no one. Until the review no test held this: a
+    /// comparison made right after the read, before the locks, passed every
+    /// test, and installed the closed session's stale read.
+    #[test]
+    fn a_close_between_the_read_and_the_locks_is_seen() {
+        let source = Arc::new(Scripted::default());
+        let (principals, identity) = kept_reader(source.clone());
+        let (entered, inside) = std::sync::mpsc::channel();
+        let (release, released) = std::sync::mpsc::channel::<()>();
+        source.then(move || {
+            entered.send(()).expect("entered");
+            released.recv().expect("released");
+            Ok(Some(identity))
+        });
+        source.then(|| Ok(None));
+        let mut waited = Duration::ZERO;
+        let answer = std::thread::scope(|scope| {
+            let admission = scope.spawn(|| principals.admit("reader"));
+            inside.recv().expect("the read is under way");
+            let gate = principals.command_gate("reader");
+            {
+                let mut sessions = principals.0.sessions.write().expect("principals");
+                release.send(()).expect("release");
+                // Until the admission holds the gate, within a bound: a probe
+                // that takes it lets it go at once.
+                let since = std::time::Instant::now();
+                while gate.try_write().is_ok() && since.elapsed() < Duration::from_secs(10) {
+                    std::thread::yield_now();
+                }
+                waited = since.elapsed();
+                sessions.remove("reader");
+                principals.authority_moved("reader");
+            }
+            admission.join().expect("admitted without panic")
+        });
+        assert_eq!(
+            (
+                answer,
+                principals.of("reader"),
+                source.unread(),
+                waited < Duration::from_secs(10)
+            ),
+            (Ok(ReaderIdentity::Anonymous), None, 0, true),
+            "the admission held the gate, and the closed session's read was read again, never \
+             installed"
+        );
     }
 
     /// **An admission reads its session a bounded number of times**

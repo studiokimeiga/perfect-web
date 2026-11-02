@@ -464,41 +464,44 @@ MUTANTS = [
         "    theirs != 0 && theirs != mine\n",
         "    theirs != mine\n",
     ),
-    # --- The integrator's ruling 2 of 2026-10-20: sessions that expire.
+    # --- The integrator's ruling 2 of 2026-10-20: sessions that expire. An
+    # admission's read and its write share these conditions (`live!` and
+    # `stale!` in hosts.rs; ADR-0389, amended 2026-11-02), so each of these
+    # mutants changes both statements.
     (
         "a kept session idle past its idle time is signed in still",
         "hosts",
         HOSTS,
-        "                     AND seen > clock_timestamp() - make_interval(secs => $3)), \\\n",
-        "                     AND $3::float8 >= 0), \\\n",
+        '         AND seen > clock_timestamp() - make_interval(secs => $3)"\n',
+        '         AND $3::float8 >= 0"\n',
     ),
     (
         "a kept session past its lifetime is signed in still",
         "hosts",
         HOSTS,
-        "                     AND opened > clock_timestamp() - make_interval(secs => $2) \\\n",
-        "                     AND $2::float8 >= 0 \\\n",
+        '        "opened > clock_timestamp() - make_interval(secs => $2) \\\n',
+        '        "$2::float8 >= 0 \\\n',
     ),
     (
         "a kept session's use is not recorded",
         "hosts",
         HOSTS,
-        "                         WHERE seen < clock_timestamp() - make_interval(secs => $4))), \\\n",
-        "                         WHERE $4::float8 < 0)), \\\n",
+        '        "seen < clock_timestamp() - make_interval(secs => $4)"\n',
+        '        "$4::float8 < 0"\n',
     ),
     (
         "a kept session's use is written at every request",
         "hosts",
         HOSTS,
-        "                         WHERE seen < clock_timestamp() - make_interval(secs => $4))), \\\n",
-        "                         WHERE $4::float8 >= 0)), \\\n",
+        '        "seen < clock_timestamp() - make_interval(secs => $4)"\n',
+        '        "$4::float8 >= 0"\n',
     ),
     (
         "an expired kept session's row stays",
         "hosts",
         HOSTS,
-        "                     AND NOT EXISTS (SELECT 1 FROM live)) \\\n",
-        "                     AND false) \\\n",
+        "     AND NOT EXISTS (SELECT 1 FROM live)) \\\n",
+        "     AND false) \\\n",
     ),
     (
         "a deployment's session lifetimes are not read",
