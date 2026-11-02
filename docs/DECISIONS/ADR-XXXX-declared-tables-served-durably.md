@@ -159,7 +159,7 @@ ADR-0208, ADR-0246, ADR-0325, ADR-0334, ADR-0354 and ADR-0369.
 6. **What the database keeps of the platform's stays bounded** (the
    review's findings 1 and 4):
    - **the outbox**: no host reads this layer's outbox after its commit (it
-     has no `tail()`, decision "Not claimed"), so each commit's rows are
+     has no `tail()`: see "Not claimed"), so each commit's rows are
      forgotten by the committing host once its commit has answered
      (`forget_outbox`, one statement after the `COMMIT`, outside the turn);
      rows a host that ended between the two left behind are forgotten once
