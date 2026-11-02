@@ -1,8 +1,8 @@
 Track evidence-integrity - six ways evidence could be wrong, or a gate fail for the wrong reason
 
 produced by: just e14-evidence-integrity
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 83761ca3ae614f5846e6d3bb7460b8427bc1ff2e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/41491093145 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 python: Python 3.12.3
 node: v22.21.1
@@ -39,7 +39,7 @@ test_a_complete_report_stays_visible_until_success (scripts.tests.test_atomic_ev
 test_a_failed_run_keeps_the_previous_complete_report (scripts.tests.test_atomic_evidence.AtomicEvidence.test_a_failed_run_keeps_the_previous_complete_report) ... ok
 test_a_first_run_publishes_only_the_complete_report (scripts.tests.test_atomic_evidence.AtomicEvidence.test_a_first_run_publishes_only_the_complete_report) ... ok
 test_the_published_report_remains_a_planned_evidence_output (scripts.tests.test_atomic_evidence.AtomicEvidence.test_the_published_report_remains_a_planned_evidence_output) ... ok
-Ran 30 tests in 6.134s
+Ran 30 tests in 5.511s
 OK
 
 == 2. stale evidence planned, an evidence file's counts its script's (test_ci_scripts.py, test_evidence_counts.py)
@@ -60,7 +60,7 @@ test_evidence_of_a_commit_the_head_does_not_descend_from_is_not_current (scripts
 test_main_runs_no_current_recipe_only_where_asked (scripts.tests.test_ci_scripts.CurrentEvidence.test_main_runs_no_current_recipe_only_where_asked) ... ci_plan: e10-attribute-case is current, recorded at aaaaaaaa
 ok
 test_the_evidence_is_read_as_the_head_holds_it (scripts.tests.test_ci_scripts.CurrentEvidence.test_the_evidence_is_read_as_the_head_holds_it) ... ok
-test_the_workflow_plans_each_push_with_the_evidence (scripts.tests.test_ci_scripts.CurrentEvidence.test_the_workflow_plans_each_push_with_the_evidence) ... ok
+test_the_workflow_plans_each_push_and_pr_with_the_evidence (scripts.tests.test_ci_scripts.CurrentEvidence.test_the_workflow_plans_each_push_and_pr_with_the_evidence) ... ok
 test_a_file_of_another_commit_is_refused (scripts.tests.test_ci_scripts.Fetch.test_a_file_of_another_commit_is_refused) ... ok
 test_a_file_whose_recipe_reads_what_changed_since_its_run_is_refused (scripts.tests.test_ci_scripts.Fetch.test_a_file_whose_recipe_reads_what_changed_since_its_run_is_refused) ... ok
 test_a_file_with_no_commit_is_copied_as_it_is (scripts.tests.test_ci_scripts.Fetch.test_a_file_with_no_commit_is_copied_as_it_is) ... ok
@@ -161,7 +161,7 @@ test_evidence_whose_script_changed_in_the_tree_here_is_planned_again (scripts.te
 test_the_repositorys_evidence_agrees_with_its_scripts_or_is_planned_again (scripts.tests.test_evidence_counts.Repository.test_the_repositorys_evidence_agrees_with_its_scripts_or_is_planned_again) ... ok
 
 ----------------------------------------------------------------------
-Ran 112 tests in 31.258s
+Ran 112 tests in 20.390s
 
 OK
   not copied, its recipe failed: docs/evidence/E14/stopped.txt
@@ -173,61 +173,69 @@ evidence-fetch: run 1 failed only in summary, known (ADR-0281)
   not copied, its recipe failed: docs/evidence/E14/stopped.wasm
   docs/evidence/E14/good.txt
 evidence-fetch: 1 files from https://example.invalid/run/1; 1 recipes' seconds kept
-docs/evidence/E14/command-deadline.txt:358: command_deadline_mutations.py: counts 14 mutants; its script defines 18
-  e14-command-deadline: stale, and planned at a train's push (ci_plan.py --stale)
-docs/evidence/E14/press-modules.txt:0: no such file: the recipe's evidence is not recorded
-  e14-press-modules: stale, and planned at a train's push (ci_plan.py --stale)
-evidence counts: 2 recipes disagree with their scripts, 2 of them stale and planned, 0 failing
+docs/evidence/E14/bounded-statements.txt:112: bounded_statements_mutations.py: counts 14 mutants; its script defines 15
+  e14-bounded-statements: stale, and planned at a train's push (ci_plan.py --stale)
+docs/evidence/E14/row-ownership.txt:123: row_ownership_mutations.py: counts 27 mutants; its script defines 46
+  e14-row-ownership: stale, and planned at a train's push (ci_plan.py --stale)
+docs/evidence/E14/scheduled.txt:101: scheduled_mutations.py: 'a run on PostgreSQL is kept once answered' names no mutant of its script
+docs/evidence/E14/scheduled.txt:102: scheduled_mutations.py: "a run is keyed by its host, and a second host's commits again" names no mutant of its script
+  e14-scheduled: stale, and planned at a train's push (ci_plan.py --stale)
+docs/evidence/E14/scheduled-replay.txt:0: no such file: the recipe's evidence is not recorded
+  e14-scheduled-replay: stale, and planned at a train's push (ci_plan.py --stale)
+docs/evidence/E14/second-host.txt:141: second_host_mutations.py: counts 50 mutants; its script defines 53
+  e14-second-host: stale, and planned at a train's push (ci_plan.py --stale)
+docs/evidence/E14/store-accounts.txt:188: store_accounts_mutations.py: "a press's kept answer is looked for under the session the retry came from [server]" names no mutant of its script
+  e14-store-accounts: stale, and planned at a train's push (ci_plan.py --stale)
+evidence counts: 6 recipes disagree with their scripts, 6 of them stale and planned, 0 failing
 
 == 3. a rejected fixture's @rule is the code pw check reports (compiler/pw-core/tests/checking_source.rs)
 
 test a_fixtures_header_is_held_to_its_code_as_written ... ok
+test a_nullary_constructor_is_not_read_as_a_binding ... ok
 test a_match_whose_scrutinee_type_is_unknown_is_not_reported ... ok
 test an_unmodelled_capability_family_never_manufactures_a_placement_error ... ok
-test a_nullary_constructor_is_not_read_as_a_binding ... ok
 test constructor_arity_is_respected ... ok
 test every_body_level_rejection_matches_its_declared_rule ... ok
-test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
 test corpus_enforcement_is_reported_as_three_numbers_not_one ... ok
-test a_fixtures_declared_symbol_matches_the_symbol_it_is_caught_by has been running for over 60 seconds
+test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
 test a_fixtures_declared_symbol_matches_the_symbol_it_is_caught_by ... ok
 test every_rejected_fixture_emits_only_its_own_defect ... ok
 test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
 test no_accepted_corpus_file_reports_a_body_level_error ... ok
-test every_diagnostic_carries_what_charter_16_3_requires has been running for over 60 seconds
 test no_diagnostic_restates_its_invariant_in_its_own_words ... ok
 test the_environment_spans_every_file_checked_together ... ok
 test semantic_coverage_of_the_rejected_corpus_does_not_regress ... ok
 test the_committed_enforcement_table_is_what_the_corpus_checks_now ... ok
 test the_unhandled_variant_case_is_caught_at_its_real_span ... ok
-test the_structured_concurrency_rules_run_on_real_bodies ... ok
-test every_diagnostic_carries_what_charter_16_3_requires ... ok
+test every_diagnostic_carries_what_charter_16_3_requires has been running for over 60 seconds
 test the_privacy_and_placement_rules_catch_their_corpus_cases ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 193.96s
+test every_diagnostic_carries_what_charter_16_3_requires ... ok
+test the_structured_concurrency_rules_run_on_real_bodies ... ok
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 110.86s
 
 == 4. check_latency bounds its thread's CPU time (compiler/pw-core/tests/check_latency.rs)
 
-load: 3.83 3.55 2.41 1/251 36018
-check-latency reject 1699.45 ms   (cpu 1699.32 ms; clean 3155.32 ms, cpu 3155.11 ms; the fastest of 7 and 7 checks, which the ratio bounds: cpu 1692.42 ms, clean cpu 3147.48 ms)
-check-latency cold   3173.59 ms   (cpu 3173.17 ms; 6600 lines, cpu 480.78 ms a thousand lines; the fastest of 7 checks, which the ceiling bounds: cpu 3160.31 ms, 478.83 ms a thousand lines)
-check-latency edit   3162.29 ms   (cpu 3161.96 ms; 57 files, no query system: an edit costs a full check)
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 78.39s
+load: 3.48 1.89 0.79 1/294 3600
+check-latency reject 1073.30 ms   (cpu 1073.23 ms; clean 2038.38 ms, cpu 2038.23 ms; the fastest of 7 and 7 checks, which the ratio bounds: cpu 1071.35 ms, clean cpu 2036.22 ms)
+check-latency cold   2037.56 ms   (cpu 2037.37 ms; 6611 lines, cpu 308.18 ms a thousand lines; the fastest of 7 checks, which the ceiling bounds: cpu 2034.15 ms, 307.69 ms a thousand lines)
+check-latency edit   2036.97 ms   (cpu 2036.85 ms; 57 files, no query system: an edit costs a full check)
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 50.38s
 
-beside 8 busy loops, load: 3.03 3.19 2.37 10/268 36071
-check-latency reject 5907.14 ms   (cpu 2671.49 ms; clean 10439.52 ms, cpu 4920.83 ms; the fastest of 7 and 7 checks, which the ratio bounds: cpu 2660.68 ms, clean cpu 4901.84 ms)
-check-latency cold  10844.74 ms   (cpu 4944.22 ms; 6600 lines, cpu 749.12 ms a thousand lines; the fastest of 7 checks, which the ceiling bounds: cpu 3143.82 ms, 476.34 ms a thousand lines)
-check-latency edit   3143.49 ms   (cpu 3143.16 ms; 57 files, no query system: an edit costs a full check)
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 198.42s
+beside 8 busy loops, load: 3.21 2.00 0.89 11/302 3662
+check-latency reject 4001.59 ms   (cpu 1585.74 ms; clean 7393.93 ms, cpu 3017.87 ms; the fastest of 7 and 7 checks, which the ratio bounds: cpu 1580.77 ms, clean cpu 3001.62 ms)
+check-latency cold   6067.36 ms   (cpu 3011.55 ms; 6611 lines, cpu 455.54 ms a thousand lines; the fastest of 7 checks, which the ceiling bounds: cpu 3000.09 ms, 453.80 ms a thousand lines)
+check-latency edit   7431.88 ms   (cpu 3013.05 ms; 57 files, no query system: an edit costs a full check)
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 171.12s
 
 == 5. a browser suite runs on what its recipe built (test_builds_before_suites.py)
 
 test_every_recipe_that_runs_a_browser_suite_builds_first_and_stops_where_a_build_fails (scripts.tests.test_builds_before_suites.BuildsBeforeSuites.test_every_recipe_that_runs_a_browser_suite_builds_first_and_stops_where_a_build_fails) ... 
-builds before suites: 98 recipes run the browser suite that serves `dist`; 228 builds before their suites, each failed in turn
+builds before suites: 99 recipes run the browser suite that serves `dist`; 231 builds before their suites, each failed in turn
 test_the_stand_ins_tell_a_build_that_stops_its_recipe_from_one_that_does_not (scripts.tests.test_builds_before_suites.BuildsBeforeSuites.test_the_stand_ins_tell_a_build_that_stops_its_recipe_from_one_that_does_not) ... ok
 test_a_build_of_another_runtime_or_of_changed_sources_is_refused (scripts.tests.test_builds_before_suites.DistIsWhole.test_a_build_of_another_runtime_or_of_changed_sources_is_refused) ... ok
 test_a_build_stopped_part_way_or_never_made_is_refused (scripts.tests.test_builds_before_suites.DistIsWhole.test_a_build_stopped_part_way_or_never_made_is_refused) ... ok
 test_a_whole_build_is_served (scripts.tests.test_builds_before_suites.DistIsWhole.test_a_whole_build_is_served) ... ok
-Ran 5 tests in 54.392s
+Ran 5 tests in 25.296s
 OK
 
 == 6. master holds no unnumbered ADR (test_unnumbered_adrs.py; the repository's own on master's CI and a train's)
@@ -236,7 +244,7 @@ test_a_mention_outside_code_and_an_unnumbered_file_are_named (scripts.tests.test
 test_master_and_a_train_are_held_and_a_tracks_branch_is_not (scripts.tests.test_unnumbered_adrs.Unnumbered.test_master_and_a_train_are_held_and_a_tracks_branch_is_not) ... ok
 test_the_control_a_mention_of_the_placeholder_in_code_and_a_numbered_adr_name_nothing (scripts.tests.test_unnumbered_adrs.Unnumbered.test_the_control_a_mention_of_the_placeholder_in_code_and_a_numbered_adr_name_nothing) ... ok
 test_the_repository_holds_no_unnumbered_adr (scripts.tests.test_unnumbered_adrs.Unnumbered.test_the_repository_holds_no_unnumbered_adr) ... skipped "a track keeps its ADRs unnumbered until its merge; master's CI and a train's hold them"
-Ran 4 tests in 0.018s
+Ran 4 tests in 0.009s
 OK (skipped=1)
 
 == mutation controls (scripts/evidence_integrity_mutations.py)
@@ -268,7 +276,7 @@ a verdict that names no mutant of its script is let be [plan]: KILLED (3 of 112 
 a verdict that names a mutant named before is let be [plan]: KILLED (1 of 112 tests fail)
 a script the recipe runs may be counted in no block [plan]: KILLED (8 of 112 tests fail)
 a verdict that says what killed its mutant is read as none [plan]: KILLED (2 of 112 tests fail)
-a suite's tag is taken as part of a mutant's name [plan]: KILLED (12 of 112 tests fail)
+a suite's tag is taken as part of a mutant's name [plan]: KILLED (11 of 112 tests fail)
 a description inside a longer one names its mutant [plan]: KILLED (1 of 112 tests fail)
 a disagreement is planned again though its recipe is the development machine's [plan]: KILLED (1 of 112 tests fail)
 a disagreement is planned again though its evidence is current [plan]: KILLED (1 of 112 tests fail)
@@ -297,7 +305,7 @@ a path evidence recorded is read as a mention [adrs]: KILLED (1 of 3 tests fail)
 a decision's path is let be outside evidence too [adrs]: KILLED (1 of 3 tests fail)
 a line of evidence with a recorded path is let be whole [adrs]: KILLED (1 of 3 tests fail)
 an unnumbered ADR file is let be [adrs]: KILLED (1 of 3 tests fail)
-a track's branch is held [adrs]: KILLED (1 of 4 tests fail)
+a track's branch is held [adrs]: KILLED (2 of 4 tests fail)
 a train is not held [adrs]: KILLED (1 of 3 tests fail)
 51 of 51 mutants killed
 memory bound: no process was stopped

@@ -1,29 +1,29 @@
 ADR-0062 - generic types in the backend
 
 produced by: just e10-generics
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 83761ca3ae614f5846e6d3bb7460b8427bc1ff2e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/41491093145 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
 == through the E8 host (compiler/pw-conformance/tests/generics.rs)
 
 test a_generic_opaque_type_is_built_and_read ... ok
-test a_type_parameter_nothing_fixes_is_refused_by_name ... ok
 test a_generic_sum_type_is_built_and_matched ... ok
+test a_type_parameter_nothing_fixes_is_refused_by_name ... ok
 test a_generic_record_is_built_and_read ... ok
 test two_instances_of_one_record_are_two_layouts ... ok
 test a_generic_case_as_a_function_and_a_record_in_a_lambda ... ok
 test an_instance_inside_an_instance ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.11s
 
 == a type and a query of one name (compiler/pw-conformance/tests/wit_names.rs)
 
 test a_field_named_by_a_keyword_is_named_unescaped ... ok
-test a_query_named_by_a_keyword_is_exported_under_its_name ... ok
 test a_type_and_a_query_of_one_name_are_two_things ... ok
+test a_query_named_by_a_keyword_is_exported_under_its_name ... ok
 test a_case_named_by_a_keyword_is_built_and_named_unescaped ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
 
 == the component and the JavaScript module
 
@@ -31,7 +31,7 @@ javascript: 3 queries over cases written alone, 600 calls, component and module 
 javascript: 5 queries over trees, 1000 calls, component and module agree (155 trapped in both)
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
 javascript: 91 queries, 18200 calls, component and module agree (1196 trapped in both)
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 51.54s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 112.59s
 
 == mutation controls (scripts/generic_mutations.py)
 

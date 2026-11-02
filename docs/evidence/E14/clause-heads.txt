@@ -1,8 +1,8 @@
 ADR-0216 - every clause belongs to a declaration that reads it, and a code body admits none
 
 produced by: just e14-clause-heads
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 83761ca3ae614f5846e6d3bb7460b8427bc1ff2e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/41491093145 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rule (compiler/pw-core/tests/clause_places.rs)
@@ -19,7 +19,7 @@ test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 pw check: 57 file(s), no diagnostics
 pw check: 27 file(s), no diagnostics
-accepted corpus: 44 programs, 35 with no error, 9 refused exactly as listed (examples/accepted/build-refusals.json: 9 entries)
+accepted corpus: 48 programs, 39 with no error, 9 refused exactly as listed (examples/accepted/build-refusals.json: 9 entries)
 
 == mutation controls (scripts/clause_heads_mutations.py)
 
