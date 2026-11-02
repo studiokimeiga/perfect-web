@@ -245,6 +245,18 @@ are implemented on this unmerged branch under ADR-0386, with whole updated
 campaigns and final review pending. Generic server routing, atomic platform
 records, durable storage and an app with no Rust data layer remain.
 
+Landing with its PR (2026-11-02), ADR-0338 D3, declared tables on PostgreSQL
+([ADR-0393](DECISIONS/ADR-0393-declared-tables-on-postgresql.md)):
+`runtime/pw-table-postgres` serves any program's tables.json behind the
+memory adapter's interface, schema made once under a lock and drift refused,
+one statement per primitive, a command one serializable transaction with
+its interaction record and outbox; independently reviewed, with eight
+repairs (nested floats exact workspace-wide, among them);
+[evidence](evidence/E14/d3-postgres.txt) by `just e14-d3-postgres`, 49
+tests and 53 mutation controls, at the landing's verify run. The
+development server's layer over it (`data-path`), a shared adapter trait,
+scheduled runs and the outbox's reader remain.
+
 At train-12 source `ec15e5b1`, the latest complete campaign detects all
 43 TodoMVC, 62 device-storage and 50 second-host faults, plus TodoMVC's
 8 compatibility, 55 Cypress producer and 17 strict producer controls.
@@ -276,9 +288,9 @@ On landed train-11:
 - Check and build share validation
   ([ADR-0361](DECISIONS/ADR-0361-check-is-build.md)); guide mutation kills
   require valid producer outcomes
-  ([ADR-0362](DECISIONS/ADR-0362-guide-producer-validity.md)); Wasmtime 48.0.7
+  ([ADR-0362](DECISIONS/ADR-0362-guide-producer-validity.md)); Wasmtime 48.0.8
   addresses its recorded advisories
-  ([ADR-0363](DECISIONS/ADR-0363-wasmtime-48-0-7.md)).
+  ([ADR-0363](DECISIONS/ADR-0363-wasmtime-48-0-7.md), amended by PR #63).
 
 Earlier task controls and commands remain in the [E14 plan](milestones/E14.md)
 and [completed-gates ledger](STATUS-HISTORY-2026-10.md#completed-gate-items).

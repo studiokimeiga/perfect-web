@@ -173,6 +173,8 @@ NEEDS_DATABASE = {
     # Track `session-overlap` (ADR-0389, amended 2026-11-02): overlapping
     # admissions of one session, on PostgreSQL too.
     "e14-session-overlap",
+    # Track `d3-postgres` (ADR-0338's D3): declared tables on PostgreSQL.
+    "e14-d3-postgres",
 }
 
 EVIDENCE_RECIPE = re.compile(r"^e[0-9]+-[a-z0-9-]+$")
