@@ -170,6 +170,9 @@ NEEDS_DATABASE = {
     "e14-argument-invariants",
     # Track `second-host`: hosts that share one database.
     "e14-second-host",
+    # Track `deploy`: the store run as production runs it, on a database of
+    # its own (its smoke test and its process test).
+    "e14-deploy",
 }
 
 EVIDENCE_RECIPE = re.compile(r"^e[0-9]+-[a-z0-9-]+$")
