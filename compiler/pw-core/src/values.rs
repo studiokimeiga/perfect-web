@@ -5126,7 +5126,15 @@ fn annotations(
         });
     };
     for p in &decl.params {
-        if let Some(t) = &p.ty {
+        // An owned table's generated handle (track `row-ownership`) names
+        // the platform's `User` over the owner's type, which resolves where
+        // the owner is a `capability.UserId`; where it is not, PW0367 says
+        // so once, and this would say it again.
+        let handle = hir.generated.contains_key(&id)
+            && p.ty
+                .as_ref()
+                .is_some_and(|t| t.constructor_head_only() == "capability.User");
+        if let Some(t) = p.ty.as_ref().filter(|_| !handle) {
             check(t, p.span.clone(), format!("parameter `{}`", p.name));
         }
     }

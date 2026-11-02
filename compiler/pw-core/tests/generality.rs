@@ -580,10 +580,13 @@ fn generality_is_reported_separately_from_conformance() {
     // PW0365's warning has its own witnesses too. 65 / 65 at the combined
     // train-12 merge: device-store adds two witnesses (ADR-0366, C28),
     // generic effects adds three (ADR-0351, C29). Measured below; update
-    // STATUS and NEXT with the integrated result.
+    // STATUS and NEXT with the integrated result. 69 / 69 with track
+    // `row-ownership` (ADR-0384's H1 and H2): `owner_names_a_principal`,
+    // `owned_read_by_its_reader`, `private_field_unseen` and
+    // `predicate_body_reads_only` (the integrator's STATUS and NEXT to move).
     assert_eq!(
         (general.len(), narrow.len(), untested.len()),
-        (65, 0, 0),
+        (69, 0, 0),
         "the published figure moved. If that is intended, update
          docs/STATUS.md and docs/NEXT.md in the same commit — a number in a
          status report that no test holds is a number that drifts."
