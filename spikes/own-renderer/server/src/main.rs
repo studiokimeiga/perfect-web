@@ -9128,16 +9128,18 @@ fn main() {
     // before any thread starts: a production host blocks its stopping
     // signals here, so every thread inherits the mask and only the one that
     // waits for them receives them.
-    let settings = production::Settings::read(&production::process_env)
-        .unwrap_or_else(|reasons| production::refuse(&reasons));
-    if settings.production {
+    if production::is_production(&production::process_env) {
+        // Every line JSON from the first, its refusals at start among them.
         production::log::use_json();
+        production::log::panics_as_lines();
         #[cfg(unix)]
         if let Err(e) = production::shutdown::block() {
             production::refuse(&[e]);
         }
         production::install_headers(production::HSTS);
     }
+    let settings = production::Settings::read(&production::process_env)
+        .unwrap_or_else(|reasons| production::refuse(&reasons));
     // The deployment's identity key, where it states one: its addresses'
     // keys from now on, in place of the development ones.
     if let Some(key) = settings.secrets.get("PW_IDENTITY_KEY") {
@@ -9316,6 +9318,9 @@ fn main() {
     }
     let listener = TcpListener::bind((settings.bind, port))
         .unwrap_or_else(|e| production::refuse(&[format!("{}:{port}: {e}", settings.bind)]));
+    // TRACK SEAM (deploy): the port it listens on, as the system gave it
+    // where the deployment asked for any (`PORT=0`).
+    let port = listener.local_addr().map_or(port, |a| a.port());
     production::log::info("listening", &format!("pw dev server on {port}"));
     // TRACK SEAM (identity): which identity model runs.
     production::log::info(
@@ -16383,6 +16388,9 @@ public query Store(",
     mod scheduled_orders;
     // Track `second-host` (ADR-0369): hosts sharing one database.
     mod second_host;
+    // TRACK SEAM (deploy): a production host, asked as a browser and a
+    // platform ask it.
+    mod production_host;
 
     /// **A second program is served by the same host** (ADR-0218): the
     /// feed's timeline from its data layer, and a post committed and sent

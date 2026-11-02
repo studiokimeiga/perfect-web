@@ -933,7 +933,7 @@ impl Principals {
     #[cfg(test)]
     pub fn refresh(&self, session: &str) {
         if let Err(why) = self.admit(session) {
-            eprintln!("pw dev server: session admission refused: {why}");
+            crate::production::log::error_line!("pw dev server: session admission refused: {why}");
         }
     }
 

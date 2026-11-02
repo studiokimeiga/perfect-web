@@ -956,7 +956,10 @@ impl Shared {
             Some(Ok(true)) => {}
             Some(Ok(false)) | None => return Answer::text(404, "not found"),
             Some(Err(why)) => {
-                eprintln!("pw dev server: whether a post names {}: {why}", key.hex());
+                crate::production::log::error_line!(
+                    "pw dev server: whether a post names {}: {why}",
+                    key.hex()
+                );
                 return Answer::text(503, "unavailable");
             }
         }

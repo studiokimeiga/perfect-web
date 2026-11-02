@@ -405,7 +405,7 @@ impl Tail {
             Ok(())
         });
         if let Err(why) = waited {
-            eprintln!("pw dev server: the outbox's listener: {why}");
+            crate::production::log::error_line!("pw dev server: the outbox's listener: {why}");
             std::thread::sleep(std::time::Duration::from_millis(ms));
         }
     }
@@ -421,7 +421,7 @@ impl Tail {
             *trimmed = Some(std::time::Instant::now());
         }
         if let Err(why) = self.trim_older_than(KEPT) {
-            eprintln!("pw dev server: the outbox was not trimmed: {why}");
+            crate::production::log::error_line!("pw dev server: the outbox was not trimmed: {why}");
         }
     }
 

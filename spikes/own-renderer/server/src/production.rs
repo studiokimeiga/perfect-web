@@ -78,11 +78,17 @@ pub(crate) struct Settings {
     pub(crate) grace: Duration,
 }
 
+/// **Whether the deployment says it is production** (`PW_DEPLOYMENT`; any
+/// other value is `identity::Deployment`'s to refuse).
+pub(crate) fn is_production(env: Env) -> bool {
+    env("PW_DEPLOYMENT").as_deref() == Some("production")
+}
+
 impl Settings {
     /// **What the deployment states, or every reason it may not start.**
     pub(crate) fn read(env: Env) -> Result<Settings, Vec<String>> {
         let mut refused = Vec::new();
-        let production = env("PW_DEPLOYMENT").as_deref() == Some("production");
+        let production = is_production(env);
         let secrets = Secrets::read(env).unwrap_or_else(|why| {
             refused.push(why);
             Secrets::default()

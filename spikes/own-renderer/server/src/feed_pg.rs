@@ -1258,7 +1258,9 @@ impl crate::data::Staged for Staging<'_> {
                     .map_err(pg)
                     .and_then(|named| leases.collect(&key, named));
                 if let Err(why) = collected {
-                    eprintln!("pw dev server: blob {key} was not collected: {why}");
+                    crate::production::log::error_line!(
+                        "pw dev server: blob {key} was not collected: {why}"
+                    );
                 }
             }
         }
@@ -1268,7 +1270,9 @@ impl crate::data::Staged for Staging<'_> {
             // committed, and the other hosts read its rows from their
             // cursors; the command is not answered as refused.
             Err(why) => {
-                eprintln!("pw dev server: the feed's outbox was not read back: {why}");
+                crate::production::log::error_line!(
+                    "pw dev server: the feed's outbox was not read back: {why}"
+                );
                 Ok(crate::data::Commit::Applied((
                     events.to_vec(),
                     invalidated.to_vec(),

@@ -54,6 +54,22 @@ macro_rules! error_line {
 }
 pub(crate) use error_line;
 
+/// **A panic, said as a line**: a request's thread that panics is one
+/// request lost, and what it says goes where every other line goes, as
+/// JSON, not as Rust's default text.
+pub(crate) fn panics_as_lines() {
+    std::panic::set_hook(Box::new(|info| {
+        let thread = std::thread::current();
+        let name = thread.name().unwrap_or("a request's").to_string();
+        emit(
+            Level::Error,
+            "panic",
+            &format!("pw dev server: {name} thread panicked: {info}"),
+            &[],
+        );
+    }));
+}
+
 /// **A trace event** (`PW_TRACE`): on standard error in development, as it
 /// was, and a `debug` line in production.
 pub(crate) fn trace(message: &str) {
