@@ -75,6 +75,9 @@ if [ ! -f /etc/pleris/pleris.env ]; then
     echo "PW_BIND=127.0.0.1"
     echo "PORT=8080"
     echo "PW_CACHE_DIR=/var/cache/pleris"
+    echo "# At most this many connections at once, a thread each (pleris.service's"
+    echo "# TasksMax= is four times it); one more is answered 503."
+    echo "PW_MAX_CONNECTIONS=1024"
     case "$PROGRAM" in
       kiokun) echo "KIOKUN_DATA=/srv/kiokun/output_dictionary" ;;
       feed) echo "PW_BLOB_DIR=/var/lib/pleris/blobs" ;;
@@ -104,8 +107,10 @@ sed "s/^PLERIS_DOMAIN /$DOMAIN /" "$HERE/Caddyfile" > /etc/caddy/Caddyfile.new
 caddy validate --adapter caddyfile --config /etc/caddy/Caddyfile.new
 mv /etc/caddy/Caddyfile.new /etc/caddy/Caddyfile
 install -d -o caddy -g caddy -m 0755 /var/log/caddy
-systemctl enable --now caddy
-systemctl reload caddy
+systemctl enable caddy
+# Restarted, never reloaded: the Caddyfile turns the admin API off
+# (`admin off`), which `caddy reload` (the unit's ExecReload) needs.
+systemctl restart caddy
 
 echo "== the service"
 install -m 0644 "$HERE/pleris.service" /etc/systemd/system/pleris.service

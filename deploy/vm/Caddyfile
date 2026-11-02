@@ -7,6 +7,26 @@
 # The host sends HSTS, nosniff and each page's policy itself, so they are
 # the same behind any front.
 
+{
+	# No admin API (the review's finding 5j): its endpoint, on the
+	# loopback's port 2019 by default, takes a new configuration from any
+	# process on the VM. Without it a change of configuration is a restart
+	# (`systemctl restart caddy`, as setup.sh does), never `caddy reload`.
+	admin off
+	# What a reader looked up is kept by no log (the review's finding 5e):
+	# Caddy's own lines (an error a request met names the request) drop its
+	# path and query and the page it came from, as the access log below
+	# does. Cookie, Authorization and their like Caddy itself writes as
+	# REDACTED.
+	log default {
+		format filter {
+			wrap json
+			request>uri delete
+			request>headers>Referer delete
+		}
+	}
+}
+
 PLERIS_DOMAIN {
 	# No `encode`: the host compresses its build's assets itself, and never
 	# a session's answer, which holds its reader's data beside what its
@@ -23,6 +43,14 @@ PLERIS_DOMAIN {
 			roll_size 50MiB
 			roll_keep 10
 		}
-		format json
+		# Each request's method, host, status, size and time, never its
+		# path, its query (`/word/<word>`, `?q=<what was searched>`) or the
+		# page it came from: the host's own line says each request by its
+		# route's pattern (`/word/{word}`).
+		format filter {
+			wrap json
+			request>uri delete
+			request>headers>Referer delete
+		}
 	}
 }

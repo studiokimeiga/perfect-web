@@ -37,6 +37,21 @@ RestartSec=2
 StateDirectory=pleris
 CacheDirectory=pleris
 UMask=0077
+# What it may hold (the review's finding 1d). The host takes at most
+# PW_MAX_CONNECTIONS connections (1,024 where pleris.env says nothing), a
+# thread each, and answers one more 503 itself; its own threads besides
+# (the stop's, the clock's, the scheduler's, a readiness check's, a commit's
+# tellers, Wasmtime's compiler at start) are a few dozen. TasksMax= holds
+# the process to four times its connections: past it a connection's thread
+# is refused, which the host drops and lives through. Three descriptors a
+# connection: LimitNOFILE= is well past 3,328. MemoryHigh= throttles and
+# reclaims (kiokun's dictionary is read through the page cache, which is
+# charged here and given back), MemoryMax= ends the process, which
+# Restart= starts again: set both to what the VM has, less PostgreSQL's and
+# Caddy's, on a VM larger than 2 GB.
+TasksMax=4096
+MemoryHigh=768M
+MemoryMax=1G
 LimitNOFILE=65536
 
 # Its confinement (systemd.exec(5)); `systemd-analyze security pleris`

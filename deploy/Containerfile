@@ -21,19 +21,37 @@
 # against its registry on 2026-11-02 (the ADR lists them).
 #
 # Run it as production runs it: its filesystem read-only, no capability, its
-# settings in its environment, its secrets in a file it alone reads:
+# settings in its environment, its secrets in a file its user (uid and gid
+# 65532) alone reads, and its port on the machine's loopback, where the
+# proxy that holds TLS reaches it:
 #
+#   sudo install -o 65532 -g 65532 -m 0400 secrets /etc/pleris/secrets
 #   docker run --read-only --cap-drop=ALL --security-opt=no-new-privileges \
-#     -p 8080:8080 -e PW_ORIGIN=https://preview.example.com -e PW_IDENTITY=none \
+#     -p 127.0.0.1:8080:8080 -e PW_ORIGIN=https://preview.example.com -e PW_IDENTITY=none \
 #     -v /etc/pleris/secrets:/run/secrets/pleris:ro -e PW_SECRETS_FILE=/run/secrets/pleris \
 #     pleris-store
+#
+# The host refuses a secrets file anyone else may read or that is a link
+# (production/secrets.rs): a bind mount keeps the file's owner and mode, so
+# a root-owned 0600 file is one the image's user cannot read. Rootless
+# Podman maps users, so it hands the secret over itself:
+#   podman secret create pleris secrets
+#   podman run ... --secret pleris,type=mount,target=/run/secrets/pleris,uid=65532,gid=65532,mode=0400
+# Compose honors a secret's `uid`, `gid` and `mode` only from an
+# `environment` source (a `file` source is bind-mounted as it is), and
+# Kubernetes gives a secret volume's files `defaultMode | 0440` and the pod's
+# `fsGroup`: run as 65532 with `fsGroup: 65532` and mount the file by
+# `subPath` (the volume's own names are links). The ADR has each in full.
 #
 # TLS is the platform's or a proxy's (deploy/vm/Caddyfile); the platform's
 # checks ask GET /_pw/health (it lives) and GET /_pw/ready (it is ready).
 # A store or feed names its database (PW_STORE_DATABASE_URL, a secret),
-# reached without TLS: on the same host or a private network only. kiokun
-# names its data (KIOKUN_DATA, a volume) and its cache (PW_CACHE_DIR, a
-# writable volume; /var/cache/pleris is the image's).
+# which the host reaches without TLS and so only where the container's own
+# loopback or a socket mounted into it leads (`--network host`, a pod's
+# sidecar): one elsewhere is refused unless it requires TLS, which this
+# host's driver does not speak yet. kiokun names its data (KIOKUN_DATA, a
+# volume) and its cache (PW_CACHE_DIR, a writable volume; /var/cache/pleris
+# is the image's).
 
 ARG PROGRAM=store
 # The commit it is built from, which an image build cannot read (no .git).

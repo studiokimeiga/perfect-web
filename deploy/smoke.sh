@@ -27,7 +27,14 @@ HOST_PORT=$((PORT + 1))
 ORIGIN="https://localhost:$PORT"
 ADMIN_URL="${PW_STORE_DATABASE_URL:?deploy/smoke.sh: PW_STORE_DATABASE_URL names the local PostgreSQL}"
 DB="pw_deploy_smoke_$PORT"
-DB_URL="${ADMIN_URL%/*}/$DB"
+# The host's own role, with a password made for this run, so the secret a
+# database's address holds is one the log scan below can look for (the
+# review's finding 5i): the admin's (`pw`, CI's) is too short to.
+ROLE="pw_deploy_smoke_$PORT"
+ROLE_PASSWORD="$(openssl rand -hex 16)"
+ADMIN_SERVER="${ADMIN_URL#*@}"
+ADMIN_SERVER="${ADMIN_SERVER%%/*}"
+DB_URL="postgresql://$ROLE:$ROLE_PASSWORD@$ADMIN_SERVER/$DB"
 WORK="$(mktemp -d /tmp/pw-deploy-smoke.XXXXXX)"
 HOST_PID=""
 FRONT_PID=""
@@ -37,6 +44,7 @@ cleanup() {
   [ -n "$FRONT_PID" ] && kill "$FRONT_PID" 2>/dev/null || true
   wait 2>/dev/null || true
   psql "$ADMIN_URL" -qc "DROP DATABASE IF EXISTS $DB WITH (FORCE)" >/dev/null 2>&1 || true
+  psql "$ADMIN_URL" -qc "DROP ROLE IF EXISTS $ROLE" >/dev/null 2>&1 || true
   chmod -R u+w "$WORK" 2>/dev/null || true
   rm -rf "$WORK"
 }
@@ -63,8 +71,9 @@ echo "   host: $(stat -c %s "$HOST_BIN") B ($HOST_BIN)"
 
 echo
 echo "== 2. its database, its secrets, its TLS"
-psql "$ADMIN_URL" -qc "DROP DATABASE IF EXISTS $DB WITH (FORCE)" -c "CREATE DATABASE $DB" >/dev/null
-echo "   database $DB on the local PostgreSQL ($(psql "$ADMIN_URL" -Atc 'SHOW server_version'))"
+psql "$ADMIN_URL" -q -c "DROP DATABASE IF EXISTS $DB WITH (FORCE)" -c "DROP ROLE IF EXISTS $ROLE" \
+  -c "CREATE ROLE $ROLE LOGIN PASSWORD '$ROLE_PASSWORD'" -c "CREATE DATABASE $DB OWNER $ROLE" >/dev/null
+echo "   database $DB on the local PostgreSQL ($(psql "$ADMIN_URL" -Atc 'SHOW server_version')), its role's password made for this run"
 mkdir "$WORK/credentials"
 (
   umask 077
@@ -135,7 +144,8 @@ grep -qi '^content-encoding: gzip' <<< "$ASSET" || fail "the runtime is not comp
 grep -qi '^cache-control: public, max-age=31536000, immutable' <<< "$ASSET" || fail "the runtime is not kept"
 gunzip -c "$WORK/runtime.gz" | cmp -s - "$WORK/dist/pw-runtime.mjs" || fail "the gzip is not the runtime"
 echo "   runtime: $(stat -c %s "$WORK/runtime.gz") B gzipped, immutable at its version, the bytes it holds the built runtime's"
-for path in /bench/clock /menu-entry "/StorePage.html?items=40" /build-info.json /metrics /sign-in; do
+for path in /bench/clock /menu-entry "/StorePage.html?items=40" /StorePage.html /menu \
+            /page/store.page.CartPage~ui /build-info.json /metrics /sign-in; do
   code="$(curl -sk -o /dev/null -w '%{http_code}' "$ORIGIN$path")"
   [ "$code" = 404 ] || fail "$path answered $code"
   echo "   $path: 404"
@@ -182,7 +192,7 @@ echo "== 7. the browsers, after the restart"
 browsers again
 
 echo
-echo "== 8. its log: every line JSON, no secret in it"
+echo "== 8. its log: every line JSON, no part of a secret in it, each request by its route's pattern"
 kill -TERM "$HOST_PID"
 wait "$HOST_PID" || true
 HOST_PID=""
@@ -190,19 +200,45 @@ node -e '
 const fs = require("node:fs");
 const [log, secrets] = process.argv.slice(1);
 const lines = fs.readFileSync(log, "utf8").split("\n").filter(Boolean);
-const values = fs.readFileSync(secrets, "utf8").split("\n")
-  .filter((l) => l && !l.startsWith("#")).map((l) => l.slice(l.indexOf("=") + 1));
+// Each secret, and the password a database address holds, by every eight
+// characters of it (the review, finding 5i: a whole value alone was looked
+// for, so a secret said in part, or cut, passed); one shorter than eight,
+// whole. An address is looked for whole: its host and its name are no secret.
+const watched = [];
+for (const line of fs.readFileSync(secrets, "utf8").split("\n")) {
+  if (!line || line.startsWith("#")) continue;
+  const [name, value] = [line.slice(0, line.indexOf("=")), line.slice(line.indexOf("=") + 1)];
+  watched.push([name, value]);
+  if (name.endsWith("_DATABASE_URL")) {
+    const password = decodeURIComponent(new URL(value).password);
+    if (password) watched.push([`the password of ${name}`, password]);
+  }
+}
+const windows = [];
+for (const [name, value] of watched) {
+  if (name.endsWith("_DATABASE_URL")) { windows.push([name, value]); continue; }
+  if (value.length < 8) { windows.push([name, value]); continue; }
+  for (let at = 0; at + 8 <= value.length; at++) windows.push([name, value.slice(at, at + 8)]);
+}
 const events = {};
+const routes = new Set();
 for (const line of lines) {
   let read;
   try { read = JSON.parse(line); } catch { console.log(`FAIL: not a JSON line: ${line}`); process.exit(1); }
-  for (const v of values) {
-    if (line.includes(v)) { console.log(`FAIL: a secret in the log (${read.event})`); process.exit(1); }
+  for (const [name, part] of windows) {
+    if (line.includes(part)) { console.log(`FAIL: part of ${name} in the log (${read.event})`); process.exit(1); }
   }
   events[read.event] = (events[read.event] ?? 0) + 1;
+  if (read.event === "request" && read.route) routes.add(read.route);
 }
+// The routes the browsers asked by their paths, said by their patterns.
+for (const path of ["/stores/47", "/cart?", "%"]) {
+  if (lines.some((l) => l.includes(`"route":"${path}`))) { console.log(`FAIL: a request said by its path: ${path}`); process.exit(1); }
+}
+if (!routes.has("/stores/{id}")) { console.log(`FAIL: no request said by its pattern: ${[...routes]}`); process.exit(1); }
 const errors = lines.map((l) => JSON.parse(l)).filter((l) => l.level === "error");
-console.log(`   ${lines.length} lines, each JSON; no secret in any; events: ` +
+console.log(`   ${lines.length} lines, each JSON; no eight characters of a secret in any (${windows.length} looked for); ` +
+  `requests by their patterns (${[...routes].sort().join(" ")}); events: ` +
   Object.entries(events).map(([e, n]) => `${e} ${n}`).join(", "));
 if (errors.length) { console.log(`FAIL: ${errors.length} error line(s): ${JSON.stringify(errors[0])}`); process.exit(1); }
 ' "$WORK/host.log" "$SECRETS" || fail "the log"
