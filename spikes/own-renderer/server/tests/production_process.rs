@@ -227,12 +227,18 @@ fn wait(child: &mut Child, within: Duration) -> Option<std::process::ExitStatus>
 /// **The port the host said it listens on**, from its line, and each line
 /// it said before, read as JSON; a line that is not JSON is kept as
 /// `{"not_json": <the line>}`, which the tests refuse at their assertions.
+/// A host that never says it listens on its standard error (a development
+/// host says it on its standard output) is refused here, at an assertion
+/// naming what it did say.
 fn listening(lines: &mpsc::Receiver<String>) -> (u16, Vec<serde_json::Value>) {
     let mut said = Vec::new();
     loop {
-        let line = lines
-            .recv_timeout(Duration::from_secs(120))
-            .expect("the host says it listens");
+        let line = lines.recv_timeout(Duration::from_secs(120));
+        assert!(
+            line.is_ok(),
+            "the host says it listens on its standard error; it said {said:?}"
+        );
+        let line = line.unwrap();
         let value = read_line(&line);
         let message = value["msg"].as_str().unwrap_or(&line).to_string();
         let port = message

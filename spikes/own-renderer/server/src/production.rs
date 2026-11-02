@@ -809,7 +809,12 @@ mod tests {
         assert!(development("127.0.0.1").is_ok());
         assert!(development("::1").is_ok());
         let refused = development("0.0.0.0").err().unwrap_or_default();
-        assert!(refused[0].contains("loopback alone"), "{refused:?}");
+        assert!(
+            refused
+                .first()
+                .is_some_and(|r| r.contains("loopback alone")),
+            "{refused:?}"
+        );
         assert!(development("localhost").is_err());
         assert_eq!(settings.read_timeout, READ_TIMEOUT);
         let read = production(&[("PW_READ_TIMEOUT", "5")]).expect("starts");
