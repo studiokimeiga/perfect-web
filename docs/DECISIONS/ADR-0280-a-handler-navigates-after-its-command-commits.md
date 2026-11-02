@@ -265,3 +265,38 @@ integrator on 2026-10-18 (PARALLEL's train-10 entry has the investigation).
     of its own, and whether a newer WebKit build changes it;
   - PARALLEL's train-10 entry;
   - an upstream report, for the owner to file. Nothing is posted from here.
+
+## Amended, 2026-11-02: the settle is one helper, and two more specs wait for it
+
+Found by PR #63's verify (run 41333137334, its WebKit job: 1 failed, 450
+passed). Nothing PR #63 changed causes it.
+
+- **What failed.** `store-search.spec.mjs`' "a reader's search lists the
+  stores that reach their chosen address" saves an address, whose handler
+  goes to the store's page (this ADR's navigation), and navigates
+  (`goto /search?q=coffee`) as soon as the address has changed. Its trace
+  (the job's `browser-webkit` artifact): the address changed at
+  18:18:51.956Z; the store's page asked for `pw-runtime.mjs?document=1` at
+  .958 and for `pw-resume.wasm` at .971; the `goto` began at .972,
+  cancelled `pw-resume.wasm`, and failed 3.2 s later, "WebKit encountered
+  an internal error". The 2026-10-18 amendment's crash, in a test written
+  after it (track `store-search`, ADR-0319) with the same pattern.
+- **Decided.** The helper the two tests of 2026-10-18 each defined,
+  `nextDocument`, is one module, `spikes/own-renderer/e2e/next-document.mjs`,
+  unchanged; its two users import it. Three more tests wait for it, in
+  WebKit only, before their next `goto`: the failing one, after Save; and
+  two of `payments.spec.mjs` that navigated as soon as the same kind of
+  navigation had changed the address and had not yet failed: "another order
+  waits for the first to be paid", after Place order, and "an order awaiting
+  its payment is taken back, its items back in the cart", after Cancel this
+  order. No assertion changed; Chromium and Firefox navigate at once, as
+  before.
+- **Found, not changed.** A sign-up or a sign-in at the development
+  provider ends in a whole load of the home page, and some tests navigate
+  as soon as its address has changed (`signUp` then `ready` in
+  `reviews.spec.mjs` and `store-accounts.spec.mjs`): the same window, after
+  a whole load. The helper reads the shown page's manifest, which the
+  provider's page has not, so it does not cover them. The open item of
+  2026-10-18 (what in the server's traffic trips WebKitGTK) would cover
+  every case; until then, a test that navigates right after a navigation
+  is the pattern to look for.
