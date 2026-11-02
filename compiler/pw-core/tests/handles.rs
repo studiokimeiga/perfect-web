@@ -179,24 +179,28 @@ fn codes_of(src: &str) -> Vec<String> {
         .collect()
 }
 
-/// **The reader's id and name are the reader's** (track `data-path`): an
-/// id grants nothing, so `capability.id_of` hands a program the id its
-/// handle names, and `context.name_of` the name its provider gave; which
-/// id and which name say who reads, so each is labelled as the handle it was
-/// read from, and a shared cache refuses it as it refuses the handle
-/// (PW5001). A private cache, and a query of the reader, take each.
+/// **The reader's account is the reader's** (track `data-path`):
+/// `context.account_of` hands a program the id its reader's handle names, an
+/// id that grants nothing, and the name their provider gave; which account
+/// it is says who reads, so the answer is labelled as the handle it was read
+/// from, and a shared cache refuses it as it refuses the handle (PW5001). A
+/// private cache, and a query of the reader, take it.
 #[test]
-fn the_readers_id_and_name_are_the_readers() {
+fn the_readers_account_is_the_readers() {
     let program = |answer: &str, body: &str, cache: &str| {
         format!(
-            "module app\n\nimport capability.{{ User, UserId, id_of }}\nimport context.{{ \
-             current_user, name_of }}\n\nquery Who() -> {answer}\n    consistency strong\n    \
-             cache       {cache}\n{{\n    {body}\n}}\n"
+            "module app\n\nimport capability.{{ User, UserId }}\nimport context.{{ \
+             current_user, account_of, Account }}\n\nquery Who() -> {answer}\n    \
+             consistency strong\n    cache       {cache}\n{{\n    {body}\n}}\n"
         )
     };
     for (answer, body) in [
-        ("UserId", "id_of(current_user())"),
-        ("Option<String>", "name_of(current_user())"),
+        ("Option<Account>", "account_of(current_user())"),
+        (
+            "Option<UserId>",
+            "match account_of(current_user()) {\n        Some(account) => Some(account.id),\n        \
+             None => None,\n    }",
+        ),
     ] {
         assert_eq!(
             codes_of(&program(answer, body, "shared")),
@@ -210,14 +214,16 @@ fn the_readers_id_and_name_are_the_readers() {
         );
     }
     // And a user's query keyed by the reader is given the reader's handle,
-    // whose id it compares with a row's, as the guestbook's `Latest` does.
+    // whose account's id it compares with a row's, as the guestbook's
+    // `Latest` does.
     assert!(
         codes_of(
-            "module app\n\nimport capability.{ User, UserId, id_of }\n\n\
+            "module app\n\nimport capability.{ User, UserId }\nimport context.{ account_of }\n\n\
              user query Mine(reader: User<UserId>, author: UserId) -> Bool\n    \
              freshness     0.seconds\n    consistency   read_your_writes\n    \
              cache         private\n    key           reader, author\n{\n    \
-             id_of(reader) == author\n}\n"
+             match account_of(reader) {\n        Some(account) => account.id == author,\n        \
+             None => false,\n    }\n}\n"
         )
         .is_empty()
     );

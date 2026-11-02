@@ -252,10 +252,20 @@ fn a_render_reads_one_state_of_the_tables() {
         }))
         .asserted("an entry")],
     );
+    // The hook runs on the server's own thread: it says what it wrote, and
+    // the test asserts it there.
+    let wrote: Arc<Mutex<Option<Result<(), String>>>> = Arc::default();
+    let into = wrote.clone();
     *s.between_bindings.lock().expect("between") = Some(Box::new(move |server: &Server| {
-        super::conformance::written(server, &tables, &between);
+        *into.lock().expect("wrote") =
+            Some(super::conformance::write_rows(server, &tables, &between));
     }));
     let page = shown(&s, "c");
+    assert_eq!(
+        wrote.lock().expect("wrote").clone(),
+        Some(Ok(())),
+        "a commit landed between the page's bindings"
+    );
     assert!(page.contains("Before"), "{page}");
     assert!(
         !page.contains("Between"),

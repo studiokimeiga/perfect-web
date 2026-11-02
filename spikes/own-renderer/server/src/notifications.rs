@@ -29,30 +29,32 @@ pub(crate) fn principal_operation(principals: &Principals, session: &str) -> Hos
     Arc::new(move |_args: &[Val]| Ok(vec![Val::String(user.clone())]))
 }
 
-/// **The platform's name operation**, by its key (track `data-path`):
-/// `context.name_of(user)`.
-pub(crate) const PRINCIPAL_NAME: &str = "pw:host/principal#name";
+/// **The platform's account operation**, by its key (track `data-path`):
+/// `context.account_of(user)`.
+pub(crate) const PRINCIPAL_ACCOUNT: &str = "pw:host/principal#account";
 
-/// **The platform's name operation for one request** (track `data-path`):
-/// the name the session's principal's provider gave them, asked with the
-/// reader's own handle, and `None` where no provider named them (no one
-/// signed in, or the session's guest, whose name is its session). A program
-/// holds no other user's handle (ADR-0263), so a handle that is not the
-/// reader's is a refusal, never another user's name.
-pub(crate) fn name_operation(principals: &Principals, session: &str) -> HostFn {
+/// **The platform's account operation for one request** (track
+/// `data-path`): asked with the reader's own handle, the account the
+/// session's principal signed in to (its user's id and the name its provider
+/// gave it), and `None` where it signed in to none: no one, or the session's
+/// guest, whose user's id is `u-` and its session's (the cookie's value), a
+/// credential no program is handed. A program holds no other user's handle
+/// (ADR-0263), so a handle that is not the reader's is a refusal, never
+/// another user's account.
+pub(crate) fn account_operation(principals: &Principals, session: &str) -> HostFn {
     let user = user_of(principals, session);
-    let named = principals
-        .of(session)
-        .filter(|p| !p.is_guest())
-        .map(|p| p.name);
+    let account = principals.of(session).filter(|p| !p.is_guest()).map(|p| {
+        Box::new(Val::Record(vec![
+            ("id".into(), Val::String(p.user)),
+            ("name".into(), Val::String(p.name)),
+        ]))
+    });
     Arc::new(move |args: &[Val]| match args {
-        [Val::String(of)] if *of == user => Ok(vec![Val::Option(
-            named.clone().map(|name| Box::new(Val::String(name))),
-        )]),
+        [Val::String(of)] if *of == user => Ok(vec![Val::Option(account.clone())]),
         [Val::String(_)] => {
-            Err("`pw:host/principal#name` answers the reader's own handle alone".into())
+            Err("`pw:host/principal#account` answers the reader's own handle alone".into())
         }
-        other => Err(format!("principal#name received {other:?}")),
+        other => Err(format!("principal#account received {other:?}")),
     })
 }
 
@@ -269,27 +271,36 @@ mod tests {
         assert_ne!(read(&[]).expect("read"), other(&[]).expect("read"));
     }
 
-    /// **The name operation answers the reader's provider's name, for the
-    /// reader's own handle alone** (track `data-path`): none where no one
-    /// signed in, none for a guest (its name is its session, a credential),
-    /// and a refusal for a handle that is not the reader's.
+    /// **The account operation answers the reader's account, for the
+    /// reader's own handle alone** (track `data-path`): its user's id and its
+    /// provider's name for an account; none where no one signed in, and none
+    /// for a guest, whose user's id holds its session (a credential, never
+    /// handed a program); a refusal for a handle that is not the reader's.
     #[test]
-    fn the_name_operation_answers_the_readers_name_for_their_handle_alone() {
+    fn the_account_operation_answers_the_readers_account_for_their_handle_alone() {
         let identity = crate::identity::Identity::default();
         let principals = identity.principals();
-        let name = |session: &str| name_operation(&principals, session);
+        let account = |session: &str| account_operation(&principals, session);
         let given = |user: &str| [Val::String(user.to_string())];
-        // The guest model: every session its own guest, named by no provider.
-        assert_eq!(name("s-1")(&given("u-s-1")), Ok(vec![Val::Option(None)]));
+        // The guest model: every session its own guest, and none an account.
+        let guest = account("s-1")(&given("u-s-1"));
+        assert_eq!(guest, Ok(vec![Val::Option(None)]));
+        assert!(
+            !format!("{guest:?}").contains("s-1"),
+            "no guest's session reaches a program: {guest:?}"
+        );
         identity.signed_in_for_test("s-2", "u-ada", "Ada");
         assert_eq!(
-            name("s-2")(&given("u-ada")),
-            Ok(vec![Val::Option(Some(Box::new(Val::String("Ada".into()))))])
+            account("s-2")(&given("u-ada")),
+            Ok(vec![Val::Option(Some(Box::new(Val::Record(vec![
+                ("id".into(), Val::String("u-ada".into())),
+                ("name".into(), Val::String("Ada".into())),
+            ]))))])
         );
         // Signed out, in the accounts model: no one.
-        assert_eq!(name("s-3")(&given("u-s-3")), Ok(vec![Val::Option(None)]));
+        assert_eq!(account("s-3")(&given("u-s-3")), Ok(vec![Val::Option(None)]));
         // Another user's handle is no handle a program holds.
-        let refused = name("s-3")(&given("u-ada"));
+        let refused = account("s-3")(&given("u-ada"));
         assert!(
             refused
                 .as_ref()

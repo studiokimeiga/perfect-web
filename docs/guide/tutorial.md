@@ -152,8 +152,8 @@ The queries and commands are in the third file:
 module guestbook.book
 
 import List
-import context.{ current_user, name_of }
-import capability.{ User, UserId, id_of }
+import context.{ current_user, account_of, Account }
+import capability.{ User, UserId }
 import Books.{ Book }
 import Books
 import Entries.{ Entry, Words, text_of }
@@ -184,13 +184,13 @@ type BookError =
 must handle every case.
 
 ```pw file=guestbook/book.pw
-event Signed(author: UserId)
+event Signed(book: String)
 
 event Removed(number: Int)
 ```
 
-Events are facts the app's commands announce: someone signed, an entry was
-removed. Queries name the events that make them stale (step 4).
+Events are facts the app's commands announce: someone signed the book, an
+entry was removed. Queries name the events that make them stale (step 4).
 
 ```pw file=guestbook/book.pw
 source Guestbook
@@ -212,20 +212,29 @@ fn guestbook() -> String !{} {
     "guestbook"
 }
 
-fn viewer(name: Option<String>) -> Viewer !{} {
-    match name {
-        Some(name) => Viewer { signed_in: true, name: name },
+fn viewer(account: Option<Account>) -> Viewer !{} {
+    match account {
+        Some(account) => Viewer { signed_in: true, name: account.name },
         None => Viewer { signed_in: false, name: "" },
     }
 }
 
-fn line(entry: Entry, me: UserId) -> Line !{} {
-    Line { number: entry.number, name: entry.name, text: text_of(entry.text), mine: entry.author == me }
+fn mine(entry: Entry, reader: Option<Account>) -> Bool !{} {
+    match reader {
+        Some(account) => entry.author == account.id,
+        None => false,
+    }
+}
+
+fn line(entry: Entry, reader: Option<Account>) -> Line !{} {
+    Line { number: entry.number, name: entry.name, text: text_of(entry.text), mine: mine(entry, reader) }
 }
 ```
 
-The app keeps one book, named `"guestbook"`. `viewer` and `line` are pure:
-what the page is told, made from what the tables and the platform answer.
+The app keeps one book, named `"guestbook"`. `viewer`, `mine` and `line`
+are pure: what the page is told, made from what the tables and the
+platform answer. An `Account` is the platform's: a signed-in reader's id
+and the name their sign-in provider gave them (step 4).
 
 ## 4. Queries the page reads
 
@@ -242,7 +251,7 @@ user query Me(reader: User<UserId>) -> Viewer
     on_key_change cancel
     timeout       2.seconds
 {
-    viewer(name_of(reader))
+    viewer(account_of(reader))
 }
 ```
 
@@ -257,8 +266,8 @@ user query Latest(reader: User<UserId>, limit: Int) -> List<Line>
     on_key_change  cancel
     timeout        2.seconds
 {
-    let me = id_of(reader)
-    List.map(List.take(List.reverse(Entries.of_book(guestbook())), limit), e => line(e, me))
+    let account = account_of(reader)
+    List.map(List.take(List.reverse(Entries.of_book(guestbook())), limit), e => line(e, account))
 }
 ```
 
@@ -266,11 +275,12 @@ user query Latest(reader: User<UserId>, limit: Int) -> List<Line>
   per reader, and never in a cache another reader shares. `reader` is the
   reader's handle, `User<UserId>`, which only the platform makes (the page
   passes `current_user()`).
-- `id_of(reader)` is the id the handle names, a plain `UserId` the program
-  can compare with a row's. Which id it is says who reads, so the compiler
-  treats it as the reader's too: return it from a query cached for every
-  reader and it refuses the query (PW5001). `name_of(reader)` is the name
-  the reader's sign-in provider gave them, `None` where no one signed in.
+- `account_of(reader)` is the account the reader signed in to: the id their
+  handle names, a plain `UserId` the program can store in a row and compare
+  with one, and the name their sign-in provider gave them; `None` where no
+  one signed in. Whose account it is says who reads, so the compiler treats
+  it as the reader's too: return it from a query cached for every reader
+  and it refuses the query (PW5001).
 - `Entries.of_book` reads every entry of the book, in number order;
   `List.reverse` puts the newest first, and `List.take` the first `limit`.
   Pleris has no paged read of a table yet, so a larger guestbook is read
@@ -298,18 +308,18 @@ words, what a reader is told when it refuses.
 command sign(text: Words) -> Result<Entry, BookError>
     requires      SignedIn
     idempotent_by InteractionId
-    emits         Signed(id_of(current_user()))
+    emits         Signed(guestbook())
     optimistic    Latest(current_user(), _) as shown => pending(shown, text)
 {
-    match name_of(current_user()) {
+    match account_of(current_user()) {
         None => Err(SignedOut),
-        Some(name) => {
+        Some(account) => {
             let number = match Books.get(guestbook()) {
                 Some(book) => book.signed + 1,
                 None => 1,
             }
             Books.put(Book { name: guestbook(), signed: number })
-            let entry = Entry { book: guestbook(), number: number, author: id_of(current_user()), name: name, text: text }
+            let entry = Entry { book: guestbook(), number: number, author: account.id, name: account.name, text: text }
             match Entries.insert(entry) {
                 Ok(_) => Ok(entry),
                 Err(_) => Err(Unavailable),
@@ -355,7 +365,7 @@ command remove(number: Int) -> Result<Int, BookError>
 {
     match Entries.get(guestbook(), number) {
         None => Err(NotFound),
-        Some(entry) => if entry.author == id_of(current_user()) {
+        Some(entry) => if mine(entry, account_of(current_user())) {
             Entries.delete(guestbook(), number)
             Ok(number)
         } else {
@@ -366,9 +376,9 @@ command remove(number: Int) -> Result<Int, BookError>
 ```
 
 Only the author can remove an entry: the command reads it and compares its
-author with the reader's id, in the same transaction as the delete, so the
-entry it deletes is the entry it found theirs. Another reader's press
-answers `NotYours`, and nothing commits.
+author with the reader's account, in the same transaction as the delete,
+so the entry it deletes is the entry it found theirs. Another reader's
+press answers `NotYours`, and nothing commits.
 
 ## 6. The page
 

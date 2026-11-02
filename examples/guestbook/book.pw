@@ -1,8 +1,8 @@
 module guestbook.book
 
 import List
-import context.{ current_user, name_of }
-import capability.{ User, UserId, id_of }
+import context.{ current_user, account_of, Account }
+import capability.{ User, UserId }
 import Books.{ Book }
 import Books
 import Entries.{ Entry, Words, text_of }
@@ -20,7 +20,7 @@ type BookError =
     | NotYours
     | Unavailable
 
-event Signed(author: UserId)
+event Signed(book: String)
 
 event Removed(number: Int)
 
@@ -34,15 +34,22 @@ fn guestbook() -> String !{} {
     "guestbook"
 }
 
-fn viewer(name: Option<String>) -> Viewer !{} {
-    match name {
-        Some(name) => Viewer { signed_in: true, name: name },
+fn viewer(account: Option<Account>) -> Viewer !{} {
+    match account {
+        Some(account) => Viewer { signed_in: true, name: account.name },
         None => Viewer { signed_in: false, name: "" },
     }
 }
 
-fn line(entry: Entry, me: UserId) -> Line !{} {
-    Line { number: entry.number, name: entry.name, text: text_of(entry.text), mine: entry.author == me }
+fn mine(entry: Entry, reader: Option<Account>) -> Bool !{} {
+    match reader {
+        Some(account) => entry.author == account.id,
+        None => false,
+    }
+}
+
+fn line(entry: Entry, reader: Option<Account>) -> Line !{} {
+    Line { number: entry.number, name: entry.name, text: text_of(entry.text), mine: mine(entry, reader) }
 }
 
 user query Me(reader: User<UserId>) -> Viewer
@@ -54,7 +61,7 @@ user query Me(reader: User<UserId>) -> Viewer
     on_key_change cancel
     timeout       2.seconds
 {
-    viewer(name_of(reader))
+    viewer(account_of(reader))
 }
 
 user query Latest(reader: User<UserId>, limit: Int) -> List<Line>
@@ -67,8 +74,8 @@ user query Latest(reader: User<UserId>, limit: Int) -> List<Line>
     on_key_change  cancel
     timeout        2.seconds
 {
-    let me = id_of(reader)
-    List.map(List.take(List.reverse(Entries.of_book(guestbook())), limit), e => line(e, me))
+    let account = account_of(reader)
+    List.map(List.take(List.reverse(Entries.of_book(guestbook())), limit), e => line(e, account))
 }
 
 predicate SignedIn
@@ -77,18 +84,18 @@ predicate SignedIn
 command sign(text: Words) -> Result<Entry, BookError>
     requires      SignedIn
     idempotent_by InteractionId
-    emits         Signed(id_of(current_user()))
+    emits         Signed(guestbook())
     optimistic    Latest(current_user(), _) as shown => pending(shown, text)
 {
-    match name_of(current_user()) {
+    match account_of(current_user()) {
         None => Err(SignedOut),
-        Some(name) => {
+        Some(account) => {
             let number = match Books.get(guestbook()) {
                 Some(book) => book.signed + 1,
                 None => 1,
             }
             Books.put(Book { name: guestbook(), signed: number })
-            let entry = Entry { book: guestbook(), number: number, author: id_of(current_user()), name: name, text: text }
+            let entry = Entry { book: guestbook(), number: number, author: account.id, name: account.name, text: text }
             match Entries.insert(entry) {
                 Ok(_) => Ok(entry),
                 Err(_) => Err(Unavailable),
@@ -109,7 +116,7 @@ command remove(number: Int) -> Result<Int, BookError>
 {
     match Entries.get(guestbook(), number) {
         None => Err(NotFound),
-        Some(entry) => if entry.author == id_of(current_user()) {
+        Some(entry) => if mine(entry, account_of(current_user())) {
             Entries.delete(guestbook(), number)
             Ok(number)
         } else {

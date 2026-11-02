@@ -296,11 +296,18 @@ impl Staged for TablesStaging {
         }
     }
 
-    /// After the commit: published already, within its transaction.
+    /// **After the commit, what it staged is the layer's**: published
+    /// already, within its transaction, where the host published it there
+    /// ([`Staged::publish_within`]); published now otherwise, as a
+    /// hand-written layer publishes, and said where it cannot be (the
+    /// adapter's storage has failed closed, and every read of it fails).
     fn publish(&mut self) {
-        debug_assert!(
-            matches!(self.turn, Turn::Published),
-            "a command's tables are published within its transaction"
-        );
+        if let Turn::Prepared(_) = self.turn
+            && let Turn::Prepared(prepared) = std::mem::replace(&mut self.turn, Turn::Published)
+            && let Err(e) = prepared.publish()
+        {
+            eprintln!("pw dev server: a commit's tables were not published after it: {e:?}");
+            self.turn = Turn::Failed(format!("not published: {e:?}"));
+        }
     }
 }

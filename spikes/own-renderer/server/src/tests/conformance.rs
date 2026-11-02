@@ -520,28 +520,39 @@ pub(super) fn written(
     tables: &[Table],
     rows: &BTreeMap<String, Vec<Map<String, Json>>>,
 ) {
+    let wrote = write_rows(s, tables, rows);
+    assert_eq!(wrote, Ok(()), "the rows are inserted and commit");
+}
+
+/// [`written`], saying what went wrong rather than asserting it: for a
+/// writer on a thread of the server's own (a test's hook in a render), whose
+/// test asserts what it said.
+pub(super) fn write_rows(
+    s: &Server,
+    tables: &[Table],
+    rows: &BTreeMap<String, Vec<Map<String, Json>>>,
+) -> Result<(), String> {
     let [_, (writes, granted)] = suite_contracts(tables);
     let mut staging = s.data.begin("conformance");
-    let ops = staging
-        .table_ops(&writes, &granted)
-        .asserted("the command's functions");
+    let ops = staging.table_ops(&writes, &granted)?;
     for table in tables {
-        let insert = &table.function("insert").import;
+        let import = &table.function("insert").import;
+        let insert = ops
+            .get(import)
+            .ok_or_else(|| format!("the gate admitted no `{import}`"))?;
         for row in &rows[&table.name] {
-            assert_eq!(
-                call(&ops, insert, &[wit_row(table, row)]),
-                [Val::Result(Ok(None))],
-                "{}: a generated row is inserted",
-                table.name
-            );
+            let answer = insert(&[wit_row(table, row)])?;
+            if answer != [Val::Result(Ok(None))] {
+                return Err(format!("{}: a row refused: {answer:?}", table.name));
+            }
         }
     }
     drop(ops);
-    let committed = s.commit_staged(&mut *staging, &[], &[], None, &[], None, None);
-    assert!(
-        matches!(committed, Ok(CommitOutcome::Applied(_))),
-        "the rows commit"
-    );
+    match s.commit_staged(&mut *staging, &[], &[], None, &[], None, None) {
+        Ok(CommitOutcome::Applied(_)) => Ok(()),
+        Ok(_) => Err("the rows committed nothing".into()),
+        Err(why) => Err(why),
+    }
 }
 
 /// The published row of `table` at `row`'s key, through the query's seam.
