@@ -229,6 +229,79 @@ fn the_readers_account_is_the_readers() {
     );
 }
 
+/// What a table's module reports with the platform: each diagnostic's code,
+/// and the text its primary span covers.
+fn table_reported(src: &str) -> Vec<(String, String)> {
+    let mut program = platform();
+    program.push(("Holds.pw".to_string(), src.to_string()));
+    check_sources(&program)
+        .into_iter()
+        .filter(|(n, _)| n == "Holds.pw")
+        .flat_map(|(_, ds)| {
+            ds.into_iter().map(|d| {
+                let at = src[d.primary_span.start..d.primary_span.end].to_string();
+                (d.code.to_string(), at)
+            })
+        })
+        .collect()
+}
+
+/// **A table's row holds no handle** (PW6901, track `data-path`, the
+/// integrator's ruling 3 of 2026-11-02): a row is read by every reader of
+/// its table, and the table keeps no label, so a handle stored in one was
+/// served to every other session (the review stored `current_user()`, and a
+/// shared query answered another session `u-` and a guest's session). A
+/// handle of each kind, wherever the field's type holds it, is refused at
+/// the row; an id, which grants nothing, is not, and neither is a handle in
+/// a record no table stores.
+#[test]
+fn a_tables_row_holds_no_handle() {
+    let table = |fields: &str, beside: &str| {
+        format!(
+            "module Holds\n\nimport capability.{{ Session, SessionId, User, UserId, \
+             Organization, OrganizationId }}\n\n{beside}type Held = Held {{ id: String, \
+             {fields} }}\n\ntable Holds\n    row Held\n    key id\n"
+        )
+    };
+    let refused = |fields: &str, beside: &str| {
+        let got = table_reported(&table(fields, beside));
+        assert_eq!(
+            got,
+            vec![("PW6901".to_string(), "row Held".to_string())],
+            "{fields}"
+        );
+    };
+    refused("who: User<UserId>", "");
+    refused("who: Session<SessionId>", "");
+    refused("who: Organization<OrganizationId>", "");
+    refused("who: Option<capability.User<UserId>>", "");
+    refused("who: List<User<UserId>>", "");
+    refused(
+        "who: Inner",
+        "type Inner = Inner { at: Int, h: User<UserId> }\n\n",
+    );
+    refused(
+        "who: Holder",
+        "type Holder =\n    | Nobody\n    | Someone(Session<SessionId>)\n\n",
+    );
+    // Two fields, two refusals: each named.
+    let two = table_reported(&table("who: User<UserId>, at: Session<SessionId>", ""));
+    assert_eq!(two.len(), 2, "{two:?}");
+    assert!(two.iter().all(|(code, _)| code == "PW6901"), "{two:?}");
+    // The controls: an id names someone, and grants nothing; a handle in a
+    // record no table stores is no row's.
+    for fields in ["who: UserId", "who: Option<UserId>", "who: List<UserId>"] {
+        assert!(table_reported(&table(fields, "")).is_empty(), "{fields}");
+    }
+    assert!(
+        table_reported(&table(
+            "who: UserId",
+            "type Note = Note { who: User<UserId> }\n\n"
+        ))
+        .is_empty()
+    );
+}
+
 #[test]
 fn a_local_callback_is_not_a_handle_constructor() {
     for name in ["Session", "User", "Organization"] {

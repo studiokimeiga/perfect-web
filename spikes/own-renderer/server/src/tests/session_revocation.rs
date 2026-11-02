@@ -537,7 +537,9 @@ fn streamed_viewer_as(s: &Server, reader: &identity::ReaderIdentity) -> Value {
                 vec![StreamRun {
                     part: 1,
                     stream: binding,
-                    args: vec![Val::String("b".into())],
+                    // The session as the program passes it, its handle
+                    // (track `data-path`).
+                    args: vec![Val::String(crate::identity::session_handle("b"))],
                     streamed: false,
                 }],
             );

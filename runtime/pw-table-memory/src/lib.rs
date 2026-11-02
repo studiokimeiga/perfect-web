@@ -33,7 +33,7 @@
 //! databases remain later obligations; no production claim follows.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 
 use pw_core::tables::{Primitive, Schema, Stored, TableJson, TablesJson};
@@ -285,6 +285,11 @@ struct Inner {
     told: Mutex<Option<Arc<dyn Fn() + Send + Sync>>>,
     /// Internal failure is sticky: no reader or writer can use partial state.
     failed: AtomicBool,
+    /// **Each primitive executed**, a read's or a write's, as a database
+    /// counts its statements (track `data-path`): what a conformance suite
+    /// holds a read's cost to, at the adapter itself
+    /// ([`MemoryTables::statements`]).
+    statements: AtomicU64,
 }
 
 struct Working {
@@ -344,10 +349,30 @@ impl MemoryTables {
                 turn: Condvar::new(),
                 told: Mutex::new(None),
                 failed: AtomicBool::new(false),
+                statements: AtomicU64::new(0),
                 shape,
                 host,
             }),
         })
+    }
+
+    /// **How many primitives this database has executed**, reads and writes,
+    /// each one statement, as a database counts its own (track `data-path`):
+    /// what a conformance suite counts a read's cost by, below every layer
+    /// that calls it, so a layer that reads twice for one read is seen.
+    pub fn statements(&self) -> u64 {
+        self.inner.statements.load(Ordering::SeqCst)
+    }
+
+    /// **The database failed closed** (track `data-path`): every read and
+    /// write after it is refused (`StoragePoisoned`), and every command
+    /// waiting its turn is woken to be refused, as where its storage failed.
+    /// For a host whose own records of a commit this database has published
+    /// did not commit: no reader may go on reading a write whose records
+    /// were lost, and the commit cannot be taken back from readers who may
+    /// have read it.
+    pub fn fail_closed(&self) {
+        self.inner.fail();
     }
 
     /// **The adapter for a build's `tables.json`, as `pw build` wrote it**
@@ -370,7 +395,7 @@ impl MemoryTables {
     /// positional values; a set selector takes one array of scalars or
     /// named-field records; `all` takes none.
     pub fn read(&self, import: &str, args: &[Value]) -> Result<Value, Error> {
-        self.inner.read_published(import, args)
+        self.inner.read_counted(import, args)
     }
 
     /// Select the exact read imports this admitted component may bind as a
@@ -418,7 +443,7 @@ impl MemoryTables {
             let bound = import.clone();
             let data = Arc::new(move |args: &[Value]| {
                 inner
-                    .read_published(&bound, args)
+                    .read_counted(&bound, args)
                     .map_err(|error| format!("`{bound}`: {error:?}"))
             });
             out.insert(import, host_fn(read, data));
@@ -853,6 +878,18 @@ impl Inner {
         Ok(lease)
     }
 
+    /// One primitive executed, counted as a statement ([`Inner::statements`]).
+    fn counted(&self) {
+        self.statements.fetch_add(1, Ordering::SeqCst);
+    }
+
+    /// [`Inner::read_published`], counted: a read of the published tables,
+    /// as every caller outside the adapter makes one.
+    fn read_counted(&self, import: &str, args: &[Value]) -> Result<Value, Error> {
+        self.counted();
+        self.read_published(import, args)
+    }
+
     fn read_published(&self, import: &str, args: &[Value]) -> Result<Value, Error> {
         self.healthy()?;
         let tables = match self.published.lock() {
@@ -874,6 +911,7 @@ impl Inner {
         import: &str,
         args: &[Value],
     ) -> Result<Value, Error> {
+        self.counted();
         self.healthy()?;
         read(&self.shape, tables, import, args)
     }
@@ -888,11 +926,13 @@ impl Inner {
     }
 
     fn command_read(&self, id: u64, import: &str, args: &[Value]) -> Result<Value, Error> {
+        self.counted();
         let working = self.working_of(id)?;
         read(&self.shape, &working.tables, import, args)
     }
 
     fn command_write(&self, id: u64, import: &str, args: &[Value]) -> Result<(), Error> {
+        self.counted();
         let mut working = self.working_of(id)?;
         let Working { tables, open, .. } = &mut *working;
         let open = open.as_mut().ok_or(Error::Ended)?;

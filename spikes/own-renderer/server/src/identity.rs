@@ -310,15 +310,18 @@ pub(crate) enum ReaderIdentity {
 }
 
 impl ReaderIdentity {
-    /// One private-partition field. Hex encodes the cookie bytes so a caller's
-    /// delimiters cannot add a query-key field or alias another generation.
+    /// One private-partition field: the session's digest
+    /// ([`PARTITION_DOMAIN`]), in hex, so a caller's delimiters cannot add a
+    /// query-key field or alias another generation. Version 2 (track
+    /// `data-path`, the integrator's ruling of 2026-11-02): version 1 held
+    /// the cookie's bytes in hex, which an interaction's record keeps.
     pub(crate) fn partition(&self, session: &str) -> String {
         let reader = match self {
             Self::Guest => "g".to_string(),
             Self::Anonymous => "n".to_string(),
             Self::Account(identity) => format!("a:{}", hex(&identity.epoch)),
         };
-        format!("v1:{}:{reader}", hex(session.as_bytes()))
+        format!("v2:{}:{reader}", session_field(PARTITION_DOMAIN, session))
     }
 }
 
@@ -361,14 +364,97 @@ impl std::fmt::Debug for Held {
     }
 }
 
+/// **What each digest of a session is taken for** (track `data-path`, the
+/// integrator's rulings of 2026-11-02: nothing stored, shown or logged is
+/// made from the raw session cookie). Each use its own domain, so no value
+/// the host keeps for one use equals another's: a guest's id, the hash a
+/// session and a sign-in are kept by, an interaction's record's key, a
+/// private cache's partition, a state row's key, a log's name for a session,
+/// and the handle a program holds its session by.
+pub(crate) const GUEST_DOMAIN: &str = "pw-guest-v1:";
+pub(crate) const KEPT_DOMAIN: &str = "pw-kept-v1:";
+pub(crate) const INTERACTION_DOMAIN: &str = "pw-interaction-v1:";
+pub(crate) const PARTITION_DOMAIN: &str = "pw-partition-v1:";
+pub(crate) const STATE_DOMAIN: &str = "pw-state-v1:";
+pub(crate) const LOG_DOMAIN: &str = "pw-log-v1:";
+pub(crate) const HANDLE_DOMAIN: &str = "pw-handle-v1:";
+
+/// **A one-way, domain-separated digest of a session**, or of another
+/// secret the host keeps by its digest: SHA-256 over `domain` and the
+/// secret (the integrator's rulings of 2026-11-02). The one way the host
+/// makes anything it stores, shows or logs of a session: from the digest
+/// no one recovers the session, and no digest of one use is another's.
+pub(crate) fn session_digest(domain: &str, secret: &str) -> [u8; 32] {
+    use sha2::Digest;
+    sha2::Sha256::digest(format!("{domain}{secret}").as_bytes()).into()
+}
+
+/// **[`session_digest`] in hex**, as the host writes it into a key.
+pub(crate) fn session_field(domain: &str, session: &str) -> String {
+    hex(&session_digest(domain, session))
+}
+
+/// **An interaction's record's key** (ADR-0325): the session's digest, the
+/// command and the interaction (the integrator's ruling of 2026-11-02, on
+/// the PostgreSQL layer's review). Until then the key began with the session
+/// itself, the cookie, which the records keep a day where a database reader
+/// read it and took the session over. A record keyed by a cookie before is
+/// no longer recalled.
+pub(crate) fn interaction_key(session: &str, command: &str, interaction: &str) -> String {
+    format!(
+        "{}\u{1f}{command}\u{1f}{interaction}",
+        session_field(INTERACTION_DOMAIN, session)
+    )
+}
+
+/// **The session as a program holds it**: what `current_session()` answers,
+/// the session's digest in [`HANDLE_DOMAIN`], never the cookie (track
+/// `data-path`, the integrator's ruling of 2026-11-02). Whatever a program
+/// makes of its session (a query's key, an event's or an invalidation's
+/// argument, a row it keys by it) is made of this, and so is what the host
+/// keys by the session for it (a cart's owner where the program keys its
+/// cart by the session, an entry's partition). Until then a program was
+/// handed the cookie, and the feed's `follow` wrote it into the outbox's
+/// invalidations on PostgreSQL. An operation a program hands its handle to
+/// answers for the request's session alone (`data::Requested`).
+pub(crate) fn session_handle(session: &str) -> String {
+    session_field(HANDLE_DOMAIN, session)
+}
+
+/// **A guest's user id**: `u-` and 128 bits, in hex, of SHA-256 over
+/// [`GUEST_DOMAIN`] and its session (track `data-path`, the integrator's
+/// ruling 1 of 2026-11-02). The guest model's guest is this user, and so is
+/// a signed-out reader. Until then it was `u-` and the session itself, the
+/// `pw-session` cookie's value: a credential, handed to every program, page
+/// and table that saw a guest's id (a row's author, a scheduled run's user,
+/// a payment's owner). The digest is one way: from the id no one recovers
+/// the session, or makes the id of a session they do not hold.
+pub fn guest_user(session: &str) -> String {
+    let digest = session_digest(GUEST_DOMAIN, session);
+    format!("u-{}", hex(&digest[..16]))
+}
+
+/// **What a guest is shown as**: the first ten digits of its id, as the feed
+/// shows an author it knows no profile of (`feed::user_record`).
+fn guest_shown(user: &str) -> String {
+    user.strip_prefix("u-")
+        .unwrap_or(user)
+        .chars()
+        .take(10)
+        .collect()
+}
+
 impl Principal {
-    /// **A session's own guest** (the guest model): named for its session,
-    /// as the feed named one before accounts (ADR-0220).
+    /// **A session's own guest** (the guest model): its id, handle and name
+    /// made from its session's digest ([`guest_user`]), never from the
+    /// session, and named as the feed names a guest (ADR-0220).
     pub fn guest(session: &str) -> Principal {
+        let user = guest_user(session);
+        let shown = guest_shown(&user);
         Principal {
-            user: format!("u-{session}"),
-            handle: format!("@{session}"),
-            name: format!("Guest {session}"),
+            handle: format!("@{shown}"),
+            name: format!("Guest {shown}"),
+            user,
             issuer: "guest".to_string(),
         }
     }
@@ -399,6 +485,15 @@ struct PrincipalsInner {
     /// all (the integrator's ruling 2 of 2026-10-20 on this track), as the
     /// deployment states them.
     lifetimes: RwLock<SessionLifetimes>,
+    /// **The platform's record of accounts** (track `data-path`, the
+    /// integrator's ruling 2 of 2026-11-02): each user a sign-in here signed
+    /// in to an account, by their id, and the name their provider last gave
+    /// them. Kept past a sign-out: the account is still theirs. No guest is
+    /// in it (no sign-in opens one), and no session the platform opens on a
+    /// reader's behalf ([`Principals::on_behalf`] signs no one in). What
+    /// `context.account_of` answers a command the platform runs on a
+    /// reader's behalf ([`Principals::account_name`]).
+    account_names: RwLock<HashMap<String, String>>,
 }
 
 /// **A session's principal as this host holds it**, and when it was opened
@@ -515,10 +610,11 @@ impl SessionLifetimes {
 /// session's id (128 bits from the operating system) and a sign-in's state
 /// (256) are past any guess, so a fast hash is enough: a copy of what is
 /// kept opens no session and completes no sign-in. A password, which a
-/// person chose, is the slow hash's (ADR-0258's Argon2id).
+/// person chose, is the slow hash's (ADR-0258's Argon2id). Taken in its own
+/// domain since 2026-11-02 ([`KEPT_DOMAIN`], track `data-path`), as every
+/// digest of a session is: a session kept before is signed out once.
 pub(crate) fn kept_hash(secret: &str) -> Vec<u8> {
-    use sha2::Digest;
-    sha2::Sha256::digest(secret.as_bytes()).to_vec()
+    session_digest(KEPT_DOMAIN, secret).to_vec()
 }
 
 /// **Where a deployment keeps its sessions and its sign-ins under way**
@@ -803,11 +899,35 @@ impl Principals {
     }
 
     /// The user `session` acts as: its principal's, or its guest's, who can
-    /// write nothing where `requires SignedIn` is held.
+    /// write nothing where `requires SignedIn` is held. A guest's is its
+    /// session's digest ([`guest_user`]), never the session.
     pub fn user_of(&self, session: &str) -> String {
         self.of(session)
             .map(|p| p.user)
-            .unwrap_or_else(|| format!("u-{session}"))
+            .unwrap_or_else(|| guest_user(session))
+    }
+
+    /// **The account `user` signed in to, as the platform records it**
+    /// (track `data-path`): the name their provider last gave them; none
+    /// where no sign-in here signed them in to one, a guest's id and a
+    /// signed-out reader's among them.
+    pub(crate) fn account_name(&self, user: &str) -> Option<String> {
+        self.0
+            .account_names
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .get(user)
+            .cloned()
+    }
+
+    /// `principal`'s account recorded, by its user's id, as a sign-in has
+    /// just vouched for it.
+    fn record_account(&self, principal: &Principal) {
+        self.0
+            .account_names
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(principal.user.clone(), principal.name.clone());
     }
 
     fn open(&self, session: &str, principal: Principal) {
@@ -1012,6 +1132,8 @@ impl Principals {
         if let Some(kept) = self.0.kept.get() {
             kept.open(&kept_hash(session), &principal, &epoch)?;
         }
+        // TRACK SEAM (data-path): the account recorded, as the platform's.
+        self.record_account(&principal);
         self.open_identity(session, SessionIdentity { principal, epoch });
         Ok(())
     }
@@ -1338,6 +1460,15 @@ impl Identity {
                 },
             )
             .expect("signed in where sessions are kept");
+    }
+
+    /// **`session` signed out, without the flow** (track `data-path`): as
+    /// `/sign-out` signs it out, wherever sessions are kept.
+    #[cfg(test)]
+    pub fn signed_out_for_test(&self, session: &str) {
+        self.principals
+            .sign_out(session)
+            .expect("signed out where sessions are kept");
     }
 
     /// **A request the identity track answers**, before any other route.
@@ -2323,17 +2454,17 @@ mod invocation_tests {
         let alice = p.bound_reader("reader");
         p.with_reader("reader", &ReaderIdentity::Anonymous, || {
             assert!(p.of("reader").is_none());
-            assert_eq!(p.user_of("other-cookie"), "u-bob");
-            assert_eq!(other.user_of("reader"), "u-alice");
+            assert_eq!(p.user_of("other-cookie"), guest_user("bob"));
+            assert_eq!(other.user_of("reader"), guest_user("alice"));
             p.with_reader("reader", &alice, || {
-                assert_eq!(p.user_of("reader"), "u-alice")
+                assert_eq!(p.user_of("reader"), guest_user("alice"))
             });
             assert!(
                 p.of("reader").is_none(),
                 "the explicit anonymous outer binding is restored"
             );
         });
-        assert_eq!(p.user_of("reader"), "u-alice");
+        assert_eq!(p.user_of("reader"), guest_user("alice"));
     }
 
     #[test]
@@ -2543,6 +2674,6 @@ mod invocation_tests {
                 "unwinding restores explicit anonymous context"
             );
         });
-        assert_eq!(p.user_of("reader"), "u-alice");
+        assert_eq!(p.user_of("reader"), guest_user("alice"));
     }
 }

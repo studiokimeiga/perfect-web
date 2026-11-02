@@ -424,7 +424,11 @@ MUTANTS = [
         "the feed's render in memory reads the feed as it is now",
         "memory",
         FEED,
-        "            Some(state) => reads_of(state.clone(), self.principals()),\n",
+        "            Some(state) => reads_of(\n"
+        "                state.clone(),\n"
+        "                self.principals(),\n"
+        "                crate::data::Requested::by(session),\n"
+        "            ),\n",
         "            Some(_) => self.reads(session, stopped),\n",
     ),
     (

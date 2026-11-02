@@ -22,6 +22,11 @@ fn text_of(words: Words) -> String !{} {
 type Entry = Entry { book: String, number: Int, author: UserId, name: String, text: Words }
 
 table Entries
-    row    Entry
-    key    book, number
-    refers book to Books
+    row     Entry
+    key     book, number
+    refers  book to Books
+    bounded 1000
+
+fn most() -> Int !{} {
+    1000
+}

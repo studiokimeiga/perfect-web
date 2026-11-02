@@ -145,13 +145,30 @@ impl Drop for Schema {
     }
 }
 
+/// **The tables' PostgreSQL layer for a build**, on `database`, as the host
+/// makes it where a deployment names one (`TablesPg::for_build`).
+pub(super) fn pg_layer(
+    build: &std::path::Path,
+    database: &crate::tables_pg::Database,
+) -> Arc<dyn data::DataLayer> {
+    let layer = crate::tables_pg::TablesPg::for_build(build, database)
+        .asserted("the tables' PostgreSQL layer")
+        .asserted_some("a program that declares tables");
+    Arc::new(layer)
+}
+
 /// **A build served on PostgreSQL**, its tables in `schema`: one host;
 /// another on the same schema is a second host of one deployment.
 pub(super) fn serve(out: &std::path::Path, schema: &Schema) -> Server {
+    served_on(out, &schema.database())
+}
+
+/// A build served by the tables' PostgreSQL layer on `database`.
+fn served_on(out: &std::path::Path, database: &crate::tables_pg::Database) -> Server {
     Server::from_build_tables(
         out.to_path_buf(),
         out.to_path_buf(),
-        Some(&schema.database()),
+        pg_layer(out, database),
     )
     .asserted("served on PostgreSQL")
 }
@@ -789,8 +806,7 @@ fn a_render_without_a_seat_reads_no_other_state() {
         seats: 1,
         wait: Duration::from_millis(200),
     };
-    let s = Server::from_build_tables(out.clone(), out.clone(), Some(&database))
-        .asserted("served on PostgreSQL, one render at a time");
+    let s = served_on(&out, &database);
     let tables = super::conformance::tables_of(&out);
     let row: serde_json::Map<String, serde_json::Value> =
         serde_json::from_value(serde_json::json!({"id": "a", "text": "kept"})).asserted("a note");
@@ -1404,8 +1420,7 @@ fn a_commit_whose_answer_was_lost_is_answered_from_its_record() {
         "{}",
         database.url
     );
-    let s = Server::from_build_tables(out.clone(), out.clone(), Some(&database))
-        .asserted("served through the proxy");
+    let s = served_on(&out, &database);
     s.identity.signed_in_for_test("a", "u-ada", "Ada");
     let armed = proxy.armed.clone();
     *s.before_commit.lock().expect("hook") = Some(Box::new(move |_| {
@@ -1542,31 +1557,50 @@ fn a_command_is_fenced_from_its_first_statement_or_never() {
     ));
 }
 
-/// A server on a fresh schema for each part of the suite, each schema
-/// dropped when the test is done.
-fn suite_on_postgresql(out: &std::path::Path, url: &str, what: &str) -> usize {
+/// **The conformance suite, its layer under test this one** (`conformance.rs`
+/// takes the layer, ADR-0338's ruling 7): each server it builds served by a
+/// PostgreSQL layer on a schema of its own, every schema dropped when the
+/// test is done.
+fn suite_on_postgresql(
+    out: &std::path::Path,
+    url: &str,
+    what: &str,
+) -> super::conformance::Checked {
     let schemas: std::cell::RefCell<Vec<Schema>> = Default::default();
-    super::conformance::conformance(out, || {
+    let layer = |build: &std::path::Path| {
         let schema = Schema::new(url, what);
-        let s = serve(out, &schema);
+        let layer = pg_layer(build, &schema.database());
         schemas.borrow_mut().push(schema);
-        s
-    })
+        layer
+    };
+    super::conformance::conformance(out, &layer)
 }
 
 /// **The conformance suite holds for the guestbook's tables on
-/// PostgreSQL**: `conformance.rs`'s suite, as written, its oracle the same.
+/// PostgreSQL**: `conformance.rs`'s suite, as written, its oracle the same,
+/// and every table refused as on memory, by what it declares (a reference
+/// to no row, a row deleted while another refers to it, its bound), at
+/// whichever of the write or the `COMMIT` the database refuses it.
 #[test]
 fn the_suite_holds_for_the_guestbooks_tables_on_postgresql() {
     let Some(url) = database() else { return };
     let (_dir, out) = guestbook();
     let checked = suite_on_postgresql(&out, &url, "suite_book");
-    assert!(checked > 0);
-    eprintln!("conformance on PostgreSQL: the guestbook's tables, {checked} reads checked");
+    assert!(checked.reads > 0);
+    assert_eq!(
+        checked.refusals,
+        BTreeMap::from([("Books".to_string(), 1), ("Entries".to_string(), 2)]),
+        "Books deleted while an entry refers to it; Entries referring to no book, and past \
+         its bound"
+    );
+    eprintln!(
+        "conformance on PostgreSQL: the guestbook's tables, {} reads checked, refusals {:?}",
+        checked.reads, checked.refusals
+    );
 }
 
 /// **The conformance suite holds for the lists app's tables on
-/// PostgreSQL.**
+/// PostgreSQL**, every table refused as on memory.
 #[test]
 fn the_suite_holds_for_the_lists_apps_tables_on_postgresql() {
     let Some(url) = database() else { return };
@@ -1574,8 +1608,17 @@ fn the_suite_holds_for_the_lists_apps_tables_on_postgresql() {
     sources.push("examples/tables/app.pw");
     let (_dir, out) = super::tables::built(&sources, &[]);
     let checked = suite_on_postgresql(&out, &url, "suite_lists");
-    assert!(checked > 0);
-    eprintln!("conformance on PostgreSQL: the lists app's tables, {checked} reads checked");
+    assert!(checked.reads > 0);
+    assert_eq!(
+        checked.refusals,
+        BTreeMap::from([("Items".to_string(), 1), ("Lists".to_string(), 2)]),
+        "Items referring to no list; Lists deleted while an item refers to it, and past its \
+         bound"
+    );
+    eprintln!(
+        "conformance on PostgreSQL: the lists app's tables, {} reads checked, refusals {:?}",
+        checked.reads, checked.refusals
+    );
 }
 
 /// **Part 5, idempotency, on PostgreSQL**: each command of the guestbook
@@ -1629,6 +1672,9 @@ fn each_query_reads_its_tables_a_fixed_number_of_times_on_postgresql() {
     let (_lists_dir, lists) = super::tables::built(&sources, &[]);
     let (_book_dir, book) = guestbook();
     let text = |s: &str| Val::String(s.into());
+    // The reader's handle, as the platform makes it for the session the
+    // pins read as (its guest's, from the session's digest), as on memory.
+    let reader = crate::identity::guest_user("conformance");
     let pins: Vec<(&std::path::Path, &str, Vec<Val>, Vec<&str>)> = vec![
         (
             &lists,
@@ -1663,9 +1709,10 @@ fn each_query_reads_its_tables_a_fixed_number_of_times_on_postgresql() {
         (
             &book,
             "guestbook.book.Latest",
-            vec![text("u-conformance"), Val::S64(20)],
+            vec![text(&reader), Val::S64(20)],
             vec!["pw:tables/entries#of-book"],
         ),
+        (&book, "guestbook.book.Me", vec![text(&reader)], vec![]),
     ];
     for n in [3, 24] {
         for (build, query, args, reads) in &pins {

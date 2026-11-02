@@ -91,7 +91,6 @@ RETIRED = "test_a_retired_code_with_its_reason_continued_across_lines"
 CHECKED = {
     "the composer is shown to a reader signed out": {"PW5048"},
     "Remove is shown to a reader signed out": {"PW5048"},
-    "the entries are not told of a signed entry": {"PW5107"},
 }
 
 # (what, where it is held, file, anchor, replacement). Where: "guide" is
@@ -586,8 +585,15 @@ MUTANTS = [
         "a signed entry does not clear the draft",
         "browser",
         PAGES,
-        '                    Ok(_) => draft = "",\n',
-        "                    Ok(_) => (),\n",
+        '                            draft = ""\n',
+        "                            draft = draft\n",
+    ),
+    (
+        "a refused signing is said nowhere",
+        "browser",
+        PAGES,
+        "                        },\n                        Err(error) => said = refused(error),\n",
+        "                        },\n                        Err(_) => (),\n",
     ),
     (
         "Remove is offered on another reader's entry and not on one's own",
@@ -631,12 +637,18 @@ MUTANTS = [
         "{#if SignedIn}{#if entry.mine}",
         "{#if entry.mine}{#if entry.mine}",
     ),
+    # A signing tells its own reader's entries and no one else's: well-typed
+    # (the speculated `Latest` is still the command's to invalidate, so
+    # PW5107 holds), and left to the browser to kill (the integrator's ruling
+    # of 2026-11-02). Until then it took `Signed(_)` out of `invalidates_on`,
+    # which PW5107 refuses: a checker's refusal of the speculation, not a
+    # witness that the other pages are told.
     (
         "the entries are not told of a signed entry",
         "browser",
         BOOK,
-        "    invalidates_on Signed(_), Removed(_)\n",
-        "    invalidates_on Removed(_)\n",
+        "    emits         Signed(guestbook())\n",
+        "    invalidates   Latest(current_user(), _)\n",
     ),
 ]
 
@@ -710,6 +722,7 @@ MUST = {
     "the retired codes are left out of the page": {CURRENT},
     "the last code of each owner is left out of the page": {CURRENT},
     "a signed entry does not clear the draft": {"signs, and the entry is theirs alone to remove"},
+    "a refused signing is said nowhere": {"a signing the server refuses is said"},
     "Remove is offered on another reader's entry and not on one's own": {
         "signs, and the entry is theirs alone to remove"
     },
@@ -722,7 +735,7 @@ MUST = {
     },
     "the composer is shown to a reader signed out": set(),
     "Remove is shown to a reader signed out": set(),
-    "the entries are not told of a signed entry": set(),
+    "the entries are not told of a signed entry": {"another reader's open page is told of an entry"},
 }
 
 CARGO_TEST = ["cargo", "test", "--locked", "-p", "pw-cli", "--test", "guide", "--", "--format=pretty"]
@@ -875,8 +888,8 @@ def browser_titles(metadata, inventory):
     if not isinstance(metadata, dict):
         raise ValueError("browser metadata is missing")
     visit(metadata.get("suites"))
-    if set(titles) != set(inventory) or len(titles) != 4:
-        raise ValueError("browser metadata differs from complete four-test receipt")
+    if set(titles) != set(inventory) or len(titles) != 5:
+        raise ValueError("browser metadata differs from complete five-test receipt")
     return titles
 
 
@@ -893,11 +906,15 @@ def compiler_codes(code, output):
     errors = [line for line in lines if line.startswith("error:")]
     codes = [re.fullmatch(r"error: \[(PW\d{4})\] .+", line) for line in errors]
     started = unrecognized = False
+    # A diagnostic's gutter is as wide as the widest line number it shows:
+    # its `-->` and `= note:` lines are indented by that width, one more
+    # space for each digit past two (`   --> book.pw:99:19` beside a line
+    # 100); until 2026-11-02 only a two-digit gutter was read.
     for line in lines[:-1]:
         if line.startswith("error:"):
             started = True
         elif line and (not started or re.fullmatch(
-                r"(?:\s*(?:\d+|\.\.\.)?\s*\|.*|  --> .+:\d+:\d+|   = (?:note|help):.*)", line) is None):
+                r"(?:\s*(?:\d+|\.\.\.)?\s*\|.*| {2,}--> .+:\d+:\d+| {3,}= (?:note|help):.*)", line) is None):
             unrecognized = True
     if (summary is None or int(summary[1]) != files or int(summary[2]) != len(errors)
             or not errors or not all(codes) or unrecognized

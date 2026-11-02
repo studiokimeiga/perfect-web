@@ -1,27 +1,37 @@
 //! **The conformance suite, over the `DataLayer` seam** (ADR-0338's decision
 //! 5.5 and the integrator's ruling 7 of 2026-10-15: one suite, written once
 //! against the seam; track `data-path`): generated for every table a
-//! program's tables.json declares, and run for each layer that serves it
+//! program's tables.json declares, and run for the layer under test, which
+//! it is handed ([`Layer`]: the memory adapter's here, PostgreSQL's by D3),
 //! through the seam a server serves it through: a query's reads
 //! ([`DataLayer::table_reads`]), a command's reads and writes
 //! ([`Staged::table_ops`]), and the server's own commit
-//! (`Server::commit_staged`), the materializer's transaction with them.
+//! (`Server::commit_staged`), the platform's transaction with them.
 //!
 //! The suite reads tables.json itself, apart from any adapter, and its
 //! answers are an oracle's: each read's rows filtered from the rows it wrote
-//! and ordered as D1 rules (`sorted_by`). Its parts that apply to the memory
-//! adapter, each at two sizes of generated data:
+//! and ordered as D1 rules (`sorted_by`). Its parts that apply to every
+//! adapter, memory's among them, at two sizes of generated data:
 //!
 //! 1. **answers**: every read function of every table, for present keys,
 //!    a missing one, and set forms given duplicates, misses and nothing,
 //!    answers exactly the oracle's rows, in their order;
-//! 2. **costs**: each read is one call of the layer at both sizes, within
-//!    what its source's `sets` states (`one_call`, or one a key);
+//! 2. **costs**: each read is at least one statement of the layer's
+//!    adapter and at most what its source's `sets` states (one for
+//!    `one_call`, one a key otherwise), at both sizes, counted below the
+//!    layer, by the adapter's own count ([`DataLayer::statements`]): a layer
+//!    that read twice for one read would be seen. (Until 2026-11-02 the
+//!    suite counted the calls of a wrapper it called once itself, which
+//!    could not fail.)
 //! 3. **staging**: a command's write is read by that command, and by no other
 //!    read until it commits;
-//! 4. **refused commits**: a command dropped, and a commit refused (by a
-//!    reference to a missing row, where the table has one; by its
-//!    publication, where it has none), keep nothing;
+//! 4. **refused commands**: a command dropped keeps nothing; and so does
+//!    each refusal any adapter must give, provoked through what the tables
+//!    declare: a row referring to no row, a row deleted while another refers
+//!    to it, and a table written past its bound, each refused at its write
+//!    or at its commit, whichever the adapter refuses at. (Until 2026-11-02
+//!    a table with no reference was refused by a hook in the memory
+//!    adapter's layer, which no other adapter has.)
 //! 5. **idempotency**: a command whose interaction is sent again is answered
 //!    as it was, and writes nothing more (each command of the program that
 //!    declares `idempotent_by`, through the server's command route).
@@ -33,6 +43,7 @@
 
 use super::tables::Asserted;
 use super::*;
+use crate::data::DataLayer;
 use std::collections::BTreeSet;
 
 use serde_json::{Map, Value as Json};
@@ -48,6 +59,8 @@ pub(super) struct Table {
     pub indexes: Vec<(Vec<String>, bool)>,
     /// Each reference: the field, and the table it refers to.
     pub references: Vec<(String, String)>,
+    /// The most rows it holds, where it states `bounded`.
+    pub bounded: Option<usize>,
     pub source: String,
     pub functions: Vec<Function>,
 }
@@ -149,6 +162,7 @@ pub(super) fn tables_of(build: &std::path::Path) -> Vec<Table> {
                     )
                 })
                 .collect(),
+            bounded: t["bounded"].as_u64().map(|b| b as usize),
             source: t["source"].as_str().unwrap_or_default().to_string(),
             functions: t["functions"]
                 .as_array()
@@ -571,9 +585,21 @@ fn some_row(table: &Table, row: &Map<String, Json>) -> Vec<Val> {
     vec![Val::Option(Some(Box::new(wit_row(table, row))))]
 }
 
+/// **The statements the layer's adapter has run**, as the layer under test
+/// counts them below itself ([`DataLayer::statements`]); a layer the suite
+/// runs on must count them, or it holds no read to its cost.
+fn statements(s: &Server) -> u64 {
+    let counted = s.data.statements();
+    assert!(
+        counted.is_some(),
+        "the layer under test counts its adapter's statements"
+    );
+    counted.unwrap_or_default()
+}
+
 /// **Parts 1 and 2 at one size**: every read function of every table
-/// answers the oracle's rows, each read one call of the layer, within its
-/// source's `sets`.
+/// answers the oracle's rows, each read at least one statement of the
+/// layer's adapter and at most what its source's `sets` states.
 fn answers_and_costs(
     s: &Server,
     tables: &[Table],
@@ -583,21 +609,10 @@ fn answers_and_costs(
     let rows = generated(tables, n, 0);
     written(s, tables, &rows);
     let [(reads, granted), _] = suite_contracts(tables);
-    let calls = Arc::new(std::sync::atomic::AtomicUsize::new(0));
     let ops: data::Ops = s
         .data
         .table_reads(&reads, &granted, None)
-        .asserted("the reads")
-        .into_iter()
-        .map(|(name, f)| {
-            let calls = calls.clone();
-            let counted: HostFn = Arc::new(move |args: &[Val]| {
-                calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                f(args)
-            });
-            (name, counted)
-        })
-        .collect();
+        .asserted("the reads");
     let mut checked = 0;
     for table in tables {
         let all = &rows[&table.name];
@@ -632,22 +647,28 @@ fn answers_and_costs(
                     .collect()
             };
             for selectors in cases {
-                let before = calls.load(std::sync::atomic::Ordering::SeqCst);
+                let before = statements(s);
                 let answer = call(
                     &ops,
                     &function.import,
                     &arguments(table, function, &selectors),
                 );
-                let made = calls.load(std::sync::atomic::Ordering::SeqCst) - before;
-                // Part 2: one call of the layer, within the source's `sets`.
-                let keys = selectors.len().max(1);
+                let made = statements(s) - before;
+                // Part 2: the adapter's statements, within the source's
+                // `sets`: one where it states `one_call`, one a key
+                // otherwise, and one for a read by one key or none; at least
+                // one, but for a set read of no key, which an adapter may
+                // answer without asking its database.
+                let keys = selectors.len().max(1) as u64;
                 let stated = match sets.get(&table.source).map(String::as_str) {
                     Some("one_call") => 1,
                     _ => keys,
                 };
+                let least = u64::from(!(function.many() && selectors.is_empty()));
                 assert!(
-                    made == 1 && made <= stated,
-                    "{} with {} selector(s): {made} call(s), and its source states {stated}",
+                    (least..=stated).contains(&made),
+                    "{} with {} selector(s): {made} statement(s) of the adapter, and its \
+                     source states at most {stated}",
                     function.import,
                     selectors.len()
                 );
@@ -692,12 +713,71 @@ fn fresh(
     row
 }
 
+/// **A command the tables must refuse, refused whole**: `write` makes its
+/// writes through the seam, and the adapter refuses one of them (a write
+/// refused traps the command, which then commits nothing) or its commit,
+/// whichever it refuses at. Either way the command is undone; the caller
+/// holds the tables to having kept nothing of it.
+fn refused_whole(
+    s: &Server,
+    tables: &[Table],
+    what: &str,
+    write: impl FnOnce(&data::Ops) -> Result<(), String>,
+) {
+    let [_, (writes, granted)] = suite_contracts(tables);
+    let mut staging = s.data.begin("conformance");
+    let ops = staging
+        .table_ops(&writes, &granted)
+        .asserted("its functions");
+    let wrote = write(&ops);
+    drop(ops);
+    if wrote.is_ok() {
+        let commit = s.commit_staged(&mut *staging, &[], &[], None, &[], None, None);
+        assert!(
+            commit.is_err(),
+            "{what}: the adapter refuses the write or its commit"
+        );
+    }
+    drop(staging);
+}
+
+/// A write through the seam: its answer, `Err` where the adapter refused it.
+fn write(ops: &data::Ops, import: &str, args: &[Val]) -> Result<(), String> {
+    let f = ops.get(import);
+    assert!(f.is_some(), "the gate admitted `{import}`");
+    let Some(f) = f else {
+        unreachable!("asserted above")
+    };
+    match f(args)?.as_slice() {
+        [Val::Result(Err(conflict))] => Err(format!("refused by its row: {conflict:?}")),
+        _ => Ok(()),
+    }
+}
+
+/// How many rows `table` holds, as a read every reader makes (its `all`,
+/// which a bounded table has).
+fn held(s: &Server, table: &Table) -> usize {
+    let [(reads, granted), _] = suite_contracts(std::slice::from_ref(table));
+    let ops = s
+        .data
+        .table_reads(&reads, &granted, None)
+        .asserted("its reads");
+    match call(&ops, &table.function("all").import, &[]).as_slice() {
+        [Val::List(rows)] => rows.len(),
+        other => panic!("{}'s `all` answered {other:?}", table.name),
+    }
+}
+
 /// **Parts 3 and 4**: a command's write is read by it alone until it
-/// commits; a command dropped, and a commit refused, keep nothing.
-fn staging_and_refusals(s: &Server, tables: &[Table]) {
+/// commits; a command dropped keeps nothing; and so does each refusal any
+/// adapter must give, provoked through what the tables declare (a row
+/// referring to no row, a row deleted while another refers to it, a table
+/// written past its bound). Each table's refusals provoked, by its name.
+fn staging_and_refusals(s: &Server, tables: &[Table]) -> BTreeMap<String, usize> {
     let base = generated(tables, 3, 0);
     written(s, tables, &base);
     let [_, (writes, granted)] = suite_contracts(tables);
+    let mut provoked: BTreeMap<String, usize> = BTreeMap::new();
     for table in tables {
         // A row no other has, referring to rows that are there.
         let row = fresh(tables, table, &base, 50_000);
@@ -751,43 +831,137 @@ fn staging_and_refusals(s: &Server, tables: &[Table]) {
         drop(ops);
         drop(staging);
         assert_eq!(published(s, table, &other), none, "{}: dropped", table.name);
-        // And a commit refused keeps nothing: by a reference to no row
-        // where the table has one, by its publication where it has none.
-        let mut refused = other.clone();
-        let mut staging = s.data.begin("conformance");
-        let ops = staging
-            .table_ops(&writes, &granted)
-            .asserted("its functions");
-        match table.references.first() {
-            Some((field, to)) => {
-                let target = tables.iter().find(|t| &t.name == to).expect("its target");
-                refused.insert(field.clone(), value(target.stored(&target.key[0]), 70_000));
-            }
-            None => crate::tables::FAIL_NEXT_PUBLISH.with(|fail| fail.set(true)),
+        let insert = &table.function("insert").import;
+        let refusals = provoked.entry(table.name.clone()).or_default();
+        // Refused, by a reference to no row: the command's other row with it.
+        if let Some((field, to)) = table.references.first() {
+            let target = tables.iter().find(|t| &t.name == to).expect("its target");
+            let mut orphan = fresh(tables, table, &base, 70_000);
+            orphan.insert(field.clone(), value(target.stored(&target.key[0]), 70_000));
+            refused_whole(
+                s,
+                tables,
+                &format!("{} referring to no {to}", table.name),
+                |ops| {
+                    write(ops, insert, &[wit_row(table, &other)])?;
+                    write(ops, insert, &[wit_row(table, &orphan)])
+                },
+            );
+            assert_eq!(
+                published(s, table, &orphan),
+                none,
+                "{}: an orphan",
+                table.name
+            );
+            assert_eq!(
+                published(s, table, &other),
+                none,
+                "{}: and its fellow",
+                table.name
+            );
+            *refusals += 1;
         }
-        call(
-            &ops,
-            &table.function("insert").import,
-            &[wit_row(table, &refused)],
-        );
-        drop(ops);
-        let commit = s.commit_staged(&mut *staging, &[], &[], None, &[], None, None);
-        crate::tables::FAIL_NEXT_PUBLISH.with(|fail| fail.set(false));
-        assert!(commit.is_err(), "{}: the commit is refused", table.name);
-        drop(staging);
-        assert_eq!(
-            published(s, table, &refused),
-            none,
-            "{}: a refused commit keeps nothing",
-            table.name
-        );
+        // Refused, by a row deleted while another refers to it.
+        for referring in tables
+            .iter()
+            .filter(|t| t.references.iter().any(|(_, to)| to == &table.name))
+        {
+            // The first base row of `table` is the one every referring
+            // table's first base row refers to (`generated`).
+            let referred = &base[&table.name][0];
+            let delete = table.function("delete");
+            let key: Vec<Json> = delete.by.iter().map(|f| referred[f].clone()).collect();
+            refused_whole(
+                s,
+                tables,
+                &format!(
+                    "{} deleted while {} refers to it",
+                    table.name, referring.name
+                ),
+                |ops| {
+                    write(
+                        ops,
+                        &delete.import,
+                        &arguments(table, delete, std::slice::from_ref(&key)),
+                    )
+                },
+            );
+            assert_eq!(
+                published(s, table, referred),
+                some_row(table, referred),
+                "{}: still there, {} referring to it",
+                table.name,
+                referring.name
+            );
+            *refusals += 1;
+        }
+        // Refused, by its bound: filled to it in one command, and one more.
+        if let Some(bound) = table.bounded {
+            let before = held(s, table);
+            let filling: Vec<Map<String, Json>> = (0..=bound.saturating_sub(before))
+                .map(|k| fresh(tables, table, &base, 80_000 + k))
+                .collect();
+            refused_whole(
+                s,
+                tables,
+                &format!("{} past its bound", table.name),
+                |ops| {
+                    for row in &filling {
+                        write(ops, insert, &[wit_row(table, row)])?;
+                    }
+                    Ok(())
+                },
+            );
+            assert_eq!(
+                held(s, table),
+                before,
+                "{}: nothing past its bound",
+                table.name
+            );
+            assert_eq!(published(s, table, &filling[0]), none, "{}", table.name);
+            *refusals += 1;
+        }
+        if *refusals == 0 {
+            eprintln!(
+                "conformance: {} declares no reference and no bound, so no refusal is provoked",
+                table.name
+            );
+        }
     }
+    provoked
 }
 
-/// **The suite, for a program's build, each part on a server `serve`
-/// makes afresh**: parts 3 and 4, then parts 1 and 2 at two sizes; how many
-/// reads it checked.
-pub(super) fn conformance(build: &std::path::Path, serve: impl Fn() -> Server) -> usize {
+/// **The layer under test**, made afresh for a build: what serves its
+/// declared tables, for each server the suite builds (ADR-0338's ruling 7:
+/// one suite, every adapter run through it).
+pub(super) type Layer<'a> = &'a dyn Fn(&std::path::Path) -> Arc<dyn DataLayer>;
+
+/// **The memory adapter's layer** (`tables::TablesLayer`), for a build.
+pub(super) fn memory(build: &std::path::Path) -> Arc<dyn DataLayer> {
+    let contracts = std::fs::read_to_string(build.join("contracts.json"))
+        .map_err(|e| e.to_string())
+        .and_then(|text| ComponentContract::from_json(&text).map_err(|e| e.to_string()))
+        .asserted("contracts.json");
+    Arc::new(crate::tables::TablesLayer::from_build(build, &contracts).asserted("the memory layer"))
+}
+
+/// The build served by `layer`, afresh.
+pub(super) fn served_by(build: &std::path::Path, layer: Layer) -> Server {
+    Server::from_build_tables(build.to_path_buf(), build.to_path_buf(), layer(build))
+        .asserted("served by the layer under test")
+}
+
+/// What [`conformance`] checked: the reads held to the oracle, and each
+/// table's refusals provoked.
+pub(super) struct Checked {
+    pub reads: usize,
+    pub refusals: BTreeMap<String, usize>,
+}
+
+/// **The suite, for a program's build and the layer under test, each part
+/// on a server serving the build by a fresh layer**: parts 3 and 4, then
+/// parts 1 and 2 at two sizes.
+pub(super) fn conformance(build: &std::path::Path, layer: Layer) -> Checked {
     let tables = tables_of(build);
     assert!(!tables.is_empty(), "the program declares tables");
     let sources: Json = serde_json::from_str(
@@ -805,8 +979,10 @@ pub(super) fn conformance(build: &std::path::Path, serve: impl Fn() -> Server) -
             )
         })
         .collect();
-    staging_and_refusals(&serve(), &tables);
-    answers_and_costs(&serve(), &tables, &sets, 3) + answers_and_costs(&serve(), &tables, &sets, 24)
+    let refusals = staging_and_refusals(&served_by(build, layer), &tables);
+    let reads = answers_and_costs(&served_by(build, layer), &tables, &sets, 3)
+        + answers_and_costs(&served_by(build, layer), &tables, &sets, 24);
+    Checked { reads, refusals }
 }
 
 /// A build of `sources`, and a way to serve it afresh, as long as the
@@ -815,39 +991,55 @@ fn build_of(sources: &[&str]) -> (tempfile::TempDir, std::path::PathBuf) {
     super::tables::built(sources, &[])
 }
 
-/// **The suite holds for the guestbook's tables** (`Books`, `Entries`).
+/// **The suite holds for the guestbook's tables** (`Books`, `Entries`), on
+/// the memory adapter: every table refused at least once.
 #[test]
 fn the_suite_holds_for_the_guestbooks_tables() {
     let (_dir, out) = build_of(&["examples/guestbook"]);
-    let checked = conformance(&out, || {
-        Server::from_build(out.clone(), out.clone()).asserted("served")
-    });
-    assert!(checked > 0);
-    eprintln!("conformance: the guestbook's tables, {checked} reads checked");
+    let checked = conformance(&out, &memory);
+    assert!(checked.reads > 0);
+    assert_eq!(
+        checked.refusals,
+        BTreeMap::from([("Books".to_string(), 1), ("Entries".to_string(), 2)]),
+        "Books deleted while an entry refers to it; Entries referring to no book, and past \
+         its bound"
+    );
+    eprintln!(
+        "conformance: the guestbook's tables, {} reads checked, refusals {:?}",
+        checked.reads, checked.refusals
+    );
 }
 
-/// **The suite holds for the lists app's tables** (`Lists`, `Items`).
+/// **The suite holds for the lists app's tables** (`Lists`, `Items`), on
+/// the memory adapter: every table refused at least once.
 #[test]
 fn the_suite_holds_for_the_lists_apps_tables() {
     let mut sources = super::tables::TABLES.to_vec();
     sources.push("examples/tables/app.pw");
     let (_dir, out) = build_of(&sources);
-    let checked = conformance(&out, || {
-        Server::from_build(out.clone(), out.clone()).asserted("served")
-    });
-    assert!(checked > 0);
-    eprintln!("conformance: the lists app's tables, {checked} reads checked");
+    let checked = conformance(&out, &memory);
+    assert!(checked.reads > 0);
+    assert_eq!(
+        checked.refusals,
+        BTreeMap::from([("Items".to_string(), 1), ("Lists".to_string(), 2)]),
+        "Items referring to no list; Lists deleted while an item refers to it, and past its \
+         bound"
+    );
+    eprintln!(
+        "conformance: the lists app's tables, {} reads checked, refusals {:?}",
+        checked.reads, checked.refusals
+    );
 }
 
 /// **Part 5, idempotency**: each command of the guestbook that declares
 /// `idempotent_by`, sent again with its interaction, is answered as it was
 /// and writes nothing more (the lists app declares none). Through the
 /// server's command route, which answers a retry from the record its
-/// commit kept with its rows.
+/// commit kept with its rows; on the layer under test, memory's.
 #[test]
 fn each_idempotent_command_sent_again_is_answered_once() {
     let (_dir, out) = build_of(&["examples/guestbook"]);
-    let s = Server::from_build(out.clone(), out.clone()).asserted("served");
+    let s = served_by(&out, &memory);
     let idempotent: Vec<String> = s
         .contracts
         .iter()
@@ -900,12 +1092,15 @@ fn each_idempotent_command_sent_again_is_answered_once() {
 }
 
 /// The table calls `query`, given `args`, made through the server's own
-/// path (`Server::answer`, its reads counted as `/metrics` counts them).
-fn table_calls(s: &Server, query: &str, args: &[Val]) -> BTreeMap<String, u64> {
+/// path (`Server::answer`, its reads counted as `/metrics` counts them),
+/// and the statements its layer's adapter ran for them.
+fn table_calls(s: &Server, query: &str, args: &[Val]) -> (BTreeMap<String, u64>, u64) {
     let before = s.calls.lock().expect("calls").clone();
+    let ran = statements(s);
     s.answer(query, "conformance", args).asserted(query);
+    let ran = statements(s) - ran;
     let after = s.calls.lock().expect("calls").clone();
-    after
+    let calls = after
         .into_iter()
         .filter(|(op, _)| pw_host::tables::is_table_import(op))
         .map(|(op, n)| {
@@ -913,14 +1108,17 @@ fn table_calls(s: &Server, query: &str, args: &[Val]) -> BTreeMap<String, u64> {
             (op, n - was)
         })
         .filter(|(_, n)| *n > 0)
-        .collect()
+        .collect();
+    (calls, ran)
 }
 
 /// **Each query of a program reads its tables a fixed number of times,
 /// whatever they hold** (part 2, for the programs' own reads: 4b's pins,
 /// counted at two sizes): its calls of each table function at 3 rows a
 /// table and at 24 are the same, one each, a set form's one call for every
-/// key it is given, so no query reads once a row.
+/// key it is given, so no query reads once a row; and the statements its
+/// layer's adapter runs for them, counted below the layer, are the same at
+/// both sizes, one a call on memory's.
 #[test]
 fn each_query_reads_its_tables_a_fixed_number_of_times_at_two_sizes() {
     let mut sources = super::tables::TABLES.to_vec();
@@ -928,6 +1126,9 @@ fn each_query_reads_its_tables_a_fixed_number_of_times_at_two_sizes() {
     let (_lists_dir, lists) = build_of(&sources);
     let (_book_dir, book) = build_of(&["examples/guestbook"]);
     let text = |s: &str| Val::String(s.into());
+    // The reader's handle, as the platform makes it for the session the
+    // pins read as: its guest's, from the session's digest.
+    let reader = crate::identity::guest_user("conformance");
     let pins: Vec<(&std::path::Path, &str, Vec<Val>, Vec<&str>)> = vec![
         (
             &lists,
@@ -962,27 +1163,24 @@ fn each_query_reads_its_tables_a_fixed_number_of_times_at_two_sizes() {
         (
             &book,
             "guestbook.book.Latest",
-            vec![text("u-conformance"), Val::S64(20)],
+            vec![text(&reader), Val::S64(20)],
             vec!["pw:tables/entries#of-book"],
         ),
-        (
-            &book,
-            "guestbook.book.Me",
-            vec![text("u-conformance")],
-            vec![],
-        ),
+        (&book, "guestbook.book.Me", vec![text(&reader)], vec![]),
     ];
     for n in [3, 24] {
         for (build, query, args, reads) in &pins {
-            let s = Server::from_build(build.to_path_buf(), build.to_path_buf()).asserted("served");
+            let s = served_by(build, &memory);
             let tables = tables_of(build);
             written(&s, &tables, &generated(&tables, n, 0));
             let expected: BTreeMap<String, u64> =
                 reads.iter().map(|op| (op.to_string(), 1)).collect();
+            let (calls, ran) = table_calls(&s, query, args);
+            assert_eq!(calls, expected, "{query} at {n} rows a table");
             assert_eq!(
-                table_calls(&s, query, args),
-                expected,
-                "{query} at {n} rows a table"
+                ran,
+                reads.len() as u64,
+                "{query} at {n} rows a table: one statement of the adapter a call"
             );
         }
     }

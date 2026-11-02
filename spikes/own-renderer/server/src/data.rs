@@ -12,6 +12,37 @@ use std::collections::BTreeSet;
 /// Operations by their key, `store:data/carts#add`.
 pub(crate) type Ops = BTreeMap<String, HostFn>;
 
+/// **The request a layer's operations answer for** (track `data-path`, the
+/// integrator's ruling of 2026-11-02): its session, and the handle a program
+/// holds that session by ([`crate::identity::session_handle`]), never the
+/// cookie. An operation a program passes its session to is passed the
+/// handle, and reads the reader of the request's session, of no other.
+#[derive(Clone)]
+pub(crate) struct Requested {
+    session: String,
+    handle: String,
+}
+
+impl Requested {
+    /// The request of `session`.
+    pub(crate) fn by(session: &str) -> Requested {
+        Requested {
+            session: session.to_string(),
+            handle: crate::identity::session_handle(session),
+        }
+    }
+
+    /// **The request's session, where `handle` is its handle**; refused
+    /// where it is not, as the component would act for someone else.
+    pub(crate) fn session(&self, op: &str, handle: &str) -> Result<&str, String> {
+        if handle == self.handle {
+            Ok(&self.session)
+        } else {
+            Err(format!("{op} was passed another session"))
+        }
+    }
+}
+
 /// **One render's snapshot of a layer** (NEXT 4c, track `render-merge`):
 /// the layer's own value, which the host holds for the render and hands back
 /// with each query's reads ([`DataLayer::reads_in`]), and drops when the
@@ -271,15 +302,23 @@ pub(crate) trait Staged {
 
     /// **What it staged, made part of the materializer's transaction**
     /// (track `data-path`): called as that transaction's last step, after
-    /// the command's state rows, its interaction's record and its runs are
-    /// written in it, and before it commits; an error rolls all of them
-    /// back. A layer whose writes are published here keeps no record of a
-    /// write no reader sees, and no write without its records. By default
-    /// nothing: a hand-written memory layer publishes in [`Staged::publish`],
-    /// which cannot fail.
+    /// the command's state rows, its interaction's record, its runs and its
+    /// outbox are written in it, immediately before its COMMIT
+    /// (`Materializer::command_then`); an error rolls all of them back. A
+    /// layer whose writes are published here keeps no record of a write no
+    /// reader sees, and no write without its records. By default nothing: a
+    /// hand-written memory layer publishes in [`Staged::publish`], which
+    /// cannot fail.
     fn publish_within(&mut self) -> Result<(), String> {
         Ok(())
     }
+
+    /// **The materializer's COMMIT failed after [`Staged::publish_within`]
+    /// published** (track `data-path`): the records of what it published
+    /// are lost, and a reader may have read it already. A layer that
+    /// published there fails closed, so no reader goes on reading a write
+    /// without its records; by default nothing, as nothing was published.
+    fn unpublished(&mut self, _why: &str) {}
     /// What the commit writes in the materializer's transaction, by key, or
     /// none where nothing was written.
     fn rows(&self) -> Option<Vec<(String, String)>>;

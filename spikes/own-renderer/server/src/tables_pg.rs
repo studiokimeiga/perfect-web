@@ -106,37 +106,42 @@ pub(crate) struct TablesPg {
 }
 
 impl TablesPg {
+    /// **The layer for what `pw build` built, on `database`**, where the
+    /// program's contracts import its tables; none where they import none,
+    /// whose host serves the program as before and leaves the database
+    /// unused.
+    pub(crate) fn for_build(
+        build: &std::path::Path,
+        database: &Database,
+    ) -> Result<Option<TablesPg>, String> {
+        let path = build.join("contracts.json");
+        let contracts = std::fs::read_to_string(&path)
+            .map_err(|e| format!("{}: {e}", path.display()))
+            .and_then(|text| {
+                ComponentContract::from_json(&text).map_err(|e| format!("contracts.json: {e}"))
+            })?;
+        if !tables::imports_tables(&contracts) {
+            return Ok(None);
+        }
+        TablesPg::from_build(build, &contracts, database).map(Some)
+    }
+
     /// **The layer for a build whose contracts import its tables**, on
     /// `database`: its `tables.json` applied to the database or held to what
-    /// was applied there (ADR-0393's migration, drift refused). Refused
-    /// where a contract imports a hand-written layer's operation beside its
-    /// tables, as the memory layer refuses it (T1's, ADR-0338 5.1).
+    /// was applied there (ADR-0393's migration, drift refused). Refused,
+    /// before the database is touched, where the build's tables may not be
+    /// served, as the memory layer refuses them (`tables::servable`: a
+    /// hand-written layer's operation beside them, a row's field of a
+    /// handle's type, an upload).
     pub(crate) fn from_build(
         build: &std::path::Path,
         contracts: &[ComponentContract],
         database: &Database,
     ) -> Result<TablesPg, String> {
-        if let Some((component, import)) = contracts.iter().find_map(|c| {
-            c.imports
-                .iter()
-                .find(|i| {
-                    i.kind == pw_host::ImportKind::HostCapability && !i.interface.starts_with("pw:")
-                })
-                .map(|i| (c.component_id.clone(), i.key()))
-        }) {
-            return Err(format!(
-                "`{component}` imports `{import}`, a hand-written data layer's, and the program \
-                 declares its tables: one host serves one layer of a program until its sources \
-                 are routed apart (ADR-0338 5.1)"
-            ));
-        }
+        tables::servable(build, contracts)?;
         let path = build.join("tables.json");
-        let text = std::fs::read_to_string(&path).map_err(|e| {
-            format!(
-                "{}: {e}: the program imports its tables' functions and its build declares none",
-                path.display()
-            )
-        })?;
+        let text =
+            std::fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
         let options = pw_table_postgres::Options {
             render_seats: database.seats.seats,
             seat_wait: database.seats.wait,
@@ -151,8 +156,8 @@ impl TablesPg {
             .names()
             .flat_map(|table| {
                 [
-                    interned(format!("database.read<{table}>")),
-                    interned(format!("database.write<{table}>")),
+                    tables::interned(format!("database.read<{table}>")),
+                    tables::interned(format!("database.write<{table}>")),
                 ]
             })
             .collect();
@@ -174,23 +179,6 @@ impl TablesPg {
     pub(crate) fn schema(&self) -> &str {
         self.tables.schema()
     }
-}
-
-/// **A capability as the node's grants hold it**, each kept once a process,
-/// as the memory layer keeps its own (`tables.rs`).
-fn interned(capability: String) -> &'static str {
-    static INTERNED: std::sync::OnceLock<Mutex<std::collections::BTreeSet<&'static str>>> =
-        std::sync::OnceLock::new();
-    let mut kept = INTERNED
-        .get_or_init(Default::default)
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner());
-    if let Some(found) = kept.get(capability.as_str()) {
-        return found;
-    }
-    let leaked: &'static str = Box::leak(capability.into_boxed_str());
-    kept.insert(leaked);
-    leaked
 }
 
 /// **A render's snapshot of the tables** (NEXT 4c): the adapter's seat,
@@ -732,13 +720,6 @@ impl Staged for PgStaging<'_> {
             Ok(prepared) => prepared,
             Err(e) => return self.refuse(format!("the tables refused the commit: {e:?}")),
         };
-        #[cfg(test)]
-        if crate::tables::FAIL_NEXT_PUBLISH.with(|fail| fail.replace(false)) {
-            // A test's: the commit refused as the database refuses it, its
-            // transaction undone as the prepared command is dropped.
-            drop(prepared);
-            return self.refuse("the tables did not commit: a test's refusal".into());
-        }
         let committed = match prepared.publish_with(Records {
             interaction: interaction.map(|r| pw_table_postgres::Interaction {
                 key: r.key,

@@ -189,6 +189,98 @@ fn an_additive_change_is_made_and_keeps_every_row() {
     );
 }
 
+/// A table a change adds, referring to a table held before it.
+const PETS: &str = "module Pets
+
+import Owners.{ OwnerId }
+import Owners
+import Kennels.{ KennelId }
+import Kennels
+
+opaque type PetName = String where String.length(value) >= 1 & String.length(value) <= 12
+
+type Pet = Pet { owner: OwnerId, name: PetName, kennel: KennelId }
+
+table Pets
+    row     Pet
+    key     owner, name
+    refers  owner to Owners
+    refers  kennel to Kennels
+";
+
+/// A table the same change adds, which [`PETS`] refers to.
+const KENNELS: &str = "module Kennels
+
+opaque type KennelId = String where String.length(value) >= 1 & String.length(value) <= 12
+
+type Kennel = Kennel { id: KennelId }
+
+table Kennels
+    row     Kennel
+    key     id
+";
+
+/// **A table a change adds may refer to a table the database holds, and to
+/// one added with it** (the review of PR #66). Each added table was shaped
+/// alone, so its references resolved against nothing and the start was
+/// refused (`unknown referenced table Owners`) though the build was whole.
+#[test]
+fn a_table_added_may_refer_to_a_table_held_and_to_one_added_with_it() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "added-refers");
+    drop(seeded(&scratch));
+    let data = THING_DATA
+        .replace(
+            "import Things\n",
+            "import Things\nimport Kennels\nimport Pets\n",
+        )
+        .replace(
+            "holds        Owners, Things\n",
+            "holds        Owners, Things, Kennels, Pets\n",
+        );
+    let v2 = build(
+        &[
+            ("Owners.pw", OWNERS),
+            ("Things.pw", THINGS),
+            ("Kennels.pw", KENNELS),
+            ("Pets.pw", PETS),
+            ("ThingData.pw", &data),
+        ],
+        None,
+    )
+    .tables;
+    let opened = open(&scratch, v2);
+    assert!(
+        opened.is_ok(),
+        "the added tables made: {:?}",
+        opened.as_ref().err()
+    );
+    let tables = opened.assert_ok("the added tables made");
+    tables
+        .transaction(|tx| {
+            tx.write("pw:tables/kennels#insert", &[json!({"id": "k1"})])?;
+            tx.write(
+                "pw:tables/pets#insert",
+                &[json!({"owner": "a", "name": "rex", "kennel": "k1"})],
+            )
+        })
+        .assert_ok("a pet of an owner held, in a kennel added with it");
+    let refused = tables.transaction(|tx| {
+        tx.write(
+            "pw:tables/pets#insert",
+            &[json!({"owner": "nobody", "name": "rex", "kennel": "k1"})],
+        )
+    });
+    assert!(
+        format!("{refused:?}").contains("references a missing Owners"),
+        "{refused:?}"
+    );
+    let got = tables
+        .read("pw:tables/pets#get", &[json!("a"), json!("rex")])
+        .assert_ok("the pet kept");
+    assert_eq!(got["kennel"], json!("k1"));
+}
+
 /// The destructive change of [`destructive`]: a field dropped, a field
 /// renamed, a field retyped, a field added that is no `Option`.
 fn destructive(t: &str, stated: bool) -> String {
