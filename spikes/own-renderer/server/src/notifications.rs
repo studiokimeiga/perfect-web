@@ -371,7 +371,7 @@ mod tests {
             refused
                 .as_ref()
                 .is_err_and(|why| why.contains("reader's own handle")),
-            "{refused:?}"
+            "another user's handle is refused as no handle of the reader's own"
         );
     }
 

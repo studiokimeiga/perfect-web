@@ -479,11 +479,17 @@ pub(super) fn kept_by_host(s: &Server, cookie: &str) -> String {
 
 /// **No session in `cookies` is in `kept`**, as written or in hex.
 pub(super) fn holds_none_of(kept: &str, cookies: &[&str]) {
-    for secret in cookies {
-        for written in [secret.to_string(), crate::identity::hex(secret.as_bytes())] {
+    // The message names the cookie's form and never the cookie: a failing
+    // run's log is kept, and a cookie in it is the leak this test refuses.
+    for (n, cookie) in cookies.iter().enumerate() {
+        let forms = [
+            ("as written", cookie.to_string()),
+            ("in hex", crate::identity::hex(cookie.as_bytes())),
+        ];
+        for (form, written) in forms {
             assert!(
                 !kept.contains(&written),
-                "the host keeps or logs a session's cookie, `{written}`"
+                "the host keeps or logs session cookie {n} {form}"
             );
         }
     }
