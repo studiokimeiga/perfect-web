@@ -43,6 +43,10 @@ function loader(fetch, speculate = false, speculationUrl = null) {
     },
     held: () => ({ wasm, rendererLoaded, speculationModule, speculationOwner }) })`, {
     fetch, WebAssembly, log: [], wasm: null, speculationModule: null, speculationOwner: null,
+    // The runtime's `asset` as a development server has it (no build
+    // version, so every address is as it was): the real one reads
+    // `import.meta.url`, which a script context has not (track deploy).
+    asset: (path, extra = "") => (extra ? `${path}?${extra}` : path),
     speculationLoaded: speculationUrl ? null : module,
     TextEncoder, TextDecoder, Uint8Array, withTemplates: (request) => request,
     parts: { speculation: speculationUrl ?? "unused-cached-js-module", regions: {}, blocks: { 1: {} } },
