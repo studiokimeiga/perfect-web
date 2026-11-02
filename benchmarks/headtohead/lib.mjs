@@ -140,8 +140,9 @@ export function machine() {
 
 // --- processes ------------------------------------------------------------------------
 
-const TICK_MS = 1000 / Number(spawnSync("getconf", ["CLK_TCK"], { encoding: "utf8" }).stdout.trim() || 100);
-const PAGE_KIB = Number(spawnSync("getconf", ["PAGESIZE"], { encoding: "utf8" }).stdout.trim() || 4096) / 1024;
+/** /proc's CPU clock, a tick (10 ms at CLK_TCK 100), and its memory's page. */
+export const TICK_MS = 1000 / Number(spawnSync("getconf", ["CLK_TCK"], { encoding: "utf8" }).stdout.trim() || 100);
+export const PAGE_KIB = Number(spawnSync("getconf", ["PAGESIZE"], { encoding: "utf8" }).stdout.trim() || 4096) / 1024;
 
 function children(pid) {
   try {

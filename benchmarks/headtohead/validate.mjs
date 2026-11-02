@@ -22,7 +22,10 @@
 //   interactive every interaction of every run took effect, in the document
 //               the run loaded;
 //   warm        a warm run of a stack whose host lets a cache keep its files
-//               did not download its main script again.
+//               did not download its main script again;
+//   server      the servers' measurements (a fixed load, idle visitors, a
+//               press with tabs open) as many runs a stack as each other
+//               and at least MIN_RUNS, none failed, every request answered.
 //
 // Each returns a list of problems, empty when the rule holds. `validate`
 // runs them all. The tests are `test/validate.test.mjs`; the mutation
@@ -217,6 +220,31 @@ export function checkWarm(runs, expect) {
     }
   }
   return [...new Set(problems)];
+}
+
+/**
+ * The servers' measurements are held as the pages' runs are (`checkRuns`):
+ * every stack the same number of runs of each, at least `minRuns`, so that
+ * each number is a median with its spread; a failed run is kept as the
+ * failure it was; and a fixed load's every request answered.
+ */
+export function validateServer({ app, stacks, loads = [], idle = [], presses = [], minRuns = MIN_RUNS }) {
+  const problems = [];
+  for (const [kind, list] of [["load", loads], ["idle", idle], ["press", presses]]) {
+    const counts = new Map(stacks.map((s) => [s, 0]));
+    for (const r of list) {
+      counts.set(r.stack, (counts.get(r.stack) ?? 0) + 1);
+      if (r.error) problems.push(`${kind}: ${app}/${r.stack} round ${r.i}: the measurement failed: ${r.error}`);
+      else if (kind === "load" && r.answered < r.sent) {
+        problems.push(`load: ${app}/${r.stack} round ${r.i}: ${r.sent - r.answered} of ${r.sent} requests went unanswered`);
+      }
+    }
+    for (const [s, n] of counts) {
+      if (n < minRuns) problems.push(`${kind}: ${app}/${s} has ${n} run(s), fewer than ${minRuns}`);
+    }
+    if (new Set(counts.values()).size > 1) problems.push(`${kind}: ${app}'s stacks have different run counts`);
+  }
+  return problems;
 }
 
 /** Every rule, for one app's runs: a list of problems, empty when the run may be reported. */

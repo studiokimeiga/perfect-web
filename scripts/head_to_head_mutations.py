@@ -41,6 +41,9 @@ VALIDATE = H2H / "validate.mjs"
 HOST = H2H / "static-host.mjs"
 LIB = H2H / "lib.mjs"
 REPORT = H2H / "report.mjs"
+MEASURE = H2H / "measure.mjs"
+LOAD = H2H / "load.mjs"
+CI_PLAN = ROOT / "scripts/ci_plan.py"
 FEATURE = H2H / "feature-change.mjs"
 MUSEUM = H2H / "museum-classes.mjs"
 LOC = ROOT / "scripts/head_to_head_loc.py"
@@ -106,7 +109,7 @@ MUTANTS = [
         "  const xs = values.map((v) => v ?? 0).sort((a, b) => a - b);",
     ),
     ("the stacks are visited in one order", LIB, "    const j = Math.floor(rand() * (i + 1));", "    const j = i;"),
-    ("an overlap of spreads is a loss", REPORT, '  if (a.q1 - b.q3 >= RESOLUTION_MS) return "loses";', '  if (a.median > b.median) return "loses";'),
+    ("an overlap of spreads is a loss", REPORT, '  if (a.q1 - b.q3 >= resolution) return "loses";', '  if (a.median > b.median) return "loses";'),
     ("a difference under the timer's resolution counts", REPORT, "export const RESOLUTION_MS = 1;", "export const RESOLUTION_MS = 0;"),
     ("an aborted request is counted as a response", REPORT, "    if (q.failed) {\n      out.aborted++;\n      continue;\n    }\n", ""),
     ("a row Pleris loses is not reported a loss", REPORT, "    if (beaten.length) losses.push(", "    if (false) losses.push("),
@@ -144,6 +147,48 @@ MUTANTS = [
         '            if got is None:\n                problems.append(f"{stack} in {engine}: no test ran")',
         "            if got is None:\n                got = {}",
     ),
+    # The independent review's (2026-11-02), each a wrong it found:
+    ("the shaping sends Lighthouse's packet-level round trip as a request's latency", MEASURE, "  latency: 150 * 3.75,", "  latency: 150,"),
+    (
+        "the report prints a profile it did not apply",
+        REPORT,
+        '    const shaped = profile && profile.name === network ? profile.describe : "its profile not recorded";',
+        '    const shaped = "latency 150 ms, 1.6 Mbit/s down, CPU x4";',
+    ),
+    (
+        "a server measurement of one run is accepted",
+        VALIDATE,
+        "      if (n < minRuns) problems.push(`${kind}: ${app}/${s} has ${n} run(s), fewer than ${minRuns}`);\n",
+        "",
+    ),
+    (
+        "a server's row is judged by its first run",
+        REPORT,
+        "          const s = summary(ok.filter((r) => r.stack === t.stack).map(f));",
+        "          const s = summary(ok.filter((r) => r.stack === t.stack).map(f).slice(0, 1));",
+    ),
+    (
+        "a server's difference under its instrument's resolution counts",
+        REPORT,
+        "  return Math.max(0.01, ...runs.map((r) => r.resolution?.[key] ?? 0));",
+        "  return 0;",
+    ),
+    (
+        "a win over the instrument's stand-in host counts",
+        REPORT,
+        '      return [v[0], verdict === "wins" && standIns.has(v[0]) ? "not compared: a stand-in" : verdict];',
+        "      return [v[0], verdict];",
+    ),
+    (
+        "twenty idle visitors share one browser context",
+        LOAD,
+        "      const context = await browser.newContext();\n      contexts.push(context);",
+        "      const context = contexts[0] ?? (await browser.newContext());\n      contexts.push(context);",
+    ),
+    ("an unsafe change's new warning is not read", FEATURE, "  return [...new Set(unsafe.map(unplaced))].filter((w) => !known.has(w));", "  return [];"),
+    ("a layout shift under a hundredth counts", REPORT, "export const CLS_RESOLUTION = 0.01;", "export const CLS_RESOLUTION = 0;"),
+    ("a module no page imports is counted", LOC, "    return [p for p in files if p in seen]", "    return list(files)"),
+    ("the head-to-head is fetched from a runner", CI_PLAN, '    "e14-head-to-head",\n', ""),
 ]
 
 NODE = "node"
@@ -180,6 +225,32 @@ WITNESSES = {
     "a Cypress test that fails is accepted": (PY, "test_a_test_that_fails_is_a_problem"),
     "a known gap that passes in an engine is accepted": (PY, "test_a_gap_that_passes_in_one_engine_is_a_problem"),
     "an engine that ran nothing is accepted": (PY, "test_an_engine_that_ran_nothing_is_a_problem"),
+    "the shaping sends Lighthouse's packet-level round trip as a request's latency": (
+        NODE,
+        "the Slow 4G profile is Lighthouse's as Lighthouse applies it through DevTools: 562.5 ms a request, the throughputs x 0.9",
+    ),
+    "the report prints a profile it did not apply": (NODE, "the report prints the shaping a run applied, from the run's own record"),
+    "a server measurement of one run is accepted": (NODE, "a server measurement of fewer runs than the rule asks, of different counts, or failed, is refused"),
+    "a server's row is judged by its first run": (
+        NODE,
+        "a server's rows are judged by their runs' spreads, apart by what their instrument tells apart, and never won against a stand-in",
+    ),
+    "a server's difference under its instrument's resolution counts": (
+        NODE,
+        "a server's rows are judged by their runs' spreads, apart by what their instrument tells apart, and never won against a stand-in",
+    ),
+    "a win over the instrument's stand-in host counts": (
+        NODE,
+        "a server's rows are judged by their runs' spreads, apart by what their instrument tells apart, and never won against a stand-in",
+    ),
+    "twenty idle visitors share one browser context": (NODE, "an idle visitor's page is in a browser context of its own, as separate people's browsers are"),
+    "an unsafe change's new warning is not read": (
+        NODE,
+        "a warning an unsafe change draws and its reference does not is read, wherever its line, and counts as the checker's catch",
+    ),
+    "a layout shift under a hundredth counts": (NODE, "a layout shift under a hundredth of the score is no difference"),
+    "a module no page imports is counted": (PY, "test_a_module_no_page_imports_is_not_counted"),
+    "the head-to-head is fetched from a runner": (PY, "test_the_head_to_head_is_recorded_on_the_development_machine"),
 }
 
 # How long one suite run may take before it is a hang: killed, and no kill.

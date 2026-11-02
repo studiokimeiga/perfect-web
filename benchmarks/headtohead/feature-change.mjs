@@ -16,10 +16,14 @@
 // - **what the stack's checker proves**: the stack's own checker (`pw
 //   check`, `tsc --noEmit`, `svelte-check`) run on the baseline with the
 //   setup and the reference (it must check clean), and with the setup and
-//   the unsafe change: refused (a code, a first error) or accepted. An
-//   accepted unsafe change is what a reviewer must find by reading, or a test
-//   someone wrote must catch: the task's hidden test did, in the harness's
-//   controls (`docs/evidence/E14/harness-T*.txt`, cited with their commit).
+//   the unsafe change: refused (a code, a first error) or accepted. Its
+//   warnings are read too: an accepted unsafe change that draws a warning
+//   its reference does not (svelte-check's accessibility warnings, say) was
+//   warned of, and counts with the refusals as the checker's catch. An
+//   unsafe change accepted with no new warning is what a reviewer must find
+//   by reading, or a test someone wrote must catch: the task's hidden test
+//   did, in the harness's controls (`docs/evidence/E14/harness-T*.txt`,
+//   cited with their commit).
 //
 // Each change is applied in place to the worktree's baseline, on the
 // dependencies the workspace installed (as `benchmarks/museum/museum.mjs`
@@ -155,6 +159,16 @@ function apply(patch, dir) {
 
 const ANSI = /\x1b\[[0-9;]*[A-Za-z]/g;
 
+/** A warning without its place (a line and column move as a change adds
+ * lines above it), so that the same warning is the same on both sides. */
+const unplaced = (w) => w.replace(/\b\d+:\d+\b/g, "").replace(/\s+/g, " ").trim();
+
+/** The warnings `unsafe` draws that `reference` does not, each once. */
+export function newWarnings(reference = [], unsafe = []) {
+  const known = new Set(reference.map(unplaced));
+  return [...new Set(unsafe.map(unplaced))].filter((w) => !known.has(w));
+}
+
 /** The stack's checker on its baseline as it stands: clean, or its first error. */
 export function runChecker(stack) {
   const dir = path.join(REPO, STACKS[stack].dir);
@@ -170,21 +184,30 @@ export function runChecker(stack) {
       ),
     ];
     const r = sh(pw, ["check", ...files]);
-    const error = r.out.replace(ANSI, "").split("\n").find((l) => /^error/.test(l.trim()));
-    return { clean: r.ok, error: r.ok ? null : (error ?? r.out.trim().split("\n")[0]).trim() };
+    const lines = r.out.replace(ANSI, "").split("\n").map((l) => l.trim());
+    const error = lines.find((l) => /^error/.test(l));
+    const warnings = lines.filter((l) => /^warning/.test(l));
+    return { clean: r.ok, error: r.ok ? null : (error ?? r.out.trim().split("\n")[0]).trim(), warnings };
   }
   if (stack === "next-react") {
     const r = sh("pnpm", ["--silent", "typecheck"], { cwd: dir });
     const error = r.out.replace(ANSI, "").split("\n").find((l) => /error TS\d+/.test(l));
-    return { clean: r.ok, error: r.ok ? null : (error ?? r.out.trim().split("\n")[0]).trim() };
+    // `tsc` has errors only.
+    return { clean: r.ok, error: r.ok ? null : (error ?? r.out.trim().split("\n")[0]).trim(), warnings: [] };
   }
   const r = sh("pnpm", ["--silent", "typecheck", "--output", "machine"], { cwd: dir });
   const summary = /(\d+) ERRORS (\d+) WARNINGS/.exec(r.out);
   const errors = summary ? Number(summary[1]) : null;
   const error = r.out.split("\n").find((l) => /\bERROR\b/.test(l) && !/ERRORS/.test(l));
+  // Its machine output: `<time> WARNING "<file>" <line>:<column> "<message>"`.
+  const warnings = r.out
+    .split("\n")
+    .filter((l) => /^\d+ WARNING /.test(l))
+    .map((l) => l.replace(/^\d+ /, "").trim());
   return {
     clean: r.ok && errors === 0,
     error: r.ok && errors === 0 ? null : (error ?? (summary ? summary[0] : r.out.trim().split("\n")[0])).trim(),
+    warnings,
   };
 }
 
@@ -236,6 +259,7 @@ export function collect({ checks = true } = {}) {
       if (checks) {
         cell.reference = checkWith(task, stack, "reference");
         cell.unsafe = checkWith(task, stack, "unsafe");
+        cell.unsafe.newWarnings = newWarnings(cell.reference.warnings, cell.unsafe.warnings);
       }
       row.stacks[stack] = cell;
       process.stderr.write(`  ${id} ${stack}: ${cell.pr.added}+/${cell.pr.removed}-${checks ? `; reference ${cell.reference.clean ? "clean" : "REFUSED"}; unsafe ${cell.unsafe.clean ? "accepted" : "refused"}` : ""}\n`);
@@ -250,7 +274,7 @@ export function render(result) {
   lines.push("each task's change in each stack: the pull request (reference patch, after the task's setup) and what the stack's checker says of it and of its unsafe version");
   lines.push("  checkers: " + Object.entries(result.checkers).map(([k, v]) => `${STACKS[k].label} ${v}`).join("; "));
   lines.push("  stage that caught the unsafe version in the harness's controls (docs/evidence/E14/harness-T*.txt) is shown with that evidence's commit");
-  const totals = Object.fromEntries(Object.keys(STACKS).map((s) => [s, { added: 0, removed: 0, files: 0, languages: new Set(), refused: 0, accepted: 0, cleanRefs: 0, n: 0 }]));
+  const totals = Object.fromEntries(Object.keys(STACKS).map((s) => [s, { added: 0, removed: 0, files: 0, languages: new Set(), refused: 0, warned: 0, accepted: 0, cleanRefs: 0, n: 0 }]));
   for (const row of result.rows) {
     lines.push(`  ${row.id} ${row.title} [${row.class}]`);
     for (const [stack, c] of Object.entries(row.stacks)) {
@@ -263,9 +287,16 @@ export function render(result) {
       let checker = "";
       if (c.reference) {
         if (c.reference.clean) t.cleanRefs++;
-        if (c.unsafe.clean) t.accepted++;
-        else t.refused++;
-        checker = `reference ${c.reference.clean ? "checks clean" : `REFUSED: ${c.reference.error}`}; unsafe ${c.unsafe.clean ? "ACCEPTED: a reviewer must find it" : `refused: ${c.unsafe.error}`}`;
+        const warned = c.unsafe.clean && (c.unsafe.newWarnings ?? []).length > 0;
+        if (!c.unsafe.clean) t.refused++;
+        else if (warned) t.warned++;
+        else t.accepted++;
+        const unsafe = !c.unsafe.clean
+          ? `refused: ${c.unsafe.error}`
+          : warned
+            ? `accepted, but WARNED of: ${c.unsafe.newWarnings[0]}`
+            : "ACCEPTED, with no warning its reference lacks: a reviewer must find it";
+        checker = `reference ${c.reference.clean ? "checks clean" : `REFUSED: ${c.reference.error}`}; unsafe ${unsafe}`;
       }
       const harness = c.harness ? `; harness caught it at ${c.harness.stage} (${c.harness.commit})` : "";
       lines.push(
@@ -287,8 +318,10 @@ export function render(result) {
     for (const [name, rows] of classes) {
       const per = Object.keys(STACKS).map((stack) => {
         const cells = rows.map((r) => [r.id, r.stacks[stack]]).filter(([, c]) => c?.unsafe);
-        const proved = cells.filter(([, c]) => !c.unsafe.clean).map(([id, c]) => `${id} ${(/\[(PW\d+)\]/.exec(c.unsafe.error) ?? [])[1] ?? "refused"}`);
-        const left = cells.filter(([, c]) => c.unsafe.clean).map(([id]) => id);
+        const proved = cells
+          .filter(([, c]) => !c.unsafe.clean || (c.unsafe.newWarnings ?? []).length)
+          .map(([id, c]) => `${id} ${c.unsafe.clean ? "a warning" : ((/\[(PW\d+)\]/.exec(c.unsafe.error) ?? [])[1] ?? "refused")}`);
+        const left = cells.filter(([, c]) => c.unsafe.clean && !(c.unsafe.newWarnings ?? []).length).map(([id]) => id);
         return `${STACKS[stack].label}: ${proved.length ? `checker proves ${proved.join(", ")}` : "checker proves none"}${left.length ? `; reviewer: ${left.join(", ")}` : ""}`;
       });
       lines.push(`    ${name} (${rows.map((r) => r.id).join(", ")}): ${per.join(" | ")}`);
@@ -299,7 +332,7 @@ export function render(result) {
     lines.push(
       `    ${STACKS[stack].label.padEnd(10)} ${t.n} changes: +${t.added} -${t.removed} lines, ${t.files} file(s) touched, languages ${[...t.languages].sort().join(", ")}` +
         (checked
-          ? `; references clean ${t.cleanRefs}/${t.n}; unsafe versions refused by the checker ${t.refused}/${t.n}, left to a reviewer ${t.accepted}/${t.n}`
+          ? `; references clean ${t.cleanRefs}/${t.n}; unsafe versions refused by the checker ${t.refused}/${t.n}, warned of ${t.warned}/${t.n}, left to a reviewer ${t.accepted}/${t.n}`
           : "; checkers not run (--no-checks)"),
     );
   }

@@ -5,6 +5,7 @@
 //   node benchmarks/headtohead/head-to-head.mjs [--apps todomvc,store]
 //        [--engines chromium,firefox,webkit] [--runs 7] [--conditions cold,warm]
 //        [--no-shaped] [--seed 20261025] [--load-rate 100] [--load-seconds 10]
+//        [--server-runs 5]
 //        [--no-load] [--stacks pleris,react] [--json out.json]
 //
 // It measures, it does not build: `just e14-head-to-head` builds each stack
@@ -17,8 +18,11 @@
 // 2. in each engine, for each condition (cold, warm), `runs` rounds, each
 //    visiting every stack once in an order shuffled from the seed and the
 //    round (printed): one load and the app's interactions (`measure.mjs`);
-//    then, in Chromium alone, the same under Lighthouse's "Slow 4G" shaping;
-// 3. each server under a fixed load (`load.mjs`);
+//    then, in Chromium alone, the same under Lighthouse's "Slow 4G" shaping
+//    as Lighthouse applies it through DevTools (`measure.mjs`'s SLOW_4G);
+// 3. each server, `serverRuns` rounds in shuffled orders: under a fixed load,
+//    twenty idle visitors, and a press with nineteen other tabs of the app
+//    open in one browser (`load.mjs`);
 // 4. every rule of `validate.mjs`: a run that breaks one is not reported
 //    as measured, and this exits 1 with the problems;
 // 5. the report: the machine and versions, what each stack is and who wrote
@@ -31,12 +35,15 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { idleCost, load, sessions } from "./load.mjs";
+import { idleCost, load, pressWithTabsOpen, sessions } from "./load.mjs";
 import { HERE, REPO, machine, playwright, playwrightVersion, shuffled, startServer, summary } from "./lib.mjs";
 import { SLOW_4G, measureOnce } from "./measure.mjs";
 import { APPS, PW_SERVER, target } from "./targets.mjs";
-import { MIN_RUNS, validate } from "./validate.mjs";
+import { MIN_RUNS, validate, validateServer } from "./validate.mjs";
 import { lossesFirst, renderReport } from "./report.mjs";
+
+/** How often a press's change is looked for: what its time can tell apart. */
+const PRESS_POLL_MS = 10;
 
 function parseArgs(argv) {
   const a = {
@@ -49,6 +56,7 @@ function parseArgs(argv) {
     loadRate: 100,
     settleSeconds: 120,
     loadSeconds: 10,
+    serverRuns: 5,
     load: true,
     stacks: null,
     json: null,
@@ -64,6 +72,7 @@ function parseArgs(argv) {
     else if (k === "--seed") a.seed = Number(v());
     else if (k === "--load-rate") a.loadRate = Number(v());
     else if (k === "--load-seconds") a.loadSeconds = Number(v());
+    else if (k === "--server-runs") a.serverRuns = Number(v());
     else if (k === "--no-load") a.load = false;
     else if (k === "--settle") a.settleSeconds = Number(v());
     else if (k === "--stacks") a.stacks = v().split(",");
@@ -101,8 +110,9 @@ async function measureApp(appName, args, log) {
   const servers = {};
   const runs = [];
   const browsers = {};
-  const loads = {};
-  const idle = {};
+  const loads = [];
+  const idle = [];
+  const presses = [];
   try {
     for (const t of targets) {
       if (t.server.cmd === PW_SERVER && !fs.existsSync(PW_SERVER)) {
@@ -147,51 +157,71 @@ async function measureApp(appName, args, log) {
       log(`  ${appName}: ${block.engine} ${block.condition}${block.network ? ` ${block.network.name}` : ""}: ${args.runs} rounds of ${stackNames.length}`);
     }
     if (args.load) {
-      for (const t of targets) {
-        const url = t.url;
-        try {
-          const cookies = appName === "store" ? await sessions(url, 20) : [""];
-          loads[t.stack] = await load({ pid: servers[t.stack].pid, url, rate: args.loadRate, seconds: args.loadSeconds, cookies });
-          log(`  ${appName}: ${t.stack} under ${args.loadRate}/s for ${args.loadSeconds} s`);
-        } catch (e) {
-          loads[t.stack] = { error: String(e?.message ?? e).split("\n")[0] };
-          log(`  ${appName}: ${t.stack}: the fixed load FAILED: ${loads[t.stack].error}`);
-        }
-      }
-      const browser = await chromium.launch();
-      try {
-        for (const t of targets) {
-          const ready = (page) =>
-            t.ready === "pw"
-              ? page.waitForFunction(() => document.documentElement.dataset.pwReady === "1")
-              : page.locator(t.appSelector).waitFor({ state: "attached" });
-          // The app's first interaction, timed from the press to the change
-          // on the page (the instrument's own clock: no page observers here).
-          const step = t.interactions[0];
-          const press = async (page) => {
-            const arg = step.before ? await step.before(page) : step.arg;
-            const started = performance.now();
-            await step.run(page);
-            await page.waitForFunction(
-              ([cond, a]) => {
-                if (cond === "todos") return document.querySelectorAll(".todo-list li").length === a;
-                if (cond === "count") return document.querySelector("#cart-count")?.textContent.trim() === a;
-                return false;
-              },
-              [step.cond, arg],
-              { timeout: 30_000, polling: 10 },
-            );
-            return performance.now() - started;
-          };
+      // Each server measurement `serverRuns` times, as the pages' are: every
+      // stack once a round, in an order shuffled from the seed and the round
+      // (kept with each run), so that each number is a median with its
+      // spread, never one run, and no stack is always measured first.
+      const rounds = (salt) => Array.from({ length: args.serverRuns }, (_, i) => shuffled(stackNames, args.seed + salt + i * 7919));
+      const visitors = {};
+      for (const t of targets) visitors[t.stack] = appName === "store" ? await sessions(t.url, 20) : [""];
+      for (const [i, order] of rounds(15485863).entries()) {
+        for (const stack of order) {
+          const t = targets.find((x) => x.stack === stack);
+          const cell = { app: appName, stack, i, order: order.join(" ") };
           try {
-            idle[t.stack] = await idleCost({ browser, url: t.url, pid: servers[t.stack].pid, pages: 20, seconds: 10, ready, press });
-            log(`  ${appName}: ${t.stack}: 20 idle pages for 10 s`);
+            loads.push({ ...cell, ...(await load({ pid: servers[stack].pid, url: t.url, rate: args.loadRate, seconds: args.loadSeconds, cookies: visitors[stack] })) });
           } catch (e) {
             // Kept as a failure, which the rules refuse; the rest is reported.
-            idle[t.stack] = { error: String(e?.message ?? e).split("\n")[0] };
-            log(`  ${appName}: ${t.stack}: idle pages FAILED: ${idle[t.stack].error}`);
+            loads.push({ ...cell, error: String(e?.message ?? e).split("\n")[0] });
+            log(`  ${appName}: ${stack}: the fixed load, round ${i}, FAILED: ${loads.at(-1).error}`);
           }
         }
+      }
+      log(`  ${appName}: ${args.serverRuns} rounds of ${stackNames.length} under ${args.loadRate}/s for ${args.loadSeconds} s`);
+      const browser = await chromium.launch();
+      try {
+        for (const [i, order] of rounds(32452843).entries()) {
+          for (const stack of order) {
+            const t = targets.find((x) => x.stack === stack);
+            const cell = { app: appName, stack, i, order: order.join(" ") };
+            const ready = (page) =>
+              t.ready === "pw"
+                ? page.waitForFunction(() => document.documentElement.dataset.pwReady === "1")
+                : page.locator(t.appSelector).waitFor({ state: "attached" });
+            // The app's first interaction, timed from the press to the change
+            // on the page (the instrument's own clock: no page observers here),
+            // to the change's polling, PRESS_POLL_MS.
+            const step = t.interactions[0];
+            const press = async (page) => {
+              const arg = step.before ? await step.before(page) : step.arg;
+              const started = performance.now();
+              await step.run(page);
+              await page.waitForFunction(
+                ([cond, a]) => {
+                  if (cond === "todos") return document.querySelectorAll(".todo-list li").length === a;
+                  if (cond === "count") return document.querySelector("#cart-count")?.textContent.trim() === a;
+                  return false;
+                },
+                [step.cond, arg],
+                { timeout: 30_000, polling: PRESS_POLL_MS },
+              );
+              return performance.now() - started;
+            };
+            try {
+              idle.push({ ...cell, ...(await idleCost({ browser, url: t.url, pid: servers[stack].pid, pages: 20, seconds: 10, ready })) });
+            } catch (e) {
+              idle.push({ ...cell, error: String(e?.message ?? e).split("\n")[0] });
+              log(`  ${appName}: ${stack}: idle visitors, round ${i}, FAILED: ${idle.at(-1).error}`);
+            }
+            try {
+              presses.push({ ...cell, ...(await pressWithTabsOpen({ browser, url: t.url, tabs: 20, settleSeconds: 4, ready, press, resolutionMs: PRESS_POLL_MS })) });
+            } catch (e) {
+              presses.push({ ...cell, error: String(e?.message ?? e).split("\n")[0] });
+              log(`  ${appName}: ${stack}: a press with tabs open, round ${i}, FAILED: ${presses.at(-1).error}`);
+            }
+          }
+        }
+        log(`  ${appName}: ${args.serverRuns} rounds of ${stackNames.length}: 20 idle visitors for 10 s, then a press with 19 other tabs open`);
       } finally {
         await browser.close();
       }
@@ -207,14 +237,8 @@ async function measureApp(appName, args, log) {
     }
   }
   const problems = validate({ runs, targets, network: args.shaped ? SLOW_4G : null, minRuns: MIN_RUNS, manifest, sources });
-  for (const [stack, i] of Object.entries(idle)) {
-    if (i.error) problems.push(`idle: ${appName}/${stack}: the open pages' measurement failed: ${i.error}`);
-  }
-  for (const [stack, l] of Object.entries(loads)) {
-    if (l.error) problems.push(`load: ${appName}/${stack}: the fixed load failed: ${l.error}`);
-    else if (l.answered < l.sent) problems.push(`load: ${appName}/${stack}: ${l.sent - l.answered} of ${l.sent} requests went unanswered`);
-  }
-  return { app: appName, title: app.title, targets: targets.map(describe), runs, loads, idle, browsers, problems };
+  if (args.load) problems.push(...validateServer({ app: appName, stacks: stackNames, loads, idle, presses, minRuns: MIN_RUNS }));
+  return { app: appName, title: app.title, targets: targets.map(describe), runs, loads, idle, presses, browsers, problems };
 }
 
 /** Waits, at most `seconds`, for the one-minute load average to fall below a
@@ -275,6 +299,7 @@ function describe(t) {
     url: t.url,
     ready: t.ready,
     expect: t.expect,
+    standIn: t.standIn,
     common: t.common.map(String),
     server: {
       name: t.server.name,
@@ -311,6 +336,9 @@ async function main() {
     playwright: playwrightVersion(),
     args: { ...args, json: args.json ? path.relative(REPO, args.json) : null },
     minRuns: MIN_RUNS,
+    // The shaping applied, as it was sent: the report prints this, never a
+    // copy of its numbers.
+    network: args.shaped ? SLOW_4G : null,
   };
   const apps = [];
   for (const app of args.apps) {

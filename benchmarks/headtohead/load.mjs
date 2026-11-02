@@ -15,7 +15,7 @@
 // so its own work is not counted.
 
 import http from "node:http";
-import { summary, treeCost } from "./lib.mjs";
+import { PAGE_KIB, TICK_MS, summary, treeCost } from "./lib.mjs";
 
 /** One request: its status and when it ended, or its error. */
 function request(agent, url, headers) {
@@ -98,6 +98,9 @@ export async function load({ pid, url, rate = 100, seconds = 10, warmup = 50, co
       return xs.length ? xs[Math.min(xs.length - 1, Math.floor(xs.length * 0.99))] : null;
     })(),
     cpuMsPerRequest: ok.length ? (after.cpuMs - before.cpuMs) / ok.length : null,
+    // What this run can tell apart (`report.mjs` judges by it): the CPU
+    // clock's tick over the requests answered; Node's clock; a page.
+    resolution: { cpuMsPerRequest: ok.length ? TICK_MS / ok.length : null, latencyMs: 0.001, rssMiB: PAGE_KIB / 1024 },
     rssMiB: {
       before: before.rssKiB / 1024,
       peak: peak / 1024,
@@ -107,45 +110,78 @@ export async function load({ pid, url, rate = 100, seconds = 10, warmup = 50, co
   };
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 /**
- * What open pages cost a server while nobody touches them: `pages` tabs of
- * the app, each loaded and left alone (a person reading), for `seconds`. The
- * server's CPU over that window, and the requests the pages made in it (a
- * page that keeps a live connection asks again whenever its server closes
- * one). A stack whose pages ask nothing while idle costs its server nothing.
+ * What open pages cost a server while nobody touches them: `pages` visitors,
+ * each page in a browser context of its own, loaded and left alone (a person
+ * reading) for `seconds`. The server's CPU over that window, and the
+ * requests the pages made in it (a page that keeps a live connection asks
+ * again whenever its server closes one). A stack whose pages ask nothing
+ * while idle costs its server nothing.
+ *
+ * A context of its own for each, as separate people's browsers are: one
+ * context's pages share its six connections to a host over HTTP/1.1, so
+ * twenty tabs of one browser can hold no more than six requests open, and
+ * what they cost their server is that cap's, not the pages' (until
+ * 2026-11-02 this measured one context: 29 requests in 10 s, the six
+ * connections' ceiling for streams held two seconds each). One person's
+ * tabs sharing their connections is `pressWithTabsOpen`'s question.
  */
-export async function idleCost({ browser, url, pid, pages = 20, seconds = 10, ready, press = null }) {
-  const context = await browser.newContext();
+export async function idleCost({ browser, url, pid, pages = 20, seconds = 10, ready }) {
+  const contexts = [];
   try {
-    const opened = [];
     for (let i = 0; i < pages; i++) {
+      const context = await browser.newContext();
+      contexts.push(context);
       const page = await context.newPage();
       await page.goto(url);
       await ready(page);
-      opened.push(page);
     }
     // Settled: whatever loading started is over before the window opens.
-    await new Promise((r) => setTimeout(r, 2000));
+    await sleep(2000);
     let requests = 0;
     const count = () => requests++;
-    context.on("request", count);
+    for (const c of contexts) c.on("request", count);
     const before = treeCost(pid);
-    await new Promise((r) => setTimeout(r, seconds * 1000));
+    await sleep(seconds * 1000);
     const after = treeCost(pid);
-    context.off("request", count);
-    // Then a person presses, in the last of the pages, with the others open:
-    // a browser opens at most six connections to one host over HTTP/1.1, and
-    // a connection a page holds is one the press waits for.
-    const pressMs = press ? await press(opened[opened.length - 1]) : null;
+    for (const c of contexts) c.off("request", count);
     return {
       pages,
+      contexts: contexts.length,
       seconds,
       requests,
       requestsPerPagePerMinute: (requests / pages) * (60 / seconds),
       cpuMsPerSecond: (after.cpuMs - before.cpuMs) / seconds,
       rssMiB: after.rssKiB / 1024,
-      pressMs,
+      // One request over the window, a CPU tick over it, a page.
+      resolution: { requestsPerPagePerMinute: (1 / pages) * (60 / seconds), cpuMsPerSecond: TICK_MS / seconds, rssMiB: PAGE_KIB / 1024 },
     };
+  } finally {
+    for (const c of contexts) await c.close();
+  }
+}
+
+/**
+ * A press with other tabs of the app open in one person's browser: `tabs`
+ * pages in ONE browser context, loaded and left for `settleSeconds`; then a
+ * press in the last, timed by `press` to its change. Over HTTP/1.1 a browser
+ * opens at most six connections to one host, and a connection a tab holds is
+ * one the press waits for.
+ */
+export async function pressWithTabsOpen({ browser, url, tabs = 20, settleSeconds = 4, ready, press, resolutionMs }) {
+  const context = await browser.newContext();
+  try {
+    const opened = [];
+    for (let i = 0; i < tabs; i++) {
+      const page = await context.newPage();
+      await page.goto(url);
+      await ready(page);
+      opened.push(page);
+    }
+    await sleep(settleSeconds * 1000);
+    return { tabs, settleSeconds, pressMs: await press(opened[opened.length - 1]), resolution: { pressMs: resolutionMs } };
   } finally {
     await context.close();
   }

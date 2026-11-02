@@ -8,12 +8,19 @@
 // condition and network. A difference in time is reported as a loss or a win
 // only where the two spreads are apart by at least the engines' timer
 // resolution, a millisecond (one's first quartile that much above the other's
-// third); otherwise it is "within the spread".
+// third); otherwise it is "within the spread". The servers' measurements are
+// repeated too (`head-to-head.mjs`'s `serverRuns`) and judged by the same
+// rule, apart by what their instrument can tell apart; and a stack whose server is the
+// instrument's stand-in for any static host is never one Pleris's host "wins"
+// against.
 
 import { summary } from "./lib.mjs";
 
 const fmt = (n) => (n == null ? "-" : Math.round(n).toLocaleString("en-US"));
 const ms = (n) => (n == null ? "-" : n < 10 ? n.toFixed(1) : Math.round(n).toString());
+/** A server's number, to the precision its row is judged at and the ADR cites. */
+const fine = (n) => (n == null ? "-" : n < 10 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : Math.round(n).toLocaleString("en-US"));
+const cls = (n) => (n == null ? "-" : n.toFixed(3));
 const pad = (s, w) => String(s).padEnd(w);
 const rpad = (s, w) => String(s).padStart(w);
 
@@ -87,17 +94,21 @@ function same(values) {
   return s.length === 1 ? { value: s[0], varies: false } : { value: Math.max(...s), min: Math.min(...s), varies: true };
 }
 
-function spread(s) {
-  if (!s || s.n === 0) return "-";
-  return `${ms(s.median)} [${ms(s.q1)}-${ms(s.q3)}] (${ms(s.min)}-${ms(s.max)}, n=${s.n}${s.missing ? `, ${s.missing} not reported` : ""})`;
+function spread(s, f = ms) {
+  if (!s || s.n === 0) return s?.missing ? `not reported (${s.missing} runs)` : "-";
+  return `${f(s.median)} [${f(s.q1)}-${f(s.q3)}] (${f(s.min)}-${f(s.max)}, n=${s.n}${s.missing ? `, ${s.missing} not reported` : ""})`;
 }
+
+/** The servers' measurements as lists of runs (a kept run of before
+ * 2026-11-02 holds one run a stack, by stack). */
+const asList = (x) => (Array.isArray(x) ? x : Object.entries(x ?? {}).map(([stack, r]) => ({ stack, i: 0, ...r })));
 
 /** Timing summaries for a cell: first contentful paint, the app's first
  * frame, interactive, and each interaction to its frame. */
 export function timings(app, cell, steps) {
   const rs = runsOf(app, cell);
   const t = (k) => summary(rs.map((r) => r.timings?.[k] ?? null));
-  const out = { fcp: t("fcp"), appFrame: t("appFrame"), ready: t("ready"), ttfb: t("ttfb"), load: t("load") };
+  const out = { fcp: t("fcp"), lcp: t("lcp"), cls: t("cls"), appFrame: t("appFrame"), ready: t("ready"), ttfb: t("ttfb"), load: t("load") };
   for (const s of steps) {
     out[`step:${s}`] = summary(rs.map((r) => r.interactions?.find((x) => x.name === s)?.toFrame ?? null));
   }
@@ -109,10 +120,27 @@ export function timings(app, cell, steps) {
  * difference: Firefox and WebKit give `performance.now()` to a millisecond. */
 export const RESOLUTION_MS = 1;
 
-export function compareSpread(a, b) {
+/**
+ * A server row's resolution: what its instrument can tell apart, as each run
+ * reports it (`load.mjs`), the coarsest of its runs and never under a
+ * hundredth of the row's unit: the CPU clock's tick over a run's requests
+ * (0.01 ms a request for a thousand) or over an idle window (1 ms a
+ * second for ten seconds), one request over that window, a press's polling
+ * (10 ms). Two servers' numbers differ only where their spreads are that far
+ * apart, as two pages' times differ only a millisecond apart.
+ */
+export function serverResolution(runs, key) {
+  return Math.max(0.01, ...runs.map((r) => r.resolution?.[key] ?? 0));
+}
+
+/** Layout shift, a score: a difference under a tenth of the score web.dev
+ * calls good (0.1) is no difference. */
+export const CLS_RESOLUTION = 0.01;
+
+export function compareSpread(a, b, resolution = RESOLUTION_MS) {
   if (!a || !b || a.n === 0 || b.n === 0) return "unknown";
-  if (a.q1 - b.q3 >= RESOLUTION_MS) return "loses";
-  if (b.q1 - a.q3 >= RESOLUTION_MS) return "wins";
+  if (a.q1 - b.q3 >= resolution) return "loses";
+  if (b.q1 - a.q3 >= resolution) return "wins";
   return "within the spread";
 }
 
@@ -126,11 +154,18 @@ export function lossesFirst(result, sections = {}) {
   const losses = [];
   const wins = [];
   let unclear = 0;
-  const row = (app, what, values, better) => {
+  const row = (app, what, values, better, { standIns = new Set() } = {}) => {
     // values: [[label, value, summary?]]; better(a, b) -> "loses" | "wins" | "within the spread"
     const mine = values.find(([l]) => l === "Pleris");
     if (!mine) return;
-    const verdicts = values.filter(([l]) => l !== "Pleris").map((v) => [v[0], better(mine, v)]);
+    // A stand-in (the instrument's static host, serving a client-rendered
+    // app's files as any static host or CDN would) is not its stack's cost:
+    // a static file needs no application server. Pleris's host doing better
+    // than it is no win; doing worse is a loss all the same.
+    const verdicts = values.filter(([l]) => l !== "Pleris").map((v) => {
+      const verdict = better(mine, v);
+      return [v[0], verdict === "wins" && standIns.has(v[0]) ? "not compared: a stand-in" : verdict];
+    });
     const text = `${app.app ?? app}: ${what}: ${values.map(([l, , shown]) => `${l} ${shown}`).join(" | ")}`;
     const beaten = verdicts.filter(([, v]) => v === "loses").map(([l]) => l);
     if (beaten.length) losses.push(`${text}  (better: ${beaten.join(", ")})`);
@@ -148,7 +183,7 @@ export function lossesFirst(result, sections = {}) {
     const byteRows = [
       ["first load, bytes received as each host sent them (Chromium, cold)", (r, c) => bytesOf(r, "load", c).received],
       ["first load, bytes decoded (Chromium, cold)", (r, c) => bytesOf(r, "load", c).raw],
-      ["first load, bytes as a static host compresses them, Brotli 11, TodoMVC's common files aside (Chromium, cold)", (r, c) => bytesOf(r, "load", c, { withCommon: false }).br],
+      [`first load, bytes as a static host compresses them, Brotli 11${app.targets.some((t) => t.common?.length) ? ", TodoMVC's common files aside" : ""} (Chromium, cold)`, (r, c) => bytesOf(r, "load", c, { withCommon: false }).br],
       ["first load, requests (Chromium, cold)", (r, c) => bytesOf(r, "load", c).requests],
       ...steps.map((s) => [`interaction "${s}", bytes received (Chromium, cold)`, (r, c) => bytesOf(r, `interaction:${s}`, c).received]),
     ];
@@ -168,39 +203,42 @@ export function lossesFirst(result, sections = {}) {
       const tm = Object.fromEntries(
         app.targets.map((t) => [t.label, timings(app, { stack: t.stack, engine, condition, network: network || null }, steps)]),
       );
-      for (const k of ["fcp", "ready", ...steps.map((s) => `step:${s}`)]) {
-        const what = k === "fcp" ? "first contentful paint" : k === "ready" ? "interactive" : `interaction "${k.slice(5)}" to its frame`;
+      const where = `(${engine}, ${condition}${network ? `, ${network}` : ""})`;
+      for (const k of ["fcp", "lcp", "ready", ...steps.map((s) => `step:${s}`)]) {
+        const what = k === "fcp" ? "first contentful paint" : k === "lcp" ? "largest contentful paint" : k === "ready" ? "interactive" : `interaction "${k.slice(5)}" to its frame`;
         const values = Object.entries(tm).map(([l, t]) => [l, t[k], `${ms(t[k].median)} ms`]);
-        row(app, `${what}, ms, median (${engine}, ${condition}${network ? `, ${network}` : ""})`, values, bySpread);
+        row(app, `${what}, ms, median ${where}`, values, bySpread);
       }
+      const shifts = Object.entries(tm).map(([l, t]) => [l, t.cls, cls(t.cls.median)]);
+      row(app, `cumulative layout shift, median ${where}`, shifts, (a, b) => compareSpread(a[1], b[1], CLS_RESOLUTION));
     }
-    if (app.loads && Object.keys(app.loads).length) {
-      for (const [what, f] of [
-        ["server CPU per request, ms", (l) => l.cpuMsPerRequest],
-        ["server resident memory at its peak, MiB", (l) => l.rssMiB.peak],
-        ["latency under load, median, ms", (l) => l.latencyMs.median],
-        ["latency under load, p99, ms", (l) => l.p99Ms],
-      ]) {
-        const values = app.targets.filter((t) => app.loads[t.stack] && !app.loads[t.stack].error).map((t) => {
-          const v = f(app.loads[t.stack]);
-          return [t.label, v, ms(v)];
-        });
-        row(app, `${what}${app.app === "todomvc" ? " (React's and Svelte's server is the instrument's static host: any static host serves them)" : ""}`, values, byValue);
-      }
-    }
-    if (app.idle && Object.keys(app.idle).length) {
-      for (const [what, f] of [
-        ["requests an idle open page makes a minute", (i) => i.requestsPerPagePerMinute],
-        ["server CPU, ms a second, for 20 idle open pages", (i) => i.cpuMsPerSecond],
-        ["a press with 19 other pages of the app open, ms to its change (Chromium)", (i) => i.pressMs],
-      ]) {
-        const values = app.targets.filter((t) => app.idle[t.stack] && !app.idle[t.stack].error).map((t) => {
-          const v = f(app.idle[t.stack]);
-          return [t.label, v, ms(v)];
-        });
-        row(app, what, values, byValue);
-      }
-    }
+    // The servers' rows: medians of repeated runs, judged by their spreads
+    // a whole unit apart; never a win over a stand-in.
+    const standIns = new Set(app.targets.filter((t) => t.standIn).map((t) => t.label));
+    const standInNote = standIns.size
+      ? ` (${[...standIns].join("'s and ")}'s server is the instrument's static host, standing in for any static host or CDN: a static file needs no application server, so Pleris's host doing better is no win)`
+      : "";
+    const serverRow = (list, what, key, f, { standIn = true } = {}) => {
+      const ok = asList(list).filter((r) => !r.error);
+      const values = app.targets
+        .map((t) => {
+          const s = summary(ok.filter((r) => r.stack === t.stack).map(f));
+          return [t.label, s, fine(s.median)];
+        })
+        .filter(([, s]) => s.n > 0);
+      const resolution = serverResolution(ok, key);
+      const judge = (a, b) => compareSpread(a[1], b[1], resolution);
+      row(app, `${what}${standIn ? standInNote : ""}`, values, judge, { standIns: standIn ? standIns : new Set() });
+    };
+    serverRow(app.loads, "server CPU per request, ms, median", "cpuMsPerRequest", (l) => l.cpuMsPerRequest);
+    serverRow(app.loads, "server resident memory at its peak under load, MiB, median", "rssMiB", (l) => l.rssMiB.peak);
+    serverRow(app.loads, "latency under load, p50, ms, median", "latencyMs", (l) => l.latencyMs.median);
+    serverRow(app.loads, "latency under load, p99, ms, median", "latencyMs", (l) => l.p99Ms);
+    serverRow(app.idle, "requests an idle visitor's page makes a minute (20 visitors, a browser context each), median", "requestsPerPagePerMinute", (i) => i.requestsPerPagePerMinute);
+    serverRow(app.idle, "server CPU, ms a second, for 20 idle visitors, median", "cpuMsPerSecond", (i) => i.cpuMsPerSecond);
+    // A press is the page's and its server's together, what a person waits
+    // for: every stack's own, no stand-in.
+    serverRow(app.presses, "a press with 19 other tabs of the app open in one browser, ms to its change (Chromium), median", "pressMs", (p) => p.pressMs, { standIn: false });
   }
   return { losses, wins, unclear };
 }
@@ -236,7 +274,8 @@ function sectionRows({ behaviour, loc, feature, museum }, row, byValue, byMore) 
         t.lines += c.pr.added + c.pr.removed;
         t.files += c.pr.files;
         c.pr.languages.forEach((l) => t.languages.add(l));
-        if (c.unsafe && !c.unsafe.clean) t.refused++;
+        // The checker's catch: a refusal, or a warning its reference lacks.
+        if (c.unsafe && (!c.unsafe.clean || (c.unsafe.newWarnings ?? []).length)) t.refused++;
         t.n++;
       }
     }
@@ -245,7 +284,7 @@ function sectionRows({ behaviour, loc, feature, museum }, row, byValue, byMore) 
     row("store", "the twelve changes: files touched in all", v((t) => t.files, (t) => String(t.files)), byValue);
     row("store", "the twelve changes: languages touched", v((t) => t.languages.size, (t) => `${t.languages.size} (${[...t.languages].sort().join("+")})`), byValue);
     if (feature.rows.some((r) => Object.values(r.stacks).some((c) => c.unsafe))) {
-      row("store", "the twelve changes: unsafe versions the stack's own checker refuses (more is better)", v((t) => t.refused, (t) => `${t.refused}/${t.n}`), byMore);
+      row("store", "the twelve changes: unsafe versions the stack's own checker refuses or warns of (more is better)", v((t) => t.refused, (t) => `${t.refused}/${t.n}`), byMore);
     }
   }
   if (museum?.exhibits) {
@@ -311,53 +350,82 @@ function bytesTable(app, lines) {
   }
 }
 
-function timingTable(app, lines) {
+function timingTable(app, lines, profile) {
   const steps = app.runs[0]?.interactions?.map((x) => x.name) ?? [];
   const blocks = [...new Set(app.runs.map((r) => `${r.engine}|${r.condition}|${r.network ?? ""}`))];
-  lines.push("times, ms from navigation start: median [first-third quartile] (min-max, n); interactions from the input event to the frame after the change");
+  lines.push("times, ms from navigation start: median [first-third quartile] (min-max, n); interactions from the input event to the frame after the change; layout shift a score");
   for (const b of blocks) {
     const [engine, condition, network] = b.split("|");
-    lines.push(`  ${engine}, ${condition}${network ? `, ${network} (latency ${150} ms, 1.6 Mbit/s down, CPU x4)` : ", unshaped (loopback)"}:`);
+    // The profile as it was applied (the run's own record), never a copy of its numbers.
+    const shaped = profile && profile.name === network ? profile.describe : "its profile not recorded";
+    lines.push(`  ${engine}, ${condition}${network ? `, ${network} (${shaped})` : ", unshaped (loopback)"}:`);
     for (const t of app.targets) {
       const tm = timings(app, { stack: t.stack, engine, condition, network: network || null }, steps);
       lines.push(`    ${pad(t.label, 10)} first contentful paint ${spread(tm.fcp)}`);
+      lines.push(`    ${pad("", 10)} largest contentful p. ${spread(tm.lcp)}`);
+      lines.push(`    ${pad("", 10)} layout shift           ${spread(tm.cls, cls)}`);
       lines.push(`    ${pad("", 10)} interactive            ${spread(tm.ready)}`);
       for (const s of steps) lines.push(`    ${pad("", 10)} ${pad(`"${s}"`, 22)} ${spread(tm[`step:${s}`])}`);
     }
   }
 }
 
-function idleTable(app, lines) {
-  if (!app.idle || !Object.keys(app.idle).length) return;
-  const any = Object.values(app.idle).find((i) => !i.error) ?? {};
-  lines.push(`open pages left alone: ${any.pages} pages of the app in Chromium, each loaded and untouched, for ${any.seconds} s`);
-  lines.push(`  ${pad("stack", 10)} ${rpad("requests", 8)} ${rpad("per page a minute", 17)} ${rpad("server CPU ms/s", 15)} ${rpad("server RSS MiB", 14)}  then a press in the last page, to its change (ms)`);
-  for (const t of app.targets) {
-    const i = app.idle[t.stack];
-    if (!i) continue;
-    if (i.error) {
-      lines.push(`  ${pad(t.label, 10)} FAILED: ${i.error}`);
-      continue;
-    }
-    lines.push(`  ${pad(t.label, 10)} ${rpad(i.requests, 8)} ${rpad(i.requestsPerPagePerMinute.toFixed(1), 17)} ${rpad(ms(i.cpuMsPerSecond), 15)} ${rpad(i.rssMiB.toFixed(1), 14)}  ${ms(i.pressMs)}`);
-  }
+/** A server measurement's runs, a stack's: their summary by `f`, and how many failed. */
+function serverRuns(list, stack, f) {
+  const mine = asList(list).filter((r) => r.stack === stack);
+  return { s: summary(mine.filter((r) => !r.error).map(f)), failed: mine.filter((r) => r.error) };
 }
 
 function loadTable(app, lines) {
-  if (!app.loads || !Object.keys(app.loads).length) return;
-  const any = Object.values(app.loads).find((l) => !l.error) ?? {};
-  lines.push(`server under a fixed open load: ${any.rate} requests/s for ${any.seconds} s, each request of the page's document (after ${50} warm-up requests)`);
-  lines.push(`  ${pad("stack", 10)} ${rpad("answered", 9)} ${rpad("CPU ms/req", 10)} ${rpad("p50 ms", 7)} ${rpad("p99 ms", 7)} ${rpad("RSS MiB before/peak/after", 26)} processes  statuses`);
+  const list = asList(app.loads);
+  if (!list.length) return;
+  const any = list.find((l) => !l.error) ?? {};
+  const n = Math.max(...app.targets.map((t) => list.filter((l) => l.stack === t.stack).length));
+  lines.push(`server under a fixed open load: ${any.rate} requests/s for ${any.seconds} s, each of the page's document (after 50 warm-up requests), ${n} runs a stack, every stack once a round in a shuffled order: median [first-third quartile] (min-max, n)`);
   for (const t of app.targets) {
-    const l = app.loads[t.stack];
-    if (!l) continue;
-    if (l.error) {
-      lines.push(`  ${pad(t.label, 10)} FAILED: ${l.error}`);
-      continue;
-    }
-    lines.push(
-      `  ${pad(t.label, 10)} ${rpad(`${l.answered}/${l.sent}`, 9)} ${rpad(ms(l.cpuMsPerRequest), 10)} ${rpad(ms(l.latencyMs.median), 7)} ${rpad(ms(l.p99Ms), 7)} ${rpad(`${l.rssMiB.before.toFixed(1)}/${l.rssMiB.peak.toFixed(1)}/${l.rssMiB.after.toFixed(1)}`, 26)} ${rpad(l.processes, 9)}  ${JSON.stringify(l.statuses)}`,
-    );
+    const mine = list.filter((l) => l.stack === t.stack);
+    if (!mine.length) continue;
+    const ok = mine.filter((l) => !l.error);
+    const statuses = {};
+    for (const l of ok) for (const [k, c] of Object.entries(l.statuses ?? {})) statuses[k] = (statuses[k] ?? 0) + c;
+    const answered = ok.reduce((c, l) => c + l.answered, 0);
+    const sent = ok.reduce((c, l) => c + l.sent, 0);
+    const failed = mine.length - ok.length;
+    lines.push(`  ${pad(t.label, 10)} answered ${answered}/${sent} ${JSON.stringify(statuses)}; processes ${ok[0]?.processes ?? "-"}${failed ? `; ${failed} run(s) FAILED: ${mine.find((l) => l.error).error}` : ""}`);
+    lines.push(`  ${pad("", 10)} CPU per request, ms         ${spread(serverRuns(list, t.stack, (l) => l.cpuMsPerRequest).s, fine)}`);
+    lines.push(`  ${pad("", 10)} latency p50, ms             ${spread(serverRuns(list, t.stack, (l) => l.latencyMs.median).s, fine)}`);
+    lines.push(`  ${pad("", 10)} latency p99, ms             ${spread(serverRuns(list, t.stack, (l) => l.p99Ms).s, fine)}`);
+    lines.push(`  ${pad("", 10)} resident memory at peak, MiB ${spread(serverRuns(list, t.stack, (l) => l.rssMiB.peak).s, fine)}`);
+  }
+}
+
+function idleTable(app, lines) {
+  const list = asList(app.idle);
+  if (!list.length) return;
+  const any = list.find((i) => !i.error) ?? {};
+  const n = Math.max(...app.targets.map((t) => list.filter((l) => l.stack === t.stack).length));
+  lines.push(`idle visitors: ${any.pages} pages of the app in Chromium, each in a browser context of its own (as separate people's browsers), loaded and left alone for ${any.seconds} s; ${n} runs a stack: median [first-third quartile] (min-max, n)`);
+  for (const t of app.targets) {
+    const mine = list.filter((l) => l.stack === t.stack);
+    if (!mine.length) continue;
+    const failed = mine.filter((l) => l.error);
+    lines.push(`  ${pad(t.label, 10)} requests a page a minute    ${spread(serverRuns(list, t.stack, (i) => i.requestsPerPagePerMinute).s, fine)}${failed.length ? `; ${failed.length} run(s) FAILED: ${failed[0].error}` : ""}`);
+    lines.push(`  ${pad("", 10)} server CPU, ms a second     ${spread(serverRuns(list, t.stack, (i) => i.cpuMsPerSecond).s, fine)}`);
+    lines.push(`  ${pad("", 10)} server resident memory, MiB ${spread(serverRuns(list, t.stack, (i) => i.rssMiB).s, fine)}`);
+  }
+}
+
+function pressTable(app, lines) {
+  const list = asList(app.presses);
+  if (!list.length) return;
+  const any = list.find((i) => !i.error) ?? {};
+  const n = Math.max(...app.targets.map((t) => list.filter((l) => l.stack === t.stack).length));
+  lines.push(`a press with other tabs open: ${any.tabs} tabs of the app in ONE browser context (one person's browser, whose six connections to a host over HTTP/1.1 they share), left ${any.settleSeconds} s, then the app's first interaction in the last tab, ms to its change; ${n} runs a stack: median [first-third quartile] (min-max, n)`);
+  for (const t of app.targets) {
+    const mine = list.filter((l) => l.stack === t.stack);
+    if (!mine.length) continue;
+    const failed = mine.filter((l) => l.error);
+    lines.push(`  ${pad(t.label, 10)} ${spread(serverRuns(list, t.stack, (i) => i.pressMs).s)}${failed.length ? `; ${failed.length} run(s) FAILED: ${failed[0].error}` : ""}`);
   }
 }
 
@@ -371,7 +439,7 @@ export function renderReport(result, sections = {}) {
     lines.push(`settled before measuring: one-minute load ${meta.settled.before} -> ${meta.settled.after} in ${meta.settled.waitedSeconds} s (waits at most ${meta.args?.settleSeconds} s for under ${meta.settled.goal})`);
   }
   lines.push(`playwright: ${meta.playwright}; browsers: ${result.apps.map((a) => Object.entries(a.browsers).map(([k, v]) => `${k} ${v}`).join(", "))[0] ?? "-"}`);
-  lines.push(`runs: ${meta.args.runs} per cell (at least ${meta.minRuns}); conditions ${meta.args.conditions.join(", ")}; engines ${meta.args.engines.join(", ")}; Chromium also shaped: ${meta.args.shaped ? "Slow 4G" : "no"}; seed ${meta.args.seed}`);
+  lines.push(`runs: ${meta.args.runs} per cell (at least ${meta.minRuns}); conditions ${meta.args.conditions.join(", ")}; engines ${meta.args.engines.join(", ")}; Chromium also shaped: ${meta.network ? `${meta.network.describe} (latency ${meta.network.latency} ms, ${meta.network.download} B/s down, ${meta.network.upload} B/s up, as sent)` : meta.args.shaped ? "Slow 4G, its profile not recorded" : "no"}; servers: ${meta.args.load === false ? "not measured" : `${meta.args.serverRuns ?? 1} runs a stack`}; seed ${meta.args.seed}`);
   lines.push(`commit: ${meta.commit}${meta.dirty ? ` + ${meta.dirty}` : ""}; ${meta.started} to ${meta.finished}`);
   lines.push("");
   const { losses, wins, unclear } = lossesFirst(result, sections);
@@ -395,11 +463,13 @@ export function renderReport(result, sections = {}) {
     lines.push("");
     bytesTable(app, lines);
     lines.push("");
-    timingTable(app, lines);
+    timingTable(app, lines, meta.network);
     lines.push("");
     loadTable(app, lines);
     lines.push("");
     idleTable(app, lines);
+    lines.push("");
+    pressTable(app, lines);
     lines.push("");
   }
   return `${lines.join("\n")}\n`;

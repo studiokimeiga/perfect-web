@@ -107,6 +107,10 @@ export const APPS = {
         compresses: "all",
         caches: true,
         build: { kind: "vendored", root: VENDORED, prefix: "/react/dist/", dir: "react/dist" },
+        // Its server is the instrument's static host, standing in for any
+        // static host or CDN: what that host costs is not this stack's, so
+        // Pleris's host doing better than it is no win (`report.mjs`).
+        standIn: true,
       },
       svelte: {
         label: "Svelte",
@@ -125,6 +129,10 @@ export const APPS = {
         compresses: "all",
         caches: true,
         build: { kind: "vendored", root: VENDORED, prefix: "/svelte/dist/", dir: "svelte/dist" },
+        // Its server is the instrument's static host, standing in for any
+        // static host or CDN: what that host costs is not this stack's, so
+        // Pleris's host doing better than it is no win (`report.mjs`).
+        standIn: true,
       },
     },
   },
@@ -220,6 +228,7 @@ export function target(app, stack) {
     interactions: a.steps,
     common: a.common,
     expect: { minifies: s.minifies, compresses: s.compresses, caches: s.caches },
+    standIn: !!s.standIn,
     build: s.build,
     server: srv,
     who: s.who,

@@ -24,13 +24,19 @@
 #   e14-museum's record);
 # - the measurement (head-to-head.mjs, with Playwright in Chromium, Firefox
 #   and WebKit): bytes, first paint, interactive, each interaction, cold and
-#   warm, Chromium also shaped, seven runs a cell; each server under a fixed
-#   load; twenty idle pages; every rule of validate.mjs, a broken one
-#   failing the recipe; the report, where Pleris loses first;
+#   warm, Chromium also shaped (Lighthouse's Slow 4G as Lighthouse applies
+#   it through DevTools), seven runs a cell; each server, five rounds: under
+#   a fixed load, twenty idle visitors, a press with nineteen other tabs
+#   open; every rule of validate.mjs, a broken one failing the recipe; the
+#   report, where Pleris loses first;
 # - the mutation and integrity controls (scripts/head_to_head_mutations.py).
 #
 # Ports: PORT (13441 for this track) + 220..249. Run alone: a loaded machine
 # measures the load (the machine and its load average are printed).
+#
+# Local only (scripts/ci_plan.py's LOCAL_ONLY, ADR-0281's decision 5): a
+# measurement of the machine it runs on, which its `host:` line names, never
+# fetched from a runner. Its instrument's tests run in `just ci`.
 #
 # The same apps in Pleris and the mainstream stacks, measured, Pleris's losses first.
 e14-head-to-head:
@@ -44,6 +50,12 @@ e14-head-to-head:
     @{ echo "ADR-0392 - the head-to-head: the same apps in Pleris and in the mainstream stacks, Pleris's losses first"; echo; \
        echo "produced by: just e14-head-to-head"; \
        echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' ':(exclude)spikes/own-renderer/store-ir.json' || echo ' + uncommitted changes')"; \
+       case "$(uname -s)" in \
+         Darwin) machine=macbook ;; \
+         Linux) if grep -qi microsoft /proc/version 2>/dev/null; then machine=pc-wsl; else machine=linux; fi ;; \
+         *) machine=unknown ;; \
+       esac; \
+       echo "host: $(uname -m), $(sysctl -n machdep.cpu.brand_string 2>/dev/null || sed -n 's/^model name[[:space:]]*: //p' /proc/cpuinfo 2>/dev/null | head -1), $(getconf _NPROCESSORS_ONLN) CPUs; docs/environment/$machine.md"; \
        echo "rust: $(rustc --version)"; echo "node: $(node --version)  pnpm: $(pnpm --version)"; \
        echo "playwright: $(cd benchmarks/headtohead && pnpm exec playwright --version)"; \
        echo "cypress: $(cd spikes/todomvc-cypress && pnpm exec cypress --version | tr '\n' ' ')"; \

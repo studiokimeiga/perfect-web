@@ -15,7 +15,10 @@ For each app (TodoMVC, the store) and each stack, the files are sorted into:
 - **build**: the app's own build and configuration files (package manifests,
   bundler and compiler configuration, build scripts);
 - **excluded**: listed and not counted: lockfiles, committed builds,
-  readmes.
+  readmes; and a module of the app's directory that no page of it imports,
+  directly or through another (`roots`: the benchmark's Pleris store keeps
+  the corpus's fixtures, a legacy widget's, a vendor SDK's, telemetry's,
+  that the store's pages never import and the tasks start from).
 
 **The rule**, printed with every count: a line counts when it holds anything
 but white space and comments. Comments are a language's own: `//` and
@@ -32,6 +35,7 @@ misread), and a template literal's `${}` is read as part of the string.
 import fnmatch
 import json
 import pathlib
+import re
 import sys
 
 sys.dont_write_bytecode = True
@@ -41,7 +45,8 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 RULE = (
     "a line counts when it holds anything but white space and comments "
     "(each language's own comments; Rust test modules left out); "
-    "lockfiles, committed builds and readmes are listed and not counted"
+    "lockfiles, committed builds and readmes are listed and not counted, "
+    "and so is a module no page of the app imports"
 )
 
 LANGUAGES = {
@@ -104,8 +109,11 @@ SETS = {
     "store": {
         "pleris": {
             "app": ["benchmarks/baselines/pleris/**.pw"],
+            # Counted where the store's pages import them, directly or not.
+            "roots": ["benchmarks/baselines/pleris/store/*.pw"],
             # The store's data operations (`host "store:data/..."`): Rust in the
-            # development server, shared by every store example and task.
+            # development server, shared by every store example and task, and
+            # counted whole (the baseline calls a few of its operations).
             "host": ["spikes/own-renderer/server/src/store.rs"],
             "build": ["spikes/own-renderer/baseline-store.sh"],
             "excluded": [],
@@ -299,11 +307,48 @@ def expand(patterns):
     return out
 
 
+PLERIS_MODULE = re.compile(r"^module\s+([A-Za-z_][\w.]*)", re.M)
+PLERIS_IMPORT = re.compile(r"^import\s+([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*?)(?:\.\{|[ \t]*$|\s)", re.M)
+
+
+def imported(files, roots):
+    """The files of `files` that `roots` import, the roots among them,
+    through their `import` lines, transitively, by each file's `module`
+    name; in `files`' order. A module outside `files` (the standard
+    library's) is not followed."""
+    by_module = {}
+    imports = {}
+    for p in files:
+        text = p.read_text(encoding="utf-8")
+        m = PLERIS_MODULE.search(text)
+        if m:
+            by_module[m.group(1)] = p
+        imports[p] = PLERIS_IMPORT.findall(text)
+    seen = set()
+    todo = [p for p in files if p in roots]
+    while todo:
+        p = todo.pop()
+        if p in seen:
+            continue
+        seen.add(p)
+        for name in imports.get(p, []):
+            q = by_module.get(name)
+            if q is not None and q not in seen:
+                todo.append(q)
+    return [p for p in files if p in seen]
+
+
 def count_set(spec):
     result = {}
+    unimported = []
     for part in ("app", "host", "build"):
         files = []
-        for p in expand(spec[part]):
+        named = expand(spec[part])
+        if part == "app" and spec.get("roots"):
+            kept = imported(named, set(expand(spec["roots"])))
+            unimported = [p.relative_to(ROOT).as_posix() for p in named if p not in kept]
+            named = kept
+        for p in named:
             lines = code_lines(p, p.read_text(encoding="utf-8"))
             files.append({"path": p.relative_to(ROOT).as_posix(), "language": LANGUAGES.get(p.suffix, p.suffix), "lines": lines})
         by_language = {}
@@ -315,6 +360,7 @@ def count_set(spec):
             "languages": by_language,
         }
     result["excluded"] = [p.relative_to(ROOT).as_posix() for p in expand(spec["excluded"])]
+    result["unimported"] = unimported
     return result
 
 
@@ -340,6 +386,8 @@ def report(counts):
                     lines.append(f"     {stack:<11} {part:<5} {f['lines']:>5}  {f['language']:<17} {f['path']}")
             for x in c["excluded"]:
                 lines.append(f"     {stack:<11} not counted  {x}")
+            for x in c.get("unimported", []):
+                lines.append(f"     {stack:<11} not counted  {x}  (no page of the app imports it)")
         lines.append("")
     return "\n".join(lines)
 

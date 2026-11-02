@@ -16,6 +16,7 @@ import {
   checkRuns,
   checkShaped,
   checkWarm,
+  validateServer,
 } from "../validate.mjs";
 
 const run = (over = {}) => ({
@@ -160,4 +161,23 @@ test("a warm run that downloaded its main script again is refused where its host
   assert.deepEqual(checkWarm([cold, warmAgain], { caches: false }), []);
   // Firefox's and WebKit's sizes cannot tell a cache's answer: not held there.
   assert.deepEqual(checkWarm([cold, { ...warmAgain, engine: "firefox" }], { caches: true }), []);
+});
+
+test("a server measurement of fewer runs than the rule asks, of different counts, or failed, is refused", () => {
+  const load = (stack, i, over = {}) => ({ stack, i, sent: 1000, answered: 1000, ...over });
+  const five = (stack, over) => Array.from({ length: MIN_RUNS }, (_, i) => load(stack, i, over));
+  const stacks = ["pleris", "react"];
+  const idle = [...five("pleris"), ...five("react")];
+  const presses = idle;
+  assert.deepEqual(validateServer({ app: "todomvc", stacks, loads: idle, idle, presses }), []);
+  // One run a stack: a median of one run is one run.
+  const one = [load("pleris", 0), load("react", 0)];
+  assert.match(validateServer({ app: "todomvc", stacks, loads: one, idle, presses }).join("\n"), /load: todomvc\/pleris has 1 run\(s\), fewer than 5/);
+  assert.match(validateServer({ app: "todomvc", stacks, loads: idle, idle: one, presses }).join("\n"), /idle: todomvc\/react has 1 run\(s\)/);
+  // Different counts, a failed run, an unanswered request.
+  assert.match(validateServer({ app: "todomvc", stacks, loads: [...idle, load("react", 5)], idle, presses }).join("\n"), /different run counts/);
+  const failed = [...five("pleris"), ...five("react").slice(1), load("react", 0, { error: "boom" })];
+  assert.match(validateServer({ app: "todomvc", stacks, loads: idle, idle, presses: failed }).join("\n"), /press: todomvc\/react round 0: the measurement failed: boom/);
+  const unanswered = [...five("pleris"), ...five("react").slice(1), load("react", 0, { answered: 990 })];
+  assert.match(validateServer({ app: "todomvc", stacks, loads: unanswered, idle, presses }).join("\n"), /10 of 1000 requests went unanswered/);
 });

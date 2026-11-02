@@ -9,15 +9,21 @@ exact inputs with its control:
   gap); anything else fails. Held to Cypress's real output for each
   (`fixtures/head-to-head/cypress-*.txt`, the run of 2026-10-25);
 - `head_to_head_behaviour.py`: each stack passes every specification test in
-  every engine but its written gaps, which must fail in all three.
+  every engine but its written gaps, which must fail in all three;
+- the planner keeps the head-to-head on the development machine
+  (`ci_plan.py`'s LOCAL_ONLY), and `just ci` runs its instrument's own
+  tests (`benchmarks/headtohead/test/*.test.mjs`) here.
 
-Each test is a witness of a mutation control in
+Each test but the last is a witness of a mutation control in
 `scripts/head_to_head_mutations.py`.
 """
 
 import importlib.util
 import pathlib
+import shutil
+import subprocess
 import sys
+import tempfile
 import unittest
 
 SCRIPTS = pathlib.Path(__file__).resolve().parent.parent
@@ -71,6 +77,40 @@ class Lines(unittest.TestCase):
 
     def test_shell_comments(self):
         self.assertEqual(self.count("a.sh", "#!/usr/bin/env bash\n# note\nset -e\n"), 1)
+
+
+class Imports(unittest.TestCase):
+    def test_a_module_no_page_imports_is_not_counted(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = pathlib.Path(d)
+            files = {
+                "page.pw": "module store.page\n\nimport Carts\nimport domain.{ Cart }\nimport capability.{ SessionId }\n",
+                "domain.pw": "module domain\n\nimport List\n",
+                "Carts.pw": "module Carts\n\nimport domain.{ Cart, CartError }\nimport Events.{ CartChanged }\n",
+                "Events.pw": "module Events\n",
+                "Legacy.pw": "module Legacy\n\nimport domain.{ Store }\n// import Telemetry\n",
+                "Telemetry.pw": "module Telemetry\n",
+            }
+            for name, text in files.items():
+                (root / name).write_text(text)
+            paths = [root / n for n in files]
+            kept = loc.imported(paths, {root / "page.pw"})
+            self.assertEqual([p.name for p in kept], ["page.pw", "domain.pw", "Carts.pw", "Events.pw"])
+
+
+class LocalOnly(unittest.TestCase):
+    def test_the_head_to_head_is_recorded_on_the_development_machine(self):
+        plan = load("ci_plan")
+        self.assertIn("e14-head-to-head", plan.LOCAL_ONLY)
+
+    def test_the_instrument_passes_its_own_tests(self):
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("no node on this machine")
+        h2h = SCRIPTS.parent / "benchmarks" / "headtohead"
+        tests = sorted(str(p.relative_to(h2h)) for p in (h2h / "test").glob("*.test.mjs"))
+        r = subprocess.run([node, "--test", *tests], cwd=h2h, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout[-4000:] + r.stderr[-2000:])
 
 
 class Cypress(unittest.TestCase):

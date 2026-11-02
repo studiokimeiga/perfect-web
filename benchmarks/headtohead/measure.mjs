@@ -40,24 +40,32 @@ import { gitBlob, minifiedVerdict, sizes } from "./lib.mjs";
  * app's first control; `__READY__` the readiness rule. */
 const OBSERVERS = String.raw`(() => {
   if (window.top !== window || window.__h2h) return;
-  const h = (window.__h2h = { t: {}, lcp: null, cls: 0, waits: [], documents: 1 });
+  // A measurement an engine does not report stays null, never zero: layout
+  // shift starts at 0 only where the engine reports layout shifts.
+  const h = (window.__h2h = { t: {}, lcp: null, cls: null, waits: [], documents: 1 });
   const now = () => performance.now();
   const frame = (set) => requestAnimationFrame(() => setTimeout(() => set(now()), 0));
+  const reports = (type) => (PerformanceObserver.supportedEntryTypes ?? []).includes(type);
   try {
     new PerformanceObserver((l) => {
       for (const e of l.getEntries()) if (e.name === "first-contentful-paint") h.t.fcp = e.startTime;
     }).observe({ type: "paint", buffered: true });
   } catch {}
   try {
-    new PerformanceObserver((l) => {
-      const es = l.getEntries();
-      if (es.length) h.lcp = es[es.length - 1].startTime;
-    }).observe({ type: "largest-contentful-paint", buffered: true });
+    if (reports("largest-contentful-paint")) {
+      new PerformanceObserver((l) => {
+        const es = l.getEntries();
+        if (es.length) h.lcp = es[es.length - 1].startTime;
+      }).observe({ type: "largest-contentful-paint", buffered: true });
+    }
   } catch {}
   try {
-    new PerformanceObserver((l) => {
-      for (const e of l.getEntries()) if (!e.hadRecentInput) h.cls += e.value;
-    }).observe({ type: "layout-shift", buffered: true });
+    if (reports("layout-shift")) {
+      h.cls = 0;
+      new PerformanceObserver((l) => {
+        for (const e of l.getEntries()) if (!e.hadRecentInput) h.cls += e.value;
+      }).observe({ type: "layout-shift", buffered: true });
+    }
   } catch {}
   const APP = "__APP__";
   const READY = "__READY__";
@@ -145,15 +153,28 @@ export function observers(appSelector, ready) {
   return OBSERVERS.replace("__APP__", appSelector).replace("__READY__", ready);
 }
 
-/** Chromium's network shaping, from Lighthouse's "Slow 4G" (its mobile
- * default): 150 ms round trip, 1.6 Mbit/s down, 750 kbit/s up, and the CPU
- * slowed four times. Firefox and WebKit offer Playwright no shaping. */
+/**
+ * Chromium's network shaping: Lighthouse's "Slow 4G" (its mobile default) as
+ * Lighthouse itself applies it through the DevTools protocol. Its 150 ms
+ * round trip and 1.6 Mbit/s are a packet-level network's, for its simulator;
+ * `Network.emulateNetworkConditions` delays each request instead, so for it
+ * Lighthouse sends `requestLatencyMs` (150 x 3.75 = 562.5 ms) and the
+ * throughputs x 0.9 (Lantern's `mobileSlow4G` and its DevTools adjustment
+ * factors, `front_end/models/trace/lantern/simulation/Constants.ts`; their
+ * use and the kbit/s-to-bytes conversion, `core/lib/emulation.js`'s
+ * `enableNetworkThrottling`; both read 2026-11-02). Until then this profile
+ * sent the packet-level 150 ms as a request's latency: each request cost a
+ * quarter of the round trip it names, which flattered most the stack that
+ * makes the most requests. The CPU is slowed four times. Firefox and WebKit
+ * offer Playwright no shaping.
+ */
 export const SLOW_4G = {
   name: "slow-4g",
-  latency: 150,
-  download: (1.6 * 1024 * 1024) / 8,
-  upload: (750 * 1024) / 8,
+  latency: 150 * 3.75,
+  download: Math.floor((1.6 * 1024 * 0.9 * 1024) / 8),
+  upload: Math.floor((750 * 0.9 * 1024) / 8),
   cpu: 4,
+  describe: "Lighthouse's Slow 4G as it applies it through DevTools: 562.5 ms a request, 1.6 Mbit/s x 0.9 down, 750 kbit/s x 0.9 up, CPU x4",
 };
 
 /**

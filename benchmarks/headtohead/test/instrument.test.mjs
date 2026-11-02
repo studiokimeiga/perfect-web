@@ -11,10 +11,12 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { brotliDecompressSync, gunzipSync } from "node:zlib";
-import { diffStats } from "../feature-change.mjs";
+import { diffStats, newWarnings } from "../feature-change.mjs";
 import { gitBlob, minifiedVerdict, quantile, shuffled, sizes, summary } from "../lib.mjs";
 import { parseEvidence } from "../museum-classes.mjs";
-import { bytesOf, compareSpread, lossesFirst } from "../report.mjs";
+import { idleCost } from "../load.mjs";
+import { SLOW_4G } from "../measure.mjs";
+import { CLS_RESOLUTION, bytesOf, compareSpread, lossesFirst, renderReport } from "../report.mjs";
 import { cacheControl, chooseEncoding, createHost } from "../static-host.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -201,4 +203,104 @@ test("the museum's record is read per exhibit: where its bug was shown, its repa
   assert.deepEqual(e.bug, { stack: "next-react", passed: 1, failed: 0 });
   assert.equal(e.repaired.failed, 1);
   assert.equal(e.verdict, "refused (diagnostic PW0338)");
+});
+
+test("the Slow 4G profile is Lighthouse's as Lighthouse applies it through DevTools: 562.5 ms a request, the throughputs x 0.9", () => {
+  // Lantern's mobileSlow4G: requestLatencyMs 150 x 3.75; downloadThroughputKbps
+  // 1.6 x 1024 x 0.9 and uploadThroughputKbps 750 x 0.9, each x 1024 / 8 and
+  // floored into bytes a second by enableNetworkThrottling; the CPU x4.
+  assert.equal(SLOW_4G.latency, 562.5);
+  assert.equal(SLOW_4G.download, 188743);
+  assert.equal(SLOW_4G.upload, 86400);
+  assert.equal(SLOW_4G.cpu, 4);
+});
+
+test("the report prints the shaping a run applied, from the run's own record", () => {
+  const timings = { fcp: 400, lcp: 410, cls: 0, ready: 500, documentEnd: 600 };
+  const run = (stack) => ({ stack, engine: "chromium", condition: "cold", network: "slow-4g", i: 0, timings, interactions: [], requests: [] });
+  const result = {
+    meta: { machine: { cpu: "x", logicalCpus: 1, memoryGiB: 1, os: "x", kernel: "x", node: "x", loadAverage: [0, 0, 0] }, playwright: "x", args: { runs: 1, conditions: ["cold"], engines: ["chromium"], shaped: true, seed: 1 }, minRuns: 5, network: SLOW_4G },
+    apps: [{ app: "store", title: "the store", browsers: {}, targets: [{ stack: "pleris", label: "Pleris", ready: "pw", expect: {}, common: [], server: { cmd: "x", args: [] } }], runs: [run("pleris")] }],
+  };
+  const text = renderReport(result);
+  assert.ok(text.includes("chromium, cold, slow-4g (Lighthouse's Slow 4G as it applies it through DevTools: 562.5 ms a request"), text);
+  assert.ok(!text.includes("latency 150 ms"), text);
+});
+
+test("a server's rows are judged by their runs' spreads, apart by what their instrument tells apart, and never won against a stand-in", () => {
+  const target = (stack, label, standIn = false) => ({ stack, label, standIn, ready: "dom", expect: {}, common: [] });
+  const resolution = { cpuMsPerRequest: 0.01, latencyMs: 0.001, rssMiB: 0.004 };
+  const loads = (stack, cpu, p50, rss = 30) =>
+    cpu.map((c, i) => ({ stack, i, sent: 1000, answered: 1000, cpuMsPerRequest: c, latencyMs: { median: p50[i] }, p99Ms: p50[i] * 4, rssMiB: { peak: rss }, resolution }));
+  const store = {
+    app: "store",
+    runs: [],
+    targets: [target("pleris", "Pleris"), target("next-react", "Next.js")],
+    // Pleris's CPU is lower in four runs of five: a median of its runs, not
+    // its first; and a fifth of a millisecond is a difference the CPU clock,
+    // a tick over a thousand requests, tells apart. Its p50 is 0.005 ms
+    // lower: a hundredth of a millisecond is the least a row tells apart.
+    loads: [...loads("pleris", [9, 0.2, 0.2, 0.2, 0.2], [1.1, 1.1, 1.1, 1.1, 1.1]), ...loads("next-react", [0.4, 0.4, 0.4, 0.4, 0.4], [1.105, 1.105, 1.105, 1.105, 1.105], 30)],
+  };
+  const todomvc = {
+    app: "todomvc",
+    runs: [],
+    targets: [target("pleris", "Pleris"), target("react", "React", true)],
+    // Pleris's host spends less than the static host standing in for any:
+    // no win. Its latency is higher: a loss all the same.
+    loads: [...loads("pleris", [1, 1, 1, 1, 1], [9, 9, 9, 9, 9], 30), ...loads("react", [5, 5, 5, 5, 5], [1, 1, 1, 1, 1], 90)],
+  };
+  const { losses, wins } = lossesFirst({ apps: [store, todomvc] });
+  assert.ok(wins.some((w) => /^store: server CPU per request, ms, median: Pleris 0\.20 \| Next\.js 0\.40$/.test(w)), wins.join("\n"));
+  assert.ok(![...wins, ...losses].some((l) => /store: latency under load, p50/.test(l)), [...wins, ...losses].join("\n"));
+  assert.ok(!wins.some((w) => /^todomvc: server/.test(w)), wins.join("\n"));
+  assert.ok(losses.some((l) => /^todomvc: latency under load, p50, ms, median \(React's server is the instrument's static host/.test(l)), losses.join("\n"));
+});
+
+test("an idle visitor's page is in a browser context of its own, as separate people's browsers are", async () => {
+  const made = [];
+  const browser = {
+    async newContext() {
+      const c = { on() {}, off() {}, async newPage() { return { async goto() {} }; }, async close() {} };
+      made.push(c);
+      return c;
+    },
+  };
+  const r = await idleCost({ browser, url: "http://localhost:1/", pid: process.pid, pages: 20, seconds: 0.01, ready: async () => {} });
+  assert.equal(new Set(made).size, 20);
+  assert.equal(r.contexts, 20);
+});
+
+test("a warning an unsafe change draws and its reference does not is read, wherever its line, and counts as the checker's catch", () => {
+  const reference = ['WARNING "src/a.svelte" 3:5 "A11y: <img> needs alt"'];
+  const unsafe = ['WARNING "src/a.svelte" 7:5 "A11y: <img> needs alt"', 'WARNING "src/a.svelte" 9:1 "A11y: a form label must be associated with a control"'];
+  assert.deepEqual(newWarnings(reference, unsafe), ['WARNING "src/a.svelte" "A11y: a form label must be associated with a control"']);
+  assert.deepEqual(newWarnings(unsafe, reference), []);
+  const pr = { added: 1, removed: 0, files: 1, languages: ["Svelte"] };
+  const feature = (svelteWarnings) => ({
+    rows: [
+      {
+        id: "T06",
+        title: "t",
+        stacks: {
+          pleris: { pr, unsafe: { clean: false, error: "error: [PW5014] x", newWarnings: [] } },
+          sveltekit: { pr, unsafe: { clean: true, error: null, newWarnings: svelteWarnings } },
+        },
+      },
+    ],
+  });
+  const caught = /unsafe versions the stack's own checker refuses or warns of \(more is better\)/;
+  // svelte-check warned of it: both checkers caught it, so Pleris's is no win.
+  const warned = lossesFirst({ apps: [] }, { feature: feature(newWarnings(reference, unsafe)) });
+  assert.ok(![...warned.wins, ...warned.losses].some((w) => caught.test(w)), warned.wins.join("\n"));
+  // It did not: Pleris's checker alone caught it.
+  const silent = lossesFirst({ apps: [] }, { feature: feature(newWarnings(reference, reference)) });
+  assert.ok(silent.wins.some((w) => /refuses or warns of \(more is better\): Pleris 1\/1 \| SvelteKit 0\/1$/.test(w)), silent.wins.join("\n"));
+});
+
+test("a layout shift under a hundredth of the score is no difference", () => {
+  const s = (q1, median, q3) => ({ n: 7, q1, median, q3 });
+  assert.equal(CLS_RESOLUTION, 0.01);
+  assert.equal(compareSpread(s(0.005, 0.006, 0.007), s(0, 0, 0), CLS_RESOLUTION), "within the spread");
+  assert.equal(compareSpread(s(0.05, 0.06, 0.07), s(0, 0, 0), CLS_RESOLUTION), "loses");
 });
