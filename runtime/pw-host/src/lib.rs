@@ -375,6 +375,10 @@ pub struct AuthorizationRequirement {
     pub predicate: String,
     #[serde(default)]
     pub arguments: Vec<usize>,
+    /// The component that answers it, where the program gives the predicate
+    /// a body (ADR-0384 H2): asked first, and the deployment never.
+    #[serde(default)]
+    pub component: Option<String>,
 }
 
 /// An export's place in a component: its interface, function, and invocation

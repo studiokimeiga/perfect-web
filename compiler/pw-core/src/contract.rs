@@ -670,6 +670,12 @@ pub struct AuthorizationRequirement {
     pub predicate: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub arguments: Vec<usize>,
+    /// **The component that answers it, where the program gives the
+    /// predicate a body** (ADR-0115 as amended by ADR-0384's H2): the host
+    /// asks that component, and never the deployment, for it. None: the
+    /// deployment's predicate, asked as before.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub component: Option<String>,
 }
 
 /// An export's place in a component: `pw:app/store-page-add-to-cart-api@0.1.0`
@@ -1783,6 +1789,11 @@ fn contracts_with_privacy(
             };
             let mut component = crate::wit::component_export(&component_id, &decl.name);
             component.authorization = authorization_of(decl);
+            // Each predicate the program gives a body is answered by its own
+            // component (ADR-0384's H2), which the host asks first.
+            for requirement in &mut component.authorization {
+                requirement.component = asked_by(hirs, ws, unit, &requirement.predicate);
+            }
             component.idempotent_by = decl
                 .policy("idempotent_by")
                 .map(|p| p.value.trim().to_string());
@@ -1871,13 +1882,30 @@ fn authorization_of(decl: &crate::hir::Decl) -> Vec<AuthorizationRequirement> {
                             .unwrap_or(usize::MAX)
                     })
                     .collect(),
+                component: None,
             })
             .collect(),
         Err(_) => vec![AuthorizationRequirement {
             predicate: "__invalid_requires__".to_string(),
             arguments: vec![usize::MAX],
+            component: None,
         }],
     }
+}
+
+/// **The component that answers predicate `name` where it is required in
+/// `unit`** (ADR-0384's H2): a predicate the program declares with a body.
+/// None: the deployment's (ADR-0115).
+fn asked_by(hirs: &[&Hir], ws: &Workspace, unit: usize, name: &str) -> Option<String> {
+    use crate::resolve::{Namespace, Resolution};
+    let def = match ws.resolve_path_in(unit, Namespace::Predicate, name) {
+        Resolution::Local(d) | Resolution::Imported { def: d, .. } => d,
+        _ => return None,
+    };
+    let hir = hirs.get(def.unit)?;
+    let id = crate::hir::DeclId(def.decl);
+    let decl = hir.decl(id);
+    (decl.kind == DeclKind::Predicate && decl.body.is_some()).then(|| component_id(hir, id))
 }
 
 /// A hash over the interface, and over nothing else.

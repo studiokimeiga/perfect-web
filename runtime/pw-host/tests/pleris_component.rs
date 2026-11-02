@@ -768,6 +768,7 @@ fn an_argument_that_breaks_its_invariant_never_reaches_the_component() {
         .push(AuthorizationRequirement {
             predicate: "MayAdd".into(),
             arguments: vec![1],
+            component: None,
         });
     let asked: Asked = Arc::default();
     let evaluate = |predicate: &str, read: &[&Val]| {
