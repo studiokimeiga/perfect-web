@@ -1404,6 +1404,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "pw-table-postgres"
+version = "0.0.0"
+dependencies = [
+ "postgres",
+ "pw-core",
+ "pw-host",
+ "pw-syntax",
+ "pw-table-memory",
+ "serde_json",
+]
+
+[[package]]
 name = "pw-tasks"
 version = "0.0.0"
 

@@ -173,6 +173,8 @@ NEEDS_DATABASE = {
     # Track `deploy`: the store run as production runs it, on a database of
     # its own (its smoke test and its process test).
     "e14-deploy",
+    # Track `d3-postgres` (ADR-0338's D3): declared tables on PostgreSQL.
+    "e14-d3-postgres",
 }
 
 EVIDENCE_RECIPE = re.compile(r"^e[0-9]+-[a-z0-9-]+$")
