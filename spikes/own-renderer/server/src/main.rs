@@ -9308,6 +9308,21 @@ fn main() {
             }
             Err(e) => production::refuse(&[e]),
         }
+        // TRACK SEAM (deploy): its data made ready before it listens (kiokun's
+        // search index, which its first page would otherwise build past a
+        // query's deadline): a production host takes no request it cannot
+        // answer yet.
+        let warming = std::time::Instant::now();
+        if let Err(e) = server.data.warm() {
+            production::refuse(&[format!("its data could not be made ready: {e}")]);
+        }
+        production::log::info(
+            "warm",
+            &format!(
+                "pw dev server data: ready in {} ms",
+                warming.elapsed().as_millis()
+            ),
+        );
         production::log::info(
             "secrets",
             &format!(

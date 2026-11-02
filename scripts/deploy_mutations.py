@@ -26,10 +26,12 @@ Each mutant undoes one piece:
 - the stop: a drain that waits for nothing, a closed connection not
   counted, the wake sent to an address nothing listens on;
 - no sign-in: a sign-in that falls through, every session signed in;
-- kiokun's search cache not where the deployment keeps it;
+- kiokun's search cache not where the deployment keeps it, and its index
+  not opened before its first read;
 - the process (the binary run as production runs it): no HSTS, the runtime
   started at no version, the deployment's key not installed, lines not
-  JSON, a stop that does not drain, an open connection not waited for, no
+  JSON, its data not made ready before it listens, a stop that does not
+  drain, an open connection not waited for, no
   read bound, a stopping host taking connections, and the listener on the
   loopback whatever PW_BIND says.
 
@@ -441,7 +443,21 @@ MUTANTS = [
         '        Some(dir) => PathBuf::from(dir).join("kiokun-search"),',
         '        Some(_) => Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../target/kiokun-search"),',
     ),
+    (
+        "kiokun's search index is not opened before its first read",
+        UNIT,
+        KIOKUN,
+        "        self.search.index()?;\n",
+        "",
+    ),
     # --- the process -------------------------------------------------------
+    (
+        "a production host's data is not made ready before it listens",
+        PROCESS,
+        MAIN,
+        "        if let Err(e) = server.data.warm() {",
+        "        if let Err(e) = Ok::<(), String>(()) {",
+    ),
     (
         "a production host sends no HSTS",
         PROCESS,

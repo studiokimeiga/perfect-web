@@ -97,6 +97,19 @@ mod production_cache_tests {
         );
         assert_eq!(search_cache_in(Some("".into())), development);
     }
+
+    /// **A production kiokun's search index is open before its first read**
+    /// (`DataLayer::warm`): what its first page would otherwise build past a
+    /// query's deadline.
+    #[test]
+    fn a_production_kiokuns_search_index_is_open_before_its_first_read() {
+        use crate::data::DataLayer;
+        let kiokun = KiokunData::at(sample(), None);
+        assert!(kiokun.search.index.get().is_none());
+        assert_eq!(kiokun.warm(), Ok(()));
+        assert!(kiokun.search.index.get().is_some_and(|i| i.is_ok()));
+        assert!(kiokun.search.alias.get().is_some_and(|a| a.is_ok()));
+    }
 }
 
 impl Search {
@@ -1033,6 +1046,14 @@ impl data::Staged for Nothing {
 impl data::DataLayer for KiokunData {
     fn reads(&self, _session: &str, _stopped: Option<Stopped>) -> data::Ops {
         reads_of(self.root.clone(), self.app.clone(), self.search.clone())
+    }
+
+    /// TRACK SEAM (deploy): the search index and its aliases, opened (built
+    /// into the cache, where the CSV is large) before the host listens.
+    fn warm(&self) -> Result<(), String> {
+        self.search.index()?;
+        self.search.aliases()?;
+        Ok(())
     }
 
     fn begin<'a>(&'a self, _session: &str) -> Box<dyn data::Staged + 'a> {

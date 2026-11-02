@@ -49,11 +49,17 @@ fn built_kiokun(dir: &Path) -> String {
         &root.join("examples/kiokun/data/han-1char-3"),
         &data.join("output_dictionary"),
     );
-    std::fs::copy(
-        root.join("examples/kiokun/data/search-sample.csv"),
-        data.join("output_search_index.csv"),
-    )
-    .expect("the search index");
+    // The sample's rows, repeated past the 4 MiB under which an index is
+    // kept in memory: so its index is built into the cache, as kiokun.com's
+    // 56 MB one is.
+    let sample = std::fs::read_to_string(root.join("examples/kiokun/data/search-sample.csv"))
+        .expect("the search sample");
+    let (head, rows) = sample.split_once('\n').expect("a header");
+    let mut csv = format!("{head}\n");
+    while csv.len() < 5 << 20 {
+        csv.push_str(rows);
+    }
+    std::fs::write(data.join("output_search_index.csv"), csv).expect("the search index");
     data.join("output_dictionary").display().to_string()
 }
 
@@ -378,6 +384,7 @@ fn a_production_host_never_says_a_secret() {
 fn a_production_host_serves_and_stops_when_told() {
     let dir = tempfile::TempDir::with_prefix("pw-production-").expect("a directory");
     let data = built_kiokun(dir.path());
+    let cache = dir.path().join("cache").display().to_string();
     // Read from a secrets file only its owner may read, as systemd's
     // credentials are.
     use std::os::unix::fs::PermissionsExt;
@@ -392,11 +399,29 @@ fn a_production_host_serves_and_stops_when_told() {
         ("PW_IDENTITY_KEY", ""),
         ("PW_SECRETS_FILE", file.to_str().expect("a path")),
         ("KIOKUN_DATA", &data),
+        ("PW_CACHE_DIR", &cache),
     ]);
+    let cache = env
+        .iter()
+        .find(|(n, _)| *n == "PW_CACHE_DIR")
+        .map(|(_, v)| PathBuf::from(v))
+        .expect("a cache directory");
     let (child, lines) = start(dir.path(), &env);
     let (port, said) = listening(&lines);
     assert!(not_json(&said).is_empty(), "{said:?}");
     assert!(said.iter().any(|l| l["event"] == "assets"), "{said:?}");
+    // kiokun's search index, built into its cache before the host listened.
+    let built = std::fs::read_dir(cache.join("kiokun-search"))
+        .map(|entries| {
+            entries
+                .filter_map(Result::ok)
+                .any(|e| e.path().join("index.db").is_file())
+        })
+        .unwrap_or(false);
+    assert!(
+        built && said.iter().any(|l| l["event"] == "warm"),
+        "the search index was not built before the host listened: {said:?}"
+    );
     assert!(
         said.iter().any(|l| l["event"] == "secrets"
             && l["msg"]
@@ -540,6 +565,7 @@ fn a_production_host_serves_and_stops_when_told() {
 fn a_stop_ends_at_its_grace_whatever_stays_open() {
     let dir = tempfile::TempDir::with_prefix("pw-production-").expect("a directory");
     let data = built_kiokun(dir.path());
+    let cache = dir.path().join("cache").display().to_string();
     // Where PW_BIND says: 127.0.0.2, a loopback address of its own, which
     // the stop's wake reaches too.
     let (child, lines) = start(
@@ -547,6 +573,7 @@ fn a_stop_ends_at_its_grace_whatever_stays_open() {
         &production(&[
             ("PW_SHUTDOWN_GRACE", "1"),
             ("KIOKUN_DATA", &data),
+            ("PW_CACHE_DIR", &cache),
             ("PW_BIND", "127.0.0.2"),
         ]),
     );
@@ -735,9 +762,14 @@ fn a_production_store_starts_its_runtime_at_its_version_and_keys_its_addresses()
 fn a_connection_that_sends_nothing_is_closed_at_the_reads_bound() {
     let dir = tempfile::TempDir::with_prefix("pw-production-").expect("a directory");
     let data = built_kiokun(dir.path());
+    let cache = dir.path().join("cache").display().to_string();
     let (child, lines) = start(
         dir.path(),
-        &production(&[("PW_READ_TIMEOUT", "1"), ("KIOKUN_DATA", &data)]),
+        &production(&[
+            ("PW_READ_TIMEOUT", "1"),
+            ("KIOKUN_DATA", &data),
+            ("PW_CACHE_DIR", &cache),
+        ]),
     );
     let (port, _) = listening(&lines);
     let mut idle = TcpStream::connect(("127.0.0.1", port)).expect("connect");

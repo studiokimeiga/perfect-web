@@ -24,6 +24,15 @@ pub(crate) trait DataLayer: Send + Sync {
     /// query does commits.
     fn reads(&self, session: &str, stopped: Option<Stopped>) -> Ops;
 
+    /// TRACK SEAM (deploy): **what the layer makes ready before its host
+    /// listens**, in production: what it would otherwise make at its first
+    /// read, which a query's deadline does not wait for (kiokun's search
+    /// index, built from its 56 MB CSV: "timed out" at the first word page,
+    /// found 2026-11-02 on kiokun.com's own data). By default nothing.
+    fn warm(&self) -> Result<(), String> {
+        Ok(())
+    }
+
     /// **One render's snapshot** (NEXT 4c, track `render-merge`): what every
     /// read of one render reads, asked for where the render begins and given
     /// up where it ends, so the render sees one state of the data whatever
