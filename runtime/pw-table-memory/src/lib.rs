@@ -563,6 +563,45 @@ impl Command {
         Ok(out)
     }
 
+    /// **A predicate's reads, inside this command's transaction** (ADR-0384's
+    /// H2; ADR-0115 as amended): the host asks a predicate the program gives
+    /// a body before the command's own body runs, in the command's
+    /// transaction, so what it read is what the command writes against. The
+    /// contract is one `predicate` export's, and the gate admits its reads
+    /// alone, as a query's; each reads this command's tables. Once the
+    /// command has ended, each fails.
+    pub fn predicate_host_fns(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, Error> {
+        use pw_host::engine::table_read_host;
+        let one_predicate =
+            matches!(contract.exports.as_slice(), [only] if only.kind == "predicate");
+        if !one_predicate {
+            return Err(Error::Input(
+                "a predicate's reads are a predicate's: one predicate export".into(),
+            ));
+        }
+        let mut out = BTreeMap::new();
+        let reads = self
+            .inner
+            .host
+            .admit_reads(contract, granted)
+            .map_err(Error::Input)?;
+        for (import, read) in reads {
+            let inner = Arc::clone(&self.inner);
+            let (id, bound) = (self.id, import.clone());
+            let data = Arc::new(move |args: &[Value]| {
+                inner
+                    .command_read(id, &bound, args)
+                    .map_err(|error| format!("`{bound}`: {error:?}"))
+            });
+            out.insert(import, table_read_host::host_fn(read, data));
+        }
+        Ok(out)
+    }
+
     /// **The tables this command has written so far**, by name: what its
     /// commit publishes, and so what a host commits its outbox with
     /// (`Staged::rows`); none where it wrote nothing, a delete of a key no
