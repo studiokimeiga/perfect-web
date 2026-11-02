@@ -21,6 +21,7 @@
 import { execFileSync, spawn } from "node:child_process";
 import { mkdirSync, openSync, readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
+import { nextDocument } from "../e2e/next-document.mjs";
 
 const PORT = Number(process.env.PORT ?? 3141);
 const ENGINES = ["chromium", "firefox", "webkit"];
@@ -316,6 +317,7 @@ test("a session signed out on B is no one on A", async ({ browser }, testInfo) =
 
 test("pages loading their runtime and modules while commands run are each answered", async ({
   browser,
+  browserName,
 }, testInfo) => {
   // ADR-0389, amended 2026-11-02 (track session-overlap): a browser asks for
   // a page, its runtime, its handler manifest and its handler modules at
@@ -323,44 +325,67 @@ test("pages loading their runtime and modules while commands run are each answer
   // its session where the hosts keep it, and each is answered. Until then,
   // of two admissions of one session that overlapped, one was refused: a
   // page or a file 503 "The session could not be confirmed", a command 403.
-  // Each round opens new pages rather than navigating one again, so that no
-  // navigation cancels what a page has just asked for (WebKitGTK's network
-  // process, `e2e/next-document.mjs`).
+  // Two pages of one session, as a reader with two tabs has: each round
+  // loads one again while a command runs, then presses on it while the
+  // other loads again. No more pages than that: each open page holds a
+  // streaming connection, and past six of one origin Firefox queues every
+  // other request behind them (found by this test; ADR-0389, amended
+  // 2026-11-02).
   const context = await browser.newContext();
-  const first = await context.newPage();
-  await signUp(first, A, handle(testInfo, "ida"), `Ida ${testInfo.project.name}`);
+  const [page, tab] = [await context.newPage(), await context.newPage()];
+  await signUp(page, A, handle(testInfo, "ida"), `Ida ${testInfo.project.name}`);
+  await home(tab, A);
   const logged = readFileSync(A.log, "utf8").length;
+  // A refusal fails the round at once, by name: a page whose runtime is
+  // refused never boots, and its wait would last to the test's timeout.
   const refused = [];
+  let refuse;
+  const refusal = new Promise((_, reject) => {
+    refuse = reject;
+  });
+  refusal.catch(() => {});
   context.on("response", (r) => {
     if (r.status() === 503 || r.status() === 403) {
       refused.push(`${r.status()} ${r.request().method()} ${r.url()}`);
+      refuse(new Error(`refused: ${refused.join(", ")}`));
     }
   });
+  const answered = (step) => Promise.race([step, refusal]);
+  // A page loaded again once what its document asked for is answered, so
+  // that no navigation cancels a request just made (WebKitGTK's network
+  // process, `e2e/next-document.mjs`).
+  const again = async (p) => {
+    const next = await nextDocument(p, browserName);
+    await home(p, A);
+    await next.settled();
+  };
   for (let n = 0; n < 4; n += 1) {
-    // A page loads while a command of its session runs, sent as the
-    // runtime sends one.
-    const loading = await context.newPage();
     const text = `Posted while a page loaded, ${n}, at ${Date.now()}`;
-    const [, answer] = await Promise.all([
-      home(loading, A),
-      context.request.post(`${A.origin}/command/feed.app.post`, {
-        headers: {
-          origin: A.origin,
-          "content-type": "application/json",
-          "pw-interaction": `overlap-${testInfo.project.name}-${n}-${Date.now()}`,
-        },
-        data: JSON.stringify([text]),
-      }),
-    ]);
+    const [, answer] = await answered(
+      Promise.all([
+        again(page),
+        context.request.post(`${A.origin}/command/feed.app.post`, {
+          headers: {
+            origin: A.origin,
+            "content-type": "application/json",
+            "pw-interaction": `overlap-${testInfo.project.name}-${n}-${Date.now()}`,
+          },
+          data: JSON.stringify([text]),
+        }),
+      ]),
+    );
     expect(answer.status(), `the command beside a page load: ${await answer.text()}`).toBe(202);
     expect((await answer.json()).committed).toBe(true);
-    // And a press on that page, which asks for its handler's module and
-    // sends its command, while another page loads.
-    const another = await context.newPage();
-    await Promise.all([
-      home(another, A),
-      posted(loading, `Pressed while a page loaded, ${n}, at ${Date.now()}`),
-    ]);
+    // A press on the page loaded again, which asks for its handler's module
+    // and sends its command, while the other page loads again.
+    const pressed = page.waitForResponse((r) => r.url().includes("/command/feed.app.post"));
+    await answered(
+      Promise.all([
+        again(tab),
+        posted(page, `Pressed while a page loaded, ${n}, at ${Date.now()}`),
+      ]),
+    );
+    expect((await pressed).status(), "the press beside a page load").toBe(202);
   }
   expect(refused, "every request of the session answered").toEqual([]);
   expect(readFileSync(A.log, "utf8").slice(logged), "no admission refused").not.toContain(

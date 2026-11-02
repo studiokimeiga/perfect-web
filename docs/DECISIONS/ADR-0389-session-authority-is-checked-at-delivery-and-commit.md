@@ -437,3 +437,50 @@ changes where admission begins, so it is recorded here.
   holds that, the runtime's files, the next document's runtime with its
   query, a page, the manifest, a handler module and a command each refused
   on a failed read, each refusal logged by its kind.
+- **Evidence** (2026-11-02, this PC: PostgreSQL 18.6, Playwright 1.58.0).
+  - The tests above, at 613f54bd: `identity::` and `tests::session_overlap::`
+    27 passed (the PostgreSQL test included); the whole `pw-dev-server`
+    suite at 915a53fa, 856 passed, 9 ignored, 0 failed.
+  - `scripts/session_overlap_mutations.py`, run whole at 613f54bd: 12 of 12
+    controls killed, each by a complete native assertion failure of its
+    frozen 13-test inventory, the source restored (valid=True). Each rule
+    of the repair is a control: an overtaken admission refused again, an
+    overtaken read answered stale or refused instead of read again, the
+    reads unbounded, a close that moves no authority ticket, an overtaken
+    read installed, an install, a removal or a failed read's removal that
+    moves no ticket, PR #63's exemption back, a page's or a command's
+    refusal unlogged. It refuses to run without a database, so the
+    PostgreSQL test never passes by skipping; its producer contract has
+    eight unit tests (`scripts/tests/test_session_overlap_mutations.py`).
+  - In three engines (`e2e-hosts/second-host.spec.mjs`, "pages loading
+    their runtime and modules while commands run are each answered"): two
+    pages of one session, each round loading one again while a command
+    runs and pressing on it while the other loads again, every request
+    answered and no admission refused in the host's log: 3 passed. With
+    the first control applied by hand (an overtaken admission refused
+    again), all three failed at once by name: Chromium and Firefox a
+    command 403 `session-changed`, WebKit a 503 on `pw-render.wasm`.
+  - `just e14-session-overlap` records the tests, the browser test and the
+    controls (`docs/evidence/E14/session-overlap.txt`); `e14-second-host`,
+    whose spec and controls this changes, is run again whole.
+- **Found by the browser test, not changed: past six open pages of one
+  origin, Firefox queues every other request.** The first form of the test
+  opened two new pages a round and kept them; at the seventh page Firefox
+  (`network.http.max-persistent-connections-per-server`, 6) had no
+  connection left beside the pages' streaming `/stream` answers: a press's
+  command was aborted at its 10 s deadline and a handler module was never
+  sent, twice in two runs; Chromium and WebKit passed. Each open page
+  holds one HTTP/1.1 connection, so a reader with seven tabs of one origin
+  in Firefox would see the same. HTTP/2 between the browser and the
+  deployment would carry every page's requests on one connection; the
+  development server speaks HTTP/1.1. A limitation for the integrator to
+  record; the test now keeps two pages open, as a reader with two tabs.
+- **Not claimed, and next.**
+  - Admitting the build's own files costs each of them one admission (on
+    PostgreSQL one five-statement transaction holding the session's
+    advisory lock). A rule that a response reading no session state is
+    answered before admission (every build file: the runtime, the handler
+    manifest, handler, speculation and computed modules, stylesheets,
+    images) would be one structural decision, measured, not three names.
+  - A command whose admission read fails is answered 403 `session-changed`,
+    as before; 503 would say what happened. Unchanged here.
