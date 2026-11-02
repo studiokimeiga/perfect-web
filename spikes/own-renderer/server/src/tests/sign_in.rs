@@ -944,21 +944,127 @@ fn nothing_the_feed_keeps_holds_a_session_cookie() {
     let s = feed_with(provider.clone());
     let came_with = crate::identity::new_session_id();
     let ada = signed_in(&s, &provider, &came_with, "ada");
+    // The messages print no answer, which may carry the cookie.
     let posted = command(&s, "feed.app.post", &ada, "i-post", "[\"Kept in memory\"]");
-    assert!(posted.contains("\"committed\":true"), "{posted}");
+    assert!(posted.contains("\"committed\":true"), "the post commits");
     let followed = command(&s, "feed.app.follow", &ada, "i-follow", "[\"u-grace\"]");
-    assert!(followed.contains("\"committed\":true"), "{followed}");
+    assert!(
+        followed.contains("\"committed\":true"),
+        "the follow commits"
+    );
     let page = get(&s, "/", &format!("pw-session={ada}"));
-    assert!(page.contains("Kept in memory"), "{page}");
+    assert!(
+        page.contains("Kept in memory"),
+        "the home page shows the post"
+    );
     let kept = super::guestbook::kept_by_host(&s, &ada);
     assert!(
         kept.contains(&crate::identity::session_handle(&ada)),
-        "the timeline's read, keyed by the program's handle on the session: {kept}"
+        "the timeline's read, keyed by the program's handle on the session"
     );
     super::guestbook::holds_none_of(&kept, &[&ada, &came_with]);
     // Nor does the page show it: its body (its headers are the browser's).
     let shown = page.split_once("\r\n\r\n").map_or("", |(_, body)| body);
     super::guestbook::holds_none_of(shown, &[&ada, &came_with]);
+}
+
+/// **Every feed operation a session is passed to answers for its request's
+/// session alone** (track `data-path`): for session `a`'s request, each read
+/// and each write of the feed's layer that is passed a session refuses
+/// another session's handle, and the cookie itself, which no program holds
+/// (correction 8), and answers the request's own handle. `posts#delete` was
+/// passed the session and read none of it until the re-review of
+/// 2026-11-02. Each write in a command of its own, dropped: nothing stays.
+pub(super) fn each_operation_answers_its_requests_session_alone(s: &Server) {
+    let text = |v: &str| Val::String(v.into());
+    let mine = crate::identity::session_handle("a");
+    let theirs = crate::identity::session_handle("b");
+    let reads: [(&str, Vec<Val>); 6] = [
+        ("feed:data/posts#timeline", vec![Val::S64(5)]),
+        ("feed:data/posts#following", vec![Val::S64(5)]),
+        ("feed:data/users#relation", vec![text("u-grace")]),
+        ("feed:data/users#of-session", vec![]),
+        ("feed:data/users#viewer", vec![]),
+        ("feed:data/uploads#attached", vec![]),
+    ];
+    let writes: [(&str, Vec<Val>); 10] = [
+        ("feed:data/posts#publish", vec![text("Never posted")]),
+        (
+            "feed:data/posts#reply",
+            vec![text("p1"), text("Never replied")],
+        ),
+        (
+            "feed:data/posts#publish-image",
+            vec![text("Never posted"), text("words"), text("no-upload")],
+        ),
+        ("feed:data/users#follow", vec![text("u-grace")]),
+        ("feed:data/users#unfollow", vec![text("u-grace")]),
+        ("feed:data/posts#delete", vec![text("p1")]),
+        (
+            "feed:data/messages#send",
+            vec![text("u-grace"), text("Never sent")],
+        ),
+        ("feed:data/posts#like", vec![text("p1")]),
+        ("feed:data/uploads#claim", vec![]),
+        ("feed:data/uploads#discard", vec![text("no-upload")]),
+    ];
+    let passed = |session: &str, rest: &[Val]| -> Vec<Val> {
+        std::iter::once(text(session))
+            .chain(rest.iter().cloned())
+            .collect()
+    };
+    let refused = |answer: &Result<Vec<Val>, String>| matches!(answer, Err(why) if why.contains("was passed another session"));
+    let check = |op: &str, f: &HostFn, rest: &[Val]| {
+        for (whose, session) in [
+            ("another session's handle", theirs.as_str()),
+            ("the cookie", "a"),
+        ] {
+            assert!(
+                refused(&f(&passed(session, rest))),
+                "`{op}` refuses {whose}"
+            );
+        }
+        assert!(
+            !refused(&f(&passed(&mine, rest))),
+            "`{op}` answers its request's own handle"
+        );
+    };
+    let ops = s.data.reads("a", None);
+    for (op, rest) in &reads {
+        let f = ops.get(*op);
+        assert!(f.is_some(), "the feed reads `{op}`");
+        if let Some(f) = f {
+            check(op, f, rest);
+        }
+    }
+    for (op, rest) in &writes {
+        // A command of its own each: a write refused, or one answered and
+        // dropped, leaves the next one's transaction whole.
+        for session in [theirs.as_str(), "a", mine.as_str()] {
+            let staged = s.data.begin("a");
+            let ops = staged.ops();
+            let f = ops.get(*op);
+            assert!(f.is_some(), "the feed writes `{op}`");
+            if let Some(f) = f {
+                let answer = f(&passed(session, rest));
+                if session == mine {
+                    assert!(!refused(&answer), "`{op}` answers its request's own handle");
+                } else {
+                    assert!(
+                        refused(&answer),
+                        "`{op}` refuses a session not its request's"
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// [`each_operation_answers_its_requests_session_alone`], on the feed in
+/// memory.
+#[test]
+fn each_feed_operation_answers_its_requests_session_alone() {
+    each_operation_answers_its_requests_session_alone(&served_feed());
 }
 
 /// **On PostgreSQL** (ADR-0246): the same principals, the author's row
@@ -1119,6 +1225,17 @@ mod on_postgres {
         drop(s);
     }
 
+    /// [`super::each_operation_answers_its_requests_session_alone`], on the
+    /// feed on PostgreSQL, each write in a transaction rolled back.
+    #[test]
+    fn each_feed_operation_answers_its_requests_session_alone_on_postgres() {
+        let Some((s, _db)) = served("handles", Arc::new(TestProvider::default())) else {
+            return;
+        };
+        super::each_operation_answers_its_requests_session_alone(&s);
+        drop(s);
+    }
+
     /// **Nothing the feed keeps on PostgreSQL holds a session's cookie, nor
     /// does its page show it** (track `data-path`, the integrator's ruling of
     /// 2026-11-02): a reader signed in through the flow posts and follows,
@@ -1138,43 +1255,42 @@ mod on_postgres {
         let ada = signed_in(&s, &provider, came_with, "ada");
         let body = "[\"Kept on the database\"]";
         let answer = command(&s, "feed.app.post", &ada, "i-kept", body);
-        assert!(answer.contains("\"committed\":true"), "{answer}");
+        assert!(answer.contains("\"committed\":true"), "the post commits");
         // A follow invalidates `FollowingTimeline(current_session(), _)` and
         // `Relation(current_session(), user)`, which the outbox keeps: their
         // session is the program's handle on it.
         let followed = command(&s, "feed.app.follow", &ada, "i-follow", "[\"u-grace\"]");
-        assert!(followed.contains("\"committed\":true"), "{followed}");
+        assert!(
+            followed.contains("\"committed\":true"),
+            "the follow commits"
+        );
         let page = get(&s, "/", &format!("pw-session={ada}"));
         let shown = page.split_once("\r\n\r\n").map_or("", |(_, body)| body);
-        assert!(shown.contains("Kept on the database"), "{page}");
+        assert!(
+            shown.contains("Kept on the database"),
+            "the home page shows the post"
+        );
+        // The messages name what is missing, and print no row: a failing
+        // run's log is kept, and a row might hold the very cookie.
         let rows = db.every_row();
         let handle = crate::identity::session_handle(&ada);
         assert!(
             rows.lines()
                 .any(|row| row.starts_with("outbox: ") && row.contains(&handle)),
-            "the follow's invalidations, by the session's handle: {rows}"
+            "the follow's invalidations, by the session's handle"
         );
         let digest = crate::identity::session_field(crate::identity::INTERACTION_DOMAIN, &ada);
         assert!(
             rows.lines()
                 .any(|row| row.starts_with("interactions: ") && row.contains(&digest)),
-            "the command's record, keyed by the session's digest: {rows}"
+            "the command's record, keyed by the session's digest"
         );
         assert!(
             rows.lines().any(|row| row.starts_with("sessions: ")),
-            "the session, kept: {rows}"
+            "the session, kept"
         );
-        for cookie in [ada.as_str(), came_with] {
-            let hex = crate::identity::hex(cookie.as_bytes());
-            assert!(
-                !rows.contains(cookie) && !rows.contains(&hex),
-                "a row holds the cookie `{cookie}`: {rows}"
-            );
-            assert!(
-                !shown.contains(cookie) && !shown.contains(&hex),
-                "the page shows the cookie `{cookie}`"
-            );
-        }
+        super::super::guestbook::holds_none_of(&rows, &[&ada, came_with]);
+        super::super::guestbook::holds_none_of(shown, &[&ada, came_with]);
         drop(s);
     }
 }

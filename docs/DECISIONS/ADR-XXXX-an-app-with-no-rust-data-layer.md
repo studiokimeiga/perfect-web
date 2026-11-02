@@ -221,12 +221,67 @@ and what changed:
    computed (`each_digest_of_a_session_is_its_own_domains`). Eight mutation
    controls take a digest's domain or the handle away, or let an operation
    answer for a session it is not passed. **What stops matching**, which the
-   ruling accepts at this stage: a record kept by a cookie is not recalled
-   (a retry of a press committed before the change, within its record's
-   day, runs again); a session kept on PostgreSQL before it is not found,
-   and its reader is signed out once, as a sign-in under way fails once; a
-   cached read is read again; a cart, an order or an estimate kept by a
-   cookie is not found.
+   ruling accepts at this stage: a record kept by a cookie is not recalled,
+   so what retries an interaction committed before the change, within its
+   record's day, runs it again: a browser's press, and as much a scheduled
+   run retried, or a payment provider's outcome sent again, whose records
+   are kept by their stand-in sessions (corrected by the re-review of
+   2026-11-02, correction 9); a session kept on PostgreSQL before it is not
+   found, and its reader is signed out once, as a sign-in under way fails
+   once; a cached read is read again; a cart, an order or an estimate kept
+   by a cookie is not found. **And what was kept before still holds
+   usable cookies** (correction 9): before correction 1 a guest's id was
+   `u-` and its cookie, in posts' authors, follows, scheduled runs' users
+   and the store's carts' owners; before this correction a cookie was in
+   by-session carts and orders, the estimates, the outbox's invalidations
+   and a day of interactions' keys. A guest's cookie is never rotated and
+   never expires (whoever sends it is its guest), so each of those is a
+   credential for as long as it is kept, not until a session expires. A
+   deployment holding data from before these corrections must purge it (the
+   rows that hold a guest's id or a cookie, the outbox, the records); none
+   is deployed yet.
+9. **The re-review of the repairs** (at `a431dddc`): no blocker. B1, B2,
+   S1, S3 and the cookie's digests held under its probes, which searched
+   every row, page and frame for the cookie as written, in hex of either
+   case, in base64 and base64url, as a plain SHA-256 and as any 12
+   characters of it, and found none; PW6901 held in nine syntaxes. **The
+   integrator's rulings on what it found, and what changed**:
+   - **The suite measured no render's reads.** Parts 1 and 2 read with no
+     snapshot, and the programs' query pins through `Server::answer`
+     outside a render, while every page's query reads through the layer's
+     snapshot (`TablesLayer::table_reads`'s snapshot branch): a layer
+     tripling that branch's adapter calls passed all 38 tests, and the
+     control "a read is made three times" was killed only because it
+     wrapped both branches. Parts 1 and 2, and the pins, now read outside a
+     render and in one (the layer's snapshot; `render_merge::begin` for the
+     pins), and a control triples the snapshot branch alone ("a render's
+     reads are made three times"). The suite also measures each write at
+     the adapter, one statement each (`insert`, `put`, `delete`,
+     `delete-prefix`; control: "a command's table calls are made twice"),
+     and commits a row referring to a row its own command staged, as the
+     guestbook's first signing writes its book and its entry in one command
+     (control: "a reference to a row its command staged is refused").
+   - **`posts#delete` was passed the session's handle and read none of
+     it**, in memory and on PostgreSQL. It refuses another session's handle,
+     and the cookie, as every operation a session is passed does
+     (`data::Requested`): a test calls each such operation of the feed, in
+     memory and on PostgreSQL, with another session's handle, the cookie and
+     its own handle, and a control takes each layer's delete's check away.
+   - **`account_of`'s comment** in the platform package
+     (`packages/pw-platform-web/context.pw`), which programs read, still
+     said a guest's id holds its session, a credential. It says what the id
+     is now.
+   - **The cookie's search** (`holds_none_of`) reads each form the
+     re-review read, and the tests read where they did not: every row of
+     the store's schema on PostgreSQL (the canonical store's, and the
+     benchmark's, whose cart is the session's), and every frame waiting for
+     an open page, as its stream sends it.
+   - **This ADR**: correction 8 says what retries across the change
+     (scheduled runs and payments' outcomes too) and that old rows still
+     hold usable guests' cookies, which a deployment must purge; Not claimed
+     says where `account_of`'s answer for a run depends on one host's
+     memory; Findings records a failed COMMIT leaving the query cache and
+     `Materializer::command`'s panics.
 
 ## Context
 
@@ -343,12 +398,16 @@ and what changed:
     24 rows a table; costs (each read's statements of the adapter, counted
     below the layer, at least one and within its source's `sets`; each of
     the programs' queries pinned to one call of each table function and
-    one adapter statement a call, at both sizes); staging (a write read by
-    its command alone until it commits); refused commands (dropped;
-    referring to no row; deleting a row another refers to; past a bound:
-    nothing kept); idempotency (each `idempotent_by` command, sent again,
-    answered as it was, writing nothing more). Run for the guestbook's
-    tables and the lists app's (`examples/tables`), on the memory adapter.
+    one adapter statement a call, at both sizes), answers and costs read
+    both outside a render and in one, through the layer's snapshot
+    (correction 9); staging (a write read by its command alone until it
+    commits; each write one statement of the adapter; a row referring to a
+    row its own command staged, committed with it); refused commands
+    (dropped; referring to no row; deleting a row another refers to; past a
+    bound: nothing kept); idempotency (each `idempotent_by` command, sent
+    again, answered as it was, writing nothing more). Run for the
+    guestbook's tables and the lists app's (`examples/tables`), on the
+    memory adapter.
 12. **The development server links `pw-core`** through `pw-table-memory`,
     which reads tables.json as the compiler's `TablesJson` and its schema
     hash. ADR-0018 has a runtime not depend on the compiler; the adapter
@@ -446,21 +505,24 @@ and what changed:
 everything this ADR claims; the integrator produces the record from CI at
 the track's final head (the review's S4). It runs:
 
-- **The server**, `pw-dev-server`, 38 tests: `tests::tables` (10: routing,
+- **The server**, `pw-dev-server`, 41 tests: `tests::tables` (10: routing,
   a run on a reader's behalf for a guest, a signed-out reader and an
   account, a row of a handle's type refused at start, an upload refused),
   `tests::guestbook` (12: the outbox's refusal, a COMMIT failing after the
-  publication, the bound measured, the composer an account's; nothing kept
-  or logged holds a session's cookie, and each digest of a session pinned),
-  the suite (4: both programs, 113 reads of the guestbook's tables and 164
-  of the lists app's against the oracle, each table's refusals;
-  idempotency; the query pins), `notifications::tests` (7: a guest's
-  identity, the account operation, a stand-in's account), `tables::tests`
-  (1: a handle named in tables.json); and the session's cookie kept nowhere
-  (correction 8, 4): the feed's in memory, the feed's on PostgreSQL where
-  `PW_FEED_DATABASE_URL` names a database (the record says whether it did),
-  a store's keyed by the session, an upload's operations refusing another
-  session's handle.
+  publication, the bound measured, the composer an account's; nothing kept,
+  sent to an open page or logged holds a session's cookie in any form, and
+  each digest of a session pinned), the suite (4: both programs, 226 reads
+  of the guestbook's tables and 328 of the lists app's against the oracle,
+  each outside a render and in one, each table's refusals, each write's
+  cost, a reference to a staged row; idempotency; the query pins, outside a
+  render and in one), `notifications::tests` (7: a guest's identity, the
+  account operation, a stand-in's account), `tables::tests` (1: a handle
+  named in tables.json); and the session's cookie kept nowhere (corrections
+  8 and 9, 7): the feed's in memory, the feed's and the store's on
+  PostgreSQL where a database is named (the record says whether one was),
+  a store's keyed by the session in memory, every feed operation a session
+  is passed answering its request's alone, in memory and on PostgreSQL, an
+  upload's operations refusing another session's handle.
 - **The engine and adapter**: `pw-table-memory --test compiled_guarded`
   (3), `--test compiled_snapshot` (2); **the platform's transaction**:
   `pw-materialize`'s `command_then` (1: its last step after its records and
@@ -471,7 +533,7 @@ the track's final head (the review's S4). It runs:
   reference of codes current.
 - **The guestbook in three engines** (`e2e/guestbook.spec.mjs`, 5 tests,
   15 runs: a refusal said among them).
-- **`scripts/data_path_mutations.py`, 50 mutants**, whole, D2's strict
+- **`scripts/data_path_mutations.py`, 55 mutants**, whole, D2's strict
   producer (a kill is a test failing at its assertion, each binary's
   inventory frozen at the baseline).
 
@@ -511,9 +573,15 @@ handed the handle): `e14-session-command-authority`, `e14-uploads`,
   the platform's tables, the rows and the records in one PostgreSQL
   transaction) is next.
 - **A durable account record**: the platform's record of accounts is this
-  host's memory. A command run on an account's behalf on a host where that
-  reader never signed in, or after a restart, is answered none (never
-  another's account, never a credential) until they sign in there again.
+  host's memory (`Principals::account_name`, written by `sign_in`). A
+  command run on an account's behalf on a host where that reader never
+  signed in, or after a restart, is answered none (never another's account,
+  never a credential) until they sign in there again. Where sessions are
+  kept on PostgreSQL (ADR-0369), the answer can differ on one host between a
+  request and a run (the re-review of 2026-11-02, correction 9): the
+  reader's own request, admitted from the kept session, answers their
+  account from the session's principal, while a run on their behalf on that
+  host answers none, its record not written there.
 - **Undoing a publication**: a COMMIT failing after the rows were published
   closes the tables for the life of the process; a reader who read in the
   instant between the publication and the failed COMMIT read a write whose
@@ -537,11 +605,12 @@ handed the handle): `e14-session-command-authority`, `e14-uploads`,
   data declared (D4, D5).
 - **The sequence's contention**: every signing reads and writes the book's
   row, which serializes signings; fine in memory, a hot row on PostgreSQL.
-- **What was kept by a cookie before correction 8**: not migrated. Its
-  records, sessions, carts, orders and estimates stop matching (correction
-  8 says what that costs), and a database that holds them still holds the
-  cookies until they expire or are deleted; a deployment past this stage
-  would delete them.
+- **What was kept by a cookie before corrections 1 and 8**: not migrated
+  and not purged. Its records, sessions, carts, orders and estimates stop
+  matching (correction 8 says what that costs), and a database that holds
+  them still holds usable guests' cookies, for as long as it holds them: a
+  guest's cookie never expires (correction 9). A deployment with such data
+  must purge it.
 - **The host's own memory of sessions**: its principals, its open pages,
   its uploads' leases and its tests' faults are keyed by the cookie in the
   process's memory, which nothing writes out; a dump of the process's
@@ -588,6 +657,19 @@ handed the handle): `e14-session-command-authority`, `e14-uploads`,
   browser's route (ADR-0325's rule for an interaction), even where the
   materializer rolled back before its COMMIT; the press's retry is then
   answered the same. Recorded, not changed.
+- **A COMMIT failing after the rows were published leaves the query
+  cache** (the re-review of 2026-11-02, recorded as found, not changed):
+  the tables close (`TablesStaging::unpublished`), but no cached answer is
+  dropped, and a query's answer read from the published rows in that
+  instant is kept as long as its query keeps answers. The guestbook's keep
+  none (`freshness 0`); a program whose queries keep theirs would show a
+  write whose records were lost until its answer is invalidated.
+- **S1's "never a panic" is the tables' path alone** (the same, recorded as
+  found): `Materializer::command`, every other layer's transaction, still
+  panics where its outbox insert or its COMMIT fails
+  (`runtime/pw-materialize/src/lib.rs`, `.expect("insert outbox")`,
+  `.expect("commit")`); `command_then`, the tables', answers each and rolls
+  back.
 - ADR-0386's open item "authorized commands using tables" is closed
   (decision 3).
 - A template value computed from two values (`mine` and a row) is refused

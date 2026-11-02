@@ -22,9 +22,14 @@
 //!    layer, by the adapter's own count ([`DataLayer::statements`]): a layer
 //!    that read twice for one read would be seen. (Until 2026-11-02 the
 //!    suite counted the calls of a wrapper it called once itself, which
-//!    could not fail.)
+//!    could not fail.) Parts 1 and 2, and the programs' query pins, read
+//!    both outside a render and in one, through the layer's snapshot, as
+//!    every page's query reads (until the re-review of 2026-11-02, outside
+//!    a render alone);
 //! 3. **staging**: a command's write is read by that command, and by no other
-//!    read until it commits;
+//!    read until it commits; each write is one statement of the adapter,
+//!    counted as a read's cost is; and a row referring to a row its own
+//!    command staged commits with it, as the guestbook's first signing does;
 //! 4. **refused commands**: a command dropped keeps nothing; and so does
 //!    each refusal any adapter must give, provoked through what the tables
 //!    declare: a row referring to no row, a row deleted while another refers
@@ -599,7 +604,11 @@ fn statements(s: &Server) -> u64 {
 
 /// **Parts 1 and 2 at one size**: every read function of every table
 /// answers the oracle's rows, each read at least one statement of the
-/// layer's adapter and at most what its source's `sets` states.
+/// layer's adapter and at most what its source's `sets` states; both outside
+/// a render and in one, through the layer's snapshot (NEXT 4c), which is
+/// how every page's query reads. (Until the re-review of 2026-11-02 the
+/// suite read outside a render alone, and a layer whose render reads called
+/// its adapter three times passed it.)
 fn answers_and_costs(
     s: &Server,
     tables: &[Table],
@@ -609,9 +618,43 @@ fn answers_and_costs(
     let rows = generated(tables, n, 0);
     written(s, tables, &rows);
     let [(reads, granted), _] = suite_contracts(tables);
+    let snapshot = s.data.snapshot();
+    assert!(
+        snapshot.is_some(),
+        "the layer under test takes a render's snapshot"
+    );
+    let mut checked = 0;
+    for (way, snapshot) in [
+        ("outside a render", None),
+        ("in a render", snapshot.as_ref()),
+    ] {
+        checked += answers_and_costs_read(
+            s,
+            tables,
+            sets,
+            n,
+            &rows,
+            (way, snapshot),
+            (&reads, &granted),
+        );
+    }
+    checked
+}
+
+/// [`answers_and_costs`], one way of reading: outside a render (no
+/// snapshot), or in one (its snapshot).
+fn answers_and_costs_read(
+    s: &Server,
+    tables: &[Table],
+    sets: &BTreeMap<String, String>,
+    n: usize,
+    rows: &BTreeMap<String, Vec<Map<String, Json>>>,
+    (way, snapshot): (&str, Option<&data::Snapshot>),
+    (reads, granted): (&ComponentContract, &Granted),
+) -> usize {
     let ops: data::Ops = s
         .data
-        .table_reads(&reads, &granted, None)
+        .table_reads(reads, granted, snapshot)
         .asserted("the reads");
     let mut checked = 0;
     for table in tables {
@@ -667,8 +710,8 @@ fn answers_and_costs(
                 let least = u64::from(!(function.many() && selectors.is_empty()));
                 assert!(
                     (least..=stated).contains(&made),
-                    "{} with {} selector(s): {made} statement(s) of the adapter, and its \
-                     source states at most {stated}",
+                    "{} with {} selector(s), {way}: {made} statement(s) of the adapter, and \
+                     its source states at most {stated}",
                     function.import,
                     selectors.len()
                 );
@@ -683,11 +726,15 @@ fn answers_and_costs(
                     }
                     _ => None,
                 };
-                assert!(got.is_some(), "{} answered {answer:?}", function.import);
+                assert!(
+                    got.is_some(),
+                    "{} answered {answer:?}, {way}",
+                    function.import
+                );
                 let got = got.unwrap_or_default();
                 assert_eq!(
                     got, expected,
-                    "{} given {selectors:?}, at {n} rows a table",
+                    "{} given {selectors:?}, at {n} rows a table, {way}",
                     function.import
                 );
                 checked += 1;
@@ -931,6 +978,91 @@ fn staging_and_refusals(s: &Server, tables: &[Table]) -> BTreeMap<String, usize>
     provoked
 }
 
+/// **Part 3, its writes**: in a command, each write function of every table
+/// (`insert`, `put`, `delete`, `delete-prefix`) is one statement of the
+/// layer's adapter, counted below the layer as a read's cost is; and a row
+/// referring to a row its own command staged commits, with it, as the
+/// guestbook's first signing writes its book and its entry in one command.
+/// The writes measured, and the references to a staged row committed.
+fn writes_and_staged_references(s: &Server, tables: &[Table]) -> (usize, usize) {
+    let base = generated(tables, 3, 0);
+    written(s, tables, &base);
+    let [_, (writes, granted)] = suite_contracts(tables);
+    let mut measured = 0;
+    for table in tables {
+        // Each write's statements, in a command dropped after: it keeps
+        // nothing, so each is measured on the rows as committed.
+        let staging = s.data.begin("conformance");
+        let ops = staging
+            .table_ops(&writes, &granted)
+            .asserted("its functions");
+        let row = fresh(tables, table, &base, 90_000);
+        let there = &base[&table.name][0];
+        for function in table.functions.iter().filter(|f| f.writes()) {
+            let args = match function.primitive.as_str() {
+                "insert" | "put" => vec![wit_row(table, &row)],
+                _ => {
+                    let key: Vec<Json> = function.by.iter().map(|f| there[f].clone()).collect();
+                    arguments(table, function, &[key])
+                }
+            };
+            let before = statements(s);
+            call(&ops, &function.import, &args);
+            assert_eq!(
+                statements(s) - before,
+                1,
+                "{}: a write is one statement of the adapter",
+                function.import
+            );
+            measured += 1;
+        }
+        drop(ops);
+        drop(staging);
+    }
+    // A row referring to a row its own command staged.
+    let mut committed = 0;
+    for table in tables {
+        for (field, to) in &table.references {
+            let target = tables.iter().find(|t| &t.name == to).expect("its target");
+            let referred = fresh(tables, target, &base, 95_000);
+            let mut referring = fresh(tables, table, &base, 95_000);
+            referring.insert(field.clone(), referred[&target.key[0]].clone());
+            let mut staging = s.data.begin("conformance");
+            let ops = staging
+                .table_ops(&writes, &granted)
+                .asserted("its functions");
+            call(
+                &ops,
+                &target.function("insert").import,
+                &[wit_row(target, &referred)],
+            );
+            call(
+                &ops,
+                &table.function("insert").import,
+                &[wit_row(table, &referring)],
+            );
+            drop(ops);
+            let commit = s.commit_staged(&mut *staging, &[], &[], None, &[], None, None);
+            assert!(
+                matches!(commit, Ok(CommitOutcome::Applied(_))),
+                "{} referring to a {to} its command staged commits: {:?}",
+                table.name,
+                commit.err()
+            );
+            drop(staging);
+            assert_eq!(published(s, target, &referred), some_row(target, &referred));
+            assert_eq!(
+                published(s, table, &referring),
+                some_row(table, &referring),
+                "{} referring to the {to} staged with it",
+                table.name
+            );
+            committed += 1;
+        }
+    }
+    (measured, committed)
+}
+
 /// **The layer under test**, made afresh for a build: what serves its
 /// declared tables, for each server the suite builds (ADR-0338's ruling 7:
 /// one suite, every adapter run through it).
@@ -951,16 +1083,20 @@ pub(super) fn served_by(build: &std::path::Path, layer: Layer) -> Server {
         .asserted("served by the layer under test")
 }
 
-/// What [`conformance`] checked: the reads held to the oracle, and each
-/// table's refusals provoked.
+/// What [`conformance`] checked: the reads held to the oracle (outside a
+/// render and in one), each table's refusals provoked, the writes measured
+/// at the adapter, and the references to a staged row committed.
 pub(super) struct Checked {
     pub reads: usize,
     pub refusals: BTreeMap<String, usize>,
+    pub writes: usize,
+    pub staged_references: usize,
 }
 
 /// **The suite, for a program's build and the layer under test, each part
-/// on a server serving the build by a fresh layer**: parts 3 and 4, then
-/// parts 1 and 2 at two sizes.
+/// on a server serving the build by a fresh layer**: parts 3 and 4 (the
+/// writes' costs and a reference to a staged row among them), then parts 1
+/// and 2 at two sizes.
 pub(super) fn conformance(build: &std::path::Path, layer: Layer) -> Checked {
     let tables = tables_of(build);
     assert!(!tables.is_empty(), "the program declares tables");
@@ -980,9 +1116,16 @@ pub(super) fn conformance(build: &std::path::Path, layer: Layer) -> Checked {
         })
         .collect();
     let refusals = staging_and_refusals(&served_by(build, layer), &tables);
+    let (writes, staged_references) =
+        writes_and_staged_references(&served_by(build, layer), &tables);
     let reads = answers_and_costs(&served_by(build, layer), &tables, &sets, 3)
         + answers_and_costs(&served_by(build, layer), &tables, &sets, 24);
-    Checked { reads, refusals }
+    Checked {
+        reads,
+        refusals,
+        writes,
+        staged_references,
+    }
 }
 
 /// A build of `sources`, and a way to serve it afresh, as long as the
@@ -1004,9 +1147,16 @@ fn the_suite_holds_for_the_guestbooks_tables() {
         "Books deleted while an entry refers to it; Entries referring to no book, and past \
          its bound"
     );
+    assert_eq!(
+        (checked.writes, checked.staged_references),
+        (7, 1),
+        "Books' three writes and Entries' four, each measured; an entry referring to the book \
+         its command staged"
+    );
     eprintln!(
-        "conformance: the guestbook's tables, {} reads checked, refusals {:?}",
-        checked.reads, checked.refusals
+        "conformance: the guestbook's tables, {} reads checked, refusals {:?}, {} writes \
+         measured, {} reference to a staged row",
+        checked.reads, checked.refusals, checked.writes, checked.staged_references
     );
 }
 
@@ -1025,9 +1175,15 @@ fn the_suite_holds_for_the_lists_apps_tables() {
         "Items referring to no list; Lists deleted while an item refers to it, and past its \
          bound"
     );
+    assert_eq!(
+        (checked.writes, checked.staged_references),
+        (7, 1),
+        "each table's writes measured; an item referring to the list its command staged"
+    );
     eprintln!(
-        "conformance: the lists app's tables, {} reads checked, refusals {:?}",
-        checked.reads, checked.refusals
+        "conformance: the lists app's tables, {} reads checked, refusals {:?}, {} writes \
+         measured, {} reference to a staged row",
+        checked.reads, checked.refusals, checked.writes, checked.staged_references
     );
 }
 
@@ -1118,7 +1274,9 @@ fn table_calls(s: &Server, query: &str, args: &[Val]) -> (BTreeMap<String, u64>,
 /// table and at 24 are the same, one each, a set form's one call for every
 /// key it is given, so no query reads once a row; and the statements its
 /// layer's adapter runs for them, counted below the layer, are the same at
-/// both sizes, one a call on memory's.
+/// both sizes, one a call on memory's. Each outside a render and in one, as
+/// a page reads it (NEXT 4c: the render's snapshot), so a layer whose render
+/// reads cost more is seen (the re-review of 2026-11-02).
 #[test]
 fn each_query_reads_its_tables_a_fixed_number_of_times_at_two_sizes() {
     let mut sources = super::tables::TABLES.to_vec();
@@ -1169,19 +1327,30 @@ fn each_query_reads_its_tables_a_fixed_number_of_times_at_two_sizes() {
         (&book, "guestbook.book.Me", vec![text(&reader)], vec![]),
     ];
     for n in [3, 24] {
-        for (build, query, args, reads) in &pins {
-            let s = served_by(build, &memory);
-            let tables = tables_of(build);
-            written(&s, &tables, &generated(&tables, n, 0));
-            let expected: BTreeMap<String, u64> =
-                reads.iter().map(|op| (op.to_string(), 1)).collect();
-            let (calls, ran) = table_calls(&s, query, args);
-            assert_eq!(calls, expected, "{query} at {n} rows a table");
-            assert_eq!(
-                ran,
-                reads.len() as u64,
-                "{query} at {n} rows a table: one statement of the adapter a call"
-            );
+        for in_a_render in [false, true] {
+            let way = if in_a_render {
+                "in a render"
+            } else {
+                "outside a render"
+            };
+            for (build, query, args, reads) in &pins {
+                let s = served_by(build, &memory);
+                let tables = tables_of(build);
+                written(&s, &tables, &generated(&tables, n, 0));
+                let expected: BTreeMap<String, u64> =
+                    reads.iter().map(|op| (op.to_string(), 1)).collect();
+                // A page's render: its snapshot, which its queries read.
+                let render =
+                    in_a_render.then(|| crate::render_merge::begin(&*s.data, s.queries.epoch()));
+                let (calls, ran) = table_calls(&s, query, args);
+                drop(render);
+                assert_eq!(calls, expected, "{query} at {n} rows a table, {way}");
+                assert_eq!(
+                    ran,
+                    reads.len() as u64,
+                    "{query} at {n} rows a table, {way}: one statement of the adapter a call"
+                );
+            }
         }
     }
 }

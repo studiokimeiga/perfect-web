@@ -1806,9 +1806,13 @@ impl crate::data::DataLayer for FeedPg {
         write(
             "feed:data/posts#delete",
             Arc::new({
-                let released = released.clone();
+                let (released, a) = (released.clone(), asked.clone());
                 move |c: &mut Client, args: &[Val]| match args {
-                    [Val::String(_), Val::String(id)] => {
+                    [Val::String(handle), Val::String(id)] => {
+                        // The request's own session, as every operation a
+                        // session is passed (track `data-path`, the re-review
+                        // of 2026-11-02: it was passed and not read).
+                        a.session("posts#delete", handle)?;
                         // And the images of what it deletes (ADR-0261), each
                         // collected once the command commits.
                         let row = c

@@ -60,11 +60,12 @@ type Account = Account { id: UserId, name: String }
 // **The account a reader's handle names** (track `data-path`; what
 // ADR-0384's H1 calls `id_of`), for the reader's own handle, as
 // `current_user()` answers it, and `None` where no one signed in to an
-// account: no one, or a guest, whose user's id holds its session, a
-// credential, and is no id to hand a program. The platform's, as the
-// principal is (ADR-0338 1.3), so a program that declares its data names its
-// reader, and greets them, without a data layer's operation (the feed's
-// `users#of-session` and `users#viewer`). Its answer is labelled as the
-// handle it is given, so a shared cache refuses it (PW5001).
+// account: no one, or a guest, whose user's id is a one-way digest of its
+// session (it grants nothing, and no session is recovered from it) and names
+// no account. The platform's, as the principal is (ADR-0338 1.3), so a
+// program that declares its data names its reader, and greets them, without
+// a data layer's operation (the feed's `users#of-session` and
+// `users#viewer`). Its answer is labelled as the handle it is given, so a
+// shared cache refuses it (PW5001).
 fn account_of(user: User<UserId>) -> Option<Account> !{ session.read }
     host "pw:host/principal#account"

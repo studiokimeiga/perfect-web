@@ -22,16 +22,17 @@ e14-data-path:
     @bash spikes/own-renderer/guestbook.sh > /dev/null
     @cargo build --quiet --locked -p pw-dev-server -p kiokun-server
     @mkdir -p docs/evidence/E14
-    @{ echo "D2 - an app with no Rust data layer: declared tables served through the gate, the guestbook on them, the conformance suite"; echo; \
+    @{ export PW_STORE_DATABASE_URL="${PW_STORE_DATABASE_URL:-${PW_FEED_DATABASE_URL:-}}"; \
+       echo "D2 - an app with no Rust data layer: declared tables served through the gate, the guestbook on them, the conformance suite"; echo; \
        echo "produced by: just e14-data-path"; \
        echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' ':(exclude)spikes/own-renderer/store-ir.json' || echo ' + uncommitted changes')"; \
        echo "rust: $(rustc --version)"; echo "node: $(node --version)"; \
        echo "playwright: $(cd spikes/own-renderer && pnpm exec playwright --version)"; \
        if [ -n "${PW_FEED_DATABASE_URL:-}" ]; then \
          echo "postgres: $(psql "$PW_FEED_DATABASE_URL" -Atc 'SHOW server_version' 2>/dev/null || echo 'unknown (psql is not on PATH)')"; \
-       else echo "postgres: PW_FEED_DATABASE_URL is not set, so the PostgreSQL test passes doing nothing"; fi; echo; \
+       else echo "postgres: PW_FEED_DATABASE_URL is not set, so the PostgreSQL tests pass doing nothing"; fi; echo; \
        echo "== the server: routing, the guestbook, the conformance suite, the reader's account, a guest's identity, the session's cookie kept nowhere"; \
-       cargo test --locked -p pw-dev-server --bin pw-dev-server -- tests::tables:: tests::guestbook:: tests::conformance:: notifications::tests:: tables::tests:: tests::sign_in::nothing_the_feed_keeps_holds_a_session_cookie tests::sign_in::on_postgres::nothing_kept_on_postgres_holds_a_session_cookie tests::store_accounts::nothing_a_session_keyed_store_keeps_holds_a_session_cookie uploads::tests::a_claim_no_transaction_commits_is_given_back --nocapture; \
+       cargo test --locked -p pw-dev-server --bin pw-dev-server -- tests::tables:: tests::guestbook:: tests::conformance:: notifications::tests:: tables::tests:: tests::sign_in::nothing_the_feed_keeps_holds_a_session_cookie tests::sign_in::on_postgres::nothing_kept_on_postgres_holds_a_session_cookie tests::sign_in::each_feed_operation_answers_its_requests_session_alone tests::sign_in::on_postgres::each_feed_operation_answers_its_requests_session_alone_on_postgres tests::store_accounts::nothing_a_session_keyed_store_keeps_holds_a_session_cookie tests::store_pg::on_postgres_nothing_the_store_keeps_holds_a_session_cookie uploads::tests::a_claim_no_transaction_commits_is_given_back --test-threads=8 --nocapture; \
        echo; echo "== the engine: a guarded command through the gate; the adapter's snapshot"; \
        cargo test --locked -p pw-table-memory --test compiled_guarded --test compiled_snapshot; \
        echo; echo "== the platform's transaction: a command's last step after its records, before its COMMIT"; \

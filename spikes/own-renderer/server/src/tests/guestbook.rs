@@ -413,16 +413,31 @@ fn a_commit_failing_after_its_rows_are_published_closes_the_tables() {
     );
 }
 
+/// **Every frame waiting for an open page**, as the page's stream sends it
+/// (`StreamFrame`, JSON): what a commit told the pages open when it
+/// committed, each told first (`Server::tell_waiting`).
+pub(super) fn frames_of(s: &Server) -> Vec<String> {
+    s.tell_waiting();
+    s.pending
+        .lock()
+        .expect("pending")
+        .values()
+        .flat_map(|waiting| waiting.frames.iter())
+        .map(|(_, frame)| serde_json::to_string(frame).expect("a frame is JSON"))
+        .collect()
+}
+
 /// **Everything the host keeps and logs, as text** (track `data-path`):
 /// every row of every table of the materializer's database (the
 /// interactions' records, their keys and what was sent, the state, the
 /// outbox, the runs), its materialized entries, the keys of every cached
 /// read (each private one's partition among them, and the program's handle
 /// on its session where a query is keyed by it), the host's own log of
-/// tellings, and what `/bench/records` and `/metrics` serve, asked with
-/// `cookie`. A blob is written both as text and as hex.
+/// tellings, every frame waiting for an open page, as its stream sends it
+/// (the re-review of 2026-11-02), and what `/bench/records` and `/metrics`
+/// serve, asked with `cookie`. A blob is written both as text and as hex.
 pub(super) fn kept_by_host(s: &Server, cookie: &str) -> String {
-    let mut kept = String::new();
+    let mut kept = frames_of(s).join("\n");
     let mut dump = |tx: &rusqlite::Transaction<'_>| -> rusqlite::Result<()> {
         let names: Vec<String> = tx
             .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")?
@@ -477,15 +492,42 @@ pub(super) fn kept_by_host(s: &Server, cookie: &str) -> String {
     kept
 }
 
-/// **No session in `cookies` is in `kept`**, as written or in hex.
+/// **No session in `cookies` is in `kept`, in any form a reader could turn
+/// back into it** (the re-review of 2026-11-02 searched for each): as
+/// written, in hex of either case, in base64 and base64url (padded or not),
+/// as its SHA-256 in no domain (a digest the host does not make, which a
+/// reader holding a cookie could match), and any 12 characters of it in a
+/// row, which a key built of a cookie's part would hold.
 pub(super) fn holds_none_of(kept: &str, cookies: &[&str]) {
+    use base64::Engine as _;
+    use base64::engine::general_purpose::{STANDARD, STANDARD_NO_PAD, URL_SAFE, URL_SAFE_NO_PAD};
+    use sha2::Digest as _;
     // The message names the cookie's form and never the cookie: a failing
     // run's log is kept, and a cookie in it is the leak this test refuses.
     for (n, cookie) in cookies.iter().enumerate() {
-        let forms = [
+        let bytes = cookie.as_bytes();
+        let hex = crate::identity::hex(bytes);
+        let plain = crate::identity::hex(&sha2::Sha256::digest(bytes));
+        let mut forms = vec![
             ("as written", cookie.to_string()),
-            ("in hex", crate::identity::hex(cookie.as_bytes())),
+            ("in hex", hex.clone()),
+            ("in upper-case hex", hex.to_uppercase()),
+            ("in base64", STANDARD.encode(bytes)),
+            ("in unpadded base64", STANDARD_NO_PAD.encode(bytes)),
+            ("in base64url", URL_SAFE.encode(bytes)),
+            ("in unpadded base64url", URL_SAFE_NO_PAD.encode(bytes)),
+            ("as its SHA-256 in no domain", plain.clone()),
+            (
+                "as its upper-case SHA-256 in no domain",
+                plain.to_uppercase(),
+            ),
         ];
+        let chars: Vec<char> = cookie.chars().collect();
+        forms.extend(
+            chars
+                .windows(12)
+                .map(|window| ("as 12 characters of it", window.iter().collect())),
+        );
         for (form, written) in forms {
             assert!(
                 !kept.contains(&written),
@@ -558,12 +600,14 @@ fn each_digest_of_a_session_is_its_own_domains() {
 /// integrator's ruling of 2026-11-02, from the PostgreSQL layer's review,
 /// which signed in as Ada by sending a stored record's key's first field as
 /// the `pw-session` cookie). A browser signs in through the flow, reads the
-/// page and signs the guestbook through the command's route; then every
-/// record, partition, row and log line the host kept is searched for the
-/// cookie it was given, and for the one it came with, as written and in
-/// hex: neither is there. The neighbour: the signing's record is kept,
-/// under the key the session's digest makes, so the search is of what a
-/// command keeps.
+/// page and signs the guestbook through the command's route, while another
+/// reader's page is open; then every record, partition, row, frame sent to
+/// an open page and log line the host kept is searched for the cookie it was
+/// given, the one it came with and the other reader's, in every form a
+/// reader could turn back into one (`holds_none_of`): none is there. The
+/// neighbours: the signing's record is kept, under the key the session's
+/// digest makes, and the other page is told of the entry, so the search is
+/// of what a command keeps and sends.
 #[test]
 fn nothing_the_host_keeps_or_logs_holds_a_session_cookie() {
     let (_dir, out) = super::tables::built(&["examples/guestbook"], &[]);
@@ -573,8 +617,15 @@ fn nothing_the_host_keeps_or_logs_holds_a_session_cookie() {
         .use_provider(provider.clone(), super::sign_in::REDIRECT);
     let came_with = crate::identity::new_session_id();
     let cookie = super::sign_in::signed_in(&s, &provider, &came_with, "ada");
+    // The messages name what is missing and print no answer: an answer may
+    // carry the session's cookie, and a failing run's log is kept.
     let page = super::sign_in::get(&s, "/", &format!("pw-session={cookie}"));
-    assert!(page.contains("Signed in as"), "{page}");
+    assert!(page.contains("Signed in as"), "the page names its reader");
+    // Another reader's page, open, which the signing tells of its entry: its
+    // frames are searched too.
+    let other = crate::identity::new_session_id();
+    let theirs = super::sign_in::get(&s, "/", &format!("pw-session={other}"));
+    assert!(theirs.starts_with("HTTP/1.1 200"), "another reader's page");
     let signed = super::sign_in::command(
         &s,
         SIGN,
@@ -582,7 +633,13 @@ fn nothing_the_host_keeps_or_logs_holds_a_session_cookie() {
         "i-kept",
         r#"["Kept, and never its cookie"]"#,
     );
-    assert!(signed.contains("\"committed\":true"), "{signed}");
+    assert!(signed.contains("\"committed\":true"), "the signing commits");
+    assert!(
+        frames_of(&s)
+            .iter()
+            .any(|frame| frame.contains("Kept, and never its cookie")),
+        "the open pages are told of the entry, in frames the search reads"
+    );
     let record = s
         .recalled_interaction(&crate::identity::interaction_key(&cookie, SIGN, "i-kept"))
         .asserted("recall");
@@ -595,7 +652,7 @@ fn nothing_the_host_keeps_or_logs_holds_a_session_cookie() {
         kept.contains("Kept, and never its cookie"),
         "the search reads the rows"
     );
-    holds_none_of(&kept, &[&cookie, &came_with]);
+    holds_none_of(&kept, &[&cookie, &came_with, &other]);
 }
 
 /// **The guestbook keeps at most its bound of entries, and its page is

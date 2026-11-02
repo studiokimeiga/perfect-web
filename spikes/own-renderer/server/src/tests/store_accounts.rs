@@ -620,7 +620,7 @@ fn nothing_a_session_keyed_store_keeps_holds_a_session_cookie() {
             "session:{}",
             crate::identity::session_handle(&ada)
         )),
-        "the cart's entry, in the partition of the program's handle on the session: {kept}"
+        "the cart's entry, in the partition of the program's handle on the session"
     );
     super::guestbook::holds_none_of(&kept, &[&ada, &came_with]);
 }

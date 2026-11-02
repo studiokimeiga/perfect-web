@@ -875,11 +875,15 @@ impl crate::data::DataLayer for FeedData {
         // **A post deleted** (track `identity`, ADR-0258): it and every reply
         // under it. Who may is `requires OwnsPost(post)`'s, evaluated before
         // the command runs; a post that is not there is not found.
-        let (s, into) = (seen.clone(), staged.clone());
+        let (s, into, r) = (seen.clone(), staged.clone(), asked.clone());
         ops.insert(
             "feed:data/posts#delete".to_string(),
             Arc::new(move |args: &[Val]| match args {
-                [Val::String(_), Val::String(id)] => {
+                [Val::String(handle), Val::String(id)] => {
+                    // The request's own session, as every operation a session
+                    // is passed (track `data-path`, the re-review of
+                    // 2026-11-02: it was passed and not read).
+                    r.session("posts#delete", handle)?;
                     if !s.posts.iter().any(|r| r.id == *id) {
                         return Ok(vec![not_found()]);
                     }

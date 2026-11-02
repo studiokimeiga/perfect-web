@@ -17,7 +17,10 @@ no upload beside tables; and the conformance suite's teeth on the memory
 adapter (ADR-0338 D2's named controls: a primitive answering another
 table's rows, a set read in another order, an index not kept on a write, a
 staged write visible before its commit; and, since the integrator's
-review of 2026-11-02, a read made three times, counted at the adapter).
+review of 2026-11-02, a read made three times, counted at the adapter;
+since its re-review, a render's reads made three times, a command's table
+calls made twice, and a reference to a row its own command staged
+refused; and the feed's delete answering for another session).
 
 Each mutant undoes one guarantee and must be killed by a test that fails
 at its assertion (D2's strict producer: `cargo_assertion_results`, each
@@ -49,6 +52,8 @@ NOTES = SERVER / "notifications.rs"
 IDENTITY = SERVER / "identity.rs"
 STORE = SERVER / "store.rs"
 DATA = SERVER / "data.rs"
+FEED = SERVER / "feed.rs"
+FEED_PG = SERVER / "feed_pg.rs"
 HOST = ROOT / "runtime/pw-host/src/lib.rs"
 MEMORY = ROOT / "runtime/pw-table-memory/src/lib.rs"
 MATERIALIZER = ROOT / "runtime/pw-materialize/src/lib.rs"
@@ -208,6 +213,20 @@ MUTANTS = [
     ("the adapter counts no statement", MEMORY,
      "        self.statements.fetch_add(1, Ordering::SeqCst);\n",
      "        let _ = &self.statements;\n"),
+    # And in a render, through the layer's snapshot, as every page's query
+    # reads (the re-review of 2026-11-02: the suite read outside a render
+    # alone); each write one statement; a reference to a row its own command
+    # staged committed with it.
+    ("a render's reads are made three times", LAYER,
+     "                    self.tables.read_host_fns_at(taken, contract, granted)\n",
+     "                    self.tables.read_host_fns_at(taken, contract, granted).map(|ops| ops.into_iter().map(|(name, f)| { let thrice: HostFn = Arc::new(move |args: &[Val]| { let _ = f(args); let _ = f(args); f(args) }); (name, thrice) }).collect())\n"),
+    ("a command's table calls are made twice", LAYER,
+     "                .host_fns(contract, granted)\n",
+     "                .host_fns(contract, granted)\n"
+     "                .map(|ops| ops.into_iter().map(|(name, f)| { let twice: HostFn = Arc::new(move |args: &[Val]| { let _ = f(args); f(args) }); (name, twice) }).collect())\n"),
+    ("a reference to a row its command staged is refused", MEMORY,
+     "                        if !tables[reference.target].rows.contains_key(&referred) {\n",
+     "                        if !self.published.lock().is_ok_and(|published| published[reference.target].rows.contains_key(&referred)) {\n"),
     # 6. the platform's reader: their account, for their own handle alone,
     # never a guest's or a stand-in's; a guest's identity never its session;
     # and no row holding a handle
@@ -270,6 +289,12 @@ MUTANTS = [
     ("an operation answers for a session it is not passed", DATA,
      "        if handle == self.handle {\n",
      "        if !handle.is_empty() {\n"),
+    ("the feed's delete answers for a session it is not passed", FEED,
+     "                    r.session(\"posts#delete\", handle)?;\n",
+     "                    let _ = handle;\n"),
+    ("the PostgreSQL feed's delete answers for a session it is not passed", FEED_PG,
+     "                        a.session(\"posts#delete\", handle)?;\n",
+     "                        let _ = handle;\n"),
     # 7. the guestbook, on the tables it declares
     ("a removed entry's number is given again", BOOK,
      "                Some(book) => book.signed + 1,\n",
@@ -299,10 +324,15 @@ TESTS = [
       "notifications::tests::", "tables::tests::",
       # The session's cookie kept nowhere (the ruling of 2026-11-02): the
       # feed, in memory and on PostgreSQL where a database is given, the
-      # store keyed by the session, and an upload's operations.
+      # store keyed by the session, in memory and on PostgreSQL, and an
+      # upload's operations; and each feed operation a session is passed
+      # answering for its request's session alone (the re-review's).
       "tests::sign_in::nothing_the_feed_keeps_holds_a_session_cookie",
       "tests::sign_in::on_postgres::nothing_kept_on_postgres_holds_a_session_cookie",
+      "tests::sign_in::each_feed_operation_answers_its_requests_session_alone",
+      "tests::sign_in::on_postgres::each_feed_operation_answers_its_requests_session_alone_on_postgres",
       "tests::store_accounts::nothing_a_session_keyed_store_keeps_holds_a_session_cookie",
+      "tests::store_pg::on_postgres_nothing_the_store_keeps_holds_a_session_cookie",
       "uploads::tests::a_claim_no_transaction_commits_is_given_back"]),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_guarded"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_snapshot"], []),
@@ -316,6 +346,7 @@ SOURCES = [
     SERVER / "tests/conformance.rs",
     SERVER / "tests/sign_in.rs",
     SERVER / "tests/store_accounts.rs",
+    SERVER / "tests/store_pg.rs",
     SERVER / "uploads.rs",
     NOTES,
     LAYER,
@@ -331,7 +362,9 @@ INVENTORY = {}
 def run_tests():
     passed, failed = 0, 0
     for cmd, filters in TESTS:
-        full = [*cmd, "--", *filters, "--format=pretty"]
+        # Eight threads: the PostgreSQL tests' connections stay within the
+        # database's limit (the integrator's rule of 2026-11-02).
+        full = [*cmd, "--", *filters, "--format=pretty", "--test-threads=8"]
         try:
             child = producer_process.run(full, cwd=ROOT, timeout=1200)
         except subprocess.TimeoutExpired:
