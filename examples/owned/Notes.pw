@@ -32,10 +32,10 @@ opaque type Text = String where String.length(value) <= 280
 type Note = Note { author: UserId, id: NoteId, to: UserId, text: Text, draft: Text, added: Int }
 
 table Notes
-    row         Note
-    key         author, id
-    order       added
-    index       by_to on to
-    owned by    author
-    shares with to
-    private     draft
+    row     Note
+    key     author, id
+    order   added
+    index   by_to on to
+    owned   by author
+    shares  with to
+    private draft

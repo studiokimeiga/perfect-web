@@ -4518,6 +4518,59 @@ mod tests {
         );
     }
 
+    /// **A table's ownership clauses** (track `row-ownership`, ADR-0384
+    /// H1): `owned by`, `shares with` and `private` each head a clause of a
+    /// table, a field named `user` among a private clause's; and `private`
+    /// is still a declaration's visibility wherever a declaration's word
+    /// follows it.
+    #[test]
+    fn a_tables_ownership_clauses_beside_privates_visibility() {
+        let src = "module Notes\n\ntable Notes\n    row         Note\n    key         \
+                   author, id\n    owned by    author\n    shares with to\n    private     \
+                   draft, user\n\nprivate fn after() -> Int !{} {\n    1\n}\n\nprivate query \
+                   Q() -> Int {\n    1\n}\n\ntable Users\n    row     User\n    key     id\n    \
+                   owned by id\n    private user\n\nprivate type T = T { a: Int }\n";
+        let p = parse_ok(src);
+        assert_lossless(src, &p);
+        let heads: Vec<String> = texts(&p, K::Policy)
+            .iter()
+            .map(|t| t.split_whitespace().next().unwrap_or_default().to_string())
+            .collect();
+        assert_eq!(
+            heads,
+            [
+                "row", "key", "owned", "shares", "private", "row", "key", "owned", "private"
+            ],
+            "{:?}",
+            texts(&p, K::Policy)
+        );
+        for (kind, want) in [(K::FnDecl, 1), (K::ResourceDecl, 3), (K::RecordDecl, 1)] {
+            assert_eq!(
+                p.green.descendants().filter(|n| n.kind() == kind).count(),
+                want,
+                "{kind:?}"
+            );
+        }
+    }
+
+    /// The control: `owned` and `shares` are names a body may begin with, a
+    /// clause only where a name follows on their line.
+    #[test]
+    fn owned_and_shares_are_still_names_in_a_policy_block() {
+        for (head, rest) in [("owned", ".count"), ("shares", " + 1"), ("owned", "")] {
+            let src = format!(
+                "materialize M() {{\n    regenerate on_invalidation\n    {head}{rest}\n}}\n"
+            );
+            let p = parse_tree(&src);
+            assert_lossless(&src, &p);
+            assert!(
+                !texts(&p, K::Policy).iter().any(|t| t.starts_with(head)),
+                "`{head}{rest}` read as a clause: {:?}",
+                texts(&p, K::Policy)
+            );
+        }
+    }
+
     /// The control: a table's word heads are names a body may begin with,
     /// a clause only where a name (or, for `bounded`, a count) follows on
     /// its line (`NAMED_HEADS`, `COUNTED_HEADS`).
