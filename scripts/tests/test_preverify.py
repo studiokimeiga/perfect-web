@@ -45,6 +45,11 @@ ci_summary = load("ci_summary")
 
 WORKFLOW = (ROOT / ".github/workflows/verify.yml").read_text()
 
+# A run's disk bound off, for every test that is not about it: the bound's
+# own tests (`RunTwice`'s disk tests) state theirs from the machine's free
+# disk, or one no machine has.
+NO_DISK_BOUND = ("--min-free-gib", "0")
+
 TOY = '''\
 import json, os, pathlib, subprocess, sys, time
 
@@ -230,6 +235,12 @@ class Toy(unittest.TestCase):
         return env
 
     def tool(self, *args, env=None, timeout=90):
+        # A run that is not about the disk bound states none, so that it does
+        # not depend on the machine's free disk (a runner had 6.9 GiB, under
+        # the default 8 a lane: PR #67, 2026-11-02); an explicit bound later
+        # in `args` overrides this one.
+        if "--recipes" in args:
+            args = (*NO_DISK_BOUND, *args)
         return subprocess.run(
             [sys.executable, "scripts/preverify.py", *args], cwd=self.toy, env=env or self.env(),
             capture_output=True, text=True, timeout=timeout,
@@ -759,7 +770,7 @@ class Lanes(Toy):
         cls.ports = free_range(2)
         cls.first = int(cls.ports.split("-")[0])
         cls.done = subprocess.run(
-            [sys.executable, "scripts/preverify.py", "--recipes",
+            [sys.executable, "scripts/preverify.py", *NO_DISK_BOUND, "--recipes",
              "e14-short e14-bad e14-long e14-survivor e14-mid e14-feed-postgres",
              "--lanes", "2", "--no-setup", "--ports", cls.ports, "--out", str(cls.out), "--cpus", "8"],
             cwd=cls.toy, env=env, capture_output=True, text=True, timeout=180,
@@ -1172,8 +1183,8 @@ class Outcomes(Toy):
     def test_a_signal_stops_the_lane_starts_nothing_more_and_leaves_nothing(self):
         ports = free_range(1)
         proc = subprocess.Popen(
-            [sys.executable, "scripts/preverify.py", "--recipes", "e14-hang e14-short e14-bad", "--lanes", "1",
-             "--no-setup", "--ports", ports, "--out", str(self.out), "--cpus", "8"],
+            [sys.executable, "scripts/preverify.py", *NO_DISK_BOUND, "--recipes", "e14-hang e14-short e14-bad",
+             "--lanes", "1", "--no-setup", "--ports", ports, "--out", str(self.out), "--cpus", "8"],
             cwd=self.toy, env=self.env(), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
         )
         self.addCleanup(self.reap, proc)
