@@ -2767,6 +2767,11 @@ impl Server {
                 notifications::PRINCIPAL_READ.to_string(),
                 notifications::principal_operation(&self.identity.principals(), session),
             );
+            // And the name their provider gave them (track `data-path`).
+            host.insert(
+                notifications::PRINCIPAL_NAME.to_string(),
+                notifications::name_operation(&self.identity.principals(), session),
+            );
             // The platform's clock (ADR-0304), for the command's moment.
             host.extend(clock::operations(self.now(), &self.zones));
             // NEXT 6c: the deployment's payments, keyed by this interaction,
@@ -5140,6 +5145,11 @@ impl Server {
         platform.insert(
             notifications::PRINCIPAL_READ.to_string(),
             notifications::principal_operation(&self.identity.principals(), session),
+        );
+        // And the name their provider gave them (track `data-path`).
+        platform.insert(
+            notifications::PRINCIPAL_NAME.to_string(),
+            notifications::name_operation(&self.identity.principals(), session),
         );
         // The platform's clock (ADR-0304): every comparison in one read
         // answers for one instant, and notes what the read holds until.

@@ -40,3 +40,14 @@ opaque type SessionId = String
 opaque type UserId = String
 
 opaque type OrganizationId = String
+
+// **The id a user's handle names** (ADR-0384's H1 accessor, built where the
+// guestbook first declared its data, track `data-path`). An id grants nothing
+// (ADR-0263, decision 4; ADR-0270), so a program holds it as a value: writes
+// it into a row, compares it with a row's. Which id it is says who reads, so
+// it is the reader's as the handle is: its value is labelled `User<UserId>`
+// as it flows from the handle, and a shared cache refuses it (PW5001). Read
+// here, as only an opaque type's own module reads its representation.
+fn id_of(user: User<UserId>) -> UserId !{} {
+    UserId(user.value)
+}

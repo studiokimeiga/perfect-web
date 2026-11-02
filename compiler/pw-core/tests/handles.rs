@@ -167,6 +167,62 @@ fn nothing_the_browser_supplies_holds_a_handle() {
     );
 }
 
+/// What a program reports with the platform, its own imports written: each
+/// diagnostic's code.
+fn codes_of(src: &str) -> Vec<String> {
+    let mut program = platform();
+    program.push(("app.pw".to_string(), src.to_string()));
+    check_sources(&program)
+        .into_iter()
+        .filter(|(n, _)| n == "app.pw")
+        .flat_map(|(_, ds)| ds.into_iter().map(|d| d.code.to_string()))
+        .collect()
+}
+
+/// **The reader's id and name are the reader's** (track `data-path`): an
+/// id grants nothing, so `capability.id_of` hands a program the id its
+/// handle names, and `context.name_of` the name its provider gave; which
+/// id and which name say who reads, so each is labelled as the handle it was
+/// read from, and a shared cache refuses it as it refuses the handle
+/// (PW5001). A private cache, and a query of the reader, take each.
+#[test]
+fn the_readers_id_and_name_are_the_readers() {
+    let program = |answer: &str, body: &str, cache: &str| {
+        format!(
+            "module app\n\nimport capability.{{ User, UserId, id_of }}\nimport context.{{ \
+             current_user, name_of }}\n\nquery Who() -> {answer}\n    consistency strong\n    \
+             cache       {cache}\n{{\n    {body}\n}}\n"
+        )
+    };
+    for (answer, body) in [
+        ("UserId", "id_of(current_user())"),
+        ("Option<String>", "name_of(current_user())"),
+    ] {
+        assert_eq!(
+            codes_of(&program(answer, body, "shared")),
+            ["PW5001"],
+            "{body}, in a shared cache"
+        );
+        // The control: the same read, cached per reader.
+        assert!(
+            codes_of(&program(answer, body, "private")).is_empty(),
+            "{body}, in a private cache"
+        );
+    }
+    // And a user's query keyed by the reader is given the reader's handle,
+    // whose id it compares with a row's, as the guestbook's `Latest` does.
+    assert!(
+        codes_of(
+            "module app\n\nimport capability.{ User, UserId, id_of }\n\n\
+             user query Mine(reader: User<UserId>, author: UserId) -> Bool\n    \
+             freshness     0.seconds\n    consistency   read_your_writes\n    \
+             cache         private\n    key           reader, author\n{\n    \
+             id_of(reader) == author\n}\n"
+        )
+        .is_empty()
+    );
+}
+
 #[test]
 fn a_local_callback_is_not_a_handle_constructor() {
     for name in ["Session", "User", "Organization"] {
