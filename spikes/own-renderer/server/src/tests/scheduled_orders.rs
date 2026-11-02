@@ -709,6 +709,28 @@ fn an_order_is_sent_to_its_stores_when_its_preparation_is_due() {
         assert_eq!(s.run_due().0, 1, "due");
         assert_eq!(order(s), Some(("placed".into(), None)));
         assert!(runs(s).is_empty(), "run once");
+        // The run's commit is told by whichever thread takes it from the
+        // queue (`tell_waiting`): this one at `run_due`'s end, or a
+        // connection's that was answered meanwhile (the provider's webhook,
+        // `handle`, ADR-0219), which then tells it a moment after `run_due`
+        // returns. Waited for, as the scheduling's telling is above (PR #67's
+        // verify, at 3fe00518, read it before the connection's thread had).
+        let placed = |s: &Server| {
+            sets_of(s, &doc)
+                .iter()
+                .map(written)
+                .filter(|set| set.contains("Placed: the store has your order."))
+                .count()
+        };
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while placed(s) == 0 {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "the open page was not told it was placed: {:?}",
+                sets_of(s, &doc)
+            );
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
         let told: Vec<String> = sets_of(s, &doc).iter().map(written).collect();
         assert_eq!(
             told.iter()
