@@ -6,6 +6,7 @@
 import { expect, test } from "@playwright/test";
 import { STORE_PAYMENTS_PORTS } from "../host-metadata.mjs";
 import { violations } from "./accessibility-rules.mjs";
+import { nextDocument } from "./next-document.mjs";
 
 test.use({
   baseURL: async ({}, use, testInfo) => {
@@ -69,11 +70,17 @@ test("the order page keeps every rule while it frames the provider's page", asyn
   expect(await page.evaluate(violations)).toEqual(["frame-title: <iframe#payment>"]);
 });
 
-test("another order waits for the first to be paid", async ({ page }) => {
+test("another order waits for the first to be paid", async ({ page, browserName }) => {
   await anEspresso(page);
+  const order = await nextDocument(page, browserName);
   await page.getByRole("button", { name: "Place order" }).click();
   await page.waitForURL(/\/order$/);
   await expect(page.locator("#order-status")).toHaveText(AWAITING);
+  // The order's page settled before the next `goto`, in WebKit: WebKitGTK's
+  // network process can crash when a navigation cancels requests a page has
+  // just started (docs/KNOWN_LIMITATIONS.md; ADR-0280, amended 2026-10-18 and
+  // 2026-11-02). Chromium and Firefox still navigate at once.
+  await order.settled();
   await anEspresso(page);
   const answered = page.waitForResponse("**/command/store.page.place_order");
   await page.getByRole("button", { name: "Place order" }).click();
@@ -107,16 +114,28 @@ test("a reader's press of the command the provider's word invokes is a command t
   });
   expect(await pressed.json()).toMatchObject({ committed: true });
 });
-test("an order awaiting its payment is taken back, its items back in the cart", async ({ page }) => {
+test("an order awaiting its payment is taken back, its items back in the cart", async ({
+  page,
+  browserName,
+}) => {
   await anEspresso(page);
   await page.getByRole("button", { name: "Place order" }).click();
   await page.waitForURL(/\/order$/);
   await expect(page.locator("#order-status")).toHaveText(AWAITING);
+  // The order's page's own runtime booted before its button is pressed: the
+  // button is the next document's, shown before its handlers are bound, and
+  // a press before then is lost (feed.spec.mjs's Unfollow, the same class).
+  await page.waitForFunction(() => document.documentElement.dataset.pwReady === "1", null, {
+    polling: 50,
+  });
   const taken = page.waitForResponse("**/command/store.page.cancel_order");
+  const cart = await nextDocument(page, browserName);
   await page.getByRole("button", { name: "Cancel this order" }).click();
   await taken;
   await page.waitForURL(/\/cart$/);
   await expect(page.locator("#cart-count")).toHaveText("1");
+  // The cart's page settled before the next `goto`, in WebKit (as above).
+  await cart.settled();
   await ready(page, "/order");
   await expect(page.locator("#order-status")).toHaveText(
     "Canceled: its items are back in your cart.",

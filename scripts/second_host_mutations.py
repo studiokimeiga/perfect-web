@@ -34,10 +34,15 @@ Each mutant undoes one rule:
   request, an expired one's row kept, the deployment's lifetimes not read
   or not held to; signing in keeping the session the browser came with;
   in one host's memory, an idle or an old session signed in still, its use
-  not recorded, an expired one not forgotten.
+  not recorded, an expired one not forgotten;
+- the runtime's own files answered before admission (ADR-0389, amended
+  2026-11-02): admitted as every other request is, exempt only without a
+  query, or the handler manifest exempt with them.
 
 The tests then fail: `tests::second_host::` (`hosts`), two of the store's
-PostgreSQL tests (`store`), or the two-host browser suite in Chromium
+PostgreSQL tests (`store`), the runtime's files under a failing session
+source (`assets`, `tests::public_runtime_assets_load_while_session_authority_is_unavailable`),
+or the two-host browser suite in Chromium
 (`browser`, `e2e-hosts/second-host.spec.mjs` through
 `playwright.hosts.config.mjs`; it needs the feed's build, `feed.sh`). Every
 suite needs a database: PW_FEED_DATABASE_URL and PW_STORE_DATABASE_URL, a
@@ -550,6 +555,43 @@ MUTANTS = [
         "            Some(held) if true => {\n"
         "                return Some(held.principal.clone());\n",
     ),
+    # --- The runtime's own files skip admission, and nothing else does
+    # (ADR-0389, amended 2026-11-02).
+    (
+        "the runtime's files admitted as every other request is",
+        "assets",
+        SERVER,
+        '    if method == "GET"\n'
+        "        && matches!(\n"
+        "            route,\n"
+        '            "/pw-runtime.mjs" | "/pw-resume.wasm" | "/pw-render.wasm"\n'
+        "        )\n"
+        "    {\n"
+        "        serve_file(server, &mut stream, route);\n"
+        "        return;\n"
+        "    }\n",
+        "",
+    ),
+    (
+        "the runtime's files skip admission only when asked for without a query",
+        "assets",
+        SERVER,
+        "        && matches!(\n"
+        "            route,\n"
+        '            "/pw-runtime.mjs" | "/pw-resume.wasm" | "/pw-render.wasm"\n'
+        "        )\n",
+        "        && matches!(\n"
+        "            path,\n"
+        '            "/pw-runtime.mjs" | "/pw-resume.wasm" | "/pw-render.wasm"\n'
+        "        )\n",
+    ),
+    (
+        "the handler manifest skips admission too",
+        "assets",
+        SERVER,
+        '            "/pw-runtime.mjs" | "/pw-resume.wasm" | "/pw-render.wasm"\n',
+        '            "/pw-runtime.mjs" | "/pw-resume.wasm" | "/pw-render.wasm" | "/pw-handlers"\n',
+    ),
 ]
 
 CARGO = ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--"]
@@ -560,6 +602,10 @@ STORE_TESTS = [
 SUITES = {
     "hosts": (CARGO + ["tests::second_host::"], {}),
     "store": (CARGO + STORE_TESTS, {}),
+    "assets": (
+        CARGO + ["tests::public_runtime_assets_load_while_session_authority_is_unavailable"],
+        {},
+    ),
 }
 
 # The browser suite: the development server built from the source as it is,
@@ -631,7 +677,7 @@ def main():
         if not os.environ.get(needed):
             print(f"FAIL: every suite needs {needed}, a throwaway database")
             return 1
-    for suite in ("hosts", "store", "browser"):
+    for suite in ("hosts", "store", "assets", "browser"):
         valid, passed, failed = run(suite)
         print(f"baseline ({suite}): {passed} passed, {failed} failed", flush=True)
         if not valid or failed or not passed or watch.stopped:
