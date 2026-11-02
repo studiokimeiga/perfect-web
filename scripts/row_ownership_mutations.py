@@ -6,16 +6,28 @@ predicate the program gives a body, asked by the host.
 Each mutant undoes one guarantee and must be killed by a test:
 1. the compiler: an owned read takes the reader's handle, never a plain id;
    a sharer is answered the seen row; an owned table gives no `all`; tables.json
-   names each function's reader; PW0367, PW0368 and PW0369 each refuse;
-   `private` is a declaration's visibility where a declaration's word follows;
+   names each function's reader; PW0367, PW0368 and PW0369 each refuse, an
+   owned table's bound among PW0368's; a reference stays within one owner's
+   rows (PW6924, each of its three shapes); `private` is a declaration's
+   visibility where a declaration's word follows;
 2. the host: a handle is its caller's, and a call no one makes reads no
-   owned row; an owned row is written by its owner alone; a set form's handle
-   is given back to each key; a sharer is answered the seen row; the manifest
-   is held whole for its owners; an owned import is typed as owned;
+   owned row; an owned row is written by its owner alone, read by its owner
+   field wherever that is in the row, and a row not exactly the table's is
+   refused; a set form's handle is given back to each key; a sharer is
+   answered the seen row; the manifest is held whole for its owners, its bound
+   and its references among it; an owned import is typed as owned;
 3. predicates (H2): a body answers a Bool and only reads (PW6905); a query
-   may require one; a requirement names the component that answers it; the
-   host asks the program's predicate, never the deployment, for it; its
-   reads are its command's transaction's.
+   may require one, never cached shared (PW6907); a predicate with a body is
+   required where it is seen and asked by no page (PW6925); a requirement
+   names the component that answers it; the engine asks the program's
+   predicate itself, before the export runs, from the program's compiled
+   predicates, under the export's limits and one budget, and the deployment
+   never, on any path; its reads are its command's transaction's, which no
+   other command enters between the predicate and the body.
+
+The review of the track (2026-11-02) found three of these unheld: an
+owner check reading a row's first field, and a predicate asked after the
+body, each survived every test; its findings' regressions hold them now.
 
 Run whole from the repository root (`just e14-row-ownership`). Every source
 is restored in finally; the unmutated baseline must pass before any mutant
@@ -42,6 +54,7 @@ OWNERS = ROOT / "runtime/pw-host/src/engine/table_owners.rs"
 LINK = ROOT / "runtime/pw-host/src/engine/table_link.rs"
 HOST_TABLES = ROOT / "runtime/pw-host/src/tables.rs"
 HOST = ROOT / "runtime/pw-host/src/lib.rs"
+PROGRAM_PREDICATES = ROOT / "runtime/pw-host/src/engine/program_predicates.rs"
 MEMORY = ROOT / "runtime/pw-table-memory/src/lib.rs"
 
 MUTANTS = [
@@ -82,6 +95,19 @@ MUTANTS = [
     ("private before a declaration's word heads a clause", GRAMMAR,
      "        if DECL_STARTERS.contains(&next) || UI_NOUNS.contains(&next) {\n",
      "        if false && (DECL_STARTERS.contains(&next) || UI_NOUNS.contains(&next)) {\n"),
+    # The review's findings 1 and 2 (probes A and B).
+    ("PW0368 an owned table may state a bound", TABLES,
+     "    if let Some(b) = &t.bounded {\n        out.push(read_refusal(\n",
+     "    if let Some(b) = t.bounded.as_ref().filter(|_| false) {\n        out.push(read_refusal(\n"),
+    ("PW6924 an owned table refers to another's rows by any field", TABLES,
+     "        (Some(owner), Some(_)) if field == owner => return None,\n",
+     "        (Some(_), Some(_)) => return None,\n"),
+    ("PW6924 a table no one owns refers into an owned one", TABLES,
+     "        (None, None) => return None,\n        (Some(owner), Some(_)) if field == owner => return None,\n",
+     "        (None, _) => return None,\n        (Some(owner), Some(_)) if field == owner => return None,\n"),
+    ("PW6924 an owned table refers to one no one owns", TABLES,
+     "        (None, None) => return None,\n        (Some(owner), Some(_)) if field == owner => return None,\n        (Some(owner), Some(by)) => (\n",
+     "        (_, None) => return None,\n        (Some(owner), Some(_)) if field == owner => return None,\n        (Some(owner), Some(by)) => (\n"),
     # 2. the host
     ("a forged handle is believed", OWNERS,
      "        Some(Val::String(given)) if given == user => {}\n",
@@ -90,8 +116,16 @@ MUTANTS = [
      "    let Caller::User(user) = caller else {\n",
      "    let nobody = String::new();\n    let user = match caller { Caller::User(user) => user, Caller::Nobody => &nobody };\n    if false {\n"),
     ("an owned row may be written for another", OWNERS,
-     "                Some(Val::String(owner)) if owner == user => Ok(vec![row.clone()]),\n",
-     "                Some(Val::String(owner)) if owner == user || true => Ok(vec![row.clone()]),\n"),
+     "                Some((_, Val::String(owner))) if owner == user => Ok(vec![row.clone()]),\n",
+     "                Some((_, Val::String(owner))) if owner == user || true => Ok(vec![row.clone()]),\n"),
+    # The review's finding 6: every fixture put its owner first.
+    ("the owner check reads a row's first field", OWNERS,
+     "            let wit = crate::tables::wit_name(&handle.field);\n",
+     "            let wit = fields.first().map(|(name, _)| name.clone()).unwrap_or_default();\n"),
+    # The review's note 7a.
+    ("a row not exactly its table's is passed", OWNERS,
+     "            let fields = table_link::exact_row(&write.row, row).map_err(|why| {\n                format!(\"`{import}` was given a row that is not exactly its table's: {why}\")\n            })?;\n",
+     "            let Ok(fields) = table_link::exact_row(&write.row, row) else {\n                return Ok(vec![row.clone()]);\n            };\n"),
     ("a set form's handle is not given back to its keys", OWNERS,
      "            Ok(vec![Val::List(keys)])\n",
      "            let _ = keys;\n            Ok(args)\n"),
@@ -101,6 +135,15 @@ MUTANTS = [
     ("the manifest holds no owners", HOST_TABLES,
      "            table.owned_whole()?;\n",
      "            let _ = table.owned_whole();\n"),
+    ("the manifest holds no bound of an owned table", HOST_TABLES,
+     "        if let Some(bound) = self.bounded {\n",
+     "        if let Some(bound) = self.bounded.filter(|_| false) {\n"),
+    ("the manifest lets an owned table refer by any field", HOST_TABLES,
+     "                    (Some(owner), Some(_)) => field == owner,\n",
+     "                    (Some(_), Some(_)) => true,\n"),
+    ("the manifest lets a reference cross into or out of an owned table", HOST_TABLES,
+     "                    (Some(owner), Some(_)) => field == owner,\n                    _ => false,\n",
+     "                    (Some(owner), Some(_)) => field == owner,\n                    _ => true,\n"),
     ("an owned import is typed as an unowned one", LINK,
      "    if access.handle().is_some() {\n",
      "    if access.handle().is_some() && false {\n"),
@@ -120,15 +163,50 @@ MUTANTS = [
     ("a requirement names no component", CONTRACT,
      "                requirement.component = asked_by(hirs, ws, unit, &requirement.predicate);\n",
      "                requirement.component = asked_by(hirs, ws, unit, &requirement.predicate).filter(|_| false);\n"),
-    ("the deployment is asked the program's predicate", HOST,
-     "                Some(component) => program(component, selected),\n",
-     "                Some(_) => deployment(predicate, selected),\n"),
+    # The review's findings 4 and 7b (probes G and H), and a page's ask.
+    ("PW6925 a requires that sees no body is the deployment's", PREDICATES,
+     "                let Some((at, given, declared)) = bodied(hirs, ws, &predicate.name) else {\n",
+     "                let Some((at, given, declared)) = bodied(hirs, ws, &predicate.name).filter(|_| false) else {\n"),
+    ("PW6925 a page asks a predicate with a body", PREDICATES,
+     "            if declared.body.is_none() {\n",
+     "            if declared.body.is_none() || true {\n"),
+    ("PW6907 a query that requires a predicate is cached shared", PREDICATES,
+     '        if cache.value.trim() != "shared" {\n',
+     '        if cache.value.trim() != "shared" || true {\n'),
+    # The engine asks the program's predicate (the review's findings 3, 5
+    # and 6; probes E and L).
+    ("the deployment is asked the program's predicate", PROGRAM_PREDICATES,
+     "            Some(component) => match predicates.by_component.get(component) {\n",
+     "            Some(_) => deployment(&requirement.predicate, &selected),\n            Some(component) => match predicates.by_component.get(component) {\n"),
+    ("a program predicate missing from the call is the deployment's", PROGRAM_PREDICATES,
+     "                None => Err(format!(\n                    \"its body, component `{component}`, is not among the program's predicates \\\n                     this call was given\"\n                )),\n",
+     "                None => deployment(&requirement.predicate, &selected).or(Err(format!(\n                    \"its body, component `{component}`, is not among the program's predicates \\\n                     this call was given\"\n                ))),\n"),
+    ("the deployment's path answers the program's predicate", HOST,
+     "            let answer = match &requirement.component {\n                Some(component) => Err(format!(\n",
+     "            let answer = match &requirement.component {\n                Some(_) => evaluate(&requirement.predicate, &selected),\n                Some(component) => Err(format!(\n"),
+    ("a program predicate runs unbounded", PROGRAM_PREDICATES,
+     "        budget,\n        &host,\n        Some(tables.manifest()),\n",
+     "        &Limits::unbounded(),\n        &host,\n        Some(tables.manifest()),\n"),
+    ("a predicate's fuel is not the export's", PROGRAM_PREDICATES,
+     "    if budget.fuel.is_some() {\n        budget.fuel = Some(left);\n    }\n",
+     "    let _ = left;\n"),
+    ("a predicate is asked after the export runs", HOST,
+     "            let left = program_predicates::authorize(\n                contract, export, args, limits, platform, tables, predicates, caller, deployment,\n            )?;\n            let mut host = platform.clone();\n            host.extend(tables.functions(contract, granted)?);\n            run(\n                &self.engine,\n                &self.component,\n                contract,\n                granted,\n                &left,\n                &host,\n                Some(tables.manifest()),\n                caller,\n                export,\n                args,\n            )\n",
+     "            let mut host = platform.clone();\n            host.extend(tables.functions(contract, granted)?);\n            let ran = run(\n                &self.engine,\n                &self.component,\n                contract,\n                granted,\n                limits,\n                &host,\n                Some(tables.manifest()),\n                caller,\n                export,\n                args,\n            );\n            program_predicates::authorize(\n                contract, export, args, limits, platform, tables, predicates, caller, deployment,\n            )?;\n            ran\n"),
+    ("a table's function among the platform's is linked", HOST,
+     "                .find(|key| crate::tables::is_table_import(key))\n            {\n                return Err(format!(\n",
+     "                .find(|key| crate::tables::is_table_import(key) && false)\n            {\n                return Err(format!(\n"),
     ("a predicate's reads leave its command's transaction", MEMORY,
      "                    .command_read(id, &bound, args)\n                    .map_err(|error| format!(\"`{bound}`: {error:?}\"))\n            });\n            out.insert(import, table_read_host::host_fn(read, data));\n",
      "                    .read_published(&bound, args)\n                    .map_err(|error| format!(\"`{bound}`: {error:?}\"))\n            });\n            let _ = id;\n            out.insert(import, table_read_host::host_fn(read, data));\n"),
     ("a predicate's reads are given to a command", MEMORY,
-     '            matches!(contract.exports.as_slice(), [only] if only.kind == "predicate");\n',
-     '            matches!(contract.exports.as_slice(), [only] if only.kind == "predicate" || true);\n'),
+     '        [only] if only.kind == "predicate" => Ok(()),\n',
+     '        [only] if only.kind == "predicate" || true => Ok(()),\n'),
+    # ADR-0384's "a concurrent change between predicate and body": what the
+    # memory adapter proves is its one open command.
+    ("a second command begins while one is open", MEMORY,
+     "        while working.open.is_some() {\n            working = working.wait()?;\n        }\n",
+     "        let _ = working.open.is_some();\n"),
 ]
 
 # Each Cargo test binary separately: names can repeat between binaries, and
