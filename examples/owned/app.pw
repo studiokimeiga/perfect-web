@@ -123,6 +123,49 @@ command remove(id: NoteId, to: UserId) -> ()
     Notes.delete(current_user(), id)
 }
 
+// **Whether the reader wrote the note of `id`** (ADR-0384's H2): a
+// predicate the program gives a body, asked by the host before the command
+// or the query that requires it runs, in its transaction or its read; its
+// body reads, and does nothing else (PW6905).
+predicate Wrote(id: NoteId)
+    says "You can only change a note you wrote."
+{
+    match Notes.get(current_user(), id) {
+        Some(_) => true,
+        None => false,
+    }
+}
+
+// **A note's text, changed by its author**, asked `Wrote(id)` first. `to`
+// says whose view of it is read again.
+command edit(id: NoteId, to: UserId, text: Text) -> ()
+    requires    Wrote(id)
+    transaction serializable
+    invalidates Mine(current_user()), One(current_user(), id)
+    emits       NotesChanged(id_of(current_user())), NoteSent(to)
+{
+    match Notes.get(current_user(), id) {
+        Some(note) => Notes.put(current_user(), Note { author: note.author, id: note.id, to: note.to, text: text, draft: note.draft, added: note.added }),
+        None => (),
+    }
+}
+
+// **A note the reader wrote, read only where they wrote it**: refused, in
+// `Wrote`'s words, for any other.
+user query Shown(reader: User<UserId>, id: NoteId) -> Option<Note>
+    freshness      0.seconds
+    consistency    read_your_writes
+    cache          private
+    key            reader, id
+    requires       Wrote(id)
+    invalidates_on NotesChanged(reader)
+    concurrency    one_per_key
+    on_key_change  cancel
+    timeout        2.seconds
+{
+    Notes.get(reader, id)
+}
+
 // **Every note of the reader's, removed.**
 command forget() -> ()
     transaction serializable
