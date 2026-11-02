@@ -15,7 +15,7 @@
 // so its own work is not counted.
 
 import http from "node:http";
-import { PAGE_KIB, TICK_MS, summary, treeCost } from "./lib.mjs";
+import { PAGE_KIB, TICK_MS, sleep, summary, treeCost } from "./lib.mjs";
 
 /** One request: its status and when it ended, or its error. */
 function request(agent, url, headers) {
@@ -42,65 +42,97 @@ export async function sessions(url, n) {
   return out;
 }
 
+/** The headers of the i-th request: what a browser sends, and each visitor's cookie, round robin. */
+function headerSource(cookies) {
+  return (i) => {
+    const h = { "accept-encoding": "br, gzip", accept: "text/html,*/*" };
+    const c = cookies[i % cookies.length];
+    if (c) h.cookie = c;
+    return h;
+  };
+}
+
+/** The server's resident memory at its highest, sampled every 50 ms until stopped. */
+function trackPeak(pid, start) {
+  let peak = start;
+  const timer = setInterval(() => {
+    peak = Math.max(peak, treeCost(pid).rssKiB);
+  }, 50);
+  return { peak: () => peak, stop: () => clearInterval(timer) };
+}
+
+/** `total` requests sent on a fixed schedule, one every `interval` ms, whether or not the earlier ones have been answered. */
+async function sendOnSchedule(agent, url, headersFor, total, interval) {
+  const start = performance.now();
+  const pending = [];
+  for (let i = 0; i < total; i++) {
+    const due = start + i * interval;
+    const wait = due - performance.now();
+    if (wait > 1) await sleep(wait);
+    pending.push(request(agent, url, headersFor(i)).then((r) => ({ ...r, due })));
+  }
+  return { start, results: await Promise.all(pending) };
+}
+
+/** The answers that came with a status under 400. */
+const answered = (results) => results.filter((r) => !r.error && r.status >= 200 && r.status < 400);
+
+/** How many answers each status got ("error" for a request that failed). */
+function countStatuses(results) {
+  const statuses = {};
+  for (const r of results) {
+    const k = r.error ? "error" : String(r.status);
+    statuses[k] = (statuses[k] ?? 0) + 1;
+  }
+  return statuses;
+}
+
+/** Each answered request's latency, from when it was due. */
+const latencies = (results) => results.filter((r) => !r.error).map((r) => r.end - r.due);
+
+/** The 99th percentile of the latencies, or null where there are none. */
+function p99(xs) {
+  const sorted = xs.slice().sort((a, b) => a - b);
+  return sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.99))] : null;
+}
+
+/** A total per request answered, or null where none was. */
+const perRequest = (total, n) => (n ? total / n : null);
+
 /**
  * `rate` requests a second for `seconds`, after `warmup`, to `url` with the
  * headers a browser sends (and each visitor's cookie, round robin).
  */
 export async function load({ pid, url, rate = 100, seconds = 10, warmup = 50, cookies = [""], maxSockets = 64 }) {
   const agent = new http.Agent({ keepAlive: true, maxSockets });
-  const headersFor = (i) => {
-    const h = { "accept-encoding": "br, gzip", accept: "text/html,*/*" };
-    const c = cookies[i % cookies.length];
-    if (c) h.cookie = c;
-    return h;
-  };
+  const headersFor = headerSource(cookies);
   for (let i = 0; i < warmup; i++) await request(agent, url, headersFor(i));
 
   const before = treeCost(pid);
-  let peak = before.rssKiB;
-  const sampler = setInterval(() => {
-    peak = Math.max(peak, treeCost(pid).rssKiB);
-  }, 50);
+  const memory = trackPeak(pid, before.rssKiB);
   const total = Math.round(rate * seconds);
-  const interval = 1000 / rate;
-  const start = performance.now();
-  const pending = [];
-  for (let i = 0; i < total; i++) {
-    const due = start + i * interval;
-    const wait = due - performance.now();
-    if (wait > 1) await new Promise((r) => setTimeout(r, wait));
-    pending.push(request(agent, url, headersFor(i)).then((r) => ({ ...r, due })));
-  }
-  const results = await Promise.all(pending);
+  const { start, results } = await sendOnSchedule(agent, url, headersFor, total, 1000 / rate);
   const elapsed = performance.now() - start;
-  clearInterval(sampler);
+  memory.stop();
   const after = treeCost(pid);
-  peak = Math.max(peak, after.rssKiB);
+  const peak = Math.max(memory.peak(), after.rssKiB);
   agent.destroy();
 
-  const ok = results.filter((r) => !r.error && r.status >= 200 && r.status < 400);
-  const statuses = {};
-  for (const r of results) {
-    const k = r.error ? "error" : String(r.status);
-    statuses[k] = (statuses[k] ?? 0) + 1;
-  }
+  const ok = answered(results);
   return {
     url,
     rate,
     seconds,
     sent: total,
     answered: ok.length,
-    statuses,
+    statuses: countStatuses(results),
     achievedRate: Number(((results.length / elapsed) * 1000).toFixed(1)),
-    latencyMs: summary(results.filter((r) => !r.error).map((r) => r.end - r.due)),
-    p99Ms: (() => {
-      const xs = results.filter((r) => !r.error).map((r) => r.end - r.due).sort((a, b) => a - b);
-      return xs.length ? xs[Math.min(xs.length - 1, Math.floor(xs.length * 0.99))] : null;
-    })(),
-    cpuMsPerRequest: ok.length ? (after.cpuMs - before.cpuMs) / ok.length : null,
+    latencyMs: summary(latencies(results)),
+    p99Ms: p99(latencies(results)),
+    cpuMsPerRequest: perRequest(after.cpuMs - before.cpuMs, ok.length),
     // What this run can tell apart (`report.mjs` judges by it): the CPU
     // clock's tick over the requests answered; Node's clock; a page.
-    resolution: { cpuMsPerRequest: ok.length ? TICK_MS / ok.length : null, latencyMs: 0.001, rssMiB: PAGE_KIB / 1024 },
+    resolution: { cpuMsPerRequest: perRequest(TICK_MS, ok.length), latencyMs: 0.001, rssMiB: PAGE_KIB / 1024 },
     rssMiB: {
       before: before.rssKiB / 1024,
       peak: peak / 1024,
@@ -110,7 +142,32 @@ export async function load({ pid, url, rate = 100, seconds = 10, warmup = 50, co
   };
 }
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+/** Opens `pages` pages of the app, each in a browser context of its own, ready; the contexts go into `contexts` as they are made, so that a failure leaves them to be closed. */
+async function openPages(browser, url, pages, ready, contexts) {
+  for (let i = 0; i < pages; i++) {
+    const context = await browser.newContext();
+    contexts.push(context);
+    const page = await context.newPage();
+    await page.goto(url);
+    await ready(page);
+  }
+}
+
+/** The requests the contexts make, and the server's cost, over `seconds` of nobody touching the pages. */
+async function watch(contexts, pid, seconds) {
+  let requests = 0;
+  const count = () => requests++;
+  contexts.forEach((c) => c.on("request", count));
+  const before = treeCost(pid);
+  await sleep(seconds * 1000);
+  const after = treeCost(pid);
+  contexts.forEach((c) => c.off("request", count));
+  return { requests, before, after };
+}
+
+const closeAll = async (contexts) => {
+  for (const c of contexts) await c.close();
+};
 
 /**
  * What open pages cost a server while nobody touches them: `pages` visitors,
@@ -131,22 +188,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 export async function idleCost({ browser, url, pid, pages = 20, seconds = 10, ready }) {
   const contexts = [];
   try {
-    for (let i = 0; i < pages; i++) {
-      const context = await browser.newContext();
-      contexts.push(context);
-      const page = await context.newPage();
-      await page.goto(url);
-      await ready(page);
-    }
+    await openPages(browser, url, pages, ready, contexts);
     // Settled: whatever loading started is over before the window opens.
     await sleep(2000);
-    let requests = 0;
-    const count = () => requests++;
-    for (const c of contexts) c.on("request", count);
-    const before = treeCost(pid);
-    await sleep(seconds * 1000);
-    const after = treeCost(pid);
-    for (const c of contexts) c.off("request", count);
+    const { requests, before, after } = await watch(contexts, pid, seconds);
     return {
       pages,
       contexts: contexts.length,
@@ -159,7 +204,7 @@ export async function idleCost({ browser, url, pid, pages = 20, seconds = 10, re
       resolution: { requestsPerPagePerMinute: (1 / pages) * (60 / seconds), cpuMsPerSecond: TICK_MS / seconds, rssMiB: PAGE_KIB / 1024 },
     };
   } finally {
-    for (const c of contexts) await c.close();
+    await closeAll(contexts);
   }
 }
 

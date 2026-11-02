@@ -207,8 +207,8 @@ MUTANTS = [
     (
         "twenty idle visitors share one browser context",
         LOAD,
-        "      const context = await browser.newContext();\n      contexts.push(context);",
-        "      const context = contexts[0] ?? (await browser.newContext());\n      contexts.push(context);",
+        "    const context = await browser.newContext();\n    contexts.push(context);",
+        "    const context = contexts[0] ?? (await browser.newContext());\n    contexts.push(context);",
     ),
     ("an unsafe change's new warning is not read", FEATURE, "  return [...new Set(unsafe.map(unplaced))].filter((w) => !known.has(w));", "  return [];"),
     ("a layout shift under a hundredth counts", REPORT, "export const CLS_RESOLUTION = 0.01;", "export const CLS_RESOLUTION = 0;"),

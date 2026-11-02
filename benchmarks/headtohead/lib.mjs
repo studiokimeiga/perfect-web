@@ -13,9 +13,11 @@ import { createRequire } from "node:module";
 import { brotliCompressSync, constants, gzipSync } from "node:zlib";
 
 export const HERE = path.dirname(fileURLToPath(import.meta.url));
-export const BENCH = path.resolve(HERE, "..");
+const BENCH = path.resolve(HERE, "..");
 export const REPO = path.resolve(BENCH, "..");
-export const HARNESS = path.join(BENCH, "harness");
+
+/** Waits `ms` milliseconds (on the global `setTimeout`, so that a test's clock moves it). */
+export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** A command run to its end: whether it succeeded, its exit status, and what
  * it wrote to stdout and stderr, as one text. */
@@ -116,20 +118,34 @@ export const MINIFIED_RULE =
 export function minifiedVerdict(text, type = "text/javascript") {
   const bytes = Buffer.byteLength(text);
   if (bytes < 1024) return { minified: true, rule: MINIFIED_RULE, share: null, minifiedBytes: bytes };
-  let esbuild;
+  const esbuild = loadEsbuild();
+  if (!esbuild) return unknownVerdict("esbuild is not installed");
+  return transformVerdict(esbuild, text, type, bytes);
+}
+
+/** A verdict that could not be reached, and why. */
+const unknownVerdict = (error) => ({ minified: null, rule: MINIFIED_RULE, share: null, minifiedBytes: null, error });
+
+/** esbuild as this package pins it, or null where it is not installed. */
+function loadEsbuild() {
   try {
-    esbuild = createRequire(path.join(HERE, "package.json"))("esbuild");
+    return createRequire(path.join(HERE, "package.json"))("esbuild");
   } catch {
-    return { minified: null, rule: MINIFIED_RULE, share: null, minifiedBytes: null, error: "esbuild is not installed" };
+    return null;
   }
+}
+
+const loaderFor = (type) => (/css/.test(type) ? "css" : "js");
+
+/** What esbuild's minifier makes of the text, and the share of its bytes it took off. */
+function transformVerdict(esbuild, text, type, bytes) {
   try {
-    const loader = /css/.test(type) ? "css" : "js";
-    const out = esbuild.transformSync(text, { loader, minify: true, legalComments: "inline", logLevel: "silent" });
+    const out = esbuild.transformSync(text, { loader: loaderFor(type), minify: true, legalComments: "inline", logLevel: "silent" });
     const after = Buffer.byteLength(out.code);
     const share = 1 - after / bytes;
     return { minified: share < 0.1, rule: MINIFIED_RULE, share: Number(share.toFixed(3)), minifiedBytes: after };
   } catch (e) {
-    return { minified: null, rule: MINIFIED_RULE, share: null, minifiedBytes: null, error: String(e).split("\n")[0] };
+    return unknownVerdict(String(e).split("\n")[0]);
   }
 }
 
@@ -162,19 +178,19 @@ export function machine() {
 export const TICK_MS = 1000 / Number(spawnSync("getconf", ["CLK_TCK"], { encoding: "utf8" }).stdout.trim() || 100);
 export const PAGE_KIB = Number(spawnSync("getconf", ["PAGESIZE"], { encoding: "utf8" }).stdout.trim() || 4096) / 1024;
 
+/** The processes one thread of a process has started; none where it has gone. */
+function taskChildren(pid, task) {
+  try {
+    const c = fs.readFileSync(`/proc/${pid}/task/${task}/children`, "utf8").trim();
+    return c ? c.split(/\s+/).map(Number) : [];
+  } catch {
+    return [];
+  }
+}
+
 function children(pid) {
   try {
-    const tasks = fs.readdirSync(`/proc/${pid}/task`);
-    const out = [];
-    for (const t of tasks) {
-      try {
-        const c = fs.readFileSync(`/proc/${pid}/task/${t}/children`, "utf8").trim();
-        if (c) out.push(...c.split(/\s+/).map(Number));
-      } catch {
-        /* gone */
-      }
-    }
-    return out;
+    return fs.readdirSync(`/proc/${pid}/task`).flatMap((t) => taskChildren(pid, t));
   } catch {
     return [];
   }
@@ -236,10 +252,72 @@ export async function waitForHttp(url, ms, alive = () => true) {
       await r.arrayBuffer();
       return true;
     } catch {
-      await new Promise((r) => setTimeout(r, 150));
+      await sleep(150);
     }
   }
   return false;
+}
+
+/**
+ * The server running: started in a process group of its own, its output
+ * written to the log's descriptor. `exited` is null until it ends.
+ */
+function launch({ cmd, args, cwd, env }, out) {
+  const child = spawn(cmd, args, {
+    cwd,
+    env: { ...process.env, ...env },
+    stdio: ["ignore", out, out],
+    detached: true,
+  });
+  const run = { child, exited: null };
+  child.on("exit", (code, signal) => (run.exited = { code, signal }));
+  return run;
+}
+
+/** Sends a signal to the server's whole process group; false where it cannot (it has gone). */
+function signalGroup(run, signal) {
+  try {
+    process.kill(-run.child.pid, signal);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The last `lines` lines of the log, read from the descriptor it was opened
+ * for (read and write) and not by its name again, so that what is read is the
+ * file the server wrote to even if the name has since been taken by another.
+ * It reads from the start with a position of its own: the descriptor's
+ * offset is the server's, shared with the output it writes.
+ */
+function logTail(out, lines = 20) {
+  const size = fs.fstatSync(out).size;
+  const buffer = Buffer.alloc(size);
+  const read = fs.readSync(out, buffer, 0, size, 0);
+  return buffer.toString("utf8", 0, read).split("\n").slice(-lines).join("\n");
+}
+
+/** The error for a server that did not answer in time: it is killed, and says how it ended and what it last wrote. */
+function startFailure({ name, port }, run, out) {
+  signalGroup(run, "SIGKILL");
+  const tail = logTail(out);
+  fs.closeSync(out);
+  return new Error(`${name}: did not start on ${port}${run.exited ? ` (exited ${JSON.stringify(run.exited)})` : ""}\n${tail}`);
+}
+
+/** Waits up to `ms` for the server to end. The deadline is read once, the clock again at each poll. */
+async function waitForExit(run, ms) {
+  const until = Date.now() + ms;
+  while (run.exited === null && Date.now() < until) await sleep(50);
+}
+
+/** SIGTERM to the server's group, then SIGKILL if it has not ended in 5 s. */
+async function stopServer(run) {
+  if (run.exited) return;
+  if (!signalGroup(run, "SIGTERM")) return;
+  await waitForExit(run, 5000);
+  if (run.exited === null) signalGroup(run, "SIGKILL");
 }
 
 /**
@@ -250,49 +328,19 @@ export async function waitForHttp(url, ms, alive = () => true) {
  */
 export async function startServer({ name, cmd, args, cwd, env = {}, port, probe = "/__h2h-ready", log }) {
   if (!(await portFree(port))) throw new Error(`${name}: port ${port} is already taken`);
-  const out = fs.openSync(log, "w");
-  const child = spawn(cmd, args, {
-    cwd,
-    env: { ...process.env, ...env },
-    stdio: ["ignore", out, out],
-    detached: true,
-  });
-  let exited = null;
-  child.on("exit", (code, signal) => (exited = { code, signal }));
-  const up = await waitForHttp(`http://127.0.0.1:${port}${probe}`, 90_000, () => exited === null);
-  if (!up) {
-    try {
-      process.kill(-child.pid, "SIGKILL");
-    } catch {
-      /* gone */
-    }
-    const tail = fs.readFileSync(log, "utf8").split("\n").slice(-20).join("\n");
-    throw new Error(`${name}: did not start on ${port}${exited ? ` (exited ${JSON.stringify(exited)})` : ""}\n${tail}`);
-  }
+  const out = fs.openSync(log, "w+");
+  const run = launch({ cmd, args, cwd, env }, out);
+  const up = await waitForHttp(`http://127.0.0.1:${port}${probe}`, 90_000, () => run.exited === null);
+  if (!up) throw startFailure({ name, port }, run, out);
+  fs.closeSync(out);
   return {
     name,
-    pid: child.pid,
+    pid: run.child.pid,
     port,
     base: `http://127.0.0.1:${port}`,
     log,
-    alive: () => exited === null,
-    async stop() {
-      if (exited) return;
-      try {
-        process.kill(-child.pid, "SIGTERM");
-      } catch {
-        return;
-      }
-      const until = Date.now() + 5000;
-      while (exited === null && Date.now() < until) await new Promise((r) => setTimeout(r, 50));
-      if (exited === null) {
-        try {
-          process.kill(-child.pid, "SIGKILL");
-        } catch {
-          /* gone */
-        }
-      }
-    },
+    alive: () => run.exited === null,
+    stop: () => stopServer(run),
   };
 }
 

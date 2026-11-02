@@ -20,24 +20,26 @@ import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { brotliCompressSync, constants, gzipSync } from "node:zlib";
 import {
-  BENCH,
-  HARNESS,
   HERE,
   MINIFIED_RULE,
   PAGE_KIB,
   REPO,
   TICK_MS,
   gitBlob,
+  isMain,
   machine,
   minifiedVerdict,
+  pathAfter,
   playwright,
   playwrightVersion,
   portFree,
   processTree,
   quantile,
   sha256,
+  sh,
   shuffled,
   sizes,
+  sleep,
   startServer,
   summary,
   treeCost,
@@ -134,15 +136,71 @@ const statm = (pages) => `${pages * 4} ${pages} 10 5 0 100 0\n`;
 
 // --- the paths and Playwright --------------------------------------------------
 
-test("`HERE`, `BENCH`, `REPO` and `HARNESS` are the instrument's directory, benchmarks, the repository's root and benchmarks/harness", () => {
+test("`HERE` and `REPO` are the instrument's directory and the repository's root", () => {
   assert.equal(HERE, path.resolve(TESTS, ".."));
-  assert.equal(BENCH, path.resolve(TESTS, "../.."));
   assert.equal(REPO, path.resolve(TESTS, "../../.."));
-  assert.equal(HARNESS, path.resolve(TESTS, "../../harness"));
   assert.equal(path.basename(HERE), "headtohead");
   assert.equal(fs.existsSync(path.join(HERE, "lib.mjs")), true);
   assert.equal(fs.existsSync(path.join(REPO, "PROJECT_CHARTER.md")), true);
-  assert.equal(fs.statSync(HARNESS).isDirectory(), true);
+});
+
+test("`sleep` waits on the global setTimeout, for as long as it is told", async (t) => {
+  const waits = [];
+  t.mock.method(globalThis, "setTimeout", (fn, ms) => {
+    waits.push(ms);
+    fn();
+  });
+  assert.equal(await sleep(250), undefined);
+  assert.equal(await sleep(0), undefined);
+  assert.deepEqual(waits, [250, 0]);
+});
+
+test("`sh` runs a command to its end: whether it succeeded, its status, and its stdout and stderr as one text", () => {
+  const out = sh(process.execPath, ["-e", "console.log('to out'); console.error('to err'); process.exit(3)"]);
+  assert.deepEqual(out, { ok: false, status: 3, out: "to out\nto err\n" });
+  assert.deepEqual(sh(process.execPath, ["-e", "process.stdout.write('fine')"]), { ok: true, status: 0, out: "fine" });
+});
+
+test("`sh` runs in the directory it is given, and its options reach the command", () => {
+  const got = sh(process.execPath, ["-p", "process.cwd() + ' ' + process.env.H2H_SH"], { cwd: os.tmpdir(), env: { ...process.env, H2H_SH: "yes" } });
+  assert.deepEqual([got.ok, got.out.trim()], [true, `${fs.realpathSync(os.tmpdir())} yes`]);
+});
+
+test("`sh` for a command that is not there is a failure with no status and no output", () => {
+  assert.deepEqual(sh("h2h-no-such-command", []), { ok: false, status: null, out: "" });
+});
+
+test("`sh` reads a command's output up to 64 MiB", () => {
+  const got = sh(process.execPath, ["-e", "process.stdout.write('x'.repeat(5 * 1024 * 1024))"]);
+  assert.deepEqual([got.ok, got.out.length], [true, 5 * 1024 * 1024]);
+});
+
+/** `fn` with the process's arguments as given, and as they were after. */
+function withArgv(argv, fn) {
+  const saved = process.argv;
+  process.argv = argv;
+  try {
+    return fn();
+  } finally {
+    process.argv = saved;
+  }
+}
+
+test("`isMain` is true for the module the process was started with, and false for any other or none", () => {
+  const here = pathToFileURL(path.join(HERE, "lib.mjs")).href;
+  const started = (...args) => withArgv([process.execPath, ...args], () => isMain(here));
+  assert.equal(started(path.join(HERE, "lib.mjs")), true);
+  assert.equal(started(path.join(HERE, "../headtohead/lib.mjs")), true);
+  assert.equal(started(path.join(HERE, "load.mjs")), false);
+  assert.equal(started(), false);
+});
+
+test("`pathAfter` is the absolute path that follows a flag, and null where the flag is absent", () => {
+  assert.equal(pathAfter(["--json", "out/runs.json", "--no-checks"], "--json"), path.resolve("out/runs.json"));
+  assert.equal(pathAfter(["--no-checks"], "--json"), null);
+  assert.equal(pathAfter([], "--json"), null);
+  assert.equal(pathAfter(["--json", "a", "--json", "b"], "--json"), path.resolve("a"));
+  assert.throws(() => pathAfter(["--json"], "--json"), TypeError);
 });
 
 test("`playwright()` is the Playwright test module of this package with its three browser types, the same one each time", () => {
@@ -955,9 +1013,14 @@ test("`startServer` gives up on a server that stays up and never answers after 9
     const options = await prepared(dir, "mute", {});
     const real = Date.now;
     // Real time until the server has logged and written its pid, then 20 s more
-    // at each reading: the 90 s are spent at the fifth.
+    // at each reading of the readiness wait's (`waitForHttp`): the 90 s are spent
+    // at the fifth. Others' readings are real time: fetch's (undici reads the
+    // clock after each failed attempt, so how many depends on whether fetch has
+    // been used yet) and graceful-fs's, which wraps `fs.closeSync` once
+    // Playwright is loaded and reads the clock when a descriptor is closed.
     let jumps = 0;
-    t.mock.method(Date, "now", () => (fs.existsSync(path.join(dir, "mute.pid")) ? real.call(Date) + ++jumps * 20_000 : real.call(Date)));
+    const ownReading = () => /waitForHttp/.test(new Error().stack);
+    t.mock.method(Date, "now", () => (ownReading() && fs.existsSync(path.join(dir, "mute.pid")) ? real.call(Date) + ++jumps * 20_000 : real.call(Date)));
     const error = await startServer(options).then(
       (server) => server.stop().then(() => assert.fail("the server started")),
       (e) => e,

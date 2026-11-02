@@ -11,7 +11,7 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { REPO } from "../lib.mjs";
-import { APPS, OFFSET, PORT, PW_SERVER, exists, target } from "../targets.mjs";
+import { APPS, PW_SERVER, target } from "../targets.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const TARGETS = path.join(HERE, "../targets.mjs");
@@ -242,20 +242,12 @@ test("target refuses a stack the app does not run on, and an app it does not kno
   assert.throws(() => target("blog", "react"), { name: "TypeError", message: "Cannot read properties of undefined (reading 'stacks')" });
 });
 
-test("exists says whether a path is there", () => {
-  assert.equal(exists(HERE), true);
-  assert.equal(exists(TARGETS), true);
-  assert.equal(exists(path.join(HERE, "no-such-file")), false);
-});
-
 // --- the environment ------------------------------------------------------------------------
 
 test("the ports are the PORT of the environment plus 220 and the stack's slot", () => {
-  assert.equal(PORT, BASE);
-  assert.equal(OFFSET, 220);
   assert.deepEqual(
     Object.keys(SERVERS).map((key) => target(...key.split("/")).server.port),
-    [0, 1, 2, 3, 4, 5].map((k) => PORT + OFFSET + k),
+    [0, 1, 2, 3, 4, 5].map((k) => BASE + 220 + k),
   );
 });
 
@@ -269,7 +261,7 @@ const PAIRS = Object.keys(STACKS).map((key) => key.split("/"));
 const PROBE = `
 const m = await import(${JSON.stringify(pathToFileURL(TARGETS).href)});
 const urls = ${JSON.stringify(PAIRS)}.map(([app, stack]) => m.target(app, stack).url);
-console.log(JSON.stringify({ PORT: m.PORT, OFFSET: m.OFFSET, PW_SERVER: m.PW_SERVER, urls }));
+console.log(JSON.stringify({ PW_SERVER: m.PW_SERVER, urls }));
 `;
 
 /** targets.mjs imported by a new process whose PORT and CARGO_TARGET_DIR are `env`'s, or unset. */
@@ -291,8 +283,6 @@ const urlsFrom = (base) => [
 
 test("with no PORT and no CARGO_TARGET_DIR the ports start at 3141 + 220 and the host is the repository's target/release/pw-dev-server", () => {
   assert.deepEqual(importedWith({}), {
-    PORT: 3141,
-    OFFSET: 220,
     PW_SERVER: repo("target/release/pw-dev-server"),
     urls: urlsFrom(3141),
   });
@@ -300,15 +290,13 @@ test("with no PORT and no CARGO_TARGET_DIR the ports start at 3141 + 220 and the
 
 test("a PORT and a CARGO_TARGET_DIR move the ports and the host, read once when targets.mjs is imported", () => {
   assert.deepEqual(importedWith({ PORT: "4000", CARGO_TARGET_DIR: "/opt/cargo-target" }), {
-    PORT: 4000,
-    OFFSET: 220,
     PW_SERVER: "/opt/cargo-target/release/pw-dev-server",
     urls: urlsFrom(4000),
   });
 });
 
 test("an empty PORT is read as 0, and an empty or relative CARGO_TARGET_DIR is used as it is: only an unset variable gets the default", () => {
-  assert.deepEqual(importedWith({ PORT: "", CARGO_TARGET_DIR: "" }), { PORT: 0, OFFSET: 220, PW_SERVER: "release/pw-dev-server", urls: urlsFrom(0) });
+  assert.deepEqual(importedWith({ PORT: "", CARGO_TARGET_DIR: "" }), { PW_SERVER: "release/pw-dev-server", urls: urlsFrom(0) });
   assert.equal(importedWith({ CARGO_TARGET_DIR: "build/cargo" }).PW_SERVER, "build/cargo/release/pw-dev-server");
 });
 

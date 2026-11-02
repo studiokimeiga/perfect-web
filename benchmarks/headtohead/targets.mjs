@@ -7,12 +7,11 @@
 // 256, `spikes/own-renderer/host-registry.json`), so that the head-to-head
 // can run beside them.
 
-import fs from "node:fs";
 import path from "node:path";
 import { REPO } from "./lib.mjs";
 
-export const PORT = Number(process.env.PORT ?? 3141);
-export const OFFSET = 220;
+const PORT = Number(process.env.PORT ?? 3141);
+const OFFSET = 220;
 const port = (k) => PORT + OFFSET + k;
 
 const SPIKE = path.join(REPO, "spikes/own-renderer");
@@ -234,8 +233,4 @@ export function target(app, stack) {
     who: s.who,
     version: s.version,
   };
-}
-
-export function exists(p) {
-  return fs.existsSync(p);
 }
