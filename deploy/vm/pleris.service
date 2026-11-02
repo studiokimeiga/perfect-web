@@ -1,0 +1,70 @@
+# A Pleris program's production host on one VM (track `deploy`, ADR-XXXX, a
+# production host). deploy/vm/setup.sh installs this as
+# /etc/systemd/system/pleris.service; deploy/vm/release.sh puts each release
+# in /opt/pleris/releases/<commit> and points /opt/pleris/current at it.
+#
+# Its settings are /etc/pleris/pleris.env, nothing secret. Its secrets are
+# /etc/pleris/secrets, root's and mode 600, which systemd hands the service as
+# a credential it alone reads (systemd.exec(5): environment variables "are
+# not suitable for passing secrets"; use LoadCredential=). Caddy, in front,
+# holds TLS (deploy/vm/Caddyfile); the host listens on the loopback alone.
+
+[Unit]
+Description=Pleris production host
+Documentation=https://github.com/studiokimeiga/perfect-web/tree/master/deploy
+After=network-online.target postgresql.service
+Wants=network-online.target postgresql.service
+
+[Service]
+Type=simple
+User=pleris
+Group=pleris
+EnvironmentFile=/etc/pleris/pleris.env
+Environment=PW_DEPLOYMENT=production
+# The host reads the credential named `secrets` from $CREDENTIALS_DIRECTORY,
+# which systemd sets; no `%d` specifier (systemd 249 does not resolve it in
+# Environment=).
+LoadCredential=secrets:/etc/pleris/secrets
+ExecStart=/opt/pleris/current/pleris-host /opt/pleris/current/dist
+# SIGTERM: no new connection, the open ones finished within the host's
+# grace (PW_SHUTDOWN_GRACE, 8 s), then it ends with 0.
+KillSignal=SIGTERM
+TimeoutStopSec=20
+Restart=on-failure
+RestartSec=2
+# What it may write, its own: /var/lib/pleris (an upload's blobs) and
+# /var/cache/pleris (kiokun's search index).
+StateDirectory=pleris
+CacheDirectory=pleris
+UMask=0077
+LimitNOFILE=65536
+
+# Its confinement (systemd.exec(5)); `systemd-analyze security pleris`
+# scores it. Not MemoryDenyWriteExecute=: Wasmtime compiles the program's
+# components to machine code at start (Cranelift), which needs memory it
+# writes and then runs. No system call filter: none is measured against
+# Wasmtime here yet (the ADR's next step).
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+RemoveIPC=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

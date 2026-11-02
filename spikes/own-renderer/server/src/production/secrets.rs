@@ -7,11 +7,14 @@
 //! - **One source each.** A secret given both in the environment and in the
 //!   file, or twice in the file, is refused: which one the host used would
 //!   otherwise be a guess.
-//! - **The file is its owner's alone.** `PW_SECRETS_FILE` names a file of
-//!   `NAME=value` lines; one that its group or anyone else may read is
-//!   refused, as OpenSSH refuses a private key others may read. systemd's
-//!   `LoadCredential=` (the single-VM recipe) hands the service such a file,
-//!   mode 0400 and its own; a container mounts one.
+//! - **The file is its owner's and its group's.** `PW_SECRETS_FILE` names a
+//!   file of `NAME=value` lines; one that anyone else may read, or anyone but
+//!   its owner may write, is refused, as OpenSSH refuses a private key
+//!   others may read. Its group may read it: systemd's `LoadCredential=`
+//!   (the single-VM recipe) hands the service a file of mode 0400 that it
+//!   reads through an ACL entry, which `stat` shows as the group's bits
+//!   (0440; systemd v255's `src/core/exec-credential.c`), and `root:pleris
+//!   0640` is the other usual way. A container mounts one.
 //! - **A value is never said.** [`Secret`] has no `Display`, its `Debug` says
 //!   only that it is one, and no refusal quotes a line of the file, which
 //!   may hold a value.
@@ -62,7 +65,7 @@ pub(crate) struct Secrets(BTreeMap<&'static str, Secret>);
 
 impl Secrets {
     /// **Every secret the deployment states**: from the environment, and
-    /// from the file `PW_SECRETS_FILE` names where it names one. A name set
+    /// from the deployment's secrets file ([`secrets_file`]). A name set
     /// empty in the environment is no value.
     pub(crate) fn read(env: Env) -> Result<Secrets, String> {
         let mut found = BTreeMap::new();
@@ -71,7 +74,7 @@ impl Secrets {
                 found.insert(*name, Secret(value));
             }
         }
-        if let Some(path) = env("PW_SECRETS_FILE").filter(|p| !p.is_empty()) {
+        if let Some(path) = secrets_file(env) {
             let text = read_private(&path)?;
             for (at, line) in text.lines().enumerate() {
                 let line = line.trim();
@@ -134,8 +137,26 @@ impl Secrets {
     }
 }
 
-/// **The file's text, where only its owner may read it.** Its mode is read
-/// before its text, so a file others may read is refused unread.
+/// **The deployment's secrets file**: the one `PW_SECRETS_FILE` names; or,
+/// where it names none, systemd's credential named `secrets`
+/// (`LoadCredential=secrets:…`), which systemd hands a service in the
+/// directory `$CREDENTIALS_DIRECTORY` names (systemd.exec(5),
+/// "Credentials"). Read from there, the unit needs no specifier
+/// (`%d`), which systemd 249 does not resolve in `Environment=`.
+pub(crate) fn secrets_file(env: Env) -> Option<String> {
+    if let Some(path) = env("PW_SECRETS_FILE").filter(|p| !p.is_empty()) {
+        return Some(path);
+    }
+    let directory = env("CREDENTIALS_DIRECTORY").filter(|d| !d.is_empty())?;
+    let credential = std::path::Path::new(&directory).join("secrets");
+    credential
+        .exists()
+        .then(|| credential.display().to_string())
+}
+
+/// **The file's text, where no one but its owner and its group may read it,
+/// and no one but its owner may write it.** Its mode is read before its
+/// text, so a file others may read is refused unread.
 #[cfg(unix)]
 fn read_private(path: &str) -> Result<String, String> {
     use std::os::unix::fs::PermissionsExt;
@@ -144,10 +165,16 @@ fn read_private(path: &str) -> Result<String, String> {
         return Err(format!("PW_SECRETS_FILE {path} is not a file"));
     }
     let mode = meta.permissions().mode() & 0o777;
-    if mode & 0o077 != 0 {
+    if mode & 0o007 != 0 {
         return Err(format!(
-            "PW_SECRETS_FILE {path} may be read by others than its owner (mode {mode:03o}): a \
-             secrets file is its owner's alone (chmod 600)"
+            "PW_SECRETS_FILE {path} may be read by anyone (mode {mode:03o}): a secrets file is \
+             its owner's and its group's alone (chmod 600, or 640)"
+        ));
+    }
+    if mode & 0o020 != 0 {
+        return Err(format!(
+            "PW_SECRETS_FILE {path} may be written by its group (mode {mode:03o}): only its owner \
+             writes a secrets file (chmod 600, or 640)"
         ));
     }
     std::fs::read_to_string(path).map_err(|e| format!("PW_SECRETS_FILE {path}: {e}"))
@@ -244,16 +271,58 @@ mod tests {
         assert!(read_with(&path, &[]).is_ok());
     }
 
-    /// **A file others may read is refused, unread**: by its group, or by
-    /// anyone.
+    /// **A file anyone may read, or its group may write, is refused,
+    /// unread**; one its group may read is read, as systemd's credential is
+    /// (0400 with an ACL entry for the service's user, which `stat` shows
+    /// as 0440).
     #[test]
     fn a_secrets_file_others_may_read_is_refused() {
-        for mode in [0o640, 0o604, 0o644, 0o660] {
+        for mode in [0o604, 0o644, 0o660, 0o606, 0o601, 0o620] {
             let (_dir, path) = file(&format!("PW_IDENTITY_KEY={KEY}\n"), mode);
             let refused = read_with(&path, &[]).expect_err("refused");
-            assert!(refused.contains("chmod 600"), "{mode:o}: {refused}");
+            assert!(refused.contains("chmod 600, or 640"), "{mode:o}: {refused}");
             assert!(!refused.contains(KEY), "{refused}");
         }
+        for mode in [0o600, 0o400, 0o640, 0o440] {
+            let (_dir, path) = file(&format!("PW_IDENTITY_KEY={KEY}\n"), mode);
+            let read = read_with(&path, &[]).unwrap_or_else(|e| panic!("{mode:o}: {e}"));
+            assert_eq!(read.get("PW_IDENTITY_KEY").map(Secret::expose), Some(KEY));
+        }
+    }
+
+    /// **systemd's credential is the secrets file where none is named**:
+    /// `secrets` in `$CREDENTIALS_DIRECTORY`, mode 0440 as systemd's ACL
+    /// shows it; `PW_SECRETS_FILE` named wins; a directory with no
+    /// `secrets` names none.
+    #[test]
+    fn systemds_credential_is_the_secrets_file_where_none_is_named() {
+        let (dir, path) = file(&format!("PW_IDENTITY_KEY={KEY}\n"), 0o440);
+        let credentials = dir.path().display().to_string();
+        let given = |pairs: Vec<(&'static str, String)>| {
+            move |name: &str| {
+                pairs
+                    .iter()
+                    .find(|(n, _)| *n == name)
+                    .map(|(_, v)| v.clone())
+            }
+        };
+        let systemd = given(vec![("CREDENTIALS_DIRECTORY", credentials.clone())]);
+        assert_eq!(secrets_file(&systemd), Some(path.clone()));
+        let read = Secrets::read(&systemd).expect("read");
+        assert_eq!(read.get("PW_IDENTITY_KEY").map(Secret::expose), Some(KEY));
+
+        let named = given(vec![
+            ("CREDENTIALS_DIRECTORY", credentials),
+            ("PW_SECRETS_FILE", "/elsewhere/secrets".into()),
+        ]);
+        assert_eq!(secrets_file(&named).as_deref(), Some("/elsewhere/secrets"));
+        let empty = tempfile::TempDir::with_prefix("pw-credentials-").expect("a directory");
+        let none = given(vec![(
+            "CREDENTIALS_DIRECTORY",
+            empty.path().display().to_string(),
+        )]);
+        assert_eq!(secrets_file(&none), None);
+        assert_eq!(secrets_file(&given(vec![])), None);
     }
 
     /// **A secret given twice is refused**: in the environment and in the

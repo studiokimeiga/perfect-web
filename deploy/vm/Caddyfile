@@ -1,0 +1,28 @@
+# The VM's TLS front (track `deploy`, ADR-XXXX, a production host): Caddy's
+# automatic HTTPS for the deployment's domain (a certificate from Let's
+# Encrypt, renewed by Caddy), HTTP/2 and HTTP/3 to browsers, and the host
+# behind it on the loopback. deploy/vm/setup.sh writes it to
+# /etc/caddy/Caddyfile, PLERIS_DOMAIN replaced by the domain.
+#
+# The host sends HSTS, nosniff and each page's policy itself, so they are
+# the same behind any front.
+
+PLERIS_DOMAIN {
+	# No `encode`: the host compresses its build's assets itself, and never
+	# a session's answer, which holds its reader's data beside what its
+	# address reflects (BREACH). `encode` would compress both.
+	reverse_proxy 127.0.0.1:8080 {
+		# A request that comes while the host restarts waits for it, up to
+		# ten seconds, rather than failing.
+		lb_try_duration 10s
+		lb_try_interval 250ms
+	}
+	header -Server
+	log {
+		output file /var/log/caddy/pleris-access.log {
+			roll_size 50MiB
+			roll_keep 10
+		}
+		format json
+	}
+}

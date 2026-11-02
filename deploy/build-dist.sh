@@ -67,10 +67,15 @@ node --check "$OUT/pw-runtime.mjs"
 
 # What it was built from: the commit (and whether the tree was clean), each
 # source by its SHA-256 (as `run.sh`'s sources.json), and the runtime's
-# sizes, as written and as served.
-COMMIT="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
-if [ "$COMMIT" != unknown ] && ! git -C "$ROOT" diff --quiet HEAD -- . 2>/dev/null; then
-  COMMIT="$COMMIT + uncommitted changes"
+# sizes, as written and as served. An image's build has no history, and
+# says its commit (PW_COMMIT, the Containerfile's COMMIT).
+if [ -n "${PW_COMMIT:-}" ]; then
+  COMMIT="$PW_COMMIT"
+else
+  COMMIT="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
+  if [ "$COMMIT" != unknown ] && ! git -C "$ROOT" diff --quiet HEAD -- . 2>/dev/null; then
+    COMMIT="$COMMIT + uncommitted changes"
+  fi
 fi
 node -e '
 const { createHash } = require("node:crypto");

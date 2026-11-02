@@ -1,0 +1,92 @@
+# syntax=docker/dockerfile:1.7
+#
+# **A Pleris program's production image** (track `deploy`, ADR-XXXX, a
+# production host): the release host and one program's production build,
+# and nothing else: no shell, no compiler, no package manager.
+#
+#   podman build -f deploy/Containerfile --build-arg PROGRAM=store -t pleris-store .
+#   docker build -f deploy/Containerfile --build-arg PROGRAM=store -t pleris-store .
+#   (`just deploy-image store` runs whichever is installed.)
+#
+# Three stages:
+#   minifier  esbuild, installed by `npm ci` from deploy/minify/package-lock.json,
+#             which scripts/deploy_minify_lock.py writes from pnpm-lock.yaml:
+#             the workspace's version and its SHA-512s;
+#   build     the release host and the compiler (`cargo --locked`), the
+#             browser's WebAssembly, and deploy/build-dist.sh: the program's
+#             `pw build`, its runtime minified;
+#   final     distroless's `cc` image (glibc, libgcc, CA certificates, tzdata,
+#             and the `nonroot` user, uid 65532), the host and the build.
+# Each base image is pinned by the digest of its multi-platform index, checked
+# against its registry on 2026-11-02 (the ADR lists them).
+#
+# Run it as production runs it: its filesystem read-only, no capability, its
+# settings in its environment, its secrets in a file it alone reads:
+#
+#   docker run --read-only --cap-drop=ALL --security-opt=no-new-privileges \
+#     -p 8080:8080 -e PW_ORIGIN=https://preview.example.com -e PW_IDENTITY=none \
+#     -v /etc/pleris/secrets:/run/secrets/pleris:ro -e PW_SECRETS_FILE=/run/secrets/pleris \
+#     pleris-store
+#
+# TLS is the platform's or a proxy's (deploy/vm/Caddyfile); the platform's
+# checks ask GET /_pw/health (it lives) and GET /_pw/ready (it is ready).
+# A store or feed names its database (PW_STORE_DATABASE_URL, a secret),
+# reached without TLS: on the same host or a private network only. kiokun
+# names its data (KIOKUN_DATA, a volume) and its cache (PW_CACHE_DIR, a
+# writable volume; /var/cache/pleris is the image's).
+
+ARG PROGRAM=store
+# The commit it is built from, which an image build cannot read (no .git).
+ARG COMMIT=unknown
+
+FROM docker.io/library/node:22.21.1-bookworm-slim@sha256:25b3eb23a00590b7499f2a2ce939322727fcce1b15fdd69754fcd09536a3ae2c AS minifier
+WORKDIR /opt/minifier
+COPY deploy/minify/package.json deploy/minify/package-lock.json ./
+# The lockfile's SHA-512s are checked; esbuild's install script is not run
+# (its `bin/esbuild` finds the platform's binary without it).
+RUN npm ci --ignore-scripts --no-audit --no-fund
+
+FROM docker.io/library/rust:1.97.1-bookworm@sha256:0e2bcaef56d041a486784e54104a81aebe0da44bd03019bd70bc0401e42e4a97 AS build
+ARG PROGRAM
+ARG COMMIT
+# The minifier and the Node that runs it, from the stage above.
+COPY --from=minifier /usr/local/bin/node /usr/local/bin/node
+COPY --from=minifier /opt/minifier/node_modules /opt/minifier/node_modules
+WORKDIR /src
+COPY . .
+# rust-toolchain.toml names the toolchain and its WebAssembly targets, which
+# rustup installs at the first cargo call. The target and the registry are
+# caches of the build's, not layers of the image.
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/src/target \
+    cargo build --locked --release -p pw-dev-server -p pw-cli \
+ && cargo build --locked -p pw-resume-wasm -p pw-render-wasm \
+      --target wasm32-unknown-unknown --profile browser \
+ && PW=/src/target/release/pw \
+    WASM_DIR=/src/target/wasm32-unknown-unknown/browser \
+    ESBUILD=/opt/minifier/node_modules/.bin/esbuild \
+    PW_COMMIT="$COMMIT" \
+    deploy/build-dist.sh "$PROGRAM" /out/dist \
+ && install -D -m 0755 /src/target/release/pw-dev-server /out/pleris-host \
+ && mkdir -p /out/cache
+
+FROM gcr.io/distroless/cc-debian12:nonroot@sha256:9dac0a79194e45a7da0158a9c6da57b217585af0786db3845d1f0ec1a0dd182f
+ARG PROGRAM
+ARG COMMIT
+LABEL org.opencontainers.image.title="pleris-${PROGRAM}" \
+      org.opencontainers.image.revision="${COMMIT}" \
+      org.opencontainers.image.description="A Pleris program's production host" \
+      org.opencontainers.image.source="https://github.com/studiokimeiga/perfect-web" \
+      org.opencontainers.image.licenses="MIT OR Apache-2.0"
+COPY --from=build /out/pleris-host /usr/local/bin/pleris-host
+COPY --from=build /out/dist /srv/pleris
+COPY --from=build --chown=65532:65532 /out/cache /var/cache/pleris
+USER 65532:65532
+ENV PW_DEPLOYMENT=production \
+    PW_BIND=0.0.0.0 \
+    PORT=8080 \
+    PW_CACHE_DIR=/var/cache/pleris
+EXPOSE 8080
+VOLUME ["/var/cache/pleris"]
+STOPSIGNAL SIGTERM
+ENTRYPOINT ["/usr/local/bin/pleris-host", "/srv/pleris"]

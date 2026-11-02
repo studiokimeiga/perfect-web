@@ -5,7 +5,8 @@
 #
 #   - the release host (`cargo build --release`), PW_DEPLOYMENT=production,
 #     started with nothing of this shell's environment but PATH, its secrets
-#     from a file only its owner reads, as systemd's LoadCredential hands one;
+#     where systemd's LoadCredential= hands them: a file `secrets` in
+#     $CREDENTIALS_DIRECTORY, mode 0440 as systemd's ACL shows it;
 #   - the store's production build (deploy/build-dist.sh: the runtime
 #     minified);
 #   - a database of its own on the local PostgreSQL, its migrations applied
@@ -36,6 +37,7 @@ cleanup() {
   [ -n "$FRONT_PID" ] && kill "$FRONT_PID" 2>/dev/null || true
   wait 2>/dev/null || true
   psql "$ADMIN_URL" -qc "DROP DATABASE IF EXISTS $DB WITH (FORCE)" >/dev/null 2>&1 || true
+  chmod -R u+w "$WORK" 2>/dev/null || true
   rm -rf "$WORK"
 }
 trap cleanup EXIT
@@ -63,6 +65,7 @@ echo
 echo "== 2. its database, its secrets, its TLS"
 psql "$ADMIN_URL" -qc "DROP DATABASE IF EXISTS $DB WITH (FORCE)" -c "CREATE DATABASE $DB" >/dev/null
 echo "   database $DB on the local PostgreSQL ($(psql "$ADMIN_URL" -Atc 'SHOW server_version'))"
+mkdir "$WORK/credentials"
 (
   umask 077
   {
@@ -70,11 +73,13 @@ echo "   database $DB on the local PostgreSQL ($(psql "$ADMIN_URL" -Atc 'SHOW se
     echo "PW_IDENTITY_KEY=$(openssl rand -hex 32)"
     echo "PW_STORE_DATABASE_URL=$DB_URL"
     echo "PW_METRICS_TOKEN=$(openssl rand -hex 24)"
-  } > "$WORK/secrets"
+  } > "$WORK/credentials/secrets"
 )
-chmod 600 "$WORK/secrets"
-METRICS_TOKEN="$(sed -n 's/^PW_METRICS_TOKEN=//p' "$WORK/secrets")"
-echo "   secrets file: mode $(stat -c %a "$WORK/secrets"), names: $(sed -n 's/=.*//p' "$WORK/secrets" | grep -v '^#' | tr '\n' ' ')"
+chmod 0440 "$WORK/credentials/secrets"
+chmod 0500 "$WORK/credentials"
+SECRETS="$WORK/credentials/secrets"
+METRICS_TOKEN="$(sed -n 's/^PW_METRICS_TOKEN=//p' "$SECRETS")"
+echo "   secrets: \$CREDENTIALS_DIRECTORY/secrets, mode $(stat -c %a "$SECRETS"), names: $(sed -n 's/=.*//p' "$SECRETS" | grep -v '^#' | tr '\n' ' ')"
 openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 1 \
   -subj /CN=localhost -addext "subjectAltName=DNS:localhost" \
   -keyout "$WORK/tls.key" -out "$WORK/tls.crt" 2>/dev/null
@@ -86,7 +91,7 @@ echo "   TLS front on $PORT (a certificate for localhost, made for this run), th
 start_host() {
   env -i PATH="$PATH" \
     PW_DEPLOYMENT=production PW_ORIGIN="$ORIGIN" PW_IDENTITY=none \
-    PW_SECRETS_FILE="$WORK/secrets" PORT="$HOST_PORT" \
+    CREDENTIALS_DIRECTORY="$WORK/credentials" PORT="$HOST_PORT" \
     "$HOST_BIN" "$WORK/dist" >> "$WORK/host.log" 2>&1 &
   HOST_PID=$!
   for _ in $(seq 1 300); do
@@ -200,7 +205,7 @@ const errors = lines.map((l) => JSON.parse(l)).filter((l) => l.level === "error"
 console.log(`   ${lines.length} lines, each JSON; no secret in any; events: ` +
   Object.entries(events).map(([e, n]) => `${e} ${n}`).join(", "));
 if (errors.length) { console.log(`FAIL: ${errors.length} error line(s): ${JSON.stringify(errors[0])}`); process.exit(1); }
-' "$WORK/host.log" "$WORK/secrets" || fail "the log"
+' "$WORK/host.log" "$SECRETS" || fail "the log"
 grep '"event":"stopping"\|"event":"stopped"' "$WORK/host.log" | tail -2 | sed 's/^/   /'
 
 echo

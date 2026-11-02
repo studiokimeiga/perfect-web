@@ -485,7 +485,7 @@ impl Production {
                 true
             }
             READY => {
-                match self.ready() {
+                match self.ready(&shutdown::GATE) {
                     Ok(()) => answer_json(stream, 200, r#"{"status":"ready"}"#),
                     Err(why) => answer_json(
                         stream,
@@ -515,11 +515,12 @@ impl Production {
         }
     }
 
-    /// **Whether the host is ready for requests**: not stopping, and its
-    /// database answering. The reason it is not, said without the
-    /// database's words, which an answer to anyone does not carry.
-    fn ready(&self) -> Result<(), &'static str> {
-        if shutdown::GATE.draining() {
+    /// **Whether the host is ready for requests**: not stopping (its
+    /// `gate`, the process's), and its database answering. The reason it
+    /// is not, said without the database's words, which an answer to anyone
+    /// does not carry.
+    fn ready(&self, gate: &shutdown::Gate) -> Result<(), &'static str> {
+        if gate.draining() {
             return Err("the host is stopping");
         }
         if let Some(ping) = &self.database
@@ -903,6 +904,30 @@ mod tests {
         let (source, script) = bootstrap("0123456789abcdef");
         assert_eq!(source, "import(\"/pw-runtime.mjs?v=0123456789abcdef\")");
         assert_eq!(script, format!("<script>{source}</script>"));
+    }
+
+    /// **A host that is stopping is not ready**; one with no database to
+    /// ask is, until then; one whose database does not answer is not, and
+    /// says so without the database's words.
+    #[test]
+    fn a_host_that_is_stopping_or_whose_database_does_not_answer_is_not_ready() {
+        let host = Production::for_test(assets::Assets::of(vec![]), None);
+        let gate = shutdown::Gate::new();
+        assert_eq!(host.ready(&gate), Ok(()));
+        gate.drain();
+        assert_eq!(host.ready(&gate), Err("the host is stopping"));
+        let unreachable = Production {
+            assets: assets::Assets::of(vec![]),
+            metrics: None,
+            database: Some(Ping {
+                url: Secret::new("postgresql://pw:s3cr3t@127.0.0.1:1/pw?connect_timeout=2"),
+                client: Mutex::new(None),
+            }),
+        };
+        assert_eq!(
+            unreachable.ready(&shutdown::Gate::new()),
+            Err("its database does not answer")
+        );
     }
 
     /// **Metrics are read only with the deployment's token**: none without

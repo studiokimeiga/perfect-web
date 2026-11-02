@@ -1,0 +1,16 @@
+# What `deploy/Containerfile`'s build does not need of the repository (track
+# deploy, ADR-XXXX, a production host). Docker and Podman both read this file
+# at the context's root. Builds, installs and history stay out: the image's
+# build makes its own from the sources and the lockfiles.
+.git
+**/target
+**/node_modules
+**/dist
+**/dist-*
+**/test-results
+**/playwright-report
+**/.next
+**/.svelte-kit
+.toolchain
+.pnpm-store
+docs

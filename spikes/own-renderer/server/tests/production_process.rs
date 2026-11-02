@@ -33,47 +33,15 @@ fn root() -> PathBuf {
 /// directory is returned, as `KIOKUN_DATA` names it.
 fn built_kiokun(dir: &Path) -> String {
     let root = root();
-    let mut paths: Vec<PathBuf> = Vec::new();
-    for d in [
-        "packages/pw-std",
-        "packages/pw-platform-web",
-        "examples/kiokun-site",
-    ] {
-        let mut ps: Vec<PathBuf> = std::fs::read_dir(root.join(d))
-            .unwrap_or_else(|e| panic!("{d}: {e}"))
-            .map(|e| e.expect("entry").path())
-            .filter(|p| p.extension().is_some_and(|x| x == "pw"))
-            .collect();
-        ps.sort();
-        paths.extend(ps);
-    }
-    paths.push(root.join("examples/kiokun/Shards.pw"));
-    paths.push(root.join("examples/kiokun/dictionary.pw"));
-    let units: Vec<pw_core::check::Unit> = paths
-        .into_iter()
-        .map(|p| {
-            let src = std::fs::read_to_string(&p).expect("read");
-            pw_core::check::Unit {
-                hir: pw_core::lower::lower_file(&src, &pw_syntax::parse_tree(&src).green),
-                path: p.display().to_string(),
-                src,
-            }
-        })
-        .collect();
-    let build = pw_core::build::build(&units).expect("kiokun builds");
-    assert!(build.refusals().is_empty(), "{:?}", build.refusals());
-    build
-        .write(&dir.join("build"))
-        .expect("the build is written");
-    std::fs::copy(
-        root.join("spikes/own-renderer/public/pw-runtime.mjs"),
-        dir.join("pw-runtime.mjs"),
-    )
-    .expect("the runtime");
-    // What a production host never serves: a page as a file, and the
-    // build's sources, which name the paths of the machine that built it.
-    std::fs::write(dir.join("sources.json"), "{\"files\":[]}").expect("sources");
-    std::fs::write(dir.join("Old.html"), "<p>old</p>").expect("a page");
+    built(
+        dir,
+        &[
+            "packages/pw-std",
+            "packages/pw-platform-web",
+            "examples/kiokun-site",
+        ],
+        &["examples/kiokun/Shards.pw", "examples/kiokun/dictionary.pw"],
+    );
     // Copied, not linked: kiokun reads `KIOKUN_DATA/..`, which a link's
     // target's parent would answer (29 files, 288 KiB).
     let data = dir.join("kiokun");
@@ -87,6 +55,66 @@ fn built_kiokun(dir: &Path) -> String {
     )
     .expect("the search index");
     data.join("output_dictionary").display().to_string()
+}
+
+/// **The store's program, built as `deploy/build-dist.sh` builds it**,
+/// into `dir/build`, the runtime beside it.
+fn built_store(dir: &Path) {
+    built(
+        dir,
+        &[
+            "packages/pw-std",
+            "packages/pw-platform-web",
+            "examples/lib",
+            "examples/store",
+        ],
+        &["examples/domain.pw"],
+    );
+}
+
+/// The `.pw` files of each of `directories`, in name order, and `files`,
+/// built as `pw build` builds them into `dir/build`, with the runtime
+/// beside them in `dir`, as `run.sh` lays a build out, and what a
+/// production host never serves: a page as a file, and the build's
+/// sources, which name the paths of the machine that built it.
+fn built(dir: &Path, directories: &[&str], files: &[&str]) {
+    let root = root();
+    let mut paths: Vec<PathBuf> = Vec::new();
+    for d in directories {
+        let mut ps: Vec<PathBuf> = std::fs::read_dir(root.join(d))
+            .unwrap_or_else(|e| panic!("{d}: {e}"))
+            .map(|e| e.expect("entry").path())
+            .filter(|p| p.extension().is_some_and(|x| x == "pw"))
+            .collect();
+        ps.sort();
+        paths.extend(ps);
+    }
+    paths.extend(files.iter().map(|f| root.join(f)));
+    let units: Vec<pw_core::check::Unit> = paths
+        .into_iter()
+        .map(|p| {
+            let src = std::fs::read_to_string(&p).expect("read");
+            pw_core::check::Unit {
+                hir: pw_core::lower::lower_file(&src, &pw_syntax::parse_tree(&src).green),
+                path: p.display().to_string(),
+                src,
+            }
+        })
+        .collect();
+    let build = pw_core::build::build(&units).expect("the program builds");
+    assert!(build.refusals().is_empty(), "{:?}", build.refusals());
+    build
+        .write(&dir.join("build"))
+        .expect("the build is written");
+    std::fs::copy(
+        root.join("spikes/own-renderer/public/pw-runtime.mjs"),
+        dir.join("pw-runtime.mjs"),
+    )
+    .expect("the runtime");
+    // What a production host never serves: a page as a file, and the
+    // build's sources, which name the paths of the machine that built it.
+    std::fs::write(dir.join("sources.json"), "{\"files\":[]}").expect("sources");
+    std::fs::write(dir.join("Old.html"), "<p>old</p>").expect("a page");
 }
 
 /// Every file under `from`, copied to the same place under `to`.
@@ -327,7 +355,7 @@ fn a_production_host_never_says_a_secret() {
     let (code, said) = said_until_exit(child, &lines);
     assert_eq!(code, Some(1), "{said:?}");
     let all = serde_json::to_string(&said).expect("JSON");
-    assert!(all.contains("chmod 600"), "{all}");
+    assert!(all.contains("may be read by anyone"), "{all}");
     assert!(!all.contains(KEY), "{all}");
 }
 
@@ -522,4 +550,149 @@ fn a_stop_ends_at_its_grace_whatever_stays_open() {
         "{stopped}"
     );
     drop(held);
+}
+
+/// **A database of the test's own** on the local PostgreSQL
+/// (`PW_STORE_DATABASE_URL` names the server), dropped when the test is done
+/// with it: a production host migrates the store's schema into it.
+struct Database {
+    admin: String,
+    name: String,
+}
+
+impl Database {
+    /// The database, where the environment names a server; none otherwise,
+    /// and the test says it skipped, as the server's other tests on
+    /// PostgreSQL do.
+    fn new(test: &str) -> Option<Database> {
+        let admin = match std::env::var("PW_STORE_DATABASE_URL") {
+            Ok(url) if !url.is_empty() => url,
+            _ => {
+                eprintln!("skipped: PW_STORE_DATABASE_URL is not set");
+                return None;
+            }
+        };
+        let name = format!("pw_deploy_{test}_{}", std::process::id());
+        let database = Database { admin, name };
+        let mut client = database.client();
+        // Two statements, each its own: a database is not dropped or made
+        // inside a transaction block, which one query of two would be.
+        client
+            .batch_execute(&format!(
+                "DROP DATABASE IF EXISTS {} WITH (FORCE)",
+                database.name
+            ))
+            .expect("a stale database dropped");
+        client
+            .batch_execute(&format!("CREATE DATABASE {}", database.name))
+            .expect("a database of the test's own");
+        Some(database)
+    }
+
+    fn client(&self) -> postgres::Client {
+        postgres::Client::connect(&self.admin, postgres::NoTls).expect("the local PostgreSQL")
+    }
+
+    /// The database's address: the server's, with this database's name.
+    fn url(&self) -> String {
+        let (server, _) = self.admin.rsplit_once('/').expect("a database's address");
+        format!("{server}/{}", self.name)
+    }
+}
+
+impl Drop for Database {
+    fn drop(&mut self) {
+        let _ = self.client().batch_execute(&format!(
+            "DROP DATABASE IF EXISTS {} WITH (FORCE)",
+            self.name
+        ));
+    }
+}
+
+/// Each instance token a document's ranges carry (`<!--pw:s16@<token>-->`).
+fn tokens(page: &str) -> std::collections::BTreeSet<String> {
+    page.split("<!--pw:")
+        .skip(1)
+        .filter_map(|rest| {
+            let (marker, _) = rest.split_once("-->")?;
+            let (_, token) = marker.split_once('@')?;
+            Some(token.to_string())
+        })
+        .collect()
+}
+
+/// **A production store starts its runtime at the build's version, by the
+/// text its policy hashes, and keys its addresses with the deployment's
+/// key**: its document's bootstrap names `/pw-runtime.mjs?v=<version>`, the
+/// policy allows that text's SHA-256 and no other script; and the instance
+/// tokens of the menu, which every reader shares, are the same under the
+/// same key after a restart and share nothing under another key, where the
+/// development key would make them the same.
+#[test]
+fn a_production_store_starts_its_runtime_at_its_version_and_keys_its_addresses() {
+    use base64::Engine;
+    use sha2::{Digest, Sha256};
+    let Some(database) = Database::new("keys") else {
+        return;
+    };
+    let dir = tempfile::TempDir::with_prefix("pw-production-").expect("a directory");
+    built_store(dir.path());
+    let other_key = "f".repeat(64);
+    let page_with = |key: &str| -> (String, String) {
+        let env = production(&[
+            ("PW_IDENTITY_KEY", key),
+            ("PW_STORE_DATABASE_URL", &database.url()),
+        ]);
+        let (child, lines) = start(dir.path(), &env);
+        let (port, _) = listening(&lines);
+        let (head, page) = get(port, "/stores/47", "");
+        signal(&child, "TERM");
+        let (code, rest) = said_until_exit(child, &lines);
+        assert_eq!(code, Some(0), "{rest:?}");
+        assert_eq!(status(&head), 200, "{head}");
+        (head, String::from_utf8(page).expect("a page in text"))
+    };
+
+    let (head, first) = page_with(KEY);
+    let start_at = first
+        .find("<script>import(\"/pw-runtime.mjs?v=")
+        .expect("the runtime started at a version");
+    let script = &first[start_at + "<script>".len()..];
+    let source = &script[..script.find("</script>").expect("its end")];
+    let version = source
+        .trim_start_matches("import(\"/pw-runtime.mjs?v=")
+        .trim_end_matches("\")");
+    assert!(
+        version.len() == 16 && version.bytes().all(|b| b.is_ascii_hexdigit()),
+        "{source}"
+    );
+    let hash = base64::engine::general_purpose::STANDARD.encode(Sha256::digest(source.as_bytes()));
+    let policy = field(&head, "content-security-policy").expect("a policy");
+    let scripts = policy
+        .split(';')
+        .map(str::trim)
+        .find(|d| d.starts_with("script-src "))
+        .expect("script-src");
+    let hashes: Vec<&str> = scripts
+        .split_whitespace()
+        .filter(|s| s.starts_with("'sha256-"))
+        .collect();
+    assert_eq!(hashes, vec![format!("'sha256-{hash}'")], "{scripts}");
+
+    let again = page_with(KEY).1;
+    let other = page_with(&other_key).1;
+    let (first, again, other) = (tokens(&first), tokens(&again), tokens(&other));
+    assert!(
+        !first.is_empty(),
+        "the store's page carries no instance token"
+    );
+    assert!(
+        first.intersection(&again).count() > 0,
+        "the same key made no token twice: {first:?} {again:?}"
+    );
+    assert_eq!(
+        first.intersection(&other).count(),
+        0,
+        "another key made the same tokens: {first:?} {other:?}"
+    );
 }
