@@ -14,7 +14,7 @@ code the compiler can emit, from its registry, `compiler/pw-core/src/codes.rs`.
 - **What the program must hold to**: the registry's own sentence.
 - **ADR**: the decisions its registry entry cites, where it cites one.
 
-220 codes are registered; 94 of them cite an ADR in the registry.
+224 codes are registered; 96 of them cite an ADR in the registry.
 A code whose entry cites none is marked `—`: search `docs/DECISIONS/` for its
 number or its symbol.
 
@@ -95,6 +95,9 @@ number or its symbol.
 | PW0364 | `all_unbounded` | a table is read whole, by `all()`, only where it states `bounded` | — |
 | PW0365 | `refers_across_sources` | a reference to a table another source holds is held by no database: the referred row may be missing, which `get` answers as `None` | — |
 | PW0366 | `migration_unstated` | a change from the schema released that loses or reinterprets data is stated by a `migrate`, and each `migrate` states one | — |
+| PW0367 | `owner_names_a_principal` | `owned by` names one field of an owned table's row holding a principal's id (`capability.UserId`), and `shares with` others, never its owner, each once | [0384](../DECISIONS/ADR-0384-a-dating-app.md) |
+| PW0368 | `owned_read_by_its_reader` | an owned table is read by its reader alone: its key leads with its owner, each index with its owner or a field it shares with, a unique index holds its owner, and it is never read whole | — |
+| PW0369 | `private_field_unseen` | a private field is read by its owner alone: a field of an owned table's row, never its owner, a field it shares with, in its key, its order where it shares, or an index another reads by; and its seen row is the table's own name | — |
 | PW0325 | `stale_key_policy` | a keyed query must say what happens when its key changes | — |
 | PW0327 | `written_rollback` | an optimistic transition's reversal is derived, not written | [0025](../DECISIONS/ADR-0025-an-optimistic-clause-targets-a-resource-entry.md) |
 | PW0330 | `optimistic_not_pure` | an optimistic transition must be a pure function of the resource's value | — |
@@ -342,6 +345,12 @@ number or its symbol.
 | PW6806 | `device_signal_versions` | a signal the device keeps has a pure migration for each version before its own, each taking the one before it to the next | — |
 | PW6807 | `device_signal_form` | a signal the device keeps is of a type the device can hold: data, no function, no type that contains itself, no opaque type with a `where` | — |
 | PW6808 | `device_signal_provided` | a signal the device keeps is provided by the device: no `provide` gives it a value | — |
+
+## Dating
+
+| Code | Symbol | What the program must hold to | ADR |
+|---|---|---|---|
+| PW6905 | `predicate_body_reads_only` | a predicate's body reads and does nothing else: no write, no event, no schedule, no network, no log, no clock but its comparison | [0384](../DECISIONS/ADR-0384-a-dating-app.md), [0115](../DECISIONS/ADR-0115-a-commands-requires-is-held-before-its-body-runs.md) |
 
 ## Retired codes
 
