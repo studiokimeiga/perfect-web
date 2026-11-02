@@ -1334,7 +1334,14 @@ pub fn program_by_declaration(
             // And each materialization that derives its value (ADR-0277), a
             // component the host runs to keep it.
             let derives = decl.kind == DeclKind::Materialize && decl.ret.is_some();
-            if !member && !derives && !matches!(decl.kind, DeclKind::Command | DeclKind::Query) {
+            // And each predicate the program gives a body (ADR-0384's H2),
+            // a component the host asks.
+            let asked = decl.kind == DeclKind::Predicate && decl.body.is_some();
+            if !member
+                && !derives
+                && !asked
+                && !matches!(decl.kind, DeclKind::Command | DeclKind::Query)
+            {
                 continue;
             }
             match function(cx, unit, decl, hir.decl_span(id)) {

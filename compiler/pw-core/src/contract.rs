@@ -1521,6 +1521,7 @@ fn contracts_with_privacy(
                 .filter(|(_, d)| {
                     component_kind(d.kind).is_some()
                         || (d.kind == DeclKind::Materialize && d.ret.is_some())
+                        || (d.kind == DeclKind::Predicate && d.body.is_some())
                 })
                 .map(|(id, d)| {
                     (
@@ -1558,9 +1559,15 @@ fn contracts_with_privacy(
             // A materialization that derives its value is a component the host
             // runs to keep it (ADR-0277).
             let derives = decl.kind == DeclKind::Materialize && decl.ret.is_some();
+            // A predicate the program gives a body is its authorization,
+            // which the host asks as a component of its own before the body
+            // it guards (ADR-0384's H2): never a route, a page's read or a
+            // command a press names.
+            let asked = decl.kind == DeclKind::Predicate && decl.body.is_some();
             let Some(kind) = component_kind(decl.kind)
                 .or(derives.then_some("materialization"))
                 .or(member.then_some("function"))
+                .or(asked.then_some("predicate"))
             else {
                 continue;
             };

@@ -741,10 +741,15 @@ pub(crate) fn package_prepared(
             // declaration. An event named as a query otherwise replaces its
             // executable body with NoBody(Event), depending on source order
             // (ADR-0373); types already required the same separation.
-            if !matches!(
-                crate::resolve::Namespace::of(d.kind),
-                Some(crate::resolve::Namespace::Term | crate::resolve::Namespace::Ui)
-            ) {
+            // And a predicate the program gives a body (ADR-0384's H2): a
+            // component the host asks, though its name is no term.
+            let asked = d.kind == crate::hir::DeclKind::Predicate && d.body.is_some();
+            if !asked
+                && !matches!(
+                    crate::resolve::Namespace::of(d.kind),
+                    Some(crate::resolve::Namespace::Term | crate::resolve::Namespace::Ui)
+                )
+            {
                 continue;
             }
             decls.insert(
