@@ -73,13 +73,12 @@ neighbour and a mutation control killed at an assertion
      hold).
    - *(d) `pleris.service` set no `TasksMax=` or `MemoryMax=`.* **Now**
      `TasksMax=4096` (four times the default limit of connections, for the
-     host's own threads and a commit's tellers), `MemoryHigh=768M` (the
-     kernel reclaims; kiokun's dictionary is read through the page cache,
-     which is charged there and given back) and `MemoryMax=1G` (the process
-     ends and `Restart=` starts it): a VM of 2 GB; each is to be raised
-     with the VM, less PostgreSQL's and Caddy's. `LimitNOFILE=65536` is
+     host's own threads and a commit's tellers), `MemoryHigh=75%` and
+     `MemoryMax=85%` of the VM, set from what the host was measured to take
+     (correction 8: this repair first set 768M and 1G, below what kiokun's
+     host takes as it starts, without measuring). `LimitNOFILE=65536` is
      past 3,328. `systemd-analyze verify` (systemd 249 here) accepts the
-     unit.
+     unit, its shares too.
    - *(e) `/_pw/ready`'s `SELECT 1` waited without end, under a mutex*
      every other check waited behind. **Now** a check runs in a thread of
      its own, one at a time: a question asked while one is under way waits
@@ -319,6 +318,75 @@ neighbour and a mutation control killed at an assertion
    e14-deploy` now records everything this ADR claims (Acceptance), and
    the integrator records it from CI at the track's head.
 
+7. **The track's own process tests leaked their hosts, and took the
+   development machine down** (found by the coordinator, 2026-11-02, after
+   the review). A test held its host as a `std::process::Child`, whose drop
+   kills nothing: a test that failed before it stopped its host left the
+   host running, re-parented to init (a control whose host writes a line
+   that is not JSON fails `kiokun_host`'s assertion, its host still
+   running, in seven tests; a host that took past its bound to listen on a
+   loaded machine), and a test process killed at its bound left all of its
+   hosts. Two dozen debug hosts of 0.6 to 1.1 GB each, from local
+   campaign runs one and a half to two and a half hours old, filled the
+   machine's memory and swap; WSL refused every connection for more than
+   35 minutes and was restarted, stalling every worker. **Now** a test's
+   host is a `Host` (`tests/production_process.rs`): started in a process
+   group of its own, it is killed whole and reaped when the test drops it,
+   on every path (its own stop, a failed assertion's unwinding, a bound
+   that ran out: `listening` now has one bound for all the lines before
+   the host listens, 120 s); and it is started with `PR_SET_PDEATHSIG`
+   (SIGKILL), so it dies with the thread that started it, which is how it
+   dies with a test process killed outright, whose drops never run (a
+   parent already gone before the death signal is set starts no host at
+   all). Tests, each with a host that is a shell or a `sleep`, so they cost
+   nothing: a host its test leaves running is killed with the process its
+   group holds, and reaped; a host whose `Host` is never dropped dies with
+   the thread that started it; a host whose test process is SIGKILLed (the
+   test run again as a process of its own) does not outlive it. Mutation
+   controls: the drop that kills nothing, the host in its test process's
+   group, no death signal; each killed at an assertion. The process tests
+   run four at a time (`--test-threads=4`), in the recipe and the campaign,
+   a host taking up to a gigabyte where the default was one test per core
+   (32 here). `deploy/hosts-left.sh DIR` says, kills and fails on any
+   `pw-dev-server` still running under DIR, the directory a run was given
+   as its `TMPDIR`, so it reads that run's hosts and no other's (its
+   `--self-check`, which the recipe runs first: a stand-in host under one
+   directory found and killed, another's under another left): `just
+   e14-deploy` runs the process tests and the campaign under one of its
+   own and checks after each, and wherever the recipe ends early; the
+   campaign checks after each of its process runs, and a run that left a
+   host is no result.
+
+8. **The unit's memory limits were below what kiokun's host takes as it
+   starts** (found in this repair, measuring a host for correction 7). The
+   first repair set `MemoryHigh=768M` and `MemoryMax=1G` by reasoning, not
+   measurement. Measured (`deploy/host-memory.sh`, and the same steps on
+   kiokun.com's own data; the release build, read from `/proc/<pid>`):
+   kiokun's host peaks at 1,037 to 1,140 MiB (VmHWM) as it starts on the
+   repository's sample, on one, two or 32 CPUs, and holds 655 to 1,139 MiB
+   after a page and a search; with the `kiokun.site.Word` component
+   (595 KB) taken out of its build it peaks at 247 MiB, so the peak is
+   Cranelift compiling that component. On kiokun.com's own data
+   (`kiokun-data`, read only: its 5.9 GB dictionary and 58 MB search CSV,
+   the index built into an empty cache and then opened from it): 1,046 to
+   1,223 MiB on two CPUs, and 1,649 MiB once on 32 CPUs of a loaded
+   machine. The store's host peaks at 225 MiB (a debug build). A
+   `MemoryMax=1G` (1,024 MiB) host is ended by the kernel as it starts, and
+   `Restart=` starts it into the same end: kiokun on the VM would never
+   have served. **Now** `MemoryHigh=75%` and `MemoryMax=85%` of the VM:
+   above the start's peak on the smallest VM that runs kiokun, 2 GiB
+   (1,536 and 1,741 MiB; Caddy, sshd and the system keep 307 MiB, kiokun
+   needing no PostgreSQL), and each grows with the VM. `deploy/host-memory.sh`, which `just e14-deploy` runs after the
+   smoke, starts kiokun's release host on the sample data, asks a page and
+   a search, says its peak, and fails where the peak reaches the unit's
+   `MemoryHigh=` share of 2 GiB, so a build whose start grows past what the
+   unit gives it is refused before it reaches a VM. Found with it, and not
+   this track's to change (Not claimed, Next): kiokun's word page for 人
+   and for 日 on kiokun.com's own data is not shown, its component's memory
+   exhausted in production and its time in development; and a production
+   host's 503 sends that refusal's text, a WebAssembly backtrace, to the
+   reader, while its log line says only the status.
+
 ## Context
 
 - **The host is the development server** ("NOT E8's production host" in its
@@ -479,6 +547,14 @@ neighbour and a mutation control killed at an assertion
 - A connection is counted and held to the limit in one step
   (`Gate::try_open`), and released by its guard whichever way its thread
   ends, or its thread is not started.
+- The unit's memory is a share of the VM above what kiokun's release host
+  was measured to take as it starts (correction 8), held by
+  `deploy/host-memory.sh` on every recipe run.
+- No host a process test starts outlives it (correction 7): one `Host`
+  owns each, killed with its group and reaped at its drop, and dead with
+  its starting thread by the kernel's signal; `deploy/hosts-left.sh`
+  checks every run of the recipe and the campaign, by the run's own
+  directory.
 
 ## Acceptance
 
@@ -490,13 +566,16 @@ GitHub (a `verify` run on `wip/deploy`, fetched by `just evidence-fetch`):
   platform keeps;
 - the compiler's PW7001 tests (`--test reserved_routes`, 3) and its code
   block (`codes::tests::`), and a domain's `Debug` (`pw-document`);
-- the binary as production runs it (`tests/production_process.rs`, 18): its
-  refusals as JSON lines and never a secret, a secrets file by a link
-  refused; HSTS, a Secure cookie, the runtime gzipped and immutable at its
-  version, requests said by their routes' patterns; a SIGTERM that finishes
-  an answer under way and ends with 0; a stop cut at its grace; an idle
-  connection closed at its read bound; correction 1's bounds, 2's keys and
-  refusal, and 5f's stops; the store on databases of its own;
+- the binary as production runs it (`tests/production_process.rs`, 21,
+  four at a time): its refusals as JSON lines and never a secret, a
+  secrets file by a link refused; HSTS, a Secure cookie, the runtime
+  gzipped and immutable at its version, requests said by their routes'
+  patterns; a SIGTERM that finishes an answer under way and ends with 0; a
+  stop cut at its grace; an idle connection closed at its read bound;
+  correction 1's bounds, 2's keys and refusal, and 5f's stops; the store on
+  databases of its own; and correction 7's three, no host outliving its
+  test; then no host left running (`deploy/hosts-left.sh`), after these
+  and after the campaign;
 - the unit as `systemd-analyze verify` reads it, and the deploy scripts as
   `shellcheck` does, where each is installed (the development PC has no
   shellcheck);
@@ -510,10 +589,13 @@ GitHub (a `verify` run on `wip/deploy`, fetched by `just evidence-fetch`):
   routes and test controls 404, metrics by token, health and readiness,
   migrations not applied again, every log line JSON with no eight
   characters of a secret, each request by its route's pattern);
-- the mutation controls (`scripts/deploy_mutations.py`, 120 mutants: 85 of
-  the unit suite, 25 of the process suite, 4 of the compiler's and 6 of the
+- kiokun's release host's peak memory through its start, a page and a
+  search, under `pleris.service`'s `MemoryHigh=` share of a 2 GiB VM
+  (`deploy/host-memory.sh`);
+- the mutation controls (`scripts/deploy_mutations.py`, 123 mutants: 85 of
+  the unit suite, 28 of the process suite, 4 of the compiler's and 6 of the
   release checks): the evidence says how many are killed, each at an
-  assertion.
+  assertion, and a process run that left a host running is no result.
 
 The whole server suite and `just preflight` pass at the track's head (the
 integrator's run names it).
@@ -540,19 +622,51 @@ integrator's run names it).
 - **The `__Host-` prefix and the rollback rule are recorded, not
   enforced** (correction 5k).
 - **The deploy block PW70xx is the track's choice** (Questions).
+- **kiokun on kiokun.com's own data does not show the word pages of common
+  characters** (found measuring correction 8; not this track's to change):
+  `/word/人` and `/word/日` answer 503 in production (`kiokun.site.Word`'s
+  queries stopped, "memory exhausted", the component's own limit) and in
+  development (the same queries "timed out"), the same build and data;
+  the repository's sample shows them. A deployment of kiokun to its
+  preview origin would serve these pages as 503 until the component's
+  limits, or what its queries hold, are changed (Next). Reproduced with
+  the release build: kiokun's production build (`deploy/build-dist.sh
+  kiokun`), `KIOKUN_DATA` the `output_dictionary` of `kiokun-data`.
+- **A production host's 503 sends its cause to the reader**: that refusal's
+  text, with a WebAssembly backtrace, is the answer's body, and its log
+  line says the status and route alone; the cause belongs in the log, and
+  the reader's body should say only that the page cannot be shown (Next).
+- **The memory a host takes is measured on kiokun's sample data in CI**
+  (`deploy/host-memory.sh`); kiokun.com's own data was measured on this
+  machine alone (correction 8), and no VM has run it.
+- **A test host's death signal is Linux's** (`PR_SET_PDEATHSIG`; the tests
+  run on Linux, in CI and here): elsewhere a host dies with its `Host`'s
+  drop alone. The check that its parent had not already gone before the
+  signal was set is a race no test can make happen, so no control holds it.
+  The tests' own connections to PostgreSQL (`Database`) have no bound of
+  their own: a database that never answers holds a test until its run's
+  bound, its hosts dying with it.
 
 ## Next
 
-1. The owner's step (`DEPLOY-OWNER-STEP.md`, handoff folder): a VM and DNS.
-2. `just deploy-vm kiokun --setup --data` for preview.kiokun.com.
-3. OIDC (Google) behind `identity::Provider`; then the store in production;
+1. The owner's step (`DEPLOY-OWNER-STEP.md`, handoff folder): a VM of at
+   least 2 GiB, and DNS.
+2. Before kiokun goes to its preview origin: its word pages on its own data
+   (Not claimed: `kiokun.site.Word`'s queries exhaust the component's
+   memory for 人 and 日), and the memory its start takes (Cranelift compiles
+   that one component with some 800 MiB; compiled once at build time, or
+   lazily, it would not be held at every start).
+3. `just deploy-vm kiokun --setup --data` for preview.kiokun.com.
+4. A production 5xx's cause said in its log line, as a field of the
+   request's JSON, and a body that says only that the page cannot be shown.
+5. OIDC (Google) behind `identity::Provider`; then the store in production;
    then the session cookie as `__Host-pw-session`.
-4. A TLS connector for the host's PostgreSQL client (rustls is in
+6. A TLS connector for the host's PostgreSQL client (rustls is in
    Cargo.lock since ADR-0387), so a managed database can be named.
-5. Backups (nightly `pg_dump`), a system-call filter measured against
+7. Backups (nightly `pg_dump`), a system-call filter measured against
    Wasmtime, a CI job that builds the image and runs the smoke against it,
    and a migration check that refuses a schema newer than the binary.
-6. Whether to move the host to an evented server (correction 1).
+8. Whether to move the host to an evented server (correction 1).
 
 ## Questions for the integrator
 
@@ -604,4 +718,5 @@ controls were refused, a log line looked for by `expect` and an assertion
 quoting the host's own panic line, which the strict producer reads as a
 second panic (both now assertions). A database test's `Drop` that panicked
 where PostgreSQL did not answer made a failing test an abort of every test
-in the binary (it never panics now).
+in the binary (it never panics now). And the process tests' hosts outlived
+the tests that failed (correction 7, found by the coordinator).

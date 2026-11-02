@@ -60,6 +60,9 @@ Each mutant undoes one piece:
   instead of ended, a second signal draining again, a subscription holding
   the stop, a request said by its path, a stopping host taking
   connections, and the listener on the loopback whatever PW_BIND says;
+- the tests' own hosts (`Host`): one its test leaves running not killed at
+  the test's end, started in its test process's group (so a process of its
+  own outlives it), or not killed with the thread that started it;
 - the compiler: a page or an upload under a path the platform keeps taken,
   a path taken as reserved because it begins with one's letters, a route's
   query part read as its path, an upload's paths not read (PW7001);
@@ -70,7 +73,10 @@ Each mutant undoes one piece:
 A unit mutant must fail the server's tests of production (`cargo test -p
 pw-dev-server --bin pw-dev-server -- production`); a process mutant, the
 binary's (`--test production_process`, which runs the store on a database
-of its own where PW_STORE_DATABASE_URL names a server); a compiler mutant,
+of its own where PW_STORE_DATABASE_URL names a server, four tests at a
+time, a host taking up to a gigabyte, its hosts under a directory of the
+campaign's own: a host still running after a run, which
+`deploy/hosts-left.sh` says and kills, refuses that run); a compiler mutant,
 `pw-core`'s `--test reserved_routes`. Each kill names the tests that
 failed. Only complete native results earn a kill: a build that fails, a
 producer that times out, an inventory that differs from the baseline's, or
@@ -83,10 +89,13 @@ Run from the repository root; `just e14-deploy` records the output. The
 source is restored after every mutant, whatever happens.
 """
 
+import os
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 
 import cargo_assertion_results
 import mutation_source
@@ -106,6 +115,7 @@ IDENTITY = SRC / "identity.rs"
 KIOKUN = SRC / "kiokun.rs"
 UPLOADS = SRC / "uploads.rs"
 DOMAIN = ROOT / "runtime/pw-document/src/domain.rs"
+PROCESS_TESTS = SERVER / "tests/production_process.rs"
 RESERVED = ROOT / "compiler/pw-core/src/reserved.rs"
 RELEASE = ROOT / "deploy/vm/release.sh"
 
@@ -924,6 +934,28 @@ MUTANTS = [
         "    let listener = TcpListener::bind((settings.bind, port))",
         '    let listener = TcpListener::bind(("127.0.0.1", port))',
     ),
+    # --- the tests' own hosts: none outlives its test -------------------------
+    (
+        "a host its test leaves running is not killed at the test's end",
+        PROCESS,
+        PROCESS_TESTS,
+        "        if self.reaped {\n            return;\n        }\n        let id",
+        "        if self.reaped || true {\n            return;\n        }\n        let id",
+    ),
+    (
+        "a host is started in its test process's group, which its kill misses",
+        PROCESS,
+        PROCESS_TESTS,
+        "        command.process_group(0);\n",
+        "        let _ = &command;\n",
+    ),
+    (
+        "a host does not die with the thread that started it",
+        PROCESS,
+        PROCESS_TESTS,
+        "libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL as libc::c_ulong)",
+        "libc::prctl(libc::PR_SET_PDEATHSIG, 0 as libc::c_ulong)",
+    ),
     # --- the compiler (PW7001) ----------------------------------------------
     (
         "a page or an upload under a path the platform keeps is taken",
@@ -1016,9 +1048,11 @@ SUITES = {
          "--", "production"],
         UNIT_TESTS,
     ),
+    # Four at a time: each test's host takes up to a gigabyte.
     PROCESS: (
-        ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--test", "production_process"],
-        [SERVER / "tests/production_process.rs"],
+        ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--test", "production_process",
+         "--", "--test-threads=4"],
+        [PROCESS_TESTS],
     ),
     COMPILER: (
         ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "reserved_routes"],
@@ -1057,17 +1091,47 @@ def run_script(cmd):
     return True, passed, len(failed), tuple(failed)
 
 
+HOSTS = []
+
+
+def hosts():
+    """The directory the process suite's runs start their hosts under
+    (their TMPDIR), the campaign's own, under the TMPDIR it was given."""
+    if not HOSTS:
+        HOSTS.append(tempfile.mkdtemp(prefix="pw-deploy-hosts-"))
+    return HOSTS[0]
+
+
+def hosts_left():
+    """Whether a host the process suite's last run started still runs:
+    said by `deploy/hosts-left.sh`, which kills it. Such a run is no
+    result (2026-11-02: two dozen hosts that outlived their tests, a
+    gigabyte each, took the machine's memory)."""
+    check = subprocess.run(
+        ["bash", "deploy/hosts-left.sh", hosts()], cwd=ROOT, capture_output=True, text=True
+    )
+    if check.returncode != 0:
+        print(check.stdout + check.stderr, flush=True)
+    return check.returncode != 0
+
+
 def run_tests(suite):
     """(valid, passed, failed, the failing tests): a complete named
-    inventory, failures only at a test's assertions."""
+    inventory, failures only at a test's assertions, and, for the process
+    suite, no host left running."""
     cmd, sources = SUITES[suite]
     if suite == SCRIPT:
         return run_script(cmd)
     full = [*cmd, "--format=pretty"] if "--" in cmd else [*cmd, "--", "--format=pretty"]
+    env = {**os.environ, "TMPDIR": hosts()} if suite == PROCESS else None
     try:
-        child = producer_process.run(full, cwd=ROOT, timeout=1500)
+        child = producer_process.run(full, cwd=ROOT, timeout=1500, env=env)
     except subprocess.TimeoutExpired as expired:
         print(expired.output, flush=True)
+        if suite == PROCESS:
+            hosts_left()
+        return False, 0, 0, ()
+    if suite == PROCESS and hosts_left():
         return False, 0, 0, ()
     result = cargo_assertion_results.validate(
         child.returncode, child.stdout, root=ROOT, sources=sources,
@@ -1081,6 +1145,15 @@ def run_tests(suite):
 
 def main():
     import mutation_baseline  # keeps what each command says, for a red baseline
+    try:
+        return campaign(mutation_baseline)
+    finally:
+        # The hosts' directory, every host in it gone (`hosts_left`).
+        if HOSTS:
+            shutil.rmtree(HOSTS[0], ignore_errors=True)
+
+
+def campaign(mutation_baseline):
     watch = mutation_baseline.mutation_bound.start()
     for suite in (UNIT, PROCESS, COMPILER, SCRIPT):
         built, passed, failed, _ = run_tests(suite)

@@ -50,11 +50,19 @@ deploy-vm program="kiokun" *flags:
 # (deploy/vm/release-checks.sh); the image's minifier locked from
 # pnpm-lock.yaml; the local production smoke test (deploy/smoke.sh:
 # playwright in Chromium, Firefox and WebKit through a TLS front, before and
-# after a SIGTERM restart); and the mutation controls
-# (scripts/deploy_mutations.py).
+# after a SIGTERM restart); kiokun's release host's peak memory against
+# pleris.service's share of a 2 GiB VM (deploy/host-memory.sh); and the
+# mutation controls
+# (scripts/deploy_mutations.py). The process tests and the campaign start
+# their hosts under a directory of this run's own, four tests at a time (a
+# host takes up to a gigabyte); after each, and whenever the run ends early,
+# deploy/hosts-left.sh says and kills any host still running, and one found
+# fails the recipe.
 e14-deploy:
     @mkdir -p docs/evidence/E14
-    @{ echo "ADR-XXXX - a production host"; echo; \
+    @hosts="$(mktemp -d "${TMPDIR:-/tmp}/pw-deploy-hosts.XXXXXX")"; \
+     trap 'status=$?; if [ "$status" != 0 ]; then bash deploy/hosts-left.sh "$hosts" >> docs/evidence/E14/deploy.txt || true; fi; rm -rf "$hosts"; exit "$status"' EXIT; \
+     { echo "ADR-XXXX - a production host"; echo; \
        echo "produced by: just e14-deploy"; \
        echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' ':(exclude)spikes/own-renderer/store-ir.json' || echo ' + uncommitted changes')"; \
        echo "rust: $(rustc --version)"; \
@@ -69,8 +77,11 @@ e14-deploy:
        cargo test --locked -p pw-core --lib -- reserved:: codes::tests:: 2>&1 | grep -E '^(test |test result)|panicked at'; \
        echo; echo "== a domain never says its key (pw-document)"; echo; \
        cargo test --locked -p pw-document -- domain::tests:: 2>&1 | grep -E '^(test |test result)|panicked at'; \
-       echo; echo "== the host as a process (tests/production_process.rs)"; echo; \
-       cargo test --locked -p pw-dev-server --test production_process 2>&1 | grep -E '^(test |test result)|panicked at|skipped'; \
+       echo; echo "== the host as a process (tests/production_process.rs, four at a time)"; echo; \
+       TMPDIR="$hosts" cargo test --locked -p pw-dev-server --test production_process -- --test-threads=4 2>&1 | grep -E '^(test |test result)|panicked at|skipped'; \
+       echo; echo "== no host the process tests started outlives their run (deploy/hosts-left.sh, which holds itself first)"; echo; \
+       bash deploy/hosts-left.sh --self-check; \
+       bash deploy/hosts-left.sh "$hosts"; \
        echo; echo "== the unit, as systemd reads it (systemd-analyze verify)"; echo; \
        if command -v systemd-analyze >/dev/null; then \
          unit_dir="$(mktemp -d)"; cp deploy/vm/pleris.service "$unit_dir/"; \
@@ -81,7 +92,7 @@ e14-deploy:
        echo; echo "== the deploy scripts, as shellcheck reads them"; echo; \
        if command -v shellcheck >/dev/null; then \
          echo "shellcheck: $(shellcheck --version | sed -n 's/^version: //p')"; \
-         if shellcheck -S warning deploy/smoke.sh deploy/build-dist.sh deploy/vm/release.sh deploy/vm/setup.sh deploy/vm/release-checks.sh; \
+         if shellcheck -S warning deploy/smoke.sh deploy/build-dist.sh deploy/hosts-left.sh deploy/host-memory.sh deploy/vm/release.sh deploy/vm/setup.sh deploy/vm/release-checks.sh; \
          then echo "shellcheck: no warning"; else echo "shellcheck: the warnings above"; fi; \
        else echo "shellcheck: not installed here"; fi; \
        echo; echo "== what release.sh hands a machine, and what it refuses to (deploy/vm/release-checks.sh)"; echo; \
@@ -90,7 +101,11 @@ e14-deploy:
        python3 scripts/deploy_minify_lock.py --check; \
        echo; echo "== the local production smoke (deploy/smoke.sh: playwright, three engines)"; echo; \
        PORT="${PORT:-14241}" bash deploy/smoke.sh; \
+       echo; echo "== what a production host's memory comes to, against pleris.service's share of a 2 GiB VM (deploy/host-memory.sh: kiokun, the release build)"; echo; \
+       bash deploy/host-memory.sh; \
        echo; echo "== mutation controls (scripts/deploy_mutations.py)"; echo; \
-       python3 scripts/deploy_mutations.py; \
+       TMPDIR="$hosts" python3 scripts/deploy_mutations.py; \
+       echo; echo "== no host the campaign's runs started outlives them (deploy/hosts-left.sh)"; echo; \
+       bash deploy/hosts-left.sh "$hosts"; \
      } > docs/evidence/E14/deploy.txt
-    @grep -E "^test result|mutants killed|panicked at|deploy smoke:|release checks:|shellcheck:|systemd-analyze:|FAIL" docs/evidence/E14/deploy.txt
+    @grep -E "^test result|mutants killed|panicked at|deploy smoke:|release checks:|shellcheck:|systemd-analyze:|hosts left:|host memory:|FAIL" docs/evidence/E14/deploy.txt

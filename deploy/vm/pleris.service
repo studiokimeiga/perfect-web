@@ -44,14 +44,24 @@ UMask=0077
 # tellers, Wasmtime's compiler at start) are a few dozen. TasksMax= holds
 # the process to four times its connections: past it a connection's thread
 # is refused, which the host drops and lives through. Three descriptors a
-# connection: LimitNOFILE= is well past 3,328. MemoryHigh= throttles and
-# reclaims (kiokun's dictionary is read through the page cache, which is
-# charged here and given back), MemoryMax= ends the process, which
-# Restart= starts again: set both to what the VM has, less PostgreSQL's and
-# Caddy's, on a VM larger than 2 GB.
+# connection: LimitNOFILE= is well past 3,328. Its memory, measured with
+# the release build (deploy/host-memory.sh, which just e14-deploy runs):
+# kiokun's host peaks at 1,037 to 1,140 MiB as it starts on the
+# repository's sample, on one, two or 32 CPUs, most of it Cranelift
+# compiling the `kiokun.site.Word` component (247 MiB without it), and
+# holds 655 to 1,139 MiB after; on kiokun.com's own data, 1,046 to 1,223 MiB
+# on two CPUs (1,649 MiB once, on 32 CPUs of a loaded machine). The store's
+# host, 225 MiB (a debug build's). MemoryHigh= is above that peak, so a start is not
+# throttled (no swap gives back what the compiler holds), and throttles and
+# reclaims past it (kiokun's dictionary is read through the page cache,
+# charged here and given back); MemoryMax= ends the process, which
+# Restart= starts again. Each a share of the VM, so each grows with it: a
+# VM of 2 GiB, the smallest that runs kiokun, gives 1,536 and 1,741 MiB,
+# and leaves Caddy, sshd and the system 307 MiB (kiokun needs no
+# PostgreSQL; the store's host is a fifth of kiokun's).
 TasksMax=4096
-MemoryHigh=768M
-MemoryMax=1G
+MemoryHigh=75%
+MemoryMax=85%
 LimitNOFILE=65536
 
 # Its confinement (systemd.exec(5)); `systemd-analyze security pleris`

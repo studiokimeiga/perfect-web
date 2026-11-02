@@ -14,6 +14,13 @@
 //! repository's sample files: a production host serves it with no
 //! database. The store's, where a test needs a database, on the local
 //! PostgreSQL. The request-level rules are `src/tests/production_host.rs`'s.
+//!
+//! No host outlives its test ([`Host`]): each is killed and reaped when its
+//! test is done with it, whether it passed, failed or ran out its bound,
+//! and dies with a test process killed outright. Each host takes up to a
+//! gigabyte, so run these with few threads at once (`--test-threads=4`, as
+//! `just e14-deploy` does); `deploy/hosts-left.sh` says, and kills, any host
+//! a run left.
 
 #![cfg(unix)]
 
@@ -158,12 +165,106 @@ fn copy_tree(from: &Path, to: &Path) {
     }
 }
 
+/// **A host a test started, killed and reaped when the test is done with
+/// it**, on every path: the test's own stop, an assertion that failed, a
+/// panic, a bound that ran out. A [`Child`] dropped kills nothing: a test
+/// that failed before it stopped its host left the host running, re-parented
+/// to init, and runs killed at their bound left two dozen of them, up to a
+/// gigabyte each, until the machine had no memory left (2026-11-02). So a
+/// host runs in a process group of its own, which its drop kills whole
+/// before it reaps the host; and the kernel sends it SIGKILL when the thread
+/// that started it ends (`PR_SET_PDEATHSIG`), which is how it dies with a
+/// test process killed outright, whose drops never run. A host is started on
+/// the thread of the test that uses it.
+struct Host {
+    child: Child,
+    /// Whether it has been reaped. Until then its id, and its group's, are
+    /// its own and no other process's, so a kill reaches it alone.
+    reaped: bool,
+}
+
+impl Host {
+    /// `command` started as a host: in a group of its own, and to die with
+    /// the thread that starts it.
+    fn spawned(command: &mut Command) -> Host {
+        use std::os::unix::process::CommandExt;
+        command.process_group(0);
+        #[cfg(target_os = "linux")]
+        {
+            // SAFETY: getpid(2) has no preconditions.
+            let parent = unsafe { libc::getpid() };
+            // SAFETY: prctl(2) and getppid(2) are async-signal-safe and touch
+            // only the child's own state, before it runs the host.
+            unsafe {
+                command.pre_exec(move || {
+                    if libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGKILL as libc::c_ulong) != 0 {
+                        return Err(std::io::Error::last_os_error());
+                    }
+                    // A parent gone before the line above sends no signal:
+                    // the host is not started at all.
+                    if libc::getppid() != parent {
+                        return Err(std::io::Error::from_raw_os_error(libc::ESRCH));
+                    }
+                    Ok(())
+                });
+            }
+        }
+        Host {
+            child: command.spawn().expect("the host starts"),
+            reaped: false,
+        }
+    }
+
+    fn id(&self) -> u32 {
+        self.child.id()
+    }
+
+    /// Its status, where it ends within `within`; killed and reaped, and
+    /// none, where it does not.
+    fn wait_within(&mut self, within: Duration) -> Option<std::process::ExitStatus> {
+        let until = Instant::now() + within;
+        while !self.reaped && Instant::now() < until {
+            if let Ok(Some(status)) = self.child.try_wait() {
+                self.reaped = true;
+                return Some(status);
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        self.kill();
+        None
+    }
+
+    /// Killed, its whole group and then itself, and reaped; nothing where it
+    /// has been reaped already.
+    fn kill(&mut self) {
+        if self.reaped {
+            return;
+        }
+        let id = self.child.id() as libc::pid_t;
+        // SAFETY: kill(2) takes no memory; the host is not yet reaped, so its
+        // id and its group's are its own.
+        unsafe {
+            libc::kill(-id, libc::SIGKILL);
+            libc::kill(id, libc::SIGKILL);
+        }
+        let _ = self.child.wait();
+        self.reaped = true;
+    }
+}
+
+impl Drop for Host {
+    /// Never a panic: a drop runs in a failing test's unwinding.
+    fn drop(&mut self) {
+        self.kill();
+    }
+}
+
 /// **The host, started** on `dist` with `env` (and nothing of this
 /// process's environment but its `PATH`), each line it writes read into the
 /// channel: its standard error's, and its standard output's, which a
 /// production host writes nothing to (every line JSON, on standard error)
 /// and a development host says it listens on.
-fn start(dist: &Path, env: &[(&str, String)]) -> (Child, mpsc::Receiver<String>) {
+fn start(dist: &Path, env: &[(&str, String)]) -> (Host, mpsc::Receiver<String>) {
     let mut command = Command::new(env!("CARGO_BIN_EXE_pw-dev-server"));
     command
         .arg(dist)
@@ -176,10 +277,10 @@ fn start(dist: &Path, env: &[(&str, String)]) -> (Child, mpsc::Receiver<String>)
     for (name, value) in env {
         command.env(name, value);
     }
-    let mut child = command.spawn().expect("the host starts");
+    let mut child = Host::spawned(&mut command);
     let (tx, lines) = mpsc::channel();
-    let stderr = child.stderr.take().expect("its standard error");
-    let stdout = child.stdout.take().expect("its standard output");
+    let stderr = child.child.stderr.take().expect("its standard error");
+    let stdout = child.child.stdout.take().expect("its standard output");
     let out = tx.clone();
     std::thread::spawn(move || {
         for line in BufReader::new(stdout).lines().map_while(Result::ok) {
@@ -227,7 +328,7 @@ fn production(extra: &[(&str, &str)]) -> Vec<(&'static str, String)> {
 /// The host's exit code (none where a signal ended it) and every line it
 /// said until it ended, each read as JSON.
 fn said_until_exit(
-    child: Child,
+    child: Host,
     lines: &mpsc::Receiver<String>,
 ) -> (Option<i32>, Vec<serde_json::Value>) {
     said_until_exit_within(child, lines, Duration::from_secs(30))
@@ -235,12 +336,12 @@ fn said_until_exit(
 
 /// [`said_until_exit`], the host killed where it has not ended `within`.
 fn said_until_exit_within(
-    mut child: Child,
+    mut child: Host,
     lines: &mpsc::Receiver<String>,
     within: Duration,
 ) -> (Option<i32>, Vec<serde_json::Value>) {
     // A host that does not end is killed at the wait, and has no code.
-    let status = wait(&mut child, within);
+    let status = child.wait_within(within);
     let mut said = Vec::new();
     // Its standard error is closed when it ends, and the reader with it.
     while let Ok(line) = lines.recv_timeout(Duration::from_secs(5)) {
@@ -249,35 +350,26 @@ fn said_until_exit_within(
     (status.and_then(|s| s.code()), said)
 }
 
-/// The process's status, once it ends within `within`; killed, and none,
-/// where it does not.
-fn wait(child: &mut Child, within: Duration) -> Option<std::process::ExitStatus> {
-    let until = Instant::now() + within;
-    loop {
-        if let Some(status) = child.try_wait().expect("its status") {
-            return Some(status);
-        }
-        if Instant::now() > until {
-            let _ = child.kill();
-            return None;
-        }
-        std::thread::sleep(Duration::from_millis(20));
-    }
-}
+/// How long a host may take to say it listens: a few seconds where the
+/// machine is not loaded. Past it the test fails at its assertion, and the
+/// host is killed with the test's [`Host`].
+const LISTENS_WITHIN: Duration = Duration::from_secs(120);
 
 /// **The port the host said it listens on**, from its line, and each line
 /// it said before, read as JSON; a line that is not JSON is kept as
 /// `{"not_json": <the line>}`, which the tests refuse at their assertions.
 /// A host that never says it listens on its standard error (a development
-/// host says it on its standard output) is refused here, at an assertion
-/// naming what it did say.
+/// host says it on its standard output) within [`LISTENS_WITHIN`], however
+/// much else it says, is refused here, at an assertion naming what it did
+/// say.
 fn listening(lines: &mpsc::Receiver<String>) -> (u16, Vec<serde_json::Value>) {
+    let until = Instant::now() + LISTENS_WITHIN;
     let mut said = Vec::new();
     loop {
-        let line = lines.recv_timeout(Duration::from_secs(120));
+        let line = lines.recv_timeout(until.saturating_duration_since(Instant::now()));
         assert!(
             line.is_ok(),
-            "the host says it listens on its standard error; it said {said:?}"
+            "the host says it listens on its standard error within {LISTENS_WITHIN:?}; it said {said:?}"
         );
         let line = line.unwrap();
         let value = read_line(&line);
@@ -353,7 +445,7 @@ fn status(head: &str) -> u16 {
         .unwrap_or(0)
 }
 
-fn signal(child: &Child, name: &str) {
+fn signal(child: &Host, name: &str) {
     let sent = Command::new("kill")
         .arg(format!("-{name}"))
         .arg(child.id().to_string())
@@ -894,7 +986,7 @@ fn a_connection_that_sends_nothing_is_closed_at_the_reads_bound() {
 fn kiokun_host(
     extra: &[(&str, &str)],
     before: impl FnOnce(&Path),
-) -> (tempfile::TempDir, Child, mpsc::Receiver<String>, u16) {
+) -> (tempfile::TempDir, Host, mpsc::Receiver<String>, u16) {
     let dir = tempfile::TempDir::with_prefix("pw-production-").expect("a directory");
     let data = built_kiokun(dir.path());
     before(dir.path());
@@ -1643,9 +1735,9 @@ fn a_host_has_the_descriptors_its_connections_need() {
                 }
             });
         }
-        let mut child = command.spawn().expect("the host starts");
+        let mut child = Host::spawned(&mut command);
         let (tx, lines) = mpsc::channel();
-        let stderr = child.stderr.take().expect("its standard error");
+        let stderr = child.child.stderr.take().expect("its standard error");
         std::thread::spawn(move || {
             for line in BufReader::new(stderr).lines().map_while(Result::ok) {
                 if tx.send(line).is_err() {
@@ -1679,5 +1771,188 @@ fn a_host_has_the_descriptors_its_connections_need() {
                 .as_str()
                 .is_some_and(|m| m.contains("RLIMIT_NOFILE") && m.contains("3328"))),
         "{said:?}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// No host outlives its test (2026-11-02: two dozen did, a gigabyte each)
+// ---------------------------------------------------------------------------
+
+/// The process `pid`'s state and start time (`/proc/<pid>/stat`'s third
+/// and twenty-second fields), or none where there is no such process.
+#[cfg(target_os = "linux")]
+fn process(pid: u32) -> Option<(char, u64)> {
+    let stat = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+    // After the command's name, which may hold spaces, in parentheses.
+    let (_, rest) = stat.rsplit_once(") ")?;
+    let fields: Vec<&str> = rest.split_whitespace().collect();
+    Some((
+        fields.first()?.chars().next()?,
+        fields.get(19)?.parse().ok()?,
+    ))
+}
+
+/// Whether the process that was `pid` when it started at `since` still
+/// runs: not gone, not a zombie, and not another process given its id.
+#[cfg(target_os = "linux")]
+fn runs(pid: u32, since: Option<u64>) -> bool {
+    matches!(process(pid), Some((state, at)) if state != 'Z' && Some(at) == since)
+}
+
+/// Whether `pid`, started at `since`, still runs `within` from now.
+#[cfg(target_os = "linux")]
+fn runs_after(pid: u32, since: Option<u64>, within: Duration) -> bool {
+    let until = Instant::now() + within;
+    while runs(pid, since) && Instant::now() < until {
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    runs(pid, since)
+}
+
+/// SIGKILL to `pid`, where the process started at `since` still runs: a
+/// test's own cleanup before it asserts, so a failed test leaves nothing.
+#[cfg(target_os = "linux")]
+fn killed(pid: u32, since: Option<u64>) {
+    if runs(pid, since) {
+        // SAFETY: kill(2) takes no memory; the process is checked as the one
+        // that was started.
+        unsafe { libc::kill(pid as libc::pid_t, libc::SIGKILL) };
+    }
+}
+
+/// **A host its test leaves running is killed with its process group, and
+/// reaped**, when the test's [`Host`] is dropped: as when an assertion
+/// fails before the test stops its host, whose unwinding drops it. The
+/// host here is a shell with a process of its own in its group, which
+/// would outlive the shell were the group not killed.
+#[cfg(target_os = "linux")]
+#[test]
+fn a_host_its_test_leaves_running_is_killed_with_its_group_and_reaped() {
+    let mut command = Command::new("sh");
+    command
+        .args(["-c", "sleep 30 & echo $!; wait"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped());
+    let mut host = Host::spawned(&mut command);
+    let pid = host.id();
+    let mut said = String::new();
+    if let Some(out) = host.child.stdout.take() {
+        let _ = BufReader::new(out).read_line(&mut said);
+    }
+    let inner: u32 = said.trim().parse().unwrap_or(0);
+    let (since, inner_since) = (process(pid).map(|p| p.1), process(inner).map(|p| p.1));
+    let started = runs(pid, since) && runs(inner, inner_since);
+    drop(host);
+    let host_runs = runs_after(pid, since, Duration::from_secs(5));
+    let inner_runs = runs_after(inner, inner_since, Duration::from_secs(5));
+    // Reaped: its entry gone, not left a zombie.
+    let reaped = !matches!(process(pid), Some(('Z', at)) if Some(at) == since);
+    killed(pid, since);
+    killed(inner, inner_since);
+    assert!(started, "the host and its group's process ran: {said:?}");
+    assert!(
+        !host_runs && !inner_runs,
+        "a host left running outlived its test (host: {host_runs}, its group's process: {inner_runs})"
+    );
+    assert!(reaped, "a host killed at its test's end was not reaped");
+}
+
+/// **A host dies with the thread that started it**, its [`Host`] never
+/// dropped: forgotten here, as a test process killed outright never drops
+/// its own. The kernel's SIGKILL ends it once the thread ends.
+#[cfg(target_os = "linux")]
+#[test]
+fn a_host_dies_with_the_thread_that_started_it() {
+    let started = std::thread::spawn(|| {
+        let mut command = Command::new("sleep");
+        command.arg("30").stdin(Stdio::null());
+        let host = Host::spawned(&mut command);
+        let pid = host.id();
+        std::mem::forget(host);
+        pid
+    })
+    .join();
+    assert!(started.is_ok(), "the starting thread ended at a panic");
+    let pid = started.unwrap_or_default() as libc::pid_t;
+    let mut status = 0;
+    let until = Instant::now() + Duration::from_secs(5);
+    let mut ended = false;
+    while !ended && Instant::now() < until {
+        // SAFETY: a valid out-pointer; `pid` is this process's child,
+        // reaped here alone, its `Child` forgotten.
+        ended = unsafe { libc::waitpid(pid, &mut status, libc::WNOHANG) } == pid;
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    if !ended {
+        // SAFETY: as above; the child not yet reaped is still this one.
+        unsafe {
+            libc::kill(pid, libc::SIGKILL);
+            libc::waitpid(pid, &mut status, 0);
+        }
+    }
+    assert!(
+        ended && libc::WIFSIGNALED(status) && libc::WTERMSIG(status) == libc::SIGKILL,
+        "a host outlived the thread that started it by five seconds"
+    );
+}
+
+/// **A host dies with the test process that started it**, killed outright
+/// (SIGKILL, as a run past its bound is), whose drops never run: this test
+/// run again as a process of its own, which starts a host, says its id, and
+/// is killed while it waits. The host does not outlive it.
+#[cfg(target_os = "linux")]
+#[test]
+fn a_host_dies_with_the_test_process_that_started_it() {
+    const INNER: &str = "PW_TEST_HOST_ID_FILE";
+    if let Some(file) = std::env::var_os(INNER) {
+        // The run within: a host, its id said, and a wait to be killed in.
+        let mut command = Command::new("sleep");
+        command.arg("30").stdin(Stdio::null());
+        let host = Host::spawned(&mut command);
+        let _ = std::fs::write(file, host.id().to_string());
+        std::thread::sleep(Duration::from_secs(30));
+        return;
+    }
+    let dir = tempfile::TempDir::with_prefix("pw-test-host-").expect("a directory");
+    let file = dir.path().join("host");
+    let inner = std::env::current_exe().map(|binary| {
+        Command::new(binary)
+            .args([
+                "--exact",
+                "a_host_dies_with_the_test_process_that_started_it",
+                "--test-threads=1",
+            ])
+            .env(INNER, &file)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+    });
+    assert!(
+        matches!(inner, Ok(Ok(_))),
+        "this test's binary does not start again: {inner:?}"
+    );
+    let Ok(Ok(mut inner)) = inner else {
+        return;
+    };
+    let until = Instant::now() + Duration::from_secs(30);
+    let mut pid = None;
+    while pid.is_none() && Instant::now() < until {
+        pid = std::fs::read_to_string(&file)
+            .ok()
+            .and_then(|id| id.trim().parse::<u32>().ok());
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let since = pid.and_then(process).map(|p| p.1);
+    let _ = inner.kill();
+    let _ = inner.wait();
+    let outlived = pid.is_some_and(|pid| runs_after(pid, since, Duration::from_secs(5)));
+    if let Some(pid) = pid {
+        killed(pid, since);
+    }
+    assert!(pid.is_some(), "the run within said no host's id");
+    assert!(
+        !outlived,
+        "a host outlived the test process that started it, killed outright"
     );
 }
