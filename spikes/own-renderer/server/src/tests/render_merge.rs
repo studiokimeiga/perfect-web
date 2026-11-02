@@ -907,7 +907,9 @@ fn a_session_whose_count_could_not_be_read_is_said_so_after_its_render() {
 #[test]
 fn the_memory_feeds_snapshot_is_the_feed_as_a_render_first_read_it() {
     let layer = crate::feed::FeedData::new();
-    let timeline = |ops: Ops| match &ops["feed:data/posts#timeline"](&[text("a"), Val::S64(20)])
+    // The session as the program passes it, its handle (track `data-path`).
+    let a = crate::identity::session_handle("a");
+    let timeline = |ops: Ops| match &ops["feed:data/posts#timeline"](&[text(&a), Val::S64(20)])
         .expect("read")[..]
     {
         [Val::List(posts)] => posts.len(),
@@ -918,7 +920,7 @@ fn the_memory_feeds_snapshot_is_the_feed_as_a_render_first_read_it() {
     {
         let mut staging = DataLayer::begin(&layer, "a");
         staging.ops()["feed:data/posts#publish"](&[
-            text("a"),
+            text(&a),
             text("After the render's first read."),
         ])
         .expect("posted");

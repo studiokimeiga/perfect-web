@@ -397,7 +397,10 @@ Every query and page says whose data it shows:
 is reading", and nothing else can make them. A value read with one carries
 its label through every call, branch and return, and a labelled value
 cannot reach a shared cache (PW5001), a public page, or a log or a browser
-it must not (ADR-0128, ADR-0129, ADR-0263, ADR-0270).
+it must not (ADR-0128, ADR-0129, ADR-0263, ADR-0270). Neither is a
+credential: `current_session()` is a one-way digest of the session, never
+the cookie the browser holds, so whatever a program keys by it, emits or
+keeps opens no session.
 
 ```pw
 module feed.unread

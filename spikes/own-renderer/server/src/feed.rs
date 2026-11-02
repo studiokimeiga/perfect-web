@@ -304,16 +304,21 @@ pub(crate) fn ok(v: Val) -> Val {
     Val::Result(Ok(Some(Box::new(v))))
 }
 
-/// The reads of `state`: the timeline, a thread, a session's user and who
-/// it reads as.
-fn reads_of(state: Arc<State>, principals: Principals) -> crate::data::Ops {
+/// The reads of `state` for the request `asked`: the timeline, a thread, a
+/// session's user and who it reads as. A session is passed as the handle
+/// the program holds it by, and is the request's (track `data-path`).
+fn reads_of(
+    state: Arc<State>,
+    principals: Principals,
+    asked: crate::data::Requested,
+) -> crate::data::Ops {
     let mut ops: crate::data::Ops = BTreeMap::new();
-    let (s, p) = (state.clone(), principals.clone());
+    let (s, p, r) = (state.clone(), principals.clone(), asked.clone());
     ops.insert(
         "feed:data/posts#timeline".to_string(),
         Arc::new(move |args: &[Val]| match args {
-            [Val::String(session), Val::S64(limit)] => {
-                let reader = p.user_of(session);
+            [Val::String(handle), Val::S64(limit)] => {
+                let reader = p.user_of(r.session("posts#timeline", handle)?);
                 // Each an `Item`, a post as a timeline shows it (ADR-0222):
                 // its replies are its thread's.
                 let shown: Vec<Val> = s
@@ -342,12 +347,12 @@ fn reads_of(state: Arc<State>, principals: Principals) -> crate::data::Ops {
     );
     // **The timeline of those a session's user follows** (ADR-0257): each an
     // `Item`, its own posts and theirs, that reply to none.
-    let (s, p) = (state.clone(), principals.clone());
+    let (s, p, r) = (state.clone(), principals.clone(), asked.clone());
     ops.insert(
         "feed:data/posts#following".to_string(),
         Arc::new(move |args: &[Val]| match args {
-            [Val::String(session), Val::S64(limit)] => {
-                let reader = p.user_of(session);
+            [Val::String(handle), Val::S64(limit)] => {
+                let reader = p.user_of(r.session("posts#following", handle)?);
                 let shown: Vec<Val> = s
                     .posts
                     .iter()
@@ -376,26 +381,29 @@ fn reads_of(state: Arc<State>, principals: Principals) -> crate::data::Ops {
             other => Err(format!("users#profile received {other:?}")),
         }),
     );
-    let (s, p) = (state.clone(), principals.clone());
+    let (s, p, r) = (state.clone(), principals.clone(), asked.clone());
     ops.insert(
         "feed:data/users#relation".to_string(),
         Arc::new(move |args: &[Val]| match args {
-            [Val::String(session), Val::String(user)] => {
+            [Val::String(handle), Val::String(user)] => {
+                let session = r.session("users#relation", handle)?;
                 Ok(vec![relation_val(&s, &p.user_of(session), user)])
             }
             other => Err(format!("users#relation received {other:?}")),
         }),
     );
-    let p = principals.clone();
+    let (p, r) = (principals.clone(), asked.clone());
     // Track `uploads`: the image a session attached, waiting for its post.
     ops.insert(
         "feed:data/uploads#attached".to_string(),
-        crate::uploads::attached_op(state.leases.clone()),
+        crate::uploads::attached_op(state.leases.clone(), asked.clone()),
     );
     ops.insert(
         "feed:data/users#of-session".to_string(),
         Arc::new(move |args: &[Val]| match args {
-            [Val::String(session)] => Ok(vec![Val::String(p.user_of(session))]),
+            [Val::String(handle)] => Ok(vec![Val::String(
+                p.user_of(r.session("users#of-session", handle)?),
+            )]),
             other => Err(format!("users#of-session received {other:?}")),
         }),
     );
@@ -452,7 +460,9 @@ fn reads_of(state: Arc<State>, principals: Principals) -> crate::data::Ops {
     ops.insert(
         "feed:data/users#viewer".to_string(),
         Arc::new(move |args: &[Val]| match args {
-            [Val::String(session)] => Ok(vec![viewer_val(principals.of(session))]),
+            [Val::String(handle)] => Ok(vec![viewer_val(
+                principals.of(asked.session("users#viewer", handle)?),
+            )]),
             other => Err(format!("users#viewer received {other:?}")),
         }),
     );
@@ -631,10 +641,11 @@ impl crate::data::DataLayer for FeedData {
         Ok(names(&self.state.lock().expect("feed").posts, key))
     }
 
-    fn reads(&self, _session: &str, _stopped: Option<Stopped>) -> crate::data::Ops {
+    fn reads(&self, session: &str, _stopped: Option<Stopped>) -> crate::data::Ops {
         reads_of(
             Arc::new(self.state.lock().expect("feed").clone()),
             self.principals(),
+            crate::data::Requested::by(session),
         )
     }
 
@@ -652,7 +663,11 @@ impl crate::data::DataLayer for FeedData {
         stopped: Option<Stopped>,
     ) -> crate::data::Ops {
         match snapshot.downcast_ref::<Arc<State>>() {
-            Some(state) => reads_of(state.clone(), self.principals()),
+            Some(state) => reads_of(
+                state.clone(),
+                self.principals(),
+                crate::data::Requested::by(session),
+            ),
             None => self.reads(session, stopped),
         }
     }
@@ -661,17 +676,26 @@ impl crate::data::DataLayer for FeedData {
         *self.principals.write().expect("principals") = principals;
     }
 
-    fn begin<'a>(&'a self, _session: &str) -> Box<dyn crate::data::Staged + 'a> {
+    fn begin<'a>(&'a self, session: &str) -> Box<dyn crate::data::Staged + 'a> {
         let state = self.state.lock().expect("feed");
         let seen = Arc::new(state.clone());
         let staged: Arc<Mutex<Vec<Change>>> = Arc::default();
         let principals = self.principals();
-        let mut ops = reads_of(seen.clone(), principals.clone());
-        let (s, into, p) = (seen.clone(), staged.clone(), principals.clone());
+        // The request's session, which the program passes as its handle
+        // (track `data-path`).
+        let asked = crate::data::Requested::by(session);
+        let mut ops = reads_of(seen.clone(), principals.clone(), asked.clone());
+        let (s, into, p, r) = (
+            seen.clone(),
+            staged.clone(),
+            principals.clone(),
+            asked.clone(),
+        );
         ops.insert(
             "feed:data/posts#publish".to_string(),
             Arc::new(move |args: &[Val]| match args {
-                [Val::String(session), Val::String(text)] => {
+                [Val::String(handle), Val::String(text)] => {
+                    let session = r.session("posts#publish", handle)?;
                     let mut staged = into.lock().expect("staged");
                     let row = Row {
                         id: next_id(&s, &staged),
@@ -690,11 +714,17 @@ impl crate::data::DataLayer for FeedData {
         );
         // **A reply** (ADR-0231): a post that replies to `to`, shown in its
         // thread and in no timeline. To a post that is not there, none.
-        let (s, into, p) = (seen.clone(), staged.clone(), principals.clone());
+        let (s, into, p, r) = (
+            seen.clone(),
+            staged.clone(),
+            principals.clone(),
+            asked.clone(),
+        );
         ops.insert(
             "feed:data/posts#reply".to_string(),
             Arc::new(move |args: &[Val]| match args {
-                [Val::String(session), Val::String(to), Val::String(text)] => {
+                [Val::String(handle), Val::String(to), Val::String(text)] => {
+                    let session = r.session("posts#reply", handle)?;
                     if !s.posts.iter().any(|r| r.id == *to) {
                         return Ok(vec![not_found()]);
                     }
@@ -732,33 +762,35 @@ impl crate::data::DataLayer for FeedData {
         let claims = crate::uploads::Claims::new(seen.leases.clone());
         ops.insert(
             "feed:data/uploads#claim".to_string(),
-            crate::uploads::claim_op(claims.clone()),
+            crate::uploads::claim_op(claims.clone(), asked.clone()),
         );
         let into = staged.clone();
         ops.insert(
             "feed:data/uploads#discard".to_string(),
-            crate::uploads::discard_op(claims.clone(), move || {
+            crate::uploads::discard_op(claims.clone(), asked.clone(), move || {
                 into.lock().expect("staged").push(Change::Discard)
             }),
         );
         // **A post with its image** (track `uploads`): the image the
         // command's claim holds, kept with the post, by the author `publish`
         // writes as. A handle this command did not claim is not found.
-        let (s, into, p, holding) = (
+        let (s, into, p, holding, r) = (
             seen.clone(),
             staged.clone(),
             principals.clone(),
             claims.clone(),
+            asked.clone(),
         );
         ops.insert(
             "feed:data/posts#publish-image".to_string(),
             Arc::new(move |args: &[Val]| match args {
                 [
-                    Val::String(session),
+                    Val::String(handle),
                     Val::String(text),
                     Val::String(alt),
                     Val::String(upload),
                 ] => {
+                    let session = r.session("posts#publish-image", handle)?;
                     let Some(image) = holding.lock().expect("claims").commit(session, upload, alt)
                     else {
                         return Ok(vec![not_found()]);
@@ -783,12 +815,17 @@ impl crate::data::DataLayer for FeedData {
         // writes what is there, and its event refreshes every page that
         // shows it. One the feed does not know, or the follower itself, is
         // not found.
-        let (s, into, p) = (seen.clone(), staged.clone(), principals.clone());
+        let (s, into, p, r) = (
+            seen.clone(),
+            staged.clone(),
+            principals.clone(),
+            asked.clone(),
+        );
         ops.insert(
             "feed:data/users#follow".to_string(),
             Arc::new(move |args: &[Val]| match args {
-                [Val::String(session), Val::String(user)] => {
-                    let follower = p.user_of(session);
+                [Val::String(handle), Val::String(user)] => {
+                    let follower = p.user_of(r.session("users#follow", handle)?);
                     if follower == *user || !known(&s, user) {
                         return Ok(vec![not_found()]);
                     }
@@ -813,11 +850,17 @@ impl crate::data::DataLayer for FeedData {
             }),
         );
         // **An unfollow** (ADR-0257): one not followed is no change.
-        let (s, into, p) = (seen.clone(), staged.clone(), principals.clone());
+        let (s, into, p, r) = (
+            seen.clone(),
+            staged.clone(),
+            principals.clone(),
+            asked.clone(),
+        );
         ops.insert(
             "feed:data/users#unfollow".to_string(),
             Arc::new(move |args: &[Val]| match args {
-                [Val::String(session), Val::String(user)] => {
+                [Val::String(handle), Val::String(user)] => {
+                    let session = r.session("users#unfollow", handle)?;
                     if !known(&s, user) {
                         return Ok(vec![not_found()]);
                     }
@@ -869,11 +912,17 @@ impl crate::data::DataLayer for FeedData {
         // written by the author a post is, and the sender's side read to it.
         // Who may is `requires MayMessage(to)`'s, evaluated before the
         // command runs.
-        let (s, into, p) = (seen.clone(), staged.clone(), principals.clone());
+        let (s, into, p, r) = (
+            seen.clone(),
+            staged.clone(),
+            principals.clone(),
+            asked.clone(),
+        );
         ops.insert(
             "feed:data/messages#send".to_string(),
             Arc::new(move |args: &[Val]| match args {
-                [Val::String(session), Val::String(to), Val::String(text)] => {
+                [Val::String(handle), Val::String(to), Val::String(text)] => {
+                    let session = r.session("messages#send", handle)?;
                     let mut staged = into.lock().expect("staged");
                     let from = author(&p, session, &mut staged);
                     let before = staged
@@ -914,11 +963,12 @@ impl crate::data::DataLayer for FeedData {
                 other => Err(format!("messages#read received {other:?}")),
             }),
         );
-        let (s, into, p) = (seen, staged.clone(), principals);
+        let (s, into, p, r) = (seen, staged.clone(), principals, asked);
         ops.insert(
             "feed:data/posts#like".to_string(),
             Arc::new(move |args: &[Val]| match args {
-                [Val::String(session), Val::String(id)] => {
+                [Val::String(handle), Val::String(id)] => {
+                    let session = r.session("posts#like", handle)?;
                     match s.posts.iter().find(|r| r.id == *id) {
                         Some(row) => {
                             let mut liked = row.clone();

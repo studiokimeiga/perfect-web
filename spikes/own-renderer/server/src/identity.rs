@@ -310,15 +310,18 @@ pub(crate) enum ReaderIdentity {
 }
 
 impl ReaderIdentity {
-    /// One private-partition field. Hex encodes the cookie bytes so a caller's
-    /// delimiters cannot add a query-key field or alias another generation.
+    /// One private-partition field: the session's digest
+    /// ([`PARTITION_DOMAIN`]), in hex, so a caller's delimiters cannot add a
+    /// query-key field or alias another generation. Version 2 (track
+    /// `data-path`, the integrator's ruling of 2026-11-02): version 1 held
+    /// the cookie's bytes in hex, which an interaction's record keeps.
     pub(crate) fn partition(&self, session: &str) -> String {
         let reader = match self {
             Self::Guest => "g".to_string(),
             Self::Anonymous => "n".to_string(),
             Self::Account(identity) => format!("a:{}", hex(&identity.epoch)),
         };
-        format!("v1:{}:{reader}", hex(session.as_bytes()))
+        format!("v2:{}:{reader}", session_field(PARTITION_DOMAIN, session))
     }
 }
 
@@ -361,11 +364,62 @@ impl std::fmt::Debug for Held {
     }
 }
 
-/// **What a guest's digest is taken over, before its session** (track
-/// `data-path`, the integrator's ruling 1 of 2026-11-02): so a guest's id is
-/// no other digest of the session this server takes, such as the one a
-/// session is kept by ([`kept_hash`], SHA-256 of the session alone).
-const GUEST_DOMAIN: &str = "pw-guest-v1:";
+/// **What each digest of a session is taken for** (track `data-path`, the
+/// integrator's rulings of 2026-11-02: nothing stored, shown or logged is
+/// made from the raw session cookie). Each use its own domain, so no value
+/// the host keeps for one use equals another's: a guest's id, the hash a
+/// session and a sign-in are kept by, an interaction's record's key, a
+/// private cache's partition, a state row's key, a log's name for a session,
+/// and the handle a program holds its session by.
+pub(crate) const GUEST_DOMAIN: &str = "pw-guest-v1:";
+pub(crate) const KEPT_DOMAIN: &str = "pw-kept-v1:";
+pub(crate) const INTERACTION_DOMAIN: &str = "pw-interaction-v1:";
+pub(crate) const PARTITION_DOMAIN: &str = "pw-partition-v1:";
+pub(crate) const STATE_DOMAIN: &str = "pw-state-v1:";
+pub(crate) const LOG_DOMAIN: &str = "pw-log-v1:";
+pub(crate) const HANDLE_DOMAIN: &str = "pw-handle-v1:";
+
+/// **A one-way, domain-separated digest of a session**, or of another
+/// secret the host keeps by its digest: SHA-256 over `domain` and the
+/// secret (the integrator's rulings of 2026-11-02). The one way the host
+/// makes anything it stores, shows or logs of a session: from the digest
+/// no one recovers the session, and no digest of one use is another's.
+pub(crate) fn session_digest(domain: &str, secret: &str) -> [u8; 32] {
+    use sha2::Digest;
+    sha2::Sha256::digest(format!("{domain}{secret}").as_bytes()).into()
+}
+
+/// **[`session_digest`] in hex**, as the host writes it into a key.
+pub(crate) fn session_field(domain: &str, session: &str) -> String {
+    hex(&session_digest(domain, session))
+}
+
+/// **An interaction's record's key** (ADR-0325): the session's digest, the
+/// command and the interaction (the integrator's ruling of 2026-11-02, on
+/// the PostgreSQL layer's review). Until then the key began with the session
+/// itself, the cookie, which the records keep a day where a database reader
+/// read it and took the session over. A record keyed by a cookie before is
+/// no longer recalled.
+pub(crate) fn interaction_key(session: &str, command: &str, interaction: &str) -> String {
+    format!(
+        "{}\u{1f}{command}\u{1f}{interaction}",
+        session_field(INTERACTION_DOMAIN, session)
+    )
+}
+
+/// **The session as a program holds it**: what `current_session()` answers,
+/// the session's digest in [`HANDLE_DOMAIN`], never the cookie (track
+/// `data-path`, the integrator's ruling of 2026-11-02). Whatever a program
+/// makes of its session (a query's key, an event's or an invalidation's
+/// argument, a row it keys by it) is made of this, and so is what the host
+/// keys by the session for it (a cart's owner where the program keys its
+/// cart by the session, an entry's partition). Until then a program was
+/// handed the cookie, and the feed's `follow` wrote it into the outbox's
+/// invalidations on PostgreSQL. An operation a program hands its handle to
+/// answers for the request's session alone (`data::Requested`).
+pub(crate) fn session_handle(session: &str) -> String {
+    session_field(HANDLE_DOMAIN, session)
+}
 
 /// **A guest's user id**: `u-` and 128 bits, in hex, of SHA-256 over
 /// [`GUEST_DOMAIN`] and its session (track `data-path`, the integrator's
@@ -376,8 +430,7 @@ const GUEST_DOMAIN: &str = "pw-guest-v1:";
 /// a payment's owner). The digest is one way: from the id no one recovers
 /// the session, or makes the id of a session they do not hold.
 pub fn guest_user(session: &str) -> String {
-    use sha2::Digest;
-    let digest = sha2::Sha256::digest(format!("{GUEST_DOMAIN}{session}").as_bytes());
+    let digest = session_digest(GUEST_DOMAIN, session);
     format!("u-{}", hex(&digest[..16]))
 }
 
@@ -557,10 +610,11 @@ impl SessionLifetimes {
 /// session's id (128 bits from the operating system) and a sign-in's state
 /// (256) are past any guess, so a fast hash is enough: a copy of what is
 /// kept opens no session and completes no sign-in. A password, which a
-/// person chose, is the slow hash's (ADR-0258's Argon2id).
+/// person chose, is the slow hash's (ADR-0258's Argon2id). Taken in its own
+/// domain since 2026-11-02 ([`KEPT_DOMAIN`], track `data-path`), as every
+/// digest of a session is: a session kept before is signed out once.
 pub(crate) fn kept_hash(secret: &str) -> Vec<u8> {
-    use sha2::Digest;
-    sha2::Sha256::digest(secret.as_bytes()).to_vec()
+    session_digest(KEPT_DOMAIN, secret).to_vec()
 }
 
 /// **Where a deployment keeps its sessions and its sign-ins under way**

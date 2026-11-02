@@ -152,10 +152,10 @@ const TELLERS: usize = 8;
 /// **A session, as a record names it**: a hash of its id, which is its
 /// cookie and never written where another session can read it.
 fn masked(session: &str) -> String {
-    use std::hash::{Hash, Hasher};
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    session.hash(&mut hasher);
-    format!("s{:08x}", hasher.finish() as u32)
+    // The session's digest in its own domain, as every value the host logs
+    // of one is (track `data-path`, the integrator's ruling of 2026-11-02).
+    let digest = identity::session_field(identity::LOG_DOMAIN, session);
+    format!("s{}", &digest[..8])
 }
 
 /// **Milliseconds since this server started**, the clock its records read.
@@ -1298,6 +1298,16 @@ const INTERACTIONS_PER_SESSION: usize = 64;
 /// later than that is a new request.
 const INTERACTIONS_KEPT_MS: u64 = 24 * 60 * 60 * 1000;
 
+/// **A session's partition, as an entry names it** (track `data-path`, the
+/// integrator's ruling of 2026-11-02): the session's handle
+/// (`identity::session_handle`), never the cookie. An entry's storage key
+/// spells its partition out, and the materializer keeps it.
+fn session_partition(session: &str) -> Partition {
+    Partition::Session {
+        id: identity::session_handle(session),
+    }
+}
+
 /// The semantic identity of one session's cart.
 ///
 /// Built from the shape the compiler's bridge produces. The server does not
@@ -1308,14 +1318,7 @@ const INTERACTIONS_KEPT_MS: u64 = 24 * 60 * 60 * 1000;
 /// the reader's user where it reads a cart by the reader's handle, so that
 /// the program's event naming the user reaches it, or the session.
 fn cart_identity(owner: &str, session: &str) -> EntryIdentity {
-    EntryIdentity::new(
-        "store.page.Cart",
-        &[owner],
-        Partition::Session {
-            id: session.to_string(),
-        },
-    )
-    .generation(BUILD)
+    EntryIdentity::new("store.page.Cart", &[owner], session_partition(session)).generation(BUILD)
 }
 
 /// A store's menu's entry identity — PUBLIC, and carrying the same
@@ -1342,16 +1345,15 @@ fn cart_entry(owner: &str, session: &str) -> ResourceEntryId {
 fn speculated_entry(session: &str, page: &str, binding: &str, route: &[String]) -> ResourceEntryId {
     // **And the page's parameters its key reads** (ADR-0236): two threads
     // one session has open are two entries.
-    let key: Vec<&str> = std::iter::once(session)
+    let handle = identity::session_handle(session);
+    let key: Vec<&str> = std::iter::once(handle.as_str())
         .chain(route.iter().map(String::as_str))
         .collect();
     ResourceEntryId::derive(
         &EntryIdentity::new(
             &format!("pw.speculated.{page}#{binding}"),
             &key,
-            Partition::Session {
-                id: session.to_string(),
-            },
+            session_partition(session),
         )
         .generation(BUILD),
         &IDENTITY,
@@ -1437,10 +1439,8 @@ fn session_documents(session: &str) -> ResourceEntryId {
     ResourceEntryId::derive(
         &EntryIdentity::new(
             "pw.session.documents",
-            &[session],
-            Partition::Session {
-                id: session.to_string(),
-            },
+            &[&identity::session_handle(session)],
+            session_partition(session),
         )
         .generation(BUILD),
         &IDENTITY,
@@ -1451,14 +1451,8 @@ fn session_documents(session: &str) -> ResourceEntryId {
 /// to it is sent against, as the cart's is.
 fn order_entry(owner: &str, session: &str) -> ResourceEntryId {
     ResourceEntryId::derive(
-        &EntryIdentity::new(
-            "store.page.Order",
-            &[owner],
-            Partition::Session {
-                id: session.to_string(),
-            },
-        )
-        .generation(BUILD),
+        &EntryIdentity::new("store.page.Order", &[owner], session_partition(session))
+            .generation(BUILD),
         &IDENTITY,
     )
 }
@@ -2230,7 +2224,8 @@ impl Server {
     fn owner(&self, session: &str) -> String {
         match self.cart_by_reader {
             Some(true) => notifications::user_of(&self.identity.principals(), session),
-            _ => session.to_string(),
+            // The session as the program holds it (track `data-path`).
+            _ => identity::session_handle(session),
         }
     }
 
@@ -2275,7 +2270,7 @@ impl Server {
         let user = if by_reader {
             signed.principal.user.clone()
         } else {
-            signed.session.to_string()
+            identity::session_handle(signed.session)
         };
         let event = (
             self.cart_event().to_string(),
@@ -2671,10 +2666,14 @@ impl Server {
     }
 
     /// The platform's session operation: the request's session, and nothing
-    /// else the component could ask it for.
+    /// else the component could ask it for. As its handle
+    /// (`identity::session_handle`), never the cookie (track `data-path`, the
+    /// integrator's ruling of 2026-11-02): what a program makes of its
+    /// session (a key, an event, an invalidation the outbox keeps, a row) is
+    /// made of the handle.
     fn session_operation(session: &str) -> HostFn {
-        let session = session.to_string();
-        Arc::new(move |_args: &[Val]| Ok(vec![Val::String(session.clone())]))
+        let handle = identity::session_handle(session);
+        Arc::new(move |_args: &[Val]| Ok(vec![Val::String(handle.clone())]))
     }
 
     /// The materializer's version for this entry.
@@ -3491,7 +3490,7 @@ impl Server {
             session,
             "store:host/estimates#set",
             &[
-                Val::String(session.to_string()),
+                Val::String(identity::session_handle(session)),
                 Val::S64(minutes),
                 Val::Option(max.map(|m| Box::new(Val::S64(m)))),
             ],
@@ -3749,13 +3748,16 @@ impl Server {
         args: &[serde_json::Value],
     ) -> (String, String, String) {
         let principals = self.identity.principals();
+        // TRACK SEAM (data-path): the session's digests, never the session
+        // (the integrator's ruling of 2026-11-02): the record keeps the key
+        // and what was sent a day, where a database reader reads them.
         let reader = if self.invoked_by_platform(component) {
-            serde_json::json!({"platform":component,"session":identity::hex(session.as_bytes()),"user":principals.user_of(session)})
+            serde_json::json!({"platform":component,"session":identity::session_field(identity::PARTITION_DOMAIN, session),"user":principals.user_of(session)})
         } else {
             principals.receipt_reader(session)
         };
         let digest = identity::hex(&identity::kept_hash(&reader.to_string()));
-        let key = format!("{session}\u{1f}{component}\u{1f}{id}");
+        let key = identity::interaction_key(session, component, id);
         let cache = format!("receipt-v1:{digest}\u{1f}{component}\u{1f}{id}");
         let sent = serde_json::json!({"v":1,"reader":reader,"args":args}).to_string();
         (key, cache, sent)
@@ -4295,7 +4297,7 @@ impl Server {
             return Err("scheduled target is not an idempotent Clock command".into());
         }
         let interaction = format!("schedule-{}", run.id);
-        let key = format!("{session}\u{1f}{}\u{1f}{interaction}", run.command);
+        let key = identity::interaction_key(session, &run.command, &interaction);
         let sent = serde_json::Value::Array(json).to_string();
         // One evaluator/commit core; no browser memoization/session history for Clock.
         let result = self.command_recorded_for(
@@ -4703,6 +4705,9 @@ impl Server {
         // `store-accounts`, telling by principal): the user at the key
         // position a binding fills with `current_user()`, where the drop
         // names one. ADR-0270's superset told every reader of the query.
+        // A key holds the session as the program holds it, its handle
+        // (`identity::session_handle`, track `data-path`).
+        let handle = identity::session_handle(session);
         let drop_entries = |resource: &str, args: &[Option<Val>]| -> Option<Reached> {
             // No binding reads it, so nothing of it is kept.
             let binding = binding_of(resource)?;
@@ -4712,7 +4717,7 @@ impl Server {
             let positions = key_positions(&policy);
             let pinned = positions
                 .iter()
-                .any(|i| matches!(args.get(*i), Some(Some(Val::String(s))) if s == session));
+                .any(|i| matches!(args.get(*i), Some(Some(Val::String(s))) if *s == handle));
             if entry_is_private(&policy) && pinned {
                 return None;
             }
@@ -5478,7 +5483,9 @@ impl Server {
                         })
                         .ok_or_else(|| format!("the page's `{name}` is given no value here"))
                 }
-                Some("current_session()") => Ok(Val::String(session.into())),
+                // The program's handle on the session, never the cookie
+                // (track `data-path`).
+                Some("current_session()") => Ok(Val::String(identity::session_handle(session))),
                 // TRACK SEAM (notifications): the reader's user, from the
                 // session's principal: never a value the browser sends.
                 Some(arg) if notifications::is_current_user(arg) => Ok(Val::String(
@@ -6111,14 +6118,8 @@ impl Server {
     /// token in a patch is the token already in the page. Two derivations
     /// would agree until one of them changed.
     fn domain(&self, session: &str) -> IdentityDomain {
-        IdentityDomain::document(
-            "StorePage(47)",
-            Partition::Session {
-                id: session.to_string(),
-            },
-            BUILD,
-        )
-        .keyed("own-renderer-spike-key")
+        IdentityDomain::document("StorePage(47)", session_partition(session), BUILD)
+            .keyed("own-renderer-spike-key")
     }
 
     /// **The identity domain a session's document of `page` is rendered in**
@@ -6128,14 +6129,8 @@ impl Server {
         if page == self.store_page() {
             return self.domain(session);
         }
-        IdentityDomain::document(
-            page,
-            Partition::Session {
-                id: session.to_string(),
-            },
-            BUILD,
-        )
-        .keyed("own-renderer-spike-key")
+        IdentityDomain::document(page, session_partition(session), BUILD)
+            .keyed("own-renderer-spike-key")
     }
 
     /// The menu fragment's OWN identity domain — public, and the same for
@@ -7026,14 +7021,8 @@ impl Server {
         // What it computes from its signals, at their first values (ADR-0227).
         let env = self.with_computed_signals(env, plan, template)?;
         let env = with_signals(env, plan).in_domain(
-            IdentityDomain::document(
-                path,
-                Partition::Session {
-                    id: session.to_string(),
-                },
-                BUILD,
-            )
-            .keyed("own-renderer-spike-key"),
+            IdentityDomain::document(path, session_partition(session), BUILD)
+                .keyed("own-renderer-spike-key"),
         );
         let body = pw_render::render(template, &env, &self.templates)
             .map_err(|e| format!("`{path}` does not render: {e:?}"))?;
@@ -8209,7 +8198,7 @@ fn stream_runs(
             .into_iter()
             .flatten()
             .map(|a| match a.as_str() {
-                Some("current_session()") => Ok(Val::String(session.into())),
+                Some("current_session()") => Ok(Val::String(identity::session_handle(session))),
                 Some(arg) if notifications::is_current_user(arg) => Ok(Val::String(user.into())),
                 Some(name) => param_val(plan, name, params).ok_or_else(|| {
                     format!("a stream's query is given `{name}`, which is not given")
@@ -8563,7 +8552,12 @@ fn entry_key(session: &str, policy: &serde_json::Value, args: &[Val]) -> Option<
 /// that field; cleanup recognizes all epochs of only the named cookie.
 fn private_entry_belongs_to(key: &str, session: &str) -> bool {
     let field = key.split('\u{1f}').next().unwrap_or_default();
-    let prefix = format!("session=v1:{}:", identity::hex(session.as_bytes()));
+    // The session's partition is its digest (`ReaderIdentity::partition`,
+    // version 2, track `data-path`), never its cookie.
+    let prefix = format!(
+        "session=v2:{}:",
+        identity::session_field(identity::PARTITION_DOMAIN, session)
+    );
     if let Some(reader) = field.strip_prefix(&prefix) {
         return matches!(reader, "g" | "n")
             || reader.strip_prefix("a:").is_some_and(|epoch| {
@@ -8572,7 +8566,9 @@ fn private_entry_belongs_to(key: &str, session: &str) -> bool {
     }
     // Older synthetic/guest keys remain cleanable, but a versioned field
     // can never be reinterpreted as an attacker-chosen legacy cookie.
-    !field.starts_with("session=v1:") && field == format!("session={session}")
+    !field.starts_with("session=v1:")
+        && !field.starts_with("session=v2:")
+        && field == format!("session={session}")
 }
 
 fn entry_is_private(policy: &serde_json::Value) -> bool {
@@ -8637,10 +8633,8 @@ fn keyed_entry(session: &str, binding: &str) -> ResourceEntryId {
     ResourceEntryId::derive(
         &EntryIdentity::new(
             &format!("store.page.{binding}#key"),
-            &[session],
-            Partition::Session {
-                id: session.to_string(),
-            },
+            &[&identity::session_handle(session)],
+            session_partition(session),
         )
         .generation(BUILD),
         &IDENTITY,
@@ -16159,13 +16153,20 @@ public query Store(",
         let s = rendering_server();
         s.command(ADD, "session-6", &add_shown("espresso", 3), false)
             .expect("runs");
-        assert_eq!(s.materializer.state("cart:session-6").as_deref(), Some("3"));
+        assert_eq!(
+            s.materializer
+                .state(&store::cart_state_key("session-6"))
+                .as_deref(),
+            Some("3")
+        );
         s.command_json(CLEAR, "session-6", &[], Some("clear-1"))
             .expect("well-formed")
             .expect("and it committed");
         assert_eq!(s.cart_value("session-6"), 0);
         assert_eq!(
-            s.materializer.state("cart:session-6").as_deref(),
+            s.materializer
+                .state(&store::cart_state_key("session-6"))
+                .as_deref(),
             Some("0"),
             "the cleared cart's state, not the old total"
         );

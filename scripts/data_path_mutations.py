@@ -9,7 +9,10 @@ command answered before its tables are linked; one render reading one
 state of the tables; the guestbook on the tables it declares, bounded,
 its refusals said, its composer an account's; the platform's reader's
 account, never a guest's or a stand-in's, a guest's identity never its
-session; no row holding a handle, at the compiler and again at the host;
+session; nothing the host keeps, shows or logs made of the session's
+cookie (each digest in its own domain, and a program holding its session
+by its handle, an operation answering for the request's session alone);
+no row holding a handle, at the compiler and again at the host;
 no upload beside tables; and the conformance suite's teeth on the memory
 adapter (ADR-0338 D2's named controls: a primitive answering another
 table's rows, a set read in another order, an index not kept on a write, a
@@ -44,6 +47,8 @@ MAIN = SERVER / "main.rs"
 LAYER = SERVER / "tables.rs"
 NOTES = SERVER / "notifications.rs"
 IDENTITY = SERVER / "identity.rs"
+STORE = SERVER / "store.rs"
+DATA = SERVER / "data.rs"
 HOST = ROOT / "runtime/pw-host/src/lib.rs"
 MEMORY = ROOT / "runtime/pw-table-memory/src/lib.rs"
 MATERIALIZER = ROOT / "runtime/pw-materialize/src/lib.rs"
@@ -225,8 +230,8 @@ MUTANTS = [
      "    format!(\"u-{}\", hex(&digest[..16]))\n",
      "    let _ = digest;\n    format!(\"u-{session}\")\n"),
     ("a guest's digest is the one its session is kept by", IDENTITY,
-     "    let digest = sha2::Sha256::digest(format!(\"{GUEST_DOMAIN}{session}\").as_bytes());\n",
-     "    let digest = sha2::Sha256::digest(format!(\"{}{session}\", &GUEST_DOMAIN[..0]).as_bytes());\n"),
+     "    let digest = session_digest(GUEST_DOMAIN, session);\n",
+     "    let digest = session_digest(KEPT_DOMAIN, session);\n"),
     ("a guest is named for its session", IDENTITY,
      "            name: format!(\"Guest {shown}\"),\n",
      "            name: format!(\"Guest {session}\"),\n"),
@@ -236,6 +241,35 @@ MUTANTS = [
     ("a row may hold a handle", COMPILER_TABLES,
      "            .and_then(|ty| crate::check::handle_in(sigs, ty, &mut BTreeSet::new()))\n",
      "            .and_then(|_| None::<&str>)\n"),
+    # 8. nothing the host keeps, shows or logs is made of the session's
+    # cookie (the integrator's ruling of 2026-11-02, from the PostgreSQL
+    # layer's review): each digest in its own domain, a program holding its
+    # session by its handle, and an operation answering for the request's
+    # session alone
+    ("an interaction's record is keyed by its session", IDENTITY,
+     "        session_field(INTERACTION_DOMAIN, session)\n",
+     "        session\n"),
+    ("a reader's partition holds its session in hex", IDENTITY,
+     "        format!(\"v2:{}:{reader}\", session_field(PARTITION_DOMAIN, session))\n",
+     "        format!(\"v2:{}:{reader}\", hex(session.as_bytes()))\n"),
+    ("a session is kept by its digest in no domain", IDENTITY,
+     "    session_digest(KEPT_DOMAIN, secret).to_vec()\n",
+     "    session_digest(\"\", secret).to_vec()\n"),
+    ("a log names a session by its cookie", MAIN,
+     "    format!(\"s{}\", &digest[..8])\n",
+     "    let _ = digest;\n    format!(\"s{session}\")\n"),
+    ("a cart's state is keyed by its session", STORE,
+     "        crate::identity::session_field(crate::identity::STATE_DOMAIN, session)\n",
+     "        session\n"),
+    ("a program holds its session's cookie", IDENTITY,
+     "    session_field(HANDLE_DOMAIN, session)\n",
+     "    session.to_string()\n"),
+    ("an entry's partition is the session's cookie", MAIN,
+     "        id: identity::session_handle(session),\n",
+     "        id: session.to_string(),\n"),
+    ("an operation answers for a session it is not passed", DATA,
+     "        if handle == self.handle {\n",
+     "        if !handle.is_empty() {\n"),
     # 7. the guestbook, on the tables it declares
     ("a removed entry's number is given again", BOOK,
      "                Some(book) => book.signed + 1,\n",
@@ -262,7 +296,14 @@ MUTANTS = [
 TESTS = [
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server"],
      ["tests::tables::", "tests::guestbook::", "tests::conformance::",
-      "notifications::tests::", "tables::tests::"]),
+      "notifications::tests::", "tables::tests::",
+      # The session's cookie kept nowhere (the ruling of 2026-11-02): the
+      # feed, in memory and on PostgreSQL where a database is given, the
+      # store keyed by the session, and an upload's operations.
+      "tests::sign_in::nothing_the_feed_keeps_holds_a_session_cookie",
+      "tests::sign_in::on_postgres::nothing_kept_on_postgres_holds_a_session_cookie",
+      "tests::store_accounts::nothing_a_session_keyed_store_keeps_holds_a_session_cookie",
+      "uploads::tests::a_claim_no_transaction_commits_is_given_back"]),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_guarded"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_snapshot"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-materialize", "--lib"], []),
@@ -273,6 +314,9 @@ SOURCES = [
     SERVER / "tests/tables.rs",
     SERVER / "tests/guestbook.rs",
     SERVER / "tests/conformance.rs",
+    SERVER / "tests/sign_in.rs",
+    SERVER / "tests/store_accounts.rs",
+    SERVER / "uploads.rs",
     NOTES,
     LAYER,
     MATERIALIZER,

@@ -138,7 +138,11 @@ fn clock_jobs_do_not_retain_synthetic_presentations_or_private_query_values() {
     // Warm real client state first; Clock may invalidate it but must not delete it.
     s.command_answered(ADD, "a", &add_shown("espresso", 1), Some("client-control"))
         .expect("client writes");
-    assert!(s.materializer.state("cart:a").is_some());
+    assert!(
+        s.materializer
+            .state(&crate::store::cart_state_key("a"))
+            .is_some()
+    );
     assert!(super::store_scheduled::in_five(&s, "espresso", false, "warm-job").committed);
     s.query_clock.0.advance(FIVE);
     s.run_due();
@@ -158,7 +162,9 @@ fn clock_jobs_do_not_retain_synthetic_presentations_or_private_query_values() {
     assert_eq!(s.queries.stored(), values);
     assert_eq!(sqlite_count(&s, "SELECT count(*) FROM state"), state);
     assert!(
-        s.materializer.state("cart:a").is_some(),
+        s.materializer
+            .state(&crate::store::cart_state_key("a"))
+            .is_some(),
         "real client state retained"
     );
     assert!(

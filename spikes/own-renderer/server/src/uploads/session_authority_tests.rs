@@ -65,8 +65,11 @@ mod session_authority_tests {
         let (reader, shown) = attached(&u, &principals);
         principals.with_reader(COOKIE, &reader, || {
             let claims = Claims::new(u.leases());
-            let result =
-                claim_op(claims.clone())(&[Val::String(COOKIE.into())]).required("claim call");
+            // The program passes its session's handle (track `data-path`).
+            let result = claim_op(claims.clone(), crate::data::Requested::by(COOKIE))(&[
+                Val::String(crate::identity::session_handle(COOKIE)),
+            ])
+            .required("claim call");
             assert!(
                 matches!(result.as_slice(), [Val::Result(Ok(_))]),
                 "current reader may claim"

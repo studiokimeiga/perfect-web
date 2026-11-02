@@ -12,6 +12,37 @@ use std::collections::BTreeSet;
 /// Operations by their key, `store:data/carts#add`.
 pub(crate) type Ops = BTreeMap<String, HostFn>;
 
+/// **The request a layer's operations answer for** (track `data-path`, the
+/// integrator's ruling of 2026-11-02): its session, and the handle a program
+/// holds that session by ([`crate::identity::session_handle`]), never the
+/// cookie. An operation a program passes its session to is passed the
+/// handle, and reads the reader of the request's session, of no other.
+#[derive(Clone)]
+pub(crate) struct Requested {
+    session: String,
+    handle: String,
+}
+
+impl Requested {
+    /// The request of `session`.
+    pub(crate) fn by(session: &str) -> Requested {
+        Requested {
+            session: session.to_string(),
+            handle: crate::identity::session_handle(session),
+        }
+    }
+
+    /// **The request's session, where `handle` is its handle**; refused
+    /// where it is not, as the component would act for someone else.
+    pub(crate) fn session(&self, op: &str, handle: &str) -> Result<&str, String> {
+        if handle == self.handle {
+            Ok(&self.session)
+        } else {
+            Err(format!("{op} was passed another session"))
+        }
+    }
+}
+
 /// **One render's snapshot of a layer** (NEXT 4c, track `render-merge`):
 /// the layer's own value, which the host holds for the render and hands back
 /// with each query's reads ([`DataLayer::reads_in`]), and drops when the

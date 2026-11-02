@@ -219,7 +219,9 @@ fn on_postgres_a_cart_change_reaches_the_sessions_open_page() {
     let answered = add(&s, "a", "espresso", 2, "i-1");
     assert!(answered.committed, "{:?}", answered.result);
     assert_eq!(
-        s.materializer.state("cart:a").as_deref(),
+        s.materializer
+            .state(&crate::store::cart_state_key("a"))
+            .as_deref(),
         Some("2"),
         "the commit's rows, recorded"
     );
@@ -281,7 +283,11 @@ fn on_postgres_a_refused_commit_commits_neither_its_state_nor_its_event() {
         0,
         "none written"
     );
-    assert_eq!(s.materializer.state("cart:a"), None, "nothing recorded");
+    assert_eq!(
+        s.materializer.state(&crate::store::cart_state_key("a")),
+        None,
+        "nothing recorded"
+    );
     assert_eq!(s.materializer.retained_events(), 0);
     assert!(
         patch_sets(&s, "a")
@@ -476,7 +482,7 @@ fn on_postgres_a_second_hosts_commit_answers_what_the_first_committed() {
     let (layer, host, _dir) = hosts(&url);
     let s = host();
     let request = [shown("espresso"), serde_json::json!(1)];
-    let key = format!("a\u{1f}{ADD}\u{1f}press-1");
+    let key = crate::identity::interaction_key("a", ADD, "press-1");
     let (_, _, sent) = s.receipt_keys("a", ADD, "press-1", &request);
     let first = r#"{"committed":true,"why":null,"refused":null,"result":{"first":true}}"#;
     {
@@ -626,6 +632,7 @@ fn on_postgres_the_two_layers_answer_alike() {
             );
     }
     let s = |v: &str| Val::String(v.to_string());
+    let a = crate::identity::session_handle("a");
     let reads: Vec<(&str, Vec<Val>)> = vec![
         ("store:data/stores#list", vec![]),
         ("store:data/stores#get", vec![s("47")]),
@@ -645,10 +652,12 @@ fn on_postgres_the_two_layers_answer_alike() {
         ("store:data/kitchen#prep-minutes", vec![s("48")]),
         ("store:data/recommendations#for-store", vec![s("47")]),
         ("store:data/recommendations#for-store", vec![s("48")]),
-        ("store:data/carts#current", vec![s("a")]),
-        ("store:data/orders#current", vec![s("a")]),
-        ("store:data/orders#placed", vec![s("a")]),
-        ("store:data/estimates#current", vec![s("a")]),
+        // Session `a`'s, by the handle a program holds it by (track
+        // `data-path`).
+        ("store:data/carts#current", vec![s(&a)]),
+        ("store:data/orders#current", vec![s(&a)]),
+        ("store:data/orders#placed", vec![s(&a)]),
+        ("store:data/estimates#current", vec![s(&a)]),
     ];
     // Each read's answer, its estimate's `generated-at` (a clock reading)
     // left out.

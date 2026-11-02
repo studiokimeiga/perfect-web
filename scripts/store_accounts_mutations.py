@@ -138,8 +138,8 @@ MUTANTS = [
         "a session's cart entry is keyed by the session",
         "server",
         SERVER,
-        "        \"store.page.Cart\",\n        &[owner],\n",
-        "        \"store.page.Cart\",\n        &[session],\n",
+        "    EntryIdentity::new(\"store.page.Cart\", &[owner], ",
+        "    EntryIdentity::new(\"store.page.Cart\", &[session], ",
     ),
     (
         "a guest's lines are joined without summing one item's quantities",

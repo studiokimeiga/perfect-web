@@ -35,13 +35,15 @@ pub(super) fn forgetting(app: &str) -> String {
 
 /// **A session's timeline at `limit`, kept**, as the host keys it
 /// (`entry_key`): a session query's entries are each the session's, keyed
-/// by its session and its limit. A session query declares no window, so a
-/// page reads it again each time; the test keeps the entries itself, to see
-/// which a command drops.
+/// by its session, as the program holds it (its handle,
+/// `identity::session_handle`, track `data-path`), and its limit. A session
+/// query declares no window, so a page reads it again each time; the test
+/// keeps the entries itself, to see which a command drops.
 pub(super) fn timeline_at(session: &str, limit: i64) -> pw_resource::Key {
+    let handle = crate::identity::session_handle(session);
     pw_resource::Key::new(
         "feed.app.Timeline",
-        &format!("session={session}\u{1f}\"{session}\"\u{1f}{limit}"),
+        &format!("session={session}\u{1f}\"{handle}\"\u{1f}{limit}"),
     )
 }
 

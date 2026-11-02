@@ -6,7 +6,10 @@
 # tables are linked; one render reading one state of the tables; the guide's
 # guestbook on the tables it declares, bounded, its refusals said, the
 # tutorial byte for byte the app; the reader's account, never a guest's or a
-# stand-in's, and a guest's identity never its session; no row holding a
+# stand-in's, and a guest's identity never its session; nothing the host
+# keeps, shows or logs made of the session's cookie (in memory, and on
+# PostgreSQL where PW_FEED_DATABASE_URL names a throwaway database: skipped,
+# and said so, without one); no row holding a
 # handle, at the compiler (PW6901) and at the host; the conformance suite
 # over the `DataLayer` seam, for the layer under test, generated for every
 # declared table of the guestbook and the lists app; the guestbook in three
@@ -23,9 +26,12 @@ e14-data-path:
        echo "produced by: just e14-data-path"; \
        echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' ':(exclude)spikes/own-renderer/store-ir.json' || echo ' + uncommitted changes')"; \
        echo "rust: $(rustc --version)"; echo "node: $(node --version)"; \
-       echo "playwright: $(cd spikes/own-renderer && pnpm exec playwright --version)"; echo; \
-       echo "== the server: routing, the guestbook, the conformance suite, the reader's account, a guest's identity"; \
-       cargo test --locked -p pw-dev-server --bin pw-dev-server -- tests::tables:: tests::guestbook:: tests::conformance:: notifications::tests:: tables::tests:: --nocapture; \
+       echo "playwright: $(cd spikes/own-renderer && pnpm exec playwright --version)"; \
+       if [ -n "${PW_FEED_DATABASE_URL:-}" ]; then \
+         echo "postgres: $(psql "$PW_FEED_DATABASE_URL" -Atc 'SHOW server_version' 2>/dev/null || echo 'unknown (psql is not on PATH)')"; \
+       else echo "postgres: PW_FEED_DATABASE_URL is not set, so the PostgreSQL test passes doing nothing"; fi; echo; \
+       echo "== the server: routing, the guestbook, the conformance suite, the reader's account, a guest's identity, the session's cookie kept nowhere"; \
+       cargo test --locked -p pw-dev-server --bin pw-dev-server -- tests::tables:: tests::guestbook:: tests::conformance:: notifications::tests:: tables::tests:: tests::sign_in::nothing_the_feed_keeps_holds_a_session_cookie tests::sign_in::on_postgres::nothing_kept_on_postgres_holds_a_session_cookie tests::store_accounts::nothing_a_session_keyed_store_keeps_holds_a_session_cookie uploads::tests::a_claim_no_transaction_commits_is_given_back --nocapture; \
        echo; echo "== the engine: a guarded command through the gate; the adapter's snapshot"; \
        cargo test --locked -p pw-table-memory --test compiled_guarded --test compiled_snapshot; \
        echo; echo "== the platform's transaction: a command's last step after its records, before its COMMIT"; \

@@ -43,8 +43,9 @@ and what changed:
      `pw-guest-v1:` and the session; `sha2`, already the server's), the
      handle and name from its first ten digits, as the feed names a guest it
      knows no profile of. The domain keeps it apart from the digest a
-     session is kept by (`kept_hash`, SHA-256 of the session alone). From an
-     id no one recovers the session or makes another session's id. **This
+     session is kept by (`kept_hash`, in a domain of its own since
+     correction 8). From an id no one recovers the session or makes another
+     session's id. **This
      corrects ADR-0220's guest, named for its session**, and with it every
      place a guest's id reached: rows' authors, scheduled runs' users, a
      payment's owner (which the payment provider keeps as metadata, as
@@ -158,6 +159,74 @@ and what changed:
      page is told of an entry" must kill. (That run reported it refused,
      not killed by the checker, for another cause found here: the producer
      read only a two-digit gutter, Findings.)
+8. **The session's cookie was kept where a database reader reads it** (the
+   integrator's ruling of 2026-11-02, from the independent review of the
+   PostgreSQL layer, `wip/durable-tables`, which signed in as Ada by
+   sending a stored record's key's first field as the `pw-session`
+   cookie). An interaction's record (ADR-0325), kept a day by every layer
+   (`pw_interactions` on PostgreSQL, the materializer's table in memory),
+   was keyed `{session}\x1f{command}\x1f{id}`, and what it was sent carried
+   the reader's partition, `v1:` and the cookie's bytes in hex. **Ruling,
+   and what changed**: nothing the host stores, shows or logs is made of
+   the cookie. Every value the host makes of a session is a one-way digest
+   of it, SHA-256 over a domain of its own and the session
+   (`identity::session_digest`, beside `guest_user`), each use its own
+   domain, so that no use's value is another's:
+   - an interaction's record's key (`identity::interaction_key`,
+     `pw-interaction-v1:`), in memory and on PostgreSQL alike, since the
+     host makes the key for every layer;
+   - a private read's partition (`ReaderIdentity::partition`, version 2,
+     `pw-partition-v1:`), which a record's `sent` carries and every cached
+     private read's key begins with;
+   - the hash a session, and a sign-in under way, is kept by (`kept_hash`,
+     `pw-kept-v1:`; SHA-256 of the secret alone until now: one-way already,
+     in no domain);
+   - a cart's total's state row (`store::cart_state_key`, `pw-state-v1:`;
+     `cart:` and the cookie until now);
+   - a log's name for a session (`masked`, `pw-log-v1:`; a 32-bit
+     `DefaultHasher` hash of it until now);
+   - and **the session as a program holds it** (`identity::session_handle`,
+     `pw-handle-v1:`): what `current_session()` answers, in a page's
+     binding's key, a stream's arguments and the platform's session
+     operation. Found here, past the review's two: a program was handed the
+     cookie, and what it made of it was kept. The feed's `follow`
+     invalidates `FollowingTimeline(current_session(), _)` and
+     `Relation(current_session(), user)`, and its PostgreSQL layer wrote
+     both into its outbox with the cookie in their arguments (reproduced: a
+     test that signs in, posts and follows found it there, as the review
+     found the record's key); a store keyed by the session (the benchmark's
+     copy) kept it in its carts' and orders' rows (`cart_lines.session` on
+     PostgreSQL), every store kept its estimator's estimate by it
+     (`estimates.session`), and a cart's entry was keyed and partitioned by
+     it in the materializer. Each is the handle now, and so is what the host
+     keys by the session for a program: a by-session cart's owner
+     (`Server::owner`), an entry's partition (`session_partition`), a
+     session's documents' and a speculated value's entries. An operation a
+     program hands its handle to answers for the request's session alone
+     (`data::Requested`): the feed's, in memory and on PostgreSQL, the
+     uploads', the store's (`own_session`); another session's handle, or a
+     cookie, is refused as the component acting for someone else (an
+     upload's discard answered another session's handle "not found").
+
+   The tests run a real session through sign-in and commands, and search
+   what was kept for its cookie and for the one the browser came with,
+   written and in hex: the guestbook's (every table of the materializer,
+   every cached read's key, the guestbook's rows, the tellings,
+   `/bench/records`, `/metrics`), the feed's in memory (its timeline read,
+   keyed by the handle, and its page) and on PostgreSQL (every row of every
+   table of its schema: the records, the outbox's events and invalidations,
+   its sessions and sign-ins; and the page it serves), and a store's keyed
+   by the session (its cart's entry, in the handle's partition); and each
+   digest is pinned to the value another implementation (.NET's SHA-256)
+   computed (`each_digest_of_a_session_is_its_own_domains`). Eight mutation
+   controls take a digest's domain or the handle away, or let an operation
+   answer for a session it is not passed. **What stops matching**, which the
+   ruling accepts at this stage: a record kept by a cookie is not recalled
+   (a retry of a press committed before the change, within its record's
+   day, runs again); a session kept on PostgreSQL before it is not found,
+   and its reader is signed out once, as a sign-in under way fails once; a
+   cached read is read again; a cart, an order or an estimate kept by a
+   cookie is not found.
 
 ## Context
 
@@ -285,6 +354,14 @@ and what changed:
     hash. ADR-0018 has a runtime not depend on the compiler; the adapter
     reading the host's mirror (`pw_host::tables`) takes the debt away. Not
     done here: it is the adapter's crate boundary, not the routing's.
+13. **Nothing the host keeps, shows or logs is made of the session's
+    cookie** (correction 8): each value it makes of a session is SHA-256
+    over that use's own domain and the session, and a program holds its
+    session by its handle, which an operation answers for the request's
+    session alone. The cookie stays where it must: the request's header,
+    the `Set-Cookie` a sign-in sends, and the host's own memory of whom a
+    session is (its principals, its open pages, its leases), none of which
+    it writes anywhere.
 
 ## What is proven
 
@@ -306,7 +383,12 @@ and what changed:
 - **No program, page or table is handed a session**: a guest's id, handle
   and name are its session's digest; `account_of` answers an account a
   sign-in opened, never a guest's and never a stand-in's, a platform-run
-  command its reader's; no row holds a handle.
+  command its reader's; no row holds a handle. **Nothing the host keeps,
+  shows or logs holds the session's cookie**: searched for, written and in
+  hex, after a real sign-in and commands, in every table of the
+  materializer and of a PostgreSQL schema, every cached read's key, the
+  guestbook's rows, the tellings, the routes' records and the pages served;
+  each digest of a session pinned to another implementation's value.
 - **The adapter answers as an oracle does** for every read function of
   every table of two programs at two sizes, each read within its stated
   cost counted at the adapter, every table refused as any adapter must, and
@@ -364,16 +446,21 @@ and what changed:
 everything this ADR claims; the integrator produces the record from CI at
 the track's final head (the review's S4). It runs:
 
-- **The server**, `pw-dev-server`, 32 tests: `tests::tables` (10: routing,
+- **The server**, `pw-dev-server`, 38 tests: `tests::tables` (10: routing,
   a run on a reader's behalf for a guest, a signed-out reader and an
   account, a row of a handle's type refused at start, an upload refused),
-  `tests::guestbook` (10: the outbox's refusal, a COMMIT failing after the
-  publication, the bound measured, the composer an account's), the suite
-  (4: both programs, 113 reads of the guestbook's tables and 164 of the
-  lists app's against the oracle, each table's refusals; idempotency; the
-  query pins), `notifications::tests` (7: a guest's identity, the account
-  operation, a stand-in's account), `tables::tests` (1: a handle named in
-  tables.json).
+  `tests::guestbook` (12: the outbox's refusal, a COMMIT failing after the
+  publication, the bound measured, the composer an account's; nothing kept
+  or logged holds a session's cookie, and each digest of a session pinned),
+  the suite (4: both programs, 113 reads of the guestbook's tables and 164
+  of the lists app's against the oracle, each table's refusals;
+  idempotency; the query pins), `notifications::tests` (7: a guest's
+  identity, the account operation, a stand-in's account), `tables::tests`
+  (1: a handle named in tables.json); and the session's cookie kept nowhere
+  (correction 8, 4): the feed's in memory, the feed's on PostgreSQL where
+  `PW_FEED_DATABASE_URL` names a database (the record says whether it did),
+  a store's keyed by the session, an upload's operations refusing another
+  session's handle.
 - **The engine and adapter**: `pw-table-memory --test compiled_guarded`
   (3), `--test compiled_snapshot` (2); **the platform's transaction**:
   `pw-materialize`'s `command_then` (1: its last step after its records and
@@ -384,7 +471,7 @@ the track's final head (the review's S4). It runs:
   reference of codes current.
 - **The guestbook in three engines** (`e2e/guestbook.spec.mjs`, 5 tests,
   15 runs: a refusal said among them).
-- **`scripts/data_path_mutations.py`, 42 mutants**, whole, D2's strict
+- **`scripts/data_path_mutations.py`, 50 mutants**, whole, D2's strict
   producer (a kill is a test failing at its assertion, each binary's
   inventory frozen at the baseline).
 
@@ -406,7 +493,15 @@ id: `e14-feed`, `e14-feed-postgres`, `e14-follows`, `e14-identity`,
 `e14-notifications`, `e14-render-merge`, `e14-store-postgres`,
 `e14-uploads`. Re-anchored by the track's first form, and in the plan
 again: `computed_holes` (`e14-computed-holes`), `notifications` and
-`render_merge`.
+`render_merge`. Re-anchored by correction 8, each to the fault it took
+before: `second_host` (`e14-second-host`: a session kept by its id, not its
+hash), `render_merge` (`e14-render-merge`: the feed's render in memory
+reading the feed as it is now), `shared_output` (`e14-shared-output`: a
+session's cart materialized in the public partition) and `store_accounts`
+(`e14-store-accounts`: a cart's entry keyed by the session); tests changed
+for it (an interaction's key, a cart's state's key, an upload's operation
+handed the handle): `e14-session-command-authority`, `e14-uploads`,
+`e14-upload-authority`, the scheduled replay's and the store's.
 
 ## Not claimed
 
@@ -442,6 +537,15 @@ again: `computed_holes` (`e14-computed-holes`), `notifications` and
   data declared (D4, D5).
 - **The sequence's contention**: every signing reads and writes the book's
   row, which serializes signings; fine in memory, a hot row on PostgreSQL.
+- **What was kept by a cookie before correction 8**: not migrated. Its
+  records, sessions, carts, orders and estimates stop matching (correction
+  8 says what that costs), and a database that holds them still holds the
+  cookies until they expire or are deleted; a deployment past this stage
+  would delete them.
+- **The host's own memory of sessions**: its principals, its open pages,
+  its uploads' leases and its tests' faults are keyed by the cookie in the
+  process's memory, which nothing writes out; a dump of the process's
+  memory would hold them. Keying them by a digest too is not done here.
 
 ## Findings
 
@@ -452,6 +556,18 @@ again: `computed_holes` (`e14-computed-holes`), `notifications` and
   session to its reader, named a guest's posts to every reader by the
   session's first ten characters, kept it as their author, and a payment
   sent it to its provider as its owner's metadata.
+- **CORRECTION (security) of the session a program holds**, found here in
+  carrying out the integrator's ruling on the PostgreSQL layer's review
+  (correction 8): `current_session()` answered the cookie, so whatever a
+  program made of its session was the cookie. The feed's outbox on
+  PostgreSQL kept it in `follow`'s and `unfollow`'s invalidations
+  (`Relation(current_session(), user)`), as an image's post and discard
+  kept it in `Attached`'s; a store keyed by the session kept it in its
+  carts' and orders' rows; every store kept its estimator's estimate by it;
+  and a cart's entry was keyed and partitioned by it in the materializer.
+  A reader of the database, or of the outbox's feed to another host, read
+  a session they could sign in with, as the review did with a record's
+  key.
 - **A stand-in passes the identity's `is_guest()` as an account**: the
   feed's `profile_of` and `viewer_val` read it so, and would write or show
   its empty name. No feed command runs on a reader's behalf today; the
