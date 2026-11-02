@@ -6,6 +6,13 @@
     "spikes/**/*.js",
     "benchmarks/harness/bench.mjs",
     "benchmarks/harness/test/**/*.mjs",
+    "benchmarks/headtohead/head-to-head.mjs",
+    "benchmarks/headtohead/feature-change.mjs",
+    "benchmarks/headtohead/museum-classes.mjs",
+    "benchmarks/headtohead/static-host.mjs",
+    "benchmarks/headtohead/playwright.config.mjs",
+    "benchmarks/headtohead/todomvc/behaviour.spec.mjs",
+    "benchmarks/headtohead/test/**/*.mjs",
     "benchmarks/baselines/sveltekit/vendor/deepmerge/test.cjs",
     "benchmarks/baselines/sveltekit/vendor/deepmerge/consumer-test.cjs"
   ],
@@ -16,16 +23,22 @@
     ]
   },
   "ignoreFindings": [
-    "spikes/pw-to-marko/src/routes/**"
+    "spikes/pw-to-marko/src/routes/**",
+    "benchmarks/headtohead/todomvc/react/**",
+    "benchmarks/headtohead/todomvc/svelte/**"
   ],
   "duplicates": {
     "ignore": [
-      "spikes/pw-to-marko/src/routes/**"
+      "spikes/pw-to-marko/src/routes/**",
+      "benchmarks/headtohead/todomvc/react/**",
+      "benchmarks/headtohead/todomvc/svelte/**"
     ]
   },
   "health": {
     "ignore": [
-      "spikes/pw-to-marko/src/routes/**"
+      "spikes/pw-to-marko/src/routes/**",
+      "benchmarks/headtohead/todomvc/react/**",
+      "benchmarks/headtohead/todomvc/svelte/**"
     ]
   },
   "audit": {

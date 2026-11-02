@@ -1,0 +1,5 @@
+A file beside the harness's evidence whose name is not harness-T<n>.txt: it is not read,
+though it says what would change T01's answer if it were.
+
+commit: aaaaaaaa11111111aaaaaaaa11111111aaaaaaaa
+T01 pleris: negative ok, positive ok, unsafe ok (caught at contract), harness ok

@@ -1,0 +1,6 @@
+{
+  "id": "T7",
+  "title": "A directory whose name has no hyphen after its number is no task's",
+  "stacks": ["pleris"],
+  "hidden": "hidden/T7.spec.mjs"
+}

@@ -1,0 +1,31 @@
+{
+  "id": "H07-n-plus-one",
+  "leaf": "H07",
+  "title": "One round trip per row: a page whose work grows with its list",
+  "source": {
+    "ref": "Vercel Academy, Next.js Foundations; Prisma ORM's documentation; census H07 (model/spec), R1, S33",
+    "kind": "framework documentation (the framework vendor's course); ORM documentation; model/spec",
+    "url": "https://vercel.com/academy/nextjs-foundations/query-performance-patterns ; https://www.prisma.io/docs/orm/prisma-client/queries/query-optimization-performance ; research/failures/taxonomy/02-security-privacy.md#h-database-invariants-and-query-semantics ; https://sre.google/sre-book/handling-overload/",
+    "date": "Vercel's lesson last updated 2026-08-21 (its page's metadata), read 2026-10-15; Prisma's (ORM v7) read 2026-10-15; the census 2026-09-10",
+    "says": "Vercel's own Next.js course: \"Queries inside .map() or for loops are especially problematic\", its example one query per user, a hundred users, a hundred queries. Prisma's documentation: \"The n+1 problem occurs when looping through query results and performing one additional query per result.\" Documentation, no incident: the exhibit qualifies by the ADR's fourth kind. The census's own model: one remote lookup per list row; logical data demand should not impose unnecessary serial or per-row round trips (H07). S33 is the overload a multiplied demand causes, not an N+1 incident"
+  },
+  "claim": "ADR-0340 (NEXT 4c's checker): a source read inside a loop over data whose key comes from the loop's element is refused (PW0405), its set read the repair. Before it, none: the census marks H07 'specified but unproven' (batch only with equivalent authorization, consistency, limits and failure semantics; report unbatchable causes)",
+  "history": "refused, PW0405: a miss the museum found, closed by ADR-0340's checker. The museum's first record (5985fe24, 2026-10-15) showed it a miss, the same change checking clean; ADR-0340 was merged on train-9 the same day, and the exhibit expects the refusal since",
+  "related": [
+    "examples/rejected/R-075-a-read-per-element-in-a-combinators-callback.pw",
+    "examples/generality/read_per_element"
+  ],
+  "repro": {
+    "stack": "next-react",
+    "bug": "next-react.patch",
+    "fixed": "fixed.next-react.patch",
+    "how": "a price per menu item read in the Server Component with `Promise.all(menu.map(..))`, one round trip each, counted at `/bench/queries`; the repair reads every price in one round trip"
+  },
+  "pleris": {
+    "kind": "diagnostic",
+    "code": "PW0405",
+    "patch": "pleris.patch",
+    "faithful": "The same per-item read on the benchmark's store: `Menus.price` per item, `List.map(items, item => Menus.price(item.id))`, inside a public query over the menu. Its neighbour is the store without the change. Until ADR-0340 it checked clean, and the generality corpus held the same shape as a valid neighbour (examples/generality/undeclared_effect/complete-row.pw, which reads by a parameter since). The exhibit's patch is unchanged: the same program, refused now."
+  },
+  "expect": "refused"
+}

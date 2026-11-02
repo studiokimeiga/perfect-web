@@ -1,0 +1,7 @@
+{
+  "id": "T08",
+  "title": "Prevent duplicate submissions",
+  "stacks": ["pleris", "next-react", "sveltekit"],
+  "hidden": "hidden/T08.spec.mjs",
+  "start": { "pleris": "broken" }
+}

@@ -247,9 +247,16 @@ In the owner's order (NEXT), with where each stands:
    source, its bug shown happening in Next.js or SvelteKit, and Pleris's
    answer. F01, G01 and J08 are refused by a code, J01 at runtime; H07, an
    N+1 read, was a miss at the museum's first record and is refused since by
-   PW0405 (0340), the museum's first closed miss. The head-to-head's
-   protocol is written, TodoMVC first; nothing of it is measured, and its
-   downloads wait for the owner. Next: J01's variant on a streamed page.
+   PW0405 (0340), the museum's first closed miss. The head-to-head is
+   measured (0392): TodoMVC against TodoMVC's own React and Svelte apps,
+   the store against Next.js and SvelteKit, one instrument, Pleris's losses
+   first. It loses on bytes (no minifier, compression or cache; the
+   renderer fetched by the first press), every interaction's time, Slow
+   4G, open tabs and idle visitors, and the store's source, whose data
+   layer is Rust; it is best in behaviour, the same change and what its
+   checker catches in it, the museum, and the store server's cost.
+   Accessibility is not measured yet. Next: the losses' fixes (NEXT), then
+   J01's variant on a streamed page.
 3. **A Google Docs-shaped app**:
    - real-time collaboration and offline;
    - presence;

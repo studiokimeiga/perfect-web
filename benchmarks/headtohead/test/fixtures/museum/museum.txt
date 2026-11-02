@@ -1,0 +1,83 @@
+ADR-0342 - the bug museum: each exhibit's bug shown in Next.js or SvelteKit, and Pleris's answer to it
+
+produced by: just e14-museum
+commit: 5a4378fe51fd38460239ffb295f9e4fea9bfcbac
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39892771765 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+node: v22.21.1  pnpm: 10.15.1
+  @playwright/test   1.58.0  (benchmarks/harness)
+  @sveltejs/kit      2.70.3  (benchmarks/baselines/sveltekit)
+  next               16.4.1  (benchmarks/baselines/next-react)
+  react              19.3.0  (benchmarks/baselines/next-react)
+  svelte             5.57.1  (benchmarks/baselines/sveltekit)
+  typescript         6.0.3  (benchmarks/baselines/next-react)
+  typescript         6.0.3  (benchmarks/baselines/sveltekit)
+  vite               8.3.3  (benchmarks/baselines/sveltekit)
+
+== the exhibits (benchmarks/museum/museum.mjs)
+
+== F01-markup-from-text: Text another user wrote runs as script in a customer's page
+   census F01; source GHSA-9f4f-jv96-8766 (CVE-2025-46719); S21, S27 a CVE, the advisory of the app that had it (Open WebUI, a SvelteKit app); security guidance; W3C specification, CVE-2025-46719 published by NVD 2025-05-05, reviewed by GitHub 2026-07-07, read 2026-10-15; S21, S27 2026-09-10, as read for the census: https://github.com/advisories/GHSA-9f4f-jv96-8766 ; https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html ; https://www.w3.org/TR/trusted-types/
+   sveltekit, the bug: 1 passed, 0 failed
+   sveltekit, repaired: 0 passed, 1 failed (the spec fails: it detects the bug)
+   pleris, the same change: refused: error: [PW5010] `raw_html` requires the `unsafe.raw_html` capability and a justification
+   pleris, its neighbour: checks clean
+   => refused (diagnostic PW5010)
+
+== G01-retried-command-twice: One press applied twice when its request is delivered twice
+   census G01, M04; source S13, S14 engineering article; provider contract, 2026-09-10, as read for the census: https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/ ; https://docs.stripe.com/api/idempotent_requests
+   next-react, the bug: 1 passed, 0 failed
+   next-react, repaired: 0 passed, 1 failed (the spec fails: it detects the bug)
+   pleris, the same change: refused: error: [PW0338] `add_to_cart` is called by a page's handler, and declares no `idempotent_by`
+   pleris, its neighbour: checks clean
+   pleris, at runtime: passes: T08's hidden test on the Pleris store with `idempotent_by` (bench.mjs, replay:reference)
+     T08 pleris replay:reference: score 1, 2 line(s) changed -> benchmarks/results/T08-pleris-replay_reference-1792724724164.json
+   => refused (diagnostic PW0338; runtime, ADR-0121's interaction per press, applied once)
+
+== H07-n-plus-one: One round trip per row: a page whose work grows with its list
+   census H07; source Vercel Academy, Next.js Foundations; Prisma ORM's documentation; census H07 (model/spec), R1, S33 framework documentation (the framework vendor's course); ORM documentation; model/spec, Vercel's lesson last updated 2026-08-21 (its page's metadata), read 2026-10-15; Prisma's (ORM v7) read 2026-10-15; the census 2026-09-10: https://vercel.com/academy/nextjs-foundations/query-performance-patterns ; https://www.prisma.io/docs/orm/prisma-client/queries/query-optimization-performance ; research/failures/taxonomy/02-security-privacy.md#h-database-invariants-and-query-semantics ; https://sre.google/sre-book/handling-overload/
+   history: refused, PW0405: a miss the museum found, closed by ADR-0340's checker. The museum's first record (5985fe24, 2026-10-15) showed it a miss, the same change checking clean; ADR-0340 was merged on train-9 the same day, and the exhibit expects the refusal since
+   next-react, the bug: 1 passed, 0 failed
+   next-react, repaired: 0 passed, 1 failed (the spec fails: it detects the bug)
+   pleris, the same change: refused: error: [PW0405] `Menus.price` reads `Menus` once for each element of `items`
+   pleris, its neighbour: checks clean
+   => refused (diagnostic PW0405)
+
+== J01-stale-page-after-save: A page shown after a save is the one read before it
+   census J01, B06; source vercel/next.js#42991; ADR-0280 (the owner's own Next.js case); S17; on its repair, vercel/next.js#99028 issue in the framework's tracker; the owner's report; framework documentation; standard, #42991 opened 2022-11-16, closed 2023-08-16; #99028 opened 2026-09-22, open; both read 2026-10-15. Next.js's guides read 2026-10-08 for ADR-0280; RFC 9111 2026-09-10, as read for the census: https://github.com/vercel/next.js/issues/42991 ; https://nextjs.org/docs/app/api-reference/config/next-config-js/staleTimes ; https://nextjs.org/docs/app/guides/redirecting ; https://www.rfc-editor.org/rfc/rfc9111.html ; https://github.com/vercel/next.js/issues/99028
+   next-react, the bug: 1 passed, 0 failed
+   next-react, repaired: 0 passed, 1 failed (the spec fails: it detects the bug)
+   pleris, at runtime: passes: e2e/navigate.spec.mjs: an order placed goes to its page, read after the commit (Chromium)
+     browser host map: 1 of 80 hosts for 1 selected tests
+     
+     Running 1 test using 1 worker
+     
+     [1/1] [chromium] › e2e/navigate.spec.mjs:59:1 › an order placed goes to its page, read after the commit
+       1 passed (8.0s)
+   => refused (runtime, ADR-0280, navigate after the commit)
+
+== J08-shared-server-state: One customer's cart shown to another, from state the server shares
+   census J08, E01; source S54 framework documentation, 2026-09-10, as read for the census: https://svelte.dev/docs/kit/state-management
+   sveltekit, the bug: 1 passed, 0 failed
+   sveltekit, repaired: 0 passed, 1 failed (the spec fails: it detects the bug)
+   pleris, the same change: refused: error: [PW5001] `Cart` is Session<SessionId> and declares a shared cache
+   pleris, its neighbour: checks clean
+   => refused (diagnostic PW5001)
+
+exhibit | census | source | the bug, in | its repair | Pleris
+F01-markup-from-text | F01 | a CVE, the advisory of the app that had it (Open WebUI, a SvelteKit app); security guidance; W3C specification, CVE-2025-46719 published by NVD 2025-05-05, reviewed by GitHub 2026-07-07, read 2026-10-15; S21, S27 2026-09-10, as read for the census | sveltekit: shown | fails the spec | refused (diagnostic PW5010)
+G01-retried-command-twice | G01 | engineering article; provider contract, 2026-09-10, as read for the census | next-react: shown | fails the spec | refused (diagnostic PW0338; runtime, ADR-0121's interaction per press, applied once)
+H07-n-plus-one | H07 | framework documentation (the framework vendor's course); ORM documentation; model/spec, Vercel's lesson last updated 2026-08-21 (its page's metadata), read 2026-10-15; Prisma's (ORM v7) read 2026-10-15; the census 2026-09-10 | next-react: shown | fails the spec | refused (diagnostic PW0405)
+J01-stale-page-after-save | J01 | issue in the framework's tracker; the owner's report; framework documentation; standard, #42991 opened 2022-11-16, closed 2023-08-16; #99028 opened 2026-09-22, open; both read 2026-10-15. Next.js's guides read 2026-10-08 for ADR-0280; RFC 9111 2026-09-10, as read for the census | next-react: shown | fails the spec | refused (runtime, ADR-0280, navigate after the commit)
+J08-shared-server-state | J08 | framework documentation, 2026-09-10, as read for the census | sveltekit: shown | fails the spec | refused (diagnostic PW5001)
+museum: 5 exhibits, 5 refused, 0 missed, 0 not as expected
+
+== mutation controls (scripts/proof_mutations.py)
+
+baseline: museum: 4 exhibits, 4 refused, 0 missed, 0 not as expected
+J08: PW5001: a shared cache is not asked what it holds: KILLED (the museum reports it not refused: museum: 1 exhibits, 0 refused, 0 missed, 1 not as expected)
+F01: PW5010: an unsafe effect reached with no audit record is not refused: KILLED (the museum reports it not refused: museum: 1 exhibits, 0 refused, 0 missed, 1 not as expected)
+G01: PW0338: a command a page sends is not asked for idempotent_by: KILLED (the museum reports it not refused: museum: 1 exhibits, 0 refused, 0 missed, 1 not as expected)
+H07: PW0405: a read in a loop, keyed by the loop's element, is not reported: KILLED (the museum reports it not refused: museum: 1 exhibits, 0 refused, 0 missed, 1 not as expected)
+4 of 4 mutants killed
+memory bound: no process was stopped

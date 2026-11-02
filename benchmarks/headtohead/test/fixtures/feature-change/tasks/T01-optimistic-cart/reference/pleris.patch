@@ -1,0 +1,12 @@
+diff --git a/store/app.pw b/store/app.pw
+index d80bc99..315ead6 100644
+--- a/store/app.pw
++++ b/store/app.pw
+@@ -101,6 +101,7 @@ command add_to_cart(item: MenuItemId, quantity: PositiveInt)
+     -> Result<Cart, CartError>
+     requires      SignedIn
+     idempotent_by InteractionId
++    optimistic    Cart(current_session()) as cart => Carts.with_line(cart, item, quantity)
+     invalidates   Cart(current_session())
+     emits         CartChanged(current_session())
+ {

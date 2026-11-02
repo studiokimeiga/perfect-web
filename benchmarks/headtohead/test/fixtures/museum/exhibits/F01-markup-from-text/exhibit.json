@@ -1,0 +1,36 @@
+{
+  "id": "F01-markup-from-text",
+  "leaf": "F01",
+  "title": "Text another user wrote runs as script in a customer's page",
+  "source": {
+    "ref": "GHSA-9f4f-jv96-8766 (CVE-2025-46719); S21, S27",
+    "kind": "a CVE, the advisory of the app that had it (Open WebUI, a SvelteKit app); security guidance; W3C specification",
+    "url": "https://github.com/advisories/GHSA-9f4f-jv96-8766 ; https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html ; https://www.w3.org/TR/trusted-types/",
+    "date": "CVE-2025-46719 published by NVD 2025-05-05, reviewed by GitHub 2026-07-07, read 2026-10-15; S21, S27 2026-09-10, as read for the census",
+    "says": "Open WebUI before 0.6.6 (a SvelteKit app: `@sveltejs/kit` in its package.json, read 2026-10-15) rendered an HTML token of a chat message with `{@html `${token.text}`}` (MarkdownTokens.svelte): a stored XSS, rated high, which the advisory takes to account takeover; it calls `{@html}` \"a dangerous Svelte functionality\". the census's reading: output contexts need different treatment, and safe text sinks, validated URLs and audited HTML sanitization are not interchangeable (S21); Trusted Types constrains values entering injection sinks through explicit policies (S27)"
+  },
+  "claim": "charter §8.2 (escaping is the default); `html.raw_html` performs `unsafe.raw_html`, and reaching it needs an audited capability with a justification (PW5010)",
+  "related": [
+    "examples/rejected/R-024-raw-unsafe-HTML-without-capability.pw",
+    "benchmarks/tasks/T09-notice-freshness"
+  ],
+  "repro": {
+    "stack": "sveltekit",
+    "base": [
+      "benchmarks/tasks/T09-notice-freshness/setup/sveltekit.patch"
+    ],
+    "bug": "sveltekit.patch",
+    "fixed": "fixed.sveltekit.patch",
+    "how": "T09's store notice, which staff post, rendered with Svelte's `{@html}` so that its formatting shows; the repair renders it as text, `{data.notice}`, which Svelte escapes"
+  },
+  "pleris": {
+    "kind": "diagnostic",
+    "code": "PW5010",
+    "base": [
+      "benchmarks/tasks/T09-notice-freshness/setup/pleris.patch"
+    ],
+    "patch": "pleris.patch",
+    "faithful": "The same notice, on the same store (T09's setup), rendered through `html.raw_html`: refused, naming the capability and the escaped alternative. Its neighbour is T09's `{notice}`, escaped by default."
+  },
+  "expect": "refused"
+}

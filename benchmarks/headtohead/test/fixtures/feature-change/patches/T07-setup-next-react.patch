@@ -1,0 +1,147 @@
+diff --git a/app/api/menu/route.ts b/app/api/menu/route.ts
+new file mode 100644
+index 0000000..816ce04
+--- /dev/null
++++ b/app/api/menu/route.ts
+@@ -0,0 +1,13 @@
++import { NextResponse, type NextRequest } from "next/server";
++import { menuIn, slowFor } from "@/lib/store";
++
++export const dynamic = "force-dynamic";
++
++/** The store's menu items in a category: `?store=..&category=..`. Reading a
++ * category takes as long as it takes. */
++export async function GET(request: NextRequest) {
++  const params = request.nextUrl.searchParams;
++  const category = params.get("category") ?? "all";
++  await new Promise((resolve) => setTimeout(resolve, slowFor(category)));
++  return NextResponse.json(menuIn(params.get("store") ?? "", category));
++}
+diff --git a/app/bench/category/route.ts b/app/bench/category/route.ts
+new file mode 100644
+index 0000000..a6c273e
+--- /dev/null
++++ b/app/bench/category/route.ts
+@@ -0,0 +1,10 @@
++import { NextResponse, type NextRequest } from "next/server";
++import { setSlowCategory } from "@/lib/store";
++
++/** Make one of the menu's categories slow to read: `?slow=hot&delay=1500`.
++ * A benchmark's hook, as every stack in it has one. */
++export async function POST(request: NextRequest) {
++  const params = request.nextUrl.searchParams;
++  setSlowCategory(params.get("slow"), Number(params.get("delay") ?? 0));
++  return NextResponse.json({});
++}
+diff --git a/app/stores/[storeId]/Browse.tsx b/app/stores/[storeId]/Browse.tsx
+new file mode 100644
+index 0000000..280067f
+--- /dev/null
++++ b/app/stores/[storeId]/Browse.tsx
+@@ -0,0 +1,40 @@
++"use client";
++
++import { useEffect, useState } from "react";
++
++type Item = { id: string; name: string };
++
++const CATEGORIES = [
++  ["all", "All"],
++  ["hot", "Hot"],
++  ["cold", "Cold"],
++] as const;
++
++/** The menu by category: the chosen category's items, read again when it
++ * changes. */
++export function Browse({ storeId, initial }: { storeId: string; initial: Item[] }) {
++  const [category, setCategory] = useState<string>("all");
++  const [items, setItems] = useState<Item[]>(initial);
++  useEffect(() => {
++    fetch(`/api/menu?store=${storeId}&category=${category}`)
++      .then((r) => r.json())
++      .then((found: Item[]) => setItems(found));
++  }, [storeId, category]);
++
++  return (
++    <section aria-label="Browse">
++      <nav aria-label="Categories">
++        {CATEGORIES.map(([id, label]) => (
++          <button key={id} type="button" onClick={() => setCategory(id)}>
++            {label}
++          </button>
++        ))}
++      </nav>
++      <ul id="browse">
++        {items.map((item) => (
++          <li key={item.id}>{item.name}</li>
++        ))}
++      </ul>
++    </section>
++  );
++}
+diff --git a/app/stores/[storeId]/page.tsx b/app/stores/[storeId]/page.tsx
+index 8d4f845..dc2663a 100644
+--- a/app/stores/[storeId]/page.tsx
++++ b/app/stores/[storeId]/page.tsx
+@@ -1,5 +1,6 @@
+ import { notFound } from "next/navigation";
+-import { getCart, getMenu, getStore, lineCount } from "@/lib/store";
++import { getCart, getMenu, getStore, lineCount, menuIn } from "@/lib/store";
++import { Browse } from "./Browse";
+ import { currentSession } from "@/lib/session";
+ import { addToCartAction, clearCartAction } from "./actions";
+ 
+@@ -33,6 +34,8 @@ export default async function StorePage({
+         </ul>
+       </section>
+ 
++      <Browse storeId={store.id} initial={menuIn(store.id, "all")} />
++
+       <section aria-label="Cart">
+         <p id="cart-count">{lineCount(cart)}</p>
+         <form action={clearCartAction}>
+diff --git a/lib/store.ts b/lib/store.ts
+index 7291a61..4c8892a 100644
+--- a/lib/store.ts
++++ b/lib/store.ts
+@@ -46,6 +46,40 @@ export function getCart(session: string | undefined): Cart {
+   };
+ }
+ 
++/** Each menu item's category: hot or cold. */
++const CATEGORY: Record<MenuItemId, string> = {
++  espresso: "hot",
++  cortado: "hot",
++  "cold-brew": "cold",
++};
++
++/** Which category is slow to read, and how slow. A benchmark's hook sets
++ * it. */
++const slowness: { category: string | null; delayMs: number } =
++  ((globalThis as Record<string, unknown>).__pwBenchSlowness as {
++    category: string | null;
++    delayMs: number;
++  }) ?? { category: null, delayMs: 0 };
++(globalThis as Record<string, unknown>).__pwBenchSlowness = slowness;
++
++/** Make one category slow to read, as a busy kitchen's is. */
++export function setSlowCategory(category: string | null, delayMs: number): void {
++  slowness.category = category;
++  slowness.delayMs = delayMs;
++}
++
++/** How long reading a category takes, in milliseconds. */
++export function slowFor(category: string): number {
++  return slowness.category === category ? slowness.delayMs : 0;
++}
++
++/** The store's menu items in a category: `hot`, `cold`, or `all` of them. */
++export function menuIn(store: StoreId, category: string): MenuItem[] {
++  return (MENUS[store] ?? []).filter(
++    (item) => category === "all" || CATEGORY[item.id] === category,
++  );
++}
++
+ /** How many items the cart holds: what the page shows. */
+ export function lineCount(cart: Cart): number {
+   return cart.lines.reduce((n, line) => n + line.quantity, 0);

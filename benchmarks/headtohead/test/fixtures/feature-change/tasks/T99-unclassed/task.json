@@ -1,0 +1,6 @@
+{
+  "id": "T99",
+  "title": "A change the classes do not name",
+  "stacks": ["pleris", "next-react", "sveltekit"],
+  "hidden": "hidden/T99.spec.mjs"
+}

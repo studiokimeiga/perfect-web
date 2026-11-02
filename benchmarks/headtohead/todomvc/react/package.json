@@ -1,0 +1,40 @@
+{
+    "name": "todomvc-react",
+    "version": "1.0.0",
+    "description": "A TodoMVC written in React.",
+    "private": true,
+    "engines": {
+        "node": ">=20.19.0",
+        "npm": ">=10.0.0"
+    },
+    "scripts": {
+        "build": "webpack --config webpack.prod.js",
+        "dev": "webpack serve --open --config webpack.dev.js",
+        "serve": "http-server ./dist -p 7002 -c-1 --cors"
+    },
+    "devDependencies": {
+        "@babel/core": "^7.29.0",
+        "@babel/preset-env": "^7.29.3",
+        "@babel/preset-react": "^7.28.5",
+        "babel-loader": "^10.1.1",
+        "copy-webpack-plugin": "^14.0.0",
+        "css-loader": "^7.1.4",
+        "css-minimizer-webpack-plugin": "^8.0.0",
+        "html-webpack-plugin": "^5.6.7",
+        "http-server": "^14.1.1",
+        "mini-css-extract-plugin": "^2.10.2",
+        "style-loader": "^4.0.0",
+        "webpack": "^5.106.2",
+        "webpack-cli": "^7.0.2",
+        "webpack-dev-server": "^5.2.3",
+        "webpack-merge": "^6.0.1"
+    },
+    "dependencies": {
+        "classnames": "^2.5.1",
+        "react": "^19.2.5",
+        "react-dom": "^19.2.5",
+        "react-router-dom": "^7.14.2",
+        "todomvc-app-css": "^2.4.3",
+        "todomvc-common": "^1.0.5"
+    }
+}

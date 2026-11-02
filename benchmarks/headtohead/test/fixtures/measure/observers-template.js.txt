@@ -1,0 +1,109 @@
+(() => {
+  if (window.top !== window || window.__h2h) return;
+  // A measurement an engine does not report stays null, never zero: layout
+  // shift starts at 0 only where the engine reports layout shifts.
+  const h = (window.__h2h = { t: {}, lcp: null, cls: null, waits: [], documents: 1 });
+  const now = () => performance.now();
+  const frame = (set) => requestAnimationFrame(() => setTimeout(() => set(now()), 0));
+  const reports = (type) => (PerformanceObserver.supportedEntryTypes ?? []).includes(type);
+  try {
+    new PerformanceObserver((l) => {
+      for (const e of l.getEntries()) if (e.name === "first-contentful-paint") h.t.fcp = e.startTime;
+    }).observe({ type: "paint", buffered: true });
+  } catch {}
+  try {
+    if (reports("largest-contentful-paint")) {
+      new PerformanceObserver((l) => {
+        const es = l.getEntries();
+        if (es.length) h.lcp = es[es.length - 1].startTime;
+      }).observe({ type: "largest-contentful-paint", buffered: true });
+    }
+  } catch {}
+  try {
+    if (reports("layout-shift")) {
+      h.cls = 0;
+      new PerformanceObserver((l) => {
+        for (const e of l.getEntries()) if (!e.hadRecentInput) h.cls += e.value;
+      }).observe({ type: "layout-shift", buffered: true });
+    }
+  } catch {}
+  const APP = "__APP__";
+  const READY = "__READY__";
+  const readyNow = () => {
+    if (READY === "dom") return !!document.querySelector(APP);
+    if (READY === "pw") return document.documentElement.dataset.pwReady === "1";
+    if (READY === "next") return !!(history.state && history.state.__NA);
+    // SvelteKit's client writes its router state BEFORE it hydrates, and
+    // starts its router after: _start_router sets scrollRestoration first.
+    if (READY === "sveltekit") return history.scrollRestoration === "manual";
+    return false;
+  };
+  try {
+    const d = Object.getOwnPropertyDescriptor(History.prototype, "scrollRestoration");
+    Object.defineProperty(History.prototype, "scrollRestoration", {
+      configurable: true,
+      enumerable: d.enumerable,
+      get() {
+        return d.get.call(this);
+      },
+      set(v) {
+        d.set.call(this, v);
+        check();
+      },
+    });
+  } catch {}
+  // What an interaction waits for, by name: no code is made from text, so a
+  // page's policy against eval is no obstacle and is never bypassed.
+  const CONDS = {
+    todos: (n) => document.querySelectorAll(".todo-list li").length === n,
+    completed: (n) => document.querySelectorAll(".todo-list li.completed").length === n,
+    filter: (name) => {
+      const a = document.querySelector(".filters a.selected");
+      return !!a && a.textContent.trim() === name;
+    },
+    count: (text) => {
+      const c = document.querySelector("#cart-count");
+      return !!c && c.textContent.trim() === text;
+    },
+  };
+  const check = () => {
+    if (h.t.appInDom == null && document.querySelector(APP)) {
+      h.t.appInDom = now();
+      frame((t) => (h.t.appFrame = t));
+    }
+    if (h.t.ready == null && readyNow()) h.t.ready = now();
+    for (const w of h.waits) {
+      if (w.dom == null && w.start != null && CONDS[w.cond](w.arg)) {
+        w.dom = now();
+        frame((t) => (w.frame = t));
+      }
+    }
+  };
+  new MutationObserver(check).observe(document, {
+    subtree: true, childList: true, attributes: true, characterData: true,
+  });
+  for (const name of ["pushState", "replaceState"]) {
+    const original = history[name];
+    history[name] = function (...args) {
+      const r = original.apply(this, args);
+      check();
+      return r;
+    };
+  }
+  document.addEventListener("DOMContentLoaded", check);
+  addEventListener("load", check);
+  // The start of an interaction is its first input event's own time stamp.
+  for (const type of ["keydown", "pointerdown", "mousedown", "click"]) {
+    addEventListener(type, (e) => {
+      const w = h.waits[h.waits.length - 1];
+      if (w && w.start == null && w.armed) {
+        w.start = e.timeStamp;
+        w.event = e.type;
+        queueMicrotask(check);
+      }
+    }, true);
+  }
+  h.arm = (name, cond, arg) => {
+    h.waits.push({ name, cond, arg, armed: true, start: null, dom: null, frame: null });
+  };
+})();
