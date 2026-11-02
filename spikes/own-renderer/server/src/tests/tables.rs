@@ -706,6 +706,68 @@ fn a_run_on_a_readers_behalf_is_answered_their_account_and_never_their_session()
     assert!(!format!("{rows:?}").contains("SECRET"), "{rows:?}");
 }
 
+/// **A build whose row is of a handle's type is refused where it is served**
+/// (the integrator's ruling 3 of 2026-11-02, PW6901 held again by the host):
+/// the compiler refuses such a row, and a tables.json that names one all
+/// the same, by a stale or forged build, refuses the server's start, the
+/// table, the field and the handle named. The neighbour: the build as the
+/// compiler wrote it, its row naming its reader by an id, is served.
+#[test]
+fn a_build_whose_row_names_a_handle_is_refused_where_it_is_served() {
+    let (_dir, out) = built_behalf();
+    assert!(
+        Server::from_build(out.clone(), out.clone()).is_ok(),
+        "the build as compiled: its row holds an id"
+    );
+    let path = out.join("tables.json");
+    let written = std::fs::read_to_string(&path).asserted("tables.json");
+    for (handle, whose) in [
+        ("User<UserId>", "a user's"),
+        ("Option<capability.Session<SessionId>>", "a session's"),
+        ("List<Organization<OrganizationId>>", "an organization's"),
+    ] {
+        let mut json: serde_json::Value = serde_json::from_str(&written).asserted("JSON");
+        let field = json["tables"]
+            .as_array_mut()
+            .and_then(|tables| tables.iter_mut().find(|t| t["name"] == "Seens"))
+            .and_then(|table| table["fields"].as_array_mut())
+            .and_then(|fields| fields.iter_mut().find(|f| f["name"] == "who"));
+        assert!(field.is_some(), "Seens' field `who`");
+        if let Some(field) = field {
+            field["type"] = serde_json::json!(handle);
+        }
+        std::fs::write(&path, json.to_string()).asserted("tables.json written");
+        let refused = Server::from_build(out.clone(), out.clone());
+        let why = refused.err().unwrap_or_default();
+        assert!(
+            why.contains("`Seens`'s field `who`") && why.contains(whose) && why.contains("PW6901"),
+            "{handle}: {why}"
+        );
+    }
+}
+
+/// **A program of tables that declares an upload is refused where it is
+/// served** (the integrator's note b of 2026-11-02): a table keeps no
+/// upload's image, and such a program was served, its images taken and kept
+/// nowhere. Refused, the upload named; the neighbour, the same program
+/// without it, is served.
+#[test]
+fn a_program_of_tables_declaring_an_upload_is_refused_where_it_is_served() {
+    let upload = "module tables.uploads\n\nupload ListImage\n    route      \
+                  \"/uploads/list-image\"\n    serves     \"/images\"\n    \
+                  max_bytes  5_000_000\n    types      png, jpeg\n    \
+                  max_width  1024\n    max_height 1024\n";
+    let mut sources = TABLES.to_vec();
+    sources.push("examples/tables/app.pw");
+    let (_dir, out) = built(&sources, &[("uploads.pw", upload)]);
+    let why = Server::from_build(out.clone(), out)
+        .err()
+        .unwrap_or_default();
+    assert!(why.contains("`ListImage` is an `upload`"), "{why}");
+    let (_dir, out) = built(&sources, &[]);
+    assert!(Server::from_build(out.clone(), out).is_ok());
+}
+
 /// **One layer a program**: a program that imports a hand-written data
 /// layer's operation beside its tables is refused where it is served, by
 /// name, before anything is served (T1 routes several layers, ADR-0338 5.1).

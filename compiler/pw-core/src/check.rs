@@ -2964,8 +2964,9 @@ fn dependencies_stated_once(hir: &Hir) -> Vec<Diagnostic> {
 /// Int { p.value }` would call itself for ever.
 /// **The handle a type holds, if any** (ADR-0263): a session's, a user's or
 /// an organization's, wherever it sits: the type itself, an argument, a
-/// record's field, a case's payload, an opaque type's representation.
-fn handle_in(
+/// record's field, a case's payload, an opaque type's representation. A
+/// table's row holds none (PW6901, `tables::check`).
+pub(crate) fn handle_in(
     sigs: &Signatures,
     ty: &crate::resolved::ResolvedType,
     seen: &mut BTreeSet<crate::resolve::DefId>,

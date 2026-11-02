@@ -1693,6 +1693,33 @@ impl Server {
         feed: Option<Arc<dyn data::DataLayer>>,
         store: Option<Arc<dyn store::StoreLayer>>,
     ) -> Result<Server, String> {
+        Server::from_build_served(dist, build, feed, store, None)
+    }
+
+    /// TRACK SEAM (tables): **[`Server::from_build`], a program's declared
+    /// tables served by `layer`** (track `data-path`): the conformance
+    /// suite's layer under test, which it is handed, so that one suite runs
+    /// for every adapter (ADR-0338's ruling 7). The build is held to what
+    /// any layer may serve of it first (`tables::servable`).
+    #[cfg(test)]
+    fn from_build_tables(
+        dist: std::path::PathBuf,
+        build: std::path::PathBuf,
+        layer: Arc<dyn data::DataLayer>,
+    ) -> Result<Server, String> {
+        Server::from_build_served(dist, build, None, None, Some(layer))
+    }
+
+    /// [`Server::from_build_layers`], and a program's declared tables served
+    /// by `tables_layer` where one is given, by the memory adapter otherwise
+    /// (track `data-path`).
+    fn from_build_served(
+        dist: std::path::PathBuf,
+        build: std::path::PathBuf,
+        feed: Option<Arc<dyn data::DataLayer>>,
+        store: Option<Arc<dyn store::StoreLayer>>,
+        tables_layer: Option<Arc<dyn data::DataLayer>>,
+    ) -> Result<Server, String> {
         let read = |rel: &str| {
             std::fs::read_to_string(build.join(rel))
                 .map_err(|e| format!("{}: {e}", build.join(rel).display()))
@@ -1739,12 +1766,17 @@ impl Server {
         let (store, data): (Arc<dyn store::StoreLayer>, Arc<dyn data::DataLayer>) =
             if tables::imports_tables(&contracts) {
                 // TRACK SEAM (tables): **a program that declares its data**
-                // (track `data-path`): its build's tables.json in the generic
-                // memory adapter, and no hand-written layer beside it.
-                (
-                    Arc::new(store::StoreData::new()),
-                    Arc::new(tables::TablesLayer::from_build(&build, &contracts)?),
-                )
+                // (track `data-path`): its build's tables.json, held to what
+                // any layer may serve of it, in the layer given or the
+                // generic memory adapter, and no hand-written layer beside it.
+                tables::servable(&build, &contracts)?;
+                let layer: Arc<dyn data::DataLayer> = match tables_layer {
+                    Some(layer) => layer,
+                    None => Arc::new(tables::TablesLayer::from_build(&build, &contracts)?),
+                };
+                (Arc::new(store::StoreData::new()), layer)
+            } else if tables_layer.is_some() {
+                return Err("a tables layer was given, and the program declares no tables".into());
             } else if contracts
                 .iter()
                 .flat_map(|c| &c.imports)
