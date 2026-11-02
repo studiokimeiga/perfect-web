@@ -16240,6 +16240,10 @@ public query Store(",
     // with no data layer of its own (track `data-path`).
     mod guestbook;
 
+    // TRACK SEAM (tables): the conformance suite over the `DataLayer` seam,
+    // generated for every declared table (ADR-0338 5.5, track `data-path`).
+    mod conformance;
+
     // TRACK SEAM (device-store): a page that holds a value the device keeps,
     // served (ADR-0366).
     mod device_store;
