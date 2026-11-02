@@ -311,3 +311,51 @@ separates working results from final-head gates and retains the initial test
 provenance and refused stale-bytecode pilot without acceptance credit.
 Fresh `just preflight`, producer calibrations, `just e14-session-command-authority`
 and every planned exact-head hosted gate remain required before merge.
+
+## Public runtime artifacts skip admission, and overlapping admissions, 2026-11-02
+
+PR #63 (its author's commits 34261a8 to 9ddcfec, finished on 2026-11-02)
+changes where admission begins, so it is recorded here.
+
+- **Changed.** A `GET` of exactly `/pw-runtime.mjs`, `/pw-resume.wasm` or
+  `/pw-render.wasm` (the path without its query, so the next document's
+  `pw-runtime.mjs?document=N` too) is answered from the build's `dist`
+  before the session is admitted. The three files are the same for every
+  reader, and their answer was `serve_file`'s before as after: no cookie,
+  no reader. Every other route is admitted first and fails closed as
+  before. `public_runtime_assets_load_while_session_authority_is_unavailable`
+  holds both, with a session source that always fails, the query form
+  included; it kills three mutants of `scripts/second_host_mutations.py`
+  (suite `assets`): the files admitted, exempt only without a query, and
+  the handler manifest exempt with them (3 of 3 here, 2026-11-02).
+- **Why.** Run 41202348600's `e14-second-host` (Firefox, 2026-10-31): the
+  first page loaded, its `pw-runtime.mjs` was answered, and its
+  `pw-resume.wasm`, asked for 38 ms after that answer with the cookie the
+  page had set, was answered 503 "The session could not be confirmed"
+  92 ms later; the runtime never booted.
+- **Found, not changed: two overlapping admissions of one session answer
+  one of them 503.** `Principals::admit` reads the kept session without a
+  lock, then refuses its read as `Superseded` when the session's revision
+  moved meanwhile, and every admission moves it when it ends. So with a
+  source that never fails, two requests of one session whose reads overlap
+  get 200 and 503: reproduced here on 2026-11-02 by a temporary test (not
+  kept) with a 300 ms source, for `/` and for `/pw-handlers` alike. Which
+  of this or a failed read answered run 41202348600's 503 is not known:
+  both answer the same body, and the server logs neither. The exemption
+  takes the three runtime files out of it; a page, `/pw-handlers`, a
+  handler module and an image are still admitted, and a browser asks for
+  some of them at once (two tabs, a page and its icon).
+  - The repair is this ADR's own decision: a request superseded by another
+    admission (not by a close or an open) answered from its own read
+    without installing it, or admission of one session serialized. Not
+    taken here: it changes the admission order that the "Independent
+    review" section above set, and needs its own regression, mutation
+    control and review. A log line naming the refusal's kind would have
+    told the two causes apart.
+- **What the exemption does not do.** In an outage of the session source,
+  the runtime now boots, but `/pw-handlers` and the handler modules are
+  still refused: the runtime knows no handler, and a press is recovered by
+  reloading onto the 503 (`recoverOnPress`; from reading, not run). The
+  handler manifest is built from the build alone (`#build`, `#page` and
+  handler lines) and could be exempted as the three files are; it is not,
+  pending the repair above.
