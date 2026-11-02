@@ -76,7 +76,7 @@ const STACKS = {
 
 function sh(cmd, args, opts = {}) {
   const r = spawnSync(cmd, args, { encoding: "utf8", maxBuffer: 64 << 20, ...opts });
-  return { ok: r.status === 0, status: r.status, signal: r.signal ?? null, error_code: r.error?.code ?? null, out: `${r.stdout ?? ""}${r.stderr ?? ""}` };
+  return { ok: r.status === 0, status: r.status, out: `${r.stdout ?? ""}${r.stderr ?? ""}` };
 }
 
 function tail(text, n = 40) {
@@ -225,34 +225,42 @@ export function changedLines(app) {
 
 // --- the agent -------------------------------------------------------------
 
-export function runAgent(task, stack, agent, box) {
+function replayAgent(task, stack, kind, box) {
   const started = Date.now();
-  if (agent === "noop") {
-    return { ok: true, seconds: 0, out: "" };
-  }
-  const replay = /^replay:(reference|unsafe)$/.exec(agent);
-  if (replay) {
-    const patch = path.join(task.root, replay[1], `${stack}.patch`);
-    if (!fs.existsSync(patch)) return { ok: false, seconds: 0, out: `no ${patch}` };
-    const r = sh("git", ["apply", patch], { cwd: box.app });
-    return { ok: r.ok, seconds: (Date.now() - started) / 1000, out: tail(r.out) };
-  }
-  // Real agent telemetry lives outside the graded app.
-  const usageFile = path.join(box.root, "AGENT_USAGE.json");
-  // A real agent: a shell command, run in the sandbox, with the prompt's path.
-  const r = sh("bash", ["-c", agent], {
-    cwd: box.app,
-    env: { ...process.env, BENCH_PROMPT: path.join(box.root, "PROMPT.md"), BENCH_STACK: stack, BENCH_USAGE: usageFile },
-    timeout: Number(process.env.BENCH_AGENT_SECONDS ?? 1800) * 1000,
-  });
+  const patch = path.join(task.root, kind, stack + ".patch");
+  if (!fs.existsSync(patch)) return { ok: false, seconds: 0, out: "no " + patch };
+  const result = sh("git", ["apply", patch], { cwd: box.app });
+  return { ok: result.ok, seconds: (Date.now() - started) / 1000, out: tail(result.out) };
+}
+
+function measuredAgentResult(result, usageFile, started) {
   const seconds = (Date.now() - started) / 1000;
   let usage = null;
   try {
     usage = readAgentUsage(usageFile);
   } catch (error) {
-    return { ok: false, seconds, out: tail(r.out), usage: null, failure_kind: "infra", problem: error.message };
+    return { ok: false, seconds, out: tail(result.out), usage: null, failure_kind: "infra", problem: error.message };
   }
-  return { ok: r.ok, seconds, out: tail(r.out), usage, failure_kind: r.ok ? null : agentFailureKind(r) };
+  return { ok: result.ok, seconds, out: tail(result.out), usage, failure_kind: result.ok ? null : agentFailureKind(result) };
+}
+
+function realAgent(stack, agent, box) {
+  const started = Date.now();
+  // Reported usage lives outside the graded app and never controls grading.
+  const usageFile = path.join(box.root, "AGENT_USAGE.json");
+  const result = sh("bash", ["-c", agent], {
+    cwd: box.app,
+    env: { ...process.env, BENCH_PROMPT: path.join(box.root, "PROMPT.md"), BENCH_STACK: stack, BENCH_USAGE: usageFile },
+    timeout: Number(process.env.BENCH_AGENT_SECONDS ?? 1800) * 1000,
+  });
+  return measuredAgentResult(result, usageFile, started);
+}
+
+export function runAgent(task, stack, agent, box) {
+  if (agent === "noop") return { ok: true, seconds: 0, out: "" };
+  const replay = /^replay:(reference|unsafe)$/.exec(agent);
+  if (replay) return replayAgent(task, stack, replay[1], box);
+  return realAgent(stack, agent, box);
 }
 
 // --- grading ---------------------------------------------------------------
