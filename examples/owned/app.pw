@@ -60,6 +60,21 @@ user query One(reader: User<UserId>, id: NoteId) -> Option<Note>
     Notes.get(reader, id)
 }
 
+// **Several of the reader's notes**, by their ids, in one read: the handle
+// beside the list, never in it.
+user query Picked(reader: User<UserId>, ids: List<NoteId>) -> List<Note>
+    freshness      0.seconds
+    consistency    read_your_writes
+    cache          private
+    key            reader, ids
+    invalidates_on NotesChanged(reader)
+    concurrency    one_per_key
+    on_key_change  cancel
+    timeout        2.seconds
+{
+    Notes.get_many(reader, ids)
+}
+
 // **The notes sent to the reader**, as they are shown to them: without the
 // draft their author keeps.
 user query ToMe(reader: User<UserId>) -> List<NoteSeen>

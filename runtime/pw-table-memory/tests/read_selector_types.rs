@@ -19,6 +19,7 @@ fn field(name: &str, stored: Stored) -> FieldSchema {
 
 fn function(name: &str, primitive: Primitive, by: &[&str], sorted_by: &[&str]) -> FunctionJson {
     FunctionJson {
+        reader: None,
         name: name.into(),
         import: format!("pw:tables/likes#{}", name.replace('_', "-")),
         primitive,
@@ -62,6 +63,9 @@ fn manifest() -> TablesJson {
     TablesJson {
         hash: hash.clone(),
         tables: vec![TableJson {
+            owner: None,
+            shares: Vec::new(),
+            private: Vec::new(),
             schema: table,
             module: "Likes".into(),
             interface: "pw:tables/likes".into(),

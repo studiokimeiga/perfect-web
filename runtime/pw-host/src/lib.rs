@@ -914,6 +914,11 @@ pub mod engine {
     /// each of its answers when it is given.
     pub mod table_link;
 
+    /// An owned table's function is its caller's (track `row-ownership`,
+    /// ADR-0384 H1): its handle held to the call's reader, an owned row to
+    /// its writer, a sharer answered the seen row.
+    pub mod table_owners;
+
     /// **The configuration of every engine the host makes** (ADR-0244): the
     /// component model, and none of the proposals Pleris's components do not
     /// use, so a component that uses one is refused when it loads.
@@ -1250,6 +1255,29 @@ pub mod engine {
             .call_with_tables(contract, granted, limits, host, tables, export, args)
     }
 
+    /// **[`call_with_tables`], made as `caller`** (track `row-ownership`,
+    /// ADR-0384 H1): an owned table's function is served for `caller` alone,
+    /// its handle held to them before any adapter reads it
+    /// ([`table_owners::admit`]), a row written to them, a reader the table
+    /// shares with answered the seen row. [`call_with_tables`] is this made
+    /// as no one, so every owned table's function refuses there.
+    #[allow(clippy::too_many_arguments)]
+    pub fn call_with_tables_as(
+        bytes: &[u8],
+        contract: &crate::ComponentContract,
+        granted: &crate::Granted,
+        limits: &crate::Limits,
+        host: &std::collections::BTreeMap<String, HostFn>,
+        tables: &crate::tables::Manifest,
+        caller: &crate::tables::Caller,
+        export: &[&str],
+        args: &[wasmtime::component::Val],
+    ) -> Result<Vec<wasmtime::component::Val>, String> {
+        Prepared::compile(bytes)?.call_with_tables_as(
+            contract, granted, limits, host, tables, caller, export, args,
+        )
+    }
+
     /// Invoke an export after the deployment explicitly evaluates its
     /// authorization preconditions.
     #[allow(clippy::too_many_arguments)]
@@ -1406,6 +1434,7 @@ pub mod engine {
                 limits,
                 host,
                 None,
+                &crate::tables::Caller::Nobody,
                 export,
                 args,
             )
@@ -1423,6 +1452,31 @@ pub mod engine {
             export: &[&str],
             args: &[wasmtime::component::Val],
         ) -> Result<Vec<wasmtime::component::Val>, String> {
+            self.call_with_tables_as(
+                contract,
+                granted,
+                limits,
+                host,
+                tables,
+                &crate::tables::Caller::Nobody,
+                export,
+                args,
+            )
+        }
+
+        /// [`call_with_tables_as`], on the compiled component.
+        #[allow(clippy::too_many_arguments)]
+        pub fn call_with_tables_as(
+            &self,
+            contract: &crate::ComponentContract,
+            granted: &crate::Granted,
+            limits: &crate::Limits,
+            host: &std::collections::BTreeMap<String, HostFn>,
+            tables: &crate::tables::Manifest,
+            caller: &crate::tables::Caller,
+            export: &[&str],
+            args: &[wasmtime::component::Val],
+        ) -> Result<Vec<wasmtime::component::Val>, String> {
             self.hold_arguments(contract, export, args)?;
             refuse_unevaluated_authorization(contract, export)?;
             run(
@@ -1433,6 +1487,7 @@ pub mod engine {
                 limits,
                 host,
                 Some(tables),
+                caller,
                 export,
                 args,
             )
@@ -1464,6 +1519,7 @@ pub mod engine {
                 limits,
                 host,
                 None,
+                &crate::tables::Caller::Nobody,
                 export,
                 args,
             )
@@ -2580,11 +2636,12 @@ pub mod engine {
         limits: &crate::Limits,
         host: &std::collections::BTreeMap<String, HostFn>,
         tables: Option<&crate::tables::Manifest>,
+        caller: &crate::tables::Caller,
         export: &[&str],
         args: &[wasmtime::component::Val],
     ) -> Result<Vec<wasmtime::component::Val>, String> {
         run_measured(
-            engine, component, contract, granted, limits, host, tables, export, args,
+            engine, component, contract, granted, limits, host, tables, caller, export, args,
         )
         .map(|(results, _)| results)
     }
@@ -2628,6 +2685,7 @@ pub mod engine {
                 limits,
                 host,
                 None,
+                &crate::tables::Caller::Nobody,
                 export,
                 args,
             )
@@ -2681,6 +2739,7 @@ pub mod engine {
         limits: &crate::Limits,
         host: &std::collections::BTreeMap<String, HostFn>,
         tables: Option<&crate::tables::Manifest>,
+        caller: &crate::tables::Caller,
         export: &[&str],
         args: &[wasmtime::component::Val],
     ) -> Result<(Vec<wasmtime::component::Val>, Usage), String> {
@@ -2731,6 +2790,7 @@ pub mod engine {
                     table_link::check_import(function, &ty)?;
                 }
                 let named = key.clone();
+                let caller = caller.clone();
                 // What its answer must hold (ADR-0179), as the contract states.
                 let bounded: Vec<crate::Bounded> = contract
                     .imports
@@ -2749,6 +2809,15 @@ pub mod engine {
                             .map(|(v, (_, t))| graph::untangle(v, &t))
                             .collect::<Result<_, _>>()
                             .map_err(|e| wasmtime::Error::msg(format!("`{named}`: {e}")))?;
+                        // An owned table's function is its caller's (track
+                        // `row-ownership`): its handle held to the call's
+                        // reader before any adapter reads it, and given on
+                        // as the table's plain function takes it.
+                        let args = match &function {
+                            Some(function) => table_owners::admit(function, &caller, args)
+                                .map_err(wasmtime::Error::msg)?,
+                            None => args,
+                        };
                         let out = implementation(&args).map_err(wasmtime::Error::msg)?;
                         // A table function's answer is its function's,
                         // exactly, or the call fails: never projected, never
@@ -2761,6 +2830,13 @@ pub mod engine {
                                 ))
                             })?;
                         }
+                        // A reader an owned table shares with is answered
+                        // its seen row (track `row-ownership`).
+                        let out = match &function {
+                            Some(function) => table_owners::seen(function, out)
+                                .map_err(|why| wasmtime::Error::msg(format!("`{named}`: {why}")))?,
+                            None => out,
+                        };
                         if out.len() != results.len() {
                             return Err(wasmtime::Error::msg(format!(
                                 "the host returned {} values where the operation has {}",

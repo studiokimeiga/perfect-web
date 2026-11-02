@@ -67,6 +67,7 @@ mod tests {
             vec![rank.clone(), id.clone()]
         };
         Read {
+            handle: None,
             import: "pw:tables/likes#get".into(),
             table: "Likes".into(),
             primitive: if many {
