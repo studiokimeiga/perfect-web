@@ -146,6 +146,18 @@ and what changed:
      twice over, its tests' (to build programs) and now its release
      binary's, through `pw-table-memory` (decision 12). The S1 repair
      changes neither.
+   - **e.** (A later ruling, on `e14-guide` at this track's head and on
+     `wip/durable-tables`, verify 41480579645.) The guide's control "the
+     entries are not told of a signed entry" took `Signed(_)` out of
+     `Latest`'s `invalidates_on`, which the checker refuses (PW5107: `sign`
+     speculates on `Latest` and must invalidate it), so no browser test was
+     its witness: an invalid control, not a kill. It is now well-typed: the
+     signing tells its own reader's entries alone (`invalidates
+     Latest(current_user(), _)` in place of `emits Signed(guestbook())`),
+     which the checker takes, and the browser test "another reader's open
+     page is told of an entry" must kill. (That run reported it refused,
+     not killed by the checker, for another cause found here: the producer
+     read only a two-digit gutter, Findings.)
 
 ## Context
 
@@ -382,8 +394,14 @@ track's head plans them (`scripts/ci_plan.py --changed origin/master HEAD`
 planned 158 recipes at the repairs' last commit, the track's whole range).
 Re-anchored by these repairs: `committed_events` (`e10-committed-events`,
 `e14-command-events`), `session_command` (`e14-session-command-authority`)
-and `guide` (`e14-guide`, `e14-guide-producer`; it also gains the control
-"a refused signing is said nowhere"). Their tests changed for a guest's
+and `guide` (`e14-guide`; it also gains the control "a refused signing is
+said nowhere", its frozen receipt of the guestbook spec holds its five
+tests, not four, and its control "the entries are not told of a signed
+entry" is well-typed and killed by the browser, the integrator's ruling of
+2026-11-02, note e), with `guide_producer`'s control on that receipt
+and its fixtures (`e14-guide-producer`); and the guide's producer reads a
+checker refusal whose gutter is wider than two digits (Findings). Their
+tests changed for a guest's
 id: `e14-feed`, `e14-feed-postgres`, `e14-follows`, `e14-identity`,
 `e14-notifications`, `e14-render-merge`, `e14-store-postgres`,
 `e14-uploads`. Re-anchored by the track's first form, and in the plan
@@ -442,6 +460,14 @@ again: `computed_holes` (`e14-computed-holes`), `notifications` and
   as `sign`'s argument directly signs an entry of spaces (the page trims,
   and never sends one). A refinement has no trim to state; recorded, not
   changed.
+- **The guide's mutation producer read only a two-digit gutter** of `pw
+  check`'s diagnostics (`  --> `, `   = note:`): with `book.pw` past line
+  99, a control the checker refused by the rule its catalog named (then
+  "the entries are not told of a signed entry", by PW5107) was taken for an
+  invalid build and earned nothing. It reads any gutter now, a test of a
+  three-digit one beside the two-digit one
+  (`scripts/tests/test_guide_producer_results.py`); that control is the
+  browser's now (note e).
 - **A command whose commit fails is answered "outcome unknown"** by the
   browser's route (ADR-0325's rule for an interaction), even where the
   materializer rolled back before its COMMIT; the press's retry is then

@@ -34,8 +34,8 @@ def cargo_output(failed=False, name="intended_private_witness"):
 
 
 def browser_receipts(env, failed=False):
-    inventory = [f"private-{i}" for i in range(4)]
-    titles = ["intended private witness", "second", "third", "fourth"]
+    inventory = [f"private-{i}" for i in range(5)]
+    titles = ["intended private witness", "second", "third", "fourth", "fifth"]
     receipt = dict(schema=1, complete=True, nonce=env["PW_ASSERTION_NONCE"], inventory=inventory,
                    tests=[[identity, "failed" if failed and i == 0 else "passed"] for i, identity in enumerate(inventory)])
     metadata = {"suites": [{"title": "guestbook.spec.mjs", "specs": [
@@ -62,7 +62,7 @@ def python_output(failed=False, name="intended_private_witness"):
 def browser_output(failed=False):
     if failed:
         return "  1) [chromium] › e2e/guestbook.spec.mjs:1:1 › intended private witness ───\n  1 failed\n"
-    return "4 passed (1s)\n"
+    return "5 passed (1s)\n"
 
 
 class GuideProducers(unittest.TestCase):
@@ -205,12 +205,12 @@ class GuideProducers(unittest.TestCase):
 
     def test_browser_accepts_actual_assertion_failure(self):
         result, _, _ = self.browser_result(1, browser_output(True))
-        self.assertEqual(result[:3], (True, 4, 1))
+        self.assertEqual(result[:3], (True, 5, 1))
         self.assertIn("guestbook.spec.mjs › intended private witness", result[3])
 
     def test_browser_accepts_green_producer(self):
         result, _, _ = self.browser_result(0, browser_output())
-        self.assertEqual(result[:3], (True, 4, 0))
+        self.assertEqual(result[:3], (True, 5, 0))
 
     def test_browser_uses_canonical_authority_and_exact_selection(self):
         result, calls, module = self.browser_result(0, browser_output())
@@ -274,7 +274,7 @@ class GuideProducers(unittest.TestCase):
         self.assertFalse(self.browser_result(1, browser_output(True), frozen=False)[0][0])
         result, calls, module = self.browser_result(0, browser_output(), frozen=False)
         self.assertTrue(result[0])
-        self.assertEqual(len(module._BROWSER_TITLES), 4)
+        self.assertEqual(len(module._BROWSER_TITLES), 5)
         self.assertIn("--retries=0", calls[1].args[0])
         self.assertIn("--reporter=line,json,./assertion-result-reporter.mjs", calls[1].args[0])
 
@@ -287,7 +287,7 @@ class GuideProducers(unittest.TestCase):
                 spec["ok"] = False
                 spec["tests"][0]["status"] = "unexpected"
             path.write_text(json.dumps(metadata))
-        self.assertEqual(self.browser_result(0, browser_output(), alter)[0][:3], (True, 4, 0))
+        self.assertEqual(self.browser_result(0, browser_output(), alter)[0][:3], (True, 5, 0))
         self.assertFalse(self.browser_result(1, "999 failed with intended private witness")[0][0])
 
     def test_checked_refusal_requires_complete_error_inventory(self):
@@ -314,6 +314,11 @@ class GuideProducers(unittest.TestCase):
             "10 | | source snippet", "...  |", "   | |__^ diagnostic", "   = note: explanation",
             "   = help: repair", lines[-1]])
         self.assertEqual(module.compiler_codes(1, diagnostic), {"PW5048"})
+        # A diagnostic showing a line past 99 widens its gutter by a space.
+        wide = "\n".join([lines[0], "   --> book.pw:99:19", "    |",
+            " 99 | | source snippet", "100 | | more", "    | |__^ diagnostic",
+            "    = note: explanation", "    = help: repair", lines[-1]])
+        self.assertEqual(module.compiler_codes(1, wide), {"PW5048"})
 
     def test_main_cancellation_restores_source_and_preserves_exit(self):
         module = load_guide()
