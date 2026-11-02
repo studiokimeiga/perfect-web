@@ -132,7 +132,7 @@ and merge to master; its numbered ADR records the decision and remaining limits.
 *Standard (Wasm), used narrowly here.* Two things. (1) The Wasm [component](#component) a [host](#host) runs; it reaches only what its WIT world imports. (2) A *guest user*: a [principal](#principal) of its own who is not signed in; the guest's cart joins the user's at sign-in. [SEMANTICS §3], [ADR-0318].
 
 ### head-to-head
-*Project term.* The measured comparison of Pleris with Next.js and SvelteKit on one app (TodoMVC first, then the store): lines of code, defects, bytes, Core Web Vitals, accessibility, and which [museum](#bug-museum) bugs each stack lets a developer ship. Losses are reported. The [capability matrix](#capability-matrix) says what has been measured. [ADR-0342].
+*Project term.* The measured comparison of Pleris with the mainstream stacks on the same apps: TodoMVC against TodoMVC's own React and Svelte apps, then the store against Next.js and SvelteKit. Bytes, paint, interactive and each interaction's time, servers under load and idle, source size, the same feature change and what each stack's checker catches in it, behaviour, and which [museum](#bug-museum) bugs each stack lets a developer ship; Pleris's losses reported first. Protocol: [ADR-0342]; first measurement, its instrument and `just e14-head-to-head`, recorded on the development machine: [ADR-0392] (accessibility not measured yet). The [capability matrix](#capability-matrix) says what has been measured.
 
 ### host
 *Standard, used narrowly here.* Three things. (1) The Rust process that runs [components](#component), holds the database and secrets, and supplies [host bindings](#host-binding) (`runtime/pw-host`, the development server); its counterpart is the [guest](#guest). (2) One running instance of the development server, which a browser test starts per "host role" on its own port ([host map](#host-map)). (3) One server of a deployment; a second one hears nothing of the first's commits. [ARCHITECTURE.md], [ADR-0020], [capabilities.md].
@@ -358,6 +358,7 @@ and merge to master; its numbered ADR records the decision and remaining limits.
 [ADR-0339]: DECISIONS/ADR-0339-a-collaborative-document-app.md
 [ADR-0340]: DECISIONS/ADR-0340-a-read-is-bounded-by-construction-the-checkers-half.md
 [ADR-0342]: DECISIONS/ADR-0342-the-claim-measured.md
+[ADR-0392]: DECISIONS/ADR-0392-head-to-head.md
 [ADR-0344]: DECISIONS/ADR-0344-evidence-integrity.md
 [ADR-0348]: DECISIONS/ADR-0348-a-set-read-keeps-each-keys-result.md
 [AGENTS.md]: ../AGENTS.md
