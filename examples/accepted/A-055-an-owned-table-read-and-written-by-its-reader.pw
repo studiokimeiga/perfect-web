@@ -26,7 +26,7 @@ table Letters
     shares  with reader
     private mood
 
-predicate Wrote(id: LetterId)
+predicate WroteLetter(id: LetterId)
     says "You can only change a letter you wrote."
 {
     match Letters.get(current_user(), id) {
