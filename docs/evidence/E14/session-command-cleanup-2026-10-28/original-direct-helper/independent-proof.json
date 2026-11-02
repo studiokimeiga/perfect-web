@@ -1,0 +1,23 @@
+{
+  "head": "5371f0f20d7fcb50826d3a775b5bbac72c1b14b0",
+  "scope": "direct unchanged cleanup helper only; actual psql invalid-URI parsing; no Cargo/native fixture/campaign or actual configured endpoint read",
+  "synthetic_only": true,
+  "actual_cleanup_valid": false,
+  "inventory_valid": true,
+  "leaking_produced_files": [
+    "invalid-uri.cleanup-feed.log",
+    "invalid-uri.cleanup-store.log"
+  ],
+  "all_produced_file_hashes": {
+    "cleanup-result.json": "f82bdb1a34bddfd8c680a3d734c7b239f8d40bd42237e922b669e846ae1608c0",
+    "invalid-uri.cleanup-feed.log": "b52e811b20d20ebefac9766a868f00a73979e18847516a4e6d6eec49eea6b488",
+    "invalid-uri.cleanup-store.log": "b52e811b20d20ebefac9766a868f00a73979e18847516a4e6d6eec49eea6b488",
+    "owned-synthetic.schemas.txt": "0768a85b07910869150713b2baeb80cdd53542b91eb98e50d5d0700409418e95"
+  },
+  "source_sha256": "c77b67aad3f8e33378091e65e9d8adf0f2f0030ac906323fc45238bfc5cf6823",
+  "source_branch": "cleanup -> process -> producer_process.run default merged stderr -> child.stdout -> raw cleanup log",
+  "no_actual_credentials_or_endpoints_used": true,
+  "no_database_connection_or_mutation": "invalid percent URI fails before connecting",
+  "whole_campaign_reachability": "not executed; requires owned schema receipt reaching cleanup; outer guard validates only environment presence, not URL formatting/output policy",
+  "captured_utc": "2026-10-28T04:44:29.286936+00:00"
+}

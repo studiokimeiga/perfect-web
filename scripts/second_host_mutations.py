@@ -331,7 +331,7 @@ MUTANTS = [
         "a sign-in is not kept where the hosts keep sessions",
         "hosts",
         IDENTITY,
-        "            kept.open(&kept_hash(session), &principal)?;\n",
+        "            kept.open(&kept_hash(session), &principal, &epoch)?;\n",
         "",
     ),
     (
@@ -345,29 +345,22 @@ MUTANTS = [
         "a request does not read its session",
         "hosts",
         SERVER,
-        "    if !fresh {\n"
-        "        server.identity.principals().refresh(&session);\n"
-        "    }\n",
-        "",
+        '        let admitted = if fresh {\n            Ok(principals.bound_reader(&session))\n        } else {\n            principals.admit(&session)\n        };\n',
+        '        let admitted = Ok::<_, String>(principals.bound_reader(&session));\n',
     ),
     (
         "a request reads its session twice",
         "hosts",
         SERVER,
-        "    if !fresh {\n"
-        "        server.identity.principals().refresh(&session);\n"
-        "    }\n",
-        "    if !fresh {\n"
-        "        server.identity.principals().refresh(&session);\n"
-        "        server.identity.principals().refresh(&session);\n"
-        "    }\n",
+        '        let admitted = if fresh {\n            Ok(principals.bound_reader(&session))\n        } else {\n            principals.admit(&session)\n        };\n',
+        '        let admitted = if fresh {\n            Ok(principals.bound_reader(&session))\n        } else {\n            let _ = principals.admit(&session);\n            principals.admit(&session)\n        };\n',
     ),
     (
         "a session the database no longer has stays signed in here",
         "hosts",
         IDENTITY,
-        "            Ok(None) => self.close(session),\n",
-        "            Ok(None) => {}\n",
+        '            Ok(None) => {\n                sessions.remove(session);\n                Ok(ReaderIdentity::Anonymous)\n            }\n',
+        '            Ok(None) => {\n                Ok(sessions.get(session).map(|held| ReaderIdentity::Account(SessionIdentity {\n                    principal: held.principal.clone(), epoch: held.epoch,\n                })).unwrap_or(ReaderIdentity::Anonymous))\n            }\n',
     ),
     (
         "a sign-in is completed twice",
@@ -414,8 +407,8 @@ MUTANTS = [
         "a press on another host's page is not answered from its record",
         "hosts",
         SERVER,
-        "                Ok(Some((first, answer))) if first == sent => Some(Answered::from_kept(&answer)),\n",
-        "                Ok(Some((first, _))) if first == sent => None,\n",
+        '                        Some((first, answer)) if first == sent => {\n                            Some(Answered::from_browser_receipt(&answer)?)\n                        }\n',
+        '                        Some((first, _)) if first == sent => None,\n',
     ),
     # --- The deployment's schema.
     (
@@ -513,8 +506,8 @@ MUTANTS = [
         "a host holds its kept sessions to the defaults, not its deployment's",
         "hosts",
         IDENTITY,
-        "        match kept.session(&kept_hash(session), &self.lifetimes()) {\n",
-        "        match kept.session(&kept_hash(session), &SessionLifetimes::default()) {\n",
+        "        let read = kept.session(&kept_hash(session), &self.lifetimes());\n",
+        "        let read = kept.session(&kept_hash(session), &SessionLifetimes::default());\n",
     ),
     (
         "signing in keeps the session the browser came with",
@@ -552,10 +545,10 @@ MUTANTS = [
         "in memory, an expired session is not forgotten",
         "hosts",
         IDENTITY,
-        "        if expired {\n"
-        "            self.close(session);\n"
-        "        }\n",
-        "        let _ = expired;\n",
+        "            Some(held) if !held.expired(&lifetimes) => {\n"
+        "                return Some(held.principal.clone());\n",
+        "            Some(held) if true => {\n"
+        "                return Some(held.principal.clone());\n",
     ),
 ]
 

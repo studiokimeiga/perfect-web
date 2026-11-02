@@ -862,6 +862,17 @@ impl<V: Clone> Resources<V> {
         idempotency_key: &str,
         apply: impl FnOnce() -> String,
     ) -> CommandResult {
+        self.try_command_result(idempotency_key, || Ok(apply()))
+    }
+
+    /// A fallible host application can report an uncertain acknowledgement
+    /// without inventing a completed rollback answer. Unknown completions are
+    /// retained and cannot be forgotten/re-executed by reservation eviction.
+    pub fn try_command_result(
+        &self,
+        idempotency_key: &str,
+        apply: impl FnOnce() -> CommandResult,
+    ) -> CommandResult {
         let completion;
         {
             let mut st = self.state.lock().expect("state");
@@ -882,10 +893,17 @@ impl<V: Clone> Resources<V> {
         match catch_unwind(AssertUnwindSafe(apply)) {
             Ok(value) => {
                 let mut st = self.state.lock().expect("state");
-                st.trace.push(Trace::CommandApplied {
-                    idempotency_key: idempotency_key.into(),
+                let value = value.map_err(|_| CommandError::OutcomeUnknown);
+                st.trace.push(if value.is_ok() {
+                    Trace::CommandApplied {
+                        idempotency_key: idempotency_key.into(),
+                    }
+                } else {
+                    Trace::CommandOutcomeUnknown {
+                        idempotency_key: idempotency_key.into(),
+                    }
                 });
-                completion.finish(Ok(value))
+                completion.finish(value)
             }
             Err(payload) => {
                 {
@@ -924,6 +942,15 @@ impl<V: Clone> Resources<V> {
     /// command is still running, or where its outcome is unknown. A host
     /// reads it to answer a retry it would not run again (track
     /// `store-accounts`).
+    /// A completed reservation, preserving an uncertain outcome for recovery.
+    /// Pending/absent outcomes are None; a caller must never turn Err into rollback.
+    pub fn command_result(&self, idempotency_key: &str) -> Option<CommandResult> {
+        let st = self.state.lock().expect("state");
+        st.applied
+            .get(idempotency_key)
+            .and_then(|completion| completion.get())
+    }
+
     pub fn command_outcome(&self, idempotency_key: &str) -> Option<String> {
         let st = self.state.lock().expect("state");
         match st.applied.get(idempotency_key)?.get() {
@@ -1099,5 +1126,35 @@ impl<V: Clone> Drop for Subscription<V> {
         if !self.released {
             self.rt.release(&self.key);
         }
+    }
+}
+
+#[cfg(test)]
+mod fallible_command_tests {
+    use super::*;
+
+    #[test]
+    fn uncertain_host_acknowledgements_are_never_memoized_as_rollback_or_reexecuted() {
+        let resources = Resources::<String>::new(Clock::new());
+        let first = resources.try_command_result("unknown", || Err(CommandError::OutcomeUnknown));
+        assert_eq!(first, Err(CommandError::OutcomeUnknown));
+        assert!(resources.command_outcome("unknown").is_none());
+        assert!(
+            !resources.forget_command("unknown"),
+            "unknown reservations are retained"
+        );
+        let retried = resources.try_command_result("unknown", || {
+            panic!("unknown operation must never run twice")
+        });
+        assert_eq!(retried, Err(CommandError::OutcomeUnknown));
+        assert_eq!(
+            resources.try_command_result("known", || Ok("committed".into())),
+            Ok("committed".into())
+        );
+        assert_eq!(resources.command_outcome("known"), Some("committed".into()));
+        assert!(
+            resources.forget_command("known"),
+            "known outcomes keep their existing bounded eviction contract"
+        );
     }
 }

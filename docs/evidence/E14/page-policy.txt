@@ -1,8 +1,8 @@
 ADR-0195 ruling 13 - every HTML answer carries a Content-Security-Policy generated from its build, and the build refuses what it would refuse
 
 produced by: just e14-page-policy
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
@@ -13,9 +13,9 @@ test a_link_the_head_holds_is_refused_in_markup ... ok
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 test an_address_names_another_origin_as_a_browser_reads_it ... ok
 test a_links_address_is_written_as_text ... ok
-test a_load_from_this_origin_and_what_is_no_load_check_clean ... ok
 test a_load_from_another_origin_is_refused_where_it_is_written ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test a_load_from_this_origin_and_what_is_no_load_check_clean ... ok
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 
 == the corpus at C22 (corpus-check, corpus_history.rs, generality.rs, checking_source.rs)
 
@@ -24,19 +24,19 @@ accepted: 44/44 charter §16 categories covered
 rejected: 95 files
 rejected: 95/95 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 85.61s
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.89s
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 79.05s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 113.40s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.76s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 110.26s
 
 == the policy, and the answers it is sent with (csp.rs, tests/page_policy.rs)
 
-test csp::tests::a_comment_holds_no_markup_whatever_it_says ... ok
 test csp::tests::an_origin_is_a_scheme_and_an_authority ... ok
+test csp::tests::a_comment_holds_no_markup_whatever_it_says ... ok
 test csp::tests::a_hash_source_is_the_texts_digest_in_base64 ... ok
 test csp::tests::plain_markup_asks_nothing ... ok
 test csp::tests::raw_markup_may_hold_a_style_attribute ... ok
-test csp::tests::what_markup_writes_is_found_wherever_it_is ... ok
 test csp::tests::a_documents_policy_allows_what_it_is_given_and_no_more ... ok
+test csp::tests::what_markup_writes_is_found_wherever_it_is ... ok
 test tests::page_policy::a_streamed_document_carries_its_policy_in_its_head ... ok
 test tests::page_policy::a_deployment_that_takes_payments_frames_its_provider_alone ... ok
 test tests::page_policy::a_sign_in_at_another_origin_is_a_forms_to_reach ... ok
@@ -44,14 +44,14 @@ test tests::page_policy::a_document_allows_each_inline_script_and_style_it_holds
 test tests::page_policy::the_runtime_is_started_by_the_text_its_policy_hashes ... ok
 test tests::page_policy::every_answers_type_is_its_type ... ok
 test tests::page_policy::every_other_html_answer_runs_nothing ... ok
-test tests::sign_in::the_development_provider_signs_up_and_in_through_the_flow ... ok
 test tests::page_policy::the_host_writes_no_style_attribute ... ok
+test tests::sign_in::the_development_provider_signs_up_and_in_through_the_flow ... ok
 test tests::redirects::a_page_at_another_address_of_the_page_is_moved_there_for_good ... ok
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 696 filtered out; finished in 20.28s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 724 filtered out; finished in 26.04s
 
 == the pages the suite serves, under it, in three engines (e2e/page-policy.spec.mjs)
 
-  54 passed (1.3m)
+  54 passed (1.5m)
 
 == mutation controls (scripts/page_policy_mutations.py)
 

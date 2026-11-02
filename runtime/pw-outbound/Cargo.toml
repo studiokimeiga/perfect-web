@@ -1,0 +1,36 @@
+[package]
+name = "pw-outbound"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+# The host's one outbound HTTP(S) client (track outbound-https, ADR-0387).
+# Verified on crates.io 2026-10-25, each the newest not yanked:
+# - rustls 0.23.46 (2026-10-14, Apache-2.0 OR ISC OR MIT), taken though under
+#   two weeks old: it fixes four advisories (one, GHSA-vp88-798v-h67f, of
+#   0.23.44-45 alone); the ring provider alone (no aws-lc-rs, a C and
+#   assembly build), its safe default protocol versions (`tls12` keeps TLS
+#   1.2 for providers without 1.3), no `logging`;
+# - rustls-native-certs 0.8.4 (2026-06-01, Apache-2.0 OR ISC OR MIT): the
+#   operating system's roots; 0.8.5 (2026-10-13) only reads files once, and
+#   is under two weeks old.
+# Through them: ring 0.17.14 (Apache-2.0 AND ISC), rustls-webpki 0.103.16
+# (ISC; under two weeks old, taken for its distrust of a set of intermediate
+# keys), rustls-pki-types 1.15.1, untrusted 0.9.0 (ISC), subtle 2.6.1
+# (BSD-3-Clause), zeroize 1.9.1, openssl-probe 0.2.1 (Linux).
+[dependencies]
+rustls = { version = "=0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-native-certs = "=0.8.4"
+
+[dev-dependencies]
+# A test's certificate authority and servers: their own crate, a
+# dev-dependency of each user (ADR-0387; the integrator's ruling of
+# 2026-10-25), so no test authority is in the production crate.
+pw-outbound-testkit = { path = "../pw-outbound-testkit" }
+
+# A listener whose queue is full (`listen(fd, 0)`), for the connection's
+# bound: libc 0.2.189, already in the graph.
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+libc = "0.2.189"

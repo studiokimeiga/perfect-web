@@ -242,8 +242,8 @@ fn on_postgres_a_cart_change_reaches_the_sessions_open_page() {
 /// **A commit the database refuses keeps neither its state nor its event**
 /// (ADR-0208, ADR-0246): a deferred constraint, checked at the commit after
 /// the line and its event were written, refuses it. Nothing is in the cart
-/// or the outbox, the materializer records nothing, the open page is told
-/// nothing, and the next add commits.
+/// or the outbox, the materializer records no attempted state/event, the open
+/// page receives only unchanged convergence data, and the next add commits.
 #[test]
 fn on_postgres_a_refused_commit_commits_neither_its_state_nor_its_event() {
     let Some(url) = database() else { return };
@@ -283,7 +283,28 @@ fn on_postgres_a_refused_commit_commits_neither_its_state_nor_its_event() {
     );
     assert_eq!(s.materializer.state("cart:a"), None, "nothing recorded");
     assert_eq!(s.materializer.retained_events(), 0);
-    assert_eq!(patch_sets(&s, "a").len(), told, "no page told");
+    assert!(
+        patch_sets(&s, "a")
+            .into_iter()
+            .skip(told)
+            .all(|set| set.patches.is_empty()),
+        "authoritative convergence carries no attempted business patches"
+    );
+    assert_eq!(
+        s.count("SELECT count(*) FROM interactions"),
+        0,
+        "refused transaction keeps no receipt"
+    );
+    let doc = latest(&s.pending.lock().expect("pending"), "a");
+    assert!(
+        entry_values(&s, &doc)
+            .iter()
+            .all(
+                |(_, value, _, applied)| !applied.contains(&"i-1".to_string())
+                    && value["lines"].as_array().is_some_and(Vec::is_empty)
+            ),
+        "convergence cannot contain attempted cart lines or acknowledge the refused press"
+    );
     let answered = add(&s, "a", "espresso", 1, "i-2");
     assert!(answered.committed, "{:?}", answered.result);
     assert_eq!(s.cart_lines("a"), [("espresso".to_string(), 1)]);
@@ -456,7 +477,7 @@ fn on_postgres_a_second_hosts_commit_answers_what_the_first_committed() {
     let s = host();
     let request = [shown("espresso"), serde_json::json!(1)];
     let key = format!("a\u{1f}{ADD}\u{1f}press-1");
-    let sent = serde_json::Value::Array(request.to_vec()).to_string();
+    let (_, _, sent) = s.receipt_keys("a", ADD, "press-1", &request);
     let first = r#"{"committed":true,"why":null,"refused":null,"result":{"first":true}}"#;
     {
         let (layer, key, sent) = (layer.clone(), key.clone(), sent.clone());
@@ -475,7 +496,7 @@ fn on_postgres_a_second_hosts_commit_answers_what_the_first_committed() {
         .expect("a well-formed request");
     assert_eq!(
         answered,
-        Answered::from_kept(first),
+        Answered::from_kept(first).expect("a typed committed receipt"),
         "the first host's answer"
     );
     assert_eq!(
@@ -910,10 +931,8 @@ fn on_postgres_a_run_outlives_the_host_that_scheduled_it() {
     assert_eq!(runs_kept(&layer), 0);
 }
 
-/// **A run committed and not removed commits once** (ADR-0325): its host
-/// stopped after the run's commit and before removing it, the next host
-/// runs it again, keyed by its scheduling, meets the first run's record,
-/// and is answered as it was. The line is added once, and the run removed.
+/// Legacy ambiguous work is quarantined after upgrade (ADR0388). An old
+/// action may already have committed; receipt expiry must not make it run again.
 #[test]
 fn on_postgres_a_run_committed_and_not_removed_commits_once() {
     let Some(url) = database() else { return };
@@ -938,12 +957,12 @@ fn on_postgres_a_run_committed_and_not_removed_commits_once() {
     posted(&s, "/bench/clock?advance=300000", "clock", "c-1", "");
     assert_eq!(s.run_due().0, 1);
     assert_eq!(s.cart_lines("a"), [("espresso".to_string(), 1)]);
-    // As though the host stopped after the run's commit, before removing it.
+    // An ambiguous pre-protocol row whose action may already have committed.
     layer
         .sql()
         .execute(
-            "INSERT INTO schedules (id, key, command, args, user_id, due_ms) \
-             VALUES ($1, $2, $3, $4, $5, $6)",
+            "INSERT INTO schedules (id, key, command, args, user_id, due_ms, protocol) \
+             VALUES ($1, $2, $3, $4, $5, $6, 0)",
             &[&id, &key, &command, &args, &user, &due],
         )
         .expect("kept");
@@ -955,44 +974,73 @@ fn on_postgres_a_run_committed_and_not_removed_commits_once() {
         [("espresso".to_string(), 1)],
         "and committed once"
     );
-    assert_eq!(runs_kept(&layer), 0);
+    assert_eq!(
+        runs_kept(&layer),
+        1,
+        "legacy ambiguity is retained for reconciliation"
+    );
+    assert_eq!(layer.sql().query_one("SELECT count(*) FROM schedules WHERE protocol=0 AND failed LIKE '%reconciliation%'", &[]).expect("quarantine").get::<_,i64>(0),1);
+    next.query_clock.0.advance(25 * 60 * 60 * 1000);
+    assert_eq!(next.run_due().0, 0);
+    assert_eq!(host().cart_lines("a"), [("espresso".to_string(), 1)]);
+    assert_eq!(
+        layer
+            .sql()
+            .query_one("SELECT count(*) FROM outbox WHERE kind='event'", &[])
+            .expect("event audit")
+            .get::<_, i64>(0),
+        1
+    );
 }
 
-/// **Two hosts, one run** (ADR-0325): while one host runs a due run,
-/// another's run of the same scheduling commits first, played by its record
-/// alone. The first's commit meets it by the run's key, rolls back and
-/// writes nothing, and the run is removed, answered.
+/// Two real hosts select one generation before either dispatches it. Their
+/// action, receipt, event and generation consume arbitrate in actual transactions.
 #[test]
 fn on_postgres_two_hosts_commit_a_run_once() {
     let Some(url) = database() else { return };
     let (layer, host, _dir) = scheduling_hosts(&url);
-    let s = host();
-    assert!(super::store_scheduled::in_five(&s, "espresso", false, "i-1").committed);
-    let id: i64 = layer
-        .sql()
-        .query_one("SELECT id FROM schedules", &[])
-        .expect("one run")
-        .get(0);
-    let key = format!("on-behalf:schedule-{id}\u{1f}store.page.add_later\u{1f}schedule-{id}");
-    {
-        let layer = layer.clone();
-        *s.before_commit.lock().expect("hook") = Some(Box::new(move |_: &Server| {
-            layer
-                .sql()
-                .execute(
-                    "INSERT INTO interactions (key, sent, answer, at_ms) VALUES ($1, $2, $3, $4)",
-                    &[
-                        &key,
-                        &r#"["espresso"]"#,
-                        &r#"{"committed":true,"why":null,"refused":null,"result":{"first":true}}"#,
-                        &i64::MAX,
-                    ],
-                )
-                .expect("the other host's record");
-        }));
-    }
-    posted(&s, "/bench/clock?advance=300000", "clock", "c-1", "");
-    assert_eq!(s.run_due().0, 1);
-    assert!(s.cart_lines("a").is_empty(), "nothing written");
-    assert_eq!(runs_kept(&layer), 0, "answered, and removed");
+    let a = host();
+    let b = host();
+    assert!(super::store_scheduled::in_five(&a, "espresso", false, "two-real-hosts").committed);
+    a.query_clock.0.advance(300000);
+    b.query_clock.0.advance(300000);
+    let ac = schedules::select(a.runs(), a.now(), 16).expect("A selects");
+    let bc = schedules::select(b.runs(), b.now(), 16).expect("B selects");
+    assert_eq!(ac.len(), 1);
+    assert_eq!(bc.len(), 1);
+    assert_eq!(ac[0].id, bc[0].id);
+    let barrier = std::sync::Barrier::new(2);
+    std::thread::scope(|scope| {
+        let first = scope.spawn(|| {
+            barrier.wait();
+            a.run_scheduled(&ac[0]);
+        });
+        let second = scope.spawn(|| {
+            barrier.wait();
+            b.run_scheduled(&bc[0]);
+        });
+        first.join().expect("A completes");
+        second.join().expect("B completes");
+    });
+    assert_eq!(host().cart_lines("a"), [("espresso".to_string(), 1)]);
+    assert_eq!(runs_kept(&layer), 0);
+    assert_eq!(
+        layer
+            .sql()
+            .query_one(
+                "SELECT count(*) FROM interactions WHERE key LIKE '%schedule-%'",
+                &[]
+            )
+            .expect("receipt audit")
+            .get::<_, i64>(0),
+        1
+    );
+    assert_eq!(
+        layer
+            .sql()
+            .query_one("SELECT count(*) FROM outbox WHERE kind='event'", &[])
+            .expect("event audit")
+            .get::<_, i64>(0),
+        1
+    );
 }

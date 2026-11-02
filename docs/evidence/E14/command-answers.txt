@@ -1,24 +1,24 @@
 ADR-0157 - what a command answers its handler, and an item sold out since the page
 
 produced by: just e14-command-answers
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
 == the rules, PW0339 and PW0620 (compiler/pw-core/tests/answers.rs)
 
 test a_command_declaring_no_result_answers_nothing_to_bind ... ok
-test a_command_called_from_a_function_is_refused ... ok
-test a_command_called_from_another_command_is_refused ... ok
 test a_command_a_handler_sends_and_a_function_a_command_calls_are_the_controls ... ok
+test a_command_called_from_another_command_is_refused ... ok
+test a_command_called_from_a_function_is_refused ... ok
 test a_dropped_answer_is_named_as_the_handler_is_given_it ... ok
 test a_handler_that_binds_ok_s_value_is_refused ... ok
 test a_value_bound_through_a_name_is_refused_too ... ok
 test a_result_that_is_not_a_commands_answer_is_the_control ... ok
 test an_answer_given_where_the_value_is_declared_is_refused ... ok
 test ok_matched_whole_and_err_bound_are_the_controls ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.60s
 
 == the compiled handlers, run under Node against each answer (compiler/pw-core/tests/handlers.rs)
 
@@ -43,7 +43,7 @@ test a_program_that_does_not_check_compiles_no_handlers ... ok
 test a_handler_calls_its_commands_by_the_contracts_own_ids ... ok
 test the_stores_handlers_compile_to_the_calls_their_bodies_make ... ok
 test a_module_and_its_event_part_name_one_handler ... ok
-test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.86s
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.24s
 
 == the compiled command against its reference, each availability (compiler/pw-conformance/tests/oracle.rs)
 
@@ -51,14 +51,14 @@ oracle: store.page.add_to_cart: 300 generated cases, the component and the refer
 oracle: store.page.add_to_cart, sold out: 300 generated cases, the component and the reference agree
 oracle: store.page.Cart: 300 generated cases, the component and the reference agree
 oracle: store.page.add_to_cart, out of reach: 300 generated cases, the component and the reference agree
+oracle: store.page.Menu: 300 generated cases, the component and the reference agree
 oracle: store.page.increase_in_cart: 300 generated cases, the component and the reference agree
 oracle: store.page.increase_in_cart, sold out: 300 generated cases, the component and the reference agree
-oracle: store.page.Menu: 300 generated cases, the component and the reference agree
-oracle: store.page.decrease_in_cart: 300 generated cases, the component and the reference agree
 oracle: store.page.Store: 300 generated cases, the component and the reference agree
+oracle: store.page.decrease_in_cart: 300 generated cases, the component and the reference agree
 oracle: store.page.remove_from_cart: 300 generated cases, the component and the reference agree
 oracle: store.page.clear_cart: 300 generated cases, the component and the reference agree
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.50s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.83s
 
 == the compiled command in the host (runtime/pw-host/tests/pleris_component.rs)
 
@@ -68,24 +68,24 @@ test a_data_layer_failure_is_the_commands_failure ... ok
 test a_data_layer_answer_that_breaks_an_invariant_is_the_commands_failure ... ok
 test a_world_level_export_is_found_by_its_declaration ... ok
 test a_quantity_that_is_no_positive_int_is_refused_as_the_arguments_are_decoded ... ok
-test an_export_not_declared_by_the_contract_cannot_be_invoked ... ok
 test an_ungranted_operation_is_refused_by_the_engine ... ok
-test arguments_for_an_export_the_component_does_not_have_are_refused ... ok
-test an_argument_that_breaks_its_invariant_never_reaches_the_component ... ok
 test an_item_that_cannot_be_ordered_is_refused_before_anything_is_written ... ok
+test an_export_not_declared_by_the_contract_cannot_be_invoked ... ok
+test an_argument_that_breaks_its_invariant_never_reaches_the_component ... ok
+test arguments_for_an_export_the_component_does_not_have_are_refused ... ok
 test requires_cannot_be_bypassed_by_the_raw_call_api ... ok
-test the_artifact_imports_exactly_what_its_contract_allows ... ok
 test json_arguments_are_typed_by_the_export_they_are_for ... ok
+test the_artifact_imports_exactly_what_its_contract_allows ... ok
 test the_compiled_command_runs_through_the_host ... ok
 test the_instance_runs_within_its_fuel ... ok
 test sustained_calls_leave_memory_flat ... ok
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.55s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 18.53s
 
 == the development server (pw-dev-server)
 
 test tests::a_kept_answer_is_the_answer_it_kept ... ok
 test tests::an_item_sold_out_since_the_page_is_refused_by_name ... ok
-test result: ok. 704 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 484.24s
+test result: ok. 732 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 536.59s
 
 == the browser (e2e/availability.spec.mjs, e2e/resource-path.spec.mjs), three engines
 

@@ -1,0 +1,9 @@
+   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/spikes/own-renderer/server)
+    Finished `test` profile [unoptimized] target(s) in 8.20s
+     Running unittests src/main.rs (/home/haki/code/pw-wt/scheduler-replay-20261026/target/debug/deps/pw_dev_server-4beb2a4e31121d83)
+
+running 1 test
+test identity::invocation_tests::debug_output_never_discloses_session_authority_or_principal_fields ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 831 filtered out; finished in 0.00s
+

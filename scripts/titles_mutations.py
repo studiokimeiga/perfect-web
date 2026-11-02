@@ -159,14 +159,14 @@ MUTANTS = [
         SERVER,
         # Re-anchored by ADR-0190: another page is titled by its name. And by
         # ADR-0191, which reads the store's page by its path.
-        '            Ok(title) => title.unwrap_or_else(|| {\n'
-        '                if page == server.store_page() {\n'
-        '                    "Store".to_string()\n'
-        '                } else {\n'
-        '                    template.name.clone()\n'
-        '                }\n'
-        '            }),\n',
-        '            Ok(_) => "Store".to_string(),\n',
+        "                Ok(title) => title.unwrap_or_else(|| {\n"
+        "                    if page == server.store_page() {\n"
+        "                        \"Store\".to_string()\n"
+        "                    } else {\n"
+        "                        template.name.clone()\n"
+        "                    }\n"
+        "                }),\n",
+        "                Ok(_) => \"Store\".to_string(),\n",
     ),
     (
         "a changed title is not set",

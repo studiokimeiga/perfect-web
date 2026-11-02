@@ -1,0 +1,564 @@
+{
+  "schema": 1,
+  "scope": "Working-source direct-helper, unit and two-database diagnostics only; not final-head or whole26 campaign acceptance",
+  "parent_head": "5371f0f20d7fcb50826d3a775b5bbac72c1b14b0",
+  "working_producer_sha256": "82303162b32a42bbd195da416ce9b0ef9749ccf6e65efd88832249a672f26803",
+  "final_test_source_sha256": "dc1f6cb0fc6a57d33c9eba91437ba7b23e1320eaacc7c44395c6396c5d171678",
+  "original_producer_sha256": "c77b67aad3f8e33378091e65e9d8adf0f2f0030ac906323fc45238bfc5cf6823",
+  "authority_controls_unchanged": 26,
+  "authority_whole_campaign_executed": false,
+  "corrected_scope": {
+    "full_test_inventory": 17,
+    "original_source_privacy_subset": 1,
+    "diagnostic_fault_controls": 2,
+    "runs": 5,
+    "outcomes": 69,
+    "passed": 66,
+    "intended_assertion_failures": 3
+  },
+  "initial_test_RED_provenance": "Initial17-case RED used additive tests before the later native-policy assertion, JSON import/absence assertion. Exact final test bytes were not snapshotted then. Corrected original-source SUBSET1/17 re-executes the final privacy testcase against the exact old Git producer, with both inputs captured before launch.",
+  "initial_pilot_refused": "Initial wrong-target second fault reused same-size/same-second Python bytecode; native mismatch was refused. Original partial report and REFUSED marker preserved; no credit. Corrected children use fresh empty owned bytecode prefixes and disable writes.",
+  "real_psql_scope": "Synthetic malformed URI only, parser refusal before connection; no actual endpoint or DB used.",
+  "real_pg_scope": "Two distinct configured databases; only two fresh random fixture schemas created/dropped, exact read-only absence queries retained. Actual endpoint values not saved. This is helper behavior, not a command transaction/authority proof.",
+  "empty_decoded_logs": "Intentional cleanup stdout only; bound native status/query/URI-privacy proof explains each. Stored gzip data is nonempty. No missing output credit.",
+  "files": [
+    {
+      "path": "original-direct-helper/cleanup-result.json",
+      "bytes": 731,
+      "sha256": "f82bdb1a34bddfd8c680a3d734c7b239f8d40bd42237e922b669e846ae1608c0",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-5371f0f2-command-cleanup-synthetic-leak/cleanup-result.json",
+      "original_bytes": 731,
+      "original_sha256": "f82bdb1a34bddfd8c680a3d734c7b239f8d40bd42237e922b669e846ae1608c0"
+    },
+    {
+      "path": "original-direct-helper/independent-proof.json",
+      "bytes": 1427,
+      "sha256": "a81eb47c33909bca70437d9fa03287aa316dfb3463cc22da71a430f7df3c0238",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-5371f0f2-command-cleanup-synthetic-leak/independent-proof.json",
+      "original_bytes": 1427,
+      "original_sha256": "a81eb47c33909bca70437d9fa03287aa316dfb3463cc22da71a430f7df3c0238"
+    },
+    {
+      "path": "original-direct-helper/invalid-uri.cleanup-feed.log.gz",
+      "bytes": 108,
+      "sha256": "241bc7c6b02995d183866dd8a5dd8e05eb98237fdec78a9d80fbcd9c10ada5cd",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-5371f0f2-command-cleanup-synthetic-leak/invalid-uri.cleanup-feed.log",
+      "original_bytes": 88,
+      "original_sha256": "b52e811b20d20ebefac9766a868f00a73979e18847516a4e6d6eec49eea6b488",
+      "decoded_bytes": 88,
+      "decoded_sha256": "b52e811b20d20ebefac9766a868f00a73979e18847516a4e6d6eec49eea6b488"
+    },
+    {
+      "path": "original-direct-helper/invalid-uri.cleanup-store.log.gz",
+      "bytes": 108,
+      "sha256": "241bc7c6b02995d183866dd8a5dd8e05eb98237fdec78a9d80fbcd9c10ada5cd",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-5371f0f2-command-cleanup-synthetic-leak/invalid-uri.cleanup-store.log",
+      "original_bytes": 88,
+      "original_sha256": "b52e811b20d20ebefac9766a868f00a73979e18847516a4e6d6eec49eea6b488",
+      "decoded_bytes": 88,
+      "decoded_sha256": "b52e811b20d20ebefac9766a868f00a73979e18847516a4e6d6eec49eea6b488"
+    },
+    {
+      "path": "original-direct-helper/owned-synthetic.schemas.txt.gz",
+      "bytes": 52,
+      "sha256": "87bf87e15814e0edd2e11a734398bebfee3eacff8e54f716045c43f1309b0aee",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-5371f0f2-command-cleanup-synthetic-leak/owned-synthetic.schemas.txt",
+      "original_bytes": 67,
+      "original_sha256": "0768a85b07910869150713b2baeb80cdd53542b91eb98e50d5d0700409418e95",
+      "decoded_bytes": 67,
+      "decoded_sha256": "0768a85b07910869150713b2baeb80cdd53542b91eb98e50d5d0700409418e95"
+    },
+    {
+      "path": "working-real-psql/actual-process-observations.json",
+      "bytes": 419,
+      "sha256": "ddf05832369d6f375033bc92973cadc215d4dfb4678d7caf99b18a740a51add3",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-command-cleanup-working-real-psql-green/actual-process-observations.json",
+      "original_bytes": 419,
+      "original_sha256": "ddf05832369d6f375033bc92973cadc215d4dfb4678d7caf99b18a740a51add3"
+    },
+    {
+      "path": "working-real-psql/cleanup-result.json",
+      "bytes": 835,
+      "sha256": "03fe0c6a5435eecb41f27e115b617a5140ba28526e5504f6d729eaf4f55c3811",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-command-cleanup-working-real-psql-green/cleanup-result.json",
+      "original_bytes": 835,
+      "original_sha256": "03fe0c6a5435eecb41f27e115b617a5140ba28526e5504f6d729eaf4f55c3811"
+    },
+    {
+      "path": "working-real-psql/independent-proof.json",
+      "bytes": 1743,
+      "sha256": "9df777f80bedb71c81057d56d74055a43c432960c3c0100a6cffbc4acd6224d4",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-command-cleanup-working-real-psql-green/independent-proof.json",
+      "original_bytes": 1743,
+      "original_sha256": "9df777f80bedb71c81057d56d74055a43c432960c3c0100a6cffbc4acd6224d4"
+    },
+    {
+      "path": "working-real-psql/invalid-uri.cleanup-feed.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-command-cleanup-working-real-psql-green/invalid-uri.cleanup-feed.log",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "decoded_bytes": 0,
+      "decoded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "working-real-psql/invalid-uri.cleanup-store.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-command-cleanup-working-real-psql-green/invalid-uri.cleanup-store.log",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "decoded_bytes": 0,
+      "decoded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "working-real-psql/owned-synthetic.schemas.txt.gz",
+      "bytes": 52,
+      "sha256": "87bf87e15814e0edd2e11a734398bebfee3eacff8e54f716045c43f1309b0aee",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-command-cleanup-working-real-psql-green/owned-synthetic.schemas.txt",
+      "original_bytes": 67,
+      "original_sha256": "0768a85b07910869150713b2baeb80cdd53542b91eb98e50d5d0700409418e95",
+      "decoded_bytes": 67,
+      "decoded_sha256": "0768a85b07910869150713b2baeb80cdd53542b91eb98e50d5d0700409418e95"
+    },
+    {
+      "path": "working-real-psql/working-session_command_mutations.py.gz",
+      "bytes": 8459,
+      "sha256": "b6ccc27cfb750a97e97927e162247e1d6d3f5446e671ead7f9e74dad70630be6",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-followup-command-cleanup-working-real-psql-green/working-session_command_mutations.py",
+      "original_bytes": 27530,
+      "original_sha256": "82303162b32a42bbd195da416ce9b0ef9749ccf6e65efd88832249a672f26803",
+      "decoded_bytes": 27530,
+      "decoded_sha256": "82303162b32a42bbd195da416ce9b0ef9749ccf6e65efd88832249a672f26803"
+    },
+    {
+      "path": "working-real-pg-neighbors/absent.cleanup-feed.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-real-pg-neighbors/absent.cleanup-feed.log",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "decoded_bytes": 0,
+      "decoded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "working-real-pg-neighbors/absent.cleanup-store.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-real-pg-neighbors/absent.cleanup-store.log",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "decoded_bytes": 0,
+      "decoded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "working-real-pg-neighbors/absent.result.json",
+      "bytes": 804,
+      "sha256": "ee8e7895f16b418b49a06f8fa233788444a161170112e5af372847f6d64179b4",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-real-pg-neighbors/absent.result.json",
+      "original_bytes": 804,
+      "original_sha256": "ee8e7895f16b418b49a06f8fa233788444a161170112e5af372847f6d64179b4"
+    },
+    {
+      "path": "working-real-pg-neighbors/before-feed.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-real-pg-neighbors/before-feed.log",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "decoded_bytes": 0,
+      "decoded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "working-real-pg-neighbors/before-store.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-real-pg-neighbors/before-store.log",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "decoded_bytes": 0,
+      "decoded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "working-real-pg-neighbors/create-feed.log.gz",
+      "bytes": 34,
+      "sha256": "f4150741a875788778f44144d7106f1906e2b7ee37d155ac16ad230eaebca61a",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-real-pg-neighbors/create-feed.log",
+      "original_bytes": 14,
+      "original_sha256": "185d73c49badd0f588a9427d2faf8d7b6a1d27e98a490aef920f65667d9feaf6",
+      "decoded_bytes": 14,
+      "decoded_sha256": "185d73c49badd0f588a9427d2faf8d7b6a1d27e98a490aef920f65667d9feaf6"
+    },
+    {
+      "path": "working-real-pg-neighbors/create-store.log.gz",
+      "bytes": 34,
+      "sha256": "f4150741a875788778f44144d7106f1906e2b7ee37d155ac16ad230eaebca61a",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-real-pg-neighbors/create-store.log",
+      "original_bytes": 14,
+      "original_sha256": "185d73c49badd0f588a9427d2faf8d7b6a1d27e98a490aef920f65667d9feaf6",
+      "decoded_bytes": 14,
+      "decoded_sha256": "185d73c49badd0f588a9427d2faf8d7b6a1d27e98a490aef920f65667d9feaf6"
+    },
+    {
+      "path": "working-real-pg-neighbors/drop-feed.log.gz",
+      "bytes": 32,
+      "sha256": "fe77261b247636aa741f220d3f0da5424736a89ed78e1739a00b18843ffe0757",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-real-pg-neighbors/drop-feed.log",
+      "original_bytes": 12,
+      "original_sha256": "5fd4dd983ae182329483d342c600c771914d0dccac3ac4e65f1978d5f8ab0a35",
+      "decoded_bytes": 12,
+      "decoded_sha256": "5fd4dd983ae182329483d342c600c771914d0dccac3ac4e65f1978d5f8ab0a35"
+    },
+    {
+      "path": "working-real-pg-neighbors/drop-store.log.gz",
+      "bytes": 32,
+      "sha256": "fe77261b247636aa741f220d3f0da5424736a89ed78e1739a00b18843ffe0757",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-real-pg-neighbors/drop-store.log",
+      "original_bytes": 12,
+      "original_sha256": "5fd4dd983ae182329483d342c600c771914d0dccac3ac4e65f1978d5f8ab0a35",
+      "decoded_bytes": 12,
+      "decoded_sha256": "5fd4dd983ae182329483d342c600c771914d0dccac3ac4e65f1978d5f8ab0a35"
+    },
+    {
+      "path": "working-real-pg-neighbors/final-absence-feed.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-real-pg-neighbors/final-absence-feed.log",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "decoded_bytes": 0,
+      "decoded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "working-real-pg-neighbors/final-absence-store.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-real-pg-neighbors/final-absence-store.log",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "decoded_bytes": 0,
+      "decoded_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "working-real-pg-neighbors/owned.txt.gz",
+      "bytes": 79,
+      "sha256": "1150d9c5ecc1784228e82dc4e658ead90b8ad1dbda1690b8d4954701893b8deb",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-real-pg-neighbors/owned.txt",
+      "original_bytes": 67,
+      "original_sha256": "19283bbdc0cd77185272c48603864a8901feb8bee327ab6c38adbc025e2f6352",
+      "decoded_bytes": 67,
+      "decoded_sha256": "19283bbdc0cd77185272c48603864a8901feb8bee327ab6c38adbc025e2f6352"
+    },
+    {
+      "path": "working-real-pg-neighbors/present.cleanup-feed.log.gz",
+      "bytes": 53,
+      "sha256": "ee95c3263b9e77ba847a696d8e05b4fb24d7ce7a29792a72499954436a24e545",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-real-pg-neighbors/present.cleanup-feed.log",
+      "original_bytes": 33,
+      "original_sha256": "abc01bfde830785a580d09784c3a854189e7357b0042dab4ab1d07a95d301342",
+      "decoded_bytes": 33,
+      "decoded_sha256": "abc01bfde830785a580d09784c3a854189e7357b0042dab4ab1d07a95d301342"
+    },
+    {
+      "path": "working-real-pg-neighbors/present.cleanup-store.log.gz",
+      "bytes": 54,
+      "sha256": "9ef04c337f3bf9ddd594a075ea3b83cca8db94b6c9ebeeba3d5ffc2b5f5d30c5",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-real-pg-neighbors/present.cleanup-store.log",
+      "original_bytes": 34,
+      "original_sha256": "27b335bf631364ba19a48ab029cb620ff898ddf6ea7166d788ac484079fff7a8",
+      "decoded_bytes": 34,
+      "decoded_sha256": "27b335bf631364ba19a48ab029cb620ff898ddf6ea7166d788ac484079fff7a8"
+    },
+    {
+      "path": "working-real-pg-neighbors/present.result.json",
+      "bytes": 809,
+      "sha256": "25410da11d7ed1c3df1d54ac40647b10e0826be3efea1829b83c1037de647c77",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-real-pg-neighbors/present.result.json",
+      "original_bytes": 809,
+      "original_sha256": "25410da11d7ed1c3df1d54ac40647b10e0826be3efea1829b83c1037de647c77"
+    },
+    {
+      "path": "working-real-pg-neighbors/proof.json",
+      "bytes": 6193,
+      "sha256": "a76684dec424d05d2e970b92a1518eba626589f54662e19cb564412e9695263a",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-real-pg-neighbors/proof.json",
+      "original_bytes": 6193,
+      "original_sha256": "a76684dec424d05d2e970b92a1518eba626589f54662e19cb564412e9695263a"
+    },
+    {
+      "path": "working-real-pg-neighbors/source-before.py.gz",
+      "bytes": 8459,
+      "sha256": "b6ccc27cfb750a97e97927e162247e1d6d3f5446e671ead7f9e74dad70630be6",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-real-pg-neighbors/source-before.py.gz",
+      "original_bytes": 8459,
+      "original_sha256": "b6ccc27cfb750a97e97927e162247e1d6d3f5446e671ead7f9e74dad70630be6",
+      "decoded_bytes": 27530,
+      "decoded_sha256": "82303162b32a42bbd195da416ce9b0ef9749ccf6e65efd88832249a672f26803"
+    },
+    {
+      "path": "initial-fault-pilot-REFUSED/REFUSED.json",
+      "bytes": 401,
+      "sha256": "87d243a11fbb08358816e32258126cf108d0fa56a3814d47eaf98ad8d8e25d85",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot/REFUSED.json",
+      "original_bytes": 401,
+      "original_sha256": "87d243a11fbb08358816e32258126cf108d0fa56a3814d47eaf98ad8d8e25d85"
+    },
+    {
+      "path": "initial-fault-pilot-REFUSED/baseline.log.gz",
+      "bytes": 727,
+      "sha256": "bac112a3fada7e99e0885f5210b5ff329f2af835c91f156ec6950196bc608ae6",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot/baseline.log",
+      "original_bytes": 2661,
+      "original_sha256": "d4d055db58d4702d9618fcc331b51217f773bff4396c5371b9b7df1818b27106",
+      "decoded_bytes": 2661,
+      "decoded_sha256": "d4d055db58d4702d9618fcc331b51217f773bff4396c5371b9b7df1818b27106"
+    },
+    {
+      "path": "initial-fault-pilot-REFUSED/cleanup-stderr-restored.log.gz",
+      "bytes": 985,
+      "sha256": "c776782cec9d98871fa794f38770d170c3b9594ef25edb05d6b690a007f72106",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot/cleanup-stderr-restored.log",
+      "original_bytes": 3390,
+      "original_sha256": "113582bb72d733775735f4acfac3e7a723e0455a0c1262f391e4f494bb8975ab",
+      "decoded_bytes": 3390,
+      "decoded_sha256": "113582bb72d733775735f4acfac3e7a723e0455a0c1262f391e4f494bb8975ab"
+    },
+    {
+      "path": "initial-fault-pilot-REFUSED/native-stderr-discarded.log.gz",
+      "bytes": 985,
+      "sha256": "aadc83a6dfc7bcc85a167b1360c685696ae976db524aca12f4a0aa224b3fd0ca",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot/native-stderr-discarded.log",
+      "original_bytes": 3390,
+      "original_sha256": "b40dd5e3c594eb3568cf0f1a682d38dd146f724832545ba1340c9e27e80ad4b7",
+      "decoded_bytes": 3390,
+      "decoded_sha256": "b40dd5e3c594eb3568cf0f1a682d38dd146f724832545ba1340c9e27e80ad4b7"
+    },
+    {
+      "path": "initial-fault-pilot-REFUSED/pilot-executed.py.gz",
+      "bytes": 1311,
+      "sha256": "6949dbb9d3b3843bd3cf0d340caa00a34d7461b394b4d20b0e8a651ea94874ae",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot/pilot-executed.py.gz",
+      "original_bytes": 1311,
+      "original_sha256": "6949dbb9d3b3843bd3cf0d340caa00a34d7461b394b4d20b0e8a651ea94874ae",
+      "decoded_bytes": 2883,
+      "decoded_sha256": "cfb3c835327ec1e2d2d0b9a86676897d8d15cbd776016f5af0273948fc73291a"
+    },
+    {
+      "path": "initial-fault-pilot-REFUSED/report.json",
+      "bytes": 2224,
+      "sha256": "6491d3240d03988e73543cbc1d924ec3b539c72bc79a8761a8ebd045e28df825",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot/report.json",
+      "original_bytes": 2224,
+      "original_sha256": "6491d3240d03988e73543cbc1d924ec3b539c72bc79a8761a8ebd045e28df825"
+    },
+    {
+      "path": "initial-fault-pilot-REFUSED/restored-baseline.log.gz",
+      "bytes": 726,
+      "sha256": "1fdc3f3bb54bcbec239830f87e4340011eca4e0025845a60d66c82500b026b15",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot/restored-baseline.log",
+      "original_bytes": 2661,
+      "original_sha256": "8c1d12d38a427dc0abd9d9dbcff8422375cca395b9319feb81b0f1d77fd4c79f",
+      "decoded_bytes": 2661,
+      "decoded_sha256": "8c1d12d38a427dc0abd9d9dbcff8422375cca395b9319feb81b0f1d77fd4c79f"
+    },
+    {
+      "path": "corrected-fault-pilot/baseline.log.gz",
+      "bytes": 728,
+      "sha256": "e81646371d2bdad314962da4b672adca0b8864feffa06c172c78d14fb20223a1",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot-corrected/baseline.log",
+      "original_bytes": 2661,
+      "original_sha256": "e274b3024a893d638e8eed12599eb9cf40c9f1c66342e8068057fa5c4582c226",
+      "decoded_bytes": 2661,
+      "decoded_sha256": "e274b3024a893d638e8eed12599eb9cf40c9f1c66342e8068057fa5c4582c226"
+    },
+    {
+      "path": "corrected-fault-pilot/baseline.producer.py.gz",
+      "bytes": 8459,
+      "sha256": "b6ccc27cfb750a97e97927e162247e1d6d3f5446e671ead7f9e74dad70630be6",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot-corrected/baseline.producer.py.gz",
+      "original_bytes": 8459,
+      "original_sha256": "b6ccc27cfb750a97e97927e162247e1d6d3f5446e671ead7f9e74dad70630be6",
+      "decoded_bytes": 27530,
+      "decoded_sha256": "82303162b32a42bbd195da416ce9b0ef9749ccf6e65efd88832249a672f26803"
+    },
+    {
+      "path": "corrected-fault-pilot/baseline.tests.py.gz",
+      "bytes": 3634,
+      "sha256": "9bdcaaaf8bc20fa2ac13c3fd45482574104778873cf2274ac647f3cea123bec0",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot-corrected/baseline.tests.py.gz",
+      "original_bytes": 3634,
+      "original_sha256": "9bdcaaaf8bc20fa2ac13c3fd45482574104778873cf2274ac647f3cea123bec0",
+      "decoded_bytes": 15003,
+      "decoded_sha256": "dc1f6cb0fc6a57d33c9eba91437ba7b23e1320eaacc7c44395c6396c5d171678"
+    },
+    {
+      "path": "corrected-fault-pilot/cleanup-stderr-restored.log.gz",
+      "bytes": 985,
+      "sha256": "7684b714307495d3d9b59d81455d4dac46745f7f66ded6929ca6c99d69c0d19a",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot-corrected/cleanup-stderr-restored.log",
+      "original_bytes": 3390,
+      "original_sha256": "65af993d28f7450d1f40e71504d318f950446c801431c851a367517523437578",
+      "decoded_bytes": 3390,
+      "decoded_sha256": "65af993d28f7450d1f40e71504d318f950446c801431c851a367517523437578"
+    },
+    {
+      "path": "corrected-fault-pilot/cleanup-stderr-restored.producer.py.gz",
+      "bytes": 8458,
+      "sha256": "2e560d9ea51167b24bd51c41a13dd595df185dbc8c9b6ba7a39aa8b18973d274",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot-corrected/cleanup-stderr-restored.producer.py.gz",
+      "original_bytes": 8458,
+      "original_sha256": "2e560d9ea51167b24bd51c41a13dd595df185dbc8c9b6ba7a39aa8b18973d274",
+      "decoded_bytes": 27531,
+      "decoded_sha256": "aaf723414705c706b3366510bbd32523f658800ec899d03d43f2a09b07003e08"
+    },
+    {
+      "path": "corrected-fault-pilot/cleanup-stderr-restored.tests.py.gz",
+      "bytes": 3634,
+      "sha256": "9bdcaaaf8bc20fa2ac13c3fd45482574104778873cf2274ac647f3cea123bec0",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot-corrected/cleanup-stderr-restored.tests.py.gz",
+      "original_bytes": 3634,
+      "original_sha256": "9bdcaaaf8bc20fa2ac13c3fd45482574104778873cf2274ac647f3cea123bec0",
+      "decoded_bytes": 15003,
+      "decoded_sha256": "dc1f6cb0fc6a57d33c9eba91437ba7b23e1320eaacc7c44395c6396c5d171678"
+    },
+    {
+      "path": "corrected-fault-pilot/native-stderr-discarded.log.gz",
+      "bytes": 915,
+      "sha256": "e2c5f2a3f5fab8ea20f6fd088b155257dfc3a7182ec316f63da54ca178561736",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot-corrected/native-stderr-discarded.log",
+      "original_bytes": 3307,
+      "original_sha256": "aa89684c4a6742fd73ba5d68aaf90c22d3df35c286869c763e5ba70099d781c2",
+      "decoded_bytes": 3307,
+      "decoded_sha256": "aa89684c4a6742fd73ba5d68aaf90c22d3df35c286869c763e5ba70099d781c2"
+    },
+    {
+      "path": "corrected-fault-pilot/native-stderr-discarded.producer.py.gz",
+      "bytes": 8453,
+      "sha256": "e3e276bc6eb00557c28956d914960c97b13972f22b5a963ff825882f7583751f",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot-corrected/native-stderr-discarded.producer.py.gz",
+      "original_bytes": 8453,
+      "original_sha256": "e3e276bc6eb00557c28956d914960c97b13972f22b5a963ff825882f7583751f",
+      "decoded_bytes": 27531,
+      "decoded_sha256": "cfef77d3310f09c40efb923f20922915bc124b45260e1f4753f796f6616a9a41"
+    },
+    {
+      "path": "corrected-fault-pilot/native-stderr-discarded.tests.py.gz",
+      "bytes": 3634,
+      "sha256": "9bdcaaaf8bc20fa2ac13c3fd45482574104778873cf2274ac647f3cea123bec0",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot-corrected/native-stderr-discarded.tests.py.gz",
+      "original_bytes": 3634,
+      "original_sha256": "9bdcaaaf8bc20fa2ac13c3fd45482574104778873cf2274ac647f3cea123bec0",
+      "decoded_bytes": 15003,
+      "decoded_sha256": "dc1f6cb0fc6a57d33c9eba91437ba7b23e1320eaacc7c44395c6396c5d171678"
+    },
+    {
+      "path": "corrected-fault-pilot/original-source-privacy-subset.log.gz",
+      "bytes": 401,
+      "sha256": "38a86219c1b9569e3a0fa7097237c3fd886bc51bb9a282d2172161a2eb87b336",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot-corrected/original-source-privacy-subset.log",
+      "original_bytes": 960,
+      "original_sha256": "8ce65daf539ba750c8f02e275b6d15ec881d7554ec674733a5012ec60d98dec4",
+      "decoded_bytes": 960,
+      "decoded_sha256": "8ce65daf539ba750c8f02e275b6d15ec881d7554ec674733a5012ec60d98dec4"
+    },
+    {
+      "path": "corrected-fault-pilot/original-source-privacy-subset.producer.py.gz",
+      "bytes": 8293,
+      "sha256": "e75caa8de965f2677f8e60e63e816dd0baf790c374bb0e3945cb14d76122a191",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot-corrected/original-source-privacy-subset.producer.py.gz",
+      "original_bytes": 8293,
+      "original_sha256": "e75caa8de965f2677f8e60e63e816dd0baf790c374bb0e3945cb14d76122a191",
+      "decoded_bytes": 27082,
+      "decoded_sha256": "c77b67aad3f8e33378091e65e9d8adf0f2f0030ac906323fc45238bfc5cf6823"
+    },
+    {
+      "path": "corrected-fault-pilot/original-source-privacy-subset.tests.py.gz",
+      "bytes": 3634,
+      "sha256": "9bdcaaaf8bc20fa2ac13c3fd45482574104778873cf2274ac647f3cea123bec0",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot-corrected/original-source-privacy-subset.tests.py.gz",
+      "original_bytes": 3634,
+      "original_sha256": "9bdcaaaf8bc20fa2ac13c3fd45482574104778873cf2274ac647f3cea123bec0",
+      "decoded_bytes": 15003,
+      "decoded_sha256": "dc1f6cb0fc6a57d33c9eba91437ba7b23e1320eaacc7c44395c6396c5d171678"
+    },
+    {
+      "path": "corrected-fault-pilot/report.json",
+      "bytes": 4541,
+      "sha256": "2257874b0a75d9c43ac22f1bc4bccb3dc17c44ff13f332b878269454e4acdd83",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot-corrected/report.json",
+      "original_bytes": 4541,
+      "original_sha256": "2257874b0a75d9c43ac22f1bc4bccb3dc17c44ff13f332b878269454e4acdd83"
+    },
+    {
+      "path": "corrected-fault-pilot/restored-baseline.log.gz",
+      "bytes": 727,
+      "sha256": "b1839db7bf37eb5b73e0efd52338757e9c6809babf4f5f4e613a168f6810b6c2",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot-corrected/restored-baseline.log",
+      "original_bytes": 2661,
+      "original_sha256": "d3b9b51fd87bc6c1356b793692205b0ead131539322e21e2e96292e0ea384957",
+      "decoded_bytes": 2661,
+      "decoded_sha256": "d3b9b51fd87bc6c1356b793692205b0ead131539322e21e2e96292e0ea384957"
+    },
+    {
+      "path": "corrected-fault-pilot/restored-baseline.producer.py.gz",
+      "bytes": 8459,
+      "sha256": "b6ccc27cfb750a97e97927e162247e1d6d3f5446e671ead7f9e74dad70630be6",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot-corrected/restored-baseline.producer.py.gz",
+      "original_bytes": 8459,
+      "original_sha256": "b6ccc27cfb750a97e97927e162247e1d6d3f5446e671ead7f9e74dad70630be6",
+      "decoded_bytes": 27530,
+      "decoded_sha256": "82303162b32a42bbd195da416ce9b0ef9749ccf6e65efd88832249a672f26803"
+    },
+    {
+      "path": "corrected-fault-pilot/restored-baseline.tests.py.gz",
+      "bytes": 3634,
+      "sha256": "9bdcaaaf8bc20fa2ac13c3fd45482574104778873cf2274ac647f3cea123bec0",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-working-fault-pilot-corrected/restored-baseline.tests.py.gz",
+      "original_bytes": 3634,
+      "original_sha256": "9bdcaaaf8bc20fa2ac13c3fd45482574104778873cf2274ac647f3cea123bec0",
+      "decoded_bytes": 15003,
+      "decoded_sha256": "dc1f6cb0fc6a57d33c9eba91437ba7b23e1320eaacc7c44395c6396c5d171678"
+    },
+    {
+      "path": "initial-working-tests-RED.log.gz",
+      "bytes": 985,
+      "sha256": "56f5981d95970618fbeab5ba1f362a566768c999c4b48a62c522e5aca6183000",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-new-tests-RED.log",
+      "original_bytes": 3390,
+      "original_sha256": "683c06045e451a31df06163deba981b01453020992b4667b63dfd9c40ccc347e",
+      "decoded_bytes": 3390,
+      "decoded_sha256": "683c06045e451a31df06163deba981b01453020992b4667b63dfd9c40ccc347e"
+    },
+    {
+      "path": "initial-working-tests-GREEN.log.gz",
+      "bytes": 727,
+      "sha256": "2707480f4e3cea22ae12c8143422b6d06b33cf843913c65cf349b167b0663ae6",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session-command-cleanup-new-tests-GREEN.log",
+      "original_bytes": 2661,
+      "original_sha256": "9f0c4089fb0cc136105b61410aacd29106233d62f194acc44ed4dc30181e4430",
+      "decoded_bytes": 2661,
+      "decoded_sha256": "9f0c4089fb0cc136105b61410aacd29106233d62f194acc44ed4dc30181e4430"
+    },
+    {
+      "path": "corrected-pilot-driver.py.gz",
+      "bytes": 1965,
+      "sha256": "fb3fb001aeb083ba56ef47ef708170e3f6f2039f8d0913e5b38f0708865632d3",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session_command_cleanup_fault_pilot.py",
+      "original_bytes": 4632,
+      "original_sha256": "4ff3a5ec62676efaae7ada88d22040bf39246cf24e86bf4e6234fadc03b0e838",
+      "decoded_bytes": 4632,
+      "decoded_sha256": "4ff3a5ec62676efaae7ada88d22040bf39246cf24e86bf4e6234fadc03b0e838"
+    },
+    {
+      "path": "real-pg-neighbor-driver.py.gz",
+      "bytes": 2000,
+      "sha256": "a31b892440ca104e4d79a8877688ed9fcbf03f8abebc25ed76b725f4f226785d",
+      "original": "/mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/session_command_cleanup_pg_neighbors.py",
+      "original_bytes": 4808,
+      "original_sha256": "5f3f387c15b6d2f9ae7678114670f09eae8d9f1d9a37d23660b5f93d76c7d7b0",
+      "decoded_bytes": 4808,
+      "decoded_sha256": "5f3f387c15b6d2f9ae7678114670f09eae8d9f1d9a37d23660b5f93d76c7d7b0"
+    }
+  ]
+}

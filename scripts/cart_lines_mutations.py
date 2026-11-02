@@ -320,17 +320,7 @@ MUTANTS = [
         "                    .map(|(name, _, can)| (name, 0, can))\n"
         "                    .ok_or_else(",
     ),
-    (
-        "a command does not wait for its session's change in progress",
-        "server",
-        SERVER,
-        "        // The session's one change at a time, through its frames (ADR-0172).\n"
-        "        let session_lock = self.one_at_a_time(session);\n"
-        "        let _one = session_lock\n"
-        "            .lock()\n"
-        "            .expect(\"one change of a session at a time\");\n",
-        "",
-    ),
+    ("a command does not wait for its session's change in progress", "server", SERVER, '        // The session\'s one change at a time, through its frames (ADR-0172).\n        let session_lock = completing.is_none().then(|| self.one_at_a_time(session));\n        let _one = session_lock\n            .as_ref()\n            .map(|lock| lock.lock().expect("one change of a session at a time"));\n', ''),
     (
         "a drain does not wait for its session's change in progress",
         "server",

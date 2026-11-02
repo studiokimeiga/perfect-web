@@ -90,10 +90,8 @@ MUTANTS = [
         "a command answered early is taken for one that ran",
         "server",
         SERVER,
-        "                if let Some(arrival) = arrival {\n"
-        "                    arrival.early();\n"
-        "                }\n",
-        "                drop(arrival);\n",
+        '                    if let Some(arrival) = arrival {\n                        arrival.early();\n                    }\n',
+        '                    drop(arrival);\n',
     ),
     (
         # Re-anchored by ADR-0381: a command held before it runs vanishes by
@@ -101,12 +99,8 @@ MUTANTS = [
         "a command closed unrun is taken for one that ran",
         "server",
         SERVER,
-        "                // Never run: what follows it waits for it to be sent again.\n"
-        "                if let Some(arrival) = arrival {\n"
-        "                    arrival.vanish();\n"
-        "                }\n",
-        "                // Never run: what follows it waits for it to be sent again.\n"
-        "                drop(arrival);\n",
+        '                    // Never run: what follows it waits for it to be sent again.\n                    if let Some(arrival) = arrival {\n                        arrival.vanish();\n                    }\n',
+        '                    // Never run: what follows it waits for it to be sent again.\n                    drop(arrival);\n',
     ),
     (
         "another session's command is taken for the one named",

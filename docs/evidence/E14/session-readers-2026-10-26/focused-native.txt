@@ -1,0 +1,38 @@
+   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/spikes/own-renderer/server)
+    Finished `test` profile [unoptimized] target(s) in 2.18s
+     Running unittests src/main.rs (/home/haki/code/pw-wt/scheduler-replay-20261026/target/debug/deps/pw_dev_server-4beb2a4e31121d83)
+
+running 30 tests
+test identity::invocation_tests::a_panicking_read_restores_the_previous_invocation_binding ... ok
+test identity::invocation_tests::a_read_keeps_its_actor_while_live_inspection_observes_revocation ... ok
+test identity::invocation_tests::anonymous_and_nested_bindings_are_scoped_to_their_store_and_cookie ... ok
+test identity::tests::a_cookie_is_http_only_and_secure_outside_this_machine ... ok
+test identity::tests::a_refusal_is_taken_once ... ok
+test identity::tests::a_token_is_held_to_its_issuer_audience_expiry_and_nonce ... ok
+test identity::tests::an_origin_is_a_scheme_a_host_and_a_port ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
+test identity::tests::an_unsafe_request_from_another_origin_is_refused ... ok
+test identity::tests::ids_are_random_and_forms_are_decoded ... ok
+test identity::tests::requires_starts_as_the_development_model ... ok
+test identity::tests::s256_is_rfc_7636s_worked_example ... ok
+test identity::tests::the_guest_model_runs_only_in_development_on_this_machine ... ok
+test tests::receiver_identity::a_local_receiver_getter_runs_instead_of_a_namesake_type_constructor ... ok
+test tests::session_revocation::a_logged_out_document_ndjson_receives_no_queued_private_frames ... ok
+test tests::session_revocation::a_logged_out_document_poll_receives_no_queued_private_frames ... ok
+test tests::session_revocation::a_new_actor_cannot_join_the_old_generations_private_read_in_flight ... ok
+test tests::session_revocation::a_new_actor_generation_cannot_reuse_the_old_private_session_query_cache ... ok
+test tests::session_revocation::a_private_initial_document_cannot_finish_after_its_session_is_revoked ... ok
+test tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change ... ok
+test tests::session_revocation::absolute_expiry_refuses_the_previously_queued_private_batch ... ok
+test tests::session_revocation::an_anonymous_render_never_borrows_a_transient_authenticated_actor ... ok
+test tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account ... ok
+test tests::session_revocation::an_explicit_anonymous_document_still_receives_its_public_feed ... ok
+test tests::session_revocation::another_session_of_the_same_user_keeps_its_own_private_delivery ... ok
+test tests::session_revocation::generation_partitions_keep_wildcard_invalidation_and_session_cleanup_exact ... ok
+test tests::session_revocation::idle_expiry_refuses_the_previously_queued_private_batch ... ok
+test tests::session_revocation::internal_reads_and_inspections_do_not_renew_client_activity ... ok
+test tests::session_revocation::reopening_the_same_cookie_and_actor_cannot_rebind_its_old_document ... ok
+
+test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 786 filtered out; finished in 10.41s
+

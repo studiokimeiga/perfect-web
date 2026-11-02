@@ -1,0 +1,20 @@
+
+running 1 test
+test tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_write_guard ... FAILED
+
+failures:
+
+---- tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_write_guard stdout ----
+forced overlap: retry_waited=false; retried=false; completed_markers=1; transactions=[29, 15]
+
+thread 'tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_write_guard' (1192866) panicked at spikes/own-renderer/server/src/tests/bounded_statements.rs:1278:13:
+conditional retry crossed the active serializable payment transaction
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_write_guard
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 834 filtered out; finished in 4.43s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

@@ -1,8 +1,8 @@
 ADR-0183 - a page states its title
 
 produced by: just e14-titles
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -13,9 +13,9 @@ test a_title_reads_no_signal ... ok
 test a_page_served_at_a_route_states_its_title ... ok
 test a_title_is_the_page_s_once_at_the_top_of_its_view ... ok
 test a_page_s_title_is_a_part_of_the_document_numbered_after_the_rest ... ok
-test a_title_reads_no_value_a_press_speculates ... ok
 test writing_a_title_moves_no_part_of_the_body ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.13s
+test a_title_reads_no_value_a_press_speculates ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.93s
 
 == the corpus at C9 (corpus-check, corpus_history.rs, generality.rs, checking_source.rs)
 
@@ -25,82 +25,82 @@ rejected: 95 files
 rejected: 95/95 charter §16 categories covered
 corpus-check: OK
 test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
-test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
 test every_rejected_fixture_emits_only_its_own_defect ... ok
+test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
 test every_diagnostic_carries_what_charter_16_3_requires has been running for over 60 seconds
 test every_diagnostic_carries_what_charter_16_3_requires ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 129.15s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 195.30s
 test the_c9_texts_are_still_caught_for_their_invariant_and_refused_for_the_title ... ok
 test the_pre_change_text_of_every_repaired_fixture_still_fails ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.52s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.85s
 test generality_is_reported_separately_from_conformance ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 120.01s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 172.65s
 
 == the renderer (runtime/pw-render/tests/titles.rs)
 
 test a_title_is_text_as_a_browser_reads_it ... ok
 test a_title_is_the_page_s_text_and_values_and_nothing_in_its_body ... ok
 test a_title_reads_what_the_page_is_given_or_is_refused ... ok
+test a_page_s_document_is_titled_as_the_page_states_and_a_view_s_by_its_name ... ok
 test a_page_with_a_runtime_holds_the_announcer_from_its_first_byte ... ok
 test a_static_page_that_states_its_title_ships_no_runtime ... ok
-test a_page_s_document_is_titled_as_the_page_states_and_a_view_s_by_its_name ... ok
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 == the development server (pw-dev-server)
 
-test tests::a_store_s_page_is_titled_by_its_name ... ok
 test tests::a_title_that_changed_is_set_as_its_text ... ok
-test result: ok. 704 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 387.65s
+test tests::a_store_s_page_is_titled_by_its_name ... ok
+test result: ok. 732 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 541.65s
 
 == the page, in three engines (e2e/accessibility.spec.mjs)
 
-  ✓   1 [chromium] › e2e/accessibility.spec.mjs:139:1 › the store keeps every rule as it is served, and after each kind of change (3.0s)
-  ✓   2 [firefox] › e2e/accessibility.spec.mjs:139:1 › the store keeps every rule as it is served, and after each kind of change (3.6s)
-  ✓   3 [chromium] › e2e/accessibility.spec.mjs:211:1 › another store, and a store that is not there, keep every rule (1.3s)
-  ✓   4 [firefox] › e2e/accessibility.spec.mjs:211:1 › another store, and a store that is not there, keep every rule (1.5s)
-  ✓   5 [chromium] › e2e/accessibility.spec.mjs:220:1 › the order's page keeps every rule, as the store moves it along (2.0s)
-  ✓   7 [chromium] › e2e/accessibility.spec.mjs:256:1 › the home page keeps every rule (844ms)
-  ✓   6 [firefox] › e2e/accessibility.spec.mjs:220:1 › the order's page keeps every rule, as the store moves it along (2.5s)
-  ✓   8 [chromium] › e2e/accessibility.spec.mjs:268:1 › the cart's own page keeps every rule, empty and with lines (1.5s)
-  ✓   9 [firefox] › e2e/accessibility.spec.mjs:256:1 › the home page keeps every rule (1.3s)
-  ✓  10 [chromium] › e2e/accessibility.spec.mjs:286:1 › each page is titled by what it is, and a change to its title is shown once (1.2s)
-  ✓  12 [chromium] › e2e/accessibility.spec.mjs:332:1 › the tree a screen reader reads is the page's (904ms)
-  ✓  11 [firefox] › e2e/accessibility.spec.mjs:268:1 › the cart's own page keeps every rule, empty and with lines (1.8s)
-  ✓  13 [chromium] › e2e/accessibility.spec.mjs:422:1 › every control is reached from the keyboard, in the order it is read, and shows its focus (1.2s)
-  ✓  14 [firefox] › e2e/accessibility.spec.mjs:286:1 › each page is titled by what it is, and a change to its title is shown once (1.2s)
-  ✓  16 [firefox] › e2e/accessibility.spec.mjs:332:1 › the tree a screen reader reads is the page's (968ms)
-  ✓  15 [chromium] › e2e/accessibility.spec.mjs:466:1 › each control is pressed with Enter and with Space (1.3s)
-  ✓  18 [chromium] › e2e/accessibility.spec.mjs:484:1 › the page's announcer is in it from the first byte, empty (856ms)
-  ✓  17 [firefox] › e2e/accessibility.spec.mjs:422:1 › every control is reached from the keyboard, in the order it is read, and shows its focus (1.5s)
-  ✓  20 [firefox] › e2e/accessibility.spec.mjs:466:1 › each control is pressed with Enter and with Space (1.5s)
-  ✓  19 [chromium] › e2e/accessibility.spec.mjs:496:1 › a live region is the same node from the start, and says each change once (3.0s)
-  ✓  21 [firefox] › e2e/accessibility.spec.mjs:484:1 › the page's announcer is in it from the first byte, empty (980ms)
-  ✓  22 [chromium] › e2e/accessibility.spec.mjs:568:1 › a change writes only what it changes (2.2s)
-  ✓  23 [firefox] › e2e/accessibility.spec.mjs:496:1 › a live region is the same node from the start, and says each change once (3.2s)
-  ✓  24 [chromium] › e2e/accessibility.spec.mjs:608:1 › at 320 CSS pixels the page reflows, and keeps every rule (1.4s)
-  ✓  26 [chromium] › e2e/accessibility.spec.mjs:622:1 › on a phone the page is laid out at the phone's width (698ms)
-  ✓  27 [chromium] › e2e/accessibility.spec.mjs:656:1 › when motion is reduced, nothing on the page moves (878ms)
-  ✓  25 [firefox] › e2e/accessibility.spec.mjs:568:1 › a change writes only what it changes (2.2s)
-  ✓  28 [firefox] › e2e/accessibility.spec.mjs:608:1 › at 320 CSS pixels the page reflows, and keeps every rule (1.8s)
+  ✓   1 [chromium] › e2e/accessibility.spec.mjs:139:1 › the store keeps every rule as it is served, and after each kind of change (2.9s)
+  ✓   2 [firefox] › e2e/accessibility.spec.mjs:139:1 › the store keeps every rule as it is served, and after each kind of change (3.8s)
+  ✓   3 [chromium] › e2e/accessibility.spec.mjs:211:1 › another store, and a store that is not there, keep every rule (1.4s)
+  ✓   4 [firefox] › e2e/accessibility.spec.mjs:211:1 › another store, and a store that is not there, keep every rule (1.7s)
+  ✓   5 [chromium] › e2e/accessibility.spec.mjs:220:1 › the order's page keeps every rule, as the store moves it along (2.4s)
+  ✓   7 [chromium] › e2e/accessibility.spec.mjs:256:1 › the home page keeps every rule (885ms)
+  ✓   8 [chromium] › e2e/accessibility.spec.mjs:268:1 › the cart's own page keeps every rule, empty and with lines (1.3s)
+  ✓   6 [firefox] › e2e/accessibility.spec.mjs:220:1 › the order's page keeps every rule, as the store moves it along (2.9s)
+  ✓   9 [chromium] › e2e/accessibility.spec.mjs:286:1 › each page is titled by what it is, and a change to its title is shown once (1.1s)
+  ✓  10 [firefox] › e2e/accessibility.spec.mjs:256:1 › the home page keeps every rule (1.7s)
+  ✓  11 [chromium] › e2e/accessibility.spec.mjs:332:1 › the tree a screen reader reads is the page's (860ms)
+  ✓  13 [chromium] › e2e/accessibility.spec.mjs:422:1 › every control is reached from the keyboard, in the order it is read, and shows its focus (1.5s)
+  ✓  12 [firefox] › e2e/accessibility.spec.mjs:268:1 › the cart's own page keeps every rule, empty and with lines (2.0s)
+  ✓  14 [chromium] › e2e/accessibility.spec.mjs:466:1 › each control is pressed with Enter and with Space (1.4s)
+  ✓  15 [firefox] › e2e/accessibility.spec.mjs:286:1 › each page is titled by what it is, and a change to its title is shown once (1.3s)
+  ✓  16 [chromium] › e2e/accessibility.spec.mjs:484:1 › the page's announcer is in it from the first byte, empty (880ms)
+  ✓  17 [firefox] › e2e/accessibility.spec.mjs:332:1 › the tree a screen reader reads is the page's (1.1s)
+  ✓  19 [firefox] › e2e/accessibility.spec.mjs:422:1 › every control is reached from the keyboard, in the order it is read, and shows its focus (1.6s)
+  ✓  18 [chromium] › e2e/accessibility.spec.mjs:496:1 › a live region is the same node from the start, and says each change once (2.9s)
+  ✓  20 [firefox] › e2e/accessibility.spec.mjs:466:1 › each control is pressed with Enter and with Space (1.7s)
+  ✓  22 [firefox] › e2e/accessibility.spec.mjs:484:1 › the page's announcer is in it from the first byte, empty (1.1s)
+  ✓  21 [chromium] › e2e/accessibility.spec.mjs:568:1 › a change writes only what it changes (2.1s)
+  ✓  24 [chromium] › e2e/accessibility.spec.mjs:608:1 › at 320 CSS pixels the page reflows, and keeps every rule (1.5s)
+  ✓  25 [chromium] › e2e/accessibility.spec.mjs:622:1 › on a phone the page is laid out at the phone's width (763ms)
+  ✓  23 [firefox] › e2e/accessibility.spec.mjs:496:1 › a live region is the same node from the start, and says each change once (3.1s)
+  ✓  26 [chromium] › e2e/accessibility.spec.mjs:656:1 › when motion is reduced, nothing on the page moves (960ms)
+  ✓  27 [firefox] › e2e/accessibility.spec.mjs:568:1 › a change writes only what it changes (2.7s)
+  ✓  29 [firefox] › e2e/accessibility.spec.mjs:608:1 › at 320 CSS pixels the page reflows, and keeps every rule (2.0s)
   -  30 [firefox] › e2e/accessibility.spec.mjs:622:1 › on a phone the page is laid out at the phone's width
-  ✓  31 [firefox] › e2e/accessibility.spec.mjs:656:1 › when motion is reduced, nothing on the page moves (1.5s)
-  ✓  29 [webkit] › e2e/accessibility.spec.mjs:139:1 › the store keeps every rule as it is served, and after each kind of change (3.0s)
-  ✓  32 [webkit] › e2e/accessibility.spec.mjs:211:1 › another store, and a store that is not there, keep every rule (1.5s)
-  ✓  33 [webkit] › e2e/accessibility.spec.mjs:220:1 › the order's page keeps every rule, as the store moves it along (2.4s)
-  ✓  34 [webkit] › e2e/accessibility.spec.mjs:256:1 › the home page keeps every rule (1.3s)
-  ✓  35 [webkit] › e2e/accessibility.spec.mjs:268:1 › the cart's own page keeps every rule, empty and with lines (1.8s)
+  ✓  28 [webkit] › e2e/accessibility.spec.mjs:139:1 › the store keeps every rule as it is served, and after each kind of change (3.5s)
+  ✓  31 [firefox] › e2e/accessibility.spec.mjs:656:1 › when motion is reduced, nothing on the page moves (1.3s)
+  ✓  32 [webkit] › e2e/accessibility.spec.mjs:211:1 › another store, and a store that is not there, keep every rule (1.7s)
+  ✓  33 [webkit] › e2e/accessibility.spec.mjs:220:1 › the order's page keeps every rule, as the store moves it along (2.6s)
+  ✓  34 [webkit] › e2e/accessibility.spec.mjs:256:1 › the home page keeps every rule (1.5s)
+  ✓  35 [webkit] › e2e/accessibility.spec.mjs:268:1 › the cart's own page keeps every rule, empty and with lines (2.0s)
   ✓  36 [webkit] › e2e/accessibility.spec.mjs:286:1 › each page is titled by what it is, and a change to its title is shown once (1.2s)
-  ✓  37 [webkit] › e2e/accessibility.spec.mjs:332:1 › the tree a screen reader reads is the page's (934ms)
-  ✓  38 [webkit] › e2e/accessibility.spec.mjs:422:1 › every control is reached from the keyboard, in the order it is read, and shows its focus (1.8s)
-  ✓  39 [webkit] › e2e/accessibility.spec.mjs:466:1 › each control is pressed with Enter and with Space (1.5s)
-  ✓  40 [webkit] › e2e/accessibility.spec.mjs:484:1 › the page's announcer is in it from the first byte, empty (965ms)
-  ✓  41 [webkit] › e2e/accessibility.spec.mjs:496:1 › a live region is the same node from the start, and says each change once (3.0s)
-  ✓  42 [webkit] › e2e/accessibility.spec.mjs:568:1 › a change writes only what it changes (2.3s)
-  ✓  43 [webkit] › e2e/accessibility.spec.mjs:608:1 › at 320 CSS pixels the page reflows, and keeps every rule (1.6s)
-  ✓  44 [webkit] › e2e/accessibility.spec.mjs:622:1 › on a phone the page is laid out at the phone's width (1.0s)
-  ✓  45 [webkit] › e2e/accessibility.spec.mjs:656:1 › when motion is reduced, nothing on the page moves (1.1s)
+  ✓  37 [webkit] › e2e/accessibility.spec.mjs:332:1 › the tree a screen reader reads is the page's (1.0s)
+  ✓  38 [webkit] › e2e/accessibility.spec.mjs:422:1 › every control is reached from the keyboard, in the order it is read, and shows its focus (1.9s)
+  ✓  39 [webkit] › e2e/accessibility.spec.mjs:466:1 › each control is pressed with Enter and with Space (1.6s)
+  ✓  40 [webkit] › e2e/accessibility.spec.mjs:484:1 › the page's announcer is in it from the first byte, empty (992ms)
+  ✓  41 [webkit] › e2e/accessibility.spec.mjs:496:1 › a live region is the same node from the start, and says each change once (3.5s)
+  ✓  42 [webkit] › e2e/accessibility.spec.mjs:568:1 › a change writes only what it changes (2.4s)
+  ✓  43 [webkit] › e2e/accessibility.spec.mjs:608:1 › at 320 CSS pixels the page reflows, and keeps every rule (1.7s)
+  ✓  44 [webkit] › e2e/accessibility.spec.mjs:622:1 › on a phone the page is laid out at the phone's width (1.1s)
+  ✓  45 [webkit] › e2e/accessibility.spec.mjs:656:1 › when motion is reduced, nothing on the page moves (1.3s)
   1 skipped
-  44 passed (1.1m)
+  44 passed (1.3m)
 
 == mutation controls (scripts/titles_mutations.py)
 

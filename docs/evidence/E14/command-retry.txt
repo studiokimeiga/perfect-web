@@ -1,8 +1,8 @@
 ADR-0173 - a command is sent again where no answer came
 
 produced by: just e14-command-retry
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -13,8 +13,8 @@ test a_command_inside_a_function_is_refused ... ok
 test a_command_parameter_a_browser_cannot_send_is_refused ... ok
 test a_command_is_sent_again_as_its_retry_clause_says ... ok
 test a_case_and_a_record_holding_one_are_sent_as_the_browser_holds_them ... ok
-test a_handler_branches_between_commands ... ok
 test a_handler_calls_several_commands_in_order ... ok
+test a_handler_branches_between_commands ... ok
 test a_handler_that_calls_no_command_is_refused ... ok
 test a_handler_that_discards_its_answer_by_name_sends_it ... ok
 test a_handler_that_discards_its_answer_with_underscore_sends_it ... ok
@@ -27,26 +27,26 @@ test an_int_a_javascript_number_cannot_carry_stops_the_handler_before_it_sends .
 test an_opaque_constructor_sends_its_representation ... ok
 test each_path_read_is_read_where_the_document_carries_it ... ok
 test a_program_that_does_not_check_compiles_no_handlers ... ok
-test the_stores_handlers_compile_to_the_calls_their_bodies_make ... ok
 test a_handler_calls_its_commands_by_the_contracts_own_ids ... ok
+test the_stores_handlers_compile_to_the_calls_their_bodies_make ... ok
 test a_module_and_its_event_part_name_one_handler ... ok
-test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.80s
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.04s
 test a_key_separates_a_partition_by_naming_it ... ok
 test a_key_names_a_parameter_or_a_partition ... ok
 test a_session_query_in_a_shared_cache_is_refused_however_it_is_spelled ... ok
 test a_session_read_is_never_stale_however_it_is_written ... ok
-test a_duration_is_a_count_and_a_unit ... ok
 test a_retried_command_is_idempotent_whatever_it_retries_on ... ok
+test a_duration_is_a_count_and_a_unit ... ok
 test a_type_a_policy_names_is_visible ... ok
 test a_word_is_one_its_domain_lists ... ok
 test only_transport_only_is_transport_only ... ok
 test a_world_is_one_a_platform_has ... ok
 test an_operator_is_given_its_arguments ... ok
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.19s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.43s
 
 == sent again where no answer came, in three engines (e2e/retry.spec.mjs)
 
-  15 passed (28.4s)
+  15 passed (28.5s)
 
 == mutation controls (scripts/command_retry_mutations.py)
 

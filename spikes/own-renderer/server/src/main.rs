@@ -107,6 +107,8 @@ struct Subscriber {
     /// frames, never mistaken for a new one.
     last_seq: u64,
     frames: Vec<(u64, StreamFrame)>,
+    /// The reader generation captured before this document's render.
+    reader: Option<identity::ReaderIdentity>,
     /// When it last asked for frames or was served a document.
     seen: std::time::Instant,
     /// It fell more than [`MAX_WAITING`] frames behind: its queue is one
@@ -251,6 +253,7 @@ impl Subscriber {
         Subscriber {
             last_seq: cursor,
             frames: Vec::new(),
+            reader: None,
             seen: std::time::Instant::now(),
             behind: false,
             pushed: 0,
@@ -317,14 +320,43 @@ impl Answered {
         kept.to_string()
     }
 
-    fn from_kept(kept: &str) -> Answered {
-        let v: serde_json::Value = serde_json::from_str(kept).unwrap_or_default();
-        Answered {
-            committed: v["committed"] == true,
-            result: v.get("result").cloned(),
-            why: v["why"].as_str().map(str::to_string),
-            refused: v["refused"].as_str().map(str::to_string),
+    /// A browser's durable record is written only with committed business
+    /// state. Cached negative answers and Clock terminal errors use from_kept.
+    fn from_browser_receipt(kept: &str) -> Result<Answered, String> {
+        let answer = Self::from_kept(kept)?;
+        if !answer.committed {
+            return Err("browser receipt does not confirm a committed outcome".into());
         }
+        Ok(answer)
+    }
+
+    fn from_kept(kept: &str) -> Result<Answered, String> {
+        // Invalid persisted state is uncertainty, never proof of rollback.
+        // Keep the diagnostic bounded: the record may contain private values.
+        let malformed = || "interaction outcome could not be decoded".to_string();
+        let v: serde_json::Value = serde_json::from_str(kept).map_err(|_| malformed())?;
+        let object = v.as_object().ok_or_else(malformed)?;
+        let committed = object
+            .get("committed")
+            .and_then(serde_json::Value::as_bool)
+            .ok_or_else(malformed)?;
+        let optional_text = |name| match object.get(name) {
+            None | Some(serde_json::Value::Null) => Ok(None),
+            Some(serde_json::Value::String(text)) => Ok(Some(text.clone())),
+            _ => Err(malformed()),
+        };
+        let why = optional_text("why")?;
+        let refused = optional_text("refused")?;
+        if committed && (why.is_some() || refused.is_some()) {
+            return Err(malformed());
+        }
+        Ok(Answered {
+            committed,
+            // Some(null) and no result are distinct valid outcomes.
+            result: object.get("result").cloned(),
+            why,
+            refused,
+        })
     }
 }
 
@@ -500,9 +532,9 @@ type WhileReading = Arc<dyn Fn(&Server) + Send + Sync>;
 /// **The documents a change is told to, and the interactions their values
 /// include** ([`Server::to_tell`]; NEXT 4c).
 struct Told {
-    applied: Vec<String>,
+    applied: BTreeMap<String, Vec<String>>,
     /// Those whose page asks: read, and told.
-    live: Vec<Doc>,
+    live: Vec<(Doc, Option<identity::ReaderIdentity>)>,
     /// Those no page has asked for in [`LIVE`]: derived when one asks.
     passed: Vec<Doc>,
 }
@@ -513,7 +545,7 @@ type Params = BTreeMap<String, String>;
 
 /// **A speculated entry, by what names it** (ADR-0222, ADR-0236): the
 /// session, the page, the binding, and the page's parameters its key reads.
-type SpeculatedEntry = (String, String, String, Vec<String>);
+type SpeculatedEntry = (String, String, String, String, Vec<String>);
 
 /// Each of `session`'s documents in `map`, in the order they were served.
 fn documents_of<V>(map: &BTreeMap<Doc, V>, session: &str) -> Vec<Doc> {
@@ -1002,7 +1034,7 @@ struct Server {
     /// **Each session's committed interactions**, most recent last
     /// (ADR-0172): what a value of its cart includes, which a page drops its
     /// speculations by. As many as are kept for idempotency.
-    applied: Mutex<BTreeMap<String, std::collections::VecDeque<String>>>,
+    applied: Mutex<BTreeMap<(String, String), std::collections::VecDeque<String>>>,
     /// **One change of a session at a time** (ADR-0172): a command's commit
     /// and the frames it fans out, so another command of the session cannot
     /// land between the version a change is sent at, its value and the
@@ -1133,6 +1165,12 @@ struct Server {
     /// record is held against.
     #[cfg(test)]
     before_commit: Mutex<Option<KeyedFetched>>,
+    #[cfg(test)]
+    before_command_authority: Mutex<Option<KeyedFetched>>,
+    #[cfg(test)]
+    before_command_delivery: Mutex<Option<KeyedFetched>>,
+    #[cfg(test)]
+    after_page_admission: Mutex<Option<KeyedFetched>>,
     /// **What a test does while a change is derived outside the table**
     /// (ADR-0296), for each document derived: the table is free there, and
     /// a change that reaches the document there is derived against again.
@@ -1218,6 +1256,7 @@ struct Server {
     /// **How the scheduled runs ended** since the host started (the
     /// scheduled-commands track), which `/metrics` reports.
     counted_runs: CountedRuns,
+    scheduled_locks: Mutex<BTreeMap<i64, std::sync::Weak<Mutex<()>>>>,
     /// **The deployment's public origin** (ADR-0311), `PW_ORIGIN`, as the
     /// identity reads it: what a page's canonical address is written
     /// absolute with, never a request's `Host`, which its client chooses.
@@ -1971,6 +2010,12 @@ impl Server {
             #[cfg(test)]
             before_commit: Mutex::new(None),
             #[cfg(test)]
+            before_command_authority: Mutex::new(None),
+            #[cfg(test)]
+            before_command_delivery: Mutex::new(None),
+            #[cfg(test)]
+            after_page_admission: Mutex::new(None),
+            #[cfg(test)]
             deriving_hook: Mutex::new(None),
             #[cfg(test)]
             told_rendered: Mutex::new(None),
@@ -2008,6 +2053,7 @@ impl Server {
             identity,
             uploads: uploads::Uploads::default(),
             counted_runs: CountedRuns::default(),
+            scheduled_locks: Mutex::new(BTreeMap::new()),
         }
     }
 
@@ -2052,7 +2098,8 @@ impl Server {
             "status": { "$case": status },
         });
         let interaction = format!("settle-{}-{status}", settled.intent);
-        let answered = self.command_answer(&component_id, &session, &[sent], Some(&interaction))?;
+        let answered =
+            self.command_platform_answer(&component_id, &session, &[sent], Some(&interaction))?;
         match (answered.committed, answered.why) {
             (true, _) => Ok(format!("{} is {}: settled", settled.intent, settled.status)),
             (false, Some(why)) => Err(why),
@@ -2588,6 +2635,7 @@ impl Server {
     /// value, `Ok` or a declared `Err`, for the handler that called it. The
     /// outer error is a command that trapped or was refused, which answered
     /// no value.
+    #[cfg(test)]
     fn command_answered(
         &self,
         component_id: &str,
@@ -2601,6 +2649,7 @@ impl Server {
     /// [`Server::command_answered`], an idempotent command's answer committed
     /// with its writes by its interaction's key and the arguments it was sent
     /// with (ADR-0325).
+    #[cfg(test)]
     fn command_recorded(
         &self,
         component_id: &str,
@@ -2609,8 +2658,21 @@ impl Server {
         interaction: Option<&str>,
         record: Option<(&str, &str)>,
     ) -> Result<Answered, String> {
+        self.command_recorded_for(component_id, session, args, interaction, record, None)?
+            .into_answer()
+    }
+
+    fn command_recorded_for(
+        &self,
+        component_id: &str,
+        session: &str,
+        args: &[Val],
+        interaction: Option<&str>,
+        record: Option<(&str, &str)>,
+        completing: Option<schedules::Completing<'_>>,
+    ) -> Result<CommandOutcome, String> {
         let (answered, dropped) =
-            self.command_held(component_id, session, args, interaction, record)?;
+            self.command_held(component_id, session, args, interaction, record, completing)?;
         // Every other session holding what the commit dropped is told after
         // the author is answered (ADR-0219), so a post's answer does not
         // wait on every reader.
@@ -2643,19 +2705,55 @@ impl Server {
         args: &[Val],
         interaction: Option<&str>,
         record: Option<(&str, &str)>,
-    ) -> Result<(Answered, Vec<Reached>), String> {
+        completing: Option<schedules::Completing<'_>>,
+    ) -> Result<(CommandOutcome, Vec<Reached>), String> {
         // The session's one change at a time, through its frames (ADR-0172).
-        let session_lock = self.one_at_a_time(session);
+        let session_lock = completing.is_none().then(|| self.one_at_a_time(session));
         let _one = session_lock
-            .lock()
-            .expect("one change of a session at a time");
+            .as_ref()
+            .map(|lock| lock.lock().expect("one change of a session at a time"));
         // The data layer's writes, staged until the transaction commits
         // (ADR-0218): for the store, the session's cart, under one lock held
         // across the call and the commit — two presses in the same instant
         // both read the lines, and one of them would be lost
         // (`lazy-handler.spec.mjs` clicks twice concurrently to find that).
-        {
+        let principals = self.identity.principals();
+        let actor = if completing.is_some() || self.invoked_by_platform(component_id) {
+            None
+        } else {
+            // Keep the private success object separate from the bounded
+            // error branch; the security extractor merges these through `?`.
+            #[expect(
+                clippy::question_mark,
+                reason = "preserve the explicit authority success/error boundary for security analysis"
+            )]
+            match principals.command_actor(session) {
+                Ok(actor) => Some(actor),
+                Err(error) => return Err(error.into()),
+            }
+        };
+        let gate = principals.command_gate(session);
+        let run = || {
+            #[cfg(test)]
+            {
+                let hook = self
+                    .before_command_authority
+                    .lock()
+                    .expect("command authority hook")
+                    .take();
+                if let Some(hook) = hook {
+                    hook(self);
+                }
+            }
+            let mut memory_hold = if actor.as_ref().is_some_and(|actor| actor.is_local()) {
+                Some(gate.read().expect("session command authority"))
+            } else {
+                None
+            };
             let mut staging = self.data.begin(session);
+            if let Some(actor) = &actor {
+                staging.authorize(actor)?;
+            }
             let mut host = staging.ops();
             // The host's own operations are its routes', never a
             // component's (track `store-pg`).
@@ -2695,6 +2793,10 @@ impl Server {
             let out = self.run(component_id, session, &host, args)?;
             let result = out.first().map(answer_json);
             if let [Val::Result(Err(_))] = out.as_slice() {
+                staging.revalidate()?;
+                if let Some(actor) = actor.as_ref().filter(|actor| actor.is_local()) {
+                    actor.ensure_local_current()?;
+                }
                 // A declared error: nothing commits, and the handler is told
                 // which (ADR-0157).
                 let answered = Answered {
@@ -2703,7 +2805,17 @@ impl Server {
                     why: None,
                     refused: None,
                 };
-                return Ok((answered, Vec::new()));
+                if let Some(completion) = completing {
+                    // Release every old operation/claim and Writes before new staging.
+                    drop(out);
+                    drop(host);
+                    drop(staged_events);
+                    drop(staging);
+                    return self
+                        .complete_scheduled_error(session, record, answered, completion)
+                        .map(|outcome| (outcome, Vec::new()));
+                }
+                return Ok((CommandOutcome::Answered(answered), Vec::new()));
             }
             let (emitted, invalidated, scheduling) = {
                 let staged = staged_events.lock().expect("staged");
@@ -2750,27 +2862,72 @@ impl Server {
                 &invalidated,
                 recorded.as_ref(),
                 &scheduled,
+                completing,
+                actor.as_ref(),
             ) {
                 Ok(committed) => committed,
                 // **Recorded first by another host** (ADR-0325): the same
                 // interaction committed there, and its record holds the key.
-                // This commit rolled back, and the interaction is answered
-                // as the first was.
-                Err(why) => match record {
-                    Some((key, sent)) => match self.recalled_interaction(key)? {
-                        Some((first, answer)) if first == sent => {
-                            return Ok((Answered::from_kept(&answer), Vec::new()));
-                        }
-                        _ => return Err(why),
-                    },
-                    None => return Err(why),
-                },
+                // A refusal rolled back or its acknowledgement was lost;
+                // an exact authoritative receipt answers either case.
+                // Clock completion authority is the queue transaction, never
+                // an ordinary client receipt. An unknown acknowledgement is
+                // reconciled by conditional queue state, not a cached answer.
+                Err(why) if completing.is_some() => {
+                    // Release the possibly committed/refused transaction and
+                    // every operation before reading authoritative state again.
+                    drop(out);
+                    drop(host);
+                    drop(staged_events);
+                    drop(staging);
+                    self.refresh_uncertain_clock(session, &invalidated, &emitted);
+                    return Err(why);
+                }
+                Err(why) => {
+                    drop(out);
+                    drop(host);
+                    drop(staged_events);
+                    drop(staging);
+                    drop(memory_hold.take());
+                    self.refresh_uncertain_browser(session, &invalidated, &emitted);
+                    if let Some(actor) = &actor
+                        && let Err(why) = actor.ensure_current()
+                    {
+                        return Ok((CommandOutcome::Uncertain(why.into()), Vec::new()));
+                    }
+                    match record {
+                        Some((key, sent)) => match self.recalled_interaction(key) {
+                            Err(why) => return Ok((CommandOutcome::Uncertain(why), Vec::new())),
+                            Ok(receipt) => match receipt {
+                                Some((first, answer)) if first == sent => {
+                                    let decoded = if actor.is_some() {
+                                        Answered::from_browser_receipt(&answer)
+                                    } else {
+                                        Answered::from_kept(&answer)
+                                    };
+                                    let outcome = match decoded {
+                                        Ok(answer) => CommandOutcome::Answered(answer),
+                                        Err(why) => CommandOutcome::Uncertain(why),
+                                    };
+                                    return Ok((outcome, Vec::new()));
+                                }
+                                _ => return Ok((CommandOutcome::Uncertain(why), Vec::new())),
+                            },
+                        },
+                        None => return Ok((CommandOutcome::Uncertain(why), Vec::new())),
+                    }
+                }
             };
             // A run it scheduled may be due before the next the host
             // waits for: the host looks again.
             if !scheduled.is_empty() {
                 self.timers.changed.notify_all();
             }
+            let committed = match committed {
+                CommitOutcome::Applied(value) => Some(value),
+                CommitOutcome::NoWrites => None,
+                CommitOutcome::NotCurrent => return Ok((CommandOutcome::NotCurrent, Vec::new())),
+            };
             let Some(((emitted, invalidated), ids)) = committed else {
                 // Nothing was written, so there is nothing to commit.
                 let answered = Answered {
@@ -2779,32 +2936,48 @@ impl Server {
                     why: None,
                     refused: None,
                 };
-                return Ok((answered, Vec::new()));
+                return Ok((CommandOutcome::Answered(answered), Vec::new()));
             };
             // What the cart's values include from now on, by the interaction
             // that committed it (ADR-0172), recorded with the commit.
-            if let Some(interaction) = interaction {
+            if let Some(interaction) = interaction.filter(|_| completing.is_none()) {
                 let mut applied = self.applied.lock().expect("applied");
-                let mine = applied.entry(session.to_string()).or_default();
+                let mine = applied
+                    .entry((
+                        session.to_string(),
+                        self.identity
+                            .principals()
+                            .receipt_reader(session)
+                            .to_string(),
+                    ))
+                    .or_default();
                 mine.push_back(interaction.to_string());
                 while mine.len() > INTERACTIONS_PER_SESSION {
                     mine.pop_front();
                 }
             }
+            drop(out);
+            drop(host);
+            drop(staged_events);
+            drop(staging);
+            drop(memory_hold.take());
             let reached = self.invalidate_queries(session, &invalidated, &emitted);
             // The materializer drains the committed event and regenerates the
             // entry it invalidates. The version moves because the RESOURCE
             // moved.
-            drop(staging);
             // The session's documents, at the version the commit made: by the
             // layer's own entry for the session (the store's cart), or on the
             // host's clock (ADR-0218).
             if self.data.session_entry() {
-                self.drain_held(session);
+                if completing.is_none() {
+                    self.drain_held(session);
+                }
             } else {
                 self.clock.advance(1);
-                let version = Version(self.clock.now());
-                self.send_documents(session, &session_documents(session), version, false);
+                if completing.is_none() {
+                    let version = Version(self.clock.now());
+                    self.send_documents(session, &session_documents(session), version, false);
+                }
             }
             // Delivered: every event the commit staged is consumed, the
             // order's among them, which no entry drained above names (track
@@ -2817,7 +2990,104 @@ impl Server {
                 why: None,
                 refused: None,
             };
-            Ok((answered, reached))
+            Ok((CommandOutcome::Answered(answered), reached))
+        };
+        if let Some(actor) = &actor {
+            principals.with_reader(session, &actor.reader, run)
+        } else {
+            match principals.platform_reader(session) {
+                Ok(reader) => principals.with_reader(session, &reader, run),
+                Err(error) => Err(error.into()),
+            }
+        }
+    }
+
+    /// An ordinary uncertain commit refreshes from actual storage without
+    /// publishing attempted events or asserting a business outcome.
+    fn refresh_uncertain_browser(
+        &self,
+        session: &str,
+        invalidated: &[data::Dropped],
+        events: &[data::Handed],
+    ) {
+        let reached = self.invalidate_queries(session, invalidated, events);
+        if self.data.session_entry() {
+            // A lost acknowledgement may precede local event/materializer
+            // installation. Mark the fixed actor's entry stale explicitly;
+            // the adapter's real data, never attempted events, rebuilds it.
+            self.materializer.invalidate(&self.cart_key(session), 0);
+            self.drain_held(session);
+        } else {
+            self.clock.advance(1);
+            self.send_documents(
+                session,
+                &session_documents(session),
+                Version(self.clock.now()),
+                false,
+            );
+        }
+        if !reached.is_empty() {
+            self.telling
+                .lock()
+                .expect("telling")
+                .push((session.to_string(), reached));
+        }
+    }
+
+    /// An unknown Clock acknowledgement cannot prove Applied or rollback.
+    /// Conservatively refresh affected local reads from the actual database:
+    /// the shared outbox tail intentionally skips this host's own rows.
+    /// This publishes no attempted business writes or application events.
+    fn refresh_uncertain_clock(
+        &self,
+        session: &str,
+        invalidated: &[data::Dropped],
+        events: &[data::Handed],
+    ) {
+        let reached = self.invalidate_queries(session, invalidated, events);
+        if !self.data.session_entry() {
+            self.clock.advance(1);
+        }
+        if !reached.is_empty() {
+            self.telling
+                .lock()
+                .expect("telling")
+                .push((session.to_string(), reached));
+        }
+    }
+
+    fn complete_scheduled_error(
+        &self,
+        session: &str,
+        record: Option<(&str, &str)>,
+        answer: Answered,
+        completing: schedules::Completing<'_>,
+    ) -> Result<CommandOutcome, String> {
+        let mut empty = self.data.begin(session);
+        let kept = answer.kept();
+        let now = u64::try_from(self.now()).unwrap_or_default();
+        let recorded = record.map(|(key, sent)| data::Recorded {
+            key,
+            sent,
+            answer: &kept,
+            at_ms: now,
+            forget_before_ms: now.saturating_sub(INTERACTIONS_KEPT_MS),
+        });
+        match self.commit_staged(
+            &mut *empty,
+            &[],
+            &[],
+            recorded.as_ref(),
+            &[],
+            Some(completing),
+            None,
+        )? {
+            CommitOutcome::Applied((_, ids)) => {
+                self.materializer.delivered(&ids);
+                Ok(CommandOutcome::Answered(answer))
+            }
+            CommitOutcome::NotCurrent => Ok(CommandOutcome::NotCurrent),
+            CommitOutcome::NoWrites => Err("scheduled terminal completion did not commit".into()),
         }
     }
 
@@ -2839,6 +3109,7 @@ impl Server {
     ///
     /// Returns what is delivered, and the materializer's ids for its events,
     /// which are consumed once delivered ([`Materializer::delivered`]).
+    #[allow(clippy::too_many_arguments)]
     fn commit_staged(
         &self,
         staging: &mut dyn data::Staged,
@@ -2846,21 +3117,41 @@ impl Server {
         invalidated: &[data::Dropped],
         interaction: Option<&data::Recorded<'_>>,
         scheduled: &[schedules::Scheduled],
-    ) -> Result<Option<(data::Outboxed, Vec<i64>)>, String> {
+        completing: Option<schedules::Completing<'_>>,
+        actor: Option<&identity::CommandActor>,
+    ) -> Result<CommitOutcome, String> {
         // A command that wrote nothing commits nothing, unless it scheduled
         // or cancelled a run (the scheduled-commands track), which is
         // written as its writes are.
-        let rows = match staging.rows() {
+        let mut rows = match staging.rows() {
             Some(rows) => rows,
-            None if !scheduled.is_empty() => Vec::new(),
-            None => return Ok(None),
+            None if !scheduled.is_empty() || completing.is_some() => Vec::new(),
+            None => {
+                staging.revalidate()?;
+                if let Some(actor) = actor.filter(|actor| actor.is_local()) {
+                    actor.ensure_local_current()?;
+                }
+                return Ok(CommitOutcome::NoWrites);
+            }
         };
+        if completing.is_some()
+            && matches!(staging.projection_scope(), data::ProjectionScope::Session)
+        {
+            rows.clear();
+        }
+
         let events = emitted
             .iter()
             .map(|(event, values)| outboxed(event, values))
             .collect::<Result<Vec<_>, String>>()?;
-        let (delivered, ids) = match staging.commit(emitted, invalidated, interaction, scheduled)? {
-            Some(committed) => {
+        let (delivered, ids) = match staging.commit(
+            emitted,
+            invalidated,
+            interaction,
+            scheduled,
+            completing,
+        )? {
+            data::Commit::Applied(committed) => {
                 let mut ids = Vec::new();
                 if self.data.session_entry() {
                     let recorded = committed
@@ -2885,11 +3176,25 @@ impl Server {
                 }
                 (committed, ids)
             }
-            None => {
+            data::Commit::NotCurrent => return Ok(CommitOutcome::NotCurrent),
+            data::Commit::Materializer => {
                 // The state the data layer staged and the outbox's events, in
                 // one transaction (ADR-0019, ADR-0208); and the interaction's
                 // answer, where the command has one (ADR-0325).
+                let mut current = true;
                 let ids = self.materializer.command(|tx| {
+                    if let Some(completion) = completing {
+                        if !completion.belongs_to(self.materializer.queue_authority()) {
+                            return Err(
+                                "scheduled completion belongs to another queue adapter".to_string()
+                            );
+                        }
+                        if !Materializer::consume_run(tx, completion.run, completion.now_ms)? {
+                            current = false;
+                            return Ok(Vec::new());
+                        }
+                    }
+                    staging.prepare_materialized()?;
                     for (key, value) in &rows {
                         Materializer::set_state(tx, key, value);
                     }
@@ -2900,14 +3205,20 @@ impl Server {
                     // And the runs it scheduled, or cancelled (the
                     // scheduled-commands track).
                     schedules::write(tx, scheduled)?;
+                    if let Some(actor) = actor.filter(|actor| actor.is_local()) {
+                        actor.ensure_local_current()?;
+                    }
                     Ok::<_, String>(events)
                 })?;
+                if !current {
+                    return Ok(CommitOutcome::NotCurrent);
+                }
                 ((emitted.to_vec(), invalidated.to_vec()), ids)
             }
         };
         // What was staged is the data layer's from now on.
         staging.publish();
-        Ok(Some((delivered, ids)))
+        Ok(CommitOutcome::Applied((delivered, ids)))
     }
 
     /// **A route's change to the store's data, committed as a command's is**
@@ -2926,7 +3237,63 @@ impl Server {
         events: &[data::Handed],
         deliver: impl FnOnce(&[data::Handed]),
     ) -> Result<Option<Val>, String> {
+        self.store_write_for(session, op, args, events, deliver, None)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn store_write_browser(
+        &self,
+        session: &str,
+        reader: &identity::ReaderIdentity,
+        op: &str,
+        args: &[Val],
+        events: &[data::Handed],
+        deliver: impl FnOnce(&[data::Handed]),
+    ) -> Result<Option<Val>, String> {
+        let principals = self.identity.principals();
+        principals.with_reader(session, reader, || {
+            let actor = match principals.command_actor(session) {
+                Ok(actor) => actor,
+                Err(error) => return Err(error.into()),
+            };
+            let result = self.store_write_for(session, op, args, events, deliver, Some(&actor));
+            if let Err(error) = actor.ensure_current() {
+                return Err(error.into());
+            }
+            result
+        })
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn store_write_for(
+        &self,
+        session: &str,
+        op: &str,
+        args: &[Val],
+        events: &[data::Handed],
+        deliver: impl FnOnce(&[data::Handed]),
+        actor: Option<&identity::CommandActor>,
+    ) -> Result<Option<Val>, String> {
+        #[cfg(test)]
+        if actor.is_some()
+            && let Some(hook) = self
+                .before_command_authority
+                .lock()
+                .expect("authority hook")
+                .take()
+        {
+            hook(self);
+        }
+        let gate = actor
+            .filter(|actor| actor.is_local())
+            .map(|_| self.identity.principals().command_gate(session));
+        let hold = gate
+            .as_ref()
+            .map(|gate| gate.read().expect("session authority gate"));
         let mut staging = self.data.begin(session);
+        if let Some(actor) = actor {
+            staging.authorize(actor)?;
+        }
         let ops = staging.ops();
         let run = ops
             .get(op)
@@ -2941,12 +3308,16 @@ impl Server {
             }
             other => return Err(format!("{op} answered {other:?}")),
         };
-        let Some(((delivered, _), ids)) =
-            self.commit_staged(&mut *staging, events, &[], None, &[])?
-        else {
-            return Ok(answer);
-        };
+        let ((delivered, _), ids) =
+            match self.commit_staged(&mut *staging, events, &[], None, &[], None, actor)? {
+                CommitOutcome::Applied(value) => value,
+                CommitOutcome::NoWrites => return Ok(answer),
+                CommitOutcome::NotCurrent => {
+                    return Err("unexpected scheduled disposition on a platform route".into());
+                }
+            };
         drop(staging);
+        drop(hold);
         deliver(&delivered);
         self.materializer.delivered(&ids);
         Ok(answer)
@@ -3055,13 +3426,11 @@ impl Server {
     /// [`Server::command_json`], and what the command answered (ADR-0157).
     /// A retried interaction is given the first request's answer, its value
     /// included.
-    fn command_answer(
+    fn command_arguments(
         &self,
         component_id: &str,
-        session: &str,
         json: &[serde_json::Value],
-        interaction: Option<&str>,
-    ) -> Result<Answered, String> {
+    ) -> Result<(pw_host::ComponentExport, Vec<Val>), String> {
         let loaded = self
             .components
             .get(component_id)
@@ -3076,30 +3445,15 @@ impl Server {
         // Typed by the export's parameters, and held to the invariants its
         // contract states (ADR-0179): a forged quantity of 0 is refused here.
         let args = loaded.prepared.arguments_for(&export, json)?;
-        // With the predicate `requires` refused it by, where one did
-        // (ADR-0302): taken on the thread that ran it, as it ends, so it is
-        // kept with the interaction.
-        let answered = |run: Result<Answered, String>| {
-            let mut answered = match run {
-                Ok(answered) => answered,
-                Err(why) => Answered {
-                    committed: false,
-                    result: None,
-                    why: Some(why),
-                    refused: None,
-                },
-            };
-            answered.refused = identity::take_refusal();
-            answered
-        };
-        let Some(key_type) = &export.idempotent_by else {
-            return Ok(answered(self.command_answered(
-                component_id,
-                session,
-                &args,
-                interaction,
-            )));
-        };
+        Ok((export, args))
+    }
+
+    /// Validate protocol metadata before any command evaluation or receipt work.
+    fn command_interaction<'a>(
+        component_id: &str,
+        key_type: &str,
+        interaction: Option<&'a str>,
+    ) -> Result<&'a str, String> {
         let id = interaction.ok_or_else(|| {
             format!(
                 "`{component_id}` is idempotent_by {key_type}, and the request carries no interaction id"
@@ -3113,8 +3467,94 @@ impl Server {
         {
             return Err(format!("`{id}` is not an interaction id"));
         }
-        let key = format!("{session}\u{1f}{component_id}\u{1f}{id}");
-        let sent = serde_json::Value::Array(json.to_vec()).to_string();
+        Ok(id)
+    }
+
+    fn command_platform_answer(
+        &self,
+        component_id: &str,
+        session: &str,
+        json: &[serde_json::Value],
+        interaction: Option<&str>,
+    ) -> Result<Answered, String> {
+        if !self.invoked_by_platform(component_id) {
+            return Err("not a platform-invoked command".into());
+        }
+        let principals = self.identity.principals();
+        match principals.platform_reader(session) {
+            Ok(reader) => {
+                let _ = identity::take_refusal();
+                principals.with_reader(session, &reader, || {
+                    self.command_answer_bound(component_id, session, json, interaction)
+                })
+            }
+            Err(error) => Err(error.into()),
+        }
+    }
+
+    fn command_answer(
+        &self,
+        component_id: &str,
+        session: &str,
+        json: &[serde_json::Value],
+        interaction: Option<&str>,
+    ) -> Result<Answered, String> {
+        let principals = self.identity.principals();
+        let _ = identity::take_refusal();
+        match principals.command_actor(session) {
+            Ok(actor) => {
+                let answer = principals.with_reader(session, &actor.reader, || {
+                    self.command_answer_bound(component_id, session, json, interaction)
+                });
+                if let Err(error) = actor.ensure_current() {
+                    return Err(error.into());
+                }
+                answer
+            }
+            Err(error) => Err(error.into()),
+        }
+    }
+
+    fn command_answer_bound(
+        &self,
+        component_id: &str,
+        session: &str,
+        json: &[serde_json::Value],
+        interaction: Option<&str>,
+    ) -> Result<Answered, String> {
+        let (export, args) = self.command_arguments(component_id, json)?;
+        // With the predicate `requires` refused it by, where one did
+        // (ADR-0302): taken on the thread that ran it, as it ends, so it is
+        // kept with the interaction.
+        let answered = |run: Result<CommandOutcome, String>| {
+            let mut answered = match run {
+                Ok(CommandOutcome::Answered(answered)) => answered,
+                Ok(CommandOutcome::Uncertain(why)) => return Err(why),
+                Ok(CommandOutcome::NotCurrent) => {
+                    return Err("unexpected scheduled disposition on a browser command".into());
+                }
+                Err(why) => Answered {
+                    committed: false,
+                    result: None,
+                    why: Some(why),
+                    refused: None,
+                },
+            };
+            answered.refused = identity::take_refusal();
+            Ok::<_, String>(answered)
+        };
+        let Some(key_type) = &export.idempotent_by else {
+            return answered(self.command_recorded_for(
+                component_id,
+                session,
+                &args,
+                interaction,
+                None,
+                None,
+            ));
+        };
+        let id = Self::command_interaction(component_id, key_type, interaction)?;
+        let (key, cache_key, sent) = self.receipt_keys(session, component_id, id, json);
         // **A committed record answers it** (ADR-0325): sent again after the
         // host restarted, past the session's last 64, or to another host, the
         // interaction is answered as it was, and nothing runs.
@@ -3124,12 +3564,16 @@ impl Server {
                     "interaction `{id}` was first sent with other arguments"
                 ));
             }
-            return Ok(Answered::from_kept(&answer));
+            return if self.invoked_by_platform(component_id) {
+                Answered::from_kept(&answer)
+            } else {
+                Answered::from_browser_receipt(&answer)
+            };
         }
         {
             let mut held = self.interactions.lock().expect("interactions");
             let queue = held.entry(session.to_string()).or_default();
-            match queue.iter().find(|(k, _)| *k == key) {
+            match queue.iter().find(|(k, _)| *k == cache_key) {
                 Some((_, first)) if *first != sent => {
                     return Err(format!(
                         "interaction `{id}` was first sent with other arguments"
@@ -3137,7 +3581,7 @@ impl Server {
                 }
                 Some(_) => {}
                 None => {
-                    queue.push_back((key.clone(), sent.clone()));
+                    queue.push_back((cache_key.clone(), sent.clone()));
                     while queue.len() > INTERACTIONS_PER_SESSION {
                         if let Some((oldest, _)) = queue.pop_front() {
                             self.commands.forget_command(&oldest);
@@ -3148,18 +3592,40 @@ impl Server {
         }
         let outcome = self
             .commands
-            .try_command(&key, || {
-                answered(self.command_recorded(
+            .try_command_result(&cache_key, || {
+                answered(self.command_recorded_for(
                     component_id,
                     session,
                     &args,
                     Some(id),
                     Some((&key, &sent)),
+                    None,
                 ))
-                .kept()
+                .map(|answer| answer.kept())
+                .map_err(|_| pw_resource::CommandError::OutcomeUnknown)
             })
             .map_err(|e| format!("interaction `{id}`'s outcome is unknown: {e:?}"))?;
-        Ok(Answered::from_kept(&outcome))
+        Answered::from_kept(&outcome)
+    }
+
+    fn receipt_keys(
+        &self,
+        session: &str,
+        component: &str,
+        id: &str,
+        args: &[serde_json::Value],
+    ) -> (String, String, String) {
+        let principals = self.identity.principals();
+        let reader = if self.invoked_by_platform(component) {
+            serde_json::json!({"platform":component,"session":identity::hex(session.as_bytes()),"user":principals.user_of(session)})
+        } else {
+            principals.receipt_reader(session)
+        };
+        let digest = identity::hex(&identity::kept_hash(&reader.to_string()));
+        let key = format!("{session}\u{1f}{component}\u{1f}{id}");
+        let cache = format!("receipt-v1:{digest}\u{1f}{component}\u{1f}{id}");
+        let sent = serde_json::json!({"v":1,"reader":reader,"args":args}).to_string();
+        (key, cache, sent)
     }
 
     /// **An interaction's committed record** (ADR-0325), kept a day on the
@@ -3173,7 +3639,7 @@ impl Server {
         if self.data.keeps_interactions() {
             self.data.recalled(key, since)
         } else {
-            Ok(self.materializer.recalled(key, since))
+            self.materializer.recalled(key, since)
         }
     }
 
@@ -3241,6 +3707,30 @@ impl Server {
         self.send_documents(session, entry, version, false);
     }
 
+    /// Current authority for a frozen delivery batch. Never refreshes/touches
+    /// activity and never installs an identity in the local cache.
+    fn delivery_allowed(&self, doc: &Doc, bound: Option<&identity::ReaderIdentity>) -> bool {
+        let current = self.identity.principals().inspect_reader(&doc.0);
+        match (bound, current) {
+            (Some(bound), Ok(current)) => *bound == current,
+            // Bare unserved cursors exist only for the development guest
+            // transport. An absent binding is never an anonymous account.
+            (None, Ok(identity::ReaderIdentity::Guest)) => true,
+            _ => false,
+        }
+    }
+
+    fn revoke_document(&self, doc: &Doc) {
+        // Each hold is released before the next: no data/materializer lock
+        // is acquired while the subscriber table is held.
+        self.pending.lock().expect("pending").remove(doc);
+        self.keyed.lock().expect("keyed").remove(doc);
+        self.shown.lock().expect("shown").remove(doc);
+        self.params.lock().expect("params").remove(doc);
+        self.pages.lock().expect("pages").remove(doc);
+        self.answers.lock().expect("answers").remove(doc);
+    }
+
     /// **Forget the subscribers that stopped asking, and what was kept for
     /// them.** Their queues go, and so do their sessions' materialized cart
     /// entries: a returning page is served a new document, and `drain`
@@ -3288,11 +3778,14 @@ impl Server {
             }
         }
         for session in forgotten {
+            self.applied
+                .lock()
+                .expect("applied")
+                .retain(|(cookie, _), _| *cookie != session);
             self.materializer.evict(&self.cart_key(&session));
             // And the query values kept for it alone (ADR-0127): a private
             // entry's key begins with its session.
-            let own = format!("session={session}");
-            let mine = |k: &str| k == own || k.starts_with(&format!("{own}\u{1f}"));
+            let mine = |k: &str| private_entry_belongs_to(k, &session);
             self.queries.evict_where(|k| mine(&k.key));
             // And its interactions: a forgotten session's retry runs again,
             // which is the bound's stated cost (ADR-0121).
@@ -3331,9 +3824,30 @@ impl Server {
         if document == 0 {
             return None;
         }
-        let pages = self.pages.lock().expect("pages");
-        match pages.keys().find(|(_, n)| *n == document) {
-            Some((shown_to, _)) if shown_to == session => None,
+        let shown_to = self
+            .pages
+            .lock()
+            .expect("pages")
+            .keys()
+            .find(|(_, n)| *n == document)
+            .map(|(owner, _)| owner.clone());
+        match shown_to {
+            Some(owner) if owner == session => {
+                let bound = self
+                    .pending
+                    .lock()
+                    .expect("pending")
+                    .get(&(session.to_string(), document))
+                    .and_then(|waiting| waiting.reader.clone());
+                let current = self.identity.principals().bound_reader(session);
+                if bound.as_ref() == Some(&current)
+                    || (bound.is_none() && current == identity::ReaderIdentity::Guest)
+                {
+                    None
+                } else {
+                    Some(ANOTHER_READER)
+                }
+            }
             Some(_) => Some(ANOTHER_READER),
             // TRACK SEAM (second-host): a page another host served.
             None if hosts::another_hosts(document, self.first_page) => Some(ANOTHER_HOST),
@@ -3343,8 +3857,7 @@ impl Server {
 
     /// **What the host kept for a press made on `document`** (track
     /// `store-accounts`, the integrator's finding): its interaction's
-    /// outcome, kept under the session the page was shown to (the
-    /// session's own where the host no longer holds the page), with the
+    /// outcome, kept under the requesting cookie and its fixed reader, with the
     /// arguments it was first sent with. Nothing runs, and nothing waits: a
     /// press still running, or none kept, is `None`.
     fn kept_answer(
@@ -3354,47 +3867,80 @@ impl Server {
         component_id: &str,
         json: &[serde_json::Value],
         interaction: Option<&str>,
-    ) -> Option<Answered> {
-        let id = interaction?;
-        let shown_to = self
-            .pages
-            .lock()
-            .expect("pages")
-            .keys()
-            .find(|(_, n)| *n == document)
-            .map(|(shown_to, _)| shown_to.clone())
-            .unwrap_or_else(|| session.to_string());
-        let key = format!("{shown_to}\u{1f}{component_id}\u{1f}{id}");
-        let sent = serde_json::Value::Array(json.to_vec()).to_string();
-        let first_sent = self
-            .interactions
-            .lock()
-            .expect("interactions")
-            .get(&shown_to)
-            .is_some_and(|queue| queue.iter().any(|(k, first)| *k == key && *first == sent));
-        if !first_sent {
-            // TRACK SEAM (second-host): **or what the deployment kept**
-            // (ADR-0325, ADR-0369): a press this host never ran, made on a
-            // page another host served (or this one, before it restarted),
-            // which committed there, is answered from the record its commit
-            // wrote with its writes, as this host's memory answers its own;
-            // nothing runs. One never committed has no record, and is
-            // refused as before. It is looked for under the page's session,
-            // as above: the request's own where this host does not hold the
-            // page (page numbers are apart on every host, so another host's
-            // page is never one this host showed another session).
-            return match self.recalled_interaction(&key) {
-                Ok(Some((first, answer))) if first == sent => Some(Answered::from_kept(&answer)),
-                Ok(_) => None,
-                Err(why) => {
-                    eprintln!("pw dev server: an interaction's record was not read: {why}");
-                    None
+    ) -> Result<Option<Answered>, String> {
+        let Some(id) = interaction else {
+            return Ok(None);
+        };
+        match self.identity.principals().command_actor(session) {
+            Ok(actor) => {
+                if let Err(error) = actor.ensure_current() {
+                    return Err(error.into());
                 }
-            };
+                let owner = self
+                    .pages
+                    .lock()
+                    .expect("pages")
+                    .keys()
+                    .find(|(_, n)| *n == document)
+                    .map(|(owner, _)| owner.clone());
+                if owner.as_deref().is_some_and(|owner| owner != session) {
+                    return Ok(None);
+                }
+                let bound = self
+                    .pending
+                    .lock()
+                    .expect("pending")
+                    .get(&(session.to_string(), document))
+                    .and_then(|waiting| waiting.reader.clone());
+                if bound.as_ref().is_some_and(|reader| reader != &actor.reader) {
+                    return Ok(None);
+                }
+                let (key, cache_key, sent) = self.receipt_keys(session, component_id, id, json);
+                if matches!(self.commands.command_result(&cache_key), Some(Err(_))) {
+                    // A lost acknowledgement may become a known commit once
+                    // its exact durable receipt is visible. Absence/read failure
+                    // still preserves the unknown reservation and never reruns.
+                    return match self.recalled_interaction(&key)? {
+                        Some((first, answer)) if first == sent => {
+                            Answered::from_browser_receipt(&answer).map(Some)
+                        }
+                        _ => Err("interaction outcome could not be confirmed".into()),
+                    };
+                }
+                let first_sent = self
+                    .interactions
+                    .lock()
+                    .expect("interactions")
+                    .get(session)
+                    .is_some_and(|queue| {
+                        queue
+                            .iter()
+                            .any(|(k, first)| *k == cache_key && *first == sent)
+                    });
+                if !first_sent {
+                    // TRACK SEAM (second-host): **or what the deployment kept**
+                    // (ADR-0325, ADR-0369): a press this host never ran, made on a
+                    // page another host served (or this one, before it restarted),
+                    // which committed there, is answered from the record its commit
+                    // wrote with its writes, as this host's memory answers its own;
+                    // nothing runs. One never committed has no record, and is
+                    // refused as before. The caller's reader envelope must match;
+                    // a page number never supplies another cookie's receipt identity.
+                    return Ok(match self.recalled_interaction(&key)? {
+                        Some((first, answer)) if first == sent => {
+                            Some(Answered::from_browser_receipt(&answer)?)
+                        }
+                        _ => None,
+                    });
+                }
+                match self.commands.command_result(&cache_key) {
+                    Some(Ok(kept)) => Answered::from_kept(&kept).map(Some),
+                    Some(Err(_)) => Err("interaction outcome could not be confirmed".into()),
+                    None => Ok(None),
+                }
+            }
+            Err(error) => Err(error.into()),
         }
-        self.commands
-            .command_outcome(&key)
-            .map(|kept| Answered::from_kept(&kept))
     }
 
     /// `pw-resource`'s clock, brought to wall time (ADR-0127).
@@ -3421,11 +3967,13 @@ impl Server {
     /// scheduled-commands track), for as long as the host runs: woken when a
     /// commit schedules one or the clock is moved, and each second at least.
     fn run_when_due(&self) {
-        loop {
-            let (ran, wait) = self.run_due();
-            if ran == 0 {
-                self.timers.wait(wait);
-            }
+        self.drive_scheduled(|| true, |wait| self.timers.wait(wait));
+    }
+
+    fn drive_scheduled(&self, keep_running: impl Fn() -> bool, wait: impl Fn(u64)) {
+        while keep_running() {
+            let (_selected, delay) = self.run_due();
+            wait(delay);
         }
     }
 
@@ -3433,15 +3981,16 @@ impl Server {
     /// many, and how long until the next, a second at most.
     fn run_due(&self) -> (usize, u64) {
         let now = self.now();
-        let due = match self.runs().due_runs(now, 16) {
+        let due = match schedules::select(self.runs(), now, 16) {
             Ok(due) => due,
             Err(why) => {
                 eprintln!("pw dev server: the scheduled runs were not read: {why}");
                 return (0, 1000);
             }
         };
+        let mut blocked = false;
         for run in &due {
-            self.run_scheduled(run);
+            blocked |= self.run_scheduled(run);
         }
         // What the runs' commits reached, told to each session reading it,
         // as a connection's command's is once it is answered (ADR-0219):
@@ -3450,7 +3999,11 @@ impl Server {
             self.tell_waiting();
         }
         let next = self.runs().next_run().unwrap_or(None);
-        let wait = next.map_or(1000, |at| (at - self.now()).clamp(1, 1000));
+        let wait = if blocked {
+            1000
+        } else {
+            next.map_or(1000, |at| (at - self.now()).clamp(1, 1000))
+        };
         (due.len(), u64::try_from(wait).unwrap_or(1000))
     }
 
@@ -3463,55 +4016,171 @@ impl Server {
     /// One that trapped or was refused runs again, after 2 s doubling to a
     /// minute; after [`schedules::RETRIES`] runs again it is kept, failed,
     /// and said in the host's log and its `/metrics`.
-    fn run_scheduled(&self, run: &pw_materialize::ScheduledRun) {
+    fn scheduled_lock(&self, id: i64) -> Arc<Mutex<()>> {
+        let mut held = self.scheduled_locks.lock().expect("scheduled locks");
+        held.retain(|_, weak| weak.strong_count() != 0);
+        if let Some(lock) = held.get(&id).and_then(std::sync::Weak::upgrade) {
+            return lock;
+        }
+        let lock = Arc::new(Mutex::new(()));
+        held.insert(id, Arc::downgrade(&lock));
+        lock
+    }
+
+    fn run_scheduled(&self, run: &schedules::Candidate<'_>) -> bool {
+        // Protect the principal lease on this host without permanent result memoization.
+        let lock = self.scheduled_lock(run.id);
+        let _one = lock.lock().expect("one scheduled generation on this host");
+        let source = self.runs();
+        if !run.belongs_to(source.authority()) {
+            eprintln!("pw dev server: scheduled candidate belongs to another adapter");
+            return false;
+        }
+        match source.current(run, self.now()) {
+            Ok(true) => {}
+            Ok(false) => {
+                self.counted_runs
+                    .stale
+                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                return false;
+            }
+            Err(why) => {
+                eprintln!("pw dev server: scheduled authority could not be checked: {why}");
+                return true;
+            }
+        }
+        if run.protocol != 1 {
+            return match source.retry_current(
+                run,
+                run.attempts,
+                run.due_ms,
+                Some("legacy scheduled work requires reconciliation"),
+            ) {
+                Ok(true) => {
+                    self.counted_runs
+                        .failed
+                        .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                    false
+                }
+                Ok(false) => self.scheduled_update_blocked(source, run),
+                Err(why) => {
+                    eprintln!("pw dev server: legacy scheduled quarantine failed: {why}");
+                    true
+                }
+            };
+        }
         let behalf = self.identity.principals().on_behalf(
             "clock",
             &format!("schedule-{}", run.id),
             &run.user,
         );
         let session = behalf.session().to_string();
-        let interaction = format!("schedule-{}", run.id);
-        let answered = serde_json::from_str::<Vec<serde_json::Value>>(&run.args)
-            .map_err(|e| format!("its arguments do not read: {e}"))
-            .and_then(|args| {
-                self.command_answer(&run.command, &session, &args, Some(&interaction))
-            });
-        let failed = match answered {
-            Ok(answered) => answered.why,
-            Err(why) => Some(why),
-        };
-        let kept = match failed {
-            None => {
+        let result = self.command_scheduled(run, &session);
+        let failed = match result {
+            Ok(CommandOutcome::NotCurrent) => {
+                self.counted_runs
+                    .stale
+                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                return false;
+            }
+            Ok(CommandOutcome::Answered(answer)) if answer.why.is_none() => {
                 self.counted_runs
                     .ran
                     .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                self.runs().ran(run.id)
+                return false; // Consumption already committed; never blindly delete a newer revision.
             }
-            Some(why) if run.attempts >= schedules::RETRIES => {
-                self.counted_runs
-                    .failed
-                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                eprintln!(
-                    "pw dev server: a run of {} due at {} failed for good, run {} times: {why}",
-                    run.command,
-                    run.due_ms,
-                    run.attempts + 1
-                );
-                self.runs()
-                    .retry(run.id, run.attempts + 1, run.due_ms, Some(&why))
-            }
-            Some(_) => {
-                self.counted_runs
-                    .retried
-                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                let failures = run.attempts + 1;
-                let again = self.now().saturating_add(schedules::backoff_ms(failures));
-                self.runs().retry(run.id, failures, again, None)
-            }
+            Ok(CommandOutcome::Answered(answer)) => answer
+                .why
+                .unwrap_or_else(|| "scheduled answer was refused".into()),
+            Err(why) | Ok(CommandOutcome::Uncertain(why)) => why,
         };
-        if let Err(why) = kept {
-            eprintln!("pw dev server: a scheduled run was not kept: {why}");
+        let failures = run.attempts.saturating_add(1);
+        let terminal = run.attempts >= schedules::RETRIES;
+        let due = if terminal {
+            run.due_ms
+        } else {
+            self.now().saturating_add(schedules::backoff_ms(failures))
+        };
+        match source.retry_current(run, failures, due, terminal.then_some(failed.as_str())) {
+            Ok(true) => {
+                let counted = if terminal {
+                    &self.counted_runs.failed
+                } else {
+                    &self.counted_runs.retried
+                };
+                counted.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                if terminal {
+                    eprintln!(
+                        "pw dev server: scheduled command {} failed after {} attempts",
+                        run.command, failures
+                    );
+                }
+                false
+            }
+            Ok(false) => self.scheduled_update_blocked(source, run),
+            Err(why) => {
+                eprintln!("pw dev server: scheduled retry was not kept: {why}");
+                true
+            }
         }
+    }
+
+    /// Zero affected rows may mean a newer revision, or a suppressed write.
+    /// Only an authoritative recheck can establish staleness; otherwise wait.
+    fn scheduled_update_blocked(
+        &self,
+        source: &dyn schedules::Runs,
+        run: &schedules::Candidate<'_>,
+    ) -> bool {
+        match source.current(run, self.now()) {
+            Ok(false) => {
+                self.counted_runs
+                    .stale
+                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                false
+            }
+            Ok(true) => {
+                eprintln!("pw dev server: scheduled persistence left its due generation unchanged");
+                true
+            }
+            Err(why) => {
+                eprintln!("pw dev server: scheduled update could not be reconciled: {why}");
+                true
+            }
+        }
+    }
+
+    fn command_scheduled(
+        &self,
+        run: &schedules::Candidate<'_>,
+        session: &str,
+    ) -> Result<CommandOutcome, String> {
+        let json = serde_json::from_str::<Vec<serde_json::Value>>(&run.args)
+            .map_err(|_| "scheduled arguments do not read".to_string())?;
+        let (export, args) = self.command_arguments(&run.command, &json)?;
+        if export.invoked_by.as_deref() != Some("Clock") || export.idempotent_by.is_none() {
+            return Err("scheduled target is not an idempotent Clock command".into());
+        }
+        let interaction = format!("schedule-{}", run.id);
+        let key = format!("{session}\u{1f}{}\u{1f}{interaction}", run.command);
+        let sent = serde_json::Value::Array(json).to_string();
+        // One evaluator/commit core; no browser memoization/session history for Clock.
+        let result = self.command_recorded_for(
+            &run.command,
+            session,
+            &args,
+            Some(&interaction),
+            Some((&key, &sent)),
+            Some(run.completing(self.now())),
+        );
+        let refused = identity::take_refusal();
+        result.map(|outcome| match outcome {
+            CommandOutcome::Answered(mut answer) => {
+                answer.refused = refused;
+                CommandOutcome::Answered(answer)
+            }
+            other => other,
+        })
     }
 
     /// **Every other host's commits, heard and told** (ADR-0369, track
@@ -3717,7 +4386,12 @@ impl Server {
     ) -> Result<pw_resource::Key, String> {
         let resource = binding["resource"].as_str().unwrap_or_default();
         let policy = &binding["policy"];
-        let mut key = entry_key(session, policy, args)
+        let partition = self
+            .identity
+            .principals()
+            .bound_reader(session)
+            .partition(session);
+        let mut key = entry_key(&partition, policy, args)
             .ok_or_else(|| format!("`{resource}`'s key names an argument it was not given"))?;
         if policy["parallel"] == true {
             // `concurrency parallel`: no shared flight, so a key of its own.
@@ -3783,9 +4457,7 @@ impl Server {
                 // The origin failed, and the query is public and declares
                 // `fallback last_known_good` (ADR-0177): the last value kept.
                 pw_resource::Fetched::LastKnownGood(v) => {
-                    if std::env::var("PW_TRACE").is_ok() {
-                        eprintln!("{resource}: its origin failed; its last known good value");
-                    }
+                    trace(TraceEvent::QueryFallback);
                     return Ok(Val::clone(&v));
                 }
                 pw_resource::Fetched::Failed(e) => return Err(format!("{resource}: {e}")),
@@ -4444,7 +5116,15 @@ impl Server {
             .map(|(name, f)| {
                 let f = counted(&name, f);
                 let f = match &render {
-                    Some(render) => render.once(session, &name, f),
+                    Some(render) => render.once(
+                        &self
+                            .identity
+                            .principals()
+                            .receipt_reader(session)
+                            .to_string(),
+                        &name,
+                        f,
+                    ),
                     None => f,
                 };
                 (name, f)
@@ -4908,12 +5588,10 @@ impl Server {
                 return self.unshowable_session(session, &why);
             }
         };
-        if std::env::var("PW_TRACE").is_ok() {
-            eprintln!(
-                "drain session={session} invalidated={} value={value} existing={existing}",
-                invalidated.len(),
-            );
-        }
+        trace(TraceEvent::Drain {
+            invalidated: invalidated.len(),
+            existing,
+        });
 
         // First materialization, or a regeneration the drain asked for.
         //
@@ -4945,9 +5623,7 @@ impl Server {
         // server took it to show them, and its next patch left it a line
         // short.
         if regenerated == pw_materialize::Regenerated::Failed {
-            if std::env::var("PW_TRACE").is_ok() {
-                eprintln!("drain session={session}: the regeneration failed; tried again next");
-            }
+            trace(TraceEvent::RegenerationFailed);
             return;
         }
 
@@ -5011,19 +5687,27 @@ impl Server {
     /// render that reads them begins (NEXT 4c): a render never waits for the
     /// table while it holds its seat.
     fn to_tell(&self, session: &str, which: impl Fn(&Doc) -> bool) -> Told {
-        let applied: Vec<String> = self
+        let applied: BTreeMap<String, Vec<String>> = self
             .applied
             .lock()
             .expect("applied")
-            .get(session)
-            .map(|q| q.iter().cloned().collect())
-            .unwrap_or_default();
+            .iter()
+            .filter(|((cookie, _), _)| cookie == session)
+            .map(|((_, reader), queue)| (reader.clone(), queue.iter().cloned().collect()))
+            .collect();
         let queue = self.pending.lock().expect("pending");
         let now = std::time::Instant::now();
         let (live, passed): (Vec<Doc>, Vec<Doc>) = documents_of(&queue, session)
             .into_iter()
             .filter(|d| which(d) && queue.contains_key(d))
             .partition(|d| queue.get(d).is_some_and(|waiting| waiting.live(now)));
+        let live = live
+            .into_iter()
+            .map(|doc| {
+                let reader = queue.get(&doc).and_then(|waiting| waiting.reader.clone());
+                (doc, reader)
+            })
+            .collect();
         Told {
             applied,
             live,
@@ -5054,16 +5738,33 @@ impl Server {
         } = told;
         let mut read = Vec::new();
         let mut unread = Vec::new();
-        for doc in live {
+        for (doc, reader) in live {
+            let reader = match reader {
+                Some(reader) => reader,
+                None if self.identity.principals().bound_reader(session)
+                    == identity::ReaderIdentity::Guest =>
+                {
+                    identity::ReaderIdentity::Guest
+                }
+                None => {
+                    unread.push((doc, "document has no reader binding".into()));
+                    continue;
+                }
+            };
             let params = self.params_of(&doc);
             // Each by its own page's plan (ADR-0190): the store's, or a cart
             // page's, which reads the same cart.
             let page = self.page_of(&doc);
-            let now = self.bindings(session, doc.1).and_then(|bindings| {
-                Ok((self.showing(&page, session, &params, &bindings)?, bindings))
-            });
+            let now = self
+                .identity
+                .principals()
+                .with_reader(session, &reader, || {
+                    self.bindings(session, doc.1).and_then(|bindings| {
+                        Ok((self.showing(&page, session, &params, &bindings)?, bindings))
+                    })
+                });
             match now {
-                Ok((now, bindings)) => read.push((doc, page, params, bindings, now)),
+                Ok((now, bindings)) => read.push((doc, page, params, bindings, now, reader)),
                 Err(why) => unread.push((doc, why)),
             }
         }
@@ -5092,7 +5793,9 @@ impl Server {
         // subscription and a patch are logically separate — a server may
         // derive a patch from a change rather than must.
         let mut failed = Vec::new();
-        for (doc, page, params, bindings, now) in read {
+        for (doc, page, params, bindings, now, reader) in read {
+            self.identity.principals().with_reader(session, &reader, || {
+            let applied = applied.get(&self.identity.principals().receipt_reader(session).to_string()).cloned().unwrap_or_default();
             // And the value itself, to a page that speculates on it
             // (ADR-0122), from the snapshot the patches are derived from.
             // To each page that speculates on it, by its own manifest
@@ -5138,6 +5841,10 @@ impl Server {
                 // Against what the document shows. With none served, none
                 // shows. And what changed of the values it speculates on
                 // (ADR-0222), in this hold.
+                let same_reader = queue.get(&doc).is_some_and(|waiting|
+                    waiting.reader.as_ref() == Some(&reader)
+                        || (waiting.reader.is_none() && reader == identity::ReaderIdentity::Guest));
+                if !same_reader { break; }
                 let mut shown = self.shown.lock().expect("shown");
                 let current = shown.get(&doc).cloned();
                 let derived = match ahead {
@@ -5203,6 +5910,7 @@ impl Server {
                 }
                 break;
             }
+            });
         }
         for (doc, why) in failed {
             self.unshowable(&doc, &why);
@@ -5496,9 +6204,9 @@ impl Server {
             &env,
             &self.templates,
         )?;
-        if std::env::var("PW_TRACE").is_ok() {
-            eprintln!("broadcast {:?} to {} document(s)", op, queue.len());
-        }
+        trace(TraceEvent::MenuBroadcast {
+            documents: queue.len(),
+        });
         let told = self.tell_menu(&mut queue, STORE_ID, &items, patches);
         // **Each document that reads an entry the change made again**
         // (ADR-0277), once the subscriber table is given up: the menu's own
@@ -5687,70 +6395,78 @@ impl Server {
         params: &Params,
         settled: &[(u32, Settled)],
     ) -> Result<(String, u64, serde_json::Value, Env), Unread> {
-        self.drain(session);
-        self.forget_idle_subscribers();
-        // The store's menu brought to its query's value first, and the pages
-        // that show it told (ADR-0178), before this document is a reader:
-        // it is then rendered from what they show. Another page shows no
-        // menu fragment (ADR-0190).
-        if page == self.store_page()
-            && let Some(store) = params.get("id")
-            && let Err(why) = self.refresh_menu(store)
-            && std::env::var("PW_TRACE").is_ok()
-        {
-            eprintln!("the menu of {store} was not brought up to date: {why}");
-        }
-        // The document's values are read, and it is rendered, OUTSIDE the
-        // subscriber table (ADR-0151). Until 2026-10-03 the table was held
-        // throughout, so a page waiting for a slow query kept every other
-        // page waiting, and every command's frames; and two pages read at
-        // once never shared a query's flight, whatever its `concurrency`
-        // said. The table is held only to install the document.
-        // The document's number first (ADR-0161), and its subscriber with
-        // it, so a change that reaches the session while it is read reaches
-        // it too.
-        let doc: Doc = (
-            session.to_string(),
-            self.documents
-                .fetch_add(1, std::sync::atomic::Ordering::SeqCst),
-        );
-        // Its parameters with it (ADR-0162): which store it reads. And its
-        // page (ADR-0190).
-        self.params
-            .lock()
-            .expect("params")
-            .insert(doc.clone(), params.clone());
-        self.pages
-            .lock()
-            .expect("pages")
-            .insert(doc.clone(), page.to_string());
-        let served = (|| {
-            for _ in 1..DOCUMENT_ATTEMPTS {
-                let pushed = self.subscribed(&doc);
-                let read = self.render_document(&doc, settled)?;
-                let mut queue = self.pending.lock().expect("pending");
-                if let Some(served) = self.installed(&mut queue, &doc, read, Some(pushed)) {
-                    return Ok(served);
-                }
+        let reader = self.identity.principals().bound_reader(session);
+        let principals = self.identity.principals();
+        principals.with_reader(session, &reader, || {
+            self.drain(session);
+            self.forget_idle_subscribers();
+            // The store's menu brought to its query's value first, and the pages
+            // that show it told (ADR-0178), before this document is a reader:
+            // it is then rendered from what they show. Another page shows no
+            // menu fragment (ADR-0190).
+            if page == self.store_page()
+                && let Some(store) = params.get("id")
+                && self.refresh_menu(store).is_err()
+            {
+                trace(TraceEvent::MenuRefreshFailed);
             }
-            // The last attempt is read inside the table, as every document
-            // was before: nothing can reach the session between the read and
-            // the install, so a page is always served.
-            let mut queue = self.pending.lock().expect("pending");
-            let _held = self.held("a document's last attempt, read in the table");
-            let read = self.render_document(&doc, settled)?;
-            Ok(self
-                .installed(&mut queue, &doc, read, None)
-                .expect("nothing reaches a session inside the table"))
-        })();
-        // A document that could not be read is no page, and waits for
-        // nothing.
-        if served.is_err() {
-            self.pending.lock().expect("pending").remove(&doc);
-            self.params.lock().expect("params").remove(&doc);
-            self.pages.lock().expect("pages").remove(&doc);
-        }
-        served
+            // The document's values are read, and it is rendered, OUTSIDE the
+            // subscriber table (ADR-0151). Until 2026-10-03 the table was held
+            // throughout, so a page waiting for a slow query kept every other
+            // page waiting, and every command's frames; and two pages read at
+            // once never shared a query's flight, whatever its `concurrency`
+            // said. The table is held only to install the document.
+            // The document's number first (ADR-0161), and its subscriber with
+            // it, so a change that reaches the session while it is read reaches
+            // it too.
+            let doc: Doc = (
+                session.to_string(),
+                self.documents
+                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst),
+            );
+            // Its parameters with it (ADR-0162): which store it reads. And its
+            // page (ADR-0190).
+            self.params
+                .lock()
+                .expect("params")
+                .insert(doc.clone(), params.clone());
+            self.pages
+                .lock()
+                .expect("pages")
+                .insert(doc.clone(), page.to_string());
+            // One binding for the whole render, including retries and the last
+            // serialized attempt. Regeneration must never rebind an old document.
+            let served = (|| {
+                for _ in 1..DOCUMENT_ATTEMPTS {
+                    let pushed = self.subscribed_for(&doc, &reader);
+                    let read = self.render_document(&doc, settled)?;
+                    let mut queue = self.pending.lock().expect("pending");
+                    if let Some(served) =
+                        self.installed(&mut queue, &doc, read, Some(pushed), &reader)
+                    {
+                        return Ok(served);
+                    }
+                }
+                // The last attempt is read inside the table, as every document
+                // was before: nothing can reach the session between the read and
+                // the install, so a page is always served.
+                let mut queue = self.pending.lock().expect("pending");
+                let _held = self.held("a document's last attempt, read in the table");
+                let read = self.render_document(&doc, settled)?;
+                self.installed(&mut queue, &doc, read, None, &reader)
+                    .ok_or_else(|| {
+                        Unread::Failed("the document reader changed while it rendered".into())
+                    })
+            })();
+            // A document that could not be read is no page, and waits for
+            // nothing.
+            if served.is_err() {
+                self.pending.lock().expect("pending").remove(&doc);
+                self.params.lock().expect("params").remove(&doc);
+                self.pages.lock().expect("pages").remove(&doc);
+            }
+            served
+        })
     }
 
     /// **The document's subscriber, before it is read** (ADR-0151,
@@ -5815,11 +6531,18 @@ impl Server {
         }
     }
 
+    #[cfg(test)]
     fn subscribed(&self, doc: &Doc) -> u64 {
+        let reader = self.identity.principals().bound_reader(&doc.0);
+        self.subscribed_for(doc, &reader)
+    }
+
+    fn subscribed_for(&self, doc: &Doc, reader: &identity::ReaderIdentity) -> u64 {
         let mut queue = self.pending.lock().expect("pending");
         let waiting = queue
             .entry(doc.clone())
             .or_insert_with(|| Subscriber::at(doc.1));
+        waiting.reader.get_or_insert_with(|| reader.clone());
         waiting.seen = Subscriber::asked_at();
         waiting.pushed
     }
@@ -5836,13 +6559,17 @@ impl Server {
         doc: &Doc,
         (html, shown, env): (String, Shown, Env),
         pushed: Option<u64>,
+        reader: &identity::ReaderIdentity,
     ) -> Option<(String, u64, serde_json::Value, Env)> {
         let waiting = queue
             .entry(doc.clone())
             .or_insert_with(|| Subscriber::at(doc.1));
-        if pushed.is_some_and(|pushed| waiting.pushed != pushed) {
+        if pushed.is_some_and(|pushed| waiting.pushed != pushed)
+            || waiting.reader.as_ref().is_some_and(|bound| bound != reader)
+        {
             return None;
         }
+        waiting.reader.get_or_insert_with(|| reader.clone());
         // What reached it while an attempt before this one was read: this
         // read includes it.
         waiting.frames.clear();
@@ -5940,6 +6667,10 @@ impl Server {
                 .insert(
                     (
                         doc.0.clone(),
+                        self.identity
+                            .principals()
+                            .receipt_reader(&doc.0)
+                            .to_string(),
                         page.to_string(),
                         binding.clone(),
                         route.clone(),
@@ -6012,14 +6743,19 @@ impl Server {
         // pages speculate on, at the version it was last sent. A commit sends
         // its value before it is answered, so the page waits for that one.
         if !self.data.session_entry() {
+            let reader = self
+                .identity
+                .principals()
+                .receipt_reader(session)
+                .to_string();
             let sent = self
                 .speculated_versions
                 .lock()
                 .expect("speculated versions");
             let basis: Vec<serde_json::Value> = sent
                 .iter()
-                .filter(|((s, ..), _)| s == session)
-                .map(|((s, page, binding, route), version)| {
+                .filter(|((s, actor, ..), _)| s == session && *actor == reader)
+                .map(|((s, _, page, binding, route), version)| {
                     serde_json::json!({
                         "entry": speculated_entry(s, page, binding, route),
                         "version": version,
@@ -6439,6 +7175,26 @@ impl Server {
         key: &BTreeMap<String, serde_json::Value>,
         left: &(dyn Fn() -> bool + Sync),
     ) -> Result<KeyOutcome, String> {
+        let doc = (session.to_string(), document);
+        let principals = self.identity.principals();
+        let reader = self
+            .pending
+            .lock()
+            .expect("pending")
+            .get(&doc)
+            .and_then(|waiting| waiting.reader.clone());
+        let reader = match reader {
+            Some(reader) => reader,
+            None if principals.bound_reader(session) == identity::ReaderIdentity::Guest => {
+                identity::ReaderIdentity::Guest
+            }
+            None => return Ok(KeyOutcome::Superseded),
+        };
+        if !self.delivery_allowed(&doc, Some(&reader)) {
+            self.revoke_document(&doc);
+            return Ok(KeyOutcome::Superseded);
+        }
+        principals.with_reader(session, &reader, || {
         // The binding of the document's page (ADR-0190).
         let plan = self.plan_of(&self.page_of(&(session.to_string(), document)));
         let b = plan["bindings"]
@@ -6603,13 +7359,9 @@ impl Server {
         let page = self.page_of(&doc);
         let now = self.showing(&page, session, &params, &bindings)?;
         // The presses its values include, read before the table (ADR-0172).
-        let applied: Vec<String> = self
-            .applied
-            .lock()
-            .expect("applied")
-            .get(session)
-            .map(|q| q.iter().cloned().collect())
-            .unwrap_or_default();
+        let applied: Vec<String> = self.applied.lock().expect("applied")
+            .get(&(session.to_string(), self.identity.principals().receipt_reader(session).to_string()))
+            .map(|q| q.iter().cloned().collect()).unwrap_or_default();
         let now = Arc::new(now);
         // **Derived outside the table** (ADR-0296), as a telling is: against
         // what the document shows, read in a moment of its own, and applied
@@ -6689,6 +7441,7 @@ impl Server {
             waiting.push(frame);
         }
         Ok(KeyOutcome::Applied)
+        })
     }
 
     /// **Let go of a `cancel` read's flight** (ADR-0152), if it is still the
@@ -6728,10 +7481,8 @@ impl Server {
     /// document cannot be kept current, and is told to read itself again,
     /// which answers why. Never a panic: one failed query is one page that
     /// cannot be shown, not a server that stops for everyone.
-    fn unshowable(&self, doc: &Doc, why: &str) {
-        if std::env::var("PW_TRACE").is_ok() {
-            eprintln!("unshowable document={doc:?}: {why}");
-        }
+    fn unshowable(&self, doc: &Doc, _why: &str) {
+        trace(TraceEvent::DocumentRecovery);
         let mut queue = self.pending.lock().expect("pending");
         if self.shown.lock().expect("shown").remove(doc).is_some()
             && let Some(waiting) = queue.get_mut(doc)
@@ -6777,11 +7528,26 @@ impl Server {
         stream: &mut TcpStream,
         session: &str,
         fresh: bool,
+        reader: &identity::ReaderIdentity,
         page: &str,
         template: &Template,
         env: &Env,
         settling: &mut Settling,
     ) {
+        // The whole initial shell is fixed before this decision. A later
+        // progressive fill needs its own decision over its own fixed bytes.
+        let scope = (session.to_string(), 0);
+        if !self.delivery_allowed(&scope, Some(reader)) {
+            respond(
+                stream,
+                503,
+                "text/plain; charset=utf-8",
+                session,
+                fresh,
+                b"Your session changed. Reload the page.",
+            );
+            return;
+        }
         let cookie = if fresh {
             // TRACK SEAM (identity): the session cookie, HttpOnly and Secure
             // outside this machine.
@@ -6828,13 +7594,14 @@ impl Server {
             };
             // An arm that does not render is a region whose query failed, as
             // far as the page can say: never a placeholder forever.
-            let written = patch(outcome).or_else(|why| {
-                if std::env::var("PW_TRACE").is_ok() {
-                    eprintln!("stream {part} did not render: {why:?}");
-                }
+            let written = patch(outcome).or_else(|_| {
+                trace(TraceEvent::StreamRenderFailed);
                 patch(Settled::Failed(None))
             });
             let Ok(written) = written else { continue };
+            if !self.delivery_allowed(&scope, Some(reader)) {
+                return;
+            }
             // In two parts, a pause between them, where a test asks for it
             // (ADR-0223): the browser then parses a template it has only part
             // of.
@@ -7252,6 +8019,7 @@ type StagedEvents = Arc<Mutex<Staged>>;
 /// done, to run again, or kept, failed for good.
 #[derive(Default)]
 struct CountedRuns {
+    stale: std::sync::atomic::AtomicU64,
     ran: std::sync::atomic::AtomicU64,
     retried: std::sync::atomic::AtomicU64,
     failed: std::sync::atomic::AtomicU64,
@@ -7335,8 +8103,12 @@ impl Settling {
                 .map(|ms| started + std::time::Duration::from_millis(ms));
             waiting.insert(run.part, (run.streamed, budget));
             let tx = tx.clone();
+            let principals = server.identity.principals();
+            let reader = principals.bound_reader(session);
             scope.spawn(move || {
-                let answer = server.fetch_answer(session, &run.stream, &run.args);
+                let answer = principals.with_reader(session, &reader, || {
+                    server.fetch_answer(session, &run.stream, &run.args)
+                });
                 let _ = tx.send((run.part, answer));
             });
         }
@@ -7631,6 +8403,22 @@ fn entry_key(session: &str, policy: &serde_json::Value, args: &[Val]) -> Option<
 
 /// **Whether each of a query's entries is one session's**, as `entry_key`
 /// keys it: a private cache, or a value that is not public.
+/// Each generation is one private-prefix field. Invalidation removes exactly
+/// that field; cleanup recognizes all epochs of only the named cookie.
+fn private_entry_belongs_to(key: &str, session: &str) -> bool {
+    let field = key.split('\u{1f}').next().unwrap_or_default();
+    let prefix = format!("session=v1:{}:", identity::hex(session.as_bytes()));
+    if let Some(reader) = field.strip_prefix(&prefix) {
+        return matches!(reader, "g" | "n")
+            || reader.strip_prefix("a:").is_some_and(|epoch| {
+                epoch.len() == 32 && epoch.bytes().all(|byte| byte.is_ascii_hexdigit())
+            });
+    }
+    // Older synthetic/guest keys remain cleanable, but a versioned field
+    // can never be reinterpreted as an attacker-chosen legacy cookie.
+    !field.starts_with("session=v1:") && field == format!("session={session}")
+}
+
 fn entry_is_private(policy: &serde_json::Value) -> bool {
     policy["cache"] == "private" || policy["privacy"] != "public"
 }
@@ -8493,6 +9281,16 @@ fn handle(server: &Server, stream: TcpStream) {
     server.tell_waiting();
 }
 
+fn session_changed(stream: &mut TcpStream, session: &str, fresh: bool) {
+    respond_json(
+        stream,
+        403,
+        session,
+        fresh,
+        r#"{"refused":"session-changed","outcome":"unknown","says":"Your session changed. Reload the page."}"#,
+    );
+}
+
 fn answer_connection(server: &Server, mut stream: TcpStream) {
     let mut reader = BufReader::new(stream.try_clone().expect("clone"));
     let mut request = String::new();
@@ -8514,22 +9312,62 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
     // TRACK SEAM (second-host): the session as the hosts keep it, read once
     // for the request (ADR-0369): signed in or out on another host, it is so
     // here too.
-    if !fresh {
-        server.identity.principals().refresh(&session);
+    let route = path.split('?').next().unwrap_or("/");
+    let upload_request = server.uploads.claims(method, route);
+    let request_reader = if !upload_request
+        && ((method == "POST" && path.starts_with("/command/")) || route == "/stream")
+    {
+        None
+    } else {
+        let principals = server.identity.principals();
+        let admitted = if fresh {
+            Ok(principals.bound_reader(&session))
+        } else {
+            principals.admit(&session)
+        };
+        match admitted {
+            Ok(reader) => Some(reader),
+            Err(_) => {
+                respond_json(
+                    &mut stream,
+                    503,
+                    &session,
+                    fresh,
+                    r#"{"error":"The session could not be confirmed. Reload the page."}"#,
+                );
+                return;
+            }
+        }
+    };
+
+    #[cfg(test)]
+    if method == "GET"
+        && let Some(hook) = server
+            .after_page_admission
+            .lock()
+            .expect("page admission hook")
+            .take()
+    {
+        hook(server);
     }
 
     // TRACK SEAM (uploads, ADR-0253): an upload reads its own body, within
     // its own limits, before the bound a command's body is held to.
-    let route = path.split('?').next().unwrap_or("/");
-    if server.uploads.claims(method, route) {
-        server.uploads.answer(
-            method,
-            route,
-            &headers,
+    if upload_request {
+        server.identity.principals().with_reader(
             &session,
-            fresh,
-            &mut reader,
-            &mut stream,
+            request_reader.as_ref().expect("upload request admission"),
+            || {
+                server.uploads.answer(
+                    method,
+                    route,
+                    &headers,
+                    &session,
+                    fresh,
+                    &mut reader,
+                    &mut stream,
+                )
+            },
         );
         return;
     }
@@ -8643,194 +9481,241 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             }) =>
         {
             let id = &route["/command/".len()..];
-            let args = match serde_json::from_slice::<Vec<serde_json::Value>>(&body) {
-                Ok(args) => args,
-                Err(e) => {
-                    let why =
-                        serde_json::Value::String(format!("the body is not a JSON array: {e}"));
-                    respond_json(
-                        &mut stream,
-                        400,
-                        &session,
-                        fresh,
-                        &format!("{{\"committed\":false,\"error\":{why}}}"),
-                    );
+            let principals = server.identity.principals();
+            let reader_identity = match principals.admit(&session) {
+                Ok(reader) => reader,
+                Err(_) => {
+                    session_changed(&mut stream, &session, fresh);
                     return;
                 }
             };
-            // The interaction this request belongs to, sent by the runtime
-            // once per press and kept by a retry (ADR-0121).
-            let header = |name: &str| {
-                headers.lines().find_map(|l| {
-                    let (k, v) = l.split_once(':')?;
-                    k.trim()
-                        .eq_ignore_ascii_case(name)
-                        .then(|| v.trim().to_string())
-                })
-            };
-            let interaction = header("pw-interaction");
-            // Here for the order (ADR-0305), whatever its answer: a command
-            // refused below is answered, and what follows it may run.
-            let arrival = interaction
-                .as_deref()
-                .map(|i| server.order.arrive(&session, i));
-            // TRACK SEAM (store-accounts): **a command is answered for the
-            // reader its page was shown to** (Q3, a rule of the platform).
-            // The runtime names its document (`pw-document`); one this host
-            // served to another session, the reader having signed in or out
-            // in another tab, or one it no longer holds, is refused before
-            // the command runs, in the platform's words, as a `requires`
-            // refusal is told (ADR-0302). A command from no page names none
-            // and is answered as before.
-            // **A press the host already answered is answered from what it
-            // kept, first** (the integrator's finding of 2026-10-11): a retry
-            // of a press whose answer was lost after it committed (ADR-0175)
-            // is told it committed, though the page went stale between the
-            // two attempts. The rule governs only commands not yet run, and
-            // the order's wait (ADR-0305) only those that pass it.
-            let stale = header("pw-document")
-                .and_then(|v| v.parse::<u64>().ok())
-                .and_then(|document| {
-                    server
-                        .stale_document(&session, document)
-                        .map(|why| (document, why))
-                });
-            let kept = stale.as_ref().and_then(|(document, _)| {
-                server.kept_answer(&session, *document, id, &args, interaction.as_deref())
-            });
-            if kept.is_none()
-                && let Some((_, (refused, words))) = stale
-            {
-                let refused = serde_json::json!({
-                    "committed": false,
-                    "refused": refused,
-                    "says": words,
-                });
-                respond_json(&mut stream, 403, &session, fresh, &refused.to_string());
-                return;
-            }
-            // **After the one its page sent before it** (ADR-0305): run once
-            // that one has, whichever request the network brought first;
-            // answered early, running nothing, where it does not come.
-            if kept.is_none()
-                && let Some(after) = header("pw-after")
-                && server.order.follow(&session, &after) == order::Turn::Early
-            {
-                if let Some(arrival) = arrival {
-                    arrival.early();
-                }
-                let early =
-                    serde_json::json!({ "committed": false, "early": true, "after": after });
-                respond_json(&mut stream, 409, &session, fresh, &early.to_string());
-                return;
-            }
-            // Charter §15.5's one-shot network error (ADR-0175): the
-            // connection closed with no answer, before the command runs, or
-            // after it has committed.
-            let drop_at = server.take_command_drop(&session);
-            if drop_at == Some(DropAt::Before) {
-                // Never run: what follows it waits for it to be sent again.
-                if let Some(arrival) = arrival {
-                    arrival.vanish();
-                }
-                return;
-            }
-            // ADR-0381's fault: the connection held open with no answer, or
-            // with an answer begun and never finished, until its page gives
-            // up on it.
-            let hold_at = server.take_command_hold(&session);
-            if hold_at == Some(HoldAt::Before) {
-                // Never run, as a request that never came: what follows it
-                // waits for it to be sent again.
-                if let Some(arrival) = arrival {
-                    arrival.vanish();
-                }
-                hold_open(&mut stream);
-                return;
-            }
-            // TRACK SEAM (identity): a `requires` refusal is answered as its
-            // own case, 403 and the predicate, never shaped like a declared
-            // error. Taken before the command, so none is left from another.
-            let _ = identity::take_refusal();
-            let answer = match kept {
-                Some(kept) => Ok(kept),
-                None => server.command_answer(id, &session, &args, interaction.as_deref()),
-            };
-            if drop_at == Some(DropAt::After) {
-                return;
-            }
-            if hold_at == Some(HoldAt::After) {
-                // Run, and what follows it may run; its answer never begun.
-                drop(arrival);
-                hold_open(&mut stream);
-                return;
-            }
-            // TRACK SEAM (identity): the refusal, where `requires` refused,
-            // kept with the interaction (ADR-0302), and what a reader is
-            // told of it: the program's words for the predicate where it
-            // declares them, the deployment's where it does not. Never
-            // what the predicate read.
-            if let Ok(Answered {
-                refused: Some(predicate),
-                ..
-            }) = &answer
-            {
-                let says = server
-                    .words
-                    .get(predicate)
-                    .map(String::as_str)
-                    .or_else(|| identity::says(predicate))
-                    .unwrap_or_default();
-                let refused = serde_json::json!({
-                    "committed": false,
-                    "refused": predicate,
-                    "says": says,
-                });
-                respond_json(&mut stream, 403, &session, fresh, &refused.to_string());
-                return;
-            }
-            match answer {
-                // A malformed request: nothing ran.
-                Err(e) => {
-                    let why = serde_json::Value::String(e);
-                    respond_json(
-                        &mut stream,
-                        400,
-                        &session,
-                        fresh,
-                        &format!("{{\"committed\":false,\"error\":{why}}}"),
-                    );
-                }
-                Ok(answered) => {
-                    if let Some(why) = &answered.why
-                        && std::env::var("PW_TRACE").is_ok()
-                    {
-                        eprintln!("{id}: {why}");
-                    }
-                    // A commit says which versions it produced (ADR-0122), so a
-                    // page can tell when the value it is sent includes it. A
-                    // version, not a value: the value reaches the page from the
-                    // resource, as every change does.
-                    let mut body = serde_json::json!({ "committed": answered.committed });
-                    if answered.committed {
-                        body["basis"] = server.committed_basis(&session);
-                    }
-                    // And what the command answered, for the handler that
-                    // called it (ADR-0157): `Ok`, or the declared `Err` it can
-                    // tell the customer about.
-                    if let Some(result) = answered.result {
-                        body["result"] = result;
-                    }
-                    if hold_at == Some(HoldAt::Body) {
-                        // Run, and its answer begun and never finished.
-                        drop(arrival);
-                        respond_in_part(&mut stream, 202, &session, fresh, &body.to_string());
-                        hold_open(&mut stream);
+            principals.with_reader(&session, &reader_identity, || {
+                let args = match serde_json::from_slice::<Vec<serde_json::Value>>(&body) {
+                    Ok(args) => args,
+                    Err(e) => {
+                        let why =
+                            serde_json::Value::String(format!("the body is not a JSON array: {e}"));
+                        respond_json(
+                            &mut stream,
+                            400,
+                            &session,
+                            fresh,
+                            &format!("{{\"committed\":false,\"error\":{why}}}"),
+                        );
                         return;
                     }
-                    respond_json(&mut stream, 202, &session, fresh, &body.to_string());
+                };
+                // The interaction this request belongs to, sent by the runtime
+                // once per press and kept by a retry (ADR-0121).
+                let header = |name: &str| {
+                    headers.lines().find_map(|l| {
+                        let (k, v) = l.split_once(':')?;
+                        k.trim()
+                            .eq_ignore_ascii_case(name)
+                            .then(|| v.trim().to_string())
+                    })
+                };
+                let interaction = header("pw-interaction");
+                // Typed arguments and protocol metadata are known pre-execution
+                // refusals. Keep them distinct from uncertain commit outcomes.
+                let checked = server.command_arguments(id, &args).and_then(|(export, _)| {
+                    if let Some(key_type) = &export.idempotent_by {
+                        Server::command_interaction(id, key_type, interaction.as_deref())?;
+                    }
+                    Ok(())
+                });
+                if let Err(why) = checked {
+                    respond_json(&mut stream, 400, &session, fresh,
+                        &serde_json::json!({"committed":false,"error":why}).to_string());
+                    return;
                 }
-            }
+                // Here for the order (ADR-0305), whatever its answer: a command
+                // refused below is answered, and what follows it may run.
+                let arrival = interaction
+                    .as_deref()
+                    .map(|i| server.order.arrive(&session, i));
+                // TRACK SEAM (store-accounts): **a command is answered for the
+                // reader its page was shown to** (Q3, a rule of the platform).
+                // The runtime names its document (`pw-document`); one this host
+                // served to another session, the reader having signed in or out
+                // in another tab, or one it no longer holds, is refused before
+                // the command runs, in the platform's words, as a `requires`
+                // refusal is told (ADR-0302). A command from no page names none
+                // and is answered as before.
+                // **A press the host already answered is answered from what it
+                // kept, first** (the integrator's finding of 2026-10-11): a retry
+                // of a press whose answer was lost after it committed (ADR-0175)
+                // is told it committed, though the page went stale between the
+                // two attempts. The rule governs only commands not yet run, and
+                // the order's wait (ADR-0305) only those that pass it.
+                let stale = header("pw-document")
+                    .and_then(|v| v.parse::<u64>().ok())
+                    .and_then(|document| {
+                        server
+                            .stale_document(&session, document)
+                            .map(|why| (document, why))
+                    });
+                let kept = match stale.as_ref().map(|(document, _)| {
+                    server.kept_answer(&session, *document, id, &args, interaction.as_deref())
+                }).transpose() {
+                    Ok(kept) => kept.flatten(),
+                    Err(_) => {
+                        respond_json(&mut stream, 503, &session, fresh,
+                            r#"{"outcome":"unknown","error":"The command outcome could not be confirmed."}"#);
+                        return;
+                    }
+                };
+                if kept.is_none()
+                    && let Some((_, (refused, words))) = stale
+                {
+                    let refused = serde_json::json!({
+                        "outcome": "unknown",
+                        "refused": refused,
+                        "says": words,
+                    });
+                    respond_json(&mut stream, 403, &session, fresh, &refused.to_string());
+                    return;
+                }
+                // **After the one its page sent before it** (ADR-0305): run once
+                // that one has, whichever request the network brought first;
+                // answered early, running nothing, where it does not come.
+                if kept.is_none()
+                    && let Some(after) = header("pw-after")
+                    && server.order.follow(&session, &after) == order::Turn::Early
+                {
+                    if let Some(arrival) = arrival {
+                        arrival.early();
+                    }
+                    let early =
+                        serde_json::json!({ "committed": false, "early": true, "after": after });
+                    respond_json(&mut stream, 409, &session, fresh, &early.to_string());
+                    return;
+                }
+                // Charter §15.5's one-shot network error (ADR-0175): the
+                // connection closed with no answer, before the command runs, or
+                // after it has committed.
+                let drop_at = server.take_command_drop(&session);
+                if drop_at == Some(DropAt::Before) {
+                    // Never run: what follows it waits for it to be sent again.
+                    if let Some(arrival) = arrival {
+                        arrival.vanish();
+                    }
+                    return;
+                }
+                // ADR-0381's fault: the connection held open with no answer, or
+                // with an answer begun and never finished, until its page gives
+                // up on it.
+                let hold_at = server.take_command_hold(&session);
+                if hold_at == Some(HoldAt::Before) {
+                    // Never run, as a request that never came: what follows it
+                    // waits for it to be sent again.
+                    if let Some(arrival) = arrival {
+                        arrival.vanish();
+                    }
+                    hold_open(&mut stream);
+                    return;
+                }
+                // TRACK SEAM (identity): a `requires` refusal is answered as its
+                // own case, 403 and the predicate, never shaped like a declared
+                // error. Taken before the command, so none is left from another.
+                let _ = identity::take_refusal();
+                let answer = match kept {
+                    Some(kept) => Ok(kept),
+                    None => server.command_answer(id, &session, &args, interaction.as_deref()),
+                };
+                if drop_at == Some(DropAt::After) {
+                    return;
+                }
+                if hold_at == Some(HoldAt::After) {
+                    // Run, and what follows it may run; its answer never begun.
+                    drop(arrival);
+                    hold_open(&mut stream);
+                    return;
+                }
+                if !server.delivery_allowed(&(session.clone(), 0), Some(&reader_identity)) {
+                    session_changed(&mut stream, &session, fresh);
+                    return;
+                }
+                // TRACK SEAM (identity): the refusal, where `requires` refused,
+                // kept with the interaction (ADR-0302), and what a reader is
+                // told of it: the program's words for the predicate where it
+                // declares them, the deployment's where it does not. Never
+                // what the predicate read.
+                if let Ok(Answered {
+                    refused: Some(predicate),
+                    ..
+                }) = &answer
+                {
+                    let says = server
+                        .words
+                        .get(predicate)
+                        .map(String::as_str)
+                        .or_else(|| identity::says(predicate))
+                        .unwrap_or_default();
+                    let refused = serde_json::json!({
+                        "committed": false,
+                        "refused": predicate,
+                        "says": says,
+                    });
+                    respond_json(&mut stream, 403, &session, fresh, &refused.to_string());
+                    return;
+                }
+                match answer {
+                    // A malformed request: nothing ran.
+                    Err(e) => {
+                        let why = serde_json::Value::String(e);
+                        respond_json(
+                            &mut stream,
+                            400,
+                            &session,
+                            fresh,
+                            &format!("{{\"outcome\":\"unknown\",\"error\":{why}}}"),
+                        );
+                    }
+                    Ok(answered) => {
+                        if let Some(event) = command_trace(&answered) {
+                            trace(event);
+                        }
+                        // A commit says which versions it produced (ADR-0122), so a
+                        // page can tell when the value it is sent includes it. A
+                        // version, not a value: the value reaches the page from the
+                        // resource, as every change does.
+                        let mut body = serde_json::json!({ "committed": answered.committed });
+                        if answered.committed {
+                            body["basis"] = server.committed_basis(&session);
+                        }
+                        // And what the command answered, for the handler that
+                        // called it (ADR-0157): `Ok`, or the declared `Err` it can
+                        // tell the customer about.
+                        if let Some(result) = answered.result {
+                            body["result"] = result;
+                        }
+                        #[cfg(test)]
+                        {
+                            let hook = server
+                                .before_command_delivery
+                                .lock()
+                                .expect("command delivery hook")
+                                .take();
+                            if let Some(hook) = hook {
+                                hook(server);
+                            }
+                        }
+                        if !server.delivery_allowed(&(session.clone(), 0), Some(&reader_identity)) {
+                            session_changed(&mut stream, &session, fresh);
+                            return;
+                        }
+                        if hold_at == Some(HoldAt::Body) {
+                            // Run, and its answer begun and never finished.
+                            drop(arrival);
+                            respond_in_part(&mut stream, 202, &session, fresh, &body.to_string());
+                            hold_open(&mut stream);
+                            return;
+                        }
+                        respond_json(&mut stream, 202, &session, fresh, &body.to_string());
+                    }
+                }
+            });
         }
         ("POST", "/command/menu_changed") => {
             // An event nothing about the cart listens for. It reaches the
@@ -8896,14 +9781,19 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             // has none.
             // The order the session's reader reads (track `store-accounts`):
             // its user's, where the program reads it by the reader's handle.
-            let owner = server.owner(&session);
+            let owner = server.identity.principals().with_reader(
+                &session,
+                request_reader.as_ref().expect("browser admission"),
+                || server.owner(&session),
+            );
             let event = (
                 server.order_event().to_string(),
                 vec![Val::String(owner.clone())],
             );
             let status = Val::Option(status.map(|s| Box::new(Val::String(s))));
-            let written = server.store_write(
+            let written = server.store_write_browser(
                 &session,
+                request_reader.as_ref().expect("browser admission"),
                 "store:host/orders#set-status",
                 &[Val::String(owner), status],
                 std::slice::from_ref(&event),
@@ -9066,8 +9956,9 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 .and_then(percent_decoded)
                 .unwrap_or_default();
             // Through the layer (track `store-pg`), and still nothing told.
-            match server.store_write(
+            match server.store_write_browser(
                 &session,
+                request_reader.as_ref().expect("browser admission"),
                 "store:host/notices#post",
                 &[Val::String(STORE_ID.into()), Val::String(text)],
                 &[],
@@ -9118,10 +10009,8 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                     };
                     respond_json(&mut stream, 200, &session, fresh, &body.to_string());
                 }
-                Err(why) => {
-                    if std::env::var("PW_TRACE").is_ok() {
-                        eprintln!("pw-read {binding}: {why}");
-                    }
+                Err(_) => {
+                    trace(TraceEvent::KeyedReadFailed);
                     respond_json(&mut stream, 400, &session, fresh, "{}");
                 }
             }
@@ -9152,8 +10041,9 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 })
             } else {
                 server
-                    .store_write(
+                    .store_write_browser(
                         &session,
+                        request_reader.as_ref().expect("browser admission"),
                         "store:host/menus#stock",
                         &[Val::String(item), Val::Bool(available)],
                         &[],
@@ -9199,8 +10089,9 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 .and_then(|m| m.parse::<i64>().ok())
             {
                 // Through the layer (track `store-pg`), and nothing told.
-                Some(minutes) => match server.store_write(
+                Some(minutes) => match server.store_write_browser(
                     &session,
+                    request_reader.as_ref().expect("browser admission"),
                     "store:host/kitchen#set-prep",
                     &[Val::String(STORE_ID.into()), Val::S64(minutes)],
                     &[],
@@ -9309,10 +10200,9 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 .entry(session.clone())
                 .or_default()
                 .delay_ms = delay;
-            let own = format!("session={session}");
             server
                 .queries
-                .evict_where(|k| k.key == own || k.key.starts_with(&format!("{own}\u{1f}")));
+                .evict_where(|k| private_entry_belongs_to(&k.key, &session));
             respond_json(&mut stream, 200, &session, fresh, "{}");
         }
         // **A one-shot database error** (charter §15.5, ADR-0174): this
@@ -9346,10 +10236,9 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             }
             drop(faults);
             // A read the page kept would not reach the database.
-            let own = format!("session={session}");
             server
                 .queries
-                .evict_where(|k| k.key == own || k.key.starts_with(&format!("{own}\u{1f}")));
+                .evict_where(|k| private_entry_belongs_to(&k.key, &session));
             respond_json(&mut stream, 200, &session, fresh, "{}");
         }
         // **A one-shot network error** (charter §15.5, ADR-0175): this
@@ -9486,10 +10375,9 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 .lock()
                 .expect("estimators")
                 .insert(session.clone(), set);
-            let own = format!("session={session}");
             server
                 .queries
-                .evict_where(|k| k.key == own || k.key.starts_with(&format!("{own}\u{1f}")));
+                .evict_where(|k| private_entry_belongs_to(&k.key, &session));
             respond_json(&mut stream, 200, &session, fresh, "{}");
         }
         // E7-P's structural commands. Each mutates the keyed collection and
@@ -9700,10 +10588,25 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             }
             match params.map(|(params, _)| params) {
                 // One that binds a query as the store's is (ADR-0190).
-                Ok(params) if server.binds_a_query(path) => {
-                    serve_bound(server, &mut stream, &session, fresh, path, params, query)
-                }
-                Ok(params) => serve_page(server, &mut stream, &session, fresh, path, params),
+                Ok(params) if server.binds_a_query(path) => serve_bound(
+                    server,
+                    &mut stream,
+                    &session,
+                    fresh,
+                    path,
+                    params,
+                    query,
+                    request_reader.as_ref().expect("page admission"),
+                ),
+                Ok(params) => serve_page(
+                    server,
+                    &mut stream,
+                    &session,
+                    fresh,
+                    path,
+                    params,
+                    request_reader.as_ref().expect("page admission"),
+                ),
                 Err(why) => respond(
                     &mut stream,
                     404,
@@ -9755,6 +10658,7 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 "runs": {
                     "ran": runs.ran.load(std::sync::atomic::Ordering::SeqCst),
                     "retried": runs.retried.load(std::sync::atomic::Ordering::SeqCst),
+                    "stale": runs.stale.load(std::sync::atomic::Ordering::SeqCst),
                     "failed": runs.failed.load(std::sync::atomic::Ordering::SeqCst),
                 },
             });
@@ -9790,8 +10694,9 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             if items > 0 {
                 // Through the layer (track `store-pg`): a menu that long
                 // already is not written.
-                let replaced = server.store_write(
+                let replaced = server.store_write_browser(
                     &session,
+                    request_reader.as_ref().expect("browser admission"),
                     "store:host/menus#replace",
                     &[Val::String(STORE_ID.into()), Val::S64(items as i64)],
                     &[],
@@ -9817,6 +10722,7 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 &page,
                 store_params(STORE_ID),
                 query,
+                request_reader.as_ref().expect("page admission"),
             );
         }
         // A command this server does not host, including the address-resolving
@@ -9840,11 +10746,28 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 .is_some_and(|(page, _)| server.binds_a_query(page)) =>
         {
             let (page, params) = routed.expect("matched");
-            serve_bound(server, &mut stream, &session, fresh, &page, params, query)
+            serve_bound(
+                server,
+                &mut stream,
+                &session,
+                fresh,
+                &page,
+                params,
+                query,
+                request_reader.as_ref().expect("page admission"),
+            )
         }
         ("GET", _) if routed.is_some() => {
             let (page, params) = routed.expect("matched");
-            serve_page(server, &mut stream, &session, fresh, &page, params)
+            serve_page(
+                server,
+                &mut stream,
+                &session,
+                fresh,
+                &page,
+                params,
+                request_reader.as_ref().expect("page admission"),
+            )
         }
         ("GET", _) => serve_file(server, &mut stream, route),
         _ => respond(&mut stream, 405, "text/plain", &session, fresh, b"method"),
@@ -9957,11 +10880,20 @@ fn stream_open(
                     .into_iter()
                     .map(|f| serde_json::to_value(f).expect("frame"))
                     .collect();
-                Some((cursor, serde_json::to_string(&body).expect("frames")))
+                Some((
+                    waiting.reader.clone(),
+                    cursor,
+                    serde_json::to_string(&body).expect("frames"),
+                ))
             }
         };
 
-        if let Some((cursor, frames)) = batch {
+        if let Some((reader, cursor, frames)) = batch {
+            if !server.delivery_allowed(&doc, reader.as_ref()) {
+                server.revoke_document(&doc);
+                let _ = stream.write_all(format!("{}\n", reload_batch(written)).as_bytes());
+                return;
+            }
             // Written, but NOT acknowledged. The cursor advances here only for
             // this connection's own reads; the subscriber's copy is dropped on
             // the next request, which is the client saying it applied them.
@@ -10032,33 +10964,40 @@ fn stream_frames(
     }
 
     for _ in 0..40 {
-        // Cut off since it opened (ADR-0175): no answer.
         if server.cut_off(session, opened) {
             return;
         }
-        {
+        let batch = {
             let mut queue = server.pending.lock().expect("pending");
             let waiting = queue
                 .entry(doc.clone())
                 .or_insert_with(|| Subscriber::at(document));
             waiting.seen = std::time::Instant::now();
-            // This request is the client's acknowledgement of everything up to
-            // `since`: it applied those frames and asked for what follows.
             waiting.acknowledge(since);
             let (cursor, frames) = waiting.after(since);
-            if !frames.is_empty() {
+            if frames.is_empty() {
+                None
+            } else {
                 let body: Vec<serde_json::Value> = frames
                     .into_iter()
-                    .map(|f| serde_json::to_value(f).expect("frame"))
+                    .map(|frame| serde_json::to_value(frame).expect("frame"))
                     .collect();
-                let json = format!(
-                    "{{\"cursor\":{cursor},\"frames\":{}}}",
-                    serde_json::to_string(&body).expect("frames")
-                );
-                // Left in place until the next request proves they arrived.
-                respond_json(stream, 200, session, fresh, &json);
+                Some((
+                    waiting.reader.clone(),
+                    cursor,
+                    serde_json::to_string(&body).expect("frames"),
+                ))
+            }
+        };
+        if let Some((reader, cursor, frames)) = batch {
+            if !server.delivery_allowed(&doc, reader.as_ref()) {
+                server.revoke_document(&doc);
+                respond_json(stream, 200, session, fresh, &reload_batch(since));
                 return;
             }
+            let json = format!("{{\"cursor\":{cursor},\"frames\":{frames}}}");
+            respond_json(stream, 200, session, fresh, &json);
+            return;
         }
         std::thread::sleep(std::time::Duration::from_millis(25));
     }
@@ -10077,6 +11016,7 @@ fn stream_frames(
 /// `/` (ADR-0192). Until
 /// 2026-10-04 only the store's page was served so: another page that bound
 /// a query was refused, and read queries through streams alone.
+#[allow(clippy::too_many_arguments)]
 fn serve_bound(
     server: &Server,
     stream: &mut TcpStream,
@@ -10085,136 +11025,157 @@ fn serve_bound(
     page: &str,
     params: Params,
     query: &str,
+    reader_identity: &identity::ReaderIdentity,
 ) {
-    let template = server.template_of(page);
-    let unavailable = |stream: &mut TcpStream, why: Unread| match why {
-        // A page whose address is another of the page's, as the page
-        // declares it (ADR-0295), is moved there.
-        Unread::Moved { to, permanent } => moved(
-            server, stream, session, fresh, page, &params, query, &to, permanent,
-        ),
-        // A page whose address names nothing, as the page declares it
-        // (ADR-0163), is not found.
-        Unread::NotFound(_) => respond(
-            stream,
-            404,
-            "text/html; charset=utf-8",
-            session,
-            fresh,
-            NOT_FOUND_PAGE.as_bytes(),
-        ),
-        // A page whose values could not be read is answered as
-        // unavailable, and the server goes on (E14, T04).
-        Unread::Failed(why) => respond(
-            stream,
-            503,
-            "text/plain; charset=utf-8",
-            session,
-            fresh,
-            format!("`{}` cannot be shown: {why}", template.name).as_bytes(),
-        ),
-    };
-    // Each stream's query, started before the document is rendered
-    // (ADR-0148): the page waits for the ones it is declared to wait
-    // for, and the rest fill their regions in the same response.
-    let reader = notifications::user_of(&server.identity.principals(), session);
-    let runs = match stream_runs(server.plan_of(page), session, &reader, &params) {
-        Ok(runs) => runs,
-        Err(why) => return unavailable(stream, Unread::Failed(why)),
-    };
-    std::thread::scope(|scope| {
-        let mut settling = Settling::start(scope, server, session, runs);
-        let settled = settling.for_document();
-        // Registering the subscriber HERE, when the document is
-        // served, rather than when it first subscribes: the page
-        // holds instances from this moment on, so a structural change
-        // after this moment has an address in it. A registration
-        // deferred to the first poll would silently drop every change
-        // that raced it.
-        let (rendered, cursor, entries, env) =
-            match server.serve_document_settled(session, page, &params, &settled) {
-                Ok(served) => served,
-                Err(why) => return unavailable(stream, why),
+    let principals = server.identity.principals();
+    principals.with_reader(session, reader_identity, || {
+        let template = server.template_of(page);
+        let unavailable = |stream: &mut TcpStream, why: Unread| {
+            if !server.delivery_allowed(&(session.to_string(), 0), Some(reader_identity)) {
+                session_changed(stream, session, fresh);
+                return;
+            }
+            match why {
+                // A page whose address is another of the page's, as the page
+                // declares it (ADR-0295), is moved there.
+                Unread::Moved { to, permanent } => moved(
+                    server, stream, session, fresh, page, &params, query, &to, permanent,
+                ),
+                // A page whose address names nothing, as the page declares it
+                // (ADR-0163), is not found.
+                Unread::NotFound(_) => respond(
+                    stream,
+                    404,
+                    "text/html; charset=utf-8",
+                    session,
+                    fresh,
+                    NOT_FOUND_PAGE.as_bytes(),
+                ),
+                // A page whose values could not be read is answered as
+                // unavailable, and the server goes on (E14, T04).
+                Unread::Failed(why) => respond(
+                    stream,
+                    503,
+                    "text/plain; charset=utf-8",
+                    session,
+                    fresh,
+                    format!("`{}` cannot be shown: {why}", template.name).as_bytes(),
+                ),
+            }
+        };
+        // Each stream's query, started before the document is rendered
+        // (ADR-0148): the page waits for the ones it is declared to wait
+        // for, and the rest fill their regions in the same response.
+        let reader = notifications::user_of(&server.identity.principals(), session);
+        let runs = match stream_runs(server.plan_of(page), session, &reader, &params) {
+            Ok(runs) => runs,
+            Err(why) => return unavailable(stream, Unread::Failed(why)),
+        };
+        std::thread::scope(|scope| {
+            let mut settling = Settling::start(scope, server, session, runs);
+            let settled = settling.for_document();
+            // Registering the subscriber HERE, when the document is
+            // served, rather than when it first subscribes: the page
+            // holds instances from this moment on, so a structural change
+            // after this moment has an address in it. A registration
+            // deferred to the first poll would silently drop every change
+            // that raced it.
+            let (rendered, cursor, entries, env) =
+                match server.serve_document_settled(session, page, &params, &settled) {
+                    Ok(served) => served,
+                    Err(why) => return unavailable(stream, why),
+                };
+            // Its page's speculation, by its own manifest (ADR-0191).
+            let speculation = server.speculations.get(page).and_then(|m| {
+                let module = m["module"].as_str()?;
+                // Each part the browser renders again with a speculation
+                // (ADR-0172), whose template the document carries.
+                let regions: Vec<u32> = m["regions"]
+                    .as_array()
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|r| r.as_u64().map(|r| r as u32))
+                    .collect();
+                Some((
+                    format!("/speculation/{module}"),
+                    entries,
+                    regions,
+                    params.clone(),
+                ))
+            });
+            // The page's title, from the values it was rendered with
+            // (ADR-0183). A store's program that states none, the benchmark's
+            // copy, is titled as every store's page was, and another page that
+            // states none by its name, as a page of signals is.
+            let title = match pw_render::title_text(template, &env) {
+                Ok(title) => title.unwrap_or_else(|| {
+                    if page == server.store_page() {
+                        "Store".to_string()
+                    } else {
+                        template.name.clone()
+                    }
+                }),
+                Err(why) => {
+                    return unavailable(stream, Unread::Failed(format!("its title: {why:?}")));
+                }
             };
-        // Its page's speculation, by its own manifest (ADR-0191).
-        let speculation = server.speculations.get(page).and_then(|m| {
-            let module = m["module"].as_str()?;
-            // Each part the browser renders again with a speculation
-            // (ADR-0172), whose template the document carries.
-            let regions: Vec<u32> = m["regions"]
+            // And what it says of itself to what reads it unshown (ADR-0186).
+            let metadata = match pw_render::head_metadata(template, &env) {
+                Ok(metadata) => metadata,
+                Err(why) => {
+                    return unavailable(stream, Unread::Failed(format!("its metadata: {why:?}")));
+                }
+            };
+            // And the address it names its own (ADR-0311).
+            let origin = server.origin.get().map(String::as_str);
+            let metadata = match pw_render::head_canonical(template, &env, origin) {
+                Ok(canonical) => metadata + &canonical,
+                Err(why) => {
+                    return unavailable(
+                        stream,
+                        Unread::Failed(format!("its canonical address: {why:?}")),
+                    );
+                }
+            };
+            // What it asked of its reader, as the host answered for it (ADR-0307).
+            let holds: BTreeMap<String, bool> = server.plan_of(page)["predicates"]
                 .as_array()
                 .into_iter()
                 .flatten()
-                .filter_map(|r| r.as_u64().map(|r| r as u32))
+                .filter_map(|p| p.as_str())
+                .filter_map(|p| {
+                    let name = asked_name(p);
+                    match env.value(&name) {
+                        Some(Value::Bool(b)) => Some((name, *b)),
+                        _ => None,
+                    }
+                })
                 .collect();
-            Some((
-                format!("/speculation/{module}"),
-                entries,
-                regions,
-                params.clone(),
-            ))
+            let html = document(
+                &rendered,
+                &title,
+                &metadata,
+                server.data.style(),
+                template,
+                &server.templates,
+                server.plan_of(page),
+                cursor,
+                speculation,
+                &holds,
+                &server.build_id,
+            );
+            server.respond_streaming(
+                stream,
+                session,
+                fresh,
+                reader_identity,
+                &html,
+                template,
+                &env,
+                &mut settling,
+            );
         });
-        // The page's title, from the values it was rendered with
-        // (ADR-0183). A store's program that states none, the benchmark's
-        // copy, is titled as every store's page was, and another page that
-        // states none by its name, as a page of signals is.
-        let title = match pw_render::title_text(template, &env) {
-            Ok(title) => title.unwrap_or_else(|| {
-                if page == server.store_page() {
-                    "Store".to_string()
-                } else {
-                    template.name.clone()
-                }
-            }),
-            Err(why) => return unavailable(stream, Unread::Failed(format!("its title: {why:?}"))),
-        };
-        // And what it says of itself to what reads it unshown (ADR-0186).
-        let metadata = match pw_render::head_metadata(template, &env) {
-            Ok(metadata) => metadata,
-            Err(why) => {
-                return unavailable(stream, Unread::Failed(format!("its metadata: {why:?}")));
-            }
-        };
-        // And the address it names its own (ADR-0311).
-        let origin = server.origin.get().map(String::as_str);
-        let metadata = match pw_render::head_canonical(template, &env, origin) {
-            Ok(canonical) => metadata + &canonical,
-            Err(why) => {
-                return unavailable(
-                    stream,
-                    Unread::Failed(format!("its canonical address: {why:?}")),
-                );
-            }
-        };
-        // What it asked of its reader, as the host answered for it (ADR-0307).
-        let holds: BTreeMap<String, bool> = server.plan_of(page)["predicates"]
-            .as_array()
-            .into_iter()
-            .flatten()
-            .filter_map(|p| p.as_str())
-            .filter_map(|p| {
-                let name = asked_name(p);
-                match env.value(&name) {
-                    Some(Value::Bool(b)) => Some((name, *b)),
-                    _ => None,
-                }
-            })
-            .collect();
-        let html = document(
-            &rendered,
-            &title,
-            &metadata,
-            server.data.style(),
-            template,
-            &server.templates,
-            server.plan_of(page),
-            cursor,
-            speculation,
-            &holds,
-            &server.build_id,
-        );
-        server.respond_streaming(stream, session, fresh, &html, template, &env, &mut settling);
-    });
+    })
 }
 
 /// **A page moved** (ADR-0295): 308 where the move is permanent and 307
@@ -10327,44 +11288,53 @@ fn serve_page(
     fresh: bool,
     path: &str,
     params: Params,
+    reader_identity: &identity::ReaderIdentity,
 ) {
-    let not_found = |stream: &mut TcpStream, why: String| {
-        respond(
-            stream,
-            404,
-            "text/plain; charset=utf-8",
-            session,
-            fresh,
-            why.as_bytes(),
-        );
-    };
-    let runs = match server
-        .plans
-        .get(path)
-        .ok_or_else(|| format!("no page `{path}` in this build"))
-        .and_then(|plan| {
-            let reader = notifications::user_of(&server.identity.principals(), session);
-            stream_runs(plan, session, &reader, &params)
-        }) {
-        Ok(runs) => runs,
-        Err(why) => return not_found(stream, why),
-    };
-    std::thread::scope(|scope| {
-        let mut settling = Settling::start(scope, server, session, runs);
-        let settled = settling.for_document();
-        match server.render_page(path, &params, session, &settled) {
-            Ok((page, env, template)) => server.respond_streaming(
+    let principals = server.identity.principals();
+    principals.with_reader(session, reader_identity, || {
+        let not_found = |stream: &mut TcpStream, why: String| {
+            if !server.delivery_allowed(&(session.to_string(), 0), Some(reader_identity)) {
+                session_changed(stream, session, fresh);
+                return;
+            }
+            respond(
                 stream,
+                404,
+                "text/plain; charset=utf-8",
                 session,
                 fresh,
-                &page,
-                template,
-                &env,
-                &mut settling,
-            ),
-            Err(why) => not_found(stream, why),
-        }
-    });
+                why.as_bytes(),
+            );
+        };
+        let runs = match server
+            .plans
+            .get(path)
+            .ok_or_else(|| format!("no page `{path}` in this build"))
+            .and_then(|plan| {
+                let reader = notifications::user_of(&server.identity.principals(), session);
+                stream_runs(plan, session, &reader, &params)
+            }) {
+            Ok(runs) => runs,
+            Err(why) => return not_found(stream, why),
+        };
+        std::thread::scope(|scope| {
+            let mut settling = Settling::start(scope, server, session, runs);
+            let settled = settling.for_document();
+            match server.render_page(path, &params, session, &settled) {
+                Ok((page, env, template)) => server.respond_streaming(
+                    stream,
+                    session,
+                    fresh,
+                    reader_identity,
+                    &page,
+                    template,
+                    &env,
+                    &mut settling,
+                ),
+                Err(why) => not_found(stream, why),
+            }
+        });
+    })
 }
 
 /// **The parameters a path gives a route** (ADR-0162), or `None` when it is
@@ -11160,6 +12130,79 @@ fn write_response(stream: &mut TcpStream, code: u16, mime: &str, headers: &str, 
     let _ = stream.flush();
     let mut sink = Vec::new();
     let _ = stream.take(0).read_to_end(&mut sink);
+}
+
+/// Trace events accept only bounded operation metadata. A caller cannot
+/// pass a cookie, document, query value, operation payload or backend error.
+enum TraceEvent {
+    QueryFallback,
+    Drain { invalidated: usize, existing: bool },
+    RegenerationFailed,
+    MenuBroadcast { documents: usize },
+    MenuRefreshFailed,
+    DocumentRecovery,
+    StreamRenderFailed,
+    KeyedReadFailed,
+    CommandOutcome { committed: bool },
+}
+
+impl std::fmt::Display for TraceEvent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::QueryFallback => f.write_str("query fallback: last known good value"),
+            Self::Drain {
+                invalidated,
+                existing,
+            } => write!(f, "drain invalidated={invalidated} existing={existing}"),
+            Self::RegenerationFailed => {
+                f.write_str("drain regeneration failed; retry on next drain")
+            }
+            Self::MenuBroadcast { documents } => write!(f, "menu broadcast documents={documents}"),
+            Self::MenuRefreshFailed => f.write_str("menu refresh failed"),
+            Self::DocumentRecovery => f.write_str("unshowable document; resnapshot requested"),
+            Self::StreamRenderFailed => f.write_str("stream region failed to render"),
+            Self::KeyedReadFailed => f.write_str("keyed read failed"),
+            Self::CommandOutcome { committed } => {
+                write!(f, "command outcome committed={committed}")
+            }
+        }
+    }
+}
+
+fn trace(event: TraceEvent) {
+    if std::env::var("PW_TRACE").is_ok() {
+        eprintln!("{event}");
+    }
+}
+
+fn command_trace(answered: &Answered) -> Option<TraceEvent> {
+    answered
+        .why
+        .is_some()
+        .then_some(TraceEvent::CommandOutcome {
+            committed: answered.committed,
+        })
+}
+
+enum CommandOutcome {
+    Answered(Answered),
+    NotCurrent,
+    Uncertain(String),
+}
+#[cfg(test)]
+impl CommandOutcome {
+    fn into_answer(self) -> Result<Answered, String> {
+        match self {
+            Self::Answered(a) => Ok(a),
+            Self::Uncertain(why) => Err(why),
+            Self::NotCurrent => Err("unexpected scheduled disposition on a client command".into()),
+        }
+    }
+}
+enum CommitOutcome {
+    Applied((data::Outboxed, Vec<i64>)),
+    NoWrites,
+    NotCurrent,
 }
 
 #[cfg(test)]
@@ -12479,8 +13522,14 @@ public query Store(",
             .expect("the command commits");
         let mut queue = s.pending.lock().expect("pending");
         assert!(
-            s.installed(&mut queue, &doc, before, Some(pushed))
-                .is_none()
+            s.installed(
+                &mut queue,
+                &doc,
+                before,
+                Some(pushed),
+                &s.identity.principals().bound_reader("a")
+            )
+            .is_none()
         );
         drop(queue);
         // Served whole, it shows the change.
@@ -14099,10 +15148,13 @@ public query Store(",
         page.set_read_timeout(Some(ms(10_000))).expect("timeout");
         let mut written = String::new();
         let _ = page.read_to_string(&mut written);
-        assert!(written.starts_with("HTTP/1.1 200"), "{written}");
+        assert!(
+            written.starts_with("HTTP/1.1 200"),
+            "the stream keeps its successful response header"
+        );
         assert!(
             !written.contains("\"frames\""),
-            "and nothing after: {written}"
+            "a cut-off stream emits no subsequent frames"
         );
 
         // A change made while the page is cut off.
@@ -15089,6 +16141,17 @@ public query Store(",
     mod store_payments;
     // The scheduled-commands track: a command run when the clock passes its
     // time, and the store's sweep.
+    mod scheduled_memory;
+    mod scheduled_probe;
+    #[cfg(feature = "scheduler-postgres-tests")]
+    mod scheduled_replay;
+    mod session_commands;
+    #[cfg(feature = "session-postgres-tests")]
+    mod session_commands_pg;
+    mod session_receipt_recovery;
+    mod session_revocation;
+    mod session_upload_authority;
+    mod session_upload_reserved_routes;
     mod store_scheduled;
     // TRACK SEAM (reviews): a store's ratings and reviews, in memory and on
     // PostgreSQL where a database is named.
@@ -18898,7 +19961,7 @@ public query Store(",
             for secret in [alice, bob, deployment_key] {
                 assert!(
                     !kept.contains(secret),
-                    "{secret} is kept for every reader: {kept}"
+                    "private session data is retained in a shared cache"
                 );
             }
         }
@@ -19580,7 +20643,7 @@ public query Store(",
                 refused: None,
             },
         ] {
-            assert_eq!(Answered::from_kept(&answered.kept()), answered);
+            assert_eq!(Answered::from_kept(&answered.kept()), Ok(answered));
         }
     }
 

@@ -1,8 +1,8 @@
 ADR-0270 and ADR-0274 - the reader's user the host's, and notifications on it
 
 produced by: just e14-notifications
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -13,7 +13,7 @@ postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 test the_readers_user_is_the_hosts_operation ... ok
 test a_listeners_handle_binds_the_events_id ... ok
 test nothing_else_turns_an_id_into_a_handle_or_a_handle_into_an_id ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.68s
 
 == the server (notifications.rs, tests/notifications.rs)
 
@@ -26,22 +26,22 @@ test tests::notifications::a_like_a_reply_and_a_follow_each_tell_the_user_they_i
 test tests::notifications::a_like_reaches_each_of_its_users_open_pages ... ok
 test tests::notifications::a_deleted_posts_notifications_go_with_it ... ok
 test tests::notifications::another_users_session_sees_none_of_it ... ok
+test tests::notifications::on_postgres_a_like_reaches_each_of_its_users_open_pages ... ok
 test tests::notifications::on_postgres_a_like_a_reply_and_a_follow_each_tell_the_user_they_involve ... ok
 test tests::notifications::on_postgres_a_deleted_posts_notifications_go_with_it ... ok
-test tests::notifications::on_postgres_a_like_reaches_each_of_its_users_open_pages ... ok
 test tests::notifications::on_postgres_an_event_naming_a_user_drops_that_users_entries_alone ... ok
 test tests::notifications::on_postgres_another_users_session_sees_none_of_it ... ok
 test tests::notifications::on_postgres_ones_own_act_notifies_no_one ... ok
 test tests::notifications::on_postgres_reading_them_reaches_each_of_the_readers_sessions ... ok
-test tests::notifications::on_postgres_reading_them_tells_no_other_users_page ... ok
 test tests::notifications::ones_own_act_notifies_no_one ... ok
+test tests::notifications::on_postgres_reading_them_tells_no_other_users_page ... ok
 test tests::notifications::reading_them_reaches_each_of_the_readers_sessions ... ok
 test tests::notifications::reading_them_tells_no_other_users_page ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 693 filtered out; finished in 7.24s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 721 filtered out; finished in 12.41s
 
 == the browser in three engines (e2e/notifications.spec.mjs)
 
-  9 passed (35.6s)
+  9 passed (44.2s)
 
 == mutation controls (scripts/notifications_mutations.py)
 

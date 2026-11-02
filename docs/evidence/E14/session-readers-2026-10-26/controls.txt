@@ -1,0 +1,238 @@
+
+running 4 tests
+test tests::session_revocation::a_private_initial_document_cannot_finish_after_its_session_is_revoked ... ok
+test tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change ... ok
+test tests::session_revocation::an_anonymous_render_never_borrows_a_transient_authenticated_actor ... ok
+test tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 812 filtered out; finished in 2.60s
+
+
+
+running 4 tests
+test tests::session_revocation::a_private_initial_document_cannot_finish_after_its_session_is_revoked ... ok
+test tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change ... FAILED
+test tests::session_revocation::an_anonymous_render_never_borrows_a_transient_authenticated_actor ... FAILED
+test tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account ... FAILED
+
+failures:
+
+---- tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change stdout ----
+
+thread 'tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change' (361862) panicked at spikes/own-renderer/server/src/tests/session_revocation.rs:588:5:
+assertion `left == right` failed: a child worker must execute as the render's original actor
+  left: Some(Text("REPLACEMENT_ACTOR"))
+ right: Some(Text("bob"))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::session_revocation::an_anonymous_render_never_borrows_a_transient_authenticated_actor stdout ----
+
+thread 'tests::session_revocation::an_anonymous_render_never_borrows_a_transient_authenticated_actor' (361865) panicked at spikes/own-renderer/server/src/tests/session_revocation.rs:516:5:
+an anonymous-labeled response cannot borrow an intermediate actor's private value: HTTP/1.1 200 OK
+content-type: text/html; charset=utf-8
+content-length: 15373
+x-content-type-options: nosniff
+cache-control: private, no-store
+pw-build: b41b95d941a141982
+content-security-policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'sha256-v8jCs+poUKnEHV7piaB+l4LlDvig0qQ2jqYEal4D2VY='; style-src 'self'; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'
+connection: close
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home</title>
+</head>
+<body>
+<main>
+            <h1>Home</h1>
+            <nav aria-label="Timelines"><a href="/" aria-current="page">Everyone</a> <a href="/following">Following</a></nav>
+            <!--pw:s0-->
+            <p id="me">Signed in as <!--pw:s1-->TRANSIENT_PRIVATE_ACTOR<!--pw:e1--></p>
+            <p id="unread"><a href="/notifications">Notifications: <!--pw:s2-->0<!--pw:e2--> unread</a></p>
+            <p id="dm-unread"><a href="/messages">Messages: <!--pw:s3-->0<!--pw:e3--> unread</a></p>
+            <!--pw:s4--><form method="post" action="/sign-out"><button type="submit">Sign out</button></form><!--pw:e4-->
+            <!--pw:e0-->
+            <!--pw:s5-->
+                <!--pw:s6--><!--pw:e6-->
+                <form id="attach" method="post" action="/uploads/post-image" enctype="multipart/form-data">
+                    <label>An image to attach <input type="file" name="image" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+                    <button type="submit">Attach</button>
+                </form>
+            <!--pw:e5-->
+            
+            <form data-pw="2" hidden data-pw-captures="{&quot;staged&quot;:[]}">
+                <label>What's happening? <textarea data-pw="3"></textarea></label>
+                <label>The image, in words, for whoever cannot see it <textarea data-pw="4" id="alt"></textarea></label>
+                <p id="left"><!--pw:s18-->280<!--pw:e18--> left</p>
+                <!--pw:s19--><!--pw:e19-->
+                <button data-pw="5" type="submit" disabled>Post</button>
+            </form>
+            <ul>
+                <!--pw:s21--><!--pw:s21@FffUl6biuOig8TK0-->
+                    <li>
+                        <!--pw:s22-->
+                            <a data-pw="6" class="author" href="/post/p5"><!--pw:s26-->bob<!--pw:e26--></a>
+                            <a data-pw="7" class="handle" href="/user/bob"><!--pw:s28-->@bob<!--pw:e28--></a>
+                        <!--pw:e22-->
+                        <p><!--pw:s29-->bob fixture<!--pw:e29--></p>
+                        <!--pw:s30--><!--pw:e30-->
+                        <!--pw:s35--><!--pw:e35-->
+                        <span class="likes"><!--pw:s38-->0 likes<!--pw:e38--></span>
+                        <!--pw:s39--><!--pw:e39-->
+                    </li>
+                <!--pw:e21@FffUl6biuOig8TK0--><!--pw:s21@bKdGs3Gevidu_8tk-->
+                    <li>
+                        <!--pw:s22-->
+                            <a data-pw="6" class="author" href="/post/p4"><!--pw:s26-->alice<!--pw:e26--></a>
+                            <a data-pw="7" class="handle" href="/user/alice"><!--pw:s28-->@alice<!--pw:e28--></a>
+                        <!--pw:e22-->
+                        <p><!--pw:s29-->alice fixture<!--pw:e29--></p>
+                        <!--pw:s30--><!--pw:e30-->
+                        <!--pw:s35--><!--pw:e35-->
+                        <span class="likes"><!--pw:s38-->0 likes<!--pw:e38--></span>
+                        <!--pw:s39--><!--pw:e39-->
+                    </li>
+                <!--pw:e21@bKdGs3Gevidu_8tk--><!--pw:s21@oycowntIQgJhcUXT-->
+                    <li>
+                        <!--pw:s22-->
+                            <a data-pw="6" class="author" href="/post/p1"><!--pw:s26-->Ada<!--pw:e26--></a>
+                            <a data-pw="7" class="handle" href="/user/u-ada"><!--pw:s28-->@ada<!--pw:e28--></a>
+                        <!--pw:e22-->
+                        <p><!--pw:s29-->Hello, feed.<!--pw:e29--></p>
+                        <!--pw:s30--><!--pw:e30-->
+                        <!--pw:s35--><!--pw:e35-->
+                        <span class="likes"><!--pw:s38-->2 likes<!--pw:e38--></span>
+                        <!--pw:s39--><!--pw:e39-->
+                    </li>
+                <!--pw:e21@oycowntIQgJhcUXT--><!--pw:e21-->
+            </ul>
+            <button data-pw="11" type="button">Load more</button>
+        </main>
+<div role="status" class="pw-announcer"></div>
+<script type="application/json" id="pw-parts">{"blocks":{"19":{"id":19,"otherwise":[],"part":"conditional","then":[{"chunk":"static","value":"\u003cp id=\"over\" role=\"alert\">Too long to post.\u003c/p>"}],"value":"#feed.app.Home~ui~19"}},"computed":"/computed/feed.app.Home~ui.mjs","cursor":2,"entries":{"feed":{"entry":"0b7e74dbc7a3cd6acb9f2f156be1ded6","value":[{"author":{"handle":"@bob","id":"bob","name":"bob"},"id":"p5","images":[],"likes":0,"mine":false,"text":"bob fixture"},{"author":{"handle":"@alice","id":"alice","name":"alice"},"id":"p4","images":[],"likes":0,"mine":false,"text":"alice fixture"},{"author":{"handle":"@ada","id":"u-ada","name":"Ada"},"id":"p1","images":[],"likes":2,"mine":false,"text":"Hello, feed."}],"version":3}},"holds":{"SignedIn~holds":false},"keyed":[{"binding":"feed","on_key_change":"cancel","signals":["shown"]}],"live":[{"attribute":"value","kind":"attribute","part":14,"path":"draft","signal":"draft"},{"attribute":"value","kind":"attribute","part":16,"path":"alt","signal":"alt"},{"derived":"feed.app.Home~ui.derived_18","kind":"text","part":18,"path":"draft","signal":"draft"},{"derived":"feed.app.Home~ui.derived_19","kind":"conditional","part":19,"path":"draft","reads":["draft"],"signal":"draft"},{"attribute":"disabled","derived":"feed.app.Home~ui.derived_20","kind":"boolean_attribute","part":20,"path":"draft","signal":"draft"}],"params":{},"parts":[{"anchor":"range","id":0,"kind":"conditional","value":"me.signed_in"},{"anchor":"range","id":1,"kind":"text","value":"me.name"},{"anchor":"range","id":2,"kind":"text","value":"waiting"},{"anchor":"range","id":3,"kind":"text","value":"unread_dms"},{"anchor":"range","id":4,"kind":"conditional","value":"me.account"},{"anchor":"range","id":5,"kind":"conditional","value":"me.signed_in"},{"anchor":"range","id":6,"kind":"each","value":"staged"},{"anchor":"element","id":7,"kind":"attribute","owner":0,"value":"a.src"},{"anchor":"element","id":8,"kind":"attribute","owner":0,"value":"a.width"},{"anchor":"element","id":9,"kind":"attribute","owner":0,"value":"a.height"},{"anchor":"range","id":10,"kind":"conditional","value":"SignedIn~holds"},{"anchor":"element","event":"press","id":11,"kind":"event","name":"discard_image","owner":1,"value":"79b464b4a82040e9"},{"anchor":"element","id":12,"kind":"boolean_attribute","owner":2,"value":"#feed.app.Home~ui~12"},{"anchor":"element","event":"submit","id":13,"kind":"event","modifiers":["prevent"],"name":"post_text","owner":2,"value":"d8ab19650f4b3ac9"},{"anchor":"element","id":14,"kind":"attribute","owner":3,"value":"draft"},{"anchor":"element","event":"input","id":15,"kind":"event","owner":3,"value":"2070bd5321ef2f86"},{"anchor":"element","id":16,"kind":"attribute","owner":4,"value":"alt"},{"anchor":"element","event":"input","id":17,"kind":"event","owner":4,"value":"5b9a37c74a8159c4"},{"anchor":"range","id":18,"kind":"text","value":"#feed.app.Home~ui~18"},{"anchor":"range","id":19,"kind":"conditional","value":"#feed.app.Home~ui~19"},{"anchor":"element","id":20,"kind":"boolean_attribute","owner":5,"value":"#feed.app.Home~ui~20"},{"anchor":"range","id":21,"kind":"each","value":"feed"},{"anchor":"range","id":22,"kind":"conditional","value":"p.#feed.app.Home~ui~22"},{"anchor":"range","id":23,"kind":"text","value":"p.author.name"},{"anchor":"range","id":24,"kind":"text","value":"p.author.handle"},{"anchor":"element","id":25,"kind":"interpolated_attribute","owner":6,"value":"p.id"},{"anchor":"range","id":26,"kind":"text","value":"p.author.name"},{"anchor":"element","id":27,"kind":"interpolated_attribute","owner":7,"value":"p.author.id"},{"anchor":"range","id":28,"kind":"text","value":"p.author.handle"},{"anchor":"range","id":29,"kind":"text","value":"p.text"},{"anchor":"range","id":30,"kind":"each","value":"p.images"},{"anchor":"element","id":31,"kind":"attribute","owner":8,"value":"shown_image.src"},{"anchor":"element","id":32,"kind":"attribute","owner":8,"value":"shown_image.width"},{"anchor":"element","id":33,"kind":"attribute","owner":8,"value":"shown_image.height"},{"anchor":"element","id":34,"kind":"attribute","owner":8,"value":"shown_image.alt"},{"anchor":"range","id":35,"kind":"conditional","value":"SignedIn~holds"},{"anchor":"element","id":36,"kind":"boolean_attribute","owner":9,"value":"p.#feed.app.Home~ui~36"},{"anchor":"element","event":"press","id":37,"kind":"event","name":"like","owner":9,"value":"2b0dd8d341d258f0"},{"anchor":"range","id":38,"kind":"text","value":"p.#feed.app.Home~ui~38"},{"anchor":"range","id":39,"kind":"conditional","value":"SignedIn~holds"},{"anchor":"range","id":40,"kind":"conditional","value":"p.mine"},{"anchor":"element","id":41,"kind":"boolean_attribute","owner":10,"value":"p.#feed.app.Home~ui~41"},{"anchor":"element","event":"press","id":42,"kind":"event","name":"delete","owner":10,"value":"e13d1ac04b75fe35"},{"anchor":"element","event":"press","id":43,"kind":"event","owner":11,"value":"8646efae2aa2b54c"},{"anchor":"document","id":44,"kind":"title","value":""}],"regions":{"21":{"binding":"p","body":[{"chunk":"static","value":"\n                    \u003cli>\n                        "},{"chunk":"dynamic","value":{"id":22,"otherwise":[{"chunk":"static","value":"\n                            \u003ca data-pw=\"6\" class=\"author\" "},{"chunk":"dynamic","value":{"context":"url","id":25,"name":"href","owner":6,"part":"interpolated_attribute","segments":[{"segment":"static","value":"/post/"},{"segment":"value","value":"p.id"}]}},{"chunk":"static","value":">"},{"chunk":"dynamic","value":{"context":"text","id":26,"part":"text","value":"p.author.name"}},{"chunk":"static","value":"\u003c/a>\n                            \u003ca data-pw=\"7\" class=\"handle\" "},{"chunk":"dynamic","value":{"context":"url","id":27,"name":"href","owner":7,"part":"interpolated_attribute","segments":[{"segment":"static","value":"/user/"},{"segment":"value","value":"p.author.id"}]}},{"chunk":"static","value":">"},{"chunk":"dynamic","value":{"context":"text","id":28,"part":"text","value":"p.author.handle"}},{"chunk":"static","value":"\u003c/a>\n                        "}],"part":"conditional","then":[{"chunk":"static","value":"\n                            \u003ca class=\"author\">"},{"chunk":"dynamic","value":{"context":"text","id":23,"part":"text","value":"p.author.name"}},{"chunk":"static","value":"\u003c/a>\n                            \u003ca class=\"handle\">"},{"chunk":"dynamic","value":{"context":"text","id":24,"part":"text","value":"p.author.handle"}},{"chunk":"static","value":"\u003c/a>\n                        "}],"value":"p.#feed.app.Home~ui~22"}},{"chunk":"static","value":"\n                        \u003cp>"},{"chunk":"dynamic","value":{"context":"text","id":29,"part":"text","value":"p.text"}},{"chunk":"static","value":"\u003c/p>\n                        "},{"chunk":"dynamic","value":{"binding":"shown_image","body":[{"chunk":"static","value":"\n                            \u003cimg data-pw=\"8\" class=\"photo\" "},{"chunk":"dynamic","value":{"context":"url","id":31,"name":"src","owner":8,"part":"attribute","value":"shown_image.src"}},{"chunk":"static","value":" "},{"chunk":"dynamic","value":{"context":"attribute","id":32,"name":"width","owner":8,"part":"attribute","value":"shown_image.width"}},{"chunk":"static","value":" "},{"chunk":"dynamic","value":{"context":"attribute","id":33,"name":"height","owner":8,"part":"attribute","value":"shown_image.height"}},{"chunk":"static","value":" "},{"chunk":"dynamic","value":{"context":"attribute","id":34,"name":"alt","owner":8,"part":"attribute","value":"shown_image.alt"}},{"chunk":"static","value":">\n                        "}],"collection":"p.images","id":30,"key":"src","part":"each"}},{"chunk":"static","value":"\n                        "},{"chunk":"dynamic","value":{"id":35,"otherwise":[],"part":"conditional","then":[{"chunk":"static","value":"\u003cbutton data-pw=\"9\" type=\"button\" "},{"chunk":"dynamic","value":{"id":36,"name":"disabled","owner":9,"part":"boolean_attribute","value":"p.#feed.app.Home~ui~36"}},{"chunk":"dynamic","value":{"captures":["p.id"],"event":"press","handler":"2b0dd8d341d258f0","id":37,"name":"like","owner":9,"part":"event"}},{"chunk":"static","value":">Like\u003c/button>"}],"value":"SignedIn~holds"}},{"chunk":"static","value":"\n                        \u003cspan class=\"likes\">"},{"chunk":"dynamic","value":{"context":"text","id":38,"part":"text","value":"p.#feed.app.Home~ui~38"}},{"chunk":"static","value":"\u003c/span>\n                        "},{"chunk":"dynamic","value":{"id":39,"otherwise":[],"part":"conditional","then":[{"chunk":"dynamic","value":{"id":40,"otherwise":[],"part":"conditional","then":[{"chunk":"static","value":"\u003cbutton data-pw=\"10\" type=\"button\" class=\"delete\" "},{"chunk":"dynamic","value":{"id":41,"name":"disabled","owner":10,"part":"boolean_attribute","value":"p.#feed.app.Home~ui~41"}},{"chunk":"dynamic","value":{"captures":["p.id"],"event":"press","handler":"e13d1ac04b75fe35","id":42,"name":"delete","owner":10,"part":"event"}},{"chunk":"static","value":">Delete\u003c/button>"}],"value":"p.mine"}}],"value":"SignedIn~holds"}},{"chunk":"static","value":"\n                    \u003c/li>\n                "}],"collection":"feed","id":21,"key":"id","part":"each"}},"resume":{"abi":"1","build":"b41b95d941a141982","capture":"","captures":"","construct":"region","document":"032872e35689c422","handler":"","handlers":{"060d9ca5e0da84eb":{"capture":"","captures":"","handler":"060d9ca5e0da84eb"},"18456af92e4859f7":{"capture":"id","captures":"x","handler":"18456af92e4859f7"},"1b6de15adc5d6767":{"capture":"item.id","captures":"x","handler":"1b6de15adc5d6767"},"1dc70744c1ea685a":{"capture":"","captures":"","handler":"1dc70744c1ea685a"},"2070bd5321ef2f86":{"capture":"","captures":"","handler":"2070bd5321ef2f86"},"27ad0881658184ab":{"capture":"id","captures":"x","handler":"27ad0881658184ab"},"2b0dd8d341d258f0":{"capture":"p.id","captures":"x","handler":"2b0dd8d341d258f0"},"3063158b57e398ec":{"capture":"id","captures":"x","handler":"3063158b57e398ec"},"36ca01334ce8cfdb":{"capture":"id","captures":"x","handler":"36ca01334ce8cfdb"},"4aee543f7bf35737":{"capture":"with","captures":"x","handler":"4aee543f7bf35737"},"4dc73651608aa60f":{"capture":"","captures":"","handler":"4dc73651608aa60f"},"5b9a37c74a8159c4":{"capture":"","captures":"","handler":"5b9a37c74a8159c4"},"5c6b8dde5dc70589":{"capture":"","captures":"","handler":"5c6b8dde5dc70589"},"6cd7708c3a781dbb":{"capture":"","captures":"","handler":"6cd7708c3a781dbb"},"79b464b4a82040e9":{"capture":"","captures":"","handler":"79b464b4a82040e9"},"8646efae2aa2b54c":{"capture":"","captures":"","handler":"8646efae2aa2b54c"},"a8ba0b0227357955":{"capture":"item.id","captures":"x","handler":"a8ba0b0227357955"},"b96c044738025741":{"capture":"with","captures":"x","handler":"b96c044738025741"},"d8ab19650f4b3ac9":{"capture":"staged","captures":"x","handler":"d8ab19650f4b3ac9"},"e13d1ac04b75fe35":{"capture":"p.id","captures":"x","handler":"e13d1ac04b75fe35"}},"scheme":"2","scope":"session:"},"schema":"032872e35689c422","signals":{"alt":"","draft":"","shown":20},"speculation":"/speculation/feed.app.Home~ui.mjs","template":"feed.app.Home~ui"}</script>
+<script>import("/pw-runtime.mjs")</script>
+</body>
+</html>
+
+
+---- tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account stdout ----
+
+thread 'tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account' (361869) panicked at spikes/own-renderer/server/src/tests/session_revocation.rs:610:5:
+assertion `left == right` failed: a worker's explicitly anonymous actor cannot become the cache's current account
+  left: Some(Bool(true))
+ right: Some(Bool(false))
+
+
+failures:
+    tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change
+    tests::session_revocation::an_anonymous_render_never_borrows_a_transient_authenticated_actor
+    tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account
+
+test result: FAILED. 1 passed; 3 failed; 0 ignored; 0 measured; 812 filtered out; finished in 2.58s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+principal reads ignore the invocation actor: KILLED
+
+running 4 tests
+test tests::session_revocation::a_private_initial_document_cannot_finish_after_its_session_is_revoked ... ok
+test tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change ... FAILED
+test tests::session_revocation::an_anonymous_render_never_borrows_a_transient_authenticated_actor ... ok
+test tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account ... FAILED
+
+failures:
+
+---- tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change stdout ----
+
+thread 'tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change' (362208) panicked at spikes/own-renderer/server/src/tests/session_revocation.rs:569:5:
+worker query partition must follow the same frozen actor as its host calls: Key { resource: "feed.app.Me", key: "session=v1:62:a:519f5eee6248efc4009dc1a0a33730e9\u{1f}\"b\"" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account stdout ----
+
+thread 'tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account' (362215) panicked at spikes/own-renderer/server/src/tests/session_revocation.rs:569:5:
+worker query partition must follow the same frozen actor as its host calls: Key { resource: "feed.app.Me", key: "session=v1:62:a:0dafc7bd5f5d35b69d6dac4c2a095e62\u{1f}\"b\"" }
+
+
+failures:
+    tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change
+    tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account
+
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 812 filtered out; finished in 2.58s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+stream workers discard the captured reader: KILLED
+
+running 4 tests
+test tests::session_revocation::a_private_initial_document_cannot_finish_after_its_session_is_revoked ... FAILED
+test tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change ... ok
+test tests::session_revocation::an_anonymous_render_never_borrows_a_transient_authenticated_actor ... ok
+test tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account ... ok
+
+failures:
+
+---- tests::session_revocation::a_private_initial_document_cannot_finish_after_its_session_is_revoked stdout ----
+
+thread 'tests::session_revocation::a_private_initial_document_cannot_finish_after_its_session_is_revoked' (362515) panicked at spikes/own-renderer/server/src/tests/session_revocation.rs:292:5:
+a revoked in-flight render cannot hand over its private HTML: HTTP/1.1 200 OK
+content-type: text/html; charset=utf-8
+content-length: 8768
+x-content-type-options: nosniff
+cache-control: private, no-store
+pw-build: b41b95d941a141982
+content-security-policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'sha256-v8jCs+poUKnEHV7piaB+l4LlDvig0qQ2jqYEal4D2VY='; style-src 'self'; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'
+connection: close
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conversation</title>
+</head>
+<body>
+<main>
+            <h1><!--pw:s0-->alice<!--pw:e0--></h1>
+            <nav aria-label="Messages"><a href="/messages">All messages</a> <a data-pw="0" href="/user/alice">Their page</a></nav>
+            <button data-pw="1" id="earlier-messages" type="button">Load earlier</button>
+            <!--pw:s3--><!--pw:e3-->
+            <ol id="messages">
+                <!--pw:s4--><!--pw:s4@3FkD7HIsA9V0PKHA-->
+                    <li class="message">
+                        <!--pw:s5-->
+                            <a data-pw="2" class="from" href="/user/alice"><!--pw:s8-->alice<!--pw:e8--></a>
+                        <!--pw:e5-->
+                        <p class="text"><!--pw:s9-->PRIVATE_INITIAL_DOCUMENT_AFTER_LOGOUT<!--pw:e9--></p>
+                        <!--pw:s10--><span class="dm-new">New</span><!--pw:e10-->
+                    </li>
+                <!--pw:e4@3FkD7HIsA9V0PKHA--><!--pw:e4-->
+            </ol>
+            <!--pw:s11--><button data-pw="3" id="mark-conversation-read" type="button" data-pw-captures="{&quot;with&quot;:&quot;alice&quot;}">Mark read</button><!--pw:e11-->
+            <div data-pw="4"><form data-pw="5" id="composer" data-pw-captures="{&quot;with&quot;:&quot;alice&quot;}">
+                <label>Your message <textarea data-pw="6"></textarea></label>
+                <button data-pw="7" type="submit" disabled>Send</button>
+            </form></div>
+            <!--pw:s19--><!--pw:e19-->
+            <!--pw:s21--><!--pw:e21-->
+        </main>
+<div role="status" class="pw-announcer"></div>
+<script type="application/json" id="pw-parts">{"blocks":{},"computed":"/computed/feed.app.ConversationPage~ui.mjs","cursor":3,"entries":{"talk":{"entry":"f0bc13078a1e0159bfbbb604d66942de","value":{"closed":false,"me":{"handle":"@bob","id":"bob","name":"bob"},"messages":[{"from":{"handle":"@alice","id":"alice","name":"alice"},"id":"m1","text":"PRIVATE_INITIAL_DOCUMENT_AFTER_LOGOUT","unread":true}],"with":{"handle":"@alice","id":"alice","name":"alice"},"yourself":false},"version":6}},"holds":{"SignedIn~holds":true},"keyed":[{"binding":"talk","on_key_change":"cancel","signals":["earlier"]}],"live":[{"attribute":"value","kind":"attribute","part":16,"path":"message_draft","signal":"message_draft"},{"attribute":"disabled","derived":"feed.app.ConversationPage~ui.derived_18","kind":"boolean_attribute","part":18,"path":"message_draft","signal":"message_draft"}],"params":{"with":"alice"},"parts":[{"anchor":"range","id":0,"kind":"text","value":"talk.with.name"},{"anchor":"element","id":1,"kind":"interpolated_attribute","owner":0,"value":"with"},{"anchor":"element","event":"press","id":2,"kind":"event","owner":1,"value":"6cd7708c3a781dbb"},{"anchor":"range","id":3,"kind":"conditional","value":"#feed.app.ConversationPage~ui~3"},{"anchor":"range","id":4,"kind":"each","value":"talk.messages"},{"anchor":"range","id":5,"kind":"conditional","value":"m.#feed.app.ConversationPage~ui~5"},{"anchor":"range","id":6,"kind":"text","value":"m.from.name"},{"anchor":"element","id":7,"kind":"interpolated_attribute","owner":2,"value":"m.from.id"},{"anchor":"range","id":8,"kind":"text","value":"m.from.name"},{"anchor":"range","id":9,"kind":"text","value":"m.text"},{"anchor":"range","id":10,"kind":"conditional","value":"m.unread"},{"anchor":"range","id":11,"kind":"conditional","value":"SignedIn~holds"},{"anchor":"element","event":"press","id":12,"kind":"event","name":"read_conversation","owner":3,"value":"b96c044738025741"},{"anchor":"element","id":13,"kind":"boolean_attribute","owner":4,"value":"#feed.app.ConversationPage~ui~13"},{"anchor":"element","id":14,"kind":"boolean_attribute","owner":5,"value":"talk.closed"},{"anchor":"element","event":"submit","id":15,"kind":"event","modifiers":["prevent"],"name":"message_text","owner":5,"value":"4aee543f7bf35737"},{"anchor":"element","id":16,"kind":"attribute","owner":6,"value":"message_draft"},{"anchor":"element","event":"input","id":17,"kind":"event","owner":6,"value":"060d9ca5e0da84eb"},{"anchor":"element","id":18,"kind":"boolean_attribute","owner":7,"value":"#feed.app.ConversationPage~ui~18"},{"anchor":"range","id":19,"kind":"conditional","value":"talk.closed"},{"anchor":"range","id":20,"kind":"text","value":"#feed.app.ConversationPage~ui~20"},{"anchor":"range","id":21,"kind":"conditional","value":"SignedIn~holds"},{"anchor":"document","id":22,"kind":"title","value":""}],"regions":{"14":{"id":14,"name":"hidden","owner":5,"part":"boolean_attribute","value":"talk.closed"},"19":{"id":19,"otherwise":[],"part":"conditional","then":[{"chunk":"static","value":"\u003cp id=\"may-not-send\" role=\"status\">"},{"chunk":"dynamic","value":{"context":"text","id":20,"part":"text","value":"#feed.app.ConversationPage~ui~20"}},{"chunk":"static","value":"\u003c/p>"}],"value":"talk.closed"},"3":{"id":3,"otherwise":[],"part":"conditional","then":[{"chunk":"static","value":"\u003cp id=\"no-messages\">No messages yet.\u003c/p>"}],"value":"#feed.app.ConversationPage~ui~3"},"4":{"binding":"m","body":[{"chunk":"static","value":"\n                    \u003cli class=\"message\">\n                        "},{"chunk":"dynamic","value":{"id":5,"otherwise":[{"chunk":"static","value":"\n                            \u003ca data-pw=\"2\" class=\"from\" "},{"chunk":"dynamic","value":{"context":"url","id":7,"name":"href","owner":2,"part":"interpolated_attribute","segments":[{"segment":"static","value":"/user/"},{"segment":"value","value":"m.from.id"}]}},{"chunk":"static","value":">"},{"chunk":"dynamic","value":{"context":"text","id":8,"part":"text","value":"m.from.name"}},{"chunk":"static","value":"\u003c/a>\n                        "}],"part":"conditional","then":[{"chunk":"static","value":"\n                            \u003cspan class=\"from\">"},{"chunk":"dynamic","value":{"context":"text","id":6,"part":"text","value":"m.from.name"}},{"chunk":"static","value":"\u003c/span>\n                            \u003cspan class=\"sending\">Sending\u003c/span>\n                        "}],"value":"m.#feed.app.ConversationPage~ui~5"}},{"chunk":"static","value":"\n                        \u003cp class=\"text\">"},{"chunk":"dynamic","value":{"context":"text","id":9,"part":"text","value":"m.text"}},{"chunk":"static","value":"\u003c/p>\n                        "},{"chunk":"dynamic","value":{"id":10,"otherwise":[],"part":"conditional","then":[{"chunk":"static","value":"\u003cspan class=\"dm-new\">New\u003c/span>"}],"value":"m.unread"}},{"chunk":"static","value":"\n                    \u003c/li>\n                "}],"collection":"talk.messages","id":4,"key":"id","part":"each"}},"resume":{"abi":"1","build":"b41b95d941a141982","capture":"","captures":"","construct":"region","document":"6d67a1db276c34e6","handler":"","handlers":{"060d9ca5e0da84eb":{"capture":"","captures":"","handler":"060d9ca5e0da84eb"},"18456af92e4859f7":{"capture":"id","captures":"x","handler":"18456af92e4859f7"},"1b6de15adc5d6767":{"capture":"item.id","captures":"x","handler":"1b6de15adc5d6767"},"1dc70744c1ea685a":{"capture":"","captures":"","handler":"1dc70744c1ea685a"},"2070bd5321ef2f86":{"capture":"","captures":"","handler":"2070bd5321ef2f86"},"27ad0881658184ab":{"capture":"id","captures":"x","handler":"27ad0881658184ab"},"2b0dd8d341d258f0":{"capture":"p.id","captures":"x","handler":"2b0dd8d341d258f0"},"3063158b57e398ec":{"capture":"id","captures":"x","handler":"3063158b57e398ec"},"36ca01334ce8cfdb":{"capture":"id","captures":"x","handler":"36ca01334ce8cfdb"},"4aee543f7bf35737":{"capture":"with","captures":"x","handler":"4aee543f7bf35737"},"4dc73651608aa60f":{"capture":"","captures":"","handler":"4dc73651608aa60f"},"5b9a37c74a8159c4":{"capture":"","captures":"","handler":"5b9a37c74a8159c4"},"5c6b8dde5dc70589":{"capture":"","captures":"","handler":"5c6b8dde5dc70589"},"6cd7708c3a781dbb":{"capture":"","captures":"","handler":"6cd7708c3a781dbb"},"79b464b4a82040e9":{"capture":"","captures":"","handler":"79b464b4a82040e9"},"8646efae2aa2b54c":{"capture":"","captures":"","handler":"8646efae2aa2b54c"},"a8ba0b0227357955":{"capture":"item.id","captures":"x","handler":"a8ba0b0227357955"},"b96c044738025741":{"capture":"with","captures":"x","handler":"b96c044738025741"},"d8ab19650f4b3ac9":{"capture":"staged","captures":"x","handler":"d8ab19650f4b3ac9"},"e13d1ac04b75fe35":{"capture":"p.id","captures":"x","handler":"e13d1ac04b75fe35"}},"scheme":"2","scope":"session:"},"schema":"6d67a1db276c34e6","signals":{"earlier":50,"message_draft":""},"speculation":"/speculation/feed.app.ConversationPage~ui.mjs","template":"feed.app.ConversationPage~ui"}</script>
+<script>import("/pw-runtime.mjs")</script>
+</body>
+</html>
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::session_revocation::a_private_initial_document_cannot_finish_after_its_session_is_revoked
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 812 filtered out; finished in 2.60s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+live delivery inspection borrows the frozen reader: KILLED
+controls: 3/3, valid=True, restored=True

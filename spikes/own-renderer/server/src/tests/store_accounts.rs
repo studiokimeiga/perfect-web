@@ -472,9 +472,9 @@ fn a_command_is_answered_for_the_reader_its_page_was_shown_to() {
 
 /// **A press the host already answered is answered from what it kept,
 /// though its page went stale between the two attempts** (the integrator's
-/// finding of 2026-10-11): its answer lost after it committed (ADR-0175),
-/// the reader signs in in another tab, and the retry, from the new session
-/// and the same interaction, is told it committed; nothing runs twice. The
+/// finding of 2026-10-11), restricted by ADR-0389: cart adoption after sign-in
+/// does not grant the new cookie its guest predecessor's receipt. The old
+/// operation still runs once; a same-reader stale-page retry remains valid. The
 /// same where the host has since forgotten the page. A press the host never
 /// answered is still refused.
 #[test]
@@ -508,8 +508,8 @@ fn a_retry_of_a_press_that_committed_is_answered_from_what_was_kept() {
     assert_eq!(s.cart_lines(&ada), [("cortado".to_string(), 1)]);
     let retried = pressed_on(&s, &ada, Some(guests), "i-1");
     assert!(
-        retried.starts_with("HTTP/1.1 202") && retried.contains("\"committed\":true"),
-        "the retry is told it committed: {retried}"
+        retried.starts_with("HTTP/1.1 403") && !retried.contains("\"result\""),
+        "cart adoption cannot grant another cookie the old receipt: {retried}"
     );
     assert_eq!(
         s.cart_lines(&ada),

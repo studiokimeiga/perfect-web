@@ -81,12 +81,7 @@ MUTANTS = [
         '        c.batch_execute("COMMIT").map_err(pg)?;\n',
         '        let _ = c.batch_execute("COMMIT");\n',
     ),
-    (
-        "the outbox is not read back",
-        LAYER,
-        "            Ok(read) => Ok(Some(read)),\n",
-        "            Ok(_) => Ok(Some((Vec::new(), Vec::new()))),\n",
-    ),
+    ("the outbox is not read back", LAYER, '            Ok(read) => Ok(crate::data::Commit::Applied(read)),\n', '            Ok(_) => Ok(crate::data::Commit::Applied((Vec::new(), Vec::new()))),\n'),
     (
         "a commit on PostgreSQL is not recorded in the materializer",
         SERVER,

@@ -1,8 +1,8 @@
 Track scheduled-orders - an order placed for a time its reader chooses
 
 produced by: just e14-scheduled-orders
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
@@ -12,7 +12,7 @@ playwright: Version 1.58.0
 
 test moving_and_ordering_instants_reads_no_clock ... ok
 test a_run_is_scheduled_at_an_instant_moved_along_the_clock ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
 
 == the times offered and an order for one, the store in memory (tests/scheduled_orders.rs, scheduled_orders.rs)
 
@@ -24,8 +24,8 @@ test tests::scheduled_orders::a_cart_for_as_soon_as_possible_asks_no_estimate ..
 test tests::scheduled_orders::a_second_order_waits_for_a_scheduled_one_to_be_sent ... ok
 test tests::scheduled_orders::a_send_before_its_order_is_paid_places_nothing ... ok
 test tests::scheduled_orders::a_send_places_only_its_own_order ... ok
-test tests::scheduled_orders::a_stores_hours_offer_the_windows_it_is_open_at ... ok
 test tests::scheduled_orders::a_time_is_held_to_the_estimate_as_it_is_when_the_order_is_placed ... ok
+test tests::scheduled_orders::a_stores_hours_offer_the_windows_it_is_open_at ... ok
 test tests::scheduled_orders::a_time_not_offered_is_refused_when_chosen ... ok
 test tests::scheduled_orders::a_time_the_hours_no_longer_cover_is_refused ... ok
 test tests::scheduled_orders::a_window_is_offered_exactly_where_an_order_for_as_soon_as_possible_is_taken_when_told ... ok
@@ -40,18 +40,18 @@ test tests::scheduled_orders::hours_past_midnight_offer_windows_across_it ... ok
 test tests::scheduled_orders::an_order_is_sent_to_its_stores_when_its_preparation_is_due ... ok
 test tests::scheduled_orders::the_estimate_moves_the_windows ... ok
 test tests::scheduled_orders::the_page_of_times_is_held_until_the_first_windows_hour ... ok
+test tests::scheduled_orders::the_time_chosen_is_kept_with_the_readers_choices ... ok
 test tests::scheduled_orders::the_page_of_times_lists_a_days_windows_and_its_days ... ok
 test tests::scheduled_orders::the_seeds_hours_offer_every_quarter_hour_from_an_hour_to_a_week_ahead ... ok
-test tests::scheduled_orders::the_time_chosen_is_kept_with_the_readers_choices ... ok
-test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 686 filtered out; finished in 47.72s
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 714 filtered out; finished in 48.71s
 
 == the same, the store on PostgreSQL (PW_STORE_TEST_LAYER=postgres)
 
-test tests::scheduled_orders::a_cart_of_two_stores_is_sent_by_its_longest_estimate ... ok
 test tests::scheduled_orders::a_readers_press_of_the_send_is_not_a_command ... ok
+test tests::scheduled_orders::a_cart_of_two_stores_is_sent_by_its_longest_estimate ... ok
 test tests::scheduled_orders::a_cart_across_two_zones_is_offered_the_windows_both_are_open_at ... ok
-test tests::scheduled_orders::a_cart_for_as_soon_as_possible_asks_no_estimate ... ok
 test tests::scheduled_orders::a_second_order_waits_for_a_scheduled_one_to_be_sent ... ok
+test tests::scheduled_orders::a_cart_for_as_soon_as_possible_asks_no_estimate ... ok
 test tests::scheduled_orders::a_send_before_its_order_is_paid_places_nothing ... ok
 test tests::scheduled_orders::a_send_places_only_its_own_order ... ok
 test tests::scheduled_orders::a_stores_hours_offer_the_windows_it_is_open_at ... ok
@@ -62,8 +62,8 @@ test tests::scheduled_orders::a_window_is_offered_exactly_where_an_order_for_as_
 test tests::scheduled_orders::a_time_no_longer_offered_is_refused_when_the_order_is_placed ... ok
 test tests::scheduled_orders::a_window_is_offered_where_its_store_takes_an_order_when_it_is_told ... ok
 test tests::scheduled_orders::an_order_for_a_time_is_taken_while_its_store_is_closed ... ok
-test tests::scheduled_orders::an_order_is_sent_its_estimates_most_and_five_minutes_before ... ok
 test tests::scheduled_orders::an_order_for_a_time_is_paid_now_and_its_page_says_when ... ok
+test tests::scheduled_orders::an_order_is_sent_its_estimates_most_and_five_minutes_before ... ok
 test tests::scheduled_orders::an_order_for_a_time_awaiting_its_payment_is_swept ... ok
 test tests::scheduled_orders::estimates_read_together_preserve_each_stores_result ... ok
 test tests::scheduled_orders::hours_past_midnight_offer_windows_across_it ... ok
@@ -71,9 +71,9 @@ test tests::scheduled_orders::an_order_is_sent_to_its_stores_when_its_preparatio
 test tests::scheduled_orders::the_estimate_moves_the_windows ... ok
 test tests::scheduled_orders::the_page_of_times_is_held_until_the_first_windows_hour ... ok
 test tests::scheduled_orders::the_page_of_times_lists_a_days_windows_and_its_days ... ok
-test tests::scheduled_orders::the_seeds_hours_offer_every_quarter_hour_from_an_hour_to_a_week_ahead ... ok
 test tests::scheduled_orders::the_time_chosen_is_kept_with_the_readers_choices ... ok
-test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 687 filtered out; finished in 53.09s
+test tests::scheduled_orders::the_seeds_hours_offer_every_quarter_hour_from_an_hour_to_a_week_ahead ... ok
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 715 filtered out; finished in 54.37s
 
 == each operation, page and command counted on PostgreSQL (tests/bounded_statements.rs)
 
@@ -87,11 +87,11 @@ test tests::bounded_statements::a_commands_commit_is_counted_with_it ... ok
 test tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_write_guard ... ok
 test tests::bounded_statements::placing_and_settling_where_payments_are_taken_is_bounded ... ok
 test tests::bounded_statements::each_page_and_command_is_a_bounded_number_of_statements ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 703 filtered out; finished in 21.39s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 731 filtered out; finished in 23.18s
 
 == the store in three engines (e2e/scheduled-orders.spec.mjs)
 
-  6 passed (52.8s)
+  6 passed (54.3s)
 
 == mutation controls (scripts/scheduled_orders_mutations.py)
 

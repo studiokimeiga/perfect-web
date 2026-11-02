@@ -46,23 +46,15 @@ MUTANTS = [
         "`before` runs the command",
         "server",
         SERVER,
-        "            if drop_at == Some(DropAt::Before) {\n"
-        "                // Never run: what follows it waits for it to be sent again.\n"
-        "                if let Some(arrival) = arrival {\n"
-        "                    arrival.vanish();\n"
-        "                }\n"
-        "                return;\n"
-        "            }\n",
-        "",
+        '                if drop_at == Some(DropAt::Before) {\n                    // Never run: what follows it waits for it to be sent again.\n                    if let Some(arrival) = arrival {\n                        arrival.vanish();\n                    }\n                    return;\n                }\n',
+        '',
     ),
     (
         "`after` sends the answer",
         "server",
         SERVER,
-        "            if drop_at == Some(DropAt::After) {\n"
-        "                return;\n"
-        "            }\n",
-        "",
+        '                if drop_at == Some(DropAt::After) {\n                    return;\n                }\n',
+        '',
     ),
     (
         "an open stream is not ended",
@@ -77,9 +69,9 @@ MUTANTS = [
         "an open long poll is not ended",
         "server",
         SERVER,
-        "        // Cut off since it opened (ADR-0175): no answer.\n"
+        "    for _ in 0..40 {\n"
         "        if server.cut_off(session, opened) {\n",
-        "        // Cut off since it opened (ADR-0175): no answer.\n"
+        "    for _ in 0..40 {\n"
         "        if false && server.cut_off(session, opened) {\n",
     ),
     (

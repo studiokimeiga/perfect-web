@@ -1,8 +1,8 @@
 ADR-0184 - what a cache may keep holds nothing of a session's
 
 produced by: just e14-shared-output
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -11,17 +11,17 @@ playwright: Version 1.58.0
 
 test tests::a_session_s_response_is_kept_by_no_cache_and_a_build_s_names_no_session ... ok
 test tests::what_a_shared_cache_keeps_holds_nothing_a_session_put_in_it ... ok
-test result: ok. 704 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 544.27s
+test result: ok. 732 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 353.26s
 
 == the page, in three engines (e2e/shared-output.spec.mjs)
 
-  ✓  1 [chromium] › e2e/shared-output.spec.mjs:15:1 › the store's page is kept by no cache, and a build's file names no session (1.3s)
-  ✓  3 [firefox] › e2e/shared-output.spec.mjs:15:1 › the store's page is kept by no cache, and a build's file names no session (474ms)
-  ✓  2 [chromium] › e2e/shared-output.spec.mjs:44:1 › back to the store, its cart is as it is now, not as it was left (3.9s)
-  ✓  5 [webkit] › e2e/shared-output.spec.mjs:15:1 › the store's page is kept by no cache, and a build's file names no session (489ms)
-  ✓  4 [firefox] › e2e/shared-output.spec.mjs:44:1 › back to the store, its cart is as it is now, not as it was left (4.2s)
-  ✓  6 [webkit] › e2e/shared-output.spec.mjs:44:1 › back to the store, its cart is as it is now, not as it was left (3.1s)
-  6 passed (18.9s)
+  ✓  2 [chromium] › e2e/shared-output.spec.mjs:15:1 › the store's page is kept by no cache, and a build's file names no session (1.3s)
+  ✓  3 [firefox] › e2e/shared-output.spec.mjs:15:1 › the store's page is kept by no cache, and a build's file names no session (480ms)
+  ✓  1 [chromium] › e2e/shared-output.spec.mjs:44:1 › back to the store, its cart is as it is now, not as it was left (3.7s)
+  ✓  5 [webkit] › e2e/shared-output.spec.mjs:15:1 › the store's page is kept by no cache, and a build's file names no session (466ms)
+  ✓  4 [firefox] › e2e/shared-output.spec.mjs:44:1 › back to the store, its cart is as it is now, not as it was left (3.9s)
+  ✓  6 [webkit] › e2e/shared-output.spec.mjs:44:1 › back to the store, its cart is as it is now, not as it was left (2.7s)
+  6 passed (14.3s)
 
 == mutation controls (scripts/shared_output_mutations.py)
 

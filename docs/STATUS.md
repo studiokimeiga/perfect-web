@@ -2,6 +2,109 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Supply-chain follow-up, 2026-10-29:** published `88f577a2` is blocked by
+both actual CI Node audits: HIGH GHSA-3f7j-7jwc-fxfj in Cypress's
+`systeminformation` 5.33.15. Rust audits passed. ADR0371 records the verified
+upstream 5.33.16 patch, range-scoped override, unchanged audit policy and real
+Windows sanitizer regression. Require a fresh complete audit, frozen installs,
+affected Cypress verification, all local/session checks and every planned
+hosted gate on the successor commit before merge. Earlier partial results
+remain historical.
+See the [dependency follow-up](diagnostics/systeminformation-security-2026-10-29.md).
+
+**Pre-publication follow-up, 2026-10-29:** local candidate `8da9ab54` passed
+preflight and Ruff but failed Fallow on three introduced complexity findings.
+It was never pushed. ADR0172 records the small ownership/helper refactor, with
+the original failure retained. Require fresh preflight, Ruff, Fallow, thirteen
+lifecycle cases, the affected browser/module campaign and every planned hosted
+gate at the successor's immutable commit before merge. No `8da9ab54` gate credit
+transfers to that successor.
+
+**Renderer failure follow-up, 2026-10-29:** `eb28ac01` remains failed and
+unmerged. Verify run 40637144982's actual 153-recipe inventory contains two failed
+computed-renderer recipes; all 14 green shell jobs do not clear them. Reading
+those errors exposed unsent speculation retained after a native render failure
+and renderer-generation publication/retirement gaps. ADR0172 records the
+working repair, real-Wasm browser regressions and thirteen lifecycle seam tests.
+See the [diagnostic record](diagnostics/session-renderer-failures-2026-10-29.md).
+Reproduce with `python3 -m unittest -v scripts/tests/test_renderer_contract.py`,
+`just preflight` and `just e14-press-modules`; require full browser and every
+planned recipe/CI/security gate at the final immutable commit before merge.
+
+**Command cleanup diagnostic follow-up, 2026-10-28:** a direct real-`psql`
+synthetic-URI probe found command-producer cleanup stderr retaining its password.
+The working cleanup-only launch policy and three additive real-child regressions
+are recorded under ADR0389. Actual two-database owned-schema neighbors preserve
+stdout/status evidence; ordinary native diagnostics remain unchanged. The26
+command authority controls stay intact. Reproduce with
+`python3 -m unittest -v scripts/tests/test_session_command_mutations.py`,
+`just preflight` and `just e14-session-command-authority`; require all fresh
+planned hosted gates at the next immutable head before merge. `5371f0f2` passed
+CI/security/full browsers but remains unaccepted with this finding and unfinished
+recipes; no prior execution is transferred to the successor.
+
+**Evidence archive follow-up, 2026-10-28:** `a67c2111` failed its fresh Ruff
+and Fallow gates because five historical source snapshots were stored with
+executable extensions. Raw local red reproductions and byte-preserving gzip
+storage repair are recorded under ADR0367. Actual source/spec/producer and
+analyzer policy are unchanged. Require `just preflight`,
+`python3 scripts/quality_delta.py --base a0db8884deb2b3ba37faee59afcdee44a92c6b1c`,
+Fallow audit against that base, and every planned final-head hosted gate before
+merge. Both f1 and a67 failed candidates stay unaccepted.
+
+**PR62 gate follow-up, 2026-10-28:** `f1d19c8e` remains failed:
+verify40617180819's actual `e14-todomvc` returned1 although the recipe shell
+job succeeded. The clear-count control timed out clicking after a transient
+visibility check. ADR0367 records the completed-row precondition repair and
+its bounded50-case diagnostics; the timing explanation remains inferential.
+Reproduce the whole affected gate with `just e14-todomvc`. All43 controls,
+full browsers and every planned recipe/CI/security gate require a fresh exact
+published commit before merge. Earlier green jobs do not clear this failure.
+
+**Session follow-up, 2026-10-27:** PR61 merged at
+`a0db8884deb2b3ba37faee59afcdee44a92c6b1c`; the earlier continuation notes
+below retain their historical scope. The current follow-up remains unmerged.
+Private upload generation/dispatch/publication and receipt decode/recovery
+failures are reproduced and repaired locally under ADR0389. See the
+[follow-up record](diagnostics/session-followup-2026-10-27.md). Local diagnostic
+runs do not satisfy final-head gates. Required commands are `just preflight`,
+`just e14-upload-authority`, `just e14-session-receipt-recovery`, the unchanged
+whole command/scheduler and reached legacy recipes, and the final published
+CI/CodeQL/browser/recipe plan before merge.
+
+
+
+Local continuation 2026-10-26: `wip/session-revocation-20261026` is an
+unmerged implementation branch; its immutable-reader slice and remaining gates
+are recorded in [the scoped continuation record](diagnostics/session-readers-2026-10-26.md).
+The master worktree was observed at `a13b3c3806b928d4a7e135819d58ff5f39c2a6a6`,
+matching fetched origin/master. The dated integration ledger below is historical;
+no new hosted-CI or complete-session acceptance is asserted by this local work.
+
+Local diagnostic continuation 2026-10-27: the complete check audit also found a
+push-CI PID-publication fixture race and a failing aggregate CodeQL security gate.
+Repairs and raw regressions are in [the command continuation record](diagnostics/session-commands-2026-10-27.md).
+Focused reproduction: `python3 -m unittest -v scripts/tests/test_producer_ownership.py`;
+`cargo test --locked -p pw-dev-server --bin pw-dev-server -- identity::invocation_tests:: --test-threads=1`;
+`cargo test --locked -p pw-dev-server --bin pw-dev-server -- tests::session_commands:: --test-threads=1`.
+Final gates remain `just preflight`, `just e14-session-command-authority`,
+`just e14-scheduled-replay` and the planned hosted CI/browser/recipe checks at one
+new immutable head. No earlier head's result authorizes its merge.
+The next trace follow-up adds the actual child-stderr privacy regression and
+two controls; the canonical command inventory is now 26 controls, with all
+prior controls retained. The 9fed campaign was cancelled and supplies no full
+acceptance. Its aggregate security findings also remain failed historical
+evidence; only the next exact-head result can clear them.
+
+CI follow-up 2026-10-27: actual recipe artifacts refused the `2f5798b1`
+candidate despite passed local gates and green runner shell jobs. The database
+environment, real Clock/payment fixture, explicit producer inventory and second
+tab's sign-out boundary are repaired with separate reviews and raw regressions
+in [the CI follow-up record](diagnostics/session-ci-followups-2026-10-27.md).
+The next exact composed head must include the full PostgreSQL server partition,
+bounded-statement and ownership mutation recipes, and the final hosted artifact
+summary. No old-head or incomplete result clears those obligations.
+
 Reviewed 2026-10-21 against master `e7664d2eb01aa8c6e91df594bd7270a84a8bf8de`,
 train-12's landing, and its completed hosted runs. The
 [snapshot at that landing](STATUS-HISTORY-2026-10-21.md) and
@@ -9,6 +112,29 @@ train-12's landing, and its completed hosted runs. The
 failed runs, corrections and their original scope.
 
 ## current milestone
+
+**Integration checkpoint2026-10-26:** master `0035f923` contains PR54's
+image-privacy repair and PR59's unused Wasmtime disk-cache dependency removal,
+both landed by ordinary fast-forward to the exact tested heads after independent
+reviews and all published gates. The prior current Zstandard advisory blocker
+is repaired without an audit waiver. Post-merge reruns are separate from those
+passing pre-merge gates.
+
+PR55's derived-purity producer repair is still awaiting its final integration
+head gates, and PR56 remains a design document rather than a dating app.
+Outbound HTTPS and staged D2 table writes are queued foundations; generic
+server routing/principal policies, unified business/platform transactions,
+migrations and private-media/session authority remain unfinished.
+
+PR59's canonical exact-source proof at `109f459e` is
+[verify40341658053](https://github.com/studiokimeiga/perfect-web/actions/runs/40341658053):
+`just e8-host` and `just e14-compiled-once`, fetched with
+`just evidence-fetch 40341658053`. Receipts are
+[artifact-audit](evidence/E8/artifact-audit.txt) and
+[compiled-once](evidence/E14/compiled-once.txt). Host audit105passed/0ignored;
+server suite771passed/9ignored and1.71GiB peak; ignored cases get no credit.
+The2compile-once controls remain legacy producer evidence. Older ledger
+statements below retain the scope/date of their review.
 
 **E14, the AI benchmark**, ahead of E11-E13 under the owner's 2026-10-02
 ruling ([ADR-0119](DECISIONS/ADR-0119-e10-closes-and-the-ai-benchmark-comes-next.md),
@@ -44,6 +170,29 @@ and verify [39658074296](https://github.com/studiokimeiga/perfect-web/actions/ru
 passed (141 reached recipes, `e14-pleris-controls` and the three browser
 engines); the evidence is fetched at `973fbbcc`. Landing waits for the
 owner's approval and for exact-commit CI at the landed commit.
+
+**In review, not landed: upload image metadata repair** (PR #54, track
+`upload-metadata`,
+[ADR-0383](DECISIONS/ADR-0383-an-uploaded-image-is-kept-without-its-metadata.md)).
+The preceding status incorrectly called the PR landed. Master remains
+`4345726a2db9a12a8bfb5c755cd4e80ee90585d5`; the older `58591617` and
+`818f4278` results are historical track evidence. Integration review and
+subsequent research found additional ICC, container, staging-accounting and
+PNG/APNG compressed-stream privacy gaps. The revised source
+`1afd58fcfc66434070422b3112debeac94bad07f` passes exact CI
+[40264422871](https://github.com/studiokimeiga/perfect-web/actions/runs/40264422871)
+and whole upload verification
+[40264616606](https://github.com/studiokimeiga/perfect-web/actions/runs/40264616606):
+117 native and 45 browser baseline cases, all 146 strict mutation controls,
+and the three browser suites. All nine reached recipes have canonical evidence: the remaining eight
+passed [40265548018](https://github.com/studiokimeiga/perfect-web/actions/runs/40265548018),
+including three full-browser repeats of 1,357 passed and 20 skipped each
+(the skipped cases receive no passing credit). Exact final publication/PR
+gates must still pass before merge. Unsupported complex ICC profiles are dropped; browser-
+ambiguous APNG interleaving and excessive expected filtered extent refuse
+with an unsupported diagnostic. Numeric color values, pixels, existing
+stored media and private-media authorization/revocation remain outside this
+metadata-minimization claim.
 
 ## last passing commit
 
@@ -85,6 +234,16 @@ the [landing snapshot](STATUS-HISTORY-2026-10-21.md#last-passing-commit) and
 the [last-passing ledger](STATUS-HISTORY-2026-10.md#last-passing-commit).
 
 ## completed gate items
+
+On master since PR #53 (`4345726a`, 2026-10-25), ADR-0338 D2's read path
+([ADR-0385](DECISIONS/ADR-0385-a-component-reads-its-tables-through-the-table-gate.md)):
+a compiled component reads declared tables only through the table gate,
+each import typed as `tables.json` declares before instantiation, each
+answer held to its read; [evidence](evidence/E14/table-host.txt) by
+`just e14-table-host`, 49 of 49 mutants killed. Writes and the other reads
+are implemented on this unmerged branch under ADR-0386, with whole updated
+campaigns and final review pending. Generic server routing, atomic platform
+records, durable storage and an app with no Rust data layer remain.
 
 At train-12 source `ec15e5b1`, the latest complete campaign detects all
 43 TodoMVC, 62 device-storage and 50 second-host faults, plus TodoMVC's
@@ -263,3 +422,48 @@ to older frame attribution.
    brief; run nothing paid on an assumed choice.
 3. Device-local durability (ADR-0366's boundary), and the remaining
    [NEXT](NEXT.md) follow-ups, the unexplained feed timeout among them.
+
+
+### Session command authority continuation (2026-10-27, acceptance pending)
+
+ADR-0389 now specifies immutable browser command actors, transaction fences,
+reader-bound receipt metadata/reservations, request admission and final private
+response checks. Same-cookie reopening also partitions applied interaction and
+speculated-version history. Independent review found a real lost-ACK warm Store
+refresh defect; a queued original-document frame regression first failed, then
+passed after explicit authoritative materializer regeneration.
+
+Reproduce the new bounded native/real-PG acceptance with
+`just e14-session-command-authority` (both PW_FEED_DATABASE_URL and
+PW_STORE_DATABASE_URL required). It records the exact source commit, frozen
+binary inventories, raw native logs, strict controls and independent owned-schema
+cleanup under docs/evidence/E14/session-commands.*/. A test declared passed while
+skipped, an assertion outside the test boundary, a source drift or an uncertain
+cleanup cannot pass. Browser/affected legacy recipes, independent final review,
+preflight, full native tests and hosted exact-head CI remain separate merge
+gates. The initial actual failures are preserved under
+`docs/evidence/E14/session-commands-2026-10-27/`. No pending gate is waived here.
+
+**PR62 supply-chain continuation (2026-10-27):** candidate `4f28b257` failed
+both hosted `just audit` jobs on GHSA-gcqx-w48m-w2h4. ADR-0390 records the
+temporary private MIT merge-helper fork and both lockfile repairs. The
+unchanged published helper fails 9 of 17 regressions; the repaired helper
+passes 17. Scratch frozen/offline install, Svelte check/build and the unchanged
+workspace node-audit policy pass on the working tree. These diagnostics are
+in `evidence/E14/session-followup-deepmerge-2026-10-27/`; none supplies a new
+commit's execution credit. Independent review and all exact repaired-head
+local/hosted gates remain pending before merge.
+
+Both actual installed consumer-resolution checks also pass (19 total tests) in fresh workspace and isolated frozen installs. Initial test-resolution and environment refusals are retained separately in the characterization manifest.
+
+**PR62 Fallow continuation:**9f21a8e8 passed both hosted Rust+Node supply-chain
+jobs, but Fallow refused five new findings: three unreachable files and two
+inherited helper complexity findings. The exact5 reproduce with Fallow3.23.0.
+Registering the two actual Node test entries and extracting cohesive option/
+property helpers gives a working-tree audit PASS with zero introduced findings;
+all19 security/API/installed-consumer tests pass. No ignore, threshold, waiver
+or workflow change is used. ADR0390 and the raw characterization under
+`evidence/E14/session-followup-fallow-2026-10-27/` record the cause and repair.
+Fresh exact new-head gates and independent review remain pending before merge;
+9f's local native stage1 completed successfully, while its whole-controller
+stage2 was not started because hosted Fallow already blocked the candidate.

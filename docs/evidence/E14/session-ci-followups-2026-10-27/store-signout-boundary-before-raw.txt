@@ -1,0 +1,59 @@
+command: bash work/run-store-signout-boundary-probe.sh --before
+source: frozen gitshow c9e62009e467134e182e6287436cc1dc7be11f0a
+expected regression result: exit1, actual signout phase does not finish its real HTTPfetch
+exit_code: 1
+{
+  "scope": "real Firefox, controlled serial-response/redirect mechanism; no Pleris build or app acceptance",
+  "source_sha256": "f1179b71341a4abb774ca8e4e179be040f1960eb3897814df4d1887419c2c707",
+  "before": true,
+  "control": false,
+  "error": "Error: page.evaluate: NetworkError when attempting to fetch resource.",
+  "events": [
+    {
+      "event": "stream-open",
+      "doc": 26
+    },
+    {
+      "event": "stream-open",
+      "doc": 25
+    },
+    {
+      "event": "route-installed",
+      "page": "here"
+    },
+    {
+      "event": "sign-out",
+      "method": "POST",
+      "status": 303
+    },
+    {
+      "event": "redirect-get"
+    },
+    {
+      "event": "redirect-closed"
+    },
+    {
+      "event": "other-tab-reload"
+    }
+  ]
+}
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: the actual sign-out phase must finish its real HTTP fetch
++ actual - expected
+
++ 'Error: page.evaluate: NetworkError when attempting to fetch resource.'
+- undefined
+
+    at file:///mnt/c/Users/haki/Documents/Codex/2026-10-26/con/work/store-signout-boundary-probe.mjs:121:12 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 'Error: page.evaluate: NetworkError when attempting to fetch resource.',
+  expected: undefined,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.21.1

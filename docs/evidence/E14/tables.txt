@@ -1,23 +1,28 @@
 D1 - a table declares an app's data
 
 produced by: just e14-tables
-commit: 320c52a44840a80423609ab476eb847c04de34a6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39442025240 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: e3ae9b204f673305766044200542ab47397fa383
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40257165693 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
+    Updating crates.io index
+   Compiling pw-resource v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-resource)
+   Compiling pw-syntax v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-syntax)
+   Compiling pw-document v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-document)
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
-    Finished `test` profile [unoptimized] target(s) in 18.39s
+   Compiling pw-render v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-render)
+    Finished `test` profile [unoptimized] target(s) in 12.91s
      Running tests/tables.rs (target/debug/deps/tables-78be12ea13c3952b)
 
-running 35 tests
+running 36 tests
 test a_bound_gives_all_and_no_bound_none ... ok
 test a_clause_on_another_declaration_is_no_tables ... ok
 test a_lock_changed_by_hand_is_no_release ... ok
 test a_dropped_field_is_refused_without_its_migrate_and_planned_with_it ... ok
 test a_bound_is_a_count_and_each_clause_its_grammar ... ok
 test a_change_no_migrate_states_is_refused ... ok
-test a_program_held_to_its_release_is_refused_where_it_is_checked_and_built ... ok
 test a_table_gives_each_read_and_write_with_its_type_and_effect ... ok
+test a_program_held_to_its_release_is_refused_where_it_is_checked_and_built ... ok
 test a_three_field_key_gives_a_read_by_each_proper_prefix ... ok
 test a_program_with_no_table_has_no_tables_file ... ok
 test a_table_reference_uses_its_own_module_beside_a_namesake ... ok
@@ -28,8 +33,8 @@ test an_additive_change_is_planned ... ok
 test full_validation_preserves_native_migration_unit_span_and_reason ... ok
 test its_imports_are_the_platforms_and_its_program_builds ... ok
 test a_type_changed_or_a_field_added_with_no_value_is_refused_unless_backfilled ... ok
-test generic_fields_project_their_arguments_recursively_and_a_change_is_destructive ... ok
 test pw0361_a_table_is_declared_in_the_module_of_its_name ... ok
+test generic_fields_project_their_arguments_recursively_and_a_change_is_destructive ... ok
 test pw0361_a_source_name_cannot_hide_another_database ... ok
 test pw0361_a_reference_names_a_table_keyed_by_its_fields_type ... ok
 test pw0361_generated_composite_records_have_one_shape_each ... ok
@@ -45,67 +50,72 @@ test pw0365_every_reference_across_sources_is_warned_and_builds ... ok
 test tables_json_states_each_table_its_functions_and_their_order ... ok
 test source_ambiguity_is_not_an_alternate_copy_of_the_own_module ... ok
 test the_corpus_fixtures_that_name_a_release_are_held_to_it ... ok
+test two_indexes_cannot_describe_one_ordered_field_list ... ok
 
-test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.30s
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.41s
 
+   Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
+   Compiling pw-host v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-host)
+   Compiling pw-table-memory v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-table-memory)
    Compiling pw-cli v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-cli)
-    Finished `test` profile [unoptimized] target(s) in 0.61s
-     Running tests/tables.rs (target/debug/deps/tables-690eb5872309f242)
+    Finished `test` profile [unoptimized] target(s) in 13.19s
+     Running tests/tables.rs (target/debug/deps/tables-0c18cfca43711191)
 
-running 4 tests
+running 5 tests
 test an_invalid_or_missing_release_is_an_error ... ok
+test actual_compiler_manifest_executes_without_app_specific_rust ... ok
 test a_released_schema_does_not_skip_executable_support ... ok
 test migration_refusals_precede_unsupported_backend_diagnostics ... ok
 test check_and_build_hold_a_program_to_the_named_release ... ok
 
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.89s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.65s
 
 
 == mutation controls (scripts/tables_mutations.py)
-baseline: 39 passed, 0 failed
-lowering gives no table functions: KILLED (9 of 39 tests fail)
-table imports belong to the app instead of the platform: KILLED (1 of 39 tests fail)
-an empty Result case is emitted as an invalid empty tuple: KILLED (1 of 39 tests fail)
-a key names a field twice: KILLED (1 of 39 tests fail)
-a table has any module's name: KILLED (1 of 39 tests fail)
-duplicate source names hide a database: KILLED (2 of 39 tests fail)
-an alternate own module counts as another database: KILLED (1 of 39 tests fail)
-a sibling module replaces a table reference's own module: KILLED (1 of 39 tests fail)
-a qualified own-module name resolves through a namesake: KILLED (27 of 39 tests fail)
-table interfaces collide after WIT naming: KILLED (1 of 39 tests fail)
-function imports collide after WIT naming: KILLED (2 of 39 tests fail)
-generated record names can hold two tuple shapes: KILLED (1 of 39 tests fail)
-nested generic parameters lose their stored arguments: KILLED (1 of 39 tests fail)
-a key's fields are unchecked: KILLED (1 of 39 tests fail)
-an index's fields are unchecked: KILLED (1 of 39 tests fail)
-order names any field: KILLED (1 of 39 tests fail)
-an index need not start by_: KILLED (1 of 39 tests fail)
-two indexes give the same function: KILLED (1 of 39 tests fail)
-a unique index is ordinary: KILLED (3 of 39 tests fail)
-the whole key has no set form: KILLED (2 of 39 tests fail)
-the longest proper key prefix is missing: KILLED (5 of 39 tests fail)
-bounded gives no whole-table read: KILLED (5 of 39 tests fail)
-a set form answers an Option: KILLED (1 of 39 tests fail)
-a put ignores uniqueness: KILLED (1 of 39 tests fail)
-a reference may hold the wrong key: KILLED (2 of 39 tests fail)
-a reference can hold one field of a composite key: KILLED (1 of 39 tests fail)
-cross-source references are silent: KILLED (2 of 39 tests fail)
-cross-source references are errors: KILLED (2 of 39 tests fail)
-bindings written by hand are allowed: KILLED (1 of 39 tests fail)
-all without a bound uses the wrong diagnostic: KILLED (1 of 39 tests fail)
-a changed schema lock is accepted: KILLED (1 of 39 tests fail)
-an unknown lock format is accepted: KILLED (1 of 39 tests fail)
-destructive field changes are planned silently: KILLED (9 of 39 tests fail)
-renames are not applied: KILLED (2 of 39 tests fail)
-new optional fields are not additive: KILLED (2 of 39 tests fail)
-a changed key is accepted: KILLED (1 of 39 tests fail)
-a table can move between sources silently: KILLED (1 of 39 tests fail)
-an unused migration is accepted: KILLED (1 of 39 tests fail)
-a backfill of the wrong type is accepted: KILLED (1 of 39 tests fail)
-a prefix's rows have no declared order: KILLED (1 of 39 tests fail)
-build ignores the released schema: KILLED (5 of 39 tests fail)
-check ignores the released schema: KILLED (3 of 39 tests fail)
-a no-table rebuild keeps old metadata: KILLED (1 of 39 tests fail)
-CLI silently ignores a missing schema-lock value: KILLED (1 of 39 tests fail)
+baseline: 41 passed, 0 failed
+lowering gives no table functions: KILLED (10 of 41 tests fail)
+table imports belong to the app instead of the platform: KILLED (1 of 41 tests fail)
+an empty Result case is emitted as an invalid empty tuple: KILLED (1 of 41 tests fail)
+a key names a field twice: KILLED (1 of 41 tests fail)
+a table has any module's name: KILLED (1 of 41 tests fail)
+duplicate source names hide a database: KILLED (2 of 41 tests fail)
+an alternate own module counts as another database: KILLED (1 of 41 tests fail)
+a sibling module replaces a table reference's own module: KILLED (1 of 41 tests fail)
+a qualified own-module name resolves through a namesake: KILLED (29 of 41 tests fail)
+table interfaces collide after WIT naming: KILLED (1 of 41 tests fail)
+function imports collide after WIT naming: KILLED (2 of 41 tests fail)
+generated record names can hold two tuple shapes: KILLED (1 of 41 tests fail)
+nested generic parameters lose their stored arguments: KILLED (1 of 41 tests fail)
+a key's fields are unchecked: KILLED (1 of 41 tests fail)
+an index's fields are unchecked: KILLED (1 of 41 tests fail)
+order names any field: KILLED (1 of 41 tests fail)
+an index need not start by_: KILLED (1 of 41 tests fail)
+two indexes give the same function: KILLED (1 of 41 tests fail)
+a unique index is ordinary: KILLED (4 of 41 tests fail)
+the whole key has no set form: KILLED (3 of 41 tests fail)
+the longest proper key prefix is missing: KILLED (5 of 41 tests fail)
+bounded gives no whole-table read: KILLED (6 of 41 tests fail)
+a set form answers an Option: KILLED (1 of 41 tests fail)
+a put ignores uniqueness: KILLED (1 of 41 tests fail)
+a reference may hold the wrong key: KILLED (2 of 41 tests fail)
+a reference can hold one field of a composite key: KILLED (1 of 41 tests fail)
+cross-source references are silent: KILLED (2 of 41 tests fail)
+cross-source references are errors: KILLED (2 of 41 tests fail)
+bindings written by hand are allowed: KILLED (1 of 41 tests fail)
+all without a bound uses the wrong diagnostic: KILLED (1 of 41 tests fail)
+a changed schema lock is accepted: KILLED (1 of 41 tests fail)
+an unknown lock format is accepted: KILLED (1 of 41 tests fail)
+destructive field changes are planned silently: KILLED (9 of 41 tests fail)
+renames are not applied: KILLED (2 of 41 tests fail)
+new optional fields are not additive: KILLED (2 of 41 tests fail)
+a changed key is accepted: KILLED (1 of 41 tests fail)
+a table can move between sources silently: KILLED (1 of 41 tests fail)
+an unused migration is accepted: KILLED (1 of 41 tests fail)
+a backfill of the wrong type is accepted: KILLED (1 of 41 tests fail)
+a prefix's rows have no declared order: KILLED (2 of 41 tests fail)
+build ignores the released schema: KILLED (5 of 41 tests fail)
+check ignores the released schema: KILLED (3 of 41 tests fail)
+a no-table rebuild keeps old metadata: KILLED (1 of 41 tests fail)
+CLI silently ignores a missing schema-lock value: KILLED (1 of 41 tests fail)
 44 of 44 mutants killed
 memory bound: no process was stopped

@@ -16,6 +16,7 @@ export PATH := toolchain_bin + ":" + env_var('PATH')
 # imported recipe runs in this directory, under these settings.
 import 'just/identity.just'
 import 'just/uploads.just'
+import 'just/upload-metadata.just'
 import 'just/notifications.just'
 import 'just/messages.just'
 import 'just/kiokun.just'
@@ -29,6 +30,10 @@ import 'just/render-merge.just'
 import 'just/payments.just'
 import 'just/page-policy.just'
 import 'just/scheduled.just'
+import 'just/scheduled-replay.just'
+import 'just/session-command-authority.just'
+import 'just/upload-authority.just'
+import 'just/session-receipt-recovery.just'
 import 'just/bounded-checker.just'
 import 'just/reviews.just'
 import 'just/proof.just'
@@ -64,6 +69,8 @@ import 'just/command-deadline.just'
 import 'just/press-modules.just'
 import 'just/e14-readiness.just'
 import 'just/table-host.just'
+import 'just/d2-writes.just'
+import 'just/outbound-https.just'
 import 'just/head-to-head.just'
 
 default:
@@ -143,6 +150,7 @@ audit:
 # This tests the harness, not the compiler or the browser.
 evidence-gates:
     @python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
+    @node --test benchmarks/baselines/sveltekit/vendor/deepmerge/test.cjs benchmarks/baselines/sveltekit/vendor/deepmerge/consumer-test.cjs
 
 # ADR-0245: a verification run's evidence, fetched into docs/evidence/. The
 # run is a GitHub Actions run of `verify`, by its id; each file it fetches

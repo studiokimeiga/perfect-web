@@ -1,114 +1,121 @@
 NEXT 6c - a payment at the deployment's provider, settled only by the provider's word
 
 produced by: just e14-payments
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 2a99a51a70b0ccd7ab5e2089fa8b1bbcbd7cf7e4
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40263257525 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
 == the signature, the provider, the hearing and a payment begun (payments.rs)
 
+test payments::answer_tests::a_begin_refusal_does_not_echo_provider_secrets ... ok
 test payments::answer_tests::an_answer_is_read_by_its_length_not_its_close ... ok
+test payments::answer_tests::a_cancel_refusal_does_not_echo_provider_secrets ... ok
+test payments::answer_tests::an_undefined_provider_status_never_enters_a_payment_diagnostic ... ok
+test payments::configured_tests::the_configured_provider_and_host_agree_on_their_secret ... ok
 test payments::configured_tests::the_development_provider_runs_only_in_development_here ... ok
 test payments::hearing_tests::an_intent_whose_amount_changed_at_the_provider_settles_nothing ... ok
-test payments::configured_tests::the_configured_provider_and_host_agree_on_their_secret ... ok
-test payments::hearing_tests::an_outcome_the_host_could_not_settle_is_settled_when_sent_again ... ok
-test payments::invoked_tests::a_command_the_platform_invokes_is_told_by_its_contract ... ok
 test payments::cancel_tests::a_payment_is_canceled_by_its_reader_alone ... ok
+test payments::hearing_tests::an_outcome_the_host_could_not_settle_is_settled_when_sent_again ... ok
 test payments::hearing_tests::the_host_acts_on_the_intent_as_the_provider_says_it_now ... ok
+test payments::answer_tests::a_cancel_refusal_only_carries_a_declared_payment_status ... ok
+test payments::https_tests::an_id_that_would_make_another_request_is_never_sent ... ok
+test payments::https_tests::a_provider_whose_certificate_is_not_trusted_is_not_reached ... ok
+test payments::https_tests::the_payments_reach_their_provider_alone ... ok
+test payments::invoked_tests::a_command_the_platform_invokes_is_told_by_its_contract ... ok
 test payments::operation_tests::a_payment_is_begun_once_per_interaction ... ok
+test payments::https_tests::an_interaction_that_would_split_the_providers_request_is_never_sent ... ok
+test payments::origin_tests::the_provider_can_send_twice_and_out_of_order ... ok
 test payments::provider_tests::a_cards_outcome_is_its_test_numbers ... ok
 test payments::provider_tests::an_event_sent_is_signed_for_the_host ... ok
 test payments::provider_tests::an_intent_is_canceled_until_it_is_paid ... ok
 test payments::provider_tests::an_intent_is_made_once_per_key ... ok
-test payments::origin_tests::the_provider_can_send_twice_and_out_of_order ... ok
-test payments::tests::hmac_sha256_is_rfc_4231s ... ok
-test payments::tests::a_webhook_is_the_providers_only_as_it_signed_it ... ok
-test payments::tests::signatures_are_compared_whole ... ok
 test payments::origin_tests::a_card_paid_in_the_hosted_fields_is_told_to_the_host_signed ... ok
+test payments::tests::a_webhook_is_the_providers_only_as_it_signed_it ... ok
+test payments::tests::hmac_sha256_is_rfc_4231s ... ok
+test payments::tests::signatures_are_compared_whole ... ok
+test payments::https_tests::a_provider_at_an_https_origin_is_reached_over_tls ... ok
 test payments::answer_tests::a_provider_that_does_not_answer_in_time_is_not_reached ... ok
-test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 694 filtered out; finished in 0.11s
+test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 694 filtered out; finished in 0.10s
 
 == an order awaiting its payment, the store in memory (tests/store_payments.rs)
 
 test tests::store_payments::a_payment_for_an_order_the_reader_has_not_placed_changes_nothing ... ok
-test tests::store_payments::a_card_declined_leaves_the_order_awaiting_and_the_payment_takes_another ... ok
 test tests::store_payments::a_code_an_order_taken_back_used_is_the_readers_again ... ok
+test tests::store_payments::a_card_declined_leaves_the_order_awaiting_and_the_payment_takes_another ... ok
 test tests::store_payments::a_card_paid_places_the_order_and_its_open_page_is_told ... ok
 test tests::store_payments::a_payment_paid_before_it_is_canceled_stands ... ok
-test tests::store_payments::a_reader_takes_back_an_order_awaiting_its_payment ... ok
 test tests::store_payments::a_providers_own_cancel_takes_the_order_back ... ok
 test tests::store_payments::a_provider_that_cannot_be_reached_places_nothing ... ok
+test tests::store_payments::a_reader_takes_back_an_order_awaiting_its_payment ... ok
 test tests::store_payments::a_readers_press_of_the_settling_command_is_not_a_command ... ok
 test tests::store_payments::a_session_opened_on_a_readers_behalf_is_no_browsers_to_present ... ok
 test tests::store_payments::an_order_awaits_its_payment_on_the_providers_page ... ok
 test tests::store_payments::an_order_no_longer_awaiting_its_payment_is_not_taken_back ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 701 filtered out; finished in 24.64s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 710 filtered out; finished in 24.62s
 
 == the same, the store on PostgreSQL (PW_STORE_TEST_LAYER=postgres)
 
+test tests::store_payments::a_payment_for_an_order_the_reader_has_not_placed_changes_nothing ... ok
+test tests::store_payments::a_card_declined_leaves_the_order_awaiting_and_the_payment_takes_another ... ok
 test tests::store_payments::a_card_paid_places_the_order_and_its_open_page_is_told ... ok
 test tests::store_payments::a_code_an_order_taken_back_used_is_the_readers_again ... ok
-test tests::store_payments::a_card_declined_leaves_the_order_awaiting_and_the_payment_takes_another ... ok
-test tests::store_payments::a_payment_for_an_order_the_reader_has_not_placed_changes_nothing ... ok
-test tests::store_payments::a_provider_that_cannot_be_reached_places_nothing ... ok
 test tests::store_payments::a_payment_paid_before_it_is_canceled_stands ... ok
+test tests::store_payments::a_provider_that_cannot_be_reached_places_nothing ... ok
 test tests::store_payments::a_providers_own_cancel_takes_the_order_back ... ok
 test tests::store_payments::a_reader_takes_back_an_order_awaiting_its_payment ... ok
-test tests::store_payments::a_readers_press_of_the_settling_command_is_not_a_command ... ok
 test tests::store_payments::a_session_opened_on_a_readers_behalf_is_no_browsers_to_present ... ok
+test tests::store_payments::a_readers_press_of_the_settling_command_is_not_a_command ... ok
 test tests::store_payments::an_order_awaits_its_payment_on_the_providers_page ... ok
 test tests::store_payments::an_order_no_longer_awaiting_its_payment_is_not_taken_back ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 701 filtered out; finished in 25.63s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 710 filtered out; finished in 25.88s
 
 == the reader pays in the provider's page, in three engines (e2e/payments.spec.mjs)
 
-  15 passed (46.7s)
+  15 passed (52.0s)
 
 == mutation controls (scripts/payments_mutations.py)
 
-baseline (memory): 32 passed, 0 failed
+baseline (memory): 41 passed, 0 failed
 baseline (postgres): 12 passed, 0 failed
-an intent paid is canceled at the provider: KILLED (3 of 32 tests fail)
-another reader's payment is canceled: KILLED (1 of 32 tests fail)
-a payment canceled already is refused as past canceling: KILLED (1 of 32 tests fail)
-an answer is read to the connection's close: KILLED (3 of 32 tests fail)
-the host waits for its provider without end: KILLED (1 of 32 tests fail)
-a canceled outcome leaves the order awaiting: KILLED (3 of 32 tests fail)
-an order taken back keeps its lines: KILLED (3 of 32 tests fail)
-a line taken back replaces the cart's of its item: KILLED (1 of 32 tests fail)
-an order taken back keeps its code's use: KILLED (1 of 32 tests fail)
-an order no longer awaiting is taken back: KILLED (1 of 32 tests fail)
+an intent paid is canceled at the provider: KILLED (3 of 41 tests fail)
+another reader's payment is canceled: KILLED (1 of 41 tests fail)
+a payment canceled already is refused as past canceling: KILLED (2 of 41 tests fail)
+a canceled outcome leaves the order awaiting: KILLED (3 of 41 tests fail)
+an order taken back keeps its lines: KILLED (3 of 41 tests fail)
+a line taken back replaces the cart's of its item: KILLED (1 of 41 tests fail)
+an order taken back keeps its code's use: KILLED (1 of 41 tests fail)
+an order no longer awaiting is taken back: KILLED (1 of 41 tests fail)
 on PostgreSQL, an order taken back keeps its code's use: KILLED (1 of 12 tests fail)
-a key longer than a block is not hashed first: KILLED (1 of 32 tests fail)
-the inner pad is the outer's: KILLED (1 of 32 tests fail)
-signatures are compared only as far as the shorter: KILLED (1 of 32 tests fail)
-signatures are compared by their last byte: KILLED (1 of 32 tests fail)
-a time ahead of the host's is taken however far: KILLED (1 of 32 tests fail)
-the tolerance is a minute longer: KILLED (1 of 32 tests fail)
-only the first `v1` signature is tried: KILLED (1 of 32 tests fail)
-an event heard before is acted on again: KILLED (2 of 32 tests fail)
-an intent whose amount changed settles: KILLED (1 of 32 tests fail)
-every outcome is taken as a success: KILLED (2 of 32 tests fail)
-a payment is settled on behalf of no one: KILLED (6 of 32 tests fail)
-an event is remembered before the host acts on it: KILLED (1 of 32 tests fail)
-an outcome not settled is answered as settled: KILLED (1 of 32 tests fail)
-a payment is begun with no interaction: KILLED (1 of 32 tests fail)
-a payment is keyed by its order alone: KILLED (1 of 32 tests fail)
-the intent does not say who began it: KILLED (8 of 32 tests fail)
-a provider that cannot be reached traps the command: KILLED (2 of 32 tests fail)
-a deployment that takes no payments is one whose provider is not there: KILLED (1 of 32 tests fail)
-a reader's press of the settling command is taken: KILLED (1 of 32 tests fail)
-a browser may present a session the platform opened on a reader's behalf: KILLED (1 of 32 tests fail)
-the settling command runs as no reader: KILLED (5 of 32 tests fail)
-the settling command is keyed by the payment alone: KILLED (1 of 32 tests fail)
-an order awaiting its payment does not stop another: KILLED (1 of 32 tests fail)
-the cart is kept while the order awaits: KILLED (6 of 32 tests fail)
-the provider's page is not kept: KILLED (7 of 32 tests fail)
-an awaiting order's page is not read: KILLED (7 of 32 tests fail)
-a payment for another order settles this one: KILLED (1 of 32 tests fail)
-any outcome places the order: KILLED (1 of 32 tests fail)
+a key longer than a block is not hashed first: KILLED (1 of 41 tests fail)
+the inner pad is the outer's: KILLED (1 of 41 tests fail)
+signatures are compared only as far as the shorter: KILLED (1 of 41 tests fail)
+signatures are compared by their last byte: KILLED (1 of 41 tests fail)
+a time ahead of the host's is taken however far: KILLED (1 of 41 tests fail)
+the tolerance is a minute longer: KILLED (1 of 41 tests fail)
+only the first `v1` signature is tried: KILLED (1 of 41 tests fail)
+an event heard before is acted on again: KILLED (2 of 41 tests fail)
+an intent whose amount changed settles: KILLED (1 of 41 tests fail)
+every outcome is taken as a success: KILLED (2 of 41 tests fail)
+a payment is settled on behalf of no one: KILLED (7 of 41 tests fail)
+an event is remembered before the host acts on it: KILLED (1 of 41 tests fail)
+an outcome not settled is answered as settled: KILLED (1 of 41 tests fail)
+a payment is begun with no interaction: KILLED (1 of 41 tests fail)
+a payment is keyed by its order alone: KILLED (2 of 41 tests fail)
+the intent does not say who began it: KILLED (9 of 41 tests fail)
+a provider that cannot be reached traps the command: KILLED (3 of 41 tests fail)
+a deployment that takes no payments is one whose provider is not there: KILLED (1 of 41 tests fail)
+a reader's press of the settling command is taken: KILLED (1 of 41 tests fail)
+a browser may present a session the platform opened on a reader's behalf: KILLED (1 of 41 tests fail)
+the settling command runs as no reader: KILLED (5 of 41 tests fail)
+the settling command is keyed by the payment alone: KILLED (1 of 41 tests fail)
+an order awaiting its payment does not stop another: KILLED (1 of 41 tests fail)
+the cart is kept while the order awaits: KILLED (6 of 41 tests fail)
+the provider's page is not kept: KILLED (7 of 41 tests fail)
+an awaiting order's page is not read: KILLED (7 of 41 tests fail)
+a payment for another order settles this one: KILLED (1 of 41 tests fail)
+any outcome places the order: KILLED (1 of 41 tests fail)
 on PostgreSQL, the payment an order awaits is never updated: KILLED (8 of 12 tests fail)
 on PostgreSQL, the payment an order awaits is never read: KILLED (8 of 12 tests fail)
-41 of 41 mutants killed
+39 of 39 mutants killed
 memory bound: no process was stopped

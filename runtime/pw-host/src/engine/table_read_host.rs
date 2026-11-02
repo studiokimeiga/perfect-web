@@ -1,6 +1,7 @@
 //! Adapt one already-authorized table read to the Wasmtime host callback ABI.
 //!
-//! The caller passes a read the table gate admitted (`pw_host::tables`) and
+//! The caller passes a read the table gate admitted (`pw_host::tables`): a
+//! keyed read, a set form, a prefix's, an index's or `all` (ADR-0386), and
 //! its adapter's read closure. This module does not grant an import, inspect
 //! a contract, install linker definitions, or invoke a component. JSON is
 //! confined to the adapter boundary, never exposed as WIT: the selectors are
@@ -12,7 +13,7 @@ use std::sync::Arc;
 use serde_json::Value;
 
 use super::HostFn;
-use super::table_results::{encode_get, encode_get_many};
+use super::table_results::encode_read;
 use super::table_selectors::decode_read_arguments;
 use crate::tables::Read;
 
@@ -28,12 +29,7 @@ pub fn host_fn(read: Read, data: TableRead) -> HostFn {
     Arc::new(move |args| {
         let selectors = decode_read_arguments(&read, args)?;
         let answer = data(&selectors)?;
-        let result = if read.many {
-            encode_get_many(&read, &answer)?
-        } else {
-            encode_get(&read, &answer)?
-        };
-        Ok(vec![result])
+        Ok(vec![encode_read(&read, &answer)?])
     })
 }
 
@@ -45,7 +41,7 @@ mod tests {
 
     use super::super::Val;
     use super::*;
-    use crate::tables::{Column, Stored};
+    use crate::tables::{Column, Primitive, Stored};
 
     /// A read keyed by an Int `rank` and a String `id`, its row those two and
     /// a Bool `active`; or, `many`, keyed by `id` alone.
@@ -73,12 +69,18 @@ mod tests {
         Read {
             import: "pw:tables/likes#get".into(),
             table: "Likes".into(),
-            many,
+            primitive: if many {
+                Primitive::GetMany
+            } else {
+                Primitive::Get
+            },
             key: by.iter().map(|c| c.name.clone()).collect(),
             by,
             row: vec![rank, id, active],
             order: None,
             sorted_by: Vec::new(),
+            unique: false,
+            bounded: None,
         }
     }
 

@@ -1,0 +1,23 @@
+{
+  "scope": "prior working upload repair before reservation lock-order fix; no green gate credit",
+  "base": "a0db8884deb2b3ba37faee59afcdee44a92c6b1c",
+  "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "pw-dev-server",
+    "--bin",
+    "pw-dev-server",
+    "--",
+    "uploads::tests::session_authority_tests::a_lease_",
+    "--test-threads=1",
+    "--nocapture"
+  ],
+  "started": "2026-10-28T00:17:15.134354+00:00",
+  "production_before_sha256": "0cab8cdc1a96438d8548859f13b62f6d9e3096a1d8748b5f0128cf99d9cc164b",
+  "red_source_sha256": "3e27edfa10b3e0851ebc85604d26c84ca8434d5316ad64ff335c84a812feb774",
+  "native_exit": 101,
+  "restored": true,
+  "finished": "2026-10-28T00:17:20.988901+00:00"
+}

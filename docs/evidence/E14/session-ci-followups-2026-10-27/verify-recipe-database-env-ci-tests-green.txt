@@ -1,0 +1,122 @@
+command: PATH=/home/haki/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin python3 -m unittest -v scripts/tests/test_verify_recipe_database_env.py scripts/tests/test_ci_scripts.py scripts/tests/test_quality_ci_shards.py
+exit_code: 0
+test_a_database_shard_exports_both_adapter_urls_to_its_recipes (scripts.tests.test_verify_recipe_database_env.VerifyRecipeDatabaseEnvironment) ... ok
+test_a_shard_without_a_database_leaves_both_adapter_urls_unset (scripts.tests.test_verify_recipe_database_env.VerifyRecipeDatabaseEnvironment) ... ok
+test_the_command_gate_still_refuses_either_missing_adapter_url (scripts.tests.test_verify_recipe_database_env.VerifyRecipeDatabaseEnvironment) ... ok
+test_bound_controls_require_a_complete_actual_intended_assertion (scripts.tests.test_ci_scripts.BoundEvidence) ... ok
+test_exact_no_stop_and_absent_guard_remain_valid (scripts.tests.test_ci_scripts.BoundEvidence) ... ok
+test_fetch_excludes_all_outputs_and_completed_timing_of_stopped_recipe (scripts.tests.test_ci_scripts.BoundEvidence) ... ok
+test_known_summary_cannot_copy_stopped_recipe_from_historical_green_run (scripts.tests.test_ci_scripts.BoundEvidence) ... ok
+test_recipe_log_alone_invalidates_summary_fetch_and_preverify (scripts.tests.test_ci_scripts.BoundEvidence) ... ok
+test_summary_refuses_each_stop_and_failed_watcher (scripts.tests.test_ci_scripts.BoundEvidence) ... ok
+test_a_recipe_is_current_only_where_every_file_it_writes_is_at_one_commit (scripts.tests.test_ci_scripts.CurrentEvidence) ... ok
+test_a_recipe_that_writes_no_evidence_is_never_current (scripts.tests.test_ci_scripts.CurrentEvidence) ... ok
+test_a_recipe_whose_evidence_is_current_is_not_run_again (scripts.tests.test_ci_scripts.CurrentEvidence) ... ok
+test_a_tree_with_changes_records_no_commit (scripts.tests.test_ci_scripts.CurrentEvidence) ... ok
+test_any_error_leaves_a_recipe_planned (scripts.tests.test_ci_scripts.CurrentEvidence) ... ci_plan: e14-one's evidence not read, so it is planned: no git
+ok
+test_evidence_of_a_commit_the_head_does_not_descend_from_is_not_current (scripts.tests.test_ci_scripts.CurrentEvidence) ... ok
+test_main_runs_no_current_recipe_only_where_asked (scripts.tests.test_ci_scripts.CurrentEvidence) ... ci_plan: e10-attribute-case is current, recorded at aaaaaaaa
+ok
+test_the_evidence_is_read_as_the_head_holds_it (scripts.tests.test_ci_scripts.CurrentEvidence) ... ok
+test_the_workflow_plans_each_push_and_pr_with_the_evidence (scripts.tests.test_ci_scripts.CurrentEvidence) ... ok
+test_a_file_of_another_commit_is_refused (scripts.tests.test_ci_scripts.Fetch) ... ok
+test_a_file_whose_recipe_reads_what_changed_since_its_run_is_refused (scripts.tests.test_ci_scripts.Fetch) ... ok
+test_a_file_with_no_commit_is_copied_as_it_is (scripts.tests.test_ci_scripts.Fetch) ... ok
+test_a_recipe_run_to_its_end_leaves_the_lower_bounds (scripts.tests.test_ci_scripts.Fetch) ... ok
+test_a_recipe_that_ran_to_its_end_has_its_seconds_kept (scripts.tests.test_ci_scripts.Fetch) ... ok
+test_a_run_that_failed_is_fetched_only_where_its_failures_are_known (scripts.tests.test_ci_scripts.Fetch) ... ok
+test_main_reaches_the_refusal_by_its_own_name (scripts.tests.test_ci_scripts.Fetch) ... ok
+test_the_run_is_named_after_the_commit (scripts.tests.test_ci_scripts.Fetch) ... ok
+test_the_seconds_kept_are_each_a_recipes (scripts.tests.test_ci_scripts.Fetch) ... ok
+test_the_tree_here_is_what_is_staged_and_what_is_not (scripts.tests.test_ci_scripts.Fetch) ... ok
+test_what_a_failed_recipe_wrote_is_not_copied (scripts.tests.test_ci_scripts.Fetch) ... ok
+test_what_changed_since_a_run_is_the_planners_against_the_tree_here (scripts.tests.test_ci_scripts.Fetch) ... ok
+test_a_binary_changed_in_a_range_or_the_tree_here_is_changed_where_it_is_read (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_change_reaches_the_scripts_it_touches (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_change_to_a_sources_own_tests_reaches_what_runs_them (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_change_to_the_suites_configuration_plans_every_recipe_that_runs_a_suite_under_it (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_changed_binary_is_named_where_a_line_names_it (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_changed_browser_spec_reaches_the_scripts_and_recipes_that_run_it (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_changed_component_plans_the_recipes_whose_tests_read_it (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_changed_server_test_module_reaches_what_runs_it_by_its_filter (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_changed_spec_or_a_module_its_specs_import_plans_what_runs_them (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_diff_that_is_no_utf8_is_still_read (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_long_database_singleton_does_not_hide_its_other_database_shard (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_long_singleton_does_not_hide_a_database_shard_past_the_ceiling (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_measurement_of_the_machine_is_not_planned (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_plan_is_the_same_every_time (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_recipe_costs_the_seconds_it_last_took (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_recipe_in_an_imported_file_is_read_and_planned (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_recipe_is_planned_where_a_shell_script_it_runs_changed (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_recipe_is_planned_where_its_own_lines_name_a_program_that_changed (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_recipe_is_planned_where_its_script_reads_what_changed (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_recipe_longer_than_the_ceiling_alone_is_not_paid_for_in_shards (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_recipe_needing_less_may_run_where_more_is_set_up (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_recipe_not_yet_measured_costs_what_its_kind_does (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_recipe_recorded_past_a_jobs_limit_is_refused_before_any_shard (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_recipe_run_against_a_database_is_a_shard_of_its_own (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_recipe_that_skips_without_a_database_is_dealt_beside_one (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_recipe_whose_parameters_have_defaults_is_read (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_recipes_cost_counts_the_mutants_it_plants (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_run_is_planned_by_the_seconds_kept (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_run_takes_more_shards_than_it_asks_where_its_would_end_past_the_ceiling (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_safe_database_bundle_keeps_the_fewest_database_shards (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_shard_with_a_database_sets_up_what_its_recipe_needs (scripts.tests.test_ci_scripts.Plan) ... ok
+test_a_todomvc_plan_writes_only_the_workflow_output (scripts.tests.test_ci_scripts.Plan) ... ok
+test_bare_python_module_inventories_reach_their_campaigns (scripts.tests.test_ci_scripts.Plan) ... ok
+test_main_deals_a_run_within_the_ceiling (scripts.tests.test_ci_scripts.Plan) ... ok
+test_no_shard_is_planned_empty (scripts.tests.test_ci_scripts.Plan) ... ok
+test_python_test_changes_reach_scripts_and_direct_recipes (scripts.tests.test_ci_scripts.Plan) ... ok
+test_recipes_run_against_a_database_take_the_shards_that_end_the_run_soonest (scripts.tests.test_ci_scripts.Plan) ... ok
+test_root_test_changes_reach_the_package_test_consumers (scripts.tests.test_ci_scripts.Plan) ... ok
+test_short_recipes_run_against_a_database_share_one (scripts.tests.test_ci_scripts.Plan) ... ok
+test_the_ceiling_is_within_the_shards_limit (scripts.tests.test_ci_scripts.Plan) ... ok
+test_the_ceiling_tie_counts_database_setup (scripts.tests.test_ci_scripts.Plan) ... ok
+test_the_costliest_go_first_each_to_where_it_ends_soonest (scripts.tests.test_ci_scripts.Plan) ... ok
+test_the_modules_the_configuration_reads_are_its_own_and_plan_as_it_does (scripts.tests.test_ci_scripts.Plan) ... ok
+test_the_seconds_are_read_where_the_fetch_keeps_them (scripts.tests.test_ci_scripts.Plan) ... ok
+test_what_a_recipe_adds_to_a_shards_setup_counts (scripts.tests.test_ci_scripts.Plan) ... ok
+test_what_a_recipe_needs_is_read_from_its_lines (scripts.tests.test_ci_scripts.Plan) ... ok
+test_what_builds_leave_is_freed_and_the_newest_binary_kept (scripts.tests.test_ci_scripts.Prune) ... ok
+test_a_failed_recipe_says_its_last_lines_in_the_jobs_log (scripts.tests.test_ci_scripts.Recipes) ... ok
+test_a_heartbeat_says_what_a_recipe_is_doing_until_it_ends (scripts.tests.test_ci_scripts.Recipes) ... ok
+test_what_a_recipe_wrote_is_what_changed (scripts.tests.test_ci_scripts.Recipes) ... ok
+test_a_trains_push_plans_the_stale_evidence_and_another_tracks_does_not (scripts.tests.test_ci_scripts.StaleEvidence) ... ok
+test_evidence_from_a_tree_with_changes_or_none_at_all_is_stale (scripts.tests.test_ci_scripts.StaleEvidence) ... ok
+test_evidence_that_names_no_commit_is_not_judged (scripts.tests.test_ci_scripts.StaleEvidence) ... ok
+test_evidence_whose_reads_changed_since_its_commit_is_stale (scripts.tests.test_ci_scripts.StaleEvidence) ... ok
+test_main_plans_stale_evidence_only_where_asked (scripts.tests.test_ci_scripts.StaleEvidence) ... ci_plan: e10-attribute-case's evidence is stale, so it is planned
+ok
+test_a_failed_recipe_fails_the_run (scripts.tests.test_ci_scripts.Summary) ... ok
+test_a_kill_perhaps_the_memory_bounds_alone_fails_the_recipe (scripts.tests.test_ci_scripts.Summary) ... ok
+test_a_run_of_one_shard_is_read_where_it_was_extracted (scripts.tests.test_ci_scripts.Summary) ... ok
+test_a_run_whose_recipes_passed_passes (scripts.tests.test_ci_scripts.Summary) ... ok
+test_a_shard_that_reported_nothing_fails_the_run (scripts.tests.test_ci_scripts.Summary) ... ok
+test_a_surviving_mutant_fails_the_run (scripts.tests.test_ci_scripts.Summary) ... ok
+test_a_dispatch_or_a_run_that_did_not_pass_does_not_count (scripts.tests.test_ci_scripts.VerifiedBase) ... ok
+test_a_merges_second_parent_does_not_count (scripts.tests.test_ci_scripts.VerifiedBase) ... ok
+test_a_pushed_commit_a_run_passed_at_plans_nothing_again (scripts.tests.test_ci_scripts.VerifiedBase) ... ok
+test_an_error_plans_from_the_commit_before (scripts.tests.test_ci_scripts.VerifiedBase) ... ok
+test_master_plans_from_the_newest_commit_a_run_passed_at (scripts.tests.test_ci_scripts.VerifiedBase) ... ok
+test_the_browser_suites_run_again_only_where_more_than_records_changed (scripts.tests.test_ci_scripts.VerifiedBase) ... ok
+test_the_runs_are_read_through_gh_by_their_commit (scripts.tests.test_ci_scripts.VerifiedBase) ... ok
+test_where_no_run_passed_master_plans_from_the_commit_before (scripts.tests.test_ci_scripts.VerifiedBase) ... ok
+test_all_native_partitions_are_exhaustive (scripts.tests.test_quality_ci_shards.CiShardingContract) ... ok
+test_both_required_checks_fail_closed (scripts.tests.test_quality_ci_shards.CiShardingContract) ... ok
+test_new_native_actions_are_immutable (scripts.tests.test_quality_ci_shards.CiShardingContract) ... ok
+test_sharded_ci_omits_only_native_tests (scripts.tests.test_quality_ci_shards.CiShardingContract) ... ok
+
+----------------------------------------------------------------------
+Ran 103 tests in 10.947s
+
+OK
+  not copied, its recipe failed: docs/evidence/E14/stopped.txt
+  not copied, its recipe failed: docs/evidence/E14/stopped.wasm
+  docs/evidence/E14/good.txt
+evidence-fetch: 1 files from https://example.invalid/run/1; 1 recipes' seconds kept
+evidence-fetch: run 1 failed only in summary, known (ADR-0281)
+  not copied, its recipe failed: docs/evidence/E14/stopped.txt
+  not copied, its recipe failed: docs/evidence/E14/stopped.wasm
+  docs/evidence/E14/good.txt
+evidence-fetch: 1 files from https://example.invalid/run/1; 1 recipes' seconds kept

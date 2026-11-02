@@ -1,4 +1,31 @@
+> Session authority follow-up snapshot, 2026-10-27: freeze the reviewed
+> upload/receipt repairs and strict instruments; execute their whole exact-source
+> controls and all reached CI/browser recipes; merge only after independent
+> final-head review and successful published gates. The older milestone queue
+> below retains its historical scope. See `diagnostics/session-followup-2026-10-27.md`.
+
 # Next
+
+
+## Local session continuation, 2026-10-26
+
+The active unmerged slice binds synchronous initial renders and stream workers
+to one immutable actor (ADR-0389). See the
+[continuation record](diagnostics/session-readers-2026-10-26.md); historical
+integration queues below are retained and must be reconciled against current
+master before any landing.
+
+1. Guard query-derived redirects/errors at their final response boundary,
+   with a revocation regression and a valid neighboring response. Complete
+   immutable-reader binding for existing-document rederivations and keyed reads,
+   including stale install/last-document/timer teardown cases.
+2. Make request-local admission results explicit; bind browser commands after
+   waits/body reads, and fence current actor/session authority plus receipt recall
+   inside the same business/platform transaction. Exercise the actual new
+   PostgreSQL session migrations and two-host races specifically.
+3. Finish scoped and affected legacy campaigns, actual browser/HTTP acceptance,
+   canonical evidence, independent final review and exact-head hosted quality
+   gates before publication or merge. The broader session branch remains open.
 
 The next executable tasks, in order, with acceptance criteria. Charter §3.4.
 
@@ -49,6 +76,38 @@ In order:
 The local-only performance/load/memory and Kiokun checks remain separate
 unproved work; keep their scope and the known backend/runtime limitations
 explicit.
+
+## Queued 2026-10-25: `upload-metadata`'s follow-ups
+
+Landed by pull request
+([ADR-0383](DECISIONS/ADR-0383-an-uploaded-image-is-kept-without-its-metadata.md));
+the first two follow the integrator's answers to its questions. Each
+waits behind the order above, and none blocks it.
+
+1. **Every cargo call in a recipe or a script is `--locked`** (ADR-0383's
+   Found and its question 4). `run.sh`, `feed.sh` and `just ci`'s `cargo
+   test --workspace` call cargo without `--locked`, so a `Cargo.lock` out
+   of cargo's order (as master's was from `7b7edea6` until PR #53,
+   2026-10-25) is rewritten and leaves a fresh checkout dirty; a recipe
+   recorded after that names "+ uncommitted changes", which `ci_plan.py`
+   reads as no commit, so its evidence is never current. Pass `--locked`
+   there, and add a gate, with its test and mutation control, that every
+   cargo call in a recipe or a script is locked, and that finds at least
+   as many calls as there are today, so that it cannot pass by finding
+   none.
+2. **Clean a deployment's already-stored images** (the production track;
+   ADR-0383 §3 and its question 1): with uploads closed, rewrite each blob
+   a post names, point its posts at the rewritten bytes and their size in
+   one transaction, collect the old blob and have the CDN purge its
+   address; a blob that does not parse is reported and left, and a second
+   pass changes nothing. Due before a deployment keeps images; none does.
+3. **Fallow's audit runs only on a pull request** (found landing
+   ADR-0383): its new-only gate refuses a new JavaScript function of
+   cyclomatic complexity 5 or more (a CRAP score of 30 at its threshold of
+   30, no coverage being measured), and `just preflight` does not run it,
+   so a track learns of it from its pull request's check. Running
+   `fallow` 3.23.0 in preflight needs its download, the owner's to
+   approve.
 
 ## After train-12's landing, 2026-10-21
 

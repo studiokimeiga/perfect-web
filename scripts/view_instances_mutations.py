@@ -233,8 +233,8 @@ MUTANTS = [
         "a page is sent without the views its instances reach",
         "build",
         SERVER,
-        "    if !reached.is_empty() {\n",
-        "    if false && !reached.is_empty() {\n",
+        '    if !reached.is_empty() {\n        manifest["templates"] = serde_json::Value::Object(reached);\n',
+        '    if false && !reached.is_empty() {\n        manifest["templates"] = serde_json::Value::Object(reached);\n',
     ),
     (
         "an instance the page's signals give is not sent to be rendered again",

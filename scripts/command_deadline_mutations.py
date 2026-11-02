@@ -152,28 +152,15 @@ MUTANTS = [
         "`before` runs the command",
         "cargo",
         SERVER,
-        "            if hold_at == Some(HoldAt::Before) {\n"
-        "                // Never run, as a request that never came: what follows it\n"
-        "                // waits for it to be sent again.\n"
-        "                if let Some(arrival) = arrival {\n"
-        "                    arrival.vanish();\n"
-        "                }\n"
-        "                hold_open(&mut stream);\n"
-        "                return;\n"
-        "            }\n",
-        "",
+        '                if hold_at == Some(HoldAt::Before) {\n                    // Never run, as a request that never came: what follows it\n                    // waits for it to be sent again.\n                    if let Some(arrival) = arrival {\n                        arrival.vanish();\n                    }\n                    hold_open(&mut stream);\n                    return;\n                }\n',
+        '',
     ),
     (
         "`after` sends the answer",
         "cargo",
         SERVER,
-        "            if hold_at == Some(HoldAt::After) {\n"
-        "                // Run, and what follows it may run; its answer never begun.\n"
-        "                drop(arrival);\n"
-        "                hold_open(&mut stream);\n"
-        "                return;\n"
-        "            }\n",
-        "",
+        '                if hold_at == Some(HoldAt::After) {\n                    // Run, and what follows it may run; its answer never begun.\n                    drop(arrival);\n                    hold_open(&mut stream);\n                    return;\n                }\n',
+        '',
     ),
     (
         "`body` sends the whole body",

@@ -427,7 +427,10 @@ fn on_postgres_a_command_refused_at_its_commit_leaves_nothing() {
         "i-1",
         "[\"Refused at commit\"]",
     );
-    assert!(answer.contains("\"committed\":false"), "{answer}");
+    assert!(
+        answer.contains("\"outcome\":\"unknown\"") && !answer.contains("\"committed\":false"),
+        "commit errors are conservatively unknown without a confirming receipt: {answer}"
+    );
     // Why, as the host has it: the database's refusal, at the commit.
     let why = s
         .command_answered(
@@ -446,12 +449,28 @@ fn on_postgres_a_command_refused_at_its_commit_leaves_nothing() {
         0,
         "no event written by any committed transaction"
     );
-    assert_eq!(
-        sets_of(&s, &mine).len(),
-        mine_before,
-        "the author shown nothing"
+    // An unknown acknowledgement triggers an authoritative refresh even
+    // when this deferred constraint actually rolled back. Empty convergence
+    // frames are allowed; attempted business patches/events are not.
+    assert!(
+        sets_of(&s, &mine)
+            .into_iter()
+            .skip(mine_before)
+            .all(|set| set.patches.is_empty()),
+        "the author receives no attempted write"
     );
-    assert_eq!(sets_of(&s, &theirs).len(), theirs_before, "no one told");
+    assert!(
+        sets_of(&s, &theirs)
+            .into_iter()
+            .skip(theirs_before)
+            .all(|set| set.patches.is_empty()),
+        "other readers receive no attempted write"
+    );
+    assert_eq!(
+        s.db.count("SELECT count(*) FROM interactions"),
+        0,
+        "no receipt survived either refused transaction"
+    );
     // The control: the next post commits, and is told.
     let answer = posted(
         &s,
@@ -629,7 +648,7 @@ command post_in_five(text: PostText) -> Result<Int, FeedError>
 
 /// The feed's `app.pw`, with [`SCHEDULING`]'s commands and the clock's
 /// `minutes` they read.
-fn with_scheduling(app: &str) -> String {
+pub(super) fn with_scheduling(app: &str) -> String {
     let imported = app.replacen(
         "\nimport List\n",
         "\nimport List\nimport clock.{ minutes }\n",

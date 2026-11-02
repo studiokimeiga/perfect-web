@@ -1,0 +1,26 @@
+{
+  "calls": [
+    {
+      "executable": "psql",
+      "stderr_discarded_at_launch": true
+    },
+    {
+      "executable": "psql",
+      "stderr_discarded_at_launch": true
+    }
+  ],
+  "actual_reaped": [
+    {
+      "pid": 1690428,
+      "status": 2,
+      "timed_out": false,
+      "cancelled": false
+    },
+    {
+      "pid": 1690429,
+      "status": 2,
+      "timed_out": false,
+      "cancelled": false
+    }
+  ]
+}

@@ -133,8 +133,8 @@ MUTANTS = [
         "the program's words are not told",
         "host",
         SERVER,
-        "                let says = server\n                    .words\n                    .get(predicate)\n",
-        '                let says = server\n                    .words\n                    .get("")\n',
+        '                    let says = server\n                        .words\n                        .get(predicate)\n',
+        '                    let says = server\n                        .words\n                        .get("")\n',
     ),
     (
         "the deployment's words are not told",

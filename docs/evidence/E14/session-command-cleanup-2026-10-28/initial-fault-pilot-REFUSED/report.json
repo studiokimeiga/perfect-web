@@ -1,0 +1,90 @@
+{
+  "scope": "WORKING SOURCE two privacy/native-diagnostic calibration controls only, not full26 command authority acceptance",
+  "parent_head": "5371f0f20d7fcb50826d3a775b5bbac72c1b14b0",
+  "source_sha256": "82303162b32a42bbd195da416ce9b0ef9749ccf6e65efd88832249a672f26803",
+  "tests": 17,
+  "controls": 2,
+  "restored": true,
+  "runs": [
+    {
+      "label": "baseline",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "-v",
+        "scripts/tests/test_session_command_mutations.py"
+      ],
+      "status": 0,
+      "log_sha256": "d4d055db58d4702d9618fcc331b51217f773bff4396c5371b9b7df1818b27106",
+      "owned_reaped": [
+        {
+          "pid": 1691301,
+          "status": 0,
+          "timed_out": false,
+          "cancelled": false
+        }
+      ]
+    },
+    {
+      "label": "cleanup-stderr-restored",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "-v",
+        "scripts/tests/test_session_command_mutations.py"
+      ],
+      "status": 1,
+      "log_sha256": "113582bb72d733775735f4acfac3e7a723e0455a0c1262f391e4f494bb8975ab",
+      "owned_reaped": [
+        {
+          "pid": 1691308,
+          "status": 1,
+          "timed_out": false,
+          "cancelled": false
+        }
+      ]
+    },
+    {
+      "label": "native-stderr-discarded",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "-v",
+        "scripts/tests/test_session_command_mutations.py"
+      ],
+      "status": 1,
+      "log_sha256": "b40dd5e3c594eb3568cf0f1a682d38dd146f724832545ba1340c9e27e80ad4b7",
+      "owned_reaped": [
+        {
+          "pid": 1691315,
+          "status": 1,
+          "timed_out": false,
+          "cancelled": false
+        }
+      ]
+    },
+    {
+      "label": "restored-baseline",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "-v",
+        "scripts/tests/test_session_command_mutations.py"
+      ],
+      "status": 0,
+      "log_sha256": "8c1d12d38a427dc0abd9d9dbcff8422375cca395b9319feb81b0f1d77fd4c79f",
+      "owned_reaped": [
+        {
+          "pid": 1691322,
+          "status": 0,
+          "timed_out": false,
+          "cancelled": false
+        }
+      ]
+    }
+  ]
+}

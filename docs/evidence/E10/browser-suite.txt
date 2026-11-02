@@ -1,43 +1,133 @@
 E10 - the store page, compiled commands and handlers, in browser engines: chromium firefox webkit
 
 produced by: just e10-browser "chromium firefox webkit" docs/evidence/E10/browser-suite.txt
-commit: d57f18a1d515f48f88993af6976c7a4ca8265bdc
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39808499525 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 1afd58fcfc66434070422b3112debeac94bad07f
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40265548018 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 playwright: Version 1.58.0
 
 == run 1 of 3
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
 EVIDENCE static-route-script-bytes=0 wasm-bytes=0
-EVIDENCE renderer-wasm-bytes=386038 gzip=115553 brotli=91790
 EVIDENCE interactive-script-bytes=154052 brotli=40879
 EVIDENCE interactive-wasm-bytes=57951 brotli=21284
 EVIDENCE  script 154052 gzip=48376 brotli=40879 http://127.0.0.1:3148/pw-runtime.mjs
 EVIDENCE  wasm 57951 gzip=24939 brotli=21284 http://127.0.0.1:3148/pw-resume.wasm
+EVIDENCE renderer-wasm-bytes=386038 gzip=115553 brotli=91790
+EVIDENCE colour (chromium): profiled.jpg renders by its profile: as sent and as served [106,135,188,255], without a profile [37,62,128,255]
+EVIDENCE colour (chromium): profiled.png renders by its profile: as sent and as served [124,156,188,255], without a profile [51,85,128,255]
+EVIDENCE colour (chromium): profiled.webp renders by its profile: as sent and as served [80,94,185,160], without a profile [19,29,123,160]
+EVIDENCE as sent (chromium): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 4 by 6
+EVIDENCE as sent (chromium): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
+EVIDENCE as sent (chromium): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
+EVIDENCE as sent (chromium): a JPEG whose first APP1 is XMP, then an Exif that says 6, stored 8 by 5: shown 5 by 8
+EVIDENCE colour (chromium): real.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (chromium): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (chromium): real.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
 EVIDENCE localStorage limit (firefox): 5242880 UTF-16 code units
+EVIDENCE colour (firefox): profiled.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (firefox): profiled.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (firefox): profiled.webp does not render by its profile: as sent and as served [20,30,124,160], without a profile [20,30,124,160]
+EVIDENCE as sent (firefox): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 4 by 6
+EVIDENCE as sent (firefox): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
+EVIDENCE as sent (firefox): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
+EVIDENCE as sent (firefox): a JPEG whose first APP1 is XMP, then an Exif that says 6, stored 8 by 5: shown 8 by 5
+EVIDENCE colour (firefox): real.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (firefox): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (firefox): real.webp does not render by its profile: as sent and as served [20,30,124,160], without a profile [20,30,124,160]
 EVIDENCE localStorage limit (webkit): 5242880 UTF-16 code units
+EVIDENCE colour (webkit): profiled.jpg renders by its profile: as sent and as served [106,135,188,255], without a profile [37,62,128,255]
+EVIDENCE colour (webkit): profiled.png renders by its profile: as sent and as served [124,156,188,255], without a profile [51,85,128,255]
+EVIDENCE colour (webkit): profiled.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
+EVIDENCE as sent (webkit): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 6 by 4
+EVIDENCE as sent (webkit): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
+EVIDENCE as sent (webkit): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
+EVIDENCE as sent (webkit): a JPEG whose first APP1 is XMP, then an Exif that says 6, stored 8 by 5: shown 5 by 8
+EVIDENCE colour (webkit): real.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (webkit): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (webkit): real.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
   20 skipped
-  1312 passed (23.6m)
+  1357 passed (27.4m)
 == run 2 of 3
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
 EVIDENCE static-route-script-bytes=0 wasm-bytes=0
-EVIDENCE renderer-wasm-bytes=386038 gzip=115553 brotli=91790
 EVIDENCE interactive-script-bytes=154052 brotli=40879
 EVIDENCE interactive-wasm-bytes=57951 brotli=21284
 EVIDENCE  script 154052 gzip=48376 brotli=40879 http://127.0.0.1:3148/pw-runtime.mjs
 EVIDENCE  wasm 57951 gzip=24939 brotli=21284 http://127.0.0.1:3148/pw-resume.wasm
+EVIDENCE renderer-wasm-bytes=386038 gzip=115553 brotli=91790
+EVIDENCE colour (chromium): profiled.jpg renders by its profile: as sent and as served [106,135,188,255], without a profile [37,62,128,255]
+EVIDENCE colour (chromium): profiled.png renders by its profile: as sent and as served [124,156,188,255], without a profile [51,85,128,255]
+EVIDENCE colour (chromium): profiled.webp renders by its profile: as sent and as served [80,94,185,160], without a profile [19,29,123,160]
+EVIDENCE as sent (chromium): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 4 by 6
+EVIDENCE as sent (chromium): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
+EVIDENCE as sent (chromium): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
+EVIDENCE as sent (chromium): a JPEG whose first APP1 is XMP, then an Exif that says 6, stored 8 by 5: shown 5 by 8
+EVIDENCE colour (chromium): real.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (chromium): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (chromium): real.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
 EVIDENCE localStorage limit (firefox): 5242880 UTF-16 code units
+EVIDENCE colour (firefox): profiled.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (firefox): profiled.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (firefox): profiled.webp does not render by its profile: as sent and as served [20,30,124,160], without a profile [20,30,124,160]
+EVIDENCE as sent (firefox): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 4 by 6
+EVIDENCE as sent (firefox): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
+EVIDENCE as sent (firefox): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
+EVIDENCE as sent (firefox): a JPEG whose first APP1 is XMP, then an Exif that says 6, stored 8 by 5: shown 8 by 5
+EVIDENCE colour (firefox): real.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (firefox): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (firefox): real.webp does not render by its profile: as sent and as served [20,30,124,160], without a profile [20,30,124,160]
 EVIDENCE localStorage limit (webkit): 5242880 UTF-16 code units
+EVIDENCE colour (webkit): profiled.jpg renders by its profile: as sent and as served [106,135,188,255], without a profile [37,62,128,255]
+EVIDENCE colour (webkit): profiled.png renders by its profile: as sent and as served [124,156,188,255], without a profile [51,85,128,255]
+EVIDENCE colour (webkit): profiled.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
+EVIDENCE as sent (webkit): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 6 by 4
+EVIDENCE as sent (webkit): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
+EVIDENCE as sent (webkit): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
+EVIDENCE as sent (webkit): a JPEG whose first APP1 is XMP, then an Exif that says 6, stored 8 by 5: shown 5 by 8
+EVIDENCE colour (webkit): real.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (webkit): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (webkit): real.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
   20 skipped
-  1312 passed (23.5m)
+  1357 passed (27.1m)
 == run 3 of 3
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
 EVIDENCE static-route-script-bytes=0 wasm-bytes=0
-EVIDENCE renderer-wasm-bytes=386038 gzip=115553 brotli=91790
 EVIDENCE interactive-script-bytes=154052 brotli=40879
 EVIDENCE interactive-wasm-bytes=57951 brotli=21284
 EVIDENCE  script 154052 gzip=48376 brotli=40879 http://127.0.0.1:3148/pw-runtime.mjs
 EVIDENCE  wasm 57951 gzip=24939 brotli=21284 http://127.0.0.1:3148/pw-resume.wasm
+EVIDENCE renderer-wasm-bytes=386038 gzip=115553 brotli=91790
+EVIDENCE colour (chromium): profiled.jpg renders by its profile: as sent and as served [106,135,188,255], without a profile [37,62,128,255]
+EVIDENCE colour (chromium): profiled.png renders by its profile: as sent and as served [124,156,188,255], without a profile [51,85,128,255]
+EVIDENCE colour (chromium): profiled.webp renders by its profile: as sent and as served [80,94,185,160], without a profile [19,29,123,160]
+EVIDENCE as sent (chromium): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 4 by 6
+EVIDENCE as sent (chromium): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
+EVIDENCE as sent (chromium): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
+EVIDENCE as sent (chromium): a JPEG whose first APP1 is XMP, then an Exif that says 6, stored 8 by 5: shown 5 by 8
+EVIDENCE colour (chromium): real.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (chromium): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (chromium): real.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
 EVIDENCE localStorage limit (firefox): 5242880 UTF-16 code units
+EVIDENCE colour (firefox): profiled.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (firefox): profiled.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (firefox): profiled.webp does not render by its profile: as sent and as served [20,30,124,160], without a profile [20,30,124,160]
+EVIDENCE as sent (firefox): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 4 by 6
+EVIDENCE as sent (firefox): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
+EVIDENCE as sent (firefox): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
+EVIDENCE as sent (firefox): a JPEG whose first APP1 is XMP, then an Exif that says 6, stored 8 by 5: shown 8 by 5
+EVIDENCE colour (firefox): real.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (firefox): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (firefox): real.webp does not render by its profile: as sent and as served [20,30,124,160], without a profile [20,30,124,160]
 EVIDENCE localStorage limit (webkit): 5242880 UTF-16 code units
+EVIDENCE colour (webkit): profiled.jpg renders by its profile: as sent and as served [106,135,188,255], without a profile [37,62,128,255]
+EVIDENCE colour (webkit): profiled.png renders by its profile: as sent and as served [124,156,188,255], without a profile [51,85,128,255]
+EVIDENCE colour (webkit): profiled.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
+EVIDENCE as sent (webkit): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 6 by 4
+EVIDENCE as sent (webkit): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
+EVIDENCE as sent (webkit): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
+EVIDENCE as sent (webkit): a JPEG whose first APP1 is XMP, then an Exif that says 6, stored 8 by 5: shown 5 by 8
+EVIDENCE colour (webkit): real.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (webkit): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (webkit): real.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
   20 skipped
-  1312 passed (23.5m)
+  1357 passed (27.3m)

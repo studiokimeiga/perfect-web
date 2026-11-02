@@ -1,0 +1,20 @@
+module Todos
+
+opaque type TodoId = String
+opaque type ListId = String
+
+type Todo = Todo { list: ListId, id: TodoId, title: String, done: Bool, added: Int }
+
+table Todos
+    row     Todo
+    key     list, id
+    order   added
+    index   by_done on done
+    unique  by_status on done
+    bounded 500
+
+source TodoData
+    holds        Todos
+    transactions serializable
+    reads        strong
+    changes      none

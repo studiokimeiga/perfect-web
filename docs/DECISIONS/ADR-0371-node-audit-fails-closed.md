@@ -73,3 +73,28 @@ Dated statements above that call landing or combined gates pending describe
 the candidate before it landed and are kept as written. The
 [acceptance record](../diagnostics/train-12/acceptance-record-2026-10-21.md)
 states what the landing's evidence does and does not prove.
+
+## 2026-10-29 dependency refresh after a real audit refusal
+
+Both fresh CI events at `88f577a2` refused HIGH
+[GHSA-3f7j-7jwc-fxfj](https://github.com/sebhildebrandt/systeminformation/security/advisories/GHSA-3f7j-7jwc-fxfj).
+Their Rust audits passed. Cypress 15.21.1 brings `systeminformation` 5.33.15;
+the maintainer identifies versions below 5.33.16 as affected and 5.33.16 as
+patched. A local normal `scripts/audit-node.sh` invocation also refused before
+any dependency change. This candidate remains unaccepted.
+
+Use a root range-scoped override from `systeminformation@<5.33.16` to 5.33.16,
+and regenerate the workspace lock with pinned pnpm 10.15.1. The package remains
+MIT, with no install lifecycle script. No allowance, severity, validator or
+audit policy changes. The SvelteKit sandbox has no Cypress/systeminformation
+dependency and needs no unrelated lock change.
+
+The maintainer's [patch](https://github.com/sebhildebrandt/systeminformation/commit/5014c6d25cfce7363b937977327baa853cdba0bf)
+changes Windows sanitization and the services-name whitelist. A pure-function
+diagnostic on real Windows Node 24.18.0 exercises the installed upstream
+sanitizer: curly string delimiters fail before repair while an ordinary
+`Spooler` name passes. It calls no service or PowerShell operation and makes
+no end-to-end exploit or whitelist coverage claim. Preserve those before/after
+bytes and the actual audit refusal; all fresh successor gates remain required.
+The [follow-up record](../diagnostics/systeminformation-security-2026-10-29.md)
+links the raw evidence and records the actual Cypress compatibility execution.

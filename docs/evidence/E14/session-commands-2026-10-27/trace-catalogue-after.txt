@@ -1,0 +1,21 @@
+test_campaign_cancellation_restores_owned_source_and_keeps_invalid_report (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... suite=memory, scope=FULL, controls=0/1, valid=False, restored=True
+ok
+test_cancellation_keeps_raw_log_and_is_not_converted_to_success (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_cleanup_error_marker_invalidates_an_otherwise_green_native_run (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_cleanup_observes_both_databases_and_never_drops_a_schema (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_cleanup_refuses_a_leftover_and_still_checks_partial_receipts (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_exact_head_requires_tracked_and_untracked_source_and_recipes_to_be_committed (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_final_restoration_failure_cannot_return_success (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... suite=memory, scope=BASELINE_ONLY, controls=0/1, valid=False, restored=False
+ok
+test_freezing_crosschecks_the_binary_list_against_source_declarations (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_generic_ci_catalogue_exports_every_canonical_control_and_edit (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_macro_inventory_is_explicit_and_fails_unknown_forms (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_mixed_resource_source_only_credits_the_unique_eof_test_module (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_native_inventory_refuses_duplicates_missing_and_foreign_names (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_partial_or_invalid_native_controls_do_not_count_as_kills (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+test_schema_receipts_reject_missing_duplicate_and_unowned_names (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.009s
+
+OK

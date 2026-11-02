@@ -1,0 +1,27 @@
+test_actual_native_verdicts_have_exact_owner_and_catalog (scripts.tests.test_producer_ownership_metadata.Metadata) ... ok
+test_native_freeze_still_refuses_the_stale_ten_test_count (scripts.tests.test_producer_ownership_metadata.Metadata) ... ok
+test_production_freeze_includes_the_pid_publication_witness (scripts.tests.test_producer_ownership_metadata.Metadata) ... ERROR
+
+======================================================================
+ERROR: test_production_freeze_includes_the_pid_publication_witness (scripts.tests.test_producer_ownership_metadata.Metadata)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/tests/test_producer_ownership_metadata.py", line 65, in test_production_freeze_includes_the_pid_publication_witness
+    self.assertEqual(producer_ownership_mutations.main(), 1)
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/producer_ownership_mutations.py", line 43, in main
+    expected = guide_python.freeze(selector, search, 'test_producer_ownership.py', 10, evidence)
+  File "/usr/lib/python3.10/unittest/mock.py", line 1114, in __call__
+    return self._mock_call(*args, **kwargs)
+  File "/usr/lib/python3.10/unittest/mock.py", line 1118, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+  File "/usr/lib/python3.10/unittest/mock.py", line 1188, in _execute_mock_call
+    return self._mock_wraps(*args, **kwargs)
+  File "/home/haki/code/pw-wt/review-receipt-fence-20261027/scripts/guide_python.py", line 115, in freeze
+    raise DiscoveryRefused(f"producer/native frozen inventory mismatch; evidence {inventory_dir}\n{output}")
+guide_python.DiscoveryRefused: producer/native frozen inventory mismatch; evidence /tmp/tmpcawvugx2/pw-guide-producer-inventory-u9bax75y
+
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.598s
+
+FAILED (errors=1)

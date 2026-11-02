@@ -1,20 +1,20 @@
 ADR-0168 - a change reaches every part that reads it
 
 produced by: just e14-instance-changes
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
 == what changed in an instance (runtime/pw-render/tests/instance_changes.rs)
 
 test a_block_that_changed_renders_the_instance_again ... ok
-test a_match_that_shows_the_arm_it_showed_is_set_where_it_is ... ok
-test a_block_that_decides_as_it_did_is_set_where_it_is ... ok
 test a_renamed_item_sets_its_text_and_every_attribute_that_reads_the_name ... ok
-test an_unkeyed_list_inside_the_row_that_changed_renders_the_row_again ... ok
-test an_attribute_is_set_as_the_document_writes_it_and_a_boolean_one_comes_and_goes ... ok
+test a_block_that_decides_as_it_did_is_set_where_it_is ... ok
+test a_match_that_shows_the_arm_it_showed_is_set_where_it_is ... ok
 test nothing_changed_is_no_change ... ok
+test an_attribute_is_set_as_the_document_writes_it_and_a_boolean_one_comes_and_goes ... ok
+test an_unkeyed_list_inside_the_row_that_changed_renders_the_row_again ... ok
 test what_a_handler_captures_is_set_where_it_is ... ok
 test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
@@ -22,11 +22,11 @@ test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 test tests::a_list_moves_what_moved_and_sets_what_changed_where_it_is ... ok
 test tests::a_rename_sets_every_part_that_reads_the_name ... ok
-test result: ok. 704 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 540.57s
+test result: ok. 732 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 384.13s
 
 == each Add named by its item, renamed with it; an instance in place not moved (three engines)
 
-  72 passed (2.7m)
+  72 passed (2.4m)
 
 == mutation controls (scripts/instance_changes_mutations.py)
 

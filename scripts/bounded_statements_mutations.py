@@ -12,7 +12,7 @@ replaced:
   store by scanning every store's menu; and `user-estimates#for-stores`
   reading each store's coverage alone (ADR-0348).
 
-Six more restore premature payment-count completion, remove one of the
+Seven more restore premature payment-count completion, remove one of the
 store/feed scheduled-state write guards, or write before taking one
 (ADR-0352's completion correction). Each must fail a real delayed-provider
 or real PostgreSQL transaction test, and none by a stretch of time: a guard
@@ -144,6 +144,13 @@ MUTANTS = [
         SRC / 'feed_pg.rs',
         '    fn ran(&self, id: i64) -> Result<(), String> {\n        let _writes = self.writes.lock().unwrap_or_else(|e| e.into_inner());\n        self.pool.with(|c| crate::schedules::pg::ran(c, id))\n',
         '    fn ran(&self, id: i64) -> Result<(), String> {\n        let written = self.pool.with(|c| crate::schedules::pg::ran(c, id));\n        let _writes = self.writes.lock().unwrap_or_else(|e| e.into_inner());\n        written\n',
+    ),
+    (
+        'store_pg.rs retry_current bypasses the command write guard',
+        "postgres",
+        SRC / 'store_pg.rs',
+        '    fn retry_current(\n        &self,\n        expected: &pw_materialize::ScheduledRun,\n        attempts: i64,\n        due_ms: i64,\n        failed: Option<&str>,\n    ) -> Result<bool, String> {\n        let _writes = self.writes.lock().unwrap_or_else(|e| e.into_inner());\n',
+        '    fn retry_current(\n        &self,\n        expected: &pw_materialize::ScheduledRun,\n        attempts: i64,\n        due_ms: i64,\n        failed: Option<&str>,\n    ) -> Result<bool, String> {\n',
     ),
 ]
 

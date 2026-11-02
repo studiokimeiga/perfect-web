@@ -26,4 +26,4 @@ engine = ["dep:wasmtime"]
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
-wasmtime = { version = "48.0.7", optional = true }
+wasmtime = { workspace = true, optional = true }

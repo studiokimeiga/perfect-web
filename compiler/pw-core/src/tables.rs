@@ -1219,9 +1219,27 @@ fn shape(
         fields_of("order", std::slice::from_ref(&o.value), &o.span, &mut out);
     }
     let mut seen: BTreeMap<String, Span> = BTreeMap::new();
+    let mut field_lists: BTreeMap<Vec<String>, Span> = BTreeMap::new();
     for i in &t.indexes {
         let index = &i.value;
         let clause = if index.unique { "unique" } else { "index" };
+        if let Some(first) = field_lists.get(&index.fields) {
+            out.push(malformed(
+                format!(
+                    "two indexes of `{}` declare the same ordered fields: {}",
+                    t.name,
+                    index.fields.join(", ")
+                ),
+                i.span.clone(),
+                vec![Related::new(
+                    first.clone(),
+                    "the first index on these fields is declared here",
+                )],
+                "keep one index on this ordered field list, unique or not".into(),
+            ));
+        } else {
+            field_lists.insert(index.fields.clone(), i.span.clone());
+        }
         if !index.name.starts_with("by_") {
             out.push(malformed(
                 format!(

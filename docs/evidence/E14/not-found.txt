@@ -1,8 +1,8 @@
 ADR-0163 - a page says when it is absent
 
 produced by: just e14-not-found
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
@@ -24,7 +24,7 @@ pw check: 73 file(s), no diagnostics
 
 test tests::a_store_that_is_not_there_is_not_found ... ok
 test tests::each_store_is_served_at_its_route ... ok
-test result: ok. 704 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 546.69s
+test result: ok. 732 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 540.54s
 
 == a store that is not there, three engines (e2e/stores.spec.mjs)
 

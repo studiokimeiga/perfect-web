@@ -1,0 +1,30 @@
+   Compiling pw-materialize v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/runtime/pw-materialize)
+   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/spikes/own-renderer/server)
+    Finished `test` profile [unoptimized] target(s) in 4.63s
+     Running unittests src/main.rs (/home/haki/code/pw-wt/scheduler-replay-20261026/target/debug/deps/pw_dev_server-4beb2a4e31121d83)
+
+running 2 tests
+test tests::bounded_statements::placing_and_settling_where_payments_are_taken_is_bounded ... statements where payments are taken:
+  [("place_order, taking payments: its transaction", 39), ("settle_payment, on the provider's word: its transaction", 19), ("cancel_order: its transaction", 26), ("settle_payment, on the provider's word of the cancel: its transaction", 15), ("expire_order, run thirty minutes on: its transaction", 29), ("settle_payment, on the provider's word of the sweep's cancel: its transaction", 15), ("choose_time, for a time: its transaction", 14), ("place_order, for a time, taking payments: its transaction", 41), ("settle_payment, on the provider's word, for a time: its transaction", 22), ("send_to_store, run when its preparation is due: its transaction", 12)]
+  [("place_order, taking payments: its transaction", 39), ("settle_payment, on the provider's word: its transaction", 19), ("cancel_order: its transaction", 26), ("settle_payment, on the provider's word of the cancel: its transaction", 15), ("expire_order, run thirty minutes on: its transaction", 29), ("settle_payment, on the provider's word of the sweep's cancel: its transaction", 15), ("choose_time, for a time: its transaction", 14), ("place_order, for a time, taking payments: its transaction", 41), ("settle_payment, on the provider's word, for a time: its transaction", 22), ("send_to_store, run when its preparation is due: its transaction", 12)]
+
+thread 'tests::bounded_statements::placing_and_settling_where_payments_are_taken_is_bounded' (1184685) panicked at spikes/own-renderer/server/src/tests/bounded_statements.rs:973:5:
+assertion `left == right` failed: as pinned
+  left: [("place_order, taking payments: its transaction", 39), ("settle_payment, on the provider's word: its transaction", 19), ("cancel_order: its transaction", 26), ("settle_payment, on the provider's word of the cancel: its transaction", 15), ("expire_order, run thirty minutes on: its transaction", 29), ("settle_payment, on the provider's word of the sweep's cancel: its transaction", 15), ("choose_time, for a time: its transaction", 14), ("place_order, for a time, taking payments: its transaction", 41), ("settle_payment, on the provider's word, for a time: its transaction", 22), ("send_to_store, run when its preparation is due: its transaction", 12)]
+ right: [("place_order, taking payments: its transaction", 39), ("settle_payment, on the provider's word: its transaction", 19), ("cancel_order: its transaction", 26), ("settle_payment, on the provider's word of the cancel: its transaction", 15), ("expire_order, run thirty minutes on: its transaction", 27), ("settle_payment, on the provider's word of the sweep's cancel: its transaction", 15), ("choose_time, for a time: its transaction", 14), ("place_order, for a time, taking payments: its transaction", 41), ("settle_payment, on the provider's word, for a time: its transaction", 22), ("send_to_store, run when its preparation is due: its transaction", 10)]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_write_guard ...
+thread 'tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_write_guard' (1184812) panicked at spikes/own-renderer/server/src/tests/bounded_statements.rs:1227:14:
+the actual clock command: "a platform principal is not a browser command actor"
+FAILED
+
+failures:
+
+failures:
+    tests::bounded_statements::placing_and_settling_where_payments_are_taken_is_bounded
+    tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_write_guard
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 833 filtered out; finished in 10.90s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

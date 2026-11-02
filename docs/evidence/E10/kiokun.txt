@@ -1,8 +1,8 @@
 E10 - the kiokun slice
 
 produced by: just e10-kiokun
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == pw build, examples/kiokun
@@ -45,7 +45,7 @@ test tests::the_compiled_shard_rule_places_every_word_kiokun_has ... ignored, re
 test tests::the_pages_are_the_compiled_templates_with_no_script ... ok
 test tests::the_sample_is_one_shard ... sample: 28 entries, 293 rows, 4 aliases
 test tests::the_shard_rule_is_kiokuns ... ok
-test result: ok. 10 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 1.58s
+test result: ok. 10 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.16s
 
 == the whole shard, and every word kiokun has
 
@@ -53,4 +53,4 @@ test result: ok. 10 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; fin
 
 == in browser engines (spikes/own-renderer/e2e/kiokun.spec.mjs)
 
-  21 passed (19.4s)
+  21 passed (25.5s)

@@ -2543,6 +2543,9 @@ pub(crate) struct Staging<'a> {
 }
 
 impl crate::data::Staged for Staging<'_> {
+    fn projection_scope(&self) -> crate::data::ProjectionScope {
+        crate::data::ProjectionScope::Session
+    }
     fn ops(&self) -> Ops {
         self.ops.clone()
     }

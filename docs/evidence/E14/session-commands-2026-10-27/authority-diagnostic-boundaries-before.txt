@@ -1,0 +1,29 @@
+   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/spikes/own-renderer/server)
+    Finished `test` profile [unoptimized] target(s) in 8.56s
+     Running unittests src/main.rs (/home/haki/code/pw-wt/scheduler-replay-20261026/target/debug/deps/pw_dev_server-4beb2a4e31121d83)
+
+running 2 tests
+test identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity ... FAILED
+test tests::session_commands::command_traces_disclose_only_bounded_outcome_metadata ... FAILED
+
+failures:
+
+---- identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity stdout ----
+
+thread 'identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity' (977680) panicked at spikes/own-renderer/server/src/identity.rs:2302:13:
+authority diagnostics must expose only a bounded failure category
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::session_commands::command_traces_disclose_only_bounded_outcome_metadata stdout ----
+
+thread 'tests::session_commands::command_traces_disclose_only_bounded_outcome_metadata' (977681) panicked at spikes/own-renderer/server/src/tests/session_commands.rs:677:5:
+the trace includes only an operation and outcome category
+
+
+failures:
+    identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity
+    tests::session_commands::command_traces_disclose_only_bounded_outcome_metadata
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 831 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

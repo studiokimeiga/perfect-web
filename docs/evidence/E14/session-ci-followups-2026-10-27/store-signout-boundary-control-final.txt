@@ -1,0 +1,37 @@
+command: bash work/run-store-signout-boundary-probe.sh --remove-other-tab-hold
+exit_code: 0
+{
+  "scope": "real Firefox, controlled serial-response/redirect mechanism; no Pleris build or app acceptance",
+  "source_sha256": "0f56624cabdcf39dbad284d8f1d044f11dbd8de42232798c0c4c09d891255c00",
+  "before": false,
+  "control": true,
+  "error": "Error: page.evaluate: NetworkError when attempting to fetch resource.",
+  "events": [
+    {
+      "event": "stream-open",
+      "doc": 26
+    },
+    {
+      "event": "stream-open",
+      "doc": 25
+    },
+    {
+      "event": "route-installed",
+      "page": "here"
+    },
+    {
+      "event": "sign-out",
+      "method": "POST",
+      "status": 303
+    },
+    {
+      "event": "redirect-get"
+    },
+    {
+      "event": "redirect-closed"
+    },
+    {
+      "event": "other-tab-reload"
+    }
+  ]
+}

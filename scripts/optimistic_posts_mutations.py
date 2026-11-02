@@ -87,8 +87,8 @@ MUTANTS = [
     (
         "a commit's answer names no value it changed",
         SERVER,
-        "                .filter(|((s, ..), _)| s == session)\n",
-        "                .filter(|_| false)\n",
+        '                .filter(|((s, actor, ..), _)| s == session && *actor == reader)\n',
+        '                .filter(|_| false)\n',
     ),
     (
         "the store's cart is speculated twice",

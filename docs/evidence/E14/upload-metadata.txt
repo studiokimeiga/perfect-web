@@ -1,0 +1,886 @@
+ADR-0383 (track upload-metadata) - an uploaded image kept and served without what names a place, a device, a person or a time
+
+produced by: just e14-upload-metadata
+commit: 1afd58fcfc66434070422b3112debeac94bad07f
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40264616606 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+node: v22.21.1
+playwright: Version 1.58.0
+
+== the server (uploads/strip.rs, uploads/icc.rs, uploads.rs, tests/uploads.rs, blob.rs)
+
+test blob::tests::a_key_is_64_lowercase_hex_digits_and_nothing_else ... ok
+test blob::tests::a_blob_in_memory_is_kept_by_its_key_once_and_forgotten ... ok
+test blob::tests::a_key_is_the_sha256_of_the_bytes ... ok
+test blob::tests::a_blob_is_kept_by_its_key_once_and_forgotten ... ok
+test blob::tests::a_blob_changed_where_it_is_kept_is_not_given_out ... ok
+test tests::uploads::a_malformed_image_is_refused_over_http_without_staging ... ok
+test tests::uploads::a_command_that_does_not_commit_gives_its_claim_back ... ok
+test tests::uploads::a_photos_metadata_is_neither_kept_nor_served ... ok
+test tests::uploads::a_deleted_posts_image_is_not_served_and_its_blob_is_collected ... ok
+test tests::uploads::on_postgres_a_deleted_posts_image_is_not_served_and_its_blob_is_collected ... ok
+test tests::uploads::on_postgres_an_attached_image_removed_is_forgotten ... ok
+test tests::uploads::on_postgres_an_image_is_kept_with_its_post ... ok
+test tests::uploads::on_postgres_posting_an_image_with_none_attached_commits_nothing ... ok
+test tests::uploads::an_attached_image_removed_is_forgotten ... ok
+test tests::uploads::an_image_attached_is_posted_with_its_post_and_served ... ok
+test tests::uploads::one_signed_out_attaches_nothing ... ok
+test uploads::icc::tests::a_profile_keeps_its_colour_and_names_nothing ... ok
+test tests::uploads::an_upload_is_read_within_its_own_limits_not_a_commands ... ok
+test uploads::icc::tests::a_profiles_producer_signatures_are_not_kept ... ok
+test uploads::icc::tests::a_real_srgb_profile_keeps_its_colour_transform ... ok
+test uploads::icc::tests::a_text_tag_holds_one_fixed_text_of_its_type ... ok
+test uploads::icc::tests::an_icc_profile_with_an_undefined_rendering_intent_is_dropped ... ok
+test uploads::icc::tests::an_icc_profiles_reserved_and_vendor_bits_cannot_carry_identifiers ... ok
+test uploads::icc::tests::colour_payload_slack_is_refused_and_unknown_colour_tags_are_dropped ... ok
+test uploads::icc::tests::colour_type_reserved_fields_are_zeroed ... ok
+test uploads::icc::tests::header_colour_identifiers_cannot_be_free_producer_text ... ok
+test uploads::icc::tests::legacy_lut_payloads_have_exact_bounded_lengths ... ok
+test uploads::icc::tests::shared_colour_payloads_obey_every_signature_and_direction ... ok
+test uploads::icc::tests::unknown_text_tag_signatures_and_their_payloads_are_not_kept ... ok
+test uploads::multipart::tests::a_boundary_is_the_media_types_parameter ... ok
+test uploads::multipart::tests::a_forms_parts_are_its_fields ... ok
+test uploads::multipart::tests::a_part_is_a_files_by_its_filename_whatever_it_is_called ... ok
+test uploads::multipart::tests::a_preamble_is_ignored_and_a_body_without_its_close_refused ... ok
+test uploads::png_state::tests::adam7_packed_and_sixteen_bit_scanline_extents_are_exact ... ok
+test uploads::png_state::tests::animation_reserves_one_budget_before_each_frame_stream ... ok
+test uploads::png_state::tests::one_budget_reserves_all_frames_and_checks_exact_bound ... ok
+test uploads::png_state::tests::streaming_drains_full_buffers_and_refuses_short_or_excess_extents ... ok
+test uploads::privacy_tests::icc_duplicate_signatures_are_dropped_without_dropping_shared_curves ... ok
+test uploads::privacy_tests::identical_duplicate_icc_signature_is_also_ambiguous ... ok
+test uploads::privacy_tests::packed_sixteen_bit_and_interlaced_neighbors_rewrite_identically ... ok
+test uploads::privacy_tests::png_ambiguous_color_chunks_are_refused ... ok
+test uploads::privacy_tests::png_animation_streams_are_complete_bounded_and_well_formed ... ok
+test uploads::privacy_tests::png_interleaved_frame_metadata_is_explicitly_unsupported ... ok
+test uploads::privacy_tests::png_split_streams_and_both_animation_layouts_remain_images ... ok
+test uploads::privacy_tests::png_unused_compressed_or_decoded_bytes_are_refused ... ok
+test uploads::sniff::tests::a_gif_is_its_logical_screens_width_and_height ... ok
+test uploads::sniff::tests::a_jpeg_is_its_first_frame_headers_width_and_height ... ok
+test uploads::sniff::tests::a_jpeg_turned_a_quarter_is_as_tall_as_it_is_wide ... ok
+test uploads::sniff::tests::a_jpeg_without_a_frame_header_is_refused ... ok
+test uploads::sniff::tests::a_png_is_its_ihdrs_width_and_height ... ok
+test uploads::sniff::tests::a_png_whose_ihdr_is_wrong_is_refused ... ok
+test uploads::sniff::tests::a_webp_is_its_first_chunks_width_and_height ... ok
+test uploads::sniff::tests::a_webp_whose_header_is_wrong_is_refused ... ok
+test uploads::sniff::tests::crc32_is_iso_3309s ... ok
+test uploads::sniff::tests::every_kind_is_named_by_its_word ... ok
+test uploads::sniff::tests::real_encoders_files_are_read_as_they_are_shown ... ok
+test uploads::sniff::tests::the_kind_is_the_bytes_and_nothing_else ... ok
+test uploads::strip::tests::a_gif_keeps_its_image_timing_and_loop_and_nothing_else ... ok
+test uploads::strip::tests::a_gif_that_does_not_parse_is_refused ... ok
+test uploads::strip::tests::a_gif_whose_images_have_their_own_colour_tables_is_kept ... ok
+test uploads::strip::tests::a_gifs_reserved_descriptor_and_control_bits_are_zeroed ... ok
+test uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else ... ok
+test uploads::strip::tests::a_jpeg_that_does_not_parse_is_refused ... ok
+test uploads::strip::tests::a_jpeg_with_restart_markers_is_kept_whole ... ok
+test uploads::strip::tests::a_jpegs_density_is_not_kept ... ok
+test uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks ... ok
+test uploads::strip::tests::a_jpegs_turn_is_its_first_readable_exif_before_any_scan ... ok
+test uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else ... ok
+test uploads::strip::tests::a_png_that_does_not_parse_is_refused ... ok
+test uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept ... ok
+test uploads::strip::tests::a_simple_webp_is_its_image_alone ... ok
+test uploads::strip::tests::a_webp_keeps_its_image_colour_and_alpha_and_nothing_else ... ok
+test uploads::strip::tests::a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused ... ok
+test uploads::strip::tests::a_webp_that_does_not_parse_is_refused ... ok
+test uploads::strip::tests::a_webps_icc_profile_is_read_from_its_first_iccp ... ok
+test uploads::strip::tests::an_adobe_headers_flags_cannot_name_a_device ... ok
+test uploads::strip::tests::an_animated_webp_keeps_its_frames_and_nothing_else ... ok
+test uploads::strip::tests::a_webp_of_many_empty_chunks_is_walked_without_a_list ... ok
+test uploads::strip::tests::every_valid_jpeg_orientation_is_kept_alone ... ok
+test uploads::strip::tests::fill_bytes_before_a_jpeg_restart_stay_with_the_scan ... ok
+test uploads::strip::tests::fixed_png_chunks_refuse_undeclared_payload_bytes ... ok
+test uploads::strip::tests::jpeg_fill_bytes_before_segments_and_after_scans_are_accepted ... ok
+test uploads::strip::tests::png_checksums_and_transparency_cannot_hold_ignored_bytes ... ok
+test uploads::strip::tests::real_encoders_files_are_kept_as_they_are ... ok
+test uploads::strip::tests::short_jfif_and_adobe_segments_are_dropped_without_panicking ... ok
+test uploads::strip::tests::the_real_srgb_profile_survives_each_supported_container ... ok
+test uploads::strip::tests::the_short_header_probe_refuses_setup_and_protocol_failures ... ok
+test uploads::strip::tests::webp_animation_and_alpha_headers_cannot_carry_reserved_data ... ok
+test uploads::strip::tests::webp_reserved_header_bits_are_neutral ... ok
+test uploads::tests::a_blob_no_post_names_is_collected_unless_a_claim_holds_it ... ok
+test uploads::tests::a_build_declares_its_uploads_and_a_server_starts_with_no_lease ... ok
+test uploads::tests::a_claim_no_transaction_commits_is_given_back ... ok
+test uploads::tests::a_declarations_routes_are_claimed_and_no_other ... ok
+test uploads::tests::a_deployment_lowers_a_limit_and_never_raises_one ... ok
+test uploads::tests::a_file_the_rewrite_cannot_walk_is_refused_whole ... ok
+test uploads::tests::a_kind_the_declaration_does_not_allow_is_refused ... ok
+test uploads::tests::a_lease_is_claimed_once_and_ended_once ... ok
+test uploads::tests::a_lease_nothing_claims_ends_when_its_time_does ... ok
+test uploads::tests::a_refusal_goes_back_to_this_origin_alone ... ok
+test uploads::tests::a_request_without_a_session_length_or_origin_is_refused ... ok
+test uploads::tests::a_second_upload_ends_the_first_lease_and_its_blob ... ok
+test uploads::tests::a_user_attaches_within_an_hours_budget ... ok
+test uploads::tests::an_image_is_leased_and_kept_without_its_metadata ... ok
+test uploads::tests::an_image_is_leased_to_its_session_and_shown_to_it_alone ... ok
+test uploads::tests::an_image_is_measured_as_it_is_kept ... ok
+test uploads::tests::expansion_cannot_cross_the_staging_cap ... ok
+test uploads::tests::nothing_is_claimed_where_nothing_is_declared ... ok
+test uploads::tests::privacy_refusals_leave_no_lease_staged_or_final_blob ... ok
+test uploads::tests::privacy_rewrite_is_the_preview_claim_storage_key_and_served_body ... ok
+test uploads::tests::staged_bytes_cover_expansion_but_hourly_bytes_count_the_upload ... ok
+test uploads::tests::the_dimensions_are_held ... ok
+test uploads::tests::the_kind_is_sniffed_and_never_the_senders ... ok
+test uploads::tests::the_same_image_attached_twice_is_kept ... ok
+test uploads::tests::the_size_is_held_before_and_after_the_body_is_read ... ok
+test tests::uploads::posting_an_image_with_none_attached_commits_nothing ... ok
+test tests::uploads::what_is_not_an_image_is_refused_whatever_it_is_called ... ok
+test uploads::strip::tests::any_bytes_are_refused_or_kept_and_kept_again_unchanged ... ok
+test result: ok. 117 passed; 0 failed; 0 ignored; 0 measured; 663 filtered out; finished in 7.39s
+
+== an image shown and served without its metadata, in three engines (e2e/upload-metadata.spec.mjs)
+
+EVIDENCE colour (chromium): profiled.jpg renders by its profile: as sent and as served [106,135,188,255], without a profile [37,62,128,255]
+EVIDENCE colour (chromium): profiled.png renders by its profile: as sent and as served [124,156,188,255], without a profile [51,85,128,255]
+EVIDENCE colour (chromium): profiled.webp renders by its profile: as sent and as served [80,94,185,160], without a profile [19,29,123,160]
+EVIDENCE as sent (chromium): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 4 by 6
+EVIDENCE as sent (chromium): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
+EVIDENCE as sent (chromium): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
+EVIDENCE as sent (chromium): a JPEG whose first APP1 is XMP, then an Exif that says 6, stored 8 by 5: shown 5 by 8
+EVIDENCE colour (firefox): profiled.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (firefox): profiled.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (firefox): profiled.webp does not render by its profile: as sent and as served [20,30,124,160], without a profile [20,30,124,160]
+EVIDENCE as sent (firefox): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 4 by 6
+EVIDENCE as sent (firefox): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
+EVIDENCE as sent (firefox): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
+EVIDENCE as sent (firefox): a JPEG whose first APP1 is XMP, then an Exif that says 6, stored 8 by 5: shown 8 by 5
+EVIDENCE colour (chromium): real.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (chromium): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (chromium): real.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
+EVIDENCE colour (firefox): real.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (firefox): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (firefox): real.webp does not render by its profile: as sent and as served [20,30,124,160], without a profile [20,30,124,160]
+EVIDENCE colour (webkit): profiled.jpg renders by its profile: as sent and as served [106,135,188,255], without a profile [37,62,128,255]
+EVIDENCE colour (webkit): profiled.png renders by its profile: as sent and as served [124,156,188,255], without a profile [51,85,128,255]
+EVIDENCE colour (webkit): profiled.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
+EVIDENCE as sent (webkit): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 6 by 4
+EVIDENCE as sent (webkit): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
+EVIDENCE as sent (webkit): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
+EVIDENCE as sent (webkit): a JPEG whose first APP1 is XMP, then an Exif that says 6, stored 8 by 5: shown 5 by 8
+EVIDENCE colour (webkit): real.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (webkit): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (webkit): real.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
+  45 passed (2.5m)
+
+== mutation controls (scripts/upload_metadata_mutations.py)
+
+baseline (rust): 117 passed, 0 failed
+baseline (browser): 45 passed, 0 failed
+Native assertion failures: uploads::tests::expansion_cannot_cross_the_staging_cap, uploads::tests::staged_bytes_cover_expansion_but_hourly_bytes_count_the_upload
+rewritten image growth is omitted from the staging budget: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::tests::staged_bytes_cover_expansion_but_hourly_bytes_count_the_upload
+an expanded image releases only its input-byte charge: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::unknown_text_tag_signatures_and_their_payloads_are_not_kept
+ICC unknown text tag signatures are kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::an_adobe_headers_flags_cannot_name_a_device
+Adobe producer version bytes are kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::colour_payload_slack_is_refused_and_unknown_colour_tags_are_dropped, uploads::icc::tests::legacy_lut_payloads_have_exact_bounded_lengths
+ICC colour payload tails are accepted: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::shared_colour_payloads_obey_every_signature_and_direction
+ICC shared transforms ignore distinct matrix contexts: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::header_colour_identifiers_cannot_be_free_producer_text
+ICC header colour identifiers are unchecked: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::colour_type_reserved_fields_are_zeroed, uploads::icc::tests::legacy_lut_payloads_have_exact_bounded_lengths, uploads::icc::tests::shared_colour_payloads_obey_every_signature_and_direction
+ICC unused legacy LUT matrix is kept: KILLED (3 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::colour_type_reserved_fields_are_zeroed
+ICC type-specific reserved fields and unused matrix normalization are bypassed: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept, uploads::icc::tests::a_real_srgb_profile_keeps_its_colour_transform, uploads::icc::tests::colour_payload_slack_is_refused_and_unknown_colour_tags_are_dropped, uploads::privacy_tests::icc_duplicate_signatures_are_dropped_without_dropping_shared_curves, uploads::strip::tests::the_real_srgb_profile_survives_each_supported_container
+ICC unknown colour tag signatures are admitted: KILLED (5 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::colour_type_reserved_fields_are_zeroed
+ICC parametric-curve reserved bytes are kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::colour_type_reserved_fields_are_zeroed
+ICC legacy LUT reserved byte is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::png_checksums_and_transparency_cannot_hold_ignored_bytes
+PNG CRC bytes are copied from the sender: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::png_checksums_and_transparency_cannot_hold_ignored_bytes
+PNG transparency length is unchecked: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::webp_animation_and_alpha_headers_cannot_carry_reserved_data
+WebP ALPH reserved bits are kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::webp_animation_and_alpha_headers_cannot_carry_reserved_data
+WebP ANMF reserved bits are kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::webp_animation_and_alpha_headers_cannot_carry_reserved_data
+WebP ANIM retains excess bytes: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_gifs_reserved_descriptor_and_control_bits_are_zeroed
+GIF descriptor reserved bits are kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_gifs_reserved_descriptor_and_control_bits_are_zeroed
+GIF graphic-control reserved bits are kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::an_icc_profile_with_an_undefined_rendering_intent_is_dropped
+ICC undefined rendering intents are kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::fixed_png_chunks_refuse_undeclared_payload_bytes, uploads::strip::tests::png_checksums_and_transparency_cannot_hold_ignored_bytes
+PNG fixed chunks keep trailing payloads: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::an_adobe_headers_flags_cannot_name_a_device
+Adobe APP14 producer flags are kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::webp_reserved_header_bits_are_neutral
+WebP VP8X reserved flag bits are kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::webp_reserved_header_bits_are_neutral
+WebP VP8X reserved bytes are kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::an_icc_profiles_reserved_and_vendor_bits_cannot_carry_identifiers
+an ICC profile's version reserved bytes are kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::an_icc_profiles_reserved_and_vendor_bits_cannot_carry_identifiers
+an ICC profile's tag reserved bytes are kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::an_icc_profiles_reserved_and_vendor_bits_cannot_carry_identifiers
+an ICC profile's vendor flags are kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profiles_producer_signatures_are_not_kept
+an ICC profile's preferred CMM signature is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profiles_producer_signatures_are_not_kept
+an ICC profile's platform signature is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profiles_producer_signatures_are_not_kept
+an ICC profile's creator signature is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::every_valid_jpeg_orientation_is_kept_alone
+JPEG orientation 2 is lost: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_jpegs_turn_is_its_first_readable_exif_before_any_scan, uploads::strip::tests::every_valid_jpeg_orientation_is_kept_alone
+JPEG orientation 8 is lost: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::jpeg_fill_bytes_before_segments_and_after_scans_are_accepted
+JPEG segment fill is skipped only once: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::fill_bytes_before_a_jpeg_restart_stay_with_the_scan
+JPEG scan fill is skipped only once: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::short_jfif_and_adobe_segments_are_dropped_without_panicking
+short JFIF data is sliced: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::short_jfif_and_adobe_segments_are_dropped_without_panicking
+short Adobe data is sliced: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else
+a PNG's suggested palette is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else
+a PNG's histogram is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: tests::uploads::a_photos_metadata_is_neither_kept_nor_served, uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::strip::tests::a_jpeg_with_restart_markers_is_kept_whole, uploads::strip::tests::a_jpegs_turn_is_its_first_readable_exif_before_any_scan, uploads::strip::tests::any_bytes_are_refused_or_kept_and_kept_again_unchanged, uploads::strip::tests::every_valid_jpeg_orientation_is_kept_alone, uploads::strip::tests::jpeg_fill_bytes_before_segments_and_after_scans_are_accepted, uploads::strip::tests::real_encoders_files_are_kept_as_they_are, uploads::tests::an_image_is_leased_and_kept_without_its_metadata
+a JPEG's Exif is kept whole, its GPS position, camera and time with it: KILLED (9 of 117 tests fail)
+Native assertion failures: tests::uploads::a_photos_metadata_is_neither_kept_nor_served, uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::strip::tests::a_jpegs_turn_is_its_first_readable_exif_before_any_scan, uploads::tests::an_image_is_leased_and_kept_without_its_metadata, uploads::tests::an_image_is_measured_as_it_is_kept
+a JPEG's XMP (an APP1 not read for its turn) is kept: KILLED (5 of 117 tests fail)
+Native assertion failures: tests::uploads::a_photos_metadata_is_neither_kept_nor_served, uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::tests::an_image_is_leased_and_kept_without_its_metadata
+a JPEG's IPTC (APP13) is kept: KILLED (3 of 117 tests fail)
+Native assertion failures: tests::uploads::a_photos_metadata_is_neither_kept_nor_served, uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::strip::tests::a_jpeg_with_restart_markers_is_kept_whole, uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks, uploads::strip::tests::a_jpegs_turn_is_its_first_readable_exif_before_any_scan, uploads::tests::an_image_is_leased_and_kept_without_its_metadata
+a JPEG's comment (COM) is kept: KILLED (6 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::strip::tests::a_jpegs_density_is_not_kept
+a JPEG's APP0 is kept whole, its thumbnail with it: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::strip::tests::a_jpegs_density_is_not_kept
+a JPEG's JFIF units and densities are kept (a screen's 144 dpi): KILLED (2 of 117 tests fail)
+Native assertion failures: tests::uploads::a_photos_metadata_is_neither_kept_nor_served, uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::tests::an_image_is_leased_and_kept_without_its_metadata
+what follows a JPEG's EOI is kept (a phone's second image): KILLED (3 of 117 tests fail)
+   255,
+    -   200,
+    -   11,
+    -   111,
+    -   255,
+    -   217,
+    -   63,
+    -   127,
+    -   255,
+    -   215,
+    -   130,
+    -   127,
+    -   219,
+    -   189,
+    -   129,
+    -   255,
+    -   255,
+    -   224,
+    -   18,
+    -   118,
+    -   255,
+    -   241,
+    -   68,
+    -   134,
+    -   255,
+    -   239,
+    -   135,
+    -   132,
+    -   255,
+    -   242,
+    -   196,
+    -   137,
+    [cause]: Error: PW_ASSERTION:6a925ac4bc1e58500710df13b0ec24055cb77c2f3f33e4c03ae529baf36adb01
+  25) [webkit] › e2e/upload-metadata.spec.mjs:604:3 › JPEG orientation 6 keeps the same displayed pixels 
+    Error: expect(received).toEqual(expected) // deep equality
+    - Expected  - 106
+    -   5,
+    -   27,
+    -   239,
+    -   136,
+    -   255,
+    -   15,
+    -   183,
+    -   124,
+    -   255,
+    -   11,
+    -   124,
+    -   120,
+    -   255,
+    -   13,
+    -   57,
+    -   122,
+    -   255,
+    -   50,
+    -   247,
+    -   142,
+    -   37,
+    -   189,
+    -   130,
+    -   35,
+    -   130,
+    -   126,
+    -   37,
+    -   62,
+    -   19,
+    -   110,
+    -   86,
+    -   245,
+    -   143,
+    -   75,
+    -   188,
+    -   132,
+    -   71,
+    -   130,
+    -   56,
+    -   11,
+    -   112,
+    -   121,
+    -   246,
+    -   142,
+    -   109,
+    -   189,
+    -   130,
+    -   107,
+    -   129,
+    -   126,
+    -   255,
+    -   108,
+    -   62,
+    -   91,
+    -   110,
+    -   160,
+    -   247,
+    -   142,
+    -   148,
+    -   189,
+    -   145,
+    -   63,
+    -   128,
+    -   12,
+    -   194,
+    -   247,
+    -   141,
+    -   179,
+    -   130,
+    -   125,
+    -   181,
+    -   63,
+    -   124,
+    -   164,
+    -   13,
+    -   108,
+    -   231,
+    -   246,
+    -   219,
+    -   189,
+    -   129,
+    -   215,
+    -   130,
+    -   127,
+    -   217,
+    -   63,
+    -   127,
+    -   200,
+    -   11,
+    -   111,
+    -   255,
+    -   242,
+    -   196,
+    -   137,
+    -   255,
+    -   239,
+    -   135,
+    -   132,
+    -   255,
+    -   241,
+    -   68,
+    -   134,
+    -   255,
+    -   224,
+    -   18,
+    -   118,
+    [cause]: Error: PW_ASSERTION:6a925ac4bc1e58500710df13b0ec24055cb77c2f3f33e4c03ae529baf36adb01
+  26) [webkit] › e2e/upload-metadata.spec.mjs:604:3 › JPEG orientation 7 keeps the same displayed pixels 
+    Error: expect(received).toEqual(expected) // deep equality
+    - Expected  - 106
+    -   8,
+    -   254,
+    -   252,
+    -   149,
+    -   242,
+    -   196,
+    -   137,
+    -   239,
+    -   135,
+    -   132,
+    -   241,
+    -   68,
+    -   134,
+    -   231,
+    -   246,
+    -   143,
+    -   219,
+    -   189,
+    -   129,
+    -   215,
+    -   217,
+    -   255,
+    -   200,
+    -   11,
+    -   111,
+    -   255,
+    -   194,
+    -   247,
+    -   141,
+    -   255,
+    -   182,
+    -   191,
+    -   128,
+    -   255,
+    -   179,
+    -   130,
+    -   125,
+    -   255,
+    -   164,
+    -   13,
+    -   108,
+    -   160,
+    -   247,
+    -   142,
+    -   255,
+    -   148,
+    -   189,
+    -   129,
+    -   255,
+    -   144,
+    -   131,
+    -   125,
+    -   255,
+    -   145,
+    -   128,
+    -   12,
+    -   109,
+    -   121,
+    -   246,
+    -   142,
+    -   109,
+    -   189,
+    -   108,
+    -   62,
+    -   127,
+    -   91,
+    -   11,
+    -   110,
+    -   86,
+    -   245,
+    -   143,
+    -   75,
+    -   188,
+    -   71,
+    -   130,
+    -   128,
+    -   73,
+    -   62,
+    -   56,
+    -   11,
+    -   112,
+    -   50,
+    -   247,
+    -   142,
+    -   255,
+    -   37,
+    -   35,
+    -   130,
+    -   126,
+    -   37,
+    -   62,
+    -   19,
+    -   11,
+    -   110,
+    -   15,
+    -   183,
+    -   124,
+    -   11,
+    -   124,
+    -   120,
+    -   13,
+    -   57,
+    -   122,
+    -   0,
+    -   6,
+    -   104,
+    [cause]: Error: PW_ASSERTION:6a925ac4bc1e58500710df13b0ec24055cb77c2f3f33e4c03ae529baf36adb01
+  27) [webkit] › e2e/upload-metadata.spec.mjs:604:3 › JPEG orientation 8 keeps the same displayed pixels 
+    Error: expect(received).toEqual(expected) // deep equality
+    - Expected  - 105
+    -   5,
+    -   224,
+    -   18,
+    -   118,
+    -   241,
+    -   68,
+    -   134,
+    -   239,
+    -   135,
+    -   132,
+    -   255,
+    -   242,
+    -   196,
+    -   137,
+    -   254,
+    -   252,
+    -   149,
+    -   255,
+    -   200,
+    -   111,
+    -   255,
+    -   217,
+    -   63,
+    -   127,
+    -   255,
+    -   215,
+    -   130,
+    -   127,
+    -   255,
+    -   219,
+    -   189,
+    -   129,
+    -   231,
+    -   246,
+    -   143,
+    -   181,
+    -   63,
+    -   124,
+    -   179,
+    -   130,
+    -   125,
+    -   182,
+    -   191,
+    -   194,
+    -   247,
+    -   141,
+    -   128,
+    -   12,
+    -   109,
+    -   144,
+    -   131,
+    -   125,
+    -   148,
+    -   189,
+    -   129,
+    -   160,
+    -   247,
+    -   142,
+    -   91,
+    -   110,
+    -   108,
+    -   62,
+    -   127,
+    -   109,
+    -   189,
+    -   121,
+    -   246,
+    -   142,
+    -   56,
+    -   11,
+    -   112,
+    -   73,
+    -   62,
+    -   130,
+    -   71,
+    -   128,
+    -   86,
+    -   245,
+    -   143,
+    -   19,
+    -   11,
+    -   110,
+    -   37,
+    -   62,
+    -   35,
+    -   130,
+    -   126,
+    -   37,
+    -   189,
+    -   130,
+    -   0,
+    -   6,
+    -   104,
+    -   13,
+    -   57,
+    -   122,
+    -   11,
+    -   124,
+    -   120,
+    -   15,
+    -   183,
+    -   124,
+    -   27,
+    -   239,
+    -   136,
+    [cause]: Error: PW_ASSERTION:6a925ac4bc1e58500710df13b0ec24055cb77c2f3f33e4c03ae529baf36adb01
+EVIDENCE colour (webkit): real.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (webkit): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (webkit): real.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
+  27 failed
+  18 passed (2.7m)
+  run_suite: kept 28 of 28 entries of its output (23.0 MiB) in kept-traces/e14-upload-metadata/20261026T035152Z-40948/run-1
+  run_suite: exit 1
+
+a photo's turn is not written back: KILLED (27 of 45 tests fail)
+Native assertion failures: uploads::strip::tests::a_jpegs_turn_is_its_first_readable_exif_before_any_scan
+an Exif after the first scan is read for the turn: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_jpegs_turn_is_its_first_readable_exif_before_any_scan, uploads::tests::an_image_is_measured_as_it_is_kept
+the last Exif's turn is kept, not the first a browser reads: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::strip::tests::a_jpeg_with_restart_markers_is_kept_whole, uploads::strip::tests::a_jpegs_density_is_not_kept, uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks, uploads::strip::tests::a_jpegs_turn_is_its_first_readable_exif_before_any_scan, uploads::strip::tests::an_adobe_headers_flags_cannot_name_a_device, uploads::strip::tests::every_valid_jpeg_orientation_is_kept_alone, uploads::strip::tests::fill_bytes_before_a_jpeg_restart_stay_with_the_scan, uploads::strip::tests::jpeg_fill_bytes_before_segments_and_after_scans_are_accepted, uploads::strip::tests::real_encoders_files_are_kept_as_they_are, uploads::strip::tests::short_jfif_and_adobe_segments_are_dropped_without_panicking
+a scan's entropy-coded data is not kept: KILLED (11 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::strip::tests::a_jpeg_with_restart_markers_is_kept_whole, uploads::strip::tests::a_jpegs_density_is_not_kept, uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks, uploads::strip::tests::a_jpegs_turn_is_its_first_readable_exif_before_any_scan, uploads::strip::tests::an_adobe_headers_flags_cannot_name_a_device, uploads::strip::tests::every_valid_jpeg_orientation_is_kept_alone, uploads::strip::tests::fill_bytes_before_a_jpeg_restart_stay_with_the_scan, uploads::strip::tests::jpeg_fill_bytes_before_segments_and_after_scans_are_accepted, uploads::strip::tests::real_encoders_files_are_kept_as_they_are, uploads::strip::tests::short_jfif_and_adobe_segments_are_dropped_without_panicking, uploads::tests::expansion_cannot_cross_the_staging_cap, uploads::tests::staged_bytes_cover_expansion_but_hourly_bytes_count_the_upload
+a JPEG's quantization tables (DQT) are not kept: KILLED (13 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks, uploads::strip::tests::the_real_srgb_profile_survives_each_supported_container, uploads::tests::expansion_cannot_cross_the_staging_cap, uploads::tests::staged_bytes_cover_expansion_but_hourly_bytes_count_the_upload
+a JPEG's ICC profile is not kept: KILLED (5 of 117 tests fail)
+Native assertion failures: tests::uploads::a_photos_metadata_is_neither_kept_nor_served, uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks, uploads::strip::tests::the_real_srgb_profile_survives_each_supported_container, uploads::tests::an_image_is_leased_and_kept_without_its_metadata, uploads::tests::expansion_cannot_cross_the_staging_cap, uploads::tests::staged_bytes_cover_expansion_but_hourly_bytes_count_the_upload
+a JPEG's ICC profile is kept as sent, what it names with it: KILLED (7 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks
+an ICC chunk after a JPEG's first scan is read: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks
+ICC chunks whose counts differ are read as one profile: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks
+an ICC chunk whose number repeats is read: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks
+a profile is split into chunks one byte longer than an APP2 holds: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_jpeg_with_restart_markers_is_kept_whole, uploads::strip::tests::fill_bytes_before_a_jpeg_restart_stay_with_the_scan
+a scan ends at a restart marker (every JPEG with restart intervals refused): KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::strip::tests::an_adobe_headers_flags_cannot_name_a_device
+Adobe's APP14 is kept whole, past its twelve bytes: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::strip::tests::an_adobe_headers_flags_cannot_name_a_device
+Adobe's APP14 (how the colours are coded) is not kept: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_jpeg_that_does_not_parse_is_refused
+a JPEG that ends before its EOI is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else
+a PNG's tEXt is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else
+a PNG's zTXt is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else
+a PNG's iTXt (XMP) is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else
+a PNG's tIME is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else
+a PNG's eXIf is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else
+a PNG's pHYs is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else
+a PNG's private chunk is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else
+what follows a PNG's IEND is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::privacy_tests::packed_sixteen_bit_and_interlaced_neighbors_rewrite_identically, uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else, uploads::strip::tests::any_bytes_are_refused_or_kept_and_kept_again_unchanged, uploads::strip::tests::the_real_srgb_profile_survives_each_supported_container
+a PNG's palette (PLTE) is not kept: KILLED (4 of 117 tests fail)
+Native assertion failures: uploads::privacy_tests::packed_sixteen_bit_and_interlaced_neighbors_rewrite_identically, uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else
+a PNG's transparency (tRNS) is not kept: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::privacy_tests::png_split_streams_and_both_animation_layouts_remain_images, uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else, uploads::strip::tests::any_bytes_are_refused_or_kept_and_kept_again_unchanged, uploads::strip::tests::the_real_srgb_profile_survives_each_supported_container, uploads::tests::privacy_rewrite_is_the_preview_claim_storage_key_and_served_body
+an animated PNG's frame data (fdAT) is not kept: KILLED (5 of 117 tests fail)
+Native assertion failures: uploads::privacy_tests::icc_duplicate_signatures_are_dropped_without_dropping_shared_curves, uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else, uploads::strip::tests::a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused, uploads::strip::tests::the_real_srgb_profile_survives_each_supported_container
+a PNG's ICC profile (iCCP) is not kept: KILLED (4 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else, uploads::strip::tests::a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused, uploads::strip::tests::the_real_srgb_profile_survives_each_supported_container
+a PNG's iCCP is kept as sent, its profile and its name with it: KILLED (3 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else, uploads::strip::tests::a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused
+a PNG's iCCP keeps its name: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused
+a PNG's iCCP is inflated without a bound: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused
+a PNG's iCCP compressed by another method is read: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused
+a PNG's iCCP without a name is read: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused
+a PNG's iCCP whose name is past 79 bytes is read: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_png_that_does_not_parse_is_refused
+a critical chunk it does not know is dropped, not refused: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_png_that_does_not_parse_is_refused
+a PNG that ends before its IEND is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_webp_keeps_its_image_colour_and_alpha_and_nothing_else, uploads::strip::tests::an_animated_webp_keeps_its_frames_and_nothing_else
+a WebP's EXIF chunk is kept: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_webp_keeps_its_image_colour_and_alpha_and_nothing_else
+a WebP's XMP chunk is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_webp_keeps_its_image_colour_and_alpha_and_nothing_else, uploads::strip::tests::a_webp_of_many_empty_chunks_is_walked_without_a_list
+a WebP's unknown chunk is kept: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_webp_keeps_its_image_colour_and_alpha_and_nothing_else, uploads::strip::tests::an_animated_webp_keeps_its_frames_and_nothing_else
+VP8X's Exif flag is left set: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_webp_keeps_its_image_colour_and_alpha_and_nothing_else
+VP8X's XMP flag is left set: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::an_animated_webp_keeps_its_frames_and_nothing_else
+an animated WebP frame's unknown chunk is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_webp_keeps_its_image_colour_and_alpha_and_nothing_else, uploads::strip::tests::a_webps_icc_profile_is_read_from_its_first_iccp, uploads::strip::tests::the_real_srgb_profile_survives_each_supported_container
+a WebP's ICC profile (ICCP) is not kept: KILLED (3 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_webp_keeps_its_image_colour_and_alpha_and_nothing_else, uploads::strip::tests::a_webps_icc_profile_is_read_from_its_first_iccp, uploads::strip::tests::the_real_srgb_profile_survives_each_supported_container
+a WebP's ICC profile is kept as sent, what it names with it: KILLED (3 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_webps_icc_profile_is_read_from_its_first_iccp
+a WebP's second ICCP is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_webps_icc_profile_is_read_from_its_first_iccp
+VP8X flags an ICC profile where none is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::an_animated_webp_keeps_its_frames_and_nothing_else, uploads::strip::tests::webp_animation_and_alpha_headers_cannot_carry_reserved_data
+an animated WebP's ANIM is not kept: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_simple_webp_is_its_image_alone, uploads::strip::tests::a_webp_keeps_its_image_colour_and_alpha_and_nothing_else, uploads::strip::tests::a_webp_of_many_empty_chunks_is_walked_without_a_list, uploads::strip::tests::a_webps_icc_profile_is_read_from_its_first_iccp, uploads::strip::tests::an_animated_webp_keeps_its_frames_and_nothing_else, uploads::strip::tests::any_bytes_are_refused_or_kept_and_kept_again_unchanged, uploads::strip::tests::the_real_srgb_profile_survives_each_supported_container
+a WebP's RIFF size is not rewritten: KILLED (7 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_simple_webp_is_its_image_alone, uploads::strip::tests::a_webp_of_many_empty_chunks_is_walked_without_a_list, uploads::strip::tests::a_webps_icc_profile_is_read_from_its_first_iccp, uploads::strip::tests::an_animated_webp_keeps_its_frames_and_nothing_else, uploads::strip::tests::real_encoders_files_are_kept_as_they_are
+a RIFF chunk of an odd size is not padded: KILLED (5 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_webp_that_does_not_parse_is_refused
+a WebP chunk past its RIFF is kept as far as it goes: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_webp_of_many_empty_chunks_is_walked_without_a_list
+a WebP's chunks are listed before they are walked (four times its bytes): KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_gif_keeps_its_image_timing_and_loop_and_nothing_else, uploads::strip::tests::a_gif_whose_images_have_their_own_colour_tables_is_kept
+a GIF's comment is kept: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_gif_keeps_its_image_timing_and_loop_and_nothing_else
+a GIF's plain text is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_gif_keeps_its_image_timing_and_loop_and_nothing_else
+another application's extension (XMP's) is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_gif_keeps_its_image_timing_and_loop_and_nothing_else
+a loop extension's other sub-blocks are kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_gif_keeps_its_image_timing_and_loop_and_nothing_else, uploads::strip::tests::a_gifs_reserved_descriptor_and_control_bits_are_zeroed
+a graphic control's other sub-blocks are kept: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_gif_keeps_its_image_timing_and_loop_and_nothing_else
+what follows a GIF's trailer is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_gif_keeps_its_image_timing_and_loop_and_nothing_else
+a GIF's loop count is not kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_gif_keeps_its_image_timing_and_loop_and_nothing_else, uploads::strip::tests::a_gif_that_does_not_parse_is_refused, uploads::strip::tests::a_gif_whose_images_have_their_own_colour_tables_is_kept
+a GIF's graphic control (its timing and transparency) is not kept: KILLED (3 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_gif_keeps_its_image_timing_and_loop_and_nothing_else
+ANIMEXTS1.0 is not read as a loop: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_gif_that_does_not_parse_is_refused
+a GIF that ends before its trailer is kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::strip::tests::a_gif_whose_images_have_their_own_colour_tables_is_kept, uploads::strip::tests::a_gifs_reserved_descriptor_and_control_bits_are_zeroed
+a GIF image's own colour table is not skipped (every GIF with per-frame palettes refused): KILLED (2 of 117 tests fail)
+Native assertion failures: tests::uploads::a_photos_metadata_is_neither_kept_nor_served, uploads::icc::tests::a_profile_keeps_its_colour_and_names_nothing, uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks, uploads::strip::tests::a_webp_keeps_its_image_colour_and_alpha_and_nothing_else, uploads::tests::an_image_is_leased_and_kept_without_its_metadata
+an ICC profile's creation time is kept: KILLED (6 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profile_keeps_its_colour_and_names_nothing
+an ICC profile's device maker, model and attributes are kept: KILLED (1 of 117 tests fail)
+Native assertion failures: tests::uploads::a_photos_metadata_is_neither_kept_nor_served, uploads::icc::tests::a_profile_keeps_its_colour_and_names_nothing, uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks, uploads::strip::tests::a_webp_keeps_its_image_colour_and_alpha_and_nothing_else, uploads::tests::an_image_is_leased_and_kept_without_its_metadata
+an ICC profile's ID is kept: KILLED (6 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profile_keeps_its_colour_and_names_nothing, uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept, uploads::icc::tests::a_profiles_producer_signatures_are_not_kept, uploads::icc::tests::a_real_srgb_profile_keeps_its_colour_transform, uploads::icc::tests::unknown_text_tag_signatures_and_their_payloads_are_not_kept, uploads::privacy_tests::icc_duplicate_signatures_are_dropped_without_dropping_shared_curves, uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks, uploads::strip::tests::a_webps_icc_profile_is_read_from_its_first_iccp, uploads::strip::tests::the_real_srgb_profile_survives_each_supported_container, uploads::tests::expansion_cannot_cross_the_staging_cap, uploads::tests::staged_bytes_cover_expansion_but_hourly_bytes_count_the_upload
+an ICC desc tag is admitted as colour instead of neutral text: KILLED (12 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profile_keeps_its_colour_and_names_nothing, uploads::icc::tests::a_profiles_producer_signatures_are_not_kept, uploads::icc::tests::an_icc_profile_with_an_undefined_rendering_intent_is_dropped, uploads::icc::tests::an_icc_profiles_reserved_and_vendor_bits_cannot_carry_identifiers, uploads::icc::tests::header_colour_identifiers_cannot_be_free_producer_text, uploads::icc::tests::unknown_text_tag_signatures_and_their_payloads_are_not_kept, uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks, uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else, uploads::strip::tests::a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused, uploads::strip::tests::a_webp_keeps_its_image_colour_and_alpha_and_nothing_else
+an ICC mluc tag is admitted as colour instead of neutral text: KILLED (10 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profile_keeps_its_colour_and_names_nothing, uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept, uploads::icc::tests::a_profiles_producer_signatures_are_not_kept, uploads::icc::tests::a_real_srgb_profile_keeps_its_colour_transform, uploads::icc::tests::unknown_text_tag_signatures_and_their_payloads_are_not_kept, uploads::privacy_tests::icc_duplicate_signatures_are_dropped_without_dropping_shared_curves, uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks, uploads::strip::tests::a_webps_icc_profile_is_read_from_its_first_iccp, uploads::strip::tests::the_real_srgb_profile_survives_each_supported_container
+an ICC text tag is admitted as colour instead of neutral text: KILLED (10 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profile_keeps_its_colour_and_names_nothing, uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept, uploads::icc::tests::a_profiles_producer_signatures_are_not_kept, uploads::icc::tests::an_icc_profile_with_an_undefined_rendering_intent_is_dropped, uploads::icc::tests::an_icc_profiles_reserved_and_vendor_bits_cannot_carry_identifiers, uploads::icc::tests::header_colour_identifiers_cannot_be_free_producer_text, uploads::icc::tests::unknown_text_tag_signatures_and_their_payloads_are_not_kept, uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks, uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else, uploads::strip::tests::a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused, uploads::strip::tests::a_webp_keeps_its_image_colour_and_alpha_and_nothing_else, uploads::strip::tests::a_webps_icc_profile_is_read_from_its_first_iccp
+an unsupported ICC tag type is admitted as colour: KILLED (13 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profile_keeps_its_colour_and_names_nothing, uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept, uploads::icc::tests::a_real_srgb_profile_keeps_its_colour_transform, uploads::icc::tests::an_icc_profiles_reserved_and_vendor_bits_cannot_carry_identifiers, uploads::icc::tests::colour_payload_slack_is_refused_and_unknown_colour_tags_are_dropped, uploads::icc::tests::shared_colour_payloads_obey_every_signature_and_direction, uploads::icc::tests::unknown_text_tag_signatures_and_their_payloads_are_not_kept
+an ICC profile's XYZ tags (its white and primaries) are dropped: KILLED (7 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profile_keeps_its_colour_and_names_nothing, uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept, uploads::icc::tests::a_profiles_producer_signatures_are_not_kept, uploads::icc::tests::a_real_srgb_profile_keeps_its_colour_transform, uploads::icc::tests::an_icc_profile_with_an_undefined_rendering_intent_is_dropped, uploads::icc::tests::an_icc_profiles_reserved_and_vendor_bits_cannot_carry_identifiers, uploads::icc::tests::colour_payload_slack_is_refused_and_unknown_colour_tags_are_dropped, uploads::icc::tests::colour_type_reserved_fields_are_zeroed, uploads::icc::tests::header_colour_identifiers_cannot_be_free_producer_text, uploads::icc::tests::legacy_lut_payloads_have_exact_bounded_lengths, uploads::icc::tests::shared_colour_payloads_obey_every_signature_and_direction, uploads::icc::tests::unknown_text_tag_signatures_and_their_payloads_are_not_kept, uploads::privacy_tests::icc_duplicate_signatures_are_dropped_without_dropping_shared_curves, uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else, uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks, uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else, uploads::strip::tests::a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused, uploads::strip::tests::a_webp_keeps_its_image_colour_and_alpha_and_nothing_else, uploads::strip::tests::a_webps_icc_profile_is_read_from_its_first_iccp, uploads::strip::tests::the_real_srgb_profile_survives_each_supported_container
+an ICC colour tag is not kept byte for byte (its last byte lost): KILLED (20 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept
+two ICC tags whose data overlap are read: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept
+an ICC tag in its profile's table is read: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept
+an ICC profile with an undersized tag is kept verbatim: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept, uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks, uploads::strip::tests::a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused, uploads::strip::tests::a_webps_icc_profile_is_read_from_its_first_iccp
+a truncated ICC profile is kept verbatim: KILLED (4 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept
+an ICC profile without its acsp signature is read: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept
+an ICC profile of a version over 4 (iccMAX's) is read: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept
+an ICC profile of more than 1,024 tags is read: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept
+an ICC profile a fixed text makes larger than 4 MiB is kept (and not kept again): KILLED (1 of 117 tests fail)
+  1) [chromium] › e2e/upload-metadata.spec.mjs:484:1 › each format is shown and served without its metadata 
+    Error: IMG_0001.jpg as served
+    - Expected  - 1
+    - Array []
+    [cause]: Error: PW_ASSERTION:84be8fe4ab814401f7df19c5392ab90efd1595b58365b65ef8b8423e4b3561ad
+  2) [firefox] › e2e/upload-metadata.spec.mjs:484:1 › each format is shown and served without its metadata 
+    Error: IMG_0001.jpg as served
+    - Expected  - 1
+    - Array []
+    [cause]: Error: PW_ASSERTION:84be8fe4ab814401f7df19c5392ab90efd1595b58365b65ef8b8423e4b3561ad
+EVIDENCE as sent (chromium): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 4 by 6
+EVIDENCE as sent (chromium): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
+EVIDENCE as sent (chromium): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
+EVIDENCE as sent (chromium): a JPEG whose first APP1 is XMP, then an Exif that says 6, stored 8 by 5: shown 5 by 8
+EVIDENCE as sent (firefox): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 4 by 6
+EVIDENCE as sent (firefox): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
+EVIDENCE as sent (firefox): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
+EVIDENCE as sent (firefox): a JPEG whose first APP1 is XMP, then an Exif that says 6, stored 8 by 5: shown 8 by 5
+EVIDENCE colour (chromium): real.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (chromium): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (chromium): real.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
+  3) [chromium] › e2e/upload-metadata.spec.mjs:695:1 › PNG stream and ICC repairs survive preview claim storage and serving 
+    Error: expect(received).toEqual(expected) // deep equality
+    - Expected  -    1
+    - Array []
+    [cause]: Error: PW_ASSERTION:84be8fe4ab814401f7df19c5392ab90efd1595b58365b65ef8b8423e4b3561ad
+EVIDENCE colour (firefox): real.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (firefox): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (firefox): real.webp does not render by its profile: as sent and as served [20,30,124,160], without a profile [20,30,124,160]
+  4) [firefox] › e2e/upload-metadata.spec.mjs:695:1 › PNG stream and ICC repairs survive preview claim storage and serving 
+    Error: expect(received).toEqual(expected) // deep equality
+    - Expected  -    1
+    - Array []
+    [cause]: Error: PW_ASSERTION:84be8fe4ab814401f7df19c5392ab90efd1595b58365b65ef8b8423e4b3561ad
+  5) [webkit] › e2e/upload-metadata.spec.mjs:484:1 › each format is shown and served without its metadata 
+    Error: IMG_0001.jpg as served
+    - Expected  - 1
+    - Array []
+    [cause]: Error: PW_ASSERTION:84be8fe4ab814401f7df19c5392ab90efd1595b58365b65ef8b8423e4b3561ad
+EVIDENCE as sent (webkit): a PNG whose eXIf says Orientation 6, stored 6 by 4: shown 6 by 4
+EVIDENCE as sent (webkit): a WebP whose EXIF says Orientation 6, stored 12 by 9: shown 12 by 9
+EVIDENCE as sent (webkit): a JPEG whose Exif says 6, then a second Exif 1, stored 8 by 5: shown 5 by 8
+EVIDENCE as sent (webkit): a JPEG whose first APP1 is XMP, then an Exif that says 6, stored 8 by 5: shown 5 by 8
+EVIDENCE colour (webkit): real.jpg does not render by its profile: as sent and as served [37,62,128,255], without a profile [37,62,128,255]
+EVIDENCE colour (webkit): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
+EVIDENCE colour (webkit): real.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
+  6) [webkit] › e2e/upload-metadata.spec.mjs:695:1 › PNG stream and ICC repairs survive preview claim storage and serving 
+    Error: expect(received).toEqual(expected) // deep equality
+    - Expected  -    1
+    - Array []
+    [cause]: Error: PW_ASSERTION:84be8fe4ab814401f7df19c5392ab90efd1595b58365b65ef8b8423e4b3561ad
+  6 failed
+  39 passed (1.7m)
+  run_suite: kept 7 of 7 entries of its output (4.1 MiB) in kept-traces/e14-upload-metadata/20261026T040846Z-81913/run-1
+  run_suite: exit 1
+
+the bytes as sent are leased, not the bytes rewritten: KILLED (6 of 45 tests fail)
+Native assertion failures: tests::uploads::a_malformed_image_is_refused_over_http_without_staging, uploads::tests::a_file_the_rewrite_cannot_walk_is_refused_whole, uploads::tests::privacy_refusals_leave_no_lease_staged_or_final_blob
+a file the rewrite refuses is kept as sent: KILLED (3 of 117 tests fail)
+Native assertion failures: uploads::tests::an_image_is_measured_as_it_is_kept
+an image is measured as sent, not as kept: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::tests::a_user_attaches_within_an_hours_budget, uploads::tests::privacy_rewrite_is_the_preview_claim_storage_key_and_served_body, uploads::tests::staged_bytes_cover_expansion_but_hourly_bytes_count_the_upload
+a user's hourly bytes count what is kept, not what was sent: KILLED (3 of 117 tests fail)
+Native assertion failures: uploads::tests::the_same_image_attached_twice_is_kept
+a lease replaced by the same bytes forgets them: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::privacy_tests::png_ambiguous_color_chunks_are_refused, uploads::privacy_tests::png_animation_streams_are_complete_bounded_and_well_formed, uploads::privacy_tests::png_interleaved_frame_metadata_is_explicitly_unsupported, uploads::privacy_tests::png_unused_compressed_or_decoded_bytes_are_refused, uploads::strip::tests::a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused, uploads::tests::privacy_refusals_leave_no_lease_staged_or_final_blob
+PNG structural validation is omitted: KILLED (6 of 117 tests fail)
+Native assertion failures: uploads::privacy_tests::png_ambiguous_color_chunks_are_refused, uploads::strip::tests::a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused, uploads::tests::privacy_refusals_leave_no_lease_staged_or_final_blob
+a repeated PNG singleton is accepted: KILLED (3 of 117 tests fail)
+Native assertion failures: uploads::privacy_tests::png_ambiguous_color_chunks_are_refused, uploads::tests::privacy_refusals_leave_no_lease_staged_or_final_blob
+a PNG colour chunk after image data is accepted: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::privacy_tests::png_unused_compressed_or_decoded_bytes_are_refused, uploads::tests::privacy_refusals_leave_no_lease_staged_or_final_blob
+a later IDAT payload is ignored but retained: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::png_state::tests::streaming_drains_full_buffers_and_refuses_short_or_excess_extents, uploads::privacy_tests::png_unused_compressed_or_decoded_bytes_are_refused, uploads::tests::privacy_refusals_leave_no_lease_staged_or_final_blob
+a PNG stream retains a later payload after zlib end: KILLED (3 of 117 tests fail)
+Native assertion failures: uploads::privacy_tests::png_animation_streams_are_complete_bounded_and_well_formed, uploads::privacy_tests::png_unused_compressed_or_decoded_bytes_are_refused, uploads::tests::privacy_refusals_leave_no_lease_staged_or_final_blob
+a PNG stream retains same-piece bytes after zlib end: KILLED (3 of 117 tests fail)
+Native assertion failures: uploads::png_state::tests::streaming_drains_full_buffers_and_refuses_short_or_excess_extents
+inflation crosses its declared extent without immediate refusal: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::png_state::tests::streaming_drains_full_buffers_and_refuses_short_or_excess_extents
+a completed PNG stream with too few decoded bytes is accepted: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::privacy_tests::png_unused_compressed_or_decoded_bytes_are_refused
+a PNG stream need not reach its zlib end: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::privacy_tests::png_unused_compressed_or_decoded_bytes_are_refused
+a PNG stream ignores its Adler checksum: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::png_state::tests::animation_reserves_one_budget_before_each_frame_stream
+the PNG expanded-work budget resets for every frame: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::png_state::tests::animation_reserves_one_budget_before_each_frame_stream, uploads::png_state::tests::one_budget_reserves_all_frames_and_checks_exact_bound
+PNG frame extent does not reserve a bounded shared budget: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::privacy_tests::png_animation_streams_are_complete_bounded_and_well_formed
+an APNG need not have its declared number of frames: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::privacy_tests::png_animation_streams_are_complete_bounded_and_well_formed
+APNG sequence numbers are not checked: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::privacy_tests::png_animation_streams_are_complete_bounded_and_well_formed
+an APNG frame may extend outside its canvas: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::privacy_tests::png_animation_streams_are_complete_bounded_and_well_formed, uploads::tests::privacy_refusals_leave_no_lease_staged_or_final_blob
+orphan APNG data is ignored but retained: KILLED (2 of 117 tests fail)
+Native assertion failures: uploads::privacy_tests::png_interleaved_frame_metadata_is_explicitly_unsupported
+browser-ambiguous interleaved APNG data is accepted: KILLED (1 of 117 tests fail)
+Native assertion failures: uploads::privacy_tests::icc_duplicate_signatures_are_dropped_without_dropping_shared_curves, uploads::privacy_tests::identical_duplicate_icc_signature_is_also_ambiguous, uploads::tests::privacy_rewrite_is_the_preview_claim_storage_key_and_served_body
+duplicate ICC tag signatures survive rebuilding: KILLED (3 of 117 tests fail)
+146 of 146 mutants killed
+memory bound: no process was stopped

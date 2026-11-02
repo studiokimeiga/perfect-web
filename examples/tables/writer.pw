@@ -1,0 +1,45 @@
+// Minimal generated-table write components for the D2 Wasmtime host test
+// (ADR-0386): a command that reads its own writes before it commits, and
+// one that stops after a write. These use compiler-generated operations,
+// not handwritten host bindings.
+module tables.writer
+
+import Lists.{ TodoList }
+import Lists
+import Items.{ Item }
+import Items
+
+// Its own write, read back before it commits.
+command insert_then_get(list: TodoList) -> Result<Option<TodoList>, TodoList>
+    transaction serializable
+{
+    match Lists.insert(list) {
+        Ok(_) => Ok(Lists.get(list.id)),
+        Err(held) => Err(held),
+    }
+}
+
+// An item kept, then the open items, read through the index the put kept.
+command put_then_open(item: Item) -> List<Item>
+    transaction serializable
+{
+    Items.put(item)
+    Items.by_done(false)
+}
+
+// A list kept whole, refused by the list that holds its slug.
+command rename(list: TodoList) -> Result<(), TodoList>
+    transaction serializable
+{
+    Lists.put(list)
+}
+
+// A write, then a division by `by`: by zero, it stops after its write.
+command insert_then_divide(list: TodoList, by: Int) -> Result<Int, TodoList>
+    transaction serializable
+{
+    match Lists.insert(list) {
+        Ok(_) => Ok(100 / by),
+        Err(held) => Err(held),
+    }
+}

@@ -1,22 +1,22 @@
 ADR-0320 - a block is told part by part while its arm stays
 
 produced by: just e14-block-parts
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == the blocks a page's plan names (compiler/pw-core/tests/blocks_that_render_a_query.rs, page_blocks.rs)
 
-test a_block_inside_one_is_rendered_with_it ... ok
 test the_cart_page_as_it_is_plans_what_it_did ... ok
+test a_block_inside_one_is_rendered_with_it ... ok
 test a_block_a_parameter_decides_that_renders_a_query_is_planned ... ok
 test a_block_the_readers_answer_decides_is_planned_where_it_renders_a_query ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.89s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.14s
 test what_a_row_reads_of_another_query_is_refused ... ok
 test a_block_a_query_decides_is_planned ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
 
 == what changed in a block, and in a row, part by part (runtime/pw-render/tests/block_changes.rs, instance_changes.rs)
 
@@ -25,31 +25,31 @@ test a_block_that_shows_another_arm_is_rendered_again ... ok
 test a_block_inside_is_looked_into_while_it_decides_as_it_did ... ok
 test a_part_inside_an_arm_that_stays_is_set_where_it_is ... ok
 test nothing_changed_is_no_change ... ok
-test what_the_arm_binds_is_read_on_each_side ... ok
 test a_keyed_list_inside_it_is_changed_where_it_is ... ok
+test what_the_arm_binds_is_read_on_each_side ... ok
 test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test a_block_that_changed_renders_the_instance_again ... ok
-test a_renamed_item_sets_its_text_and_every_attribute_that_reads_the_name ... ok
 test a_match_that_shows_the_arm_it_showed_is_set_where_it_is ... ok
+test a_renamed_item_sets_its_text_and_every_attribute_that_reads_the_name ... ok
 test a_block_that_decides_as_it_did_is_set_where_it_is ... ok
 test an_attribute_is_set_as_the_document_writes_it_and_a_boolean_one_comes_and_goes ... ok
-test nothing_changed_is_no_change ... ok
 test an_unkeyed_list_inside_the_row_that_changed_renders_the_row_again ... ok
+test nothing_changed_is_no_change ... ok
 test what_a_handler_captures_is_set_where_it_is ... ok
 test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 == the host: a block told part by part, one a speculation renders, and the search's sentence
 
-test tests::a_block_that_shows_the_arm_it_showed_is_told_part_by_part ... ok
 test tests::a_block_a_speculation_renders_is_rendered_again_whole ... ok
+test tests::a_block_that_shows_the_arm_it_showed_is_told_part_by_part ... ok
 test tests::a_block_whose_rendering_changed_is_rendered_again ... ok
 test tests::store_search::an_open_search_page_is_told_of_a_menu_change ... ok
 test tests::store_search::the_sentence_inside_its_arm_is_told_where_it_is ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 708 filtered out; finished in 7.63s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 736 filtered out; finished in 6.75s
 
 == the search's sentence told where it is, in three engines (e2e/store-search.spec.mjs)
 
-  3 passed (21.7s)
+  3 passed (21.9s)
 
 == mutation controls (scripts/block_parts_mutations.py)
 

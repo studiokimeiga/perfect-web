@@ -1,0 +1,85 @@
+{
+  "scope": "Precommit dirty proposal validation only; not frozen integration-head gate credit",
+  "base": "2f5798b14fbe26ec000f066cdf4becb584262691",
+  "store_restored": true,
+  "test_sha256": "81bf78bc8bce02f90049a5d8f00cd999897c70bba4951a47806585bfc735df50",
+  "producer_sha256": "5e3bddd2867ee0918826260118f1b57084bd858d9381c17a6e88698fa0eec37d",
+  "outcomes": [
+    {
+      "label": "baseline-GREEN",
+      "command": [
+        "cargo",
+        "test",
+        "--quiet",
+        "--locked",
+        "-p",
+        "pw-dev-server",
+        "--bin",
+        "pw-dev-server",
+        "--",
+        "tests::bounded_statements::placing_and_settling_where_payments_are_taken_is_bounded",
+        "tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_write_guard",
+        "--exact",
+        "--test-threads=1",
+        "--format=pretty"
+      ],
+      "exit_code": 0,
+      "passed": 2,
+      "failed": 0,
+      "failure_names": [],
+      "log": "bounded-clock-proposal-baseline-GREEN.log",
+      "log_sha256": "d0fd32a26683ed2c959ea278b0e63646d13fb962cb31bc43a3e9a5735d598701"
+    },
+    {
+      "label": "retry-guard-RED",
+      "command": [
+        "cargo",
+        "test",
+        "--quiet",
+        "--locked",
+        "-p",
+        "pw-dev-server",
+        "--bin",
+        "pw-dev-server",
+        "--",
+        "tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_write_guard",
+        "--exact",
+        "--test-threads=1",
+        "--format=pretty"
+      ],
+      "exit_code": 101,
+      "passed": 0,
+      "failed": 1,
+      "failure_names": [
+        "tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_write_guard"
+      ],
+      "log": "bounded-clock-proposal-retry-guard-RED.log",
+      "log_sha256": "c15bff9400cc4dad1c010f23a0f4452a6945f62faa42fbf1a592ef205106b1ee"
+    },
+    {
+      "label": "restored-GREEN",
+      "command": [
+        "cargo",
+        "test",
+        "--quiet",
+        "--locked",
+        "-p",
+        "pw-dev-server",
+        "--bin",
+        "pw-dev-server",
+        "--",
+        "tests::bounded_statements::placing_and_settling_where_payments_are_taken_is_bounded",
+        "tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_write_guard",
+        "--exact",
+        "--test-threads=1",
+        "--format=pretty"
+      ],
+      "exit_code": 0,
+      "passed": 2,
+      "failed": 0,
+      "failure_names": [],
+      "log": "bounded-clock-proposal-restored-GREEN.log",
+      "log_sha256": "8e39441f958ee7fade2a7be20ed53aba169eaf6d5011ddda7233120aecad434f"
+    }
+  ]
+}

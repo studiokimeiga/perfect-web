@@ -1,0 +1,20 @@
+command: python3 -m unittest -v scripts/tests/test_verify_recipe_database_env.py
+base: 2f5798b14fbe26ec000f066cdf4becb584262691
+workflow: unchanged before repair
+exit_code: 1
+test_a_database_shard_exports_both_adapter_urls_to_its_recipes (scripts.tests.test_verify_recipe_database_env.VerifyRecipeDatabaseEnvironment) ... FAIL
+test_a_shard_without_a_database_leaves_both_adapter_urls_unset (scripts.tests.test_verify_recipe_database_env.VerifyRecipeDatabaseEnvironment) ... ok
+test_the_command_gate_still_refuses_either_missing_adapter_url (scripts.tests.test_verify_recipe_database_env.VerifyRecipeDatabaseEnvironment) ... ok
+
+======================================================================
+FAIL: test_a_database_shard_exports_both_adapter_urls_to_its_recipes (scripts.tests.test_verify_recipe_database_env.VerifyRecipeDatabaseEnvironment)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/session-command-producer-20261027/scripts/tests/test_verify_recipe_database_env.py", line 83, in test_a_database_shard_exports_both_adapter_urls_to_its_recipes
+    self.assertEqual(observed["store"], database)
+AssertionError: None != 'postgresql://postgres:ci%24pw@localhost:[41 chars]+env'
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.179s
+
+FAILED (failures=1)

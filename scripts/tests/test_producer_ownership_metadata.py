@@ -1,12 +1,20 @@
 """Actual producer verdicts retain their canonical mutation-count owner."""
-from pathlib import Path
+import io
 import sys
+import tempfile
 import unittest
+from contextlib import redirect_stdout
+from importlib import import_module
+from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
 import evidence_counts
 import producer_ownership_mutations
+
+guide_python = import_module('guide_python')
 
 # The nine verdict lines from verify39526960864 at f15117de. Their native
 # receipts were valid; eight were misread because bare method identifiers
@@ -37,6 +45,44 @@ class Metadata(unittest.TestCase):
             'producer_ownership_mutations.py',
         )
         self.assertEqual(evidence_counts.disagree(catalog, killed, total, verdicts), [])
+
+    def test_production_freeze_includes_the_pid_publication_witness(self):
+        search = ROOT / 'scripts/tests'
+        # Exercise main's real native/canonical inventory comparison, then stop
+        # before any witness or mutation. Only the baseline result is synthetic.
+        refused = SimpleNamespace(output='', result=SimpleNamespace(valid=False, failed=0))
+        owner = SimpleNamespace(mutation_bound=SimpleNamespace(
+            start=lambda: SimpleNamespace(stopped=False)))
+        with tempfile.TemporaryDirectory() as directory:
+            evidence = Path(directory)
+            with (
+                mock.patch.object(producer_ownership_mutations, 'tempfile',
+                                  SimpleNamespace(mkdtemp=lambda **_: directory)),
+                mock.patch.dict(sys.modules, {'mutation_baseline': owner}),
+                mock.patch.object(guide_python, 'freeze', wraps=guide_python.freeze) as frozen,
+                mock.patch.object(guide_python, 'run', return_value=refused) as run,
+                redirect_stdout(io.StringIO()),
+            ):
+                self.assertEqual(producer_ownership_mutations.main(), 1)
+            frozen.assert_called_once_with('test_producer_ownership', search,
+                                           'test_producer_ownership.py', 11, evidence)
+            run.assert_called_once()
+            expected = run.call_args.args[1]
+            self.assertEqual(len(expected), 11)
+            self.assertIn(
+                'test_producer_ownership.ProducerOwnership.'
+                'test_pid_readiness_is_published_only_after_complete_record_for_all_four',
+                expected,
+            )
+            self.assertEqual(expected, sorted(set(expected)))
+
+    def test_native_freeze_still_refuses_the_stale_ten_test_count(self):
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            self.assertRaisesRegex(guide_python.DiscoveryRefused, 'frozen inventory mismatch'),
+        ):
+            guide_python.freeze('test_producer_ownership', ROOT / 'scripts/tests',
+                                'test_producer_ownership.py', 10, Path(directory))
 
 
 if __name__ == '__main__':

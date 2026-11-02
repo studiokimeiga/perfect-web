@@ -1,8 +1,8 @@
 ADR-0139 - a frame is forgotten when the page says it applied it
 
 produced by: just e14-stream-ack
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the server (spikes/own-renderer/server)
@@ -10,10 +10,10 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test tests::a_page_with_nothing_streamed_is_one_response_of_known_length ... ok
 test tests::a_streamed_region_follows_its_document_in_the_same_response ... ok
 test tests::page_policy::a_streamed_document_carries_its_policy_in_its_head ... ok
-test tests::the_feeds_page_opening_its_stream_is_not_told_to_reload ... ok
 test tests::a_frame_a_stream_wrote_to_a_dropped_connection_still_reaches_its_page ... ok
 test tests::a_stream_drops_what_its_page_says_it_applied ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 707 filtered out; finished in 3.35s
+test tests::the_feeds_page_opening_its_stream_is_not_told_to_reload ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 735 filtered out; finished in 4.88s
 
 == mutation controls (scripts/stream_ack_mutations.py)
 
@@ -26,42 +26,42 @@ memory bound: no process was stopped
 == the keyed-list suite, twenty runs
 
 == run 1 of 20
-  48 passed (1.7m)
+  48 passed (2.0m)
 == run 2 of 20
-  48 passed (1.7m)
+  48 passed (2.0m)
 == run 3 of 20
-  48 passed (1.7m)
+  48 passed (2.0m)
 == run 4 of 20
-  48 passed (1.7m)
+  48 passed (2.0m)
 == run 5 of 20
-  48 passed (1.7m)
+  48 passed (2.0m)
 == run 6 of 20
-  48 passed (1.7m)
+  48 passed (2.0m)
 == run 7 of 20
-  48 passed (1.7m)
+  48 passed (2.0m)
 == run 8 of 20
-  48 passed (1.7m)
+  48 passed (2.0m)
 == run 9 of 20
-  48 passed (1.8m)
+  48 passed (2.0m)
 == run 10 of 20
-  48 passed (1.8m)
+  48 passed (2.0m)
 == run 11 of 20
-  48 passed (1.7m)
+  48 passed (2.0m)
 == run 12 of 20
-  48 passed (1.7m)
+  48 passed (2.0m)
 == run 13 of 20
-  48 passed (1.7m)
+  48 passed (2.0m)
 == run 14 of 20
-  48 passed (1.7m)
+  48 passed (2.0m)
 == run 15 of 20
-  48 passed (1.7m)
+  48 passed (2.0m)
 == run 16 of 20
-  48 passed (1.8m)
+  48 passed (2.0m)
 == run 17 of 20
-  48 passed (1.7m)
+  48 passed (2.0m)
 == run 18 of 20
-  48 passed (1.8m)
+  48 passed (2.0m)
 == run 19 of 20
-  48 passed (1.8m)
+  48 passed (2.0m)
 == run 20 of 20
-  48 passed (1.8m)
+  48 passed (2.0m)

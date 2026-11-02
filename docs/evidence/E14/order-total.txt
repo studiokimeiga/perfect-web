@@ -1,8 +1,8 @@
 Track order-total - an order's total: each store's fees and tax, a promo code and a tip
 
 produced by: just e14-order-total
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
@@ -10,33 +10,33 @@ postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
 test tests::order_total::new_york_citys_rate_on_delivery_where_it_is_taxed ... ok
 test tests::order_total::a_store_funded_discount_lowers_the_tax_and_a_platform_funded_one_does_not ... ok
-test tests::order_total::each_promo_refusal_is_by_name ... ok
 test tests::order_total::a_tip_is_never_taxed_and_never_a_default ... ok
-test tests::order_total::the_order_is_charged_the_total_its_page_showed ... ok
-test tests::order_total::the_service_fee_is_clamped_at_its_least_and_its_most ... ok
-test tests::order_total::texas_half_a_cent_is_a_cent_once_on_the_order ... ok
+test tests::order_total::each_promo_refusal_is_by_name ... ok
 test tests::order_total::the_fees_and_codes_read_back_alike_on_this_layer ... ok
+test tests::order_total::the_order_is_charged_the_total_its_page_showed ... ok
+test tests::order_total::texas_half_a_cent_is_a_cent_once_on_the_order ... ok
+test tests::order_total::the_service_fee_is_clamped_at_its_least_and_its_most ... ok
 test tests::order_total::the_small_order_fee_is_charged_under_its_threshold_and_not_at_it ... ok
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 704 filtered out; finished in 21.59s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 732 filtered out; finished in 22.19s
 
 == the total, the store on PostgreSQL (PW_STORE_TEST_LAYER=postgres), and the checkout's own (checkout.rs)
 
 test checkout::tests::on_postgres_the_fees_of_a_carts_stores_are_one_statement ... ok
 test checkout::tests::on_postgres_two_orders_at_once_use_a_code_once ... ok
-test tests::order_total::each_promo_refusal_is_by_name ... ok
 test tests::order_total::a_store_funded_discount_lowers_the_tax_and_a_platform_funded_one_does_not ... ok
-test tests::order_total::new_york_citys_rate_on_delivery_where_it_is_taxed ... ok
 test tests::order_total::a_tip_is_never_taxed_and_never_a_default ... ok
-test tests::order_total::the_fees_and_codes_read_back_alike_on_this_layer ... ok
+test tests::order_total::new_york_citys_rate_on_delivery_where_it_is_taxed ... ok
+test tests::order_total::each_promo_refusal_is_by_name ... ok
 test tests::order_total::texas_half_a_cent_is_a_cent_once_on_the_order ... ok
+test tests::order_total::the_fees_and_codes_read_back_alike_on_this_layer ... ok
 test tests::order_total::the_order_is_charged_the_total_its_page_showed ... ok
 test tests::order_total::the_service_fee_is_clamped_at_its_least_and_its_most ... ok
 test tests::order_total::the_small_order_fee_is_charged_under_its_threshold_and_not_at_it ... ok
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 702 filtered out; finished in 23.34s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 730 filtered out; finished in 22.81s
 
 == the cart and the order in three engines (e2e/order-total.spec.mjs)
 
-  6 passed (21.3s)
+  6 passed (21.0s)
 
 == mutation controls (scripts/order_total_mutations.py)
 

@@ -1,51 +1,51 @@
 ADR-0187 - nothing the store contains is on screen when its page is first laid out
 
 produced by: just e14-stable-layout
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == the page, in three engines (e2e/stable-layout.spec.mjs)
 
-  ✓   2 [chromium] › e2e/stable-layout.spec.mjs:33:3 › the store's page does not shift as it loads, on a phone (1.5s)
-  ✓   1 [chromium] › e2e/stable-layout.spec.mjs:33:3 › the store's page does not shift as it loads, on a desktop (1.5s)
-  ✓   4 [chromium] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: many short categories (1.9s)
-  ✓   5 [chromium] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: many one-item categories, then a long one (1.7s)
-  ✓   6 [chromium] › e2e/stable-layout.spec.mjs:113:1 › the store's own menu is not contained, as it is short (1.0s)
-  ✓   3 [chromium] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: a long category (5.5s)
-  ✓   8 [chromium] › e2e/stable-layout.spec.mjs:136:1 › the store's style is in its head, where it is read before the body (627ms)
-  ✓   7 [chromium] › e2e/stable-layout.spec.mjs:121:1 › a contained item's placeholder is an item's height (1.6s)
+  ✓   1 [chromium] › e2e/stable-layout.spec.mjs:33:3 › the store's page does not shift as it loads, on a desktop (1.4s)
+  ✓   2 [chromium] › e2e/stable-layout.spec.mjs:33:3 › the store's page does not shift as it loads, on a phone (1.4s)
+  ✓   4 [chromium] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: many short categories (1.7s)
+  ✓   5 [chromium] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: many one-item categories, then a long one (1.6s)
+  ✓   3 [chromium] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: a long category (4.1s)
+  ✓   6 [chromium] › e2e/stable-layout.spec.mjs:113:1 › the store's own menu is not contained, as it is short (915ms)
+  ✓   8 [chromium] › e2e/stable-layout.spec.mjs:136:1 › the store's style is in its head, where it is read before the body (510ms)
+  ✓   7 [chromium] › e2e/stable-layout.spec.mjs:121:1 › a contained item's placeholder is an item's height (1.2s)
   -   9 [firefox] › e2e/stable-layout.spec.mjs:33:3 › the store's page does not shift as it loads, on a phone
   -  10 [firefox] › e2e/stable-layout.spec.mjs:33:3 › the store's page does not shift as it loads, on a desktop
-  ✓  12 [firefox] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: many short categories (3.0s)
-  ✓  11 [firefox] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: a long category (4.7s)
-  ✓  13 [firefox] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: many one-item categories, then a long one (2.1s)
+  ✓  12 [firefox] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: many short categories (2.4s)
+  ✓  11 [firefox] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: a long category (3.4s)
   ✓  14 [firefox] › e2e/stable-layout.spec.mjs:113:1 › the store's own menu is not contained, as it is short (1.2s)
-  ✓  16 [firefox] › e2e/stable-layout.spec.mjs:136:1 › the store's style is in its head, where it is read before the body (810ms)
-  ✓  15 [firefox] › e2e/stable-layout.spec.mjs:121:1 › a contained item's placeholder is an item's height (1.5s)
+  ✓  13 [firefox] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: many one-item categories, then a long one (1.9s)
+  ✓  15 [firefox] › e2e/stable-layout.spec.mjs:121:1 › a contained item's placeholder is an item's height (1.2s)
+  ✓  16 [firefox] › e2e/stable-layout.spec.mjs:136:1 › the store's style is in its head, where it is read before the body (683ms)
   -  17 [webkit] › e2e/stable-layout.spec.mjs:33:3 › the store's page does not shift as it loads, on a phone
-  -  19 [webkit] › e2e/stable-layout.spec.mjs:33:3 › the store's page does not shift as it loads, on a desktop
-  ✓  20 [webkit] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: many short categories (3.6s)
-  ✓  18 [webkit] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: a long category (6.5s)
-  ✓  21 [webkit] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: many one-item categories, then a long one (3.5s)
-  ✓  22 [webkit] › e2e/stable-layout.spec.mjs:113:1 › the store's own menu is not contained, as it is short (1.5s)
-  ✓  24 [webkit] › e2e/stable-layout.spec.mjs:136:1 › the store's style is in its head, where it is read before the body (856ms)
-  ✓  23 [webkit] › e2e/stable-layout.spec.mjs:121:1 › a contained item's placeholder is an item's height (1.6s)
+  -  18 [webkit] › e2e/stable-layout.spec.mjs:33:3 › the store's page does not shift as it loads, on a desktop
+  ✓  20 [webkit] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: many short categories (2.8s)
+  ✓  19 [webkit] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: a long category (4.9s)
+  ✓  21 [webkit] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: many one-item categories, then a long one (2.7s)
+  ✓  22 [webkit] › e2e/stable-layout.spec.mjs:113:1 › the store's own menu is not contained, as it is short (1.3s)
+  ✓  24 [webkit] › e2e/stable-layout.spec.mjs:136:1 › the store's style is in its head, where it is read before the body (671ms)
+  ✓  23 [webkit] › e2e/stable-layout.spec.mjs:121:1 › a contained item's placeholder is an item's height (1.3s)
   4 skipped
-  20 passed (39.6s)
+  20 passed (30.4s)
 
 == a thousand items, alone in Chromium (e2e/performance.spec.mjs, E7 gate item 10)
 
 EVIDENCE large-menu-items=1000
 EVIDENCE large-menu-content-visibility=auto
 EVIDENCE large-menu-contained=972
-EVIDENCE large-menu-first-layout-ms-visible=36.4 samples=[35.4,40.6,55.2,30,36.4]
-EVIDENCE large-menu-first-layout-ms-contained=5.0 samples=[5,5.1,4.2,4.5,5.1]
-EVIDENCE large-menu-first-layout-ms-as-served=6.0 samples=[6,6.2,5.3,5.9,6]
-  ✓  1 [chromium] › e2e/performance.spec.mjs:264:1 › gate 10: a thousand-item menu keeps a bounded rendering cost (4.0s)
-  1 passed (13.3s)
+EVIDENCE large-menu-first-layout-ms-visible=31.2 samples=[31.5,22.8,29.1,31.3,31.2]
+EVIDENCE large-menu-first-layout-ms-contained=4.0 samples=[3.9,3.4,4.3,4,4.2]
+EVIDENCE large-menu-first-layout-ms-as-served=5.2 samples=[7.6,4.7,5.2,5.5,4.9]
+  ✓  1 [chromium] › e2e/performance.spec.mjs:264:1 › gate 10: a thousand-item menu keeps a bounded rendering cost (3.1s)
+  1 passed (10.0s)
 
 == mutation controls (scripts/stable_layout_mutations.py)
 

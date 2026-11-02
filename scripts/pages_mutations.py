@@ -68,13 +68,8 @@ MUTANTS = [
         # by ADR-0277, whose documents are those a telling takes; by
         # ADR-0297, which takes them before the loop; and by NEXT 4c's render
         # merge (track `render-merge`), which reads those whose pages ask.
-        "        for doc in live {\n"
-        "            let params = self.params_of(&doc);\n",
-        "        for doc in live\n"
-        "            .into_iter()\n"
-        "            .filter(|d| self.page_of(d) == self.store_page())\n"
-        "        {\n"
-        "            let params = self.params_of(&doc);\n",
+        '        for (doc, reader) in live {\n',
+        '        for (doc, reader) in live.into_iter().filter(|(doc,_)| self.page_of(doc) == self.store_page()) {\n',
     ),
     (
         "every page renders the store's menu",

@@ -897,16 +897,21 @@ pub mod engine {
     /// engine does, without depending on a second copy of the engine.
     pub use wasmtime::component::Val;
 
-    /// Strict read-only table selector conversion, before manifest validation.
+    /// Strict table selector and row conversion, before an adapter reads them.
     pub mod table_selectors;
 
-    /// Flat read-only table row values; no linker bindings are installed here.
+    /// Table rows and answers as WIT values; no linker bindings are installed here.
     pub mod table_results;
 
     /// Compose an admitted table read's adapter closure into one host callback.
     pub mod table_read_host;
 
-    /// A table import's type, held to tables.json where it is linked.
+    /// Compose an admitted table write's adapter closure into one host
+    /// callback (ADR-0386).
+    pub mod table_write_host;
+
+    /// A table import's type, held to tables.json where it is linked, and
+    /// each of its answers when it is given.
     pub mod table_link;
 
     /// **The configuration of every engine the host makes** (ADR-0244): the
@@ -1034,6 +1039,25 @@ pub mod engine {
                     contract.component_id
                 )
             })
+    }
+
+    /// **What the export being invoked is** (`command`, `query`, …), as its
+    /// contract declares it, where it declares the export.
+    fn export_kind<'a>(contract: &'a crate::ComponentContract, export: &[&str]) -> Option<&'a str> {
+        let (interface, function) = match export {
+            [function] => ("", *function),
+            [interface, function] => (*interface, *function),
+            _ => return None,
+        };
+        contract
+            .exports
+            .iter()
+            .find(|e| {
+                e.component
+                    .as_ref()
+                    .is_some_and(|c| c.interface == interface && c.function == function)
+            })
+            .map(|e| e.kind.as_str())
     }
 
     /// Authorization requirements for the exact export being invoked.
@@ -1200,14 +1224,17 @@ pub mod engine {
         Prepared::compile(bytes)?.call_within(contract, granted, limits, host, export, args)
     }
 
-    /// **[`call_within`], for a component that reads a program's tables**
-    /// (ADR-0338 D2): every `pw:tables/…` import a grant would link is linked
-    /// only as `tables`' gate admits it ([`crate::tables::gate_links`]), and
-    /// only typed as tables.json declares its read
-    /// ([`table_link::check_import`]); and each of its answers, whoever
-    /// supplies it, reaches the component only as its read's
+    /// **[`call_within`], for a component that reads or writes a program's
+    /// tables** (ADR-0338 D2; ADR-0385, ADR-0386): every `pw:tables/…` import
+    /// a grant would link is linked only as `tables`' gate admits it
+    /// ([`crate::tables::gate_links`]), a write only into an export the
+    /// contract declares a `command`, and only typed as tables.json declares
+    /// its function ([`table_link::check_import`]); and each of its answers,
+    /// whoever supplies it, reaches the component only as its function's
     /// ([`table_link::check_answer`]). [`call_within`] and every other call
-    /// links no table import.
+    /// links no table import. A command's writes are its data layer's to
+    /// stage until it commits (`pw-table-memory`'s `Command`): the engine
+    /// begins and commits nothing.
     #[allow(clippy::too_many_arguments)]
     pub fn call_with_tables(
         bytes: &[u8],
@@ -2666,8 +2693,10 @@ pub mod engine {
         let mut linker: Linker<crate::Meter> = Linker::new(&engine);
         let supplied = crate::linkable(contract, granted);
         // A table's import links through the table gate or not at all
-        // (ADR-0338 D2; the integrator's ruling 2 of 2026-10-25).
-        let table_reads = crate::tables::gate_links(contract, granted, tables)?;
+        // (ADR-0338 D2; the integrator's ruling 2 of 2026-10-25), and a
+        // table's write only into a command (ADR-0386).
+        let command = export_kind(contract, export) == Some("command");
+        let table_functions = crate::tables::gate_links(contract, granted, tables, command)?;
         let functions = imported_functions(&engine, &component);
         let wanted: BTreeSet<&str> = supplied.iter().map(String::as_str).collect();
 
@@ -2692,14 +2721,14 @@ pub mod engine {
                         "`{key}` is granted and the host implements nothing for it"
                     ));
                 };
-                // A table's read is linked only as tables.json types it, and
-                // refused here, before anything is instantiated (the
+                // A table's function is linked only as tables.json types it,
+                // and refused here, before anything is instantiated (the
                 // integrator's ruling 4 of 2026-10-25).
-                let read = table_reads.get(&key).cloned();
-                if let Some(read) = &read {
+                let function = table_functions.get(&key).cloned();
+                if let Some(function) = &function {
                     let ty = imported_func(&engine, &component, interface, func)
                         .ok_or_else(|| format!("`{key}` is no function the component imports"))?;
-                    table_link::check_import(read, &ty)?;
+                    table_link::check_import(function, &ty)?;
                 }
                 let named = key.clone();
                 // What its answer must hold (ADR-0179), as the contract states.
@@ -2721,13 +2750,14 @@ pub mod engine {
                             .collect::<Result<_, _>>()
                             .map_err(|e| wasmtime::Error::msg(format!("`{named}`: {e}")))?;
                         let out = implementation(&args).map_err(wasmtime::Error::msg)?;
-                        // A table read's answer is its read's, exactly, or the
-                        // call fails: never projected, never passed on (the
-                        // integrator's rulings 7 and 8 of 2026-10-25).
-                        if let Some(read) = &read {
-                            table_link::check_answer(read, &args, &out).map_err(|why| {
+                        // A table function's answer is its function's,
+                        // exactly, or the call fails: never projected, never
+                        // passed on (the integrator's rulings 7 and 8 of
+                        // 2026-10-25; ADR-0386).
+                        if let Some(function) = &function {
+                            table_link::check_answer(function, &args, &out).map_err(|why| {
                                 wasmtime::Error::msg(format!(
-                                    "`{named}` answered what its read is not: {why}"
+                                    "`{named}` answered what its function is not: {why}"
                                 ))
                             })?;
                         }
@@ -2886,7 +2916,7 @@ pub mod engine {
         // No table import links here: a stub would answer a read for any
         // table a contract claims (ADR-0338 D2; the integrator's ruling 2 of
         // 2026-10-25). `call_with_tables` links one through the gate.
-        crate::tables::gate_links(contract, granted, None)?;
+        crate::tables::gate_links(contract, granted, None, false)?;
 
         // **Grouped by interface, and only the FUNCTIONS.**
         //
@@ -2982,3 +3012,6 @@ pub mod engine {
         })
     }
 }
+
+#[cfg(test)]
+mod test_assertions;

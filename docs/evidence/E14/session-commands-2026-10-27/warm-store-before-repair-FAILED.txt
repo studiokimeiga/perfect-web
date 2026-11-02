@@ -1,0 +1,22 @@
+   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/spikes/own-renderer/server)
+    Finished `test` profile [unoptimized] target(s) in 2.86s
+     Running unittests src/main.rs (/home/haki/code/pw-wt/scheduler-replay-20261026/target/debug/deps/pw_dev_server-5e86e56b2e1b21ec)
+
+running 1 test
+test tests::session_commands_pg::store_lost_ack_and_hidden_receipt_remain_unknown ... FAILED
+
+failures:
+
+---- tests::session_commands_pg::store_lost_ack_and_hidden_receipt_remain_unknown stdout ----
+
+thread 'tests::session_commands_pg::store_lost_ack_and_hidden_receipt_remain_unknown' (698675) panicked at spikes/own-renderer/server/src/tests/session_commands_pg.rs:435:9:
+the original warm document must receive the actual committed value before any new GET or source restoration: []
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::session_commands_pg::store_lost_ack_and_hidden_receipt_remain_unknown
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 843 filtered out; finished in 6.31s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

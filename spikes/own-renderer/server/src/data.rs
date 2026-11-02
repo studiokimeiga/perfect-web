@@ -191,13 +191,45 @@ pub(crate) trait DataLayer: Send + Sync {
 }
 
 /// **One command's writes, staged** (ADR-0218).
+/// The authoritative commit location/outcome; NotCurrent never means fallback.
+pub(crate) enum Commit {
+    Materializer,
+    Applied(Outboxed),
+    NotCurrent,
+}
+
+/// Scope of the materializer projection, distinct from authoritative business rows.
+pub(crate) enum ProjectionScope {
+    Application,
+    Session,
+}
+
 pub(crate) trait Staged {
+    /// Admit a fixed browser actor before executing any host operation.
+    /// A persistent authority needs its adapter's same-transaction fence.
+    fn authorize(&mut self, actor: &crate::identity::CommandActor) -> Result<(), String> {
+        if actor.is_local() {
+            actor.ensure_local_current().map_err(String::from)
+        } else {
+            Err("this data adapter cannot fence the session authority".into())
+        }
+    }
+    /// No-write and declared-error results still require current authority.
+    fn revalidate(&mut self) -> Result<(), String> {
+        Ok(())
+    }
+
     /// The command's operations: the layer's reads, and its writes, which
     /// stage.
     fn ops(&self) -> Ops;
     /// What the commit writes in the materializer's transaction, by key, or
     /// none where nothing was written.
     fn rows(&self) -> Option<Vec<(String, String)>>;
+    /// Session presentation has no retained target for a Clock-origin invocation.
+    fn projection_scope(&self) -> ProjectionScope {
+        ProjectionScope::Application
+    }
+
     /// After the commit: what was staged is the layer's.
     fn publish(&mut self);
 
@@ -209,7 +241,8 @@ pub(crate) trait Staged {
     /// Returns what its outbox committed, read back once the transaction
     /// committed, which the host delivers. `None` where the layer keeps no
     /// outbox: the host's materializer commits the events with [`rows`].
-    /// An error is a commit refused, and nothing of the command is kept.
+    /// An error may be refusal or an unknown COMMIT acknowledgement. Reconcile
+    /// from authoritative receipt/queue state; never infer rollback from Err alone.
     ///
     /// [`rows`]: Staged::rows
     ///
@@ -225,8 +258,15 @@ pub(crate) trait Staged {
         _invalidated: &[Dropped],
         _interaction: Option<&Recorded<'_>>,
         _scheduled: &[crate::schedules::Scheduled],
-    ) -> Result<Option<Outboxed>, String> {
-        Ok(None)
+        _completing: Option<crate::schedules::Completing<'_>>,
+    ) -> Result<Commit, String> {
+        Ok(Commit::Materializer)
+    }
+
+    /// Idempotent blob preparation only, inside the materializer transaction
+    /// after its job fence. This is never a fallible business publication seam.
+    fn prepare_materialized(&mut self) -> Result<(), String> {
+        Ok(())
     }
 }
 

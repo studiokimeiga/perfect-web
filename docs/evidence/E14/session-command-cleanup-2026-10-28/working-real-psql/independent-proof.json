@@ -1,0 +1,42 @@
+{
+  "head_at_execution": "5371f0f20d7fcb50826d3a775b5bbac72c1b14b0",
+  "scope": "WORKING_REPAIR_ONLY_NOT_EXACT_H_EXECUTION; direct unchanged cleanup entrypoint with actual psql invalid URI and observed real child reaping",
+  "working_source_sha256": "82303162b32a42bbd195da416ce9b0ef9749ccf6e65efd88832249a672f26803",
+  "source_stable_during_probe": true,
+  "synthetic_only": true,
+  "cleanup_valid": false,
+  "statuses": [
+    2,
+    2
+  ],
+  "stderr_policy": "discarded at child launch",
+  "raw_cleanup_logs_both_empty": true,
+  "actual_reaped": [
+    {
+      "pid": 1690428,
+      "status": 2,
+      "timed_out": false,
+      "cancelled": false
+    },
+    {
+      "pid": 1690429,
+      "status": 2,
+      "timed_out": false,
+      "cancelled": false
+    }
+  ],
+  "all_produced_files_scanned_for_private_sentinel": true,
+  "sentinel_in_produced_files": [],
+  "all_prior_produced_file_hashes": {
+    "actual-process-observations.json": "ddf05832369d6f375033bc92973cadc215d4dfb4678d7caf99b18a740a51add3",
+    "cleanup-result.json": "03fe0c6a5435eecb41f27e115b617a5140ba28526e5504f6d729eaf4f55c3811",
+    "invalid-uri.cleanup-feed.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "invalid-uri.cleanup-store.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "owned-synthetic.schemas.txt": "0768a85b07910869150713b2baeb80cdd53542b91eb98e50d5d0700409418e95",
+    "working-session_command_mutations.py": "82303162b32a42bbd195da416ce9b0ef9749ccf6e65efd88832249a672f26803"
+  },
+  "no_actual_credentials_endpoint_database_connection_or_write": true,
+  "no_source_edit_native_Cargo_or_campaign": true,
+  "whole_campaign_acceptance": false,
+  "captured_utc": "2026-10-28T04:51:16.051756+00:00"
+}

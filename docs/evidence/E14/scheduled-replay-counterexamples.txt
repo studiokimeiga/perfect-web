@@ -1,0 +1,86 @@
+Pre-repair scheduler characterizations. Expected native assertion failures; no passing gate or mutation-kill claim. Production base4345726a. Commands and exact test names are in each raw output and ADR0388.
+
+== Pending generation after cleanup fault
+   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/scheduler-replay-20261026/spikes/own-renderer/server)
+    Finished `test` profile [unoptimized] target(s) in 4.11s
+     Running unittests src/main.rs (target/debug/deps/pw_dev_server-ea862d3cf808785b)
+
+running 1 test
+REPLAY_SCHEMA pw_store_test_1029444_0
+REPLAY_JOB id=1; key="store.page.add_later\u{1f}[\"espresso\"]"; args=["espresso"]; user="u-a"
+pw dev server: a scheduled run was not kept: PostgreSQL P0001: isolated cleanup fault after action commit
+REPLAY_RECEIPT committed-before-cleanup: key="on-behalf:schedule-1\u{1f}store.page.add_later\u{1f}schedule-1"; at_ms=1792991462238; sent=["espresso"]; answer={"committed":true,"refused":null,"result":{"$case":"ok"},"why":null}
+REPLAY_SNAPSHOT committed-before-cleanup: lines=[("espresso", 1)]; schedules=1; job_receipts=1; events=1
+pw dev server: a scheduled run was not kept: PostgreSQL P0001: isolated cleanup fault after action commit
+REPLAY_RECEIPT fresh-host-at-23h: key="on-behalf:schedule-1\u{1f}store.page.add_later\u{1f}schedule-1"; at_ms=1792991462238; sent=["espresso"]; answer={"committed":true,"refused":null,"result":{"$case":"ok"},"why":null}
+REPLAY_SNAPSHOT fresh-host-at-23h: lines=[("espresso", 1)]; schedules=1; job_receipts=1; events=1
+pw dev server: a scheduled run was not kept: PostgreSQL P0001: isolated cleanup fault after action commit
+REPLAY_RECEIPT fresh-host-at-25h: key="on-behalf:schedule-1\u{1f}store.page.add_later\u{1f}schedule-1"; at_ms=1793081462617; sent=["espresso"]; answer={"committed":true,"refused":null,"result":{"$case":"ok"},"why":null}
+REPLAY_SNAPSHOT fresh-host-at-25h: lines=[("espresso", 2)]; schedules=1; job_receipts=1; events=2
+
+thread 'tests::store_pg::on_postgres_a_pending_schedule_is_not_repeated_after_receipt_expiry' (1029445) panicked at spikes/own-renderer/server/src/tests/store_pg.rs:1135:5:
+assertion `left == right` failed: a pending durable job must not outlive its completion protection
+  left: ([("espresso", 2)], 2)
+ right: ([("espresso", 1)], 1)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test tests::store_pg::on_postgres_a_pending_schedule_is_not_repeated_after_receipt_expiry ... FAILED
+
+failures:
+
+failures:
+    tests::store_pg::on_postgres_a_pending_schedule_is_not_repeated_after_receipt_expiry
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 713 filtered out; finished in 5.33s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+== Stale generation after normal cleanup
+   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/scheduler-replay-20261026/spikes/own-renderer/server)
+    Finished `test` profile [unoptimized] target(s) in 3.58s
+     Running unittests src/main.rs (target/debug/deps/pw_dev_server-ea862d3cf808785b)
+
+running 1 test
+STALE_REPLAY_SCHEMA pw_store_test_1034021_0
+STALE_REPLAY_SNAPSHOT id=1; lines=[("espresso", 2)]; schedules=0; job_receipts=1; events=2
+
+thread 'tests::store_pg::on_postgres_a_stale_fetched_schedule_cannot_repeat_a_completed_action' (1034022) panicked at spikes/own-renderer/server/src/tests/store_pg.rs:1224:5:
+assertion `left == right` failed: an already consumed job's stale generation must not act again
+  left: ([("espresso", 2)], 2)
+ right: ([("espresso", 1)], 1)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test tests::store_pg::on_postgres_a_stale_fetched_schedule_cannot_repeat_a_completed_action ... FAILED
+
+failures:
+
+failures:
+    tests::store_pg::on_postgres_a_stale_fetched_schedule_cannot_repeat_a_completed_action
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 714 filtered out; finished in 5.08s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+== Same-host known refusal retry
+   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/scheduler-replay-20261026/spikes/own-renderer/server)
+    Finished `test` profile [unoptimized] target(s) in 3.88s
+     Running unittests src/main.rs (target/debug/deps/pw_dev_server-ea862d3cf808785b)
+
+running 1 test
+RETRY_CACHE_SCHEMA pw_store_test_1035893_0
+RETRY_CACHE_SNAPSHOT lines=[]; pending=[ScheduledRun { id: 1, command: "store.page.add_later", args: "[\"espresso\"]", user: "u-a", due_ms: 1792992581909, attempts: 2, failed: None }]
+
+thread 'tests::store_pg::on_postgres_a_scheduled_refusal_can_recover_on_the_same_host' (1035894) panicked at spikes/own-renderer/server/src/tests/store_pg.rs:1260:5:
+assertion `left == right` failed: a restored known-refused job must execute rather than replay its cached refusal
+  left: []
+ right: [("espresso", 1)]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test tests::store_pg::on_postgres_a_scheduled_refusal_can_recover_on_the_same_host ... FAILED
+
+failures:
+
+failures:
+    tests::store_pg::on_postgres_a_scheduled_refusal_can_recover_on_the_same_host
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 715 filtered out; finished in 4.60s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+

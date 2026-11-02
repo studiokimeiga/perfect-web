@@ -1,0 +1,18 @@
+[package]
+name = "pw-outbound-testkit"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+# A test's certificate authority and servers, for pw-outbound's tests and its
+# dependents' (ADR-0387). The integrator's ruling (2026-10-25): test material
+# stays out of the production crate, so this is its own crate, and every user
+# takes it as a dev-dependency: no crate the host ships depends on it. It
+# does not depend on pw-outbound (whose own tests use it), so a test links one
+# pw-outbound. rustls and ring at pw-outbound's versions, already in the
+# graph: no new crate.
+[dependencies]
+rustls = { version = "=0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
+ring = "=0.17.14"

@@ -1,14 +1,14 @@
 ADR-0382 - the modules a page loads when it first needs them are loaded within the deadline, and a failed load is not kept
 
 produced by: just e14-press-modules
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == a page's modules in three engines (e2e/press-modules.spec.mjs, e2e/computed-modules.spec.mjs)
 
-  24 passed (44.4s)
+  24 passed (44.6s)
 
 == mutation controls (scripts/press_modules_mutations.py)
 
@@ -20,7 +20,7 @@ baseline (browser): 8 passed, 0 failed
       - Expect "toHaveCount" with timeout 6000ms
       - waiting for locator('[data-pw-handler-error]')
            - unexpected value "0"
-    [cause]: Error: PW_ASSERTION:709d6341a8960aede31630f96b062aa489aa9b7bcc52ab555d6d158c49b467cf
+    [cause]: Error: PW_ASSERTION:093d41423413650345e9181ea3356f614330ce0f55d1dcbf3975146c381d468c
   2) [chromium] › e2e/press-modules.spec.mjs:120:1 › a press made after one whose module never loads runs once that load is given up 
     Error: expect(locator).toHaveText(expected) failed
     Expected: "0"
@@ -28,60 +28,60 @@ baseline (browser): 8 passed, 0 failed
       - Expect "toHaveText" with timeout 8000ms
       - waiting for locator('#cart-count')
            - unexpected value "1"
-    [cause]: Error: PW_ASSERTION:709d6341a8960aede31630f96b062aa489aa9b7bcc52ab555d6d158c49b467cf
+    [cause]: Error: PW_ASSERTION:093d41423413650345e9181ea3356f614330ce0f55d1dcbf3975146c381d468c
   2 failed
-  6 passed (25.4s)
-  run_suite: kept 3 of 3 entries of its output (448.9 KiB) in kept-traces/e14-press-modules/20261022T022336Z-125557/run-1
+  6 passed (25.6s)
+  run_suite: kept 3 of 3 entries of its output (469.8 KiB) in kept-traces/e14-press-modules/20261025T171637Z-302882/run-1
   run_suite: exit 1
 
 a handler's module is waited for without a deadline: KILLED (2 of 8 tests fail)
   1) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module never loaded is sent unspeculated, and the next press loads it again 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:23eeb0c5d645e6f4f093c0f96d1cf7042567d15c2ba7e729587cd859735c1815
+    [cause]: Error: PW_ASSERTION:4288f186010e76b52b837433327ae926fa41d46d466876911f345fd2222d07f7
   2) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer never loaded is sent unspeculated, and the next press loads it again 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:23eeb0c5d645e6f4f093c0f96d1cf7042567d15c2ba7e729587cd859735c1815
+    [cause]: Error: PW_ASSERTION:4288f186010e76b52b837433327ae926fa41d46d466876911f345fd2222d07f7
   2 failed
-  6 passed (26.6s)
-  run_suite: kept 3 of 3 entries of its output (381.7 KiB) in kept-traces/e14-press-modules/20261022T022412Z-126070/run-1
+  6 passed (26.7s)
+  run_suite: kept 3 of 3 entries of its output (381.7 KiB) in kept-traces/e14-press-modules/20261025T171714Z-303399/run-1
   run_suite: exit 1
 
 the speculation module is waited for without a deadline: KILLED (2 of 8 tests fail)
   1) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module failed to load is sent unspeculated, and the next press loads it again 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:5d0cab1e9f06f4b3a1889654947d03deb06a15928efbe475717ce8259a2d22b0
+    [cause]: Error: PW_ASSERTION:f12fe0fe31d8c743bae365a3396345e3d32f01c523122826dadfe248c36ffe6b
   2) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module never loaded is sent unspeculated, and the next press loads it again 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:5d0cab1e9f06f4b3a1889654947d03deb06a15928efbe475717ce8259a2d22b0
+    [cause]: Error: PW_ASSERTION:f12fe0fe31d8c743bae365a3396345e3d32f01c523122826dadfe248c36ffe6b
   3) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer failed to load is sent unspeculated, and the next press loads it again 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:5d0cab1e9f06f4b3a1889654947d03deb06a15928efbe475717ce8259a2d22b0
+    [cause]: Error: PW_ASSERTION:f12fe0fe31d8c743bae365a3396345e3d32f01c523122826dadfe248c36ffe6b
   4) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer never loaded is sent unspeculated, and the next press loads it again 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:5d0cab1e9f06f4b3a1889654947d03deb06a15928efbe475717ce8259a2d22b0
+    [cause]: Error: PW_ASSERTION:f12fe0fe31d8c743bae365a3396345e3d32f01c523122826dadfe248c36ffe6b
   4 failed
-  4 passed (39.1s)
-  run_suite: kept 5 of 5 entries of its output (1.0 MiB) in kept-traces/e14-press-modules/20261022T022449Z-126708/run-1
+  4 passed (39.3s)
+  run_suite: kept 5 of 5 entries of its output (1.0 MiB) in kept-traces/e14-press-modules/20261025T171752Z-304037/run-1
   run_suite: exit 1
 
 a failed speculation load is kept: KILLED (4 of 8 tests fail)
   1) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module failed to load is sent unspeculated, and the next press loads it again 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:be43f37f9ae1ebb417cf85fd5e5109ac72bac5d101d79def3906df132647126e
+    [cause]: Error: PW_ASSERTION:ae65a817893bc036267dfb2c19c2b5b38f41b87aaa0018314e43ff7068ba8275
   2) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module never loaded is sent unspeculated, and the next press loads it again 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:be43f37f9ae1ebb417cf85fd5e5109ac72bac5d101d79def3906df132647126e
+    [cause]: Error: PW_ASSERTION:ae65a817893bc036267dfb2c19c2b5b38f41b87aaa0018314e43ff7068ba8275
   2 failed
-  6 passed (29.2s)
-  run_suite: kept 3 of 3 entries of its output (629.1 KiB) in kept-traces/e14-press-modules/20261022T022539Z-127480/run-1
+  6 passed (29.3s)
+  run_suite: kept 3 of 3 entries of its output (629.2 KiB) in kept-traces/e14-press-modules/20261025T171842Z-304786/run-1
   run_suite: exit 1
 
 a failed speculation load is asked for again under the same specifier: KILLED (2 of 8 tests fail)
@@ -91,31 +91,31 @@ a failed speculation load is asked for again under the same specifier: KILLED (2
     Error: element(s) not found
       - Expect "toBeVisible" with timeout 5000ms
       - waiting for locator('#help-panel')
-    [cause]: Error: PW_ASSERTION:79f44a00dd371bc86714f66cd5524f18322b81fb4edf9eba06796e0216b9788a
+    [cause]: Error: PW_ASSERTION:8e2ddced2ff9a6fdbab31fd34f1b73e9aa547c7125531b7e28fd2da4aa5fbf15
   1 failed
   7 passed (21.9s)
-  run_suite: kept 2 of 2 entries of its output (56.4 KiB) in kept-traces/e14-press-modules/20261022T022619Z-128123/run-1
+  run_suite: kept 2 of 2 entries of its output (56.4 KiB) in kept-traces/e14-press-modules/20261025T171923Z-305426/run-1
   run_suite: exit 1
 
 a failed renderer load is kept: KILLED (1 of 8 tests fail)
   1) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer never loaded is sent unspeculated, and the next press loads it again 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:0f0a092fde56fa39281ebc57f17b3c33eab853d1b07fb10ec046fe559d9eeff1
+    [cause]: Error: PW_ASSERTION:87ddc5a99b68ccb3ae4213978707042b5c61406f920f15f76880e1ba6cfc22b8
   1 failed
-  7 passed (24.4s)
-  run_suite: kept 2 of 2 entries of its output (201.1 KiB) in kept-traces/e14-press-modules/20261022T022652Z-128643/run-1
+  7 passed (24.6s)
+  run_suite: kept 2 of 2 entries of its output (201.2 KiB) in kept-traces/e14-press-modules/20261025T171955Z-305943/run-1
   run_suite: exit 1
 
 a renderer load a press gave up on is kept: KILLED (1 of 8 tests fail)
   1) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module never loaded is sent unspeculated, and the next press loads it again 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:d7f7892dfbb483cccfef16eda4c08f4f5593f764767a42a3e2ad2996e805e6fe
+    [cause]: Error: PW_ASSERTION:c7b36eb8864eada3ae5b136ddb74f0938d8626d5a6e598938fe99aa718b1edcd
   2) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer never loaded is sent unspeculated, and the next press loads it again 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:d7f7892dfbb483cccfef16eda4c08f4f5593f764767a42a3e2ad2996e805e6fe
+    [cause]: Error: PW_ASSERTION:c7b36eb8864eada3ae5b136ddb74f0938d8626d5a6e598938fe99aa718b1edcd
   3) [chromium] › e2e/press-modules.spec.mjs:99:1 › a press whose handler's module never loads fails at the deadline, and the next press loads it again 
     Error: expect(locator).toHaveCount(expected) failed
     Expected: 1
@@ -123,7 +123,7 @@ a renderer load a press gave up on is kept: KILLED (1 of 8 tests fail)
       - Expect "toHaveCount" with timeout 6000ms
       - waiting for locator('[data-pw-handler-error]')
            - unexpected value "0"
-    [cause]: Error: PW_ASSERTION:d7f7892dfbb483cccfef16eda4c08f4f5593f764767a42a3e2ad2996e805e6fe
+    [cause]: Error: PW_ASSERTION:c7b36eb8864eada3ae5b136ddb74f0938d8626d5a6e598938fe99aa718b1edcd
   4) [chromium] › e2e/press-modules.spec.mjs:120:1 › a press made after one whose module never loads runs once that load is given up 
     Error: expect(locator).toHaveText(expected) failed
     Expected: "0"
@@ -131,10 +131,10 @@ a renderer load a press gave up on is kept: KILLED (1 of 8 tests fail)
       - Expect "toHaveText" with timeout 8000ms
       - waiting for locator('#cart-count')
            - unexpected value "1"
-    [cause]: Error: PW_ASSERTION:d7f7892dfbb483cccfef16eda4c08f4f5593f764767a42a3e2ad2996e805e6fe
+    [cause]: Error: PW_ASSERTION:c7b36eb8864eada3ae5b136ddb74f0938d8626d5a6e598938fe99aa718b1edcd
   4 failed
-  4 passed (31.8s)
-  run_suite: kept 5 of 5 entries of its output (851.6 KiB) in kept-traces/e14-press-modules/20261022T022727Z-129165/run-1
+  4 passed (31.9s)
+  run_suite: kept 5 of 5 entries of its output (839.3 KiB) in kept-traces/e14-press-modules/20261025T172031Z-306466/run-1
   run_suite: exit 1
 
 a module's load is timed by a send's deadline: KILLED (4 of 8 tests fail)
@@ -145,10 +145,10 @@ a module's load is timed by a send's deadline: KILLED (4 of 8 tests fail)
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('#left')
           - unexpected value "280 left"
-    [cause]: Error: PW_ASSERTION:200338792d1270efe44e3a8e0a7f5679538dd810a565a83470cdc79628148a6b
+    [cause]: Error: PW_ASSERTION:a8d8e7ded8f317139678c2f7b49a24646c85cb610e1226ba384e90c0e2fba393
   1 failed
-  7 passed (21.8s)
-  run_suite: kept 2 of 2 entries of its output (267.5 KiB) in kept-traces/e14-press-modules/20261022T022810Z-129795/run-1
+  7 passed (22.0s)
+  run_suite: kept 2 of 2 entries of its output (265.8 KiB) in kept-traces/e14-press-modules/20261025T172114Z-307111/run-1
   run_suite: exit 1
 
 a failed computed values load is kept: KILLED (1 of 8 tests fail)
@@ -159,32 +159,32 @@ a failed computed values load is kept: KILLED (1 of 8 tests fail)
       - Expect "toHaveText" with timeout 5000ms
       - waiting for locator('#left')
           - unexpected value "280 left"
-    [cause]: Error: PW_ASSERTION:abf3032c6296721654a243b0d128a53afd3d8ce0b803633e3d18dd069ba63fda
+    [cause]: Error: PW_ASSERTION:1d0e1880377a452ac5805217ea698b42261697b39ede4db3666f3b49c0104696
   1 failed
-  7 passed (21.9s)
-  run_suite: kept 2 of 2 entries of its output (267.0 KiB) in kept-traces/e14-press-modules/20261022T022842Z-130377/run-1
+  7 passed (22.0s)
+  run_suite: kept 2 of 2 entries of its output (267.7 KiB) in kept-traces/e14-press-modules/20261025T172147Z-307685/run-1
   run_suite: exit 1
 
 a failed computed values load is asked for again under the same specifier: KILLED (1 of 8 tests fail)
-  1) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module failed to load is sent unspeculated, and the next press loads it again 
+  1) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module never loaded is sent unspeculated, and the next press loads it again 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:98e4b14d3251d525b4f471629df0d4001263d221d2d508cce8061dcaa5d6707e
-  2) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module never loaded is sent unspeculated, and the next press loads it again 
+    [cause]: Error: PW_ASSERTION:2546660d64859a4faa1c51a15a2625977ad557850b98147223e3e95c530283b9
+  2) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module failed to load is sent unspeculated, and the next press loads it again 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:98e4b14d3251d525b4f471629df0d4001263d221d2d508cce8061dcaa5d6707e
+    [cause]: Error: PW_ASSERTION:2546660d64859a4faa1c51a15a2625977ad557850b98147223e3e95c530283b9
   3) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer failed to load is sent unspeculated, and the next press loads it again 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:98e4b14d3251d525b4f471629df0d4001263d221d2d508cce8061dcaa5d6707e
+    [cause]: Error: PW_ASSERTION:2546660d64859a4faa1c51a15a2625977ad557850b98147223e3e95c530283b9
   4) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer never loaded is sent unspeculated, and the next press loads it again 
     Error: Expected: 1
     Received: 0
-    [cause]: Error: PW_ASSERTION:98e4b14d3251d525b4f471629df0d4001263d221d2d508cce8061dcaa5d6707e
+    [cause]: Error: PW_ASSERTION:2546660d64859a4faa1c51a15a2625977ad557850b98147223e3e95c530283b9
   4 failed
-  4 passed (36.2s)
-  run_suite: kept 5 of 5 entries of its output (851.9 KiB) in kept-traces/e14-press-modules/20261022T022915Z-130956/run-1
+  4 passed (36.3s)
+  run_suite: kept 5 of 5 entries of its output (852.0 KiB) in kept-traces/e14-press-modules/20261025T172220Z-308263/run-1
   run_suite: exit 1
 
 a press whose speculation cannot load fails: KILLED (4 of 8 tests fail)

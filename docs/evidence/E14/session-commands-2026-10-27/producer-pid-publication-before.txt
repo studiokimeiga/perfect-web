@@ -1,0 +1,45 @@
+test_pid_readiness_is_published_only_after_complete_record_for_all_four (test_producer_ownership.ProducerOwnership) ... 
+======================================================================
+FAIL: test_pid_readiness_is_published_only_after_complete_record_for_all_four (test_producer_ownership.ProducerOwnership) (producer='case_and_delivery_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/session-command-producer-20261027/scripts/tests/test_producer_ownership.py", line 141, in test_pid_readiness_is_published_only_after_complete_record_for_all_four
+    self.probe(producer, 'running', pause_pid_publication=True)
+  File "/home/haki/code/pw-wt/session-command-producer-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertIsNone(exposed_before_content,
+AssertionError: '' is not None : PID readiness exposed an incomplete record before its writer finished
+
+======================================================================
+FAIL: test_pid_readiness_is_published_only_after_complete_record_for_all_four (test_producer_ownership.ProducerOwnership) (producer='template_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/session-command-producer-20261027/scripts/tests/test_producer_ownership.py", line 141, in test_pid_readiness_is_published_only_after_complete_record_for_all_four
+    self.probe(producer, 'running', pause_pid_publication=True)
+  File "/home/haki/code/pw-wt/session-command-producer-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertIsNone(exposed_before_content,
+AssertionError: '' is not None : PID readiness exposed an incomplete record before its writer finished
+
+======================================================================
+FAIL: test_pid_readiness_is_published_only_after_complete_record_for_all_four (test_producer_ownership.ProducerOwnership) (producer='device_store_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/session-command-producer-20261027/scripts/tests/test_producer_ownership.py", line 141, in test_pid_readiness_is_published_only_after_complete_record_for_all_four
+    self.probe(producer, 'running', pause_pid_publication=True)
+  File "/home/haki/code/pw-wt/session-command-producer-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertIsNone(exposed_before_content,
+AssertionError: '' is not None : PID readiness exposed an incomplete record before its writer finished
+
+======================================================================
+FAIL: test_pid_readiness_is_published_only_after_complete_record_for_all_four (test_producer_ownership.ProducerOwnership) (producer='qualified_device_mutations')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/session-command-producer-20261027/scripts/tests/test_producer_ownership.py", line 141, in test_pid_readiness_is_published_only_after_complete_record_for_all_four
+    self.probe(producer, 'running', pause_pid_publication=True)
+  File "/home/haki/code/pw-wt/session-command-producer-20261027/scripts/tests/test_producer_ownership.py", line 122, in probe
+    self.assertIsNone(exposed_before_content,
+AssertionError: '' is not None : PID readiness exposed an incomplete record before its writer finished
+
+----------------------------------------------------------------------
+Ran 1 test in 0.503s
+
+FAILED (failures=4)

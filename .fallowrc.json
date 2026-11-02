@@ -5,7 +5,9 @@
     "spikes/**/*.mjs",
     "spikes/**/*.js",
     "benchmarks/harness/bench.mjs",
-    "benchmarks/harness/test/**/*.mjs"
+    "benchmarks/harness/test/**/*.mjs",
+    "benchmarks/baselines/sveltekit/vendor/deepmerge/test.cjs",
+    "benchmarks/baselines/sveltekit/vendor/deepmerge/consumer-test.cjs"
   ],
   "workspaces": {
     "patterns": [

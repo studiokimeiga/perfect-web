@@ -1,0 +1,25 @@
+{
+  "head": "a67c2111e13073bdb8a80358db7ca8c227e18159",
+  "name": "fallow",
+  "cmd": [
+    "/home/haki/.npm/_npx/7955810aeed8257f/node_modules/@fallow-cli/linux-x64-gnu/fallow",
+    "--format",
+    "json",
+    "--quiet",
+    "audit",
+    "--base",
+    "a0db8884deb2b3ba37faee59afcdee44a92c6b1c"
+  ],
+  "started": 1793161631.7801843,
+  "finished": 1793161633.3581634,
+  "exit": 1,
+  "owned_reaped": [
+    {
+      "pid": 1638968,
+      "status": 1,
+      "timed_out": false,
+      "cancelled": false
+    }
+  ],
+  "log_sha256": "47bdba03727d9944958b005b8f14a383620ad9f534774c2b839aaa9b45d8a31a"
+}

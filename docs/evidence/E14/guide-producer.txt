@@ -1,8 +1,8 @@
 Guide producer validity
 
 produced by: just --justfile just/guide-producer.just --working-directory . e14-guide-producer
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 frozen source SHA256:
 993be3039810277d06e069315ee9467a7a22808d3604edd92b6aa578e36a3d9f  scripts/guide_mutations.py
 21629bd5df9fb3977228c406289868ea89fecd2eab9d537822700dfdf5d1ba19  scripts/guide_python.py
@@ -19,7 +19,7 @@ e99ebd04ceb6071d31c4a6e810f8dfc4103cdf1babb1497c2fdf4e8e19990b2d  scripts/guide_
 test_native_body_assertion_is_a_named_assertion_kill (__main__.GuideNativeProtocol.test_native_body_assertion_is_a_named_assertion_kill) ... ok
 test_native_body_error_earns_no_assertion_kill (__main__.GuideNativeProtocol.test_native_body_error_earns_no_assertion_kill) ... ok
 test_native_fresh_cache_does_not_read_same_timestamp_prior_mutant (__main__.GuideNativeProtocol.test_native_fresh_cache_does_not_read_same_timestamp_prior_mutant) ... ok
-test_native_guide_discovery_preserves_exact_original_seven_ids (__main__.GuideNativeProtocol.test_native_guide_discovery_preserves_exact_original_seven_ids) ... Python frozen full IDs: ['test_guide_diagnostics.Current.test_every_registered_code_has_a_row', 'test_guide_diagnostics.Current.test_the_committed_page_is_what_the_registry_writes', 'test_guide_diagnostics.Reading.test_a_line_that_is_no_entry_is_refused_not_skipped', 'test_guide_diagnostics.Reading.test_a_pipe_in_a_cell_is_escaped', 'test_guide_diagnostics.Reading.test_a_retired_code_with_its_reason_continued_across_lines', 'test_guide_diagnostics.Reading.test_an_owner_without_a_title_is_written_from_its_name', 'test_guide_diagnostics.Reading.test_each_entry_with_its_invariant_and_the_adrs_its_comment_cites']; evidence /tmp/pw-guide-python-evidence-_cm0b18w
+test_native_guide_discovery_preserves_exact_original_seven_ids (__main__.GuideNativeProtocol.test_native_guide_discovery_preserves_exact_original_seven_ids) ... Python frozen full IDs: ['test_guide_diagnostics.Current.test_every_registered_code_has_a_row', 'test_guide_diagnostics.Current.test_the_committed_page_is_what_the_registry_writes', 'test_guide_diagnostics.Reading.test_a_line_that_is_no_entry_is_refused_not_skipped', 'test_guide_diagnostics.Reading.test_a_pipe_in_a_cell_is_escaped', 'test_guide_diagnostics.Reading.test_a_retired_code_with_its_reason_continued_across_lines', 'test_guide_diagnostics.Reading.test_an_owner_without_a_title_is_written_from_its_name', 'test_guide_diagnostics.Reading.test_each_entry_with_its_invariant_and_the_adrs_its_comment_cites']; evidence /tmp/pw-guide-python-evidence-zmn767ly
 ok
 test_native_setup_failures_earn_no_kill_and_never_enter_body (__main__.GuideNativeProtocol.test_native_setup_failures_earn_no_kill_and_never_enter_body) ... ok
 test_native_skip_expected_and_deferred_bodies_earn_no_kill (__main__.GuideNativeProtocol.test_native_skip_expected_and_deferred_bodies_earn_no_kill) ... ok
@@ -68,12 +68,12 @@ test_python_refuses_invalid_failure_status (__main__.GuideProducers.test_python_
 test_python_refuses_invalid_green_status (__main__.GuideProducers.test_python_refuses_invalid_green_status) ... ok
 
 ----------------------------------------------------------------------
-Ran 49 tests in 14.005s
+Ran 49 tests in 12.518s
 
 OK
 baseline: the guide's tests, 1 ran, 0 failed
 
-structured instrument receipts: /tmp/pw-guide-producer-controls-i8nq7lur
+structured instrument receipts: /tmp/pw-guide-producer-controls-x_d8n4xt
 baseline: 49 executed; 0 failed; valid=True
 Cargo result validity is ignored: KILLED by test_guide_producer_results.GuideProducers.test_cargo_refuses_invalid_failure_status (10 actual body assertions)
 Python canonical result validity is ignored: KILLED by test_guide_producer_results.GuideNativeProtocol.test_native_setup_failures_earn_no_kill_and_never_enter_body (7 actual body assertions)

@@ -1,33 +1,33 @@
 ADR-0225 - a String's length is an invariant
 
 produced by: just e14-string-invariants
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
 
 == the build (compiler/pw-core/tests/string_invariants.rs, invariants.rs)
 
-test a_branch_is_either_of_its_values ... ok
 test a_let_is_its_initializer_where_the_let_is ... ok
+test a_branch_is_either_of_its_values ... ok
 test a_literal_is_itself ... ok
 test a_piped_value_is_held_too ... ok
 test an_invariant_the_language_cannot_read_is_refused_where_it_is_written ... ok
 test an_opaque_type_that_states_nothing_checks_nothing ... ok
 test a_conjunction_narrows_where_it_holds_and_only_there ... ok
-test arithmetic_on_bounded_values_is_exact ... ok
 test a_test_narrows_what_it_tests ... ok
+test arithmetic_on_bounded_values_is_exact ... ok
 test an_upper_bound_is_held_as_the_lower_is ... ok
 test the_store_s_contracts_state_where_a_count_comes_from_outside ... ok
 test the_store_builds_every_count_it_can_show ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.66s
-test a_handles_value_a_let_and_a_branch_keep_their_lengths ... ok
-test a_literal_is_its_length_in_code_points ... ok
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.49s
 test a_test_of_the_length_narrows_it ... ok
+test a_handles_value_a_let_and_a_branch_keep_their_lengths ... ok
 test a_length_invariant_the_language_cannot_read_is_refused_where_it_is_written ... ok
+test a_literal_is_its_length_in_code_points ... ok
 test the_feeds_post_states_its_texts_length_at_the_boundary ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.86s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.89s
 
 == the host (runtime/pw-host/tests/bounded.rs)
 
@@ -41,7 +41,7 @@ test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 == the server (spikes/own-renderer/server/src/main.rs)
 
 test tests::a_posts_text_is_held_to_its_length_where_it_arrives ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 712 filtered out; finished in 2.37s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 740 filtered out; finished in 2.15s
 
 == the feed in three engines (e2e/feed.spec.mjs)
 

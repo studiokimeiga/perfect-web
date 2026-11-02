@@ -406,10 +406,27 @@ fn none_of_it_elsewhere(s: &Server) {
             continue;
         }
         let mut parts = key.key.split('\u{1f}');
-        let session = parts
-            .next()
-            .and_then(|p| p.strip_prefix("session="))
-            .unwrap_or_else(|| panic!("{key:?} is in no session's partition"));
+        let partition = parts.next().expect("private partition field");
+        // ADR-0389: a private field names the cookie AND its actor epoch.
+        // Match exactly one fixture reader; do not mistake the versioned
+        // partition for a raw cookie or accept a shared/unknown partition.
+        let sessions = ["s-alice-1", "s-alice-2", "s-bob", "s-nobody"];
+        let owners: Vec<_> = sessions
+            .iter()
+            .filter(|session| {
+                partition
+                    == format!(
+                        "session={}",
+                        principals.bound_reader(session).partition(session)
+                    )
+            })
+            .collect();
+        assert_eq!(
+            owners.len(),
+            1,
+            "{key:?} must belong to exactly one fixture reader"
+        );
+        let session = *owners[0];
         let user = parts.next().expect("keyed by its user");
         assert_eq!(
             user,

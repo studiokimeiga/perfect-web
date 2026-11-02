@@ -1,8 +1,8 @@
 ADR-0279 - direct messages: a conversation read from each side
 
 produced by: just e14-messages
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -12,8 +12,8 @@ postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
 test messages::tests::who_may_message_whom_is_xs_rule ... ok
 test messages::tests::sending_marks_the_senders_side_read_and_not_the_recipients ... ok
-test messages::tests::a_conversation_shows_the_newest_messages_oldest_first ... ok
 test messages::tests::a_readers_list_is_theirs_newest_first_and_counts_each_conversation ... ok
+test messages::tests::a_conversation_shows_the_newest_messages_oldest_first ... ok
 test tests::messages::a_message_drops_both_users_entries_alone ... ok
 test tests::messages::a_follow_opens_the_composer_of_the_open_conversation ... ok
 test tests::messages::a_message_reaches_both_users_sessions_and_no_third_users ... ok
@@ -22,14 +22,14 @@ test tests::messages::a_messages_text_is_held_to_its_length_where_it_arrives ...
 test tests::messages::a_third_user_signed_in_and_not_sees_none_of_it ... ok
 test tests::messages::on_postgres_a_follow_opens_the_composer_of_the_open_conversation ... ok
 test tests::messages::on_postgres_a_message_drops_both_users_entries_alone ... ok
-test tests::messages::on_postgres_a_message_reaches_both_users_sessions_and_no_third_users ... ok
 test tests::messages::on_postgres_a_message_is_shown_on_both_sides_and_counted_for_its_recipient ... ok
+test tests::messages::on_postgres_a_message_reaches_both_users_sessions_and_no_third_users ... ok
 test tests::messages::on_postgres_a_third_user_signed_in_and_not_sees_none_of_it ... ok
 test tests::messages::on_postgres_reading_a_conversation_reaches_each_of_the_readers_sessions ... ok
 test tests::messages::reading_a_conversation_reaches_each_of_the_readers_sessions ... ok
 test tests::messages::who_may_message_whom_is_xs_rule ... ok
 test tests::messages::on_postgres_who_may_message_whom_is_xs_rule ... ok
-test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 694 filtered out; finished in 12.19s
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 722 filtered out; finished in 13.02s
 
 == the browser in three engines (e2e/messages.spec.mjs)
 

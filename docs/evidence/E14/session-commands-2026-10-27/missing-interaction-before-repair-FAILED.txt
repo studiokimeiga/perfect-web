@@ -1,0 +1,24 @@
+   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/session-revocation-20261026/spikes/own-renderer/server)
+    Finished `test` profile [unoptimized] target(s) in 3.02s
+     Running unittests src/main.rs (/home/haki/code/pw-wt/scheduler-replay-20261026/target/debug/deps/pw_dev_server-4beb2a4e31121d83)
+
+running 1 test
+test tests::session_commands::invalid_interaction_metadata_is_a_known_refusal_before_any_execution ... FAILED
+
+failures:
+
+---- tests::session_commands::invalid_interaction_metadata_is_a_known_refusal_before_any_execution stdout ----
+
+thread 'tests::session_commands::invalid_interaction_metadata_is_a_known_refusal_before_any_execution' (896162) panicked at spikes/own-renderer/server/src/tests/session_commands.rs:631:9:
+assertion `left == right` failed: no evaluation could start
+  left: Null
+ right: false
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::session_commands::invalid_interaction_metadata_is_a_known_refusal_before_any_execution
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 830 filtered out; finished in 0.94s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

@@ -1,28 +1,57 @@
-//! Generic in-memory execution of compiler-declared Pleris tables (ADR-0338 D2).
+//! Generic in-memory execution of compiler-declared Pleris tables (ADR-0338
+//! D2; ADR-0385, the reads; ADR-0386, the writes and the other reads).
 //!
-//! It consumes the compiler's tables.json types, not a second schema format.
-//! It proves key/prefix/index reads and staged, atomic writes in one memory
-//! source, and serves an admitted component's `get` and `get-many` imports as
-//! Wasmtime host functions (`read_host_fns`). Writes through the host, the
-//! development server's routing of a program's tables, the transactional
-//! outbox, deployment migration and other databases remain independent
-//! integration obligations; no production claim follows.
+//! It consumes the compiler's `tables.json`, not a second schema format, and
+//! serves every primitive for any table it declares: `get`, `get-many`, a
+//! prefix's read and its set form, an index's and its set form, `all` of a
+//! bounded table, and the writes `insert`, `put`, `delete` and
+//! `delete-prefix`. An admitted component reaches them only as the host's
+//! gate admits them (`pw_host::tables`): a query's reads through
+//! [`MemoryTables::read_host_fns`], a command's reads and writes through
+//! [`Command::host_fns`].
+//!
+//! **Maps by key and by index, under a lock** (ADR-0338 5.2's memory row):
+//! each table's rows by their key, each index as a map of its values to the
+//! keys holding them, and each reference as a map of the key it refers to,
+//! all kept by one mutation ([`Data::set`]), which refuses a unique value
+//! another row holds before it changes anything.
+//!
+//! **A command is staged** (ADR-0218's staging, ADR-0386): one command at a
+//! time writes the adapter's working copy, reads its own writes there (as a
+//! PostgreSQL transaction does, 13.2.2 and 13.2.3 of its manual), and none of
+//! them is visible to any other read until it commits: queries read the
+//! published copy. A refused write changes nothing; a command dropped
+//! without committing (refused, failed, trapped) is undone whole; a commit
+//! is held to the bound and the references first ([`Command::prepare`]), and
+//! then published whole ([`Prepared::publish`]). Internal storage failure
+//! refuses publication; this prototype is not yet the platform outbox transaction.
 //!
 //! JSON is the internal adapter value representation, not the public WIT ABI.
 //! Unsupported storage variants fail closed rather than losing information.
+//! The development server's routing of a program's tables to this adapter,
+//! the platform's records committed with a command's writes, and other
+//! databases remain later obligations; no production claim follows.
 
-use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 
-use pw_core::tables::{FunctionJson, Primitive, Schema, Stored, TableJson, TablesJson};
+use pw_core::tables::{Primitive, Schema, Stored, TableJson, TablesJson};
 use serde_json::{Map, Value};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Error {
     Schema(String),
     Input(String),
-    Conflict { table: String, existing: Value },
+    /// A write refused by the row that holds its key or a unique value it
+    /// would hold. Nothing was written.
+    Conflict {
+        table: String,
+        existing: Value,
+    },
+    /// The command's transaction has ended (committed or undone), or it is
+    /// committing and writes nothing more.
+    Ended,
     StoragePoisoned,
 }
 
@@ -49,18 +78,236 @@ impl Atom {
 }
 
 type Key = Vec<Atom>;
-type Row = Map<String, Value>;
-type Rows = BTreeMap<Key, Row>;
-type State = BTreeMap<String, Rows>;
+type Row = Arc<Map<String, Value>>;
 
-/// One isolated in-memory database. Every transaction holds the lock until
-/// commit/rollback, and the state is only published on a successful commit.
-pub struct MemoryTables {
-    manifest: TablesJson,
+// --- what the manifest declares, read once --------------------------------
+
+struct Shape {
+    tables: Vec<TableShape>,
+    /// Each function, by its import: its table's place and what it is.
+    functions: BTreeMap<String, (usize, FunctionShape)>,
+}
+
+struct TableShape {
+    name: String,
+    fields: Vec<(String, Stored)>,
+    key: Vec<String>,
+    indexes: Vec<IndexShape>,
+    references: Vec<ReferenceShape>,
+    bounded: Option<u64>,
+}
+
+struct IndexShape {
+    fields: Vec<String>,
+    unique: bool,
+}
+
+/// `refers <field> to <Table>`: the field holds a key of the table at
+/// `target`, or nothing where it is an `Option`.
+struct ReferenceShape {
+    field: String,
+    target: usize,
+}
+
+struct FunctionShape {
+    primitive: Primitive,
+    by: Vec<String>,
+    sorted_by: Vec<String>,
+    /// Answers none or one row: a `get`, a unique index's read.
+    one: bool,
+}
+
+impl Shape {
+    fn function(&self, import: &str) -> Result<(usize, &FunctionShape), Error> {
+        self.functions
+            .get(import)
+            .map(|(table, function)| (*table, function))
+            .ok_or_else(|| Error::Input(format!("undeclared table operation {import}")))
+    }
+}
+
+// --- a table's rows, and its maps ------------------------------------------
+
+/// **One table's rows, by key, and its maps**: each index's values to the
+/// keys holding them, each reference's referred key to the keys referring.
+#[derive(Debug, Clone, Default)]
+struct Data {
+    rows: BTreeMap<Key, Row>,
+    indexes: Vec<BTreeSet<(Key, Key)>>,
+    referring: Vec<BTreeSet<(Key, Key)>>,
+    /// Commits that wrote it.
+    version: u64,
+}
+
+/// What [`Data::set`] did.
+#[derive(Debug)]
+enum Set {
+    /// Written: the row the key held before, if any.
+    Done(Option<Row>),
+    /// Refused, nothing changed: the row of another key holding a unique
+    /// value the row would hold.
+    Held(Row),
+}
+
+impl Data {
+    fn new(shape: &TableShape) -> Data {
+        Data {
+            rows: BTreeMap::new(),
+            indexes: vec![BTreeSet::new(); shape.indexes.len()],
+            referring: vec![BTreeSet::new(); shape.references.len()],
+            version: 0,
+        }
+    }
+
+    /// **The one mutation**: `key`'s row becomes `row` (none: it is removed),
+    /// every index and reference entry of the row before removed and of the
+    /// row after added. A unique index's value held by another key refuses
+    /// it before anything changes; and everything that can fail is done
+    /// before anything changes, so that a row and its maps never part.
+    fn set(&mut self, shape: &TableShape, key: &Key, row: Option<Row>) -> Result<Set, Error> {
+        let after = match &row {
+            Some(row) => Some(entries(shape, row)?),
+            None => None,
+        };
+        if let Some((values, _)) = &after {
+            for ((index, declared), values) in self.indexes.iter().zip(&shape.indexes).zip(values) {
+                if declared.unique
+                    && let Some(holder) = holding(index, values).find(|held| *held != key)
+                {
+                    let held = self.rows.get(holder).cloned().ok_or_else(|| {
+                        Error::Schema(format!("{}'s index names a missing row", shape.name))
+                    })?;
+                    return Ok(Set::Held(held));
+                }
+            }
+        }
+        if row.is_some()
+            && !self.rows.contains_key(key)
+            && let Some(bound) = shape.bounded
+            && self.rows.len() as u64 >= bound
+        {
+            return Err(Error::Input(format!(
+                "{} cannot grow past its declared bound of {bound}",
+                shape.name
+            )));
+        }
+        let before = match self.rows.get(key) {
+            Some(prior) => Some(entries(shape, prior)?),
+            None => None,
+        };
+        let prior = match row {
+            Some(row) => self.rows.insert(key.clone(), row),
+            None => self.rows.remove(key),
+        };
+        if let Some((values, referred)) = before {
+            for (index, values) in self.indexes.iter_mut().zip(values) {
+                index.remove(&(values, key.clone()));
+            }
+            for (map, referred) in self.referring.iter_mut().zip(referred) {
+                if let Some(referred) = referred {
+                    map.remove(&(referred, key.clone()));
+                }
+            }
+        }
+        if let Some((values, referred)) = after {
+            for (index, values) in self.indexes.iter_mut().zip(values) {
+                index.insert((values, key.clone()));
+            }
+            for (map, referred) in self.referring.iter_mut().zip(referred) {
+                if let Some(referred) = referred {
+                    map.insert((referred, key.clone()));
+                }
+            }
+        }
+        Ok(Set::Done(prior))
+    }
+
+    /// The rows of keys beginning with `prefix`, in key order.
+    fn prefixed<'a>(&'a self, prefix: &Key) -> impl Iterator<Item = (&'a Key, &'a Row)> + use<'a> {
+        let prefix = prefix.clone();
+        self.rows
+            .range(prefix.clone()..)
+            .take_while(move |(key, _)| key.starts_with(&prefix))
+    }
+}
+
+/// The keys an index holds for `values`.
+fn holding<'a>(
+    index: &'a BTreeSet<(Key, Key)>,
+    values: &Key,
+) -> impl Iterator<Item = &'a Key> + use<'a> {
+    let values = values.clone();
+    index
+        .range((values.clone(), Vec::new())..)
+        .take_while(move |(held, _)| *held == values)
+        .map(|(_, key)| key)
+}
+
+/// A row's entries in its table's maps: each index's values, and the key
+/// each reference refers to.
+fn entries(shape: &TableShape, row: &Row) -> Result<(Vec<Key>, Vec<Option<Key>>), Error> {
+    let values = shape
+        .indexes
+        .iter()
+        .map(|index| row_key(row, &index.fields))
+        .collect::<Result<_, _>>()?;
+    Ok((values, references(shape, row)?))
+}
+
+/// The key each of a row's references refers to; none where it holds none.
+fn references(shape: &TableShape, row: &Row) -> Result<Vec<Option<Key>>, Error> {
+    shape
+        .references
+        .iter()
+        .map(|reference| match row.get(&reference.field) {
+            None | Some(Value::Null) => Ok(None),
+            Some(value) => Ok(Some(vec![Atom::parse(value)?])),
+        })
+        .collect()
+}
+
+// --- the adapter -----------------------------------------------------------
+
+struct Inner {
+    shape: Shape,
     /// The same manifest as the host reads it (`pw_host::tables`): its gate,
-    /// and what the engine holds each read to.
+    /// and what the engine holds each function to.
     host: pw_host::tables::Manifest,
-    state: Mutex<State>,
+    /// What every read outside a command reads: the last commit's tables.
+    published: Mutex<Arc<Vec<Arc<Data>>>>,
+    /// The writer's copy: the published tables and the open command's
+    /// writes, which only that command reads.
+    working: Mutex<Working>,
+    /// Told when a command ends, so that the next may begin.
+    turn: Condvar,
+    /// What is told when a command finds another open and waits its turn
+    /// ([`MemoryTables::tell_on_wait`]).
+    told: Mutex<Option<Arc<dyn Fn() + Send + Sync>>>,
+    /// Internal failure is sticky: no reader or writer can use partial state.
+    failed: AtomicBool,
+}
+
+struct Working {
+    tables: Vec<Data>,
+    open: Option<Open>,
+    next: u64,
+}
+
+/// The open command.
+struct Open {
+    id: u64,
+    /// Held to its commit's checks, and writing nothing more.
+    prepared: bool,
+    /// Each key it wrote, by its table, and the row it held before: what
+    /// undoes it, and what its commit publishes.
+    touched: BTreeMap<(usize, Key), Option<Row>>,
+}
+
+/// **One isolated in-memory database.** Every read outside a command reads
+/// the published tables; one command at a time writes ([`MemoryTables::begin`]),
+/// and what it writes is published only when it commits.
+pub struct MemoryTables {
+    inner: Arc<Inner>,
 }
 
 impl MemoryTables {
@@ -79,171 +326,90 @@ impl MemoryTables {
                 "multiple sources require separate adapters".into(),
             ));
         }
-        let mut state = BTreeMap::new();
-        let mut imports = BTreeSet::new();
-        for table in &manifest.tables {
-            if state
-                .insert(table.schema.name.clone(), Rows::new())
-                .is_some()
-            {
-                return Err(Error::Schema(format!(
-                    "duplicate table {}",
-                    table.schema.name
-                )));
-            }
-            if table.schema.key.is_empty() {
-                return Err(Error::Schema(format!("{} has no key", table.schema.name)));
-            }
-            let fields: BTreeSet<_> = table
-                .schema
-                .fields
-                .iter()
-                .map(|f| f.name.as_str())
-                .collect();
-            if fields.len() != table.schema.fields.len() {
-                return Err(Error::Schema(format!(
-                    "{} repeats a field",
-                    table.schema.name
-                )));
-            }
-            for name in table
-                .schema
-                .key
-                .iter()
-                .chain(table.schema.order.iter())
-                .chain(table.schema.indexes.iter().flat_map(|i| &i.fields))
-            {
-                let field = table
-                    .schema
-                    .fields
-                    .iter()
-                    .find(|f| &f.name == name)
-                    .ok_or_else(|| {
-                        Error::Schema(format!("{} has unknown field {name}", table.schema.name))
-                    })?;
-                if !matches!(
-                    &field.stored,
-                    Stored::Int { .. } | Stored::String { .. } | Stored::Bool
-                ) {
-                    return Err(Error::Schema(format!(
-                        "{} selector {name} is not a supported scalar",
-                        table.schema.name
-                    )));
-                }
-            }
-            for f in &table.schema.fields {
-                if !supported(&f.stored) {
-                    return Err(Error::Schema(format!(
-                        "{} field {} needs an unsupported storage encoding",
-                        table.schema.name, f.name
-                    )));
-                }
-            }
-            for fun in &table.functions {
-                if !imports.insert(fun.import.as_str()) {
-                    return Err(Error::Schema(format!(
-                        "duplicate host import {}",
-                        fun.import
-                    )));
-                }
-                if fun.primitive == Primitive::All && table.bounded.is_none() {
-                    return Err(Error::Schema(format!(
-                        "{} grants an unbounded all()",
-                        table.schema.name
-                    )));
-                }
-                let selector_fields = &fun.by;
-                if !matches!(
-                    fun.primitive,
-                    Primitive::All | Primitive::Insert | Primitive::Put
-                ) && selector_fields.is_empty()
-                {
-                    return Err(Error::Schema(format!(
-                        "{} has an empty selector",
-                        fun.import
-                    )));
-                }
-                if selector_fields
-                    .iter()
-                    .any(|field| !fields.contains(field.as_str()))
-                {
-                    return Err(Error::Schema(format!(
-                        "{} selects a missing field",
-                        fun.import
-                    )));
-                }
-            }
-        }
         // Read back as the host reads it, so that what this adapter serves
         // and what the engine admits are one manifest, held whole.
         let text = serde_json::to_string(&manifest)
             .map_err(|error| Error::Schema(format!("tables.json: {error}")))?;
         let host = pw_host::tables::Manifest::from_json(&text).map_err(Error::Schema)?;
+        let shape = shape_of(&manifest)?;
+        let tables: Vec<Data> = shape.tables.iter().map(Data::new).collect();
         Ok(Self {
-            manifest,
-            host,
-            state: Mutex::new(state),
+            inner: Arc::new(Inner {
+                published: Mutex::new(Arc::new(tables.iter().cloned().map(Arc::new).collect())),
+                working: Mutex::new(Working {
+                    tables,
+                    open: None,
+                    next: 1,
+                }),
+                turn: Condvar::new(),
+                told: Mutex::new(None),
+                failed: AtomicBool::new(false),
+                shape,
+                host,
+            }),
         })
     }
 
-    /// The manifest as the host reads it: what a call that reads these tables
-    /// is given (`pw_host::engine::call_with_tables`).
+    /// The manifest as the host reads it: what a call that reads or writes
+    /// these tables is given (`pw_host::engine::call_with_tables`).
     pub fn host_tables(&self) -> &pw_host::tables::Manifest {
-        &self.host
+        &self.inner.host
     }
 
-    /// Read a compiler-emitted host import, with its arguments in function
-    /// parameter order. A singleton selector takes positional values; a set
-    /// selector takes one array of scalars or named-field records.
+    /// Read a compiler-emitted host import from the published tables, with
+    /// its arguments in function parameter order. A singleton selector takes
+    /// positional values; a set selector takes one array of scalars or
+    /// named-field records; `all` takes none.
     pub fn read(&self, import: &str, args: &[Value]) -> Result<Value, Error> {
-        let state = self.state.lock().map_err(|_| Error::StoragePoisoned)?;
-        read(&self.manifest, &state, import, args)
+        self.inner.read_published(import, args)
     }
 
-    /// Select the exact read-only table imports this admitted component may
-    /// bind: the host's gate (`pw_host::tables::Manifest::admit_reads`, PR
-    /// #29's, which the engine applies to every table import it links), on
-    /// this adapter's manifest. Both the compiler's table manifest and the
+    /// Select the exact read imports this admitted component may bind as a
+    /// query: the host's gate (`pw_host::tables::Manifest::admit_reads`,
+    /// which the engine applies to every table import it links), on this
+    /// adapter's manifest. Both the compiler's table manifest and the
     /// admitted contract must name each import; a node's other capabilities
-    /// grant nothing here.
+    /// grant nothing here, and a write refuses the component.
     pub fn read_host_imports(
         &self,
         contract: &pw_host::ComponentContract,
         granted: &pw_host::Granted,
     ) -> Result<Vec<String>, Error> {
-        self.host
+        self.inner
+            .host
             .admit_reads(contract, granted)
             .map(|reads| reads.into_keys().collect())
             .map_err(Error::Input)
     }
 
-    /// **The table reads an admitted component links, as host functions**
+    /// **The table reads an admitted query links, as host functions**
     /// (ADR-0338 D2): one callback for each read the host's gate admits
     /// ([`MemoryTables::read_host_imports`]), keyed as the engine links it
-    /// (`pw:tables/<table>#get`), and nothing else. Each reads this adapter
-    /// through the import it is installed for, its keys held to the read's
-    /// and its rows encoded as the read's row declares
+    /// (`pw:tables/<table>#get`), and nothing else. Each reads the published
+    /// tables through the import it is installed for, its keys held to the
+    /// read's and its rows encoded as the read's row declares
     /// (`pw_host::engine::table_read_host`); the engine links them only with
     /// this manifest (`call_with_tables` and [`MemoryTables::host_tables`]),
     /// and holds each answer to the read again. A component with any other
-    /// table import gets an error, not a partial map.
+    /// table import, a write among them, gets an error, not a partial map.
     pub fn read_host_fns(
-        self: &Arc<Self>,
+        &self,
         contract: &pw_host::ComponentContract,
         granted: &pw_host::Granted,
     ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, Error> {
         use pw_host::engine::table_read_host::host_fn;
         let mut out = BTreeMap::new();
         let reads = self
+            .inner
             .host
             .admit_reads(contract, granted)
             .map_err(Error::Input)?;
         for (import, read) in reads {
-            let tables = Arc::clone(self);
+            let inner = Arc::clone(&self.inner);
             let bound = import.clone();
             let data = Arc::new(move |args: &[Value]| {
-                tables
-                    .read(&bound, args)
+                inner
+                    .read_published(&bound, args)
                     .map_err(|error| format!("`{bound}`: {error:?}"))
             });
             out.insert(import, host_fn(read, data));
@@ -251,68 +417,766 @@ impl MemoryTables {
         Ok(out)
     }
 
+    /// **A command's transaction** (ADR-0386): begun once the command before
+    /// it has ended, one at a time. Its writes are staged until it commits
+    /// ([`Command::commit`]), and undone whole where it is dropped instead.
+    pub fn begin(&self) -> Result<Command, Error> {
+        let mut working = self.inner.lock_working()?;
+        if working.open.is_some() {
+            let tell = self
+                .inner
+                .told
+                .lock()
+                .map_err(|_| self.inner.fail_locked())?
+                .clone();
+            // The callback may read, replace itself, or panic. It owns no lock.
+            drop(working);
+            if let Some(tell) = tell {
+                tell();
+            }
+            working = self.inner.lock_working()?;
+        }
+        while working.open.is_some() {
+            working = working.wait()?;
+        }
+        let id = working.next;
+        working.next += 1;
+        working.open = Some(Open {
+            id,
+            prepared: false,
+            touched: BTreeMap::new(),
+        });
+        Ok(Command {
+            inner: Arc::clone(&self.inner),
+            id,
+            ended: false,
+        })
+    }
+
+    /// **Tell `tell` each time a command finds another open and waits its
+    /// turn**, as it is about to wait (for tests and diagnostics, as the
+    /// development server's write guard tells, ADR-0365: "waiting at its
+    /// turn" is a fact the adapter can state, where "has not begun yet" is a
+    /// silence a slow thread makes too).
+    pub fn tell_on_wait(&self, tell: impl Fn() + Send + Sync + 'static) {
+        let observer: Arc<dyn Fn() + Send + Sync> = Arc::new(tell);
+        let old = match self.inner.told.lock() {
+            Ok(mut slot) => slot.replace(observer),
+            Err(poisoned) => {
+                drop(poisoned);
+                drop(observer);
+                return;
+            }
+        };
+        // Captured values may run arbitrary Drop code, including registration.
+        drop(old);
+    }
+
     /// A serializable transaction in this memory database. A failed command,
     /// unique violation, missing reference or user error publishes nothing.
     pub fn transaction<T>(
         &self,
-        action: impl FnOnce(&mut Transaction<'_>) -> Result<T, Error>,
+        action: impl FnOnce(&mut Command) -> Result<T, Error>,
     ) -> Result<T, Error> {
-        let mut guard = self.state.lock().map_err(|_| Error::StoragePoisoned)?;
-        let mut staged = guard.clone();
-        let answer = {
-            let mut tx = Transaction {
-                manifest: &self.manifest,
-                state: &mut staged,
-            };
-            let answer = action(&mut tx)?;
-            validate_state(&self.manifest, &*tx.state)?;
-            answer
-        };
-        *guard = staged;
+        let mut command = self.begin()?;
+        let answer = action(&mut command)?;
+        command.commit()?;
         Ok(answer)
     }
 }
 
-pub struct Transaction<'a> {
-    manifest: &'a TablesJson,
-    state: &'a mut State,
+/// **One command's transaction** (ADR-0386): its reads see its own writes,
+/// and no other read sees them until it commits. Dropped without committing,
+/// it is undone whole. Its host functions ([`Command::host_fns`]) act on it
+/// alone, and on nothing once it has ended.
+pub struct Command {
+    inner: Arc<Inner>,
+    id: u64,
+    ended: bool,
 }
 
-impl Transaction<'_> {
+impl Command {
+    /// Read through a compiler-emitted import, as [`MemoryTables::read`]
+    /// does, from the tables as this command has written them.
     pub fn read(&self, import: &str, args: &[Value]) -> Result<Value, Error> {
-        read(self.manifest, self.state, import, args)
+        self.inner.command_read(self.id, import, args)
     }
 
-    /// Perform insert, put, delete or delete-prefix through a generated
-    /// import. Errors restore the pre-call state even if caught by the caller.
-    /// Conflict carries the existing row, for the future WIT Result mapping.
+    /// **Perform insert, put, delete or delete-prefix through a generated
+    /// import**, staged in this command. A write refused by the row holding
+    /// its key or a unique value (`Error::Conflict`, carrying that row) or
+    /// failing changes nothing.
     pub fn write(&mut self, import: &str, args: &[Value]) -> Result<(), Error> {
-        let before = self.state.clone();
-        let result = write(self.manifest, self.state, import, args)
-            .and_then(|()| validate_uniqueness(self.manifest, self.state));
-        if result.is_err() {
-            *self.state = before;
+        self.inner.command_write(self.id, import, args)
+    }
+
+    /// **The table reads and writes an admitted command links, as host
+    /// functions**: one callback for each function the host's gate admits
+    /// into a command (`pw_host::tables::Manifest::admit_command`), keyed as
+    /// the engine links it, and nothing else. Each acts on this command: a
+    /// read sees its writes, a write is staged in it, and a refused write
+    /// answers the row that refused it (`result<_, row>`'s error), nothing
+    /// written. Once the command has ended, each fails.
+    pub fn host_fns(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, Error> {
+        use pw_host::engine::{table_read_host, table_write_host};
+        use pw_host::tables::Access;
+        if !matches!(contract.exports.as_slice(), [export] if export.kind == "command") {
+            return Err(Error::Input(
+                "staged table callbacks require one explicit command export".into(),
+            ));
         }
-        result
+        let mut out = BTreeMap::new();
+        let admitted = self
+            .inner
+            .host
+            .admit_command(contract, granted)
+            .map_err(Error::Input)?;
+        for (import, access) in admitted {
+            let inner = Arc::clone(&self.inner);
+            let (id, bound) = (self.id, import.clone());
+            let host = match access {
+                Access::Read(read) => table_read_host::host_fn(
+                    read,
+                    Arc::new(move |args: &[Value]| {
+                        inner
+                            .command_read(id, &bound, args)
+                            .map_err(|error| format!("`{bound}`: {error:?}"))
+                    }),
+                ),
+                Access::Write(write) => table_write_host::host_fn(
+                    write,
+                    Arc::new(
+                        move |args: &[Value]| match inner.command_write(id, &bound, args) {
+                            Ok(()) => Ok(None),
+                            Err(Error::Conflict { existing, .. }) => Ok(Some(existing)),
+                            Err(error) => Err(format!("`{bound}`: {error:?}")),
+                        },
+                    ),
+                ),
+            };
+            out.insert(import, host);
+        }
+        Ok(out)
+    }
+
+    /// **The tables this command has written so far**, by name: what its
+    /// commit publishes, and so what a host commits its outbox with
+    /// (`Staged::rows`); none where it wrote nothing, a delete of a key no
+    /// row has, or a row put back as it was, among them.
+    pub fn written(&self) -> Result<BTreeSet<String>, Error> {
+        let working = self.inner.working_of(self.id)?;
+        let open = working.open.as_ref().ok_or(Error::Ended)?;
+        Ok(changed(&working.tables, &open.touched)
+            .iter()
+            .map(|(table, _, _)| self.inner.shape.tables[*table].name.clone())
+            .collect())
+    }
+
+    /// **Hold this command's writes to what a commit keeps** (ADR-0386):
+    /// each written table within its bound, each reference written to a row
+    /// that exists, and no row referring to one it deleted. Refused, the
+    /// command is undone whole and nothing is published; held, it writes
+    /// nothing more and is published by [`Prepared::publish`]. Internal
+    /// storage failure remains fallible. A unique index needs no check here:
+    /// no write ever breaks one.
+    pub fn prepare(mut self) -> Result<Prepared, Error> {
+        let written = {
+            let mut working = self.inner.working_of(self.id)?;
+            let Working { tables, open, .. } = &mut *working;
+            let open = open.as_mut().ok_or(Error::Ended)?;
+            let changed = changed(tables, &open.touched);
+            self.inner.held(tables, &changed)?;
+            open.prepared = true;
+            let mut written = BTreeMap::new();
+            for (table, _, _) in &changed {
+                written.insert(
+                    self.inner.shape.tables[*table].name.clone(),
+                    tables[*table].version + 1,
+                );
+            }
+            written
+        };
+        let command = Command {
+            inner: Arc::clone(&self.inner),
+            id: self.id,
+            ended: false,
+        };
+        // This handle hands its transaction to the prepared one.
+        self.ended = true;
+        Ok(Prepared { command, written })
+    }
+
+    /// [`Command::prepare`], then [`Prepared::publish`].
+    pub fn commit(self) -> Result<Committed, Error> {
+        self.prepare()?.publish()
     }
 }
 
-fn operation<'a>(
-    manifest: &'a TablesJson,
-    import: &str,
-) -> Result<(&'a TableJson, &'a FunctionJson), Error> {
-    manifest
-        .tables
-        .iter()
-        .find_map(|t| {
-            t.functions
-                .iter()
-                .find(|f| f.import == import)
-                .map(|f| (t, f))
-        })
-        .ok_or_else(|| Error::Input(format!("undeclared table operation {import}")))
+impl Drop for Command {
+    fn drop(&mut self) {
+        if !self.ended {
+            let _ = self.inner.end(self.id, false);
+        }
+    }
 }
 
+/// **A command held to its commit's checks**: published by
+/// [`Prepared::publish`], or undone whole where it is dropped instead.
+pub struct Prepared {
+    command: Command,
+    written: BTreeMap<String, u64>,
+}
+
+impl Prepared {
+    /// Each table its publish writes, by name, and the version it makes.
+    pub fn written(&self) -> &BTreeMap<String, u64> {
+        &self.written
+    }
+
+    /// **Publish what the command staged**: every read after it sees all of
+    /// it, and none before saw any of it.
+    pub fn publish(mut self) -> Result<Committed, Error> {
+        self.command.inner.end(self.command.id, true)?;
+        self.command.ended = true;
+        Ok(Committed {
+            written: std::mem::take(&mut self.written),
+        })
+    }
+}
+
+/// What a commit published: each table it wrote, by name, at its new version.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Committed {
+    pub written: BTreeMap<String, u64>,
+}
+
+/// A working lock carries its failure notification through every caller.
+/// On unwind it releases the mutex before waking all waiters.
+struct WorkingLease<'a> {
+    inner: &'a Inner,
+    locked: Option<MutexGuard<'a, Working>>,
+    unwinding_at_acquire: bool,
+}
+
+impl std::ops::Deref for WorkingLease<'_> {
+    type Target = Working;
+    fn deref(&self) -> &Working {
+        self.locked.as_ref().expect("working lease owns its lock")
+    }
+}
+impl std::ops::DerefMut for WorkingLease<'_> {
+    fn deref_mut(&mut self) -> &mut Working {
+        self.locked.as_mut().expect("working lease owns its lock")
+    }
+}
+impl Drop for WorkingLease<'_> {
+    fn drop(&mut self) {
+        let unwinding = std::thread::panicking() && !self.unwinding_at_acquire;
+        if unwinding || self.inner.poisoned() {
+            if self.locked.is_some() {
+                self.inner.mark_failed();
+                drop(self.locked.take());
+                self.inner.wake_failed();
+            } else {
+                // The atomic wait already released the mutex.
+                self.inner.fail();
+            }
+        }
+    }
+}
+impl WorkingLease<'_> {
+    fn wait(self) -> Result<Self, Error> {
+        self.inner.healthy_locked()?;
+        self.wait_after_check()
+    }
+
+    // Separate the checked-to-wait window so tests can place a failure in it.
+    fn wait_after_check(mut self) -> Result<Self, Error> {
+        let locked = self.locked.take().expect("working lease owns its lock");
+        let locked = match self.inner.turn.wait(locked) {
+            Ok(locked) => locked,
+            Err(poisoned) => {
+                self.inner.mark_failed();
+                drop(poisoned);
+                self.inner.wake_failed();
+                return Err(Error::StoragePoisoned);
+            }
+        };
+        self.locked = Some(locked);
+        self.inner.healthy_locked()?;
+        Ok(self)
+    }
+}
+
+impl Inner {
+    fn mark_failed(&self) {
+        self.failed.store(true, Ordering::Release);
+    }
+    fn wake_failed(&self) {
+        self.turn.notify_all();
+    }
+
+    /// Terminal failure publication shares the wait predicate's mutex.
+    /// A poisoned guard is taken only as a synchronization barrier; no data
+    /// is read, recovered or declared healthy through it.
+    fn fail(&self) -> Error {
+        let guard = self
+            .working
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        self.mark_failed();
+        drop(guard);
+        self.wake_failed();
+        Error::StoragePoisoned
+    }
+
+    /// The caller owns a working lease; its Drop releases before notifying.
+    fn fail_locked(&self) -> Error {
+        self.mark_failed();
+        Error::StoragePoisoned
+    }
+
+    fn poisoned(&self) -> bool {
+        self.failed.load(Ordering::Acquire)
+            || self.working.is_poisoned()
+            || self.published.is_poisoned()
+    }
+    fn healthy(&self) -> Result<(), Error> {
+        if self.poisoned() {
+            Err(self.fail())
+        } else {
+            Ok(())
+        }
+    }
+    fn healthy_locked(&self) -> Result<(), Error> {
+        if self.poisoned() {
+            Err(self.fail_locked())
+        } else {
+            Ok(())
+        }
+    }
+
+    fn lock_working(&self) -> Result<WorkingLease<'_>, Error> {
+        self.healthy()?;
+        let locked = match self.working.lock() {
+            Ok(locked) => locked,
+            Err(poisoned) => {
+                self.mark_failed();
+                drop(poisoned);
+                self.wake_failed();
+                return Err(Error::StoragePoisoned);
+            }
+        };
+        let lease = WorkingLease {
+            inner: self,
+            locked: Some(locked),
+            unwinding_at_acquire: std::thread::panicking(),
+        };
+        self.healthy_locked()?;
+        Ok(lease)
+    }
+
+    fn read_published(&self, import: &str, args: &[Value]) -> Result<Value, Error> {
+        self.healthy()?;
+        let tables = match self.published.lock() {
+            Ok(published) => Arc::clone(&*published),
+            Err(poisoned) => {
+                drop(poisoned);
+                return Err(self.fail());
+            }
+        };
+        self.healthy()?;
+        read(&self.shape, &tables, import, args)
+    }
+
+    /// The working copy, where `id` is the open command.
+    fn working_of(&self, id: u64) -> Result<WorkingLease<'_>, Error> {
+        let working = self.lock_working()?;
+        match &working.open {
+            Some(open) if open.id == id => Ok(working),
+            _ => Err(Error::Ended),
+        }
+    }
+
+    fn command_read(&self, id: u64, import: &str, args: &[Value]) -> Result<Value, Error> {
+        let working = self.working_of(id)?;
+        read(&self.shape, &working.tables, import, args)
+    }
+
+    fn command_write(&self, id: u64, import: &str, args: &[Value]) -> Result<(), Error> {
+        let mut working = self.working_of(id)?;
+        let Working { tables, open, .. } = &mut *working;
+        let open = open.as_mut().ok_or(Error::Ended)?;
+        if open.prepared {
+            return Err(Error::Ended);
+        }
+        write(&self.shape, tables, &mut open.touched, import, args)
+    }
+
+    /// **What a commit keeps** (see [`Command::prepare`]), of each row it
+    /// changed.
+    fn held(&self, tables: &[Data], changed: &[(usize, Key, Option<Row>)]) -> Result<(), Error> {
+        let written: BTreeSet<usize> = changed.iter().map(|(table, _, _)| *table).collect();
+        for &table in &written {
+            let shape = &self.shape.tables[table];
+            if let Some(bound) = shape.bounded
+                && tables[table].rows.len() as u64 > bound
+            {
+                return Err(Error::Input(format!(
+                    "{} exceeds its declared bound: {} rows, where it holds at most {bound}",
+                    shape.name,
+                    tables[table].rows.len()
+                )));
+            }
+        }
+        for (table, key, _) in changed {
+            let shape = &self.shape.tables[*table];
+            match tables[*table].rows.get(key) {
+                // A row written: each row it refers to exists.
+                Some(row) => {
+                    for (reference, referred) in
+                        shape.references.iter().zip(references(shape, row)?)
+                    {
+                        let Some(referred) = referred else { continue };
+                        if !tables[reference.target].rows.contains_key(&referred) {
+                            return Err(Error::Input(format!(
+                                "{} references a missing {}",
+                                shape.name, self.shape.tables[reference.target].name
+                            )));
+                        }
+                    }
+                }
+                // A row deleted: no row refers to it.
+                None => {
+                    for (referring, other) in self.shape.tables.iter().enumerate() {
+                        for (place, reference) in other.references.iter().enumerate() {
+                            if reference.target == *table
+                                && holding(&tables[referring].referring[place], key)
+                                    .next()
+                                    .is_some()
+                            {
+                                return Err(Error::Input(format!(
+                                    "{} references a missing {}",
+                                    other.name, shape.name
+                                )));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// **The open command `id` ends**: published, its touched keys' rows
+    /// replayed into the published tables, or undone, its touched keys'
+    /// rows restored in the working copy; then the next command may begin.
+    /// Both remove every touched key first and then set each row it holds
+    /// after, so that no unique value is held twice between the two.
+    fn end(&self, id: u64, publish: bool) -> Result<(), Error> {
+        let mut working = self.lock_working()?;
+        let Working { tables, open, .. } = &mut *working;
+        if !open.as_ref().is_some_and(|open| open.id == id) {
+            return Err(Error::Ended);
+        }
+        // Acquire every fallible lock before consuming the undo log.
+        let mut published = if publish {
+            Some(self.published.lock().map_err(|_| self.fail_locked())?)
+        } else {
+            None
+        };
+        self.healthy_locked()?;
+        let ended = open.take().ok_or(Error::Ended)?;
+        if let Some(published) = published.as_mut() {
+            let rows = changed(tables, &ended.touched);
+            let written: BTreeSet<usize> = rows.iter().map(|(table, _, _)| *table).collect();
+            let state = Arc::make_mut(published);
+            replay(&self.shape, state, &rows);
+            for &table in &written {
+                Arc::make_mut(&mut state[table]).version += 1;
+            }
+            for &table in &written {
+                tables[table].version += 1;
+            }
+        } else {
+            let rows: Vec<(usize, Key, Option<Row>)> = ended
+                .touched
+                .into_iter()
+                .map(|((table, key), prior)| (table, key, prior))
+                .collect();
+            replay(&self.shape, tables, &rows);
+        }
+        drop(published);
+        drop(working);
+        self.turn.notify_one();
+        Ok(())
+    }
+}
+
+/// **Each key a command changed**, with its row now: each it touched whose
+/// row is not the one it held before.
+fn changed(
+    tables: &[Data],
+    touched: &BTreeMap<(usize, Key), Option<Row>>,
+) -> Vec<(usize, Key, Option<Row>)> {
+    touched
+        .iter()
+        .filter_map(|((table, key), before)| {
+            let now = tables[*table].rows.get(key).cloned();
+            let unchanged = same_rows(&now, before);
+            (!unchanged).then(|| (*table, key.clone(), now))
+        })
+        .collect()
+}
+
+/// Storage equality preserves floating-point representation. JSON numeric
+/// equality merges +0.0 and -0.0, which must not leave staging and published
+/// snapshots holding different bits after a successful command.
+fn same_rows(left: &Option<Row>, right: &Option<Row>) -> bool {
+    match (left, right) {
+        (Some(left), Some(right)) => same_fields(left, right),
+        (None, None) => true,
+        _ => false,
+    }
+}
+
+fn same_fields(left: &Map<String, Value>, right: &Map<String, Value>) -> bool {
+    left.len() == right.len()
+        && left
+            .iter()
+            .all(|(key, value)| right.get(key).is_some_and(|other| same_value(value, other)))
+}
+
+fn same_value(left: &Value, right: &Value) -> bool {
+    match (left, right) {
+        (Value::Number(left), Value::Number(right)) if left.is_f64() || right.is_f64() => {
+            left.is_f64() == right.is_f64()
+                && left.as_f64().map(f64::to_bits) == right.as_f64().map(f64::to_bits)
+        }
+        (Value::Array(left), Value::Array(right)) => {
+            left.len() == right.len() && left.iter().zip(right).all(|(a, b)| same_value(a, b))
+        }
+        (Value::Object(left), Value::Object(right)) => same_fields(left, right),
+        _ => left == right,
+    }
+}
+
+/// Tables a replay sets rows in: the working copy's, or the published ones,
+/// each copied first where a reader still holds it.
+trait Tables {
+    fn table(&mut self, at: usize) -> &mut Data;
+}
+
+impl Tables for Vec<Data> {
+    fn table(&mut self, at: usize) -> &mut Data {
+        &mut self[at]
+    }
+}
+
+impl Tables for Vec<Arc<Data>> {
+    fn table(&mut self, at: usize) -> &mut Data {
+        Arc::make_mut(&mut self[at])
+    }
+}
+
+/// Every key of `rows` removed, then set to the row it gives. The rows are
+/// a state every write already held to its unique indexes, so no set is
+/// refused; one that were would be a broken adapter, which stops here
+/// rather than leave half a commit or half an undo.
+fn replay(shape: &Shape, tables: &mut impl Tables, rows: &[(usize, Key, Option<Row>)]) {
+    for (t, key, _) in rows {
+        let done = tables.table(*t).set(&shape.tables[*t], key, None);
+        assert!(
+            matches!(done, Ok(Set::Done(_))),
+            "a removal is never refused"
+        );
+    }
+    for (t, key, row) in rows {
+        if let Some(row) = row {
+            let done = tables
+                .table(*t)
+                .set(&shape.tables[*t], key, Some(row.clone()));
+            assert!(
+                matches!(done, Ok(Set::Done(_))),
+                "a state every write held to its unique indexes is set whole"
+            );
+        }
+    }
+}
+
+// --- reading the manifest ----------------------------------------------------
+
+fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
+    let mut tables = Vec::new();
+    let mut functions = BTreeMap::new();
+    let place = |name: &str| manifest.tables.iter().position(|t| t.schema.name == name);
+    for (at, table) in manifest.tables.iter().enumerate() {
+        let name = &table.schema.name;
+        if place(name) != Some(at) {
+            return Err(Error::Schema(format!("duplicate table {name}")));
+        }
+        if table.schema.key.is_empty() {
+            return Err(Error::Schema(format!("{name} has no key")));
+        }
+        let fields: BTreeSet<_> = table
+            .schema
+            .fields
+            .iter()
+            .map(|f| f.name.as_str())
+            .collect();
+        if fields.len() != table.schema.fields.len() {
+            return Err(Error::Schema(format!("{name} repeats a field")));
+        }
+        for selector in table
+            .schema
+            .key
+            .iter()
+            .chain(table.schema.order.iter())
+            .chain(table.schema.indexes.iter().flat_map(|i| &i.fields))
+        {
+            let field = stored(table, selector)
+                .ok_or_else(|| Error::Schema(format!("{name} has unknown field {selector}")))?;
+            if !scalar(field) {
+                return Err(Error::Schema(format!(
+                    "{name} selector {selector} is not a supported scalar"
+                )));
+            }
+        }
+        for f in &table.schema.fields {
+            if !supported(&f.stored) {
+                return Err(Error::Schema(format!(
+                    "{name} field {} needs an unsupported storage encoding",
+                    f.name
+                )));
+            }
+        }
+        let mut references = Vec::new();
+        for reference in &table.schema.references {
+            let target = place(&reference.table).ok_or_else(|| {
+                Error::Schema(format!("unknown referenced table {}", reference.table))
+            })?;
+            let referred = &manifest.tables[target].schema;
+            if referred.source != table.schema.source || referred.key.len() != 1 {
+                return Err(Error::Schema(
+                    "cross-source or composite references are unsupported in memory D2".into(),
+                ));
+            }
+            let field = stored(table, &reference.field).ok_or_else(|| {
+                Error::Schema(format!(
+                    "{name} refers by unknown field {}",
+                    reference.field
+                ))
+            })?;
+            let held = match field {
+                Stored::Option(inner) => inner.as_ref(),
+                other => other,
+            };
+            if !scalar(held) {
+                return Err(Error::Schema(format!(
+                    "{name} refers by {}, which holds no key",
+                    reference.field
+                )));
+            }
+            references.push(ReferenceShape {
+                field: reference.field.clone(),
+                target,
+            });
+        }
+        for function in &table.functions {
+            if function.primitive == Primitive::All && table.bounded.is_none() {
+                return Err(Error::Schema(format!("{name} grants an unbounded all()")));
+            }
+            if !matches!(
+                function.primitive,
+                Primitive::All | Primitive::Insert | Primitive::Put
+            ) && function.by.is_empty()
+            {
+                return Err(Error::Schema(format!(
+                    "{} has an empty selector",
+                    function.import
+                )));
+            }
+            if function
+                .by
+                .iter()
+                .any(|field| !fields.contains(field.as_str()))
+            {
+                return Err(Error::Schema(format!(
+                    "{} selects a missing field",
+                    function.import
+                )));
+            }
+            let one = function.primitive == Primitive::Get
+                || (function.primitive == Primitive::Index
+                    && table
+                        .schema
+                        .indexes
+                        .iter()
+                        .any(|i| i.unique && i.fields == function.by));
+            let shaped = FunctionShape {
+                primitive: function.primitive,
+                by: function.by.clone(),
+                sorted_by: function.sorted_by.clone(),
+                one,
+            };
+            if functions
+                .insert(function.import.clone(), (at, shaped))
+                .is_some()
+            {
+                return Err(Error::Schema(format!(
+                    "duplicate host import {}",
+                    function.import
+                )));
+            }
+        }
+        tables.push(TableShape {
+            name: name.clone(),
+            fields: table
+                .schema
+                .fields
+                .iter()
+                .map(|f| (f.name.clone(), f.stored.clone()))
+                .collect(),
+            key: table.schema.key.clone(),
+            indexes: table
+                .schema
+                .indexes
+                .iter()
+                .map(|index| IndexShape {
+                    fields: index.fields.clone(),
+                    unique: index.unique,
+                })
+                .collect(),
+            references,
+            bounded: table.bounded,
+        });
+    }
+    Ok(Shape { tables, functions })
+}
+
+fn stored<'a>(table: &'a TableJson, field: &str) -> Option<&'a Stored> {
+    table
+        .schema
+        .fields
+        .iter()
+        .find(|f| f.name == field)
+        .map(|f| &f.stored)
+}
+
+/// A value every adapter keys by.
+fn scalar(stored: &Stored) -> bool {
+    matches!(
+        stored,
+        Stored::Int { .. } | Stored::String { .. } | Stored::Bool
+    )
+}
+
+/// A value this adapter stores without losing any of it: an `Option` of an
+/// `Option` is not, since its `Some(None)` is stored as its `None`.
 fn supported(ty: &Stored) -> bool {
     match ty {
         Stored::Int { .. }
@@ -320,7 +1184,10 @@ fn supported(ty: &Stored) -> bool {
         | Stored::Bool
         | Stored::Float
         | Stored::Unit => true,
-        Stored::Option(inner) | Stored::List(inner) => supported(inner),
+        Stored::Option(inner) => {
+            !matches!(**inner, Stored::Option(_) | Stored::Unit) && supported(inner)
+        }
+        Stored::List(inner) => supported(inner),
         Stored::Record(fields) => fields.iter().all(|f| supported(&f.stored)),
         Stored::Map(_, _) | Stored::Set(_) | Stored::Cases(_) | Stored::Recursive(_) => false,
     }
@@ -355,32 +1222,32 @@ fn validates(value: &Value, ty: &Stored) -> bool {
     }
 }
 
-fn check_row(table: &TableJson, value: &Value) -> Result<(Key, Row), Error> {
+fn check_row(table: &TableShape, value: &Value) -> Result<(Key, Row), Error> {
     let row = value
         .as_object()
         .ok_or_else(|| Error::Input("row must be an object".into()))?;
-    if row.len() != table.schema.fields.len() {
+    if row.len() != table.fields.len() {
         return Err(Error::Input(format!(
             "{} row fields do not match its schema",
-            table.schema.name
+            table.name
         )));
     }
-    for f in &table.schema.fields {
-        let v = row.get(&f.name).ok_or_else(|| {
-            Error::Input(format!("{} row is missing {}", table.schema.name, f.name))
-        })?;
-        if !validates(v, &f.stored) {
+    for (name, stored) in &table.fields {
+        let v = row
+            .get(name)
+            .ok_or_else(|| Error::Input(format!("{} row is missing {name}", table.name)))?;
+        if !validates(v, stored) {
             return Err(Error::Input(format!(
-                "{} field {} fails its stored type or bound",
-                table.schema.name, f.name
+                "{} field {name} fails its stored type or bound",
+                table.name
             )));
         }
     }
-    let key = row_key(row, &table.schema.key)?;
-    Ok((key, row.clone()))
+    let key = row_key(row, &table.key)?;
+    Ok((key, Arc::new(row.clone())))
 }
 
-fn row_key(row: &Row, fields: &[String]) -> Result<Key, Error> {
+fn row_key(row: &Map<String, Value>, fields: &[String]) -> Result<Key, Error> {
     fields
         .iter()
         .map(|f| {
@@ -437,32 +1304,32 @@ fn selections(by: &[String], args: &[Value], many: bool) -> Result<BTreeSet<Key>
     Ok(out)
 }
 
-fn typed_read_selections(
-    table: &TableJson,
-    fun: &FunctionJson,
+/// What a function is given, each value held to its declared field's type
+/// and bound: a boolean is a valid atom where a string is declared, and a
+/// mismatched read must fail, not turn into the same answer as an absent
+/// row.
+fn typed_selections(
+    table: &TableShape,
+    function: &FunctionShape,
+    import: &str,
     args: &[Value],
 ) -> Result<BTreeSet<Key>, Error> {
-    let keys = selections(&fun.by, args, fun.primitive.many())?;
-    // Atom::parse checks the value's shape, but a boolean is still a valid
-    // Atom when the declared selector is a string. A mismatched read must
-    // fail, not turn into the same answer as an absent row.
+    let keys = selections(&function.by, args, function.primitive.many())?;
     for key in &keys {
-        for (name, atom) in fun.by.iter().zip(key) {
-            let field = table
-                .schema
+        for (name, atom) in function.by.iter().zip(key) {
+            let (_, stored) = table
                 .fields
                 .iter()
-                .find(|field| field.name == *name)
+                .find(|(field, _)| field == name)
                 .ok_or_else(|| Error::Schema(format!("unknown table selector field {name}")))?;
             let value = match atom {
                 Atom::Bool(value) => Value::from(*value),
                 Atom::Int(value) => Value::from(*value),
                 Atom::Str(value) => Value::from(value.clone()),
             };
-            if !validates(&value, &field.stored) {
+            if !validates(&value, stored) {
                 return Err(Error::Input(format!(
-                    "{} selector {name} fails its declared type or bound",
-                    fun.import
+                    "{import} selector {name} fails its declared type or bound"
                 )));
             }
         }
@@ -470,103 +1337,154 @@ fn typed_read_selections(
     Ok(keys)
 }
 
+/// The one key a keyed function is given.
+fn typed_selector(
+    table: &TableShape,
+    function: &FunctionShape,
+    import: &str,
+    args: &[Value],
+) -> Result<Key, Error> {
+    typed_selections(table, function, import, args)?
+        .into_iter()
+        .next()
+        .ok_or_else(|| Error::Input(format!("{import} was given no selector")))
+}
+
 fn read(
-    manifest: &TablesJson,
-    state: &State,
+    shape: &Shape,
+    tables: &[impl AsRef<Data>],
     import: &str,
     args: &[Value],
 ) -> Result<Value, Error> {
-    let (table, fun) = operation(manifest, import)?;
-    if fun.primitive.writes() {
+    let (at, function) = shape.function(import)?;
+    if function.primitive.writes() {
         return Err(Error::Input(format!("{import} is a write, not a read")));
     }
-    let rows = state
-        .get(&table.schema.name)
+    let table = &shape.tables[at];
+    let data = tables
+        .get(at)
+        .map(AsRef::as_ref)
         .ok_or_else(|| Error::Schema("missing table state".into()))?;
-    if fun.primitive == Primitive::All && table.bounded.is_none() {
-        return Err(Error::Schema("whole-table read without a bound".into()));
-    }
-    if fun.primitive == Primitive::All && !args.is_empty() {
-        return Err(Error::Input("all() takes no selector".into()));
-    }
-    let keys = if fun.primitive == Primitive::All {
-        BTreeSet::new()
-    } else {
-        typed_read_selections(table, fun, args)?
-    };
-    let mut found: Vec<&Row> = rows
-        .values()
-        .filter(|row| {
-            fun.primitive == Primitive::All
-                || row_key(row, &fun.by).is_ok_and(|key| keys.contains(&key))
-        })
-        .collect();
-    found.sort_by(|a, b| compare_rows(a, b, &fun.sorted_by, &table.schema.key));
-    let one = fun.primitive == Primitive::Get
-        || (fun.primitive == Primitive::Index
-            && table
-                .schema
+    let mut found: Vec<&Row> = Vec::new();
+    match function.primitive {
+        Primitive::All => {
+            if !args.is_empty() {
+                return Err(Error::Input("all() takes no selector".into()));
+            }
+            let Some(bound) = table.bounded else {
+                return Err(Error::Schema("whole-table read without a bound".into()));
+            };
+            // Only a command's own writes, before it commits, can hold more.
+            if data.rows.len() as u64 > bound {
+                return Err(Error::Input(format!(
+                    "{} holds {} rows, more than its bound of {bound}",
+                    table.name,
+                    data.rows.len()
+                )));
+            }
+            found.extend(data.rows.values());
+        }
+        Primitive::Get | Primitive::GetMany => {
+            for key in typed_selections(table, function, import, args)? {
+                found.extend(data.rows.get(&key));
+            }
+        }
+        Primitive::Prefix | Primitive::PrefixMany => {
+            for prefix in typed_selections(table, function, import, args)? {
+                found.extend(data.prefixed(&prefix).map(|(_, row)| row));
+            }
+        }
+        Primitive::Index | Primitive::IndexMany => {
+            let index = table
                 .indexes
                 .iter()
-                .any(|i| i.unique && i.fields == fun.by));
-    if one {
-        Ok(found
-            .first()
-            .map_or(Value::Null, |row| Value::Object((*row).clone())))
-    } else {
-        Ok(Value::Array(
-            found
-                .into_iter()
-                .map(|row| Value::Object(row.clone()))
-                .collect(),
-        ))
+                .position(|index| index.fields == function.by)
+                .ok_or_else(|| Error::Schema(format!("{import} reads by no index")))?;
+            for values in typed_selections(table, function, import, args)? {
+                for key in holding(&data.indexes[index], &values) {
+                    found.push(data.rows.get(key).ok_or_else(|| {
+                        Error::Schema(format!("{}'s index names a missing row", table.name))
+                    })?);
+                }
+            }
+        }
+        _ => return Err(Error::Input(format!("{import} is a write, not a read"))),
     }
+    if function.one {
+        return Ok(found
+            .first()
+            .map_or(Value::Null, |row| Value::Object((***row).clone())));
+    }
+    found.sort_by_cached_key(|row| place(row, &function.sorted_by, &table.key));
+    Ok(Value::Array(
+        found
+            .into_iter()
+            .map(|row| Value::Object((**row).clone()))
+            .collect(),
+    ))
 }
 
-fn compare_rows(a: &Row, b: &Row, by: &[String], key: &[String]) -> Ordering {
-    for field in by.iter().chain(key.iter()) {
-        let left = a.get(field).and_then(|v| Atom::parse(v).ok());
-        let right = b.get(field).and_then(|v| Atom::parse(v).ok());
-        let comparison = left.cmp(&right);
-        if comparison != Ordering::Equal {
-            return comparison;
-        }
-    }
-    Ordering::Equal
+/// A row's place in tables.json's order: its `sorted_by` fields, then its
+/// key.
+fn place(row: &Row, sorted_by: &[String], key: &[String]) -> Vec<Option<Atom>> {
+    sorted_by
+        .iter()
+        .chain(key)
+        .map(|field| row.get(field).and_then(|v| Atom::parse(v).ok()))
+        .collect()
 }
 
 fn write(
-    manifest: &TablesJson,
-    state: &mut State,
+    shape: &Shape,
+    tables: &mut [Data],
+    touched: &mut BTreeMap<(usize, Key), Option<Row>>,
     import: &str,
     args: &[Value],
 ) -> Result<(), Error> {
-    let (table, fun) = operation(manifest, import)?;
-    let rows = state
-        .get_mut(&table.schema.name)
+    let (at, function) = shape.function(import)?;
+    let table = &shape.tables[at];
+    let data = tables
+        .get_mut(at)
         .ok_or_else(|| Error::Schema("missing table state".into()))?;
-    match fun.primitive {
+    let conflict = |held: &Row| Error::Conflict {
+        table: table.name.clone(),
+        existing: Value::Object((**held).clone()),
+    };
+    // Each key's row before this command first wrote it.
+    let mut first = |key: &Key, prior: Option<Row>| {
+        touched.entry((at, key.clone())).or_insert(prior);
+    };
+    match function.primitive {
         Primitive::Insert | Primitive::Put => {
             let [value] = args else {
                 return Err(Error::Input("insert/put expects one row".into()));
             };
             let (key, row) = check_row(table, value)?;
-            if fun.primitive == Primitive::Insert
-                && let Some(existing) = rows.get(&key)
+            if function.primitive == Primitive::Insert
+                && let Some(existing) = data.rows.get(&key)
             {
-                return Err(Error::Conflict {
-                    table: table.schema.name.clone(),
-                    existing: Value::Object(existing.clone()),
-                });
+                return Err(conflict(existing));
             }
-            rows.insert(key, row);
+            match data.set(table, &key, Some(row))? {
+                Set::Held(held) => return Err(conflict(&held)),
+                Set::Done(prior) => first(&key, prior),
+            }
         }
-        Primitive::Delete | Primitive::DeletePrefix => {
-            let key = selector(&fun.by, args)?;
-            if fun.primitive == Primitive::Delete {
-                rows.remove(&key);
-            } else {
-                rows.retain(|_, row| row_key(row, &fun.by).map_or(true, |found| found != key));
+        Primitive::Delete => {
+            let key = typed_selector(table, function, import, args)?;
+            if data.rows.contains_key(&key)
+                && let Set::Done(prior) = data.set(table, &key, None)?
+            {
+                first(&key, prior);
+            }
+        }
+        Primitive::DeletePrefix => {
+            let prefix = typed_selector(table, function, import, args)?;
+            let keys: Vec<Key> = data.prefixed(&prefix).map(|(key, _)| key.clone()).collect();
+            for key in keys {
+                if let Set::Done(prior) = data.set(table, &key, None)? {
+                    first(&key, prior);
+                }
             }
         }
         _ => return Err(Error::Input(format!("{import} is not a table write"))),
@@ -574,70 +1492,11 @@ fn write(
     Ok(())
 }
 
-fn validate_uniqueness(manifest: &TablesJson, state: &State) -> Result<(), Error> {
-    for table in &manifest.tables {
-        let rows = state
-            .get(&table.schema.name)
-            .ok_or_else(|| Error::Schema("missing table state".into()))?;
-        if table.bounded.is_some_and(|bound| rows.len() as u64 > bound) {
-            return Err(Error::Input(format!(
-                "{} exceeds its declared bound",
-                table.schema.name
-            )));
-        }
-        for index in table.schema.indexes.iter().filter(|i| i.unique) {
-            let mut seen = BTreeMap::<Key, &Row>::new();
-            for row in rows.values() {
-                let key = row_key(row, &index.fields)?;
-                if let Some(existing) = seen.insert(key, row) {
-                    return Err(Error::Conflict {
-                        table: table.schema.name.clone(),
-                        existing: Value::Object(existing.clone()),
-                    });
-                }
-            }
-        }
+impl AsRef<Data> for Data {
+    fn as_ref(&self) -> &Data {
+        self
     }
-    Ok(())
 }
 
-fn validate_state(manifest: &TablesJson, state: &State) -> Result<(), Error> {
-    validate_uniqueness(manifest, state)?;
-    for table in &manifest.tables {
-        let rows = state
-            .get(&table.schema.name)
-            .ok_or_else(|| Error::Schema("missing table state".into()))?;
-        for reference in &table.schema.references {
-            let target = manifest
-                .tables
-                .iter()
-                .find(|t| t.schema.name == reference.table)
-                .ok_or_else(|| {
-                    Error::Schema(format!("unknown referenced table {}", reference.table))
-                })?;
-            if target.schema.source != table.schema.source || target.schema.key.len() != 1 {
-                return Err(Error::Schema(
-                    "cross-source or composite references are unsupported in memory D2".into(),
-                ));
-            }
-            let target_rows = state
-                .get(&target.schema.name)
-                .ok_or_else(|| Error::Schema("missing target state".into()))?;
-            for row in rows.values() {
-                let value = row
-                    .get(&reference.field)
-                    .ok_or_else(|| Error::Schema("missing reference field".into()))?;
-                if value.is_null() {
-                    continue;
-                }
-                if !target_rows.contains_key(&vec![Atom::parse(value)?]) {
-                    return Err(Error::Input(format!(
-                        "{} references a missing {}",
-                        table.schema.name, target.schema.name
-                    )));
-                }
-            }
-        }
-    }
-    Ok(())
-}
+#[cfg(test)]
+mod failure_tests;

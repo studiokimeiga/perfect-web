@@ -1,0 +1,11 @@
+# Fresh hosted TodoMVC recipe failure
+
+Actual `e14-todomvc` returned status1 (1516.9s) in original evidence-4, although enclosing shard job122583483816 completed SUCCESS. The original ZIP/API digest and completed full job log are preserved; the recipe evidence header binds synthetic merge8c153f42, whose tree equals frozen f1d19c8e.
+
+The program mutant “the clear button counts what is left” changes `done` from counting completed todos to counting `!completed` (immutable scripts/todomvc_mutations.py173–177). It produced 2 failed/48 passed Chromium tests. `todomvc.spec.mjs:500` failed the intended `expect(...).toBeHidden()`; `:219` timed out30s at clearCompleted.click() (line228), with the element hidden. The latter has no assertion cause. The reporter therefore correctly wrote no complete assertion receipt; the producer refused the control. Final canonical lines1470–1475 say missing complete browser receipt, one refused control, restored server4/0 and browser50/0,14of43 killed/1refused/0survived, no memory stop. Baseline server4/0 and browser50/0 was green too.
+
+The exact mutation command is `CARGO_INCREMENTAL=0 python3 scripts/todomvc_mutations.py` from just/todomvc.just132. Its child is `bash scripts/run_suite.sh -C . -- pnpm exec playwright test e2e/todomvc.spec.mjs --project=chromium --retries=0 --reporter=line,./assertion-result-reporter.mjs` from cwd spikes/own-renderer with a fresh nonce-bound receipt path. Source blobs and relevant lines are bound in immutable-source-bindings.json.
+
+The original traces-4 ZIP is saved and API-digest verified. The final failed control's035532Z directory contains only NOT-KEPT.txt: both failing test directories were omitted by the32MiB trace budget. There is no retained trace/error-context for this control. Earlier controls' traces must not be treated as this run's cause.
+
+Inference, not a reproduced fix: :219 checks the native toggle-all checkbox and then clear visibility without an explicit completed-row model precondition. The mutant can initially show the clear button for its active item, then hide it after completion renders, between the visibility assertion and click. A semantic completion precondition may make the intended assertion fail directly. Root owns reproduction and repair. No local native/browser rerun, source edit, rerun/cancel or acceptance relaxation was performed here.

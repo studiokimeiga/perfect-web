@@ -295,7 +295,7 @@ test("specs of an optional build that cannot be served are left out, each said w
   try {
     assert.equal(REQUIRED_BUILD, "store");
     const optional = (root) => Object.fromEntries(unservedSpecs(root).map(({ file, warning }) => [file, warning]));
-    const feed = ["computed-modules.spec.mjs", "feed.spec.mjs", "identity.spec.mjs", "messages.spec.mjs", "notifications.spec.mjs", "uploads.spec.mjs"];
+    const feed = ["computed-modules.spec.mjs", "feed.spec.mjs", "identity.spec.mjs", "messages.spec.mjs", "notifications.spec.mjs", "upload-metadata.spec.mjs", "uploads.spec.mjs"];
     const unbuilt = optional(root);
     assert.deepEqual(Object.keys(unbuilt).sort(), [...feed, "guestbook.spec.mjs", "keyed.spec.mjs", "kiokun-site.spec.mjs", "todomvc.spec.mjs"].sort());
     const lacking = { "guestbook.spec.mjs": ["dist-guestbook", "guestbook.sh"], "keyed.spec.mjs": ["dist-keyed", "keyed-store.sh"], "kiokun-site.spec.mjs": ["dist-kiokun", "kiokun-site.sh"], "todomvc.spec.mjs": ["dist-todomvc", "todomvc.sh"] };

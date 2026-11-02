@@ -1,0 +1,16 @@
+test_generic_ci_catalogue_exports_every_canonical_control_and_edit (scripts.tests.test_session_command_mutations.SessionCommandProducer) ... FAIL
+
+======================================================================
+FAIL: test_generic_ci_catalogue_exports_every_canonical_control_and_edit (scripts.tests.test_session_command_mutations.SessionCommandProducer)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/session-revocation-20261026/scripts/tests/test_session_command_mutations.py", line 16, in test_generic_ci_catalogue_exports_every_canonical_control_and_edit
+    self.assertEqual({entry[0] for entry in gate.MUTANTS},
+AssertionError: Items in the second set but not the first:
+'private-trace-error'
+'private-trace-payload'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (failures=1)

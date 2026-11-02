@@ -1,0 +1,142 @@
+{
+  "scope": "WORKING SOURCE one original-source privacy testcase SUBSET1/17 plus two privacy/native-diagnostic calibration controls over all17; not full26 command authority acceptance",
+  "parent_head": "5371f0f20d7fcb50826d3a775b5bbac72c1b14b0",
+  "source_sha256": "82303162b32a42bbd195da416ce9b0ef9749ccf6e65efd88832249a672f26803",
+  "tests": 17,
+  "selected_fault_controls": 2,
+  "completed": [
+    "original-source-privacy-subset",
+    "cleanup-stderr-restored",
+    "native-stderr-discarded"
+  ],
+  "valid": true,
+  "error": null,
+  "restored": true,
+  "runs": [
+    {
+      "label": "baseline",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "-v",
+        "scripts/tests/test_session_command_mutations.py"
+      ],
+      "tests_selected": 17,
+      "status": 0,
+      "log_sha256": "e274b3024a893d638e8eed12599eb9cf40c9f1c66342e8068057fa5c4582c226",
+      "owned_reaped": [
+        {
+          "pid": 1692073,
+          "status": 0,
+          "timed_out": false,
+          "cancelled": false
+        }
+      ],
+      "producer_sha256": "82303162b32a42bbd195da416ce9b0ef9749ccf6e65efd88832249a672f26803",
+      "test_source_sha256": "dc1f6cb0fc6a57d33c9eba91437ba7b23e1320eaacc7c44395c6396c5d171678",
+      "fresh_empty_owned_bytecode_prefix": true,
+      "bytecode_writes_disabled": true
+    },
+    {
+      "label": "original-source-privacy-subset",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "-v",
+        "scripts.tests.test_session_command_mutations.SessionCommandProducer.test_cleanup_discards_child_stderr_before_retaining_logs"
+      ],
+      "tests_selected": 1,
+      "status": 1,
+      "log_sha256": "8ce65daf539ba750c8f02e275b6d15ec881d7554ec674733a5012ec60d98dec4",
+      "owned_reaped": [
+        {
+          "pid": 1692081,
+          "status": 1,
+          "timed_out": false,
+          "cancelled": false
+        }
+      ],
+      "producer_sha256": "c77b67aad3f8e33378091e65e9d8adf0f2f0030ac906323fc45238bfc5cf6823",
+      "test_source_sha256": "dc1f6cb0fc6a57d33c9eba91437ba7b23e1320eaacc7c44395c6396c5d171678",
+      "fresh_empty_owned_bytecode_prefix": true,
+      "bytecode_writes_disabled": true
+    },
+    {
+      "label": "cleanup-stderr-restored",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "-v",
+        "scripts/tests/test_session_command_mutations.py"
+      ],
+      "tests_selected": 17,
+      "status": 1,
+      "log_sha256": "65af993d28f7450d1f40e71504d318f950446c801431c851a367517523437578",
+      "owned_reaped": [
+        {
+          "pid": 1692084,
+          "status": 1,
+          "timed_out": false,
+          "cancelled": false
+        }
+      ],
+      "producer_sha256": "aaf723414705c706b3366510bbd32523f658800ec899d03d43f2a09b07003e08",
+      "test_source_sha256": "dc1f6cb0fc6a57d33c9eba91437ba7b23e1320eaacc7c44395c6396c5d171678",
+      "fresh_empty_owned_bytecode_prefix": true,
+      "bytecode_writes_disabled": true
+    },
+    {
+      "label": "native-stderr-discarded",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "-v",
+        "scripts/tests/test_session_command_mutations.py"
+      ],
+      "tests_selected": 17,
+      "status": 1,
+      "log_sha256": "aa89684c4a6742fd73ba5d68aaf90c22d3df35c286869c763e5ba70099d781c2",
+      "owned_reaped": [
+        {
+          "pid": 1692092,
+          "status": 1,
+          "timed_out": false,
+          "cancelled": false
+        }
+      ],
+      "producer_sha256": "cfef77d3310f09c40efb923f20922915bc124b45260e1f4753f796f6616a9a41",
+      "test_source_sha256": "dc1f6cb0fc6a57d33c9eba91437ba7b23e1320eaacc7c44395c6396c5d171678",
+      "fresh_empty_owned_bytecode_prefix": true,
+      "bytecode_writes_disabled": true
+    },
+    {
+      "label": "restored-baseline",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "-v",
+        "scripts/tests/test_session_command_mutations.py"
+      ],
+      "tests_selected": 17,
+      "status": 0,
+      "log_sha256": "d3b9b51fd87bc6c1356b793692205b0ead131539322e21e2e96292e0ea384957",
+      "owned_reaped": [
+        {
+          "pid": 1692099,
+          "status": 0,
+          "timed_out": false,
+          "cancelled": false
+        }
+      ],
+      "producer_sha256": "82303162b32a42bbd195da416ce9b0ef9749ccf6e65efd88832249a672f26803",
+      "test_source_sha256": "dc1f6cb0fc6a57d33c9eba91437ba7b23e1320eaacc7c44395c6396c5d171678",
+      "fresh_empty_owned_bytecode_prefix": true,
+      "bytecode_writes_disabled": true
+    }
+  ]
+}

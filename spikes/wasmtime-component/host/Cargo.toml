@@ -14,5 +14,6 @@ name = "spike-wasmtime-host"
 path = "src/main.rs"
 
 [dependencies]
-wasmtime = "48.0.7"
+# Excluded workspace: keep the same audited default-minus-cache feature list.
+wasmtime = { version = "48.0.7", default-features = false, features = ["anyhow", "async", "backtrace", "gc", "gc-copying", "gc-drc", "gc-null", "wat", "profiling", "parallel-compilation", "cranelift", "pooling-allocator", "demangle", "addr2line", "coredump", "debug-builtins", "runtime", "component-model", "component-model-async", "threads", "stack-switching", "std", "debug", "compile-time-builtins", "wit-parser"] }
 anyhow = "1.0.104"

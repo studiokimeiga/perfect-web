@@ -1,5 +1,29 @@
 # Known limitations
 
+## Renderer failure follow-up, 2026-10-29
+
+Verify run 40637144982 at `eb28ac01` failed two actual computed-renderer recipes
+despite green recipe shell jobs. The intermittent WebKit native traps remain
+unexplained; local replay did not reproduce them. ADR0172's error-path repair
+removes unsent speculation and fences renderer ownership. It does not establish
+the trap's low-level cause or clear that failed candidate. All fresh immutable-
+head gates remain required. The lifecycle seam tests use Node's experimental
+main-context VM import loader, with its warning retained; production uses no
+Node VM API. See the [diagnostic record](diagnostics/session-renderer-failures-2026-10-29.md).
+
+
+## Unmerged session repair, 2026-10-26
+
+ADR-0389's synchronous-reader binding is incremental local work. It does not
+complete browser-command transaction/receipt fencing, explicit request-local
+admission, existing-document/keyed/background read binding, teardown, or session-
+specific PostgreSQL/two-host/browser acceptance. Successful-page delivery checks
+do not cover query-derived redirects/errors in the unavailable/not_found paths.
+Nine legacy mutation anchors were retargeted; anchor uniqueness is not a claim
+that their full campaigns ran. See the
+[scoped record](diagnostics/session-readers-2026-10-26.md). No production session
+migration, publication or merge is authorized by these local results.
+
 Reviewed 2026-09-15 against master `4a9bcddc095b3b4d0eac0e0c2ddb8a0143de03d9`
 and the evidence-gate repair. Current milestone state is owned by
 [STATUS](STATUS.md); implementation order is in [NEXT](NEXT.md).
@@ -654,10 +678,28 @@ awaited in order. What remains:
   lease is, so a
   restart or a second host forgets it; the development blob store is a
   directory, and there is no production store, CDN, signed address,
-  private image, re-encoding or resizing. Metadata is served as uploaded,
-  an Exif position among it; EXIF orientation is read in JPEG alone. A
-  post carries one image, attaching it navigates the page and loses a draft
-  typed before it, and an image is not part of a post's speculation.
+  private image, re-encoding or resizing. A post carries one image,
+  attaching it navigates the page and loses a draft typed before it, and
+  an image is not part of a post's speculation.
+- **An uploaded image is kept without its metadata, not without all that
+  can identify it** (ADR-0383, amending ADR-0260). The host rewrites every
+  upload before it keeps it and keeps, of its Exif, a JPEG's turn alone; a
+  PNG or WebP is shown as stored, never turned by an Exif. An ICC profile
+  keeps validated standard colour tags, with reserved bytes canonicalized;
+  the numeric colour values remain and can fingerprint a calibrated display.
+  Producer signatures, vendor flags, unused fields and trailing payload bytes
+  are removed or refused. Unsupported nested ICC transforms (`mAB`, `mBA`,
+  `mpet`) cause the whole profile to be dropped, so the image may have
+  different colour under sRGB. Undefined header colour identifiers or intent,
+  non-D50 header illuminants and malformed supported payloads also drop the
+  profile. This is not universal ICC compatibility. Nothing in the pixels is touched
+  (a face, a street sign, a screen in a reflection), nor data hidden in a
+  JPEG's scan or past a GIF image's LZW end. An Ultra HDR or ISO 21496-1
+  gain map goes with MPF and what follows EOI, so such a photo shows as
+  its standard-range image; a GIF's ICC profile is dropped, its colours
+  then taken as sRGB. Images a deployment kept before this are not
+  rewritten: the one-time cleaning pass is described (ADR-0383 §3) and
+  queued for the production track, not built.
 - **The follows timeline is a query** (ADR-0257): read on each render
   from the posts of those followed, not a materialization fanned out on
   write. A reader is told of its own follow by its session, and another
@@ -1371,3 +1413,59 @@ preserved, not replaced with invented results.
   actual post-settlement success marker and do not count refused attempts as
   completion. Local strict whole12 and CI passed, and so did the exact
   head's verify 38909882781; landed with train-9.
+
+
+PNG/APNG upload rewriting now reserves at most 256 MiB of aggregate expected
+filtered-scanline extent across the default image and every animation frame.
+A malformed excess can fill one fixed 32 KiB output block before refusal;
+miniz also owns a 32 KiB internal dictionary. This bounds expected decoded
+extent with fixed refusal overhead, not exact actual inflated bytes or CPU
+work. It is not a 256 MiB allocation, CPU deadline or replacement for input
+and staging budgets. It can refuse large images that fit an application's
+compressed-byte and dimension declaration. Ambiguous PNG ordering, duplicate
+singleton chunks, extra compressed/decoded stream bytes and malformed APNG
+structure refuse the whole image. This does not remove arbitrary encoded-bit,
+palette or pixel steganography, calibrated-display fingerprints or metadata
+from older stored uploads. ADR-0383 records the specific boundary and gates.
+
+
+APNG ancillary chunks interleaved between fdAT pieces of one frame are
+explicitly unsupported: Chromium renders a demonstrated arrangement
+transparently until metadata removal makes its declared pixels visible.
+The host refuses it with an unsupported-image response rather than change
+that appearance. Split/sequence-only-empty fdAT without interleaving and
+ancillary chunks before/after frames remain supported. This is a stricter
+supported subset than APNG's ordering rules, not malformed-file evidence.
+
+
+### Scheduled generation repair (ADR0388, local candidate, 2026-10-26)
+
+The new queue fence is implemented locally, with adversarial PG/materializer tests; hosted source proof, strict whole mutation campaign, independent final review and published-head gates are pending. It does not give exactly-once Wasm evaluation or external HTTP effects. A lost adapter acknowledgement after an actual PG commit is exercised, including hidden/pruned receipts; actual socket loss during COMMIT, process kill and unsettled upload claims remain unproved. Upgrade requires quiescing old workers and reconciling protocol0 quarantine; it does not repair previously duplicated effects or support mixed-version execution. Admission quotas/fairness for pending/failed work and generic D2 business/platform-outbox integration remain unfinished.
+
+
+ADR0388 follow-up: Clock commit-error reconciliation now uses queue state rather than a result receipt and conservatively refreshes affected local reads after releasing staging. ActualPG adapter-ACK-loss/known-refusal neighbors and concrete server PatchSets are tested; browser DOM delivery under injected ACK loss, private keyed/kept-materialization neighbors, real transport/process failures, upload-claim uncertainty and ordinary-client uncertain-view recovery remain unproved. Earlier bc0 full campaign40342504105 failed and receives no whole-campaign credit; the repaired source still requires full21strict and all reached legacy campaigns plus final published gates.
+
+
+### Temporary upload authority follow-up (ADR0389, 2026-10-27)
+
+The follow-up binds private leases to the admitted reader and inspects current
+source authority for preview/publication. The upload fixtures exercise memory
+and the Kept source seam; they do not prove a two-host PostgreSQL upload race.
+Remote lease publication is ephemeral cache state, with the business command's
+transaction fence still governing committed posts. Already authorized fixed
+preview bytes can finish in flight. Pending capacity counts an old lease and
+its prepared replacement together, so replacement near the cap can refuse
+before the former implementation did. Poisoned mutex/process-abort cleanup is
+not established by normal refusal/authority-unwind tests.
+
+A separate preexisting upload lifecycle limit remains: unclaimed lease expiry
+is swept on a later upload, while preview/shown/claim do not independently sweep
+the nominal sixty-minute lease age. It is not repaired or credited by this
+session-revocation change. Public committed images retain ADR0260/0261's policy.
+
+**2026-10-27 — Temporary benchmark merge-helper fork (ADR-0390).** The Svelte
+baseline build tools need a local MIT deepmerge compatibility fork until
+upstream offers a reviewed fixed dependency. Reserved object keys are omitted;
+hostile custom callbacks/getters/proxies and cyclic input are outside its
+contract. The workspace and isolated sandbox must install the same fixed entry.
+The failed PR62 `4f28b257` audit is retained and gives no passing gate credit.
