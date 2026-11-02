@@ -171,8 +171,8 @@ MUTANTS = [
      "        [Val::String(of)] if *of == user => Ok(vec![Val::Option(account.clone())]),\n",
      "        [Val::String(_)] => Ok(vec![Val::Option(account.clone())]),\n"),
     ("a guest is an account, its session handed a program", NOTES,
-     "        .filter(|p| !p.is_guest())\n",
-     ""),
+     "    let account = principals.of(session).filter(|p| !p.is_guest()).map(|p| {\n",
+     "    let account = principals.of(session).map(|p| {\n"),
     # 7. the guestbook, on the tables it declares
     ("a removed entry's number is given again", BOOK,
      "                Some(book) => book.signed + 1,\n",

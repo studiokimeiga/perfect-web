@@ -122,6 +122,23 @@ NEXT 4c (a render reads one state).
     reading the host's mirror (`pw_host::tables`) takes the debt away. Not
     done here: it is the adapter's crate boundary, not the routing's.
 
+## What is proven
+
+- **A real app runs with no Rust of its own**: the guide's guestbook (sign
+  up, sign, an entry shown before the server answers and then as it wrote
+  it, removal by its author alone, every open page told without a reload)
+  is served from the tables it declares, through the gate, in Chromium,
+  Firefox and WebKit; its tutorial is the app, byte for byte.
+- **The gate is the only path and each component holds its own**: every
+  table function a call links is the gate's for that component; a guarded
+  command links nothing until its predicates answer.
+- **A command commits whole**: its rows, its interaction's record, its
+  events and its runs in one transaction, refused together where any part
+  is; a staged write read by its command alone; a render reading one state.
+- **The adapter answers as an oracle does** for every read function of
+  every table of two programs at two sizes, one call each, and a retried
+  interaction is answered once.
+
 ## Alternatives
 
 - **Publish the rows after the materializer commits** (the hand-written
