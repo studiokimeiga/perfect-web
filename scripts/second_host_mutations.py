@@ -415,13 +415,13 @@ MUTANTS = [
         "the deployment's schema is not the one its tables are in",
         "browser",
         SERVER,
-        "            match feed_pg::FeedPg::open_with(&url, feed_schema.as_deref(), isolation, seats) {\n",
+        "            match feed_pg::FeedPg::open_with(url.expose(), feed_schema.as_deref(), isolation, seats)\n",
         "            match feed_pg::FeedPg::open_with(\n"
-        "                &url,\n"
+        "                url.expose(),\n"
         '                feed_schema.as_deref().map(|_| "pw_e2e_hosts_ignored"),\n'
         "                isolation,\n"
         "                seats,\n"
-        "            ) {\n",
+        "            )\n",
     ),
     (
         "PW_FEED_SCHEMA is honored for any deployment",

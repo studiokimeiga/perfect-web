@@ -286,8 +286,8 @@ MUTANTS = [
         "a streamed document is sent no policy",
         SERVER_TESTS,
         SERVER,
-        "             {build}{policy}connection: close\\r\\n\\r\\n\"\n",
-        "             {build}connection: close\\r\\n\\r\\n\"\n",
+        "             {build}{policy}{}connection: close\\r\\n\\r\\n\",\n",
+        "             {build}{}connection: close\\r\\n\\r\\n\",\n",
     ),
     (
         "a document is sent the bare policy",
@@ -335,8 +335,8 @@ MUTANTS = [
         "an answer's type may be sniffed",
         SERVER_TESTS,
         SERVER,
-        "content-length: {}\\r\\n{NOSNIFF}{headers}connection: close\\r\\n\\r\\n\",\n",
-        "content-length: {}\\r\\n{headers}connection: close\\r\\n\\r\\n\",\n",
+        "content-length: {}\\r\\n{NOSNIFF}{headers}{}connection: close\\r\\n\\r\\n\",\n",
+        "content-length: {}\\r\\n{headers}{}connection: close\\r\\n\\r\\n\",\n",
     ),
     (
         "a streamed document's type may be sniffed",

@@ -157,8 +157,8 @@ MUTANTS = [
         "every response says OK",
         "server",
         SERVER,
-        "        reason(code),\n        body.len()\n",
-        "        \"OK\",\n        body.len()\n",
+        "        reason(code),\n        body.len(),\n        production::head(code),\n",
+        "        \"OK\",\n        body.len(),\n        production::head(code),\n",
     ),
     (
         "the not-found page has no heading",

@@ -478,8 +478,8 @@ MUTANTS = [
         "the host does not choose the kiokun layer",
         "files",
         HOST,
-        '            .any(|i| i.interface.starts_with("kiokun:"))',
-        '            .any(|i| i.interface.starts_with("kiokun-never:"))',
+        '    } else if imports("kiokun:") {',
+        '    } else if imports("kiokun-never:") {',
     ),
     (
         "a word's own file never moves it",
