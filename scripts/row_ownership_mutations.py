@@ -136,7 +136,6 @@ MUTANTS = [
 TESTS = [
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "table_owners"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "predicate_bodies"],
-    ["cargo", "test", "--quiet", "--locked", "-p", "pw-syntax", "--lib"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-host", "--features", "engine", "--lib"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_owners"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_predicates"],
@@ -145,7 +144,7 @@ TESTS = [
 SOURCES = [
     ROOT / "compiler/pw-core/tests/table_owners.rs",
     ROOT / "compiler/pw-core/tests/predicate_bodies.rs",
-    ROOT / "compiler/pw-syntax/src/grammar.rs",
+    *sorted((ROOT / "compiler/pw-syntax/src").glob("*.rs")),
     *sorted((ROOT / "runtime/pw-host/src").rglob("*.rs")),
     ROOT / "runtime/pw-table-memory/tests/compiled_owners.rs",
     ROOT / "runtime/pw-table-memory/tests/compiled_predicates.rs",

@@ -716,3 +716,24 @@ fn pw0369_the_seen_row_is_the_compilers_to_declare() {
         "`NoteSeen` is the record a reader `Notes` shares with is answered",
     );
 }
+
+#[test]
+fn private_is_still_a_declarations_visibility_after_a_table() {
+    // `private` heads a table's clause only where a field's name follows
+    // it; before a declaration's word it is that declaration's visibility.
+    let src = format!(
+        "{}\nprivate fn helper() -> Int !{{}} {{\n    1\n}}\n",
+        fixture("Notes.pw")
+    );
+    let parsed = pw_syntax::parse_tree(&src);
+    assert!(parsed.ok(), "{:?}", parsed.errors);
+    let hir = pw_core::lower::lower_file(&src, &parsed.green);
+    assert!(
+        hir.all_decls()
+            .any(|(_, d)| d.name == "helper" && d.kind == pw_core::hir::DeclKind::Fn),
+        "`private fn helper` is no function"
+    );
+    let t = &pw_core::tables::declared(&hir)[0];
+    assert_eq!(t.private_fields(), ["draft"]);
+    assert!(t.unread.is_empty(), "{:?}", t.unread);
+}
