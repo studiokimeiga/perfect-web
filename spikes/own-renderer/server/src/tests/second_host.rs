@@ -12,7 +12,7 @@ use crate::store_pg::StorePg;
 
 /// The database the feed's tests run against, where the environment names
 /// one.
-fn database() -> Option<String> {
+pub(super) fn database() -> Option<String> {
     match std::env::var("PW_FEED_DATABASE_URL") {
         Ok(url) if !url.is_empty() => Some(url),
         _ => {
@@ -23,13 +23,13 @@ fn database() -> Option<String> {
 }
 
 /// **A schema of the test's own**, dropped when the test is done with it.
-struct Schema {
+pub(super) struct Schema {
     url: String,
     name: String,
 }
 
 impl Schema {
-    fn new(url: &str, test: &str) -> Schema {
+    pub(super) fn new(url: &str, test: &str) -> Schema {
         let schema = Schema {
             url: url.to_string(),
             name: format!("pw_hosts_{}_{test}", std::process::id()),
@@ -45,7 +45,7 @@ impl Schema {
         postgres::Client::connect(&self.url, postgres::NoTls).expect("connected")
     }
 
-    fn sql(&self) -> postgres::Client {
+    pub(super) fn sql(&self) -> postgres::Client {
         let mut c = self.admin();
         c.batch_execute(&format!("SET search_path TO {}", self.name))
             .expect("the test's schema");
@@ -495,7 +495,11 @@ fn outbox_ids_are_taken_in_commit_order() {
 // ---------------------------------------------------------------------------
 
 /// [`feed_host`], its readers signed in through `provider`.
-fn feed_host_signing_in(url: &str, schema: &Schema, provider: &Arc<TestProvider>) -> Served {
+pub(super) fn feed_host_signing_in(
+    url: &str,
+    schema: &Schema,
+    provider: &Arc<TestProvider>,
+) -> Served {
     let s = feed_host(url, schema);
     s.identity.use_provider(provider.clone(), REDIRECT);
     s

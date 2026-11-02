@@ -9354,15 +9354,19 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
         }
     };
 
+    // The hook is taken, and its lock let go, before it runs: a hook that
+    // waits for another request of the session must not hold that request
+    // here (a `let` chain keeps its temporaries through the block).
     #[cfg(test)]
-    if method == "GET"
-        && let Some(hook) = server
+    if method == "GET" {
+        let hook = server
             .after_page_admission
             .lock()
             .expect("page admission hook")
-            .take()
-    {
-        hook(server);
+            .take();
+        if let Some(hook) = hook {
+            hook(server);
+        }
     }
 
     // TRACK SEAM (uploads, ADR-0253): an upload reads its own body, within
@@ -16162,6 +16166,8 @@ public query Store(",
     mod session_commands;
     #[cfg(feature = "session-postgres-tests")]
     mod session_commands_pg;
+    // ADR-0389, amended 2026-11-02: overlapping admissions of one session.
+    mod session_overlap;
     mod session_receipt_recovery;
     mod session_revocation;
     mod session_upload_authority;

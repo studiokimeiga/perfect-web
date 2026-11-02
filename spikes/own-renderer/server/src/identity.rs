@@ -380,6 +380,13 @@ impl Principal {
 
 type AdmissionClock = Mutex<Arc<()>>;
 
+/// **How many times one admission reads its session** (ADR-0389, amended
+/// 2026-11-02) when this host opens, closes or expires that session during
+/// each read: a read it overtook may predate it, so it is read again, and
+/// past this bound the request is refused `Superseded`. A session is opened
+/// once and closed once, so a real request reads at most twice.
+pub(crate) const ADMISSION_READS: usize = 3;
+
 #[derive(Default)]
 struct PrincipalsInner {
     /// The accounts model: a session is signed in only where a sign-in put
@@ -1972,7 +1979,7 @@ impl Reply {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     struct PausedRevocation {
@@ -2054,6 +2061,226 @@ mod tests {
     #[test]
     fn an_unrelated_admission_does_not_suppress_an_authority_read_failure() {
         an_unrelated_admission_cannot_cancel_this_revocation(true);
+    }
+
+    type ScriptedRead = Box<dyn FnOnce() -> Result<Option<SessionIdentity>, String> + Send>;
+
+    /// **A session source whose reads a test scripts** (ADR-0389, amended
+    /// 2026-11-02): each admission read runs the next script, in the order
+    /// the reads begin; inspection, open and close keep what it holds. A read
+    /// no script was written for fails, so a test counts reads by what is
+    /// left.
+    #[derive(Default)]
+    struct Scripted {
+        reads: Mutex<std::collections::VecDeque<ScriptedRead>>,
+        held: Mutex<Option<SessionIdentity>>,
+    }
+
+    impl Scripted {
+        fn then(
+            &self,
+            read: impl FnOnce() -> Result<Option<SessionIdentity>, String> + Send + 'static,
+        ) {
+            self.reads
+                .lock()
+                .expect("scripted reads")
+                .push_back(Box::new(read));
+        }
+        fn unread(&self) -> usize {
+            self.reads.lock().expect("scripted reads").len()
+        }
+    }
+
+    impl Kept for Scripted {
+        fn session(
+            &self,
+            _: &[u8],
+            _: &SessionLifetimes,
+        ) -> Result<Option<SessionIdentity>, String> {
+            let next = self.reads.lock().expect("scripted reads").pop_front();
+            next.map_or_else(|| Err("no read was scripted".into()), |read| read())
+        }
+        fn inspect(
+            &self,
+            _: &[u8],
+            _: &SessionLifetimes,
+        ) -> Result<Option<SessionIdentity>, String> {
+            Ok(self.held.lock().expect("held").clone())
+        }
+        fn open(&self, _: &[u8], principal: &Principal, epoch: &[u8; 16]) -> Result<(), String> {
+            *self.held.lock().expect("held") = Some(SessionIdentity {
+                principal: principal.clone(),
+                epoch: *epoch,
+            });
+            Ok(())
+        }
+        fn close(&self, _: &[u8]) -> Result<(), String> {
+            *self.held.lock().expect("held") = None;
+            Ok(())
+        }
+        fn begin_sign_in(&self, _: &[u8], _: &str, _: &str) -> Result<(), String> {
+            Ok(())
+        }
+        fn take_sign_in(&self, _: &[u8]) -> Result<Option<(String, String, Duration)>, String> {
+            Ok(None)
+        }
+    }
+
+    /// **`n` parties meeting, within a bound**: each `arrive` waits until
+    /// `n` have, or until the bound passes, and says which. A party that
+    /// never comes fails the test's assertion, never hangs it.
+    pub(crate) struct Meeting {
+        arrived: Mutex<usize>,
+        all: std::sync::Condvar,
+        n: usize,
+    }
+
+    impl Meeting {
+        pub(crate) fn of(n: usize) -> Arc<Meeting> {
+            Arc::new(Meeting {
+                arrived: Mutex::new(0),
+                all: std::sync::Condvar::new(),
+                n,
+            })
+        }
+        /// True when all `n` arrived within ten seconds.
+        pub(crate) fn arrive(&self) -> bool {
+            let mut arrived = self.arrived.lock().expect("meeting");
+            *arrived += 1;
+            self.all.notify_all();
+            let (arrived, waited) = self
+                .all
+                .wait_timeout_while(arrived, Duration::from_secs(10), |a| *a < self.n)
+                .expect("meeting");
+            !waited.timed_out() || *arrived >= self.n
+        }
+    }
+
+    /// A signed-in reader held here, its sessions kept in `source` from now
+    /// on, and the identity the source answers for it.
+    fn kept_reader(source: Arc<Scripted>) -> (Principals, SessionIdentity) {
+        let principals = Principals::default();
+        principals.set_accounts(true);
+        principals.open("reader", Principal::guest("ada"));
+        let ReaderIdentity::Account(identity) = principals.bound_reader("reader") else {
+            panic!("an account reader");
+        };
+        *source.held.lock().expect("held") = Some(identity.clone());
+        principals.keep_in(source);
+        (principals, identity)
+    }
+
+    /// **Two admissions of one session whose reads overlap are each
+    /// answered** (ADR-0389, amended 2026-11-02): a page and its module, or
+    /// a page and a command, read the session at once. Until then the
+    /// second to finish was refused `Superseded`, because the first moved
+    /// the session's ticket when it ended, and the request was answered 503.
+    #[test]
+    fn two_overlapping_admissions_of_one_session_are_each_answered() {
+        let source = Arc::new(Scripted::default());
+        let (principals, identity) = kept_reader(source.clone());
+        let meeting = Meeting::of(2);
+        for _ in 0..2 {
+            let (meeting, identity) = (meeting.clone(), identity.clone());
+            source.then(move || {
+                assert!(meeting.arrive(), "both reads are under way at once");
+                Ok(Some(identity))
+            });
+        }
+        let answers = std::thread::scope(|scope| {
+            let first = scope.spawn(|| principals.admit("reader"));
+            let second = scope.spawn(|| principals.admit("reader"));
+            [first.join(), second.join()].map(|a| a.expect("admitted without panic"))
+        });
+        for answer in answers {
+            assert_eq!(answer, Ok(ReaderIdentity::Account(identity.clone())));
+        }
+        assert_eq!(source.unread(), 0, "each admission read its session once");
+        assert_eq!(principals.of("reader"), Some(identity.principal));
+    }
+
+    /// **A read this host's sign-out overtook is read again** (ADR-0389,
+    /// amended 2026-11-02): the read began before the session was closed
+    /// here, so it may predate it; the request is answered from a second
+    /// read, after the close, and is no one. It is neither refused nor
+    /// answered as the reader who signed out.
+    #[test]
+    fn an_admission_whose_read_a_sign_out_overtook_reads_again() {
+        let source = Arc::new(Scripted::default());
+        let (principals, identity) = kept_reader(source.clone());
+        let signing_out = principals.clone();
+        source.then(move || {
+            let read = Ok(Some(identity));
+            signing_out.sign_out("reader").expect("signed out");
+            read
+        });
+        source.then(|| Ok(None));
+        assert_eq!(principals.admit("reader"), Ok(ReaderIdentity::Anonymous));
+        assert_eq!(
+            source.unread(),
+            0,
+            "the overtaken read was read again, once"
+        );
+        assert!(
+            principals.of("reader").is_none(),
+            "nothing installed the old read"
+        );
+    }
+
+    /// **A read another admission overtook answers its own request and
+    /// installs nothing** (ADR-0389, amended 2026-11-02): the later read found
+    /// the session revoked and removed it here; the earlier read, which found
+    /// it signed in, still answers its request (its delivery inspects the
+    /// source again), but never puts the revoked principal back.
+    #[test]
+    fn a_read_another_admission_overtook_never_reinstalls_a_revoked_principal() {
+        let source = Arc::new(Scripted::default());
+        let (principals, identity) = kept_reader(source.clone());
+        let (entered, inside) = std::sync::mpsc::channel();
+        let (release, released) = std::sync::mpsc::channel::<()>();
+        let earlier = identity.clone();
+        source.then(move || {
+            entered.send(()).expect("entered");
+            released.recv().expect("released");
+            Ok(Some(earlier))
+        });
+        source.then(|| Ok(None));
+        let (first, second) = std::thread::scope(|scope| {
+            let first = scope.spawn(|| principals.admit("reader"));
+            inside.recv().expect("the first read is under way");
+            let second = principals.admit("reader");
+            release.send(()).expect("release");
+            (first.join().expect("admitted without panic"), second)
+        });
+        assert_eq!(second, Ok(ReaderIdentity::Anonymous));
+        assert_eq!(first, Ok(ReaderIdentity::Account(identity)));
+        assert!(
+            principals.of("reader").is_none(),
+            "the overtaken read did not reinstall the revoked principal"
+        );
+    }
+
+    /// **An admission reads its session a bounded number of times**
+    /// (ADR-0389, amended 2026-11-02): a session this host opens or closes
+    /// during each of its reads is refused `Superseded` after
+    /// [`ADMISSION_READS`] reads, never waited for without end.
+    #[test]
+    fn an_admission_overtaken_at_every_read_is_refused_after_its_bound() {
+        let source = Arc::new(Scripted::default());
+        let (principals, identity) = kept_reader(source.clone());
+        for _ in 0..=ADMISSION_READS {
+            let (closing, identity) = (principals.clone(), identity.clone());
+            source.then(move || {
+                closing.close("reader");
+                Ok(Some(identity))
+            });
+        }
+        assert_eq!(principals.admit("reader"), Err(AuthorityError::Superseded));
+        assert_eq!(source.unread(), 1, "exactly ADMISSION_READS reads");
+        assert!(
+            principals.of("reader").is_none(),
+            "no overtaken read installed"
+        );
     }
 
     use std::collections::BTreeMap;
