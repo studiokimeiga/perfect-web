@@ -1038,11 +1038,13 @@ def run_script(cmd):
     exit 0 with every case's line, or exit 1 with at least one `FAIL:` of
     its own; bash's own errors, or any other exit, are no result."""
     try:
-        child = producer_process.run(cmd, cwd=ROOT, timeout=300, capture_output=True, text=True)
+        # Its standard output and error, one stream, as text (the producer's
+        # defaults).
+        child = producer_process.run(cmd, cwd=ROOT, timeout=300)
     except subprocess.TimeoutExpired as expired:
         print(expired.output, flush=True)
         return False, 0, 0, ()
-    out = child.stdout + child.stderr
+    out = child.stdout or ""
     failed = SCRIPT_FAILURE.findall(out)
     passed = len(SCRIPT_PASS.findall(out))
     errs = re.search(r"syntax error|command not found|unbound variable|No such file", out)
