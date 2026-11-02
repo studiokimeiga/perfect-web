@@ -69,23 +69,47 @@ test("a real stub adapter writes usage outside the graded app", () => {
   assert.deepEqual(scoreAgentRun(result, [{ name: "check", ok: true }]), { score: 1, failedAt: null });
 });
 
-test("a malformed sidecar turns an otherwise successful adapter run into ungraded infrastructure failure", () => {
-  const result = runAgent({}, "pleris", "printf 'not-json' > \"$BENCH_USAGE\"", fakeBox());
-  assert.equal(result.ok, false);
-  assert.equal(result.failure_kind, "infra");
-  assert.match(result.problem, /BENCH_USAGE/);
-  assert.deepEqual(scoreAgentRun(result, []), { score: null, failedAt: "infra" });
+test("a refused sidecar is a refused measurement, never a changed grade", () => {
+  const succeeded = runAgent({}, "pleris", "printf 'not-json' > \"$BENCH_USAGE\"", fakeBox());
+  assert.equal(succeeded.ok, true, succeeded.out);
+  assert.equal(succeeded.failure_kind, null);
+  assert.equal(succeeded.usage, null);
+  assert.match(succeeded.usage_problem, /BENCH_USAGE/);
+  assert.deepEqual(scoreAgentRun(succeeded, [{ name: "check", ok: true }]), { score: 1, failedAt: null });
+  // A failing agent cannot turn its zero into an ungraded run by writing one.
+  const failed = runAgent({}, "pleris", "printf 'not-json' > \"$BENCH_USAGE\"; exit 2", fakeBox());
+  assert.equal(failed.failure_kind, "agent");
+  assert.match(failed.usage_problem, /BENCH_USAGE/);
+  assert.deepEqual(scoreAgentRun(failed, []), { score: 0, failedAt: "agent" });
 });
 
-test("ordinary agent failure is a zero, but an executable or timeout failure is ungraded", () => {
+test("an ordinary failure and a timeout score 0, and only infrastructure is ungraded", () => {
   assert.equal(agentFailureKind({ status: 2, signal: null, error_code: null }), "agent");
   assert.equal(agentFailureKind({ status: 75, signal: null, error_code: null }), "infra");
   assert.equal(agentFailureKind({ status: 127, signal: null, error_code: null }), "infra");
-  assert.equal(agentFailureKind({ status: null, signal: "SIGTERM", error_code: "ETIMEDOUT" }), "infra");
+  assert.equal(agentFailureKind({ status: null, signal: "SIGTERM", error_code: "ETIMEDOUT" }), "timeout");
+  assert.equal(agentFailureKind({ status: null, signal: null, error_code: "ENOENT" }), "infra");
+  assert.equal(agentFailureKind({ status: null, signal: "SIGKILL", error_code: null }), "infra");
   const ordinary = runAgent({}, "pleris", "exit 2", fakeBox());
   const temporary = runAgent({}, "pleris", "exit 75", fakeBox());
   assert.deepEqual(scoreAgentRun(ordinary, []), { score: 0, failedAt: "agent" });
   assert.deepEqual(scoreAgentRun(temporary, []), { score: null, failedAt: "infra" });
+});
+
+test("an agent that outlives its budget is scored 0 as a timeout", () => {
+  const budget = process.env.BENCH_AGENT_SECONDS;
+  process.env.BENCH_AGENT_SECONDS = "1";
+  try {
+    const started = Date.now();
+    const hung = runAgent({}, "pleris", "sleep 30", fakeBox());
+    assert.ok(Date.now() - started < 20_000, "the budget stopped it");
+    assert.equal(hung.ok, false);
+    assert.equal(hung.failure_kind, "timeout");
+    assert.deepEqual(scoreAgentRun(hung, []), { score: 0, failedAt: "timeout" });
+  } finally {
+    if (budget === undefined) delete process.env.BENCH_AGENT_SECONDS;
+    else process.env.BENCH_AGENT_SECONDS = budget;
+  }
 });
 
 test("successful agent work needs real, passing grading stages", () => {

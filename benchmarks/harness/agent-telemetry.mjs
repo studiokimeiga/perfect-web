@@ -115,17 +115,24 @@ export function readAgentUsage(file) {
   }
 }
 
-// 75 is an explicit temporary-infrastructure failure. 126/127 mean the
-// wrapper could not execute its command. Ordinary agent nonzero exits score 0.
-export function agentFailureKind({ status }) {
+// A run that outlives its time budget is the agent's failure, told apart as
+// a timeout: finishing within the budget is part of what E14 measures, and an
+// ungraded hang would favour the stack whose agents hang. 75 is an adapter's
+// explicit temporary-infrastructure failure (a provider outage); 126/127 mean
+// the wrapper could not execute its command; a command that could not be
+// spawned, or was killed by a signal the harness did not send, has no status
+// and is not the model's doing. Any other nonzero exit is the agent's.
+export function agentFailureKind({ status, error_code = null }) {
+  if (error_code === "ETIMEDOUT") return "timeout";
   if (status === null || [75, 126, 127].includes(status)) return "infra";
   return "agent";
 }
 
 // A null score means the run was not gradable. Do not count it as an agent
-// failure in subsequent model comparisons.
+// failure in subsequent model comparisons; a timeout is one, scored 0.
 function failedAgentScore(agentRun) {
   if (agentRun.failure_kind === "infra") return { score: null, failedAt: "infra" };
+  if (agentRun.failure_kind === "timeout") return { score: 0, failedAt: "timeout" };
   return { score: 0, failedAt: "agent" };
 }
 

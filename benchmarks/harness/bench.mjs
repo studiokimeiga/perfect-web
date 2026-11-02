@@ -76,7 +76,13 @@ const STACKS = {
 
 function sh(cmd, args, opts = {}) {
   const r = spawnSync(cmd, args, { encoding: "utf8", maxBuffer: 64 << 20, ...opts });
-  return { ok: r.status === 0, status: r.status, out: `${r.stdout ?? ""}${r.stderr ?? ""}` };
+  return {
+    ok: r.status === 0,
+    status: r.status,
+    signal: r.signal ?? null,
+    error_code: r.error?.code ?? null,
+    out: `${r.stdout ?? ""}${r.stderr ?? ""}`,
+  };
 }
 
 function tail(text, n = 40) {
@@ -233,15 +239,25 @@ function replayAgent(task, stack, kind, box) {
   return { ok: result.ok, seconds: (Date.now() - started) / 1000, out: tail(result.out) };
 }
 
+// A refused sidecar is a refused measurement, never a changed grade: the run
+// is graded as if no usage had been written (ADR-0391's rulings).
 function measuredAgentResult(result, usageFile, started) {
   const seconds = (Date.now() - started) / 1000;
   let usage = null;
+  let usageProblem = null;
   try {
     usage = readAgentUsage(usageFile);
   } catch (error) {
-    return { ok: false, seconds, out: tail(result.out), usage: null, failure_kind: "infra", problem: error.message };
+    usageProblem = error.message;
   }
-  return { ok: result.ok, seconds, out: tail(result.out), usage, failure_kind: result.ok ? null : agentFailureKind(result) };
+  return {
+    ok: result.ok,
+    seconds,
+    out: tail(result.out),
+    usage,
+    usage_problem: usageProblem,
+    failure_kind: result.ok ? null : agentFailureKind(result),
+  };
 }
 
 function realAgent(stack, agent, box) {

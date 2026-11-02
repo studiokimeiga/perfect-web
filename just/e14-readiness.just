@@ -16,7 +16,20 @@ e14-bench-footprint:
      } > docs/evidence/E14/bench-footprint.txt
     @grep -E "^(ok|not ok) |mutants killed" docs/evidence/E14/bench-footprint.txt
 
-# A real no-network agent adapter reports usage without affecting grading;
-# infrastructure exits do not become model failure scores (ADR-0391).
+# ADR-0391: the usage an agent adapter reports is kept or refused and never
+# changes a grade; a timeout is the agent's failure, told apart; only
+# infrastructure is ungraded. The harness's tests and the mutation controls.
+# A failed test stops the recipe and stays in its evidence.
 e14-agent-telemetry:
-    @node --test benchmarks/harness/test/agent-telemetry.test.mjs
+    @mkdir -p docs/evidence/E14
+    @{ echo "ADR-0391 - an agent's usage is measured apart from its grade"; echo; \
+       echo "produced by: just e14-agent-telemetry"; \
+       echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' || echo ' + uncommitted changes')"; \
+       echo "node: $(node --version)"; echo; \
+       echo "== the harness's tests (benchmarks/harness/test/agent-telemetry.test.mjs)"; echo; \
+       (cd benchmarks/harness && node --test test/agent-telemetry.test.mjs 2>&1 \
+         | grep -E '^(ok|not ok) |^# (tests|pass|fail) '); \
+       echo; echo "== mutation controls (scripts/agent_telemetry_mutations.py)"; echo; \
+       python3 scripts/agent_telemetry_mutations.py; \
+     } > docs/evidence/E14/agent-telemetry.txt
+    @grep -E "^(ok|not ok) |mutants killed" docs/evidence/E14/agent-telemetry.txt
