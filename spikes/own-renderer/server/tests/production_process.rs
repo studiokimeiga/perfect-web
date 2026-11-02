@@ -747,11 +747,15 @@ impl Database {
 }
 
 impl Drop for Database {
+    /// Dropped where the server answers; never a panic, which a failing
+    /// test's unwinding would make the whole binary's abort.
     fn drop(&mut self) {
-        let _ = self.client().batch_execute(&format!(
-            "DROP DATABASE IF EXISTS {} WITH (FORCE)",
-            self.name
-        ));
+        if let Ok(mut client) = postgres::Client::connect(&self.admin, postgres::NoTls) {
+            let _ = client.batch_execute(&format!(
+                "DROP DATABASE IF EXISTS {} WITH (FORCE)",
+                self.name
+            ));
+        }
     }
 }
 

@@ -485,7 +485,7 @@ neighbour and a mutation control killed at an assertion
 Recorded by `just e14-deploy` in `docs/evidence/E14/deploy.txt`, verified on
 GitHub (a `verify` run on `wip/deploy`, fetched by `just evidence-fetch`):
 - the server's production tests (`-- production`: `production::`,
-  `tests::production_host::`, kiokun's cache), 71, each rule with its
+  `tests::production_host::`, kiokun's cache), 72, each rule with its
   neighbour; and the two of ADR-0389's for an upload under a path the
   platform keeps;
 - the compiler's PW7001 tests (`--test reserved_routes`, 3) and its code
@@ -595,4 +595,13 @@ And in the repair: the host said it listened before it had started its own
 threads, so a limit set the moment it said so could end it (found by the
 refused-thread test's first runs); the session tests that declared an upload
 under `/command/` and at `/stream` were programs the platform's own routes
-shadow (a subscription's `/stream` among them), which PW7001 now refuses.
+shadow (a subscription's `/stream` among them), which PW7001 now refuses;
+reserving the development server's `/menu` refused the guide's own tour
+(the routes now yield instead); and the first whole mutation campaign killed
+117 of 120: `serve_file`'s production refusal is unreachable behind the
+allow-list (it is held directly now, the second refusal), and two process
+controls were refused, a log line looked for by `expect` and an assertion
+quoting the host's own panic line, which the strict producer reads as a
+second panic (both now assertions). A database test's `Drop` that panicked
+where PostgreSQL did not answer made a failing test an abort of every test
+in the binary (it never panics now).
