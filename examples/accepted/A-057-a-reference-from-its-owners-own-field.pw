@@ -1,0 +1,26 @@
+// @corpus: accepted
+// @id: A-057
+// @category: a reference within one owner's rows
+// @charter: §7.8, §9.2
+// @milestone: 14
+//
+// The control of R-114 (track `row-ownership`, the review's finding 1), with
+// A-056: a perk is its member's, and refers to A-056's memberships from
+// that same field, so a perk is written only where its own member holds a
+// membership, and a membership is ended only where none of its own
+// member's perks names it. Neither tells one member anything of another's.
+
+module Perks
+
+import capability.{ UserId }
+import Memberships
+
+opaque type PerkId = String
+
+type Perk = Perk { member: UserId, id: PerkId, title: String }
+
+table Perks
+    row    Perk
+    key    member, id
+    owned  by member
+    refers member to Memberships

@@ -1,0 +1,22 @@
+// @corpus: accepted
+// @id: A-056
+// @category: a reference within one owner's rows
+// @charter: §7.8, §9.2
+// @milestone: 14
+//
+// The control of R-114 (track `row-ownership`, the review's finding 1), with
+// A-057: an owned table keyed by its owner alone, each row its member's
+// membership. A-057's badges refer to it from their own owner's field, so
+// each names its owner's own row, and the database's check of the
+// reference reads no other member's.
+
+module Memberships
+
+import capability.{ UserId }
+
+type Membership = Membership { member: UserId, tier: Int }
+
+table Memberships
+    row   Membership
+    key   member
+    owned by member

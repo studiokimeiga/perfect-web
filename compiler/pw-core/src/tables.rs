@@ -1545,7 +1545,7 @@ fn shape(
         &fields,
     ));
     for r in &t.references {
-        out.extend(referring(
+        let malformed = referring(
             hirs,
             unit,
             ws,
@@ -1553,7 +1553,13 @@ fn shape(
             &row.value,
             r,
             field(&r.value.field).map(|(_, ty)| ty.as_ref()),
-        ));
+        );
+        // Whose rows it reaches (track `row-ownership`): PW6924, of a
+        // reference whose shape is a table's.
+        if malformed.is_empty() {
+            out.extend(within_one_owner(hirs, unit, ws, t, r));
+        }
+        out.extend(malformed);
     }
     let mut stated: BTreeMap<&str, &Span> = BTreeMap::new();
     for m in &t.migrations {
@@ -1629,7 +1635,21 @@ const READ_BY_ITS_READER: &str = "An owned table is read by its reader alone (AD
      read takes the reader's handle in the place of the field it leads with, its owner or one it \
      shares with, so a read that leads with any other field, or reads it whole, would answer \
      other owners' rows. A unique value is held across the table, so a unique index holds the \
-     owner: a write refused by another owner's row would answer it.";
+     owner: a write refused by another owner's row would answer it. A bound counts the rows of \
+     every owner, so an owned table states none: a write refused by it would tell one owner how \
+     many rows the others hold.";
+
+const WITHIN_ONE_OWNER: &str = "A reference is a foreign key the database holds across every \
+     row of both tables, whoever owns them (ADR-0338; PostgreSQL's foreign keys are checked \
+     past its row security): a row is not written naming a row that is not there, and a row \
+     named is not deleted. Between two owners' rows that check is a read of another's: a write \
+     refused, or let through, tells its writer whether a row they may not read exists, and an \
+     owner could not delete their own row while another's names it. So a reference into an \
+     owned table is made from an owned table's own owner field, naming its owner's own row; a \
+     table no one owns refers to no owned table; and an owned table refers to no table no one \
+     owns, since deleting the row it names would be refused because of a private row, which \
+     the refusal reveals, until a reference states what deleting the row it names does \
+     (ADR-0384's H3 and H9).";
 
 const UNSEEN: &str = "A private field is read by its owner alone (ADR-0384): a reader the table \
      shares with is answered the seen row, the record the compiler declares beside the row \
@@ -1825,6 +1845,22 @@ fn ownership(
                 ),
             ));
         }
+    }
+    // A bound counts every owner's rows (the review's finding 2): one
+    // owner's rows would refuse another's write, and the refusal tell them
+    // how many the others hold. A bound per owner is ADR-0384's H4.
+    if let Some(b) = &t.bounded {
+        out.push(read_refusal(
+            format!(
+                "`bounded {}` counts every owner's rows of `{}`: one owner's rows would refuse \
+                 another's write, and the refusal tell them how many rows the others hold",
+                b.value, t.name
+            ),
+            &b.span,
+            "remove `bounded`: an owned table is read by its reader's handle and never whole, \
+             and a bound per owner is not built (ADR-0384's H4)"
+                .to_string(),
+        ));
     }
     // A private field: one its owner alone reads.
     let Some(p) = &t.private else {
@@ -2031,6 +2067,89 @@ fn referring(
             reference.field, reference.table
         ),
     )]
+}
+
+/// **PW6924: a reference stays within one owner's rows** (track
+/// `row-ownership`, the review's finding 1; ADR-0384's H1). The database
+/// checks a reference across every row of both tables, whoever owns them, so
+/// a reference between two owners' rows is a read of another's: an owned
+/// table refers to an owned table from its own owner field alone (the
+/// referred table's key is its owner, PW0368, so the row it names is the
+/// referring row's owner's own); a table no one owns refers to no owned
+/// table; and an owned table to no table no one owns, whose delete a private
+/// row would refuse, until a reference states what that delete does
+/// (ADR-0384's H3 and H9). `None` for a reference that stays within.
+fn within_one_owner(
+    hirs: &[&Hir],
+    unit: usize,
+    ws: &Workspace,
+    t: &Table,
+    r: &Clause<Reference>,
+) -> Option<Diagnostic> {
+    let (target_unit, target) = table_module(ws, hirs, unit, &r.value.table)?;
+    let field = &r.value.field;
+    let theirs = &target.name;
+    let (message, repair) = match (t.owner_field(), target.owner_field()) {
+        (None, None) => return None,
+        (Some(owner), Some(_)) if field == owner => return None,
+        (Some(owner), Some(by)) => (
+            format!(
+                "`refers {field} to {theirs}`: `{theirs}`'s rows are each owned by their `{by}`, \
+                 and `{field}` is not `{}`'s owner, `{owner}`: whether the row it names exists \
+                 is its owner's to know, and a write here would tell it, and keep its owner from \
+                 deleting it",
+                t.name
+            ),
+            format!(
+                "refer to `{theirs}` from `{owner}`, naming the owner's own row, or keep the id \
+                 without `refers` and read `{theirs}` by its reader's handle where it is needed"
+            ),
+        ),
+        (None, Some(by)) => (
+            format!(
+                "`refers {field} to {theirs}`: `{theirs}`'s rows are each owned by their `{by}`, \
+                 and `{}`'s rows are no one's: a write here would tell whether another owner's \
+                 row exists, and keep its owner from deleting it",
+                t.name
+            ),
+            format!(
+                "keep the id without `refers`, handling `None` where `{theirs}` is read, or own \
+                 `{}` by the field that names its owner",
+                t.name
+            ),
+        ),
+        (Some(owner), None) => (
+            format!(
+                "`refers {field} to {theirs}`: `{}`'s rows are each owned by their `{owner}`, and \
+                 `{theirs}`'s are no one's: deleting a row of `{theirs}` would be refused while \
+                 an owner's private row names it, and the refusal would tell whoever deletes it \
+                 that the row exists",
+                t.name
+            ),
+            format!(
+                "keep the id without `refers`, handling `None` where `{theirs}` is read: what \
+                 deleting a row an owned row names does is not declared yet (ADR-0384's H3 and \
+                 H9)"
+            ),
+        ),
+    };
+    Some(refusal(
+        codes::REFERENCE_WITHIN_ONE_OWNER,
+        "reference_within_one_owner",
+        Severity::Error,
+        message,
+        r.span.clone(),
+        vec![Related::in_unit(
+            target_unit,
+            target.span.clone(),
+            match target.owner_field() {
+                Some(by) => format!("`{theirs}` is owned by `{by}` here"),
+                None => format!("`{theirs}` is declared here, owned by no one"),
+            },
+        )],
+        WITHIN_ONE_OWNER,
+        repair,
+    ))
 }
 
 /// **PW0365: a reference to a table another source holds**, warned whether

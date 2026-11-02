@@ -1,0 +1,37 @@
+// @corpus: accepted
+// @id: A-058
+// @category: a predicate with a body required where it is imported, by a command and a query cached for its reader
+// @charter: §7.8, §9.2
+// @milestone: 14
+//
+// The control of R-115 and R-116 (track `row-ownership`, the review's
+// findings 4 and 7b): A-055's `WroteLetter`, which has a body, imported
+// where it is required, so each requirement names the component that
+// answers it and the deployment is never asked; and the query requiring it
+// cached for its reader alone, its answer theirs.
+
+module LetterKeeping
+
+import capability.{ User, UserId }
+import Letters.{ Letter, LetterId, WroteLetter }
+import Letters
+
+command keep(id: LetterId) -> ()
+    requires    WroteLetter(id)
+    transaction serializable
+{
+    ()
+}
+
+user query Kept(reader: User<UserId>, id: LetterId) -> Option<Letter>
+    freshness     0.seconds
+    consistency   read_your_writes
+    cache         private
+    key           reader, id
+    requires      WroteLetter(id)
+    concurrency   one_per_key
+    on_key_change cancel
+    timeout       2.seconds
+{
+    Letters.get(reader, id)
+}

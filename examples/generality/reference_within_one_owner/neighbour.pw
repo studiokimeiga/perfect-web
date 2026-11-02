@@ -1,0 +1,22 @@
+// @status: NEIGHBOUR
+// @invariant: reference_within_one_owner
+// @dimension: valid neighbour — a reference out of an owned table, from its owner's own field into an owned table
+//
+// A rule that refused every reference an owned table holds, rather than
+// one that leaves its owner's rows, would refuse this: each bookmark names
+// its own holder's membership (A-056), and nothing of another's.
+
+module Bookmarks
+
+import capability.{ UserId }
+import Memberships
+
+opaque type BookmarkId = String
+
+type Bookmark = Bookmark { holder: UserId, id: BookmarkId, title: String }
+
+table Bookmarks
+    row    Bookmark
+    key    holder, id
+    owned  by holder
+    refers holder to Memberships

@@ -323,6 +323,13 @@ pub(crate) fn check_inferred_prepared(
             out.extend(crate::predicates::check(&u.hir, i, sigs, workspace));
             // ADR-0384's H2: and a body it is given only reads (PW6905).
             out.extend(crate::predicates::bodies(&u.hir, i, inference));
+            // The review of track `row-ownership`: a predicate with a body
+            // is answered by it alone (PW6925), and a query requiring one
+            // is never cached shared (PW6907).
+            out.extend(crate::predicates::answered_by_its_body(
+                hirs, i, workspace, sigs,
+            ));
+            out.extend(crate::predicates::shared_answers(&u.hir));
             // ADR-0307: a control is shown where its command's predicates hold.
             out.extend(crate::holds::check(hirs, workspace, sigs, i));
             out.extend(answer_read_for_a_value(&u.hir, i, sigs));

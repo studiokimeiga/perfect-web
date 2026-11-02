@@ -350,8 +350,11 @@ codes! {
     // ruling 1 on ADR-0384).
     OWNER_NAMES_A_PRINCIPAL = "PW0367" / owner_names_a_principal / 1, DeclarationRules,
         "`owned by` names one field of an owned table's row holding a principal's id (`capability.UserId`), and `shares with` others, never its owner, each once";
+    // Its bound too (the review of the track, finding 2): a bound counts
+    // every owner's rows, so a write refused by it would tell one owner how
+    // many rows the others hold.
     OWNED_READ_BY_ITS_READER = "PW0368" / owned_read_by_its_reader / 1, DeclarationRules,
-        "an owned table is read by its reader alone: its key leads with its owner, each index with its owner or a field it shares with, a unique index holds its owner, and it is never read whole";
+        "an owned table is read by its reader alone: its key leads with its owner, each index with its owner or a field it shares with, a unique index holds its owner, no bound counts its rows across owners, and it is never read whole";
     PRIVATE_FIELD_UNSEEN = "PW0369" / private_field_unseen / 1, DeclarationRules,
         "a private field is read by its owner alone: a field of an owned table's row, never its owner, a field it shares with, in its key, its order where it shares, or an index another reads by; and its seen row is the table's own name";
 
@@ -1006,6 +1009,22 @@ codes! {
     // guards (ADR-0115 as amended).
     PREDICATE_BODY_READS_ONLY = "PW6905" / predicate_body_reads_only / 1, Dating,
         "a predicate's body reads and does nothing else: no write, no event, no schedule, no network, no log, no clock but its comparison";
+    // ADR-0384's H2 code for a query's `requires` (ADR-0339's ruling 3; the
+    // review of the track, finding 7b): an answer given where a predicate
+    // holds for its reader is that reader's, and a shared cache would give it
+    // to readers never asked.
+    REQUIRED_QUERY_UNSHARED = "PW6907" / required_query_unshared / 1, Dating,
+        "a query that `requires` a predicate is answered to its reader alone, once the predicate holds for them: it is never kept in a shared cache, which would answer readers it never asked";
+    // The review of the track (ADR-0384's H1), finding 1: a database checks
+    // a reference across every row of both tables, whoever owns them.
+    REFERENCE_WITHIN_ONE_OWNER = "PW6924" / reference_within_one_owner / 1, Dating,
+        "a reference a database holds stays within one owner's rows: an owned table refers to an owned table from its own owner field alone, a table no one owns to no owned table, and an owned table to no table no one owns";
+    // The review of the track (ADR-0384's H2; ADR-0115 as amended), findings
+    // 3 and 4: a predicate the program gives a body is the program's
+    // authorization, which a deployment's predicate of the same name would
+    // answer otherwise, a page's ask among them (ADR-0307).
+    PREDICATE_ANSWERED_BY_ITS_BODY = "PW6925" / predicate_answered_by_its_body / 1, Dating,
+        "a predicate the program gives a body is answered by that body alone: a `requires` naming it sees it where it is written, no page asks it of its reader, and no predicate the deployment answers shares its name";
 }
 
 /// Codes that were registered, are no longer emitted, and whose numbers must

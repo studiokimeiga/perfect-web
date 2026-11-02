@@ -544,8 +544,109 @@ fn pw0368_an_owned_table_is_never_read_whole() {
         "PW0368",
         "`Notes.all()` reads every row of `Notes`, whose rows are each their owner's",
     );
-    // The bound itself is the table's, and the fixture checks clean with it.
-    assert_clean(&[("Notes.pw", &bounded)]);
+}
+
+#[test]
+fn pw0368_an_owned_table_states_no_bound_across_its_owners() {
+    // The review of the track, finding 2 (probe B): `bounded 3` on votes
+    // owned by their voter counted every voter's, so eve's three refused
+    // alice's first and told her how many there were.
+    let bounded = notes("    private draft\n", "    private draft\n    bounded 50\n");
+    assert_refused(
+        &[("Notes.pw", &bounded)],
+        "PW0368",
+        "`bounded 50` counts every owner's rows of `Notes`: one owner's rows would refuse \
+         another's write",
+    );
+    let got = found(&[("Notes.pw", &bounded)]);
+    assert_eq!(got.len(), 1, "one defect, told once: {got:#?}");
+    // The neighbours: the owned table with no bound, and a bound of a table
+    // no one owns (D1's).
+    assert_clean(&[("Notes.pw", &fixture("Notes.pw"))]);
+    assert_clean(&[(
+        "Notes.pw",
+        &notes(
+            "    owned   by author\n    shares  with to\n    private draft\n",
+            "    bounded 50\n",
+        ),
+    )]);
+}
+
+// --- PW6924: a reference stays within one owner's rows ----------------------------
+
+/// An owned table keyed by its owner alone: what a reference may name.
+const PREMIUMS: &str = "module Premiums\n\nimport capability.{ UserId }\n\ntype Premium = Premium { user: UserId, tier: Int }\n\ntable Premiums\n    row     Premium\n    key     user\n    owned   by user\n";
+
+/// A table no one owns, keyed by its id.
+const TOPICS: &str = "module Topics\n\nopaque type TopicId = String\n\ntype Topic = Topic { id: TopicId, title: String }\n\ntable Topics\n    row     Topic\n    key     id\n";
+
+/// Crushes, owned by `from`, with `clauses` after its key.
+fn crushes(clauses: &str) -> String {
+    format!(
+        "module Crushes\n\nimport capability.{{ UserId }}\nimport Premiums\n\ntype Crush = Crush {{ from: UserId, target: UserId, added: Int }}\n\ntable Crushes\n    row     Crush\n    key     from, target\n{clauses}"
+    )
+}
+
+/// The diagnostics PW6924 told, by message.
+fn within_one_owner(files: &[(&str, &str)]) -> Vec<String> {
+    found(files)
+        .into_iter()
+        .filter(|(c, _)| c == "PW6924")
+        .map(|(_, m)| m)
+        .collect()
+}
+
+#[test]
+fn pw6924_a_reference_into_an_owned_table_is_made_from_its_owners_field() {
+    // The review's finding 1 (probe A): eve's crush naming bob's premium
+    // row committed only where bob had one, and bob could not delete his
+    // while it named him.
+    let refused = crushes("    owned   by from\n    refers  target to Premiums\n");
+    let told = within_one_owner(&[("Premiums.pw", PREMIUMS), ("Crushes.pw", &refused)]);
+    assert_eq!(told.len(), 1, "{told:#?}");
+    assert!(
+        told[0].contains(
+            "`refers target to Premiums`: `Premiums`'s rows are each owned by their `user`, \
+             and `target` is not `Crushes`'s owner, `from`"
+        ),
+        "{told:#?}"
+    );
+    // A table no one owns, referring into an owned one.
+    let public = crushes("    refers  target to Premiums\n");
+    let told = within_one_owner(&[("Premiums.pw", PREMIUMS), ("Crushes.pw", &public)]);
+    assert_eq!(told.len(), 1, "{told:#?}");
+    assert!(
+        told[0].contains("and `Crushes`'s rows are no one's"),
+        "{told:#?}"
+    );
+    // The neighbour: the reference from the owner's own field names the
+    // owner's own row, and checks clean.
+    let within = crushes("    owned   by from\n    refers  from to Premiums\n");
+    assert_clean(&[("Premiums.pw", PREMIUMS), ("Crushes.pw", &within)]);
+}
+
+#[test]
+fn pw6924_an_owned_table_refers_to_no_table_no_one_owns() {
+    // Deleting a topic would be refused while a private note names it,
+    // which tells whoever deletes it that the note exists.
+    let jottings = |clauses: &str| {
+        format!(
+            "module Jottings\n\nimport capability.{{ UserId }}\nimport Topics.{{ TopicId }}\nimport Topics\n\nopaque type JottingId = String\n\ntype Jotting = Jotting {{ author: UserId, id: JottingId, topic: TopicId }}\n\ntable Jottings\n    row     Jotting\n    key     author, id\n{clauses}    refers  topic to Topics\n"
+        )
+    };
+    let owned = jottings("    owned   by author\n");
+    let told = within_one_owner(&[("Topics.pw", TOPICS), ("Jottings.pw", &owned)]);
+    assert_eq!(told.len(), 1, "{told:#?}");
+    assert!(
+        told[0].contains(
+            "`Jottings`'s rows are each owned by their `author`, and `Topics`'s are no one's: \
+             deleting a row of `Topics` would be refused while an owner's private row names it"
+        ),
+        "{told:#?}"
+    );
+    // The neighbour: a table no one owns referring to one no one owns is
+    // D1's reference, held by the database.
+    assert_clean(&[("Topics.pw", TOPICS), ("Jottings.pw", &jottings(""))]);
 }
 
 #[test]

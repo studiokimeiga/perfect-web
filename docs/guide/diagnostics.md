@@ -14,7 +14,7 @@ code the compiler can emit, from its registry, `compiler/pw-core/src/codes.rs`.
 - **What the program must hold to**: the registry's own sentence.
 - **ADR**: the decisions its registry entry cites, where it cites one.
 
-224 codes are registered; 96 of them cite an ADR in the registry.
+227 codes are registered; 99 of them cite an ADR in the registry.
 A code whose entry cites none is marked `—`: search `docs/DECISIONS/` for its
 number or its symbol.
 
@@ -96,7 +96,7 @@ number or its symbol.
 | PW0365 | `refers_across_sources` | a reference to a table another source holds is held by no database: the referred row may be missing, which `get` answers as `None` | — |
 | PW0366 | `migration_unstated` | a change from the schema released that loses or reinterprets data is stated by a `migrate`, and each `migrate` states one | — |
 | PW0367 | `owner_names_a_principal` | `owned by` names one field of an owned table's row holding a principal's id (`capability.UserId`), and `shares with` others, never its owner, each once | [0384](../DECISIONS/ADR-0384-a-dating-app.md) |
-| PW0368 | `owned_read_by_its_reader` | an owned table is read by its reader alone: its key leads with its owner, each index with its owner or a field it shares with, a unique index holds its owner, and it is never read whole | — |
+| PW0368 | `owned_read_by_its_reader` | an owned table is read by its reader alone: its key leads with its owner, each index with its owner or a field it shares with, a unique index holds its owner, no bound counts its rows across owners, and it is never read whole | — |
 | PW0369 | `private_field_unseen` | a private field is read by its owner alone: a field of an owned table's row, never its owner, a field it shares with, in its key, its order where it shares, or an index another reads by; and its seen row is the table's own name | — |
 | PW0325 | `stale_key_policy` | a keyed query must say what happens when its key changes | — |
 | PW0327 | `written_rollback` | an optimistic transition's reversal is derived, not written | [0025](../DECISIONS/ADR-0025-an-optimistic-clause-targets-a-resource-entry.md) |
@@ -351,6 +351,9 @@ number or its symbol.
 | Code | Symbol | What the program must hold to | ADR |
 |---|---|---|---|
 | PW6905 | `predicate_body_reads_only` | a predicate's body reads and does nothing else: no write, no event, no schedule, no network, no log, no clock but its comparison | [0384](../DECISIONS/ADR-0384-a-dating-app.md), [0115](../DECISIONS/ADR-0115-a-commands-requires-is-held-before-its-body-runs.md) |
+| PW6907 | `required_query_unshared` | a query that `requires` a predicate is answered to its reader alone, once the predicate holds for them: it is never kept in a shared cache, which would answer readers it never asked | [0384](../DECISIONS/ADR-0384-a-dating-app.md), [0339](../DECISIONS/ADR-0339-a-collaborative-document-app.md) |
+| PW6924 | `reference_within_one_owner` | a reference a database holds stays within one owner's rows: an owned table refers to an owned table from its own owner field alone, a table no one owns to no owned table, and an owned table to no table no one owns | [0384](../DECISIONS/ADR-0384-a-dating-app.md) |
+| PW6925 | `predicate_answered_by_its_body` | a predicate the program gives a body is answered by that body alone: a `requires` naming it sees it where it is written, no page asks it of its reader, and no predicate the deployment answers shares its name | [0384](../DECISIONS/ADR-0384-a-dating-app.md), [0115](../DECISIONS/ADR-0115-a-commands-requires-is-held-before-its-body-runs.md), [0307](../DECISIONS/ADR-0307-a-control-is-shown-where-its-commands-predicates-hold.md) |
 
 ## Retired codes
 

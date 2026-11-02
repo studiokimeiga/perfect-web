@@ -21,7 +21,7 @@
 //! the deployment's words.
 
 use crate::diagnostics::{Detector, Diagnostic, Related, Repair, Severity};
-use crate::hir::{DeclKind, Hir};
+use crate::hir::{Decl, DeclKind, Hir};
 use crate::resolve::{DefId, Namespace, Resolution, Workspace};
 use crate::signatures::Signatures;
 
@@ -206,6 +206,217 @@ pub fn bodies(
             ),
             repairs: vec![Repair {
                 description: "read what decides it, and do the rest in the command it guards"
+                    .to_string(),
+                replacement: None,
+            }],
+        });
+    }
+    out
+}
+
+/// **The predicate with a body a `requires` names, wherever it is
+/// declared**, and its unit: a bare name is the program's one predicate of
+/// that name (PW0351: a predicate is declared once, by name, since a host
+/// tells a refusal by it in one set of words); a qualified one, `m.P`, is the
+/// predicate `P` the module named `m`, whole, declares. No name is read by
+/// its last segment alone.
+fn bodied<'a>(
+    hirs: &[&'a Hir],
+    ws: &Workspace,
+    written: &str,
+) -> Option<(usize, crate::hir::DeclId, &'a Decl)> {
+    let (module, name) = match written.rsplit_once('.') {
+        Some((module, name)) => (Some(module), name),
+        None => (None, written),
+    };
+    hirs.iter()
+        .enumerate()
+        .filter(|(u, _)| module.is_none_or(|m| ws.module_of(*u).is_some_and(|own| own.name == m)))
+        .find_map(|(u, hir)| {
+            hir.all_decls()
+                .find(|(_, d)| d.kind == DeclKind::Predicate && d.body.is_some() && d.name == name)
+                .map(|(id, d)| (u, id, d))
+        })
+}
+
+const ANSWERED_BY_ITS_BODY: &str = "A predicate the program gives a body is the program's \
+     authorization (ADR-0115 as amended by ADR-0384): the host asks that body, and never the \
+     deployment, wherever an export requires it. A `requires` that does not see it names no \
+     predicate of the program, so it would be asked of the deployment, whose predicate of the \
+     same name, if any, answers in its place; and a page asks a predicate of its reader \
+     through the deployment, which knows nothing of the body. So a predicate with a body is \
+     seen where it is required, imported as any declaration is, and no page asks it yet.";
+
+/// **PW6925: a predicate the program gives a body is answered by that body
+/// alone** (track `row-ownership`, the review's findings 3 and 4; ADR-0115
+/// as amended): a `requires` in `unit` that sees no predicate of its name,
+/// where the program gives one a body elsewhere, would be the deployment's
+/// (`contract::asked_by` names no component for it); and a page's `{#if P}`
+/// is answered by the deployment (ADR-0307), so a page asks no predicate
+/// with a body. Two declarations of one name, a body's and a deployment's,
+/// are PW0351's.
+pub fn answered_by_its_body(
+    hirs: &[&Hir],
+    unit: usize,
+    ws: &Workspace,
+    sigs: &Signatures,
+) -> Vec<Diagnostic> {
+    let code = crate::codes::PREDICATE_ANSWERED_BY_ITS_BODY;
+    let Some(hir) = hirs.get(unit) else {
+        return Vec::new();
+    };
+    let module = ws
+        .module_of(unit)
+        .map(|m| m.name.clone())
+        .unwrap_or_default();
+    let refused = |span: crate::diagnostics::Span,
+                   message: String,
+                   related: Vec<Related>,
+                   repair: String| Diagnostic {
+        code: code.id,
+        invariant: code.invariant,
+        reason: "predicate_answered_by_its_body",
+        detector: Detector::DeclarationRule,
+        severity: Severity::Error,
+        message,
+        primary_span: span,
+        related,
+        explanation: Some(ANSWERED_BY_ITS_BODY.to_string()),
+        repairs: vec![Repair {
+            description: repair,
+            replacement: None,
+        }],
+    };
+    let mut out = Vec::new();
+    for (id, decl) in hir.all_decls() {
+        // A `requires` that sees no predicate of the name a body has. One
+        // on another declaration is PW0335's.
+        if matches!(decl.kind, DeclKind::Command | DeclKind::Query)
+            && let Some(requires) = decl.policy("requires")
+            && let Ok(predicates) = crate::policy::predicates(&requires.value)
+        {
+            for predicate in predicates {
+                if !matches!(
+                    ws.resolve_path_in(unit, Namespace::Predicate, &predicate.name),
+                    Resolution::Unresolved
+                ) {
+                    continue;
+                }
+                let Some((at, given, declared)) = bodied(hirs, ws, &predicate.name) else {
+                    continue;
+                };
+                let name = &declared.name;
+                let from = ws.module_of(at).map(|m| m.name.clone()).unwrap_or_default();
+                out.push(refused(
+                    requires.span.clone(),
+                    format!(
+                        "`requires {}` names no predicate `{module}` sees, and `{from}` gives \
+                         `{name}` a body: the host would ask the deployment for it instead",
+                        predicate.name
+                    ),
+                    vec![Related::in_unit(
+                        at,
+                        hirs[at].decl_span(given),
+                        format!("`predicate {}` is given its body here", declared.name),
+                    )],
+                    format!("import it where it is required: `import {from}.{{ {name} }}`"),
+                ));
+            }
+        }
+        // A page, a view or a layout asking one of its reader.
+        if !matches!(
+            decl.kind,
+            DeclKind::Page | DeclKind::View | DeclKind::Component | DeclKind::Layout
+        ) || decl.body.is_none()
+        {
+            continue;
+        }
+        for name in crate::holds::asked(hirs, ws, sigs, unit, id) {
+            let def = match ws.resolve_in(unit, Namespace::Predicate, &name) {
+                Resolution::Local(d) | Resolution::Imported { def: d, .. } => d,
+                _ => continue,
+            };
+            let Some(declared) = hirs
+                .get(def.unit)
+                .map(|h| h.decl(crate::hir::DeclId(def.decl)))
+            else {
+                continue;
+            };
+            if declared.body.is_none() {
+                continue;
+            }
+            out.push(refused(
+                decl.name_span.clone(),
+                format!(
+                    "`{}` asks `{name}` of its reader, and the program gives `{name}` a body: a \
+                     host answers what a page asks from the deployment's predicates, which know \
+                     nothing of it",
+                    decl.name
+                ),
+                vec![Related::in_unit(
+                    def.unit,
+                    hirs[def.unit].decl_span(crate::hir::DeclId(def.decl)),
+                    format!("`predicate {name}` is given its body here"),
+                )],
+                "show the control to every reader and tell its refusal in the predicate's words \
+                 (`on:press|refusable`, ADR-0302): a page asking a predicate with a body is not \
+                 built"
+                    .to_string(),
+            ));
+        }
+    }
+    out
+}
+
+/// **PW6907: a query that requires a predicate is answered to its reader
+/// alone** (ADR-0384's H2 code for a query's `requires`; the review of track
+/// `row-ownership`, finding 7b): its answer is given where the predicate
+/// holds for the reader asking, so a shared cache, which answers one
+/// reader's entry to another, would give it to readers it never asked. A
+/// `user` or `session` query in a shared cache is PW5001's already, the one
+/// defect told once (ADR-0112).
+pub fn shared_answers(hir: &Hir) -> Vec<Diagnostic> {
+    let code = crate::codes::REQUIRED_QUERY_UNSHARED;
+    let mut out = Vec::new();
+    for (id, decl) in hir.all_decls() {
+        if decl.kind != DeclKind::Query
+            || matches!(decl.visibility.as_deref(), Some("user" | "session"))
+        {
+            continue;
+        }
+        let (Some(requires), Some(cache)) = (decl.policy("requires"), decl.policy("cache")) else {
+            continue;
+        };
+        if cache.value.trim() != "shared" {
+            continue;
+        }
+        out.push(Diagnostic {
+            code: code.id,
+            invariant: code.invariant,
+            reason: "required_query_unshared",
+            detector: Detector::DeclarationRule,
+            severity: Severity::Error,
+            message: format!(
+                "`{}` requires {} and declares a shared cache: its answer is given where the \
+                 predicate holds for the reader asking, and a shared cache would give it to \
+                 readers it never asked",
+                decl.name,
+                requires.value.trim()
+            ),
+            primary_span: cache.span.clone(),
+            related: vec![
+                Related::new(requires.span.clone(), "the predicate it is answered under"),
+                Related::new(hir.decl_span(id), format!("`{}`", decl.name)),
+            ],
+            explanation: Some(
+                "A query that `requires` a predicate is answered to a reader only once the \
+                 predicate holds for them (ADR-0339's ruling 3, ADR-0384's H2). A shared cache \
+                 keeps one answer for every reader of a key, and answers the next reader from it \
+                 without asking them, so the answer would reach readers the predicate refuses."
+                    .to_string(),
+            ),
+            repairs: vec![Repair {
+                description: "cache it for its reader alone, `cache private`, keyed by them"
                     .to_string(),
                 replacement: None,
             }],

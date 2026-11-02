@@ -92,6 +92,10 @@ const ACCEPTED_CATEGORIES: &[&str] = &[
     // Track `row-ownership` (ADR-0384's H1 and H2): the control of PW0367,
     // PW0368, PW0369 and PW6905.
     "an owned table read and written by its reader, and a predicate that reads",
+    // The review of track `row-ownership`: the controls of PW6924 (A-056 and
+    // A-057), and of PW6925 and PW6907 (A-058).
+    "a reference within one owner's rows",
+    "a predicate with a body required where it is imported, by a command and a query cached for its reader",
 ];
 
 /// Charter §16.2: "Create at least one minimal file for each".
@@ -238,6 +242,11 @@ const REJECTED_CATEGORIES: &[&str] = &[
     "an owned table read by a field no reader holds",
     "a private field another reader selects rows by",
     "a predicate whose body writes",
+    // The review of track `row-ownership`: PW6924, PW6925 and PW6907, beside
+    // their accepted controls (A-056 to A-058).
+    "a reference across owners' rows",
+    "a predicate with a body required where it is not seen",
+    "a query requiring a predicate in a shared cache",
 ];
 
 /// Milestone 0 gate (charter §14 M0): ">= 10 accepted and 20 rejected".
