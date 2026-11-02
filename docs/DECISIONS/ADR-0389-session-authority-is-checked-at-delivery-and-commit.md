@@ -647,8 +647,27 @@ records the findings and what changed.
   callback, changes the store-accounts seam's input and needs its own
   regression (a session-keyed store, a provider, and an admission landing
   inside the callback), so it is not taken here.
-- **Evidence** (2026-11-02, this PC: PostgreSQL 18.6, Playwright 1.58.0).
-  Pending; recorded below when run.
+- **Evidence** (2026-11-02, this PC: PostgreSQL 18.6, Playwright 1.58.0),
+  at b72d40fb.
+  - The recipe's tests (`identity::tests:: identity::invocation_tests::
+    tests::session_overlap::`): 35 passed (20, 5 and 10), the seven on
+    PostgreSQL among them. The whole `pw-dev-server` suite, 8 test threads:
+    867 passed, 9 ignored, 0 failed. `just preflight` passed.
+  - `scripts/session_overlap_mutations.py`, run whole on these sources
+    (their digests the same before the run, after it and at the commit):
+    25 of 25 controls killed, each by a complete native assertion failure
+    of its frozen 22-test inventory, every source restored (valid=True);
+    `python3 scripts/mutation_anchors.py` clean. M1, M2 and M3 are each
+    killed by the one test adopted for it; each PostgreSQL rule by one to
+    four of the new tests, at their assertions on the answer and the time.
+  - The five re-anchored expiry controls of
+    `scripts/second_host_mutations.py`, each alone against its `hosts`
+    suite (a check before publication, not that script's evidence, which
+    the hosted `e14-second-host` runs whole): 5 of 5 killed (by 1 or 2 of
+    its 31 tests), each source restored.
+  - In three engines, `e2e-hosts/second-host.spec.mjs` whole, the overlap
+    test with the spec's five others (their hosts now read their logs
+    through the descriptor they opened): 18 passed.
 - **Not claimed, and next.**
   - The section above's first "next" stands: a response that reads no
     session state could be answered before admission. Admission now costs
