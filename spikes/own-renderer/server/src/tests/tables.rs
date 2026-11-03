@@ -118,6 +118,68 @@ fn served_tables() -> Served {
     served_program("app.pw")
 }
 
+/// A failed COMMIT closes the whole adapter, including cached queries
+/// outside that command's invalidations. The cached neighbor really avoids
+/// a table read; a deferred constraint then fails the actual SQLite COMMIT.
+#[test]
+fn closed_tables_refuse_cached_answers_outside_the_failed_commands_invalidations() {
+    let s = served_tables();
+    committed(&s, MAKE_LIST, "a", &[list("groceries", "food", 20)]);
+    let binding = serde_json::json!({
+        "resource": LIST_AT,
+        "policy": {
+            "freshness_ms": 60_000, "cache": "shared", "privacy": "public", "key": [0]
+        }
+    });
+    let args = [text("food")];
+    let first = s
+        .fetch_answer("b", &binding, &args)
+        .asserted("a real answer");
+    assert!(matches!(first, Val::Option(Some(_))), "{first:?}");
+    let count = s.data.statements().ok_or("no counter").asserted("counted");
+    assert_eq!(
+        s.fetch_answer("b", &binding, &args).asserted("cached"),
+        first
+    );
+    assert_eq!(
+        s.data.statements(),
+        Some(count),
+        "a cache hit reads no table"
+    );
+
+    s.materializer
+        .command(|tx| {
+            tx.execute_batch(
+                "COMMIT; PRAGMA foreign_keys = ON; BEGIN; \
+             CREATE TABLE fault_parent (id TEXT PRIMARY KEY); \
+             CREATE TABLE fault_child (parent TEXT REFERENCES fault_parent (id) \
+                 DEFERRABLE INITIALLY DEFERRED); \
+             CREATE TRIGGER break_commit AFTER INSERT ON state \
+             BEGIN INSERT INTO fault_child VALUES ('missing'); END;",
+            )
+            .map_err(|e| e.to_string())?;
+            Ok::<_, String>(Vec::new())
+        })
+        .asserted("deferred COMMIT failure installed");
+    let failed = s.command_recorded(MAKE_LIST, "a", &[list("chores", "home", 10)], None, None);
+    assert!(
+        failed.as_ref().is_err_and(|e| e.contains("did not commit")),
+        "{failed:?}"
+    );
+    let cold = s.answer(LIST_AT, "b", &args);
+    assert!(
+        cold.as_ref().is_err_and(|e| e.contains("StoragePoisoned")),
+        "{cold:?}"
+    );
+    let cached = s.fetch_answer("b", &binding, &args);
+    assert!(
+        cached
+            .as_ref()
+            .is_err_and(|e| e.contains("StoragePoisoned")),
+        "a cache hit must not bypass the closed adapter: {cached:?}"
+    );
+}
+
 fn text(value: &str) -> Val {
     Val::String(value.into())
 }
