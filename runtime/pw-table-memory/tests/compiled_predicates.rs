@@ -201,6 +201,52 @@ fn a_query_is_refused_where_its_predicate_does_not_hold() {
     assert_eq!(deployment.load(Ordering::SeqCst), 0);
 }
 
+/// A query's authorization and body must observe the same read state.
+/// The writer commits after the predicate's read and before the body runs.
+#[test]
+fn a_query_holds_one_snapshot_for_its_predicate_and_body() {
+    let program = program();
+    let tables = Arc::new(seeded(&program));
+    let deployment = AtomicUsize::new(0);
+    let writer = Arc::clone(&tables);
+    let once = AtomicBool::new(false);
+    let mut watched = Watched::new(&*tables);
+    watched.after_read = Some(Arc::new(move || {
+        if !once.swap(true, Ordering::SeqCst) {
+            let mut removal = writer.begin().assert_ok("the concurrent writer begins");
+            removal
+                .write("pw:tables/notes#delete", &[json!(ALICE), json!("n2")])
+                .assert_ok("the concurrent writer removes n2");
+            removal.commit().assert_ok("the concurrent removal commits");
+        }
+    }));
+    let answer = authorized(
+        &program,
+        "Shown",
+        ALICE,
+        &watched,
+        &unbounded(),
+        &[handle(ALICE), s("n2")],
+        true,
+        &deployment,
+    );
+    assert_eq!(
+        answer,
+        Ok(vec![Val::Option(Some(Box::new(note(
+            ALICE, "n2", CAROL, 2
+        ))))]),
+        "the body must read the same row that its predicate read"
+    );
+    assert_eq!(
+        text_of(&tables, ALICE, "n2"),
+        None,
+        "the writer actually committed"
+    );
+    assert_eq!(watched.asked.load(Ordering::SeqCst), 1);
+    assert_eq!(watched.body.load(Ordering::SeqCst), 1);
+    assert_eq!(deployment.load(Ordering::SeqCst), 0);
+}
+
 #[test]
 fn a_requirement_with_no_component_is_the_deployments() {
     // The same command, its requirement naming no component: the order of
