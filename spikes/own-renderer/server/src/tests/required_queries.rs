@@ -493,3 +493,71 @@ command checked(pass: Bool) -> Bool
     assert!(!no.committed, "{no:?}");
     assert_eq!(no.refused.as_deref(), Some("Allowed"));
 }
+
+fn fresh_owned_club(app: &str) -> String {
+    owned_club(app).replace(
+        "public query Club(post: PostId) -> String\n",
+        "public query Club(post: PostId) -> String\n    freshness 1.minutes\n",
+    )
+}
+
+#[test]
+fn a_cached_guarded_query_is_refused_once_its_predicate_no_longer_holds() {
+    let s = served_feed_with(fresh_owned_club);
+    s.identity.signed_in_for_test("a", "alice", "Alice");
+    let made = s
+        .command_answer(
+            "feed.app.post",
+            "a",
+            &[serde_json::json!("OWNERSHIP_POST")],
+            Some("ownership-post"),
+        )
+        .asserted("post answered");
+    assert!(made.committed, "{made:?}");
+    let home = get_as(&s, "a", "/");
+    let id = home
+        .split("<li")
+        .find(|li| li.contains("OWNERSHIP_POST"))
+        .and_then(|li| li.split("href=\"/post/").nth(1))
+        .and_then(|tail| tail.split('"').next())
+        .unwrap_or_default();
+    assert!(!id.is_empty(), "{home}");
+    let route = format!("/club/{id}");
+    assert!(get_as(&s, "a", &route).contains(SECRET));
+    let started = || {
+        s.queries
+            .trace()
+            .iter()
+            .filter(|t| {
+                matches!(t,
+        pw_resource::Trace::RequestStarted { key, .. } if key.resource == "feed.app.Club")
+            })
+            .count()
+    };
+    let before = started();
+    assert!(
+        get_as(&s, "a", &route).contains(SECRET),
+        "permitted cache neighbor"
+    );
+    assert_eq!(started(), before, "the guarded value really was cached");
+    let gone = s
+        .command_answer(
+            "feed.app.delete",
+            "a",
+            &[serde_json::json!(id)],
+            Some("ownership-delete"),
+        )
+        .asserted("delete answered");
+    assert!(gone.committed, "{gone:?}");
+    let cold = s.answer("feed.app.Club", "a", &[Val::String(id.into())]);
+    assert!(
+        cold.as_ref()
+            .is_err_and(|why| why.contains("`OwnsPost` denied")),
+        "{cold:?}"
+    );
+    let cached = get_as(&s, "a", &route);
+    assert!(
+        !cached.contains(SECRET),
+        "the cached value bypassed its current predicate: {cached}"
+    );
+}
