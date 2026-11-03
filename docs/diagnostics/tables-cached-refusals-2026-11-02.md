@@ -42,18 +42,43 @@ policy, therefore needed the same fence. The regression at `4b314278` retains
 one live render across closure and fails at its remembered-answer assertion;
 its healthy neighbor verifies the first operation was actually shared.
 `answer_within` now uses the same before/after check. There are four focused
-regressions and five additional strict mutation controls. The reviewer runs
-no campaign and edits no source; final source re-review is still required.
+regressions and five additional strict mutation controls. Final read-only
+re-review at `b496bdc3` reports no outstanding actionable findings; the reviewer
+ran no tests and edited no source.
 
 Re-review found a test-scope gap: `read_value` uses the empty session, while
 the test warmed the operation as `b`. The final test warms and reuses the
 operation as the empty session, including a healthy `read_value` reuse with
 an unchanged statement count. The preliminary `03149f73` recipe was stopped
-after one mutation so the corrected witness could be frozen; it is incomplete,
+after three completed controls so the corrected witness could be frozen; it is incomplete,
 receives no campaign credit, and source restoration passed all 5,035 anchors.
 
 ## Execution record
 
-Pending: retain exact regression and repair SHAs, commands, exit statuses,
-mutation controls, independent review and affected gate plan here. No final
-acceptance or production-readiness claim is made by the design record.
+Final code/test source: `b496bdc34467269c2b436350ba1cfb2a52e268ed`.
+The [manifest](../evidence/E14/tables-cached-refusals/manifest.json) records exact
+commands, native exits and SHA-256 hashes of the retained raw/gzip receipts.
+
+| Execution | Result |
+|---|---|
+| Cached-query regression at `069ffc6f7e51ede213aae02070a97da10c84bc04` | exit 1, completed assertion failure |
+| Render-cache regression at `4b314278ce785b2747eed47373acf4b1cbecb307` | exit 1, completed assertion failure |
+| `just e14-data-path` at `b496bdc3` | exit 0; 60/60 strict controls killed, mutation baseline 62 passed/0 failed; 15 browser cases in three engines; no memory-bound stop |
+| `RUST_TEST_THREADS=8 just ci` on code/test source `b496bdc3` | exit 0, `ci: OK`; server 907 passed/9 ignored, evidence machinery 1,177 tests; 351 source mutants judged by 567 checks, zero failing |
+| Mutation restoration | 5,035 anchors in 325 scripts, each matching once |
+| Immutable-SHA `ci_plan.py --changed 5d4d4d55… b496bdc3… --current` | exit 0; 160 recipes in 16 shards |
+| `just doctor` | exit 1: standalone Koka/Wasmtime executables missing; no installation attempted |
+
+CI began with only the completed generated `docs/evidence/E14/data-path.txt`
+receipt dirty; code and tests matched `b496bdc3` exactly. Its input bytes and
+start status are retained. This is local source verification, not a hosted
+exact-head landing receipt. Ignored cases receive no passing credit. The complete
+campaign has 60 controls: 55 already on the live branch and five added here;
+the older PR body's 50-control count is historical.
+
+No push, PR modification, merge, deployment or paid model study occurred.
+The broader affected recipe plan, full hosted browser jobs, final numbering and
+published-head gates remain before landing. The publication-to-COMMIT window,
+already returned values, later HTTP/frame delivery and retained cache bytes
+remain outside this repair's guarantee. Row authority and durable server
+integration remain separate work.

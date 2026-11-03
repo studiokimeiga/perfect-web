@@ -12,9 +12,11 @@ Fetched `origin/master` is `5d4d4d55`; D3 PostgreSQL, added-table references,
 session overlap and preverify's disk-fixture repair are already merged.
 The older queues below remain dated history.
 
-1. Finish the closed-table cache fence on `fix/tables-cached-refusals`:
-   failing-first `069ffc6f`, three native regressions, whole affected mutation
-   campaign, preflight/CI and independent review. See its
+1. Prepare integration of the local closed-table cache fence on
+   `fix/tables-cached-refusals`. Source `b496bdc3` has four native regressions,
+   a complete 60/60 data-path campaign, 15 browser checks, passing local CI
+   and independent final review. Re-plan, number and complete the required
+   published-head gates before landing. See its
    [execution record](diagnostics/tables-cached-refusals-2026-11-02.md).
 2. Audit PR #72's exact-head recipe evidence, then reconcile row ownership
    without overwriting `/home/haki/code/pw-wt/row-ownership`'s dirty files.
