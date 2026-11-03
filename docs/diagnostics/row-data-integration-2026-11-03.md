@@ -64,3 +64,17 @@ guarded-query/cache-fence server cases, and all twelve code-registry tests.
 The measured trusted-platform union pin is `0x0c6761b484fa478d`, retaining
 `context.account_of` and `capability.id_of`. All 5,091 mutation anchors match.
 These are merge-baseline checks, not a whole-campaign or server-wiring claim.
+
+## One query state
+
+The failing regression at `9db05cc4` read a row in its compiled predicate,
+committed a separate removal before its body, and observed `None` in the body.
+`Snapshot` now implements the existing engine `CallTables` interface, giving
+both phases callbacks through `read_host_fns_at` and the same captured state.
+The regression also repeats on the old snapshot, then verifies that a fresh
+snapshot refuses the removed row before running its body. It passes; both
+targeted controls (live body reads and live predicate reads) are killed by
+completed assertions, with an 84-test unmutated baseline and no process stop.
+Logs: `/tmp/pw-row-snapshot-before.log`, `/tmp/pw-row-snapshot-after.log`,
+`/tmp/pw-row-snapshot-controls.log`. Whole campaigns and independent review
+remain pending; these targeted controls alone are not acceptance evidence.

@@ -246,6 +246,12 @@ MUTANTS = [
     ("a second command begins while one is open", MEMORY,
      "        while working.open.is_some() {\n            working = working.wait()?;\n        }\n",
      "        let _ = working.open.is_some();\n"),
+    ("a query snapshot's body reads the published state", MEMORY,
+     "        .read_host_fns_at(self, contract, granted)\n",
+     "        .read_host_fns(contract, granted)\n"),
+    ("a query snapshot's predicate reads the published state", MEMORY,
+     "        one_predicate(contract).map_err(|error| format!(\"{error:?}\"))?;\n        self.functions(contract, granted)\n",
+     "        one_predicate(contract).map_err(|error| format!(\"{error:?}\"))?;\n        MemoryTables { inner: Arc::clone(&self.inner) }.read_host_fns(contract, granted).map_err(|error| format!(\"{error:?}\"))\n"),
 ]
 
 # Each Cargo test binary separately: names can repeat between binaries, and

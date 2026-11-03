@@ -210,7 +210,8 @@ fn a_query_holds_one_snapshot_for_its_predicate_and_body() {
     let deployment = AtomicUsize::new(0);
     let writer = Arc::clone(&tables);
     let once = AtomicBool::new(false);
-    let mut watched = Watched::new(&*tables);
+    let snapshot = tables.snapshot().assert_ok("the query's snapshot");
+    let mut watched = Watched::new(&snapshot);
     watched.after_read = Some(Arc::new(move || {
         if !once.swap(true, Ordering::SeqCst) {
             let mut removal = writer.begin().assert_ok("the concurrent writer begins");
@@ -244,6 +245,47 @@ fn a_query_holds_one_snapshot_for_its_predicate_and_body() {
     );
     assert_eq!(watched.asked.load(Ordering::SeqCst), 1);
     assert_eq!(watched.body.load(Ordering::SeqCst), 1);
+    assert_eq!(deployment.load(Ordering::SeqCst), 0);
+
+    // The predicate itself must use the saved state too: a repeat on this
+    // snapshot is still authorized even though the published row is gone.
+    let repeat = Watched::new(&snapshot);
+    assert_eq!(
+        authorized(
+            &program,
+            "Shown",
+            ALICE,
+            &repeat,
+            &unbounded(),
+            &[handle(ALICE), s("n2")],
+            true,
+            &deployment,
+        ),
+        Ok(vec![Val::Option(Some(Box::new(note(
+            ALICE, "n2", CAROL, 2
+        ))))])
+    );
+    assert_eq!(repeat.asked.load(Ordering::SeqCst), 1);
+    assert_eq!(repeat.body.load(Ordering::SeqCst), 1);
+
+    // A new read state sees the committed removal and refuses before its
+    // body. A snapshot is not a permanent authorization grant.
+    let fresh = tables.snapshot().assert_ok("the next query's snapshot");
+    let next = Watched::new(&fresh);
+    let refused = authorized(
+        &program,
+        "Shown",
+        ALICE,
+        &next,
+        &unbounded(),
+        &[handle(ALICE), s("n2")],
+        true,
+        &deployment,
+    )
+    .assert_err("the new snapshot contains no n2");
+    assert!(refused.contains("`Wrote` denied"), "{refused}");
+    assert_eq!(next.asked.load(Ordering::SeqCst), 1);
+    assert_eq!(next.body.load(Ordering::SeqCst), 0);
     assert_eq!(deployment.load(Ordering::SeqCst), 0);
 }
 

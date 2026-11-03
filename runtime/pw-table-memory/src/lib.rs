@@ -825,6 +825,36 @@ impl pw_host::engine::CallTables for MemoryTables {
     }
 }
 
+/// One query invocation's frozen table state, shared by its compiled
+/// predicates and its body. Every callback uses the existing snapshot read
+/// gate; creating another adapter handle here keeps the same inner identity.
+impl pw_host::engine::CallTables for Snapshot {
+    fn manifest(&self) -> &pw_host::tables::Manifest {
+        &self.inner.host
+    }
+
+    fn functions(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, String> {
+        MemoryTables {
+            inner: Arc::clone(&self.inner),
+        }
+        .read_host_fns_at(self, contract, granted)
+        .map_err(|error| format!("{error:?}"))
+    }
+
+    fn predicate_reads(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, String> {
+        one_predicate(contract).map_err(|error| format!("{error:?}"))?;
+        self.functions(contract, granted)
+    }
+}
+
 impl Drop for Command {
     fn drop(&mut self) {
         if !self.ended {
