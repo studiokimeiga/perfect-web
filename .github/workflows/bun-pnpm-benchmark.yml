@@ -1,0 +1,255 @@
+name: bun vs pnpm experiment
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/bun-pnpm-benchmark.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install-comparison:
+    name: install comparison (Linux x64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Record versions
+        run: |
+          node --version
+          pnpm --version
+          bun --version
+      - name: Compare reproducible installs (scripts disabled)
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s\n' '| Manager | Cache | Trial | Seconds |' '|---|---|---:|---:|' >> "$GITHUB_STEP_SUMMARY"
+          for manager in pnpm bun; do
+            rm -rf node_modules
+            if [ "$manager" = pnpm ]; then
+              rm -rf "$RUNNER_TEMP/pnpm-benchmark-store"
+            else
+              rm -rf "$RUNNER_TEMP/bun-benchmark-cache"
+            fi
+            for trial in 1 2 3; do
+              rm -rf node_modules
+              start=$(date +%s%N)
+              if [ "$manager" = pnpm ]; then
+                pnpm install --frozen-lockfile --ignore-scripts --store-dir "$RUNNER_TEMP/pnpm-benchmark-store"
+              else
+                BUN_INSTALL_CACHE_DIR="$RUNNER_TEMP/bun-benchmark-cache" bun install --frozen-lockfile --ignore-scripts
+              fi
+              finish=$(date +%s%N)
+              elapsed=$(awk -v a="$start" -v b="$finish" 'BEGIN {printf "%.3f", (b-a)/1000000000}')
+              if [ "$trial" = 1 ]; then cache=cold; else cache=warm; fi
+              echo "| $manager | $cache | $trial | $elapsed |" | tee -a "$GITHUB_STEP_SUMMARY"
+            done
+          done
+          printf '\n%s\n%s\n' 'Installation scripts disabled equally for both managers; excludes Cypress binary download.' 'Bun migrates pnpm-lock.yaml in memory under --frozen-lockfile; original lockfile is unchanged.' >> "$GITHUB_STEP_SUMMARY"
+          git diff --exit-code -- package.json pnpm-lock.yaml pnpm-workspace.yaml
+
+  runtime-compatibility:
+    name: JS build and runtime (${{ matrix.runtime }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [node, bun]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: |
+          if [ "${{ matrix.runtime }}" = bun ]; then bun install --frozen-lockfile --ignore-scripts; else pnpm install --frozen-lockfile --ignore-scripts; fi
+      - name: Root runtime test
+        run: |
+          if [ "${{ matrix.runtime }}" = bun ]; then bun test spikes/layout-phase-scheduler/test/loaf.test.mjs; else node --test spikes/layout-phase-scheduler/test/loaf.test.mjs; fi
+      - name: SvelteKit typecheck and production build
+        working-directory: benchmarks/baselines/sveltekit
+        run: |
+          if [ "${{ matrix.runtime }}" = bun ]; then bun run --bun typecheck && bun run --bun build; else pnpm typecheck && pnpm build; fi
+      - name: Next.js typecheck and production build
+        working-directory: benchmarks/baselines/next-react
+        run: |
+          if [ "${{ matrix.runtime }}" = bun ]; then bun run --bun typecheck && bun run --bun build; else pnpm typecheck && pnpm build; fi
+
+  marko-browser-tooling:
+    name: Marko and browser tooling (${{ matrix.runtime }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [node, bun]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.4'
+      - name: Install dependencies without lifecycle scripts
+        run: |
+          if [ "${{ matrix.runtime }}" = bun ]; then bun install --frozen-lockfile --ignore-scripts; else pnpm install --frozen-lockfile --ignore-scripts; fi
+      - name: Marko production build
+        working-directory: spikes/marko-stream-resume
+        run: |
+          if [ "${{ matrix.runtime }}" = bun ]; then bun run --bun build; else pnpm build; fi
+      - name: Marko server smoke (HTTP static and streaming routes)
+        working-directory: spikes/marko-stream-resume
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.runtime }}" = bun ]; then PORT=4321 bun dist/index.mjs > /tmp/marko-server.log 2>&1 & else PORT=4321 node dist/index.mjs > /tmp/marko-server.log 2>&1 & fi
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for ((i=1; i<=40; i++)); do
+            if curl -fsS http://127.0.0.1:4321/static -o /tmp/marko-static.html; then break; fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then cat /tmp/marko-server.log; exit 1; fi
+            sleep 0.25
+          done
+          test -s /tmp/marko-static.html
+          curl -fsS --max-time 10 http://127.0.0.1:4321/stream -o /tmp/marko-stream.html
+          test -s /tmp/marko-stream.html
+      - name: Cypress CLI discovery
+        working-directory: spikes/todomvc-cypress
+        run: |
+          if [ "${{ matrix.runtime }}" = bun ]; then bunx --bun cypress --version; else pnpm exec cypress --version; fi
+      - name: Playwright CLI discovery (Node runtime with Bun-installed packages)
+        working-directory: spikes/pw-to-marko
+        run: |
+          if [ "${{ matrix.runtime }}" = bun ]; then node node_modules/@playwright/test/cli.js test --list; else pnpm exec playwright test --list; fi
+
+  playwright-version-compatibility:
+    name: Bun Playwright version (${{ matrix.version }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['1.64.1']
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.4'
+      - name: Install workspace and override Playwright only in ephemeral runner
+        run: |
+          bun install --frozen-lockfile --ignore-scripts
+          cd spikes/pw-to-marko
+          bun add --dev --exact @playwright/test@${{ matrix.version }} --ignore-scripts
+      - name: Install Playwright browser engines
+        working-directory: spikes/pw-to-marko
+        run: bunx --bun playwright install --with-deps chromium firefox webkit
+      - name: Execute real Chromium Firefox and WebKit browser tests under Bun
+        working-directory: spikes/pw-to-marko
+        run: |
+          mkdir -p .bun-compat-probe
+          cat > .bun-compat-probe/playwright.config.mjs <<'EOF'
+          import { defineConfig } from '@playwright/test';
+          export default defineConfig({ testDir: '.', projects: [
+            { name: 'chromium', use: { browserName: 'chromium' } },
+            { name: 'firefox', use: { browserName: 'firefox' } },
+            { name: 'webkit', use: { browserName: 'webkit' } },
+          ] });
+          EOF
+          cat > .bun-compat-probe/browser.spec.mjs <<'EOF'
+          import { test, expect } from '@playwright/test';
+          test('real browser launch navigation JS DOM and click', async ({ page }) => {
+            await page.goto('data:text/html,<button id="b">0</button><script>document.querySelector("button").onclick = e => e.target.textContent = "1"</script>');
+            await page.locator('#b').click();
+            await expect(page.locator('#b')).toHaveText('1');
+          });
+          EOF
+          bunx --bun playwright test --config .bun-compat-probe/playwright.config.mjs --reporter=list
+
+  bun-full-marko-e2e:
+    name: Generated Marko E2E (${{ matrix.runtime }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [node, bun]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.4'
+      - name: Install Bun-managed workspace and isolated Playwright update
+        run: |
+          bun install --frozen-lockfile --ignore-scripts
+          cd spikes/pw-to-marko
+          bun add -d --exact @playwright/test@1.64.1 --ignore-scripts
+      - name: Compile actual WebAssembly and generate routes from .pw
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --locked -p pw-resume-wasm --target wasm32-unknown-unknown --release
+          mkdir -p spikes/pw-to-marko/public
+          cp target/wasm32-unknown-unknown/release/pw_resume_wasm.wasm spikes/pw-to-marko/public/pw-resume.wasm
+          root=spikes/pw-to-marko/src/routes
+          mkdir -p "$root"/{static,counter,streamed,store}
+          for spec in 'static hello-static HelloStatic' 'counter counter Counter' 'streamed streamed StreamedPage'; do
+            read -r route example component <<< "$spec"
+            cargo run --locked --quiet -p pw-cli -- emit-marko "examples/$example/app.pw" --out "$root/$route"
+            mv "$root/$route/$component.marko" "$root/$route/+page.marko"
+          done
+          # These E3/E4 oracle tests require their original small store demo.
+          # The current examples/store/app.pw is a separate, layout-based app
+          # intentionally refused by emit-marko. Pin the original repo source,
+          # rather than fabricate Marko or silently omit the store assertions.
+          legacy=6fc1b7fb9717ef82224e5fa0e55bc3d0b210df3f
+          git fetch --no-tags --depth=1 origin "$legacy"
+          test "$(git rev-parse "$legacy:examples/store/app.pw")" = 2b0ba24724ac788f1c239dd12c2dcddffb05cd33
+          mkdir -p "$RUNNER_TEMP/pw-e4-store"
+          git show "$legacy:examples/store/app.pw" > "$RUNNER_TEMP/pw-e4-store/app.pw"
+          cargo run --locked --quiet -p pw-cli -- emit-marko "$RUNNER_TEMP/pw-e4-store/app.pw" --out "$root/store"
+          mv "$root/store/StorePage.marko" "$root/store/+page.marko"
+      - name: Build actual generated Marko application with Bun
+        working-directory: spikes/pw-to-marko
+        run: bun run --bun build
+      - name: Install all Playwright browser engines
+        working-directory: spikes/pw-to-marko
+        run: bunx --bun playwright install --with-deps chromium firefox webkit
+      - name: Run exact same generated Marko tests on selected JS runtime
+        working-directory: spikes/pw-to-marko
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.runtime }}" = bun ]; then
+            sed -i 's/node dist\/index.mjs/bun dist\/index.mjs/' playwright.config.mjs
+            grep -F 'bun dist/index.mjs' playwright.config.mjs
+            bunx --bun playwright test --reporter=list
+          else
+            node node_modules/@playwright/test/cli.js test --reporter=list
+          fi
