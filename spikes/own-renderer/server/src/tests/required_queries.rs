@@ -12,6 +12,7 @@
 //!   contract required nothing, and `/lobby/p-nobodys` answered the secret.
 //!   Such a program is refused now; a page binds `Club` itself, and the host
 //!   asks `OwnsPost` for it.
+use super::tables::Asserted;
 use super::*;
 use std::time::Duration;
 
@@ -177,4 +178,128 @@ fn a_query_calling_a_guarded_query_is_refused_and_a_page_binds_it() {
         !club.contains(SECRET),
         "the guarded query answered a reader who owns no such post"
     );
+}
+
+fn served_owned() -> Served {
+    let (dir, out) = tables::built(&["examples/owned"], &[("page.pw", OWNED_PAGE)]);
+    Served {
+        server: Server::from_build(out.clone(), out).asserted("the owned program is served"),
+        _dir: dir,
+    }
+}
+
+const OWNED_PAGE: &str = r#"module owned.page
+import context.{ current_user }
+import Notes.{ NoteId }
+import owned.app.{ Shown }
+
+session page NotePage(id: NoteId) {
+    route "/owned/{id}"
+    placement origin
+    cache private
+    let shown = query Shown(current_user(), id)
+    view {
+        <title>Owned</title>
+        <main>
+            {#match shown}
+                {:Some(note)}<p id="note">{note.text}</p>
+                {:None}<p id="none">No note</p>
+            {/match}
+        </main>
+    }
+}
+"#;
+
+fn write_owned(s: &Server, session: &str, text: &str) {
+    let answer = s
+        .command_answer(
+            "owned.app.write",
+            session,
+            &[
+                serde_json::json!("same-id"),
+                serde_json::json!("bob"),
+                serde_json::json!(text),
+            ],
+            None,
+        )
+        .asserted("write answered");
+    assert!(answer.committed, "{:?} {:?}", answer.why, answer.result);
+}
+
+#[test]
+fn served_owned_tables_hold_every_handle_to_the_request_reader() {
+    let s = served_owned();
+    s.identity.signed_in_for_test("a", "alice", "Alice");
+    s.identity.signed_in_for_test("b", "bob", "Bob");
+    write_owned(&s, "a", "ALICES_DRAFT");
+    let args = |reader: &str| [Val::String(reader.into()), Val::String("same-id".into())];
+    let own = s
+        .answer("owned.app.One", "a", &args("alice"))
+        .asserted("Alice reads her note");
+    assert!(format!("{own:?}").contains("ALICES_DRAFT"), "{own:?}");
+    assert_eq!(
+        s.answer("owned.app.One", "b", &args("bob"))
+            .asserted("Bob reads his key"),
+        Val::Option(None)
+    );
+    let forged = s.answer("owned.app.One", "b", &args("alice"));
+    assert!(
+        forged.is_err(),
+        "a forged handle read Alice's note: {forged:?}"
+    );
+    let shared = s
+        .answer("owned.app.ToMe", "b", &[Val::String("bob".into())])
+        .asserted("Bob reads his projection");
+    assert!(format!("{shared:?}").contains("ALICES_DRAFT"), "{shared:?}");
+    assert!(!format!("{shared:?}").contains("\"draft\""), "{shared:?}");
+    let forged = s.command_answer("owned.app.keep", "b", &[serde_json::json!({
+        "author": "alice", "id": "same-id", "to": "bob", "text": "DEFACED", "draft": "DEFACED", "added": 0
+    })], None).asserted("forged write answered");
+    assert!(!forged.committed, "{:?}", forged.result);
+    assert_eq!(
+        s.answer("owned.app.One", "a", &args("alice"))
+            .asserted("Alice's original note"),
+        own
+    );
+    write_owned(&s, "b", "BOBS_DRAFT");
+    let bob = s
+        .answer("owned.app.One", "b", &args("bob"))
+        .asserted("Bob's independent same id");
+    assert!(format!("{bob:?}").contains("BOBS_DRAFT"), "{bob:?}");
+    assert_eq!(
+        s.answer("owned.app.One", "a", &args("alice"))
+            .asserted("Alice is unchanged"),
+        own
+    );
+}
+
+#[test]
+fn served_program_predicates_guard_commands_and_page_queries() {
+    let s = served_owned();
+    s.identity.signed_in_for_test("a", "alice", "Alice");
+    s.identity.signed_in_for_test("b", "bob", "Bob");
+    write_owned(&s, "a", "ALICES_PRIVATE_NOTE");
+    assert!(get_as(&s, "a", "/owned/same-id").contains("ALICES_PRIVATE_NOTE"));
+    assert!(!get_as(&s, "b", "/owned/same-id").contains("ALICES_PRIVATE_NOTE"));
+    let edit = |session: &str, text: &str| {
+        s.command_answer(
+            "owned.app.edit",
+            session,
+            &[
+                serde_json::json!("same-id"),
+                serde_json::json!("bob"),
+                serde_json::json!(text),
+            ],
+            None,
+        )
+        .asserted("edit answered")
+    };
+    let refused = edit("b", "DEFACED");
+    assert!(!refused.committed, "{:?}", refused.result);
+    assert_eq!(refused.refused.as_deref(), Some("Wrote"));
+    let edited = edit("a", "ALICES_EDITED_NOTE");
+    assert!(edited.committed, "{:?} {:?}", edited.why, edited.result);
+    let page = get_as(&s, "a", "/owned/same-id");
+    assert!(page.contains("ALICES_EDITED_NOTE"), "{page}");
+    assert!(!get_as(&s, "b", "/owned/same-id").contains("ALICES_EDITED_NOTE"));
 }
