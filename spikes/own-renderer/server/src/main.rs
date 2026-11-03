@@ -4552,6 +4552,25 @@ impl Server {
         args: &[Val],
         key: &pw_resource::Key,
     ) -> Result<Val, String> {
+        self.read_checked(|| self.fetch_open_answer(session, binding, args, key))
+    }
+
+    /// A cache hit, a shared flight and a fallback are reads too. A layer
+    /// closed while the answer was being read must refuse its delivery.
+    fn read_checked(&self, read: impl FnOnce() -> Result<Val, String>) -> Result<Val, String> {
+        self.data.check_read()?;
+        let answer = read()?;
+        self.data.check_read()?;
+        Ok(answer)
+    }
+
+    fn fetch_open_answer(
+        &self,
+        session: &str,
+        binding: &serde_json::Value,
+        args: &[Val],
+        key: &pw_resource::Key,
+    ) -> Result<Val, String> {
         let resource = binding["resource"].as_str().unwrap_or_default();
         let manifest = runtime_manifest(resource, &binding["policy"]);
         let key = key.clone();
@@ -4808,6 +4827,10 @@ impl Server {
     /// asking at once; and where it could not be made, the last good one,
     /// where its `fallback` keeps it.
     fn materialized(&self, path: &str, args: &[Val]) -> Result<Val, String> {
+        self.read_checked(|| self.materialized_open(path, args))
+    }
+
+    fn materialized_open(&self, path: &str, args: &[Val]) -> Result<Val, String> {
         let key = Self::kept_key(path, args);
         if let pw_materialize::Read::Fresh(body) = self.materializer.read(&key) {
             return materializations::decode_text(&body);

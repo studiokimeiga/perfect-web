@@ -2,6 +2,21 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Local continuation, 2026-11-02:** freshly fetched `origin/master` is
+`5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6`. D3 (PR #66), the added-table
+reference repair (#69), session overlap (#67), and the disk-fixture repair
+(#70) are in that history. The dated train/D2 queues below are historical,
+not instructions to repeat completed tracks. PR #72's declared-data routing
+and guestbook are still unmerged at `687dd922`; its exact-head hosted CI and
+verify workflows report success, but this continuation has not independently
+audited every recipe artifact. Row-ownership's existing dirty work is preserved.
+
+The current local slice is a reproduced closed-table cache bypass, with a
+failing-first commit `069ffc6f` and repair on `fix/tables-cached-refusals` in
+the existing data-path checkout. See the [execution record](diagnostics/tables-cached-refusals-2026-11-02.md).
+This is local implementation evidence; no new landing or production claim.
+The paid E14 study remains deferred.
+
 **Supply-chain follow-up, 2026-10-29:** published `88f577a2` is blocked by
 both actual CI Node audits: HIGH GHSA-3f7j-7jwc-fxfj in Cypress's
 `systeminformation` 5.33.15. Rust audits passed. ADR0371 records the verified
@@ -427,6 +442,17 @@ not replace an application benchmark. ADR-0027's correction still applies
 to older frame attribution.
 
 ## next three concrete tasks
+
+Current continuation order (2026-11-02), superseding the dated queue below:
+
+1. Verify and independently review the closed-table cache fence, retaining
+   its failed regression, complete mutation run and exact-source receipts.
+2. Reconcile PR #72's actual recipe artifacts and the dirty row-ownership
+   branch before integration; retain the existing row work and its ownership.
+3. Validate durable declared tables and then protected feed/store migration
+   with row authority and two-user witnesses. No paid model study is needed.
+
+The following three items retain their historical scope:
 
 1. Land train-13 as the owner approved: exact-commit CI and the automatic
    track verification at its head, then `master` fast-forwarded to it.

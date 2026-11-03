@@ -55,6 +55,14 @@ pub(crate) trait DataLayer: Send + Sync {
     /// query does commits.
     fn reads(&self, session: &str, stopped: Option<Stopped>) -> Ops;
 
+    /// Whether reads may still be answered, including from a query cache or
+    /// materialization. A layer that fails closed must refuse those answers
+    /// too. The host checks before reading and before delivering a value.
+    /// Ordinary source failures remain subject to the query's fallback.
+    fn check_read(&self) -> Result<(), String> {
+        Ok(())
+    }
+
     /// **One render's snapshot** (NEXT 4c, track `render-merge`): what every
     /// read of one render reads, asked for where the render begins and given
     /// up where it ends, so the render sees one state of the data whatever

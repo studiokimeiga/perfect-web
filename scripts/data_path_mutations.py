@@ -93,6 +93,21 @@ LAST = (
 )
 
 MUTANTS = [
+    # Closed adapters refuse every cache path, including a read that closes
+    # after its primitive answered. Healthy caches and ordinary fallback are
+    # neighboring controls in tests::tables::closed_tables_*.
+    ("a cached query bypasses closed tables", MAIN,
+     "        self.read_checked(|| self.fetch_open_answer(session, binding, args, key))\n",
+     "        self.fetch_open_answer(session, binding, args, key)\n"),
+    ("a materialization bypasses closed tables", MAIN,
+     "        self.read_checked(|| self.materialized_open(path, args))\n",
+     "        self.materialized_open(path, args)\n"),
+    ("an answer closes in flight but is delivered", MAIN,
+     "        let answer = read()?;\n        self.data.check_read()?;\n        Ok(answer)\n",
+     "        let answer = read()?;\n        Ok(answer)\n"),
+    ("closed tables report healthy to cached reads", LAYER,
+     '        self.tables\n            .check_health()\n            .map_err(|e| format!("the tables refuse reads: {e:?}"))\n',
+     '        Ok(())\n'),
     # 1. routing: the gate the only way, each component's own functions
     ("a tables program's calls go around the gate", MAIN,
      "        let results = match self.data.tables() {\n",

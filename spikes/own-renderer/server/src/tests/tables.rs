@@ -180,6 +180,123 @@ fn closed_tables_refuse_cached_answers_outside_the_failed_commands_invalidations
     );
 }
 
+#[test]
+fn closed_tables_refuse_an_answer_closed_while_its_query_was_in_flight() {
+    let s = served_tables();
+    committed(&s, MAKE_LIST, "a", &[list("groceries", "food", 20)]);
+    let binding = serde_json::json!({
+        "resource": EVERY_LIST,
+        "policy": { "freshness_ms": 60_000, "cache": "shared", "privacy": "public", "key": [] }
+    });
+    *s.in_flight.lock().expect("in flight") = Some(Box::new(|server| {
+        server
+            .data
+            .begin("a")
+            .unpublished("closed after the query read");
+    }));
+    let answer = s.fetch_answer("b", &binding, &[]);
+    assert!(
+        answer
+            .as_ref()
+            .is_err_and(|e| e.contains("StoragePoisoned")),
+        "closing during a read must refuse its delivery: {answer:?}"
+    );
+}
+
+#[test]
+fn closed_tables_refuse_fresh_and_last_known_good_materializations() {
+    const COUNT: &str = "cached.Count";
+    let (_dir, out) = built(
+        TABLES,
+        &[(
+            "cached.pw",
+            r#"
+module cached
+import List
+import Lists.{ TodoList }
+import Lists
+
+event Changed()
+
+query EveryList() -> List<TodoList>
+    consistency strong
+{
+    Lists.all()
+}
+
+materialize Count() -> Int {
+    partition  public
+    invalidates_on Changed()
+    regenerate on_invalidation
+    stampede   single_flight
+    fallback   last_known_good
+
+    let lists = query EveryList()
+    List.length(lists)
+}
+
+command make_list(list: TodoList) -> Result<(), TodoList>
+    transaction serializable
+    emits Changed()
+    invalidates EveryList()
+{
+    Lists.insert(list)
+}
+"#,
+        )],
+    );
+    let s = Server::from_build(out.clone(), out).asserted("served");
+    committed(
+        &s,
+        "cached.make_list",
+        "a",
+        &[list("groceries", "food", 20)],
+    );
+    assert_eq!(s.materialized(COUNT, &[]).asserted("derived"), Val::S64(1));
+    let count = s.data.statements().ok_or("no counter").asserted("counted");
+    assert_eq!(s.materialized(COUNT, &[]).asserted("kept"), Val::S64(1));
+    assert_eq!(s.data.statements(), Some(count), "the fresh value was kept");
+
+    let key = Server::kept_key(COUNT, &[]);
+    s.materializer_faults
+        .lock()
+        .expect("faults")
+        .insert(COUNT.into());
+    s.materializer.invalidate(&key, 0);
+    assert_eq!(
+        s.materialized(COUNT, &[])
+            .asserted("ordinary failure keeps fallback"),
+        Val::S64(1)
+    );
+    assert!(matches!(
+        s.materializer.read(&key),
+        pw_materialize::Read::LastKnownGood(_)
+    ));
+    // Restore a fresh entry too, so both retained-value branches are covered.
+    s.materializer_faults.lock().expect("faults").clear();
+    s.regenerate_kept(COUNT, &[], None);
+    assert!(matches!(
+        s.materializer.read(&key),
+        pw_materialize::Read::Fresh(_)
+    ));
+    s.data
+        .begin("a")
+        .unpublished("closed after a materialization was kept");
+    let fresh = s.materialized(COUNT, &[]);
+    assert!(
+        fresh.as_ref().is_err_and(|e| e.contains("StoragePoisoned")),
+        "{fresh:?}"
+    );
+    s.materializer.invalidate(&key, 0);
+    let fallback = s.materialized(COUNT, &[]);
+    assert!(
+        fallback
+            .as_ref()
+            .is_err_and(|e| e.contains("StoragePoisoned")),
+        "{fallback:?}"
+    );
+}
+
 fn text(value: &str) -> Val {
     Val::String(value.into())
 }
