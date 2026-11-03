@@ -203,6 +203,40 @@ fn closed_tables_refuse_an_answer_closed_while_its_query_was_in_flight() {
     );
 }
 
+/// A live render also remembers operation answers. Those answers must not
+/// bypass an adapter closed after its snapshot and first read were taken.
+#[test]
+fn closed_tables_refuse_a_renders_remembered_operations() {
+    let s = served_tables();
+    committed(&s, MAKE_LIST, "a", &[list("groceries", "food", 20)]);
+    let _render = crate::render_merge::begin(&*s.data, s.queries.epoch());
+    let first = s.answer(EVERY_LIST, "b", &[]).asserted("first operation");
+    let count = s.data.statements().ok_or("no counter").asserted("counted");
+    assert_eq!(s.answer(EVERY_LIST, "b", &[]).asserted("merged"), first);
+    assert_eq!(
+        s.data.statements(),
+        Some(count),
+        "the render merged the operation"
+    );
+    s.data
+        .begin("a")
+        .unpublished("closed inside an existing render");
+    let direct = s.answer(EVERY_LIST, "b", &[]);
+    assert!(
+        direct
+            .as_ref()
+            .is_err_and(|e| e.contains("StoragePoisoned")),
+        "a remembered operation must refuse a closed adapter: {direct:?}"
+    );
+    let derived = s.read_value(EVERY_LIST, &[]);
+    assert!(
+        derived
+            .as_ref()
+            .is_err_and(|e| e.contains("StoragePoisoned")),
+        "a materialization's read without a page policy must also refuse: {derived:?}"
+    );
+}
+
 #[test]
 fn closed_tables_refuse_fresh_and_last_known_good_materializations() {
     const COUNT: &str = "cached.Count";
