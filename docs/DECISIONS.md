@@ -36,6 +36,8 @@ Status values: `Proposed` · `Accepted` · `Superseded by ADR-NNNN` · `Rejected
 
 | [0028](DECISIONS/ADR-0028-recursive-written-types-before-signature-cutover.md) | Preserve recursive written types and complete return annotations before the resolved-signature cutover; resolve only valid type identities | Accepted | reopened E9 | no nested type reparsing or partial resolution; ordinary call/return compatibility remains a separate gate |
 
+| [0394](DECISIONS/ADR-0394-proof-guided-read-plans.md) | Checked logical keyed/set read candidates, provenance, guarded reassembly, and abstract cost selection; no automatic source-loop lowering yet | **Proposed** | build | Validate source-loop lowering and adapter performance before promoting to the general optimizer |
+
 ## Decisions the charter asked for and where they landed
 
 Charter §14 Milestone 0 task 5 lists eight required ADRs. All eight exist:
