@@ -16553,7 +16553,9 @@ public query Store(",
                 });
             }
         }
-        let build = pw_core::build::build(&units).expect("the feed builds");
+        let build = pw_core::build::build(&units);
+        assert!(build.is_ok(), "the feed builds: {:?}", build.as_ref().err());
+        let build = build.expect("the build was asserted");
         assert!(build.refusals().is_empty(), "{:?}", build.refusals());
         let out = dir.path().join("build");
         build.write(&out).expect("the build is written");

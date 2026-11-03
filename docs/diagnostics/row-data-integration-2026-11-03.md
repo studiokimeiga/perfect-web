@@ -134,3 +134,35 @@ All eleven guarded server witnesses and fifteen compiled-predicate tests
 pass locally. The full server suite at the earlier `42999fe8` checkpoint
 passed 915 tests with nine ignored; that is interim history, not acceptance
 of these review repairs. New whole campaigns and final review are pending.
+
+## Strict campaign witness correction
+
+The whole row campaign at `16f91956` completed with 66 controls killed and
+two **INVALID**, so the recipe exited 1 and earns no acceptance credit.
+The controls rejecting every guarded query and every page binding hit the
+existing feed fixture helper's `expect("the feed builds")`. A compiler
+refusal there is a harness panic, not a completed assertion failure. The
+helper now asserts its build result before reading it; the native assertion
+validator is unchanged. All source files restored and all 5,103 anchors
+matched before this correction. No process was stopped by the memory bound.
+Log: `/tmp/pw-row-campaign.log`. Rerun the whole campaign after preflight.
+
+Independent read-only final review of `16f91956` has no outstanding actionable
+findings; its prior cache and qualified-word findings are addressed. The
+helper correction changes test failure reporting only, with whole verification
+still pending. PR #72's separate hosted audit found 15 matching archive
+digests and 160 successful recipe receipts, all headers on GitHub test merge
+`5bf6d4b947769a413377c5165aa696705fc112bf` (PR head `687dd922`). Those results
+do not transfer to this newer integration tree. The local broader plan at
+`16f91956` reaches 170 recipes in 16 shards, still pending beyond the local
+affected gates run here.
+
+Preflight first caught Clippy's type-complexity rule in the test-only
+concurrent-read hook. Naming its callback type resolves that without a lint
+waiver. `just preflight` now exits 0: formatting, both Clippy configurations,
+case check (4,759 paths), and all 5,103 mutation anchors pass. Logs:
+`/tmp/pw-row-preflight.log` (expected failed lint),
+`/tmp/pw-row-preflight-final.log` (pass). No product behavior changed after
+the reviewed `16f91956` checkpoint; the two changes are test failure reporting
+and a test callback type alias. Whole verification is rerun on the resulting
+source commit rather than credited from the diagnostic campaign.

@@ -331,9 +331,11 @@ fn served_program_predicates_guard_commands_and_page_queries() {
 /// A controlled writer commits immediately after the compiled predicate's
 /// actual read. Only the query's selected snapshot can keep its body on
 /// the state that authorized it, including outside a page render.
+type PredicateReadHook = Box<dyn FnOnce() + Send>;
+
 struct BetweenPredicateAndBody {
     inner: Arc<dyn data::DataLayer>,
-    after: Arc<Mutex<Option<Box<dyn FnOnce() + Send>>>>,
+    after: Arc<Mutex<Option<PredicateReadHook>>>,
 }
 
 impl data::DataLayer for BetweenPredicateAndBody {
