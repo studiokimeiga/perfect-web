@@ -368,59 +368,255 @@ pub fn answered_by_its_body(
     out
 }
 
+/// **The query a path written in `unit` names, where it is one that
+/// `requires` a predicate**, and the declaration: what PW6907 and PW6926
+/// hold.
+fn guarded_query<'a>(
+    hirs: &[&'a Hir],
+    ws: &Workspace,
+    unit: usize,
+    written: &str,
+) -> Option<(DefId, &'a Decl)> {
+    let def = crate::page_values::resolve_term(ws, unit, written)?;
+    let decl = hirs.get(def.unit)?.decl(crate::hir::DeclId(def.decl));
+    (decl.kind == DeclKind::Query && decl.policy("requires").is_some()).then_some((def, decl))
+}
+
+/// What a guarded query requires, as written.
+fn required(decl: &Decl) -> String {
+    decl.policy("requires")
+        .map(|p| p.value.trim().to_string())
+        .unwrap_or_default()
+}
+
+const PER_READER: &str = "A query that `requires` a predicate is answered to a reader only \
+     once the predicate holds for them (ADR-0339's ruling 3, ADR-0384's H2). The host keys a \
+     read by its reader only where the query is cached `private` or is a `user` or `session` \
+     query; any other read is keyed by its arguments alone, so a shared cache answers the next \
+     reader of them from the first one's entry, and a reader asking while another's read of the \
+     same arguments is in flight joins that read and is answered theirs, never asked. A \
+     materialization is kept for every reader alike, and asks none.";
+
 /// **PW6907: a query that requires a predicate is answered to its reader
-/// alone** (ADR-0384's H2 code for a query's `requires`; the review of track
-/// `row-ownership`, finding 7b): its answer is given where the predicate
-/// holds for the reader asking, so a shared cache, which answers one
-/// reader's entry to another, would give it to readers it never asked. A
-/// `user` or `session` query in a shared cache is PW5001's already, the one
-/// defect told once (ADR-0112).
-pub fn shared_answers(hir: &Hir) -> Vec<Diagnostic> {
+/// alone** (ADR-0384's H2 code for a query's `requires`; the reviews of
+/// track `row-ownership`, finding 7b and the second review's finding 1): its
+/// answer is given where the predicate holds for the reader asking, so every
+/// read of it is keyed by its reader, `cache private` or a `user` or
+/// `session` query, never by its arguments alone, where a shared cache's
+/// entry or another reader's flight would answer readers never asked; and no
+/// materialization, kept for every reader alike, depends on it. A `user` or
+/// `session` query in a shared cache is PW5001's already, the one defect told
+/// once (ADR-0112); a `cache` that is no word of its domain, PW0335's.
+pub fn answered_per_reader(hirs: &[&Hir], unit: usize, ws: &Workspace) -> Vec<Diagnostic> {
     let code = crate::codes::REQUIRED_QUERY_UNSHARED;
+    let Some(hir) = hirs.get(unit) else {
+        return Vec::new();
+    };
+    let refused =
+        |message: String, span: crate::diagnostics::Span, related: Vec<Related>, repair: &str| {
+            Diagnostic {
+                code: code.id,
+                invariant: code.invariant,
+                reason: "required_query_unshared",
+                detector: Detector::DeclarationRule,
+                severity: Severity::Error,
+                message,
+                primary_span: span,
+                related,
+                explanation: Some(PER_READER.to_string()),
+                repairs: vec![Repair {
+                    description: repair.to_string(),
+                    replacement: None,
+                }],
+            }
+        };
     let mut out = Vec::new();
     for (id, decl) in hir.all_decls() {
-        if decl.kind != DeclKind::Query
-            || matches!(decl.visibility.as_deref(), Some("user" | "session"))
-        {
-            continue;
+        match decl.kind {
+            DeclKind::Query => {
+                let Some(requires) = decl.policy("requires") else {
+                    continue;
+                };
+                if matches!(decl.visibility.as_deref(), Some("user" | "session")) {
+                    continue;
+                }
+                let cache = decl.policy("cache");
+                let related = vec![
+                    Related::new(requires.span.clone(), "the predicate it is answered under"),
+                    Related::new(hir.decl_span(id), format!("`{}`", decl.name)),
+                ];
+                let (message, span) = match cache.map(|c| (c.value.trim(), c)) {
+                    Some(("private", _)) => continue,
+                    Some(("shared", c)) => (
+                        format!(
+                            "`{}` requires {} and declares a shared cache: its answer is given \
+                             where the predicate holds for the reader asking, and a shared \
+                             cache would give it to readers it never asked",
+                            decl.name,
+                            requires.value.trim()
+                        ),
+                        c.span.clone(),
+                    ),
+                    Some(_) => continue,
+                    None => (
+                        format!(
+                            "`{}` requires {} and is read for every reader alike, keyed by its \
+                             arguments alone: a reader asking while another's read of them is in \
+                             flight would join it, and be answered theirs, never asked",
+                            decl.name,
+                            requires.value.trim()
+                        ),
+                        decl.name_span.clone(),
+                    ),
+                };
+                out.push(refused(
+                    message,
+                    span,
+                    related,
+                    "cache it for its reader alone, `cache private`, or make it a `user` or \
+                     `session` query, keyed by its reader",
+                ));
+            }
+            DeclKind::Materialize => {
+                let Some(depends) = decl.policy("depends_on") else {
+                    continue;
+                };
+                for key in &depends.keys {
+                    let Some((def, query)) = guarded_query(hirs, ws, unit, &key.name) else {
+                        continue;
+                    };
+                    out.push(refused(
+                        format!(
+                            "`{}` depends on `{}`, which requires {}: a materialization is kept \
+                             for every reader alike, and asks none of them",
+                            decl.name,
+                            key.name,
+                            required(query)
+                        ),
+                        depends.span.clone(),
+                        vec![Related::in_unit(
+                            def.unit,
+                            hirs[def.unit].decl_span(crate::hir::DeclId(def.decl)),
+                            format!("`{}` requires its predicate here", query.name),
+                        )],
+                        "read the query where a page binds it, `query Q(..)`, for its reader, \
+                         or depend on one that requires nothing",
+                    ));
+                }
+            }
+            _ => {}
         }
-        let (Some(requires), Some(cache)) = (decl.policy("requires"), decl.policy("cache")) else {
+    }
+    out
+}
+
+const BOUND_BY_A_PAGE: &str = "A query that `requires` a predicate is the host's to ask before \
+     its body runs (ADR-0339's ruling 3, ADR-0384's H2), and the host asks it where a page binds \
+     the query, `query Q(..)`, a read of its own that it makes for the page's reader. Called, \
+     bound or named anywhere else, its body is compiled into that declaration, whose contract \
+     requires nothing, so it would run for a reader its predicate refuses: as a command is sent \
+     by a handler alone (PW0339), a query that requires is read by a page's binding alone.";
+
+/// **PW6926: a query that requires a predicate is read by a page's binding
+/// alone** (the second review of track `row-ownership`, finding 2; ADR-0339's
+/// ruling 3, ADR-0384's H2). A query's body called from another declaration
+/// is compiled into it, and that declaration's contract requires nothing, so
+/// `Wrapper() { Secret() }`, a `fn` around it, a command, a predicate or a
+/// materialization would each run `Secret` for anyone. Refused wherever such
+/// a query is named outside a page's binding, `query Q(..)`, which a page, a
+/// view or a layout writes and the host reads as a request of its own: a
+/// call, a name used as a value, and a binding in any other declaration. A
+/// name a body binds itself is that body's own (ADR-0063).
+pub fn read_unasked(hirs: &[&Hir], unit: usize, ws: &Workspace) -> Vec<Diagnostic> {
+    use crate::hir::Expr;
+    let code = crate::codes::REQUIRED_QUERY_BOUND_BY_A_PAGE;
+    let Some(hir) = hirs.get(unit) else {
+        return Vec::new();
+    };
+    // A program no query of which requires a predicate has nothing to hold:
+    // every program but those H2 lets guard a query, read at once.
+    let guards = hirs.iter().any(|h| {
+        h.all_decls()
+            .any(|(_, d)| d.kind == DeclKind::Query && d.policy("requires").is_some())
+    });
+    if !guards {
+        return Vec::new();
+    }
+    let mut out = Vec::new();
+    for (id, decl) in hir.all_decls() {
+        let Some(b) = decl.body else {
             continue;
         };
-        if cache.value.trim() != "shared" {
-            continue;
+        let body = hir.body(b);
+        let binds = matches!(
+            decl.kind,
+            DeclKind::Page | DeclKind::View | DeclKind::Component | DeclKind::Layout
+        );
+        // Built where a guarded query is named, for the names a body binds.
+        let mut lexical: Option<Option<crate::lexical::Lexical>> = None;
+        for e in body.walk() {
+            let (written, named) = match body.expr(e) {
+                Expr::Name(_) | Expr::Field { .. } => (crate::infer::path_of(body, e), true),
+                Expr::Keyword {
+                    keyword, modifiers, ..
+                } if keyword == "query" && !binds => match modifiers.first() {
+                    Some(query) => (query.clone(), false),
+                    None => continue,
+                },
+                _ => continue,
+            };
+            if written.is_empty() {
+                continue;
+            }
+            let Some((def, query)) = guarded_query(hirs, ws, unit, &written) else {
+                continue;
+            };
+            let how = match named {
+                false => "binds",
+                true => {
+                    let scope =
+                        lexical.get_or_insert_with(|| crate::lexical::Lexical::build_in(hir, id));
+                    if scope.as_ref().is_some_and(|l| l.binder(e).is_some()) {
+                        continue;
+                    }
+                    let called = body
+                        .walk()
+                        .into_iter()
+                        .any(|c| matches!(body.expr(c), Expr::Call { callee, .. } if *callee == e));
+                    if called { "calls" } else { "names" }
+                }
+            };
+            out.push(Diagnostic {
+                code: code.id,
+                invariant: code.invariant,
+                reason: "required_query_bound_by_a_page",
+                detector: Detector::DeclarationRule,
+                severity: Severity::Error,
+                message: format!(
+                    "`{}` {how} `{written}`, which requires {}: its body would run inside `{}` \
+                     unasked, and the host asks its reader only where a page binds it",
+                    decl.name,
+                    required(query),
+                    decl.name
+                ),
+                primary_span: body.expr_span(e),
+                related: vec![Related::in_unit(
+                    def.unit,
+                    hirs[def.unit].decl_span(crate::hir::DeclId(def.decl)),
+                    format!("`{}` requires its predicate here", query.name),
+                )],
+                explanation: Some(BOUND_BY_A_PAGE.to_string()),
+                repairs: vec![Repair {
+                    description: format!(
+                        "bind it in a page, `let x = query {written}(..)`, where its reader is \
+                         asked; or move what `{}` shares with it into a `fn` that reads what \
+                         its reader may",
+                        decl.name
+                    ),
+                    replacement: None,
+                }],
+            });
         }
-        out.push(Diagnostic {
-            code: code.id,
-            invariant: code.invariant,
-            reason: "required_query_unshared",
-            detector: Detector::DeclarationRule,
-            severity: Severity::Error,
-            message: format!(
-                "`{}` requires {} and declares a shared cache: its answer is given where the \
-                 predicate holds for the reader asking, and a shared cache would give it to \
-                 readers it never asked",
-                decl.name,
-                requires.value.trim()
-            ),
-            primary_span: cache.span.clone(),
-            related: vec![
-                Related::new(requires.span.clone(), "the predicate it is answered under"),
-                Related::new(hir.decl_span(id), format!("`{}`", decl.name)),
-            ],
-            explanation: Some(
-                "A query that `requires` a predicate is answered to a reader only once the \
-                 predicate holds for them (ADR-0339's ruling 3, ADR-0384's H2). A shared cache \
-                 keeps one answer for every reader of a key, and answers the next reader from it \
-                 without asking them, so the answer would reach readers the predicate refuses."
-                    .to_string(),
-            ),
-            repairs: vec![Repair {
-                description: "cache it for its reader alone, `cache private`, keyed by them"
-                    .to_string(),
-                replacement: None,
-            }],
-        });
     }
     out
 }

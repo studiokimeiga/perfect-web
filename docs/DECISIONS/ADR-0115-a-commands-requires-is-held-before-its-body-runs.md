@@ -107,11 +107,15 @@ it. Built by `ADR-XXXX-owned-tables`:
 2. **Decision 2, widened**: `requires` belongs to a command or a query
    (ADR-0339's ruling 3); its arguments are still the declaration's
    parameters, so no expression runs before authorization. A query that
-   requires a predicate is answered to its reader alone, never cached
-   shared (PW6907).
+   requires a predicate is answered to its reader alone, every read of it
+   keyed by its reader (`cache private`, or a `user` or `session` query),
+   no materialization depending on it (PW6907); and it is read by a page's
+   binding alone, never called, named or bound by another declaration,
+   into whose body its own would be compiled unasked (PW6926).
 3. **Decision 3**: an export's `authorization` entry names the component
    that answers it (`component`) where the program gives the predicate a
-   body; it is part of `abi_schema` with the rest.
+   body; it is part of `abi_schema` with the rest (held since the second
+   review of the track: `schema_of` hashed `component` out until then).
 4. **Decision 4, the order of asking**: the requirements in the order the
    export states them. One naming a component is asked by **the engine
    itself** (`Prepared::call_authorized_with_tables_as`): that compiled

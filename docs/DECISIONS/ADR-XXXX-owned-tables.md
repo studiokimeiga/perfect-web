@@ -3,7 +3,7 @@
 Status: proposed by track `row-ownership` (the coordinator's brief of
 2026-11-02), building ADR-0384's H1 and H2 under the integrator's ruling on
 ADR-0384 (codes, ADR-0115 amended, ADR-0279 and ADR-0129 confirmed), and
-repaired after its independent review under the integrator's rulings of
+repaired after two independent reviews under the integrator's rulings of
 2026-11-02 (below). The coordinator lands it; the integrator numbers it
 (ADR-0395). Date: 2026-11-02, from master `27c1ffba`, merged with master
 `45e0c1a6` (D3) before the repair. Milestone: E14. Builds on ADR-0338 and
@@ -14,7 +14,64 @@ user), ADR-0129 (a value's label follows it), ADR-0302 (a predicate's
 words), ADR-0307 (a page asks a predicate of its reader), ADR-0339's
 ruling 3 (`requires` on a query).
 
-## Corrections: what the review found, and what changed
+## Corrections: what the second review found, and what changed
+
+A second independent review, of `ff9ff2c6` (probes under the session's
+`review-ro2-probes/`), found the first round's repairs sound (PW6924 in all
+three shapes and across modules, PW0368, PW6925, PW6905 through helpers and
+lambdas, the host's admission per call, the shared fuel, the predicate
+before the body) and two new blockers, both from letting a query `requires`
+a predicate, which master allows a command alone. Each is refused now, its
+probe kept as a regression that fails without the repair (the compiler's
+with this round's changes stashed, 4 of 4), beside a valid neighbour and a
+mutation control.
+
+1. **(Blocker) A query's predicate was asked of the first reader of a
+   shared read alone.** PW6907 refused only an explicit `cache shared`. A
+   public query with no `cache` clause compiles as cache `none`, privacy
+   `public`; the development server keys its read by its arguments alone
+   (`entry_key`), and `pw-resource` joins a read of a key already in flight.
+   With `public query Club() requires SignedIn` and no cache clause, the
+   anonymous reader alone was refused, and the same reader asking while
+   bob's read was held in flight joined it and was answered the secret.
+   **Now PW6907 holds every read of such a query to its reader**: a query
+   that `requires` a predicate is cached `private` or is a `user` or
+   `session` query (the server keys those by the reader's session), and no
+   `materialize .. depends_on` names one (a materialization is kept for
+   every reader alike, and asks none). Its sentence widens before landing.
+   The review's server probe is kept (`required_queries`): the unkeyed
+   program refused at build, and the race at the allowed shape, the
+   anonymous reader answered by a read of its own, refused, joining no
+   flight.
+2. **(Blocker) Calling a guarded query skipped its predicate.** A query's
+   body called from another declaration is compiled into it, and that
+   declaration's contract requires nothing: `Wrapper() { Secret() }`, a
+   `fn` around it, and `command peek() { Secret() }` each answered
+   "SECRET" through the engine, and the server's `/lobby/p-nobodys` the
+   secret through `Club(post)`. A command is held to its handler (PW0339);
+   a query had no such rule. **Now PW6926** (`required_query_bound_by_a_page`):
+   a query that `requires` a predicate is read by a page's binding alone,
+   `query Q(..)` in a page, a view or a layout, which the host reads as a
+   request of its own for the page's reader; a call to it, its name used as
+   a value, or a binding of it in a query, a command, a function, a
+   predicate or a materialization is refused. Every call site is checked,
+   so one through a helper is refused at the helper.
+3. **The ABI hash ignored who answers a requirement** (`schema_of`), against
+   ADR-0115's amendment (decision 3): a command whose predicate the program
+   gives a body, and the same command with none, hashed alike. **Now each
+   requirement a component answers adds `@<component>` to `abi_schema`**; a
+   requirement the deployment answers adds nothing, so every contract with
+   no program predicate keeps its hash.
+4. **`Predicate::new`'s checks had no test that failed without them** (the
+   contract is one `predicate` export, requiring nothing of its own). **Now
+   held**: a command's contract, a predicate requiring one itself, and two
+   exports are each refused, each check with its control.
+5. **Recorded, not changed** (H4): others can run up a predicate's cost by
+   writing rows addressed to its reader, which nothing bounds without
+   `written when` (H3) or bounded reads (H4), and so starve that reader's
+   commands (Not claimed).
+
+## Corrections: what the first review found, and what changed
 
 An independent review of `485b10b2` (probes under the session's
 `rowown-review/`) reproduced each of the following. Every one is refused
@@ -208,7 +265,14 @@ predicate Wrote(id: NoteId)
    any declaration is, and no page asks it of its reader yet.
 8. **`requires` belongs to a command or a query** (ADR-0339's ruling 3),
    its arguments the declaration's parameters. A query that requires a
-   predicate is answered to its reader alone, never cached shared (PW6907).
+   predicate is answered to its reader alone: every read of it is keyed by
+   its reader, cached `private` or a `user` or `session` query, and no
+   materialization depends on it (PW6907); and it is read by a page's
+   binding alone, `query Q(..)`, where the host asks its reader, never
+   called, named or bound by a query, a command, a function, a predicate or
+   a materialization, into whose body its own would be compiled unasked
+   (PW6926), as a command is sent by a handler alone (PW0339). Who answers
+   each requirement is part of the contract's `abi_schema`.
 9. **The engine asks a program's predicate itself**
    (`Prepared::call_authorized_with_tables_as`, `engine::program_predicates`):
    each requirement in the order the export states it, before the export's
@@ -326,6 +390,14 @@ predicate Wrote(id: NoteId)
 - **`shares with` without `written when`** (H3's PW6911): anyone may write a
   row addressed to anyone, so a sharer's view holds whatever others address
   to them.
+- **A predicate's cost is others' to run up** (the second review's note, H4):
+  a predicate whose body reads the rows addressed to its reader (a sharer's
+  index) reads as many as others choose to write, unbounded by `written
+  when` (H3) or by bounded reads (H4), and spends its fuel from the
+  invocation's one budget, so others can starve that reader's commands.
+- **A reader's key is its session's**: the development server keys a
+  `private` or `user` read by the session, not the user, so one user's two
+  sessions read apart; never two users' together.
 - **`Caller` carries no session generation**: an in-flight call's owned
   reads and writes outlive a revocation (a sign-out) until the server's
   wiring fences them (ADR-0389).
@@ -343,12 +415,12 @@ predicate Wrote(id: NoteId)
   (ADR-0129's write as a sink): not built. Reads are structural (the seen
   row); a program can still copy its own private value into a field a
   sharer reads.
-- **ADR-0384's PW6906 and PW6908**, and PW6907's other half: a body's reads
-  with the policy's authority (ids in the owner's place, inside a body
-  alone), a predicate calling another, set forms of a predicate, and a
-  query that requires a predicate read by a materialization (no reader to
-  ask). Two-owner rows (`owned by a, b`), `shares when`, `written when` and
-  `reveals` are H3's.
+- **ADR-0384's PW6906 and PW6908**: a body's reads with the policy's
+  authority (ids in the owner's place, inside a body alone), a predicate
+  requiring another, and set forms of a predicate. (A query that requires
+  read by a materialization, which this ADR listed here, is refused now by
+  PW6907 and PW6926.) Two-owner rows (`owned by a, b`), `shares when`,
+  `written when` and `reveals` are H3's.
 - **A page asking a predicate whose body reads a table** is told PW0401 ("a
   page may not perform `database.read`") beside PW6925: the effect
   inference counts the ask as a call of the body. One defect told twice,
@@ -357,7 +429,8 @@ predicate Wrote(id: NoteId)
 
 ## Next
 
-- **H4**: a bound per owner (`bounded 3 per owner`), and cursors.
+- **H4**: a bound per owner (`bounded 3 per owner`), cursors, and a bound on
+  what a predicate's reads may cost its reader, whoever wrote the rows.
 - **H3 and H9**: a reference that states what deleting the row it names
   does (cascade, set none, or a refusal told to its owner alone), so an
   owned table may refer to a table no one owns; and erasure.
@@ -375,13 +448,15 @@ predicate Wrote(id: NoteId)
 
 ## Questions for the integrator
 
-1. **Codes**: the repair's refusals are in the track's PW69xx block, per the
-   ruling: PW6924 (references) and PW6925 (a body answered by it alone)
-   next free after ADR-0384's planned PW6901 to PW6923, and PW6907,
-   ADR-0384's code for a query's `requires`, for the shared cache. PW6924
-   is a table clause's refusal, which ADR-0384's ruling 1 put in PW03xx;
-   PW69xx keeps it clear of `data-path`'s next PW03xx. Confirm, or renumber
-   at landing. PW0367 to PW0369 remain "next free after PW0366".
+1. **Codes**: the repairs' refusals are in the track's PW69xx block, per the
+   rulings: PW6924 (references), PW6925 (a body answered by it alone) and
+   PW6926 (a guarded query read by a page's binding alone) next free after
+   ADR-0384's planned PW6901 to PW6923, and PW6907, ADR-0384's code for a
+   query's `requires`, for its reads keyed by their reader (its sentence
+   widened by the second review, revision 1, since it has not landed).
+   PW6924 is a table clause's refusal, which ADR-0384's ruling 1 put in
+   PW03xx; PW69xx keeps it clear of `data-path`'s next PW03xx. Confirm, or
+   renumber at landing. PW0367 to PW0369 remain "next free after PW0366".
 2. **The bound is PW0368's** (its sentence widened, revision 1, since the
    code has not landed) rather than a new code: a write refused by a bound
    reads every owner's count, as one refused by a unique value does.
@@ -394,9 +469,12 @@ predicate Wrote(id: NoteId)
 4. **PW6925's page clause** is a finding beyond the review's: a page asking
    a predicate with a body was answered by the deployment by name.
 5. **Figures for STATUS and NEXT**, which this track does not edit:
-   generality 72 / 72 (was 69), corpus enforcement 102 / 102 (was 99), 227
+   generality 73 / 73 (was 69), corpus enforcement 103 / 103 (was 99), 228
    registered codes (was 224), and the accepted corpus's written resources
    22 (`pw-resource`, was 20).
-6. The guestbook (track `data-path`) could declare its posts `owned by
+6. **A server test module** (`spikes/own-renderer/server/src/tests/required_queries.rs`,
+   registered in `main.rs`'s list) keeps the second review's server probes;
+   `data-path` edits that file's neighbourhood, a one-line merge.
+7. The guestbook (track `data-path`) could declare its posts `owned by
    author` and drop `OwnsPost`: `remove(post)` then deletes the reader's own
    post by construction.

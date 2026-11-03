@@ -1010,11 +1010,12 @@ codes! {
     PREDICATE_BODY_READS_ONLY = "PW6905" / predicate_body_reads_only / 1, Dating,
         "a predicate's body reads and does nothing else: no write, no event, no schedule, no network, no log, no clock but its comparison";
     // ADR-0384's H2 code for a query's `requires` (ADR-0339's ruling 3; the
-    // review of the track, finding 7b): an answer given where a predicate
-    // holds for its reader is that reader's, and a shared cache would give it
-    // to readers never asked.
+    // reviews of the track, finding 7b and the second review's finding 1):
+    // an answer given where a predicate holds for its reader is that
+    // reader's, and a read keyed without its reader, a shared cache's or a
+    // flight another reader joins, would give it to readers never asked.
     REQUIRED_QUERY_UNSHARED = "PW6907" / required_query_unshared / 1, Dating,
-        "a query that `requires` a predicate is answered to its reader alone, once the predicate holds for them: it is never kept in a shared cache, which would answer readers it never asked";
+        "a query that `requires` a predicate is answered to its reader alone, once the predicate holds for them: it is cached `private`, or is a `user` or `session` query, so every read of it is keyed by its reader, and no materialization depends on it";
     // The review of the track (ADR-0384's H1), finding 1: a database checks
     // a reference across every row of both tables, whoever owns them.
     REFERENCE_WITHIN_ONE_OWNER = "PW6924" / reference_within_one_owner / 1, Dating,
@@ -1025,6 +1026,12 @@ codes! {
     // answer otherwise, a page's ask among them (ADR-0307).
     PREDICATE_ANSWERED_BY_ITS_BODY = "PW6925" / predicate_answered_by_its_body / 1, Dating,
         "a predicate the program gives a body is answered by that body alone: a `requires` naming it sees it where it is written, no page asks it of its reader, and no predicate the deployment answers shares its name";
+    // The second review of the track (ADR-0384's H2; ADR-0339's ruling 3),
+    // finding 2: a query's body called from another declaration is compiled
+    // into that declaration, whose contract requires nothing, as PW0339
+    // holds a command to its handler.
+    REQUIRED_QUERY_BOUND_BY_A_PAGE = "PW6926" / required_query_bound_by_a_page / 1, Dating,
+        "a query that `requires` a predicate is read by a page's binding alone, `query Q(..)`, where the host asks its reader: no query, command, function, predicate or materialization calls it, binds it or names it, which would run its body unasked";
 }
 
 /// Codes that were registered, are no longer emitted, and whose numbers must

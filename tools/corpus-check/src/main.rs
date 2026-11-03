@@ -96,6 +96,9 @@ const ACCEPTED_CATEGORIES: &[&str] = &[
     // A-057), and of PW6925 and PW6907 (A-058).
     "a reference within one owner's rows",
     "a predicate with a body required where it is imported, by a command and a query cached for its reader",
+    // The second review of track `row-ownership`: the control of PW6926
+    // (A-059).
+    "a query requiring a predicate, read by a page's binding",
 ];
 
 /// Charter §16.2: "Create at least one minimal file for each".
@@ -247,6 +250,9 @@ const REJECTED_CATEGORIES: &[&str] = &[
     "a reference across owners' rows",
     "a predicate with a body required where it is not seen",
     "a query requiring a predicate in a shared cache",
+    // The second review of track `row-ownership`: PW6926, beside its
+    // accepted control (A-059).
+    "a query requiring a predicate called by another declaration",
 ];
 
 /// Milestone 0 gate (charter §14 M0): ">= 10 accepted and 20 rejected".

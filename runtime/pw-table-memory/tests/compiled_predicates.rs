@@ -694,3 +694,107 @@ fn a_change_between_a_predicate_and_its_body_waits_for_the_command() {
         every_note(&tables)
     );
 }
+
+/// `Secret`, a query its program's `Member` (false for everyone) guards,
+/// and `rest`: the second review's engine probes.
+fn club(rest: &str) -> String {
+    format!(
+        "module owned.app\n\npredicate Member()\n    says \"Members only.\"\n{{\n    false\n}}\n\npublic query Secret() -> String\n    consistency snapshot\n    cache       private\n    requires    Member\n{{\n    \"SECRET\"\n}}\n\n{rest}"
+    )
+}
+
+#[test]
+fn a_guarded_query_is_run_by_no_other_export() {
+    // The second review's finding 2: `Wrapper() { Secret() }`, a `fn`
+    // around it, and `command peek() { Secret() }` each compiled `Secret`'s
+    // body into an export whose contract required nothing, and each
+    // answered "SECRET" through the engine, `Member` never asked. Such a
+    // program is refused before anything runs (PW6926).
+    for (caller, rest) in [
+        (
+            "a query",
+            "public query Wrapper() -> String\n    consistency snapshot\n    cache       private\n{\n    Secret()\n}\n",
+        ),
+        (
+            "a function a query calls",
+            "fn helper() -> String {\n    Secret()\n}\n\npublic query ViaHelper() -> String\n    consistency snapshot\n    cache       private\n{\n    helper()\n}\n",
+        ),
+        (
+            "a command",
+            "command peek() -> ()\n    transaction serializable\n{\n    let _seen = Secret()\n    ()\n}\n",
+        ),
+    ] {
+        let refused = pw_core::build::build(&units(&[("app.pw", &club(rest))]))
+            .err()
+            .unwrap_or_default();
+        assert!(
+            refused.contains("[PW6926]") && refused.contains("calls `Secret`"),
+            "{caller}: {refused}"
+        );
+    }
+    // The neighbour: `Secret` alone builds, and the engine asks `Member`
+    // before its body runs, which refuses.
+    let program = built(&[("app.pw", &club(""))]);
+    let tables = seeded(&program);
+    let refused = authorized(
+        &program,
+        "Secret",
+        ALICE,
+        &tables,
+        &unbounded(),
+        &[],
+        true,
+        &AtomicUsize::new(0),
+    )
+    .assert_err("no one is a member");
+    assert!(refused.contains("`Member` denied"), "{refused}");
+}
+
+#[test]
+fn a_program_predicate_is_one_predicate_export_requiring_nothing() {
+    // The second review's note 4: `Predicate::new` holds the engine to a
+    // program predicate's own contract, and no test failed without either
+    // of its checks.
+    let program = program();
+    let predicate = |component: &Component, contract: pw_host::ComponentContract| {
+        pw_host::engine::Predicate::new(
+            pw_host::engine::Prepared::compile(&component.bytes).assert_ok("it compiles"),
+            contract,
+            component.granted(),
+        )
+        .err()
+    };
+    let wrote = &program.components["owned.app.Wrote"];
+    // The neighbour: the program's own predicate.
+    assert_eq!(predicate(wrote, wrote.contract.clone()), None);
+    // A command's contract is no predicate's.
+    let edit = program.component("edit");
+    let refused = predicate(edit, edit.contract.clone()).unwrap_or_default();
+    assert!(
+        refused.contains("is no program predicate: its export is a command"),
+        "{refused:?}"
+    );
+    // A predicate that requires one itself: ADR-0384's "a predicate calling
+    // another" is not built, and its requirement would go unasked.
+    let mut requiring = wrote.contract.clone();
+    if let Some(place) = requiring.exports[0].component.as_mut() {
+        place.authorization.push(pw_host::AuthorizationRequirement {
+            predicate: "SignedIn".into(),
+            arguments: Vec::new(),
+            component: None,
+        });
+    }
+    let refused = predicate(wrote, requiring).unwrap_or_default();
+    assert!(
+        refused.contains("requires a predicate itself"),
+        "{refused:?}"
+    );
+    // Two exports: no one predicate.
+    let mut two = wrote.contract.clone();
+    two.exports.push(two.exports[0].clone());
+    let refused = predicate(wrote, two).unwrap_or_default();
+    assert!(
+        refused.contains("its contract is not one export"),
+        "{refused:?}"
+    );
+}

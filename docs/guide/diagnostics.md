@@ -14,7 +14,7 @@ code the compiler can emit, from its registry, `compiler/pw-core/src/codes.rs`.
 - **What the program must hold to**: the registry's own sentence.
 - **ADR**: the decisions its registry entry cites, where it cites one.
 
-227 codes are registered; 99 of them cite an ADR in the registry.
+228 codes are registered; 100 of them cite an ADR in the registry.
 A code whose entry cites none is marked `—`: search `docs/DECISIONS/` for its
 number or its symbol.
 
@@ -351,9 +351,10 @@ number or its symbol.
 | Code | Symbol | What the program must hold to | ADR |
 |---|---|---|---|
 | PW6905 | `predicate_body_reads_only` | a predicate's body reads and does nothing else: no write, no event, no schedule, no network, no log, no clock but its comparison | [0384](../DECISIONS/ADR-0384-a-dating-app.md), [0115](../DECISIONS/ADR-0115-a-commands-requires-is-held-before-its-body-runs.md) |
-| PW6907 | `required_query_unshared` | a query that `requires` a predicate is answered to its reader alone, once the predicate holds for them: it is never kept in a shared cache, which would answer readers it never asked | [0384](../DECISIONS/ADR-0384-a-dating-app.md), [0339](../DECISIONS/ADR-0339-a-collaborative-document-app.md) |
+| PW6907 | `required_query_unshared` | a query that `requires` a predicate is answered to its reader alone, once the predicate holds for them: it is cached `private`, or is a `user` or `session` query, so every read of it is keyed by its reader, and no materialization depends on it | [0384](../DECISIONS/ADR-0384-a-dating-app.md), [0339](../DECISIONS/ADR-0339-a-collaborative-document-app.md) |
 | PW6924 | `reference_within_one_owner` | a reference a database holds stays within one owner's rows: an owned table refers to an owned table from its own owner field alone, a table no one owns to no owned table, and an owned table to no table no one owns | [0384](../DECISIONS/ADR-0384-a-dating-app.md) |
 | PW6925 | `predicate_answered_by_its_body` | a predicate the program gives a body is answered by that body alone: a `requires` naming it sees it where it is written, no page asks it of its reader, and no predicate the deployment answers shares its name | [0384](../DECISIONS/ADR-0384-a-dating-app.md), [0115](../DECISIONS/ADR-0115-a-commands-requires-is-held-before-its-body-runs.md), [0307](../DECISIONS/ADR-0307-a-control-is-shown-where-its-commands-predicates-hold.md) |
+| PW6926 | `required_query_bound_by_a_page` | a query that `requires` a predicate is read by a page's binding alone, `query Q(..)`, where the host asks its reader: no query, command, function, predicate or materialization calls it, binds it or names it, which would run its body unasked | [0384](../DECISIONS/ADR-0384-a-dating-app.md), [0339](../DECISIONS/ADR-0339-a-collaborative-document-app.md) |
 
 ## Retired codes
 

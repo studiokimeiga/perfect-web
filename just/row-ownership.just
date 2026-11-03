@@ -2,8 +2,11 @@
 # rows are, who else reads them and what its owner alone reads; every read
 # and write of an owned table is by its reader's handle, held by the host to
 # the call's caller; a predicate the program gives a body is asked by the
-# host before the command or query it guards. The tests, then every
-# mutation control, whole.
+# host before the command or query it guards; a query that requires one is
+# read per reader and by a page's binding alone, which the development
+# server's own tests hold (`required_queries`, outside the mutation
+# script's binaries: a failure there fails the recipe). The tests, then
+# every mutation control, whole.
 e14-row-ownership:
     @mkdir -p docs/evidence/E14
     @report="$(mktemp docs/evidence/E14/.row-ownership.XXXXXX)"; \
@@ -17,6 +20,7 @@ e14-row-ownership:
        cargo test --locked -p pw-host --features engine --lib table_owners; \
        cargo test --locked -p pw-table-memory --test compiled_owners; \
        cargo test --locked -p pw-table-memory --test compiled_predicates; \
+       cargo test --locked -p pw-dev-server required_queries || exit 1; \
        echo; echo "== mutation controls (scripts/row_ownership_mutations.py)"; \
        python3 scripts/row_ownership_mutations.py; \
      } > "$report" 2>&1; \

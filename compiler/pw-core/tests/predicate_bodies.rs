@@ -292,6 +292,185 @@ fn pw6907_a_query_that_requires_a_predicate_is_never_cached_shared() {
     assert!(!got.iter().any(|(c, _)| c == "PW6907"), "{got:#?}");
 }
 
+/// The codes `files` are told, with their messages, of `code` alone.
+fn told(files: &[(&str, &str)], code: &str) -> Vec<String> {
+    found(files)
+        .into_iter()
+        .filter(|(c, _)| c == code)
+        .map(|(_, m)| m)
+        .collect()
+}
+
+/// `Club(id)`, a query requiring `Wrote(id)`, its visibility and its cache
+/// as given.
+fn club(visibility: &str, cache: &str) -> String {
+    probe(&format!(
+        "{WROTE}\n{visibility}query Club(id: NoteId) -> Int\n    consistency snapshot\n{cache}    requires    Wrote(id)\n{{\n    1\n}}\n"
+    ))
+}
+
+#[test]
+fn pw6907_a_query_that_requires_a_predicate_is_keyed_by_its_reader() {
+    // The second review's finding 1: with no `cache` clause a public query
+    // is read for every reader alike, keyed by its arguments, so a reader
+    // asking while another's read was in flight joined it and was answered
+    // the secret (the development server, `/club`).
+    for visibility in ["public ", ""] {
+        let unkeyed = club(visibility, "");
+        let got = told(&[("probe.pw", &unkeyed)], "PW6907");
+        assert_eq!(got.len(), 1, "`{visibility}query`: {got:#?}");
+        assert!(
+            got[0].contains("`Club` requires Wrote(id) and is read for every reader alike"),
+            "{got:#?}"
+        );
+    }
+    // The deployment's predicate as much as the program's.
+    let deployment = club("public ", "")
+        .replace(
+            WROTE,
+            "predicate Member(id: NoteId)\n    says \"Members only.\"\n",
+        )
+        .replace("Wrote(id)", "Member(id)");
+    assert_eq!(told(&[("probe.pw", &deployment)], "PW6907").len(), 1);
+    // The neighbours: cached for its reader, or a reader's query.
+    assert!(
+        told(
+            &[("probe.pw", &club("public ", "    cache       private\n"))],
+            "PW6907"
+        )
+        .is_empty()
+    );
+    let reader = probe(&format!(
+        "{WROTE}\nuser query Club(reader: User<UserId>, id: NoteId) -> Int\n    consistency snapshot\n    key         reader, id\n    requires    Wrote(id)\n{{\n    1\n}}\n"
+    ));
+    assert!(told(&[("probe.pw", &reader)], "PW6907").is_empty());
+}
+
+#[test]
+fn pw6907_no_materialization_depends_on_a_query_that_requires() {
+    // A materialization is kept for every reader alike, and asks none.
+    let board = |requires: &str| {
+        probe(&format!(
+            "{WROTE}\npublic query Club(id: NoteId) -> Int\n    consistency snapshot\n    cache       private\n{requires}{{\n    1\n}}\n\nmaterialize Board(id: NoteId) {{\n    placement  edge\n    partition  public\n    depends_on Club(id)\n    regenerate on_invalidation\n    stampede   single_flight\n}}\n"
+        ))
+    };
+    let got = told(
+        &[("probe.pw", &board("    requires    Wrote(id)\n"))],
+        "PW6907",
+    );
+    assert_eq!(got.len(), 1, "{got:#?}");
+    assert!(
+        got[0].contains("`Board` depends on `Club`, which requires Wrote(id)"),
+        "{got:#?}"
+    );
+    // The neighbour: a query that requires nothing.
+    assert!(told(&[("probe.pw", &board(""))], "PW6907").is_empty());
+}
+
+/// `Secret`, a query requiring the deployment's `Member`, and `rest`.
+fn secret(rest: &str) -> String {
+    probe(&format!(
+        "predicate Member()\n    says \"Members only.\"\n\npublic query Secret() -> String\n    consistency snapshot\n    cache       private\n    requires    Member\n{{\n    \"SECRET\"\n}}\n\npublic query Open() -> String\n    consistency snapshot\n{{\n    \"OPEN\"\n}}\n\n{rest}"
+    ))
+}
+
+#[test]
+fn pw6926_a_query_that_requires_is_read_by_a_pages_binding_alone() {
+    // The second review's finding 2: `Secret`'s body compiled into its
+    // caller, whose contract required nothing, answered "SECRET" to anyone.
+    let page = |markup: &str, binding: &str| {
+        format!(
+            "session page Home() {{\n    route     \"/\"\n    placement origin\n    cache     private\n\n{binding}    view {{\n        <title>Home</title>\n        <main>\n            {markup}\n        </main>\n    }}\n}}\n"
+        )
+    };
+    for (caller, rest, says) in [
+        (
+            "a query",
+            "public query Wrapper() -> String\n    consistency snapshot\n    cache       private\n{\n    Secret()\n}\n".to_string(),
+            "`Wrapper` calls `Secret`, which requires Member",
+        ),
+        (
+            "a function",
+            "fn helper() -> String {\n    Secret()\n}\n".to_string(),
+            "`helper` calls `Secret`, which requires Member",
+        ),
+        (
+            "a command",
+            "command peek() -> ()\n    transaction serializable\n{\n    let _seen = Secret()\n    ()\n}\n".to_string(),
+            "`peek` calls `Secret`, which requires Member",
+        ),
+        (
+            "a predicate",
+            "predicate Peeks()\n    says \"Never.\"\n{\n    Secret() == \"SECRET\"\n}\n".to_string(),
+            "`Peeks` calls `Secret`, which requires Member",
+        ),
+        (
+            "a materialization",
+            "materialize Echo() -> String {\n    partition  public\n    regenerate on_invalidation\n    stampede   single_flight\n\n    let seen = query Secret()\n    seen\n}\n".to_string(),
+            "`Echo` binds `Secret`, which requires Member",
+        ),
+        (
+            "a page's markup",
+            page("<p id=\"secret\">{Secret()}</p>", ""),
+            "`Home` calls `Secret`, which requires Member",
+        ),
+        (
+            "a name as a value",
+            "fn later() -> fn() -> String {\n    Secret\n}\n".to_string(),
+            "`later` names `Secret`, which requires Member",
+        ),
+    ] {
+        let got = told(&[("probe.pw", &secret(&rest))], "PW6926");
+        assert!(
+            got.iter().any(|m| m.contains(says)),
+            "{caller}: expected {says:?}, got {got:#?}"
+        );
+    }
+    // The neighbours: a page's binding, where the host asks its reader; and
+    // a query that requires nothing, called as any query is.
+    let bound = page(
+        "<p id=\"secret\">{seen}</p>",
+        "    let seen = query Secret()\n\n",
+    );
+    assert!(told(&[("probe.pw", &secret(&bound))], "PW6926").is_empty());
+    let open = "public query Wrapper() -> String\n    consistency snapshot\n    cache       private\n{\n    Open()\n}\n";
+    assert!(told(&[("probe.pw", &secret(open))], "PW6926").is_empty());
+    // A name a body binds is the body's own (ADR-0063), whatever query
+    // shares its spelling.
+    let shadow = "fn shadow(Secret: String) -> String {\n    Secret\n}\n";
+    assert!(told(&[("probe.pw", &secret(shadow))], "PW6926").is_empty());
+}
+
+#[test]
+fn the_abi_names_who_answers_each_requirement() {
+    // The second review's finding 3: ADR-0115's amendment (decision 3) puts
+    // `component` in `abi_schema`, and the same command, its predicate
+    // given a body or not, hashed alike.
+    let gate = |body: &str| {
+        format!(
+            "module Gate\n\npredicate Open()\n    says \"Closed.\"\n{body}\ncommand go() -> Int\n    requires    Open\n    transaction serializable\n{{\n    1\n}}\n"
+        )
+    };
+    let abi = |src: &str| {
+        let build = built(&[("gate.pw", src)]);
+        assert!(build.refusals().is_empty(), "{:?}", build.refusals());
+        found_one(
+            build.contracts.iter().find(|c| c.component_id == "Gate.go"),
+            "the go command's contract",
+        )
+        .abi_schema
+        .clone()
+    };
+    let program = abi(&gate("{\n    false\n}\n"));
+    let deployment = abi(&gate(""));
+    assert_ne!(
+        program, deployment,
+        "a requirement's answerer is no part of the ABI"
+    );
+    // The same source, built again: one hash.
+    assert_eq!(deployment, abi(&gate("")));
+}
+
 #[test]
 fn a_bodied_predicate_is_a_component_its_requirements_name() {
     let src = probe(&format!(

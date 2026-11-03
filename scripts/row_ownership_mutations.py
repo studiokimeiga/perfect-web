@@ -17,17 +17,23 @@ Each mutant undoes one guarantee and must be killed by a test:
    answered the seen row; the manifest is held whole for its owners, its bound
    and its references among it; an owned import is typed as owned;
 3. predicates (H2): a body answers a Bool and only reads (PW6905); a query
-   may require one, never cached shared (PW6907); a predicate with a body is
-   required where it is seen and asked by no page (PW6925); a requirement
-   names the component that answers it; the engine asks the program's
+   may require one, keyed by its reader, never cached shared or keyed by its
+   arguments alone, and no materialization depends on it (PW6907); a query
+   that requires is read by a page's binding alone, never called, named or
+   bound elsewhere (PW6926); a predicate with a body is required where it is
+   seen and asked by no page (PW6925); a requirement names the component
+   that answers it, and the ABI names it too; the engine asks the program's
    predicate itself, before the export runs, from the program's compiled
-   predicates, under the export's limits and one budget, and the deployment
-   never, on any path; its reads are its command's transaction's, which no
-   other command enters between the predicate and the body.
+   predicates, each one `predicate` export requiring nothing, under the
+   export's limits and one budget, and the deployment never, on any path;
+   its reads are its command's transaction's, which no other command enters
+   between the predicate and the body.
 
 The review of the track (2026-11-02) found three of these unheld: an
 owner check reading a row's first field, and a predicate asked after the
 body, each survived every test; its findings' regressions hold them now.
+Its second review found two more ways past a query's predicate, the ABI
+blind to who answers one, and `Predicate::new` unheld by any test.
 
 Run whole from the repository root (`just e14-row-ownership`). Every source
 is restored in finally; the unmutated baseline must pass before any mutant
@@ -171,8 +177,30 @@ MUTANTS = [
      "            if declared.body.is_none() {\n",
      "            if declared.body.is_none() || true {\n"),
     ("PW6907 a query that requires a predicate is cached shared", PREDICATES,
-     '        if cache.value.trim() != "shared" {\n',
-     '        if cache.value.trim() != "shared" || true {\n'),
+     '                    Some(("shared", c)) => (\n',
+     '                    Some(("shared", c)) if false => (\n'),
+    # The second review's findings 1 to 4.
+    ("PW6907 a query that requires a predicate is keyed without its reader", PREDICATES,
+     "                    Some(_) => continue,\n                    None => (\n",
+     "                    Some(_) | None => continue,\n                    #[allow(unreachable_patterns)]\n                    None => (\n"),
+    ("PW6907 a materialization depends on a query that requires", PREDICATES,
+     "                    let Some((def, query)) = guarded_query(hirs, ws, unit, &key.name) else {\n",
+     "                    let Some((def, query)) = guarded_query(hirs, ws, unit, &key.name).filter(|_| false) else {\n"),
+    ("PW6926 a query that requires is called or named anywhere", PREDICATES,
+     "                Expr::Name(_) | Expr::Field { .. } => (crate::infer::path_of(body, e), true),\n",
+     "                Expr::Name(_) | Expr::Field { .. } => (String::new(), true),\n"),
+    ("PW6926 a name a body binds is taken for the query", PREDICATES,
+     "                    if scope.as_ref().is_some_and(|l| l.binder(e).is_some()) {\n",
+     "                    if scope.as_ref().is_some_and(|l| l.binder(e).is_some()) && false {\n"),
+    ("PW6926 a query that requires is bound outside a page", PREDICATES,
+     '                } if keyword == "query" && !binds => match modifiers.first() {\n',
+     '                } if keyword == "query" && !binds && false => match modifiers.first() {\n'),
+    ("PW6926 a page's binding is refused too", PREDICATES,
+     "        let binds = matches!(\n            decl.kind,\n",
+     "        let binds = false && matches!(\n            decl.kind,\n"),
+    ("the ABI names no requirement's answerer", CONTRACT,
+     "                if let Some(component) = &requirement.component {\n                    text.push('@');\n",
+     "                if let Some(component) = requirement.component.as_ref().filter(|_| false) {\n                    text.push('@');\n"),
     # The engine asks the program's predicate (the review's findings 3, 5
     # and 6; probes E and L).
     ("the deployment is asked the program's predicate", PROGRAM_PREDICATES,
@@ -202,6 +230,17 @@ MUTANTS = [
     ("a predicate's reads are given to a command", MEMORY,
      '        [only] if only.kind == "predicate" => Ok(()),\n',
      '        [only] if only.kind == "predicate" || true => Ok(()),\n'),
+    # `Predicate::new`, the engine's hold on a program predicate's contract
+    # (the second review's note 4).
+    ("a program predicate's contract may hold several exports", PROGRAM_PREDICATES,
+     "        let [export] = contract.exports.as_slice() else {\n",
+     "        let Some(export) = contract.exports.first() else {\n"),
+    ("a program predicate's contract may be another export's", PROGRAM_PREDICATES,
+     '        if export.kind != "predicate" {\n',
+     '        if false && export.kind != "predicate" {\n'),
+    ("a program predicate may require one itself", PROGRAM_PREDICATES,
+     "        if !place.authorization.is_empty() {\n",
+     "        if false && !place.authorization.is_empty() {\n"),
     # ADR-0384's "a concurrent change between predicate and body": what the
     # memory adapter proves is its one open command.
     ("a second command begins while one is open", MEMORY,

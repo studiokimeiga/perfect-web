@@ -16180,6 +16180,9 @@ public query Store(",
     mod scheduled_orders;
     // Track `second-host` (ADR-0369): hosts sharing one database.
     mod second_host;
+    // Track `row-ownership` (ADR-0384's H2): a query that requires a
+    // predicate, read per reader and by a page's binding alone.
+    mod required_queries;
 
     /// **A second program is served by the same host** (ADR-0218): the
     /// feed's timeline from its data layer, and a post committed and sent

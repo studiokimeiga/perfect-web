@@ -1937,6 +1937,14 @@ fn schema_of(
                     text.push_str(&argument.to_string());
                 }
                 text.push(')');
+                // Who answers it is the contract's too (ADR-0115 as amended,
+                // decision 3): a body the program gives it, or the
+                // deployment. A requirement the deployment answers adds
+                // nothing, so every contract with none keeps its hash.
+                if let Some(component) = &requirement.component {
+                    text.push('@');
+                    text.push_str(component);
+                }
             }
             if let Some(key) = &component.idempotent_by {
                 text.push_str("|idempotent_by:");

@@ -585,10 +585,11 @@ fn generality_is_reported_separately_from_conformance() {
     // `owned_read_by_its_reader`, `private_field_unseen` and
     // `predicate_body_reads_only` (the integrator's STATUS and NEXT to move).
     // 72 / 72 with the review's repairs: `reference_within_one_owner`,
-    // `predicate_answered_by_its_body` and `required_query_unshared`.
+    // `predicate_answered_by_its_body` and `required_query_unshared`. 73 /
+    // 73 with the second review's: `required_query_bound_by_a_page`.
     assert_eq!(
         (general.len(), narrow.len(), untested.len()),
-        (72, 0, 0),
+        (73, 0, 0),
         "the published figure moved. If that is intended, update
          docs/STATUS.md and docs/NEXT.md in the same commit — a number in a
          status report that no test holds is a number that drifts."
