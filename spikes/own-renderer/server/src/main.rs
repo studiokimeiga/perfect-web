@@ -996,7 +996,90 @@ mod tables;
 /// **The table functions a call links, by its component's contract and
 /// grant** (TRACK SEAM (tables), track `data-path`): a query's reads, a
 /// command's staged reads and writes, or none.
-type TableFns<'a> = dyn Fn(&ComponentContract, &Granted) -> Result<data::Ops, String> + 'a;
+trait TableFns {
+    fn functions(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+    ) -> Result<data::Ops, String>;
+    fn predicate_reads(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+    ) -> Result<data::Ops, String>;
+}
+
+impl<F> TableFns for F
+where
+    F: Fn(&ComponentContract, &Granted) -> Result<data::Ops, String>,
+{
+    fn functions(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+    ) -> Result<data::Ops, String> {
+        self(contract, granted)
+    }
+
+    fn predicate_reads(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+    ) -> Result<data::Ops, String> {
+        self(contract, granted)
+    }
+}
+
+/// A command's predicate reads its staged state through the predicate gate,
+/// while the command body links its admitted reads and writes.
+struct StagedTables<'a>(&'a dyn data::Staged);
+
+impl TableFns for StagedTables<'_> {
+    fn functions(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+    ) -> Result<data::Ops, String> {
+        self.0.table_ops(contract, granted)
+    }
+
+    fn predicate_reads(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+    ) -> Result<data::Ops, String> {
+        if !tables::imports_tables(std::slice::from_ref(contract)) {
+            return Ok(data::Ops::new());
+        }
+        self.0.table_predicate_reads(contract, granted)
+    }
+}
+
+/// The engine owns predicate execution, caller checks and the shared fuel
+/// budget. This bridge supplies only callbacks on one selected data state.
+struct TableCall<'a> {
+    manifest: &'a pw_host::tables::Manifest,
+    body: data::Ops,
+    source: &'a dyn TableFns,
+}
+
+impl pw_host::engine::CallTables for TableCall<'_> {
+    fn manifest(&self) -> &pw_host::tables::Manifest {
+        self.manifest
+    }
+
+    fn functions(&self, _: &ComponentContract, _: &Granted) -> Result<data::Ops, String> {
+        Ok(self.body.clone())
+    }
+
+    fn predicate_reads(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+    ) -> Result<data::Ops, String> {
+        self.source.predicate_reads(contract, granted)
+    }
+}
 
 /// **A call that links no table function**: a pure one (a member, a
 /// computed part), or a materialization's, which reads through its queries.
@@ -1852,13 +1935,25 @@ impl Server {
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => BTreeMap::new(),
                 Err(e) => return Err(format!("predicates.json: {e}")),
             };
+        let bodied: std::collections::BTreeSet<&str> = contracts
+            .iter()
+            .flat_map(|c| &c.exports)
+            .filter(|e| e.kind == "predicate")
+            .map(|e| e.name.as_str())
+            .collect();
         let unknown: std::collections::BTreeSet<&str> = contracts
             .iter()
             .flat_map(|c| c.exports.iter())
             .filter_map(|e| e.component.as_ref())
             .flat_map(|e| e.authorization.iter())
+            .filter(|a| a.component.is_none())
             .map(|a| a.predicate.as_str())
-            .chain(words.keys().map(String::as_str))
+            .chain(
+                words
+                    .keys()
+                    .map(String::as_str)
+                    .filter(|name| !bodied.contains(name)),
+            )
             .filter(|p| identity::says(p).is_none())
             .collect();
         if !unknown.is_empty() {
@@ -1900,6 +1995,11 @@ impl Server {
         uploads.identified_by(server.identity.principals());
         server.uploads = uploads;
         server.words = words;
+        // Validate each referenced compiled predicate before serving. No
+        // deployment callback can stand in for an absent or malformed body.
+        for contract in &server.contracts {
+            server.program_predicates(contract)?;
+        }
         // **What the program imports, its data layer supplies** (ADR-0218):
         // refused here, as uncompiled handlers are, rather than when a press
         // first reaches the operation.
@@ -2600,7 +2700,7 @@ impl Server {
         component_id: &str,
         session: &str,
         host: &BTreeMap<String, HostFn>,
-        tables: &TableFns<'_>,
+        tables: &dyn TableFns,
         args: &[Val],
     ) -> Result<Vec<Val>, String> {
         let granted = self.authorise(component_id)?;
@@ -2624,13 +2724,18 @@ impl Server {
             table_elements: Some(1_000),
         };
         let path = [&export.interface[..], &export.function[..]];
+        let predicates = self.program_predicates(contract)?;
+        let caller = match self.identity.principals().of(session) {
+            Some(principal) => pw_host::tables::Caller::User(principal.user),
+            None => pw_host::tables::Caller::Nobody,
+        };
         let results = match self.data.tables() {
             // TRACK SEAM (tables): **a program's tables link through the gate
             // alone** (track `data-path`), each component's host map holding
             // the platform's operations and its own admitted functions.
             Some(manifest) => {
                 let mut linked = host.clone();
-                linked.extend(tables(contract, &granted)?);
+                linked.extend(tables.functions(contract, &granted)?);
                 #[cfg(test)]
                 self.table_maps.lock().expect("table maps").push((
                     component_id.to_string(),
@@ -2640,16 +2745,50 @@ impl Server {
                         .cloned()
                         .collect(),
                 ));
-                prepared.call_authorized_with_tables(
-                    contract,
-                    &granted,
-                    &limits,
-                    &linked,
+                let call = TableCall {
                     manifest,
-                    &path,
-                    args,
-                    |predicate, bound| self.identity.requires(predicate, bound, session, &linked),
-                )?
+                    body: linked
+                        .into_iter()
+                        .filter(|(name, _)| pw_host::tables::is_table_import(name))
+                        .collect(),
+                    source: tables,
+                };
+                prepared
+                    .call_authorized_with_tables_as(
+                        contract,
+                        &granted,
+                        &limits,
+                        host,
+                        &call,
+                        &predicates,
+                        &caller,
+                        &path,
+                        args,
+                        |predicate, bound| self.identity.requires(predicate, bound, session, host),
+                    )
+                    .map_err(Self::invocation_error)?
+            }
+            None if export.authorization.iter().any(|r| r.component.is_some()) => {
+                let manifest = pw_host::tables::Manifest::from_json(r#"{"tables":[]}"#)?;
+                let call = TableCall {
+                    manifest: &manifest,
+                    body: tables.functions(contract, &granted)?,
+                    source: tables,
+                };
+                prepared
+                    .call_authorized_with_tables_as(
+                        contract,
+                        &granted,
+                        &limits,
+                        host,
+                        &call,
+                        &predicates,
+                        &caller,
+                        &path,
+                        args,
+                        |predicate, bound| self.identity.requires(predicate, bound, session, host),
+                    )
+                    .map_err(Self::invocation_error)?
             }
             None => prepared.call_authorized_within(
                 contract,
@@ -2669,6 +2808,47 @@ impl Server {
         // A type that contains itself arrives as its nodes, and a page reads
         // it nested (ADR-0194).
         prepared.untangled(&path, results)
+    }
+
+    /// The compiled predicates named by this export, independently admitted
+    /// on this node for this invocation. Prepared code is shared; grants are
+    /// obtained again rather than cached with it.
+    fn program_predicates(
+        &self,
+        contract: &ComponentContract,
+    ) -> Result<pw_host::engine::Predicates, String> {
+        let ids: std::collections::BTreeSet<&str> = contract
+            .exports
+            .iter()
+            .filter_map(|e| e.component.as_ref())
+            .flat_map(|e| &e.authorization)
+            .filter_map(|r| r.component.as_deref())
+            .collect();
+        let mut predicates = Vec::new();
+        for id in ids {
+            let body = self
+                .contracts
+                .iter()
+                .find(|c| c.component_id == id)
+                .ok_or_else(|| format!("no contract for program predicate `{id}`"))?;
+            let loaded = self
+                .components
+                .get(id)
+                .ok_or_else(|| format!("no compiled program predicate `{id}`"))?;
+            predicates.push(pw_host::engine::Predicate::new(
+                loaded.prepared.clone(),
+                body.clone(),
+                self.authorise(id)?,
+            )?);
+        }
+        pw_host::engine::Predicates::new(predicates)
+    }
+
+    fn invocation_error(error: pw_host::engine::InvocationError) -> String {
+        if let Some(predicate) = error.refused() {
+            identity::record_refusal(predicate);
+        }
+        error.to_string()
     }
 
     /// The platform's session operation: the request's session, and nothing
@@ -2909,9 +3089,7 @@ impl Server {
             let staged_events = self.outbox(component_id, &mut host)?;
             // TRACK SEAM (tables): its tables' reads and writes, staged in
             // this command's transaction, as the gate admits them.
-            let tables = |contract: &ComponentContract, granted: &Granted| {
-                staging.table_ops(contract, granted)
-            };
+            let tables = StagedTables(&*staging);
             let out = self.run(component_id, session, &host, &tables, args)?;
             let result = out.first().map(answer_json);
             if let [Val::Result(Err(_))] = out.as_slice() {
@@ -5313,7 +5491,18 @@ impl Server {
         // TRACK SEAM (tables): its tables' reads, as the gate admits them for
         // this query, reading the render's snapshot where it reads one, each
         // counted and merged as the layer's reads are (NEXT 4c).
-        let snapshot = render.as_ref().and_then(|render| render.snapshot());
+        let standalone = if render.is_none() && self.data.tables().is_some() {
+            self.data.snapshot()
+        } else {
+            None
+        };
+        let snapshot = render
+            .as_ref()
+            .and_then(|render| render.snapshot())
+            .or(standalone.as_ref());
+        if self.data.tables().is_some() && snapshot.is_none() {
+            return Err("a table query requires one snapshot for its predicate and body".into());
+        }
         let tables = |contract: &ComponentContract, granted: &Granted| {
             Ok(self
                 .data

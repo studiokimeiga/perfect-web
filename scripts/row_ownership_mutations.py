@@ -62,6 +62,7 @@ HOST_TABLES = ROOT / "runtime/pw-host/src/tables.rs"
 HOST = ROOT / "runtime/pw-host/src/lib.rs"
 PROGRAM_PREDICATES = ROOT / "runtime/pw-host/src/engine/program_predicates.rs"
 MEMORY = ROOT / "runtime/pw-table-memory/src/lib.rs"
+SERVER = ROOT / "spikes/own-renderer/server/src/main.rs"
 
 MUTANTS = [
     # 1. the compiler
@@ -218,9 +219,9 @@ MUTANTS = [
     ("a predicate's fuel is not the export's", PROGRAM_PREDICATES,
      "    if budget.fuel.is_some() {\n        budget.fuel = Some(left);\n    }\n",
      "    let _ = left;\n"),
-    ("a predicate is asked after the export runs", HOST,
-     "            let left = program_predicates::authorize(\n                contract, export, args, limits, platform, tables, predicates, caller, deployment,\n            )?;\n            let mut host = platform.clone();\n            host.extend(tables.functions(contract, granted)?);\n            run(\n                &self.engine,\n                &self.component,\n                contract,\n                granted,\n                &left,\n                &host,\n                Some(tables.manifest()),\n                caller,\n                export,\n                args,\n            )\n",
-     "            let mut host = platform.clone();\n            host.extend(tables.functions(contract, granted)?);\n            let ran = run(\n                &self.engine,\n                &self.component,\n                contract,\n                granted,\n                limits,\n                &host,\n                Some(tables.manifest()),\n                caller,\n                export,\n                args,\n            );\n            program_predicates::authorize(\n                contract, export, args, limits, platform, tables, predicates, caller, deployment,\n            )?;\n            ran\n"),
+    ('a predicate is asked after the export runs', HOST,
+     '            let left = program_predicates::authorize(\n                contract, export, args, limits, platform, tables, predicates, caller, deployment,\n            )?;\n            let mut host = platform.clone();\n            host.extend(tables.functions(contract, granted)?);\n            run(\n                &self.engine,\n                &self.component,\n                contract,\n                granted,\n                &left,\n                &host,\n                Some(tables.manifest()),\n                caller,\n                export,\n                args,\n            )\n            .map_err(InvocationError::from)\n',
+     '            let mut host = platform.clone();\n            host.extend(tables.functions(contract, granted)?);\n            let ran = run(\n                &self.engine,\n                &self.component,\n                contract,\n                granted,\n                limits,\n                &host,\n                Some(tables.manifest()),\n                caller,\n                export,\n                args,\n            )\n            .map_err(InvocationError::from);\n            let left = program_predicates::authorize(\n                contract, export, args, limits, platform, tables, predicates, caller, deployment,\n            )?;\n            ran\n'),
     ("a table's function among the platform's is linked", HOST,
      "                .find(|key| crate::tables::is_table_import(key))\n            {\n                return Err(format!(\n",
      "                .find(|key| crate::tables::is_table_import(key) && false)\n            {\n                return Err(format!(\n"),
@@ -252,11 +253,30 @@ MUTANTS = [
     ("a query snapshot's predicate reads the published state", MEMORY,
      "        one_predicate(contract).map_err(|error| format!(\"{error:?}\"))?;\n        self.functions(contract, granted)\n",
      "        one_predicate(contract).map_err(|error| format!(\"{error:?}\"))?;\n        MemoryTables { inner: Arc::clone(&self.inner) }.read_host_fns(contract, granted).map_err(|error| format!(\"{error:?}\"))\n"),
+    ('a denied compiled predicate loses its typed refusal', PROGRAM_PREDICATES,
+     '                refused: denied.then(|| requirement.predicate.clone()),\n',
+     '                refused: None.filter(|_| denied),\n'),
+    ('an evaluation error becomes an explicit refusal', PROGRAM_PREDICATES,
+     '        let denied = answer == Ok(false);\n',
+     '        let denied = true;\n'),
+    ('the server runs a reader as nobody', SERVER,
+     '            Some(principal) => pw_host::tables::Caller::User(principal.user),\n',
+     '            Some(principal) => { let _ = principal; pw_host::tables::Caller::Nobody },\n'),
+    ('the server loses a compiled predicate refusal', SERVER,
+     '        if let Some(predicate) = error.refused() {\n',
+     '        if let Some(predicate) = None::<&str> {\n'),
+    ('the server gives a predicate its command write callbacks', SERVER,
+     '        self.0.table_predicate_reads(contract, granted)\n',
+     '        self.0.table_ops(contract, granted)\n'),
+    ('a standalone table query is given no snapshot', SERVER,
+     '        let standalone = if render.is_none() && self.data.tables().is_some() {\n',
+     '        let standalone = if false && render.is_none() && self.data.tables().is_some() {\n'),
 ]
 
 # Each Cargo test binary separately: names can repeat between binaries, and
 # the shared native assertion validator expects one complete inventory.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "required_queries"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "table_owners"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "predicate_bodies"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-host", "--features", "engine", "--lib"],
@@ -265,6 +285,8 @@ TESTS = [
 ]
 
 SOURCES = [
+    ROOT / "spikes/own-renderer/server/src/tests/required_queries.rs",
+    ROOT / "spikes/own-renderer/server/src/tests/tables.rs",
     ROOT / "compiler/pw-core/tests/table_owners.rs",
     ROOT / "compiler/pw-core/tests/predicate_bodies.rs",
     *sorted((ROOT / "compiler/pw-syntax/src").glob("*.rs")),

@@ -324,6 +324,20 @@ impl Staged for TablesStaging<'_> {
         }
     }
 
+    fn table_predicate_reads(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+    ) -> Result<Ops, String> {
+        match &self.turn {
+            Turn::Open(command) => command
+                .predicate_host_fns(contract, granted)
+                .map_err(|e| format!("`{}`'s predicate tables: {e:?}", contract.component_id)),
+            Turn::Failed(why) => Err(why.clone()),
+            _ => Err("a command's predicate reads before it commits".into()),
+        }
+    }
+
     /// Each table the command changed, which the materializer's transaction
     /// records; none where it changed none, and nothing commits. A command
     /// whose writes cannot be read is no command that wrote nothing: it goes

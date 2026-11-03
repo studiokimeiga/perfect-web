@@ -391,7 +391,7 @@ fn authorized(
             deployment_asked.fetch_add(1, Ordering::SeqCst);
             Ok(deployment)
         },
-    )
+    ).map_err(|error| error.to_string())
 }
 
 /// **A query, made as `caller`**, from the published tables, its table

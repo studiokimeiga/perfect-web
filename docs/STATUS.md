@@ -11,9 +11,14 @@ and guestbook are still unmerged at `687dd922`; its exact-head hosted CI and
 verify workflows report success, but this continuation has not independently
 audited every recipe artifact. Row-ownership's existing dirty work is preserved.
 
-The current local slice is a reproduced closed-table cache bypass, with a
-failing-first commit `069ffc6f` and repair on `fix/tables-cached-refusals` in
-the existing data-path checkout. See the [execution record](diagnostics/tables-cached-refusals-2026-11-02.md).
+The completed cache slice is on `fix/tables-cached-refusals`. The current
+2026-11-03 continuation is `fix/row-data-integration` in the same checkout:
+recovery snapshot `b407ede4`, combined baseline `cb34e638`, and snapshot
+repair `a35da34a`. The original row worktree's branch, index and 20 edited
+files remain untouched. Generic server caller/predicate wiring now has
+focused native witnesses; whole campaigns, CI and final independent review
+are pending. See the [integration record](diagnostics/row-data-integration-2026-11-03.md)
+and the [cache record](diagnostics/tables-cached-refusals-2026-11-02.md).
 This is local implementation evidence; no new landing or production claim.
 The paid E14 study remains deferred.
 

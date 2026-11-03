@@ -34,6 +34,35 @@ use super::{HostFn, Prepared, Val};
 use crate::tables::{Caller, Manifest};
 use crate::{ComponentContract, Granted, Limits};
 
+/// A call's failure, retaining a predicate's explicit denial separately
+/// from an evaluation failure, trap or data error. The host may tell the
+/// predicate's words without guessing from error text or exposing arguments.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InvocationError {
+    why: String,
+    refused: Option<String>,
+}
+
+impl InvocationError {
+    pub fn refused(&self) -> Option<&str> {
+        self.refused.as_deref()
+    }
+}
+
+impl From<String> for InvocationError {
+    fn from(why: String) -> Self {
+        Self { why, refused: None }
+    }
+}
+
+impl std::fmt::Display for InvocationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.why.fmt(f)
+    }
+}
+
+impl std::error::Error for InvocationError {}
+
 /// **The tables one call acts on** (track `row-ownership`; ADR-0386): a
 /// command's transaction, or the tables a query reads. The engine takes the
 /// export's table functions and each of its program predicates' reads from
@@ -169,7 +198,7 @@ pub(super) fn authorize(
     predicates: &Predicates,
     caller: &Caller,
     mut deployment: impl FnMut(&str, &[&Val]) -> Result<bool, String>,
-) -> Result<Limits, String> {
+) -> Result<Limits, InvocationError> {
     let mut budget = limits.clone();
     for requirement in super::authorization_for(contract, export)? {
         let selected = super::selected(requirement, args)?;
@@ -183,7 +212,13 @@ pub(super) fn authorize(
                 )),
             },
         };
-        super::verdict(&requirement.predicate, answer)?;
+        let denied = answer == Ok(false);
+        if let Err(why) = super::verdict(&requirement.predicate, answer) {
+            return Err(InvocationError {
+                why,
+                refused: denied.then(|| requirement.predicate.clone()),
+            });
+        }
     }
     Ok(budget)
 }

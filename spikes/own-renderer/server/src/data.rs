@@ -292,6 +292,16 @@ pub(crate) trait Staged {
         Ok(Ops::new())
     }
 
+    /// A compiled predicate's reads on this same staged state. Adapters
+    /// must opt in; a command's write callbacks are never reused as reads.
+    fn table_predicate_reads(
+        &self,
+        _contract: &ComponentContract,
+        _granted: &Granted,
+    ) -> Result<Ops, String> {
+        Err("this data adapter supplies no predicate reads in a command".into())
+    }
+
     /// **What it staged, made part of the materializer's transaction**
     /// (track `data-path`): called as that transaction's last step, after
     /// the command's state rows, its interaction's record, its runs and its

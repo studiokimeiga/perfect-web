@@ -362,8 +362,9 @@ predicate Wrote(id: NoteId)
 
 ## Not claimed
 
-- **The development server**: it serves no program's tables yet (track
-  `data-path`). It must make each table call as the session's principal
+- **The development server** (historical boundary, superseded locally by
+  the 2026-11-03 integration below): it served no program's tables yet
+  (track `data-path`). It must make each table call as the session's principal
   (`call_with_tables_as(.., Caller::User(..), ..)`) and an export with
   requirements through `call_authorized_with_tables_as`, its staged command
   or the query's tables as `CallTables` and the build's `Predicates`. Until
@@ -380,9 +381,11 @@ predicate Wrote(id: NoteId)
   call's (the review's exponential predicate stops out of fuel under five
   million). A wall-clock deadline for every call (Wasmtime's epoch
   interruption) is a host-wide change, not built here.
-- **One snapshot for a query's predicate and its body** on memory: the
-  published tables are read twice, so a commit between them is seen by one
-  (data-path's `Snapshot`, as a `CallTables`, would give one).
+- **One snapshot for a query's predicate and its body** on memory was
+  unproved at the row track's original boundary. The 2026-11-03 integration
+  gives `Snapshot` a `CallTables` implementation and a concurrent-removal
+  witness; see the correction below. The live `MemoryTables` provider
+  remains live and must not be selected for a consistent query invocation.
 - **The compiled predicate is the embedder's to load**: the engine runs the
   component registered under a requirement's id, held to one `predicate`
   export, and does not hold its bytes to the build, as for every component
@@ -428,6 +431,31 @@ predicate Wrote(id: NoteId)
 - **`!=` on an `Option`** does not lower in the backend; a body matches.
 
 ## Next
+
+### Local integration correction, 2026-11-03
+
+The preserved row work and declared-data routing now share one local tree.
+`Snapshot` supplies both predicate and body reads through `CallTables`.
+The generic server selects one snapshot per table query (the render's when
+present), passes its invocation-bound principal as caller, loads the compiled
+predicates named by each requirement, and gives command predicates reads on
+that command's staging. The engine still evaluates them and owns shared fuel.
+An explicit denial is carried by `InvocationError::refused`, separately from
+evaluation failures; the HTTP route tells the program's words without parsing
+error text. Requirements without a compiled body remain the deployment's.
+
+Focused native witnesses cover two users, forged handles and writes, shared
+projections, command and page-query predicates, a missing artifact, pure
+predicates, typed denial versus an error with denial-like text, and a commit
+between a standalone query's predicate and body. This is local implementation
+evidence, with whole campaigns and final review pending. It does not prove
+the row track's requested browser behavior in three engines, PostgreSQL
+`CallTables`, private write-flow or H3/H4. See
+`docs/diagnostics/row-data-integration-2026-11-03.md` for source and receipts.
+
+The old identity-cookie limitation above is also historical in this combined
+tree: the data-path branch already uses domain-separated guest/session
+digests. This integration preserves that implementation and its controls.
 
 - **H4**: a bound per owner (`bounded 3 per owner`), cursors, and a bound on
   what a predicate's reads may cost its reader, whoever wrote the rows.

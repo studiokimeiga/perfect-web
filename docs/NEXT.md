@@ -18,8 +18,12 @@ The older queues below remain dated history.
    and independent final review. Re-plan, number and complete the required
    published-head gates before landing. See its
    [execution record](diagnostics/tables-cached-refusals-2026-11-02.md).
-2. Audit PR #72's exact-head recipe evidence, then reconcile row ownership
-   without overwriting `/home/haki/code/pw-wt/row-ownership`'s dirty files.
+2. Finish verification of `fix/row-data-integration`: the preserved row
+   snapshot is merged, memory queries share one predicate/body snapshot,
+   and generic server wiring has focused two-user native witnesses. Run the
+   whole affected campaigns, independent review and CI on the frozen source.
+   Keep PR #72's hosted recipe audit and publication gates separate; preserve
+   `/home/haki/code/pw-wt/row-ownership`'s original dirty files.
 3. Validate durable declared tables and row-authorized feed/store migration,
    using real two-user `.pw` witnesses. The paid E14 study stays deferred.
 

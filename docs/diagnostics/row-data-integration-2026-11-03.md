@@ -78,3 +78,24 @@ completed assertions, with an 84-test unmutated baseline and no process stop.
 Logs: `/tmp/pw-row-snapshot-before.log`, `/tmp/pw-row-snapshot-after.log`,
 `/tmp/pw-row-snapshot-controls.log`. Whole campaigns and independent review
 remain pending; these targeted controls alone are not acceptance evidence.
+
+## Generic server boundary
+
+Failing-first source `9dc74c3a` contains the served two-user and compiled
+predicate witnesses. Both initially failed at startup: the deployment did
+not know `Wrote`. The server now validates and admits each compiled predicate
+named by a requirement, and the engine asks it as the invocation's bound
+principal, under the existing limits and shared fuel. Commands supply their
+staged predicate reads; table queries supply one render or standalone
+snapshot. No program predicate is answered by a deployment callback.
+
+The first repair denied Bob correctly but lost `Wrote`'s refusal identity.
+`InvocationError` now distinguishes an explicit false result from evaluation
+failure. The HTTP route reports 403 with the authored words. A read error
+whose text looks like a denial is not classified as one. The eight guarded
+server tests and fourteen compiled-predicate tests pass, including missing
+compiled artifacts, pure predicates and a real intervening removal outside
+a render. Controls were adapted to the same ownership boundaries, and the
+row campaign now includes the real server witnesses. Whole acceptance is
+still pending. Snapshot-only independent review of `a35da34a` found no
+actionable code defect; the reviewer requested the dated ADR correction.

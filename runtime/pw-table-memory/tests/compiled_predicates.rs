@@ -201,6 +201,46 @@ fn a_query_is_refused_where_its_predicate_does_not_hold() {
     assert_eq!(deployment.load(Ordering::SeqCst), 0);
 }
 
+#[test]
+fn an_explicit_denial_is_typed_and_a_lookalike_read_error_is_not() {
+    let program = program();
+    let tables = seeded(&program);
+    let snapshot = tables.snapshot().assert_ok("query state");
+    let query = program.component("Shown");
+    let prepared = pw_host::engine::Prepared::compile(&query.bytes).assert_ok("query compiled");
+    let invoke = |user: &str, platform: &BTreeMap<String, HostFn>| {
+        prepared.call_authorized_with_tables_as(
+            &query.contract,
+            &query.granted(),
+            &unbounded(),
+            platform,
+            &snapshot,
+            &program.predicates(),
+            &as_user(user),
+            &query.export(),
+            &[handle(user), s("n2")],
+            |_, _| Ok(true),
+        )
+    };
+    let no = invoke(BOB, &program.platform(BOB)).assert_err("Bob wrote no n2");
+    assert_eq!(no.refused(), Some("Wrote"));
+    let mut broken = program.platform(ALICE);
+    broken.insert(
+        "pw:host/principal#read".into(),
+        Arc::new(|_| Err("authorization predicate `Wrote` denied the invocation".into())),
+    );
+    let failed = invoke(ALICE, &broken).assert_err("the principal read failed");
+    assert_eq!(failed.refused(), None, "an error's text is not a denial");
+    assert!(
+        failed.to_string().contains("could not be evaluated"),
+        "{failed}"
+    );
+    assert!(
+        invoke(ALICE, &program.platform(ALICE)).is_ok(),
+        "the healthy neighboring read"
+    );
+}
+
 /// A query's authorization and body must observe the same read state.
 /// The writer commits after the predicate's read and before the body runs.
 #[test]
@@ -482,7 +522,8 @@ fn a_program_predicate_is_asked_of_the_programs_compiled_predicates_alone() {
             &args,
             |_, _| Ok(true),
         )
-        .assert_err("no compiled predicate was given");
+        .assert_err("no compiled predicate was given")
+        .to_string();
     assert!(
         refused.contains(
             "its body, component `owned.app.Wrote`, is not among the program's predicates"
@@ -507,7 +548,8 @@ fn a_program_predicate_is_asked_of_the_programs_compiled_predicates_alone() {
             &args,
             |_, _| Ok(true),
         )
-        .assert_err("a table's function among the platform's");
+        .assert_err("a table's function among the platform's")
+        .to_string();
     assert!(
         refused.contains("is a table's function, which the call's tables give"),
         "{refused}"

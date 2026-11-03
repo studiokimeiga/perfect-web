@@ -1910,6 +1910,14 @@ pub fn take_refusal() -> Option<String> {
     REFUSED.with(|r| r.borrow_mut().take())
 }
 
+/// The engine reported an explicit compiled-predicate denial. Evaluation
+/// failures never enter here, even when their text resembles a denial.
+pub(crate) fn record_refusal(predicate: &str) {
+    REFUSED.with(|r| {
+        r.borrow_mut().get_or_insert_with(|| predicate.to_string());
+    });
+}
+
 /// A post record's `author.id`.
 fn author_of(post: &Val) -> Option<&String> {
     let Val::Record(fields) = post else {

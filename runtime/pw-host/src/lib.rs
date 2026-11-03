@@ -927,7 +927,7 @@ pub mod engine {
     /// (track `row-ownership`, ADR-0384 H2; ADR-0115 as amended).
     pub mod program_predicates;
 
-    pub use program_predicates::{CallTables, Predicate, Predicates};
+    pub use program_predicates::{CallTables, InvocationError, Predicate, Predicates};
 
     /// **The configuration of every engine the host makes** (ADR-0244): the
     /// component model, and none of the proposals Pleris's components do not
@@ -1554,7 +1554,7 @@ pub mod engine {
             export: &[&str],
             args: &[wasmtime::component::Val],
             deployment: D,
-        ) -> Result<Vec<wasmtime::component::Val>, String>
+        ) -> Result<Vec<wasmtime::component::Val>, InvocationError>
         where
             D: FnMut(&str, &[&Val]) -> Result<bool, String>,
         {
@@ -1569,7 +1569,8 @@ pub mod engine {
                 return Err(format!(
                     "`{key}` is a table's function, which the call's tables give, not one of the \
                      platform's operations"
-                ));
+                )
+                .into());
             }
             let left = program_predicates::authorize(
                 contract, export, args, limits, platform, tables, predicates, caller, deployment,
@@ -1588,6 +1589,7 @@ pub mod engine {
                 export,
                 args,
             )
+            .map_err(InvocationError::from)
         }
 
         /// [`call_with_tables_as`], on the compiled component.

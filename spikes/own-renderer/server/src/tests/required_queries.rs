@@ -296,10 +296,200 @@ fn served_program_predicates_guard_commands_and_page_queries() {
     };
     let refused = edit("b", "DEFACED");
     assert!(!refused.committed, "{:?}", refused.result);
-    assert_eq!(refused.refused.as_deref(), Some("Wrote"));
+    assert_eq!(
+        refused.refused.as_deref(),
+        Some("Wrote"),
+        "why={:?}, result={:?}",
+        refused.why,
+        refused.result
+    );
+    let http = posted(
+        &s,
+        "/command/owned.app.edit",
+        "b",
+        "row-denial",
+        r#"["same-id","bob","DEFACED"]"#,
+    );
+    assert!(http.starts_with("HTTP/1.1 403"), "{http}");
+    let body: serde_json::Value = serde_json::from_str(
+        http.split_once("\r\n\r\n")
+            .map(|(_, body)| body)
+            .unwrap_or_default(),
+    )
+    .asserted("HTTP refusal JSON");
+    assert_eq!(
+        body,
+        serde_json::json!({ "committed": false, "refused": "Wrote", "says": "You can only change a note you wrote." })
+    );
     let edited = edit("a", "ALICES_EDITED_NOTE");
     assert!(edited.committed, "{:?} {:?}", edited.why, edited.result);
     let page = get_as(&s, "a", "/owned/same-id");
     assert!(page.contains("ALICES_EDITED_NOTE"), "{page}");
     assert!(!get_as(&s, "b", "/owned/same-id").contains("ALICES_EDITED_NOTE"));
+}
+
+/// A controlled writer commits immediately after the compiled predicate's
+/// actual read. Only the query's selected snapshot can keep its body on
+/// the state that authorized it, including outside a page render.
+struct BetweenPredicateAndBody {
+    inner: Arc<dyn data::DataLayer>,
+    after: Arc<Mutex<Option<Box<dyn FnOnce() + Send>>>>,
+}
+
+impl data::DataLayer for BetweenPredicateAndBody {
+    fn reads(&self, session: &str, stopped: Option<Stopped>) -> data::Ops {
+        self.inner.reads(session, stopped)
+    }
+    fn begin<'a>(&'a self, session: &str) -> Box<dyn data::Staged + 'a> {
+        self.inner.begin(session)
+    }
+    fn tables(&self) -> Option<&pw_host::tables::Manifest> {
+        self.inner.tables()
+    }
+    fn snapshot(&self) -> Option<data::Snapshot> {
+        self.inner.snapshot()
+    }
+    fn grants(&self) -> Vec<&'static str> {
+        self.inner.grants()
+    }
+    fn default_page(&self) -> Option<&'static str> {
+        None
+    }
+    fn table_reads(
+        &self,
+        contract: &ComponentContract,
+        granted: &Granted,
+        snapshot: Option<&data::Snapshot>,
+    ) -> Result<data::Ops, String> {
+        let reads = self.inner.table_reads(contract, granted, snapshot)?;
+        if !contract.exports.iter().any(|e| e.kind == "predicate") {
+            return Ok(reads);
+        }
+        Ok(reads
+            .into_iter()
+            .map(|(name, read)| {
+                let after = Arc::clone(&self.after);
+                let wrapped: HostFn = Arc::new(move |args| {
+                    let result = read(args)?;
+                    let hook = after.lock().expect("predicate hook").take();
+                    if let Some(hook) = hook {
+                        hook();
+                    }
+                    Ok(result)
+                });
+                (name, wrapped)
+            })
+            .collect())
+    }
+}
+
+#[test]
+fn a_served_query_keeps_one_snapshot_across_its_predicate_and_body() {
+    let (_dir, out) = tables::built(&["examples/owned"], &[]);
+    let contracts = ComponentContract::from_json(
+        &std::fs::read_to_string(out.join("contracts.json")).asserted("contracts"),
+    )
+    .asserted("contracts decoded");
+    let after = Arc::default();
+    let layer = BetweenPredicateAndBody {
+        inner: Arc::new(
+            crate::tables::TablesLayer::from_build(&out, &contracts).asserted("memory layer"),
+        ),
+        after: Arc::clone(&after),
+    };
+    let s =
+        Arc::new(Server::from_build_tables(out.clone(), out, Arc::new(layer)).asserted("served"));
+    s.identity.signed_in_for_test("a", "alice", "Alice");
+    write_owned(&s, "a", "SNAPSHOT_NOTE");
+    let args = [Val::String("alice".into()), Val::String("same-id".into())];
+    let expected = s
+        .answer("owned.app.One", "a", &args)
+        .asserted("original note");
+    let writer = Arc::downgrade(&s);
+    *after.lock().expect("hook") = Some(Box::new(move || {
+        let s = writer.upgrade().expect("server alive");
+        let removed = s
+            .command_answer(
+                "owned.app.remove",
+                "a",
+                &[serde_json::json!("same-id"), serde_json::json!("bob")],
+                None,
+            )
+            .asserted("concurrent removal answered");
+        assert!(removed.committed, "{removed:?}");
+    }));
+    assert_eq!(
+        s.answer("owned.app.Shown", "a", &args)
+            .asserted("one query state"),
+        expected
+    );
+    assert!(
+        after.lock().expect("hook").is_none(),
+        "the predicate really read"
+    );
+    assert_eq!(
+        s.answer("owned.app.One", "a", &args)
+            .asserted("committed removal"),
+        Val::Option(None)
+    );
+    let fresh = s.answer("owned.app.Shown", "a", &args);
+    assert!(
+        fresh
+            .as_ref()
+            .is_err_and(|why| why.contains("`Wrote` denied")),
+        "{fresh:?}"
+    );
+}
+
+#[test]
+fn a_missing_compiled_predicate_is_refused_before_the_program_is_served() {
+    let (_dir, out) = tables::built(&["examples/owned"], &[]);
+    std::fs::remove_file(out.join("components/owned.app.Wrote.wasm"))
+        .asserted("remove only the predicate artifact");
+    let refused = Server::from_build(out.clone(), out)
+        .err()
+        .unwrap_or_default();
+    assert!(
+        refused.contains("no compiled program predicate `owned.app.Wrote`"),
+        "{refused}"
+    );
+}
+
+#[test]
+fn a_compiled_predicate_without_tables_keeps_its_explicit_denial() {
+    let (_dir, out) = tables::built(
+        &[],
+        &[(
+            "pure.pw",
+            r#"module guarded.pure
+predicate Allowed(pass: Bool)
+    says "This call needs permission."
+{ pass }
+command checked(pass: Bool) -> Bool
+    requires Allowed(pass)
+{ pass }
+"#,
+        )],
+    );
+    let s = Server::from_build(out.clone(), out).asserted("pure predicates served");
+    let yes = s
+        .command_answer(
+            "guarded.pure.checked",
+            "a",
+            &[serde_json::json!(true)],
+            None,
+        )
+        .asserted("permitted call");
+    assert!(yes.committed, "{yes:?}");
+    assert_eq!(yes.result, Some(serde_json::Value::Null));
+    let no = s
+        .command_answer(
+            "guarded.pure.checked",
+            "a",
+            &[serde_json::json!(false)],
+            None,
+        )
+        .asserted("denied call");
+    assert!(!no.committed, "{no:?}");
+    assert_eq!(no.refused.as_deref(), Some("Allowed"));
 }
