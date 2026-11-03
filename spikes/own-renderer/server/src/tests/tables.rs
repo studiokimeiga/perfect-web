@@ -210,9 +210,14 @@ fn closed_tables_refuse_a_renders_remembered_operations() {
     let s = served_tables();
     committed(&s, MAKE_LIST, "a", &[list("groceries", "food", 20)]);
     let _render = crate::render_merge::begin(&*s.data, s.queries.epoch());
-    let first = s.answer(EVERY_LIST, "b", &[]).asserted("first operation");
+    let first = s.answer(EVERY_LIST, "", &[]).asserted("first operation");
     let count = s.data.statements().ok_or("no counter").asserted("counted");
-    assert_eq!(s.answer(EVERY_LIST, "b", &[]).asserted("merged"), first);
+    assert_eq!(s.answer(EVERY_LIST, "", &[]).asserted("merged"), first);
+    assert_eq!(
+        s.read_value(EVERY_LIST, &[])
+            .asserted("derived read merged"),
+        first
+    );
     assert_eq!(
         s.data.statements(),
         Some(count),
@@ -221,7 +226,7 @@ fn closed_tables_refuse_a_renders_remembered_operations() {
     s.data
         .begin("a")
         .unpublished("closed inside an existing render");
-    let direct = s.answer(EVERY_LIST, "b", &[]);
+    let direct = s.answer(EVERY_LIST, "", &[]);
     assert!(
         direct
             .as_ref()

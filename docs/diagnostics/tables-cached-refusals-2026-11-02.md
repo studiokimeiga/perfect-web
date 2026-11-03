@@ -45,6 +45,13 @@ its healthy neighbor verifies the first operation was actually shared.
 regressions and five additional strict mutation controls. The reviewer runs
 no campaign and edits no source; final source re-review is still required.
 
+Re-review found a test-scope gap: `read_value` uses the empty session, while
+the test warmed the operation as `b`. The final test warms and reuses the
+operation as the empty session, including a healthy `read_value` reuse with
+an unchanged statement count. The preliminary `03149f73` recipe was stopped
+after one mutation so the corrected witness could be frozen; it is incomplete,
+receives no campaign credit, and source restoration passed all 5,035 anchors.
+
 ## Execution record
 
 Pending: retain exact regression and repair SHAs, commands, exit statuses,
