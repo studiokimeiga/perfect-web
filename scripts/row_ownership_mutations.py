@@ -220,8 +220,8 @@ MUTANTS = [
      "    if budget.fuel.is_some() {\n        budget.fuel = Some(left);\n    }\n",
      "    let _ = left;\n"),
     ('a predicate is asked after the export runs', HOST,
-     '            let left = program_predicates::authorize(\n                contract, export, args, limits, platform, tables, predicates, caller, deployment,\n            )?;\n            let mut host = platform.clone();\n            host.extend(tables.functions(contract, granted)?);\n            run(\n                &self.engine,\n                &self.component,\n                contract,\n                granted,\n                &left,\n                &host,\n                Some(tables.manifest()),\n                caller,\n                export,\n                args,\n            )\n            .map_err(InvocationError::from)\n',
-     '            let mut host = platform.clone();\n            host.extend(tables.functions(contract, granted)?);\n            let ran = run(\n                &self.engine,\n                &self.component,\n                contract,\n                granted,\n                limits,\n                &host,\n                Some(tables.manifest()),\n                caller,\n                export,\n                args,\n            )\n            .map_err(InvocationError::from);\n            let left = program_predicates::authorize(\n                contract, export, args, limits, platform, tables, predicates, caller, deployment,\n            )?;\n            ran\n'),
+     '            let left = self.authorize_with_tables_as(\n                contract, limits, platform, tables, predicates, caller, export, args, deployment,\n            )?;\n            let mut host = platform.clone();\n            host.extend(tables.functions(contract, granted)?);\n            run(\n                &self.engine,\n                &self.component,\n                contract,\n                granted,\n                &left,\n                &host,\n                Some(tables.manifest()),\n                caller,\n                export,\n                args,\n            )\n            .map_err(InvocationError::from)\n',
+     '            let mut host = platform.clone();\n            host.extend(tables.functions(contract, granted)?);\n            let ran = run(\n                &self.engine,\n                &self.component,\n                contract,\n                granted,\n                limits,\n                &host,\n                Some(tables.manifest()),\n                caller,\n                export,\n                args,\n            )\n            .map_err(InvocationError::from);\n            let left = self.authorize_with_tables_as(\n                contract, limits, platform, tables, predicates, caller, export, args, deployment,\n            )?;\n            ran\n'),
     ("a table's function among the platform's is linked", HOST,
      "                .find(|key| crate::tables::is_table_import(key))\n            {\n                return Err(format!(\n",
      "                .find(|key| crate::tables::is_table_import(key) && false)\n            {\n                return Err(format!(\n"),
@@ -254,7 +254,7 @@ MUTANTS = [
      "        one_predicate(contract).map_err(|error| format!(\"{error:?}\"))?;\n        self.functions(contract, granted)\n",
      "        one_predicate(contract).map_err(|error| format!(\"{error:?}\"))?;\n        MemoryTables { inner: Arc::clone(&self.inner) }.read_host_fns(contract, granted).map_err(|error| format!(\"{error:?}\"))\n"),
     ('a denied compiled predicate loses its typed refusal', PROGRAM_PREDICATES,
-     '                refused: denied.then(|| requirement.predicate.clone()),\n',
+     '                refused: denied.then(|| name.to_string()),\n',
      '                refused: None.filter(|_| denied),\n'),
     ('an evaluation error becomes an explicit refusal', PROGRAM_PREDICATES,
      '        let denied = answer == Ok(false);\n',
@@ -271,6 +271,18 @@ MUTANTS = [
     ('a standalone table query is given no snapshot', SERVER,
      '        let standalone = if render.is_none() && self.data.tables().is_some() {\n',
      '        let standalone = if false && render.is_none() && self.data.tables().is_some() {\n'),
+    ('a qualified compiled predicate loses its declared name', PROGRAM_PREDICATES,
+     '                .map(|predicate| predicate.contract.exports[0].name.as_str())\n',
+     '                .map(|_| requirement.predicate.as_str())\n'),
+    ('a reused guarded value bypasses its current predicate', SERVER,
+     '                    if reused {\n',
+     '                    if false && reused {\n'),
+    ('a joined guarded flight bypasses its current predicate', SERVER,
+     '            let reused = !matches!(&fetched, pw_resource::Fetched::Fresh(_));\n',
+     '            let reused = matches!(&fetched, pw_resource::Fetched::FromCache(_));\n'),
+    ('a query denial contaminates its refreshing command', SERVER,
+     '                .map_err(|error| error.to_string())\n',
+     '                .map_err(Self::invocation_error)\n'),
 ]
 
 # Each Cargo test binary separately: names can repeat between binaries, and
@@ -285,6 +297,7 @@ TESTS = [
 ]
 
 SOURCES = [
+    SERVER,
     ROOT / "spikes/own-renderer/server/src/tests/required_queries.rs",
     ROOT / "spikes/own-renderer/server/src/tests/tables.rs",
     ROOT / "compiler/pw-core/tests/table_owners.rs",

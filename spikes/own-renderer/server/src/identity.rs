@@ -1837,7 +1837,7 @@ impl Identity {
         self.holds(predicate, &[], session, &std::collections::BTreeMap::new())
     }
 
-    fn holds(
+    pub(crate) fn holds(
         &self,
         predicate: &str,
         bound: &[&Val],

@@ -214,9 +214,15 @@ pub(super) fn authorize(
         };
         let denied = answer == Ok(false);
         if let Err(why) = super::verdict(&requirement.predicate, answer) {
+            let name = requirement
+                .component
+                .as_ref()
+                .and_then(|id| predicates.by_component.get(id))
+                .map(|predicate| predicate.contract.exports[0].name.as_str())
+                .unwrap_or(&requirement.predicate);
             return Err(InvocationError {
                 why,
-                refused: denied.then(|| requirement.predicate.clone()),
+                refused: denied.then(|| name.to_string()),
             });
         }
     }

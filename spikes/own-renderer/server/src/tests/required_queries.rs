@@ -594,3 +594,89 @@ fn a_cached_guarded_query_is_refused_once_its_predicate_no_longer_holds() {
         "the cached value bypassed its current predicate: {cached}"
     );
 }
+
+#[test]
+fn a_joined_guarded_flight_is_authorized_for_the_joining_requests_state() {
+    let s = served_feed_with(fresh_owned_club);
+    s.identity.signed_in_for_test("a", "alice", "Alice");
+    let made = s
+        .command_answer(
+            "feed.app.post",
+            "a",
+            &[serde_json::json!("JOINED_POST")],
+            Some("joined-post"),
+        )
+        .asserted("post");
+    assert!(made.committed, "{made:?}");
+    let home = get_as(&s, "a", "/");
+    let id = home
+        .split("<li")
+        .find(|li| li.contains("JOINED_POST"))
+        .and_then(|li| li.split("href=\"/post/").nth(1))
+        .and_then(|tail| tail.split('"').next())
+        .unwrap_or_default();
+    assert!(!id.is_empty(), "{home}");
+    // HTTP serializes requests within one session. Exercise the shared
+    // query-cache seam directly so a same-reader flight really is joined.
+    let binding = s
+        .plans
+        .values()
+        .flat_map(|plan| plan["bindings"].as_array().into_iter().flatten())
+        .find(|binding| binding["resource"] == "feed.app.Club")
+        .cloned()
+        .ok_or("Club binding")
+        .asserted("binding");
+    let args = [Val::String(id.into())];
+    let (entered, started) = std::sync::mpsc::channel();
+    let (release, cont) = std::sync::mpsc::channel();
+    pause_next_club_read(&s, entered, cont);
+    let (first, joined, did_join) = std::thread::scope(|scope| {
+        let first = scope.spawn(|| s.fetch_answer("a", &binding, &args));
+        started
+            .recv_timeout(Duration::from_secs(20))
+            .expect("first query held after its body");
+        let removed = s
+            .command_answer(
+                "feed.app.delete",
+                "a",
+                &[serde_json::json!(id)],
+                Some("joined-delete"),
+            )
+            .asserted("removal");
+        assert!(removed.committed, "{removed:?}");
+        let from = s.queries.trace().len();
+        let second = scope.spawn(|| s.fetch_answer("a", &binding, &args));
+        let deadline = std::time::Instant::now() + Duration::from_secs(20);
+        let mut did_join = false;
+        while !second.is_finished() && std::time::Instant::now() < deadline {
+            did_join = s.queries.trace()[from..].iter().any(|t| {
+                matches!(t,
+                pw_resource::Trace::RequestDeduplicated { key } if key.resource == "feed.app.Club")
+            });
+            if did_join {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        release.send(()).expect("release the old invocation");
+        (
+            first.join().expect("first"),
+            second.join().expect("second"),
+            did_join,
+        )
+    });
+    assert!(
+        did_join,
+        "the second request must exercise the shared flight"
+    );
+    assert_eq!(
+        first.asserted("the earlier invocation was permitted"),
+        Val::String(SECRET.into())
+    );
+    assert!(
+        joined
+            .as_ref()
+            .is_err_and(|why| why.contains("`OwnsPost` denied")),
+        "the joining request reused stale authority: {joined:?}"
+    );
+}

@@ -1558,22 +1558,8 @@ pub mod engine {
         where
             D: FnMut(&str, &[&Val]) -> Result<bool, String>,
         {
-            // Its arguments decoded before a predicate reads them.
-            self.hold_arguments(contract, export, args)?;
-            // A table's function is the call's tables', which the gate
-            // admits for each component it links; never the platform's.
-            if let Some(key) = platform
-                .keys()
-                .find(|key| crate::tables::is_table_import(key))
-            {
-                return Err(format!(
-                    "`{key}` is a table's function, which the call's tables give, not one of the \
-                     platform's operations"
-                )
-                .into());
-            }
-            let left = program_predicates::authorize(
-                contract, export, args, limits, platform, tables, predicates, caller, deployment,
+            let left = self.authorize_with_tables_as(
+                contract, limits, platform, tables, predicates, caller, export, args, deployment,
             )?;
             let mut host = platform.clone();
             host.extend(tables.functions(contract, granted)?);
@@ -1590,6 +1576,45 @@ pub mod engine {
                 args,
             )
             .map_err(InvocationError::from)
+        }
+
+        /// Check this invocation's requirements without running its body,
+        /// for a host about to reuse a cached value. Predicate evaluation is
+        /// identical to a fresh execution and bounded by the supplied fuel.
+        /// The returned limits are what a fresh execution leaves its body.
+        #[allow(clippy::too_many_arguments)]
+        pub fn authorize_with_tables_as<D>(
+            &self,
+            contract: &crate::ComponentContract,
+            limits: &crate::Limits,
+            platform: &std::collections::BTreeMap<String, HostFn>,
+            tables: &dyn CallTables,
+            predicates: &Predicates,
+            caller: &crate::tables::Caller,
+            export: &[&str],
+            args: &[Val],
+            deployment: D,
+        ) -> Result<crate::Limits, InvocationError>
+        where
+            D: FnMut(&str, &[&Val]) -> Result<bool, String>,
+        {
+            // Its arguments decoded before a predicate reads them.
+            self.hold_arguments(contract, export, args)?;
+            // A table's function is the call's tables', which the gate
+            // admits for each component it links; never the platform's.
+            if let Some(key) = platform
+                .keys()
+                .find(|key| crate::tables::is_table_import(key))
+            {
+                return Err(format!(
+                    "`{key}` is a table's function, which the call's tables give, not one of the \
+                     platform's operations"
+                )
+                .into());
+            }
+            program_predicates::authorize(
+                contract, export, args, limits, platform, tables, predicates, caller, deployment,
+            )
         }
 
         /// [`call_with_tables_as`], on the compiled component.

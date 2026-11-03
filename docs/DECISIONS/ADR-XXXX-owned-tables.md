@@ -457,6 +457,16 @@ The old identity-cookie limitation above is also historical in this combined
 tree: the data-path branch already uses domain-separated guest/session
 digests. This integration preserves that implementation and its controls.
 
+Review correction: a reader's own cached guarded query could outlive the
+predicate that allowed it. A reused cached, deduplicated or fallback answer
+must pass the same engine authorization against the new invocation's read
+state, without running the export merely to authorize reuse. A denial cannot
+fall back to the old protected value. Fresh executions retain one shared
+predicate/body budget. Qualified program predicates report their declared
+name for authored refusal words. Query denials never become a refreshing
+command's refusal record. These refinements preserve ordinary declared data
+freshness; they do not claim authorization at HTTP/frame delivery time.
+
 - **H4**: a bound per owner (`bounded 3 per owner`), cursors, and a bound on
   what a predicate's reads may cost its reader, whoever wrote the rows.
 - **H3 and H9**: a reference that states what deleting the row it names

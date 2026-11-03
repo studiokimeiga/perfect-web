@@ -99,3 +99,38 @@ a render. Controls were adapted to the same ownership boundaries, and the
 row campaign now includes the real server witnesses. Whole acceptance is
 still pending. Snapshot-only independent review of `a35da34a` found no
 actionable code defect; the reviewer requested the dated ADR correction.
+
+## Review repairs: reused answers and refusal identity
+
+Independent review of `42999fe8` identified cached-query authority as a
+hypothesis. It was reproduced at `d65dc77b`: a positive-freshness private
+`Club` query was warmed for its reader, the reader's post was deleted, a
+cold `OwnsPost` call denied, and HTTP still returned the warm secret. The
+cache really was reused (no new query request started). Cached/deduplicated
+answers now pass an engine authorization-only call against this request's
+bound caller and selected read state; a false predicate or evaluation error
+escapes the fallback layer. Fresh executions still authorize once and spend
+predicate/body fuel from their existing single budget. The engine's
+authorization-only witness proves no body callback runs and fuel is spent.
+Ordinary data freshness remains the cache policy's; authorization is current
+to the invocation's snapshot, not a claim about the instant HTTP is delivered.
+
+Review also predicted qualified names losing words. At `c5d9a1b0`, a real
+HTTP denial of `guards.Allowed` said an empty string. The typed denial now
+carries the compiled predicate's declared name, the key of its authored
+words. Its diagnostic still preserves the requirement spelling.
+
+While repairing reuse, a denied query refreshed by a committed command was
+found contaminating its command's thread-local refusal record. Query checks
+now evaluate without command refusal reporting; only command denials enter
+that record. The warm-cache regression verifies the removal still commits
+and its receipt decodes. A shared-flight witness uses the query-cache seam
+directly: HTTP serializes requests in one session, so the first attempted
+HTTP-based fixture timed out and earns no passing-test credit. The corrected
+witness proves a real deduplicated flight, permits the earlier invocation,
+and refuses a joining read that began after the removal.
+
+All eleven guarded server witnesses and fifteen compiled-predicate tests
+pass locally. The full server suite at the earlier `42999fe8` checkpoint
+passed 915 tests with nine ignored; that is interim history, not acceptance
+of these review repairs. New whole campaigns and final review are pending.

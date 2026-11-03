@@ -2718,16 +2718,24 @@ impl Server {
             .get(component_id)
             .ok_or_else(|| format!("no compiled component `{component_id}`"))?
             .prepared;
-        let limits = Limits {
-            fuel: Some(50_000_000),
-            memory_bytes: Some(16 * 1024 * 1024),
-            table_elements: Some(1_000),
-        };
+        let limits = Self::invocation_limits();
         let path = [&export.interface[..], &export.function[..]];
         let predicates = self.program_predicates(contract)?;
-        let caller = match self.identity.principals().of(session) {
-            Some(principal) => pw_host::tables::Caller::User(principal.user),
-            None => pw_host::tables::Caller::Nobody,
+        let caller = self.invocation_caller(session);
+        let command = contract.exports[0].kind == "command";
+        let evaluate = |predicate: &str, bound: &[&Val]| {
+            if command {
+                self.identity.requires(predicate, bound, session, host)
+            } else {
+                self.identity.holds(predicate, bound, session, host)
+            }
+        };
+        let failure = |error: pw_host::engine::InvocationError| {
+            if command {
+                Self::invocation_error(error)
+            } else {
+                error.to_string()
+            }
         };
         let results = match self.data.tables() {
             // TRACK SEAM (tables): **a program's tables link through the gate
@@ -2764,9 +2772,9 @@ impl Server {
                         &caller,
                         &path,
                         args,
-                        |predicate, bound| self.identity.requires(predicate, bound, session, host),
+                        evaluate,
                     )
-                    .map_err(Self::invocation_error)?
+                    .map_err(failure)?
             }
             None if export.authorization.iter().any(|r| r.component.is_some()) => {
                 let manifest = pw_host::tables::Manifest::from_json(r#"{"tables":[]}"#)?;
@@ -2786,23 +2794,18 @@ impl Server {
                         &caller,
                         &path,
                         args,
-                        |predicate, bound| self.identity.requires(predicate, bound, session, host),
+                        evaluate,
                     )
-                    .map_err(Self::invocation_error)?
+                    .map_err(failure)?
             }
             None => prepared.call_authorized_within(
-                contract,
-                &granted,
-                &limits,
-                host,
-                &path,
-                args,
+                contract, &granted, &limits, host, &path, args,
                 // TRACK SEAM (identity, ADR-0253): what `requires` is told.
                 // The important property is that each predicate is
                 // evaluated, and an unknown one cannot run. A predicate over
                 // the command's parameters reads through the command's own
                 // operations.
-                |predicate, bound| self.identity.requires(predicate, bound, session, host),
+                evaluate,
             )?,
         };
         // A type that contains itself arrives as its nodes, and a page reads
@@ -2849,6 +2852,21 @@ impl Server {
             identity::record_refusal(predicate);
         }
         error.to_string()
+    }
+
+    fn invocation_limits() -> Limits {
+        Limits {
+            fuel: Some(50_000_000),
+            memory_bytes: Some(16 * 1024 * 1024),
+            table_elements: Some(1_000),
+        }
+    }
+
+    fn invocation_caller(&self, session: &str) -> pw_host::tables::Caller {
+        match self.identity.principals().of(session) {
+            Some(principal) => pw_host::tables::Caller::User(principal.user),
+            None => pw_host::tables::Caller::Nobody,
+        }
     }
 
     /// The platform's session operation: the request's session, and nothing
@@ -4777,11 +4795,16 @@ impl Server {
         // invalidation, so it is as new as the commit that caused it, and
         // nothing can take its result away.
         for _ in 0..2 {
-            match self.fetch_once(session, resource, &manifest, &key, args) {
+            let fetched = self.fetch_once(session, resource, &manifest, &key, args);
+            let reused = !matches!(&fetched, pw_resource::Fetched::Fresh(_));
+            match fetched {
                 pw_resource::Fetched::Cancelled(pw_resource::StopReason::Invalidated) => continue,
                 pw_resource::Fetched::Fresh(v)
                 | pw_resource::Fetched::FromCache(v)
                 | pw_resource::Fetched::Deduplicated(v) => {
+                    if reused {
+                        self.authorize_reused_answer(resource, session, args)?;
+                    }
                     if matches!(*v, Val::Result(Err(_))) {
                         self.queries.invalidate_key(&key);
                     }
@@ -4795,6 +4818,7 @@ impl Server {
                 // The origin failed, and the query is public and declares
                 // `fallback last_known_good` (ADR-0177): the last value kept.
                 pw_resource::Fetched::LastKnownGood(v) => {
+                    self.authorize_reused_answer(resource, session, args)?;
                     trace(TraceEvent::QueryFallback);
                     return Ok(Val::clone(&v));
                 }
@@ -5445,6 +5469,76 @@ impl Server {
         args: &[Val],
         stopped: Option<Stopped>,
     ) -> Result<Val, String> {
+        self.with_query_ops(session, stopped, |host, tables| {
+            let out = self.run(component_id, session, host, tables, args)?;
+            out.into_iter()
+                .next()
+                .ok_or_else(|| format!("{component_id} returned nothing"))
+        })
+    }
+
+    /// A reused value still needs this request's authorization. A failure
+    /// escapes the cache/fallback layer; no stale value can replace it.
+    fn authorize_reused_answer(
+        &self,
+        component_id: &str,
+        session: &str,
+        args: &[Val],
+    ) -> Result<(), String> {
+        let contract = self
+            .contracts
+            .iter()
+            .find(|c| c.component_id == component_id)
+            .ok_or_else(|| format!("no contract for `{component_id}`"))?;
+        let export = contract.exports[0]
+            .component
+            .as_ref()
+            .ok_or_else(|| format!("`{component_id}` has no export path"))?;
+        if export.authorization.is_empty() {
+            return Ok(());
+        }
+        let _granted = self.authorise(component_id)?;
+        let prepared = &self
+            .components
+            .get(component_id)
+            .ok_or_else(|| format!("no compiled component `{component_id}`"))?
+            .prepared;
+        let predicates = self.program_predicates(contract)?;
+        let caller = self.invocation_caller(session);
+        let empty = pw_host::tables::Manifest::from_json(r#"{"tables":[]}"#)?;
+        let manifest = self.data.tables().unwrap_or(&empty);
+        self.with_query_ops(session, None, |host, tables| {
+            let call = TableCall {
+                manifest,
+                body: data::Ops::new(),
+                source: tables,
+            };
+            prepared
+                .authorize_with_tables_as(
+                    contract,
+                    &Self::invocation_limits(),
+                    host,
+                    &call,
+                    &predicates,
+                    &caller,
+                    &[&export.interface, &export.function],
+                    args,
+                    |predicate, bound| self.identity.holds(predicate, bound, session, host),
+                )
+                .map(|_| ())
+                .map_err(|error| error.to_string())
+        })
+    }
+
+    /// Execution and cached authorization select the same reader operations
+    /// and the same render or standalone snapshot, without running a body
+    /// merely to recheck a predicate.
+    fn with_query_ops<T>(
+        &self,
+        session: &str,
+        stopped: Option<Stopped>,
+        use_ops: impl FnOnce(&data::Ops, &dyn TableFns) -> Result<T, String>,
+    ) -> Result<T, String> {
         // Each operation counted as it runs (`/metrics`).
         let counted = |name: &str, f: HostFn| -> HostFn {
             let (calls, name) = (self.calls.clone(), name.to_string());
@@ -5537,10 +5631,7 @@ impl Server {
             let f = counted(&name, f);
             (name, f)
         }));
-        let out = self.run(component_id, session, &host, &tables, args)?;
-        out.into_iter()
-            .next()
-            .ok_or_else(|| format!("{component_id} returned nothing"))
+        use_ops(&host, &tables)
     }
 
     /// **A query's value**: its answer's `Ok` value. A declared error is a

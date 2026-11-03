@@ -241,6 +241,50 @@ fn an_explicit_denial_is_typed_and_a_lookalike_read_error_is_not() {
     );
 }
 
+#[test]
+fn authorization_alone_reads_the_predicate_and_never_runs_the_export() {
+    let program = program();
+    let tables = seeded(&program);
+    let snapshot = tables.snapshot().assert_ok("query state");
+    let watched = Watched::new(&snapshot);
+    let query = program.component("Shown");
+    let prepared = pw_host::engine::Prepared::compile(&query.bytes).assert_ok("query compiled");
+    let left = prepared
+        .authorize_with_tables_as(
+            &query.contract,
+            &fuel(50_000_000),
+            &program.platform(ALICE),
+            &watched,
+            &program.predicates(),
+            &as_user(ALICE),
+            &query.export(),
+            &[handle(ALICE), s("n2")],
+            |_, _| Ok(false),
+        )
+        .assert_ok("permitted reuse");
+    assert_eq!(watched.asked.load(Ordering::SeqCst), 1);
+    assert_eq!(watched.body.load(Ordering::SeqCst), 0);
+    assert!(
+        left.fuel.is_some_and(|remaining| remaining < 50_000_000),
+        "the predicate spends fuel"
+    );
+    let refused = prepared
+        .authorize_with_tables_as(
+            &query.contract,
+            &fuel(50_000_000),
+            &program.platform(BOB),
+            &watched,
+            &program.predicates(),
+            &as_user(BOB),
+            &query.export(),
+            &[handle(BOB), s("n2")],
+            |_, _| Ok(true),
+        )
+        .assert_err("Bob may not reuse it");
+    assert_eq!(refused.refused(), Some("Wrote"));
+    assert_eq!(watched.body.load(Ordering::SeqCst), 0);
+}
+
 /// A query's authorization and body must observe the same read state.
 /// The writer commits after the predicate's read and before the body runs.
 #[test]
