@@ -19,3 +19,5 @@
 resolved.rs:resolve         constructor  the head is dispatched on — type parameter, primitive, builtin constructor, or declaration — and each branch then resolves `written.args()` in full. This is the one call site that reads the head in order to NOT discard the arguments: `List<MenuItem>` reaches the `List` branch and the branch resolves `MenuItem`. `resolution_reaches_every_argument_or_reports` is what says so, and `a_generic_differs_by_its_argument` is what would fail if the head became the answer
 
 manifest.rs:split_result    constructor  split Result's complete value/error arguments into their distinct manifest roles; all other return types keep their complete written structure
+
+values.rs:annotations       constructor  the parameter of a declaration the compiler generated for an owned table (track `row-ownership`) whose head is the platform's `capability.User` is not reported unresolved there: the head IS the question (is this the reader's handle the table gives?), and its argument is the owner field's own written type, which the row's record resolves and PW0367 holds to `capability.UserId`

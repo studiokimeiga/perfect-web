@@ -1,0 +1,23 @@
+// @status: NEIGHBOUR
+// @invariant: private_field_unseen
+// @dimension: valid neighbour — the same table, a field no reader orders by kept private
+//
+// A rule that refused `private` on a table that shares rather than a
+// private field another reader orders by would refuse this.
+
+module Diaries
+
+import capability.{ UserId }
+
+opaque type EntryId = String
+
+type Entry = Entry { writer: UserId, id: EntryId, reader: UserId, day: Int, text: String }
+
+table Diaries
+    row     Entry
+    key     writer, id
+    order   day
+    index   by_reader on reader
+    owned   by writer
+    shares  with reader
+    private text

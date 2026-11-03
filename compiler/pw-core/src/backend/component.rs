@@ -658,7 +658,9 @@ pub(crate) fn compile_prepared(p: &Program<'_>) -> Result<Vec<(String, Built)>, 
                     crate::hir::DeclKind::Command
                     | crate::hir::DeclKind::Query
                     | crate::hir::DeclKind::Fn
-                    | crate::hir::DeclKind::Materialize,
+                    | crate::hir::DeclKind::Materialize
+                    // A predicate with a contract has a body (ADR-0384's H2).
+                    | crate::hir::DeclKind::Predicate,
                 ),
             ) => Built::Refused(format!("did not lower: {}", p.refused(world.declaration))),
             (None, Some(kind)) => Built::NoBody { kind },

@@ -74,6 +74,7 @@ import 'just/d2-writes.just'
 import 'just/d3-postgres.just'
 import 'just/outbound-https.just'
 import 'just/data-path.just'
+import 'just/row-ownership.just'
 
 default:
     @just --list
@@ -186,7 +187,7 @@ test-unit:
 test-compile:
     # ADR-0276: the reference apps, the demo and the generality cases too;
     # `examples/history` keeps the sources as they were.
-    cargo run --quiet -p pw-cli -- fmt --check examples/*.pw examples/lib/*.pw examples/accepted/*.pw examples/rejected/*.pw examples/rules/*/*.pw examples/kiokun/*.pw examples/kiokun-site/*.pw packages/*/*.pw examples/feed/*.pw examples/store/*.pw examples/demo/*.pw examples/generality/*/*.pw examples/tables/*.pw examples/todomvc/*.pw
+    cargo run --quiet -p pw-cli -- fmt --check examples/*.pw examples/lib/*.pw examples/accepted/*.pw examples/rejected/*.pw examples/rules/*/*.pw examples/kiokun/*.pw examples/kiokun-site/*.pw packages/*/*.pw examples/feed/*.pw examples/store/*.pw examples/demo/*.pw examples/generality/*/*.pw examples/tables/*.pw examples/owned/*.pw examples/todomvc/*.pw
     cargo run --quiet -p corpus-check -- examples
     # The accepted corpus as the ONE program it is: the shared library plus
     # every accepted file. Feeding it the rejected files too would ask the

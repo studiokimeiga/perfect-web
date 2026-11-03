@@ -1,0 +1,29 @@
+// @corpus: rejected
+// @id: R-114
+// @category: a reference across owners' rows
+// @rule: PW6924
+// @invariant: reference_within_one_owner
+// @charter: §7.8, §9.2
+// @milestone: 14
+// @expect-error: `refers recipient to Memberships`: `Memberships`'s rows are each owned by their `member`, and `recipient` is not `Gifts`'s owner, `giver`
+//
+// Track `row-ownership` (the review's finding 1): a database checks a
+// reference across every row of both tables, whoever owns them. A gift
+// naming its recipient's membership (A-056) would commit only where the
+// recipient holds one, which tells its giver; and the recipient could not
+// end their membership while a gift they may not read names it.
+
+module Gifts
+
+import capability.{ UserId }
+import Memberships
+
+opaque type GiftId = String
+
+type Gift = Gift { giver: UserId, id: GiftId, recipient: UserId }
+
+table Gifts
+    row    Gift
+    key    giver, id
+    owned  by giver
+    refers recipient to Memberships

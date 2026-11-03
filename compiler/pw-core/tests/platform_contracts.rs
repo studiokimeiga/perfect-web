@@ -507,7 +507,11 @@ fn the_trusted_platform_contract_is_hashed() {
     // provider gave them, none for no one and for a guest, whose user's id
     // holds its session: what a program that declares its data needs of its
     // reader, which the guestbook read through the feed's layer.
-    const EXPECTED: u64 = 0x7ccc0f75433153c8;
+    // The integration also retains capability.id_of(User<UserId>) -> UserId
+    // (ADR-0384 H1), beside context.account_of's Account record and host
+    // operation. Both declarations are intentional trusted-platform input;
+    // neither track's isolated source hash describes their union.
+    const EXPECTED: u64 = 0x0c6761b484fa478d;
     eprintln!(
         "  platform contract: {} files, hash {hash:#018x}",
         names.len()

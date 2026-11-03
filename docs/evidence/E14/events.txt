@@ -1,34 +1,34 @@
 ADR-0138 - a handler is given its event
 
 produced by: just e14-events
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 83761ca3ae614f5846e6d3bb7460b8427bc1ff2e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/41491093145 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the compiler (compiler/pw-core/tests/events.rs)
 
 test a_lambda_s_written_parameter_type_is_checked ... ok
 test a_handler_written_for_another_event_is_refused ... ok
-test an_element_s_handlers_are_lowered_last_and_together ... ok
 test a_handler_is_given_its_event_s_record ... ok
-test a_modifier_is_one_the_runtime_applies ... ok
+test an_element_s_handlers_are_lowered_last_and_together ... ok
 test a_double_press_and_a_blur_are_given_their_records ... ok
 test the_manifest_says_which_event_a_part_handles ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.60s
+test a_modifier_is_one_the_runtime_applies ... ok
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.14s
 
 == the grammar (compiler/pw-syntax)
 
 test grammar::tests::an_arm_without_an_arrow_is_reported ... ok
 test grammar::tests::an_each_head_is_its_list_its_name_and_its_key ... ok
-test grammar::tests::an_event_s_modifiers_are_part_of_its_attribute ... ok
 test grammar::tests::an_arrow_lambda_s_parameters_may_be_typed ... ok
+test grammar::tests::an_event_s_modifiers_are_part_of_its_attribute ... ok
 test grammar::tests::an_html_comment_in_markup_is_a_comment ... ok
 test grammar::tests::an_opaque_type_states_its_invariant_after_its_representation ... ok
-test grammar::tests::an_unclosed_element_still_produces_a_well_formed_tree ... ok
 test grammar::tests::an_optimistic_clause_without_its_arrow_reads_its_transition ... ok
+test grammar::tests::an_unclosed_element_still_produces_a_well_formed_tree ... ok
 test grammar::tests::an_optimistic_clause_has_an_arm_for_each_entry ... ok
 test grammar::tests::an_unquoted_attribute_value_is_read_as_html_reads_it ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 88 filtered out; finished in 0.00s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 90 filtered out; finished in 0.00s
 
 == one capture attribute per element (runtime/pw-render/tests/properties.rs)
 
@@ -37,18 +37,18 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 31 filtered out; fin
 
 == mutation controls (scripts/events_mutations.py)
 
-baseline: 89 passed, 0 failed
-a lambda's written parameter type is dropped: KILLED (3 of 89 tests fail)
-an on: handler's parameter is not typed by its event: KILLED (1 of 89 tests fail)
-a handler's written event type is not compared: KILLED (2 of 89 tests fail)
-a handler may take several parameters: KILLED (1 of 89 tests fail)
-an unknown modifier is accepted: KILLED (1 of 89 tests fail)
-the handler does not bind its event: KILLED (2 of 89 tests fail)
-the manifest does not say which event: KILLED (1 of 89 tests fail)
-a modifier is not carried: KILLED (1 of 89 tests fail)
-an element's handlers are lowered in source order: KILLED (1 of 89 tests fail)
-a typed arrow parameter list does not parse: KILLED (4 of 89 tests fail)
-an element's handlers write an attribute each: KILLED (1 of 89 tests fail)
-one name captured from two places is guessed between: KILLED (1 of 89 tests fail)
+baseline: 91 passed, 0 failed
+a lambda's written parameter type is dropped: KILLED (3 of 91 tests fail)
+an on: handler's parameter is not typed by its event: KILLED (1 of 91 tests fail)
+a handler's written event type is not compared: KILLED (2 of 91 tests fail)
+a handler may take several parameters: KILLED (1 of 91 tests fail)
+an unknown modifier is accepted: KILLED (1 of 91 tests fail)
+the handler does not bind its event: KILLED (2 of 91 tests fail)
+the manifest does not say which event: KILLED (1 of 91 tests fail)
+a modifier is not carried: KILLED (1 of 91 tests fail)
+an element's handlers are lowered in source order: KILLED (1 of 91 tests fail)
+a typed arrow parameter list does not parse: KILLED (4 of 91 tests fail)
+an element's handlers write an attribute each: KILLED (1 of 91 tests fail)
+one name captured from two places is guessed between: KILLED (1 of 91 tests fail)
 12 of 12 mutants killed
 memory bound: no process was stopped

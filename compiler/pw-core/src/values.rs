@@ -5047,6 +5047,9 @@ fn returns_its_body(decl: &Decl) -> bool {
         decl.kind,
         DeclKind::Fn | DeclKind::Query | DeclKind::Command | DeclKind::Task
     ) || (decl.kind == DeclKind::Materialize && decl.ret.is_some())
+        // A predicate the program gives a body answers its `Bool` (ADR-0384
+        // H2): whether it holds.
+        || (decl.kind == DeclKind::Predicate && decl.body.is_some())
 }
 
 /// **Every written type resolves, or the program is told.** E9-V5.
@@ -5123,7 +5126,15 @@ fn annotations(
         });
     };
     for p in &decl.params {
-        if let Some(t) = &p.ty {
+        // An owned table's generated handle (track `row-ownership`) names
+        // the platform's `User` over the owner's type, which resolves where
+        // the owner is a `capability.UserId`; where it is not, PW0367 says
+        // so once, and this would say it again.
+        let handle = hir.generated.contains_key(&id)
+            && p.ty
+                .as_ref()
+                .is_some_and(|t| t.constructor_head_only() == "capability.User");
+        if let Some(t) = p.ty.as_ref().filter(|_| !handle) {
             check(t, p.span.clone(), format!("parameter `{}`", p.name));
         }
     }

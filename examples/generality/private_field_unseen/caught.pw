@@ -1,0 +1,22 @@
+// @status: GENERAL
+// @invariant: private_field_unseen
+//
+// Structurally different from the fixture: the private field is the
+// order a reader the table shares with is answered rows in.
+
+module Diaries
+
+import capability.{ UserId }
+
+opaque type EntryId = String
+
+type Entry = Entry { writer: UserId, id: EntryId, reader: UserId, day: Int, text: String }
+
+table Diaries
+    row     Entry
+    key     writer, id
+    order   day
+    index   by_reader on reader
+    owned   by writer
+    shares  with reader
+    private day

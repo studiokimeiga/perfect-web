@@ -1,0 +1,24 @@
+// @corpus: rejected
+// @id: R-115
+// @category: a predicate with a body required where it is not seen
+// @rule: PW6925
+// @invariant: predicate_answered_by_its_body
+// @charter: §7.8, §9.2
+// @milestone: 14
+// @expect-error: `requires WroteLetter` names no predicate `LetterEdits` sees, and `Letters` gives `WroteLetter` a body: the host would ask the deployment for it instead
+//
+// Track `row-ownership` (the review's finding 4): A-055's `WroteLetter` has a
+// body, and this module imports `Letters` for its id alone. Its `requires`
+// named no component, so the host asked the deployment for `WroteLetter`,
+// whose predicate of that name, if any, answered in the body's place.
+
+module LetterEdits
+
+import Letters.{ LetterId }
+
+command edit(id: LetterId) -> ()
+    requires    WroteLetter(id)
+    transaction serializable
+{
+    ()
+}

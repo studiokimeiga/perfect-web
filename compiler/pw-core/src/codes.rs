@@ -26,7 +26,7 @@
 //! PW64xx   the payments track's (NEXT 6c): a command the platform invokes
 //! PW66xx   check-is-build: executable program support
 //! PW68xx   the device-store track's: a value the reader's device keeps
-//! PW69xx   the data-path track's: a program's declared tables, served
+//! PW69xx   the dating-app note's H tracks (ADR-0384): predicates, private fields
 //! ```
 //!
 //! A parallel track registers its codes in its own block, with its own
@@ -138,11 +138,10 @@ pub enum Owner {
     /// the integrator): a value the reader's device keeps, charter §9.1's
     /// fourth kind of state, and the `Device` label that keeps it there.
     DeviceStore,
-    /// The data-path track's codes, PW69xx (ADR-0338's D2, an app with no
-    /// Rust data layer; the next free block, the integrator's ruling 3 of
-    /// 2026-11-02 asking the track's own): a program's declared tables, as
-    /// the development server serves them.
-    DataPath,
+    /// The dating-app note's H tracks' codes, PW69xx (ADR-0384's ruling 1):
+    /// what is not a table clause's refusal. Track `row-ownership` (H1, H2):
+    /// a predicate's body, `requires` on a query, a private field's write.
+    Dating,
 }
 
 impl fmt::Display for Code {
@@ -345,6 +344,19 @@ codes! {
         "a reference to a table another source holds is held by no database: the referred row may be missing, which `get` answers as `None`";
     MIGRATION_UNSTATED = "PW0366" / migration_unstated / 1, DeclarationRules,
         "a change from the schema released that loses or reinterprets data is stated by a `migrate`, and each `migrate` states one";
+    // Track `row-ownership` (ADR-0384's H1): whose a table's rows are, who
+    // else reads them, and what their owner alone reads. The table clauses'
+    // refusals are declaration rules, next free after D1's (the integrator's
+    // ruling 1 on ADR-0384).
+    OWNER_NAMES_A_PRINCIPAL = "PW0367" / owner_names_a_principal / 1, DeclarationRules,
+        "`owned by` names one field of an owned table's row holding a principal's id (`capability.UserId`), and `shares with` others, never its owner, each once";
+    // Its bound too (the review of the track, finding 2): a bound counts
+    // every owner's rows, so a write refused by it would tell one owner how
+    // many rows the others hold.
+    OWNED_READ_BY_ITS_READER = "PW0368" / owned_read_by_its_reader / 1, DeclarationRules,
+        "an owned table is read by its reader alone: its key leads with its owner, each index with its owner or a field it shares with, a unique index holds its owner, no bound counts its rows across owners, and it is never read whole";
+    PRIVATE_FIELD_UNSEEN = "PW0369" / private_field_unseen / 1, DeclarationRules,
+        "a private field is read by its owner alone: a field of an owned table's row, never its owner, a field it shares with, in its key, its order where it shares, or an index another reads by; and its seen row is the table's own name";
 
     STALE_KEY_POLICY = "PW0325" / stale_key_policy / 1, DeclarationRules,
         "a keyed query must say what happens when its key changes";
@@ -990,12 +1002,42 @@ codes! {
     DEVICE_SIGNAL_PROVIDED = "PW6808" / device_signal_provided / 1, DeviceStore,
         "a signal the device keeps is provided by the device: no `provide` gives it a value";
 
-    // --- the data-path track (PW69xx; ADR-0338's D2) ----------------------
+    // --- declared-data privacy (PW69xx; ADR-0338 / ADR-0384 H1) ----------
     //
     // `type Held = Held { id: String, who: User<UserId> }` as a table's row:
     // a handle stored where every reader of the table reads it.
-    ROW_HOLDS_HANDLE = "PW6901" / row_holds_handle / 1, DataPath,
+    ROW_HOLDS_HANDLE = "PW6901" / row_holds_handle / 1, Dating,
         "a table's row holds no session's, user's or organization's handle: every reader of the table reads its rows, and a handle is its own reader's alone; a row names someone by their id";
+    // --- the dating-app note's H tracks (PW69xx; ADR-0384) ---------------
+    //
+    // Track `row-ownership` (H2): a predicate the program gives a body, the
+    // program's authorization, evaluated by the host before the body it
+    // guards (ADR-0115 as amended).
+    PREDICATE_BODY_READS_ONLY = "PW6905" / predicate_body_reads_only / 1, Dating,
+        "a predicate's body reads and does nothing else: no write, no event, no schedule, no network, no log, no clock but its comparison";
+    // ADR-0384's H2 code for a query's `requires` (ADR-0339's ruling 3; the
+    // reviews of the track, finding 7b and the second review's finding 1):
+    // an answer given where a predicate holds for its reader is that
+    // reader's, and a read keyed without its reader, a shared cache's or a
+    // flight another reader joins, would give it to readers never asked.
+    REQUIRED_QUERY_UNSHARED = "PW6907" / required_query_unshared / 1, Dating,
+        "a query that `requires` a predicate is answered to its reader alone, once the predicate holds for them: it is cached `private`, or is a `user` or `session` query, so every read of it is keyed by its reader, and no materialization depends on it";
+    // The review of the track (ADR-0384's H1), finding 1: a database checks
+    // a reference across every row of both tables, whoever owns them.
+    REFERENCE_WITHIN_ONE_OWNER = "PW6924" / reference_within_one_owner / 1, Dating,
+        "a reference a database holds stays within one owner's rows: an owned table refers to an owned table from its own owner field alone, a table no one owns to no owned table, and an owned table to no table no one owns";
+    // The review of the track (ADR-0384's H2; ADR-0115 as amended), findings
+    // 3 and 4: a predicate the program gives a body is the program's
+    // authorization, which a deployment's predicate of the same name would
+    // answer otherwise, a page's ask among them (ADR-0307).
+    PREDICATE_ANSWERED_BY_ITS_BODY = "PW6925" / predicate_answered_by_its_body / 1, Dating,
+        "a predicate the program gives a body is answered by that body alone: a `requires` naming it sees it where it is written, no page asks it of its reader, and no predicate the deployment answers shares its name";
+    // The second review of the track (ADR-0384's H2; ADR-0339's ruling 3),
+    // finding 2: a query's body called from another declaration is compiled
+    // into that declaration, whose contract requires nothing, as PW0339
+    // holds a command to its handler.
+    REQUIRED_QUERY_BOUND_BY_A_PAGE = "PW6926" / required_query_bound_by_a_page / 1, Dating,
+        "a query that `requires` a predicate is read by a page's binding alone, `query Q(..)`, where the host asks its reader: no query, command, function, predicate or materialization calls it, binds it or names it, which would run its body unasked";
 }
 
 /// Codes that were registered, are no longer emitted, and whose numbers must
@@ -1092,7 +1134,7 @@ impl Owner {
             Owner::Schedules => "PW65",
             Owner::CheckIsBuild => "PW66",
             Owner::DeviceStore => "PW68",
-            Owner::DataPath => "PW69",
+            Owner::Dating => "PW69",
             Owner::Syntax | Owner::Resolution => "PW00",
             Owner::Placement | Owner::Privacy | Owner::Markup => "PW50",
             Owner::Types => "PW06",
@@ -1163,7 +1205,7 @@ mod tests {
                 (Owner::Schedules, "PW65"),
                 (Owner::CheckIsBuild, "PW66"),
                 (Owner::DeviceStore, "PW68"),
-                (Owner::DataPath, "PW69"),
+                (Owner::Dating, "PW69"),
             ] {
                 assert!(
                     !c.id.starts_with(block) || c.owner == owner,

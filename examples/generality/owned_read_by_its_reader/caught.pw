@@ -1,0 +1,19 @@
+// @status: GENERAL
+// @invariant: owned_read_by_its_reader
+//
+// Structurally different from the fixture: an index by a day, which every
+// owner's rows hold, so a read by it would answer them all.
+
+module Diaries
+
+import capability.{ UserId }
+
+opaque type EntryId = String
+
+type Entry = Entry { writer: UserId, id: EntryId, day: Int, text: String }
+
+table Diaries
+    row   Entry
+    key   writer, id
+    index by_day on day
+    owned by writer

@@ -389,6 +389,12 @@ fn every_diagnostic_carries_what_charter_16_3_requires() {
             .unwrap_or_default();
         all.push((n, s, d));
     }
+    // A note may be in another file the checker was given (ADR-0321: a
+    // first declaration in its own file), held to that file's length.
+    let lengths: std::collections::BTreeMap<String, usize> = whole_corpus()
+        .into_iter()
+        .map(|(name, src)| (name, src.len()))
+        .collect();
     let mut n = 0;
     for (path, src, diags) in &all {
         for d in diags {
@@ -397,8 +403,14 @@ fn every_diagnostic_carries_what_charter_16_3_requires() {
             assert!(d.primary_span.end <= src.len(), "{path}: span out of range");
             assert!(!d.related.is_empty(), "{path}: no boundary span");
             assert!(
-                d.related.iter().all(|r| r.span.end <= src.len()),
-                "{path}: related span out of range"
+                d.related.iter().all(|r| {
+                    let len = match &r.file {
+                        None => Some(src.len()),
+                        Some(file) => lengths.get(file).copied(),
+                    };
+                    len.is_some_and(|len| r.span.end <= len)
+                }),
+                "{path}: related span out of range of its file"
             );
             assert!(
                 !d.repairs.is_empty(),

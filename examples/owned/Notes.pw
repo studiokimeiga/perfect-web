@@ -1,0 +1,41 @@
+// @corpus: fixture
+// @id: OWNED-Notes
+// @category: application data — an owned table: whose a row is, who else reads it, what they see (ADR-0384 H1)
+// @charter: §7.8, §9.2
+// @milestone: E14
+//
+// Track `row-ownership` (ADR-0384's H1): a table that states whose its rows
+// are. A note is its author's: every read of a note leads with the reader's
+// handle in a field the note names its readers by, which only the platform
+// makes (ADR-0263), so no program reads or writes another's notes by naming
+// an id, and the host holds each handle to the reader it serves. A note is
+// read by the one it is addressed to as well, without its draft: they are
+// answered `NoteSeen`, the record the compiler declares beside `Note` with no
+// `draft` in it, so no page of theirs can hold one.
+//
+// What it gives: `Notes.get(author, id)`, `Notes.get_many(author, ids)`,
+// `Notes.of_author(author)`, `Notes.by_to(to) -> List<NoteSeen>`, and the
+// writes `Notes.insert(author, note)`, `Notes.put(author, note)`,
+// `Notes.delete(author, id)` and `Notes.delete_of_author(author)`, each
+// `author` and `to` a `User<UserId>`, the reader's handle. No `all`, and no
+// read by any other field.
+
+module Notes
+
+import capability.{ UserId }
+
+opaque type NoteId = String
+
+// What a note says: at most a few lines.
+opaque type Text = String where String.length(value) <= 280
+
+type Note = Note { author: UserId, id: NoteId, to: UserId, text: Text, draft: Text, added: Int }
+
+table Notes
+    row     Note
+    key     author, id
+    order   added
+    index   by_to on to
+    owned   by author
+    shares  with to
+    private draft

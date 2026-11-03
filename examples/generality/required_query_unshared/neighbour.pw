@@ -1,0 +1,28 @@
+// @status: NEIGHBOUR
+// @invariant: required_query_unshared
+// @dimension: valid neighbour — the same query cached for its reader alone
+//
+// A rule that refused every cache of a query that requires a predicate,
+// rather than a shared one, would refuse this: each reader's entry is
+// theirs, answered once the predicate holds for them.
+
+module ChoreBoard
+
+import Chores.{ Chore, Room }
+import Chores
+
+predicate Housemate()
+    says "Only a housemate sees the chores."
+
+public query RoomChores(room: Room) -> List<Chore>
+    freshness     60.seconds
+    consistency   strong
+    cache         private
+    key           room
+    requires      Housemate
+    concurrency   one_per_key
+    on_key_change cancel
+    timeout       2.seconds
+{
+    Chores.of_room(room)
+}

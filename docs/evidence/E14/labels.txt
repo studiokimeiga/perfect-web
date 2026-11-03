@@ -1,8 +1,8 @@
 ADR-0143 - what names a form control
 
 produced by: just e14-labels
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 83761ca3ae614f5846e6d3bb7460b8427bc1ff2e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/41491093145 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rule (compiler/pw-core/tests/labels.rs)
@@ -15,10 +15,10 @@ test a_wrapping_label_names_only_its_first_control ... ok
 test a_label_that_wraps_its_control_names_it ... ok
 test an_id_inside_each_names_no_one_row ... ok
 test which_control_a_label_names_must_not_depend_on_what_renders ... ok
-test hidden_submit_and_button_inputs_need_no_label ... ok
 test an_id_names_nothing_by_itself ... ok
+test hidden_submit_and_button_inputs_need_no_label ... ok
 test aria_labelledby_must_reach_an_element_with_text ... ok
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.94s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.79s
 
 == each witness (examples/generality/control_without_label)
 
@@ -31,7 +31,7 @@ wrapped.pw               NEIGHBOUR  no diagnostics
 
 == the generality suite (compiler/pw-core/tests/generality.rs)
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 174.65s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 172.59s
 
 == mutation controls (scripts/labels_mutations.py)
 

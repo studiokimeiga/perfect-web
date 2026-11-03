@@ -375,6 +375,10 @@ pub struct AuthorizationRequirement {
     pub predicate: String,
     #[serde(default)]
     pub arguments: Vec<usize>,
+    /// The component that answers it, where the program gives the predicate
+    /// a body (ADR-0384 H2): asked first, and the deployment never.
+    #[serde(default)]
+    pub component: Option<String>,
 }
 
 /// An export's place in a component: its interface, function, and invocation
@@ -914,6 +918,17 @@ pub mod engine {
     /// each of its answers when it is given.
     pub mod table_link;
 
+    /// An owned table's function is its caller's (track `row-ownership`,
+    /// ADR-0384 H1): its handle held to the call's reader, an owned row to
+    /// its writer, a sharer answered the seen row.
+    pub mod table_owners;
+
+    /// A predicate the program gives a body, asked by the engine itself
+    /// (track `row-ownership`, ADR-0384 H2; ADR-0115 as amended).
+    pub mod program_predicates;
+
+    pub use program_predicates::{CallTables, Predicate, Predicates};
+
     /// **The configuration of every engine the host makes** (ADR-0244): the
     /// component model, and none of the proposals Pleris's components do not
     /// use, so a component that uses one is refused when it loads.
@@ -1075,6 +1090,13 @@ pub mod engine {
     /// arguments by the indices the compiler recorded. Unknown predicates are
     /// therefore naturally fail-closed when the deployment evaluator returns an
     /// error.
+    ///
+    /// **A predicate the program gives a body is never the deployment's**
+    /// (ADR-0115 as amended by ADR-0384's H2; the review of track
+    /// `row-ownership`, finding 3): a requirement naming the component that
+    /// answers it refuses the invocation here, on this path and every path
+    /// built on it, since none runs that body. Only
+    /// [`Prepared::call_authorized_with_tables_as`] asks one, itself.
     pub fn authorize_export<F>(
         contract: &crate::ComponentContract,
         export: &[&str],
@@ -1085,33 +1107,51 @@ pub mod engine {
         F: FnMut(&str, &[&Val]) -> Result<bool, String>,
     {
         for requirement in authorization_for(contract, export)? {
-            let mut selected = Vec::with_capacity(requirement.arguments.len());
-            for index in &requirement.arguments {
-                let Some(value) = args.get(*index) else {
-                    return Err(format!(
-                        "authorization predicate `{}` refers to missing argument {}",
-                        requirement.predicate, index
-                    ));
-                };
-                selected.push(value);
-            }
-            match evaluate(&requirement.predicate, &selected) {
-                Ok(true) => {}
-                Ok(false) => {
-                    return Err(format!(
-                        "authorization predicate `{}` denied the invocation",
-                        requirement.predicate
-                    ));
-                }
-                Err(why) => {
-                    return Err(format!(
-                        "authorization predicate `{}` could not be evaluated: {why}",
-                        requirement.predicate
-                    ));
-                }
-            }
+            let selected = selected(requirement, args)?;
+            let answer = match &requirement.component {
+                Some(component) => Err(format!(
+                    "it is the program's, answered by its body (component `{component}`), which \
+                     this path does not run, and never by the deployment"
+                )),
+                None => evaluate(&requirement.predicate, &selected),
+            };
+            verdict(&requirement.predicate, answer)?;
         }
         Ok(())
+    }
+
+    /// The arguments a requirement is given, by the indices the compiler
+    /// recorded, from the export's own typed arguments.
+    fn selected<'a>(
+        requirement: &crate::AuthorizationRequirement,
+        args: &'a [Val],
+    ) -> Result<Vec<&'a Val>, String> {
+        requirement
+            .arguments
+            .iter()
+            .map(|index| {
+                args.get(*index).ok_or_else(|| {
+                    format!(
+                        "authorization predicate `{}` refers to missing argument {index}",
+                        requirement.predicate
+                    )
+                })
+            })
+            .collect()
+    }
+
+    /// What a predicate's answer does to the invocation: it holds, or the
+    /// invocation is refused, as denied or as not evaluated.
+    fn verdict(predicate: &str, answer: Result<bool, String>) -> Result<(), String> {
+        match answer {
+            Ok(true) => Ok(()),
+            Ok(false) => Err(format!(
+                "authorization predicate `{predicate}` denied the invocation"
+            )),
+            Err(why) => Err(format!(
+                "authorization predicate `{predicate}` could not be evaluated: {why}"
+            )),
+        }
     }
 
     fn refuse_unevaluated_authorization(
@@ -1277,6 +1317,29 @@ pub mod engine {
         )
     }
 
+    /// **[`call_with_tables`], made as `caller`** (track `row-ownership`,
+    /// ADR-0384 H1): an owned table's function is served for `caller` alone,
+    /// its handle held to them before any adapter reads it
+    /// ([`table_owners::admit`]), a row written to them, a reader the table
+    /// shares with answered the seen row. [`call_with_tables`] is this made
+    /// as no one, so every owned table's function refuses there.
+    #[allow(clippy::too_many_arguments)]
+    pub fn call_with_tables_as(
+        bytes: &[u8],
+        contract: &crate::ComponentContract,
+        granted: &crate::Granted,
+        limits: &crate::Limits,
+        host: &std::collections::BTreeMap<String, HostFn>,
+        tables: &crate::tables::Manifest,
+        caller: &crate::tables::Caller,
+        export: &[&str],
+        args: &[wasmtime::component::Val],
+    ) -> Result<Vec<wasmtime::component::Val>, String> {
+        Prepared::compile(bytes)?.call_with_tables_as(
+            contract, granted, limits, host, tables, caller, export, args,
+        )
+    }
+
     /// Invoke an export after the deployment explicitly evaluates its
     /// authorization preconditions.
     #[allow(clippy::too_many_arguments)]
@@ -1433,6 +1496,7 @@ pub mod engine {
                 limits,
                 host,
                 None,
+                &crate::tables::Caller::Nobody,
                 export,
                 args,
             )
@@ -1450,6 +1514,95 @@ pub mod engine {
             export: &[&str],
             args: &[wasmtime::component::Val],
         ) -> Result<Vec<wasmtime::component::Val>, String> {
+            self.call_with_tables_as(
+                contract,
+                granted,
+                limits,
+                host,
+                tables,
+                &crate::tables::Caller::Nobody,
+                export,
+                args,
+            )
+        }
+
+        /// **[`Prepared::call_with_tables_as`], once every `requires`
+        /// predicate holds, asked in the order of asking** (ADR-0115 as
+        /// amended by ADR-0384's H2; the review of track `row-ownership`,
+        /// finding 5): each requirement in the order the export states it,
+        /// before the export's component is instantiated. One naming the
+        /// component that answers it is the program's, and **the engine asks
+        /// it itself** ([`program_predicates`]): that compiled predicate,
+        /// from `predicates`, run as `caller`, its reads `tables`' own (a
+        /// command's transaction, the tables a query reads, as the export's
+        /// functions are), under `limits`, whose fuel it spends from the
+        /// invocation's budget; no embedder answers it, and one missing from
+        /// `predicates` refuses the invocation. Any other is `deployment`'s,
+        /// as [`authorize_export`] asks it. Then the export runs with what
+        /// fuel is left, its host the platform's operations (`platform`, no
+        /// table's function) and the table functions `tables` gives it.
+        #[allow(clippy::too_many_arguments)]
+        pub fn call_authorized_with_tables_as<D>(
+            &self,
+            contract: &crate::ComponentContract,
+            granted: &crate::Granted,
+            limits: &crate::Limits,
+            platform: &std::collections::BTreeMap<String, HostFn>,
+            tables: &dyn CallTables,
+            predicates: &Predicates,
+            caller: &crate::tables::Caller,
+            export: &[&str],
+            args: &[wasmtime::component::Val],
+            deployment: D,
+        ) -> Result<Vec<wasmtime::component::Val>, String>
+        where
+            D: FnMut(&str, &[&Val]) -> Result<bool, String>,
+        {
+            // Its arguments decoded before a predicate reads them.
+            self.hold_arguments(contract, export, args)?;
+            // A table's function is the call's tables', which the gate
+            // admits for each component it links; never the platform's.
+            if let Some(key) = platform
+                .keys()
+                .find(|key| crate::tables::is_table_import(key))
+            {
+                return Err(format!(
+                    "`{key}` is a table's function, which the call's tables give, not one of the \
+                     platform's operations"
+                ));
+            }
+            let left = program_predicates::authorize(
+                contract, export, args, limits, platform, tables, predicates, caller, deployment,
+            )?;
+            let mut host = platform.clone();
+            host.extend(tables.functions(contract, granted)?);
+            run(
+                &self.engine,
+                &self.component,
+                contract,
+                granted,
+                &left,
+                &host,
+                Some(tables.manifest()),
+                caller,
+                export,
+                args,
+            )
+        }
+
+        /// [`call_with_tables_as`], on the compiled component.
+        #[allow(clippy::too_many_arguments)]
+        pub fn call_with_tables_as(
+            &self,
+            contract: &crate::ComponentContract,
+            granted: &crate::Granted,
+            limits: &crate::Limits,
+            host: &std::collections::BTreeMap<String, HostFn>,
+            tables: &crate::tables::Manifest,
+            caller: &crate::tables::Caller,
+            export: &[&str],
+            args: &[wasmtime::component::Val],
+        ) -> Result<Vec<wasmtime::component::Val>, String> {
             self.hold_arguments(contract, export, args)?;
             refuse_unevaluated_authorization(contract, export)?;
             run(
@@ -1460,6 +1613,7 @@ pub mod engine {
                 limits,
                 host,
                 Some(tables),
+                caller,
                 export,
                 args,
             )
@@ -1491,6 +1645,7 @@ pub mod engine {
                 limits,
                 host,
                 None,
+                &crate::tables::Caller::Nobody,
                 export,
                 args,
             )
@@ -1524,6 +1679,7 @@ pub mod engine {
                 limits,
                 host,
                 Some(tables),
+                &crate::tables::Caller::Nobody,
                 export,
                 args,
             )
@@ -2640,11 +2796,12 @@ pub mod engine {
         limits: &crate::Limits,
         host: &std::collections::BTreeMap<String, HostFn>,
         tables: Option<&crate::tables::Manifest>,
+        caller: &crate::tables::Caller,
         export: &[&str],
         args: &[wasmtime::component::Val],
     ) -> Result<Vec<wasmtime::component::Val>, String> {
         run_measured(
-            engine, component, contract, granted, limits, host, tables, export, args,
+            engine, component, contract, granted, limits, host, tables, caller, export, args,
         )
         .map(|(results, _)| results)
     }
@@ -2688,6 +2845,7 @@ pub mod engine {
                 limits,
                 host,
                 None,
+                &crate::tables::Caller::Nobody,
                 export,
                 args,
             )
@@ -2741,9 +2899,33 @@ pub mod engine {
         limits: &crate::Limits,
         host: &std::collections::BTreeMap<String, HostFn>,
         tables: Option<&crate::tables::Manifest>,
+        caller: &crate::tables::Caller,
         export: &[&str],
         args: &[wasmtime::component::Val],
     ) -> Result<(Vec<wasmtime::component::Val>, Usage), String> {
+        run_metered(
+            engine, component, contract, granted, limits, host, tables, caller, export, args,
+        )
+        .map(|(results, usage, _)| (results, usage))
+    }
+
+    /// [`run_measured`], and **the fuel the call left of its budget**,
+    /// instantiation's and the call's spent: what a program predicate leaves
+    /// the export it guards (track `row-ownership`), which spends one budget
+    /// with it. A call with no budget is given all of it (`u64::MAX`).
+    #[allow(clippy::too_many_arguments)]
+    fn run_metered(
+        engine: &wasmtime::Engine,
+        component: &wasmtime::component::Component,
+        contract: &crate::ComponentContract,
+        granted: &crate::Granted,
+        limits: &crate::Limits,
+        host: &std::collections::BTreeMap<String, HostFn>,
+        tables: Option<&crate::tables::Manifest>,
+        caller: &crate::tables::Caller,
+        export: &[&str],
+        args: &[wasmtime::component::Val],
+    ) -> Result<(Vec<wasmtime::component::Val>, Usage, u64), String> {
         use wasmtime::Store;
         let started = std::time::Instant::now();
         use wasmtime::component::{Linker, Val};
@@ -2791,6 +2973,7 @@ pub mod engine {
                     table_link::check_import(function, &ty)?;
                 }
                 let named = key.clone();
+                let caller = caller.clone();
                 // What its answer must hold (ADR-0179), as the contract states.
                 let bounded: Vec<crate::Bounded> = contract
                     .imports
@@ -2809,6 +2992,15 @@ pub mod engine {
                             .map(|(v, (_, t))| graph::untangle(v, &t))
                             .collect::<Result<_, _>>()
                             .map_err(|e| wasmtime::Error::msg(format!("`{named}`: {e}")))?;
+                        // An owned table's function is its caller's (track
+                        // `row-ownership`): its handle held to the call's
+                        // reader before any adapter reads it, and given on
+                        // as the table's plain function takes it.
+                        let args = match &function {
+                            Some(function) => table_owners::admit(function, &caller, args)
+                                .map_err(wasmtime::Error::msg)?,
+                            None => args,
+                        };
                         let out = implementation(&args).map_err(wasmtime::Error::msg)?;
                         // A table function's answer is its function's,
                         // exactly, or the call fails: never projected, never
@@ -2821,6 +3013,13 @@ pub mod engine {
                                 ))
                             })?;
                         }
+                        // A reader an owned table shares with is answered
+                        // its seen row (track `row-ownership`).
+                        let out = match &function {
+                            Some(function) => table_owners::seen(function, out)
+                                .map_err(|why| wasmtime::Error::msg(format!("`{named}`: {why}")))?,
+                            None => out,
+                        };
                         if out.len() != results.len() {
                             return Err(wasmtime::Error::msg(format!(
                                 "the host returned {} values where the operation has {}",
@@ -2890,13 +3089,14 @@ pub mod engine {
             .collect::<Result<_, _>>()?;
         func.call(&mut store, &args, &mut results)
             .map_err(|e| stopped(&e))?;
+        let left = store.get_fuel().map_err(|e| e.to_string())?;
         let usage = Usage {
-            fuel: fuel_before.saturating_sub(store.get_fuel().map_err(|e| e.to_string())?),
+            fuel: fuel_before.saturating_sub(left),
             peak_memory: store.data().limits.peak_memory,
             instantiate: instantiated - started,
             call: instantiated.elapsed(),
         };
-        Ok((results, usage))
+        Ok((results, usage, left))
     }
 
     /// One imported function's type, as the component imports it.

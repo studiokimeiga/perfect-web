@@ -1,8 +1,8 @@
 ADR-0063 - every name means one binding
 
 produced by: just e10-lexical
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 83761ca3ae614f5846e6d3bb7460b8427bc1ff2e
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/41491093145 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the scopes, and what each reader makes of them (compiler/pw-core/tests/lexical_scope.rs)
@@ -12,19 +12,19 @@ test a_for_loops_name_is_an_element_of_its_list ... ok
 test a_lambda_parameter_is_not_the_let_it_shadows ... ok
 test a_name_bound_twice_carries_each_bindings_label ... ok
 test a_let_binds_from_the_next_statement ... ok
-test a_record_shorthand_names_the_binding_in_scope ... ok
 test a_names_type_is_its_bindings_where_nothing_else_types_it ... ok
+test a_record_shorthand_names_the_binding_in_scope ... ok
 test a_secret_logged_through_a_for_loops_name_is_refused ... ok
 test a_secret_logged_through_a_lambdas_parameter_is_refused ... ok
-test a_secret_rendered_through_an_each_blocks_name_is_refused ... ok
 test a_secret_string_logged_through_a_for_loops_name_is_refused ... ok
 test a_secret_string_logged_through_a_lambdas_parameter_is_refused ... ok
+test a_secret_rendered_through_an_each_blocks_name_is_refused ... ok
 test an_each_blocks_name_is_an_element_of_its_collection ... ok
 test two_arms_binding_one_name_are_typed_apart ... ok
 test two_arms_binding_one_name_in_a_template_are_typed_apart ... ok
 test two_branches_binding_one_name_are_typed_apart ... ok
 test two_lambdas_binding_one_name_are_typed_apart ... ok
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.34s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.47s
 
 == a match over a name an arm binds again (compiler/pw-core/tests/match_exhaustiveness.rs)
 
@@ -43,21 +43,21 @@ test the_kiokun_slices_matches_are_proven_now ... ok
 test a_type_no_pattern_takes_apart_is_matched_by_a_name_only ... ok
 test what_the_analysis_cannot_read_is_blocked_not_proven ... ok
 test exhaustive_matches_pass ... ok
-test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.41s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.40s
 
 == what the value relations decide: the store program
 
 57 file(s)
-  Arity       agree                            679
+  Arity       agree                            680
   Argument    agree                            1045
-  Field       agree                            229
-  Return      agree                            408
+  Field       agree                            230
+  Return      agree                            409
   Return      undecided: Unknown               1
   Binding     agree                            25
-  Annotation  agree                            1308
+  Annotation  agree                            1310
   Operand     agree                            484
   Assignment  agree                            73
-  Member      agree                            557
+  Member      agree                            558
   Case        agree                            54
   Fields      agree                            54
   Branches    agree                            42
@@ -72,16 +72,16 @@ test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
 == what the value relations decide: kiokun
 
 27 file(s)
-  Arity       agree                            84
+  Arity       agree                            85
   Argument    agree                            131
-  Field       agree                            40
-  Return      agree                            100
+  Field       agree                            41
+  Return      agree                            101
   Return      undecided: Unknown               1
   Binding     agree                            1
-  Annotation  agree                            473
+  Annotation  agree                            475
   Operand     agree                            221
   Assignment  agree                            1
-  Member      agree                            126
+  Member      agree                            127
   Case        agree                            4
   Fields      agree                            6
   Branches    agree                            6
@@ -93,20 +93,20 @@ test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
 
 == what the value relations decide: the accepted corpus as one program
 
-93 file(s)
-  Arity       agree                            185
-  Argument    agree                            262
+97 file(s)
+  Arity       agree                            188
+  Argument    agree                            266
   Argument    undecided: Unknown               5
-  Field       agree                            76
-  Return      agree                            180
+  Field       agree                            77
+  Return      agree                            184
   Return      undecided: Unknown               1
   Binding     agree                            3
   Binding     undecided: Unknown               3
-  Annotation  agree                            965
+  Annotation  agree                            1021
   Operand     agree                            248
   Operand     undecided: Unknown               3
   Assignment  agree                            5
-  Member      agree                            167
+  Member      agree                            168
   Case        agree                            7
   Fields      agree                            22
   Branches    agree                            12

@@ -59,7 +59,27 @@ struct Table {
     /// The most rows the table holds, where it is read whole.
     #[serde(default)]
     bounded: Option<u64>,
+    /// **Whose its rows are** (track `row-ownership`, ADR-0384 H1): the
+    /// field holding each row's owner's id, the fields holding the ids of
+    /// the others who read it, and the fields its owner alone reads.
+    #[serde(default)]
+    owner: Option<String>,
+    #[serde(default)]
+    shares: Vec<String>,
+    #[serde(default)]
+    private: Vec<String>,
+    /// Each `refers <field> to <Table>`: a foreign key its database holds
+    /// across every row of both tables, whoever owns them.
+    #[serde(default)]
+    references: Vec<Reference>,
     functions: Vec<Function>,
+}
+
+/// `refers owner to Users`, as tables.json states it.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+struct Reference {
+    field: String,
+    table: String,
 }
 
 /// An index a table declares: `index by_done on done`, `unique by_slug on
@@ -189,6 +209,38 @@ struct Function {
     by: Vec<String>,
     #[serde(default)]
     sorted_by: Vec<String>,
+    /// An owned table's function's: the field whose place its handle takes.
+    #[serde(default)]
+    reader: Option<String>,
+}
+
+/// **Who a call reads and writes as** (track `row-ownership`, ADR-0384 H1):
+/// the user the host answers `pw:host/principal#read` with for the call,
+/// from the session's principal (ADR-0270), or no one, for a call no reader
+/// makes (a command the platform invokes, NEXT 6c). Whoever calls the engine
+/// says which, and an owned table's function is served only to a call made
+/// as someone, for them: a handle a component passes is held to it, never
+/// believed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Caller {
+    /// The session's principal's user, or its own guest's (ADR-0263).
+    User(String),
+    /// No reader: every owned table's function refuses.
+    Nobody,
+}
+
+/// **The handle an owned table's function is given** (track
+/// `row-ownership`, ADR-0384 H1): the field whose place it takes, the first
+/// it reads or deletes by (an `insert`'s and a `put`'s is given beside the
+/// row, its owner's), and what a read by it is answered.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Handle {
+    /// The owner's field, or one the table shares with.
+    pub field: String,
+    /// **The seen row**: the columns a reader the table shares with is
+    /// answered, the row's without its private fields; none where the read
+    /// answers the row.
+    pub seen: Option<Vec<Column>>,
 }
 
 /// **One field as a function's values carry it**: its Pleris name (the
@@ -242,6 +294,9 @@ pub struct Read {
     pub unique: bool,
     /// The table's bound: the most rows an `all` answers.
     pub bounded: Option<u64>,
+    /// An owned table's read's handle (track `row-ownership`): none for an
+    /// unowned table's.
+    pub handle: Option<Handle>,
 }
 
 impl Read {
@@ -293,6 +348,9 @@ pub struct Write {
     pub key: Vec<String>,
     /// Each unique index's fields, in tables.json's order.
     pub unique: Vec<Vec<String>>,
+    /// An owned table's write's handle, its owner's (track
+    /// `row-ownership`): none for an unowned table's.
+    pub handle: Option<Handle>,
 }
 
 impl Write {
@@ -324,6 +382,14 @@ impl Access {
         match self {
             Access::Read(read) => &read.table,
             Access::Write(write) => &write.table,
+        }
+    }
+
+    /// An owned table's function's handle (track `row-ownership`).
+    pub fn handle(&self) -> Option<&Handle> {
+        match self {
+            Access::Read(read) => read.handle.as_ref(),
+            Access::Write(write) => write.handle.as_ref(),
         }
     }
 }
@@ -426,6 +492,131 @@ impl Table {
 
     fn column(&self, name: &str) -> Option<Column> {
         self.fields.iter().find(|f| f.name == name).map(Column::of)
+    }
+
+    /// **Whose its rows are, held whole** (track `row-ownership`, ADR-0384
+    /// H1; the compiler's PW0367 to PW0369, held again where the host reads
+    /// the manifest): an owner and each sharer a field holding a principal's
+    /// id, a string; the key led by the owner; every index by the owner or a
+    /// sharer, a unique one holding the owner; a private field no reader but
+    /// the owner selects or orders rows by; each function given its handle
+    /// in the place of the field it leads with, a read's the owner's or a
+    /// sharer's, a write's the owner's; and no `all`. A table no one owns
+    /// states none of it.
+    fn owned_whole(&self) -> Result<(), String> {
+        let name = &self.name;
+        let refused = |why: String| Err(format!("tables.json: {name} {why}"));
+        let Some(owner) = &self.owner else {
+            if !self.shares.is_empty() || !self.private.is_empty() {
+                return refused("shares or keeps fields private, and no one owns it".into());
+            }
+            if let Some(f) = self.functions.iter().find(|f| f.reader.is_some()) {
+                return refused(format!(
+                    "gives `{}` a handle, and no one owns its rows",
+                    f.name
+                ));
+            }
+            return Ok(());
+        };
+        let principal = |field: &String| {
+            self.fields
+                .iter()
+                .any(|f| f.name == *field && matches!(f.stored, Stored::String { .. }))
+        };
+        if !principal(owner) {
+            return refused(format!(
+                "is owned by `{owner}`, which is no field holding a principal's id"
+            ));
+        }
+        for (at, sharer) in self.shares.iter().enumerate() {
+            if sharer == owner || !principal(sharer) || self.shares[..at].contains(sharer) {
+                return refused(format!(
+                    "shares with `{sharer}`, which is no other field holding a principal's id"
+                ));
+            }
+        }
+        if self.key.first() != Some(owner) {
+            return refused(format!(
+                "is owned by `{owner}`, and its key leads with another"
+            ));
+        }
+        let reader =
+            |field: Option<&String>| field.is_some_and(|f| f == owner || self.shares.contains(f));
+        for index in &self.indexes {
+            if !reader(index.fields.first()) || (index.unique && !index.fields.contains(owner)) {
+                return refused(format!(
+                    "is owned, and its index `{}` is read by no reader of its rows alone",
+                    index.name
+                ));
+            }
+        }
+        for (at, private) in self.private.iter().enumerate() {
+            let seen_by_others = !self.shares.is_empty()
+                && (self.order.as_ref() == Some(private)
+                    || self.indexes.iter().any(|index| {
+                        index.fields.contains(private)
+                            && index
+                                .fields
+                                .first()
+                                .is_some_and(|f| self.shares.contains(f))
+                    }));
+            if !self.fields.iter().any(|f| f.name == *private)
+                || reader(Some(private))
+                || self.key.contains(private)
+                || self.private[..at].contains(private)
+                || seen_by_others
+            {
+                return refused(format!(
+                    "keeps `{private}` private, which another reader would select or order its \
+                     rows by"
+                ));
+            }
+        }
+        for function in &self.functions {
+            let given = match function.primitive {
+                Primitive::All => {
+                    return refused("is owned, and is read whole by `all`".into());
+                }
+                Primitive::Insert | Primitive::Put => Some(owner),
+                Primitive::Delete | Primitive::DeletePrefix => {
+                    function.by.first().filter(|f| *f == owner)
+                }
+                _ => function.by.first().filter(|f| reader(Some(f))),
+            };
+            if given.is_none() || function.reader.as_ref() != given {
+                return refused(format!(
+                    "is owned, and `{}` is not given its reader's handle in the place of the \
+                     field it leads with",
+                    function.name
+                ));
+            }
+        }
+        // A bound counts every owner's rows (the review of track
+        // `row-ownership`, finding 2; the compiler's PW0368): one owner's
+        // rows would refuse another's write, and tell them how many.
+        if let Some(bound) = self.bounded {
+            return refused(format!(
+                "is owned, and its bound of {bound} rows counts every owner's"
+            ));
+        }
+        Ok(())
+    }
+
+    /// **The handle a function of this table is given** (track
+    /// `row-ownership`), as [`Table::owned_whole`] held it: none where no
+    /// one owns the table. A read by a sharer of a table with private fields
+    /// is answered the seen row.
+    fn handle(&self, function: &Function) -> Option<Handle> {
+        let field = function.reader.clone()?;
+        let sharer = self.shares.contains(&field) && !function.primitive.writes();
+        let seen = (sharer && !self.private.is_empty()).then(|| {
+            self.fields
+                .iter()
+                .filter(|f| !self.private.contains(&f.name))
+                .map(Column::of)
+                .collect()
+        });
+        Some(Handle { field, seen })
     }
 }
 
@@ -548,6 +739,52 @@ impl Manifest {
                 }
             }
         }
+        // Whose each table's rows are (track `row-ownership`).
+        for table in &self.tables {
+            table.owned_whole()?;
+        }
+        self.references_within_one_owner()
+    }
+
+    /// **Each reference stays within one owner's rows** (track
+    /// `row-ownership`, the review's finding 1; the compiler's PW6924, held
+    /// again where the host reads the manifest): its field is its table's,
+    /// it names a table of this manifest, and a reference into an owned
+    /// table is made by an owned table from its own owner field, naming the
+    /// owner's own row; a table no one owns refers to no owned table, and an
+    /// owned table to no table no one owns. A database checks a reference
+    /// across every row, whoever owns it (PostgreSQL's foreign keys are
+    /// checked past its row security), so any other reference would answer
+    /// one owner's write with another's rows.
+    fn references_within_one_owner(&self) -> Result<(), String> {
+        for table in &self.tables {
+            let name = &table.name;
+            for reference in &table.references {
+                let (field, to) = (&reference.field, &reference.table);
+                if !table.fields.iter().any(|f| f.name == *field) {
+                    return Err(format!(
+                        "tables.json: {name} refers by `{field}`, which is not its field"
+                    ));
+                }
+                let Some(target) = self.tables.iter().find(|t| t.name == *to) else {
+                    return Err(format!(
+                        "tables.json: {name} refers `{field}` to {to}, which it does not declare"
+                    ));
+                };
+                let within = match (&table.owner, &target.owner) {
+                    (None, None) => true,
+                    (Some(owner), Some(_)) => field == owner,
+                    _ => false,
+                };
+                if !within {
+                    return Err(format!(
+                        "tables.json: {name} refers `{field}` to {to}, across owners' rows: a \
+                         reference into an owned table is made from its referring table's \
+                         owner, and an owned table refers to no table no one owns"
+                    ));
+                }
+            }
+        }
         Ok(())
     }
 
@@ -576,6 +813,7 @@ impl Manifest {
                         .filter(|index| index.unique)
                         .map(|index| index.fields.clone())
                         .collect(),
+                    handle: table.handle(function),
                 }));
             }
             Some(Access::Read(Read {
@@ -589,6 +827,7 @@ impl Manifest {
                 sorted_by: function.sorted_by.clone(),
                 unique: table.unique_index(function.primitive, &function.by),
                 bounded: table.bounded,
+                handle: table.handle(function),
             }))
         })
     }
