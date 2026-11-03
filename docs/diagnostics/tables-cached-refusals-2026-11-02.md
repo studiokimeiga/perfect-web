@@ -33,6 +33,18 @@ responses or an eviction guarantee for retained cache bytes. The existing
 publication-to-COMMIT window remains a limitation; durable atomic tables are
 separate work on `wip/durable-tables`.
 
+## Independent review correction
+
+The separate read-only reviewer of `c9fa13c1` found that `Render::once` can
+return a remembered table operation without executing its adapter callback.
+Direct `answer_within` calls, including a materialization's query with no page
+policy, therefore needed the same fence. The regression at `4b314278` retains
+one live render across closure and fails at its remembered-answer assertion;
+its healthy neighbor verifies the first operation was actually shared.
+`answer_within` now uses the same before/after check. There are four focused
+regressions and five additional strict mutation controls. The reviewer runs
+no campaign and edits no source; final source re-review is still required.
+
 ## Execution record
 
 Pending: retain exact regression and repair SHAs, commands, exit statuses,

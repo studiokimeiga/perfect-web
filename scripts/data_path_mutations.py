@@ -93,6 +93,9 @@ LAST = (
 )
 
 MUTANTS = [
+    ("a render reuses closed tables' remembered operations", MAIN,
+     "        self.read_checked(|| self.answer_open(component_id, session, args, stopped))\n",
+     "        self.answer_open(component_id, session, args, stopped)\n"),
     # Closed adapters refuse every cache path, including a read that closes
     # after its primitive answered. Healthy caches and ordinary fallback are
     # neighboring controls in tests::tables::closed_tables_*.

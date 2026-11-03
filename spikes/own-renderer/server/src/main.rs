@@ -5257,6 +5257,16 @@ impl Server {
         args: &[Val],
         stopped: Option<Stopped>,
     ) -> Result<Val, String> {
+        self.read_checked(|| self.answer_open(component_id, session, args, stopped))
+    }
+
+    fn answer_open(
+        &self,
+        component_id: &str,
+        session: &str,
+        args: &[Val],
+        stopped: Option<Stopped>,
+    ) -> Result<Val, String> {
         // Each operation counted as it runs (`/metrics`).
         let counted = |name: &str, f: HostFn| -> HostFn {
             let (calls, name) = (self.calls.clone(), name.to_string());
