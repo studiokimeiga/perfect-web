@@ -6,26 +6,28 @@
 
 # Next
 
-## Current local continuation, 2026-11-02
+## Current local continuation, 2026-11-03
 
 Fetched `origin/master` is `5d4d4d55`; D3 PostgreSQL, added-table references,
 session overlap and preverify's disk-fixture repair are already merged.
 The older queues below remain dated history.
 
-1. Prepare integration of the local closed-table cache fence on
-   `fix/tables-cached-refusals`. Source `b496bdc3` has four native regressions,
-   a complete 60/60 data-path campaign, 15 browser checks, passing local CI
-   and independent final review. Re-plan, number and complete the required
-   published-head gates before landing. See its
-   [execution record](diagnostics/tables-cached-refusals-2026-11-02.md).
-2. Finish verification of `fix/row-data-integration`: the preserved row
-   snapshot is merged, memory queries share one predicate/body snapshot,
-   and generic server wiring has focused two-user native witnesses. Run the
-   whole affected campaigns, independent review and CI on the frozen source.
-   Keep PR #72's hosted recipe audit and publication gates separate; preserve
-   `/home/haki/code/pw-wt/row-ownership`'s original dirty files.
-3. Validate durable declared tables and row-authorized feed/store migration,
-   using real two-user `.pw` witnesses. The paid E14 study stays deferred.
+1. Prepare the reviewed local integration for landing: source `497c0a6c` on
+   `fix/row-data-integration` includes the cache fence, preserved row work,
+   query snapshots, generic server callers/predicates and guarded-cache
+   authorization. Whole local row/data/refusal recipes and CI pass. Number
+   the integrated ADRs, re-plan and complete every required published-head
+   gate before landing. The broader plan at `16f91956` reaches 170 recipes;
+   the successful PR #72 audit is for its older GitHub test merge and does
+   not replace those gates. See the
+   [integration record](diagnostics/row-data-integration-2026-11-03.md).
+2. Close the row track's remaining browser obligations: two-user owned-row
+   witnesses and a refused query told its predicate's words in three
+   engines. Preserve the original row worktree, branch, real index and all
+   20 edited files; its recovery snapshot is `b407ede4`.
+3. Prove PostgreSQL command/snapshot `CallTables` and durable generic-server
+   integration before row-authorized feed/store migration. Keep private
+   write-flow and H3/H4 separate. The paid E14 study stays deferred.
 
 Remote publication and deployment require current authorization. Local tests
 and implementation continue within that boundary.

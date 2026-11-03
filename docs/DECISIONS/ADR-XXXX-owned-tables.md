@@ -448,7 +448,10 @@ Focused native witnesses cover two users, forged handles and writes, shared
 projections, command and page-query predicates, a missing artifact, pure
 predicates, typed denial versus an error with denial-like text, and a commit
 between a standalone query's predicate and body. This is local implementation
-evidence, with whole campaigns and final review pending. It does not prove
+evidence. Code/test source `497c0a6c` subsequently passed whole row (68/68),
+data-path (60/60), both refusal parts (23/23 and 7/7) and local CI; independent
+final review is clear. The receipts are retained in
+`docs/evidence/E14/row-data-integration/`. This does not prove
 the row track's requested browser behavior in three engines, PostgreSQL
 `CallTables`, private write-flow or H3/H4. See
 `docs/diagnostics/row-data-integration-2026-11-03.md` for source and receipts.

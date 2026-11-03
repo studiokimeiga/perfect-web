@@ -1,0 +1,204 @@
+{
+  "source_commit": "497c0a6c73f86134746791faed5afd9b994023f3",
+  "branch": "fix/row-data-integration",
+  "patch_base": "687dd9225de06cb6fd245ba54489fbd7dcb31761",
+  "row_recovery_snapshot": "b407ede454126709e7bf217ac82664a742d89c48",
+  "commands": [
+    {
+      "command": "just e14-row-ownership",
+      "exit": 0,
+      "controls_killed": 68,
+      "controls_total": 68,
+      "mutation_baseline": {
+        "passed": 97,
+        "failed": 0
+      }
+    },
+    {
+      "command": "just e14-data-path",
+      "exit": 0,
+      "controls_killed": 60,
+      "controls_total": 60,
+      "mutation_baseline": {
+        "passed": 62,
+        "failed": 0
+      },
+      "browser_passed": 15,
+      "engines": [
+        "Chromium",
+        "Firefox",
+        "WebKit"
+      ]
+    },
+    {
+      "command": "just e14-refusal",
+      "exit": 0,
+      "controls_killed": 23,
+      "controls_total": 23
+    },
+    {
+      "command": "just e14-refusal-2",
+      "exit": 0,
+      "controls_killed": 7,
+      "controls_total": 7
+    },
+    {
+      "command": "RUST_TEST_THREADS=8 just ci",
+      "exit": 0,
+      "result": "ci: OK",
+      "generated_input_hashes": {
+        "docs/evidence/E14/data-path.txt": "8c53103712f5d9f5b36f1c11f429f4678871483e16470e1889b0fe9c52da87e5",
+        "docs/evidence/E14/refusal-2.txt": "21d966a931ffdc756b1c83e960cbce0fdcf6fc300430b484ea0c42406c9cab90",
+        "docs/evidence/E14/refusal.txt": "b16f4a1a9e04a0d70c9f4dcd2b95202f78bd48ba75c1ad0809610bc8860968fa",
+        "docs/evidence/E14/row-ownership.txt": "9c5db525ff62786cb545752e20935eed0e07ee195306945a3ee536a5f387c56e"
+      },
+      "server": {
+        "passed": 918,
+        "failed": 0,
+        "ignored": 9
+      },
+      "tooling": {
+        "executed": 1172,
+        "skipped": 5,
+        "failed": 0
+      },
+      "source_mutants": {
+        "judged": 351,
+        "checks": 567,
+        "intentional_named_rule_refusals": 20,
+        "failing": 0
+      }
+    },
+    {
+      "command": "python3 scripts/mutation_anchors.py",
+      "exit": 0,
+      "anchors": 5103,
+      "scripts": 326
+    }
+  ],
+  "diagnostic_campaign": {
+    "source": "16f91956aa65fd15cb7df60bbb960520128c1f6b",
+    "exit": 1,
+    "completed_controls": 68,
+    "killed": 66,
+    "invalid": 2,
+    "acceptance_credit": false,
+    "cause": "Two compiler controls stopped in the old feed fixture expect. The helper now asserts its build; validator unchanged."
+  },
+  "review": {
+    "source": "497c0a6c73f86134746791faed5afd9b994023f3",
+    "reviewer": "/root/review_cached_refusals",
+    "mode": "read-only committed objects; no reviewer tests or builds",
+    "outstanding_actionable_findings": 0
+  },
+  "limits": [
+    "Authorization is for the invocation read snapshot; ordinary cached data follows declared freshness. No claim at later HTTP/frame delivery.",
+    "Row authority in three real browser engines, PostgreSQL CallTables and protected feed/store migration are not established by this local checkpoint.",
+    "Private write-flow, H3/H4 and default-deny ownership remain separate.",
+    "The broader plan and published-head gates remain pending. No push, PR mutation, deployment or paid model run.",
+    "PR72 hosted receipts are for test merge 5bf6d4b947769a413377c5165aa696705fc112bf and do not transfer to this local source.",
+    "CI used exact committed code/tests plus the explicitly hashed generated evidence inputs; this is not a hosted clean-head landing receipt."
+  ],
+  "files": [
+    {
+      "file": "row-ownership-497c0a6c.log.gz",
+      "raw_sha256": "9c5db525ff62786cb545752e20935eed0e07ee195306945a3ee536a5f387c56e",
+      "gzip_sha256": "f62d8da50902ff39548c0f6fb8d183a239a2832ea958adf0e2a9c4f42e33c613"
+    },
+    {
+      "file": "data-path-497c0a6c.log.gz",
+      "raw_sha256": "8c53103712f5d9f5b36f1c11f429f4678871483e16470e1889b0fe9c52da87e5",
+      "gzip_sha256": "f4e263596e9479d2ea49e6b2d6d0cf96b55aa259c7cf671ae298e5bd3f6c6cb4"
+    },
+    {
+      "file": "refusal-497c0a6c.log.gz",
+      "raw_sha256": "b16f4a1a9e04a0d70c9f4dcd2b95202f78bd48ba75c1ad0809610bc8860968fa",
+      "gzip_sha256": "8352753f9fd3153178c73aa59976893c26d6163db0cf38e2786ceeb435445ed5"
+    },
+    {
+      "file": "refusal-2-497c0a6c.log.gz",
+      "raw_sha256": "21d966a931ffdc756b1c83e960cbce0fdcf6fc300430b484ea0c42406c9cab90",
+      "gzip_sha256": "4e0bbdf7e026a4c71c1761d33488803b99fd129307faa4ecbbd700825236f567"
+    },
+    {
+      "file": "source.log.gz",
+      "raw_sha256": "d2a6a7c8c4f6dcd81bacd02a2b3e11b9f40b201f080652d27a818561ce20075a",
+      "gzip_sha256": "af4d6ab07e4f971270a9aff67569cb0c4f0949904bae7933cf208953761c6d2a"
+    },
+    {
+      "file": "ci-497c0a6c.log.gz",
+      "raw_sha256": "5ebb5fcfcb00c76c1a99bfded94b01767ae656b8b3a958e6150d9d4158788218",
+      "gzip_sha256": "669add0467e262900d52c6e5972bfa41f7b80184811224e585083f086a495fc4"
+    },
+    {
+      "file": "final-anchors.log.gz",
+      "raw_sha256": "0d2ca3b3cd0075e93364567542801cebee1ca65b1ac80823a512630a810b99a8",
+      "gzip_sha256": "c7418b0e7bfebb0819da6004495a9346eeaf062272e9eff93117d3383a66ee60"
+    },
+    {
+      "file": "start-status.log.gz",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "file": "ci-start-status.log.gz",
+      "raw_sha256": "791a3bdac39d8f3a5eb63ec1acd719f3abe11e709f37cfe93641f33c64fb7552",
+      "gzip_sha256": "9be56e036a105a08b2390384951e68978f90dc38ff3b779d4ca12c699b2b8335"
+    },
+    {
+      "file": "ci-input-hashes.json.gz",
+      "raw_sha256": "eba99ea316dc040ac1f1c2b4ead8fab38fc2010451aaff70846160041fb4592d",
+      "gzip_sha256": "209f1124baa7b4936983b499c3a720e267153dca3078da87e52f1d955de332db"
+    },
+    {
+      "file": "end-status.log.gz",
+      "raw_sha256": "791a3bdac39d8f3a5eb63ec1acd719f3abe11e709f37cfe93641f33c64fb7552",
+      "gzip_sha256": "9be56e036a105a08b2390384951e68978f90dc38ff3b779d4ca12c699b2b8335"
+    },
+    {
+      "file": "diagnostic-row-16f91956.log.gz",
+      "raw_sha256": "da19a1a3197c25a634cf64aa972fadd0edccf20ec0d100998485a5649911a7d9",
+      "gzip_sha256": "9c02a64fb23683166ae04a51d2864f587f6c64dfefa6830adfe0162a40bf26b4"
+    },
+    {
+      "file": "snapshot-regression-9db05cc4.log.gz",
+      "raw_sha256": "bec2d5191d4298f135af820a852e10b753434f431c89a21534c415abfaf9ee03",
+      "gzip_sha256": "fcd93774aae56f394791cb6277aa9a359eba78c56cb8a88cf2bc190cd4ed8168"
+    },
+    {
+      "file": "server-regression-9dc74c3a.log.gz",
+      "raw_sha256": "8ce02de8be56c8536f5159d26d23c4183c139fef924a871ae725ec6d64e5da38",
+      "gzip_sha256": "a76b8549ad3750d1ffa5a503d424c62289670e0da71c11999b62ad634e672b0c"
+    },
+    {
+      "file": "cache-regression-d65dc77b.log.gz",
+      "raw_sha256": "f1009aa2e9207331bc59c7ed1964eff5e3fd853f49b4c87d21158773d6526fff",
+      "gzip_sha256": "566dae6ce7f5761a1f2f94796c88a4eb7e65e4b75cf414fc69511b668a2c9e4c"
+    },
+    {
+      "file": "qualified-regression-c5d9a1b0.log.gz",
+      "raw_sha256": "d411935e1b79f34577c29f935f3f1c4685931724c6e3dfdca59f456479a4e289",
+      "gzip_sha256": "a9556b85347f2a6beeeb3a182eb945083687b51c1d357d05deb3292b56eb054e"
+    },
+    {
+      "file": "plan-16f91956.log.gz",
+      "raw_sha256": "383112fe25a0c7cda311e05f7acdec57cf91ea24c8134f55e0eec62604912aee",
+      "gzip_sha256": "0036595b0d5a457fe59b0d0d2b23d544a111ff7d67e36fa62521c30e9920ccef"
+    },
+    {
+      "file": "original-worktree-preservation.json.gz",
+      "raw_sha256": "9f5718bb5ecf8587f49b4e0a8e473662ac863a9ba65572a3bade8c9f750ea09d",
+      "gzip_sha256": "e0ff6b3b4946fe07a9bdc8c53f4a6651068bce2608cf1e50722c3cdf6fb737ef"
+    },
+    {
+      "file": "pr72-artifact-audit.json.gz",
+      "raw_sha256": "65aee962901c18b85d5ff48a66c80089647ff8fadc2fdb506842f2aede348d73",
+      "gzip_sha256": "30895cc2e95ba00fb78e316255bc049e47e296b6938f88a418350018f699916b"
+    },
+    {
+      "file": "pr72-hosted-metadata.json.gz",
+      "raw_sha256": "e1aa2b689ac97448084c79c8ab862a39dcb2e06d26b69e51dfa867dd115b9b4b",
+      "gzip_sha256": "1b84230098d76e4d85e6c98d70b2ff8267ddead59efbea4d8af2536e28c059c4"
+    }
+  ]
+}

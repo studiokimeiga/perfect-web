@@ -166,3 +166,37 @@ case check (4,759 paths), and all 5,103 mutation anchors pass. Logs:
 the reviewed `16f91956` checkpoint; the two changes are test failure reporting
 and a test callback type alias. Whole verification is rerun on the resulting
 source commit rather than credited from the diagnostic campaign.
+
+## Final local verification
+
+Code/test source **`497c0a6c73f86134746791faed5afd9b994023f3`** passed:
+
+| Command | Observed result |
+| --- | --- |
+| `just e14-row-ownership` | 68/68 controls killed; mutation baseline 97 passed/0 failed |
+| `just e14-data-path` | 60/60 controls killed; baseline 62/0; 15 browser checks across Chromium, Firefox and WebKit |
+| `just e14-refusal` | 23/23 controls killed; restored browser baseline passes |
+| `just e14-refusal-2` | 7/7 controls killed; restored browser baseline passes |
+| `RUST_TEST_THREADS=8 just ci` | exit 0, `ci: OK`; server 918 passed/9 ignored; tooling ran 1,177 tests with 5 explicit skips |
+| `python3 scripts/mutation_anchors.py` | 5,103 anchors in 326 scripts, each matching once |
+
+CI also judged all 351 source mutants in 567 checks, with 20 intentional
+named-rule refusals and zero failing. Skipped/ignored tests are not credited
+as passing. No campaign process was stopped by the memory bound. Independent
+review at this source has no outstanding actionable findings. The original
+row worktree's branch, real index and all 20 file hashes were rechecked
+unchanged after the complete run.
+
+Raw receipts, red regressions, the failed diagnostic campaign, original-work
+preservation, PR #72 audit and hashes are retained under
+[`docs/evidence/E14/row-data-integration/`](../evidence/E14/row-data-integration/manifest.json).
+The CI code/tests were the exact committed source; only four generated
+receipt files were dirty at its start, and their exact hashes and bytes are
+retained. This is local evidence, not a clean published-head landing receipt.
+The later evidence/documentation commit changes no code or tests.
+
+Remaining: the row track's browser witnesses and query-refusal presentation,
+PostgreSQL `CallTables`/durable integration, private write-flow/H3/H4 and the
+broader publication plan. No push, PR mutation, deployment or paid model
+benchmark was performed. The PR #72 audit covers its separate test-merge
+source, never this newer local code.

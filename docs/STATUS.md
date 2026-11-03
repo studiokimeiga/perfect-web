@@ -15,9 +15,12 @@ The completed cache slice is on `fix/tables-cached-refusals`. The current
 2026-11-03 continuation is `fix/row-data-integration` in the same checkout:
 recovery snapshot `b407ede4`, combined baseline `cb34e638`, and snapshot
 repair `a35da34a`. The original row worktree's branch, index and 20 edited
-files remain untouched. Generic server caller/predicate wiring now has
-focused native witnesses; whole campaigns, CI and final independent review
-are pending. See the [integration record](diagnostics/row-data-integration-2026-11-03.md)
+files remain untouched. Code/test source `497c0a6c` passed the whole row
+campaign (68/68), data-path (60/60 and 15 browser checks), both refusal parts
+(23/23 and 7/7), and local CI (server 918 passed/9 ignored). Independent final
+review is clear. Only four hashed generated receipts were dirty CI inputs;
+these are local source results, not published-head landing gates. See the
+[integration record](diagnostics/row-data-integration-2026-11-03.md)
 and the [cache record](diagnostics/tables-cached-refusals-2026-11-02.md).
 This is local implementation evidence; no new landing or production claim.
 The paid E14 study remains deferred.

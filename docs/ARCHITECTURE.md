@@ -74,6 +74,18 @@ main history; its remaining snapshot limits remain explicit in its ADR and
 tests. This corrects the older October track inventory without promoting
 unmerged work to a landing.
 
+The local 2026-11-03 integration (`497c0a6c`, not published) connects the
+generic server to the engine's row-aware calls. Commands supply predicate
+reads on their staging; table queries select one render or standalone
+snapshot for predicate and body. The engine runs compiled predicates as the
+invocation-bound caller under one fuel budget. Reused guarded cache values
+receive authorization against the new invocation's read state without
+executing their body again. Typed denials preserve authored refusal words;
+query denials cannot contaminate command receipts. Whole local row/data/
+refusal gates and CI pass; PostgreSQL `CallTables`, row browser obligations
+and the broader published-head gates remain separate. See the
+[integration record](diagnostics/row-data-integration-2026-11-03.md).
+
 ## Current integration boundary (2026-10-15)
 
 E14 is active before E11-E13. Train-9 and train-10 state and test evidence

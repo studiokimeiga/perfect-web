@@ -1,8 +1,7 @@
 ADR-0302 - a refusal is told where the press was: its mutation controls, part 2 of 2
 
 produced by: just e14-refusal-2
-commit: 83761ca3ae614f5846e6d3bb7460b8427bc1ff2e
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/41491093145 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 497c0a6c73f86134746791faed5afd9b994023f3
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
