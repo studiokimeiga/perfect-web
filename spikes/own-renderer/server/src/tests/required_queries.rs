@@ -502,6 +502,39 @@ fn fresh_owned_club(app: &str) -> String {
 }
 
 #[test]
+fn a_qualified_program_predicate_tells_its_declared_words() {
+    let (_dir, out) = tables::built(
+        &[],
+        &[
+            (
+                "guards.pw",
+                "module guards\npredicate Allowed(pass: Bool)\n    says \"This call needs permission.\"\n{ pass }\n",
+            ),
+            (
+                "pure.pw",
+                "module guarded.pure\nimport guards\ncommand checked(pass: Bool) -> Bool\n    requires guards.Allowed(pass)\n{ pass }\n",
+            ),
+        ],
+    );
+    let s = Server::from_build(out.clone(), out).asserted("qualified predicate served");
+    let http = posted(
+        &s,
+        "/command/guarded.pure.checked",
+        "a",
+        "qualified-denial",
+        "[false]",
+    );
+    assert!(http.starts_with("HTTP/1.1 403"), "{http}");
+    let body: serde_json::Value = serde_json::from_str(
+        http.split_once("\r\n\r\n")
+            .map(|(_, body)| body)
+            .unwrap_or_default(),
+    )
+    .asserted("refusal JSON");
+    assert_eq!(body["says"], "This call needs permission.", "{body}");
+}
+
+#[test]
 fn a_cached_guarded_query_is_refused_once_its_predicate_no_longer_holds() {
     let s = served_feed_with(fresh_owned_club);
     s.identity.signed_in_for_test("a", "alice", "Alice");
