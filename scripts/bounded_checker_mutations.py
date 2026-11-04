@@ -314,7 +314,7 @@ MUTANTS = [
     ('generated index pairs ignore their queried fields', BOUNDED, '                        .find(|(_, p, fields)| *p == many && fields == by)\n', '                        .find(|(_, p, fields)| *p == many && (fields == by || true))\n'),
     ('generated index reads are paired with a prefix batch', BOUNDED, '                        Primitive::Index => Primitive::IndexMany,\n', '                        Primitive::Index => Primitive::PrefixMany,\n'),
     ('generated flat batches replace each individual read in the repair', BOUNDED, '             then give each turn its matching rows from the flat result (or no row for a \\\n', '             then give every turn the entire batch from the flat result (or no row for a \\\n'),
-    ('generated composite keys are described as scalar keys', BOUNDED, '        let input = if by.len() == 1 {\n', '        let input = if true || by.len() == 1 {\n'),
+    ('generated composite keys are described as scalar keys', BOUNDED, '        let input = if held.len() == 1 {\n', '        let input = if true || held.len() == 1 {\n'),
 ]
 
 TESTS = [

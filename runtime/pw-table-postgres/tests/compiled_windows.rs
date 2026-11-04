@@ -271,8 +271,19 @@ fn a_window_predicate_sees_staged_rows_and_a_held_query_keeps_one_snapshot() {
     .assert_ok("pin newest");
     assert!(matches!(held.as_slice(), [Val::Option(Some(_))]));
     tables
-        .transaction(|tx| tx.write("pw:tables/notes#insert", &[note_json(ALICE, "n5", BOB, 10)]))
-        .assert_ok("later newest");
+        .transaction(|tx| {
+            let mut changed = note_json(ALICE, "n4", BOB, 9);
+            changed["text"] = json!("CHANGED AFTER PIN");
+            tx.write("pw:tables/notes#put", &[changed])?;
+            tx.write("pw:tables/notes#insert", &[note_json(ALICE, "n5", BOB, 10)])
+        })
+        .assert_ok("change the pinned body and the newest predicate");
+    assert_eq!(
+        tables
+            .read("pw:tables/notes#get", &[json!(ALICE), json!("n4")])
+            .assert_ok("later body")["text"],
+        "CHANGED AFTER PIN"
+    );
     assert_eq!(
         authorized(
             &program,

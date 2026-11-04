@@ -230,3 +230,118 @@ fn an_owned_readers_field_name_cannot_alias_generated_parameters() {
         );
     }
 }
+
+fn window_repair_diagnostics(declarations: &str) -> Vec<pw_core::diagnostics::Diagnostic> {
+    let source = SOURCE.replace("import capability", "import List\nimport capability")
+        .replace("    index by_recipient_bucket on recipient, bucket", "    index by_recipient_bucket on recipient, bucket\n    index by_recipient_bucket_id on recipient, bucket, id")
+        + declarations;
+    let sources = units(&source)
+        .into_iter()
+        .map(|u| (u.path, u.src))
+        .collect::<Vec<_>>();
+    pw_core::check::check_sources(&sources)
+        .into_iter()
+        .flat_map(|(_, ds)| ds)
+        .collect()
+}
+
+#[test]
+fn generated_owned_set_repairs_describe_the_list_separately_from_the_reader() {
+    for (parameters, result, call, fields, record) in [
+        (
+            "reader: User<UserId>, buckets: List<Int>, n: Int",
+            "List<List<Entry>>",
+            "List.map(buckets, bucket => Windows.last_by_owner_bucket(reader, bucket, n))",
+            vec!["bucket"],
+            None,
+        ),
+        (
+            "reader: User<UserId>, keys: List<WindowsBucketId>, n: Int",
+            "List<List<Entry>>",
+            "List.map(keys, key => Windows.last_by_owner_bucket_id(reader, key.bucket, key.id, n))",
+            vec!["bucket", "id"],
+            Some("Windows.WindowsBucketId"),
+        ),
+        (
+            "reader: User<UserId>, buckets: List<Int>, n: Int",
+            "List<List<EntrySeen>>",
+            "List.map(buckets, bucket => Windows.last_by_recipient_bucket(reader, bucket, n))",
+            vec!["bucket"],
+            None,
+        ),
+        (
+            "reader: User<UserId>, keys: List<WindowsBucketId>, n: Int",
+            "List<List<EntrySeen>>",
+            "List.map(keys, key => Windows.last_by_recipient_bucket_id(reader, key.bucket, key.id, n))",
+            vec!["bucket", "id"],
+            Some("Windows.WindowsBucketId"),
+        ),
+        (
+            "reader: User<UserId>, buckets: List<Int>",
+            "List<Int>",
+            "List.map(buckets, bucket => Windows.count_by_owner_bucket(reader, bucket))",
+            vec!["bucket"],
+            None,
+        ),
+    ] {
+        let ds = window_repair_diagnostics(&format!(
+            "\nfn per({parameters}) -> {result} !{{ database.read<Windows> }} {{\n {call}\n}}\n"
+        ));
+        assert_eq!(ds.len(), 1, "{ds:#?}");
+        assert_eq!(ds[0].code, "PW0405", "{ds:#?}");
+        let help = &ds[0].repairs[0].description;
+        assert!(help.contains("reader handle separately"), "{help}");
+        assert!(
+            !help.contains("`owner`")
+                && !help.contains("`recipient`")
+                && !help.contains("Windows.UserId"),
+            "the handle is not in each list key: {help}"
+        );
+        for field in fields {
+            assert!(help.contains(&format!("`{field}`")), "{help}");
+        }
+        match record {
+            Some(record) => assert!(
+                help.contains(&format!("key records of `{record}`")),
+                "{help}"
+            ),
+            None => assert!(help.contains("scalar values"), "{help}"),
+        }
+        if !call.contains("count_by") {
+            assert!(help.contains("one common bound"), "{help}");
+        }
+    }
+}
+
+#[test]
+fn a_varying_window_bound_does_not_offer_the_shared_bound_set_as_a_replacement() {
+    for (helpers, call) in [
+        ("", "Windows.last_by_owner_bucket(reader, bucket, n)"),
+        (
+            "\nfn wrapped(reader: User<UserId>, bucket: Int, n: Int) -> List<Entry> !{ database.read<Windows> } { Windows.last_by_owner_bucket(reader, bucket, n) }\n",
+            "wrapped(reader, bucket, n)",
+        ),
+    ] {
+        let ds = window_repair_diagnostics(&format!(
+            "{helpers}\nfn per(reader: User<UserId>, bucket: Int, limits: List<Int>) -> List<List<Entry>> !{{ database.read<Windows> }} {{\n List.map(limits, n => {call})\n}}\n"
+        ));
+        assert_eq!(ds.len(), 1, "{ds:#?}");
+        assert_eq!(ds[0].code, "PW0405", "{ds:#?}");
+        let help = &ds[0].repairs[0].description;
+        assert!(
+            !help.contains("last_by_owner_bucket_many"),
+            "a set call cannot take every turn's distinct bound: {help}"
+        );
+        assert!(
+            help.contains("one common bound") && help.contains("before the loop"),
+            "{help}"
+        );
+    }
+    let ds = window_repair_diagnostics(
+        "\nfn batched(reader: User<UserId>, buckets: List<Int>, n: Int) -> List<Entry> !{ database.read<Windows> } { Windows.last_by_owner_bucket_many(reader, buckets, n) }\n",
+    );
+    assert!(
+        ds.is_empty(),
+        "the actual common-bound set neighbor compiles: {ds:#?}"
+    );
+}

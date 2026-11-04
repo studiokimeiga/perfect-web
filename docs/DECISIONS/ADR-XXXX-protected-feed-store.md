@@ -303,3 +303,24 @@ also checked by emitted identity and by real compiled components for owner
 fields values/keys/row/limit. A fixture that mutates a table key now adjusts
 new window metadata to keep its old type-refusal oracle otherwise whole.
 Frozen window checks and independent review are still pending.
+
+
+Review of immutable window source `79de0dd0` found two diagnostic defects,
+reproduced by native regressions (five existing tests passed, two new tests
+failed). PW0405 described an owned set's first parameter, User<UserId>, as
+the list's record and included the reader in every selector. Guidance now
+locates the top-level List parameter by constructor, preserves its complete
+element type, and describes the reader separately. Owned/shared scalar and
+composite cases and the existing unowned neighbors are checked. A loop whose
+window bound varies previously offered the single-shared-bound set as a
+replacement. Direct/wrapped varying-bound cases now get common-bound and
+pure-selection guidance, while an invariant-bound selector loop still names
+its matching set form. The refusal and generated ABI are unchanged.
+
+The new window snapshot fixture now changes the pinned row's body as well as
+inserting a newer predicate row. A held query must retain both its eligibility
+and original body; a fresh query is denied. Both adapters execute the compiled
+fixture. The initial follow-up preflight exposed one moved bounded-checker
+mutation anchor; it is re-anchored to the same scalar/composite decision and
+must still be killed. These local review fixes require their own frozen checks
+and independent delta review; earlier source results are not transferred.

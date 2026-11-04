@@ -51,6 +51,7 @@ import producer_process
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 TABLES = ROOT / "compiler/pw-core/src/tables.rs"
+BOUNDED = ROOT / "compiler/pw-core/src/bounded.rs"
 GRAMMAR = ROOT / "compiler/pw-syntax/src/grammar.rs"
 VALUES = ROOT / "compiler/pw-core/src/values.rs"
 PREDICATES = ROOT / "compiler/pw-core/src/predicates.rs"
@@ -67,6 +68,12 @@ SERVER = ROOT / "spikes/own-renderer/server/src/main.rs"
 IDENTITY = SERVER.with_name("identity.rs")
 
 MUTANTS = [
+    ('windows repair puts the reader in every selector key', BOUNDED,
+     '        let held = by.get(list_at..)?;',
+     '        let held = by.as_slice();'),
+    ('windows varying bound offers the shared bound set as replacement', BOUNDED,
+     'if primitive.window() && reached.param + 1 == self.decl_of(read).params.len() {',
+     'if false && primitive.window() && reached.param + 1 == self.decl_of(read).params.len() {'),
     ('windows answer more rows than a selector allows', LINK,
      '            if *n > limit.max(0) as u64 {',
      '            if false && *n > limit.max(0) as u64 {'),
