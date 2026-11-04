@@ -9324,7 +9324,7 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             "/pw-runtime.mjs" | "/pw-resume.wasm" | "/pw-render.wasm"
         )
     {
-        serve_file(server, &mut stream, route);
+        serve_file(server, &mut stream, route, &headers);
         return;
     }
     let upload_request = server.uploads.claims(method, route);
@@ -11486,9 +11486,10 @@ fn path_decoded(v: &str) -> Option<String> {
 
 /// A request header's value, without copying untrusted bytes into a response.
 fn build_request_header<'a>(headers: &'a str, name: &str) -> Option<&'a str> {
-    headers.lines().filter_map(|line| line.split_once(':')).find_map(|(key, value)| {
-        key.eq_ignore_ascii_case(name).then_some(value.trim())
-    })
+    headers
+        .lines()
+        .filter_map(|line| line.split_once(':'))
+        .find_map(|(key, value)| key.eq_ignore_ascii_case(name).then_some(value.trim()))
 }
 
 /// Honor a client's explicit refusal of an encoding (including q=0), rather
@@ -11499,11 +11500,16 @@ fn accepts_asset_encoding(headers: &str, encoding: &str) -> bool {
     };
     value.split(',').any(|offer| {
         let mut fields = offer.split(';');
-        if !fields.next().is_some_and(|name| name.trim().eq_ignore_ascii_case(encoding)) {
+        if !fields
+            .next()
+            .is_some_and(|name| name.trim().eq_ignore_ascii_case(encoding))
+        {
             return false;
         }
         fields.all(|parameter| match parameter.trim().strip_prefix("q=") {
-            Some(q) => q.parse::<f64>().is_ok_and(|weight| weight > 0.0 && weight <= 1.0),
+            Some(q) => q
+                .parse::<f64>()
+                .is_ok_and(|weight| weight > 0.0 && weight <= 1.0),
             None => true,
         })
     })
@@ -11539,6 +11545,13 @@ fn serve_file(server: &Server, stream: &mut TcpStream, route: &str, request_head
         path.extension().and_then(|e| e.to_str()),
         Some("mjs" | "js" | "wasm" | "css" | "svg")
     );
+    // Only these build artifacts are provably session-independent. An HTML
+    // response (including a generated page) retains its old CSP behavior,
+    // without adding a public cache policy or conditional 304.
+    if !compressible {
+        respond_build(stream, 200, mime, &bytes);
+        return;
+    }
     let mut encoding = None;
     if compressible {
         // The build pipeline writes both representations, without changing
@@ -11558,8 +11571,12 @@ fn serve_file(server: &Server, stream: &mut TcpStream, route: &str, request_head
     // A strong ETag describes this representation, not the differently
     // encoded version, and 304 has no body. Weak tags conservatively miss.
     let tag = format!("\"{:x}\"", sha2::Sha256::digest(&bytes));
-    let unchanged = build_request_header(request_headers, "if-none-match")
-        .is_some_and(|candidates| candidates.split(',').any(|candidate| candidate.trim() == tag));
+    let unchanged =
+        build_request_header(request_headers, "if-none-match").is_some_and(|candidates| {
+            candidates
+                .split(',')
+                .any(|candidate| candidate.trim() == tag)
+        });
     let mut response_headers = format!("cache-control: public, no-cache\r\netag: {tag}\r\n");
     if compressible {
         response_headers.push_str("vary: accept-encoding\r\n");
@@ -11582,10 +11599,22 @@ mod asset_delivery_tests {
 
     #[test]
     fn asset_encoding_respects_explicit_refusal_and_header_case() {
-        assert!(accepts_asset_encoding("Accept-Encoding: br, gzip\r\n", "br"));
-        assert!(accepts_asset_encoding("ACCEPT-ENCODING: gzip;q=0.5, br;q=0.8\r\n", "br"));
-        assert!(!accepts_asset_encoding("Accept-Encoding: br;q=0, gzip\r\n", "br"));
-        assert!(!accepts_asset_encoding("Accept-Encoding: br;q=nope\r\n", "br"));
+        assert!(accepts_asset_encoding(
+            "Accept-Encoding: br, gzip\r\n",
+            "br"
+        ));
+        assert!(accepts_asset_encoding(
+            "ACCEPT-ENCODING: gzip;q=0.5, br;q=0.8\r\n",
+            "br"
+        ));
+        assert!(!accepts_asset_encoding(
+            "Accept-Encoding: br;q=0, gzip\r\n",
+            "br"
+        ));
+        assert!(!accepts_asset_encoding(
+            "Accept-Encoding: br;q=nope\r\n",
+            "br"
+        ));
         assert!(!accepts_asset_encoding("Accept-Encoding: gzip\r\n", "br"));
         assert!(!accepts_asset_encoding("", "br"));
     }
@@ -11593,7 +11622,10 @@ mod asset_delivery_tests {
     #[test]
     fn validation_headers_are_distinguished_by_name() {
         let h = "If-None-Match: \"deadbeef\"\r\nAccept-Encoding: br\r\n";
-        assert_eq!(build_request_header(h, "if-none-match"), Some("\"deadbeef\""));
+        assert_eq!(
+            build_request_header(h, "if-none-match"),
+            Some("\"deadbeef\"")
+        );
         assert_eq!(build_request_header(h, "cache-control"), None);
     }
 }

@@ -15,32 +15,33 @@ const BR = {
 };
 const ASSET = /\.(?:mjs|js|wasm|css|svg)$/;
 
+async function packAsset(directory, entry) {
+  const file = path.join(directory, entry.name);
+  let body = await readFile(file);
+  if (entry.name === "pw-runtime.mjs") {
+    const result = await transform(body.toString("utf8"), {
+      loader: "js",
+      format: "esm",
+      target: "es2022",
+      minify: true,
+      legalComments: "inline",
+      charset: "utf8",
+    });
+    body = Buffer.from(result.code);
+    await writeFile(file, body);
+  }
+  await writeFile(file + ".br", brotliCompressSync(body, BR));
+  await writeFile(file + ".gz", gzipSync(body, { level: 9, mtime: 0 }));
+}
+
 export async function optimizeAssets(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
-  const packed = [];
-  for (const entry of entries) {
-    // Compiled executable artifacts under build/ are served by a separate
-    // route and must not be rewritten without their own identity contract.
-    if (!entry.isFile() || !ASSET.test(entry.name)) continue;
-    const file = path.join(directory, entry.name);
-    let body = await readFile(file);
-    if (entry.name === "pw-runtime.mjs") {
-      const result = await transform(body.toString("utf8"), {
-        loader: "js",
-        format: "esm",
-        target: "es2022",
-        minify: true,
-        legalComments: "inline",
-        charset: "utf8",
-      });
-      body = Buffer.from(result.code);
-      await writeFile(file, body);
-    }
-    await writeFile(file + ".br", brotliCompressSync(body, BR));
-    await writeFile(file + ".gz", gzipSync(body, { level: 9, mtime: 0 }));
-    packed.push(entry.name);
-  }
-  return packed;
+  // Deterministic order and only root-level shared assets. Compiled handler
+  // modules have their own content/identity contract and stay untouched.
+  const assets = entries.filter((entry) => entry.isFile() && ASSET.test(entry.name));
+  assets.sort((a, b) => a.name.localeCompare(b.name, "en"));
+  for (const asset of assets) await packAsset(directory, asset);
+  return assets.map((asset) => asset.name);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
