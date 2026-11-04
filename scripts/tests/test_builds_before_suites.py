@@ -84,6 +84,7 @@ BUILD_SCRIPTS = (
     "kiokun-site.sh",
     "baseline-store.sh",
     "guestbook.sh",
+    "owned.sh",
     "todomvc.sh",
 )
 SUITE = re.compile(r"playwright test")

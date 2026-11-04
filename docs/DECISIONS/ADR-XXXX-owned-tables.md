@@ -554,3 +554,20 @@ projection, and a guarded query's words in Chromium, Firefox and WebKit.
 `e14-row-ownership` builds and runs them in memory; `e14-durable-tables` runs
 the identical spec on PostgreSQL. Fresh final-source campaign receipts remain
 the acceptance boundary. H3/H4 and private write-flow are unchanged.
+
+### Verification recipe correction, 2026-11-03
+
+The f81e200c whole runtime campaigns completed all272controls, but local CI
+failed three tooling tests: the stand-in tree did not stub the new owned.sh
+builder, and the strict browser-status checker rejects an OR-list even where
+its right side exits. The fixture now includes that builder and the browser
+helper runs directly under the existing errexit/pipefail shell and receipt
+trap. The checker and the failure-injection tests are unchanged. Rerun the
+complete local gates at the corrected commit; no f81 CI success is claimed.
+
+The recipe also builds the shared runtime fixture explicitly, as the browser
+recipe contract requires. A failed suite's temporary report is retained as
+the canonical row receipt before the trap exits with the original status,
+so its failure remains reviewable. The existing build-order and injected
+failed-suite tests cover both behaviors; run these boundary checks when
+registering a browser build or converting a native-only recipe to browsers.
