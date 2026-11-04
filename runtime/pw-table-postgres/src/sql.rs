@@ -541,7 +541,7 @@ pub(crate) fn objects(names: &Names, tables: &[TableShape]) -> BTreeMap<String, 
 
 /// The relations the adapter keeps beside the program's, by name: its
 /// tables, their keys' indexes, its indexes and its identities' sequences
-/// (`migrate`'s platform version 0001).
+/// (`migrate`'s platform versions 0001 through 0003).
 const PLATFORM_RELATIONS: &[&str] = &[
     "pw_platform",
     "pw_platform_pkey",
@@ -566,6 +566,10 @@ const PLATFORM_RELATIONS: &[&str] = &[
     "pw_sessions_pkey",
     "pw_sign_ins",
     "pw_sign_ins_pkey",
+    // Version 0003: the retained-log watermark and host identities.
+    "pw_outbox_trimmed",
+    "pw_outbox_trimmed_pkey",
+    "pw_host_instances",
 ];
 
 /// **Every name the declaration's tables and objects take, each taken

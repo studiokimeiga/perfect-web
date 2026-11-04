@@ -235,6 +235,8 @@ pub(crate) const PLATFORM_TABLES: &[&str] = &[
     "pw_runs",
     "pw_sessions",
     "pw_sign_ins",
+    "pw_outbox_trimmed",
+    "pw_host_instances",
 ];
 
 fn named(what: &str, name: &str) -> Result<(), Error> {

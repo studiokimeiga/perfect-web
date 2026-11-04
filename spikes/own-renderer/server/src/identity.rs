@@ -868,6 +868,22 @@ impl Principals {
         run()
     }
 
+    /// A browser invocation admitted explicitly as anonymous can keep its
+    /// guest-owned rows in accounts mode. This does not turn Anonymous into
+    /// Guest: SignedIn, receipt partitions, delivery and commit fences keep
+    /// the admitted identity unchanged. A mutable cache observation cannot
+    /// create this authority, and platform on-behalf calls use their own proof.
+    pub(crate) fn anonymous_row_user(&self, session: &str) -> Option<String> {
+        if session.is_empty() || session.starts_with(ON_BEHALF) {
+            return None;
+        }
+        matches!(
+            self.invocation_reader(session),
+            Some(ReaderIdentity::Anonymous)
+        )
+        .then(|| guest_user(session))
+    }
+
     fn invocation_reader(&self, session: &str) -> Option<ReaderIdentity> {
         INVOCATION_READERS.with(|readers| {
             readers

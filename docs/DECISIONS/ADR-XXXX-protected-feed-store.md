@@ -106,3 +106,15 @@ keyed-list insert operations. Further witnesses check the publisher's actual
 lock under a database-observed wait, wake after commit, retained rows,
 missed-trim recovery, fresh-host cursors and bounded maintenance batches.
 These are working-tree diagnostics until their frozen-source gates finish.
+
+### Protocol upgrade boundary
+
+Stop all older generic-table workers before opening a deployment with platform
+0003/shared tails. Their immediate outbox deletion does not advance the new
+trim watermark, so mixed old/new publishers are unsupported. This local task
+does not convert production data or authorize a deployment. Relation names
+introduced by 0003 are reserved at manifest admission; an older app that used
+one needs an explicit application-table rename before the platform upgrade.
+Tail startup/poll SQL uses its dedicated connection and is not counted by the
+adapter's statement counter. Bounded-read claims must say which connection
+and row/byte work they measured.

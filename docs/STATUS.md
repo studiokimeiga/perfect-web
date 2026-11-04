@@ -6,9 +6,11 @@
 is clean and locally verified for the earlier row/browser/PostgreSQL slice.
 The canonical apps still use handwritten data layers. Their migration must
 preserve guest joining, uploads, clock-owned orders and cross-host delivery;
-the generic adapter has explicit gaps at those seams. Shared-outbox support
-is being verified first; identity joining, upload lifecycle, bounded reads and
-the application ports remain pending under [the migration decision](DECISIONS/ADR-XXXX-protected-feed-store.md).
+the generic adapter has explicit gaps at those seams. Local prerequisite
+checkpoints add shared-outbox delivery and explicitly admitted anonymous
+guest-owned rows in accounts mode. The outbox review's reserved-name fix and
+retained-0002 upgrade witness are included. Identity joining, upload lifecycle,
+bounded reads and the application ports remain pending under [the migration decision](DECISIONS/ADR-XXXX-protected-feed-store.md).
 Earlier green records below apply to their named sources only.
 
 **Local row browsers and PostgreSQL, 2026-11-03:** code/test source

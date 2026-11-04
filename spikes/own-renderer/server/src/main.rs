@@ -2868,7 +2868,12 @@ impl Server {
     fn invocation_caller(&self, session: &str) -> pw_host::tables::Caller {
         match self.identity.principals().of(session) {
             Some(principal) => pw_host::tables::Caller::User(principal.user),
-            None => pw_host::tables::Caller::Nobody,
+            None => self
+                .identity
+                .principals()
+                .anonymous_row_user(session)
+                .map(pw_host::tables::Caller::User)
+                .unwrap_or(pw_host::tables::Caller::Nobody),
         }
     }
 
@@ -16789,6 +16794,9 @@ public query Store(",
     // TRACK SEAM (tables): a program's declared tables served durably from
     // PostgreSQL, the suite over that layer too (track `durable-tables`).
     mod tables_pg;
+
+    // The canonical protected-app migration: generic authority seams.
+    mod protected_migration;
 
     // TRACK SEAM (device-store): a page that holds a value the device keeps,
     // served (ADR-0366).

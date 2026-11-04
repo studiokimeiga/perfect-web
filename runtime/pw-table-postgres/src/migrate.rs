@@ -881,3 +881,211 @@ fn record(
     .map_err(database)?;
     Ok(())
 }
+
+#[cfg(test)]
+mod upgrade_tests {
+    use super::*;
+
+    /// Construct a retained 0002 platform directly from its historical DDL,
+    /// before 0003 has ever run. This is a schema/protocol upgrade witness,
+    /// not a claim that old immediate-delete publishers may keep running.
+    #[test]
+    fn a_retained_0002_platform_upgrades_without_losing_its_records() {
+        let Some(url) = [
+            "PW_TABLES_DATABASE_URL",
+            "PW_STORE_DATABASE_URL",
+            "PW_FEED_DATABASE_URL",
+        ]
+        .iter()
+        .find_map(|name| std::env::var(name).ok().filter(|v| !v.is_empty())) else {
+            return;
+        };
+        let schema = format!(
+            "pw_upgrade_{}_{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        );
+        let mut client = postgres::Client::connect(&url, postgres::NoTls).unwrap();
+        struct Remove(String, String);
+        impl Drop for Remove {
+            fn drop(&mut self) {
+                if let Ok(mut c) = postgres::Client::connect(&self.0, postgres::NoTls) {
+                    let _ = c.batch_execute(&format!("DROP SCHEMA {} CASCADE", ident(&self.1)));
+                }
+            }
+        }
+        let _remove = Remove(url.clone(), schema.clone());
+        let qualified = ident(&schema);
+        client.batch_execute(&format!("CREATE SCHEMA {qualified}; SET search_path TO {qualified};
+            CREATE TABLE pw_platform (version text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now());")).unwrap();
+        for (version, ddl) in &PLATFORM[..2] {
+            client
+                .batch_execute(&ddl.replace("{s}", &qualified))
+                .unwrap();
+            client
+                .execute("INSERT INTO pw_platform(version) VALUES($1)", &[version])
+                .unwrap();
+        }
+        client.batch_execute("INSERT INTO pw_outbox(kind,name,args,host) VALUES('event','BeforeUpgrade','[7]','old');
+            INSERT INTO pw_interactions VALUES('kept','sent','answer',123);
+            INSERT INTO pw_runs(key,command,args,user_id,due_ms,attempts) VALUES('run','clock.command','[]','owner',42,2);
+            INSERT INTO pw_sessions(hash,user_id,handle,name,issuer,epoch) VALUES(decode(repeat('ab',32),'hex'),'owner','handle','Name','issuer',decode(repeat('cd',16),'hex'));
+            INSERT INTO pw_sign_ins(hash,nonce,verifier) VALUES(decode(repeat('ef',32),'hex'),'nonce','verifier');
+            CREATE TABLE existing_application_rows(id bigint PRIMARY KEY, value text);
+            INSERT INTO existing_application_rows VALUES(1,'kept');").unwrap();
+        assert_eq!(
+            client
+                .query_one("SELECT count(*) FROM pw_platform", &[])
+                .unwrap()
+                .get::<_, i64>(0),
+            2
+        );
+        assert!(
+            client
+                .query_one("SELECT to_regclass('pw_outbox_trimmed') IS NULL", &[])
+                .unwrap()
+                .get::<_, bool>(0)
+        );
+        let src = "module UpgradeRows
+type Item = Item { id: Int, text: String }
+table UpgradeRows
+    row Item
+    key id
+source UpgradeData
+    holds UpgradeRows
+    transactions serializable
+    reads strong
+    changes none
+    sets one_call
+";
+        let parsed = pw_syntax::parse_tree(src);
+        let unit = pw_core::check::Unit {
+            path: "Upgrade.pw".into(),
+            src: src.into(),
+            hir: pw_core::lower::lower_file(src, &parsed.green),
+        };
+        let mut units = vec![unit];
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        for package in ["packages/pw-std", "packages/pw-platform-web"] {
+            let mut paths: Vec<_> = std::fs::read_dir(root.join(package))
+                .unwrap()
+                .map(|e| e.unwrap().path())
+                .filter(|p| p.extension().is_some_and(|e| e == "pw"))
+                .collect();
+            paths.sort();
+            for path in paths {
+                let src = std::fs::read_to_string(&path).unwrap();
+                let parsed = pw_syntax::parse_tree(&src);
+                units.push(pw_core::check::Unit {
+                    path: path.display().to_string(),
+                    hir: pw_core::lower::lower_file(&src, &parsed.green),
+                    src,
+                });
+            }
+        }
+        let build = pw_core::build::build(&units);
+        assert!(build.is_ok(), "{:?}", build.as_ref().err());
+        let manifest = build.unwrap().tables;
+        // Record a declared application schema just as the old adapter did,
+        // while only platform 0001/0002 exist. No 0003 database is downgraded
+        // to manufacture this fixture.
+        let shape = shape_of(&manifest).unwrap();
+        let names = Names {
+            schema: schema.clone(),
+        };
+        let pool = crate::pool::Pool::new(
+            &url,
+            1,
+            std::time::Duration::from_secs(2),
+            "upgrade fixture",
+        );
+        let mut lease = pool.take().unwrap();
+        let conn = lease.conn().unwrap();
+        let counters = Counters::default();
+        for table in &shape.tables {
+            conn.batch(&counters, &sql::create_table(&names, table))
+                .unwrap();
+        }
+        for object in sql::objects(&names, &shape.tables).into_values() {
+            conn.batch(&counters, &object.create).unwrap();
+        }
+        let tables: Vec<_> = shape.tables.iter().map(|t| t.name.clone()).collect();
+        let lines = written(&catalog(conn, &counters, &names, &tables).unwrap());
+        let built = Schema::of(manifest.tables.iter().map(|t| t.schema.clone()).collect());
+        let version = client
+            .query_one("SELECT current_setting('server_version_num')::integer", &[])
+            .unwrap()
+            .get(0);
+        record(conn, &counters, &names, &built, &lines, version).unwrap();
+        drop(lease);
+        client
+            .batch_execute("INSERT INTO \"UpgradeRows\" VALUES(1, decode('6b657074', 'hex'))")
+            .unwrap();
+        let opened = crate::PgTables::open(&url, Some(&schema), manifest.clone());
+        assert!(opened.is_ok(), "{:?}", opened.as_ref().err());
+        drop(opened);
+        for query in [
+            "SELECT name || args::text || host FROM pw_outbox",
+            "SELECT key || sent || answer || at_ms::text FROM pw_interactions",
+            "SELECT key || command || args || user_id || due_ms::text || attempts::text FROM pw_runs",
+            "SELECT user_id || handle || name || issuer || encode(epoch,'hex') FROM pw_sessions",
+            "SELECT nonce || verifier FROM pw_sign_ins",
+            "SELECT id::text || value FROM existing_application_rows",
+        ].into_iter().zip([
+            "BeforeUpgrade[7]old", "keptsentanswer123", "runclock.command[]owner422",
+            "ownerhandleNameissuercdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd", "nonceverifier", "1kept",
+        ]) {
+            let (query, expected) = query;
+            assert_eq!(client.query_one(query, &[]).unwrap().get::<_, String>(0), expected);
+        }
+        assert_eq!(
+            client
+                .query_one(
+                    "SELECT convert_from(text, 'UTF8') FROM \"UpgradeRows\"",
+                    &[]
+                )
+                .unwrap()
+                .get::<_, String>(0),
+            "kept"
+        );
+        assert_eq!(
+            client
+                .query_one("SELECT count(*) FROM pw_schema", &[])
+                .unwrap()
+                .get::<_, i64>(0),
+            1
+        );
+        assert_eq!(
+            client
+                .query_one("SELECT through FROM pw_outbox_trimmed", &[])
+                .unwrap()
+                .get::<_, i64>(0),
+            0
+        );
+        assert_eq!(
+            client
+                .query_one("SELECT nextval('pw_host_instances')", &[])
+                .unwrap()
+                .get::<_, i64>(0),
+            1
+        );
+        assert!(crate::PgTables::open(&url, Some(&schema), manifest).is_ok());
+        assert_eq!(
+            client
+                .query_one("SELECT count(*) FROM pw_platform", &[])
+                .unwrap()
+                .get::<_, i64>(0),
+            3
+        );
+        assert_eq!(
+            client
+                .query_one("SELECT nextval('pw_host_instances')", &[])
+                .unwrap()
+                .get::<_, i64>(0),
+            2
+        );
+    }
+}

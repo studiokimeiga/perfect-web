@@ -70,6 +70,8 @@ POOL = CRATE / "src/pool.rs"
 CARGO = ROOT / "Cargo.toml"
 
 MUTANTS = [
+    ("a shared-outbox platform index name is not reserved", SQL,
+     '    "pw_outbox_trimmed_pkey",\n', ''),
     # 1. ADR-0338's named controls for D3
     ("a set read is looped per key", LIB,
      "            let keys = typed_selections(table, function, import, args)?;\n"
@@ -280,6 +282,7 @@ MUTANTS = [
 # Each test binary apart: names can repeat between binaries, and the native
 # assertion validator expects one complete inventory each.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--lib"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_owned"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "commands"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "durability"],
@@ -290,9 +293,9 @@ TESTS = [
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "primitives"],
 ]
 # Every test binary of the crate is one of them.
-assert sorted(t[-1] for t in TESTS) == sorted(p.stem for p in (CRATE / "tests").glob("*.rs"))
+assert sorted(t[-1] for t in TESTS if "--test" in t) == sorted(p.stem for p in (CRATE / "tests").glob("*.rs"))
 
-SOURCES = sorted((CRATE / "tests").rglob("*.rs")) + sorted((ROOT / "runtime/pw-table-memory/tests/support").glob("*.rs"))
+SOURCES = [MIGRATE] + sorted((CRATE / "tests").rglob("*.rs")) + sorted((ROOT / "runtime/pw-table-memory/tests/support").glob("*.rs"))
 INVENTORY = {}
 
 

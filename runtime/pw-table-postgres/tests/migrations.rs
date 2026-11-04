@@ -709,3 +709,51 @@ fn a_backfill_is_the_value_stated_whatever_the_servers_string_syntax() {
     assert_eq!(got["title"], json!("ab"));
     assert_eq!(got["least"], json!(i64::MIN));
 }
+
+/// Platform 0003 names are refused before any database connection; close
+/// neighbors remain ordinary application tables. The index shares the same
+/// PostgreSQL relation namespace as tables and sequences.
+#[test]
+fn shared_outbox_names_are_reserved_before_connecting() {
+    let named = |name: &str| {
+        // Manifests are deployment input too; validation does not rely on
+        // the source language's capitalization convention.
+        let mut manifest = things();
+        let table = manifest
+            .tables
+            .iter_mut()
+            .find(|t| t.schema.name == "Things")
+            .unwrap();
+        table.schema.name = name.into();
+        table.interface = format!("pw:tables/{}", name.replace('_', "-"));
+        for function in &mut table.functions {
+            function.import = function
+                .import
+                .replace("pw:tables/things", &table.interface);
+        }
+        manifest.hash = Schema::of(manifest.tables.iter().map(|t| t.schema.clone()).collect()).hash;
+        manifest.migration.to = manifest.hash.clone();
+        manifest
+    };
+    for name in [
+        "pw_outbox_trimmed",
+        "pw_outbox_trimmed_pkey",
+        "pw_host_instances",
+    ] {
+        let refused = PgTables::open("not a database URL", Some("unused"), named(name)).err();
+        assert!(
+            matches!(&refused, Some(Error::Schema(why)) if why.contains(name)),
+            "{name}: {refused:?}"
+        );
+    }
+    let Some(url) = database() else { return };
+    for name in ["pw_outbox_trimmed_app", "pw_host_instances_app"] {
+        let scratch = Scratch::new(&url, "neighbor");
+        let opened = open(&scratch, named(name));
+        assert!(opened.is_ok(), "{name}: {:?}", opened.as_ref().err());
+        assert_eq!(
+            scratch.texts(&format!("SELECT count(*)::text FROM {name}")),
+            ["0"]
+        );
+    }
+}

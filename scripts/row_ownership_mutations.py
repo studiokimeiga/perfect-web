@@ -63,8 +63,15 @@ HOST = ROOT / "runtime/pw-host/src/lib.rs"
 PROGRAM_PREDICATES = ROOT / "runtime/pw-host/src/engine/program_predicates.rs"
 MEMORY = ROOT / "runtime/pw-table-memory/src/lib.rs"
 SERVER = ROOT / "spikes/own-renderer/server/src/main.rs"
+IDENTITY = SERVER.with_name("identity.rs")
 
 MUTANTS = [
+    ("anonymous guest rows lose their admitted caller", IDENTITY,
+     '        .then(|| guest_user(session))\n',
+     '        .then(|| None::<String>).flatten()\n'),
+    ("anonymous row authority borrows the mutable cache", IDENTITY,
+     '        matches!(\n            self.invocation_reader(session),\n            Some(ReaderIdentity::Anonymous)\n        )\n',
+     '        matches!(self.bound_reader(session), ReaderIdentity::Anonymous)\n'),
     # 1. the compiler
     ("an owned read takes a plain id", TABLES,
      '    let handle = |f: &str| DeclaredType::new("capability.User", vec![ty(f).unwrap_or_else(unit)]);\n',
@@ -297,6 +304,7 @@ MUTANTS = [
 # Each Cargo test binary separately: names can repeat between binaries, and
 # the shared native assertion validator expects one complete inventory.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "tests::protected_migration::"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "required_queries"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "table_owners"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "predicate_bodies"],
@@ -307,6 +315,7 @@ TESTS = [
 
 SOURCES = [
     SERVER,
+    ROOT / "spikes/own-renderer/server/src/tests/protected_migration.rs",
     ROOT / "spikes/own-renderer/server/src/tests/required_queries.rs",
     ROOT / "spikes/own-renderer/server/src/tests/tables.rs",
     ROOT / "compiler/pw-core/tests/table_owners.rs",
