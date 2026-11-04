@@ -267,6 +267,30 @@ fn a_table_gives_each_read_and_write_with_its_type_and_effect() {
             "\"pw:tables/todos#by-done-many\"",
         ),
         (
+            "first_by_list",
+            "(ListId, Int) -> List<Todo>",
+            &read,
+            "\"pw:tables/todos#first-by-list\"",
+        ),
+        (
+            "first_by_list_many",
+            "(List<ListId>, Int) -> List<Todo>",
+            &read,
+            "\"pw:tables/todos#first-by-list-many\"",
+        ),
+        (
+            "last_by_list",
+            "(ListId, Int) -> List<Todo>",
+            &read,
+            "\"pw:tables/todos#last-by-list\"",
+        ),
+        (
+            "last_by_list_many",
+            "(List<ListId>, Int) -> List<Todo>",
+            &read,
+            "\"pw:tables/todos#last-by-list-many\"",
+        ),
+        (
             "count_by_list",
             "(ListId) -> Int",
             &read,
@@ -279,6 +303,30 @@ fn a_table_gives_each_read_and_write_with_its_type_and_effect() {
             "\"pw:tables/todos#count-by-list-many\"",
         ),
         (
+            "first_by_list_id",
+            "(ListId, TodoId, Int) -> List<Todo>",
+            &read,
+            "\"pw:tables/todos#first-by-list-id\"",
+        ),
+        (
+            "first_by_list_id_many",
+            "(List<TodosListId>, Int) -> List<Todo>",
+            &read,
+            "\"pw:tables/todos#first-by-list-id-many\"",
+        ),
+        (
+            "last_by_list_id",
+            "(ListId, TodoId, Int) -> List<Todo>",
+            &read,
+            "\"pw:tables/todos#last-by-list-id\"",
+        ),
+        (
+            "last_by_list_id_many",
+            "(List<TodosListId>, Int) -> List<Todo>",
+            &read,
+            "\"pw:tables/todos#last-by-list-id-many\"",
+        ),
+        (
             "count_by_list_id",
             "(ListId, TodoId) -> Int",
             &read,
@@ -289,6 +337,30 @@ fn a_table_gives_each_read_and_write_with_its_type_and_effect() {
             "(List<TodosListId>) -> List<TodosListIdCount>",
             &read,
             "\"pw:tables/todos#count-by-list-id-many\"",
+        ),
+        (
+            "first_by_done",
+            "(Bool, Int) -> List<Todo>",
+            &read,
+            "\"pw:tables/todos#first-by-done\"",
+        ),
+        (
+            "first_by_done_many",
+            "(List<Bool>, Int) -> List<Todo>",
+            &read,
+            "\"pw:tables/todos#first-by-done-many\"",
+        ),
+        (
+            "last_by_done",
+            "(Bool, Int) -> List<Todo>",
+            &read,
+            "\"pw:tables/todos#last-by-done\"",
+        ),
+        (
+            "last_by_done_many",
+            "(List<Bool>, Int) -> List<Todo>",
+            &read,
+            "\"pw:tables/todos#last-by-done-many\"",
         ),
         (
             "count_by_done",

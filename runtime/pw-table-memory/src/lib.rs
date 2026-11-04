@@ -1647,6 +1647,70 @@ fn read(
         .get(at)
         .map(AsRef::as_ref)
         .ok_or_else(|| Error::Schema("missing table state".into()))?;
+    if function.primitive.window() {
+        let Some((bound, selectors)) = args.split_last() else {
+            return Err(Error::Input("a window takes a trailing Int limit".into()));
+        };
+        let bound = bound
+            .as_i64()
+            .ok_or_else(|| Error::Input("a window limit must be an Int".into()))?;
+        let keys = typed_selections(table, function, import, selectors)?;
+        // Validate the complete selector set before answering an empty window.
+        if bound <= 0 {
+            return Ok(Value::Array(Vec::new()));
+        }
+        let prefix =
+            function.by.len() <= table.key.len() && table.key[..function.by.len()] == function.by;
+        let index = if prefix {
+            None
+        } else {
+            Some(
+                table
+                    .indexes
+                    .iter()
+                    .position(|index| index.fields == function.by)
+                    .ok_or_else(|| {
+                        Error::Schema(format!("{import} windows by no declared selector"))
+                    })?,
+            )
+        };
+        let mut out = Vec::new();
+        for selected in keys {
+            // Scan only references; retain at most the requested number of
+            // ordering keys/row references and clone only the selected rows.
+            // Never reserve capacity from an untrusted maximum Int.
+            let candidates: Box<dyn Iterator<Item = Result<&Row, Error>> + '_> = match index {
+                None => Box::new(data.prefixed(&selected).map(|(_, row)| Ok(row))),
+                Some(index) => Box::new(holding(&data.indexes[index], &selected).map(|key| {
+                    data.rows.get(key).ok_or_else(|| {
+                        Error::Schema(format!("{}'s index names a missing row", table.name))
+                    })
+                })),
+            };
+            let mut best = BTreeMap::new();
+            for row in candidates {
+                let row = row?;
+                best.insert(place(row, &function.sorted_by, &table.key), row);
+                if best.len() as u64 > bound as u64 {
+                    if function.primitive.descending() {
+                        best.pop_first();
+                    } else {
+                        best.pop_last();
+                    }
+                }
+            }
+            if function.primitive.descending() {
+                out.extend(
+                    best.into_values()
+                        .rev()
+                        .map(|row| Value::Object((**row).clone())),
+                );
+            } else {
+                out.extend(best.into_values().map(|row| Value::Object((**row).clone())));
+            }
+        }
+        return Ok(Value::Array(out));
+    }
     if function.primitive.counts() {
         let keys = typed_selections(table, function, import, args)?;
         let prefix =

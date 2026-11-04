@@ -152,6 +152,68 @@ mod tests {
         }
     }
 
+    #[test]
+    fn window_selectors_and_typed_limits_are_checked_before_the_adapter_even_at_zero() {
+        let mut window = read(false);
+        window.primitive = Primitive::First;
+        let calls = Arc::new(AtomicUsize::new(0));
+        let observed = Arc::clone(&calls);
+        let first = host_fn(
+            window.clone(),
+            Arc::new(move |args| {
+                observed.fetch_add(1, Ordering::Relaxed);
+                assert_eq!(args.len(), 3);
+                assert_eq!(&args[..2], &[json!(7), json!("x")]);
+                Ok(if args[2].as_i64().unwrap_or(0) <= 0 {
+                    json!([])
+                } else {
+                    json!([{"rank":7,"id":"x","active":true}])
+                })
+            }),
+        );
+        for args in [
+            vec![Val::S64(7), Val::String("x".into())],
+            vec![Val::S64(7), Val::String("x".into()), Val::Bool(false)],
+            vec![Val::Bool(true), Val::String("x".into()), Val::S64(0)],
+            vec![Val::S64(7), Val::Bool(false), Val::S64(-1)],
+        ] {
+            assert!(first(&args).is_err());
+        }
+        assert_eq!(calls.load(Ordering::Relaxed), 0);
+        assert_eq!(
+            first(&[Val::S64(7), Val::String("x".into()), Val::S64(2)]),
+            Ok(vec![Val::List(vec![row(7, "x")])])
+        );
+        assert_eq!(
+            first(&[Val::S64(7), Val::String("x".into()), Val::S64(0)]),
+            Ok(vec![Val::List(vec![])])
+        );
+        assert_eq!(calls.load(Ordering::Relaxed), 2);
+        window.primitive = Primitive::FirstMany;
+        let observed = Arc::clone(&calls);
+        let many = host_fn(
+            window,
+            Arc::new(move |_| {
+                observed.fetch_add(1, Ordering::Relaxed);
+                Ok(json!([]))
+            }),
+        );
+        let good = Val::Record(vec![
+            ("rank".into(), Val::S64(7)),
+            ("id".into(), Val::String("x".into())),
+        ]);
+        let bad = Val::Record(vec![
+            ("rank".into(), Val::Bool(false)),
+            ("id".into(), Val::String("x".into())),
+        ]);
+        assert!(many(&[Val::List(vec![good, bad]), Val::S64(0)]).is_err());
+        assert_eq!(
+            calls.load(Ordering::Relaxed),
+            2,
+            "validate the complete set before any empty-window shortcut"
+        );
+    }
+
     fn row(rank: i64, id: &str) -> Val {
         Val::Record(vec![
             ("rank".into(), Val::S64(rank)),

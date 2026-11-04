@@ -93,6 +93,12 @@ LAST = (
 )
 
 MUTANTS = [
+    ('windows memory retains every matching row', MEMORY,
+     '                if best.len() as u64 > bound as u64 {',
+     '                if false && best.len() as u64 > bound as u64 {'),
+    ('windows memory chooses first rows for last windows', MEMORY,
+     '                        best.pop_first();',
+     '                        best.pop_last();'),
     ('count aggregate scalar answer is wrong for every generated table', MEMORY,
      '                return Ok(Value::from(count));',
      '                return Ok(Value::from(count + 1));'),
@@ -335,6 +341,7 @@ MUTANTS = [
 # Each Cargo test binary apart: names can repeat between binaries, and the
 # shared native assertion validator expects one complete inventory each.
 TESTS = [
+    (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_windows"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server"],
      ["tests::tables::", "tests::guestbook::", "tests::conformance::",
       "notifications::tests::", "tables::tests::",
@@ -357,6 +364,9 @@ TESTS = [
 ]
 
 SOURCES = [
+    ROOT / "runtime/pw-table-memory/tests/compiled_windows.rs",
+    ROOT / "runtime/pw-table-memory/tests/support/windows.rs",
+    ROOT / "runtime/pw-table-memory/tests/support/owned.rs",
     SERVER / "tests/tables.rs",
     SERVER / "tests/guestbook.rs",
     SERVER / "tests/conformance.rs",

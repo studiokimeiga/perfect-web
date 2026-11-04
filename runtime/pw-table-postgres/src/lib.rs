@@ -1031,8 +1031,19 @@ fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<
         .statements
         .get(import)
         .ok_or_else(|| Error::Input(format!("undeclared table operation {import}")))?;
+    let (args, window_limit) = if function.primitive.window() {
+        let Some((bound, selectors)) = args.split_last() else {
+            return Err(Error::Input("a window takes a trailing Int limit".into()));
+        };
+        let limit = bound
+            .as_i64()
+            .ok_or_else(|| Error::Input("a window limit must be an Int".into()))?;
+        (selectors, Some(limit))
+    } else {
+        (args, None)
+    };
     let mut count_keys = None;
-    let params: Vec<Param> = match function.primitive {
+    let mut params: Vec<Param> = match function.primitive {
         Primitive::All => {
             if !args.is_empty() {
                 return Err(Error::Input("all() takes no selector".into()));
@@ -1045,7 +1056,9 @@ fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<
         Primitive::GetMany
         | Primitive::PrefixMany
         | Primitive::IndexMany
-        | Primitive::CountMany => {
+        | Primitive::CountMany
+        | Primitive::FirstMany
+        | Primitive::LastMany => {
             let keys = typed_selections(table, function, import, args)?;
             if keys.is_empty() {
                 return Ok(Value::Array(Vec::new()));
@@ -1064,7 +1077,12 @@ fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<
             }
             params
         }
-        Primitive::Get | Primitive::Prefix | Primitive::Index | Primitive::Count => {
+        Primitive::Get
+        | Primitive::Prefix
+        | Primitive::Index
+        | Primitive::Count
+        | Primitive::First
+        | Primitive::Last => {
             let key = typed_selector(table, function, import, args)?;
             function
                 .by
@@ -1075,6 +1093,14 @@ fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<
         }
         _ => return Err(Error::Input(format!("{import} is a write, not a read"))),
     };
+    if let Some(limit) = window_limit {
+        // Selector arity/types/bounds have all been checked above, even if
+        // this bound returns no rows. SQL never receives a negative LIMIT.
+        if limit <= 0 {
+            return Ok(Value::Array(Vec::new()));
+        }
+        params.push(Box::new(limit));
+    }
     let rows = conn
         .query(&inner.counters, sql, &params)
         .map_err(database)?;

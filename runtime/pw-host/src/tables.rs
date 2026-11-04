@@ -150,6 +150,10 @@ pub enum Primitive {
     IndexMany,
     Count,
     CountMany,
+    First,
+    FirstMany,
+    Last,
+    LastMany,
     All,
     Insert,
     Put,
@@ -174,6 +178,8 @@ impl Primitive {
                 | Primitive::PrefixMany
                 | Primitive::IndexMany
                 | Primitive::CountMany
+                | Primitive::FirstMany
+                | Primitive::LastMany
         )
     }
 
@@ -188,6 +194,10 @@ impl Primitive {
             Primitive::IndexMany => "index-many",
             Primitive::Count => "count",
             Primitive::CountMany => "count-many",
+            Primitive::First => "first",
+            Primitive::FirstMany => "first-many",
+            Primitive::Last => "last",
+            Primitive::LastMany => "last-many",
             Primitive::All => "all",
             Primitive::Insert => "insert",
             Primitive::Put => "put",
@@ -196,6 +206,15 @@ impl Primitive {
         }
     }
 
+    pub fn window(self) -> bool {
+        matches!(
+            self,
+            Primitive::First | Primitive::FirstMany | Primitive::Last | Primitive::LastMany
+        )
+    }
+    pub fn descending(self) -> bool {
+        matches!(self, Primitive::Last | Primitive::LastMany)
+    }
     pub fn counts(self) -> bool {
         matches!(self, Primitive::Count | Primitive::CountMany)
     }
@@ -207,7 +226,12 @@ impl Primitive {
             Primitive::Prefix | Primitive::PrefixMany | Primitive::DeletePrefix => "prefix",
             Primitive::Index | Primitive::IndexMany => "index",
             Primitive::All | Primitive::Insert | Primitive::Put => "row",
-            Primitive::Count | Primitive::CountMany => "selector",
+            Primitive::Count
+            | Primitive::CountMany
+            | Primitive::First
+            | Primitive::FirstMany
+            | Primitive::Last
+            | Primitive::LastMany => "selector",
         }
     }
 }
@@ -449,6 +473,22 @@ impl Table {
         let prefix = !by.is_empty() && by.len() < self.key.len() && self.key[..by.len()] == *by;
         let of = || format!("of_{}", by.join("_"));
         match primitive {
+            Primitive::First | Primitive::FirstMany | Primitive::Last | Primitive::LastMany => {
+                let prefix =
+                    !by.is_empty() && by.len() <= self.key.len() && self.key[..by.len()] == *by;
+                if !prefix && !self.indexes.iter().any(|i| i.fields == by) {
+                    return Err(format!(
+                        "windows by no declared key, prefix or index of {name}"
+                    ));
+                }
+                let word = if primitive.descending() {
+                    "last"
+                } else {
+                    "first"
+                };
+                let suffix = if primitive.many() { "_many" } else { "" };
+                Ok(format!("{word}_by_{}{suffix}", by.join("_")))
+            }
             Primitive::Count | Primitive::CountMany => {
                 let prefix =
                     !by.is_empty() && by.len() <= self.key.len() && self.key[..by.len()] == *by;
@@ -613,7 +653,10 @@ impl Table {
             }
         }
         for function in &self.functions {
-            if function.primitive == Primitive::CountMany && function.by.len() <= 1 {
+            if (function.primitive == Primitive::CountMany
+                || (function.primitive.window() && function.primitive.many()))
+                && function.by.len() <= 1
+            {
                 return refused(format!(
                     "`{}` has no selector after its reader",
                     function.name

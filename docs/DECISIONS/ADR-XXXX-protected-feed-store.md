@@ -274,3 +274,32 @@ cardinality with growing unbounded neighbors. Following-feed selection still
 needs fixed relation/global-window support without first materializing every
 followed principal or per-author window. This slice cannot claim that behavior
 proved; unread/range and upload lifetime remain separate pending work.
+
+The local window implementation uses those fixed forms. At 12 and 1,500 rows,
+the compiled scalar window returns two SQL result rows and the shared set
+window returns four, using the same 10,000-fuel ceiling; payloads are bounded
+for the fixture's fixed-size text fields. An unrestricted row-read neighbor
+grows with cardinality, and a one-fuel neighbor fails. A strict fault fetches
+all scalar-window rows and clips the correct answer afterward; only the real
+result-size oracle detects that hidden materialization. These are result-work
+measurements, not a claim about internal database scans or unbounded row sizes.
+Raw adapter calls for invalid/empty windows run no SQL. A compiled snapshot
+can still open/end its transaction; those boundaries remain separate from
+operation-statement and returned-payload counters.
+
+A compiled latest-row predicate sees its command's staged insert, rejects an
+existing non-newest row before the body, and shares a held query snapshot
+with the body after another writer commits a newer row. The same fixture
+runs on memory and PostgreSQL. Generic conformance covers five limits, missing
+and duplicate selectors, direction and key ties, for every table of the
+guestbook/lists builds in both render modes and sizes. Original row/count
+oracles and statement-cost assertions remain in force.
+
+Parameter-name tests exposed pre-existing generated-formal collisions under
+legal owner fields: `values` collided with a set's list, and `row` with a
+write's record. Only colliding generated formals are renamed, preserving
+argument positions, field names and permissions. Reader/list/bound names are
+also checked by emitted identity and by real compiled components for owner
+fields values/keys/row/limit. A fixture that mutates a table key now adjusts
+new window metadata to keep its old type-refusal oracle otherwise whole.
+Frozen window checks and independent review are still pending.

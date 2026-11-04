@@ -68,9 +68,13 @@ fn the_compilers_functions_are_each_served() {
             "pw:tables/owners#count-by-id",
             "pw:tables/owners#count-by-id-many",
             "pw:tables/owners#delete",
+            "pw:tables/owners#first-by-id",
+            "pw:tables/owners#first-by-id-many",
             "pw:tables/owners#get",
             "pw:tables/owners#get-many",
             "pw:tables/owners#insert",
+            "pw:tables/owners#last-by-id",
+            "pw:tables/owners#last-by-id-many",
             "pw:tables/owners#put",
             "pw:tables/things#by-flag",
             "pw:tables/things#by-flag-many",
@@ -90,9 +94,29 @@ fn the_compilers_functions_are_each_served() {
             "pw:tables/things#count-by-slug-many",
             "pw:tables/things#delete",
             "pw:tables/things#delete-of-owner",
+            "pw:tables/things#first-by-flag",
+            "pw:tables/things#first-by-flag-many",
+            "pw:tables/things#first-by-owner",
+            "pw:tables/things#first-by-owner-many",
+            "pw:tables/things#first-by-owner-n",
+            "pw:tables/things#first-by-owner-n-many",
+            "pw:tables/things#first-by-owner-rank",
+            "pw:tables/things#first-by-owner-rank-many",
+            "pw:tables/things#first-by-slug",
+            "pw:tables/things#first-by-slug-many",
             "pw:tables/things#get",
             "pw:tables/things#get-many",
             "pw:tables/things#insert",
+            "pw:tables/things#last-by-flag",
+            "pw:tables/things#last-by-flag-many",
+            "pw:tables/things#last-by-owner",
+            "pw:tables/things#last-by-owner-many",
+            "pw:tables/things#last-by-owner-n",
+            "pw:tables/things#last-by-owner-n-many",
+            "pw:tables/things#last-by-owner-rank",
+            "pw:tables/things#last-by-owner-rank-many",
+            "pw:tables/things#last-by-slug",
+            "pw:tables/things#last-by-slug-many",
             "pw:tables/things#of-owner",
             "pw:tables/things#of-owner-many",
             "pw:tables/things#put",
@@ -106,15 +130,20 @@ fn the_compilers_functions_are_each_served() {
         !matches!(f, "insert" | "put" | "delete" | "delete-of-owner")
     }) {
         let f = import.rsplit('#').next().unwrap_or_default();
-        let f = match f {
-            "count-by-id" | "count-by-owner-n" => "get",
-            "count-by-id-many" | "count-by-owner-n-many" => "get-many",
-            "count-by-owner" => "of-owner",
-            "count-by-owner-many" => "of-owner-many",
-            count if count.starts_with("count-") => &count[6..],
+        let window = f.starts_with("first-") || f.starts_with("last-");
+        let bare = f
+            .strip_prefix("count-")
+            .or_else(|| f.strip_prefix("first-"))
+            .or_else(|| f.strip_prefix("last-"))
+            .unwrap_or(f);
+        let f = match bare {
+            "by-id" | "by-owner-n" => "get",
+            "by-id-many" | "by-owner-n-many" => "get-many",
+            "by-owner" => "of-owner",
+            "by-owner-many" => "of-owner-many",
             other => other,
         };
-        let args: Vec<Value> = match f {
+        let mut args: Vec<Value> = match f {
             "all" => vec![],
             "get" if import.starts_with(OWNER) => vec![json!("a")],
             "get-many" if import.starts_with(OWNER) => vec![json!(["a"])],
@@ -129,6 +158,9 @@ fn the_compilers_functions_are_each_served() {
             "by-owner-rank" => vec![json!("a"), json!(5)],
             _ => vec![json!([{"owner": "a", "rank": 5}])],
         };
+        if window {
+            args.push(json!(2));
+        }
         let answer = tables.read(import, &args);
         assert!(answer.is_ok(), "{import}: {answer:?}");
     }

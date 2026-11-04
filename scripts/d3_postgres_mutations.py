@@ -70,6 +70,18 @@ POOL = CRATE / "src/pool.rs"
 CARGO = ROOT / "Cargo.toml"
 
 MUTANTS = [
+    ('windows materialize unrestricted rows then clip after SQL', LIB,
+     '    let rows = conn\n        .query(&inner.counters, sql, &params)\n        .map_err(database)?;\n    if function.primitive == Primitive::Count {',
+     '    // Deliberate false optimization: fetch every scalar-window row, then\n    // crop it before the gate. Only the real returned-row/byte oracle sees it.\n    let unbounded = if window_limit.is_some() && !function.primitive.many() {\n        let parameter = function.by.len() + 1;\n        sql.replace(&format!(" LIMIT ${parameter}::bigint"), &format!(" OFFSET (${parameter}::bigint * 0)"))\n    } else { sql.as_str().to_string() };\n    let mut rows = conn.query(&inner.counters, &unbounded, &params).map_err(database)?;\n    if let Some(limit) = window_limit && !function.primitive.many() {\n        rows.truncate(usize::try_from(limit).unwrap_or(usize::MAX));\n    }\n    if function.primitive == Primitive::Count {'),
+    ('windows set limit is global instead of per key', SQL,
+     '                 (SELECT {} FROM {t} t WHERE {} ORDER BY {} LIMIT ${}::bigint) w \\\n                 ORDER BY k.pw_slot, {}"',
+     '                 (SELECT {} FROM {t} t WHERE {} ORDER BY {5} OFFSET (${6}::bigint * 0)) w \\\n                 ORDER BY k.pw_slot, {7} LIMIT ${6}::bigint"'),
+    ('windows last reverses the order column but not key ties', SQL,
+     '.map(|&field| format!("{alias}.{} {direction}", ident(&table.columns[field].name)))',
+     '.map(|&field| { let direction = if Some(field) == table.order { direction } else { "ASC" }; format!("{alias}.{} {direction}", ident(&table.columns[field].name)) })'),
+    ('windows zero shortcuts skip selector validation before SQL', LIB,
+     '    let mut count_keys = None;',
+     '    if window_limit.is_some_and(|n| n <= 0) { return Ok(Value::Array(Vec::new())); }\n    let mut count_keys = None;'),
     ('counts count the absent left-join row as a match', SQL,
      'SELECT k.pw_slot, count(t.{}) FROM unnest({})',
      'SELECT k.pw_slot, count(*) + (count(t.{}) * 0) FROM unnest({})'),
@@ -297,6 +309,7 @@ MUTANTS = [
 # Each test binary apart: names can repeat between binaries, and the native
 # assertion validator expects one complete inventory each.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_windows"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "counts"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_counts"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--lib"],

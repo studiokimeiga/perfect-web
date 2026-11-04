@@ -1497,6 +1497,8 @@ impl<'p, 'i> Reads<'p, 'i> {
                         Primitive::Prefix => Primitive::PrefixMany,
                         Primitive::Index => Primitive::IndexMany,
                         Primitive::Count => Primitive::CountMany,
+                        Primitive::First => Primitive::FirstMany,
+                        Primitive::Last => Primitive::LastMany,
                         _ => continue,
                     };
                     if let Some((set, _, _)) = functions

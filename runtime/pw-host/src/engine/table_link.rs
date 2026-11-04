@@ -24,7 +24,7 @@
 #[cfg(test)]
 use crate::test_assertions::*;
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use wasmtime::component::Val;
 use wasmtime::component::types::{ComponentFunc, Type};
@@ -65,6 +65,7 @@ pub fn check_import(access: &Access, func: &ComponentFunc) -> Result<(), String>
 }
 
 fn read_import(read: &Read, params: &[Type], results: &[Type]) -> Result<(), String> {
+    let params = window_params(read, params)?;
     let words = read.primitive.by_words();
     if read.many() {
         let [Type::List(given)] = params else {
@@ -97,6 +98,16 @@ fn read_import(read: &Read, params: &[Type], results: &[Type]) -> Result<(), Str
         };
         record(&read.row, &rows.ty())
     }
+}
+
+pub(super) fn window_params<'a>(read: &Read, params: &'a [Type]) -> Result<&'a [Type], String> {
+    if !read.primitive.window() {
+        return Ok(params);
+    }
+    let Some((Type::S64, selectors)) = params.split_last() else {
+        return Err("a window takes an Int limit after its selectors".into());
+    };
+    Ok(selectors)
 }
 
 pub(super) fn count_results(read: &Read, results: &[Type]) -> Result<(), String> {
@@ -326,10 +337,26 @@ pub fn check_answer(access: &Access, args: &[Val], results: &[Val]) -> Result<()
     }
 }
 
+/// A window's trailing typed bound is not a selector field. Keep its raw
+/// signed value; each consumer clamps nonpositive values to an empty window.
+pub(super) fn window_arguments<'a>(
+    read: &Read,
+    args: &'a [Val],
+) -> Result<(&'a [Val], Option<i64>), String> {
+    if !read.primitive.window() {
+        return Ok((args, None));
+    }
+    let Some((Val::S64(limit), selectors)) = args.split_last() else {
+        return Err("a window takes an Int limit after its selectors".into());
+    };
+    Ok((selectors, Some(*limit)))
+}
+
 fn read_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), String> {
     if read.primitive.counts() {
         return count_answer(read, args, results);
     }
+    let (args, limit) = window_arguments(read, args)?;
     let [answer] = results else {
         return Err(format!("{} values where a read answers one", results.len()));
     };
@@ -387,13 +414,24 @@ fn read_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), String>
     let order = read.canonical();
     let mut seen = BTreeSet::new();
     let mut last: Option<Vec<Atom>> = None;
+    let mut last_group: Option<Vec<Atom>> = None;
+    let mut spent: BTreeMap<Vec<Atom>, u64> = BTreeMap::new();
     for (index, row) in rows.iter().enumerate() {
         let at = |why: String| format!("row {}: {why}", index + 1);
         let fields = exact_row(&read.row, row).map_err(at)?;
-        if let Some(asked) = &asked {
-            let found = atoms(&read.row, fields, by()).map_err(at)?;
-            if !asked.contains(&found) {
-                return Err(at(format!("{} was not asked for", shown(&found))));
+        let found = atoms(&read.row, fields, by()).map_err(at)?;
+        if let Some(asked) = &asked
+            && !asked.contains(&found)
+        {
+            return Err(at(format!("{} was not asked for", shown(&found))));
+        }
+        if let Some(limit) = limit {
+            let n = spent.entry(found.clone()).or_default();
+            *n += 1;
+            if *n > limit.max(0) as u64 {
+                return Err(at(
+                    "a selector returned more rows than its window limit".into()
+                ));
             }
         }
         let key = atoms(&read.row, fields, read.key.iter().map(String::as_str)).map_err(at)?;
@@ -401,13 +439,25 @@ fn read_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), String>
             return Err(at(format!("{} was answered before", shown(&key))));
         }
         let place = atoms(&read.row, fields, order.iter().map(String::as_str)).map_err(at)?;
-        if last.as_ref().is_some_and(|last| *last > place) {
+        let backwards = last.as_ref().is_some_and(|last| {
+            if read.primitive.descending() {
+                if read.many() && last_group.as_ref() != Some(&found) {
+                    last_group.as_ref().is_some_and(|group| *group > found)
+                } else {
+                    *last < place
+                }
+            } else {
+                *last > place
+            }
+        });
+        if backwards {
             return Err(at(format!(
                 "it is out of tables.json's order (by {})",
                 order.join(", ")
             )));
         }
         last = Some(place);
+        last_group = Some(found);
     }
     Ok(())
 }
@@ -1128,6 +1178,57 @@ mod tests {
         assert!(check_value(&nested, &Val::Record(vec![("at_most".into(), Val::S64(1))])).is_err());
         assert!(check_value(&Stored::Unit, &Val::Tuple(vec![])).is_err());
     }
+    #[test]
+    fn window_answers_hold_direction_ties_and_the_limit_of_each_selector() {
+        let last = serde_json::from_str::<Primitive>("\"last\"");
+        assert!(
+            last.is_ok(),
+            "the host admits the declared last-window primitive: {last:?}"
+        );
+        let last = read(items(last.assert_ok("last primitive"), &["list"]));
+        let args = [Val::String("a".into()), Val::S64(2)];
+        let top = added("a", "2", 1, 9, None);
+        let next = added("a", "1", 1, 9, None);
+        assert!(check_answer(&last, &args, &[Val::List(vec![top.clone(), next.clone()])]).is_ok());
+        for rows in [
+            vec![next.clone(), top.clone()],
+            vec![top.clone(), next.clone(), added("a", "0", 1, 8, None)],
+            vec![added("b", "2", 1, 9, None)],
+            vec![top.clone(), top.clone()],
+        ] {
+            assert!(check_answer(&last, &args, &[Val::List(rows)]).is_err());
+        }
+        for n in [0, -1] {
+            let args = [Val::String("a".into()), Val::S64(n)];
+            assert!(check_answer(&last, &args, &[Val::List(vec![])]).is_ok());
+            assert!(check_answer(&last, &args, &[Val::List(vec![top.clone()])]).is_err());
+        }
+        let many =
+            serde_json::from_str::<Primitive>("\"last-many\"").assert_ok("last-many primitive");
+        let many = read(items(many, &["list"]));
+        let args = [
+            Val::List(vec![
+                Val::String("b".into()),
+                Val::String("a".into()),
+                Val::String("a".into()),
+            ]),
+            Val::S64(1),
+        ];
+        let b = added("b", "1", 1, 7, None);
+        assert!(
+            check_answer(&many, &args, &[Val::List(vec![top.clone(), b.clone()])]).is_ok(),
+            "the bound is per distinct key, not global"
+        );
+        assert!(
+            check_answer(&many, &args, &[Val::List(vec![b.clone(), top.clone()])]).is_err(),
+            "selector groups stay canonical ascending"
+        );
+        assert!(
+            check_answer(&many, &args, &[Val::List(vec![top, next, b])]).is_err(),
+            "one key cannot spend another's bound"
+        );
+    }
+
     fn counted(key: Val, count: i64) -> Val {
         Val::Record(vec![("key".into(), key), ("count".into(), Val::S64(count))])
     }

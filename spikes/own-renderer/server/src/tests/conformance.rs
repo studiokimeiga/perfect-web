@@ -86,6 +86,15 @@ impl Function {
             "insert" | "put" | "delete" | "delete-prefix"
         )
     }
+    fn window(&self) -> bool {
+        matches!(
+            self.primitive.as_str(),
+            "first" | "first-many" | "last" | "last-many"
+        )
+    }
+    fn descending(&self) -> bool {
+        matches!(self.primitive.as_str(), "last" | "last-many")
+    }
     fn counts(&self) -> bool {
         matches!(self.primitive.as_str(), "count" | "count-many")
     }
@@ -426,6 +435,88 @@ fn oracle(
             .unwrap_or(std::cmp::Ordering::Equal)
     });
     found
+}
+
+/// Ordered windows from generated rows, independently of the adapter's
+/// implementation: canonical distinct groups, each with its own bound.
+fn window_oracle(
+    function: &Function,
+    rows: &[Map<String, Json>],
+    selectors: &[Vec<Json>],
+    limit: i64,
+) -> Vec<Map<String, Json>> {
+    let mut keys = selectors.to_vec();
+    keys.sort_by(|a, b| {
+        a.iter()
+            .zip(b)
+            .map(|(a, b)| compare(a, b))
+            .find(|o| o.is_ne())
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    keys.dedup();
+    let mut expected = Vec::new();
+    for key in keys {
+        let mut group = oracle(function, rows, std::slice::from_ref(&key));
+        if function.descending() {
+            group.reverse();
+        }
+        group.truncate(usize::try_from(limit.max(0)).unwrap_or(usize::MAX));
+        expected.extend(group);
+    }
+    expected
+}
+
+#[test]
+fn the_window_oracle_limits_each_distinct_group_and_reverses_order_ties() {
+    let made = |g, i, stamp| {
+        [
+            ("group".into(), Json::from(g)),
+            ("id".into(), Json::from(i)),
+            ("stamp".into(), Json::from(stamp)),
+        ]
+        .into_iter()
+        .collect::<Map<_, _>>()
+    };
+    let rows = vec![
+        made(1, 1, 1),
+        made(1, 2, 1),
+        made(1, 3, 9),
+        made(2, 1, 2),
+        made(2, 2, 3),
+    ];
+    let selectors = [
+        vec![Json::from(2)],
+        vec![Json::from(1)],
+        vec![Json::from(1)],
+        vec![Json::from(0)],
+    ];
+    let mut function = Function {
+        import: String::new(),
+        primitive: "first-many".into(),
+        by: vec!["group".into()],
+        sorted_by: vec!["group".into(), "stamp".into(), "id".into()],
+    };
+    assert_eq!(
+        window_oracle(&function, &rows, &selectors, 2),
+        vec![made(1, 1, 1), made(1, 2, 1), made(2, 1, 2), made(2, 2, 3)]
+    );
+    function.primitive = "last-many".into();
+    assert_eq!(
+        window_oracle(&function, &rows, &selectors, 2),
+        vec![made(1, 3, 9), made(1, 2, 1), made(2, 2, 3), made(2, 1, 2)]
+    );
+    assert_eq!(
+        window_oracle(&function, &rows, &selectors, i64::MAX).len(),
+        5
+    );
+    for limit in [0, -1] {
+        assert!(window_oracle(&function, &rows, &selectors, limit).is_empty());
+    }
+    function.primitive = "last".into();
+    assert_eq!(
+        window_oracle(&function, &rows, &[vec![Json::from(1)]], 2),
+        vec![made(1, 3, 9), made(1, 2, 1)]
+    );
 }
 
 /// Counts from the suite's independently generated stored rows: one Int,
@@ -811,64 +902,78 @@ fn answers_and_costs_read(
                     .collect()
             };
             for selectors in cases {
-                let before = statements(s);
-                let answer = call(
-                    &ops,
-                    &function.import,
-                    &arguments(table, function, &selectors),
-                );
-                let made = statements(s) - before;
-                // Part 2: the adapter's statements, within the source's
-                // `sets`: one where it states `one_call`, one a key
-                // otherwise, and one for a read by one key or none; at least
-                // one, but for a set read of no key, which an adapter may
-                // answer without asking its database.
-                let keys = selectors.len().max(1) as u64;
-                let stated = match sets.get(&table.source).map(String::as_str) {
-                    Some("one_call") => 1,
-                    _ => keys,
+                let bounds = if function.window() {
+                    vec![Some(0), Some(-1), Some(1), Some(2), Some(i64::MAX)]
+                } else {
+                    vec![None]
                 };
-                let least = u64::from(!(function.many() && selectors.is_empty()));
-                assert!(
-                    (least..=stated).contains(&made),
-                    "{} with {} selector(s), {way}: {made} statement(s) of the adapter, and \
+                for limit in bounds {
+                    let mut args = arguments(table, function, &selectors);
+                    if let Some(limit) = limit {
+                        args.push(Val::S64(limit));
+                    }
+                    let before = statements(s);
+                    let answer = call(&ops, &function.import, &args);
+                    let made = statements(s) - before;
+                    // Part 2: the adapter's statements, within the source's
+                    // `sets`: one where it states `one_call`, one a key
+                    // otherwise, and one for a read by one key or none; at least
+                    // one, but for a set read of no key, which an adapter may
+                    // answer without asking its database.
+                    let keys = selectors.len().max(1) as u64;
+                    let stated = match sets.get(&table.source).map(String::as_str) {
+                        Some("one_call") => 1,
+                        _ => keys,
+                    };
+                    let least = u64::from(
+                        !(function.many() && selectors.is_empty())
+                            && !limit.is_some_and(|n| n <= 0),
+                    );
+                    assert!(
+                        (least..=stated).contains(&made),
+                        "{} with {} selector(s), {way}: {made} statement(s) of the adapter, and \
                      its source states at most {stated}",
-                    function.import,
-                    selectors.len()
-                );
-                if function.counts() {
+                        function.import,
+                        selectors.len()
+                    );
+                    if function.counts() {
+                        assert_eq!(
+                            answer,
+                            count_oracle(table, function, all, &selectors),
+                            "{} given {selectors:?}, at {n} rows a table, {way}",
+                            function.import
+                        );
+                        checked += 1;
+                        continue;
+                    }
+                    // Part 1: the oracle's rows, in its order.
+                    let expected = if function.window() {
+                        window_oracle(function, all, &selectors, limit.unwrap_or(0))
+                    } else {
+                        oracle(function, all, &selectors)
+                    };
+                    let got: Option<Vec<Map<String, Json>>> = match answer.as_slice() {
+                        [Val::Option(found)] if table.one(function) => {
+                            Some(found.iter().map(|r| row_of(table, r)).collect())
+                        }
+                        [Val::List(found)] if !table.one(function) => {
+                            Some(found.iter().map(|r| row_of(table, r)).collect())
+                        }
+                        _ => None,
+                    };
+                    assert!(
+                        got.is_some(),
+                        "{} answered {answer:?}, {way}",
+                        function.import
+                    );
+                    let got = got.unwrap_or_default();
                     assert_eq!(
-                        answer,
-                        count_oracle(table, function, all, &selectors),
+                        got, expected,
                         "{} given {selectors:?}, at {n} rows a table, {way}",
                         function.import
                     );
                     checked += 1;
-                    continue;
                 }
-                // Part 1: the oracle's rows, in its order.
-                let expected = oracle(function, all, &selectors);
-                let got: Option<Vec<Map<String, Json>>> = match answer.as_slice() {
-                    [Val::Option(found)] if table.one(function) => {
-                        Some(found.iter().map(|r| row_of(table, r)).collect())
-                    }
-                    [Val::List(found)] if !table.one(function) => {
-                        Some(found.iter().map(|r| row_of(table, r)).collect())
-                    }
-                    _ => None,
-                };
-                assert!(
-                    got.is_some(),
-                    "{} answered {answer:?}, {way}",
-                    function.import
-                );
-                let got = got.unwrap_or_default();
-                assert_eq!(
-                    got, expected,
-                    "{} given {selectors:?}, at {n} rows a table, {way}",
-                    function.import
-                );
-                checked += 1;
             }
         }
     }

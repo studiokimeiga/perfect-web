@@ -87,7 +87,8 @@ pub fn admit(access: &Access, caller: &Caller, args: Vec<Val>) -> Result<Vec<Val
         Access::Read(read) if read.many() => {
             // `(handle, list of what follows it)`: each of the list's keys
             // with the handle in its first field's place.
-            let [_, Val::List(rest)] = args.as_slice() else {
+            let (selectors, limit) = table_link::window_arguments(read, args.as_slice())?;
+            let [_, Val::List(rest)] = selectors else {
                 return Err(format!(
                     "`{import}` is given its reader's handle and one list of what follows it"
                 ));
@@ -101,7 +102,11 @@ pub fn admit(access: &Access, caller: &Caller, args: Vec<Val>) -> Result<Vec<Val
                 .map(|item| keyed(first, following, user, item))
                 .collect::<Result<Vec<_>, _>>()
                 .map_err(|why| format!("`{import}`: {why}"))?;
-            Ok(vec![Val::List(keys)])
+            let mut normalized = vec![Val::List(keys)];
+            if let Some(limit) = limit {
+                normalized.push(Val::S64(limit));
+            }
+            Ok(normalized)
         }
         Access::Write(write) if matches!(write.primitive, Primitive::Insert | Primitive::Put) => {
             let [_, row] = args.as_slice() else {
@@ -190,6 +195,7 @@ pub fn seen(access: &Access, out: Vec<Val>) -> Result<Vec<Val>, String> {
 pub fn check_import(access: &Access, params: &[Type], results: &[Type]) -> Result<(), String> {
     match access {
         Access::Read(read) => {
+            let params = table_link::window_params(read, params)?;
             let words = read.primitive.by_words();
             if read.many() {
                 let [Type::String, Type::List(rest)] = params else {

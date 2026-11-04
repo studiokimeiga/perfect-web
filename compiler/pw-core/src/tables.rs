@@ -71,6 +71,14 @@ pub enum Primitive {
     Count,
     /// One count for each distinct requested selector, including zero.
     CountMany,
+    /// The first rows of one declared selector, within its supplied limit.
+    First,
+    /// The first rows of each distinct selector, within the shared limit.
+    FirstMany,
+    /// The last rows of one declared selector, in descending order.
+    Last,
+    /// The last rows of each distinct selector, within the shared limit.
+    LastMany,
     /// Every row, of a bounded table.
     All,
     /// A new row, refused where its key or a unique value is held.
@@ -95,6 +103,10 @@ impl Primitive {
             Primitive::IndexMany => "index-many",
             Primitive::Count => "count",
             Primitive::CountMany => "count-many",
+            Primitive::First => "first",
+            Primitive::FirstMany => "first-many",
+            Primitive::Last => "last",
+            Primitive::LastMany => "last-many",
             Primitive::All => "all",
             Primitive::Insert => "insert",
             Primitive::Put => "put",
@@ -105,6 +117,17 @@ impl Primitive {
 
     pub fn counts(self) -> bool {
         matches!(self, Primitive::Count | Primitive::CountMany)
+    }
+
+    pub fn window(self) -> bool {
+        matches!(
+            self,
+            Primitive::First | Primitive::FirstMany | Primitive::Last | Primitive::LastMany
+        )
+    }
+
+    pub fn descending(self) -> bool {
+        matches!(self, Primitive::Last | Primitive::LastMany)
     }
 
     /// Does it write the table?
@@ -123,6 +146,8 @@ impl Primitive {
                 | Primitive::PrefixMany
                 | Primitive::IndexMany
                 | Primitive::CountMany
+                | Primitive::FirstMany
+                | Primitive::LastMany
         )
     }
 }
@@ -734,10 +759,17 @@ fn planned(
     // follows the reader, whose one value the keyed read is given already.
     let mut many = |r: Reading, by: &[String], list_name: &str, span: &Span| match r {
         Reading::Plain => Some(vec![(list_name.to_string(), list(tuple(by, span)))]),
-        Reading::Owner | Reading::Sharer if by.len() > 1 => Some(vec![
-            (by[0].clone(), handle(&by[0])),
-            (list_name.to_string(), list(tuple(&by[1..], span))),
-        ]),
+        Reading::Owner | Reading::Sharer if by.len() > 1 => {
+            let name = if crate::wit::ident(&by[0]) == crate::wit::ident(list_name) {
+                format!("{list_name}_keys")
+            } else {
+                list_name.to_string()
+            };
+            Some(vec![
+                (by[0].clone(), handle(&by[0])),
+                (name, list(tuple(&by[1..], span))),
+            ])
+        }
         _ => None,
     };
     let mut out: Vec<Planned> = Vec::new();
@@ -850,12 +882,52 @@ fn planned(
             .filter(|i| !i.value.fields.is_empty() && all_in_row(&i.value.fields))
             .map(|i| (i.value.fields.clone(), i.span.clone())),
     );
+    // The bound's parameter cannot alias a selector's parameter, including
+    // after WIT normalization. Its position, not its spelling, is the ABI.
+    let limited = |mut given: Vec<(String, DeclaredType)>| {
+        let mut name = "limit".to_string();
+        while given
+            .iter()
+            .any(|(field, _)| crate::wit::ident(field) == crate::wit::ident(&name))
+        {
+            name.push_str("_rows");
+        }
+        given.push((name, DeclaredType::new("Int", Vec::new())));
+        given
+    };
     let mut counted_records: Vec<(Decl, Wrote)> = Vec::new();
     let mut counted = BTreeSet::new();
     for (by, span) in selectors {
         let r = reading(t, &by);
         if r == Reading::Refused || !counted.insert(by.clone()) {
             continue;
+        }
+        // Ordered windows have the same declared selectors and reader as
+        // ordinary rows. Each set group keeps its own limit; it is never a
+        // global truncation that changes the scalar-to-set meaning.
+        for (word, primitive, set) in [
+            ("first", Primitive::First, Primitive::FirstMany),
+            ("last", Primitive::Last, Primitive::LastMany),
+        ] {
+            let name = format!("{word}_by_{}", by.join("_"));
+            push(Planned {
+                name: name.clone(),
+                params: limited(keyed(r, &by)),
+                ret: list(answer(r)),
+                primitive,
+                by: by.clone(),
+                span: span.clone(),
+            });
+            if let Some(given) = many(r, &by, "values", &span) {
+                push(Planned {
+                    name: format!("{name}_many"),
+                    params: limited(given),
+                    ret: list(answer(r)),
+                    primitive: set,
+                    by: by.clone(),
+                    span: span.clone(),
+                });
+            }
         }
         let name = format!("count_by_{}", by.join("_"));
         push(Planned {
@@ -932,7 +1004,14 @@ fn planned(
             .any(|i| i.value.unique && all_in_row(&i.value.fields));
         let given = |row: DeclaredType| -> Vec<(String, DeclaredType)> {
             match owner {
-                Some(o) => vec![(o.to_string(), handle(o)), ("row".to_string(), row)],
+                Some(o) => {
+                    let name = if crate::wit::ident(o) == "row" {
+                        "stored_row"
+                    } else {
+                        "row"
+                    };
+                    vec![(o.to_string(), handle(o)), (name.to_string(), row)]
+                }
                 None => vec![("row".to_string(), row)],
             }
         };
@@ -3611,7 +3690,11 @@ fn sorted_by(t: &TableSchema, primitive: Primitive, by: &[String]) -> Vec<String
         return Vec::new();
     }
     let grouped: &[String] = match primitive {
-        Primitive::GetMany | Primitive::PrefixMany | Primitive::IndexMany => by,
+        Primitive::GetMany
+        | Primitive::PrefixMany
+        | Primitive::IndexMany
+        | Primitive::FirstMany
+        | Primitive::LastMany => by,
         _ => &[],
     };
     let mut out: Vec<String> = Vec::new();
@@ -3789,14 +3872,34 @@ mod tests {
             fn by_store_many(values: List<StoreId>) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#by-store-many\"\n\
             fn by_owner_item(owner: Owner, item: ItemId) -> Option<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#by-owner-item\"\n\
             fn by_owner_item_many(values: List<CartLinesOwnerItem>) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#by-owner-item-many\"\n\
+            fn first_by_owner(owner: Owner, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner\"\n\
+            fn first_by_owner_many(values: List<Owner>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-many\"\n\
+            fn last_by_owner(owner: Owner, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner\"\n\
+            fn last_by_owner_many(values: List<Owner>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-many\"\n\
             fn count_by_owner(owner: Owner) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner\"\n\
             fn count_by_owner_many(values: List<Owner>) -> List<CartLinesOwnerCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-many\"\n\
+            fn first_by_owner_store(owner: Owner, store: StoreId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-store\"\n\
+            fn first_by_owner_store_many(values: List<CartLinesOwnerStore>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-store-many\"\n\
+            fn last_by_owner_store(owner: Owner, store: StoreId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-store\"\n\
+            fn last_by_owner_store_many(values: List<CartLinesOwnerStore>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-store-many\"\n\
             fn count_by_owner_store(owner: Owner, store: StoreId) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-store\"\n\
             fn count_by_owner_store_many(values: List<CartLinesOwnerStore>) -> List<CartLinesOwnerStoreCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-store-many\"\n\
+            fn first_by_owner_store_item(owner: Owner, store: StoreId, item: ItemId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-store-item\"\n\
+            fn first_by_owner_store_item_many(values: List<CartLinesOwnerStoreItem>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-store-item-many\"\n\
+            fn last_by_owner_store_item(owner: Owner, store: StoreId, item: ItemId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-store-item\"\n\
+            fn last_by_owner_store_item_many(values: List<CartLinesOwnerStoreItem>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-store-item-many\"\n\
             fn count_by_owner_store_item(owner: Owner, store: StoreId, item: ItemId) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-store-item\"\n\
             fn count_by_owner_store_item_many(values: List<CartLinesOwnerStoreItem>) -> List<CartLinesOwnerStoreItemCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-store-item-many\"\n\
+            fn first_by_store(store: StoreId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-store\"\n\
+            fn first_by_store_many(values: List<StoreId>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-store-many\"\n\
+            fn last_by_store(store: StoreId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-store\"\n\
+            fn last_by_store_many(values: List<StoreId>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-store-many\"\n\
             fn count_by_store(store: StoreId) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-store\"\n\
             fn count_by_store_many(values: List<StoreId>) -> List<CartLinesStoreCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-store-many\"\n\
+            fn first_by_owner_item(owner: Owner, item: ItemId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-item\"\n\
+            fn first_by_owner_item_many(values: List<CartLinesOwnerItem>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-item-many\"\n\
+            fn last_by_owner_item(owner: Owner, item: ItemId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-item\"\n\
+            fn last_by_owner_item_many(values: List<CartLinesOwnerItem>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-item-many\"\n\
             fn count_by_owner_item(owner: Owner, item: ItemId) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-item\"\n\
             fn count_by_owner_item_many(values: List<CartLinesOwnerItem>) -> List<CartLinesOwnerItemCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-item-many\"\n\
             fn all() -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#all\"\n\

@@ -203,6 +203,17 @@ fn every_read() -> Vec<(String, Vec<Value>)> {
             Some((format!("{table}#count-{fields}"), args.clone()))
         })
         .collect();
+    let windows = counts
+        .iter()
+        .flat_map(|(import, args)| {
+            ["first", "last"].map(|word| {
+                let mut args = args.clone();
+                args.push(json!(2));
+                (import.replace("#count-", &format!("#{word}-")), args)
+            })
+        })
+        .collect::<Vec<_>>();
+    reads.extend(windows);
     reads.extend(counts);
     reads
 }

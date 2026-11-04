@@ -95,6 +95,15 @@ fn positional(primitive: Primitive, by: &[Column], args: &[Val]) -> Result<Vec<V
 /// prefix's, an index's), a set form's one list of them, and `all`'s
 /// nothing. The adapter then reads by them, and checks them again.
 pub fn decode_read_arguments(read: &Read, args: &[Val]) -> Result<Vec<Value>, String> {
+    let (selectors, limit) = super::table_link::window_arguments(read, args)?;
+    let mut decoded = decode_selectors(read, selectors)?;
+    if let Some(limit) = limit {
+        decoded.push(Value::from(limit));
+    }
+    Ok(decoded)
+}
+
+fn decode_selectors(read: &Read, args: &[Val]) -> Result<Vec<Value>, String> {
     if read.many() {
         let [Val::List(keys)] = args else {
             return Err(format!(

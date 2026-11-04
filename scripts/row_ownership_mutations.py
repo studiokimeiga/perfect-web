@@ -58,6 +58,7 @@ CHECK = ROOT / "compiler/pw-core/src/check.rs"
 CONTRACT = ROOT / "compiler/pw-core/src/contract.rs"
 OWNERS = ROOT / "runtime/pw-host/src/engine/table_owners.rs"
 LINK = ROOT / "runtime/pw-host/src/engine/table_link.rs"
+SELECTORS = ROOT / "runtime/pw-host/src/engine/table_selectors.rs"
 HOST_TABLES = ROOT / "runtime/pw-host/src/tables.rs"
 HOST = ROOT / "runtime/pw-host/src/lib.rs"
 PROGRAM_PREDICATES = ROOT / "runtime/pw-host/src/engine/program_predicates.rs"
@@ -66,12 +67,33 @@ SERVER = ROOT / "spikes/own-renderer/server/src/main.rs"
 IDENTITY = SERVER.with_name("identity.rs")
 
 MUTANTS = [
+    ('windows answer more rows than a selector allows', LINK,
+     '            if *n > limit.max(0) as u64 {',
+     '            if false && *n > limit.max(0) as u64 {'),
+    ('windows last answers are checked as ascending', LINK,
+     '            if read.primitive.descending() {',
+     '            if false && read.primitive.descending() {'),
+    ('windows set group order is reversed with rows', LINK,
+     '                if read.many() && last_group.as_ref() != Some(&found) {',
+     '                if false && read.many() && last_group.as_ref() != Some(&found) {'),
+    ('windows ignore malformed selectors at zero', SELECTORS,
+     '    let mut decoded = decode_selectors(read, selectors)?;',
+     '    let mut decoded = decode_selectors(read, selectors).or_else(|error| if limit.is_some_and(|n| n <= 0) { Ok(vec![Value::Null]) } else { Err(error) })?;'),
+    ('windows reader and list parameter names alias', TABLES,
+     'if crate::wit::ident(&by[0]) == crate::wit::ident(list_name) {',
+     'if false && crate::wit::ident(&by[0]) == crate::wit::ident(list_name) {'),
+    ('windows owner and written row parameter names alias', TABLES,
+     'if crate::wit::ident(o) == "row" {',
+     'if false && crate::wit::ident(o) == "row" {'),
+    ('windows bound parameter aliases a selector', TABLES,
+     '.any(|(field, _)| crate::wit::ident(field) == crate::wit::ident(&name))',
+     '.any(|(field, _)| false && crate::wit::ident(field) == crate::wit::ident(&name))'),
     ('counts scalar and set function names silently alias', TABLES,
      'o.name == p.name && o.primitive == p.primitive && o.by == p.by',
      'o.name == p.name'),
     ('counts manifest admits a set with no selector after its reader', HOST_TABLES,
-     'function.primitive == Primitive::CountMany && function.by.len() <= 1',
-     'false && function.primitive == Primitive::CountMany && function.by.len() <= 1'),
+     '&& function.by.len() <= 1',
+     '&& false && function.by.len() <= 1'),
     ('counts generated record aliases are accepted', TABLES,
      '*first != &generated.what',
      'false && *first != &generated.what'),
@@ -189,8 +211,8 @@ MUTANTS = [
      "            let fields = table_link::exact_row(&write.row, row).map_err(|why| {\n                format!(\"`{import}` was given a row that is not exactly its table's: {why}\")\n            })?;\n",
      "            let Ok(fields) = table_link::exact_row(&write.row, row) else {\n                return Ok(vec![row.clone()]);\n            };\n"),
     ("a set form's handle is not given back to its keys", OWNERS,
-     "            Ok(vec![Val::List(keys)])\n",
-     "            let _ = keys;\n            Ok(args)\n"),
+     '            let mut normalized = vec![Val::List(keys)];',
+     '            let mut normalized = { let _ = keys; vec![args[1].clone()] };'),
     ("a sharer is answered the private fields", OWNERS,
      "    let Some(seen) = read.handle.as_ref().and_then(|h| h.seen.as_ref()) else {\n",
      "    let Some(seen) = read.handle.as_ref().and_then(|h| h.seen.as_ref()).filter(|_| false) else {\n"),
@@ -352,6 +374,8 @@ MUTANTS = [
 # Each Cargo test binary separately: names can repeat between binaries, and
 # the shared native assertion validator expects one complete inventory.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "table_windows"],
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_windows"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "tables"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "table_counts"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_counts"],
@@ -367,6 +391,9 @@ TESTS = [
 ]
 
 SOURCES = [
+    ROOT / "compiler/pw-core/tests/table_windows.rs",
+    ROOT / "runtime/pw-table-memory/tests/compiled_windows.rs",
+    ROOT / "runtime/pw-table-memory/tests/support/windows.rs",
     ROOT / "compiler/pw-core/tests/tables.rs",
     ROOT / "compiler/pw-core/tests/table_counts.rs",
     ROOT / "runtime/pw-table-memory/tests/compiled_counts.rs",
