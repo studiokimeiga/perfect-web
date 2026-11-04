@@ -342,3 +342,81 @@ records the frozen 79de implementation checks, d417 snapshot/diagnostic proofs
 and final 5b7 guidance checks, with raw logs, exact source guards and hashes.
 Independent review is clear. This closes ordered selector windows locally;
 the canonical apps and their final whole-campaign/browser/CI acceptance remain open.
+
+
+### Next bounded read: counts after an order mark
+
+Notification rows disappear with deleted posts. Subtracting an historical read
+count from the current total becomes wrong when old read rows disappear. A
+recipient-owned last-read sequence plus a count of current rows strictly after
+that mark preserves the intended unread total. Message totals may instead use
+their append-only history and separately owned read totals; that app model is
+not established by this primitive. Stable sequence allocation across deletion
+is an independent application/platform obligation: MAX(current rows) must not
+permit a new notification to reuse a mark already read.
+
+Generate `count_after_by_<fields>(selectors..., after)` only where the table
+declares `order`, over the same nonempty key prefixes/full keys and indexes.
+The trailing argument has the order field's complete declared type, including
+nominal identity and refinements. It is a strict comparison of that one field:
+order > mark. Equal-order rows are excluded regardless of primary-key ties.
+This is not an order-plus-key cursor, arbitrary filter or query language. No
+global count, new row authority, dependency or stored-schema migration is added.
+Use ordinary count for an absent initial mark where the order's refinement has
+no representable before-all sentinel. Never bypass the refinement for a mark.
+
+ADR-0338 section1.2 requires a set form for every keyed read. Generate a
+heterogeneous `_many` form now, not a shared-mark substitute. Each input is a
+generated record of the ordinary selector fields plus a mark field. For an
+owned/shared read, pass the reader handle separately and omit its field from
+each input record. Even a reader-only selector has a meaningful set form: its
+input record holds the mark alone. The old empty-after-reader set prohibition
+does not apply to this new form because the mark varies. Every key/cutoff is
+validated before adapter access; any forged reader or malformed member refuses
+the whole request, including when no range matches.
+
+Choose the generated mark field/formal as `after`, adding `_mark` until its WIT
+identity differs from every stored row field. Use the same chosen mark name for
+all the table's range records. Input range records are named from their held
+selector fields with an After suffix; full returned key records include the
+plain reader id where relevant and the mark. A set returns `{ key, count }`
+entries for distinct full selector-and-mark pairs, including zero for missing
+ranges, in canonical selector-then-mark order. Same selector/different mark
+remains two requests; exact duplicates coalesce. Generated type/import collisions
+must retain the existing named refusal instead of silently aliasing meanings.
+The ordinary equality `by` metadata remains separate from the mark. Range
+aggregates return no stored rows, so their stored-row sorted_by is empty;
+canonical request/result ordering is defined by this primitive's full key.
+
+Use the same table read grant, owner/sharer handle, command staging and query
+snapshot. Existing private-order restrictions for shared tables remain in force.
+The host independently admits the declared order, typed input and exact scalar/
+set answer ABI, request membership/order/uniqueness and nonnegative counts.
+Returned keys are plain values, never authority handles. PW0405 still refuses
+per-element selector, mark or combined dependencies; its repair names this
+heterogeneous set and includes the mark in each record, with the reader passed
+separately. A window's one-common-limit guidance does not apply to range counts.
+
+Memory counts matching row references without copying row payloads. PostgreSQL
+uses one COUNT with equality selectors and order > typed mark, or typed-array
+unnest/ordinality plus a left-join aggregate per distinct selector/mark. Counting
+a non-null primary-key column preserves zero for missing ranges. The mark is
+bound using the declared order column's native kind, including bytea for strings,
+so no text-collation or JSON comparison replaces the existing value order.
+The [comparison documentation](https://www.postgresql.org/docs/18/functions-comparison.html)
+and [binary-string documentation](https://www.postgresql.org/docs/18/functions-binarystring.html)
+were checked. A local PostgreSQL18.6 synthetic probe confirms Bool and UTF-8-byte
+comparisons, including NUL/prefix strings, and distinguishes strict1 from
+inclusive3 over [1,2,2,3] at mark2. No dependency upgrade is introduced.
+
+Acceptance: native failing regressions and valid neighbors; owned/shared/reader-
+only heterogeneous sets; missing/exact-duplicate/different-mark requests; equality
+ties and deletion before/after a mark; Bool, Unicode/NUL String, refined/nominal
+Int types; generated field/formal/type collisions; no/forged callers and malformed
+whole sets before callback/SQL; actual compiled staged and held-snapshot reads;
+independent conformance at both sizes/render modes; substantial-cardinality SQL
+result rows/bytes and compiled fuel with failing/growing neighbors. Strict faults
+must catch ignored/inclusive/wrong-field marks, lost zeros/marks, per-key SQL and
+unrestricted rows fetched then counted. Freeze exact checks and independent review.
+Database internal scan work, sequences, relation/global windows, upload lifetime,
+initial fixtures, private-child deletion and canonical app ports remain separate.
