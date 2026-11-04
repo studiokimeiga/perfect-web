@@ -442,8 +442,7 @@ fn a_signing_reaches_every_other_open_page_on_postgresql() {
 
 /// **What the outbox was handed, as each commit wrote it**: another hand's
 /// trigger copies each row the outbox takes into `outbox_seen`, with the
-/// transaction that wrote it (the host forgets its own rows once it has
-/// delivered them, so the outbox itself keeps none for a test to read).
+/// transaction that wrote it, independently of later retention trimming.
 fn audit_outbox(schema: &Schema) {
     let s = crate::feed_pg::ident(&schema.name);
     schema
@@ -457,14 +456,11 @@ fn audit_outbox(schema: &Schema) {
         .asserted("an audit of the outbox");
 }
 
-/// **The outbox keeps no row its host delivered** (the review of 3ccd083a,
-/// finding 1): each commit's events are written with it, read back and
-/// delivered, then forgotten, so the outbox holds no more than what is not
-/// delivered yet, however many commits there were; a row a host that ended
-/// left behind is forgotten by the layer's housekeeping once it is a minute
-/// old, and one younger is kept until then.
+/// A delivered row remains available to every host for ten minutes. Age-based
+/// housekeeping bounds retention and advances a durable trim watermark;
+/// local delivery never consumes a shared log.
 #[test]
-fn the_outbox_keeps_no_row_its_host_delivered() {
+fn the_outbox_retains_delivered_rows_until_the_shared_retention_age() {
     let Some(url) = database() else { return };
     let (_dir, out) = guestbook();
     let schema = Schema::new(&url, "outbox");
@@ -483,31 +479,48 @@ fn the_outbox_keeps_no_row_its_host_delivered() {
                 .any(|(_, reached)| reached.iter().any(|r| r.resource == LATEST)),
             "commit {n} delivered: {telling:?}"
         );
-        assert_eq!(schema.count("pw_outbox"), "0", "after commit {n}");
+        assert_eq!(
+            schema.count("pw_outbox"),
+            n.to_string(),
+            "retained after commit {n}"
+        );
     }
     assert_eq!(
         schema.texts("SELECT row FROM outbox_seen"),
         ["event:guestbook.book.Signed:[\"guestbook\"]"; 3],
         "each commit wrote its event"
     );
-    // Left behind by a host that ended between a commit and its forgetting:
-    // one two minutes old, one written now.
+    // Rows from an ended host: one beyond the shared retention age and one
+    // still inside it, beside the three recent locally delivered events.
     schema
         .sql(
             "INSERT INTO pw_outbox (kind, name, args, host, created) VALUES \
-             ('event', 'left.Old', '[]', 'ended', clock_timestamp() - interval '2 minutes'), \
+             ('event', 'left.Old', '[]', 'ended', clock_timestamp() - interval '12 minutes'), \
              ('event', 'left.Young', '[]', 'ended', clock_timestamp())",
         )
         .asserted("rows a host left behind");
     s.run_due();
-    assert_eq!(schema.texts("SELECT name FROM pw_outbox"), ["left.Young"]);
-    // A minute on, the young one is old.
+    assert_eq!(
+        schema.texts("SELECT name FROM pw_outbox ORDER BY id"),
+        [
+            "guestbook.book.Signed",
+            "guestbook.book.Signed",
+            "guestbook.book.Signed",
+            "left.Young"
+        ]
+    );
+    let last = schema.texts("SELECT max(id)::text FROM pw_outbox");
+    // Once every remaining row is old, all are trimmed and the watermark advances.
     schema
-        .sql("UPDATE pw_outbox SET created = created - interval '2 minutes'")
+        .sql("UPDATE pw_outbox SET created = created - interval '12 minutes'")
         .asserted("aged");
     s.query_clock.0.advance(61 * 1000);
     s.run_due();
     assert_eq!(schema.count("pw_outbox"), "0");
+    assert_eq!(
+        schema.texts("SELECT through::text FROM pw_outbox_trimmed"),
+        last
+    );
 }
 
 /// A page of two bindings, each reading the table: what one render of it
@@ -2020,4 +2033,234 @@ fn owned_rows_and_compiled_predicates_survive_the_durable_server_boundary() {
     );
     let still_denied = get_as(&reopened, "b", "/owned/same-id");
     assert!(still_denied.starts_with("HTTP/1.1 403"), "{still_denied}");
+}
+
+fn generic_tail(server: &Server) -> &crate::hosts::Tail {
+    let tail = server.data.tail();
+    assert!(
+        tail.is_some(),
+        "a generic PostgreSQL host supplies its shared-log reader"
+    );
+    tail.unwrap()
+}
+
+/// The feed/store migration preserves cross-host delivery and document identity
+/// through the generic adapter, with real persisted rows rather than two memory
+/// layers that happen to render the same page.
+#[test]
+fn generic_hosts_keep_shared_outbox_rows_and_distinct_page_instances() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = guestbook();
+    let schema = Schema::new(&url, "generic_hosts");
+    let a = serve(&out, &schema);
+    let b = serve(&out, &schema);
+    assert!(a.data.tables().is_some() && b.data.keeps_interactions());
+    assert!(
+        a.data.instance().is_some(),
+        "a generic PostgreSQL host has an instance"
+    );
+    assert!(
+        b.data.instance().is_some(),
+        "the second host has an instance"
+    );
+    let ai = a
+        .data
+        .instance()
+        .expect("a generic PostgreSQL host has an instance");
+    let bi = b.data.instance().expect("the second host has an instance");
+    assert_ne!(ai, bi);
+    assert_ne!(
+        a.first_page, b.first_page,
+        "actual document-number ranges differ"
+    );
+    a.identity.signed_in_for_test("a", "u-ada", "Ada");
+    assert!(sign(&a, "a", "kept for another host", "generic-host-1").committed);
+    assert_eq!(schema.count(ENTRIES), "1", "actual PostgreSQL row");
+    assert_ne!(
+        schema.count("pw_outbox"),
+        "0",
+        "local delivery retains the shared log"
+    );
+    let own = generic_tail(&a).heard().asserted("own log");
+    assert!(
+        own.commits.is_empty(),
+        "a host does not deliver its own commit twice"
+    );
+    let other = generic_tail(&b).heard().asserted("other log");
+    assert_eq!(other.commits.len(), 1);
+    assert!(
+        other.commits[0]
+            .1
+            .0
+            .iter()
+            .any(|(name, _)| name == "guestbook.book.Signed")
+    );
+    assert_ne!(
+        schema.count("pw_outbox"),
+        "0",
+        "a read does not consume a shared log"
+    );
+}
+
+#[test]
+fn generic_hosts_deliver_remote_changes_and_detect_rows_trimmed_before_reading() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = guestbook();
+    let schema = Schema::new(&url, "generic_delivery");
+    let a = serve(&out, &schema);
+    let b = serve(&out, &schema);
+    a.identity.signed_in_for_test("a", "u-ada", "Ada");
+    b.identity.signed_in_for_test("b", "u-bob", "Bob");
+    b.serve_document_settled("b", "guestbook.pages.Book~ui", &Params::new(), &[])
+        .asserted("B serves a live document");
+    let doc = super::latest(&b.pending.lock().expect("pending"), "b");
+    let before = sets_of(&b, &doc).len();
+    assert!(sign(&a, "a", "REMOTE_GENERIC_ROW", "generic-remote-1").committed);
+    assert_eq!(
+        sets_of(&b, &doc).len(),
+        before,
+        "not delivered before the log is read"
+    );
+    b.hear();
+    let after = sets_of(&b, &doc);
+    assert!(
+        after[before..].iter().any(
+            |set| set.patches.iter().any(|patch| match &patch.operation {
+                PatchOp::InsertBefore { html, .. }
+                | PatchOp::InsertAfter { html, .. }
+                | PatchOp::ReplaceRange { html } => html.contains("REMOTE_GENERIC_ROW"),
+                _ => false,
+            })
+        ),
+        "the generic PostgreSQL event reaches B's actual live document"
+    );
+    let delivered = after.len();
+    b.hear();
+    assert_eq!(
+        sets_of(&b, &doc).len(),
+        delivered,
+        "the cursor advances once"
+    );
+    assert!(sign(&a, "a", "MISSED_GENERIC_ROW", "generic-remote-2").committed);
+    let tail = generic_tail(&b);
+    tail.trim_older_than("-1 second")
+        .asserted("trim before B reads");
+    let missed = tail.heard().asserted("read after trim");
+    assert!(
+        missed.missed && missed.through > tail.cursor(),
+        "a durable watermark records the missed rows"
+    );
+    let c = serve(&out, &schema);
+    let fresh = generic_tail(&c);
+    assert_eq!(
+        fresh.cursor(),
+        missed.through,
+        "startup includes trimmed history"
+    );
+    assert!(!fresh.heard().asserted("fresh cursor").missed);
+}
+
+#[test]
+fn generic_hosts_use_the_publishers_ordering_lock_and_wake_after_commit() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = guestbook();
+    let schema = Schema::new(&url, "generic_wake");
+    let a = serve(&out, &schema);
+    let b = serve(&out, &schema);
+    a.identity.signed_in_for_test("a", "u-ada", "Ada");
+    let tail = generic_tail(&b);
+    tail.backend_pid()
+        .asserted("LISTEN is committed before the writer");
+    let mut holder = schema.client().asserted("ordering connection");
+    holder.batch_execute("BEGIN").asserted("begun");
+    tail.outbox()
+        .hold_order_for_test(&mut holder)
+        .asserted("the exact publisher lock");
+    std::thread::scope(|scope| {
+        let waiting = scope.spawn(|| {
+            let began = Instant::now();
+            tail.wait(15_000);
+            began.elapsed()
+        });
+        let committing = scope.spawn(|| {
+            assert!(sign(&a, "a", "wake another generic host", "generic-wake-1").committed);
+        });
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while schema.waiting() == "0" && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        assert_ne!(
+            schema.waiting(),
+            "0",
+            "the writer is actually waiting in PostgreSQL"
+        );
+        assert!(!committing.is_finished());
+        let held: i64 = holder.query_one(
+            "INSERT INTO pw_outbox (kind, name, args, host) VALUES ('event', 'test.Held', '[]', 'holder') RETURNING id", &[]
+        ).asserted("holder's row").get(0);
+        holder
+            .batch_execute("COMMIT")
+            .asserted("released without a notification");
+        committing.join().expect("writer finished");
+        let elapsed = waiting.join().expect("listener finished");
+        assert!(
+            elapsed < Duration::from_secs(10),
+            "the writer's commit wakes the listener: {elapsed:?}"
+        );
+        let rows = tail.heard().asserted("ordered log");
+        assert_eq!(rows.commits.len(), 2);
+        assert_eq!(rows.commits[0].0, held);
+        assert!(
+            rows.commits[1].0 > held,
+            "later transaction takes later IDs"
+        );
+    });
+}
+
+#[test]
+fn generic_hosts_trim_shared_history_in_bounded_batches_with_a_watermark() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = guestbook();
+    let schema = Schema::new(&url, "generic_trim_batch");
+    let s = serve(&out, &schema);
+    let add = |count: usize| {
+        schema
+            .sql(&format!(
+                "INSERT INTO pw_outbox (kind, name, args, host, created) \
+         SELECT 'event', 'test.Old', '[]', 'ended', clock_timestamp() - interval '12 minutes' \
+         FROM generate_series(1, {count})"
+            ))
+            .asserted("old committed history")
+    };
+    add(501);
+    generic_tail(&s)
+        .trim_older_than("10 minutes")
+        .asserted("bounded tail trim");
+    assert_eq!(schema.count("pw_outbox"), "1");
+    assert_eq!(
+        schema.texts("SELECT through::text FROM pw_outbox_trimmed"),
+        ["500"]
+    );
+    add(500);
+    s.run_due();
+    assert_eq!(
+        schema.count("pw_outbox"),
+        "1",
+        "housekeeping also trims one batch"
+    );
+    assert_eq!(
+        schema.texts("SELECT through::text FROM pw_outbox_trimmed"),
+        ["1000"]
+    );
+    s.query_clock.0.advance(1_001);
+    s.run_due();
+    assert_eq!(
+        schema.count("pw_outbox"),
+        "0",
+        "a full batch schedules prompt continuation"
+    );
+    assert_eq!(
+        schema.texts("SELECT through::text FROM pw_outbox_trimmed"),
+        ["1001"]
+    );
 }

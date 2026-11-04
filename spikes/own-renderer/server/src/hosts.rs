@@ -60,6 +60,13 @@ pub(crate) struct Outbox {
     pub schema: String,
     pub lock: String,
     pub channel: String,
+    // Trusted platform names, selected only by these constructors.
+    rows: &'static str,
+    watermark: &'static str,
+    instances: &'static str,
+    // Generic tables already order their log under this exact i64 key.
+    table_lock: Option<i64>,
+    trim_limit: Option<i64>,
 }
 
 impl Outbox {
@@ -70,7 +77,38 @@ impl Outbox {
             schema: schema.to_string(),
             lock: format!("pw_outbox:{schema}"),
             channel: format!("pw_outbox_{}", crate::identity::hex(&digest[..8])),
+            rows: "outbox",
+            watermark: "outbox_trimmed",
+            instances: "host_instances",
+            table_lock: None,
+            trim_limit: None,
         }
+    }
+
+    /// The generic adapter's platform namespace and its own ordering key.
+    /// Application declarations cannot supply these SQL names.
+    pub(crate) fn for_tables(schema: &str, channel: &str, lock: i64) -> Outbox {
+        Outbox {
+            schema: schema.to_string(),
+            lock: format!("pw_outbox:{schema}"),
+            channel: channel.to_string(),
+            rows: "pw_outbox",
+            watermark: "pw_outbox_trimmed",
+            instances: "pw_host_instances",
+            table_lock: Some(lock),
+            trim_limit: Some(500),
+        }
+    }
+
+    /// A test holds the publisher's actual ordering lock without sending a
+    /// wakeup of its own, so it can distinguish commit order from notification.
+    #[cfg(test)]
+    pub(crate) fn hold_order_for_test(&self, c: &mut Client) -> Result<(), postgres::Error> {
+        match self.table_lock {
+            Some(key) => c.execute("SELECT pg_advisory_xact_lock($1)", &[&key]),
+            None => c.execute("SELECT pg_advisory_xact_lock(hashtext($1))", &[&self.lock]),
+        }
+        .map(|_| ())
     }
 
     /// The outbox of the schema `c` searches first.
@@ -88,6 +126,14 @@ impl Outbox {
 /// and every host listening woken at the commit, and not before. One
 /// statement, run only by a commit that hands the outbox anything.
 pub(crate) fn ordered(c: &mut Client, outbox: &Outbox) -> Result<(), postgres::Error> {
+    if let Some(key) = outbox.table_lock {
+        return c
+            .execute(
+                "SELECT pg_advisory_xact_lock($1), pg_notify($2, '')",
+                &[&key, &outbox.channel],
+            )
+            .map(|_| ());
+    }
     c.execute(
         "SELECT pg_advisory_xact_lock(hashtext($1)), pg_notify($2, '')",
         &[&outbox.lock, &outbox.channel],
@@ -171,8 +217,16 @@ const PAGE_INSTANCES: u64 = (1 << 20) - 1;
 /// layer: the next of the schema's `host_instances`, so no two hosts on one
 /// database have one alike, until a million hosts' starts have gone by.
 pub(crate) fn instance(c: &mut Client) -> Result<u64, String> {
+    instance_named(c, "host_instances")
+}
+
+pub(crate) fn instance_in(c: &mut Client, outbox: &Outbox) -> Result<u64, String> {
+    instance_named(c, outbox.instances)
+}
+
+fn instance_named(c: &mut Client, sequence: &str) -> Result<u64, String> {
     let n: i64 = c
-        .query_one("SELECT nextval('host_instances')", &[])
+        .query_one("SELECT nextval($1::text::regclass)", &[&sequence])
         .map_err(pg)?
         .get(0);
     Ok((u64::try_from(n).unwrap_or(1).max(1) - 1) % PAGE_INSTANCES + 1)
@@ -204,6 +258,15 @@ pub(crate) fn highest(c: &mut Client) -> Result<i64, String> {
         .map_err(pg)
 }
 
+/// A new generic host starts after retained and already-trimmed history.
+/// Its first documents read the current database; old events need no replay.
+pub(crate) fn highest_in(c: &mut Client, outbox: &Outbox) -> Result<i64, String> {
+    c.query_one(&format!(
+        "SELECT greatest(coalesce((SELECT max(id) FROM {}), 0), (SELECT through FROM {}))::bigint",
+        outbox.rows, outbox.watermark
+    ), &[]).map(|row| row.get(0)).map_err(pg)
+}
+
 impl Tail {
     /// **A reader opened with its layer**: its cursor at `highest`, the
     /// outbox's highest id ([`highest`]), which the layer read on a
@@ -232,8 +295,14 @@ impl Tail {
     pub(crate) fn open(url: &str, outbox: Outbox, host: &str) -> Result<Tail, String> {
         let tail = Tail::at(url, outbox, host, 0);
         let highest = tail.with(|c| {
-            c.query_one("SELECT coalesce(max(id), 0)::bigint FROM outbox", &[])
-                .map(|r| r.get::<_, i64>(0))
+            c.query_one(
+                &format!(
+                    "SELECT coalesce(max(id), 0)::bigint FROM {}",
+                    tail.outbox.rows
+                ),
+                &[],
+            )
+            .map(|r| r.get::<_, i64>(0))
         })?;
         *tail.cursor.lock().expect("cursor") = highest;
         Ok(tail)
@@ -315,14 +384,20 @@ impl Tail {
         let cursor = self.cursor();
         let (rows, trimmed) = self.with(|c| {
             let rows = c.query(
-                "SELECT id, host, committed_in::text, kind, name, args::text FROM outbox \
+                &format!(
+                    "SELECT id, host, committed_in::text, kind, name, args::text FROM {} \
                  WHERE id > $1 ORDER BY id LIMIT $2",
+                    self.outbox.rows
+                ),
                 &[&cursor, &BATCH],
             )?;
             #[cfg(test)]
             self.between_reads();
             let trimmed: i64 = c
-                .query_one("SELECT through FROM outbox_trimmed", &[])?
+                .query_one(
+                    &format!("SELECT through FROM {}", self.outbox.watermark),
+                    &[],
+                )?
                 .get(0);
             Ok((rows, trimmed))
         })?;
@@ -429,10 +504,12 @@ impl Tail {
     pub(crate) fn trim_older_than(&self, age: &str) -> Result<(), String> {
         self.with(|c| {
             c.execute(
-                "WITH gone AS (DELETE FROM outbox WHERE created < clock_timestamp() - $1::text::interval \
-                 RETURNING id) \
-                 UPDATE outbox_trimmed SET through = greatest(through, (SELECT max(id) FROM gone))",
-                &[&age],
+                &format!("WITH gone AS (DELETE FROM {rows} WHERE id IN (SELECT id FROM {rows} \
+                 WHERE created < clock_timestamp() - $1::text::interval ORDER BY id LIMIT $2 \
+                 FOR UPDATE SKIP LOCKED) RETURNING id) \
+                 UPDATE {watermark} SET through = greatest(through, coalesce((SELECT max(id) FROM gone), 0))",
+                 rows = self.outbox.rows, watermark = self.outbox.watermark),
+                &[&age, &self.outbox.trim_limit],
             )
             .map(|_| ())
         })

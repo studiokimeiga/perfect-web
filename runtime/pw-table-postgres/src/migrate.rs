@@ -103,6 +103,15 @@ const PLATFORM: &[(&str, &str)] = &[
          started  timestamptz NOT NULL DEFAULT clock_timestamp()
      );",
     ),
+    (
+        "0003_shared_outbox",
+        "CREATE TABLE {s}.pw_outbox_trimmed (
+         singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
+         through bigint NOT NULL DEFAULT 0
+     );
+     INSERT INTO {s}.pw_outbox_trimmed (through) VALUES (0);
+     CREATE SEQUENCE {s}.pw_host_instances AS bigint;",
+    ),
 ];
 
 /// FNV-1a over `text`, as a lock's key.

@@ -2,6 +2,15 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Protected feed/store migration active, 2026-11-04:** baseline `a9a8d79e`
+is clean and locally verified for the earlier row/browser/PostgreSQL slice.
+The canonical apps still use handwritten data layers. Their migration must
+preserve guest joining, uploads, clock-owned orders and cross-host delivery;
+the generic adapter has explicit gaps at those seams. Shared-outbox support
+is being verified first; identity joining, upload lifecycle, bounded reads and
+the application ports remain pending under [the migration decision](DECISIONS/ADR-XXXX-protected-feed-store.md).
+Earlier green records below apply to their named sources only.
+
 **Local row browsers and PostgreSQL, 2026-11-03:** code/test source
 `6b31f4ba` passed the whole row 71/71, data-path 60/60, D3 PostgreSQL 60/60,
 durable 51/51 and refusal 23/23 + 7/7 campaigns, and local CI (server

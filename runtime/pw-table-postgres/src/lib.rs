@@ -264,6 +264,7 @@ struct Platform {
     outbox: String,
     recall: String,
     outbox_lock: i64,
+    outbox_channel: String,
 }
 
 struct Inner {
@@ -365,6 +366,7 @@ impl PgTables {
         migrate::apply(conn, &counters, &names, &manifest, &shape)?;
         drop(lease);
         let s = ident(&names.schema);
+        let outbox_lock = migrate::lock_key(&format!("pw_outbox:{}", names.schema));
         let platform = Platform {
             interaction: format!(
                 "WITH forgotten AS (DELETE FROM {s}.pw_interactions WHERE at_ms < $1 AND key <> $2) \
@@ -373,7 +375,7 @@ impl PgTables {
                  at_ms = EXCLUDED.at_ms WHERE i.at_ms < $1 RETURNING 1"
             ),
             outbox: format!(
-                "WITH ordered AS (SELECT pg_advisory_xact_lock($1)) \
+                "WITH ordered AS (SELECT pg_advisory_xact_lock($1), pg_notify($6, '')) \
                  INSERT INTO {s}.pw_outbox (kind, name, args, host) \
                  SELECT o.kind, o.name, o.args::json, $5 \
                  FROM ordered, unnest($2::text[], $3::text[], $4::text[]) WITH ORDINALITY AS o(kind, name, args, place) \
@@ -382,7 +384,8 @@ impl PgTables {
             recall: format!(
                 "SELECT sent, answer FROM {s}.pw_interactions WHERE key = $1 AND at_ms >= $2"
             ),
-            outbox_lock: migrate::lock_key(&format!("pw_outbox:{}", names.schema)),
+            outbox_lock,
+            outbox_channel: format!("pw_tables_outbox_{outbox_lock:016x}"),
         };
         let mut foreign = BTreeMap::new();
         for table in &shape.tables {
@@ -451,6 +454,18 @@ impl PgTables {
     /// The schema its tables are in.
     pub fn schema(&self) -> &str {
         &self.inner.names.schema
+    }
+
+    /// The schema-specific wakeup channel. Notifications are only a hint;
+    /// consumers read the retained commit-ordered log from their cursor.
+    pub fn outbox_channel(&self) -> &str {
+        &self.inner.platform.outbox_channel
+    }
+
+    /// The existing transaction lock that orders this schema's outbox IDs.
+    /// Other platform publishers must coordinate on this exact key.
+    pub fn outbox_lock_key(&self) -> i64 {
+        self.inner.platform.outbox_lock
     }
 
     /// The manifest as the host reads it: what a call that reads or writes
@@ -1360,6 +1375,7 @@ impl Prepared {
                                 Box::new(names),
                                 Box::new(args),
                                 Box::new(inner.options.host.clone()),
+                                Box::new(inner.platform.outbox_channel.clone()),
                             ],
                         )
                         .map_err(refusal)?;

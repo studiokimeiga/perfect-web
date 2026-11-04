@@ -210,8 +210,8 @@ MUTANTS = [
      "                Err(Error::Serialization(_)) if attempt < ATTEMPTS => attempt += 1,\n",
      "                Err(Error::Serialization(_)) if false && attempt < ATTEMPTS => attempt += 1,\n"),
     ("the outbox's ids are taken out of commit order", LIB,
-     '                "WITH ordered AS (SELECT pg_advisory_xact_lock($1)) \\\n',
-     '                "WITH ordered AS (SELECT $1::bigint) \\\n'),
+     '                "WITH ordered AS (SELECT pg_advisory_xact_lock($1), pg_notify($6, \'\')) \\\n',
+     '                "WITH ordered AS (SELECT $1::bigint, pg_notify($6, \'\')) \\\n'),
     # 6. renders
     ("render seats are unbounded", POOL,
      "        while places.taken >= self.bound {\n",
