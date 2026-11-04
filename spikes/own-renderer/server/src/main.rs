@@ -10783,7 +10783,7 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 request_reader.as_ref().expect("page admission"),
             )
         }
-        ("GET", _) => serve_file(server, &mut stream, route),
+        ("GET", _) => serve_file(server, &mut stream, route, &headers),
         _ => respond(&mut stream, 405, "text/plain", &session, fresh, b"method"),
     }
 }
@@ -11484,9 +11484,39 @@ fn path_decoded(v: &str) -> Option<String> {
     String::from_utf8(out).ok()
 }
 
-fn serve_file(server: &Server, stream: &mut TcpStream, route: &str) {
+/// A request header's value, without copying untrusted bytes into a response.
+fn build_request_header<'a>(headers: &'a str, name: &str) -> Option<&'a str> {
+    headers.lines().filter_map(|line| line.split_once(':')).find_map(|(key, value)| {
+        key.eq_ignore_ascii_case(name).then_some(value.trim())
+    })
+}
+
+/// Honor a client's explicit refusal of an encoding (including q=0), rather
+/// than accidentally serving a .br file to a browser that cannot decode it.
+fn accepts_asset_encoding(headers: &str, encoding: &str) -> bool {
+    let Some(value) = build_request_header(headers, "accept-encoding") else {
+        return false;
+    };
+    value.split(',').any(|offer| {
+        let mut fields = offer.split(';');
+        if !fields.next().is_some_and(|name| name.trim().eq_ignore_ascii_case(encoding)) {
+            return false;
+        }
+        fields.all(|parameter| match parameter.trim().strip_prefix("q=") {
+            Some(q) => q.parse::<f64>().is_ok_and(|weight| weight > 0.0 && weight <= 1.0),
+            None => true,
+        })
+    })
+}
+
+/// Public assets are not content-hashed in their URLs yet. They may be stored
+/// but must be revalidated on every use, unlike private pages (no-store) or
+/// hashed, immutable production assets (a future production-host milestone).
+fn serve_file(server: &Server, stream: &mut TcpStream, route: &str, request_headers: &str) {
+    use sha2::Digest;
+
     let name = route.trim_start_matches('/');
-    // No traversal: a request names a file in `dist` and nothing above it.
+    // No traversal: a request names a file in dist and nothing above it.
     if name.contains("..") || name.contains('/') {
         respond_build(stream, 404, "text/plain", b"not found");
         return;
@@ -11497,18 +11527,74 @@ fn serve_file(server: &Server, stream: &mut TcpStream, route: &str) {
         Some("mjs") | Some("js") => "text/javascript; charset=utf-8",
         Some("json") => "application/json; charset=utf-8",
         Some("wasm") => "application/wasm",
-        // A stylesheet the build ships, which a page's policy allows from
-        // this origin, and which a browser applies only as `text/css`.
         Some("css") => "text/css; charset=utf-8",
-        // TRACK SEAM (todomvc): a drawing the build ships, which the page's
-        // stylesheet draws a checkbox with (`img-src 'self'`, ADR-0333): a
-        // browser draws an image only as `image/svg+xml`, under `nosniff`.
         Some("svg") => "image/svg+xml",
         _ => "application/octet-stream",
     };
-    match std::fs::read(&path) {
-        Ok(bytes) => respond_build(stream, 200, mime, &bytes),
-        Err(_) => respond_build(stream, 404, "text/plain", b"not found"),
+    let Ok(mut bytes) = std::fs::read(&path) else {
+        respond_build(stream, 404, "text/plain", b"not found");
+        return;
+    };
+    let compressible = matches!(
+        path.extension().and_then(|e| e.to_str()),
+        Some("mjs" | "js" | "wasm" | "css" | "svg")
+    );
+    let mut encoding = None;
+    if compressible {
+        // The build pipeline writes both representations, without changing
+        // the uncompressed file or any user/session-specific HTML response.
+        for (algorithm, suffix) in [("br", "br"), ("gzip", "gz")] {
+            if !accepts_asset_encoding(request_headers, algorithm) {
+                continue;
+            }
+            if let Ok(compressed) = std::fs::read(server.dist.join(format!("{name}.{suffix}"))) {
+                bytes = compressed;
+                encoding = Some(algorithm);
+                break;
+            }
+        }
+    }
+
+    // A strong ETag describes this representation, not the differently
+    // encoded version, and 304 has no body. Weak tags conservatively miss.
+    let tag = format!("\"{:x}\"", sha2::Sha256::digest(&bytes));
+    let unchanged = build_request_header(request_headers, "if-none-match")
+        .is_some_and(|candidates| candidates.split(',').any(|candidate| candidate.trim() == tag));
+    let mut response_headers = format!("cache-control: public, no-cache\r\netag: {tag}\r\n");
+    if compressible {
+        response_headers.push_str("vary: accept-encoding\r\n");
+    }
+    if let Some(algorithm) = encoding {
+        response_headers.push_str(&format!("content-encoding: {algorithm}\r\n"));
+    }
+    write_response(
+        stream,
+        if unchanged { 304 } else { 200 },
+        mime,
+        &response_headers,
+        if unchanged { b"" } else { &bytes },
+    );
+}
+
+#[cfg(test)]
+mod asset_delivery_tests {
+    use super::{accepts_asset_encoding, build_request_header};
+
+    #[test]
+    fn asset_encoding_respects_explicit_refusal_and_header_case() {
+        assert!(accepts_asset_encoding("Accept-Encoding: br, gzip\r\n", "br"));
+        assert!(accepts_asset_encoding("ACCEPT-ENCODING: gzip;q=0.5, br;q=0.8\r\n", "br"));
+        assert!(!accepts_asset_encoding("Accept-Encoding: br;q=0, gzip\r\n", "br"));
+        assert!(!accepts_asset_encoding("Accept-Encoding: br;q=nope\r\n", "br"));
+        assert!(!accepts_asset_encoding("Accept-Encoding: gzip\r\n", "br"));
+        assert!(!accepts_asset_encoding("", "br"));
+    }
+
+    #[test]
+    fn validation_headers_are_distinguished_by_name() {
+        let h = "If-None-Match: \"deadbeef\"\r\nAccept-Encoding: br\r\n";
+        assert_eq!(build_request_header(h, "if-none-match"), Some("\"deadbeef\""));
+        assert_eq!(build_request_header(h, "cache-control"), None);
     }
 }
 
@@ -12067,6 +12153,7 @@ fn hold_open(stream: &mut TcpStream) {
 /// every response said `OK`, a 404 and a 503 among them.
 fn reason(code: u16) -> &'static str {
     match code {
+        304 => "Not Modified",
         200 => "OK",
         307 => "Temporary Redirect",
         308 => "Permanent Redirect",

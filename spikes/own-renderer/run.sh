@@ -154,6 +154,11 @@ console.log(JSON.stringify({ files }, null, 2));
 
 # `just e10-browser` builds through here and runs the suite itself, three
 # times, so one set of build steps serves both.
+# Opt-in production delivery; never rewrite the source used by compiler tests.
+if [ "${PW_PRODUCTION_ASSETS:-0}" = 1 ]; then
+  node "$SPIKE/optimize-assets.mjs" "$OUT"
+fi
+
 if [ "${BUILD_ONLY:-}" = 1 ]; then
   exit 0
 fi

@@ -67,4 +67,8 @@ const files = process.argv.slice(1).map((path) => ({
 }));
 console.log(JSON.stringify({ files }, null, 2));
 ' "${TODOMVC[@]}" > "$OUT/sources.json"
+if [ "${PW_PRODUCTION_ASSETS:-0}" = 1 ]; then
+  node "$SPIKE/optimize-assets.mjs" "$OUT"
+fi
+
 echo "built TodoMVC into $OUT"
