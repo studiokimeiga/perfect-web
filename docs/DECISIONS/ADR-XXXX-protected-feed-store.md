@@ -135,8 +135,11 @@ old rows or read through a sharer index. The current handle has ordinary owner
 authority. Both remain restricted by the command's generated table grants.
 The lifecycle uses a real new-session actor and existing local/same-transaction
 PostgreSQL fences, rather than the general platform actor exemption. Its row
-merge, old-row deletion, receipt and outbox share one transaction. A failed
-merge leaves the sign-in completed and old guest rows retained for diagnosis.
+merge, old-row deletion, receipt and outbox share one transaction. A definite
+rollback preserves the old guest rows. An unconfirmed result can follow a
+successful commit (authority changed before delivery) or an indeterminate
+acknowledgement; it establishes neither rollback nor retention. Stored rows
+and receipts remain authoritative. Sign-in and row merge are separate outcomes.
 
 Anonymous means no current account, not no authentication history. The proof
 never grants a source account id or legacy session-keyed rows; account-owned

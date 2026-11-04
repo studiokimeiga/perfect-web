@@ -522,7 +522,9 @@ struct Reached {
 type KeyedFetched = Box<dyn FnOnce(&Server) + Send>;
 
 #[cfg(test)]
-type LifecycleReplayed = Box<dyn FnOnce(&Server, &str, &str) + Send>;
+type CommandObserved = Box<dyn FnOnce(&Server, &str, &str) + Send>;
+#[cfg(test)]
+type LifecycleObserved = Box<dyn FnOnce(&Server, &str, &str, &Result<Answered, String>) + Send>;
 
 /// What a test does while a document's change is derived (ADR-0296).
 #[cfg(test)]
@@ -1275,7 +1277,9 @@ struct Server {
     #[cfg(test)]
     after_page_admission: Mutex<Option<KeyedFetched>>,
     #[cfg(test)]
-    after_identity_lifecycle: Mutex<Option<LifecycleReplayed>>,
+    after_identity_lifecycle: Mutex<Option<LifecycleObserved>>,
+    #[cfg(test)]
+    before_actor_inspection: Mutex<Option<CommandObserved>>,
     /// **The admissions this server refused, as its log says them**
     /// (ADR-0389, amended 2026-11-02), which a test reads.
     #[cfg(test)]
@@ -2205,6 +2209,8 @@ impl Server {
             #[cfg(test)]
             after_identity_lifecycle: Mutex::new(None),
             #[cfg(test)]
+            before_actor_inspection: Mutex::new(None),
+            #[cfg(test)]
             refusals: Mutex::new(Vec::new()),
             #[cfg(test)]
             deriving_hook: Mutex::new(None),
@@ -2397,9 +2403,10 @@ impl Server {
     /// **A guest's cart joins its user's, at sign-in** (track
     /// `store-accounts`, ADR-0318; docs/PARALLEL.md, Q2): one transaction of
     /// the store's, the user's cart's event committed with it, and the user's
-    /// open pages told. A join that fails leaves the sign-in done and the
-    /// guest's lines where they were, and says so. A program that reads no
-    /// cart has none to join.
+    /// open pages told. A definite rollback preserves the guest's rows.
+    /// An unconfirmed result may already have committed; sign-in and row
+    /// merge are separate outcomes. A program that reads no cart has none
+    /// to join.
     fn joined(&self, signed: identity::SignedIn<'_>) {
         if self.data.tables().is_some() {
             let targets: Vec<_> = self
@@ -2428,12 +2435,12 @@ impl Server {
                     .expect("lifecycle replay hook")
                     .take()
                 {
-                    hook(self, component, &session);
+                    hook(self, component, &session, &answer);
                 }
                 answer
             });
             if !result.as_ref().is_ok_and(|answer| answer.committed) {
-                eprintln!("pw dev server: identity lifecycle did not commit; guest rows retained");
+                eprintln!("pw dev server: identity lifecycle result was not confirmed");
             }
             return;
         }
@@ -2465,9 +2472,7 @@ impl Server {
             },
         );
         if let Err(why) = joined {
-            eprintln!(
-                "pw dev server: a guest's cart did not join its user's at sign-in, and stays the guest's: {why}"
-            );
+            eprintln!("pw dev server: the cart join result at sign-in was not confirmed: {why}");
         }
     }
 
@@ -3948,6 +3953,15 @@ impl Server {
                 let answer = principals.with_reader(session, &actor.reader, || {
                     self.command_answer_bound(component_id, session, json, interaction)
                 });
+                #[cfg(test)]
+                if let Some(hook) = self
+                    .before_actor_inspection
+                    .lock()
+                    .expect("actor inspection hook")
+                    .take()
+                {
+                    hook(self, component_id, session);
+                }
                 if let Err(error) = actor.ensure_current() {
                     return Err(error.into());
                 }

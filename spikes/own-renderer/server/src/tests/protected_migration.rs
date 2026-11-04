@@ -1002,7 +1002,7 @@ fn active_receipt_replay_contract(server: &Server) {
     let observed = Arc::new(Mutex::new(None));
     let checked = Arc::clone(&observed);
     *server.after_identity_lifecycle.lock().unwrap() =
-        Some(Box::new(move |server, component, session| {
+        Some(Box::new(move |server, component, session, _answer| {
             // Observe on the HTTP worker, assert on the test thread. An
             // unwind across thread::scope is no native-assertion control.
             let proof = server
@@ -1184,4 +1184,87 @@ fn private_frames(server: &Server, doc: &Doc) -> Vec<String> {
                 .collect()
         })
         .unwrap_or_default()
+}
+
+fn revoked_after_lifecycle_commit(server: &Server) -> String {
+    let provider = Arc::new(super::sign_in::TestProvider::default());
+    server
+        .identity
+        .use_provider(provider.clone(), super::sign_in::REDIRECT);
+    seed_join(server);
+    let observed = Arc::new(Mutex::new(None));
+    let checked = Arc::clone(&observed);
+    *server.before_actor_inspection.lock().unwrap() = Some(Box::new(|server, _, session| {
+        // The row/receipt transaction is over; revocation now changes
+        // delivery authority without undoing the already committed merge.
+        server.identity.signed_out_for_test(session);
+    }));
+    *server.after_identity_lifecycle.lock().unwrap() =
+        Some(Box::new(move |server, component, session, answer| {
+            let key = identity::interaction_key(session, component, "identity-joined");
+            let receipt = server.recalled_interaction(&key);
+            let committed_receipt = receipt.as_ref().is_ok_and(|r| {
+                r.as_ref()
+                    .is_some_and(|(_, kept)| Answered::from_kept(kept).is_ok_and(|a| a.committed))
+            });
+            *checked.lock().unwrap() = Some((
+                answer.is_err(),
+                committed_receipt,
+                format!("answer={answer:?}; receipt={receipt:?}"),
+            ));
+        }));
+    let session = super::sign_in::signed_in(server, &provider, "joining-guest", "target");
+    let seen = observed.lock().unwrap().take();
+    assert!(seen.is_some(), "post-commit observation ran");
+    let (refused_delivery, receipt, detail) = seen.unwrap();
+    assert!(
+        refused_delivery,
+        "revoked target receives no current success: {detail}"
+    );
+    assert!(
+        receipt,
+        "the successful transaction remains committed: {detail}"
+    );
+    assert_eq!(quantity(server, "target-seed", "target"), 7);
+    assert_eq!(
+        quantity(
+            server,
+            "joining-guest",
+            &identity::guest_user("joining-guest")
+        ),
+        0
+    );
+    let reader = server
+        .identity
+        .principals()
+        .admit(&session)
+        .asserted("revoked target read");
+    assert!(reader == identity::ReaderIdentity::Anonymous);
+    session
+}
+
+#[test]
+fn lifecycle_postcommit_revocation_preserves_committed_memory_merge_and_receipt() {
+    let (_dir, out) = built_join(JOIN);
+    let server = Server::from_build(out.clone(), out).asserted("generic server");
+    revoked_after_lifecycle_commit(&server);
+}
+
+#[test]
+fn lifecycle_postcommit_revocation_preserves_committed_postgresql_merge_and_receipt() {
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    let schema = super::tables_pg::Schema::new(&url, "join_committed_revoked");
+    let (_dir, out) = built_join(JOIN);
+    let server = super::tables_pg::serve(&out, &schema);
+    revoked_after_lifecycle_commit(&server);
+    assert_eq!(schema.count("pw_interactions"), "1");
+    assert_eq!(
+        schema.texts(
+            "SELECT quantity::text FROM \"JoinCarts\" WHERE convert_from(owner,'UTF8')='target'"
+        ),
+        ["7"]
+    );
+    assert_eq!(schema.count("\"JoinCarts\""), "1");
 }
