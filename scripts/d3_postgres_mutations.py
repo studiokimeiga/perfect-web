@@ -266,6 +266,8 @@ TESTS = [
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "durability"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "migrations"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "parity"],
+    # Track `durable-tables`: the platform's runs and sessions, the fence.
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "platform"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "primitives"],
 ]
 # Every test binary of the crate is one of them.

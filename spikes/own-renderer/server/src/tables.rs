@@ -188,7 +188,7 @@ impl TablesLayer {
 /// **A capability as the node's grants hold it** (`DataLayer::grants`, whose
 /// words are `&'static str`): each kept once a process, however many servers
 /// a process builds, so no server leaks more than its tables' names.
-fn interned(capability: String) -> &'static str {
+pub(crate) fn interned(capability: String) -> &'static str {
     static INTERNED: std::sync::OnceLock<Mutex<std::collections::BTreeSet<&'static str>>> =
         std::sync::OnceLock::new();
     let mut kept = INTERNED

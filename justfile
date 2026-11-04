@@ -75,6 +75,7 @@ import 'just/d3-postgres.just'
 import 'just/outbound-https.just'
 import 'just/data-path.just'
 import 'just/row-ownership.just'
+import 'just/durable-tables.just'
 
 default:
     @just --list
