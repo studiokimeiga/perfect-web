@@ -251,7 +251,7 @@ fn postgres_operation_costs_keep_transaction_overhead_in_the_total() {
     assert_eq!(
         tables.statements() - baseline.0,
         3,
-        "BEGIN, read, ROLLBACK all counted"
+        "BEGIN, read, COMMIT all counted"
     );
     assert_eq!(
         tables.operation_statements() - baseline.1,

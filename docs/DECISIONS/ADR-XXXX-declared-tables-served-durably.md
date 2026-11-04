@@ -568,7 +568,7 @@ uses the pinned `postgres` dependency and PostgreSQL 18.6 fixture.
 ### Integration correction: operation costs and transaction overhead
 
 The first combined durable baseline failed three cost assertions. A standalone
-query now correctly selects one snapshot, whose BEGIN/read/ROLLBACK measured
+query now correctly selects one snapshot, whose BEGIN/read/COMMIT measured
 three statements against the operation's one-call bound. A first staged write
 also includes its lazy BEGIN. Transaction boundaries are fixed overhead, not
 extra reads; they must remain visible in the total rather than be mislabeled
