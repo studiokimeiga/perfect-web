@@ -290,7 +290,7 @@ TESTS = [
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_owned"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "platform"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server"],
-     ["tests::tables_pg::", "tests::protected_migration::"]),
+     ["tests::tables_pg::", "tests::protected_migration::", "identity::transition_tests::"]),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--test", "durable_tables"], []),
 ]
 
@@ -303,6 +303,7 @@ SOURCES = [
     ADAPTER / "tests/common/mod.rs",
     SERVER / "src/tests/tables_pg.rs",
     SERVER / "src/tests/protected_migration.rs",
+    SERVER / "src/identity.rs",
     SERVER / "src/tests/tables.rs",
     SERVER / "src/tests/conformance.rs",
     SERVER / "tests/durable_tables.rs",

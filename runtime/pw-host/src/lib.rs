@@ -1056,6 +1056,114 @@ pub mod engine {
             })
     }
 
+    /// Transition authority is useful only for the one Identity lifecycle
+    /// export. It cannot follow a caller into a query or another command,
+    /// including through lower-level engine entry points.
+    fn identity_caller(
+        contract: &crate::ComponentContract,
+        caller: &crate::tables::Caller,
+        export: &[&str],
+    ) -> Result<(), String> {
+        let transition = matches!(caller, crate::tables::Caller::IdentityTransition { .. });
+        let declared = match declared_export(contract, export) {
+            Ok(declared) => declared,
+            // Older low-level callers without component export metadata keep
+            // their existing behavior; they can never carry a transition.
+            Err(_) if !transition => return Ok(()),
+            Err(why) => return Err(why),
+        };
+        let identity = declared.invoked_by.as_deref() == Some("Identity");
+        if identity != transition {
+            return Err("Identity lifecycle exports require their checked transition caller, confined to that export".into());
+        }
+        if let crate::tables::Caller::IdentityTransition {
+            previous_guest,
+            current,
+        } = caller
+            && (export_kind(contract, export) != Some("command")
+                || declared.idempotent_by.is_none()
+                || !declared.authorization.is_empty()
+                || previous_guest.is_empty()
+                || current.is_empty()
+                || previous_guest == current)
+        {
+            return Err("invalid Identity lifecycle caller or export".into());
+        }
+        Ok(())
+    }
+
+    #[cfg(test)]
+    mod identity_role_tests {
+        use super::*;
+        use crate::tables::Caller;
+
+        fn contract() -> crate::ComponentContract {
+            crate::ComponentContract {
+                component_id: "lifecycle".into(),
+                capability_mapping: crate::CAPABILITY_MAPPING,
+                abi_schema: "test".into(),
+                required_capabilities: Vec::new(),
+                allowed_placements: Vec::new(),
+                imports: Vec::new(),
+                exports: vec![crate::Export {
+                    name: "joined".into(),
+                    kind: "command".into(),
+                    binding: Default::default(),
+                    component: Some(crate::ComponentExport {
+                        interface: "".into(),
+                        function: "joined".into(),
+                        authorization: Vec::new(),
+                        idempotent_by: Some("InteractionId".into()),
+                        invoked_by: Some("Identity".into()),
+                        bounded: Vec::new(),
+                    }),
+                }],
+            }
+        }
+
+        #[test]
+        fn identity_transition_authority_is_confined_to_its_lifecycle_export() {
+            let transition = Caller::IdentityTransition {
+                previous_guest: "guest".into(),
+                current: "account".into(),
+            };
+            let original = contract();
+            assert!(identity_caller(&original, &transition, &["joined"]).is_ok());
+            for caller in [Caller::Nobody, Caller::User("account".into())] {
+                assert!(identity_caller(&original, &caller, &["joined"]).is_err());
+            }
+            let mut ordinary = original.clone();
+            ordinary.exports[0].component.as_mut().unwrap().invoked_by = None;
+            assert!(identity_caller(&ordinary, &transition, &["joined"]).is_err());
+            assert!(
+                identity_caller(&ordinary, &Caller::User("account".into()), &["joined"]).is_ok()
+            );
+            ordinary.exports[0].component = None;
+            assert!(
+                identity_caller(&ordinary, &Caller::Nobody, &["joined"]).is_ok(),
+                "legacy metadata-free neighbor"
+            );
+            assert!(identity_caller(&ordinary, &transition, &["joined"]).is_err());
+            let mut query = original.clone();
+            query.exports[0].kind = "query".into();
+            assert!(identity_caller(&query, &transition, &["joined"]).is_err());
+            let mut unkeyed = original.clone();
+            unkeyed.exports[0].component.as_mut().unwrap().idempotent_by = None;
+            assert!(identity_caller(&unkeyed, &transition, &["joined"]).is_err());
+            assert!(
+                identity_caller(
+                    &original,
+                    &Caller::IdentityTransition {
+                        previous_guest: "account".into(),
+                        current: "account".into()
+                    },
+                    &["joined"]
+                )
+                .is_err()
+            );
+        }
+    }
+
     /// **What the export being invoked is** (`command`, `query`, …), as its
     /// contract declares it, where it declares the export.
     fn export_kind<'a>(contract: &'a crate::ComponentContract, export: &[&str]) -> Option<&'a str> {
@@ -1598,6 +1706,7 @@ pub mod engine {
         where
             D: FnMut(&str, &[&Val]) -> Result<bool, String>,
         {
+            identity_caller(contract, caller, export)?;
             // Its arguments decoded before a predicate reads them.
             self.hold_arguments(contract, export, args)?;
             // A table's function is the call's tables', which the gate
@@ -1661,6 +1770,7 @@ pub mod engine {
         where
             F: FnMut(&str, &[&Val]) -> Result<bool, String>,
         {
+            identity_caller(contract, &crate::tables::Caller::Nobody, export)?;
             // Its arguments decoded before a predicate reads them.
             self.hold_arguments(contract, export, args)?;
             authorize_export(contract, export, args, evaluate)?;
@@ -2953,6 +3063,7 @@ pub mod engine {
         export: &[&str],
         args: &[wasmtime::component::Val],
     ) -> Result<(Vec<wasmtime::component::Val>, Usage, u64), String> {
+        identity_caller(contract, caller, export)?;
         use wasmtime::Store;
         let started = std::time::Instant::now();
         use wasmtime::component::{Linker, Val};

@@ -225,6 +225,13 @@ struct Function {
 pub enum Caller {
     /// The session's principal's user, or its own guest's (ADR-0263).
     User(String),
+    /// A checked sign-in lifecycle: the old guest may only be read/deleted
+    /// through its owner key; the new account has its ordinary authority.
+    /// The engine admits this caller only for an Identity command export.
+    IdentityTransition {
+        previous_guest: String,
+        current: String,
+    },
     /// No reader: every owned table's function refuses.
     Nobody,
 }

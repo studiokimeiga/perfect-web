@@ -414,6 +414,7 @@ fn query_counted(
         .collect();
     let user = match caller {
         Caller::User(user) => user.clone(),
+        Caller::IdentityTransition { current, .. } => current.clone(),
         Caller::Nobody => String::new(),
     };
     host.extend(platform(component, &user));

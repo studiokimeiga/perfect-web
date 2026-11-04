@@ -221,16 +221,8 @@ fn a_guests_cart_follows_them_in() {
         "{page}"
     );
     // Run twice, the second finds nothing to join.
-    s.joined(&identity::SignedIn {
-        guest: "guest-1",
-        session: &ada,
-        principal: &identity::Principal {
-            user: "ada".to_string(),
-            handle: "@ada".to_string(),
-            name: "Ada".to_string(),
-            issuer: "https://id.example.test".to_string(),
-        },
-    });
+    let again = signed_in(&s, &provider, "guest-1", "ada");
+    assert_eq!(s.cart_lines(&again), s.cart_lines(&ada));
     assert_eq!(
         s.cart_lines(&ada),
         [("espresso".to_string(), 3), ("cortado".to_string(), 1)]

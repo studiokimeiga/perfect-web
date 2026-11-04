@@ -518,3 +518,670 @@ fn the_clock_reads_and_writes_the_scheduling_owners_rows_after_logout_on_postgre
         "clock row/receipt/event share a transaction: {clock:?}"
     );
 }
+
+const JOIN_ROWS: &str = r#"module JoinCarts
+import capability.{ UserId }
+type Line = Line { owner: UserId, quantity: Int }
+table JoinCarts
+    row Line
+    key owner
+    owned by owner
+"#;
+
+const JOIN: &str = r#"module protected.join
+import capability.{ User, UserId, id_of }
+import context.{ current_user, previous_user }
+import JoinCarts.{ Line }
+import JoinCarts
+opaque type InteractionId = String
+event QuantityChanged(owner: UserId)
+user query Quantity(reader: User<UserId>) -> Int
+    freshness 0.seconds
+    consistency read_your_writes
+    cache private
+    key reader
+    invalidates_on QuantityChanged(reader)
+    concurrency one_per_key
+    on_key_change cancel
+    timeout 2.seconds
+{
+    match JoinCarts.get(reader) { Some(cart) => cart.quantity, None => 0 }
+}
+user query HasPrevious(reader: User<UserId>) -> Bool
+    freshness 0.seconds
+    consistency read_your_writes
+    cache private
+    key reader
+    invalidates_on QuantityChanged(reader)
+    concurrency one_per_key
+    on_key_change cancel
+    timeout 2.seconds
+{
+    match previous_user() { Some(_) => true, None => false }
+}
+command keep(quantity: Int) -> ()
+    emits QuantityChanged(id_of(current_user()))
+{
+    JoinCarts.put(current_user(), Line { owner: id_of(current_user()), quantity: quantity })
+}
+command joined() -> ()
+    invoked_by Identity
+    idempotent_by InteractionId
+    emits QuantityChanged(id_of(current_user()))
+{
+    match previous_user() {
+        Some(previous) => match JoinCarts.get(previous) {
+            Some(old) => {
+                let current = match JoinCarts.get(current_user()) { Some(cart) => cart.quantity, None => 0 }
+                JoinCarts.put(current_user(), Line { owner: id_of(current_user()), quantity: current + old.quantity })
+                JoinCarts.delete(previous)
+            },
+            None => (),
+        },
+        None => (),
+    }
+}
+user page JoinPage() {
+    route "/join"
+    placement origin
+    cache private
+    let quantity = query Quantity(current_user())
+    view { <title>Cart quantity</title><main><p id="quantity">{quantity}</p></main> }
+}
+"#;
+
+fn built_join(join: &str) -> (tempfile::TempDir, std::path::PathBuf) {
+    let rows = ROWS
+        .replace("module GuestCarts", "module GuestCarts\nimport JoinCarts")
+        .replace("holds GuestCarts", "holds GuestCarts, JoinCarts");
+    super::tables::built(
+        &[],
+        &[
+            ("GuestCarts.pw", &rows),
+            ("cart.pw", APP),
+            ("JoinCarts.pw", JOIN_ROWS),
+            ("join.pw", join),
+        ],
+    )
+}
+
+fn quantity(server: &Server, session: &str, user: &str) -> i64 {
+    let principals = server.identity.principals();
+    let reader = principals.admit(session).asserted("query reader admitted");
+    let answer = principals
+        .with_reader(session, &reader, || {
+            server.answer(
+                "protected.join.Quantity",
+                session,
+                &[Val::String(user.into())],
+            )
+        })
+        .asserted("quantity answered");
+    match answer {
+        Val::S64(n) => n,
+        other => panic!("quantity: {other:?}"),
+    }
+}
+
+fn keep_quantity(server: &Server, session: &str, quantity: i64) {
+    let answer = server
+        .command_answer(
+            "protected.join.keep",
+            session,
+            &[serde_json::json!(quantity)],
+            None,
+        )
+        .asserted("quantity kept");
+    assert!(answer.committed, "{answer:?}");
+}
+
+fn identity_join_contract(server: &Server, provider: &super::sign_in::TestProvider) -> String {
+    server
+        .identity
+        .signed_in_for_test("target-seed", "target", "Target");
+    server.identity.signed_in_for_test("bob-seed", "bob", "Bob");
+    keep_quantity(server, "target-seed", 4);
+    keep_quantity(server, "bob-seed", 11);
+    keep_quantity(server, "joining-guest", 3);
+    let session = super::sign_in::signed_in(server, provider, "joining-guest", "target");
+    assert_eq!(
+        quantity(server, &session, "target"),
+        7,
+        "compiled lifecycle merged guest and target"
+    );
+    assert_eq!(
+        quantity(server, "target-seed", "target"),
+        7,
+        "shared target account"
+    );
+    assert_eq!(
+        quantity(server, "bob-seed", "bob"),
+        11,
+        "another account unchanged"
+    );
+    assert_eq!(
+        quantity(
+            server,
+            "joining-guest",
+            &identity::guest_user("joining-guest")
+        ),
+        0,
+        "old guest emptied"
+    );
+    let pressed = super::sign_in::exchanged(
+        server,
+        "POST /command/protected.join.joined HTTP/1.1\r\nHost: t\r\nCookie: pw-session=joining-guest\r\nSec-Fetch-Site: same-origin\r\nContent-Length: 2\r\n\r\n[]",
+    );
+    assert!(pressed.starts_with("HTTP/1.1 404"), "{pressed}");
+    session
+}
+
+#[test]
+fn a_verified_identity_transition_merges_owned_rows_in_memory() {
+    let (_dir, out) = built_join(JOIN);
+    let server = Server::from_build(out.clone(), out).asserted("generic server");
+    let provider = Arc::new(super::sign_in::TestProvider::default());
+    server
+        .identity
+        .use_provider(provider.clone(), super::sign_in::REDIRECT);
+    identity_join_contract(&server, &provider);
+}
+
+#[test]
+fn a_verified_identity_transition_merges_owned_rows_on_postgresql() {
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    let schema = super::tables_pg::Schema::new(&url, "identity_join");
+    let (_dir, out) = built_join(JOIN);
+    let server = super::tables_pg::serve(&out, &schema);
+    let provider = Arc::new(super::sign_in::TestProvider::default());
+    server
+        .identity
+        .use_provider(provider.clone(), super::sign_in::REDIRECT);
+    identity_join_contract(&server, &provider);
+    assert_eq!(schema.texts("SELECT convert_from(owner,'UTF8') || ':' || quantity::text FROM \"JoinCarts\" ORDER BY owner"), ["bob:11", "target:7"]);
+    assert_eq!(
+        schema.count("pw_interactions"),
+        "1",
+        "the lifecycle's record"
+    );
+    let xmins = schema.texts("SELECT xmin::text FROM \"JoinCarts\" WHERE convert_from(owner,'UTF8')='target' UNION ALL SELECT xmin::text FROM pw_interactions UNION ALL SELECT xmin::text FROM (SELECT xmin FROM pw_outbox ORDER BY id DESC LIMIT 1) last");
+    assert_eq!(xmins.len(), 3, "{xmins:?}");
+    assert!(
+        xmins.iter().all(|xmin| xmin == &xmins[0]),
+        "merge row, receipt and event share one transaction: {xmins:?}"
+    );
+    drop(server);
+    let reopened = super::tables_pg::serve(&out, &schema);
+    reopened
+        .identity
+        .use_provider(provider, super::sign_in::REDIRECT);
+    assert_eq!(quantity(&reopened, "target-seed", "target"), 7);
+    assert_eq!(
+        quantity(
+            &reopened,
+            "joining-guest",
+            &identity::guest_user("joining-guest")
+        ),
+        0
+    );
+}
+
+#[derive(Default)]
+struct ExchangeProvider {
+    provider: super::sign_in::TestProvider,
+    during: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+}
+
+impl identity::Provider for ExchangeProvider {
+    fn issuer(&self) -> String {
+        identity::Provider::issuer(&self.provider)
+    }
+    fn client_id(&self) -> String {
+        identity::Provider::client_id(&self.provider)
+    }
+    fn authorization_endpoint(&self) -> String {
+        identity::Provider::authorization_endpoint(&self.provider)
+    }
+    fn exchange(
+        &self,
+        code: &str,
+        verifier: &str,
+        redirect: &str,
+    ) -> Result<identity::Claims, String> {
+        let claims = identity::Provider::exchange(&self.provider, code, verifier, redirect)?;
+        if let Some(during) = self.during.lock().unwrap().take() {
+            during();
+        }
+        Ok(claims)
+    }
+}
+
+fn seed_join(server: &Server) {
+    server
+        .identity
+        .signed_in_for_test("target-seed", "target", "Target");
+    keep_quantity(server, "target-seed", 4);
+    keep_quantity(server, "joining-guest", 3);
+}
+
+fn exchange_race(server: Arc<Server>, initial_account: bool) {
+    let provider = Arc::new(ExchangeProvider::default());
+    server
+        .identity
+        .use_provider(provider.clone(), super::sign_in::REDIRECT);
+    seed_join(&server);
+    server
+        .identity
+        .signed_in_for_test("alice-seed", "alice", "Alice");
+    keep_quantity(&server, "alice-seed", 9);
+    if initial_account {
+        server
+            .identity
+            .signed_in_for_test("joining-guest", "alice", "Alice");
+    }
+    let weak = Arc::downgrade(&server);
+    *provider.during.lock().unwrap() = Some(Box::new(move || {
+        let server = weak.upgrade().unwrap();
+        if initial_account {
+            server.identity.signed_out_for_test("joining-guest");
+        } else {
+            server
+                .identity
+                .signed_in_for_test("joining-guest", "alice", "Alice");
+        }
+    }));
+    let session = super::sign_in::signed_in(&server, &provider.provider, "joining-guest", "target");
+    assert_eq!(
+        quantity(&server, &session, "target"),
+        if initial_account { 4 } else { 7 },
+        "eligibility is frozen before exchange"
+    );
+    assert_eq!(
+        quantity(&server, "alice-seed", "alice"),
+        9,
+        "source account rows never become guest rows"
+    );
+    assert_eq!(
+        quantity(
+            &server,
+            "joining-guest",
+            &identity::guest_user("joining-guest")
+        ),
+        if initial_account { 3 } else { 0 }
+    );
+    let outside = server.command_answer(
+        "protected.join.joined",
+        &session,
+        &[],
+        Some("identity-joined"),
+    );
+    assert!(
+        outside.is_err(),
+        "a lifecycle receipt cannot be read outside the one-use proof: {outside:?}"
+    );
+}
+
+#[test]
+fn identity_eligibility_does_not_follow_cache_changes_during_provider_exchange() {
+    for initial_account in [false, true] {
+        let (_dir, out) = built_join(JOIN);
+        let server = Arc::new(Server::from_build(out.clone(), out).asserted("generic server"));
+        exchange_race(server, initial_account);
+    }
+}
+
+#[test]
+fn identity_eligibility_is_frozen_with_postgresql_authority() {
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    for initial_account in [false, true] {
+        let schema = super::tables_pg::Schema::new(&url, "exchange_race");
+        let (_dir, out) = built_join(JOIN);
+        let server = Arc::new(super::tables_pg::serve(&out, &schema));
+        exchange_race(server, initial_account);
+        assert_eq!(
+            schema.count("pw_interactions"),
+            if initial_account { "0" } else { "1" }
+        );
+    }
+}
+
+fn a_failed_join_keeps_both_partitions(
+    server: &Server,
+    provider: &super::sign_in::TestProvider,
+) -> String {
+    let session = super::sign_in::signed_in(server, provider, "joining-guest", "target");
+    assert_eq!(
+        quantity(server, &session, "target"),
+        4,
+        "target unchanged on failed lifecycle"
+    );
+    assert_eq!(
+        quantity(
+            server,
+            "joining-guest",
+            &identity::guest_user("joining-guest")
+        ),
+        3,
+        "old guest rows retained on failure"
+    );
+    assert!(
+        server
+            .command_answer(
+                "protected.join.joined",
+                &session,
+                &[],
+                Some("identity-joined")
+            )
+            .is_err(),
+        "proof retired even on failure"
+    );
+    session
+}
+
+#[test]
+fn a_memory_lifecycle_publication_refusal_keeps_guest_and_target_rows() {
+    let (_dir, out) = built_join(JOIN);
+    let server = Server::from_build(out.clone(), out).asserted("generic server");
+    let provider = Arc::new(super::sign_in::TestProvider::default());
+    server
+        .identity
+        .use_provider(provider.clone(), super::sign_in::REDIRECT);
+    seed_join(&server);
+    *server.before_command_authority.lock().unwrap() = Some(Box::new(|_| {
+        crate::tables::FAIL_NEXT_PUBLISH.with(|fail| fail.set(true));
+    }));
+    let session = a_failed_join_keeps_both_partitions(&server, &provider);
+    let key = identity::interaction_key(&session, "protected.join.joined", "identity-joined");
+    assert_eq!(
+        server
+            .recalled_interaction(&key)
+            .asserted("receipt inspected"),
+        None
+    );
+}
+
+#[test]
+fn a_postgresql_lifecycle_commit_refusal_keeps_guest_target_and_records_atomic() {
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    let schema = super::tables_pg::Schema::new(&url, "join_refused");
+    let (_dir, out) = built_join(JOIN);
+    let server = super::tables_pg::serve(&out, &schema);
+    let provider = Arc::new(super::sign_in::TestProvider::default());
+    server
+        .identity
+        .use_provider(provider.clone(), super::sign_in::REDIRECT);
+    seed_join(&server);
+    let events = schema.count("pw_outbox");
+    schema.sql("CREATE FUNCTION refuse_join() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fixture refuses commit'; END $$; CREATE CONSTRAINT TRIGGER refuse_join AFTER UPDATE ON \"JoinCarts\" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION refuse_join()").asserted("deferred refusal installed");
+    a_failed_join_keeps_both_partitions(&server, &provider);
+    assert_eq!(schema.count("pw_interactions"), "0");
+    assert_eq!(schema.count("pw_outbox"), events);
+    assert_eq!(schema.count("\"JoinCarts\""), "2");
+}
+
+#[test]
+fn an_identity_lifecycle_keeps_the_exact_new_session_epoch_fence() {
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    let schema = Arc::new(super::tables_pg::Schema::new(&url, "join_epoch"));
+    let (_dir, out) = built_join(JOIN);
+    let server = super::tables_pg::serve(&out, &schema);
+    let provider = Arc::new(super::sign_in::TestProvider::default());
+    server
+        .identity
+        .use_provider(provider.clone(), super::sign_in::REDIRECT);
+    seed_join(&server);
+    let before = schema.count("pw_outbox");
+    let changing = Arc::clone(&schema);
+    *server.before_command_authority.lock().unwrap() = Some(Box::new(move |_| {
+        // Replace only the callback's newly opened target generation; the
+        // already open target-seed session remains a valid neighbor.
+        let seed = identity::hex(&identity::kept_hash("target-seed"));
+        changing.sql(&format!("UPDATE pw_sessions SET epoch=decode(repeat('ab',16),'hex') WHERE user_id='target' AND hash <> decode('{seed}','hex')")).asserted("new epoch replaced");
+    }));
+    let session = super::sign_in::signed_in(&server, &provider, "joining-guest", "target");
+    assert_eq!(quantity(&server, "target-seed", "target"), 4);
+    assert_eq!(
+        quantity(
+            &server,
+            "joining-guest",
+            &identity::guest_user("joining-guest")
+        ),
+        3
+    );
+    assert_eq!(schema.count("pw_interactions"), "0");
+    assert_eq!(schema.count("pw_outbox"), before);
+    assert!(
+        server
+            .command_answer(
+                "protected.join.joined",
+                &session,
+                &[],
+                Some("identity-joined")
+            )
+            .is_err()
+    );
+}
+
+#[test]
+fn a_table_free_identity_lifecycle_is_refused_at_startup() {
+    let src = r#"module Lifecycle
+opaque type InteractionId = String
+command joined() -> ()
+    invoked_by Identity
+    idempotent_by InteractionId
+{ () }
+public page Home() {
+    route "/"
+    placement origin
+    view { <title>Lifecycle</title><main>Ready</main> }
+}
+"#;
+    let (_dir, out) = super::tables::built(&[], &[("Lifecycle.pw", src)]);
+    let refused = Server::from_build(out.clone(), out).err();
+    assert!(
+        refused.as_ref().is_some_and(|why| why
+            .contains("Identity lifecycle commands require the generic declared-table layer")),
+        "{refused:?}"
+    );
+}
+
+fn active_receipt_replay_contract(server: &Server) {
+    let provider = Arc::new(super::sign_in::TestProvider::default());
+    server
+        .identity
+        .use_provider(provider.clone(), super::sign_in::REDIRECT);
+    seed_join(server);
+    let observed = Arc::new(Mutex::new(None));
+    let checked = Arc::clone(&observed);
+    *server.after_identity_lifecycle.lock().unwrap() =
+        Some(Box::new(move |server, component, session| {
+            // Observe on the HTTP worker, assert on the test thread. An
+            // unwind across thread::scope is no native-assertion control.
+            let proof = server
+                .identity
+                .principals()
+                .transition_previous(session, component)
+                .is_some();
+            let query = server.answer(
+                "protected.join.HasPrevious",
+                session,
+                &[Val::String("target".into())],
+            );
+            let same = server.identity_answer(component, session);
+            server.identity.signed_out_for_test(session);
+            let calls = table_calls(server);
+            let stale = server.identity_answer(component, session);
+            let detail = format!("query={query:?}; same={same:?}; stale={stale:?}");
+            *checked.lock().unwrap() = Some((
+                proof,
+                matches!(query, Ok(Val::Bool(false))),
+                same.is_ok_and(|answer| answer.committed),
+                stale.is_err(),
+                table_calls(server) == calls,
+                detail,
+            ));
+        }));
+    super::sign_in::signed_in(server, &provider, "joining-guest", "target");
+    let observed = observed.lock().unwrap().take();
+    assert!(observed.is_some(), "active-proof replay seam ran");
+    let (proof, query, same, stale, no_rows, detail) = observed.unwrap();
+    assert!(proof, "proof still active at replay seam");
+    assert!(
+        query,
+        "query cannot borrow outer lifecycle previous handle: {detail}"
+    );
+    assert!(
+        same,
+        "current active-proof receipt replay succeeds: {detail}"
+    );
+    assert!(
+        stale,
+        "stale target must not receive cached lifecycle success: {detail}"
+    );
+    assert!(no_rows, "receipt replay ran no row operations: {detail}");
+    assert_eq!(
+        quantity(server, "target-seed", "target"),
+        7,
+        "one merge only"
+    );
+}
+
+#[test]
+fn lifecycle_receipt_replay_keeps_target_authority_checks_in_memory() {
+    let (_dir, out) = built_join(JOIN);
+    let server = Server::from_build(out.clone(), out).asserted("generic server");
+    active_receipt_replay_contract(&server);
+}
+
+#[test]
+fn lifecycle_receipt_replay_keeps_target_authority_checks_on_postgresql() {
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    let schema = super::tables_pg::Schema::new(&url, "join_replay");
+    let (_dir, out) = built_join(JOIN);
+    let server = super::tables_pg::serve(&out, &schema);
+    active_receipt_replay_contract(&server);
+    assert_eq!(schema.count("pw_interactions"), "1");
+}
+
+fn trapping_join() -> String {
+    JOIN.replace("                JoinCarts.delete(previous)", "                let divisor = current - current\n                JoinCarts.put(current_user(), Line { owner: id_of(current_user()), quantity: old.quantity / divisor })\n                JoinCarts.delete(previous)")
+}
+
+#[test]
+fn a_trapping_lifecycle_discards_its_staged_memory_merge() {
+    let (_dir, out) = built_join(&trapping_join());
+    let server = Server::from_build(out.clone(), out).asserted("generic server");
+    let provider = Arc::new(super::sign_in::TestProvider::default());
+    server
+        .identity
+        .use_provider(provider.clone(), super::sign_in::REDIRECT);
+    seed_join(&server);
+    a_failed_join_keeps_both_partitions(&server, &provider);
+}
+
+#[test]
+fn a_trapping_lifecycle_discards_its_staged_postgresql_merge() {
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    let schema = super::tables_pg::Schema::new(&url, "join_trap");
+    let (_dir, out) = built_join(&trapping_join());
+    let server = super::tables_pg::serve(&out, &schema);
+    let provider = Arc::new(super::sign_in::TestProvider::default());
+    server
+        .identity
+        .use_provider(provider.clone(), super::sign_in::REDIRECT);
+    seed_join(&server);
+    let events = schema.count("pw_outbox");
+    a_failed_join_keeps_both_partitions(&server, &provider);
+    assert_eq!(schema.count("pw_interactions"), "0");
+    assert_eq!(schema.count("pw_outbox"), events);
+}
+
+#[test]
+fn a_compiled_join_reaches_only_the_targets_private_page_on_another_generic_host() {
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    let schema = super::tables_pg::Schema::new(&url, "join_delivery");
+    let (_dir, out) = built_join(JOIN);
+    let a = super::tables_pg::serve(&out, &schema);
+    let b = super::tables_pg::serve(&out, &schema);
+    let provider = Arc::new(super::sign_in::TestProvider::default());
+    a.identity
+        .use_provider(provider.clone(), super::sign_in::REDIRECT);
+    b.identity
+        .use_provider(provider.clone(), super::sign_in::REDIRECT);
+    seed_join(&a);
+    a.identity
+        .signed_in_for_test("target-other", "target", "Target");
+    a.identity.signed_in_for_test("bob-other", "bob", "Bob");
+    keep_quantity(&a, "bob-other", 11);
+    for session in ["target-other", "bob-other"] {
+        b.identity
+            .principals()
+            .admit(session)
+            .asserted("other host reader admitted");
+        b.serve_document_settled(session, "protected.join.JoinPage~ui", &Params::new(), &[])
+            .asserted("live private page");
+    }
+    b.hear();
+    let target = super::latest(&b.pending.lock().unwrap(), "target-other");
+    let bob = super::latest(&b.pending.lock().unwrap(), "bob-other");
+    let target_before = sets_of(&b, &target).len();
+    let bob_before = private_frames(&b, &bob);
+    super::sign_in::signed_in(&a, &provider, "joining-guest", "target");
+    assert_eq!(
+        sets_of(&b, &target).len(),
+        target_before,
+        "no delivery before reading the outbox"
+    );
+    b.hear();
+    let updated = sets_of(&b, &target);
+    assert!(
+        updated[target_before..]
+            .iter()
+            .any(|set| set.patches.iter().any(
+                |patch| matches!(&patch.operation, PatchOp::ReplaceText { text } if text == "7")
+            )),
+        "target's actual page received merged quantity: {updated:?}"
+    );
+    assert_eq!(
+        private_frames(&b, &bob),
+        bob_before,
+        "another account receives no frame"
+    );
+    let once = updated.len();
+    b.hear();
+    assert_eq!(
+        sets_of(&b, &target).len(),
+        once,
+        "shared log delivered once"
+    );
+}
+
+fn private_frames(server: &Server, doc: &Doc) -> Vec<String> {
+    server
+        .pending
+        .lock()
+        .unwrap()
+        .get(doc)
+        .map(|waiting| {
+            waiting
+                .frames
+                .iter()
+                .map(|(_, frame)| format!("{frame:?}"))
+                .collect()
+        })
+        .unwrap_or_default()
+}

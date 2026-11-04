@@ -521,6 +521,9 @@ struct Reached {
 #[cfg(test)]
 type KeyedFetched = Box<dyn FnOnce(&Server) + Send>;
 
+#[cfg(test)]
+type LifecycleReplayed = Box<dyn FnOnce(&Server, &str, &str) + Send>;
+
 /// What a test does while a document's change is derived (ADR-0296).
 #[cfg(test)]
 type Deriving = Arc<dyn Fn(&Server, &Doc) + Send + Sync>;
@@ -1271,6 +1274,8 @@ struct Server {
     before_command_delivery: Mutex<Option<KeyedFetched>>,
     #[cfg(test)]
     after_page_admission: Mutex<Option<KeyedFetched>>,
+    #[cfg(test)]
+    after_identity_lifecycle: Mutex<Option<LifecycleReplayed>>,
     /// **The admissions this server refused, as its log says them**
     /// (ADR-0389, amended 2026-11-02), which a test reads.
     #[cfg(test)]
@@ -1892,6 +1897,19 @@ impl Server {
                 let store = store.unwrap_or_else(|| Arc::new(store::StoreData::new()));
                 (store.clone(), store)
             };
+        if data.tables().is_none()
+            && contracts.iter().any(|c| {
+                c.exports.iter().any(|e| {
+                    e.component
+                        .as_ref()
+                        .is_some_and(|e| e.invoked_by.as_deref() == Some("Identity"))
+                })
+            })
+        {
+            return Err(
+                "Identity lifecycle commands require the generic declared-table layer".into(),
+            );
+        }
         // TRACK SEAM (uploads, ADR-0253): the layer commits a post's image
         // from the uploads' leases, in the post's own transaction.
         if let Some(leases) = uploads.leases() {
@@ -2185,6 +2203,8 @@ impl Server {
             #[cfg(test)]
             after_page_admission: Mutex::new(None),
             #[cfg(test)]
+            after_identity_lifecycle: Mutex::new(None),
+            #[cfg(test)]
             refusals: Mutex::new(Vec::new()),
             #[cfg(test)]
             deriving_hook: Mutex::new(None),
@@ -2236,6 +2256,14 @@ impl Server {
     /// word alone.
     fn invoked_by_platform(&self, component_id: &str) -> bool {
         payments::invoked_by_platform(&self.contracts, component_id)
+    }
+
+    fn identity_lifecycle(&self, component_id: &str) -> bool {
+        self.contracts
+            .iter()
+            .find(|c| c.component_id == component_id)
+            .and_then(|c| c.exports.first()?.component.as_ref())
+            .is_some_and(|e| e.invoked_by.as_deref() == Some("Identity"))
     }
 
     /// **A payment the provider's word settled, acted on** (NEXT 6c, step
@@ -2372,16 +2400,50 @@ impl Server {
     /// open pages told. A join that fails leaves the sign-in done and the
     /// guest's lines where they were, and says so. A program that reads no
     /// cart has none to join.
-    fn joined(&self, signed: &identity::SignedIn) {
-        let Some(by_reader) = self.cart_by_reader else {
+    fn joined(&self, signed: identity::SignedIn<'_>) {
+        if self.data.tables().is_some() {
+            let targets: Vec<_> = self
+                .contracts
+                .iter()
+                .filter(|contract| {
+                    contract.exports.iter().any(|e| {
+                        e.kind == "command"
+                            && e.component
+                                .as_ref()
+                                .is_some_and(|e| e.invoked_by.as_deref() == Some("Identity"))
+                    })
+                })
+                .map(|c| c.component_id.clone())
+                .collect();
+            let [component] = targets.as_slice() else {
+                return;
+            };
+            let session = signed.session.to_string();
+            let result = signed.invoke(component, || {
+                let answer = self.identity_answer(component, &session);
+                #[cfg(test)]
+                if let Some(hook) = self
+                    .after_identity_lifecycle
+                    .lock()
+                    .expect("lifecycle replay hook")
+                    .take()
+                {
+                    hook(self, component, &session);
+                }
+                answer
+            });
+            if !result.as_ref().is_ok_and(|answer| answer.committed) {
+                eprintln!("pw dev server: identity lifecycle did not commit; guest rows retained");
+            }
             return;
-        };
-        let guest = self.owner(signed.guest);
-        let user = if by_reader {
-            signed.principal.user.clone()
-        } else {
-            identity::session_handle(signed.session)
-        };
+        }
+        // A verified transition grants the guest-user namespace only. A
+        // legacy session-keyed cart may contain an expired account's data.
+        if self.cart_by_reader != Some(true) {
+            return;
+        }
+        let guest = identity::guest_user(signed.guest);
+        let user = signed.principal.user.clone();
         let event = (
             self.cart_event().to_string(),
             vec![Val::String(user.clone())],
@@ -2407,6 +2469,12 @@ impl Server {
                 "pw dev server: a guest's cart did not join its user's at sign-in, and stays the guest's: {why}"
             );
         }
+    }
+
+    fn identity_answer(&self, component: &str, session: &str) -> Result<Answered, String> {
+        // Keep the immutable target actor checks around fresh execution and
+        // receipt replay alike; proof presence alone is not current authority.
+        self.command_answer(component, session, &[], Some("identity-joined"))
     }
 
     /// How many items the data layer holds for the session: the tests' view
@@ -2737,7 +2805,17 @@ impl Server {
         let limits = Self::invocation_limits();
         let path = [&export.interface[..], &export.function[..]];
         let predicates = self.program_predicates(contract)?;
-        let caller = self.invocation_caller(session);
+        let caller = self
+            .identity
+            .principals()
+            .transition_previous(session, component_id)
+            .map(
+                |previous_guest| pw_host::tables::Caller::IdentityTransition {
+                    previous_guest,
+                    current: self.identity.principals().user_of(session),
+                },
+            )
+            .unwrap_or_else(|| self.invocation_caller(session));
         let command = contract.exports[0].kind == "command";
         let evaluate = |predicate: &str, bound: &[&Val]| {
             if command {
@@ -3036,7 +3114,17 @@ impl Server {
         // both read the lines, and one of them would be lost
         // (`lazy-handler.spec.mjs` clicks twice concurrently to find that).
         let principals = self.identity.principals();
-        let actor = if completing.is_some() || self.invoked_by_platform(component_id) {
+        let lifecycle = self.identity_lifecycle(component_id);
+        if lifecycle
+            && principals
+                .transition_previous(session, component_id)
+                .is_none()
+        {
+            return Err("Identity lifecycle has no checked transition proof".into());
+        }
+        let actor = if completing.is_some()
+            || (self.invoked_by_platform(component_id) && !lifecycle)
+        {
             None
         } else {
             // Keep the private success object separate from the bounded
@@ -3089,6 +3177,10 @@ impl Server {
             host.insert(
                 notifications::PRINCIPAL_ACCOUNT.to_string(),
                 notifications::account_operation(&self.identity.principals(), session),
+            );
+            host.insert(
+                "pw:host/principal#previous".into(),
+                identity::previous_operation(principals.transition_previous(session, component_id)),
             );
             // The platform's clock (ADR-0304), for the command's moment.
             host.extend(clock::operations(self.now(), &self.zones));
@@ -3872,6 +3964,15 @@ impl Server {
         json: &[serde_json::Value],
         interaction: Option<&str>,
     ) -> Result<Answered, String> {
+        if self.identity_lifecycle(component_id)
+            && self
+                .identity
+                .principals()
+                .transition_previous(session, component_id)
+                .is_none()
+        {
+            return Err("Identity lifecycle has no checked transition proof".into());
+        }
         let (export, args) = self.command_arguments(component_id, json)?;
         // With the predicate `requires` refused it by, where one did
         // (ADR-0302): taken on the thread that ran it, as it ends, so it is
@@ -3969,7 +4070,7 @@ impl Server {
         // TRACK SEAM (data-path): the session's digests, never the session
         // (the integrator's ruling of 2026-11-02): the record keeps the key
         // and what was sent a day, where a database reader reads them.
-        let reader = if self.invoked_by_platform(component) {
+        let reader = if self.invoked_by_platform(component) && !self.identity_lifecycle(component) {
             serde_json::json!({"platform":component,"session":identity::session_field(identity::PARTITION_DOMAIN, session),"user":principals.user_of(session)})
         } else {
             principals.receipt_reader(session)
@@ -5675,6 +5776,10 @@ impl Server {
                     .into(),
             );
         }
+        host.insert(
+            "pw:host/principal#previous".into(),
+            identity::previous_operation(None),
+        );
         let tables = |contract: &ComponentContract, granted: &Granted| {
             Ok(self
                 .data
@@ -10065,6 +10170,7 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
         &body,
         &mut stream,
         asked,
+        request_reader.as_ref(),
         // TRACK SEAM (store-accounts): a guest signed in, its cart joining
         // its user's before the sign-in is answered.
         &|signed| server.joined(signed),

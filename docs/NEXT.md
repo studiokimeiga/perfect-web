@@ -6,6 +6,25 @@
 
 # Next
 
+## Active protected-app migration, 2026-11-04
+
+1. Finish the frozen Identity-lifecycle checkpoint checks and independent
+   review. Local foundations now include retained shared outboxes, explicit
+   anonymous guest-row callers, owned Clock execution, and compiled joins on
+   an immutable checked transition. These are prerequisites, not app ports.
+2. Implement and prove generic upload claims/publication/reference lifetime
+   and bounded table reads/aggregations needed by the canonical apps. Keep the
+   existing mixed-layer and upload startup refusals until their replacements
+   are real. Measure rows/bytes/fuel, not SQL-call counts alone.
+3. Port canonical feed/store rows, projections, transitions and application
+   predicates to `.pw`; preserve guest/account carts, payment/scheduling,
+   uploads and private cross-host delivery. Verify the actual PostgreSQL
+   adapter and persisted rows, then run affected whole campaigns, browser
+   checks and CI on frozen source with independent review. No remote or
+   production conversion work is authorized.
+
+The sections below retain their dated sources and historical scope.
+
 ## Current local continuation, 2026-11-03
 
 1. Prepare the reviewed local integration for landing: code/test source

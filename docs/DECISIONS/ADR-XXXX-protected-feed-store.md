@@ -118,3 +118,37 @@ one needs an explicit application-table rename before the platform upgrade.
 Tail startup/poll SQL uses its dedicated connection and is not counted by the
 adapter's statement counter. Bounded-read claims must say which connection
 and row/byte work they measured.
+
+### Identity lifecycle authority
+
+`invoked_by Identity` names one parameter-free, idempotent command. Browser
+routes and page handlers cannot invoke it. `context.previous_user()` returns
+an optional guest handle only during that command; `current_user()` is the
+verified target account. Outside the lifecycle it returns None. A host-private
+one-use transition scope binds the original admitted request identity before
+provider exchange, source `guest_user(old_session)`, exact newly opened target
+principal/epoch, and lifecycle component. It retires on every exit.
+
+The engine accepts transition callers only for Identity command exports. A
+previous guest handle can read/delete owner-keyed rows, never insert/update
+old rows or read through a sharer index. The current handle has ordinary owner
+authority. Both remain restricted by the command's generated table grants.
+The lifecycle uses a real new-session actor and existing local/same-transaction
+PostgreSQL fences, rather than the general platform actor exemption. Its row
+merge, old-row deletion, receipt and outbox share one transaction. A failed
+merge leaves the sign-in completed and old guest rows retained for diagnosis.
+
+Anonymous means no current account, not no authentication history. The proof
+never grants a source account id or legacy session-keyed rows; account-owned
+rows from an expired sign-in are not guest rows. Old application adapters do
+not become alternative data paths for a declared-table program.
+
+
+The current host refuses an Identity lifecycle program without the generic
+declared-table layer at startup, by name; it never routes transition handles
+through legacy operations. Legacy user-keyed cart compatibility uses only the
+guest-user source. Legacy session-keyed carts are not transition sources:
+anonymous admission cannot establish that their rows have no account history.
+The target actor wrapper checks current authority for recalled lifecycle
+receipts as well as fresh execution. Private source/session fields, not public
+presentation fields, drive the proof binding.

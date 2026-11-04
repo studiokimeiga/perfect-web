@@ -66,6 +66,30 @@ SERVER = ROOT / "spikes/own-renderer/server/src/main.rs"
 IDENTITY = SERVER.with_name("identity.rs")
 
 MUTANTS = [
+    ("identity transition authority escapes its lifecycle root", HOST,
+     '        if identity != transition {\n',
+     '        if identity != transition && false {\n'),
+    ("identity transition may put the previous guests rows", OWNERS,
+     '        let user = if previous && old_owner_access {\n',
+     '        let user = if previous && (old_owner_access || true) {\n'),
+    ("identity transition source uses its public presentation field", IDENTITY,
+     '                previous_guest: self.previous_guest,\n',
+     '                previous_guest: guest_user(self.guest),\n'),
+    ("identity transition target uses its public presentation field", IDENTITY,
+     '                session: self.target_session.clone(),\n',
+     '                session: self.session.into(),\n'),
+    ("identity transition scope is never retired", IDENTITY,
+     '                IDENTITY_TRANSITIONS.with(|held| {\n                    held.borrow_mut().pop();\n                });\n',
+     '                IDENTITY_TRANSITIONS.with(|held| {\n                    let _ = held.borrow().len();\n                });\n'),
+    ("identity lifecycle skips its real target actor fence", SERVER,
+     '            || (self.invoked_by_platform(component_id) && !lifecycle)\n',
+     '            || self.invoked_by_platform(component_id)\n'),
+    ("identity lifecycle receipt replay skips target authority", SERVER,
+     '        self.command_answer(component, session, &[], Some("identity-joined"))\n',
+     '        self.command_answer_bound(component, session, &[], Some("identity-joined"))\n'),
+    ("identity lifecycle treats an authenticated admission as a guest", IDENTITY,
+     '            && matches!(admitted, ReaderIdentity::Guest | ReaderIdentity::Anonymous);\n',
+     '            && (matches!(admitted, ReaderIdentity::Guest | ReaderIdentity::Anonymous) || true);\n'),
     ("a local guest command ignores changed authority", IDENTITY,
      '        if self.is_local() && self.principals.cached_reader(&self.session) == self.reader {\n',
      '        if self.is_local() {\n'),
@@ -131,7 +155,7 @@ MUTANTS = [
      "        Some(Val::String(given)) if given == user || true => {}\n"),
     ("a call no one makes reads owned rows", OWNERS,
      "    let Caller::User(user) = caller else {\n",
-     "    let nobody = String::new();\n    let user = match caller { Caller::User(user) => user, Caller::Nobody => &nobody };\n    if false {\n"),
+     "    let nobody = String::new();\n    let user = match caller { Caller::User(user) => user, Caller::Nobody | Caller::IdentityTransition { .. } => &nobody };\n    if false {\n"),
     ("an owned row may be written for another", OWNERS,
      "                Some((_, Val::String(owner))) if owner == user => Ok(vec![row.clone()]),\n",
      "                Some((_, Val::String(owner))) if owner == user || true => Ok(vec![row.clone()]),\n"),
@@ -307,6 +331,8 @@ MUTANTS = [
 # Each Cargo test binary separately: names can repeat between binaries, and
 # the shared native assertion validator expects one complete inventory.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "identity::transition_tests::"],
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "invoked_by"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "tests::protected_migration::"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "required_queries"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "table_owners"],
@@ -318,6 +344,8 @@ TESTS = [
 
 SOURCES = [
     SERVER,
+    IDENTITY,
+    ROOT / "compiler/pw-core/tests/invoked_by.rs",
     ROOT / "spikes/own-renderer/server/src/tests/protected_migration.rs",
     ROOT / "spikes/own-renderer/server/src/tests/required_queries.rs",
     ROOT / "spikes/own-renderer/server/src/tests/tables.rs",

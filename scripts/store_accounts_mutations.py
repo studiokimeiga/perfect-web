@@ -166,8 +166,8 @@ MUTANTS = [
         "a signed-in session that signs in again is joined to the next user",
         "server",
         IDENTITY,
-        "        let was_guest = self.principals.of(session).is_none_or(|p| p.is_guest());\n",
-        "        let was_guest = true;\n",
+        '            && matches!(admitted, ReaderIdentity::Guest | ReaderIdentity::Anonymous);\n',
+        '            && (matches!(admitted, ReaderIdentity::Guest | ReaderIdentity::Anonymous) || true);\n',
     ),
     (
         "the deployment is not told of a guest's sign-in",

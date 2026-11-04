@@ -9,7 +9,9 @@ preserve guest joining, uploads, clock-owned orders and cross-host delivery;
 the generic adapter has explicit gaps at those seams. Local prerequisite
 checkpoints add shared-outbox delivery and explicitly admitted anonymous
 guest-owned rows in accounts mode. The outbox review's reserved-name fix and
-retained-0002 upgrade witness are included. Identity joining, upload lifecycle,
+retained-0002 upgrade witness are included. The next local checkpoint adds
+Identity-origin compiled row joining and owned Clock regression witnesses;
+its exact-source checks and review are in progress. Upload lifecycle,
 bounded reads and the application ports remain pending under [the migration decision](DECISIONS/ADR-XXXX-protected-feed-store.md).
 Earlier green records below apply to their named sources only.
 

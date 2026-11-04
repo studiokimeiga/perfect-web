@@ -28,11 +28,14 @@ use crate::resolve::{DefId, Namespace, Resolution, Workspace};
 /// The platform's invokers, by the word a command names them with: a
 /// payment's outcome (ADR-0332), and the clock passing a scheduled time (the
 /// scheduled-commands track, `scheduled.rs`).
-pub const INVOKERS: &[&str] = &["Payments", "Clock"];
+pub const INVOKERS: &[&str] = &["Payments", "Clock", "Identity"];
 
 /// Why no reader's predicate holds a command `invoker` invokes.
 fn on_whose_word(invoker: &str) -> &'static str {
     match invoker {
+        "Identity" => {
+            "The platform invokes the lifecycle after it verifies and rotates a sign-in. Its immutable transition proof supplies the old guest and new account, not a browser's arguments."
+        }
         "Clock" => {
             "A command the clock invokes runs when the time a command scheduled it for \
              passes, on behalf of the reader whose command scheduled it. No reader presses \
@@ -103,6 +106,17 @@ pub fn check(
         }
         // A payment's outcome is given as the provider has it; a scheduled
         // run, as its scheduler gave it (`scheduled.rs` relates them).
+        if invoker == "Identity" && !decl.params.is_empty() {
+            out.push(diagnostic(
+                codes::INVOKED_COMMAND_PARAMETERS,
+                "invoked_command_parameters",
+                format!("`{}` is invoked by Identity and takes no parameters", decl.name),
+                at.clone(),
+                vec![Related::new(by.span.clone(), "the transition supplies platform context")],
+                "Read the previous guest with context.previous_user() and the verified target with context.current_user(). Browser arguments cannot supply identity-transition authority.",
+                format!("declare `{}()`", decl.name),
+            ));
+        }
         if invoker == "Payments" && !given_settled(unit, ws, decl) {
             let written: Vec<String> = decl
                 .params
@@ -138,7 +152,7 @@ pub fn check(
         // The first, in source order across the program, is the one; every
         // other is refused where it is written, naming it. A payment's
         // outcome has one answer; the clock runs as many as are scheduled.
-        if invoker == "Payments"
+        if matches!(invoker, "Payments" | "Identity")
             && let Some(each) = all.get(invoker)
             && let Some(&(first_unit, first)) = each.first()
             && (first_unit, first) != (unit, id)
@@ -160,9 +174,7 @@ pub fn check(
                         hirs[first_unit].decl(first).name
                     ),
                 )],
-                "The host invokes one command with a payment's outcome. With two, the \
-                 outcome would have two answers, and which ran would be the host's choice, \
-                 not the program's.",
+                "The host invokes one lifecycle command for this platform outcome. With two, which ran would be the host's choice, not the program's.",
                 "keep one command `invoked_by` it, and call the other's work from it".to_string(),
             ));
         }
