@@ -93,6 +93,18 @@ LAST = (
 )
 
 MUTANTS = [
+    ('ranges memory ignores its mark', MEMORY,
+     'if strictly_after(value, mark)? {',
+     'if true || strictly_after(value, mark)? {'),
+    ('ranges memory includes equal integer marks', MEMORY,
+     '.map(|value| value > *mark)',
+     '.map(|value| value >= *mark)'),
+    ('ranges memory coalesces different marks for the same selector', MEMORY,
+     '    Ok((fields, keys))\n}\n\n/// Compare borrowed order values;',
+     '    let mut by = BTreeMap::new();\n    for key in keys { by.entry(key[..function.by.len()].to_vec()).or_insert(key); }\n    Ok((fields, by.into_values().collect()))\n}\n\n/// Compare borrowed order values;'),
+    ('ranges memory count is wrong for every generated table', MEMORY,
+     '                return Ok(Value::from(count));\n            }\n            let key = Value::Object(',
+     '                return Ok(Value::from(count + 1));\n            }\n            let key = Value::Object('),
     ('windows memory retains every matching row', MEMORY,
      '                if best.len() as u64 > bound as u64 {',
      '                if false && best.len() as u64 > bound as u64 {'),
@@ -100,8 +112,8 @@ MUTANTS = [
      '                        best.pop_first();',
      '                        best.pop_last();'),
     ('count aggregate scalar answer is wrong for every generated table', MEMORY,
-     '                return Ok(Value::from(count));',
-     '                return Ok(Value::from(count + 1));'),
+     '                return Ok(Value::from(count));\n            }\n            let key = match selected.as_slice() {',
+     '                return Ok(Value::from(count + 1));\n            }\n            let key = match selected.as_slice() {'),
     ('count aggregate set answer is wrong for every generated table', MEMORY,
      'counts.push(serde_json::json!({"key":key, "count":count}));',
      'counts.push(serde_json::json!({"key":key, "count":count + 1}));'),
@@ -341,6 +353,7 @@ MUTANTS = [
 # Each Cargo test binary apart: names can repeat between binaries, and the
 # shared native assertion validator expects one complete inventory each.
 TESTS = [
+    (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_ranges"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_windows"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server"],
      ["tests::tables::", "tests::guestbook::", "tests::conformance::",
@@ -364,6 +377,8 @@ TESTS = [
 ]
 
 SOURCES = [
+    ROOT / "runtime/pw-table-memory/tests/compiled_ranges.rs",
+    ROOT / "runtime/pw-table-memory/tests/support/ranges.rs",
     ROOT / "runtime/pw-table-memory/tests/compiled_windows.rs",
     ROOT / "runtime/pw-table-memory/tests/support/windows.rs",
     ROOT / "runtime/pw-table-memory/tests/support/owned.rs",

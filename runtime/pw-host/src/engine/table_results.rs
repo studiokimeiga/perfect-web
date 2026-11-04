@@ -117,6 +117,7 @@ fn encode_count(read: &Read, value: &Value) -> Result<Val, String> {
     if !read.many() {
         return count(value);
     }
+    let columns = read.count_columns()?;
     let entries = value
         .as_array()
         .ok_or("a set count result must be a list")?;
@@ -129,7 +130,7 @@ fn encode_count(read: &Read, value: &Value) -> Result<Val, String> {
             if fields.len() != 2 || !fields.contains_key("key") || !fields.contains_key("count") {
                 return Err("a set count entry has exactly key and count".into());
             }
-            let key = match read.by.as_slice() {
+            let key = match columns.as_slice() {
                 [one] => encode(&one.stored, &fields["key"]),
                 columns if !columns.is_empty() => record(columns, &fields["key"]),
                 _ => Err("a set count has no selector".into()),

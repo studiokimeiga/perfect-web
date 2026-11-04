@@ -65,7 +65,7 @@ pub fn check_import(access: &Access, func: &ComponentFunc) -> Result<(), String>
 }
 
 fn read_import(read: &Read, params: &[Type], results: &[Type]) -> Result<(), String> {
-    let params = window_params(read, params)?;
+    let params = range_params(read, params)?;
     let words = read.primitive.by_words();
     if read.many() {
         let [Type::List(given)] = params else {
@@ -74,7 +74,11 @@ fn read_import(read: &Read, params: &[Type], results: &[Type]) -> Result<(), Str
                 listed(params)
             ));
         };
-        selector(words, &read.by, &given.ty())?;
+        if read.primitive.range() {
+            record(&read.count_columns()?, &given.ty())?;
+        } else {
+            selector(words, &read.by, &given.ty())?;
+        }
     } else {
         fields(words, &read.by, params)?;
     }
@@ -98,6 +102,18 @@ fn read_import(read: &Read, params: &[Type], results: &[Type]) -> Result<(), Str
         };
         record(&read.row, &rows.ty())
     }
+}
+
+/// Scalar range marks use the actual order type, not a window's Int limit.
+pub(super) fn range_params<'a>(read: &Read, params: &'a [Type]) -> Result<&'a [Type], String> {
+    if read.primitive.range() && !read.many() {
+        let (mark, selectors) = params
+            .split_last()
+            .ok_or("a range count takes its order mark after the selectors")?;
+        stored(&read.mark_column()?.stored, mark)?;
+        return Ok(selectors);
+    }
+    window_params(read, params)
 }
 
 pub(super) fn window_params<'a>(read: &Read, params: &'a [Type]) -> Result<&'a [Type], String> {
@@ -130,7 +146,8 @@ pub(super) fn count_results(read: &Read, results: &[Type]) -> Result<(), String>
     if key.name != "key" || count.name != "count" || !matches!(count.ty, Type::S64) {
         return Err("a set count entry is key, then count: Int".into());
     }
-    match read.by.as_slice() {
+    let columns = read.count_columns()?;
+    match columns.as_slice() {
         [one] => stored(&one.stored, &key.ty),
         columns if !columns.is_empty() => record(columns, &key.ty),
         _ => Err("a set count has no selector".into()),
@@ -466,11 +483,12 @@ fn count_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), String
     let [answer] = results else {
         return Err("a count answers exactly one value".into());
     };
+    let columns = read.count_columns()?;
     if !read.many() {
-        if args.len() != read.by.len() {
+        if args.len() != columns.len() {
             return Err("a count is given its selector fields".into());
         }
-        for (column, value) in read.by.iter().zip(args) {
+        for (column, value) in columns.iter().zip(args) {
             check_value(&column.stored, value)?;
         }
         return match answer {
@@ -494,7 +512,7 @@ fn count_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), String
         if key_name != "key" || count_name != "count" || *count < 0 {
             return Err("a set count entry has key and a nonnegative count".into());
         }
-        let selected = match read.by.as_slice() {
+        let selected = match columns.as_slice() {
             [one] => {
                 check_value(&one.stored, key)?;
                 vec![atom(key)?]
@@ -703,6 +721,7 @@ fn atoms<'a>(
 /// What a set form was given: each its one field's value, or a record of
 /// its fields by their WIT names.
 fn asked_selectors(read: &Read, args: &[Val]) -> Result<BTreeSet<Vec<Atom>>, String> {
+    let columns = read.count_columns()?;
     let words = read.primitive.by_words();
     let [Val::List(given)] = args else {
         return Err(format!(
@@ -712,13 +731,14 @@ fn asked_selectors(read: &Read, args: &[Val]) -> Result<BTreeSet<Vec<Atom>>, Str
     };
     given
         .iter()
-        .map(|value| match (read.by.as_slice(), value) {
+        .map(|value| match (columns.as_slice(), value) {
             ([_], value) => Ok(vec![atom(value)?]),
             (columns, Val::Record(fields)) if fields.len() == columns.len() => columns
                 .iter()
                 .zip(fields)
                 .map(|(column, (name, value))| {
                     if *name == column.wit {
+                        check_value(&column.stored, value)?;
                         atom(value)
                     } else {
                         Err(format!(
@@ -1231,6 +1251,77 @@ mod tests {
 
     fn counted(key: Val, count: i64) -> Val {
         Val::Record(vec![("key".into(), key), ("count".into(), Val::S64(count))])
+    }
+
+    #[test]
+    fn range_answers_cover_every_selector_and_mark_in_canonical_order_without_extras() {
+        let one = read(items(Primitive::CountAfter, &["list"]));
+        assert!(
+            check_answer(
+                &one,
+                &[Val::String("a".into()), Val::S64(0)],
+                &[Val::S64(0)]
+            )
+            .is_ok()
+        );
+        assert!(check_answer(&one, &[Val::String("a".into())], &[Val::S64(0)]).is_err());
+        let many = read(items(Primitive::CountAfterMany, &["list"]));
+        let key = |list: &str, mark| {
+            Val::Record(vec![
+                ("list".into(), Val::String(list.into())),
+                ("after".into(), Val::S64(mark)),
+            ])
+        };
+        let args = [Val::List(vec![
+            key("a", 2),
+            key("b", 0),
+            key("a", 0),
+            key("a", 0),
+        ])];
+        let correct = vec![
+            counted(key("a", 0), 3),
+            counted(key("a", 2), 0),
+            counted(key("b", 0), 0),
+        ];
+        assert!(check_answer(&many, &args, &[Val::List(correct.clone())]).is_ok());
+        for wrong in [
+            vec![counted(key("a", 0), 3), counted(key("b", 0), 0)],
+            vec![
+                counted(key("a", 0), 3),
+                counted(key("a", 1), 0),
+                counted(key("b", 0), 0),
+            ],
+            vec![
+                counted(key("a", 2), 0),
+                counted(key("a", 0), 3),
+                counted(key("b", 0), 0),
+            ],
+            vec![
+                counted(key("a", 0), 3),
+                counted(key("a", 0), 3),
+                counted(key("a", 2), 0),
+                counted(key("b", 0), 0),
+            ],
+            vec![
+                counted(
+                    Val::Record(vec![("list".into(), Val::String("a".into()))]),
+                    3,
+                ),
+                counted(key("a", 2), 0),
+                counted(key("b", 0), 0),
+            ],
+            vec![
+                counted(key("a", 0), -1),
+                counted(key("a", 2), 0),
+                counted(key("b", 0), 0),
+            ],
+        ] {
+            assert!(
+                check_answer(&many, &args, &[Val::List(wrong.clone())]).is_err(),
+                "invalid range answer: {wrong:?}"
+            );
+        }
+        assert!(check_answer(&many, &[Val::List(vec![])], &[Val::List(vec![])]).is_ok());
     }
 
     #[test]

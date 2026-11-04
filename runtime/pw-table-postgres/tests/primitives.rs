@@ -82,6 +82,16 @@ fn the_compilers_functions_are_each_served() {
             "pw:tables/things#by-owner-rank-many",
             "pw:tables/things#by-slug",
             "pw:tables/things#by-slug-many",
+            "pw:tables/things#count-after-by-flag",
+            "pw:tables/things#count-after-by-flag-many",
+            "pw:tables/things#count-after-by-owner",
+            "pw:tables/things#count-after-by-owner-many",
+            "pw:tables/things#count-after-by-owner-n",
+            "pw:tables/things#count-after-by-owner-n-many",
+            "pw:tables/things#count-after-by-owner-rank",
+            "pw:tables/things#count-after-by-owner-rank-many",
+            "pw:tables/things#count-after-by-slug",
+            "pw:tables/things#count-after-by-slug-many",
             "pw:tables/things#count-by-flag",
             "pw:tables/things#count-by-flag-many",
             "pw:tables/things#count-by-owner",
@@ -131,8 +141,10 @@ fn the_compilers_functions_are_each_served() {
     }) {
         let f = import.rsplit('#').next().unwrap_or_default();
         let window = f.starts_with("first-") || f.starts_with("last-");
+        let range = f.starts_with("count-after-");
         let bare = f
-            .strip_prefix("count-")
+            .strip_prefix("count-after-")
+            .or_else(|| f.strip_prefix("count-"))
             .or_else(|| f.strip_prefix("first-"))
             .or_else(|| f.strip_prefix("last-"))
             .unwrap_or(f);
@@ -158,6 +170,36 @@ fn the_compilers_functions_are_each_served() {
             "by-owner-rank" => vec![json!("a"), json!(5)],
             _ => vec![json!([{"owner": "a", "rank": 5}])],
         };
+        if range {
+            if import.ends_with("-many") {
+                let fields = match f {
+                    "get-many" => vec!["owner", "n"],
+                    "of-owner-many" => vec!["owner"],
+                    "by-slug-many" => vec!["slug"],
+                    "by-flag-many" => vec!["flag"],
+                    _ => vec!["owner", "rank"],
+                };
+                let requests = args[0]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|key| {
+                        let mut fields = if fields.len() == 1 {
+                            [(fields[0].to_string(), key.clone())]
+                                .into_iter()
+                                .collect::<serde_json::Map<String, Value>>()
+                        } else {
+                            key.as_object().unwrap().clone()
+                        };
+                        fields.insert("after".into(), json!(0));
+                        Value::Object(fields)
+                    })
+                    .collect();
+                args = vec![Value::Array(requests)];
+            } else {
+                args.push(json!(0));
+            }
+        }
         if window {
             args.push(json!(2));
         }

@@ -68,6 +68,33 @@ SERVER = ROOT / "spikes/own-renderer/server/src/main.rs"
 IDENTITY = SERVER.with_name("identity.rs")
 
 MUTANTS = [
+    ('ranges reader-only sets are refused', HOST_TABLES,
+     'if (function.primitive == Primitive::CountMany\n',
+     'if (matches!(function.primitive, Primitive::CountMany | Primitive::CountAfterMany)\n'),
+    ('ranges result identities omit their mark', HOST_TABLES,
+     '            columns.push(self.mark_column()?);',
+     '            let _ = self.mark_column()?;'),
+    ('ranges unused scalar import bypasses its order ABI', LINK,
+     '        stored(&read.mark_column()?.stored, mark)?;',
+     '        let _ = (read.mark_column()?, mark);'),
+    ('ranges heterogeneous requests use another readers identity', OWNERS,
+     'let mut fields = vec![(first.wit.clone(), Val::String(user.clone()))];',
+     'let mut fields = vec![(first.wit.clone(), Val::String("u-carol".into()))];'),
+    ('ranges reader and list formal names alias', TABLES,
+     'let list_name = if crate::wit::ident(&by[0]) == "values" {',
+     'let list_name = if false && crate::wit::ident(&by[0]) == "values" {'),
+    ('ranges mark field aliases a stored field', TABLES,
+     'while fields.contains(&crate::wit::ident(&name)) {',
+     'while false && fields.contains(&crate::wit::ident(&name)) {'),
+    ('ranges malformed set members silently disappear', SELECTORS,
+     '.map(|value| key(&columns, value))\n                .collect::<Result<Vec<_>, _>>()?;',
+     '.filter_map(|value| key(&columns, value).ok())\n                .collect::<Vec<_>>();'),
+    ('ranges marks lose their actual order type and refinement', HOST_TABLES,
+     'Ok(Column::new(&name, column.stored.clone()))',
+     'Ok(Column::new(&name, Stored::Int { at_least: None, at_most: None }))'),
+    ('ranges missing declared order is admitted', HOST_TABLES,
+     'if self.order.is_none() {\n                    return Err(format!("range counts of {name} require a declared order"));',
+     'if false && self.order.is_none() {\n                    return Err(format!("range counts of {name} require a declared order"));'),
     ('counts repair omits the zero entries', BOUNDED,
      '        let (entries, missing) = if primitive.counts() {',
      '        let (entries, missing) = if false && primitive.counts() {'),
@@ -384,6 +411,8 @@ MUTANTS = [
 # Each Cargo test binary separately: names can repeat between binaries, and
 # the shared native assertion validator expects one complete inventory.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "table_ranges"],
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_ranges"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "table_windows"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_windows"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "tables"],
@@ -401,6 +430,9 @@ TESTS = [
 ]
 
 SOURCES = [
+    ROOT / "compiler/pw-core/tests/table_ranges.rs",
+    ROOT / "runtime/pw-table-memory/tests/compiled_ranges.rs",
+    ROOT / "runtime/pw-table-memory/tests/support/ranges.rs",
     ROOT / "compiler/pw-core/tests/table_windows.rs",
     ROOT / "runtime/pw-table-memory/tests/compiled_windows.rs",
     ROOT / "runtime/pw-table-memory/tests/support/windows.rs",

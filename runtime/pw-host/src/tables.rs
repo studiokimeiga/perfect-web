@@ -150,6 +150,8 @@ pub enum Primitive {
     IndexMany,
     Count,
     CountMany,
+    CountAfter,
+    CountAfterMany,
     First,
     FirstMany,
     Last,
@@ -178,6 +180,7 @@ impl Primitive {
                 | Primitive::PrefixMany
                 | Primitive::IndexMany
                 | Primitive::CountMany
+                | Primitive::CountAfterMany
                 | Primitive::FirstMany
                 | Primitive::LastMany
         )
@@ -194,6 +197,8 @@ impl Primitive {
             Primitive::IndexMany => "index-many",
             Primitive::Count => "count",
             Primitive::CountMany => "count-many",
+            Primitive::CountAfter => "count-after",
+            Primitive::CountAfterMany => "count-after-many",
             Primitive::First => "first",
             Primitive::FirstMany => "first-many",
             Primitive::Last => "last",
@@ -206,6 +211,10 @@ impl Primitive {
         }
     }
 
+    pub fn range(self) -> bool {
+        matches!(self, Primitive::CountAfter | Primitive::CountAfterMany)
+    }
+
     pub fn window(self) -> bool {
         matches!(
             self,
@@ -216,7 +225,13 @@ impl Primitive {
         matches!(self, Primitive::Last | Primitive::LastMany)
     }
     pub fn counts(self) -> bool {
-        matches!(self, Primitive::Count | Primitive::CountMany)
+        matches!(
+            self,
+            Primitive::Count
+                | Primitive::CountMany
+                | Primitive::CountAfter
+                | Primitive::CountAfterMany
+        )
     }
 
     /// What it reads or writes by, in a refusal's words.
@@ -228,6 +243,8 @@ impl Primitive {
             Primitive::All | Primitive::Insert | Primitive::Put => "row",
             Primitive::Count
             | Primitive::CountMany
+            | Primitive::CountAfter
+            | Primitive::CountAfterMany
             | Primitive::First
             | Primitive::FirstMany
             | Primitive::Last
@@ -343,6 +360,38 @@ pub struct Read {
 }
 
 impl Read {
+    /// The mark's value type is the declared order's; its name is not a stored
+    /// selector and is distinct from every emitted row field identity.
+    pub fn mark_column(&self) -> Result<Column, String> {
+        let order = self
+            .order
+            .as_ref()
+            .ok_or("a range count requires a declared order")?;
+        let column = self
+            .row
+            .iter()
+            .find(|c| c.name == *order)
+            .ok_or("a range count's order is not a row field")?;
+        let mut name = "after".to_string();
+        while self
+            .row
+            .iter()
+            .any(|c| c.wit == Column::new(&name, column.stored.clone()).wit)
+        {
+            name.push_str("_mark");
+        }
+        Ok(Column::new(&name, column.stored.clone()))
+    }
+
+    /// Full count request identity: equality fields, then the typed mark.
+    pub fn count_columns(&self) -> Result<Vec<Column>, String> {
+        let mut columns = self.by.clone();
+        if self.primitive.range() {
+            columns.push(self.mark_column()?);
+        }
+        Ok(columns)
+    }
+
     /// Is it a set form, given one list?
     pub fn many(&self) -> bool {
         self.primitive.many()
@@ -489,6 +538,20 @@ impl Table {
                 let suffix = if primitive.many() { "_many" } else { "" };
                 Ok(format!("{word}_by_{}{suffix}", by.join("_")))
             }
+            Primitive::CountAfter | Primitive::CountAfterMany => {
+                if self.order.is_none() {
+                    return Err(format!("range counts of {name} require a declared order"));
+                }
+                let prefix =
+                    !by.is_empty() && by.len() <= self.key.len() && self.key[..by.len()] == *by;
+                if !prefix && !self.indexes.iter().any(|index| index.fields == by) {
+                    return Err(format!(
+                        "range counts by no declared key, prefix or index of {name}"
+                    ));
+                }
+                let suffix = if primitive.many() { "_many" } else { "" };
+                Ok(format!("count_after_by_{}{suffix}", by.join("_")))
+            }
             Primitive::Count | Primitive::CountMany => {
                 let prefix =
                     !by.is_empty() && by.len() <= self.key.len() && self.key[..by.len()] == *by;
@@ -541,6 +604,9 @@ impl Table {
     /// what a set form was given, then by the table's order, then by its key,
     /// each field once.
     fn sorted_by(&self, primitive: Primitive, by: &[String]) -> Vec<String> {
+        if primitive.range() {
+            return Vec::new();
+        }
         if primitive == Primitive::Count {
             return Vec::new();
         }

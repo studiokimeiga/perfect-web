@@ -70,6 +70,24 @@ POOL = CRATE / "src/pool.rs"
 CARGO = ROOT / "Cargo.toml"
 
 MUTANTS = [
+    ('ranges scalar ignores the order mark', SQL,
+     '"SELECT count(*) AS pw_range_count FROM {t} t WHERE {} AND t.{} > ${}::{}",',
+     '"SELECT count(*) AS pw_range_count FROM {t} t WHERE {} AND (t.{} > ${}::{} OR true)",'),
+    ('ranges set includes equal order marks', SQL,
+     '"t.{} > k.c{}",',
+     '"t.{} >= k.c{}",'),
+    ('ranges set omits zero ranges with an inner join', SQL,
+     '\n                     LEFT JOIN {t} t ON {} GROUP BY k.pw_slot ORDER BY k.pw_slot',
+     '\n                     INNER JOIN {t} t ON {} GROUP BY k.pw_slot ORDER BY k.pw_slot'),
+    ('ranges different marks collapse to the same equality key', SHAPE,
+     '    Ok((columns, keys.into_iter().collect()))',
+     '    let mut by = std::collections::BTreeMap::new();\n    for key in keys { by.entry(key[..function.by.len()].to_vec()).or_insert(key); }\n    Ok((columns, by.into_values().collect()))'),
+    ('ranges correct set answers run one SQL query per pair', LIB,
+     '    let (columns, keys) = shape::typed_ranges(table, function, args)?;\n    if keys.is_empty() {\n        return Ok(Value::Array(Vec::new()));\n    }',
+     '    let (columns, keys) = shape::typed_ranges(table, function, args)?;\n    if keys.is_empty() {\n        return Ok(Value::Array(Vec::new()));\n    }\n    if function.primitive.many() {\n        let mut counts = Vec::new();\n        for key in &keys {\n            let params = columns.iter().zip(key).map(|(column, atom)| bind_array(column, &[atom])).collect::<Result<Vec<Param>, Error>>()?;\n            let rows = conn.query(&inner.counters, sql, &params).map_err(database)?;\n            let count: i64 = rows[0].try_get(1).map_err(database)?;\n            let key = Value::Object(columns.iter().map(|c| c.name.clone()).zip(key.iter().map(shape::Atom::value)).collect());\n            counts.push(serde_json::json!({"key":key,"count":count}));\n        }\n        return Ok(Value::Array(counts));\n    }'),
+    ('ranges correct scalar answer materializes every SQL row first', LIB,
+     '    let rows = conn\n        .query(&inner.counters, sql, &params)\n        .map_err(database)?;\n    if rows.len() != keys.len() {',
+     '    if !function.primitive.many() {\n        let unbounded = sql.replace("count(*) AS pw_range_count", "t.*");\n        let rows = conn.query(&inner.counters, &unbounded, &params).map_err(database)?;\n        return Ok(Value::from(rows.len() as i64));\n    }\n    let rows = conn\n        .query(&inner.counters, sql, &params)\n        .map_err(database)?;\n    if rows.len() != keys.len() {'),
     ('windows materialize unrestricted rows then clip after SQL', LIB,
      '    let rows = conn\n        .query(&inner.counters, sql, &params)\n        .map_err(database)?;\n    if function.primitive == Primitive::Count {',
      '    // Deliberate false optimization: fetch every scalar-window row, then\n    // crop it before the gate. Only the real returned-row/byte oracle sees it.\n    let unbounded = if window_limit.is_some() && !function.primitive.many() {\n        let parameter = function.by.len() + 1;\n        sql.replace(&format!(" LIMIT ${parameter}::bigint"), &format!(" OFFSET (${parameter}::bigint * 0)"))\n    } else { sql.as_str().to_string() };\n    let mut rows = conn.query(&inner.counters, &unbounded, &params).map_err(database)?;\n    if let Some(limit) = window_limit && !function.primitive.many() {\n        rows.truncate(usize::try_from(limit).unwrap_or(usize::MAX));\n    }\n    if function.primitive == Primitive::Count {'),
@@ -86,8 +104,8 @@ MUTANTS = [
      'SELECT k.pw_slot, count(t.{}) FROM unnest({})',
      'SELECT k.pw_slot, count(*) + (count(t.{}) * 0) FROM unnest({})'),
     ('counts omit missing selectors with an inner join', SQL,
-     'LEFT JOIN {t} t ON {} GROUP BY k.pw_slot ORDER BY k.pw_slot',
-     'INNER JOIN {t} t ON {} GROUP BY k.pw_slot ORDER BY k.pw_slot'),
+     '\n                 LEFT JOIN {t} t ON {} GROUP BY k.pw_slot ORDER BY k.pw_slot',
+     '\n                 INNER JOIN {t} t ON {} GROUP BY k.pw_slot ORDER BY k.pw_slot'),
     ('counts scalar query ignores its selector', SQL,
      '"SELECT count(*) FROM {t} t WHERE {}",',
      '"SELECT count(*) FROM {t} t WHERE ({} OR true)",'),
@@ -309,6 +327,7 @@ MUTANTS = [
 # Each test binary apart: names can repeat between binaries, and the native
 # assertion validator expects one complete inventory each.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_ranges"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_windows"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "counts"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_counts"],

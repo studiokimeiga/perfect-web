@@ -1019,6 +1019,71 @@ impl Inner {
     }
 }
 
+/// A scalar/set range is one aggregate query after the whole request validates.
+fn read_ranges(
+    inner: &Inner,
+    conn: &mut Conn,
+    table: &shape::TableShape,
+    function: &shape::FunctionShape,
+    sql: &str,
+    args: &[Value],
+) -> Result<Value, Error> {
+    let (columns, keys) = shape::typed_ranges(table, function, args)?;
+    if keys.is_empty() {
+        return Ok(Value::Array(Vec::new()));
+    }
+    let params = if function.primitive.many() {
+        columns
+            .iter()
+            .enumerate()
+            .map(|(at, column)| {
+                let atoms = keys.iter().map(|key| &key[at]).collect::<Vec<_>>();
+                bind_array(column, &atoms)
+            })
+            .collect::<Result<Vec<Param>, Error>>()?
+    } else {
+        columns
+            .iter()
+            .zip(&keys[0])
+            .map(|(column, atom)| bind_atom(column, atom))
+            .collect::<Result<Vec<Param>, Error>>()?
+    };
+    let rows = conn
+        .query(&inner.counters, sql, &params)
+        .map_err(database)?;
+    if rows.len() != keys.len() {
+        return Err(Error::Database(
+            "range count rows do not cover the requested pairs".into(),
+        ));
+    }
+    if !function.primitive.many() {
+        let count: i64 = rows[0].try_get(0).map_err(database)?;
+        if count < 0 {
+            return Err(Error::Database("range count is negative".into()));
+        }
+        return Ok(Value::from(count));
+    }
+    let mut counts = Vec::with_capacity(keys.len());
+    for (index, (key, row)) in keys.into_iter().zip(rows).enumerate() {
+        let slot: i64 = row.try_get(0).map_err(database)?;
+        let count: i64 = row.try_get(1).map_err(database)?;
+        if usize::try_from(slot).ok() != index.checked_add(1) || count < 0 {
+            return Err(Error::Database(
+                "range count slot or value is invalid".into(),
+            ));
+        }
+        let key = Value::Object(
+            columns
+                .iter()
+                .map(|c| c.name.clone())
+                .zip(key.iter().map(shape::Atom::value))
+                .collect(),
+        );
+        counts.push(serde_json::json!({"key":key,"count":count}));
+    }
+    Ok(Value::Array(counts))
+}
+
 /// **A read through a compiler-emitted import**, on `conn`, in whatever
 /// transaction it is in: one statement (none for a set read given no keys).
 fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<Value, Error> {
@@ -1031,6 +1096,9 @@ fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<
         .statements
         .get(import)
         .ok_or_else(|| Error::Input(format!("undeclared table operation {import}")))?;
+    if function.primitive.range() {
+        return read_ranges(inner, conn, table, function, sql, args);
+    }
     let (args, window_limit) = if function.primitive.window() {
         let Some((bound, selectors)) = args.split_last() else {
             return Err(Error::Input("a window takes a trailing Int limit".into()));

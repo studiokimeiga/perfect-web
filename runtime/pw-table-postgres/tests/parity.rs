@@ -213,6 +213,53 @@ fn every_read() -> Vec<(String, Vec<Value>)> {
             })
         })
         .collect::<Vec<_>>();
+    // Every range request carries its own mark; same key/different mark is
+    // retained through staged writes, commit and rollback in both adapters.
+    let mut ranges = Vec::new();
+    for (import, args) in counts
+        .iter()
+        .filter(|(import, _)| import.starts_with("pw:tables/things#"))
+    {
+        let after = import.replace("#count-", "#count-after-");
+        if import.ends_with("-many") {
+            let fields = match import.split('#').nth(1).unwrap() {
+                "count-by-owner-many" => vec!["owner"],
+                "count-by-flag-many" => vec!["flag"],
+                "count-by-slug-many" => vec!["slug"],
+                "count-by-owner-n-many" => vec!["owner", "n"],
+                _ => vec!["owner", "rank"],
+            };
+            let requests = args[0]
+                .as_array()
+                .unwrap()
+                .iter()
+                .flat_map(|key| {
+                    [0, 10]
+                        .into_iter()
+                        .map(|mark| {
+                            let mut record = if fields.len() == 1 {
+                                [(fields[0].to_string(), key.clone())]
+                                    .into_iter()
+                                    .collect::<serde_json::Map<String, Value>>()
+                            } else {
+                                key.as_object().unwrap().clone()
+                            };
+                            record.insert("after".into(), json!(mark));
+                            Value::Object(record)
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect();
+            ranges.push((after, vec![Value::Array(requests)]));
+        } else {
+            for mark in [0, 10] {
+                let mut args = args.clone();
+                args.push(json!(mark));
+                ranges.push((after.clone(), args));
+            }
+        }
+    }
+    reads.extend(ranges);
     reads.extend(windows);
     reads.extend(counts);
     reads

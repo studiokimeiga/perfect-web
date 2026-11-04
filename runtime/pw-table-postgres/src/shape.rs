@@ -662,3 +662,82 @@ fn same_value(left: &Value, right: &Value) -> bool {
         _ => left == right,
     }
 }
+
+/// Typed request columns: equality selectors, then a separately named order mark.
+pub(crate) fn range_columns(
+    table: &TableShape,
+    function: &FunctionShape,
+) -> Result<Vec<Column>, Error> {
+    let order = table
+        .order
+        .ok_or_else(|| Error::Schema("range count requires declared order".into()))?;
+    let mut columns = function
+        .by
+        .iter()
+        .map(|&at| table.columns[at].clone())
+        .collect::<Vec<_>>();
+    let mut mark = table.columns[order].clone();
+    mark.name = pw_core::tables::after_field(table.columns.iter().map(|c| c.name.as_str()));
+    columns.push(mark);
+    Ok(columns)
+}
+
+/// The cutoff participates in dedup/order, never in the equality-selector inventory.
+pub(crate) fn typed_ranges(
+    table: &TableShape,
+    function: &FunctionShape,
+    args: &[Value],
+) -> Result<(Vec<Column>, Vec<Key>), Error> {
+    let columns = range_columns(table, function)?;
+    let supplied = if function.primitive.many() {
+        let [Value::Array(requests)] = args else {
+            return Err(Error::Input(
+                "set range count takes one array of selector-and-mark records".into(),
+            ));
+        };
+        requests
+            .iter()
+            .map(|request| {
+                let record = request
+                    .as_object()
+                    .ok_or_else(|| Error::Input("range request is a record".into()))?;
+                if record.len() != columns.len() {
+                    return Err(Error::Input("range request fields differ".into()));
+                }
+                columns
+                    .iter()
+                    .map(|column| {
+                        record.get(&column.name).ok_or_else(|| {
+                            Error::Input(format!("range request lacks {}", column.name))
+                        })
+                    })
+                    .collect::<Result<Vec<_>, Error>>()
+            })
+            .collect::<Result<Vec<_>, Error>>()?
+    } else {
+        if args.len() != columns.len() {
+            return Err(Error::Input(
+                "range count takes equality selectors and an order mark".into(),
+            ));
+        }
+        vec![args.iter().collect()]
+    };
+    let mut keys = BTreeSet::new();
+    for request in supplied {
+        let key = columns
+            .iter()
+            .zip(request)
+            .map(|(column, value)| {
+                if !validates(value, &column.stored) {
+                    return Err(Error::Input(format!(
+                        "range field {} fails its declared type or bound",
+                        column.name
+                    )));
+                }
+                Atom::parse(value)
+            })
+            .collect::<Result<Key, Error>>()?;
+        keys.insert(key);
+    }
+    Ok((columns, keys.into_iter().collect()))
+}

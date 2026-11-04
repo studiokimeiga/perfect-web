@@ -86,6 +86,109 @@ mod tests {
     }
 
     #[test]
+    fn range_callbacks_validate_every_selector_and_typed_mark_before_the_adapter() {
+        let mut range = read(true);
+        range.order = Some("rank".into());
+        range.row[0].stored = Stored::Int {
+            at_least: Some(0),
+            at_most: None,
+        };
+        range.primitive = Primitive::CountAfter;
+        let calls = Arc::new(AtomicUsize::new(0));
+        let observed = calls.clone();
+        let scalar = host_fn(
+            range.clone(),
+            Arc::new(move |args| {
+                observed.fetch_add(1, Ordering::SeqCst);
+                assert_eq!(args, &[json!("x"), json!(0)]);
+                Ok(json!(2))
+            }),
+        );
+        for bad in [
+            vec![],
+            vec![Val::String("x".into())],
+            vec![Val::S64(1), Val::S64(0)],
+            vec![Val::String("x".into()), Val::S64(-1)],
+            vec![Val::String("x".into()), Val::Bool(false)],
+        ] {
+            assert!(scalar(&bad).is_err(), "malformed scalar range {bad:?}");
+        }
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+        assert_eq!(
+            scalar(&[Val::String("x".into()), Val::S64(0)]),
+            Ok(vec![Val::S64(2)])
+        );
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+
+        range.primitive = Primitive::CountAfterMany;
+        let pair = |id: &str, mark| {
+            Val::Record(vec![
+                ("id".into(), Val::String(id.into())),
+                ("after".into(), Val::S64(mark)),
+            ])
+        };
+        let calls = Arc::new(AtomicUsize::new(0));
+        let observed = calls.clone();
+        let many = host_fn(
+            range,
+            Arc::new(move |args| {
+                observed.fetch_add(1, Ordering::SeqCst);
+                assert_eq!(
+                    args,
+                    &[
+                        json!([{"id":"x","after":2},{"id":"x","after":0},{"id":"x","after":0},{"id":"y","after":1}])
+                    ]
+                );
+                Ok(json!([
+                    {"key":{"id":"x","after":0},"count":2},
+                    {"key":{"id":"x","after":2},"count":0},
+                    {"key":{"id":"y","after":1},"count":0}
+                ]))
+            }),
+        );
+        for bad in [
+            Val::List(vec![pair("x", 0), pair("y", -1)]),
+            Val::List(vec![Val::String("x".into())]),
+            Val::List(vec![Val::Record(vec![(
+                "id".into(),
+                Val::String("x".into()),
+            )])]),
+            Val::List(vec![Val::Record(vec![
+                ("id".into(), Val::String("x".into())),
+                ("after".into(), Val::S64(0)),
+                ("extra".into(), Val::Bool(true)),
+            ])]),
+        ] {
+            assert!(many(&[bad]).is_err());
+        }
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+        let expected = Val::List(vec![
+            Val::Record(vec![
+                ("key".into(), pair("x", 0)),
+                ("count".into(), Val::S64(2)),
+            ]),
+            Val::Record(vec![
+                ("key".into(), pair("x", 2)),
+                ("count".into(), Val::S64(0)),
+            ]),
+            Val::Record(vec![
+                ("key".into(), pair("y", 1)),
+                ("count".into(), Val::S64(0)),
+            ]),
+        ]);
+        assert_eq!(
+            many(&[Val::List(vec![
+                pair("x", 2),
+                pair("x", 0),
+                pair("x", 0),
+                pair("y", 1)
+            ])]),
+            Ok(vec![expected])
+        );
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
     fn count_callbacks_validate_selectors_before_data_and_encode_only_count_shapes() {
         let mut count = read(false);
         count.primitive = Primitive::Count;

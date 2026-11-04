@@ -339,6 +339,53 @@ fn statement(names: &Names, table: &TableShape, function: &FunctionShape) -> Str
                 )
             )
         }
+        Primitive::CountAfter => {
+            let order = &table.columns[table.order.expect("validated range order")];
+            format!(
+                "SELECT count(*) AS pw_range_count FROM {t} t WHERE {} AND t.{} > ${}::{}",
+                equal("t", table, &function.by, &by),
+                ident(&order.name),
+                function.by.len() + 1,
+                order.kind.sql()
+            )
+        }
+        Primitive::CountAfterMany => {
+            let order = &table.columns[table.order.expect("validated range order")];
+            let mut arrays = function
+                .by
+                .iter()
+                .enumerate()
+                .map(|(i, &field)| format!("${}::{}", i + 1, table.columns[field].kind.array()))
+                .collect::<Vec<_>>();
+            arrays.push(format!(
+                "${}::{}",
+                function.by.len() + 1,
+                order.kind.array()
+            ));
+            let mut columns = (0..=function.by.len())
+                .map(|i| format!("c{i}"))
+                .collect::<Vec<_>>();
+            columns.push("pw_slot".into());
+            let mut join = function
+                .by
+                .iter()
+                .enumerate()
+                .map(|(i, &field)| format!("t.{} = k.c{i}", ident(&table.columns[field].name)))
+                .collect::<Vec<_>>();
+            join.push(format!(
+                "t.{} > k.c{}",
+                ident(&order.name),
+                function.by.len()
+            ));
+            format!(
+                "SELECT k.pw_slot AS pw_range_slot, count(t.{}) FROM unnest({}) WITH ORDINALITY AS k({}) \
+                     LEFT JOIN {t} t ON {} GROUP BY k.pw_slot ORDER BY k.pw_slot",
+                ident(&table.columns[table.key[0]].name),
+                arrays.join(", "),
+                columns.join(", "),
+                join.join(" AND ")
+            )
+        }
         Primitive::Count => format!(
             "SELECT count(*) FROM {t} t WHERE {}",
             equal("t", table, &function.by, &by)

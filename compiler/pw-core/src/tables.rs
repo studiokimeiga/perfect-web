@@ -71,6 +71,10 @@ pub enum Primitive {
     Count,
     /// One count for each distinct requested selector, including zero.
     CountMany,
+    /// Rows of a declared selector strictly after its declared order mark.
+    CountAfter,
+    /// A count per distinct selector-and-mark request, including zero.
+    CountAfterMany,
     /// The first rows of one declared selector, within its supplied limit.
     First,
     /// The first rows of each distinct selector, within the shared limit.
@@ -103,6 +107,8 @@ impl Primitive {
             Primitive::IndexMany => "index-many",
             Primitive::Count => "count",
             Primitive::CountMany => "count-many",
+            Primitive::CountAfter => "count-after",
+            Primitive::CountAfterMany => "count-after-many",
             Primitive::First => "first",
             Primitive::FirstMany => "first-many",
             Primitive::Last => "last",
@@ -116,7 +122,17 @@ impl Primitive {
     }
 
     pub fn counts(self) -> bool {
-        matches!(self, Primitive::Count | Primitive::CountMany)
+        matches!(
+            self,
+            Primitive::Count
+                | Primitive::CountMany
+                | Primitive::CountAfter
+                | Primitive::CountAfterMany
+        )
+    }
+
+    pub fn range(self) -> bool {
+        matches!(self, Primitive::CountAfter | Primitive::CountAfterMany)
     }
 
     pub fn window(self) -> bool {
@@ -146,6 +162,7 @@ impl Primitive {
                 | Primitive::PrefixMany
                 | Primitive::IndexMany
                 | Primitive::CountMany
+                | Primitive::CountAfterMany
                 | Primitive::FirstMany
                 | Primitive::LastMany
         )
@@ -174,6 +191,10 @@ pub enum Wrote {
     Tuple { fields: Vec<String> },
     /// A set aggregate's selector and count, never a stored row.
     Counted { fields: Vec<String> },
+    /// Selector fields plus a distinct typed order mark, never a stored row.
+    Range { fields: Vec<String>, mark: String },
+    /// Counts keyed by the complete selector and order mark.
+    RangeCounted { fields: Vec<String> },
     /// **The seen row** (track `row-ownership`, ADR-0384 H1): the record a
     /// reader the table shares with is answered, its row's `fields` without
     /// the private ones, so a value only its owner reads has no field to
@@ -600,6 +621,19 @@ pub fn tuple_name(table: &str, fields: &[String]) -> String {
     )
 }
 
+/// A mark is distinct from every stored field, including its emitted identity.
+pub fn after_field<'a>(fields: impl IntoIterator<Item = &'a str>) -> String {
+    let fields = fields
+        .into_iter()
+        .map(crate::wit::ident)
+        .collect::<BTreeSet<_>>();
+    let mut name = "after".to_string();
+    while fields.contains(&crate::wit::ident(&name)) {
+        name.push_str("_mark");
+    }
+    name
+}
+
 /// **The read of a prefix of the key**: `of_owner`, `of_owner_store`.
 pub fn prefix_read(fields: &[String]) -> String {
     format!("of_{}", fields.join("_"))
@@ -896,6 +930,9 @@ fn planned(
         given
     };
     let mut counted_records: Vec<(Decl, Wrote)> = Vec::new();
+    let mut range_records: Vec<(Decl, Wrote)> = Vec::new();
+    let mark_name = after_field(fields.iter().map(|(name, _)| name.as_str()));
+    let mark_ty = t.order.as_ref().and_then(|order| ty(&order.value));
     let mut counted = BTreeSet::new();
     for (by, span) in selectors {
         let r = reading(t, &by);
@@ -928,6 +965,74 @@ fn planned(
                     span: span.clone(),
                 });
             }
+        }
+        if let Some(mark_ty) = &mark_ty {
+            let name = format!("count_after_by_{}", by.join("_"));
+            let mut given = keyed(r, &by);
+            given.push((mark_name.clone(), mark_ty.clone()));
+            push(Planned {
+                name: name.clone(),
+                params: given,
+                ret: DeclaredType::new("Int", Vec::new()),
+                primitive: Primitive::CountAfter,
+                by: by.clone(),
+                span: span.clone(),
+            });
+            let held = match r {
+                Reading::Owner | Reading::Sharer => &by[1..],
+                _ => by.as_slice(),
+            };
+            let input_name = format!("{}After", tuple_name(&t.name, held));
+            let full_name = format!("{}After", tuple_name(&t.name, &by));
+            for (record_name, selected) in [(&input_name, held), (&full_name, by.as_slice())] {
+                let mut columns = params(selected);
+                columns.push((mark_name.clone(), mark_ty.clone()));
+                range_records.push((
+                    record(record_name, &columns, &span),
+                    Wrote::Range {
+                        fields: selected.to_vec(),
+                        mark: mark_name.clone(),
+                    },
+                ));
+            }
+            let count_name = format!("{full_name}Count");
+            range_records.push((
+                record(
+                    &count_name,
+                    &[
+                        ("key".into(), DeclaredType::new(full_name, Vec::new())),
+                        ("count".into(), DeclaredType::new("Int", Vec::new())),
+                    ],
+                    &span,
+                ),
+                Wrote::RangeCounted { fields: by.clone() },
+            ));
+            let input = (
+                "values".to_string(),
+                list(DeclaredType::new(input_name, Vec::new())),
+            );
+            let given = match r {
+                Reading::Owner | Reading::Sharer => {
+                    let list_name = if crate::wit::ident(&by[0]) == "values" {
+                        "values_keys"
+                    } else {
+                        "values"
+                    };
+                    vec![
+                        (by[0].clone(), handle(&by[0])),
+                        (list_name.to_string(), input.1),
+                    ]
+                }
+                _ => vec![input],
+            };
+            push(Planned {
+                name: format!("{name}_many"),
+                params: given,
+                ret: list(DeclaredType::new(count_name, Vec::new())),
+                primitive: Primitive::CountAfterMany,
+                by: by.clone(),
+                span: span.clone(),
+            });
         }
         let name = format!("count_by_{}", by.join("_"));
         push(Planned {
@@ -971,7 +1076,7 @@ fn planned(
             });
         }
     }
-    for (record, what) in counted_records {
+    for (record, what) in counted_records.into_iter().chain(range_records) {
         if !records
             .iter()
             .any(|(r, existing)| r.name == record.name && existing == &what)
@@ -1762,7 +1867,11 @@ fn shape(
         if generated.table != t.decl
             || !matches!(
                 generated.what,
-                Wrote::Tuple { .. } | Wrote::Counted { .. } | Wrote::Seen { .. }
+                Wrote::Tuple { .. }
+                    | Wrote::Counted { .. }
+                    | Wrote::Range { .. }
+                    | Wrote::RangeCounted { .. }
+                    | Wrote::Seen { .. }
             )
         {
             continue;
@@ -2661,7 +2770,11 @@ pub fn functions_of(hir: &Hir, table: DeclId) -> Vec<(DeclId, Primitive, Vec<Str
         .filter(|(_, g)| g.table == table)
         .filter_map(|(id, g)| match &g.what {
             Wrote::Function { primitive, by } => Some((*id, *primitive, by.clone())),
-            Wrote::Tuple { .. } | Wrote::Counted { .. } | Wrote::Seen { .. } => None,
+            Wrote::Tuple { .. }
+            | Wrote::Counted { .. }
+            | Wrote::Range { .. }
+            | Wrote::RangeCounted { .. }
+            | Wrote::Seen { .. } => None,
         })
         .collect()
 }
@@ -3675,6 +3788,9 @@ pub struct TablesJson {
 /// The order a read's rows come in: grouped by what a set form was given,
 /// then by `order`, then by the key; each field once.
 fn sorted_by(t: &TableSchema, primitive: Primitive, by: &[String]) -> Vec<String> {
+    if primitive.range() {
+        return Vec::new();
+    }
     if primitive == Primitive::Count {
         return Vec::new();
     }
@@ -3862,6 +3978,16 @@ mod tests {
             type CartLinesOwnerStoreItemCount = CartLinesOwnerStoreItemCount { key: CartLinesOwnerStoreItem, count: Int }\n\
             type CartLinesStoreCount = CartLinesStoreCount { key: StoreId, count: Int }\n\
             type CartLinesOwnerItemCount = CartLinesOwnerItemCount { key: CartLinesOwnerItem, count: Int }\n\
+            type CartLinesOwnerAfter = CartLinesOwnerAfter { owner: Owner, after: Int }\n\
+            type CartLinesOwnerAfterCount = CartLinesOwnerAfterCount { key: CartLinesOwnerAfter, count: Int }\n\
+            type CartLinesOwnerStoreAfter = CartLinesOwnerStoreAfter { owner: Owner, store: StoreId, after: Int }\n\
+            type CartLinesOwnerStoreAfterCount = CartLinesOwnerStoreAfterCount { key: CartLinesOwnerStoreAfter, count: Int }\n\
+            type CartLinesOwnerStoreItemAfter = CartLinesOwnerStoreItemAfter { owner: Owner, store: StoreId, item: ItemId, after: Int }\n\
+            type CartLinesOwnerStoreItemAfterCount = CartLinesOwnerStoreItemAfterCount { key: CartLinesOwnerStoreItemAfter, count: Int }\n\
+            type CartLinesStoreAfter = CartLinesStoreAfter { store: StoreId, after: Int }\n\
+            type CartLinesStoreAfterCount = CartLinesStoreAfterCount { key: CartLinesStoreAfter, count: Int }\n\
+            type CartLinesOwnerItemAfter = CartLinesOwnerItemAfter { owner: Owner, item: ItemId, after: Int }\n\
+            type CartLinesOwnerItemAfterCount = CartLinesOwnerItemAfterCount { key: CartLinesOwnerItemAfter, count: Int }\n\
             fn get(owner: Owner, store: StoreId, item: ItemId) -> Option<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#get\"\n\
             fn get_many(keys: List<CartLinesOwnerStoreItem>) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#get-many\"\n\
             fn of_owner(owner: Owner) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#of-owner\"\n\
@@ -3876,30 +4002,40 @@ mod tests {
             fn first_by_owner_many(values: List<Owner>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-many\"\n\
             fn last_by_owner(owner: Owner, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner\"\n\
             fn last_by_owner_many(values: List<Owner>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-many\"\n\
+            fn count_after_by_owner(owner: Owner, after: Int) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-owner\"\n\
+            fn count_after_by_owner_many(values: List<CartLinesOwnerAfter>) -> List<CartLinesOwnerAfterCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-owner-many\"\n\
             fn count_by_owner(owner: Owner) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner\"\n\
             fn count_by_owner_many(values: List<Owner>) -> List<CartLinesOwnerCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-many\"\n\
             fn first_by_owner_store(owner: Owner, store: StoreId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-store\"\n\
             fn first_by_owner_store_many(values: List<CartLinesOwnerStore>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-store-many\"\n\
             fn last_by_owner_store(owner: Owner, store: StoreId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-store\"\n\
             fn last_by_owner_store_many(values: List<CartLinesOwnerStore>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-store-many\"\n\
+            fn count_after_by_owner_store(owner: Owner, store: StoreId, after: Int) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-owner-store\"\n\
+            fn count_after_by_owner_store_many(values: List<CartLinesOwnerStoreAfter>) -> List<CartLinesOwnerStoreAfterCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-owner-store-many\"\n\
             fn count_by_owner_store(owner: Owner, store: StoreId) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-store\"\n\
             fn count_by_owner_store_many(values: List<CartLinesOwnerStore>) -> List<CartLinesOwnerStoreCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-store-many\"\n\
             fn first_by_owner_store_item(owner: Owner, store: StoreId, item: ItemId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-store-item\"\n\
             fn first_by_owner_store_item_many(values: List<CartLinesOwnerStoreItem>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-store-item-many\"\n\
             fn last_by_owner_store_item(owner: Owner, store: StoreId, item: ItemId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-store-item\"\n\
             fn last_by_owner_store_item_many(values: List<CartLinesOwnerStoreItem>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-store-item-many\"\n\
+            fn count_after_by_owner_store_item(owner: Owner, store: StoreId, item: ItemId, after: Int) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-owner-store-item\"\n\
+            fn count_after_by_owner_store_item_many(values: List<CartLinesOwnerStoreItemAfter>) -> List<CartLinesOwnerStoreItemAfterCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-owner-store-item-many\"\n\
             fn count_by_owner_store_item(owner: Owner, store: StoreId, item: ItemId) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-store-item\"\n\
             fn count_by_owner_store_item_many(values: List<CartLinesOwnerStoreItem>) -> List<CartLinesOwnerStoreItemCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-store-item-many\"\n\
             fn first_by_store(store: StoreId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-store\"\n\
             fn first_by_store_many(values: List<StoreId>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-store-many\"\n\
             fn last_by_store(store: StoreId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-store\"\n\
             fn last_by_store_many(values: List<StoreId>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-store-many\"\n\
+            fn count_after_by_store(store: StoreId, after: Int) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-store\"\n\
+            fn count_after_by_store_many(values: List<CartLinesStoreAfter>) -> List<CartLinesStoreAfterCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-store-many\"\n\
             fn count_by_store(store: StoreId) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-store\"\n\
             fn count_by_store_many(values: List<StoreId>) -> List<CartLinesStoreCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-store-many\"\n\
             fn first_by_owner_item(owner: Owner, item: ItemId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-item\"\n\
             fn first_by_owner_item_many(values: List<CartLinesOwnerItem>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#first-by-owner-item-many\"\n\
             fn last_by_owner_item(owner: Owner, item: ItemId, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-item\"\n\
             fn last_by_owner_item_many(values: List<CartLinesOwnerItem>, limit: Int) -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#last-by-owner-item-many\"\n\
+            fn count_after_by_owner_item(owner: Owner, item: ItemId, after: Int) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-owner-item\"\n\
+            fn count_after_by_owner_item_many(values: List<CartLinesOwnerItemAfter>) -> List<CartLinesOwnerItemAfterCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-after-by-owner-item-many\"\n\
             fn count_by_owner_item(owner: Owner, item: ItemId) -> Int !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-item\"\n\
             fn count_by_owner_item_many(values: List<CartLinesOwnerItem>) -> List<CartLinesOwnerItemCount> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#count-by-owner-item-many\"\n\
             fn all() -> List<CartLine> !{ database.read<CartLines> }\n    host \"pw:tables/cart-lines#all\"\n\

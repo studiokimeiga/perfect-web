@@ -230,6 +230,12 @@ fn a_table_gives_each_read_and_write_with_its_type_and_effect() {
         ("TodosListCount", "key, count", &none, ""),
         ("TodosListIdCount", "key, count", &none, ""),
         ("TodosDoneCount", "key, count", &none, ""),
+        ("TodosListAfter", "list, after", &none, ""),
+        ("TodosListAfterCount", "key, count", &none, ""),
+        ("TodosListIdAfter", "list, id, after", &none, ""),
+        ("TodosListIdAfterCount", "key, count", &none, ""),
+        ("TodosDoneAfter", "done, after", &none, ""),
+        ("TodosDoneAfterCount", "key, count", &none, ""),
         (
             "get",
             "(ListId, TodoId) -> Option<Todo>",
@@ -291,6 +297,18 @@ fn a_table_gives_each_read_and_write_with_its_type_and_effect() {
             "\"pw:tables/todos#last-by-list-many\"",
         ),
         (
+            "count_after_by_list",
+            "(ListId, Int) -> Int",
+            &read,
+            "\"pw:tables/todos#count-after-by-list\"",
+        ),
+        (
+            "count_after_by_list_many",
+            "(List<TodosListAfter>) -> List<TodosListAfterCount>",
+            &read,
+            "\"pw:tables/todos#count-after-by-list-many\"",
+        ),
+        (
             "count_by_list",
             "(ListId) -> Int",
             &read,
@@ -327,6 +345,18 @@ fn a_table_gives_each_read_and_write_with_its_type_and_effect() {
             "\"pw:tables/todos#last-by-list-id-many\"",
         ),
         (
+            "count_after_by_list_id",
+            "(ListId, TodoId, Int) -> Int",
+            &read,
+            "\"pw:tables/todos#count-after-by-list-id\"",
+        ),
+        (
+            "count_after_by_list_id_many",
+            "(List<TodosListIdAfter>) -> List<TodosListIdAfterCount>",
+            &read,
+            "\"pw:tables/todos#count-after-by-list-id-many\"",
+        ),
+        (
             "count_by_list_id",
             "(ListId, TodoId) -> Int",
             &read,
@@ -361,6 +391,18 @@ fn a_table_gives_each_read_and_write_with_its_type_and_effect() {
             "(List<Bool>, Int) -> List<Todo>",
             &read,
             "\"pw:tables/todos#last-by-done-many\"",
+        ),
+        (
+            "count_after_by_done",
+            "(Bool, Int) -> Int",
+            &read,
+            "\"pw:tables/todos#count-after-by-done\"",
+        ),
+        (
+            "count_after_by_done_many",
+            "(List<TodosDoneAfter>) -> List<TodosDoneAfterCount>",
+            &read,
+            "\"pw:tables/todos#count-after-by-done-many\"",
         ),
         (
             "count_by_done",

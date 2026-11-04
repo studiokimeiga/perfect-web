@@ -1134,13 +1134,35 @@ impl<'p, 'i> Reads<'p, 'i> {
             (ty.constructor_head_only() == "List").then_some((at, ty))
         })?;
         let held = by.get(list_at..)?;
+        let range_fields;
+        let held = if primitive.range() {
+            let record = list.args().first()?.written();
+            range_fields = hir
+                .all_decls()
+                .find(|(_, d)| d.name == record)?
+                .1
+                .fields
+                .as_ref()?
+                .iter()
+                .map(|f| f.name.clone())
+                .collect::<Vec<_>>();
+            range_fields.as_slice()
+        } else {
+            held
+        };
+
         let fields = held
             .iter()
             .map(|f| format!("`{f}`"))
             .collect::<Vec<_>>()
             .join(", ");
         let input = if held.len() == 1 {
-            format!("scalar values for {fields}")
+            if primitive.range() {
+                let record = list.args().first()?.written();
+                format!("key records of `{table}.{record}` with fields {fields}")
+            } else {
+                format!("scalar values for {fields}")
+            }
         } else {
             let record = list.args().first()?.written();
             format!("key records of `{table}.{record}` with fields {fields}")
@@ -1527,6 +1549,7 @@ impl<'p, 'i> Reads<'p, 'i> {
                         Primitive::Prefix => Primitive::PrefixMany,
                         Primitive::Index => Primitive::IndexMany,
                         Primitive::Count => Primitive::CountMany,
+                        Primitive::CountAfter => Primitive::CountAfterMany,
                         Primitive::First => Primitive::FirstMany,
                         Primitive::Last => Primitive::LastMany,
                         _ => continue,

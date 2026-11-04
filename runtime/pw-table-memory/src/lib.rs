@@ -98,6 +98,7 @@ struct Shape {
 
 struct TableShape {
     name: String,
+    order: Option<String>,
     fields: Vec<(String, Stored)>,
     key: Vec<String>,
     indexes: Vec<IndexShape>,
@@ -1416,6 +1417,7 @@ fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
             }
         }
         tables.push(TableShape {
+            order: table.schema.order.clone(),
             name: name.clone(),
             fields: table
                 .schema
@@ -1632,6 +1634,65 @@ fn typed_selector(
         .ok_or_else(|| Error::Input(format!("{import} was given no selector")))
 }
 
+/// Canonical identities include both equality selectors and each request's mark.
+fn typed_ranges(
+    table: &TableShape,
+    function: &FunctionShape,
+    args: &[Value],
+) -> Result<(Vec<String>, BTreeSet<Key>), Error> {
+    let order = table
+        .order
+        .as_ref()
+        .ok_or_else(|| Error::Schema("a range count requires declared order".into()))?;
+    let order_ty = &table
+        .fields
+        .iter()
+        .find(|(name, _)| name == order)
+        .ok_or_else(|| Error::Schema("range order is not a row field".into()))?
+        .1;
+    let mut fields = function.by.clone();
+    fields.push(pw_core::tables::after_field(
+        table.fields.iter().map(|(name, _)| name.as_str()),
+    ));
+    let keys = selections(&fields, args, function.primitive.many())?;
+    for key in &keys {
+        for (index, atom) in key.iter().enumerate() {
+            let ty = if index == function.by.len() {
+                order_ty
+            } else {
+                &table
+                    .fields
+                    .iter()
+                    .find(|(name, _)| name == &fields[index])
+                    .ok_or_else(|| Error::Schema("range selector is not a row field".into()))?
+                    .1
+            };
+            if !validates(&atom.value(), ty) {
+                return Err(Error::Input(format!(
+                    "range field {} fails its declared type or bound",
+                    fields[index]
+                )));
+            }
+        }
+    }
+    Ok((fields, keys))
+}
+
+/// Compare borrowed order values; no row payload (or String order) is cloned.
+fn strictly_after(value: &Value, mark: &Atom) -> Result<bool, Error> {
+    match (value, mark) {
+        (Value::Bool(value), Atom::Bool(mark)) => Ok(value > mark),
+        (Value::String(value), Atom::Str(mark)) => Ok(value > mark),
+        (Value::Number(value), Atom::Int(mark)) => value
+            .as_i64()
+            .map(|value| value > *mark)
+            .ok_or_else(|| Error::Schema("range order is not a stored Int".into())),
+        _ => Err(Error::Schema(
+            "range order and mark have different stored types".into(),
+        )),
+    }
+}
+
 fn read(
     shape: &Shape,
     tables: &[impl AsRef<Data>],
@@ -1647,6 +1708,65 @@ fn read(
         .get(at)
         .map(AsRef::as_ref)
         .ok_or_else(|| Error::Schema("missing table state".into()))?;
+    if function.primitive.range() {
+        let (fields, keys) = typed_ranges(table, function, args)?;
+        let order = table
+            .order
+            .as_ref()
+            .ok_or_else(|| Error::Schema("range order is missing".into()))?;
+        let prefix =
+            function.by.len() <= table.key.len() && table.key[..function.by.len()] == function.by;
+        let index = if prefix {
+            None
+        } else {
+            Some(
+                table
+                    .indexes
+                    .iter()
+                    .position(|index| index.fields == function.by)
+                    .ok_or_else(|| Error::Schema("range counts by no declared selector".into()))?,
+            )
+        };
+        let mut counts = Vec::with_capacity(keys.len());
+        for key in keys {
+            let (mark, selected) = key
+                .split_last()
+                .ok_or_else(|| Error::Input("range mark is missing".into()))?;
+            let selected = selected.to_vec();
+            let candidates: Box<dyn Iterator<Item = Result<&Row, Error>> + '_> = match index {
+                None => Box::new(data.prefixed(&selected).map(|(_, row)| Ok(row))),
+                Some(index) => Box::new(holding(&data.indexes[index], &selected).map(|key| {
+                    data.rows
+                        .get(key)
+                        .ok_or_else(|| Error::Schema("range index names a missing row".into()))
+                })),
+            };
+            let mut count = 0i64;
+            for row in candidates {
+                let row = row?;
+                let value = row
+                    .get(order)
+                    .ok_or_else(|| Error::Schema("row lacks range order".into()))?;
+                if strictly_after(value, mark)? {
+                    count = count
+                        .checked_add(1)
+                        .ok_or_else(|| Error::Input("a count exceeds Int".into()))?;
+                }
+            }
+            if !function.primitive.many() {
+                return Ok(Value::from(count));
+            }
+            let key = Value::Object(
+                fields
+                    .iter()
+                    .cloned()
+                    .zip(key.iter().map(Atom::value))
+                    .collect(),
+            );
+            counts.push(serde_json::json!({"key":key,"count":count}));
+        }
+        return Ok(Value::Array(counts));
+    }
     if function.primitive.window() {
         let Some((bound, selectors)) = args.split_last() else {
             return Err(Error::Input("a window takes a trailing Int limit".into()));

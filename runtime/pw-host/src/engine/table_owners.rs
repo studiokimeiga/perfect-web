@@ -85,6 +85,25 @@ pub fn admit(access: &Access, caller: &Caller, args: Vec<Val>) -> Result<Vec<Val
     }
     match access {
         Access::Read(read) if read.many() => {
+            if read.primitive.range() {
+                let [_, Val::List(requests)] = args.as_slice() else {
+                    return Err(format!(
+                        "`{import}` takes its reader and selector-and-mark records"
+                    ));
+                };
+                let columns = read.count_columns()?;
+                let (first, following) = columns.split_first().ok_or("a range has no reader")?;
+                let keys = requests
+                    .iter()
+                    .map(|request| {
+                        let rest = table_link::exact_row(following, request)?;
+                        let mut fields = vec![(first.wit.clone(), Val::String(user.clone()))];
+                        fields.extend(rest.iter().cloned());
+                        Ok(Val::Record(fields))
+                    })
+                    .collect::<Result<Vec<_>, String>>()?;
+                return Ok(vec![Val::List(keys)]);
+            }
             // `(handle, list of what follows it)`: each of the list's keys
             // with the handle in its first field's place.
             let (selectors, limit) = table_link::window_arguments(read, args.as_slice())?;
@@ -195,7 +214,7 @@ pub fn seen(access: &Access, out: Vec<Val>) -> Result<Vec<Val>, String> {
 pub fn check_import(access: &Access, params: &[Type], results: &[Type]) -> Result<(), String> {
     match access {
         Access::Read(read) => {
-            let params = table_link::window_params(read, params)?;
+            let params = table_link::range_params(read, params)?;
             let words = read.primitive.by_words();
             if read.many() {
                 let [Type::String, Type::List(rest)] = params else {
@@ -204,7 +223,11 @@ pub fn check_import(access: &Access, params: &[Type], results: &[Type]) -> Resul
                         table_link::listed(params)
                     ));
                 };
-                table_link::selector(words, &read.by[1..], &rest.ty())?;
+                if read.primitive.range() {
+                    table_link::record(&read.count_columns()?[1..], &rest.ty())?;
+                } else {
+                    table_link::selector(words, &read.by[1..], &rest.ty())?;
+                }
             } else {
                 table_link::fields(words, &read.by, params)?;
             }
