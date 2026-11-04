@@ -540,3 +540,53 @@ What this track depended on, and has now merged:
   `PW_SOURCE_<NAME>` routes sources apart (T1).
 - The host running a command again after a serialization failure, for
   every layer at once (Alternatives), as a follow-up of the host's.
+
+## Local owned-row integration, 2026-11-03 (full gates pending)
+
+The local integration adds `CallTables` on PostgreSQL `Command` and `Snapshot`.
+`Command::predicate_host_fns` admits only a predicate's reads and binds them
+to the command's existing state, including its staged writes. `Snapshot`
+uses its one read-only transaction for both the predicate and query body.
+`PgStaging::table_predicate_reads` uses the same command that existing session
+authorization fenced. The engine continues to own caller checks, predicate
+execution and the shared fuel budget; the adapter names no app policy.
+
+`compiled_owned` reuses the memory adapter's compiled fixture and proves staged
+reads, refusal before body execution, deletion between predicate and body,
+old versus fresh snapshots, an actual serializable conflict after a predicate
+read, and ended/wrong-kind callbacks. A generic-server witness covers an owned
+edit, private projection, forged write refusal and a restart with the same
+stored sessions. Full recipes include these tests and the owned-row browser
+spec on PostgreSQL. No PostgreSQL test without a configured database earns
+acceptance credit. The existing single-host and first-table-read snapshot
+limits remain; no outbox tail or feed/store migration is added.
+
+Primary reference checked on 2026-11-03:
+https://www.postgresql.org/docs/18/transaction-iso.html . The implementation
+uses the pinned `postgres` dependency and PostgreSQL 18.6 fixture.
+
+### Integration correction: operation costs and transaction overhead
+
+The first combined durable baseline failed three cost assertions. A standalone
+query now correctly selects one snapshot, whose BEGIN/read/ROLLBACK measured
+three statements against the operation's one-call bound. A first staged write
+also includes its lazy BEGIN. Transaction boundaries are fixed overhead, not
+extra reads; they must remain visible in the total rather than be mislabeled
+as extra primitive operations or silently omitted from that total.
+
+Keep `PgTables::statements()` unchanged. Add `operation_statements()` counted
+at the same connection seam, excluding only exact adapter transaction boundary
+SQL (BEGIN variants, COMMIT, ROLLBACK). Every other query or batch counts,
+including any extra read, platform lookup or DDL. `DataLayer::statements`, the
+conformance suite's operation-cost seam, projects this count on PostgreSQL.
+A separate real-database witness pins both counts for a standalone snapshot
+and a cold staged write/rollback, with counter suppression and repeated reads
+as negative controls. The per-operation one-call bound remains one; this is
+instrument accounting, not a new SQL execution path or a lower total claim.
+
+The conformance metric is a count of non-boundary SQL calls, not total database
+round trips. It cannot by itself detect extra BEGIN/COMMIT/ROLLBACK traffic;
+the preserved total counter and explicit transaction-overhead witness own
+that check. Exclusion matches exact strings only, with no normalization,
+prefix or substring test. Additional operation reads remain counted below
+the adapter, as before.

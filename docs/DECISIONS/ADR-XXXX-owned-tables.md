@@ -520,7 +520,7 @@ freshness; they do not claim authorization at HTTP/frame delivery time.
    author` and drop `OwnsPost`: `remove(post)` then deletes the reader's own
    post by construction.
 
-## Browser and durable continuation, 2026-11-03 (implementation pending)
+## Browser and durable continuation, 2026-11-03 (full local gates pending)
 
 The row-specific browser fixture uses the declared Notes tables, independent
 browser contexts and the real development account provider. It must prove
@@ -538,3 +538,19 @@ Primary references checked: Playwright BrowserContext API (independent
 contexts and shared-context requests), PostgreSQL 18 transaction isolation
 (repeatable-read snapshots and serializable conflict refusal). Existing pinned
 dependencies are retained; no upstream package upgrade is needed.
+
+The generic query path retains `InvocationError` until it becomes an explicit
+`Unread::Refused` at the page boundary. `pw-resource` still transports failure
+strings: a load retains its typed error locally, and a failed joined flight
+asks this invocation's requirements for its own typed refusal. Ordinary errors
+cannot acquire refusal identity from their text. Both deployment predicates
+and compiled predicates take the typed engine path. HTTP answers a refusal
+403 with escaped authored words, after the existing delivery fence. Query
+failures never write the command's thread-local refusal record.
+
+The dedicated `examples/owned/pages.pw` and `e2e/owned-rows.spec.mjs` exercise
+two actual development accounts, same-key rows, forged authors, private draft
+projection, and a guarded query's words in Chromium, Firefox and WebKit.
+`e14-row-ownership` builds and runs them in memory; `e14-durable-tables` runs
+the identical spec on PostgreSQL. Fresh final-source campaign receipts remain
+the acceptance boundary. H3/H4 and private write-flow are unchanged.

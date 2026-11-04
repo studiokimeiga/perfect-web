@@ -731,12 +731,18 @@ fn a_failed_joined_query_retains_its_own_typed_refusal() {
     let (release, cont) = std::sync::mpsc::channel();
     pause_next_club_read(&s, entered, cont);
     let (first, joined, did_join) = std::thread::scope(|scope| {
-        let first = scope.spawn(|| s.fetch_invocation("anon", &binding, &[]));
+        let first = scope.spawn(|| {
+            let answer = s.fetch_invocation("anon", &binding, &[]);
+            (answer, identity::take_refusal())
+        });
         started
             .recv_timeout(Duration::from_secs(20))
             .expect("denied load held");
         let from = s.queries.trace().len();
-        let second = scope.spawn(|| s.fetch_invocation("anon", &binding, &[]));
+        let second = scope.spawn(|| {
+            let answer = s.fetch_invocation("anon", &binding, &[]);
+            (answer, identity::take_refusal())
+        });
         let deadline = std::time::Instant::now() + Duration::from_secs(20);
         let mut did_join = false;
         while !second.is_finished() && std::time::Instant::now() < deadline {
@@ -758,14 +764,14 @@ fn a_failed_joined_query_retains_its_own_typed_refusal() {
         did_join,
         "the second request joined an actually failed flight"
     );
-    for answer in [first, joined] {
+    for (answer, recorded) in [first, joined] {
+        assert!(
+            recorded.is_none(),
+            "a query records no command refusal: {recorded:?}"
+        );
         assert!(
             matches!(answer, Err(Unread::Refused(ref name)) if name == "SignedIn"),
             "{answer:?}"
         );
     }
-    assert!(
-        identity::take_refusal().is_none(),
-        "a query records no command refusal"
-    );
 }

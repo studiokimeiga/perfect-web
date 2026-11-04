@@ -1952,3 +1952,72 @@ impl<T> AssertedSome<T> for Option<T> {
         }
     }
 }
+
+#[test]
+fn owned_rows_and_compiled_predicates_survive_the_durable_server_boundary() {
+    let Some(url) = database() else {
+        return;
+    };
+    let schema = Schema::new(&url, "owned");
+    let (_dir, out) = super::tables::built(&["examples/owned"], &[]);
+    let server = serve(&out, &schema);
+    server.identity.signed_in_for_test("a", "alice", "Alice");
+    server.identity.signed_in_for_test("b", "bob", "Bob");
+    let kept = server.command_answer("owned.app.keep", "a", &[serde_json::json!({
+        "author":"alice", "id":"same-id", "to":"bob", "text":"ALICE_NOTE", "draft":"PRIVATE_DRAFT", "added":0
+    })], None).asserted("owned note written");
+    assert!(kept.committed, "{kept:?}");
+    let edited = server
+        .command_answer(
+            "owned.app.edit",
+            "a",
+            &[
+                serde_json::json!("same-id"),
+                serde_json::json!("bob"),
+                serde_json::json!("EDITED_NOTE"),
+            ],
+            None,
+        )
+        .asserted("guarded edit answered");
+    assert!(edited.committed && edited.refused.is_none(), "{edited:?}");
+    let allowed = get_as(&server, "a", "/owned/same-id");
+    assert!(
+        allowed.starts_with("HTTP/1.1 200") && allowed.contains("EDITED_NOTE"),
+        "{allowed}"
+    );
+    let denied = get_as(&server, "b", "/owned/same-id");
+    assert!(
+        denied.starts_with("HTTP/1.1 403")
+            && denied.contains("You can only change a note you wrote."),
+        "{denied}"
+    );
+    assert!(
+        !denied.contains("EDITED_NOTE") && !denied.contains("PRIVATE_DRAFT"),
+        "{denied}"
+    );
+    let forged = server.command_answer("owned.app.keep", "b", &[serde_json::json!({
+        "author":"alice", "id":"same-id", "to":"bob", "text":"DEFACED", "draft":"DEFACED", "added":0
+    })], None).asserted("forged write answered");
+    assert!(!forged.committed, "{forged:?}");
+    let shared = server
+        .answer("owned.app.ToMe", "b", &[Val::String("bob".into())])
+        .asserted("shared projection");
+    assert!(
+        format!("{shared:?}").contains("EDITED_NOTE")
+            && !format!("{shared:?}").contains("PRIVATE_DRAFT"),
+        "{shared:?}"
+    );
+    drop(server);
+    let reopened = serve(&out, &schema);
+    reopened.identity.use_provider(
+        Arc::new(super::sign_in::TestProvider::default()),
+        super::sign_in::REDIRECT,
+    );
+    let after_restart = get_as(&reopened, "a", "/owned/same-id");
+    assert!(
+        after_restart.starts_with("HTTP/1.1 200") && after_restart.contains("EDITED_NOTE"),
+        "{after_restart}"
+    );
+    let still_denied = get_as(&reopened, "b", "/owned/same-id");
+    assert!(still_denied.starts_with("HTTP/1.1 403"), "{still_denied}");
+}

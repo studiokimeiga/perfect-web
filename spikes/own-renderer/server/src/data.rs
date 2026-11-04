@@ -139,6 +139,8 @@ pub(crate) trait DataLayer: Send + Sync {
     /// **The statements its reads and commands have run** (NEXT 4b): a
     /// layer that counts none (memory) says nothing.
     #[cfg(test)]
+    // Operation costs exclude database transaction boundaries; an adapter
+    // may expose its total including those separately (PgTables does).
     fn statements(&self) -> Option<u64> {
         None
     }

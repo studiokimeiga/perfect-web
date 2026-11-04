@@ -256,11 +256,18 @@ MUTANTS = [
     ("a commit never answered is answered refused", LAYER,
      "            ) => return Err(format!(\"the tables did not commit: {e:?}\")),\n",
      "            ) => return self.refuse(format!(\"the tables did not commit: {e:?}\")),\n"),
+    ('a durable owned command has no staged predicate reads', LAYER,
+     '    fn table_predicate_reads(\n        &self,\n        contract: &ComponentContract,\n        granted: &Granted,\n    ) -> Result<Ops, String> {\n        let mut turn = self.turn.borrow_mut();\n        if matches!(*turn, Turn::Committed) {\n            return Err("a command\'s predicate reads are linked before it commits".into());\n        }\n        turn.begun(&self.layer.tables)?\n            .predicate_host_fns(contract, granted)\n            .map_err(|e| format!("`{}`\'s predicate reads: {e:?}", contract.component_id))\n    }\n\n',
+     '    fn table_predicate_reads(&self, _contract: &ComponentContract, _granted: &Granted) -> Result<Ops, String> {\n        Err("this data adapter supplies no predicate reads in a command".into())\n    }\n\n'),
+    ('a durable table read is made three times', LAYER,
+     '        read.map_err(|e| format!("`{}`\'s tables: {e:?}", contract.component_id))\n',
+     '        read.map(|ops| ops.into_iter().map(|(name, f)| {\n            let thrice: HostFn = Arc::new(move |args: &[Val]| { let _ = f(args); let _ = f(args); f(args) });\n            (name, thrice)\n        }).collect()).map_err(|e| format!("`{}`\'s tables: {e:?}", contract.component_id))\n'),
 ]
 
 # Each Cargo test binary apart: names can repeat between binaries, and the
 # native assertion validator expects one complete inventory each.
 TESTS = [
+    (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_owned"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "platform"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server"],
      ["tests::tables_pg::"]),
@@ -268,6 +275,9 @@ TESTS = [
 ]
 
 SOURCES = [
+    ADAPTER / "tests/compiled_owned.rs",
+    ROOT / "runtime/pw-table-memory/tests/support/owned.rs",
+    ROOT / "runtime/pw-table-memory/tests/support/assert_result.rs",
     ADAPTER / "tests/platform.rs",
     ADAPTER / "tests/support/assert_result.rs",
     ADAPTER / "tests/common/mod.rs",

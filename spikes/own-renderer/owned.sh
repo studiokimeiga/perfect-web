@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
-# The guide's tutorial app (ADR-0343, a guide whose examples compile): the
-# owned in `examples/owned`, which `docs/guide/tutorial.md` builds
-# step by step, built for the browser suite into `dist-owned`. The
-# program declares its data as tables, and the development server serves
-# them from the build's `tables.json` with the generic memory adapter, no
-# data layer of the app's own (track `data-path`, ADR-0338 D2). As
-# `feed.sh` builds the feed.
+# The owned Notes fixture and its pages, built for row-authority browser
+# witnesses. The server uses its generic declared-table adapter in memory
+# and on PostgreSQL; this app has no Rust data layer of its own.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -44,4 +40,4 @@ const files = process.argv.slice(1).map((path) => ({
 }));
 console.log(JSON.stringify({ files }, null, 2));
 ' "${OWNED[@]}" > "$OUT/sources.json"
-echo "built the owned into $OUT"
+echo "built owned notes into $OUT"

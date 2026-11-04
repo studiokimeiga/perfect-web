@@ -257,11 +257,30 @@ MUTANTS = [
     ("a nested float is read back by serde_json's inexact parser", CARGO,
      "serde_json = { version = \"1.0.151\", features = [\"float_roundtrip\"] }\n",
      "serde_json = \"1.0.151\"\n"),
+    ('an owned command predicate reads published rows instead of staging', LIB,
+     '            let data = Arc::new(move |args: &[Value]| {\n                inner\n                    .command_read(&state, &bound, args)\n                    .map_err(|error| format!("`{bound}`: {error:?}"))\n            });\n',
+     '            let data = Arc::new(move |args: &[Value]| {\n                inner\n                    .read_published(&bound, args)\n                    .map_err(|error| format!("`{bound}`: {error:?}"))\n            });\n'),
+    ('an owned query predicate reads published rows instead of its snapshot', LIB,
+     '        one_predicate(contract).map_err(|e| format!("{e:?}"))?;\n        self.functions(contract, granted)\n',
+     '        one_predicate(contract).map_err(|e| format!("{e:?}"))?;\n        PgTables { inner: Arc::clone(&self.state.inner) }.read_host_fns(contract, granted).map_err(|e| format!("{e:?}"))\n'),
+    ('an owned query body reads published rows instead of its snapshot', LIB,
+     '        self.read_host_fns(contract, granted)\n            .map_err(|e| format!("{e:?}"))\n',
+     '        PgTables { inner: Arc::clone(&self.state.inner) }.read_host_fns(contract, granted).map_err(|e| format!("{e:?}"))\n'),
+    ('postgres predicate callbacks accept a nonpredicate contract', LIB,
+     '        [only] if only.kind == "predicate" => Ok(()),\n',
+     '        [_] => Ok(()),\n'),
+    ('postgres operation accounting hides a data statement', POOL,
+     '        counters\n            .operation_statements\n            .fetch_add(1, Ordering::Relaxed);\n        self.client.query(&statement, &refs(params))\n',
+     '        self.client.query(&statement, &refs(params))\n'),
+    ('postgres operation accounting counts a transaction boundary as data', POOL,
+     '        if !matches!(\n            sql,\n',
+     '        if true || !matches!(\n            sql,\n'),
 ]
 
 # Each test binary apart: names can repeat between binaries, and the native
 # assertion validator expects one complete inventory each.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_owned"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "commands"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "durability"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "migrations"],
@@ -273,7 +292,7 @@ TESTS = [
 # Every test binary of the crate is one of them.
 assert sorted(t[-1] for t in TESTS) == sorted(p.stem for p in (CRATE / "tests").glob("*.rs"))
 
-SOURCES = sorted((CRATE / "tests").rglob("*.rs"))
+SOURCES = sorted((CRATE / "tests").rglob("*.rs")) + sorted((ROOT / "runtime/pw-table-memory/tests/support").glob("*.rs"))
 INVENTORY = {}
 
 

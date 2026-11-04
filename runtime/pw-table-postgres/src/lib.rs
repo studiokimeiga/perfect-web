@@ -671,6 +671,15 @@ impl PgTables {
         self.inner.counters.statements.load(Ordering::Relaxed)
     }
 
+    /// Statements of operations, excluding only BEGIN variants, COMMIT and
+    /// ROLLBACK. `statements()` retains those transaction boundaries too.
+    pub fn operation_statements(&self) -> u64 {
+        self.inner
+            .counters
+            .operation_statements
+            .load(Ordering::Relaxed)
+    }
+
     /// Every statement this adapter has prepared, so far: once per
     /// connection and statement, never per call.
     pub fn prepared(&self) -> u64 {
@@ -1133,6 +1142,37 @@ impl Command {
         Ok(out)
     }
 
+    /// A compiled predicate reads this command's own transaction, including
+    /// staged writes. The callbacks retain its state and fail after it ends.
+    pub fn predicate_host_fns(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, Error> {
+        one_predicate(contract)?;
+        let reads = self
+            .inner
+            .host
+            .admit_reads(contract, granted)
+            .map_err(Error::Input)?;
+        let mut out = BTreeMap::new();
+        for (import, read) in reads {
+            let inner = Arc::clone(&self.inner);
+            let state = Arc::clone(&self.state);
+            let bound = import.clone();
+            let data = Arc::new(move |args: &[Value]| {
+                inner
+                    .command_read(&state, &bound, args)
+                    .map_err(|error| format!("`{bound}`: {error:?}"))
+            });
+            out.insert(
+                import,
+                pw_host::engine::table_read_host::host_fn(read, data),
+            );
+        }
+        Ok(out)
+    }
+
     /// **The tables this command has written so far**, by name: what its
     /// commit publishes, and so what a host commits its outbox with; none
     /// where it wrote nothing, a delete of a key no row has, or a row put
@@ -1513,5 +1553,58 @@ impl Snapshot {
             out.insert(import, host_fn(read, data));
         }
         Ok(out)
+    }
+}
+
+fn one_predicate(contract: &pw_host::ComponentContract) -> Result<(), Error> {
+    match contract.exports.as_slice() {
+        [only] if only.kind == "predicate" => Ok(()),
+        _ => Err(Error::Input(
+            "a predicate's reads require one predicate export".into(),
+        )),
+    }
+}
+
+impl pw_host::engine::CallTables for Command {
+    fn manifest(&self) -> &pw_host::tables::Manifest {
+        &self.inner.host
+    }
+    fn functions(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, String> {
+        self.host_fns(contract, granted)
+            .map_err(|e| format!("{e:?}"))
+    }
+    fn predicate_reads(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, String> {
+        self.predicate_host_fns(contract, granted)
+            .map_err(|e| format!("{e:?}"))
+    }
+}
+
+impl pw_host::engine::CallTables for Snapshot {
+    fn manifest(&self) -> &pw_host::tables::Manifest {
+        &self.state.inner.host
+    }
+    fn functions(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, String> {
+        self.read_host_fns(contract, granted)
+            .map_err(|e| format!("{e:?}"))
+    }
+    fn predicate_reads(
+        &self,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, String> {
+        one_predicate(contract).map_err(|e| format!("{e:?}"))?;
+        self.functions(contract, granted)
     }
 }
