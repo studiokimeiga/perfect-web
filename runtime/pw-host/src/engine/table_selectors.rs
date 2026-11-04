@@ -235,6 +235,8 @@ mod tests {
         let mut row = by.clone();
         row.push(Column::new("title", string(None)));
         Read {
+            target: None,
+            source_key: None,
             handle: None,
             import: format!("pw:tables/items#{}", primitive.name()),
             table: "Items".into(),

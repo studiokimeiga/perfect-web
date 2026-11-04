@@ -1,0 +1,18 @@
+// @corpus: fixture
+// @id: RELATION-RelationMembers
+// @category: fixed relation-window conformance fixture
+// @milestone: E14
+
+module RelationMembers
+import RelationPosts
+import capability.{ UserId }
+type Member = Member { reader: UserId, topic: Int, author: UserId, edge: Int, to: UserId, secret: String }
+table RelationMembers
+    row Member
+    key reader, topic, author, edge
+    order edge
+    index by_recipient_topic_author on to, topic, author
+    owned by reader
+    shares with to
+    private secret
+    window posts from RelationPosts row RelationPosts.Post on author to author

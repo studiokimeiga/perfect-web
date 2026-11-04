@@ -31,6 +31,7 @@ fn integer() -> Stored {
 }
 fn function(name: &str, primitive: Primitive, by: &[&str], sort: &[&str]) -> FunctionJson {
     FunctionJson {
+        relation: None,
         reader: None,
         name: name.into(),
         import: format!("pw:tables/likes#{}", name.replace('_', "-")),
@@ -77,6 +78,7 @@ fn manifest() -> TablesJson {
     TablesJson {
         hash: hash.clone(),
         tables: vec![TableJson {
+            windows: Vec::new(),
             owner: None,
             shares: Vec::new(),
             private: Vec::new(),
@@ -322,6 +324,7 @@ fn foreign_keys_are_validated_at_commit() {
         references: vec![],
     };
     m.tables.push(TableJson {
+        windows: Vec::new(),
         owner: None,
         shares: Vec::new(),
         private: Vec::new(),
@@ -331,6 +334,7 @@ fn foreign_keys_are_validated_at_commit() {
         row: "User".into(),
         bounded: None,
         functions: vec![FunctionJson {
+            relation: None,
             reader: None,
             name: "insert".into(),
             import: "pw:tables/users#insert".into(),

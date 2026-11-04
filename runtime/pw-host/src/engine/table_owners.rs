@@ -46,7 +46,9 @@ pub fn admit(access: &Access, caller: &Caller, args: Vec<Val>) -> Result<Vec<Val
     } = caller
     {
         let old_owner_access = match access {
-            Access::Read(read) => read.key.first() == Some(&handle.field),
+            Access::Read(read) => {
+                read.source_key.as_ref().unwrap_or(&read.key).first() == Some(&handle.field)
+            }
             Access::Write(write) => {
                 matches!(write.primitive, Primitive::Delete | Primitive::DeletePrefix)
             }
@@ -234,6 +236,9 @@ pub fn check_import(access: &Access, params: &[Type], results: &[Type]) -> Resul
             if read.primitive.counts() {
                 return table_link::count_results(read, results);
             }
+            if read.primitive.related() {
+                return table_link::related_results(read, results);
+            }
             let answered = read
                 .handle
                 .as_ref()
@@ -289,6 +294,8 @@ mod tests {
             string("draft"),
         ];
         Access::Read(Read {
+            target: None,
+            source_key: None,
             import: "pw:tables/notes#by-to".into(),
             table: "Notes".into(),
             primitive: Primitive::Index,
@@ -450,6 +457,8 @@ mod tests {
             unreachable!()
         };
         let own = Access::Read(Read {
+            target: None,
+            source_key: None,
             import: "pw:tables/notes#get".into(),
             table: "Notes".into(),
             primitive: Primitive::Get,
@@ -538,5 +547,55 @@ mod tests {
             ("count".into(), Val::S64(2)),
         ])])];
         assert_eq!(seen(&Access::Read(count), counts.clone()), Ok(counts));
+    }
+
+    #[test]
+    fn identity_relation_reads_use_membership_ownership_not_the_public_targets_key() {
+        let caller = Caller::IdentityTransition {
+            previous_guest: "guest".into(),
+            current: "account".into(),
+        };
+        let mut shared = by_to();
+        if let Access::Read(read) = &mut shared {
+            read.target = Some("Posts".into());
+            read.source_key = Some(read.key.clone());
+            // A legal public target key may have the same spelling as the
+            // source sharer field. It grants no old-guest sharer authority.
+            read.key = vec!["to".into()];
+            read.primitive = Primitive::RelatedLast;
+            read.handle.as_mut().unwrap().seen = None;
+        }
+        assert!(
+            admit(
+                &shared,
+                &caller,
+                vec![Val::String("guest".into()), Val::S64(1)]
+            )
+            .is_err(),
+            "old guest must not read foreign-owned memberships through a sharer"
+        );
+        assert!(
+            admit(
+                &shared,
+                &caller,
+                vec![Val::String("account".into()), Val::S64(1)]
+            )
+            .is_ok(),
+            "current account retains normal sharer access"
+        );
+        let mut owner = shared;
+        if let Access::Read(read) = &mut owner {
+            read.handle.as_mut().unwrap().field = "author".into();
+            read.by[0] = string("author");
+        }
+        assert!(
+            admit(
+                &owner,
+                &caller,
+                vec![Val::String("guest".into()), Val::S64(1)]
+            )
+            .is_ok(),
+            "old guest retains own membership reads even when target key differs"
+        );
     }
 }

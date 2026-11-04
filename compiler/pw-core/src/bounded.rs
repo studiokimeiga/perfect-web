@@ -1177,6 +1177,13 @@ impl<'p, 'i> Reads<'p, 'i> {
         } else {
             ""
         };
+        if primitive.related() {
+            return Some(format!(
+                "read them together, before the {place}, with `{table}.{}`: supply {input}{reader}{bound}; \
++                 match each turn's key/rows group from the result, including an empty rows group for a missing key",
+                many.name
+            ));
+        }
         let (entries, missing) = if primitive.counts() {
             ("key/count entries", "a zero entry")
         } else {
@@ -1552,12 +1559,17 @@ impl<'p, 'i> Reads<'p, 'i> {
                         Primitive::CountAfter => Primitive::CountAfterMany,
                         Primitive::First => Primitive::FirstMany,
                         Primitive::Last => Primitive::LastMany,
+                        Primitive::RelatedFirst => Primitive::RelatedFirstMany,
+                        Primitive::RelatedLast => Primitive::RelatedLastMany,
                         _ => continue,
                     };
-                    if let Some((set, _, _)) = functions
-                        .iter()
-                        .find(|(_, p, fields)| *p == many && fields == by)
-                    {
+                    if let Some((set, _, _)) = functions.iter().find(|(candidate, p, fields)| {
+                        *p == many
+                            && fields == by
+                            && (!primitive.related()
+                                || hir.decl(*candidate).name
+                                    == format!("{}_many", hir.decl(*id).name))
+                    }) {
                         pairs.insert(Self::def(unit, *id), Self::def(unit, *set));
                     }
                 }

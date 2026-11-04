@@ -1,0 +1,13 @@
+// @corpus: fixture
+// @id: RELATION-RelationPosts
+// @category: fixed relation-window conformance fixture
+// @milestone: E14
+
+module RelationPosts
+import capability.{ UserId }
+type Post = Post { id: Int, author: UserId, stamp: Int, text: String }
+table RelationPosts
+    row Post
+    key id
+    order stamp
+    index by_author on author

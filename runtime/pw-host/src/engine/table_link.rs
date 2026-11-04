@@ -85,6 +85,9 @@ fn read_import(read: &Read, params: &[Type], results: &[Type]) -> Result<(), Str
     if read.primitive.counts() {
         return count_results(read, results);
     }
+    if read.primitive.related() {
+        return related_results(read, results);
+    }
     if read.one() {
         let [Type::Option(row)] = results else {
             return Err(format!(
@@ -105,6 +108,31 @@ fn read_import(read: &Read, params: &[Type], results: &[Type]) -> Result<(), Str
 }
 
 /// Scalar range marks use the actual order type, not a window's Int limit.
+/// A relation returns target rows, with full source keys only around set groups.
+pub(super) fn related_results(read: &Read, results: &[Type]) -> Result<(), String> {
+    let [Type::List(list)] = results else {
+        return Err("a relation read answers one list".into());
+    };
+    if !read.many() {
+        return record(&read.row, &list.ty());
+    }
+    let Type::Record(group) = list.ty() else {
+        return Err("a relation group is a key/rows record".into());
+    };
+    let fields = group.fields().collect::<Vec<_>>();
+    let [key, rows] = fields.as_slice() else {
+        return Err("a relation group has exactly key and rows".into());
+    };
+    if key.name != "key" || rows.name != "rows" {
+        return Err("a relation group has key then rows".into());
+    }
+    selector("source selector", &read.by, &key.ty)?;
+    let Type::List(rows) = &rows.ty else {
+        return Err("a relation group's rows is a list".into());
+    };
+    record(&read.row, &rows.ty())
+}
+
 pub(super) fn range_params<'a>(read: &Read, params: &'a [Type]) -> Result<&'a [Type], String> {
     if read.primitive.range() && !read.many() {
         let (mark, selectors) = params
@@ -373,6 +401,9 @@ fn read_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), String>
     if read.primitive.counts() {
         return count_answer(read, args, results);
     }
+    if read.primitive.related() {
+        return related_answer(read, args, results);
+    }
     let (args, limit) = window_arguments(read, args)?;
     let [answer] = results else {
         return Err(format!("{} values where a read answers one", results.len()));
@@ -475,6 +506,80 @@ fn read_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), String>
         }
         last = Some(place);
         last_group = Some(found);
+    }
+    Ok(())
+}
+
+/// Reuse the ordinary row/window validator against the target alone. This
+/// internal empty-selector description grants no new operation or adapter call.
+fn related_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), String> {
+    let (selectors, limit) = window_arguments(read, args)?;
+    let limit = limit.ok_or("a relation window requires its limit")?;
+    let mut target = read.clone();
+    target.table = read
+        .target
+        .clone()
+        .ok_or("a relation read has no public target")?;
+    target.target = None;
+    target.source_key = None;
+    target.handle = None;
+    target.by.clear();
+    target.primitive = if read.primitive.descending() {
+        Primitive::Last
+    } else {
+        Primitive::First
+    };
+    let bounds = [Val::S64(limit)];
+    if !read.many() {
+        if selectors.len() != read.by.len() {
+            return Err("a relation read is given its source selector fields".into());
+        }
+        for (column, value) in read.by.iter().zip(selectors) {
+            check_value(&column.stored, value)?;
+        }
+        return read_answer(&target, &bounds, results);
+    }
+    let asked = asked_selectors(read, selectors)?;
+    let [Val::List(groups)] = results else {
+        return Err("a relation set answers one list of key/rows groups".into());
+    };
+    let mut seen = BTreeSet::new();
+    let mut last: Option<Vec<Atom>> = None;
+    for group in groups {
+        let Val::Record(fields) = group else {
+            return Err("a relation group is a record".into());
+        };
+        let [(key_name, key), (rows_name, rows)] = fields.as_slice() else {
+            return Err("a relation group has exactly key and rows".into());
+        };
+        if key_name != "key" || rows_name != "rows" {
+            return Err("a relation group has key then rows".into());
+        }
+        let selected = match read.by.as_slice() {
+            [one] => {
+                check_value(&one.stored, key)?;
+                vec![atom(key)?]
+            }
+            columns => {
+                let fields = exact_row(columns, key)?;
+                atoms(columns, fields, columns.iter().map(|c| c.name.as_str()))?
+            }
+        };
+        if !asked.contains(&selected) || !seen.insert(selected.clone()) {
+            return Err(
+                "a relation set answers each requested source selector exactly once".into(),
+            );
+        }
+        if last.as_ref().is_some_and(|last| *last >= selected) {
+            return Err("relation groups are in canonical source selector order".into());
+        }
+        last = Some(selected);
+        // Target uniqueness/order/bound resets per group; overlapping groups
+        // legitimately return the same target primary key.
+        read_answer(&target, &bounds, std::slice::from_ref(rows))?;
+    }
+    if seen != asked {
+        return Err("a relation set omits a requested group (empty groups are required)".into());
     }
     Ok(())
 }
@@ -856,6 +961,8 @@ mod tests {
             }
         }
         Read {
+            target: None,
+            source_key: None,
             handle: None,
             import: format!("pw:tables/items#{}", primitive.name()),
             table: "Items".into(),

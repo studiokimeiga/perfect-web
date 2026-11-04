@@ -257,9 +257,90 @@ pub(crate) fn statements(names: &Names, shape: &Shape) -> BTreeMap<String, Strin
         .iter()
         .map(|(import, function)| {
             let table = &shape.tables[function.table];
-            (import.clone(), statement(names, table, function))
+            let sql = if let Some(relation) = &function.related {
+                related_statement(
+                    names,
+                    table,
+                    &shape.tables[relation.target],
+                    function,
+                    relation,
+                )
+            } else {
+                statement(names, table, function)
+            };
+            (import.clone(), sql)
         })
         .collect()
+}
+
+/// A fixed semi-join: target ordering and LIMIT occur globally across all
+/// matching members inside each source selector, before rows cross SQL.
+fn related_statement(
+    names: &Names,
+    source: &TableShape,
+    target: &TableShape,
+    function: &FunctionShape,
+    relation: &crate::shape::RelatedShape,
+) -> String {
+    let from = names.qualified(&source.name);
+    let to = names.qualified(&target.name);
+    let matched = format!(
+        "s.{} = t.{}",
+        ident(&source.columns[relation.source_match].name),
+        ident(&target.columns[relation.target_match].name)
+    );
+    let order = window_order(
+        "t",
+        target,
+        &function.sorted_by,
+        function.primitive.descending(),
+    );
+    let parameter = function.by.len() + 1;
+    if !function.primitive.many() {
+        let by = (1..=function.by.len()).collect::<Vec<_>>();
+        return format!(
+            "SELECT {} FROM {to} t WHERE EXISTS (SELECT 1 FROM {from} s WHERE {} AND {matched}) ORDER BY {order} LIMIT ${parameter}::bigint",
+            row_list("t", target),
+            equal("s", source, &function.by, &by)
+        );
+    }
+    let arrays = function
+        .by
+        .iter()
+        .enumerate()
+        .map(|(i, &field)| format!("${}::{}", i + 1, source.columns[field].kind.array()))
+        .collect::<Vec<_>>();
+    let mut columns = (0..function.by.len())
+        .map(|i| format!("c{i}"))
+        .collect::<Vec<_>>();
+    columns.push("pw_slot".into());
+    let selectors = function
+        .by
+        .iter()
+        .enumerate()
+        .map(|(i, &field)| format!("s.{} = k.c{i}", ident(&source.columns[field].name)))
+        .collect::<Vec<_>>();
+    let named = target
+        .columns
+        .iter()
+        .map(|column| format!("{} AS {}", read_column("t", column), ident(&column.name)))
+        .collect::<Vec<_>>();
+    format!(
+        "SELECT k.pw_slot AS pw_related_slot, {} FROM unnest({}) WITH ORDINALITY AS k({}) CROSS JOIN LATERAL \
+             (SELECT {} FROM {to} t WHERE EXISTS (SELECT 1 FROM {from} s WHERE {} AND {matched}) ORDER BY {order} LIMIT ${parameter}::bigint) w \
+             ORDER BY k.pw_slot, {}",
+        row_list("w", target),
+        arrays.join(", "),
+        columns.join(", "),
+        named.join(", "),
+        selectors.join(" AND "),
+        window_order(
+            "w",
+            target,
+            &function.sorted_by,
+            function.primitive.descending()
+        )
+    )
 }
 
 fn statement(names: &Names, table: &TableShape, function: &FunctionShape) -> String {
@@ -267,6 +348,12 @@ fn statement(names: &Names, table: &TableShape, function: &FunctionShape) -> Str
     let rows = row_list("t", table);
     let by: Vec<usize> = (1..=function.by.len()).collect();
     match function.primitive {
+        Primitive::RelatedFirst
+        | Primitive::RelatedFirstMany
+        | Primitive::RelatedLast
+        | Primitive::RelatedLastMany => {
+            unreachable!("relation SQL is generated with both table shapes")
+        }
         Primitive::Get | Primitive::Prefix | Primitive::Index => {
             let mut sql = format!(
                 "SELECT {rows} FROM {t} t WHERE {}",

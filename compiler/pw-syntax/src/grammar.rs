@@ -246,7 +246,7 @@ pub const STMT_CLAUSE_KEYWORDS: &[&str] =
 /// take names; a table's clauses take their named fields. A call `set.size()`
 /// or `row.word`, or a binding `unique` alone on its line, is not a clause.
 const NAMED_HEADS: &[&str] = &[
-    "layout", "set", "sets", "row", "order", "index", "unique", "refers", "migrate",
+    "layout", "set", "sets", "row", "order", "index", "unique", "refers", "window", "migrate",
 ];
 
 /// **A table's ownership clauses** (track `row-ownership`, ADR-0384 H1):
@@ -310,6 +310,7 @@ pub const POLICY_KEYWORDS: &[&str] = &[
     "index",
     "unique",
     "refers",
+    "window",
     "bounded",
     "migrate",
     // Track `row-ownership` (ADR-0384, H1): whose a table's rows are, `owned

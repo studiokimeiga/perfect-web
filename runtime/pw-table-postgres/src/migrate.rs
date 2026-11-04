@@ -260,6 +260,7 @@ fn shapes_of(tables: &[TableSchema]) -> Result<Vec<TableShape>, Error> {
         tables: tables
             .iter()
             .map(|schema| TableJson {
+                windows: Vec::new(),
                 schema: schema.clone(),
                 module: schema.name.clone(),
                 interface: String::new(),

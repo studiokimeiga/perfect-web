@@ -38,6 +38,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+mod relations;
+
 use crate::codes;
 use crate::diagnostics::{Detector, Diagnostic, Related, Repair, Severity};
 use crate::hir::{Decl, DeclId, DeclKind, DeclaredType, EffectRef, Hir, Param, Policy, Span};
@@ -83,6 +85,11 @@ pub enum Primitive {
     Last,
     /// The last rows of each distinct selector, within the shared limit.
     LastMany,
+    /// Global target rows selected through one declared membership relation.
+    RelatedFirst,
+    RelatedFirstMany,
+    RelatedLast,
+    RelatedLastMany,
     /// Every row, of a bounded table.
     All,
     /// A new row, refused where its key or a unique value is held.
@@ -113,6 +120,10 @@ impl Primitive {
             Primitive::FirstMany => "first-many",
             Primitive::Last => "last",
             Primitive::LastMany => "last-many",
+            Primitive::RelatedFirst => "related-first",
+            Primitive::RelatedFirstMany => "related-first-many",
+            Primitive::RelatedLast => "related-last",
+            Primitive::RelatedLastMany => "related-last-many",
             Primitive::All => "all",
             Primitive::Insert => "insert",
             Primitive::Put => "put",
@@ -135,15 +146,35 @@ impl Primitive {
         matches!(self, Primitive::CountAfter | Primitive::CountAfterMany)
     }
 
+    pub fn related(self) -> bool {
+        matches!(
+            self,
+            Self::RelatedFirst | Self::RelatedFirstMany | Self::RelatedLast | Self::RelatedLastMany
+        )
+    }
+
     pub fn window(self) -> bool {
         matches!(
             self,
-            Primitive::First | Primitive::FirstMany | Primitive::Last | Primitive::LastMany
+            Primitive::First
+                | Primitive::FirstMany
+                | Primitive::Last
+                | Primitive::LastMany
+                | Primitive::RelatedFirst
+                | Primitive::RelatedFirstMany
+                | Primitive::RelatedLast
+                | Primitive::RelatedLastMany
         )
     }
 
     pub fn descending(self) -> bool {
-        matches!(self, Primitive::Last | Primitive::LastMany)
+        matches!(
+            self,
+            Primitive::Last
+                | Primitive::LastMany
+                | Primitive::RelatedLast
+                | Primitive::RelatedLastMany
+        )
     }
 
     /// Does it write the table?
@@ -165,6 +196,8 @@ impl Primitive {
                 | Primitive::CountAfterMany
                 | Primitive::FirstMany
                 | Primitive::LastMany
+                | Primitive::RelatedFirstMany
+                | Primitive::RelatedLastMany
         )
     }
 }
@@ -195,6 +228,11 @@ pub enum Wrote {
     Range { fields: Vec<String>, mark: String },
     /// Counts keyed by the complete selector and order mark.
     RangeCounted { fields: Vec<String> },
+    /// A full source selector and bounded public target rows.
+    RelatedGroup {
+        fields: Vec<String>,
+        window: WindowClause,
+    },
     /// **The seen row** (track `row-ownership`, ADR-0384 H1): the record a
     /// reader the table shares with is answered, its row's `fields` without
     /// the private ones, so a value only its owner reads has no field to
@@ -217,6 +255,16 @@ pub struct IndexClause {
     pub name: String,
     pub fields: Vec<String>,
     pub unique: bool,
+}
+
+/// One fixed equality relation; its row annotation is checked against the target.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct WindowClause {
+    pub name: String,
+    pub target: String,
+    pub row_type: String,
+    pub source_field: String,
+    pub target_field: String,
 }
 
 /// `refers owner to Users`.
@@ -279,6 +327,7 @@ pub struct Table {
     pub order: Option<Clause<String>>,
     pub indexes: Vec<Clause<IndexClause>>,
     pub references: Vec<Clause<Reference>>,
+    pub windows: Vec<Clause<WindowClause>>,
     pub bounded: Option<Clause<u64>>,
     pub migrations: Vec<Clause<Migration>>,
     /// **Whose its rows are** (track `row-ownership`, ADR-0384 H1): `owned by
@@ -479,6 +528,7 @@ fn read(id: DeclId, d: &Decl) -> Table {
         order: None,
         indexes: Vec::new(),
         references: Vec::new(),
+        windows: Vec::new(),
         bounded: None,
         migrations: Vec::new(),
         owner: None,
@@ -522,6 +572,16 @@ fn read(id: DeclId, d: &Decl) -> Table {
                 Ok(i) => {
                     t.indexes.push(Clause {
                         value: i,
+                        span: span.clone(),
+                    });
+                    None
+                }
+                Err(why) => Some(why),
+            },
+            "window" => match relations::clause(v) {
+                Ok(window) => {
+                    t.windows.push(Clause {
+                        value: window,
                         span: span.clone(),
                     });
                     None
@@ -1165,6 +1225,18 @@ fn planned(
             }
         }
     }
+    // Relation meanings are never coalesced by only primitive/by. Their
+    // declaration/name/target is retained; duplicate declarations are refused.
+    let (related, groups) = relations::planned(t, fields);
+    out.extend(related);
+    for (decl, what) in groups {
+        if !records
+            .iter()
+            .any(|(old, kind)| old.name == decl.name && *kind == what)
+        {
+            records.push((decl, what));
+        }
+    }
     (out, records, seen)
 }
 
@@ -1311,7 +1383,21 @@ pub fn generate(hir: &mut Hir) {
     }
     for p in &functions {
         wrote.push((
-            function(&t.name, p),
+            {
+                let mut decl = function(&t.name, p);
+                if let Some(window) = relations::of_function(&t, &p.name, p.primitive, &p.by) {
+                    decl.declared_effects
+                        .as_mut()
+                        .expect("table effects")
+                        .push(EffectRef {
+                            path: "database.read".into(),
+                            written: format!("database.read<{}>", window.target),
+                            args: vec![window.target.clone()],
+                            span: p.span.clone(),
+                        });
+                }
+                decl
+            },
             p.span.clone(),
             Wrote::Function {
                 primitive: p.primitive,
@@ -1435,6 +1521,7 @@ fn unambiguous_sources(hirs: &[&Hir], unit: usize, ws: &Workspace, t: &Table) ->
     };
     for (table, span) in std::iter::once((&t.name, &t.span))
         .chain(t.references.iter().map(|r| (&r.value.table, &r.span)))
+        .chain(t.windows.iter().map(|r| (&r.value.target, &r.span)))
     {
         let Some(name) = source_of(hirs, table) else {
             continue;
@@ -1603,6 +1690,7 @@ pub fn check(hirs: &[&Hir], unit: usize, ws: &Workspace, sigs: &Signatures) -> V
     for (i, t) in tables.iter().enumerate() {
         let mut found = shape(hirs, unit, ws, sigs, &module, t, i > 0);
         found.extend(unambiguous_sources(hirs, unit, ws, t));
+        found.extend(relations::check(hirs, unit, ws, sigs, t));
         found.extend(distinct_imports(hirs, unit, t));
         if found.is_empty() {
             found.extend(across_sources(hirs, unit, ws, t));
@@ -1871,6 +1959,7 @@ fn shape(
                     | Wrote::Counted { .. }
                     | Wrote::Range { .. }
                     | Wrote::RangeCounted { .. }
+                    | Wrote::RelatedGroup { .. }
                     | Wrote::Seen { .. }
             )
         {
@@ -1878,6 +1967,17 @@ fn shape(
         }
         let decl = hir.decl(*id);
         let identity = crate::wit::ident(&decl.name);
+        if !t.windows.is_empty()
+            && let Some((other, _)) = hir.all_decls().find(|(id, d)| {
+                !hir.generated.contains_key(id) && crate::wit::ident(&d.name) == identity
+            })
+        {
+            out.push(malformed(
+                format!("`{}` is a generated selector or relation group record of `{}`, and the program declares it",decl.name,t.name),
+                decl.name_span.clone(),vec![Related::new(hir.decl_span(other),"the program's declaration")],
+                "rename the program's declaration so the generated record is distinct".into(),
+            ));
+        }
         if let Some((first, span)) = generated_shapes.get(&identity)
             && *first != &generated.what
         {
@@ -2774,6 +2874,7 @@ pub fn functions_of(hir: &Hir, table: DeclId) -> Vec<(DeclId, Primitive, Vec<Str
             | Wrote::Counted { .. }
             | Wrote::Range { .. }
             | Wrote::RangeCounted { .. }
+            | Wrote::RelatedGroup { .. }
             | Wrote::Seen { .. } => None,
         })
         .collect()
@@ -3726,6 +3827,8 @@ pub struct FunctionJson {
     /// What it is given, by name, each type as written.
     pub params: Vec<ParamJson>,
     pub returns: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub relation: Option<String>,
     /// **The order of the rows it answers**: each field ascending, the first
     /// first (an `Int` by value, a `String` by code point, `false` before
     /// `true`, a case by its name). Empty for what answers one row or none.
@@ -3772,6 +3875,8 @@ pub struct TableJson {
     /// The fields its owner alone reads: no seen row holds them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub private: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub windows: Vec<WindowClause>,
     pub functions: Vec<FunctionJson>,
 }
 
@@ -3863,7 +3968,16 @@ pub fn tables_json(
                             false => "read",
                         }
                         .to_string(),
-                        sorted_by: sorted_by(schema, primitive, &by),
+                        relation: relations::of_function(t, &d.name, primitive, &by)
+                            .map(|r| r.name.clone()),
+                        sorted_by: match relations::of_function(t, &d.name, primitive, &by) {
+                            Some(r) => now
+                                .iter()
+                                .find(|(_, _, s)| s.name == r.target)
+                                .map(|(_, _, s)| sorted_by(s, Primitive::First, &[]))
+                                .unwrap_or_default(),
+                            None => sorted_by(schema, primitive, &by),
+                        },
                         by,
                         params: d
                             .params
@@ -3891,6 +4005,7 @@ pub fn tables_json(
                 owner: t.owner_field().map(str::to_string),
                 shares: t.sharers().to_vec(),
                 private: t.private_fields().to_vec(),
+                windows: t.windows.iter().map(|w| w.value.clone()).collect(),
                 functions,
             }
         })

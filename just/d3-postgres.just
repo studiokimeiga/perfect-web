@@ -30,7 +30,7 @@ e14-d3-postgres:
        echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' || echo ' + uncommitted changes')"; \
        echo "rust: $(rustc --version)"; \
        echo "postgres: $(psql "$url" -Atc 'SHOW server_version' 2>/dev/null || echo 'unknown (psql is not on PATH)')"; echo; \
-       for binary in primitives commands migrations parity durability compiled_owned counts compiled_counts compiled_windows compiled_ranges; do \
+       for binary in primitives commands migrations parity durability compiled_owned counts compiled_counts compiled_windows compiled_ranges compiled_relations; do \
          echo "== tests/$binary.rs"; \
          cargo test --locked -p pw-table-postgres --test "$binary" 2>&1 | grep -E '^(test |test result)|panicked at'; \
          echo; \

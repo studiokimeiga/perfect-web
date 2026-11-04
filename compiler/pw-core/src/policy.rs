@@ -439,7 +439,7 @@ pub fn domain_of(head: &str) -> Option<Domain> {
         "row" => Domain::RowType,
         "order" => Domain::Fields,
         "index" | "unique" => Domain::Index,
-        "refers" => Domain::Reference,
+        "refers" | "window" => Domain::Reference,
         "bounded" => Domain::Count,
         "migrate" => Domain::Migration,
         // Track `row-ownership` (ADR-0384, H1): whose a table's rows are, who
@@ -707,7 +707,9 @@ pub fn declared_by(head: &str) -> Option<(&'static [crate::hir::DeclKind], &'sta
         // A keyed read's set form (4c): a function's.
         "set" => (&[K::Fn], "a function"),
         // A table's (track `tables`, ADR-0338).
-        "row" | "order" | "index" | "unique" | "refers" | "bounded" => (&[K::Table], "a table"),
+        "row" | "order" | "index" | "unique" | "refers" | "window" | "bounded" => {
+            (&[K::Table], "a table")
+        }
         // Whose its rows are (track `row-ownership`, ADR-0384 H1).
         "owned" | "shares" | "private" => (&[K::Table], "a table"),
         // A table's change from its schema released, or a device's value's
@@ -1291,6 +1293,7 @@ mod tests {
         "index",
         "unique",
         "refers",
+        "window",
         "bounded",
         "migrate",
         "owned",

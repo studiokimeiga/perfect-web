@@ -37,6 +37,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::Deserialize;
 
+mod relations;
+
 use crate::{ComponentContract, Granted, ImportKind};
 
 /// **`tables.json`, as far as the host reads it**, and only as
@@ -49,6 +51,10 @@ pub struct Manifest {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 struct Table {
     name: String,
+    #[serde(default)]
+    source: Option<String>,
+    #[serde(default)]
+    windows: Vec<Window>,
     interface: String,
     fields: Vec<Field>,
     key: Vec<String>,
@@ -73,6 +79,15 @@ struct Table {
     #[serde(default)]
     references: Vec<Reference>,
     functions: Vec<Function>,
+}
+
+/// A fixed public-target relation declared by the source table.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+struct Window {
+    name: String,
+    target: String,
+    source_field: String,
+    target_field: String,
 }
 
 /// `refers owner to Users`, as tables.json states it.
@@ -156,6 +171,10 @@ pub enum Primitive {
     FirstMany,
     Last,
     LastMany,
+    RelatedFirst,
+    RelatedFirstMany,
+    RelatedLast,
+    RelatedLastMany,
     All,
     Insert,
     Put,
@@ -183,6 +202,8 @@ impl Primitive {
                 | Primitive::CountAfterMany
                 | Primitive::FirstMany
                 | Primitive::LastMany
+                | Primitive::RelatedFirstMany
+                | Primitive::RelatedLastMany
         )
     }
 
@@ -203,6 +224,10 @@ impl Primitive {
             Primitive::FirstMany => "first-many",
             Primitive::Last => "last",
             Primitive::LastMany => "last-many",
+            Primitive::RelatedFirst => "related-first",
+            Primitive::RelatedFirstMany => "related-first-many",
+            Primitive::RelatedLast => "related-last",
+            Primitive::RelatedLastMany => "related-last-many",
             Primitive::All => "all",
             Primitive::Insert => "insert",
             Primitive::Put => "put",
@@ -215,14 +240,34 @@ impl Primitive {
         matches!(self, Primitive::CountAfter | Primitive::CountAfterMany)
     }
 
+    pub fn related(self) -> bool {
+        matches!(
+            self,
+            Self::RelatedFirst | Self::RelatedFirstMany | Self::RelatedLast | Self::RelatedLastMany
+        )
+    }
+
     pub fn window(self) -> bool {
         matches!(
             self,
-            Primitive::First | Primitive::FirstMany | Primitive::Last | Primitive::LastMany
+            Primitive::First
+                | Primitive::FirstMany
+                | Primitive::Last
+                | Primitive::LastMany
+                | Primitive::RelatedFirst
+                | Primitive::RelatedFirstMany
+                | Primitive::RelatedLast
+                | Primitive::RelatedLastMany
         )
     }
     pub fn descending(self) -> bool {
-        matches!(self, Primitive::Last | Primitive::LastMany)
+        matches!(
+            self,
+            Primitive::Last
+                | Primitive::LastMany
+                | Primitive::RelatedLast
+                | Primitive::RelatedLastMany
+        )
     }
     pub fn counts(self) -> bool {
         matches!(
@@ -248,7 +293,11 @@ impl Primitive {
             | Primitive::First
             | Primitive::FirstMany
             | Primitive::Last
-            | Primitive::LastMany => "selector",
+            | Primitive::LastMany
+            | Primitive::RelatedFirst
+            | Primitive::RelatedFirstMany
+            | Primitive::RelatedLast
+            | Primitive::RelatedLastMany => "selector",
         }
     }
 }
@@ -256,6 +305,8 @@ impl Primitive {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 struct Function {
     name: String,
+    #[serde(default)]
+    relation: Option<String>,
     import: String,
     primitive: Primitive,
     effect: String,
@@ -332,6 +383,10 @@ impl Column {
 /// import's type, its arguments and each of its answers to.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Read {
+    /// The public target of a relation; by/table/handle still describe its source.
+    pub target: Option<String>,
+    /// The membership table key when result rows/key belong to a public target.
+    pub source_key: Option<Vec<String>>,
     /// `pw:tables/lists#get`.
     pub import: String,
     /// The table, by its Pleris name: `Lists`.
@@ -537,6 +592,12 @@ impl Table {
                 };
                 let suffix = if primitive.many() { "_many" } else { "" };
                 Ok(format!("{word}_by_{}{suffix}", by.join("_")))
+            }
+            Primitive::RelatedFirst
+            | Primitive::RelatedFirstMany
+            | Primitive::RelatedLast
+            | Primitive::RelatedLastMany => {
+                Err("requires its admitted relation declaration".into())
             }
             Primitive::CountAfter | Primitive::CountAfterMany => {
                 if self.order.is_none() {
@@ -764,13 +825,14 @@ impl Table {
     fn handle(&self, function: &Function) -> Option<Handle> {
         let field = function.reader.clone()?;
         let sharer = self.shares.contains(&field) && !function.primitive.writes();
-        let seen = (sharer && !self.private.is_empty()).then(|| {
-            self.fields
-                .iter()
-                .filter(|f| !self.private.contains(&f.name))
-                .map(Column::of)
-                .collect()
-        });
+        let seen =
+            (sharer && !function.primitive.related() && !self.private.is_empty()).then(|| {
+                self.fields
+                    .iter()
+                    .filter(|f| !self.private.contains(&f.name))
+                    .map(Column::of)
+                    .collect()
+            });
         Some(Handle { field, seen })
     }
 }
@@ -787,7 +849,11 @@ impl Manifest {
 
     fn whole(&self) -> Result<(), String> {
         let mut imports = BTreeSet::new();
+        let mut tables = BTreeSet::new();
         for table in &self.tables {
+            if !tables.insert(wit_name(&table.name)) {
+                return Err(format!("tables.json repeats table identity {}", table.name));
+            }
             let name = &table.name;
             let interface = format!("pw:tables/{}", wit_name(name));
             if table.interface != interface {
@@ -862,16 +928,34 @@ impl Manifest {
                         function.effect
                     ));
                 }
-                if !function.by.iter().chain(&function.sorted_by).all(known) {
+                if !function.by.iter().all(known)
+                    || (!function.primitive.related() && !function.sorted_by.iter().all(known))
+                {
                     return Err(format!(
                         "tables.json: `{import}` names a field {name} lacks"
                     ));
                 }
                 // What a primitive reads by, and so its name (PR #29's rule,
                 // a get at `#get`, for every primitive).
-                let generated = table
-                    .generated_name(function.primitive, &function.by)
-                    .map_err(|why| format!("tables.json: `{import}` {why}"))?;
+                let (generated, sorted) = if function.primitive.related() {
+                    let (window, target) = self.related_target(table, function)?;
+                    (
+                        relations::function_name(window, function.primitive, &function.by),
+                        target.sorted_by(Primitive::First, &[]),
+                    )
+                } else {
+                    if function.relation.is_some() {
+                        return Err(format!(
+                            "tables.json: `{import}` attaches a relation to an ordinary read"
+                        ));
+                    }
+                    (
+                        table
+                            .generated_name(function.primitive, &function.by)
+                            .map_err(|why| format!("tables.json: `{import}` {why}"))?,
+                        table.sorted_by(function.primitive, &function.by),
+                    )
+                };
                 if function.name != generated {
                     let primitive = function.primitive.name();
                     let article = if primitive.starts_with(['a', 'e', 'i', 'o', 'u']) {
@@ -884,7 +968,6 @@ impl Manifest {
                         wit_name(&generated)
                     ));
                 }
-                let sorted = table.sorted_by(function.primitive, &function.by);
                 if function.sorted_by != sorted {
                     return Err(format!(
                         "tables.json: `{import}` answers by ({}), where D1's order is ({})",
@@ -898,6 +981,7 @@ impl Manifest {
         for table in &self.tables {
             table.owned_whole()?;
         }
+        self.relations_whole()?;
         self.references_within_one_owner()
     }
 
@@ -953,7 +1037,13 @@ impl Manifest {
                 .iter()
                 .map(|name| table.column(name))
                 .collect::<Option<Vec<_>>>()?;
-            let row: Vec<Column> = table.fields.iter().map(Column::of).collect();
+            let target = if function.primitive.related() {
+                Some(self.related_target(table, function).ok()?.1)
+            } else {
+                None
+            };
+            let result = target.unwrap_or(table);
+            let row: Vec<Column> = result.fields.iter().map(Column::of).collect();
             if function.primitive.writes() {
                 return Some(Access::Write(Write {
                     import: function.import.clone(),
@@ -972,16 +1062,18 @@ impl Manifest {
                 }));
             }
             Some(Access::Read(Read {
+                target: target.map(|t| t.name.clone()),
+                source_key: target.map(|_| table.key.clone()),
                 import: function.import.clone(),
                 table: table.name.clone(),
                 primitive: function.primitive,
                 by,
                 row,
-                key: table.key.clone(),
-                order: table.order.clone(),
+                key: result.key.clone(),
+                order: result.order.clone(),
                 sorted_by: function.sorted_by.clone(),
                 unique: table.unique_index(function.primitive, &function.by),
-                bounded: table.bounded,
+                bounded: result.bounded,
                 handle: table.handle(function),
             }))
         })
@@ -1061,7 +1153,31 @@ impl Manifest {
                 )));
             }
             let capability = format!("database.{operation}<{}>", access.table());
-            if import.capability != capability {
+            let target = match &access {
+                Access::Read(read) => read.target.as_ref(),
+                _ => None,
+            };
+            if let Some(target) = target {
+                let required = [capability.clone(), format!("database.read<{target}>")];
+                if !required.contains(&import.capability) {
+                    return Err(refused(format!(
+                        "its primary claim `{}` is neither relation read grant",
+                        import.capability
+                    )));
+                }
+                for required in required {
+                    if !contract
+                        .required_capabilities
+                        .iter()
+                        .any(|cap| cap.name() == required)
+                        || granted.handle(&required).is_none()
+                    {
+                        return Err(refused(format!(
+                            "relation read requires `{required}` in the contract and granted here"
+                        )));
+                    }
+                }
+            } else if import.capability != capability {
                 return Err(refused(format!(
                     "its contract claims `{}`, and {}'s {operation} is `{capability}`",
                     import.capability,

@@ -1,0 +1,21 @@
+// @corpus: fixture
+// @id: RELATION-app
+// @category: compiled relation read retains source-derived reader privacy
+// @milestone: E14
+
+module relations.app
+import RelationPosts
+import RelationMembers
+import capability.{ User, UserId }
+
+user query Following(reader: User<UserId>, topic: Int, limit: Int) -> List<RelationPosts.Post>
+    freshness 0.seconds
+    consistency read_your_writes
+    cache private
+    key reader,topic,limit
+    concurrency one_per_key
+    on_key_change cancel
+    timeout 2.seconds
+{
+    RelationMembers.last_posts_by_reader_topic(reader,topic,limit)
+}

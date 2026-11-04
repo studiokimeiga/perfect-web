@@ -42,6 +42,7 @@ fn function(
     sorted_by: &[&str],
 ) -> FunctionJson {
     FunctionJson {
+        relation: None,
         reader: None,
         name: name.into(),
         import: format!("pw:tables/{table}#{}", name.replace('_', "-")),
@@ -107,6 +108,7 @@ fn manifest(bound: u64) -> TablesJson {
         hash: hash.clone(),
         tables: vec![
             TableJson {
+                windows: Vec::new(),
                 owner: None,
                 shares: Vec::new(),
                 private: Vec::new(),
@@ -159,6 +161,7 @@ fn manifest(bound: u64) -> TablesJson {
                 ],
             },
             TableJson {
+                windows: Vec::new(),
                 owner: None,
                 shares: Vec::new(),
                 private: Vec::new(),

@@ -99,11 +99,38 @@ pub fn encode_read(read: &Read, value: &Value) -> Result<Val, String> {
     if read.primitive.counts() {
         return encode_count(read, value);
     }
+    if read.primitive.related() && read.many() {
+        return encode_related(read, value);
+    }
     if read.one() {
         encode_get(read, value)
     } else {
         encode_get_many(read, value)
     }
+}
+
+fn encode_related(read: &Read, value: &Value) -> Result<Val, String> {
+    let groups = value.as_array().ok_or("a relation set result is a list")?;
+    groups
+        .iter()
+        .map(|group| {
+            let group = group.as_object().ok_or("a relation group is a record")?;
+            if group.len() != 2 || !group.contains_key("key") || !group.contains_key("rows") {
+                return Err("a relation group has exactly key and rows".into());
+            }
+            let key = match read.by.as_slice() {
+                [one] => encode(&one.stored, &group["key"]),
+                columns if !columns.is_empty() => record(columns, &group["key"]),
+                _ => Err("a relation group has no source selector".into()),
+            }?;
+            let rows = encode_get_many(read, &group["rows"])?;
+            Ok(Val::Record(vec![
+                ("key".into(), key),
+                ("rows".into(), rows),
+            ]))
+        })
+        .collect::<Result<Vec<_>, String>>()
+        .map(Val::List)
 }
 
 fn encode_count(read: &Read, value: &Value) -> Result<Val, String> {
@@ -229,6 +256,8 @@ mod tests {
     fn read() -> Read {
         let row = columns();
         Read {
+            target: None,
+            source_key: None,
             handle: None,
             import: "pw:tables/likes#get".into(),
             table: "Likes".into(),

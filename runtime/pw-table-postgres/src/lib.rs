@@ -1019,6 +1019,107 @@ impl Inner {
     }
 }
 
+/// One prepared global relation window, or one lateral statement for all keys.
+fn read_related(
+    inner: &Inner,
+    conn: &mut Conn,
+    source: &shape::TableShape,
+    function: &shape::FunctionShape,
+    sql: &str,
+    args: &[Value],
+) -> Result<Value, Error> {
+    let Some((bound, selectors)) = args.split_last() else {
+        return Err(Error::Input(
+            "a relation window takes a trailing Int limit".into(),
+        ));
+    };
+    let bound = bound
+        .as_i64()
+        .ok_or_else(|| Error::Input("a relation limit must be an Int".into()))?;
+    let keys = typed_selections(source, function, "relation window", selectors)?
+        .into_iter()
+        .collect::<Vec<_>>();
+    let relation = function
+        .related
+        .as_ref()
+        .ok_or_else(|| Error::Schema("relation shape is missing".into()))?;
+    let target = &inner.shape.tables[relation.target];
+    if keys.is_empty() {
+        return Ok(Value::Array(Vec::new()));
+    }
+    let mut groups = vec![Vec::new(); keys.len()];
+    if bound > 0 {
+        let mut params = if function.primitive.many() {
+            function
+                .by
+                .iter()
+                .enumerate()
+                .map(|(at, &field)| {
+                    let atoms = keys.iter().map(|key| &key[at]).collect::<Vec<_>>();
+                    bind_array(&source.columns[field], &atoms)
+                })
+                .collect::<Result<Vec<Param>, Error>>()?
+        } else {
+            function
+                .by
+                .iter()
+                .zip(&keys[0])
+                .map(|(&field, atom)| bind_atom(&source.columns[field], atom))
+                .collect::<Result<Vec<Param>, Error>>()?
+        };
+        params.push(Box::new(bound));
+        let rows = conn
+            .query(&inner.counters, sql, &params)
+            .map_err(database)?;
+        let mut last = 0;
+        for row in rows {
+            let (slot, offset) = if function.primitive.many() {
+                let slot: i64 = row.try_get(0).map_err(database)?;
+                (
+                    usize::try_from(slot)
+                        .ok()
+                        .and_then(|s| s.checked_sub(1))
+                        .ok_or_else(|| Error::Database("relation slot is invalid".into()))?,
+                    1,
+                )
+            } else {
+                (0, 0)
+            };
+            if slot >= groups.len() || slot < last {
+                return Err(Error::Database(
+                    "relation slot is out of request order".into(),
+                ));
+            }
+            last = slot;
+            if groups[slot].len() as u64 >= bound as u64 {
+                return Err(Error::Database(
+                    "relation rows exceed their global limit".into(),
+                ));
+            }
+            groups[slot].push(Value::Object(decode(target, &row, offset)?));
+        }
+    }
+    if !function.primitive.many() {
+        return Ok(Value::Array(groups.remove(0)));
+    }
+    let mut out = Vec::with_capacity(keys.len());
+    for (key, rows) in keys.into_iter().zip(groups) {
+        let key = match key.as_slice() {
+            [one] => one.value(),
+            _ => Value::Object(
+                function
+                    .by
+                    .iter()
+                    .map(|&field| source.columns[field].name.clone())
+                    .zip(key.iter().map(shape::Atom::value))
+                    .collect(),
+            ),
+        };
+        out.push(serde_json::json!({"key":key,"rows":rows}));
+    }
+    Ok(Value::Array(out))
+}
+
 /// A scalar/set range is one aggregate query after the whole request validates.
 fn read_ranges(
     inner: &Inner,
@@ -1096,6 +1197,9 @@ fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<
         .statements
         .get(import)
         .ok_or_else(|| Error::Input(format!("undeclared table operation {import}")))?;
+    if function.primitive.related() {
+        return read_related(inner, conn, table, function, sql, args);
+    }
     if function.primitive.range() {
         return read_ranges(inner, conn, table, function, sql, args);
     }

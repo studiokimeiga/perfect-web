@@ -330,6 +330,7 @@ MUTANTS = [
 # Each test binary apart: names can repeat between binaries, and the native
 # assertion validator expects one complete inventory each.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_relations"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_ranges"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_windows"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "counts"],

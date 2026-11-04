@@ -124,7 +124,15 @@ pub(crate) struct TableShape {
 }
 
 #[derive(Debug, Clone)]
+pub(crate) struct RelatedShape {
+    pub target: usize,
+    pub source_match: usize,
+    pub target_match: usize,
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct FunctionShape {
+    pub related: Option<RelatedShape>,
     pub table: usize,
     pub primitive: Primitive,
     /// Column places it reads or writes by.
@@ -440,7 +448,34 @@ pub(crate) fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
                         .indexes
                         .iter()
                         .any(|i| i.unique && i.fields == function.by));
+            let related = if function.primitive.related() {
+                let window = table
+                    .windows
+                    .iter()
+                    .find(|window| Some(&window.name) == function.relation.as_ref())
+                    .ok_or_else(|| Error::Schema("relation declaration is missing".into()))?;
+                let target = place(&window.target)
+                    .ok_or_else(|| Error::Schema("relation target is missing".into()))?;
+                let target_match = manifest.tables[target]
+                    .schema
+                    .fields
+                    .iter()
+                    .position(|field| field.name == window.target_field)
+                    .ok_or_else(|| Error::Schema("target match field is missing".into()))?;
+                Some(RelatedShape {
+                    target,
+                    source_match: at_field(&window.source_field)?,
+                    target_match,
+                })
+            } else {
+                None
+            };
+            let result_table = related
+                .as_ref()
+                .map(|r| &manifest.tables[r.target])
+                .unwrap_or(table);
             let shaped = FunctionShape {
+                related,
                 table: at,
                 primitive: function.primitive,
                 by: function
@@ -451,7 +486,16 @@ pub(crate) fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
                 sorted_by: function
                     .sorted_by
                     .iter()
-                    .map(|f| at_field(f))
+                    .map(|name| {
+                        result_table
+                            .schema
+                            .fields
+                            .iter()
+                            .position(|field| field.name == *name)
+                            .ok_or_else(|| {
+                                Error::Schema(format!("target sort field {name} is missing"))
+                            })
+                    })
                     .collect::<Result<_, _>>()?,
                 one,
             };

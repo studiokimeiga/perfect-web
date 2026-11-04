@@ -353,6 +353,7 @@ MUTANTS = [
 # Each Cargo test binary apart: names can repeat between binaries, and the
 # shared native assertion validator expects one complete inventory each.
 TESTS = [
+    (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_relations"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_ranges"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_windows"], []),
     (["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server"],
@@ -377,6 +378,8 @@ TESTS = [
 ]
 
 SOURCES = [
+    ROOT / "runtime/pw-table-memory/tests/compiled_relations.rs",
+    ROOT / "runtime/pw-table-memory/tests/support/relations.rs",
     ROOT / "runtime/pw-table-memory/tests/compiled_ranges.rs",
     ROOT / "runtime/pw-table-memory/tests/support/ranges.rs",
     ROOT / "runtime/pw-table-memory/tests/compiled_windows.rs",

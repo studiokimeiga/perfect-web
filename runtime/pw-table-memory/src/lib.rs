@@ -118,7 +118,15 @@ struct ReferenceShape {
     target: usize,
 }
 
+struct RelatedShape {
+    target: usize,
+    target_match: String,
+    /// None uses the source key's prefix; otherwise this declared index's prefix.
+    index: Option<usize>,
+}
+
 struct FunctionShape {
+    related: Option<RelatedShape>,
     primitive: Primitive,
     by: Vec<String>,
     sorted_by: Vec<String>,
@@ -1400,7 +1408,40 @@ fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
                         .indexes
                         .iter()
                         .any(|i| i.unique && i.fields == function.by));
+            let related = if function.primitive.related() {
+                let window = table
+                    .windows
+                    .iter()
+                    .find(|window| Some(&window.name) == function.relation.as_ref())
+                    .ok_or_else(|| Error::Schema("relation declaration is missing".into()))?;
+                let target = place(&window.target)
+                    .ok_or_else(|| Error::Schema("relation target is missing".into()))?;
+                let mut lookup = function.by.clone();
+                lookup.push(window.source_field.clone());
+                let index = if table.schema.key.starts_with(&lookup) {
+                    None
+                } else {
+                    Some(
+                        table
+                            .schema
+                            .indexes
+                            .iter()
+                            .position(|index| index.fields.starts_with(&lookup))
+                            .ok_or_else(|| {
+                                Error::Schema("relation source lookup is missing".into())
+                            })?,
+                    )
+                };
+                Some(RelatedShape {
+                    target,
+                    target_match: window.target_field.clone(),
+                    index,
+                })
+            } else {
+                None
+            };
             let shaped = FunctionShape {
+                related,
                 primitive: function.primitive,
                 by: function.by.clone(),
                 sorted_by: function.sorted_by.clone(),
@@ -1693,6 +1734,99 @@ fn strictly_after(value: &Value, mark: &Atom) -> Result<bool, Error> {
     }
 }
 
+/// One global target window for each canonical source selector. Membership is
+/// tested through its declared lookup, never materialized as all author ids.
+fn read_related(
+    shape: &Shape,
+    tables: &[impl AsRef<Data>],
+    source_at: usize,
+    function: &FunctionShape,
+    import: &str,
+    args: &[Value],
+) -> Result<Value, Error> {
+    let source = &shape.tables[source_at];
+    let Some((bound, selectors)) = args.split_last() else {
+        return Err(Error::Input(
+            "a relation window takes a trailing Int limit".into(),
+        ));
+    };
+    let bound = bound
+        .as_i64()
+        .ok_or_else(|| Error::Input("a relation limit must be an Int".into()))?;
+    let keys = typed_selections(source, function, import, selectors)?;
+    let relation = function
+        .related
+        .as_ref()
+        .ok_or_else(|| Error::Schema("relation shape is missing".into()))?;
+    let target = &shape.tables[relation.target];
+    let source_data = tables
+        .get(source_at)
+        .map(AsRef::as_ref)
+        .ok_or_else(|| Error::Schema("source state is missing".into()))?;
+    let target_data = tables
+        .get(relation.target)
+        .map(AsRef::as_ref)
+        .ok_or_else(|| Error::Schema("target state is missing".into()))?;
+    let mut groups = Vec::new();
+    for selected in keys {
+        let mut best = BTreeMap::new();
+        if bound > 0 {
+            for row in target_data.rows.values() {
+                let value = row
+                    .get(&relation.target_match)
+                    .ok_or_else(|| Error::Schema("target match value is missing".into()))?;
+                // Only scalar selector metadata is copied, not row payloads.
+                let mut lookup = selected.clone();
+                lookup.push(Atom::parse(value)?);
+                let member = match relation.index {
+                    None => source_data.prefixed(&lookup).next().is_some(),
+                    Some(index) => source_data.indexes[index]
+                        .range((lookup.clone(), Vec::new())..)
+                        .next()
+                        .is_some_and(|(held, _)| held.starts_with(&lookup)),
+                };
+                if !member {
+                    continue;
+                }
+                best.insert(place(row, &function.sorted_by, &target.key), row);
+                if best.len() as u64 > bound as u64 {
+                    if function.primitive.descending() {
+                        best.pop_first();
+                    } else {
+                        best.pop_last();
+                    }
+                }
+            }
+        }
+        let rows = if function.primitive.descending() {
+            best.into_values()
+                .rev()
+                .map(|row| Value::Object((**row).clone()))
+                .collect::<Vec<_>>()
+        } else {
+            best.into_values()
+                .map(|row| Value::Object((**row).clone()))
+                .collect::<Vec<_>>()
+        };
+        if !function.primitive.many() {
+            return Ok(Value::Array(rows));
+        }
+        let key = match selected.as_slice() {
+            [one] => one.value(),
+            _ => Value::Object(
+                function
+                    .by
+                    .iter()
+                    .cloned()
+                    .zip(selected.iter().map(Atom::value))
+                    .collect(),
+            ),
+        };
+        groups.push(serde_json::json!({"key":key,"rows":rows}));
+    }
+    Ok(Value::Array(groups))
+}
+
 fn read(
     shape: &Shape,
     tables: &[impl AsRef<Data>],
@@ -1708,6 +1842,9 @@ fn read(
         .get(at)
         .map(AsRef::as_ref)
         .ok_or_else(|| Error::Schema("missing table state".into()))?;
+    if function.primitive.related() {
+        return read_related(shape, tables, at, function, import, args);
+    }
     if function.primitive.range() {
         let (fields, keys) = typed_ranges(table, function, args)?;
         let order = table
