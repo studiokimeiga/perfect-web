@@ -11570,7 +11570,12 @@ fn serve_file(server: &Server, stream: &mut TcpStream, route: &str, request_head
 
     // A strong ETag describes this representation, not the differently
     // encoded version, and 304 has no body. Weak tags conservatively miss.
-    let tag = format!("\"{:x}\"", sha2::Sha256::digest(&bytes));
+    let digest = sha2::Sha256::digest(&bytes);
+    let hex = digest
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    let tag = format!("\"{hex}\"");
     let unchanged =
         build_request_header(request_headers, "if-none-match").is_some_and(|candidates| {
             candidates
