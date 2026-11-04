@@ -229,3 +229,48 @@ does not call an adapter or the production result codec. A small independent
 oracle witness includes scalar, absent, duplicate, empty and tuple selectors;
 the whole generated guestbook/lists suite runs on memory and PostgreSQL.
 Those two failed results are retained as diagnostics, not passing credit.
+
+Counts code/test source `15f3c9df` passed its frozen affected native checks,
+test-compile/preflight and focused strict controls, with independent review
+clear. The [counts record](../diagnostics/protected-feed-store-counts-2026-11-04.md)
+links the exact-source receipts. This closes counts only, not the apps or their
+whole-campaign/browser/CI acceptance.
+
+### Next bounded read: ordered selector windows
+
+The next slice generates `first_by_<fields>` and `last_by_<fields>` over the
+same existing nonempty key prefixes/full keys and indexes. Each takes its
+usual selectors and an Int limit, returning a list of full/seen rows under
+the same grant and owner/sharer authority. The `_many` form gives the existing
+typed selector list and one shared limit, returning at most that many rows
+**per distinct selector**. It preserves scalar-to-set meaning for PW0405;
+it is not a global window across all selectors. Owned forms with nothing
+after the reader still have no `_many`. Generated bound-parameter names must
+remain distinct from app selector names, including their emitted identities.
+
+First orders by the table's declared order then full primary key ascending;
+last reverses that complete within-selector order, including key tie-breaks.
+Set results group by canonical selector ascending, then the within-group
+direction. Validate every selector before an empty/nonpositive bound answers
+empty. Negative limits clamp to zero as the feed does today. Do not reserve
+memory directly from an untrusted maximum Int. Gate answers for exact rows,
+membership, uniqueness, order/direction and per-selector cardinality; refuse
+invalid results whole rather than silently truncating them.
+
+PostgreSQL applies ORDER BY/LIMIT before returning rows: one prepared statement
+for a scalar window or one unnest/ordinality/LATERAL statement with a bounded
+subquery per distinct key. Memory may scan matching row references while
+keeping bounded top-N metadata, cloning only selected rows. No new query
+language, arbitrary filters, optimizer, implicit index/schema migration,
+constant database-scan work or H4 closure is introduced. Ordered prefix reads
+may need a matching declared index for efficient internal database work.
+
+Acceptance includes compiled owned/shared callers, no/forged-caller refusals,
+zero/negative/maximum limits, missing/duplicate/tuple/typed keys, order ties,
+staged/snapshot/reopen behavior, malformed excessive/foreign/reversed results,
+generated-name collisions, PW0405 repairs, generic conformance and strict
+controls. Measure SQL result rows/payload bytes and compiled fuel at substantial
+cardinality with growing unbounded neighbors. Following-feed selection still
+needs fixed relation/global-window support without first materializing every
+followed principal or per-author window. This slice cannot claim that behavior
+proved; unread/range and upload lifetime remain separate pending work.

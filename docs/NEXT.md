@@ -8,15 +8,15 @@
 
 ## Active protected-app migration, 2026-11-04
 
-1. Finish the frozen generic-counts checkpoint checks and independent review.
-   Local foundations include retained shared outboxes, explicit anonymous
-   guest-row callers, owned Clock execution and compiled Identity joins on an
-   immutable checked transition. `2e2ef45b`'s checks/review are complete. These
-   remain prerequisites; the canonical apps still use their legacy layers.
-2. Implement and prove generic upload claims/publication/reference lifetime
-   and bounded table reads/aggregations needed by the canonical apps. Keep the
-   existing mixed-layer and upload startup refusals until their replacements
-   are real. Measure rows/bytes/fuel, not SQL-call counts alone.
+1. Implement and prove ordered selector windows and the remaining bounded
+   range/relation reads needed by the canonical apps. Counts at `15f3c9df`
+   passed frozen local checks and focused controls with clear review; this
+   closes that prerequisite only. Measure rows/bytes/fuel, not calls alone.
+2. Implement and prove generic upload claims/publication/reference lifetime.
+   Keep the existing mixed-layer and upload startup refusals until their
+   replacements are real. Existing foundations include retained outboxes,
+   explicit anonymous guest-row callers, owned Clock and compiled Identity
+   joins on immutable transitions. The canonical apps still use legacy layers.
 3. Port canonical feed/store rows, projections, transitions and application
    predicates to `.pw`; preserve guest/account carts, payment/scheduling,
    uploads and private cross-host delivery. Verify the actual PostgreSQL

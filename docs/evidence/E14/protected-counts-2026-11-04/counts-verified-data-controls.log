@@ -1,0 +1,5 @@
+baseline: 63 passed, 0 failed
+count aggregate scalar answer is wrong for every generated table: KILLED (2 of 63 tests fail)
+count aggregate set answer is wrong for every generated table: KILLED (2 of 63 tests fail)
+2 of 2 mutants killed
+memory bound: no process was stopped

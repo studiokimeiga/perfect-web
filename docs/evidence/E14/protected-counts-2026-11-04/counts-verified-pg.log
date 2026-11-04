@@ -1,0 +1,144 @@
+    Finished `test` profile [unoptimized] target(s) in 0.09s
+     Running unittests src/lib.rs (target/debug/deps/pw_table_postgres-0a99e38b6b0b4e50)
+
+running 1 test
+test migrate::upgrade_tests::a_retained_0002_platform_upgrades_without_losing_its_records ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+
+     Running tests/commands.rs (target/debug/deps/commands-c415ef278cdaf962)
+
+running 17 tests
+test a_command_dropped_or_refused_at_its_prepare_keeps_nothing ... ok
+test a_command_reads_its_own_writes_and_no_other_read_sees_them_before_it_commits ... ok
+test a_command_touching_no_table_costs_the_database_nothing ... ok
+test a_commit_keeps_every_outbox_row_it_was_given_or_nothing ... ok
+test a_commit_never_answered_is_not_taken_for_a_refusal ... ok
+test a_commit_the_database_refuses_keeps_nothing ... ok
+test a_reference_may_be_written_before_the_row_it_refers_to ... ok
+test a_snapshot_reads_one_moment_whatever_commits_meanwhile ... ok
+test a_transaction_runs_again_where_the_database_could_not_serialize_it ... ok
+test one_command_of_a_host_writes_at_a_time ... ok
+test provides_measures_what_a_command_is_given ... ok
+test serializable_refuses_write_skew_between_two_hosts ... ok
+test the_connections_default_read_committed_admits_write_skew ... ok
+test the_outbox_takes_its_ids_in_commit_order ... ok
+test the_platforms_records_commit_with_the_writes ... ok
+test written_names_each_table_a_command_changed_and_no_other ... ok
+test render_seats_are_bounded_and_every_one_given_back ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.40s
+
+     Running tests/compiled_counts.rs (target/debug/deps/compiled_counts-abcb1a0a4c048b57)
+
+running 2 tests
+test counts_use_the_same_compiled_owner_and_sharer_boundary ... ok
+test count_result_rows_bytes_and_compiled_fuel_stay_bounded_at_large_cardinality ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.67s
+
+     Running tests/compiled_owned.rs (target/debug/deps/compiled_owned-521adac7f8f8e79c)
+
+running 5 tests
+test a_postgres_predicate_reads_its_commands_staged_rows_and_no_refused_body_runs ... ok
+test a_postgres_command_conflicting_after_its_predicate_is_refused_by_serializability ... ok
+test postgres_operation_costs_keep_transaction_overhead_in_the_total ... ok
+test a_postgres_query_keeps_one_snapshot_for_its_predicate_and_body ... ok
+test postgres_predicate_callbacks_end_with_the_command_and_refuse_a_nonpredicate_contract ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.75s
+
+     Running tests/counts.rs (target/debug/deps/counts-35a5264cc3f390c5)
+
+running 3 tests
+test counts_cover_distinct_missing_and_typed_selectors_in_one_statement ... ok
+test counts_read_the_command_and_held_snapshot_states ... ok
+test result_counters_include_prepared_startup_reads_on_open_and_reopen ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+
+     Running tests/durability.rs (target/debug/deps/durability-b9a2f867392ae8e6)
+
+running 2 tests
+test the_first_host_commits_and_ends ... ok
+test a_commit_outlives_the_host_that_made_it ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+
+     Running tests/migrations.rs (target/debug/deps/migrations-e77dfe015e88a0f6)
+
+running 14 tests
+test a_backfill_is_the_value_stated_whatever_the_servers_string_syntax ... ok
+test a_bound_no_row_released_holds_refuses_the_migration_whole ... ok
+test a_change_that_loses_data_is_made_only_where_the_program_states_it ... ok
+test a_database_holding_nothing_is_made_from_tables_json_and_recorded ... ok
+test a_key_field_retyped_is_refused_and_its_key_kept ... ok
+test a_name_two_objects_would_share_is_refused_at_open ... ok
+test a_schema_is_applied_once_whoever_opens_it_and_whenever ... ok
+test a_table_added_may_refer_to_a_table_held_and_to_one_added_with_it ... ok
+test a_table_no_schema_recorded_or_a_record_edited_by_hand_refuses_the_start ... ok
+test an_additive_change_is_made_and_keeps_every_row ... ok
+test a_catalog_changed_by_hand_refuses_the_start ... ok
+test an_older_build_that_would_only_drop_an_index_is_refused ... ok
+test hosts_racing_under_a_serializable_default_each_open_it_made_once ... ok
+test shared_outbox_names_are_reserved_before_connecting ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.37s
+
+     Running tests/parity.rs (target/debug/deps/parity-ac46d41bed8f65cc)
+
+running 4 tests
+test an_ended_commands_functions_act_on_nothing_on_either_adapter ... ok
+test the_compiled_app_answers_alike_on_memory_and_postgresql ... ok
+test the_compiled_writers_answer_alike_on_memory_and_postgresql ... ok
+test a_random_workload_answers_alike_on_memory_and_postgresql ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.88s
+
+     Running tests/platform.rs (target/debug/deps/platform-303e88f31e427c49)
+
+running 15 tests
+test a_command_waiting_for_its_session_holds_no_other_command_up ... ok
+test a_command_holding_the_turn_never_waits_for_a_connection ... ok
+test a_commands_runs_commit_with_its_writes_or_not_at_all ... ok
+test a_failed_run_is_retried_by_its_generation_alone ... ok
+test a_connection_whose_session_change_failed_is_closed ... ok
+test a_renders_reads_end_at_a_read_that_fails ... ok
+test a_run_is_taken_once_by_the_command_that_completes_it ... ok
+test a_run_whose_deletion_is_suppressed_is_refused ... ok
+test a_session_a_command_holds_is_left_for_the_next_sweep ... ok
+test a_sessions_change_waits_for_the_command_fenced_on_it ... ok
+test an_admission_never_waits_for_a_command_holding_its_session ... ok
+test sessions_and_sign_ins_past_their_lifetimes_are_swept ... ok
+test sessions_are_kept_by_their_hash_and_live_by_their_lifetimes ... ok
+test the_outboxs_delivered_rows_are_forgotten ... ok
+test a_fenced_command_commits_only_as_the_session_it_was_admitted_as ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.33s
+
+     Running tests/primitives.rs (target/debug/deps/primitives-c4007f7cfc19e172)
+
+running 14 tests
+test a_bounded_table_grows_no_further_than_its_bound ... ok
+test a_delete_deletes_its_key_and_a_prefix_its_rows_alone ... ok
+test a_nested_float_is_answered_bit_for_bit ... ok
+test a_refinement_is_held_by_its_check_whoever_writes ... ok
+test a_row_another_writer_left_out_of_its_type_is_refused_not_answered ... ok
+test a_row_is_answered_exactly_as_it_was_written ... ok
+test a_statement_is_prepared_once_on_a_connection_never_per_call ... ok
+test a_write_is_refused_by_the_row_holding_its_key_then_a_unique_value ... ok
+test a_write_whose_answer_cannot_be_read_fails_its_command ... ok
+test all_refuses_a_table_another_writer_grew_past_its_bound ... ok
+test reads_come_in_tables_json_order_strings_by_their_bytes ... ok
+test the_compilers_functions_are_each_served ... ok
+test each_primitive_is_one_statement_at_two_sizes ... ok
+test what_a_function_is_given_is_held_before_the_database_sees_it ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.50s
+
+   Doc-tests pw_table_postgres
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

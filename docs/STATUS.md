@@ -12,9 +12,13 @@ guest-owned rows in accounts mode. The outbox review's reserved-name fix and
 retained-0002 upgrade witness are included. Identity-origin compiled joining,
 owned Clock witnesses and outcome-neutral lifecycle diagnostics passed their
 named local checks; independent review of `2e2ef45b` is clear. The next local
-checkpoint adds scalar/set counts over declared selectors on both adapters,
-including compiled authority and result-size/fuel witnesses. Its frozen-source
-checks and review are pending. Upload lifecycle, bounded windows/relations and
+checkpoint `15f3c9df` adds scalar/set counts over declared selectors on both
+adapters. Frozen checks pass: affected compiler317, host113, memory115,
+PostgreSQL77, server173, test-compile and preflight5,194 anchors; focused
+controls6/6 +7/7 +2/2 killed. Independent review is clear. See the
+[counts checkpoint record](diagnostics/protected-feed-store-counts-2026-11-04.md).
+Full all-core/whole campaigns/browser/CI remain final app-port gates.
+Upload lifecycle, bounded windows/relations and
 the canonical application ports remain pending under
 [the migration decision](DECISIONS/ADR-XXXX-protected-feed-store.md).
 Earlier green records below apply to their named sources only.

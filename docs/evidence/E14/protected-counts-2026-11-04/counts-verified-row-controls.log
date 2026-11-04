@@ -1,0 +1,10 @@
+baseline: 180 passed, 0 failed
+counts scalar and set function names silently alias: KILLED (1 of 180 tests fail)
+counts manifest admits a set with no selector after its reader: KILLED (1 of 180 tests fail)
+counts generated record aliases are accepted: KILLED (1 of 180 tests fail)
+counts negative scalar answers are accepted: KILLED (1 of 180 tests fail)
+counts missing result keys are accepted: KILLED (1 of 180 tests fail)
+counts reversed selector order is accepted: KILLED (1 of 180 tests fail)
+counts selector results are projected as stored shared rows: KILLED (2 of 180 tests fail)
+7 of 7 mutants killed
+memory bound: no process was stopped
