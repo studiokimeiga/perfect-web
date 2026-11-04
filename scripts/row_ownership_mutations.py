@@ -66,6 +66,9 @@ SERVER = ROOT / "spikes/own-renderer/server/src/main.rs"
 IDENTITY = SERVER.with_name("identity.rs")
 
 MUTANTS = [
+    ('counts scalar and set function names silently alias', TABLES,
+     'o.name == p.name && o.primitive == p.primitive && o.by == p.by',
+     'o.name == p.name'),
     ('counts manifest admits a set with no selector after its reader', HOST_TABLES,
      'function.primitive == Primitive::CountMany && function.by.len() <= 1',
      'false && function.primitive == Primitive::CountMany && function.by.len() <= 1'),

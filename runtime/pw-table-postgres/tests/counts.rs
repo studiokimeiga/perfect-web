@@ -148,3 +148,34 @@ fn counts_read_the_command_and_held_snapshot_states() {
         json!(2)
     );
 }
+
+#[test]
+fn result_counters_include_prepared_startup_reads_on_open_and_reopen() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "count_startup");
+    for _ in 0..2 {
+        let tables = open_things(&scratch);
+        assert!(
+            tables.returned_rows() > 0,
+            "startup catalog/schema prepared reads are included"
+        );
+        assert!(
+            tables.returned_bytes() > 0,
+            "startup binary payloads are included"
+        );
+        let before = (tables.returned_rows(), tables.returned_bytes());
+        assert_eq!(
+            tables
+                .read(&thing("count-by-owner"), &[json!("missing")])
+                .assert_ok("count"),
+            json!(0)
+        );
+        assert_eq!(
+            (
+                tables.returned_rows() - before.0,
+                tables.returned_bytes() - before.1
+            ),
+            (1, 8)
+        );
+    }
+}

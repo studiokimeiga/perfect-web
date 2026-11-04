@@ -195,8 +195,9 @@ No dependency or stored-schema migration is introduced by the new read forms.
 
 Adapter counters now measure actual prepared-statement result rows and binary
 field payload bytes before decoding, without retaining data. They exclude NULL
-markers, protocol/row framing, startup catalog work, simple-query results and
-the dedicated Tail connection. A count may scan many database rows; those
+markers, protocol/row framing, simple-query results and the dedicated Tail
+connection. Prepared startup catalog/schema reads are included; measure deltas
+around application operations. A count may scan many database rows; those
 internal scans are not these result counters. A compiled count is tested under
 the same 1,000-fuel ceiling at 5 and 1,500 rows, with a one-fuel failing neighbor;
 this is a ceiling test, not an exact fuel-used or constant database-work claim.
@@ -209,3 +210,13 @@ count loops retain PW0405 and the generated set-form repair. The existing
 table, owned-row and PostgreSQL recipes include the new witnesses and controls.
 Frozen-source verification and review are recorded separately; the migration
 and its final browser/whole-campaign/CI acceptance remain open.
+
+Independent review of the first counts checkpoint found a function-name alias:
+scalar selector `a_many` and set selector `a` both spell `count_by_a_many`.
+Planning now coalesces only the same name/primitive/selector; distinct meanings
+remain visible to the existing named duplicate-import refusal. Both key/index
+orders and renamed-field neighbors have a native regression. Review also found
+that the new result counters included startup prepared reads; their contract
+now says so, with open/reopen witnesses and unchanged per-operation delta tests.
+The interrupted broad check at the first checkpoint receives no complete-suite
+credit. Successor frozen checks and review remain required.

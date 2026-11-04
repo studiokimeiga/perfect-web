@@ -742,7 +742,13 @@ fn planned(
     };
     let mut out: Vec<Planned> = Vec::new();
     let mut push = |p: Planned| {
-        if !out.iter().any(|o| o.name == p.name) {
+        // Coalesce only the same operation, never two meanings that happen
+        // to spell the same name (for example scalar a_many vs set a).
+        // Keep aliases so distinct_imports emits the named table refusal.
+        if !out
+            .iter()
+            .any(|o| o.name == p.name && o.primitive == p.primitive && o.by == p.by)
+        {
             out.push(p);
         }
     };
@@ -1310,7 +1316,7 @@ fn distinct_imports(hirs: &[&Hir], unit: usize, t: &Table) -> Vec<Diagnostic> {
                 format!("`{first}` and `{}` emit the same import `{import}`", d.name),
                 d.name_span.clone(),
                 vec![Related::new(span, "the first function is generated here")],
-                "rename an index so the generated functions' emitted WIT import identities differ"
+                "rename a field or index so the generated functions' emitted WIT import identities differ"
                     .into(),
             ));
         }

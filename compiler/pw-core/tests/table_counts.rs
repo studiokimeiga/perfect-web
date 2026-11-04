@@ -135,3 +135,57 @@ fn per(reader: User<UserId>, ids: List<Int>) -> List<Int> !{ database.read<Count
         "{diagnostic:#?}"
     );
 }
+
+#[test]
+fn count_scalar_and_set_names_cannot_silently_replace_each_other() {
+    let source = r#"module CountNames
+type Entry = Entry { a: Int, id: Int, a_many: Int }
+table CountNames
+    row Entry
+    key a, id
+    index by_other on a_many
+source CountData
+    holds CountNames
+    transactions serializable
+    reads strong
+    changes none
+    sets one_call
+"#;
+    for source in [
+        source.to_string(),
+        source
+            .replace("key a, id", "key a_many, id")
+            .replace("on a_many", "on a"),
+    ] {
+        let sources = units(&source)
+            .into_iter()
+            .map(|u| (u.path, u.src))
+            .collect::<Vec<_>>();
+        let found = pw_core::check::check_sources(&sources)
+            .into_iter()
+            .flat_map(|(_, ds)| ds)
+            .collect::<Vec<_>>();
+        assert!(
+            found.iter().any(|d| d.code == "PW0361"
+                && d.message.contains("count_by_a_many")
+                && d.message.contains("same import")),
+            "every count scalar/set alias is refused: {found:#?}"
+        );
+        let valid = source.replace("a_many", "a_total");
+        let built = pw_core::build::build(&units(&valid));
+        assert!(built.is_ok(), "renamed selector builds: {:?}", built.err());
+        let functions = &built.unwrap().tables.tables[0].functions;
+        for name in [
+            "count_by_a",
+            "count_by_a_many",
+            "count_by_a_total",
+            "count_by_a_total_many",
+        ] {
+            assert_eq!(
+                functions.iter().filter(|f| f.name == name).count(),
+                1,
+                "valid neighbor keeps {name}"
+            );
+        }
+    }
+}

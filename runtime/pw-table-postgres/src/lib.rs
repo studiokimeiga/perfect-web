@@ -695,8 +695,9 @@ impl PgTables {
             .load(Ordering::Relaxed)
     }
 
-    /// Rows returned by this adapter's prepared statements. Dedicated Tail
-    /// connections, startup catalog queries and simple-query results are excluded.
+    /// Rows returned by this adapter's prepared statements, including startup
+    /// catalog/schema reads. Dedicated Tail connections and simple-query results
+    /// are excluded. Take deltas to measure an application's operation.
     pub fn returned_rows(&self) -> u64 {
         self.inner.counters.returned_rows.load(Ordering::Relaxed)
     }
