@@ -38,6 +38,38 @@ test("the store's page is kept by no cache, and a build's file names no session"
   }
 });
 
+test("a shared build asset revalidates without persisting or disclosing a session cookie", async ({ playwright, baseURL }) => {
+  const client = await playwright.request.newContext({ baseURL });
+  try {
+    const headers = { "accept-encoding": "identity" };
+    const first = await client.get("/pw-runtime.mjs", { headers });
+    expect(first.status()).toBe(200);
+    expect(first.headers()["cache-control"]).toBe("public, no-cache");
+    expect(first.headers()["set-cookie"]).toBeUndefined();
+    const etag = first.headers().etag;
+    expect(etag).toMatch(/^"[0-9a-f]{64}"$/);
+    const original = await first.body();
+    expect(original.length).toBeGreaterThan(0);
+    const second = await client.get("/pw-runtime.mjs", {
+      headers: { ...headers, "if-none-match": etag },
+    });
+    expect(second.status()).toBe(304);
+    expect(second.headers().etag).toBe(etag);
+    expect(second.headers()["set-cookie"]).toBeUndefined();
+    expect((await second.body()).length).toBe(0);
+    const weak = await client.get("/pw-runtime.mjs", {
+      headers: { ...headers, "if-none-match": `W/${etag}` },
+    });
+    // The server uses a conservative strong-validator check.
+    expect(weak.status()).toBe(200);
+    const staticPage = await client.get("/HelloStatic.html");
+    expect(staticPage.status()).toBe(200);
+    expect(staticPage.headers()["content-security-policy"]).toContain("default-src 'none'");
+  } finally {
+    await client.dispose();
+  }
+});
+
 // Read-your-writes across the history. These engines ask for the page again
 // here whatever its response says; `no-store` is what makes a browser that
 // keeps pages for going back ask again too, and the test above holds it.

@@ -567,7 +567,7 @@ MUTANTS = [
         '            "/pw-runtime.mjs" | "/pw-resume.wasm" | "/pw-render.wasm"\n'
         "        )\n"
         "    {\n"
-        "        serve_file(server, &mut stream, route);\n"
+        "        serve_file(server, &mut stream, route, &headers);\n"
         "        return;\n"
         "    }\n",
         "",
