@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized] target(s) in 0.12s
+     Running tests/compiled_windows.rs (target/debug/deps/compiled_windows-4ac9dc2f6052befb)
+
+running 4 tests
+test window_inputs_validate_whole_selectors_before_zero_or_empty_shortcuts ... ok
+test a_window_predicate_sees_staged_rows_and_a_held_query_keeps_one_snapshot ... ok
+test windows_return_bounded_ordered_rows_through_the_actual_owner_and_sharer_wit ... ok
+test windows_bound_actual_sql_results_and_compiled_fuel_at_large_cardinality ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.44s
+

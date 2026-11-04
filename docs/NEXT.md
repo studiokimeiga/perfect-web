@@ -8,10 +8,11 @@
 
 ## Active protected-app migration, 2026-11-04
 
-1. Implement and prove ordered selector windows and the remaining bounded
-   range/relation reads needed by the canonical apps. Counts at `15f3c9df`
-   passed frozen local checks and focused controls with clear review; this
-   closes that prerequisite only. Measure rows/bytes/fuel, not calls alone.
+1. Implement and prove the remaining bounded range/relation reads needed
+   by the canonical apps. Counts at `15f3c9df` and ordered windows at `79de0dd0`
+   with reviewed follow-ups through `5b7f5be8` passed their named frozen local
+   checks/controls. Those close prerequisites only. See the counts/window
+   diagnostic records; measure rows/bytes/fuel, not calls alone.
 2. Implement and prove generic upload claims/publication/reference lifetime.
    Keep the existing mixed-layer and upload startup refusals until their
    replacements are real. Existing foundations include retained outboxes,

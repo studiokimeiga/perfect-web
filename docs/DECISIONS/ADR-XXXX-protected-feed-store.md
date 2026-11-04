@@ -302,7 +302,7 @@ argument positions, field names and permissions. Reader/list/bound names are
 also checked by emitted identity and by real compiled components for owner
 fields values/keys/row/limit. A fixture that mutates a table key now adjusts
 new window metadata to keep its old type-refusal oracle otherwise whole.
-Frozen window checks and independent review are still pending.
+The initial implementation was frozen for the checks recorded below; later paragraphs track review fixes and final evidence.
 
 
 Review of immutable window source `79de0dd0` found two diagnostic defects,
@@ -335,3 +335,10 @@ repair (seven passed, one failed). Existing unowned row-output guidance remains
 unchanged. The moved flat-batch mutation anchor retains the same wrong repair;
 a new count-guidance fault must be caught at a native assertion. No admission,
 ABI, runtime or stored-schema behavior changes in this follow-up.
+
+
+The [window execution record](../diagnostics/protected-feed-store-windows-2026-11-04.md)
+records the frozen 79de implementation checks, d417 snapshot/diagnostic proofs
+and final 5b7 guidance checks, with raw logs, exact source guards and hashes.
+Independent review is clear. This closes ordered selector windows locally;
+the canonical apps and their final whole-campaign/browser/CI acceptance remain open.

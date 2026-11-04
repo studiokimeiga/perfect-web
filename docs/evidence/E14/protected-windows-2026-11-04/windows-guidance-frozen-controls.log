@@ -1,0 +1,6 @@
+baseline: 192 passed, 0 failed
+counts repair omits the zero entries: KILLED (1 of 192 tests fail)
+windows repair puts the reader in every selector key: KILLED (1 of 192 tests fail)
+windows varying bound offers the shared bound set as replacement: KILLED (1 of 192 tests fail)
+3 of 3 mutants killed
+memory bound: no process was stopped

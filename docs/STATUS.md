@@ -18,9 +18,11 @@ PostgreSQL77, server173, test-compile and preflight5,194 anchors; focused
 controls6/6 +7/7 +2/2 killed. Independent review is clear. See the
 [counts checkpoint record](diagnostics/protected-feed-store-counts-2026-11-04.md).
 Full all-core/whole campaigns/browser/CI remain final app-port gates.
-Ordered first/last selector windows are implemented locally on both adapters,
-with compiled authority, staged/snapshot, conformance and large-cardinality
-result-size/fuel witnesses. Their frozen checks and review are pending.
+Ordered first/last selector windows passed their local frozen checks at
+`79de0dd0`; the reviewed snapshot/diagnostic follow-ups passed their own affected
+checks and strict controls at `d417983f` and `5b7f5be8`. Independent review is
+clear. See the [window record](diagnostics/protected-feed-store-windows-2026-11-04.md).
+These source-scoped prerequisite records do not complete the application ports.
 Upload lifecycle, global relation/range reads and the canonical application
 ports remain pending under
 [the migration decision](DECISIONS/ADR-XXXX-protected-feed-store.md).
