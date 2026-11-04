@@ -281,8 +281,17 @@ MUTANTS = [
      '            let reused = !matches!(&fetched, pw_resource::Fetched::Fresh(_));\n',
      '            let reused = matches!(&fetched, pw_resource::Fetched::FromCache(_));\n'),
     ('a query denial contaminates its refreshing command', SERVER,
-     '                .map_err(|error| error.to_string())\n',
-     '                .map_err(Self::invocation_error)\n'),
+     '                    |predicate, bound| self.identity.holds(predicate, bound, session, host),\n                )\n                .map(|_| ())\n',
+     '                    |predicate, bound| self.identity.holds(predicate, bound, session, host),\n                )\n                .map(|_| ())\n                .map_err(|error| { if let Some(predicate) = error.refused() { identity::record_refusal(predicate); } error })\n'),
+    ('a typed query denial is flattened before its page', SERVER,
+     '            Some(predicate) => Self::Refused(predicate.to_string()),\n',
+     '            Some(_) => Self::Failed(error.to_string()),\n'),
+    ('a refused query loses its authored words', SERVER,
+     '                    let says = server\n                        .words\n                        .get(&predicate)\n                        .map(String::as_str)\n                        ',
+     '                    let says = None::<&str>\n                        '),
+    ('a failed joined query loses its typed denial', SERVER,
+     "                    // Ask this invocation's requirements for its own typed refusal.\n                    self.authorize_reused_answer(resource, session, args)?;\n",
+     ''),
 ]
 
 # Each Cargo test binary separately: names can repeat between binaries, and

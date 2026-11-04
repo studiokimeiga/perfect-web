@@ -181,34 +181,12 @@ fn a_query_calling_a_guarded_query_is_refused_and_a_page_binds_it() {
 }
 
 fn served_owned() -> Served {
-    let (dir, out) = tables::built(&["examples/owned"], &[("page.pw", OWNED_PAGE)]);
+    let (dir, out) = tables::built(&["examples/owned"], &[]);
     Served {
         server: Server::from_build(out.clone(), out).asserted("the owned program is served"),
         _dir: dir,
     }
 }
-
-const OWNED_PAGE: &str = r#"module owned.page
-import context.{ current_user }
-import Notes.{ NoteId }
-import owned.app.{ Shown }
-
-session page NotePage(id: NoteId) {
-    route "/owned/{id}"
-    placement origin
-    cache private
-    let shown = query Shown(current_user(), id)
-    view {
-        <title>Owned</title>
-        <main>
-            {#match shown}
-                {:Some(note)}<p id="note">{note.text}</p>
-                {:None}<p id="none">No note</p>
-            {/match}
-        </main>
-    }
-}
-"#;
 
 fn write_owned(s: &Server, session: &str, text: &str) {
     let answer = s
@@ -680,5 +658,114 @@ fn a_joined_guarded_flight_is_authorized_for_the_joining_requests_state() {
             .as_ref()
             .is_err_and(|why| why.contains("`OwnsPost` denied")),
         "the joining request reused stale authority: {joined:?}"
+    );
+}
+
+#[test]
+fn a_guarded_query_tells_only_its_typed_predicate_words() {
+    let s = served_owned();
+    s.identity.signed_in_for_test("a", "alice", "Alice");
+    s.identity.signed_in_for_test("b", "bob", "Bob");
+    write_owned(&s, "a", "PRIVATE_NOTE");
+    let own = get_as(&s, "a", "/owned/same-id");
+    assert!(
+        own.starts_with("HTTP/1.1 200") && own.contains("PRIVATE_NOTE"),
+        "{own}"
+    );
+    let denied = get_as(&s, "b", "/owned/same-id");
+    assert!(denied.starts_with("HTTP/1.1 403"), "{denied}");
+    assert!(
+        denied.contains("<main>You can only change a note you wrote.</main>"),
+        "{denied}"
+    );
+    assert!(
+        !denied.contains("PRIVATE_NOTE") && !denied.contains("`Wrote` denied"),
+        "{denied}"
+    );
+    assert!(matches!(
+        Unread::from(pw_host::engine::InvocationError::from(
+            "`Wrote` denied".to_string()
+        )),
+        Unread::Failed(_)
+    ));
+    let accepted = s.command_answer("owned.app.keep", "b", &[serde_json::json!({
+        "author":"bob", "id":"same-id", "to":"alice", "text":"BOB_NOTE", "draft":"BOB_DRAFT", "added":0
+    })], None).asserted("Bob writes his own note after the query refusal");
+    assert!(
+        accepted.committed && accepted.refused.is_none(),
+        "{accepted:?}"
+    );
+}
+
+#[test]
+fn a_deployment_predicates_query_denial_keeps_its_words_without_declared_tables() {
+    let s = served_feed_with(club_private);
+    s.identity.signed_in_for_test("a", "alice", "Alice");
+    let refused = get_as(&s, "anon", "/club");
+    assert!(refused.starts_with("HTTP/1.1 403"), "{refused}");
+    assert!(
+        refused.contains("Sign in to post, reply, like or follow."),
+        "{refused}"
+    );
+    s.identity.signed_in_for_test("a", "alice", "Alice");
+    let permitted = get_as(&s, "a", "/club");
+    assert!(
+        permitted.starts_with("HTTP/1.1 200") && permitted.contains(SECRET),
+        "{permitted}"
+    );
+}
+
+#[test]
+fn a_failed_joined_query_retains_its_own_typed_refusal() {
+    let s = served_feed_with(club_private);
+    s.identity.signed_in_for_test("a", "alice", "Alice");
+    let binding = s
+        .plans
+        .values()
+        .flat_map(|plan| plan["bindings"].as_array().into_iter().flatten())
+        .find(|binding| binding["resource"] == "feed.app.Club")
+        .cloned()
+        .ok_or("Club binding")
+        .asserted("binding");
+    let (entered, started) = std::sync::mpsc::channel();
+    let (release, cont) = std::sync::mpsc::channel();
+    pause_next_club_read(&s, entered, cont);
+    let (first, joined, did_join) = std::thread::scope(|scope| {
+        let first = scope.spawn(|| s.fetch_invocation("anon", &binding, &[]));
+        started
+            .recv_timeout(Duration::from_secs(20))
+            .expect("denied load held");
+        let from = s.queries.trace().len();
+        let second = scope.spawn(|| s.fetch_invocation("anon", &binding, &[]));
+        let deadline = std::time::Instant::now() + Duration::from_secs(20);
+        let mut did_join = false;
+        while !second.is_finished() && std::time::Instant::now() < deadline {
+            did_join = s.queries.trace()[from..].iter().any(|t|
+                matches!(t, pw_resource::Trace::RequestDeduplicated { key } if key.resource == "feed.app.Club"));
+            if did_join {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        release.send(()).expect("release denied load");
+        (
+            first.join().expect("first"),
+            second.join().expect("joined"),
+            did_join,
+        )
+    });
+    assert!(
+        did_join,
+        "the second request joined an actually failed flight"
+    );
+    for answer in [first, joined] {
+        assert!(
+            matches!(answer, Err(Unread::Refused(ref name)) if name == "SignedIn"),
+            "{answer:?}"
+        );
+    }
+    assert!(
+        identity::take_refusal().is_none(),
+        "a query records no command refusal"
     );
 }

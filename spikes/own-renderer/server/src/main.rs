@@ -2703,6 +2703,18 @@ impl Server {
         tables: &dyn TableFns,
         args: &[Val],
     ) -> Result<Vec<Val>, String> {
+        self.run_invocation(component_id, session, host, tables, args)
+            .map_err(|error| error.to_string())
+    }
+
+    fn run_invocation(
+        &self,
+        component_id: &str,
+        session: &str,
+        host: &BTreeMap<String, HostFn>,
+        tables: &dyn TableFns,
+        args: &[Val],
+    ) -> Result<Vec<Val>, pw_host::engine::InvocationError> {
         let granted = self.authorise(component_id)?;
         let contract = self
             .contracts
@@ -2732,9 +2744,12 @@ impl Server {
         };
         let failure = |error: pw_host::engine::InvocationError| {
             if command {
-                Self::invocation_error(error)
+                if let Some(predicate) = error.refused() {
+                    identity::record_refusal(predicate);
+                }
+                error
             } else {
-                error.to_string()
+                error
             }
         };
         let results = match self.data.tables() {
@@ -2776,7 +2791,7 @@ impl Server {
                     )
                     .map_err(failure)?
             }
-            None if export.authorization.iter().any(|r| r.component.is_some()) => {
+            None => {
                 let manifest = pw_host::tables::Manifest::from_json(r#"{"tables":[]}"#)?;
                 let call = TableCall {
                     manifest: &manifest,
@@ -2798,19 +2813,10 @@ impl Server {
                     )
                     .map_err(failure)?
             }
-            None => prepared.call_authorized_within(
-                contract, &granted, &limits, host, &path, args,
-                // TRACK SEAM (identity, ADR-0253): what `requires` is told.
-                // The important property is that each predicate is
-                // evaluated, and an unknown one cannot run. A predicate over
-                // the command's parameters reads through the command's own
-                // operations.
-                evaluate,
-            )?,
         };
         // A type that contains itself arrives as its nodes, and a page reads
         // it nested (ADR-0194).
-        prepared.untangled(&path, results)
+        prepared.untangled(&path, results).map_err(Into::into)
     }
 
     /// The compiled predicates named by this export, independently admitted
@@ -2845,13 +2851,6 @@ impl Server {
             )?);
         }
         pw_host::engine::Predicates::new(predicates)
-    }
-
-    fn invocation_error(error: pw_host::engine::InvocationError) -> String {
-        if let Some(predicate) = error.refused() {
-            identity::record_refusal(predicate);
-        }
-        error.to_string()
     }
 
     fn invocation_limits() -> Limits {
@@ -4664,7 +4663,7 @@ impl Server {
         if self.derives(resource) {
             return self.materialized(resource, args).map_err(Unread::Failed);
         }
-        let answer = self.fetch_answer(session, binding, args)?;
+        let answer = self.fetch_invocation(session, binding, args)?;
         // A declared error the page says means it is not found (ADR-0163),
         // told from every other failure.
         if let Val::Result(Err(Some(e))) = &answer
@@ -4704,13 +4703,23 @@ impl Server {
         binding: &serde_json::Value,
         args: &[Val],
     ) -> Result<Val, String> {
+        self.fetch_invocation(session, binding, args)
+            .map_err(Into::into)
+    }
+
+    fn fetch_invocation(
+        &self,
+        session: &str,
+        binding: &serde_json::Value,
+        args: &[Val],
+    ) -> Result<Val, Unread> {
         let key = self.answer_key(session, binding, args)?;
         // Held while it runs (ADR-0152): `pw-resource` stops a flight when
         // its last holder lets go, and a keyed read's `cancel` is a holder
         // letting go. Every other reader holds it too, so a flight is stopped
         // only when nobody is waiting for it.
         let _held = self.queries.subscribe(&key);
-        self.fetch_answer_at(session, binding, args, &key)
+        self.fetch_invocation_at(session, binding, args, &key)
     }
 
     /// **The `pw-resource` key a binding's read of `args` runs under**: its
@@ -4748,12 +4757,26 @@ impl Server {
         args: &[Val],
         key: &pw_resource::Key,
     ) -> Result<Val, String> {
+        self.fetch_invocation_at(session, binding, args, key)
+            .map_err(Into::into)
+    }
+
+    fn fetch_invocation_at(
+        &self,
+        session: &str,
+        binding: &serde_json::Value,
+        args: &[Val],
+        key: &pw_resource::Key,
+    ) -> Result<Val, Unread> {
         self.read_checked(|| self.fetch_open_answer(session, binding, args, key))
     }
 
     /// A cache hit, a shared flight and a fallback are reads too. A layer
     /// closed while the answer was being read must refuse its delivery.
-    fn read_checked(&self, read: impl FnOnce() -> Result<Val, String>) -> Result<Val, String> {
+    fn read_checked<E: From<String>>(
+        &self,
+        read: impl FnOnce() -> Result<Val, E>,
+    ) -> Result<Val, E> {
         self.data.check_read()?;
         let answer = read()?;
         self.data.check_read()?;
@@ -4766,7 +4789,7 @@ impl Server {
         binding: &serde_json::Value,
         args: &[Val],
         key: &pw_resource::Key,
-    ) -> Result<Val, String> {
+    ) -> Result<Val, Unread> {
         let resource = binding["resource"].as_str().unwrap_or_default();
         let manifest = runtime_manifest(resource, &binding["policy"]);
         let key = key.clone();
@@ -4795,7 +4818,7 @@ impl Server {
         // invalidation, so it is as new as the commit that caused it, and
         // nothing can take its result away.
         for _ in 0..2 {
-            let fetched = self.fetch_once(session, resource, &manifest, &key, args);
+            let (fetched, failure) = self.fetch_once(session, resource, &manifest, &key, args);
             let reused = !matches!(&fetched, pw_resource::Fetched::Fresh(_));
             match fetched {
                 pw_resource::Fetched::Cancelled(pw_resource::StopReason::Invalidated) => continue,
@@ -4822,14 +4845,25 @@ impl Server {
                     trace(TraceEvent::QueryFallback);
                     return Ok(Val::clone(&v));
                 }
-                pw_resource::Fetched::Failed(e) => return Err(format!("{resource}: {e}")),
-                pw_resource::Fetched::Cancelled(r) => {
-                    return Err(format!("{resource}: stopped, {r:?}"));
+                pw_resource::Fetched::Failed(e) => {
+                    if let Some(error) = failure {
+                        return Err(error.into());
+                    }
+                    // A failed joined flight carries only pw-resource's diagnostic.
+                    // Ask this invocation's requirements for its own typed refusal.
+                    self.authorize_reused_answer(resource, session, args)?;
+                    return Err(Unread::Failed(format!("{resource}: {e}")));
                 }
-                pw_resource::Fetched::TimedOut => return Err(format!("{resource}: timed out")),
+                pw_resource::Fetched::Cancelled(r) => {
+                    return Err(Unread::Failed(format!("{resource}: stopped, {r:?}")));
+                }
+                pw_resource::Fetched::TimedOut => {
+                    return Err(Unread::Failed(format!("{resource}: timed out")));
+                }
             }
         }
-        self.answer(resource, session, args)
+        self.answer_invocation(resource, session, args, None)
+            .map_err(Into::into)
     }
 
     /// One fetch of a binding's query through `pw-resource`.
@@ -4840,8 +4874,12 @@ impl Server {
         manifest: &pw_resource::Manifest,
         key: &pw_resource::Key,
         args: &[Val],
-    ) -> pw_resource::Fetched<Arc<Val>> {
+    ) -> (
+        pw_resource::Fetched<Arc<Val>>,
+        Option<pw_host::engine::InvocationError>,
+    ) {
         self.sync_query_clock();
+        let failure = Mutex::new(None);
         let load = |_attempt, cancellation: &pw_resource::Cancellation<Arc<Val>>| {
             // What a slow source polls, to end early a read nobody is
             // waiting for any longer (ADR-0152).
@@ -4850,7 +4888,7 @@ impl Server {
             // What the value holds until (ADR-0304), kept with it before
             // it is published, so a reader its flight answers knows too.
             let (answer, until) =
-                clock::noting(|| self.answer_within(resource, session, args, Some(stopped)));
+                clock::noting(|| self.answer_invocation(resource, session, args, Some(stopped)));
             // A read held in flight once it has read, as a test asks (NEXT
             // 4c): taken first, so no other read waits on the hook while it
             // holds this one.
@@ -4865,7 +4903,11 @@ impl Server {
                 Some(until) => held.insert(key.clone(), until),
                 None => held.remove(key),
             };
-            answer.map(Arc::new)
+            answer.map(Arc::new).map_err(|error| {
+                let why = error.to_string();
+                *failure.lock().expect("query failure") = Some(error);
+                why
+            })
         };
         // TRACK SEAM (render-merge): in a render, as of the invalidations
         // when it began (NEXT 4c, the integrator's ruling 3): where nothing
@@ -4874,13 +4916,14 @@ impl Server {
         // and is taken as the query's policy says; where something did, the
         // render reads it alone in its own snapshot, and never keeps or
         // hands another reader what may be older than the change.
-        match render_merge::reading(&*self.data) {
+        let fetched = match render_merge::reading(&*self.data) {
             Some(render) => {
                 self.queries
                     .fetch_cancellable_as_of(manifest, key, render.as_of(), load)
             }
             None => self.queries.fetch_cancellable(manifest, key, load),
-        }
+        };
+        (fetched, failure.into_inner().expect("query failure"))
     }
 
     /// **Drop what a commit made stale** (ADR-0127): each entry a command
@@ -5459,6 +5502,17 @@ impl Server {
         args: &[Val],
         stopped: Option<Stopped>,
     ) -> Result<Val, String> {
+        self.answer_invocation(component_id, session, args, stopped)
+            .map_err(|error| error.to_string())
+    }
+
+    fn answer_invocation(
+        &self,
+        component_id: &str,
+        session: &str,
+        args: &[Val],
+        stopped: Option<Stopped>,
+    ) -> Result<Val, pw_host::engine::InvocationError> {
         self.read_checked(|| self.answer_open(component_id, session, args, stopped))
     }
 
@@ -5468,12 +5522,12 @@ impl Server {
         session: &str,
         args: &[Val],
         stopped: Option<Stopped>,
-    ) -> Result<Val, String> {
+    ) -> Result<Val, pw_host::engine::InvocationError> {
         self.with_query_ops(session, stopped, |host, tables| {
-            let out = self.run(component_id, session, host, tables, args)?;
+            let out = self.run_invocation(component_id, session, host, tables, args)?;
             out.into_iter()
                 .next()
-                .ok_or_else(|| format!("{component_id} returned nothing"))
+                .ok_or_else(|| format!("{component_id} returned nothing").into())
         })
     }
 
@@ -5484,7 +5538,7 @@ impl Server {
         component_id: &str,
         session: &str,
         args: &[Val],
-    ) -> Result<(), String> {
+    ) -> Result<(), pw_host::engine::InvocationError> {
         let contract = self
             .contracts
             .iter()
@@ -5526,19 +5580,18 @@ impl Server {
                     |predicate, bound| self.identity.holds(predicate, bound, session, host),
                 )
                 .map(|_| ())
-                .map_err(|error| error.to_string())
         })
     }
 
     /// Execution and cached authorization select the same reader operations
     /// and the same render or standalone snapshot, without running a body
     /// merely to recheck a predicate.
-    fn with_query_ops<T>(
+    fn with_query_ops<T, E: From<String>>(
         &self,
         session: &str,
         stopped: Option<Stopped>,
-        use_ops: impl FnOnce(&data::Ops, &dyn TableFns) -> Result<T, String>,
-    ) -> Result<T, String> {
+        use_ops: impl FnOnce(&data::Ops, &dyn TableFns) -> Result<T, E>,
+    ) -> Result<T, E> {
         // Each operation counted as it runs (`/metrics`).
         let counted = |name: &str, f: HostFn| -> HostFn {
             let (calls, name) = (self.calls.clone(), name.to_string());
@@ -5595,7 +5648,11 @@ impl Server {
             .and_then(|render| render.snapshot())
             .or(standalone.as_ref());
         if self.data.tables().is_some() && snapshot.is_none() {
-            return Err("a table query requires one snapshot for its predicate and body".into());
+            return Err(
+                "a table query requires one snapshot for its predicate and body"
+                    .to_string()
+                    .into(),
+            );
         }
         let tables = |contract: &ComponentContract, granted: &Granted| {
             Ok(self
@@ -8989,6 +9046,8 @@ enum Unread {
     /// A binding's query answered the case the page's `not_found_on` names:
     /// answered 404.
     NotFound(String),
+    /// An explicit predicate denial, retaining its authored identity.
+    Refused(String),
     /// A binding's query answered the case the page's `redirect_on` names
     /// (ADR-0295): answered 308, or 307, to the page's route at `to`.
     Moved { to: String, permanent: bool },
@@ -9002,7 +9061,17 @@ impl Unread {
         match self {
             Unread::NotFound(why) => Unread::NotFound(format!("{what}: {why}")),
             moved @ Unread::Moved { .. } => moved,
+            refused @ Unread::Refused(_) => refused,
             Unread::Failed(why) => Unread::Failed(format!("{what}: {why}")),
+        }
+    }
+}
+
+impl From<pw_host::engine::InvocationError> for Unread {
+    fn from(error: pw_host::engine::InvocationError) -> Self {
+        match error.refused() {
+            Some(predicate) => Self::Refused(predicate.to_string()),
+            None => Self::Failed(error.to_string()),
         }
     }
 }
@@ -9017,6 +9086,7 @@ impl std::fmt::Display for Unread {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Unread::NotFound(why) => write!(f, "not found: {why}"),
+            Unread::Refused(predicate) => write!(f, "`{predicate}` denied"),
             Unread::Moved { to, .. } => write!(f, "moved to `{to}`"),
             Unread::Failed(why) => f.write_str(why),
         }
@@ -11543,6 +11613,26 @@ fn serve_bound(
                 ),
                 // A page whose values could not be read is answered as
                 // unavailable, and the server goes on (E14, T04).
+                Unread::Refused(predicate) => {
+                    let says = server
+                        .words
+                        .get(&predicate)
+                        .map(String::as_str)
+                        .or_else(|| identity::says(&predicate))
+                        .unwrap_or("This is not permitted.");
+                    respond(
+                        stream,
+                        403,
+                        "text/html; charset=utf-8",
+                        session,
+                        fresh,
+                        format!(
+                            "<!doctype html><title>Not permitted</title><main>{}</main>",
+                            identity::escape(says)
+                        )
+                        .as_bytes(),
+                    );
+                }
                 Unread::Failed(why) => respond(
                     stream,
                     503,
