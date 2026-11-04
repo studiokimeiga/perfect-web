@@ -427,3 +427,174 @@ records frozen implementation f4fc668f and its script-only wrong-field-control
 successor 06a6ad18. Independent review is clear. This closes typed order-range
 counts locally, not global relation windows, upload lifetime or the canonical
 apps and their final whole-campaign/browser/CI acceptance.
+
+
+### Next fixed read: relation windows
+
+Decision made before implementation, 2026-11-04. Independent read-only design
+review accepted the fixed one-hop rewrite with the limits below. Implementation
+and all native/strict/frozen acceptance remain pending. No app port or startup
+guard relaxation follows merely from this decision.
+
+Problem: following timeline is newest root posts globally among own/followed
+authors. Fetching all membership rows or every author's N posts before clipping
+does not meet the result-work bound. ADR0338 permits a fixed declared relation
+rewrite, not an optimizer/query language. Root-only public posts can be modeled
+as a separate declared table maintained in Pleris, avoiding a filter expression.
+Pleris maintains a separate private subscription edge for self; it is distinct
+from visible following counts and follows, and must be tested on first post,
+following before/after another author's posts, unfollow, restart and delete.
+
+Declare a fixed membership relation:
+
+    table Subscriptions
+        row SubscriptionRow
+        key reader, author
+        owned by reader
+        window posts from RootPosts row RootPosts.RootRow on author to author
+
+The explicit row annotation uses ordinary imported type resolution. Generation
+runs in single-file lowering, before a Workspace exists; discovering a target's
+chosen row name would otherwise require a new cross-unit generation/reindex
+phase across checking and executable preparation. Keep the narrower typed
+declaration. Later semantic checking requires the annotation to be the target
+table's exact resolved row type, including nominal identity/arguments, never
+merely matching fields or WIT shape. Runtime row metadata comes from the validated
+target table, not a second annotation authority. Cover structurally identical
+different row types, missing/wrong target, stale/private/nonexported annotation,
+qualified/imported aliases of the same type and reversed file order.
+
+This declares the equality Subscriptions.author=RootPosts.author. RootPosts is
+an ordinary PUBLIC target table with a declared order and an index/key starting
+with the target author field. No private target, projection/filter expression,
+multi-hop relation, arbitrary SQL, aggregate or implicit cascade is introduced.
+Both tables must be in one declared source/adapter/snapshot/transaction. The
+compiler proves the match fields have the same resolved declared type (including
+nominal identity and refinement), and a comparable scalar stored kind. WIT erases
+nominal identities; the host's independent check is complete Stored kind and
+refinement, as at the existing row boundary, not nominal equality inferred from
+unqualified type spellings. Duplicated membership rows must not duplicate
+target rows: EXISTS/semi-join semantics.
+
+Generate fixed first_posts_by_<selector> and last_posts_by_<selector> reads.
+Eligible selectors are nonempty membership key/index prefixes with the
+source match field immediately after them in that key/index. This ensures an
+existing declared lookup for (selector, target-match-value); do not invent an
+index. Ordinary index reads currently expose only complete index field lists;
+this clause explicitly authorizes these relation-only index-prefix selectors,
+without broadening ordinary row reads. Owner/sharer restrictions follow the source selector; private source
+columns never reach the app. The target row is public, exactly its declared row.
+Each generated function requires BOTH table read grants. The host independently
+checks both declarations/source identities and target-public restriction, stored
+match types/refinements/indexes, function metadata and complete ABI before execution.
+Host table admission must retain source identities (it currently drops source),
+require the same nonempty explicit source, and refuse cross-source co-location
+even on memory. Extend the existing compiler ambiguous bare-source-name guard
+to the target. Duplicate relation names are named-refused by emitted identity
+before expansion; plan coalescing includes relation/target meaning, not merely
+name/primitive/by. Generated record/import aliases retain named refusal.
+
+Both read effects must survive generation into signatures/contracts, and the
+engine independently requires BOTH grants at admission/link, including predicate
+reuse and unused imports, before callback. A sharer relation cannot match a
+private source field: existence of the target result would reveal that field.
+Use a named refusal analogous to the existing private-order restriction whenever
+an eligible sharer selector's source match field is not Seen. Owner-only matching
+may use its own private fields; private source values are never returned.
+The selection itself remains private when its source membership is private,
+even though each target row is public. Preserve source-derived privacy/cache
+labels through the verified reader handle; pin PW5001 for a shared-cache attempt,
+its private-cache neighbor and two-reader same-target/key isolation. No H3/H4
+closure is inferred from this narrow prerequisite.
+
+Scalar takes source selectors (including verified reader handle where relevant)
+and Int limit; returns List<TargetRow>. Limit clamps nonpositive to empty AFTER
+validating every selector. First orders by full target order+PK ascending; last
+reverses ALL of it including ties. One global limit per source selector, not per
+matching author. No maxInt reserve. Target-only row ordering metadata must not
+pretend that source fields exist on the target row.
+
+Every eligible keyed read gets its ordinary heterogeneous-selector _many form
+with ONE common limit. Reuse the existing owned reader-only empty-after-reader
+exception (there is no varying remaining selector); it has no meaningful set
+parameter. For owned composite selectors, reader is separate and list contains
+only remaining typed source selectors. Public source selectors get ordinary set
+forms. Unlike range counts, no per-request varying mark/limit is introduced.
+
+A relation set cannot return flat target rows whose fields don't identify their
+source selector. Return a generated List<{key: full plain source selector,
+rows: List<TargetRow>}> instead, exactly one group per distinct canonical input
+key including zero-row groups. Keys contain plain ids, never handles. The gate
+checks exact request coverage/order/membership, no duplicates, each group's bound,
+target row ABI/PK uniqueness/order. It checks the scalar target rows the same way.
+Target PK uniqueness is per group, not global: overlapping topics may each return
+the same post. A duplicate source edge within one topic still yields it once.
+This is an adapter contract: the two generic adapters execute the admitted match.
+As for ordinary adapters, the gate checks shape/authority fields, not independent
+proof that a row exists in the physical database. Target rows are public; this
+first version must not generalize to protected target rows without a new design.
+Public targets do not make foreign private membership public. Distinct Alice/Bob
+membership sets and sentinel posts must catch wrong-source-reader selection and
+authority injection faults, alongside forged group-key refusals.
+
+Memory scans borrowed target row references and tests existence through the
+declared membership key/index for each source selector and target match value,
+retaining only bounded top-N refs; clones only final selected rows. No all-follows
+list or per-author post windows. PostgreSQL scalar is one SELECT of target columns
+WHERE EXISTS (source equality selector AND source-match=target-match) ORDER/LIMIT.
+Set is typed arrays+ordinality and LATERAL, with global target ORDER/LIMIT INSIDE
+each selector subquery. Adapter reconstructs empty output groups from validated
+keys; zero SQL rows need no fake target payload. Result work <=N*distinctKeys,
+not N*author-count. No constant internal database-scan-work claim.
+
+Primary documentation checked: PostgreSQL18
+[subquery expressions](https://www.postgresql.org/docs/18/functions-subquery.html)
+(EXISTS/correlation) and
+[SELECT](https://www.postgresql.org/docs/18/sql-select.html)
+(ORDER/LIMIT/LATERAL). Require a local synthetic
+probe with duplicate edges, interleaved authors/ties/missing selectors and a
+per-author-window+globalclip fault, plus real compiler/adapters before acceptance.
+
+The global home timeline can use an ordinary constant-partition index in Pleris
+(for example, every root row has lane0) and last_by_lane(0,N). No unqualified
+unbounded target read is added. Public profiles use last_by_author(id,N); a full
+thread's result is inherently all rows of its declared root index, assembled in
+Pleris. These are app modeling proposals requiring their own unchanged assertions.
+
+Native acceptance: failing regression+valid neighbor first; compiler distinct
+nominal types with equal representations AND same local spelling across modules,
+valid aliases of one imported type, complete refined types, host forged Stored
+kind/refinement negatives, name/record/formal collisions, no/forged reader, malformed whole
+sets/limits before callback/SQL, both grants and target/source schema tampering,
+public-target admission, shared source seen/private fields never returned, staged
+membership and target writes, held snapshot changes BOTH membership and body,
+first/last PK ties, zero/missing/duplicates/maxInt, independent conformance.
+At12/1500 authors and substantial posts, fixed SQL result rows/payload bytes and
+compiled fuel; unbounded/per-author neighbors must grow. Strict faults: match
+ignored/wrong field, source reader ignored, join duplicates, global set limit,
+per-author limit, fetchall membership or target then clip, per-key SQL, missing
+dual grant/admission, group result coverage/order/bounds, counters bypassed.
+The per-author-window work fault must return those extra rows across the SQL
+adapter boundary and clip in host while returning the correct final N. Use one
+SQL statement so real result-size counters, not just N+1 call counts, detect it.
+An internal SQL expansion ending in global LIMIT before returning N is internal
+database work and outside the claimed result-work bound.
+
+Additional review witnesses: duplicate relation names with different targets;
+equivalent/different/absent/ambiguous sources and forged memory co-location;
+missing target grant in bodies/predicates/unused imports; private match field
+through sharer rejected and Seen neighbor valid; overlapping groups duplicate
+target PK across groups valid, duplicate edge in one group yields one target;
+reversed/foreign/missing/over-limit nested replies are whole refusals.
+Positive relation-only index-prefix case without a separate prefix index, and
+negative with no declared (selector,match) lookup path.
+
+The [local synthetic probe](../evidence/E14/protected-relations-design-2026-11-04/primary-probe.log) ran against PostgreSQL18.6: duplicate
+Alice->A edges plus A/B interleaved/tied posts still yield global b3,a3 at N2;
+Bob->C yields c9, absent selector yields no SQL row, overlapping topics each get
+the same A posts independently. All fixture tables were TEMP and rolled back.
+This verifies selected SQL semantics only, not the not-yet-built generic path.
+
+Remaining after this: generic upload claim/publication/reference/GC lifetime,
+initial public fixtures, stable IDs/private child deletion as required, actual
+canonical feed/store ports, final whole campaigns/browser/CI and frozen review.
