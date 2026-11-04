@@ -538,3 +538,100 @@ fn table_host_refuses_wrong_table_capability_even_when_admitted() {
         Err(Error::Input(_))
     ));
 }
+
+#[test]
+fn counts_include_zero_for_each_distinct_selector_and_follow_staging_and_snapshots() {
+    let mut declared = manifest();
+    for (name, primitive, by, sort) in [
+        ("count_by_from", Primitive::Count, vec!["from"], vec![]),
+        (
+            "count_by_from_many",
+            Primitive::CountMany,
+            vec!["from"],
+            vec!["from"],
+        ),
+        (
+            "count_by_from_to_many",
+            Primitive::CountMany,
+            vec!["from", "to"],
+            vec!["from", "to"],
+        ),
+        ("count_by_to", Primitive::Count, vec!["to"], vec![]),
+        ("count_by_rank", Primitive::Count, vec!["rank"], vec![]),
+    ] {
+        declared.tables[0]
+            .functions
+            .push(function(name, primitive, &by, &sort));
+    }
+    let db = MemoryTables::new(declared).assert_ok("count manifest");
+    db.transaction(|tx| {
+        tx.write(&call("insert"), &[like("a", "b", 1)])?;
+        tx.write(&call("insert"), &[like("a", "c", 2)])?;
+        tx.write(&call("insert"), &[like("d", "c", 3)])?;
+        Ok(())
+    })
+    .assert_ok("seeded");
+    let count = |from: &str| {
+        db.read(&call("count-by-from"), &[json!(from)])
+            .assert_ok("prefix count")
+    };
+    assert_eq!(count("a"), json!(2));
+    assert_eq!(count("missing"), json!(0));
+    assert_eq!(
+        db.read(&call("count-by-to"), &[json!("c")])
+            .assert_ok("index count"),
+        json!(2)
+    );
+    assert_eq!(
+        db.read(&call("count-by-rank"), &[json!(3)])
+            .assert_ok("unique count"),
+        json!(1)
+    );
+    let calls = db.statements();
+    assert_eq!(
+        db.read(
+            &call("count-by-from-many"),
+            &[json!(["missing", "a", "a", "d"])]
+        )
+        .assert_ok("set count"),
+        json!([
+            {"key":"a", "count":2}, {"key":"d", "count":1}, {"key":"missing", "count":0}
+        ])
+    );
+    assert_eq!(db.statements() - calls, 1);
+    assert_eq!(
+        db.read(
+            &call("count-by-from-to-many"),
+            &[json!([{"from":"a", "to":"c"}, {"from":"a", "to":"b"}, {"from":"a", "to":"z"}])]
+        )
+        .assert_ok("tuple counts"),
+        json!([
+            {"key":{"from":"a", "to":"b"}, "count":1}, {"key":{"from":"a", "to":"c"}, "count":1}, {"key":{"from":"a", "to":"z"}, "count":0}
+        ])
+    );
+    assert_eq!(
+        db.read(&call("count-by-from-many"), &[json!([])])
+            .assert_ok("empty set"),
+        json!([])
+    );
+    let snapshot = db.snapshot().assert_ok("snapshot");
+    let mut command = db.begin().assert_ok("command");
+    command
+        .write(&call("insert"), &[like("a", "z", 4)])
+        .assert_ok("staged");
+    assert_eq!(
+        command
+            .read(&call("count-by-from"), &[json!("a")])
+            .assert_ok("staged count"),
+        json!(3)
+    );
+    assert_eq!(count("a"), json!(2));
+    command.commit().assert_ok("commit");
+    assert_eq!(count("a"), json!(3));
+    assert_eq!(
+        snapshot
+            .read(&call("count-by-from"), &[json!("a")])
+            .assert_ok("snapshot count"),
+        json!(2)
+    );
+}

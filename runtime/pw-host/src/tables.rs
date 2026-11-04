@@ -148,6 +148,8 @@ pub enum Primitive {
     PrefixMany,
     Index,
     IndexMany,
+    Count,
+    CountMany,
     All,
     Insert,
     Put,
@@ -168,7 +170,10 @@ impl Primitive {
     pub fn many(self) -> bool {
         matches!(
             self,
-            Primitive::GetMany | Primitive::PrefixMany | Primitive::IndexMany
+            Primitive::GetMany
+                | Primitive::PrefixMany
+                | Primitive::IndexMany
+                | Primitive::CountMany
         )
     }
 
@@ -181,12 +186,18 @@ impl Primitive {
             Primitive::PrefixMany => "prefix-many",
             Primitive::Index => "index",
             Primitive::IndexMany => "index-many",
+            Primitive::Count => "count",
+            Primitive::CountMany => "count-many",
             Primitive::All => "all",
             Primitive::Insert => "insert",
             Primitive::Put => "put",
             Primitive::Delete => "delete",
             Primitive::DeletePrefix => "delete-prefix",
         }
+    }
+
+    pub fn counts(self) -> bool {
+        matches!(self, Primitive::Count | Primitive::CountMany)
     }
 
     /// What it reads or writes by, in a refusal's words.
@@ -196,6 +207,7 @@ impl Primitive {
             Primitive::Prefix | Primitive::PrefixMany | Primitive::DeletePrefix => "prefix",
             Primitive::Index | Primitive::IndexMany => "index",
             Primitive::All | Primitive::Insert | Primitive::Put => "row",
+            Primitive::Count | Primitive::CountMany => "selector",
         }
     }
 }
@@ -321,6 +333,9 @@ impl Read {
     /// **The order a read's rows come in** (D1's ruling): by its `sorted_by`,
     /// then the table's order, then its whole key, each field once.
     pub fn canonical(&self) -> Vec<String> {
+        if self.primitive.counts() {
+            return self.sorted_by.clone();
+        }
         let mut out: Vec<String> = Vec::new();
         for field in self
             .sorted_by
@@ -434,6 +449,18 @@ impl Table {
         let prefix = !by.is_empty() && by.len() < self.key.len() && self.key[..by.len()] == *by;
         let of = || format!("of_{}", by.join("_"));
         match primitive {
+            Primitive::Count | Primitive::CountMany => {
+                let prefix =
+                    !by.is_empty() && by.len() <= self.key.len() && self.key[..by.len()] == *by;
+                let indexed = self.indexes.iter().any(|index| index.fields == by);
+                if !prefix && !indexed {
+                    return Err(format!(
+                        "counts by no declared key, prefix or index of {name}"
+                    ));
+                }
+                let suffix = if primitive.many() { "_many" } else { "" };
+                Ok(format!("count_by_{}{suffix}", by.join("_")))
+            }
             Primitive::Get | Primitive::GetMany | Primitive::Delete if by != self.key => {
                 Err(format!("reads by other than {name}'s key"))
             }
@@ -474,6 +501,12 @@ impl Table {
     /// what a set form was given, then by the table's order, then by its key,
     /// each field once.
     fn sorted_by(&self, primitive: Primitive, by: &[String]) -> Vec<String> {
+        if primitive == Primitive::Count {
+            return Vec::new();
+        }
+        if primitive == Primitive::CountMany {
+            return by.to_vec();
+        }
         if primitive.writes() || primitive == Primitive::Get || self.unique_index(primitive, by) {
             return Vec::new();
         }
@@ -580,6 +613,12 @@ impl Table {
             }
         }
         for function in &self.functions {
+            if function.primitive == Primitive::CountMany && function.by.len() <= 1 {
+                return refused(format!(
+                    "`{}` has no selector after its reader",
+                    function.name
+                ));
+            }
             let given = match function.primitive {
                 Primitive::All => {
                     return refused("is owned, and is read whole by `all`".into());

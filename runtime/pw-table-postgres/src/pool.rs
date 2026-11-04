@@ -29,6 +29,28 @@ pub(crate) struct Counters {
     pub statements: AtomicU64,
     pub operation_statements: AtomicU64,
     pub prepared: AtomicU64,
+    pub returned_rows: AtomicU64,
+    pub returned_bytes: AtomicU64,
+}
+
+/// The binary field payload length, without copying or interpreting its data.
+/// NULL has no payload; PostgreSQL row/protocol framing is not counted.
+struct PayloadBytes(u64);
+impl<'a> postgres::types::FromSql<'a> for PayloadBytes {
+    fn from_sql(
+        _: &postgres::types::Type,
+        raw: &'a [u8],
+    ) -> Result<Self, Box<dyn std::error::Error + Sync + Send>> {
+        Ok(Self(raw.len() as u64))
+    }
+    fn from_sql_null(
+        _: &postgres::types::Type,
+    ) -> Result<Self, Box<dyn std::error::Error + Sync + Send>> {
+        Ok(Self(0))
+    }
+    fn accepts(_: &postgres::types::Type) -> bool {
+        true
+    }
 }
 
 /// One connection and the statements it has prepared, by their text.
@@ -73,7 +95,18 @@ impl Conn {
         counters
             .operation_statements
             .fetch_add(1, Ordering::Relaxed);
-        self.client.query(&statement, &refs(params))
+        let rows = self.client.query(&statement, &refs(params))?;
+        counters
+            .returned_rows
+            .fetch_add(rows.len() as u64, Ordering::Relaxed);
+        let mut bytes = 0u64;
+        for row in &rows {
+            for i in 0..row.len() {
+                bytes = bytes.saturating_add(row.try_get::<_, PayloadBytes>(i)?.0);
+            }
+        }
+        counters.returned_bytes.fetch_add(bytes, Ordering::Relaxed);
+        Ok(rows)
     }
 
     /// `sql` as a simple query (`BEGIN`, `COMMIT`, a migration's DDL): one

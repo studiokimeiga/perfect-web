@@ -66,6 +66,24 @@ SERVER = ROOT / "spikes/own-renderer/server/src/main.rs"
 IDENTITY = SERVER.with_name("identity.rs")
 
 MUTANTS = [
+    ('counts manifest admits a set with no selector after its reader', HOST_TABLES,
+     'function.primitive == Primitive::CountMany && function.by.len() <= 1',
+     'false && function.primitive == Primitive::CountMany && function.by.len() <= 1'),
+    ('counts generated record aliases are accepted', TABLES,
+     '*first != &generated.what',
+     'false && *first != &generated.what'),
+    ('counts negative scalar answers are accepted', LINK,
+     'Val::S64(n) if *n >= 0 => Ok(())',
+     'Val::S64(n) if *n >= 0 || true => Ok(())'),
+    ('counts missing result keys are accepted', LINK,
+     '    if seen != asked {',
+     '    if false && seen != asked {'),
+    ('counts reversed selector order is accepted', LINK,
+     '        if last.as_ref().is_some_and(|last| *last >= selected) {',
+     '        if false && last.as_ref().is_some_and(|last| *last >= selected) {'),
+    ('counts selector results are projected as stored shared rows', OWNERS,
+     '    if read.primitive.counts() {\n        return Ok(out);\n    }',
+     '    if false && read.primitive.counts() {\n        return Ok(out);\n    }'),
     ("identity transition authority escapes its lifecycle root", HOST,
      '        if identity != transition {\n',
      '        if identity != transition && false {\n'),
@@ -331,6 +349,9 @@ MUTANTS = [
 # Each Cargo test binary separately: names can repeat between binaries, and
 # the shared native assertion validator expects one complete inventory.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "tables"],
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "table_counts"],
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_counts"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "identity::transition_tests::"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "invoked_by"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "tests::protected_migration::"],
@@ -343,6 +364,10 @@ TESTS = [
 ]
 
 SOURCES = [
+    ROOT / "compiler/pw-core/tests/tables.rs",
+    ROOT / "compiler/pw-core/tests/table_counts.rs",
+    ROOT / "runtime/pw-table-memory/tests/compiled_counts.rs",
+    ROOT / "runtime/pw-table-memory/tests/support/counts.rs",
     SERVER,
     IDENTITY,
     ROOT / "compiler/pw-core/tests/invoked_by.rs",

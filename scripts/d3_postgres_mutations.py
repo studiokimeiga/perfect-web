@@ -70,6 +70,21 @@ POOL = CRATE / "src/pool.rs"
 CARGO = ROOT / "Cargo.toml"
 
 MUTANTS = [
+    ('counts count the absent left-join row as a match', SQL,
+     'SELECT k.pw_slot, count(t.{}) FROM unnest({})',
+     'SELECT k.pw_slot, count(*) + (count(t.{}) * 0) FROM unnest({})'),
+    ('counts omit missing selectors with an inner join', SQL,
+     'LEFT JOIN {t} t ON {} GROUP BY k.pw_slot ORDER BY k.pw_slot',
+     'INNER JOIN {t} t ON {} GROUP BY k.pw_slot ORDER BY k.pw_slot'),
+    ('counts scalar query ignores its selector', SQL,
+     '"SELECT count(*) FROM {t} t WHERE {}",',
+     '"SELECT count(*) FROM {t} t WHERE ({} OR true)",'),
+    ('counts row accounting is not observed', POOL,
+     '            .returned_rows\n            .fetch_add(rows.len() as u64, Ordering::Relaxed);',
+     '            .returned_rows\n            .fetch_add(0, Ordering::Relaxed);'),
+    ('counts byte accounting is not observed', POOL,
+     'counters.returned_bytes.fetch_add(bytes, Ordering::Relaxed);',
+     'counters.returned_bytes.fetch_add(0, Ordering::Relaxed);'),
     ("a shared-outbox platform index name is not reserved", SQL,
      '    "pw_outbox_trimmed_pkey",\n', ''),
     # 1. ADR-0338's named controls for D3
@@ -272,8 +287,8 @@ MUTANTS = [
      '        [only] if only.kind == "predicate" => Ok(()),\n',
      '        [_] => Ok(()),\n'),
     ('postgres operation accounting hides a data statement', POOL,
-     '        counters\n            .operation_statements\n            .fetch_add(1, Ordering::Relaxed);\n        self.client.query(&statement, &refs(params))\n',
-     '        self.client.query(&statement, &refs(params))\n'),
+     '        counters\n            .operation_statements\n            .fetch_add(1, Ordering::Relaxed);\n        let rows = self.client.query(&statement, &refs(params))?;\n',
+     '        let rows = self.client.query(&statement, &refs(params))?;\n'),
     ('postgres operation accounting counts a transaction boundary as data', POOL,
      '        if !matches!(\n            sql,\n',
      '        if true || !matches!(\n            sql,\n'),
@@ -282,6 +297,8 @@ MUTANTS = [
 # Each test binary apart: names can repeat between binaries, and the native
 # assertion validator expects one complete inventory each.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "counts"],
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_counts"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--lib"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_owned"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "commands"],

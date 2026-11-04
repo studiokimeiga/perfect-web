@@ -695,6 +695,18 @@ impl PgTables {
             .load(Ordering::Relaxed)
     }
 
+    /// Rows returned by this adapter's prepared statements. Dedicated Tail
+    /// connections, startup catalog queries and simple-query results are excluded.
+    pub fn returned_rows(&self) -> u64 {
+        self.inner.counters.returned_rows.load(Ordering::Relaxed)
+    }
+
+    /// Binary field payload bytes returned by those statements, before decoding;
+    /// excludes row/protocol framing and NULL markers. No row data is retained.
+    pub fn returned_bytes(&self) -> u64 {
+        self.inner.counters.returned_bytes.load(Ordering::Relaxed)
+    }
+
     /// Every statement this adapter has prepared, so far: once per
     /// connection and statement, never per call.
     pub fn prepared(&self) -> u64 {
@@ -1018,6 +1030,7 @@ fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<
         .statements
         .get(import)
         .ok_or_else(|| Error::Input(format!("undeclared table operation {import}")))?;
+    let mut count_keys = None;
     let params: Vec<Param> = match function.primitive {
         Primitive::All => {
             if !args.is_empty() {
@@ -1028,12 +1041,15 @@ fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<
             }
             Vec::new()
         }
-        Primitive::GetMany | Primitive::PrefixMany | Primitive::IndexMany => {
+        Primitive::GetMany
+        | Primitive::PrefixMany
+        | Primitive::IndexMany
+        | Primitive::CountMany => {
             let keys = typed_selections(table, function, import, args)?;
             if keys.is_empty() {
                 return Ok(Value::Array(Vec::new()));
             }
-            function
+            let params = function
                 .by
                 .iter()
                 .enumerate()
@@ -1041,9 +1057,13 @@ fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<
                     let atoms: Vec<&shape::Atom> = keys.iter().map(|k| &k[i]).collect();
                     bind_array(&table.columns[f], &atoms)
                 })
-                .collect::<Result<_, _>>()?
+                .collect::<Result<_, _>>()?;
+            if function.primitive == Primitive::CountMany {
+                count_keys = Some(keys);
+            }
+            params
         }
-        Primitive::Get | Primitive::Prefix | Primitive::Index => {
+        Primitive::Get | Primitive::Prefix | Primitive::Index | Primitive::Count => {
             let key = typed_selector(table, function, import, args)?;
             function
                 .by
@@ -1057,6 +1077,48 @@ fn read(inner: &Inner, conn: &mut Conn, import: &str, args: &[Value]) -> Result<
     let rows = conn
         .query(&inner.counters, sql, &params)
         .map_err(database)?;
+    if function.primitive == Primitive::Count {
+        if rows.len() != 1 {
+            return Err(Error::Database(
+                "a scalar count must return exactly one row".into(),
+            ));
+        }
+        let count: i64 = rows[0].try_get(0).map_err(database)?;
+        if count < 0 {
+            return Err(Error::Database("a count is negative".into()));
+        }
+        return Ok(Value::from(count));
+    }
+    if let Some(keys) = count_keys {
+        if rows.len() != keys.len() {
+            return Err(Error::Database(
+                "set counts must cover exactly the requested keys".into(),
+            ));
+        }
+        let mut counts = Vec::with_capacity(keys.len());
+        for (i, (key, row)) in keys.into_iter().zip(rows).enumerate() {
+            let slot: i64 = row.try_get(0).map_err(database)?;
+            let count: i64 = row.try_get(1).map_err(database)?;
+            if usize::try_from(slot).ok() != i.checked_add(1) || count < 0 {
+                return Err(Error::Database(
+                    "set count slots or counts are invalid".into(),
+                ));
+            }
+            let key = match key.as_slice() {
+                [one] => one.value(),
+                _ => Value::Object(
+                    function
+                        .by
+                        .iter()
+                        .map(|&f| table.columns[f].name.clone())
+                        .zip(key.iter().map(shape::Atom::value))
+                        .collect(),
+                ),
+            };
+            counts.push(serde_json::json!({"key": key, "count": count}));
+        }
+        return Ok(Value::Array(counts));
+    }
     if function.primitive == Primitive::All
         && let Some(bound) = table.bounded
         && rows.len() as u64 > bound

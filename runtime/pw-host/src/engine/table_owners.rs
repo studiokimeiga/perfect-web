@@ -152,6 +152,9 @@ pub fn seen(access: &Access, out: Vec<Val>) -> Result<Vec<Val>, String> {
     let Access::Read(read) = access else {
         return Ok(out);
     };
+    if read.primitive.counts() {
+        return Ok(out);
+    }
     let Some(seen) = read.handle.as_ref().and_then(|h| h.seen.as_ref()) else {
         return Ok(out);
     };
@@ -198,6 +201,9 @@ pub fn check_import(access: &Access, params: &[Type], results: &[Type]) -> Resul
                 table_link::selector(words, &read.by[1..], &rest.ty())?;
             } else {
                 table_link::fields(words, &read.by, params)?;
+            }
+            if read.primitive.counts() {
+                return table_link::count_results(read, results);
             }
             let answered = read
                 .handle
@@ -484,5 +490,24 @@ mod tests {
             .is_err(),
             "ordinary callers gain no transition privilege"
         );
+    }
+    #[test]
+    fn a_sharers_count_result_is_not_projected_as_a_stored_row() {
+        let Access::Read(mut count) = by_to() else {
+            unreachable!()
+        };
+        count.primitive = Primitive::CountMany;
+        count.by.push(string("id"));
+        let counts = vec![Val::List(vec![Val::Record(vec![
+            (
+                "key".into(),
+                Val::Record(vec![
+                    ("to".into(), Val::String("bob".into())),
+                    ("id".into(), Val::String("n1".into())),
+                ]),
+            ),
+            ("count".into(), Val::S64(2)),
+        ])])];
+        assert_eq!(seen(&Access::Read(count), counts.clone()), Ok(counts));
     }
 }

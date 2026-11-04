@@ -77,6 +77,9 @@ fn read_import(read: &Read, params: &[Type], results: &[Type]) -> Result<(), Str
     } else {
         fields(words, &read.by, params)?;
     }
+    if read.primitive.counts() {
+        return count_results(read, results);
+    }
     if read.one() {
         let [Type::Option(row)] = results else {
             return Err(format!(
@@ -93,6 +96,33 @@ fn read_import(read: &Read, params: &[Type], results: &[Type]) -> Result<(), Str
             ));
         };
         record(&read.row, &rows.ty())
+    }
+}
+
+pub(super) fn count_results(read: &Read, results: &[Type]) -> Result<(), String> {
+    if !read.many() {
+        return match results {
+            [Type::S64] => Ok(()),
+            _ => Err("a count answers one Int (s64)".into()),
+        };
+    }
+    let [Type::List(entries)] = results else {
+        return Err("a set count answers a list of key/count records".into());
+    };
+    let Type::Record(entry) = entries.ty() else {
+        return Err("a set count entry is a key/count record".into());
+    };
+    let fields: Vec<_> = entry.fields().collect();
+    let [key, count] = fields.as_slice() else {
+        return Err("a set count entry has exactly key and count".into());
+    };
+    if key.name != "key" || count.name != "count" || !matches!(count.ty, Type::S64) {
+        return Err("a set count entry is key, then count: Int".into());
+    }
+    match read.by.as_slice() {
+        [one] => stored(&one.stored, &key.ty),
+        columns if !columns.is_empty() => record(columns, &key.ty),
+        _ => Err("a set count has no selector".into()),
     }
 }
 
@@ -297,6 +327,9 @@ pub fn check_answer(access: &Access, args: &[Val], results: &[Val]) -> Result<()
 }
 
 fn read_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), String> {
+    if read.primitive.counts() {
+        return count_answer(read, args, results);
+    }
     let [answer] = results else {
         return Err(format!("{} values where a read answers one", results.len()));
     };
@@ -375,6 +408,62 @@ fn read_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), String>
             )));
         }
         last = Some(place);
+    }
+    Ok(())
+}
+
+fn count_answer(read: &Read, args: &[Val], results: &[Val]) -> Result<(), String> {
+    let [answer] = results else {
+        return Err("a count answers exactly one value".into());
+    };
+    if !read.many() {
+        if args.len() != read.by.len() {
+            return Err("a count is given its selector fields".into());
+        }
+        for (column, value) in read.by.iter().zip(args) {
+            check_value(&column.stored, value)?;
+        }
+        return match answer {
+            Val::S64(n) if *n >= 0 => Ok(()),
+            _ => Err("a count must be a nonnegative Int".into()),
+        };
+    }
+    let asked = asked_selectors(read, args)?;
+    let Val::List(entries) = answer else {
+        return Err("a set count answers a list".into());
+    };
+    let mut seen = BTreeSet::new();
+    let mut last: Option<Vec<Atom>> = None;
+    for entry in entries {
+        let Val::Record(fields) = entry else {
+            return Err("a set count entry must be a record".into());
+        };
+        let [(key_name, key), (count_name, Val::S64(count))] = fields.as_slice() else {
+            return Err("a set count entry is exactly key and count: Int".into());
+        };
+        if key_name != "key" || count_name != "count" || *count < 0 {
+            return Err("a set count entry has key and a nonnegative count".into());
+        }
+        let selected = match read.by.as_slice() {
+            [one] => {
+                check_value(&one.stored, key)?;
+                vec![atom(key)?]
+            }
+            columns => {
+                let fields = exact_row(columns, key)?;
+                atoms(columns, fields, columns.iter().map(|c| c.name.as_str()))?
+            }
+        };
+        if !asked.contains(&selected) || !seen.insert(selected.clone()) {
+            return Err("a set count answers each requested selector exactly once".into());
+        }
+        if last.as_ref().is_some_and(|last| *last >= selected) {
+            return Err("set counts are in canonical selector order".into());
+        }
+        last = Some(selected);
+    }
+    if seen != asked {
+        return Err("a set count omits a requested selector (zero counts are required)".into());
     }
     Ok(())
 }
@@ -1038,5 +1127,44 @@ mod tests {
         );
         assert!(check_value(&nested, &Val::Record(vec![("at_most".into(), Val::S64(1))])).is_err());
         assert!(check_value(&Stored::Unit, &Val::Tuple(vec![])).is_err());
+    }
+    fn counted(key: Val, count: i64) -> Val {
+        Val::Record(vec![("key".into(), key), ("count".into(), Val::S64(count))])
+    }
+
+    #[test]
+    fn count_answers_are_nonnegative_and_cover_exactly_the_requested_keys() {
+        let one = read(items(Primitive::Count, &["list"]));
+        assert!(check_answer(&one, &[Val::String("a".into())], &[Val::S64(0)]).is_ok());
+        assert!(check_answer(&one, &[Val::String("a".into())], &[Val::S64(-1)]).is_err());
+        let many = read(items(Primitive::CountMany, &["list", "id"]));
+        let asked = [Val::List(vec![key("b", "2"), key("a", "1"), key("a", "1")])];
+        let correct = vec![counted(key("a", "1"), 4), counted(key("b", "2"), 0)];
+        assert!(check_answer(&many, &asked, &[Val::List(correct.clone())]).is_ok());
+        for wrong in [
+            vec![counted(key("a", "1"), 4)],
+            vec![counted(key("a", "1"), 4), counted(key("c", "2"), 0)],
+            vec![counted(key("b", "2"), 0), counted(key("a", "1"), 4)],
+            vec![
+                counted(key("a", "1"), 4),
+                counted(key("a", "1"), 4),
+                counted(key("b", "2"), 0),
+            ],
+            vec![counted(key("a", "1"), -1), counted(key("b", "2"), 0)],
+            vec![
+                Val::Record(vec![
+                    ("key".into(), key("a", "1")),
+                    ("count".into(), Val::S64(4)),
+                    ("secret".into(), Val::String("LEAK".into())),
+                ]),
+                counted(key("b", "2"), 0),
+            ],
+        ] {
+            assert!(
+                check_answer(&many, &asked, &[Val::List(wrong.clone())]).is_err(),
+                "accepted {wrong:?}"
+            );
+        }
+        assert!(check_answer(&many, &[Val::List(Vec::new())], &[Val::List(Vec::new())]).is_ok());
     }
 }

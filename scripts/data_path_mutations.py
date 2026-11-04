@@ -201,16 +201,8 @@ MUTANTS = [
      "            .take_while(move |(key, _)| key.starts_with(&prefix))\n",
      "            .take_while(move |_| !prefix.is_empty())\n"),
     ("a primitive answers another table's rows", MEMORY,
-     "    let data = tables\n"
-     "        .get(at)\n"
-     "        .map(AsRef::as_ref)\n"
-     "        .ok_or_else(|| Error::Schema(\"missing table state\".into()))?;\n"
-     "    let mut found: Vec<&Row> = Vec::new();\n",
-     "    let data = tables\n"
-     "        .get((at + 1) % tables.len())\n"
-     "        .map(AsRef::as_ref)\n"
-     "        .ok_or_else(|| Error::Schema(\"missing table state\".into()))?;\n"
-     "    let mut found: Vec<&Row> = Vec::new();\n"),
+     '    let data = tables\n        .get(at)\n        .map(AsRef::as_ref)\n        .ok_or_else(|| Error::Schema("missing table state".into()))?;\n',
+     '    let data = tables\n        .get((at + 1) % tables.len())\n        .map(AsRef::as_ref)\n        .ok_or_else(|| Error::Schema("missing table state".into()))?;\n'),
     ("an index is not kept on a write", MEMORY,
      "                index.insert((values, key.clone()));\n",
      "                let _ = (index, values);\n"),

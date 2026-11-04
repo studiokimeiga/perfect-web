@@ -85,6 +85,73 @@ mod tests {
         }
     }
 
+    #[test]
+    fn count_callbacks_validate_selectors_before_data_and_encode_only_count_shapes() {
+        let mut count = read(false);
+        count.primitive = Primitive::Count;
+        let calls = Arc::new(AtomicUsize::new(0));
+        let observed = Arc::clone(&calls);
+        let scalar = host_fn(
+            count.clone(),
+            Arc::new(move |args| {
+                observed.fetch_add(1, Ordering::Relaxed);
+                assert_eq!(args, &[json!(7), json!("x")]);
+                Ok(json!(0))
+            }),
+        );
+        for wrong in [
+            vec![Val::String("7".into()), Val::String("x".into())],
+            vec![Val::S64(7)],
+            vec![Val::S64(7), Val::Bool(false)],
+        ] {
+            assert!(scalar(&wrong).is_err());
+        }
+        assert_eq!(calls.load(Ordering::Relaxed), 0);
+        assert_eq!(
+            scalar(&[Val::S64(7), Val::String("x".into())]),
+            Ok(vec![Val::S64(0)])
+        );
+        assert_eq!(calls.load(Ordering::Relaxed), 1);
+        for wrong in [
+            json!(-1),
+            json!(1.5),
+            json!(true),
+            json!(null),
+            json!({"count":2}),
+            json!(18446744073709551615u64),
+        ] {
+            let callback = host_fn(count.clone(), Arc::new(move |_| Ok(wrong.clone())));
+            assert!(callback(&[Val::S64(7), Val::String("x".into())]).is_err());
+        }
+        count.primitive = Primitive::CountMany;
+        let selected = Val::Record(vec![
+            ("rank".into(), Val::S64(7)),
+            ("id".into(), Val::String("x".into())),
+        ]);
+        let args = [Val::List(vec![selected.clone()])];
+        let correct = host_fn(
+            count.clone(),
+            Arc::new(|_| Ok(json!([{"key":{"id":"x", "rank":7}, "count":0}]))),
+        );
+        assert_eq!(
+            correct(&args),
+            Ok(vec![Val::List(vec![Val::Record(vec![
+                ("key".into(), selected),
+                ("count".into(), Val::S64(0))
+            ])])])
+        );
+        for wrong in [
+            json!([{"key":{"id":"x", "rank":7}, "count":-1}]),
+            json!([{"key":{"id":"x", "rank":7}, "count":0, "secret":"hidden"}]),
+            json!([{"key":{"id":"x"}, "count":0}]),
+            json!([{"key":{"id":"x", "rank":7, "active":true}, "count":0}]),
+            json!([{"key":{"id":"x", "rank":7}}]),
+        ] {
+            let callback = host_fn(count.clone(), Arc::new(move |_| Ok(wrong.clone())));
+            assert!(callback(&args).is_err());
+        }
+    }
+
     fn row(rank: i64, id: &str) -> Val {
         Val::Record(vec![
             ("rank".into(), Val::S64(rank)),

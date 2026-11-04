@@ -184,6 +184,26 @@ fn every_read() -> Vec<(String, Vec<Value>)> {
         thing("by-owner-rank-many"),
         vec![json!([{"owner": "a", "rank": 0}, {"owner": "b", "rank": 10}, {"owner": "a", "rank": 0}])],
     ));
+    // Every corresponding count, over the identical valid/invalid selectors,
+    // before/after each staged write, commit and rollback in the workload.
+    let counts: Vec<_> = reads
+        .iter()
+        .filter_map(|(import, args)| {
+            let (table, function) = import.split_once('#')?;
+            let fields = match function {
+                "all" => return None,
+                "get" if table == "pw:tables/owners" => "by-id",
+                "get-many" if table == "pw:tables/owners" => "by-id-many",
+                "get" => "by-owner-n",
+                "get-many" => "by-owner-n-many",
+                "of-owner" => "by-owner",
+                "of-owner-many" => "by-owner-many",
+                other => other,
+            };
+            Some((format!("{table}#count-{fields}"), args.clone()))
+        })
+        .collect();
+    reads.extend(counts);
     reads
 }
 

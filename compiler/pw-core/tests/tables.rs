@@ -227,6 +227,9 @@ fn a_table_gives_each_read_and_write_with_its_type_and_effect() {
     let none = Vec::new();
     let want: Vec<(&str, &str, &Vec<String>, &str)> = vec![
         ("TodosListId", "", &none, ""),
+        ("TodosListCount", "key, count", &none, ""),
+        ("TodosListIdCount", "key, count", &none, ""),
+        ("TodosDoneCount", "key, count", &none, ""),
         (
             "get",
             "(ListId, TodoId) -> Option<Todo>",
@@ -262,6 +265,42 @@ fn a_table_gives_each_read_and_write_with_its_type_and_effect() {
             "(List<Bool>) -> List<Todo>",
             &read,
             "\"pw:tables/todos#by-done-many\"",
+        ),
+        (
+            "count_by_list",
+            "(ListId) -> Int",
+            &read,
+            "\"pw:tables/todos#count-by-list\"",
+        ),
+        (
+            "count_by_list_many",
+            "(List<ListId>) -> List<TodosListCount>",
+            &read,
+            "\"pw:tables/todos#count-by-list-many\"",
+        ),
+        (
+            "count_by_list_id",
+            "(ListId, TodoId) -> Int",
+            &read,
+            "\"pw:tables/todos#count-by-list-id\"",
+        ),
+        (
+            "count_by_list_id_many",
+            "(List<TodosListId>) -> List<TodosListIdCount>",
+            &read,
+            "\"pw:tables/todos#count-by-list-id-many\"",
+        ),
+        (
+            "count_by_done",
+            "(Bool) -> Int",
+            &read,
+            "\"pw:tables/todos#count-by-done\"",
+        ),
+        (
+            "count_by_done_many",
+            "(List<Bool>) -> List<TodosDoneCount>",
+            &read,
+            "\"pw:tables/todos#count-by-done-many\"",
         ),
         ("all", "() -> List<Todo>", &read, "\"pw:tables/todos#all\""),
         (
@@ -1489,6 +1528,30 @@ fn two_indexes_cannot_describe_one_ordered_field_list() {
             refused(&source).is_empty(),
             "valid ordered-field neighbor: {:#?}",
             refused(&source)
+        );
+    }
+}
+
+#[test]
+fn count_records_cannot_alias_selector_records_or_other_count_keys() {
+    let suffix = "module CountShapes\ntype Row = Row { a: Int, b_count: Int, b: Int }\ntable CountShapes\n    row Row\n    key a, b_count\n    index by_pair on a, b\n";
+    let owned = "module CountShapes\nimport capability.{ UserId }\ntype Row = Row { owner: UserId, a_b: Int, a: Int, b: Int }\ntable CountShapes\n    row Row\n    key owner, a_b\n    index by_other on owner, a, b\n    owned by owner\n";
+    for source in [suffix, owned] {
+        let found = diagnostics(&[("CountShapes.pw", source)]);
+        assert!(
+            found
+                .iter()
+                .any(|d| d.code == "PW0361" && d.message.contains("generated records")),
+            "count record alias must be a named table refusal: {found:#?}"
+        );
+    }
+    for source in [
+        suffix.replace("b_count", "b_total"),
+        owned.replace("a_b", "a_total"),
+    ] {
+        assert!(
+            diagnostics(&[("CountShapes.pw", &source)]).is_empty(),
+            "distinct generated records are valid neighbors"
         );
     }
 }

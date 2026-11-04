@@ -267,6 +267,38 @@ fn statement(names: &Names, table: &TableShape, function: &FunctionShape) -> Str
             among("t", table, &function.by),
             order_by("t", table, &function.sorted_by)
         ),
+        Primitive::Count => format!(
+            "SELECT count(*) FROM {t} t WHERE {}",
+            equal("t", table, &function.by, &by)
+        ),
+        Primitive::CountMany => {
+            // Equal-length arrays of canonical distinct selectors, one slot per
+            // selector. Counting a NOT NULL key (rather than *) keeps absent
+            // selectors at zero after the left join. No application row crosses
+            // this boundary; the client pairs slots with its typed input keys.
+            let arrays: Vec<_> = function
+                .by
+                .iter()
+                .enumerate()
+                .map(|(i, &f)| format!("${}::{}", i + 1, table.columns[f].kind.array()))
+                .collect();
+            let mut columns: Vec<_> = (0..function.by.len()).map(|i| format!("c{i}")).collect();
+            columns.push("pw_slot".into());
+            let join: Vec<_> = function
+                .by
+                .iter()
+                .enumerate()
+                .map(|(i, &f)| format!("t.{} = k.c{i}", ident(&table.columns[f].name)))
+                .collect();
+            format!(
+                "SELECT k.pw_slot, count(t.{}) FROM unnest({}) WITH ORDINALITY AS k({}) \
+                 LEFT JOIN {t} t ON {} GROUP BY k.pw_slot ORDER BY k.pw_slot",
+                ident(&table.columns[table.key[0]].name),
+                arrays.join(", "),
+                columns.join(", "),
+                join.join(" AND ")
+            )
+        }
         Primitive::All => format!(
             "SELECT {rows} FROM {t} t{} LIMIT {}",
             order_by("t", table, &function.sorted_by),

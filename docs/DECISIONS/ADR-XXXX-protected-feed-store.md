@@ -155,3 +155,57 @@ anonymous admission cannot establish that their rows have no account history.
 The target actor wrapper checks current authority for recalled lifecycle
 receipts as well as fresh execution. Private source/session fields, not public
 presentation fields, drive the proof binding.
+
+
+### Counts over declared selectors
+
+The next prerequisite adds `count_by_<fields>` and its `_many` form over the
+table's existing key prefixes (including its whole key) and indexes. This is
+an aggregate of an already declared read, with the same table grant, selector
+validation, owner/sharer handle and transaction/snapshot; it is not a query
+language, arbitrary filter, or expanded row authority. No unqualified whole-
+table count is generated. Owned set forms still omit a form with nothing
+after the single reader handle, as existing row reads do.
+
+A single count returns a nonnegative Int. A set count returns one generated
+`{ key, count }` record for each distinct requested selector, including zero
+for absent selectors, in the selectors' canonical order. The key is the plain
+selector value or tuple, never a returned authority handle. The gate checks
+the entire result shape, key membership/order/uniqueness, and nonnegative
+counts before the component sees it. A SQL adapter executes one grouped
+aggregate for the set, not a loop or a fetch of every row followed by length.
+Memory is the answer oracle; SQL preserves the same zero/duplicate semantics.
+
+Acceptance includes plain/owned/shared selectors, staged and snapshot reads,
+forged owner/key/answer refusals, and large-cardinality SQL returned rows/bytes
+and compiled fuel bounds in addition to call counts. Database aggregate scan
+work is not a constant-work claim; per-owner quotas, ranges/windows, relation
+fusion and broader H4 remain separate. Limits elsewhere must still execute
+before unrestricted row materialization; adding counts does not complete the
+canonical apps' bounded-read prerequisite or authorize relaxing startup guards.
+
+PostgreSQL uses multi-array `unnest` with ordinality and a left join, counting
+a non-null primary-key column; this retains one zero per absent requested key.
+The client pairs validated one-based slots with its canonical typed input keys.
+These semantics are documented by PostgreSQL's
+[array functions](https://www.postgresql.org/docs/18/functions-array.html),
+[table functions](https://www.postgresql.org/docs/18/queries-table-expressions.html#QUERIES-TABLEFUNCTIONS)
+and [aggregates](https://www.postgresql.org/docs/18/functions-aggregate.html).
+No dependency or stored-schema migration is introduced by the new read forms.
+
+Adapter counters now measure actual prepared-statement result rows and binary
+field payload bytes before decoding, without retaining data. They exclude NULL
+markers, protocol/row framing, startup catalog work, simple-query results and
+the dedicated Tail connection. A count may scan many database rows; those
+internal scans are not these result counters. A compiled count is tested under
+the same 1,000-fuel ceiling at 5 and 1,500 rows, with a one-fuel failing neighbor;
+this is a ceiling test, not an exact fuel-used or constant database-work claim.
+The set-count witness uses a 3,000-fuel ceiling for two distinct requested keys.
+
+Generated full selector/count records are checked by emitted type identity,
+including Count-suffix and owned full-key collisions. Host manifest admission
+also refuses an owned set count with no selector after its reader. Per-element
+count loops retain PW0405 and the generated set-form repair. The existing
+table, owned-row and PostgreSQL recipes include the new witnesses and controls.
+Frozen-source verification and review are recorded separately; the migration
+and its final browser/whole-campaign/CI acceptance remain open.

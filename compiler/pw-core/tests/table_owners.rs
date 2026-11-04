@@ -218,6 +218,8 @@ fn an_owned_table_gives_each_read_and_write_by_its_readers_handle() {
     let none = Vec::new();
     let handle = "capability.User<UserId>";
     let want: Vec<(String, String, &Vec<String>, &str)> = vec![
+        ("NotesAuthorId".into(), "author, id".into(), &none, ""),
+        ("NotesAuthorIdCount".into(), "key, count".into(), &none, ""),
         (
             "NoteSeen".into(),
             "author, id, to, text, added".into(),
@@ -247,6 +249,30 @@ fn an_owned_table_gives_each_read_and_write_by_its_readers_handle() {
             format!("({handle}) -> List<NoteSeen>"),
             &read,
             "\"pw:tables/notes#by-to\"",
+        ),
+        (
+            "count_by_author".into(),
+            format!("({handle}) -> Int"),
+            &read,
+            "\"pw:tables/notes#count-by-author\"",
+        ),
+        (
+            "count_by_author_id".into(),
+            format!("({handle}, NoteId) -> Int"),
+            &read,
+            "\"pw:tables/notes#count-by-author-id\"",
+        ),
+        (
+            "count_by_author_id_many".into(),
+            format!("({handle}, List<NoteId>) -> List<NotesAuthorIdCount>"),
+            &read,
+            "\"pw:tables/notes#count-by-author-id-many\"",
+        ),
+        (
+            "count_by_to".into(),
+            format!("({handle}) -> Int"),
+            &read,
+            "\"pw:tables/notes#count-by-to\"",
         ),
         (
             "insert".into(),
@@ -394,6 +420,10 @@ fn tables_json_states_whose_rows_and_each_functions_reader() {
             ("get_many", Some("author")),
             ("of_author", Some("author")),
             ("by_to", Some("to")),
+            ("count_by_author", Some("author")),
+            ("count_by_author_id", Some("author")),
+            ("count_by_author_id_many", Some("author")),
+            ("count_by_to", Some("to")),
             ("insert", Some("author")),
             ("put", Some("author")),
             ("delete", Some("author")),

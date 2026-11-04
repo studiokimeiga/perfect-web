@@ -96,11 +96,51 @@ fn json_named(value: &Value) -> &'static str {
 /// Encode a read's answer as its WIT type: none or one row where it answers
 /// one ([`Read::one`]), a list of rows otherwise.
 pub fn encode_read(read: &Read, value: &Value) -> Result<Val, String> {
+    if read.primitive.counts() {
+        return encode_count(read, value);
+    }
     if read.one() {
         encode_get(read, value)
     } else {
         encode_get_many(read, value)
     }
+}
+
+fn encode_count(read: &Read, value: &Value) -> Result<Val, String> {
+    let count = |value: &Value| {
+        value
+            .as_i64()
+            .filter(|n| *n >= 0)
+            .map(Val::S64)
+            .ok_or_else(|| "a count must be a nonnegative Int".to_string())
+    };
+    if !read.many() {
+        return count(value);
+    }
+    let entries = value
+        .as_array()
+        .ok_or("a set count result must be a list")?;
+    entries
+        .iter()
+        .map(|entry| {
+            let fields = entry
+                .as_object()
+                .ok_or("a set count entry must be a record")?;
+            if fields.len() != 2 || !fields.contains_key("key") || !fields.contains_key("count") {
+                return Err("a set count entry has exactly key and count".into());
+            }
+            let key = match read.by.as_slice() {
+                [one] => encode(&one.stored, &fields["key"]),
+                columns if !columns.is_empty() => record(columns, &fields["key"]),
+                _ => Err("a set count has no selector".into()),
+            }?;
+            Ok(Val::Record(vec![
+                ("key".into(), key),
+                ("count".into(), count(&fields["count"])?),
+            ]))
+        })
+        .collect::<Result<Vec<_>, String>>()
+        .map(Val::List)
 }
 
 /// Encode a single-row read: a missing row is WIT none; a present row is

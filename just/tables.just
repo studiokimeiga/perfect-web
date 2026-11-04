@@ -5,7 +5,7 @@ e14-tables:
        echo "produced by: just e14-tables"; \
        echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' || echo ' + uncommitted changes')"; \
        echo "rust: $(rustc --version)"; echo; \
-       cargo test --locked -p pw-core --test tables -- --nocapture; \
+       cargo test --locked -p pw-core --test tables --test table_counts -- --nocapture; \
        cargo test --locked -p pw-cli --test tables -- --nocapture; \
        echo; echo "== mutation controls (scripts/tables_mutations.py)"; \
        python3 scripts/tables_mutations.py; \

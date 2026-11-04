@@ -65,6 +65,8 @@ fn the_compilers_functions_are_each_served() {
         imports,
         [
             "pw:tables/owners#all",
+            "pw:tables/owners#count-by-id",
+            "pw:tables/owners#count-by-id-many",
             "pw:tables/owners#delete",
             "pw:tables/owners#get",
             "pw:tables/owners#get-many",
@@ -76,6 +78,16 @@ fn the_compilers_functions_are_each_served() {
             "pw:tables/things#by-owner-rank-many",
             "pw:tables/things#by-slug",
             "pw:tables/things#by-slug-many",
+            "pw:tables/things#count-by-flag",
+            "pw:tables/things#count-by-flag-many",
+            "pw:tables/things#count-by-owner",
+            "pw:tables/things#count-by-owner-many",
+            "pw:tables/things#count-by-owner-n",
+            "pw:tables/things#count-by-owner-n-many",
+            "pw:tables/things#count-by-owner-rank",
+            "pw:tables/things#count-by-owner-rank-many",
+            "pw:tables/things#count-by-slug",
+            "pw:tables/things#count-by-slug-many",
             "pw:tables/things#delete",
             "pw:tables/things#delete-of-owner",
             "pw:tables/things#get",
@@ -94,6 +106,14 @@ fn the_compilers_functions_are_each_served() {
         !matches!(f, "insert" | "put" | "delete" | "delete-of-owner")
     }) {
         let f = import.rsplit('#').next().unwrap_or_default();
+        let f = match f {
+            "count-by-id" | "count-by-owner-n" => "get",
+            "count-by-id-many" | "count-by-owner-n-many" => "get-many",
+            "count-by-owner" => "of-owner",
+            "count-by-owner-many" => "of-owner-many",
+            count if count.starts_with("count-") => &count[6..],
+            other => other,
+        };
         let args: Vec<Value> = match f {
             "all" => vec![],
             "get" if import.starts_with(OWNER) => vec![json!("a")],

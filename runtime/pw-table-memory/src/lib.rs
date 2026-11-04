@@ -63,6 +63,14 @@ enum Atom {
 }
 
 impl Atom {
+    fn value(&self) -> Value {
+        match self {
+            Self::Bool(value) => Value::from(*value),
+            Self::Int(value) => Value::from(*value),
+            Self::Str(value) => Value::from(value.clone()),
+        }
+    }
+
     fn parse(value: &Value) -> Result<Self, Error> {
         match value {
             Value::Bool(v) => Ok(Self::Bool(*v)),
@@ -584,10 +592,18 @@ impl MemoryTables {
 }
 
 /// **The published tables at one moment** ([`MemoryTables::snapshot`]): read
-/// by [`MemoryTables::read_host_fns_at`], and by nothing else.
+/// by its raw read or [`MemoryTables::read_host_fns_at`].
 pub struct Snapshot {
     inner: Arc<Inner>,
     tables: Arc<Vec<Arc<Data>>>,
+}
+
+impl Snapshot {
+    /// A raw adapter read of this snapshot's own immutable state. Browser
+    /// components still link only their admitted read_host_fns_at callbacks.
+    pub fn read(&self, import: &str, args: &[Value]) -> Result<Value, Error> {
+        self.inner.read_snapshot(&self.tables, import, args)
+    }
 }
 
 /// **One command's transaction** (ADR-0386): its reads see its own writes,
@@ -1631,6 +1647,48 @@ fn read(
         .get(at)
         .map(AsRef::as_ref)
         .ok_or_else(|| Error::Schema("missing table state".into()))?;
+    if function.primitive.counts() {
+        let keys = typed_selections(table, function, import, args)?;
+        let prefix =
+            function.by.len() <= table.key.len() && table.key[..function.by.len()] == function.by;
+        let index = if prefix {
+            None
+        } else {
+            Some(
+                table
+                    .indexes
+                    .iter()
+                    .position(|index| index.fields == function.by)
+                    .ok_or_else(|| {
+                        Error::Schema(format!("{import} counts by no declared selector"))
+                    })?,
+            )
+        };
+        let mut counts = Vec::with_capacity(keys.len());
+        for selected in keys {
+            let n = match index {
+                None => data.prefixed(&selected).count(),
+                Some(index) => holding(&data.indexes[index], &selected).count(),
+            };
+            let count = i64::try_from(n).map_err(|_| Error::Input("a count exceeds Int".into()))?;
+            if !function.primitive.many() {
+                return Ok(Value::from(count));
+            }
+            let key = match selected.as_slice() {
+                [one] => one.value(),
+                _ => Value::Object(
+                    function
+                        .by
+                        .iter()
+                        .cloned()
+                        .zip(selected.iter().map(Atom::value))
+                        .collect(),
+                ),
+            };
+            counts.push(serde_json::json!({"key":key, "count":count}));
+        }
+        return Ok(Value::Array(counts));
+    }
     let mut found: Vec<&Row> = Vec::new();
     match function.primitive {
         Primitive::All => {
