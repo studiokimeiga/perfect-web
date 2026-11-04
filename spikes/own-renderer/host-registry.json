@@ -35,6 +35,10 @@
     "legacy-kiokun": {
       "dist": null,
       "prerequisite": "cargo build -p kiokun-server"
+    },
+    "owned": {
+      "dist": "dist-owned",
+      "prerequisite": "owned.sh"
     }
   },
   "roles": {
@@ -290,6 +294,15 @@
       },
       "build": null,
       "auxiliary": true
+    },
+    "owned": {
+      "offsets": {
+        "chromium": 213,
+        "firefox": 214,
+        "webkit": 215
+      },
+      "build": "owned",
+      "identity": true
     }
   },
   "mutable": {
@@ -320,11 +333,14 @@
     "STORE_PAYMENTS_PORTS": "payments",
     "SCHEDULED_ORDERS_PORTS": "scheduled-orders",
     "REVIEWS_PORTS": "reviews",
-    "GUESTBOOK_PORTS": "guestbook"
+    "GUESTBOOK_PORTS": "guestbook",
+    "OWNED_PORTS": "owned"
   },
   "specs": {
     "wit-unique.spec.mjs": {
-      "roles": ["base"]
+      "roles": [
+        "base"
+      ]
     },
     "accessibility.spec.mjs": {
       "roles": [
@@ -667,6 +683,11 @@
     "views.spec.mjs": {
       "roles": [
         "base"
+      ]
+    },
+    "owned-rows.spec.mjs": {
+      "roles": [
+        "owned"
       ]
     }
   }

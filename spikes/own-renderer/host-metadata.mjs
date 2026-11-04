@@ -396,3 +396,5 @@ export function unservedSpecs(root = ROOT, registry = REGISTRY) {
   }
   return out;
 }
+
+export const OWNED_PORTS = portExport("OWNED_PORTS");

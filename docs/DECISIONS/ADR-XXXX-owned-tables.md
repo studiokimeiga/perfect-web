@@ -519,3 +519,22 @@ freshness; they do not claim authorization at HTTP/frame delivery time.
 7. The guestbook (track `data-path`) could declare its posts `owned by
    author` and drop `OwnsPost`: `remove(post)` then deletes the reader's own
    post by construction.
+
+## Browser and durable continuation, 2026-11-03 (implementation pending)
+
+The row-specific browser fixture uses the declared Notes tables, independent
+browser contexts and the real development account provider. It must prove
+same-key isolation, refused forged writes, shared projections without drafts,
+and a guarded page answered 403 in the predicate's authored words. A query
+denial must retain its typed identity across the query cache boundary; strings
+that resemble denials remain ordinary failures. No command-refusal TLS is used.
+PostgreSQL command predicates must read the command transaction; snapshot
+predicates and bodies must share the same repeatable-read transaction. A real
+concurrent conflicting write must refuse the serializable command. Durable
+server wiring will reuse the existing durable-tables implementation after
+reviewing its delta, while preserving its original dirty receipts.
+
+Primary references checked: Playwright BrowserContext API (independent
+contexts and shared-context requests), PostgreSQL 18 transaction isolation
+(repeatable-read snapshots and serializable conflict refusal). Existing pinned
+dependencies are retained; no upstream package upgrade is needed.

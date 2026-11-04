@@ -1,0 +1,49 @@
+module owned.pages
+import context.{ current_user }
+import capability.{ User, UserId, id_of }
+import owned.app.{ Mine, ToMe, Shown }
+import Notes.{ NoteId }
+
+user query Reader(reader: User<UserId>) -> UserId
+    cache private
+    key reader
+{ id_of(reader) }
+
+user page NotesPage() {
+    route "/notes"
+    placement origin
+    cache private
+    let reader = query Reader(current_user())
+    let mine = query Mine(current_user())
+    let shared = query ToMe(current_user())
+    view {
+        <title>Owned notes</title>
+        <main>
+            <form method="get" action="/sign-up"><button type="submit">Sign up</button></form>
+            <p id="reader">{reader}</p>
+            <ul id="mine">{#each mine as note (note.id)}<li><p class="text">{note.text}</p><p class="draft">{note.draft}</p></li>{/each}</ul>
+            <ul id="shared">{#each shared as note (note.id)}<li><p class="text">{note.text}</p></li>{/each}</ul>
+        </main>
+    }
+}
+
+user page NotePage(id: NoteId) {
+    route "/owned/{id}"
+    placement origin
+    cache private
+    let shown = query Shown(current_user(), id)
+    view {
+        <title>Owned note</title>
+        <main>{#match shown}{:Some(note)}<p id="note">{note.text}</p>{:None}<p>No note</p>{/match}</main>
+    }
+}
+
+page Welcome() {
+    route "/"
+    placement origin
+    cache private
+    view {
+        <title>Owned notes</title>
+        <main><form method="get" action="/sign-up"><button type="submit">Sign up</button></form></main>
+    }
+}
