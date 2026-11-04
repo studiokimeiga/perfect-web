@@ -62,14 +62,14 @@ MUTANTS = [
     (
         "a stack measured unminified is accepted",
         VALIDATE,
-        "judged(q) && !isCommon(q.url, common) && expect.minifies && !q.minified;",
+        "judged(q) && !isCommon(q.url, common) && minifierOwes(q, expect) && !q.minified;",
         "judged(q) && !isCommon(q.url, common) && false;",
     ),
     (
         "TodoMVC's common files are held to a stack's minifier",
         VALIDATE,
-        "judged(q) && !isCommon(q.url, common) && expect.minifies",
-        "judged(q) && expect.minifies",
+        "judged(q) && !isCommon(q.url, common) && minifierOwes(q, expect)",
+        "judged(q) && minifierOwes(q, expect)",
     ),
     (
         "an uncompressed answer from a compressing host is accepted",
