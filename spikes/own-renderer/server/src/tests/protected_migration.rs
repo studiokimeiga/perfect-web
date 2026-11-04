@@ -86,8 +86,43 @@ user page CartPage() {
 }
 "#;
 
+const CLOCK: &str = r#"module protected.clock
+import context.{ current_user }
+import capability.{ id_of }
+import clock.{ minutes }
+import GuestCarts.{ Cart }
+import GuestCarts
+import protected.cart.{ CartChanged }
+opaque type InteractionId = String
+command remind() -> Result<Int, String>
+    invoked_by Clock
+    idempotent_by InteractionId
+    emits CartChanged(id_of(current_user()))
+{
+    match GuestCarts.get(current_user()) {
+        Some(cart) => {
+            if cart.text == "ALICE_BEFORE" {
+                GuestCarts.put(current_user(), Cart { owner: id_of(current_user()), text: "ALICE_REMIND" })
+                Ok(1)
+            } else { Err("unexpected cart") }
+        },
+        None => Err("missing cart"),
+    }
+}
+command later() -> () {
+    schedule remind() after minutes(30)
+}
+"#;
+
 fn built() -> (tempfile::TempDir, std::path::PathBuf) {
-    super::tables::built(&[], &[("GuestCarts.pw", ROWS), ("cart.pw", APP)])
+    super::tables::built(
+        &[],
+        &[
+            ("GuestCarts.pw", ROWS),
+            ("cart.pw", APP),
+            ("clock.pw", CLOCK),
+        ],
+    )
 }
 
 fn accounts(server: &Server) {
@@ -373,4 +408,113 @@ fn a_guest_became_an_account_on_another_host_keeps_no_postgresql_write() {
     );
     assert_eq!(schema.count("pw_interactions"), "1");
     assert_eq!(schema.count("pw_outbox"), "1");
+}
+
+fn owned_clock_contract(server: &Server) {
+    accounts(server);
+    server
+        .identity
+        .signed_in_for_test("alice-session", "alice", "Alice");
+    server
+        .identity
+        .signed_in_for_test("bob-session", "bob", "Bob");
+    for (session, text, id) in [
+        ("alice-session", "ALICE_BEFORE", "a"),
+        ("bob-session", "BOB_PRIVATE", "b"),
+    ] {
+        let kept = server
+            .command_answer(
+                "protected.cart.keep",
+                session,
+                &[serde_json::json!(text)],
+                Some(id),
+            )
+            .asserted("owned cart kept");
+        assert!(kept.committed, "{kept:?}");
+    }
+    let schedule = || {
+        let answer = server
+            .command_answer("protected.clock.later", "alice-session", &[], None)
+            .asserted("scheduled");
+        assert!(answer.committed, "{answer:?}");
+    };
+    schedule();
+    let old = schedules::select(server.runs(), server.now() + 31 * 60 * 1000, 16)
+        .asserted("selected old generation");
+    assert_eq!(old.len(), 1);
+    assert_eq!(old[0].user, "alice");
+    schedule();
+    let current = server.runs().all_runs().asserted("rescheduled");
+    assert_eq!(current.len(), 1);
+    assert_ne!(old[0].id, current[0].id);
+    server.run_scheduled(&old[0]);
+    assert!(
+        page(server, "alice-session").contains("ALICE_BEFORE"),
+        "stale generation wrote nothing"
+    );
+    assert_eq!(server.runs().all_runs().asserted("still pending"), current);
+    let browser = super::sign_in::exchanged(
+        server,
+        "POST /command/protected.clock.remind HTTP/1.1\r\nHost: t\r\nCookie: pw-session=alice-session\r\nSec-Fetch-Site: same-origin\r\nContent-Length: 2\r\n\r\n[]",
+    );
+    assert!(browser.starts_with("HTTP/1.1 404"), "{browser}");
+    let out = super::sign_in::exchanged(
+        server,
+        "POST /sign-out HTTP/1.1\r\nHost: t\r\nCookie: pw-session=alice-session\r\nSec-Fetch-Site: same-origin\r\nContent-Length: 0\r\n\r\n",
+    );
+    assert!(out.starts_with("HTTP/1.1 303"), "{out}");
+    assert!(server.identity.principals().of("alice-session").is_none());
+    let due = schedules::select(server.runs(), server.now() + 31 * 60 * 1000, 16)
+        .asserted("current candidate");
+    assert_eq!(due.len(), 1);
+    server.query_clock.0.advance(31 * 60 * 1000);
+    assert_eq!(server.run_due().0, 1);
+    assert!(server.runs().all_runs().asserted("completed").is_empty());
+    server.run_scheduled(&due[0]);
+    assert_eq!(server.run_due().0, 0, "completed generation cannot replay");
+    // A different session of the scheduled owner sees the result after the
+    // originating browser signed out. No guest identity stands in for it.
+    server
+        .identity
+        .signed_in_for_test("alice-new", "alice", "Alice");
+    let alice = page(server, "alice-new");
+    assert!(
+        alice.contains("ALICE_REMIND") && !alice.contains("BOB_PRIVATE"),
+        "{alice}"
+    );
+    let bob = page(server, "bob-session");
+    assert!(
+        bob.contains("BOB_PRIVATE") && !bob.contains("ALICE_REMIND"),
+        "{bob}"
+    );
+}
+
+#[test]
+fn the_clock_reads_and_writes_the_scheduling_owners_rows_after_logout_in_memory() {
+    let (_dir, out) = built();
+    let server = Server::from_build(out.clone(), out).asserted("generic memory server");
+    owned_clock_contract(&server);
+}
+
+#[test]
+fn the_clock_reads_and_writes_the_scheduling_owners_rows_after_logout_on_postgresql() {
+    let Some(url) = super::tables_pg::database() else {
+        return;
+    };
+    let schema = super::tables_pg::Schema::new(&url, "owned_clock");
+    let (_dir, out) = built();
+    let server = super::tables_pg::serve(&out, &schema);
+    owned_clock_contract(&server);
+    assert_eq!(schema.texts("SELECT convert_from(owner, 'UTF8') || ':' || convert_from(text, 'UTF8') FROM \"GuestCarts\" ORDER BY owner"), ["alice:ALICE_REMIND", "bob:BOB_PRIVATE"]);
+    assert_eq!(
+        schema.count("pw_interactions"),
+        "3",
+        "two browser writes and one clock completion"
+    );
+    let clock = schema.texts("SELECT xmin::text FROM \"GuestCarts\" WHERE convert_from(owner,'UTF8')='alice' UNION ALL SELECT xmin::text FROM pw_interactions WHERE sent = '[]' UNION ALL SELECT xmin::text FROM (SELECT xmin FROM pw_outbox ORDER BY id DESC LIMIT 1) last");
+    assert_eq!(clock.len(), 3, "{clock:?}");
+    assert!(
+        clock.iter().all(|xmin| xmin == &clock[0]),
+        "clock row/receipt/event share a transaction: {clock:?}"
+    );
 }

@@ -77,6 +77,9 @@ LAYER = SERVER / "src/tables_pg.rs"
 MAIN = SERVER / "src/main.rs"
 
 MUTANTS = [
+    ("an owned Clock action forgets its scheduling owner", MAIN,
+     '            &format!("schedule-{}", run.id),\n            &run.user,\n',
+     '            &format!("schedule-{}", run.id),\n            "nobody",\n'),
     # 1. the routing
     ("a database named for the tables is not read", MAIN,
      '    let tables = match std::env::var("PW_TABLES_DATABASE_URL") {\n',
