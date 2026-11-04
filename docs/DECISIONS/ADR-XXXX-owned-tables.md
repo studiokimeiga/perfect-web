@@ -571,3 +571,15 @@ the canonical row receipt before the trap exits with the original status,
 so its failure remains reviewable. The existing build-order and injected
 failed-suite tests cover both behaviors; run these boundary checks when
 registering a browser build or converting a native-only recipe to browsers.
+
+### Canonical fixture formatting, 2026-11-03
+
+The b89051a0 runtime campaigns completed 272 controls, and CI's native
+workspace tests passed (server 951 passed, 9 ignored). The same CI command
+then failed `test-compile`: the new owned-row page fixture was not in the
+canonical Pleris format. It receives no complete-CI acceptance credit.
+The formatter changes seven lines of spacing only (`git diff -w` is empty).
+The existing `test-compile` gate already checks `examples/owned/*.pw`;
+`preflight` does not run that Pleris formatting check. Run `test-compile`
+and the remaining compiler controls before freezing the successor, then
+complete every local gate at that source. No checker or bound was changed.

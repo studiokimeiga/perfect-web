@@ -6,13 +6,13 @@ import Notes.{ NoteId }
 
 user query Reader(reader: User<UserId>) -> UserId
     cache private
-    key reader
+    key   reader
 { id_of(reader) }
 
 user page NotesPage() {
-    route "/notes"
+    route     "/notes"
     placement origin
-    cache private
+    cache     private
     let reader = query Reader(current_user())
     let mine = query Mine(current_user())
     let shared = query ToMe(current_user())
@@ -28,9 +28,9 @@ user page NotesPage() {
 }
 
 user page NotePage(id: NoteId) {
-    route "/owned/{id}"
+    route     "/owned/{id}"
     placement origin
-    cache private
+    cache     private
     let shown = query Shown(current_user(), id)
     view {
         <title>Owned note</title>
@@ -39,9 +39,9 @@ user page NotePage(id: NoteId) {
 }
 
 page Welcome() {
-    route "/"
+    route     "/"
     placement origin
-    cache private
+    cache     private
     view {
         <title>Owned notes</title>
         <main><form method="get" action="/sign-up"><button type="submit">Sign up</button></form></main>
