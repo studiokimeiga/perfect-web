@@ -66,6 +66,9 @@ SERVER = ROOT / "spikes/own-renderer/server/src/main.rs"
 IDENTITY = SERVER.with_name("identity.rs")
 
 MUTANTS = [
+    ("a local guest command ignores changed authority", IDENTITY,
+     '        if self.is_local() && self.principals.cached_reader(&self.session) == self.reader {\n',
+     '        if self.is_local() {\n'),
     ("anonymous guest rows lose their admitted caller", IDENTITY,
      '        .then(|| guest_user(session))\n',
      '        .then(|| None::<String>).flatten()\n'),

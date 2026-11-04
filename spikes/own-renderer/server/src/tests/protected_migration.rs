@@ -322,6 +322,33 @@ fn a_guest_became_an_account_before_authority_keeps_no_memory_write() {
     let (_dir, out) = built();
     let server = Server::from_build(out.clone(), out).asserted("generic memory server");
     stale_guest_command(&server, &server);
+    // Inspect storage independently of delivery authority: guest-a now reads
+    // its account partition, which would hide a stale guest write.
+    let contract = server
+        .contracts
+        .iter()
+        .find(|c| c.component_id == "protected.cart.CartOf")
+        .unwrap();
+    let granted = server
+        .authorise(&contract.component_id)
+        .asserted("query grant");
+    let reads = server
+        .data
+        .table_reads(contract, &granted, None)
+        .asserted("adapter reads");
+    let guest = reads["pw:tables/guest-carts#get"](&[Val::String(identity::guest_user("guest-a"))])
+        .asserted("original guest partition");
+    assert!(
+        matches!(guest.as_slice(), [Val::Option(None)]),
+        "stale guest row: {guest:?}"
+    );
+    let key = identity::interaction_key("guest-a", "protected.cart.keep", "stale-guest");
+    assert_eq!(
+        server
+            .recalled_interaction(&key)
+            .asserted("stale receipt inspected"),
+        None
+    );
     let current = page(&server, "guest-a");
     assert!(
         current.contains("EMPTY") && !current.contains("STALE"),
