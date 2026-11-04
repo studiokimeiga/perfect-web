@@ -93,6 +93,12 @@ LAST = (
 )
 
 MUTANTS = [
+    ('count aggregate scalar answer is wrong for every generated table', MEMORY,
+     '                return Ok(Value::from(count));',
+     '                return Ok(Value::from(count + 1));'),
+    ('count aggregate set answer is wrong for every generated table', MEMORY,
+     'counts.push(serde_json::json!({"key":key, "count":count}));',
+     'counts.push(serde_json::json!({"key":key, "count":count + 1}));'),
     ("a render reuses closed tables' remembered operations", MAIN,
      "        self.read_checked(|| self.answer_open(component_id, session, args, stopped))\n",
      "        self.answer_open(component_id, session, args, stopped)\n"),

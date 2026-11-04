@@ -15,7 +15,7 @@
 //!
 //! 1. **answers**: every read function of every table, for present keys,
 //!    a missing one, and set forms given duplicates, misses and nothing,
-//!    answers exactly the oracle's rows, in their order;
+//!    answers exactly the oracle's rows/counts, in their order;
 //! 2. **costs**: each read is at least one statement of the layer's
 //!    adapter and at most what its source's `sets` states (one for
 //!    `one_call`, one a key otherwise), at both sizes, counted below the
@@ -85,6 +85,9 @@ impl Function {
             self.primitive.as_str(),
             "insert" | "put" | "delete" | "delete-prefix"
         )
+    }
+    fn counts(&self) -> bool {
+        matches!(self.primitive.as_str(), "count" | "count-many")
     }
     fn many(&self) -> bool {
         self.primitive.ends_with("-many")
@@ -425,6 +428,124 @@ fn oracle(
     found
 }
 
+/// Counts from the suite's independently generated stored rows: one Int,
+/// or every distinct requested selector, in scalar/tuple order, with zero
+/// where no generated row matches. No adapter or production codec is called.
+fn count_oracle(
+    table: &Table,
+    function: &Function,
+    rows: &[Map<String, Json>],
+    selectors: &[Vec<Json>],
+) -> Vec<Val> {
+    if !function.many() {
+        return vec![Val::S64(oracle(function, rows, selectors).len() as i64)];
+    }
+    let mut keys = selectors.to_vec();
+    keys.sort_by(|a, b| {
+        a.iter()
+            .zip(b)
+            .map(|(a, b)| compare(a, b))
+            .find(|o| o.is_ne())
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    keys.dedup();
+    vec![Val::List(
+        keys.iter()
+            .map(|key| {
+                let count = oracle(function, rows, std::slice::from_ref(key)).len() as i64;
+                Val::Record(vec![
+                    ("key".into(), selector(table, function, key)),
+                    ("count".into(), Val::S64(count)),
+                ])
+            })
+            .collect(),
+    )]
+}
+
+#[test]
+fn the_count_oracle_keeps_zero_distinct_keys_and_scalar_tuple_order() {
+    let integer = serde_json::json!({"int":{"at_least":null,"at_most":null}});
+    let table = Table {
+        name: "Counts".into(),
+        fields: vec![("group".into(), integer.clone()), ("id".into(), integer)],
+        key: vec!["group".into(), "id".into()],
+        indexes: vec![],
+        references: vec![],
+        bounded: None,
+        source: "CountData".into(),
+        functions: vec![],
+    };
+    let rows = [(1, 1), (1, 2), (2, 1)]
+        .into_iter()
+        .map(|(g, i)| {
+            [
+                ("group".into(), Json::from(g)),
+                ("id".into(), Json::from(i)),
+            ]
+            .into_iter()
+            .collect()
+        })
+        .collect::<Vec<_>>();
+    let mut function = Function {
+        import: String::new(),
+        primitive: "count".into(),
+        by: vec!["group".into()],
+        sorted_by: vec![],
+    };
+    assert_eq!(
+        count_oracle(&table, &function, &rows, &[vec![Json::from(1)]]),
+        vec![Val::S64(2)]
+    );
+    assert_eq!(
+        count_oracle(&table, &function, &rows, &[vec![Json::from(9)]]),
+        vec![Val::S64(0)]
+    );
+    function.primitive = "count-many".into();
+    let entry =
+        |key, count| Val::Record(vec![("key".into(), key), ("count".into(), Val::S64(count))]);
+    assert_eq!(
+        count_oracle(
+            &table,
+            &function,
+            &rows,
+            &[
+                vec![Json::from(2)],
+                vec![Json::from(0)],
+                vec![Json::from(1)],
+                vec![Json::from(1)]
+            ]
+        ),
+        vec![Val::List(vec![
+            entry(Val::S64(0), 0),
+            entry(Val::S64(1), 2),
+            entry(Val::S64(2), 1)
+        ])]
+    );
+    assert_eq!(
+        count_oracle(&table, &function, &rows, &[]),
+        vec![Val::List(vec![])]
+    );
+    function.by.push("id".into());
+    let key = |g, i| {
+        Val::Record(vec![
+            ("group".into(), Val::S64(g)),
+            ("id".into(), Val::S64(i)),
+        ])
+    };
+    assert_eq!(
+        count_oracle(
+            &table,
+            &function,
+            &rows,
+            &[
+                vec![Json::from(1), Json::from(9)],
+                vec![Json::from(1), Json::from(2)]
+            ]
+        ),
+        vec![Val::List(vec![entry(key(1, 2), 1), entry(key(1, 9), 0)])]
+    );
+}
+
 /// **The suite's own contracts**: a query reading every read function of
 /// every table, and a command reading and writing every function, each
 /// admitted on a node granting each table's read and write; so the gate
@@ -715,6 +836,16 @@ fn answers_and_costs_read(
                     function.import,
                     selectors.len()
                 );
+                if function.counts() {
+                    assert_eq!(
+                        answer,
+                        count_oracle(table, function, all, &selectors),
+                        "{} given {selectors:?}, at {n} rows a table, {way}",
+                        function.import
+                    );
+                    checked += 1;
+                    continue;
+                }
                 // Part 1: the oracle's rows, in its order.
                 let expected = oracle(function, all, &selectors);
                 let got: Option<Vec<Map<String, Json>>> = match answer.as_slice() {

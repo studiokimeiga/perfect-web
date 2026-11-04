@@ -220,3 +220,12 @@ that the new result counters included startup prepared reads; their contract
 now says so, with open/reopen witnesses and unchanged per-operation delta tests.
 The interrupted broad check at the first checkpoint receives no complete-suite
 credit. Successor frozen checks and review remain required.
+
+The first successor server run exposed the generic conformance suite's old
+row-only assumption (166 passed, two PostgreSQL conformance failures). The
+oracle now computes scalar counts and canonical distinct key/count results
+from its own generated rows at both sizes, outside and inside a render. It
+does not call an adapter or the production result codec. A small independent
+oracle witness includes scalar, absent, duplicate, empty and tuple selectors;
+the whole generated guestbook/lists suite runs on memory and PostgreSQL.
+Those two failed results are retained as diagnostics, not passing credit.
