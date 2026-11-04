@@ -1,0 +1,16 @@
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+    Finished `test` profile [unoptimized] target(s) in 0.66s
+     Running tests/table_ranges.rs (target/debug/deps/table_ranges-8654758b3accf390)
+
+running 8 tests
+test a_table_without_declared_order_has_no_range_counts ... ok
+test the_range_mark_name_avoids_every_existing_row_field ... ok
+test range_count_inputs_keep_the_reader_and_the_nominal_order_type ... ok
+test range_record_names_never_silently_alias_an_ordinary_selector_tuple ... ok
+test range_count_loops_repair_to_selector_and_mark_records ... ok
+test range_scalar_and_set_imports_cannot_silently_alias ... ok
+test range_counts_compile_through_owned_shared_and_reader_only_set_imports ... ok
+test generated_range_parameters_and_fields_do_not_alias_after_or_reader_names ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+

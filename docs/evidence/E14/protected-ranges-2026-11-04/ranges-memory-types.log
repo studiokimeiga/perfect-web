@@ -1,0 +1,11 @@
+   Compiling pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+    Finished `test` profile [unoptimized] target(s) in 0.90s
+     Running tests/compiled_ranges.rs (target/debug/deps/compiled_ranges-ed4f193faed0d79d)
+
+running 3 tests
+test range_predicates_read_staged_rows_and_the_pinned_query_keeps_predicate_and_body ... ok
+test ranges_count_strict_order_marks_and_keep_full_heterogeneous_request_identity ... ok
+test range_marks_keep_refinements_and_native_bool_and_utf8_order_through_compiled_calls ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.87s
+

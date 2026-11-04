@@ -1,0 +1,54 @@
+{
+  "code": "f4fc668f9d6783993203fe27e02180a3e377fc0e",
+  "control_only_successor": "06a6ad18a190cf2b69df3809e20213e5b3e6baa3",
+  "native": {
+    "core": {
+      "passed": 336,
+      "failed": 0,
+      "ignored": 0
+    },
+    "cli": {
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    "host": {
+      "passed": 117,
+      "failed": 0,
+      "ignored": 9
+    },
+    "memory": {
+      "passed": 124,
+      "failed": 0,
+      "ignored": 0
+    },
+    "pg": {
+      "passed": 89,
+      "failed": 0,
+      "ignored": 0
+    },
+    "server": {
+      "passed": 175,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "controls": {
+    "pg": [
+      89,
+      10
+    ],
+    "row": [
+      209,
+      11
+    ],
+    "data": [
+      74,
+      4
+    ],
+    "wrong_field": [
+      89,
+      1
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+   Compiling pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+error[E0308]: mismatched types
+    --> runtime/pw-table-memory/src/lib.rs:1736:48
+     |
+1736 |                 None => Box::new(data.prefixed(selected).map(|(_, row)| Ok(row))),
+     |                                       -------- ^^^^^^^^ expected `&Vec<Atom>`, found `&[Atom]`
+     |                                       |
+     |                                       arguments to this method are incorrect
+     |
+     = note: expected reference `&Vec<Atom>`
+                found reference `&[Atom]`
+note: method defined here
+    --> runtime/pw-table-memory/src/lib.rs:235:8
+     |
+ 235 |     fn prefixed<'a>(&'a self, prefix: &Key) -> impl Iterator<Item = (&'a Key, &'a Row)> + use<'a> {
+     |        ^^^^^^^^               ------------
+
+error[E0308]: mismatched types
+    --> runtime/pw-table-memory/src/lib.rs:1737:71
+     |
+1737 |                 Some(index) => Box::new(holding(&data.indexes[index], selected).map(|key| {
+     |                                         -------                       ^^^^^^^^ expected `&Vec<Atom>`, found `&[Atom]`
+     |                                         |
+     |                                         arguments to this function are incorrect
+     |
+     = note: expected reference `&Vec<Atom>`
+                found reference `&[Atom]`
+note: function defined here
+    --> runtime/pw-table-memory/src/lib.rs:244:4
+     |
+ 244 | fn holding<'a>(
+     |    ^^^^^^^
+ 245 |     index: &'a BTreeSet<(Key, Key)>,
+ 246 |     values: &Key,
+     |     ------------
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `pw-table-memory` (lib) due to 2 previous errors

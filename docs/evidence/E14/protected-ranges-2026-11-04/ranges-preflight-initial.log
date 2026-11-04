@@ -1,0 +1,48 @@
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+    Checking pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+    Checking pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+    Checking kiokun-server v0.0.0 (/home/haki/code/pw-wt/data-path/spikes/kiokun/server)
+    Checking pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+    Checking pw-conformance v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-conformance)
+    Checking pw-table-postgres v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-postgres)
+    Checking pw-resume v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-resume)
+    Checking pw-cli v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-cli)
+    Checking pw-dev-server v0.0.0 (/home/haki/code/pw-wt/data-path/spikes/own-renderer/server)
+error: very complex type used. Consider factoring parts into `type` definitions
+  --> runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/ranges.rs:84:21
+   |
+84 | fn order_cases() -> Vec<(&'static str,Vec<serde_json::Value>,Vec<(serde_json::Value,i64)>,Val)> {
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#type_complexity
+   = note: `-D clippy::type-complexity` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::type_complexity)]`
+
+error: could not compile `pw-table-postgres` (test "compiled_ranges") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: useless use of `vec!`
+    --> spikes/own-renderer/server/src/tests/conformance.rs:1095:29
+     |
+1095 |                   let marks = vec![
+     |  _____________________________^
+1096 | |                     all[0][order].clone(),
+1097 | |                     all.last().expect("rows")[order].clone(),
+1098 | |                     value(table.stored(order), 0),
+1099 | |                     value(table.stored(order), 10_000 + n),
+1100 | |                 ];
+     | |_________________^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#useless_vec
+     = note: `-D clippy::useless-vec` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::useless_vec)]`
+help: you can use an array directly
+     |
+1095 ~                 let marks = [all[0][order].clone(),
+1096 +                     all.last().expect("rows")[order].clone(),
+1097 +                     value(table.stored(order), 0),
+1098 ~                     value(table.stored(order), 10_000 + n)];
+     |
+
+error: could not compile `pw-dev-server` (bin "pw-dev-server" test) due to 1 previous error
+error: recipe `lint` failed on line 117 with exit code 101

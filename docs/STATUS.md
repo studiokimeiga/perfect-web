@@ -23,7 +23,11 @@ Ordered first/last selector windows passed their local frozen checks at
 checks and strict controls at `d417983f` and `5b7f5be8`. Independent review is
 clear. See the [window record](diagnostics/protected-feed-store-windows-2026-11-04.md).
 These source-scoped prerequisite records do not complete the application ports.
-Upload lifecycle, global relation/range reads and the canonical application
+Typed order-range scalar/heterogeneous-set counts passed frozen affected
+checks and strict controls at `f4fc668f`; the script-only wrong-field successor
+`06a6ad18` passed its own strict control/preflight. Independent review is clear.
+See the [range record](diagnostics/protected-feed-store-ranges-2026-11-04.md).
+Upload lifecycle, fixed global relation reads and the canonical application
 ports remain pending under
 [the migration decision](DECISIONS/ADR-XXXX-protected-feed-store.md).
 Earlier green records below apply to their named sources only.

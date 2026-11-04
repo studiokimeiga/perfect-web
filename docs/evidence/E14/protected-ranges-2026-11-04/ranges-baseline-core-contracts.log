@@ -1,0 +1,824 @@
+    Finished `test` profile [unoptimized] target(s) in 0.05s
+     Running tests/bounded_reads.rs (target/debug/deps/bounded_reads-b145cf1a7a574b92)
+
+running 32 tests
+test a_build_from_before_sets_reads_as_guaranteeing_nothing ... ok
+test a_build_states_what_each_set_read_costs_its_source ... ok
+test a_set_reads_cost_is_what_its_source_states ... ok
+test set_and_sets_head_a_clause_only_where_a_name_follows ... ok
+test the_ledger_reads_its_lines_together_and_checks ... ok
+test a_call_that_reads_and_writes_per_element_is_refused_as_a_read ... ok
+test a_read_keyed_by_an_outer_loops_element_is_refused_for_the_outer_loop ... ok
+test a_key_a_read_computes_ends_the_trace_and_its_read_is_refused_once ... ok
+test a_read_in_a_combinators_callback_keyed_by_its_element_is_refused ... ok
+test a_read_in_a_for_keyed_by_its_element_through_a_let_is_refused ... ok
+test a_callback_bound_by_a_let_or_passed_on_by_a_function_is_in_the_loop ... ok
+test a_parameter_a_mutual_recursion_hands_on_whole_is_not_walked_unless_it_is_stepped ... ok
+test a_read_in_a_recursion_over_data_keyed_by_its_part_is_refused ... ok
+test a_set_belongs_to_a_function_that_reads_and_sets_to_a_source ... ok
+test a_helper_that_reads_by_what_it_is_given_is_a_read_per_element ... ok
+test a_set_that_does_not_fit_is_the_pairs_own_rule_and_a_bad_sets_value_is_a_policys ... ok
+test a_key_comes_from_the_element_through_a_field_a_pure_call_and_a_match_arm ... ok
+test a_reads_verdict_depends_on_its_key_and_on_nothing_else ... ok
+test a_set_read_on_a_source_that_cannot_batch_is_warned ... ok
+test the_feed_reads_nothing_per_element ... ok
+test a_sources_sets_is_one_call_chunked_or_per_key ... ok
+test a_set_pairs_key_field_is_named_as_the_key_parameter ... ok
+test a_set_read_on_a_source_that_batches_is_not_warned ... ok
+test a_set_pair_can_keep_each_keys_exact_result ... ok
+test what_is_no_read_per_element_is_accepted ... ok
+test a_set_names_a_function_of_the_same_source_given_and_answering_lists ... ok
+test every_combinator_that_applies_its_callback_to_elements_is_a_loop ... ok
+test the_store_reads_nothing_per_element ... ok
+test the_stores_loop_is_seen_and_refused_where_it_reads_per_element ... ok
+test kiokun_reads_per_element_where_it_is_known_to_and_nowhere_else ... ok
+test a_known_read_is_known_only_where_the_list_names_it ... ok
+test the_stores_pairs_and_source_cost_are_declared_together ... ok
+
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.94s
+
+     Running tests/bounded_tables.rs (target/debug/deps/bounded_tables-b682a1ee8fc5e6de)
+
+running 8 tests
+test a_generated_read_named_as_the_callback_has_the_same_matching_row_repair ... ok
+test a_generated_read_in_a_generic_result_callback_remains_a_read_per_row ... ok
+test a_generated_many_read_before_the_loop_selects_each_turns_matching_rows ... ok
+test generated_many_reads_warn_for_default_and_per_key_sources ... ok
+test generated_many_reads_accept_one_call_and_chunked_sources ... ok
+test a_generated_batch_before_generic_row_selection_keeps_its_source_cost ... ok
+test a_generated_read_through_a_member_stays_a_read_per_row ... ok
+test generated_key_prefix_and_index_repairs_name_the_matching_many_read ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+
+     Running tests/head_only.rs (target/debug/deps/head_only-772f3b6b7cc2c593)
+
+running 3 tests
+test the_scan_finds_a_call_that_is_there ... ok
+test the_allow_list_has_no_entries_for_sites_that_are_gone ... ok
+test every_head_only_call_has_a_written_reason ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/table_counts.rs (target/debug/deps/table_counts-ca36dcb91758cc87)
+
+running 4 tests
+test counts_are_compiled_reads_of_the_same_owned_and_shared_selectors ... ok
+test an_owned_count_does_not_accept_a_plain_user_id ... ok
+test counting_each_loop_element_is_refused_with_its_generated_set_repair ... ok
+test count_scalar_and_set_names_cannot_silently_replace_each_other ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
+
+     Running tests/table_owners.rs (target/debug/deps/table_owners-89b1f771a88d17c1)
+
+running 20 tests
+test private_is_still_a_declarations_visibility_after_a_table ... ok
+test an_owned_table_gives_each_read_and_write_by_its_readers_handle ... FAILED
+test an_unowned_table_gives_what_it_gave ... ok
+test a_set_form_takes_the_handle_and_a_list_of_what_follows_it ... ok
+test without_a_private_field_a_sharer_is_answered_the_row ... ok
+test pw0368_an_owned_table_is_never_read_whole ... ok
+test pw0362_a_binding_by_hand_reaches_no_owned_row ... ok
+test pw0369_the_seen_row_is_the_compilers_to_declare ... ok
+test the_fixture_checks_clean_and_reads_each_clause ... ok
+test pw0367_owned_by_names_a_field_holding_a_principals_id ... ok
+test pw6924_an_owned_table_refers_to_no_table_no_one_owns ... ok
+test tables_json_states_whose_rows_and_each_functions_reader ... FAILED
+test an_owned_read_in_a_shared_cache_is_pw5001 ... ok
+test pw6924_a_reference_into_an_owned_table_is_made_from_its_owners_field ... ok
+test each_clause_is_read_as_its_grammar_says ... ok
+test pw0368_every_read_of_an_owned_table_leads_with_a_reader ... ok
+test pw0368_an_owned_table_states_no_bound_across_its_owners ... ok
+test pw0367_shares_with_names_others_fields_holding_principals_ids ... ok
+test no_program_reads_anothers_rows_by_naming_an_id ... ok
+test pw0369_a_private_field_is_one_no_other_reader_reads_rows_by ... ok
+
+failures:
+
+---- an_owned_table_gives_each_read_and_write_by_its_readers_handle stdout ----
+
+thread 'an_owned_table_gives_each_read_and_write_by_its_readers_handle' (1375895) panicked at compiler/pw-core/tests/table_owners.rs:354:5:
+assertion `left == right` failed: [
+    (
+        "NotesAuthorId",
+        "author, id",
+        [],
+        "",
+    ),
+    (
+        "NotesAuthorIdCount",
+        "key, count",
+        [],
+        "",
+    ),
+    (
+        "NotesAfter",
+        "after",
+        [],
+        "",
+    ),
+    (
+        "NotesAuthorAfter",
+        "author, after",
+        [],
+        "",
+    ),
+    (
+        "NotesAuthorAfterCount",
+        "key, count",
+        [],
+        "",
+    ),
+    (
+        "NotesIdAfter",
+        "id, after",
+        [],
+        "",
+    ),
+    (
+        "NotesAuthorIdAfter",
+        "author, id, after",
+        [],
+        "",
+    ),
+    (
+        "NotesAuthorIdAfterCount",
+        "key, count",
+        [],
+        "",
+    ),
+    (
+        "NotesToAfter",
+        "to, after",
+        [],
+        "",
+    ),
+    (
+        "NotesToAfterCount",
+        "key, count",
+        [],
+        "",
+    ),
+    (
+        "NoteSeen",
+        "author, id, to, text, added",
+        [],
+        "",
+    ),
+    (
+        "get",
+        "(capability.User<UserId>, NoteId) -> Option<Note>",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#get\"",
+    ),
+    (
+        "get_many",
+        "(capability.User<UserId>, List<NoteId>) -> List<Note>",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#get-many\"",
+    ),
+    (
+        "of_author",
+        "(capability.User<UserId>) -> List<Note>",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#of-author\"",
+    ),
+    (
+        "by_to",
+        "(capability.User<UserId>) -> List<NoteSeen>",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#by-to\"",
+    ),
+    (
+        "first_by_author",
+        "(capability.User<UserId>, Int) -> List<Note>",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#first-by-author\"",
+    ),
+    (
+        "last_by_author",
+        "(capability.User<UserId>, Int) -> List<Note>",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#last-by-author\"",
+    ),
+    (
+        "count_after_by_author",
+        "(capability.User<UserId>, Int) -> Int",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#count-after-by-author\"",
+    ),
+    (
+        "count_after_by_author_many",
+        "(capability.User<UserId>, List<NotesAfter>) -> List<NotesAuthorAfterCount>",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#count-after-by-author-many\"",
+    ),
+    (
+        "count_by_author",
+        "(capability.User<UserId>) -> Int",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#count-by-author\"",
+    ),
+    (
+        "first_by_author_id",
+        "(capability.User<UserId>, NoteId, Int) -> List<Note>",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#first-by-author-id\"",
+    ),
+    (
+        "first_by_author_id_many",
+        "(capability.User<UserId>, List<NoteId>, Int) -> List<Note>",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#first-by-author-id-many\"",
+    ),
+    (
+        "last_by_author_id",
+        "(capability.User<UserId>, NoteId, Int) -> List<Note>",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#last-by-author-id\"",
+    ),
+    (
+        "last_by_author_id_many",
+        "(capability.User<UserId>, List<NoteId>, Int) -> List<Note>",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#last-by-author-id-many\"",
+    ),
+    (
+        "count_after_by_author_id",
+        "(capability.User<UserId>, NoteId, Int) -> Int",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#count-after-by-author-id\"",
+    ),
+    (
+        "count_after_by_author_id_many",
+        "(capability.User<UserId>, List<NotesIdAfter>) -> List<NotesAuthorIdAfterCount>",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#count-after-by-author-id-many\"",
+    ),
+    (
+        "count_by_author_id",
+        "(capability.User<UserId>, NoteId) -> Int",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#count-by-author-id\"",
+    ),
+    (
+        "count_by_author_id_many",
+        "(capability.User<UserId>, List<NoteId>) -> List<NotesAuthorIdCount>",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#count-by-author-id-many\"",
+    ),
+    (
+        "first_by_to",
+        "(capability.User<UserId>, Int) -> List<NoteSeen>",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#first-by-to\"",
+    ),
+    (
+        "last_by_to",
+        "(capability.User<UserId>, Int) -> List<NoteSeen>",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#last-by-to\"",
+    ),
+    (
+        "count_after_by_to",
+        "(capability.User<UserId>, Int) -> Int",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#count-after-by-to\"",
+    ),
+    (
+        "count_after_by_to_many",
+        "(capability.User<UserId>, List<NotesAfter>) -> List<NotesToAfterCount>",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#count-after-by-to-many\"",
+    ),
+    (
+        "count_by_to",
+        "(capability.User<UserId>) -> Int",
+        [
+            "database.read<Notes>",
+        ],
+        "\"pw:tables/notes#count-by-to\"",
+    ),
+    (
+        "insert",
+        "(capability.User<UserId>, Note) -> Result<(), Note>",
+        [
+            "database.write<Notes>",
+        ],
+        "\"pw:tables/notes#insert\"",
+    ),
+    (
+        "put",
+        "(capability.User<UserId>, Note) -> ()",
+        [
+            "database.write<Notes>",
+        ],
+        "\"pw:tables/notes#put\"",
+    ),
+    (
+        "delete",
+        "(capability.User<UserId>, NoteId) -> ()",
+        [
+            "database.write<Notes>",
+        ],
+        "\"pw:tables/notes#delete\"",
+    ),
+    (
+        "delete_of_author",
+        "(capability.User<UserId>) -> ()",
+        [
+            "database.write<Notes>",
+        ],
+        "\"pw:tables/notes#delete-of-author\"",
+    ),
+]
+  left: [("NotesAuthorId", "author, id", [], ""), ("NotesAuthorIdCount", "key, count", [], ""), ("NotesAfter", "after", [], ""), ("NotesAuthorAfter", "author, after", [], ""), ("NotesAuthorAfterCount", "key, count", [], ""), ("NotesIdAfter", "id, after", [], ""), ("NotesAuthorIdAfter", "author, id, after", [], ""), ("NotesAuthorIdAfterCount", "key, count", [], ""), ("NotesToAfter", "to, after", [], ""), ("NotesToAfterCount", "key, count", [], ""), ("NoteSeen", "author, id, to, text, added", [], ""), ("get", "(capability.User<UserId>, NoteId) -> Option<Note>", ["database.read<Notes>"], "\"pw:tables/notes#get\""), ("get_many", "(capability.User<UserId>, List<NoteId>) -> List<Note>", ["database.read<Notes>"], "\"pw:tables/notes#get-many\""), ("of_author", "(capability.User<UserId>) -> List<Note>", ["database.read<Notes>"], "\"pw:tables/notes#of-author\""), ("by_to", "(capability.User<UserId>) -> List<NoteSeen>", ["database.read<Notes>"], "\"pw:tables/notes#by-to\""), ("first_by_author", "(capability.User<UserId>, Int) -> List<Note>", ["database.read<Notes>"], "\"pw:tables/notes#first-by-author\""), ("last_by_author", "(capability.User<UserId>, Int) -> List<Note>", ["database.read<Notes>"], "\"pw:tables/notes#last-by-author\""), ("count_after_by_author", "(capability.User<UserId>, Int) -> Int", ["database.read<Notes>"], "\"pw:tables/notes#count-after-by-author\""), ("count_after_by_author_many", "(capability.User<UserId>, List<NotesAfter>) -> List<NotesAuthorAfterCount>", ["database.read<Notes>"], "\"pw:tables/notes#count-after-by-author-many\""), ("count_by_author", "(capability.User<UserId>) -> Int", ["database.read<Notes>"], "\"pw:tables/notes#count-by-author\""), ("first_by_author_id", "(capability.User<UserId>, NoteId, Int) -> List<Note>", ["database.read<Notes>"], "\"pw:tables/notes#first-by-author-id\""), ("first_by_author_id_many", "(capability.User<UserId>, List<NoteId>, Int) -> List<Note>", ["database.read<Notes>"], "\"pw:tables/notes#first-by-author-id-many\""), ("last_by_author_id", "(capability.User<UserId>, NoteId, Int) -> List<Note>", ["database.read<Notes>"], "\"pw:tables/notes#last-by-author-id\""), ("last_by_author_id_many", "(capability.User<UserId>, List<NoteId>, Int) -> List<Note>", ["database.read<Notes>"], "\"pw:tables/notes#last-by-author-id-many\""), ("count_after_by_author_id", "(capability.User<UserId>, NoteId, Int) -> Int", ["database.read<Notes>"], "\"pw:tables/notes#count-after-by-author-id\""), ("count_after_by_author_id_many", "(capability.User<UserId>, List<NotesIdAfter>) -> List<NotesAuthorIdAfterCount>", ["database.read<Notes>"], "\"pw:tables/notes#count-after-by-author-id-many\""), ("count_by_author_id", "(capability.User<UserId>, NoteId) -> Int", ["database.read<Notes>"], "\"pw:tables/notes#count-by-author-id\""), ("count_by_author_id_many", "(capability.User<UserId>, List<NoteId>) -> List<NotesAuthorIdCount>", ["database.read<Notes>"], "\"pw:tables/notes#count-by-author-id-many\""), ("first_by_to", "(capability.User<UserId>, Int) -> List<NoteSeen>", ["database.read<Notes>"], "\"pw:tables/notes#first-by-to\""), ("last_by_to", "(capability.User<UserId>, Int) -> List<NoteSeen>", ["database.read<Notes>"], "\"pw:tables/notes#last-by-to\""), ("count_after_by_to", "(capability.User<UserId>, Int) -> Int", ["database.read<Notes>"], "\"pw:tables/notes#count-after-by-to\""), ("count_after_by_to_many", "(capability.User<UserId>, List<NotesAfter>) -> List<NotesToAfterCount>", ["database.read<Notes>"], "\"pw:tables/notes#count-after-by-to-many\""), ("count_by_to", "(capability.User<UserId>) -> Int", ["database.read<Notes>"], "\"pw:tables/notes#count-by-to\""), ("insert", "(capability.User<UserId>, Note) -> Result<(), Note>", ["database.write<Notes>"], "\"pw:tables/notes#insert\""), ("put", "(capability.User<UserId>, Note) -> ()", ["database.write<Notes>"], "\"pw:tables/notes#put\""), ("delete", "(capability.User<UserId>, NoteId) -> ()", ["database.write<Notes>"], "\"pw:tables/notes#delete\""), ("delete_of_author", "(capability.User<UserId>) -> ()", ["database.write<Notes>"], "\"pw:tables/notes#delete-of-author\"")]
+ right: [("NotesAuthorId", "author, id", [], ""), ("NotesAuthorIdCount", "key, count", [], ""), ("NoteSeen", "author, id, to, text, added", [], ""), ("get", "(capability.User<UserId>, NoteId) -> Option<Note>", ["database.read<Notes>"], "\"pw:tables/notes#get\""), ("get_many", "(capability.User<UserId>, List<NoteId>) -> List<Note>", ["database.read<Notes>"], "\"pw:tables/notes#get-many\""), ("of_author", "(capability.User<UserId>) -> List<Note>", ["database.read<Notes>"], "\"pw:tables/notes#of-author\""), ("by_to", "(capability.User<UserId>) -> List<NoteSeen>", ["database.read<Notes>"], "\"pw:tables/notes#by-to\""), ("first_by_author", "(capability.User<UserId>, Int) -> List<Note>", ["database.read<Notes>"], "\"pw:tables/notes#first-by-author\""), ("last_by_author", "(capability.User<UserId>, Int) -> List<Note>", ["database.read<Notes>"], "\"pw:tables/notes#last-by-author\""), ("count_by_author", "(capability.User<UserId>) -> Int", ["database.read<Notes>"], "\"pw:tables/notes#count-by-author\""), ("first_by_author_id", "(capability.User<UserId>, NoteId, Int) -> List<Note>", ["database.read<Notes>"], "\"pw:tables/notes#first-by-author-id\""), ("first_by_author_id_many", "(capability.User<UserId>, List<NoteId>, Int) -> List<Note>", ["database.read<Notes>"], "\"pw:tables/notes#first-by-author-id-many\""), ("last_by_author_id", "(capability.User<UserId>, NoteId, Int) -> List<Note>", ["database.read<Notes>"], "\"pw:tables/notes#last-by-author-id\""), ("last_by_author_id_many", "(capability.User<UserId>, List<NoteId>, Int) -> List<Note>", ["database.read<Notes>"], "\"pw:tables/notes#last-by-author-id-many\""), ("count_by_author_id", "(capability.User<UserId>, NoteId) -> Int", ["database.read<Notes>"], "\"pw:tables/notes#count-by-author-id\""), ("count_by_author_id_many", "(capability.User<UserId>, List<NoteId>) -> List<NotesAuthorIdCount>", ["database.read<Notes>"], "\"pw:tables/notes#count-by-author-id-many\""), ("first_by_to", "(capability.User<UserId>, Int) -> List<NoteSeen>", ["database.read<Notes>"], "\"pw:tables/notes#first-by-to\""), ("last_by_to", "(capability.User<UserId>, Int) -> List<NoteSeen>", ["database.read<Notes>"], "\"pw:tables/notes#last-by-to\""), ("count_by_to", "(capability.User<UserId>) -> Int", ["database.read<Notes>"], "\"pw:tables/notes#count-by-to\""), ("insert", "(capability.User<UserId>, Note) -> Result<(), Note>", ["database.write<Notes>"], "\"pw:tables/notes#insert\""), ("put", "(capability.User<UserId>, Note) -> ()", ["database.write<Notes>"], "\"pw:tables/notes#put\""), ("delete", "(capability.User<UserId>, NoteId) -> ()", ["database.write<Notes>"], "\"pw:tables/notes#delete\""), ("delete_of_author", "(capability.User<UserId>) -> ()", ["database.write<Notes>"], "\"pw:tables/notes#delete-of-author\"")]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tables_json_states_whose_rows_and_each_functions_reader stdout ----
+
+thread 'tables_json_states_whose_rows_and_each_functions_reader' (1375910) panicked at compiler/pw-core/tests/table_owners.rs:464:5:
+assertion `left == right` failed
+  left: [("get", Some("author")), ("get_many", Some("author")), ("of_author", Some("author")), ("by_to", Some("to")), ("first_by_author", Some("author")), ("last_by_author", Some("author")), ("count_after_by_author", Some("author")), ("count_after_by_author_many", Some("author")), ("count_by_author", Some("author")), ("first_by_author_id", Some("author")), ("first_by_author_id_many", Some("author")), ("last_by_author_id", Some("author")), ("last_by_author_id_many", Some("author")), ("count_after_by_author_id", Some("author")), ("count_after_by_author_id_many", Some("author")), ("count_by_author_id", Some("author")), ("count_by_author_id_many", Some("author")), ("first_by_to", Some("to")), ("last_by_to", Some("to")), ("count_after_by_to", Some("to")), ("count_after_by_to_many", Some("to")), ("count_by_to", Some("to")), ("insert", Some("author")), ("put", Some("author")), ("delete", Some("author")), ("delete_of_author", Some("author"))]
+ right: [("get", Some("author")), ("get_many", Some("author")), ("of_author", Some("author")), ("by_to", Some("to")), ("first_by_author", Some("author")), ("last_by_author", Some("author")), ("count_by_author", Some("author")), ("first_by_author_id", Some("author")), ("first_by_author_id_many", Some("author")), ("last_by_author_id", Some("author")), ("last_by_author_id_many", Some("author")), ("count_by_author_id", Some("author")), ("count_by_author_id_many", Some("author")), ("first_by_to", Some("to")), ("last_by_to", Some("to")), ("count_by_to", Some("to")), ("insert", Some("author")), ("put", Some("author")), ("delete", Some("author")), ("delete_of_author", Some("author"))]
+
+
+failures:
+    an_owned_table_gives_each_read_and_write_by_its_readers_handle
+    tables_json_states_whose_rows_and_each_functions_reader
+
+test result: FAILED. 18 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s
+
+error: test failed, to rerun pass `-p pw-core --test table_owners`
+     Running tests/table_ranges.rs (target/debug/deps/table_ranges-8654758b3accf390)
+
+running 6 tests
+test a_table_without_declared_order_has_no_range_counts ... ok
+test range_count_inputs_keep_the_reader_and_the_nominal_order_type ... ok
+test range_record_names_never_silently_alias_an_ordinary_selector_tuple ... ok
+test range_count_loops_repair_to_selector_and_mark_records ... ok
+test range_counts_compile_through_owned_shared_and_reader_only_set_imports ... ok
+test generated_range_parameters_and_fields_do_not_alias_after_or_reader_names ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s
+
+     Running tests/table_windows.rs (target/debug/deps/table_windows-19bcde89f3c822b3)
+
+running 8 tests
+test window_reads_still_require_the_readers_handle ... ok
+test windows_compile_as_owned_and_shared_bounded_reads_of_existing_selectors ... ok
+test window_bounds_do_not_alias_a_selector_parameter_named_limit ... ok
+test a_combined_selector_and_bound_loop_gets_the_common_bound_repair ... ok
+test windows_inside_element_dependent_loops_keep_the_round_trip_refusal ... ok
+test a_varying_window_bound_does_not_offer_the_shared_bound_set_as_a_replacement ... ok
+test an_owned_readers_field_name_cannot_alias_generated_parameters ... ok
+test generated_owned_set_repairs_describe_the_list_separately_from_the_reader ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+
+     Running tests/tables.rs (target/debug/deps/tables-83bb3ec3b7f3dad0)
+
+running 37 tests
+test a_table_gives_each_read_and_write_with_its_type_and_effect ... FAILED
+test every_keyed_read_has_its_set_form ... ok
+test a_three_field_key_gives_a_read_by_each_proper_prefix ... ok
+test a_bound_gives_all_and_no_bound_none ... ok
+test a_clause_on_another_declaration_is_no_tables ... ok
+test a_lock_changed_by_hand_is_no_release ... ok
+test the_control_checks_clean_and_reads_each_clause ... ok
+test pw0361_a_table_is_declared_in_the_module_of_its_name ... ok
+test pw0361_two_tables_cannot_emit_the_same_interface ... ok
+test pw0361_two_functions_cannot_emit_the_same_import ... ok
+test pw0361_generated_composite_records_have_one_shape_each ... ok
+test checking_with_no_release_is_checking ... ok
+test tables_json_states_each_table_its_functions_and_their_order ... ok
+test pw0361_a_source_name_cannot_hide_another_database ... ok
+test its_imports_are_the_platforms_and_its_program_builds ... ok
+test a_dropped_field_is_refused_without_its_migrate_and_planned_with_it ... ok
+test a_table_reference_uses_its_own_module_beside_a_namesake ... ok
+test count_records_cannot_alias_selector_records_or_other_count_keys ... ok
+test the_corpus_fixtures_that_name_a_release_are_held_to_it ... ok
+test full_validation_preserves_native_migration_unit_span_and_reason ... ok
+test pw0361_its_row_is_a_record_declared_beside_it ... ok
+test a_program_with_no_table_has_no_tables_file ... ok
+test a_program_held_to_its_release_is_refused_where_it_is_checked_and_built ... ok
+test pw0364_all_reads_only_a_bounded_table ... ok
+test an_additive_change_is_planned ... ok
+test a_bound_is_a_count_and_each_clause_its_grammar ... ok
+test source_ambiguity_is_not_an_alternate_copy_of_the_own_module ... ok
+test a_rename_is_refused_without_its_migrate_and_planned_with_it ... ok
+test generic_fields_project_their_arguments_recursively_and_a_change_is_destructive ... ok
+test pw0361_a_reference_names_a_table_keyed_by_its_fields_type ... ok
+test a_change_no_migrate_states_is_refused ... ok
+test pw0365_every_reference_across_sources_is_warned_and_builds ... ok
+test pw0362_its_rows_are_reached_only_through_its_functions ... ok
+test pw0361_its_order_and_indexes_name_its_rows_fields ... ok
+test a_type_changed_or_a_field_added_with_no_value_is_refused_unless_backfilled ... ok
+test pw0361_its_key_names_its_rows_fields_of_types_every_adapter_keys ... ok
+test two_indexes_cannot_describe_one_ordered_field_list ... ok
+
+failures:
+
+---- a_table_gives_each_read_and_write_with_its_type_and_effect stdout ----
+
+thread 'a_table_gives_each_read_and_write_with_its_type_and_effect' (1375975) panicked at compiler/pw-core/tests/tables.rs:399:5:
+assertion `left == right` failed: [
+    (
+        "TodosListId",
+        "",
+        [],
+        "",
+    ),
+    (
+        "TodosListCount",
+        "",
+        [],
+        "",
+    ),
+    (
+        "TodosListIdCount",
+        "",
+        [],
+        "",
+    ),
+    (
+        "TodosDoneCount",
+        "",
+        [],
+        "",
+    ),
+    (
+        "TodosListAfter",
+        "",
+        [],
+        "",
+    ),
+    (
+        "TodosListAfterCount",
+        "",
+        [],
+        "",
+    ),
+    (
+        "TodosListIdAfter",
+        "",
+        [],
+        "",
+    ),
+    (
+        "TodosListIdAfterCount",
+        "",
+        [],
+        "",
+    ),
+    (
+        "TodosDoneAfter",
+        "",
+        [],
+        "",
+    ),
+    (
+        "TodosDoneAfterCount",
+        "",
+        [],
+        "",
+    ),
+    (
+        "get",
+        "(ListId, TodoId) -> Option<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#get\"",
+    ),
+    (
+        "get_many",
+        "(List<TodosListId>) -> List<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#get-many\"",
+    ),
+    (
+        "of_list",
+        "(ListId) -> List<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#of-list\"",
+    ),
+    (
+        "of_list_many",
+        "(List<ListId>) -> List<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#of-list-many\"",
+    ),
+    (
+        "by_done",
+        "(Bool) -> List<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#by-done\"",
+    ),
+    (
+        "by_done_many",
+        "(List<Bool>) -> List<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#by-done-many\"",
+    ),
+    (
+        "first_by_list",
+        "(ListId, Int) -> List<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#first-by-list\"",
+    ),
+    (
+        "first_by_list_many",
+        "(List<ListId>, Int) -> List<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#first-by-list-many\"",
+    ),
+    (
+        "last_by_list",
+        "(ListId, Int) -> List<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#last-by-list\"",
+    ),
+    (
+        "last_by_list_many",
+        "(List<ListId>, Int) -> List<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#last-by-list-many\"",
+    ),
+    (
+        "count_after_by_list",
+        "(ListId, Int) -> Int",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#count-after-by-list\"",
+    ),
+    (
+        "count_after_by_list_many",
+        "(List<TodosListAfter>) -> List<TodosListAfterCount>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#count-after-by-list-many\"",
+    ),
+    (
+        "count_by_list",
+        "(ListId) -> Int",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#count-by-list\"",
+    ),
+    (
+        "count_by_list_many",
+        "(List<ListId>) -> List<TodosListCount>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#count-by-list-many\"",
+    ),
+    (
+        "first_by_list_id",
+        "(ListId, TodoId, Int) -> List<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#first-by-list-id\"",
+    ),
+    (
+        "first_by_list_id_many",
+        "(List<TodosListId>, Int) -> List<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#first-by-list-id-many\"",
+    ),
+    (
+        "last_by_list_id",
+        "(ListId, TodoId, Int) -> List<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#last-by-list-id\"",
+    ),
+    (
+        "last_by_list_id_many",
+        "(List<TodosListId>, Int) -> List<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#last-by-list-id-many\"",
+    ),
+    (
+        "count_after_by_list_id",
+        "(ListId, TodoId, Int) -> Int",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#count-after-by-list-id\"",
+    ),
+    (
+        "count_after_by_list_id_many",
+        "(List<TodosListIdAfter>) -> List<TodosListIdAfterCount>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#count-after-by-list-id-many\"",
+    ),
+    (
+        "count_by_list_id",
+        "(ListId, TodoId) -> Int",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#count-by-list-id\"",
+    ),
+    (
+        "count_by_list_id_many",
+        "(List<TodosListId>) -> List<TodosListIdCount>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#count-by-list-id-many\"",
+    ),
+    (
+        "first_by_done",
+        "(Bool, Int) -> List<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#first-by-done\"",
+    ),
+    (
+        "first_by_done_many",
+        "(List<Bool>, Int) -> List<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#first-by-done-many\"",
+    ),
+    (
+        "last_by_done",
+        "(Bool, Int) -> List<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#last-by-done\"",
+    ),
+    (
+        "last_by_done_many",
+        "(List<Bool>, Int) -> List<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#last-by-done-many\"",
+    ),
+    (
+        "count_after_by_done",
+        "(Bool, Int) -> Int",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#count-after-by-done\"",
+    ),
+    (
+        "count_after_by_done_many",
+        "(List<TodosDoneAfter>) -> List<TodosDoneAfterCount>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#count-after-by-done-many\"",
+    ),
+    (
+        "count_by_done",
+        "(Bool) -> Int",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#count-by-done\"",
+    ),
+    (
+        "count_by_done_many",
+        "(List<Bool>) -> List<TodosDoneCount>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#count-by-done-many\"",
+    ),
+    (
+        "all",
+        "() -> List<Todo>",
+        [
+            "database.read<Todos>",
+        ],
+        "\"pw:tables/todos#all\"",
+    ),
+    (
+        "insert",
+        "(Todo) -> Result<(), Todo>",
+        [
+            "database.write<Todos>",
+        ],
+        "\"pw:tables/todos#insert\"",
+    ),
+    (
+        "put",
+        "(Todo) -> ()",
+        [
+            "database.write<Todos>",
+        ],
+        "\"pw:tables/todos#put\"",
+    ),
+    (
+        "delete",
+        "(ListId, TodoId) -> ()",
+        [
+            "database.write<Todos>",
+        ],
+        "\"pw:tables/todos#delete\"",
+    ),
+    (
+        "delete_of_list",
+        "(ListId) -> ()",
+        [
+            "database.write<Todos>",
+        ],
+        "\"pw:tables/todos#delete-of-list\"",
+    ),
+]
+  left: ["TodosListId", "TodosListCount", "TodosListIdCount", "TodosDoneCount", "TodosListAfter", "TodosListAfterCount", "TodosListIdAfter", "TodosListIdAfterCount", "TodosDoneAfter", "TodosDoneAfterCount", "get", "get_many", "of_list", "of_list_many", "by_done", "by_done_many", "first_by_list", "first_by_list_many", "last_by_list", "last_by_list_many", "count_after_by_list", "count_after_by_list_many", "count_by_list", "count_by_list_many", "first_by_list_id", "first_by_list_id_many", "last_by_list_id", "last_by_list_id_many", "count_after_by_list_id", "count_after_by_list_id_many", "count_by_list_id", "count_by_list_id_many", "first_by_done", "first_by_done_many", "last_by_done", "last_by_done_many", "count_after_by_done", "count_after_by_done_many", "count_by_done", "count_by_done_many", "all", "insert", "put", "delete", "delete_of_list"]
+ right: ["TodosListId", "TodosListCount", "TodosListIdCount", "TodosDoneCount", "get", "get_many", "of_list", "of_list_many", "by_done", "by_done_many", "first_by_list", "first_by_list_many", "last_by_list", "last_by_list_many", "count_by_list", "count_by_list_many", "first_by_list_id", "first_by_list_id_many", "last_by_list_id", "last_by_list_id_many", "count_by_list_id", "count_by_list_id_many", "first_by_done", "first_by_done_many", "last_by_done", "last_by_done_many", "count_by_done", "count_by_done_many", "all", "insert", "put", "delete", "delete_of_list"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    a_table_gives_each_read_and_write_with_its_type_and_effect
+
+test result: FAILED. 36 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.98s
+
+error: test failed, to rerun pass `-p pw-core --test tables`
+error: 2 targets failed:
+    `-p pw-core --test table_owners`
+    `-p pw-core --test tables`

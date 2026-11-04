@@ -1,0 +1,27 @@
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+   Compiling pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+    Finished `test` profile [unoptimized] target(s) in 1.87s
+     Running tests/compiled_ranges.rs (target/debug/deps/compiled_ranges-ed4f193faed0d79d)
+
+running 5 tests
+test a_forged_range_manifest_without_order_is_refused_and_reader_only_ranges_are_valid ... FAILED
+test ranges_count_strict_order_marks_and_keep_full_heterogeneous_request_identity ... ok
+test range_predicates_read_staged_rows_and_the_pinned_query_keeps_predicate_and_body ... ok
+test range_marks_keep_refinements_and_native_bool_and_utf8_order_through_compiled_calls ... ok
+test a_named_reader_and_its_range_mark_keep_distinct_wit_fields ... ok
+
+failures:
+
+---- a_forged_range_manifest_without_order_is_refused_and_reader_only_ranges_are_valid stdout ----
+
+thread 'a_forged_range_manifest_without_order_is_refused_and_reader_only_ranges_are_valid' (1434725) panicked at runtime/pw-table-memory/tests/compiled_ranges.rs:403:5:
+Some(Schema("tables.json and its schema hash disagree"))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    a_forged_range_manifest_without_order_is_refused_and_reader_only_ranges_are_valid
+
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.32s
+
+error: test failed, to rerun pass `-p pw-table-memory --test compiled_ranges`

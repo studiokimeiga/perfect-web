@@ -1,0 +1,46 @@
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+    Finished `test` profile [unoptimized] target(s) in 1.23s
+     Running unittests src/lib.rs (target/debug/deps/pw_host-3f197edde30e19df)
+
+running 38 tests
+test engine::identity_role_tests::identity_transition_authority_is_confined_to_its_lifecycle_export ... ok
+test engine::table_link::tests::a_composite_get_answers_its_own_key_or_none ... ok
+test engine::table_link::tests::a_composite_get_many_answers_asked_keys_once_in_order ... ok
+test engine::table_link::tests::count_answers_are_nonnegative_and_cover_exactly_the_requested_keys ... ok
+test engine::table_link::tests::a_prefix_answers_its_own_prefix_once_by_the_tables_order ... ok
+test engine::table_link::tests::index_and_all_answers_hold_their_values_and_bound ... ok
+test engine::table_link::tests::a_writes_refusal_is_the_row_that_holds_what_it_would_write ... ok
+test engine::table_link::tests::values_hold_their_stored_type_and_bounds ... ok
+test engine::table_link::tests::range_answers_cover_every_selector_and_mark_in_canonical_order_without_extras ... ok
+test engine::table_owners::tests::a_sharer_is_answered_the_seen_row ... ok
+test engine::table_link::tests::window_answers_hold_direction_ties_and_the_limit_of_each_selector ... ok
+test engine::table_owners::tests::a_handle_is_its_callers_or_nothing_is_read ... ok
+test engine::table_owners::tests::a_transition_reads_and_deletes_old_owner_rows_but_only_writes_new_rows ... ok
+test engine::table_read_host::tests::adapter_errors_and_unsupported_rows_are_refusals ... ok
+test engine::table_owners::tests::a_sharers_count_result_is_not_projected_as_a_stored_row ... ok
+test engine::table_owners::tests::an_owned_row_is_written_by_its_owner_alone ... ok
+test engine::table_owners::tests::a_row_not_exactly_its_tables_is_refused_before_any_adapter ... ok
+test engine::table_read_host::tests::count_callbacks_validate_selectors_before_data_and_encode_only_count_shapes ... ok
+test engine::table_read_host::tests::get_many_preserves_adapter_order_and_empty_reads ... ok
+test engine::table_read_host::tests::get_passes_typed_selectors_and_returns_wit_some_or_none ... ok
+test engine::table_read_host::tests::window_selectors_and_typed_limits_are_checked_before_the_adapter_even_at_zero ... ok
+test engine::table_read_host::tests::malformed_or_mistyped_arguments_never_reach_the_adapter ... ok
+test engine::table_read_host::tests::range_callbacks_validate_every_selector_and_typed_mark_before_the_adapter ... ok
+test engine::table_results::tests::a_writes_answer_is_ok_the_refusing_row_or_nothing ... ok
+test engine::table_results::tests::a_row_with_more_or_fewer_fields_than_declared_is_refused ... ok
+test engine::table_results::tests::get_many_preserves_bounded_adapter_order_and_empty_lists ... ok
+test engine::table_results::tests::rows_are_records_in_their_declared_order ... ok
+test engine::table_results::tests::get_preserves_present_and_missing_option_rows ... ok
+test engine::table_selectors::tests::a_written_row_is_exactly_its_tables_or_refused ... ok
+test engine::table_selectors::tests::all_takes_nothing_and_a_prefix_its_fields ... ok
+test engine::table_results::tests::unsupported_and_wrong_result_shapes_fail_closed ... ok
+test engine::table_selectors::tests::get_keeps_scalar_key_values_and_types ... ok
+test engine::table_selectors::tests::refuses_a_key_of_other_arity_or_field_names ... ok
+test engine::table_selectors::tests::get_many_keeps_composite_records_by_the_keys_own_names ... ok
+test engine::table_selectors::tests::refuses_keys_of_another_declared_type_or_out_of_bounds ... ok
+test engine::table_write_host::tests::a_write_passes_its_row_and_answers_its_wit_type ... ok
+test engine::table_selectors::tests::refuses_unsupported_key_shapes_without_defaults_or_coercion ... ok
+test engine::table_write_host::tests::a_malformed_row_never_reaches_the_adapter ... ok
+
+test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

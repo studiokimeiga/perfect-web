@@ -420,3 +420,10 @@ must catch ignored/inclusive/wrong-field marks, lost zeros/marks, per-key SQL an
 unrestricted rows fetched then counted. Freeze exact checks and independent review.
 Database internal scan work, sequences, relation/global windows, upload lifetime,
 initial fixtures, private-child deletion and canonical app ports remain separate.
+
+
+The [range execution record](../diagnostics/protected-feed-store-ranges-2026-11-04.md)
+records frozen implementation f4fc668f and its script-only wrong-field-control
+successor 06a6ad18. Independent review is clear. This closes typed order-range
+counts locally, not global relation windows, upload lifetime or the canonical
+apps and their final whole-campaign/browser/CI acceptance.
