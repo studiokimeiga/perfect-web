@@ -520,7 +520,7 @@ freshness; they do not claim authorization at HTTP/frame delivery time.
    author` and drop `OwnsPost`: `remove(post)` then deletes the reader's own
    post by construction.
 
-## Browser and durable continuation, 2026-11-03 (full local gates pending)
+## Browser and durable continuation, 2026-11-03 (locally verified; hosted landing pending)
 
 The row-specific browser fixture uses the declared Notes tables, independent
 browser contexts and the real development account provider. It must prove
@@ -583,3 +583,14 @@ The existing `test-compile` gate already checks `examples/owned/*.pw`;
 `preflight` does not run that Pleris formatting check. Run `test-compile`
 and the remaining compiler controls before freezing the successor, then
 complete every local gate at that source. No checker or bound was changed.
+
+### Completed local verification, 2026-11-03
+
+Code/test source `6b31f4ba3468fdd50d0fb4ce357a86b0e571f9b6` completed the whole row 71/71,
+data-path 60/60, D3 PostgreSQL 60/60, durable 51/51 and refusal 30/30 controls,
+plus local CI. Owned-row browser checks pass 6/6 on memory and 6/6 on PostgreSQL,
+in Chromium, Firefox and WebKit. Independent final review is clear. Raw
+receipts, original-worktree preservation and generated CI-input hashes are in
+`docs/evidence/E14/row-browser-postgres/`. This closes the local browser and
+PostgreSQL `CallTables` obligations, superseding the earlier pending wording;
+remaining H3/H4, private write-flow and deployment limits are unchanged.

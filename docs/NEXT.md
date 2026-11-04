@@ -8,29 +8,24 @@
 
 ## Current local continuation, 2026-11-03
 
-Fetched `origin/master` is `5d4d4d55`; D3 PostgreSQL, added-table references,
-session overlap and preverify's disk-fixture repair are already merged.
-The older queues below remain dated history.
+1. Prepare the reviewed local integration for landing: code/test source
+   `6b31f4ba` closes row-specific browsers and PostgreSQL command/snapshot
+   integration locally. Complete the whole integration's fresh published-head
+   gates and ADR numbering before landing. The delta from fe5ce0c6 plans
+   156 recipes in 16 shards; this plan is not an executed verification result
+   and does not replace planning the full integration range.
+2. Move protected feed/store data and predicates through the proven generic
+   row/durable seam, in their own migration slice. Keep app business rules
+   in `.pw`, with no per-app Rust data adapter. No such migration occurred
+   in this continuation.
+3. Keep H3/H4, private write-flow, default deny and a second-host outbox tail
+   as separate obligations. The paid E14 study remains deferred.
 
-1. Prepare the reviewed local integration for landing: source `497c0a6c` on
-   `fix/row-data-integration` includes the cache fence, preserved row work,
-   query snapshots, generic server callers/predicates and guarded-cache
-   authorization. Whole local row/data/refusal recipes and CI pass. Number
-   the integrated ADRs, re-plan and complete every required published-head
-   gate before landing. The broader plan at `16f91956` reaches 170 recipes;
-   the successful PR #72 audit is for its older GitHub test merge and does
-   not replace those gates. See the
-   [integration record](diagnostics/row-data-integration-2026-11-03.md).
-2. Close the row track's remaining browser obligations: two-user owned-row
-   witnesses and a refused query told its predicate's words in three
-   engines. Preserve the original row worktree, branch, real index and all
-   20 edited files; its recovery snapshot is `b407ede4`.
-3. Prove PostgreSQL command/snapshot `CallTables` and durable generic-server
-   integration before row-authorized feed/store migration. Keep private
-   write-flow and H3/H4 separate. The paid E14 study stays deferred.
-
-Remote publication and deployment require current authorization. Local tests
-and implementation continue within that boundary.
+Original row worktree ff9ff2c6, its branch, real index and 20 edited files remain
+unchanged; recovery snapshot b407ede4 is retained. The original durable
+worktree d6442c4e and its three edited files are unchanged. See the
+[execution record](diagnostics/row-browser-postgres-2026-11-03.md). Remote publication and deployment require
+current authorization; local implementation and verification need no new pause.
 
 
 ## Local session continuation, 2026-10-26

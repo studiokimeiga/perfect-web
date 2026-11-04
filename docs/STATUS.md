@@ -2,6 +2,18 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Local row browsers and PostgreSQL, 2026-11-03:** code/test source
+`6b31f4ba` passed the whole row 71/71, data-path 60/60, D3 PostgreSQL 60/60,
+durable 51/51 and refusal 23/23 + 7/7 campaigns, and local CI (server
+951 passed, 9 ignored). The same six owned-row browser checks
+pass on memory and PostgreSQL in Chromium, Firefox and WebKit. Command
+predicates use their existing fenced PostgreSQL transaction; fresh query predicates
+and bodies share one snapshot. Independent final review is clear. Only hashed
+generated receipts were dirty CI inputs. Both original worktrees are preserved.
+These are local implementation results, not hosted landing evidence. See the
+[execution record](diagnostics/row-browser-postgres-2026-11-03.md); the older continuation sections below are history.
+The protected feed/store migration, H3/H4 and hosted landing gates remain open.
+
 **Local continuation, 2026-11-02:** freshly fetched `origin/master` is
 `5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6`. D3 (PR #66), the added-table
 reference repair (#69), session overlap (#67), and the disk-fixture repair
@@ -231,6 +243,11 @@ stored media and private-media authorization/revocation remain outside this
 metadata-minimization claim.
 
 ## last passing commit
+
+Latest local source: `6b31f4ba3468fdd50d0fb4ce357a86b0e571f9b6` passed the complete browser/PostgreSQL
+and row/data/refusal gates plus local CI recorded above. Its later evidence
+commit changes documentation and receipts only. This supersedes the older
+local passing-source note below; no published-head acceptance is asserted.
 
 Local continuation source `b496bdc34467269c2b436350ba1cfb2a52e268ed` has the
 data-path and local CI receipts recorded above, including the generated-input

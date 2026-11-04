@@ -541,7 +541,7 @@ What this track depended on, and has now merged:
 - The host running a command again after a serialization failure, for
   every layer at once (Alternatives), as a follow-up of the host's.
 
-## Local owned-row integration, 2026-11-03 (full gates pending)
+## Local owned-row integration, 2026-11-03 (locally verified; hosted landing pending)
 
 The local integration adds `CallTables` on PostgreSQL `Command` and `Snapshot`.
 `Command::predicate_host_fns` admits only a predicate's reads and binds them
@@ -590,3 +590,14 @@ the preserved total counter and explicit transaction-overhead witness own
 that check. Exclusion matches exact strings only, with no normalization,
 prefix or substring test. Additional operation reads remain counted below
 the adapter, as before.
+
+### Completed local verification, 2026-11-03
+
+Code/test source `6b31f4ba3468fdd50d0fb4ce357a86b0e571f9b6` completed the whole row 71/71,
+data-path 60/60, D3 PostgreSQL 60/60, durable 51/51 and refusal 30/30 controls,
+plus local CI. Owned-row browser checks pass 6/6 on memory and 6/6 on PostgreSQL,
+in Chromium, Firefox and WebKit. Independent final review is clear. Raw
+receipts, original-worktree preservation and generated CI-input hashes are in
+`docs/evidence/E14/row-browser-postgres/`. This closes the local browser and
+PostgreSQL `CallTables` obligations, superseding the earlier pending wording;
+remaining H3/H4, private write-flow and deployment limits are unchanged.
