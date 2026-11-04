@@ -307,7 +307,13 @@ fn generated_owned_set_repairs_describe_the_list_separately_from_the_reader() {
             ),
             None => assert!(help.contains("scalar values"), "{help}"),
         }
-        if !call.contains("count_by") {
+        if call.contains("count_by") {
+            assert!(
+                help.contains("key/count entries") && help.contains("zero entry"),
+                "{help}"
+            );
+            assert!(!help.contains("no row for a missing key"), "{help}");
+        } else {
             assert!(help.contains("one common bound"), "{help}");
         }
     }
@@ -344,4 +350,31 @@ fn a_varying_window_bound_does_not_offer_the_shared_bound_set_as_a_replacement()
         ds.is_empty(),
         "the actual common-bound set neighbor compiles: {ds:#?}"
     );
+}
+
+#[test]
+fn a_combined_selector_and_bound_loop_gets_the_common_bound_repair() {
+    for (helper, call) in [
+        (
+            "",
+            "Windows.last_by_owner_bucket(reader, key.bucket, key.limit)",
+        ),
+        (
+            "\nfn wrapped(reader: User<UserId>, bucket: Int, n: Int) -> List<Entry> !{ database.read<Windows> } { Windows.last_by_owner_bucket(reader, bucket, n) }\n",
+            "wrapped(reader, key.bucket, key.limit)",
+        ),
+    ] {
+        let ds = window_repair_diagnostics(&format!(
+            "\ntype WindowRequest = WindowRequest {{ bucket: Int, limit: Int }}\n{helper}\nfn per(reader: User<UserId>, requests: List<WindowRequest>) -> List<List<Entry>> !{{ database.read<Windows> }} {{\n List.map(requests, key => {call})\n}}\n"
+        ));
+        assert_eq!(ds.len(), 1, "{ds:#?}");
+        assert_eq!(ds[0].code, "PW0405", "{ds:#?}");
+        let help = &ds[0].repairs[0].description;
+        assert!(help.contains("Windows.last_by_owner_bucket_many"), "{help}");
+        assert!(
+            help.contains("one common bound")
+                && help.contains("each requested limit in pure selection"),
+            "the batched request first needs a sufficient common bound: {help}"
+        );
+    }
 }

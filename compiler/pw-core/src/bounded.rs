@@ -1155,9 +1155,14 @@ impl<'p, 'i> Reads<'p, 'i> {
         } else {
             ""
         };
+        let (entries, missing) = if primitive.counts() {
+            ("key/count entries", "a zero entry")
+        } else {
+            ("rows", "no row")
+        };
         Some(format!(
             "read them together, before the {place}, with `{table}.{}`: supply {input}{reader}{bound}; \
-             then give each turn its matching rows from the flat result (or no row for a \
+             then give each turn its matching {entries} from the flat result (or {missing} for a \
              missing key)",
             many.name
         ))

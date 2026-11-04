@@ -68,6 +68,9 @@ SERVER = ROOT / "spikes/own-renderer/server/src/main.rs"
 IDENTITY = SERVER.with_name("identity.rs")
 
 MUTANTS = [
+    ('counts repair omits the zero entries', BOUNDED,
+     '        let (entries, missing) = if primitive.counts() {',
+     '        let (entries, missing) = if false && primitive.counts() {'),
     ('windows repair puts the reader in every selector key', BOUNDED,
      '        let held = by.get(list_at..)?;',
      '        let held = by.as_slice();'),

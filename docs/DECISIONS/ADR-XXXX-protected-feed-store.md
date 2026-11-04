@@ -324,3 +324,14 @@ fixture. The initial follow-up preflight exposed one moved bounded-checker
 mutation anchor; it is re-anchored to the same scalar/composite decision and
 must still be killed. These local review fixes require their own frozen checks
 and independent delta review; earlier source results are not transferred.
+
+
+Combined selector-and-bound dependencies now have direct/wrapped native
+neighbors: the suggested set read is explicitly one common bound followed by
+pure per-request selection. The shared helper's older count output guidance
+also now describes key/count entries and a zero for a missing key, rather than
+rows and absence. Its new regression failed at the former wording before the
+repair (seven passed, one failed). Existing unowned row-output guidance remains
+unchanged. The moved flat-batch mutation anchor retains the same wrong repair;
+a new count-guidance fault must be caught at a native assertion. No admission,
+ABI, runtime or stored-schema behavior changes in this follow-up.
