@@ -70,6 +70,9 @@ POOL = CRATE / "src/pool.rs"
 CARGO = ROOT / "Cargo.toml"
 
 MUTANTS = [
+    ('ranges declared String order is replaced by the primary key', SQL,
+     '        Primitive::CountAfter => {\n            let order = &table.columns[table.order.expect("validated range order")];',
+     '        Primitive::CountAfter => {\n            let order = &table.columns[table.order.expect("validated range order")];\n            // Deliberate type-compatible wrong-field comparison for String order.\n            let order = if matches!(order.kind, Kind::Bytes) {\n                &table.columns[table.key[0]]\n            } else { order };'),
     ('ranges scalar ignores the order mark', SQL,
      '"SELECT count(*) AS pw_range_count FROM {t} t WHERE {} AND t.{} > ${}::{}",',
      '"SELECT count(*) AS pw_range_count FROM {t} t WHERE {} AND (t.{} > ${}::{} OR true)",'),
