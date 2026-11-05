@@ -1,0 +1,1 @@
+Immutable separate review of 6426ff73: no blocking production finding; generated attached proof gap identified. Test-only successor a1f4b2dc adds actual attached import, signature and independent exact read grant assertions; re-review CLEAR. Generic storage, lifetime and HTTP remain unproved.

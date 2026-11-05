@@ -37,6 +37,10 @@ These are prerequisite results; canonical feed/store still use legacy layers.
 Upload lifecycle, initialization/stable IDs/private children as required and the
 canonical application ports remain pending under
 [the migration decision](DECISIONS/ADR-XXXX-protected-feed-store.md).
+Generic upload declaration source `a1f4b2dc` passed frozen selected compiler
+checks, memory/PostgreSQL and preflight, plus 14/14 strict declaration controls;
+separate immutable review is clear. The old asset storage guards remain closed.
+See the [declaration record](diagnostics/protected-upload-declarations-2026-11-04.md).
 Earlier green records below apply to their named sources only.
 
 **Local row browsers and PostgreSQL, 2026-11-03:** code/test source
