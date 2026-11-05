@@ -71,6 +71,18 @@ HOST_RELATIONS = ROOT / "runtime/pw-host/src/tables/relations.rs"
 CORE_RELATIONS = ROOT / "compiler/pw-core/src/tables/relations.rs"
 
 MUTANTS = [
+    ('upload rows omits original touched field uses', ROOT / 'runtime/pw-table-memory/src/assets.rs',
+     '(before.as_ref(), 1, 0)', '(before.as_ref(), 0, 0)'),
+    ('upload rows omits final touched field uses', ROOT / 'runtime/pw-table-memory/src/assets.rs',
+     '(tables[*at].rows.get(key), 0, 1)', '(tables[*at].rows.get(key), 0, 0)'),
+    ('upload rows skips prepared registry checks', ROOT / 'runtime/pw-table-memory/src/lib.rs',
+     '            if let Some(manifest) = self.inner.host.uploads() {', '            if let Some(manifest) = self.inner.host.uploads().filter(|_| false) {'),
+    ('upload rows publishes rows without their registry patch', ROOT / 'runtime/pw-table-memory/src/lib.rs',
+     '                registry.apply(patch).map_err(|_| self.fail_locked())?;', '                let _ = (registry, patch);'),
+    ('upload rows applies the registry when prepared rows roll back', ROOT / 'runtime/pw-table-memory/src/lib.rs',
+     '        } else {\n            let rows: Vec<(usize, Key, Option<Row>)> = ended', '        } else {\n            if let Some(patch) = ended.asset_patch.take() { registry.apply(patch).map_err(|_| self.fail_locked())?; }\n            let rows: Vec<(usize, Key, Option<Row>)> = ended'),
+    ('upload rows forgets first old reference on repeated writes', ROOT / 'runtime/pw-table-memory/src/lib.rs',
+     '        touched.entry((at, key.clone())).or_insert(prior);', '        touched.insert((at, key.clone()), prior);'),
     ('upload registry accepts another registry instance', ROOT / 'runtime/pw-host/src/assets/memory.rs',
      '        if !Arc::ptr_eq(identity, &self.identity) {', '        if false && !Arc::ptr_eq(identity, &self.identity) {'),
     ('upload registry adopts another declarations live bytes', ROOT / 'runtime/pw-host/src/assets/registry.rs',
@@ -581,6 +593,7 @@ MUTANTS = [
 # the shared native assertion validator expects one complete inventory.
 TESTS = [
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-host", "--test", "asset_registry"],
+    ["cargo", "test", "--quiet", "-p", "pw-table-memory", "--test", "asset_rows"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-host", "--test", "assets"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_cases"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "table_assets"],
@@ -607,6 +620,7 @@ TESTS = [
 
 SOURCES = [
     ROOT / "runtime/pw-host/tests/asset_registry.rs",
+    ROOT / "runtime/pw-table-memory/tests/asset_rows.rs",
     ROOT / "runtime/pw-host/tests/assets.rs",
     ROOT / "runtime/pw-table-memory/tests/compiled_cases.rs",
     ROOT / "runtime/pw-table-memory/tests/support/cases.rs",

@@ -39,6 +39,8 @@ use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 use pw_core::tables::{Primitive, Schema, Stored, TableJson, TablesJson};
 use serde_json::{Map, Value};
 
+mod assets;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Error {
     Schema(String),
@@ -97,6 +99,7 @@ struct Shape {
 }
 
 struct TableShape {
+    assets: Vec<pw_core::tables::AssetClause>,
     name: String,
     order: Option<String>,
     fields: Vec<(String, Stored)>,
@@ -307,9 +310,11 @@ struct Inner {
     /// holds a read's cost to, at the adapter itself
     /// ([`MemoryTables::statements`]).
     statements: AtomicU64,
+    asset_operations: AtomicU64,
 }
 
 struct Working {
+    registry: pw_host::assets::Registry,
     tables: Vec<Data>,
     open: Option<Open>,
     next: u64,
@@ -317,6 +322,8 @@ struct Working {
 
 /// The open command.
 struct Open {
+    asset_draft: Option<pw_host::assets::RegistryDraft>,
+    asset_patch: Option<pw_host::assets::RegistryPatch>,
     id: u64,
     /// Held to its commit's checks, and writing nothing more.
     prepared: bool,
@@ -334,6 +341,10 @@ pub struct MemoryTables {
 
 impl MemoryTables {
     pub fn new(manifest: TablesJson) -> Result<Self, Error> {
+        Self::make(manifest, None)
+    }
+
+    fn make(manifest: TablesJson, uploads: Option<&str>) -> Result<Self, Error> {
         let schema = Schema::of(manifest.tables.iter().map(|t| t.schema.clone()).collect());
         if manifest.hash != schema.hash || manifest.migration.to != schema.hash {
             return Err(Error::Schema(
@@ -352,13 +363,17 @@ impl MemoryTables {
         // and what the engine admits are one manifest, held whole.
         let text = serde_json::to_string(&manifest)
             .map_err(|error| Error::Schema(format!("tables.json: {error}")))?;
-        let host = pw_host::tables::Manifest::from_json(&text).map_err(Error::Schema)?;
-        let shape = shape_of(&manifest)?;
+        let mut host = pw_host::tables::Manifest::from_json(&text).map_err(Error::Schema)?;
+        if let Some(uploads) = uploads {
+            host = host.with_uploads(uploads).map_err(Error::Schema)?;
+        }
+        let shape = shape_of(&manifest, host.uploads().is_some())?;
         let tables: Vec<Data> = shape.tables.iter().map(Data::new).collect();
         Ok(Self {
             inner: Arc::new(Inner {
                 published: Mutex::new(Arc::new(tables.iter().cloned().map(Arc::new).collect())),
                 working: Mutex::new(Working {
+                    registry: pw_host::assets::Registry::default(),
                     tables,
                     open: None,
                     next: 1,
@@ -367,6 +382,7 @@ impl MemoryTables {
                 told: Mutex::new(None),
                 failed: AtomicBool::new(false),
                 statements: AtomicU64::new(0),
+                asset_operations: AtomicU64::new(0),
                 shape,
                 host,
             }),
@@ -556,7 +572,10 @@ impl MemoryTables {
         }
         let id = working.next;
         working.next += 1;
+        let asset_draft = self.inner.host.uploads().map(|_| working.registry.begin());
         working.open = Some(Open {
+            asset_draft,
+            asset_patch: None,
             id,
             prepared: false,
             touched: BTreeMap::new(),
@@ -749,10 +768,26 @@ impl Command {
     pub fn prepare(mut self) -> Result<Prepared, Error> {
         let written = {
             let mut working = self.inner.working_of(self.id)?;
-            let Working { tables, open, .. } = &mut *working;
+            let Working {
+                tables,
+                open,
+                registry,
+                ..
+            } = &mut *working;
             let open = open.as_mut().ok_or(Error::Ended)?;
             let changed = changed(tables, &open.touched);
             self.inner.held(tables, &changed)?;
+            if let Some(manifest) = self.inner.host.uploads() {
+                let uses = assets::uses(&self.inner.shape, tables, &open.touched)?;
+                let draft = open.asset_draft.take().ok_or(Error::Ended)?;
+                let patch = registry
+                    .prepare(manifest, draft, &uses)
+                    .map_err(Error::Input)?;
+                self.inner
+                    .asset_operations
+                    .fetch_add(patch.plans().len() as u64, Ordering::SeqCst);
+                open.asset_patch = Some(patch);
+            }
             open.prepared = true;
             let mut written = BTreeMap::new();
             for (table, _, _) in &changed {
@@ -1170,7 +1205,12 @@ impl Inner {
     /// after, so that no unique value is held twice between the two.
     fn end(&self, id: u64, publish: bool) -> Result<(), Error> {
         let mut working = self.lock_working()?;
-        let Working { tables, open, .. } = &mut *working;
+        let Working {
+            tables,
+            open,
+            registry,
+            ..
+        } = &mut *working;
         if !open.as_ref().is_some_and(|open| open.id == id) {
             return Err(Error::Ended);
         }
@@ -1181,8 +1221,14 @@ impl Inner {
             None
         };
         self.healthy_locked()?;
-        let ended = open.take().ok_or(Error::Ended)?;
+        let mut ended = open.take().ok_or(Error::Ended)?;
         if let Some(published) = published.as_mut() {
+            if let Some(patch) = ended.asset_patch.take() {
+                let operations = patch.plans().len() as u64;
+                registry.apply(patch).map_err(|_| self.fail_locked())?;
+                self.asset_operations
+                    .fetch_add(operations, Ordering::SeqCst);
+            }
             let rows = changed(tables, &ended.touched);
             let written: BTreeSet<usize> = rows.iter().map(|(table, _, _)| *table).collect();
             let state = Arc::make_mut(published);
@@ -1301,11 +1347,12 @@ fn replay(shape: &Shape, tables: &mut impl Tables, rows: &[(usize, Key, Option<R
 
 // --- reading the manifest ----------------------------------------------------
 
-fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
+fn shape_of(manifest: &TablesJson, assets_bound: bool) -> Result<Shape, Error> {
     if manifest
         .tables
         .iter()
         .any(|table| !table.schema.assets.is_empty())
+        && !assets_bound
     {
         return Err(Error::Schema(
             "generic asset reference storage is not installed".into(),
@@ -1467,6 +1514,7 @@ fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
             }
         }
         tables.push(TableShape {
+            assets: table.schema.assets.clone(),
             order: table.schema.order.clone(),
             name: name.clone(),
             fields: table
