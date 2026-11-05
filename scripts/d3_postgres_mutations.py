@@ -70,6 +70,12 @@ POOL = CRATE / "src/pool.rs"
 CARGO = ROOT / "Cargo.toml"
 
 MUTANTS = [
+    ('upload lifecycle keeps without verifying exact receipt after immediate hooks', ROOT / 'runtime/pw-table-postgres/src/lib.rs',
+     '                assets::verify_receipt(\n                    &inner,\n                    conn,\n                    prepared_assets.receipt_required,\n                    records.interaction,\n                )?;', '                let _ = records.interaction;'),
+    ('upload lifecycle commits without verifying exact receipt after deferred hooks', ROOT / 'runtime/pw-table-postgres/src/lib.rs',
+     '            if let Err(error) = assets::verify_receipt(\n                &inner,\n                conn,\n                prepared_assets.receipt_required,\n                records.interaction,\n            ) {', '            if let Err(error) = Ok::<(), Error>(()) {'),
+    ('upload lifecycle acknowledges a reinserted captured cleanup job', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
+     '    if !remaining.is_empty() {\n        return Err(Error::Refused(\n            "captured collection job remains after completion".into(),', '    if false && !remaining.is_empty() {\n        return Err(Error::Refused(\n            "captured collection job remains after completion".into(),'),
     ('upload lifecycle keeps the lock transactions old snapshot for the command', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
      '    conn.batch(&inner.counters, "COMMIT").map_err(database)?;', '    conn.batch(&inner.counters, "SELECT 1").map_err(database)?;'),
     ('upload lifecycle migrates while another command owns the namespace', ROOT / 'runtime/pw-table-postgres/src/migrate.rs',
@@ -137,7 +143,7 @@ MUTANTS = [
     ('upload enrollment allows collisions with asset platform relation names', ROOT / 'runtime/pw-table-postgres/src/shape.rs',
      ' || name.starts_with("pw_asset_")', ' || false && name.starts_with("pw_asset_")'),
     ('upload lifecycle skips namespace exclusion before the host turn', ROOT / 'runtime/pw-table-postgres/src/assets/command.rs',
-     '    let key = acquire_namespace(conn, &inner.counters, &binding.namespace)?;', '    let key = namespace_key(&binding.namespace);'),
+     'pub(crate) fn lock_lifetime(inner: &Inner, lease: &mut Lease) -> Result<Option<i64>, Error> {\n    let Some(binding) = &inner.uploads else {\n        return Ok(None);\n    };\n    let conn = lease.conn()?;\n    conn.batch(&inner.counters, "BEGIN").map_err(database)?;\n    let key = acquire_namespace(conn, &inner.counters, &binding.namespace)?;\n    conn.batch(&inner.counters, "COMMIT").map_err(database)?;\n    binding\n        .store\n        .enroll(&binding.namespace, false)\n        .map_err(|e| Error::Refused(format!("upload storage namespace: {e}")))?;\n    Ok(Some(key))\n}\n', 'pub(crate) fn lock_lifetime(inner: &Inner, lease: &mut Lease) -> Result<Option<i64>, Error> {\n    let Some(binding) = &inner.uploads else {\n        return Ok(None);\n    };\n    let conn = lease.conn()?;\n    conn.batch(&inner.counters, "BEGIN").map_err(database)?;\n    let key = acquire_namespace(conn, &inner.counters, &binding.namespace)?;\n    release_namespace(conn, &inner.counters, key)?;\n    conn.batch(&inner.counters, "COMMIT").map_err(database)?;\n    binding\n        .store\n        .enroll(&binding.namespace, false)\n        .map_err(|e| Error::Refused(format!("upload storage namespace: {e}")))?;\n    Ok(None)\n}\n'),
     ('closed cases PostgreSQL additive columns use a different encoding', MIGRATE,
      '    let (kind, nullable) = crate::shape::column_of(&field.stored);', '    let (kind, nullable) = match &field.stored {\n        Stored::Option(inner) if matches!(**inner, Stored::Cases(_)) => (crate::shape::Kind::Json, true),\n        _ => crate::shape::column_of(&field.stored),\n    };'),
     ('closed cases PostgreSQL accepts unknown stored tags', ROOT / 'runtime/pw-table-postgres/src/shape.rs',

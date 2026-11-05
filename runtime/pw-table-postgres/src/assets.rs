@@ -342,6 +342,7 @@ fn check_recorded_bindings(
 mod command;
 pub(crate) use command::{
     Transaction, collect_committed, keep, lock_lifetime, prepare, verify_before_commit,
+    verify_receipt,
 };
 
 pub(crate) use command::{acquire_namespace, release_namespace};

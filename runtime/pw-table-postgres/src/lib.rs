@@ -1753,6 +1753,12 @@ impl Prepared {
                     }
                     outbox.sort_by_key(|(id, _)| *id);
                 }
+                assets::verify_receipt(
+                    &inner,
+                    conn,
+                    prepared_assets.receipt_required,
+                    records.interaction,
+                )?;
                 assets::keep(&inner, &prepared_assets)?;
                 Ok(())
             })();
@@ -1765,6 +1771,15 @@ impl Prepared {
                 return Err(error);
             }
             let conn = inner.command_conn(open)?;
+            if let Err(error) = assets::verify_receipt(
+                &inner,
+                conn,
+                prepared_assets.receipt_required,
+                records.interaction,
+            ) {
+                open.failed = Some(error.clone());
+                return Err(error);
+            }
             // A fenced command's session, still as it was admitted, just
             // before its commit (ADR-0369's last check, track
             // `durable-tables`): signed out meanwhile, nothing is kept.

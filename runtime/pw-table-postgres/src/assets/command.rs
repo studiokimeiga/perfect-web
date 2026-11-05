@@ -14,6 +14,39 @@ pub(crate) struct Transaction {
     pub plans: Vec<GenerationPlan>,
     pub receipt_required: bool,
 }
+/// Upload claim settlement relies on this exact durable proof, not an INSERT
+/// acknowledgement which an immediate or deferred database hook can undo.
+pub(crate) fn verify_receipt(
+    inner: &Inner,
+    conn: &mut Conn,
+    required: bool,
+    receipt: Option<crate::Interaction<'_>>,
+) -> Result<(), Error> {
+    if !required {
+        return Ok(());
+    }
+    let receipt = receipt.ok_or_else(|| {
+        Error::Refused("upload claims require an actual durable interaction record".into())
+    })?;
+    let sql = format!(
+        "SELECT sent,answer,at_ms FROM {} WHERE key=$1",
+        inner.names.qualified("pw_interactions")
+    );
+    let rows = conn
+        .query(&inner.counters, &sql, &[Box::new(receipt.key.to_string())])
+        .map_err(database)?;
+    let at = i64::try_from(receipt.at_ms).unwrap_or(i64::MAX);
+    if rows.len() != 1
+        || rows[0].get::<_, String>(0) != receipt.sent
+        || rows[0].get::<_, String>(1) != receipt.answer
+        || rows[0].get::<_, i64>(2) != at
+    {
+        return Err(Error::Refused(
+            "the exact upload interaction record was not kept".into(),
+        ));
+    }
+    Ok(())
+}
 pub(crate) fn namespace_key(namespace: &Namespace) -> i64 {
     crate::migrate::lock_key(&format!("pw_upload_lifetime:{}", namespace.hex()))
 }
@@ -509,6 +542,22 @@ fn collect_one(
     if rows.len() != 1 {
         return Err(Error::Refused(
             "captured collection completion was suppressed".into(),
+        ));
+    }
+    let sql = format!(
+        "SELECT 1 FROM {} WHERE generation=$1",
+        inner.names.qualified("pw_asset_collections")
+    );
+    let remaining = conn
+        .query(
+            &inner.counters,
+            &sql,
+            &[Box::new(captured.reference.generation.clone())],
+        )
+        .map_err(database)?;
+    if !remaining.is_empty() {
+        return Err(Error::Refused(
+            "captured collection job remains after completion".into(),
         ));
     }
     Ok(true)

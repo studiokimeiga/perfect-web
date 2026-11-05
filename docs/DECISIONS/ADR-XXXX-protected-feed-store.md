@@ -1037,3 +1037,13 @@ Native adapter tests use trusted proposals and a byte-store test double with
 real PostgreSQL records, not a substitute authorization ledger. Actual compiled
 resource/session callbacks and concrete physical-provider/HTTP composition remain
 separate following tests. There is no implicit legacy database conversion.
+
+
+Receipt and completion acknowledgements require persisted evidence. For every
+claim-bearing command verify the exact requested interaction key, sent value,
+answer and stored instant after receipt/outbox hooks and before keep; verify
+again after deferred hooks finish and before the final clock fence/COMMIT.
+An INSERT RETURNING row alone does not establish that proof. After captured-job
+DELETE, inspect that exact job's absence on the still-held namespace connection
+before counting completion. A hook that reinserts it leaves a retryable job and
+cannot turn the already-applied command into a refusal.

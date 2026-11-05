@@ -21,6 +21,18 @@ struct ByteStore {
     fail_keep: std::sync::atomic::AtomicBool,
     fail_collect: std::sync::atomic::AtomicBool,
 }
+fn asset_until(mut condition: impl FnMut() -> bool) -> bool {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    loop {
+        if condition() {
+            return true;
+        }
+        if std::time::Instant::now() >= deadline {
+            return false;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+}
 fn hash(bytes: &[u8]) -> String {
     Sha256::digest(bytes)
         .iter()
@@ -523,7 +535,7 @@ fn namespace_waiters_hold_no_host_turn_and_begin_no_command_snapshot_before_excl
         children.push(std::thread::spawn(move || other.begin().map(drop)));
     }
     assert!(
-        common::until(|| common::waiting_on_advisory(&s, &name) == 2),
+        asset_until(|| common::waiting_on_advisory(&s, &name) == 2),
         "both writers must wait on namespace before taking the host turn"
     );
     assert_eq!(
@@ -584,7 +596,7 @@ fn application_schema_migration_waits_on_the_same_namespace_before_ddl() {
         )
     });
     assert!(
-        common::until(|| common::waiting_on_advisory(&s, &name) == 1),
+        asset_until(|| common::waiting_on_advisory(&s, &name) == 1),
         "migration must wait for active command lifetime"
     );
     assert_eq!(s.texts("SELECT count(*)::text FROM information_schema.columns WHERE table_schema=current_schema() AND column_name='caption'"),["0"]);
@@ -631,7 +643,7 @@ fn a_waiting_namespace_lock_cannot_freeze_the_commands_first_snapshot_before_the
         c.read("pw:tables/assets#get", &[json!(1)])
     });
     assert!(
-        common::until(|| common::waiting_on_advisory(&s, &name) == 1),
+        asset_until(|| common::waiting_on_advisory(&s, &name) == 1),
         "second host really waits before previous commit"
     );
     held.commit().assert_ok("previous command commits");
@@ -1352,11 +1364,16 @@ fn backend_death_after_committed_no_ref_check_cannot_make_old_collection_remove_
     let (entered, observed) = mpsc::channel();
     let release = Arc::new((Mutex::new(false), Condvar::new()));
     let wait = Arc::clone(&release);
+    let resumed_after_release = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let resumed = Arc::clone(&resumed_after_release);
     *store.before_collect.lock().unwrap() = Some(Arc::new(move || {
         let _ = entered.send(());
         let (flag, ready) = &*wait;
         let held = flag.lock().unwrap();
-        let _ = ready.wait_timeout_while(held, Duration::from_secs(5), |done| !*done);
+        let (held, timeout) = ready
+            .wait_timeout_while(held, Duration::from_secs(5), |done| !*done)
+            .unwrap();
+        resumed.store(*held && !timeout.timed_out(), Ordering::SeqCst);
     }));
     let mut c = first.begin().assert_ok("A removes last ref");
     c.write("pw:tables/assets#delete", &[json!(1)])
@@ -1400,6 +1417,10 @@ fn backend_death_after_committed_no_ref_check_cannot_make_old_collection_remove_
         .join()
         .expect("old collector returned")
         .assert_ok("A's known applied ack survives failed postcommit DB completion");
+    assert!(
+        resumed_after_release.load(Ordering::SeqCst),
+        "old unlink must resume after B actually committed and released it; a timed-out schedule earns no credit"
+    );
     assert_eq!(
         second
             .read_asset("PostImage", &new.key, "png")
@@ -1517,4 +1538,192 @@ fn suppressed_collection_completion_leaves_a_retryable_job_and_never_refuses_the
     s.sql("DROP TRIGGER suppress_completion ON pw_asset_collections")
         .assert_ok("valid neighbor");
     assert_eq!(db.collect_assets(1).assert_ok("retry"), 1);
+}
+
+#[test]
+fn reinserted_collection_completion_is_not_counted_as_done_and_preserves_applied_ack() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_gc_reinsert");
+    let store = Arc::new(ByteStore::default());
+    let db = open(&s, &store);
+    seed(&db);
+    s.sql(&format!("CREATE FUNCTION reinsert_completion() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN INSERT INTO \"{}\".pw_asset_collections(generation) VALUES(OLD.generation); RETURN OLD; END $$; CREATE TRIGGER reinsert_completion AFTER DELETE ON pw_asset_collections FOR EACH ROW EXECUTE FUNCTION reinsert_completion()",s.schema)).assert_ok("actual completion rewrite hook");
+    let mut c = db.begin().assert_ok("begin retirement");
+    c.write("pw:tables/assets#delete", &[json!(1)])
+        .assert_ok("last row");
+    c.prepare()
+        .assert_ok("prepare")
+        .publish_with(record("removed"))
+        .assert_ok("applied ack survives incomplete collection");
+    assert_eq!(
+        s.texts("SELECT key FROM pw_interactions ORDER BY key"),
+        ["removed", "seed"]
+    );
+    assert_eq!(
+        s.texts("SELECT count(*)::text FROM pw_asset_collections"),
+        ["1"]
+    );
+    assert!(
+        db.collect_assets(1).is_err(),
+        "returned DELETE row alone cannot acknowledge a completion whose captured job remains"
+    );
+    assert_eq!(
+        s.texts("SELECT count(*)::text FROM pw_asset_collections"),
+        ["1"]
+    );
+    s.sql("DROP TRIGGER reinsert_completion ON pw_asset_collections")
+        .assert_ok("valid neighbor");
+    assert_eq!(db.collect_assets(1).assert_ok("real completion"), 1);
+    assert_eq!(
+        s.texts("SELECT count(*)::text FROM pw_asset_collections"),
+        ["0"]
+    );
+}
+
+fn rewritten_actual_receipt_refuses(case: &str) {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_exact_receipt");
+    let store = Arc::new(ByteStore::default());
+    let db = open(&s, &store);
+    let receipts = format!("\"{}\".pw_interactions", s.schema);
+    let (table, timing, constraint, deferred, body) = match case {
+        "key" => (
+            "pw_interactions",
+            "BEFORE",
+            "",
+            "",
+            "NEW.key='different';".to_string(),
+        ),
+        "sent" => (
+            "pw_interactions",
+            "BEFORE",
+            "",
+            "",
+            "NEW.sent='different';".to_string(),
+        ),
+        "answer" => (
+            "pw_interactions",
+            "BEFORE",
+            "",
+            "",
+            "NEW.answer='different';".to_string(),
+        ),
+        "instant" => (
+            "pw_interactions",
+            "BEFORE",
+            "",
+            "",
+            "NEW.at_ms=999;".to_string(),
+        ),
+        "removed" => (
+            "pw_interactions",
+            "AFTER",
+            "",
+            "",
+            format!("DELETE FROM {receipts} WHERE key=NEW.key;"),
+        ),
+        "outbox" => (
+            "pw_outbox",
+            "AFTER",
+            "",
+            "",
+            format!("UPDATE {receipts} SET answer='different' WHERE key='wanted';"),
+        ),
+        "deferred" => (
+            "pw_interactions",
+            "AFTER",
+            "CONSTRAINT ",
+            " DEFERRABLE INITIALLY DEFERRED",
+            format!("DELETE FROM {receipts} WHERE key=NEW.key;"),
+        ),
+        _ => unreachable!(),
+    };
+    s.sql(&format!("CREATE FUNCTION rewrite_receipt() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN {body} RETURN NEW; END $$; CREATE {constraint}TRIGGER rewrite_receipt {timing} INSERT ON {table}{deferred} FOR EACH ROW EXECUTE FUNCTION rewrite_receipt()"))
+        .assert_ok("qualified actual receipt hook");
+    let mut c = db.begin().assert_ok("begin");
+    let r = c
+        .propose_asset("PostImage", candidate('b'), Arc::from(b"abc".as_slice()))
+        .assert_ok("fresh trusted proposal");
+    c.write("pw:tables/assets#insert", &[row(1, Some(&r))])
+        .assert_ok("row");
+    let outbox = [pw_table_postgres::Outboxed {
+        kind: pw_table_postgres::OutboxKind::Event,
+        name: "changed".into(),
+        values: vec![],
+    }];
+    let mut records = record("wanted");
+    if case == "outbox" {
+        records.outbox = &outbox;
+    }
+    let outcome = c
+        .prepare()
+        .assert_ok("prepared actual rows")
+        .publish_with(records);
+    assert!(
+        outcome.is_err(),
+        "{case} hook must not commit without the exact requested durable receipt: {outcome:?}"
+    );
+    assert_eq!(s.texts("SELECT count(*)::text FROM pw_interactions"), ["0"]);
+    assert_eq!(
+        s.texts("SELECT count(*)::text FROM pw_asset_generations"),
+        ["0"]
+    );
+    assert_eq!(
+        db.read("pw:tables/assets#get", &[json!(1)])
+            .assert_ok("rolled back row"),
+        json!(null)
+    );
+    assert_eq!(
+        store.keeps.load(Ordering::SeqCst),
+        usize::from(case == "deferred"),
+        "immediate receipt/outbox hooks refuse before keep; deferred hooks refuse after keep and before COMMIT"
+    );
+    s.sql(&format!("DROP TRIGGER rewrite_receipt ON {table}"))
+        .assert_ok("remove hook");
+    let mut c = db.begin().assert_ok("valid neighboring retry");
+    let r = c
+        .propose_asset("PostImage", candidate('c'), Arc::from(b"abc".as_slice()))
+        .assert_ok("fresh generation after failed keep/rollback");
+    c.write("pw:tables/assets#insert", &[row(1, Some(&r))])
+        .assert_ok("valid row");
+    c.prepare()
+        .assert_ok("prepare neighbor")
+        .publish_with(record("wanted"))
+        .assert_ok("exact receipt commits");
+    assert_eq!(
+        s.texts("SELECT key||':'||sent||':'||answer||':'||at_ms::text FROM pw_interactions"),
+        ["wanted:canonical command:applied:1000"]
+    );
+}
+#[test]
+fn actual_upload_receipt_key_cannot_be_rewritten() {
+    rewritten_actual_receipt_refuses("key");
+}
+#[test]
+fn actual_upload_receipt_sent_cannot_be_rewritten() {
+    rewritten_actual_receipt_refuses("sent");
+}
+#[test]
+fn actual_upload_receipt_answer_cannot_be_rewritten() {
+    rewritten_actual_receipt_refuses("answer");
+}
+#[test]
+fn actual_upload_receipt_instant_cannot_be_rewritten() {
+    rewritten_actual_receipt_refuses("instant");
+}
+#[test]
+fn actual_upload_receipt_cannot_be_removed_by_an_immediate_hook() {
+    rewritten_actual_receipt_refuses("removed");
+}
+#[test]
+fn actual_upload_receipt_is_verified_after_outbox_hooks_before_keep() {
+    rewritten_actual_receipt_refuses("outbox");
+}
+#[test]
+fn actual_upload_receipt_is_verified_after_deferred_hooks_before_commit() {
+    rewritten_actual_receipt_refuses("deferred");
 }
