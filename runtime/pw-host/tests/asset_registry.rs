@@ -398,7 +398,12 @@ fn captured_collection_completion_cannot_clear_a_new_same_hash_generation() {
         .prepare(&manifest(), registry.begin(), &[usage("Photo", 1, 0)])
         .unwrap();
     registry.apply(patch).unwrap();
-    let captured = registry.pending_collections().next().unwrap().clone();
+    let pending = registry.pending_collections().next();
+    assert!(
+        pending.is_some(),
+        "last removal schedules captured generation cleanup"
+    );
+    let captured = pending.unwrap().clone();
     assert_eq!(captured.reference, old);
     assert!(
         registry
