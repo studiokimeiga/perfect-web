@@ -1481,3 +1481,70 @@ mod tests {
         assert!(check_answer(&many, &[Val::List(Vec::new())], &[Val::List(Vec::new())]).is_ok());
     }
 }
+
+#[cfg(test)]
+mod closed_case_abi_tests {
+    use super::*;
+    #[test]
+    fn actual_payload_bearing_variant_cannot_link_as_a_closed_case() {
+        let stored = Stored::Cases(vec![
+            crate::tables::Case {
+                name: "AB".into(),
+                carries: vec![],
+            },
+            crate::tables::Case {
+                name: "A_Z".into(),
+                carries: vec![],
+            },
+        ]);
+        let column = Column::new("kind", stored);
+        let access = Access::Read(Read {
+            target: None,
+            source_key: None,
+            handle: None,
+            import: "pw:tables/tags#of-kind".into(),
+            table: "Tags".into(),
+            primitive: Primitive::Prefix,
+            key: vec!["kind".into()],
+            by: vec![column.clone()],
+            row: vec![column],
+            order: None,
+            sorted_by: vec![],
+            unique: false,
+            bounded: None,
+        });
+        let engine = wasmtime::Engine::new(&crate::engine::engine_config()).expect("engine");
+        for payload in ["", " s64"] {
+            let wat = format!(
+                r#"(component
+                (type $kind-shape (variant (case "ab") (case "a-z"{payload})))
+                (import "kind" (type $kind (eq $kind-shape)))
+                (type $row-shape (record (field "kind" $kind)))
+                (import "row" (type $row (eq $row-shape)))
+                (type $rows (list $row))
+                (import "read" (func (param "kind" $kind) (result $rows)))
+            )"#
+            );
+            let component = wasmtime::component::Component::new(&engine, wat)
+                .expect("actual variant component validates");
+            let ty = component.component_type();
+            let item = ty
+                .imports(&engine)
+                .find(|(name, _)| *name == "read")
+                .expect("read import")
+                .1;
+            let wasmtime::component::types::ComponentItem::ComponentFunc(function) = item.ty else {
+                panic!("actual function type")
+            };
+            let result = check_import(&access, &function);
+            if payload.is_empty() {
+                assert_eq!(result, Ok(()));
+            } else {
+                assert!(
+                    matches!(result,Err(ref why) if why.contains("variant cases or payloads differ")),
+                    "{result:?}"
+                );
+            }
+        }
+    }
+}

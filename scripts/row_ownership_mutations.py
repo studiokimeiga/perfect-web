@@ -71,6 +71,10 @@ HOST_RELATIONS = ROOT / "runtime/pw-host/src/tables/relations.rs"
 CORE_RELATIONS = ROOT / "compiler/pw-core/src/tables/relations.rs"
 
 MUTANTS = [
+    ('closed cases ignore actual WIT variant payloads', LINK,
+     '                    .any(|(case, tag)| case.name != tag || case.ty.is_some())', '                    .any(|(case, tag)| case.name != tag)'),
+    ('closed cases accept empty or punctuation-only names', ROOT / 'runtime/pw-host/src/tables.rs',
+     '        if payloads != 0 || !name.chars().any(|c| c.is_ascii_alphanumeric()) {', '        if payloads != 0 {'),
     ('upload resource capability omitted', ROOT / 'compiler/pw-core/src/uploads/declared.rs',
      '        if let Some(resource) = resource {', '        if let Some(resource) = resource.filter(|_| false) {'),
     ('upload private visibility lost', ROOT / 'compiler/pw-core/src/uploads/declared.rs',

@@ -70,6 +70,8 @@ POOL = CRATE / "src/pool.rs"
 CARGO = ROOT / "Cargo.toml"
 
 MUTANTS = [
+    ('closed cases PostgreSQL additive columns use a different encoding', MIGRATE,
+     '    let (kind, nullable) = crate::shape::column_of(&field.stored);', '    let (kind, nullable) = match &field.stored {\n        Stored::Option(inner) if matches!(**inner, Stored::Cases(_)) => (crate::shape::Kind::Json, true),\n        _ => crate::shape::column_of(&field.stored),\n    };'),
     ('closed cases PostgreSQL accepts unknown stored tags', ROOT / 'runtime/pw-table-postgres/src/shape.rs',
      '            .is_some_and(|tag| case_tags(cases).is_some_and(|tags| tags.iter().any(|t| t == tag))),', '            .is_some_and(|_tag| case_tags(cases).is_some()),'),
     ('closed cases PostgreSQL stores scalar tags as JSON', ROOT / 'runtime/pw-table-postgres/src/shape.rs',

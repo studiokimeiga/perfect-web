@@ -628,26 +628,12 @@ fn objects_where(names: &Names, tables: &[TableSchema]) -> Result<BTreeMap<Strin
 }
 
 fn column_of(field: &FieldSchema) -> crate::shape::Column {
-    let (kind, nullable) = match &field.stored {
-        Stored::Option(inner) => (kind_of(inner), true),
-        other => (kind_of(other), false),
-    };
+    let (kind, nullable) = crate::shape::column_of(&field.stored);
     crate::shape::Column {
         name: field.name.clone(),
         stored: field.stored.clone(),
         kind,
         nullable,
-    }
-}
-
-fn kind_of(stored: &Stored) -> crate::shape::Kind {
-    use crate::shape::Kind;
-    match stored {
-        Stored::Int { .. } => Kind::Int,
-        Stored::String { .. } => Kind::Bytes,
-        Stored::Bool => Kind::Bool,
-        Stored::Float => Kind::Float,
-        _ => Kind::Json,
     }
 }
 

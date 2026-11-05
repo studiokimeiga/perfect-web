@@ -193,3 +193,79 @@ fn malformed_nested_case_tags_are_refused_without_writes() {
         .transaction(|tx| tx.write("pw:tables/tags#put", &[case_rows().remove(0)]))
         .assert_ok("valid neighbor writes");
 }
+
+#[test]
+fn an_added_optional_case_column_uses_the_same_wire_type_as_fresh_creation() {
+    let old = case_migration_program(false, None);
+    let Some(url) = common::database() else {
+        return;
+    };
+    let scratch = common::Scratch::new(&url, "case_upgrade");
+    let tables = PgTables::open(&url, scratch.schema(), old.tables.clone()).assert_ok("old schema");
+    tables
+        .transaction(|tx| tx.write("pw:tables/evolving#put", &[json!({"id":1})]))
+        .assert_ok("existing row");
+    drop(tables);
+    let released =
+        pw_core::tables::Schema::of(old.tables.tables.iter().map(|t| t.schema.clone()).collect());
+    let program = case_migration_program(true, Some(&released));
+    let tables = PgTables::open(&url, scratch.schema(), program.tables.clone())
+        .assert_ok("add optional closed case");
+    assert_eq!(
+        scratch.texts("SELECT pg_typeof(maybe)::text FROM \"Evolving\" LIMIT 1"),
+        vec!["bytea"],
+        "an additive column has the same encoding as a fresh table"
+    );
+    assert_eq!(
+        case_query(&program, &tables, "Every", &[], &Arc::default()),
+        Ok(vec![Val::List(vec![Val::Record(vec![
+            ("id".into(), Val::S64(1)),
+            ("maybe".into(), Val::Option(None))
+        ])])])
+    );
+    let row = Val::Record(vec![
+        ("id".into(), Val::S64(2)),
+        ("maybe".into(), Val::Option(Some(Box::new(tag("a-z"))))),
+    ]);
+    let component = program.component("Save");
+    let granted = component.granted();
+    let staged = tables.begin().assert_ok("command");
+    let mut host = staged
+        .host_fns(&component.contract, &granted)
+        .assert_ok("write binding");
+    host.extend(platform(component, ""));
+    assert_eq!(
+        pw_host::engine::call_with_tables_as(
+            &component.bytes,
+            &component.contract,
+            &granted,
+            &pw_host::Limits::unbounded(),
+            &host,
+            &program.manifest,
+            &Caller::Nobody,
+            &component.export(),
+            std::slice::from_ref(&row)
+        ),
+        Ok(vec![])
+    );
+    staged.commit().assert_ok("save Some case");
+    drop(tables);
+    let tables = PgTables::open(&url, scratch.schema(), program.tables.clone())
+        .assert_ok("reopen successor");
+    assert_eq!(
+        tables
+            .read("pw:tables/evolving#get", &[json!(2)])
+            .assert_ok("reopened Some"),
+        json!({"id":2,"maybe":"a-z"})
+    );
+    assert_eq!(
+        case_query(&program, &tables, "Every", &[], &Arc::default()),
+        Ok(vec![Val::List(vec![
+            Val::Record(vec![
+                ("id".into(), Val::S64(1)),
+                ("maybe".into(), Val::Option(None))
+            ]),
+            row
+        ])])
+    );
+}

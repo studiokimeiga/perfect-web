@@ -191,7 +191,7 @@ pub(crate) fn supported(ty: &Stored) -> bool {
 }
 
 /// The column a supported field is: its kind, and whether it holds none.
-fn column_of(stored: &Stored) -> (Kind, bool) {
+pub(crate) fn column_of(stored: &Stored) -> (Kind, bool) {
     match stored {
         Stored::Int { .. } => (Kind::Int, false),
         Stored::String { .. } | Stored::Cases(_) => (Kind::Bytes, false),

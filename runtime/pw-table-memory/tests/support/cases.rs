@@ -68,7 +68,7 @@ fn case_queries(mut call:impl FnMut(&str,&[Val])->Result<Vec<Val>,String>) {
 fn malformed_tags()->Vec<Val>{vec![tag("missing"),tag("A_Z"),Val::String("a-z".into()),Val::Enum("a-z".into()),Val::Variant("a-z".into(),Some(Box::new(Val::S64(1))))]}
 fn malformed_case_schemas(program:&Program)->Vec<pw_core::tables::TablesJson>{
     use pw_core::tables::{Stored,StoredCase};
-    [vec![],vec![StoredCase{name:"AB".into(),carries:vec![Stored::Bool]}],vec![StoredCase{name:"A_Z".into(),carries:vec![]},StoredCase{name:"A__Z".into(),carries:vec![]}]].into_iter().map(|cases|{
+    [vec![],vec![StoredCase{name:"".into(),carries:vec![]}],vec![StoredCase{name:"%%".into(),carries:vec![]}],vec![StoredCase{name:"AB".into(),carries:vec![Stored::Bool]}],vec![StoredCase{name:"A_Z".into(),carries:vec![]},StoredCase{name:"A__Z".into(),carries:vec![]}]].into_iter().map(|cases|{
         let mut tables=program.tables.clone();tables.tables[0].schema.fields[0].stored=Stored::Cases(cases);rehash_cases(&mut tables);tables
     }).collect()
 }
@@ -87,4 +87,13 @@ fn case_wrong_abi_program()->Program {
 fn rehash_cases(tables:&mut pw_core::tables::TablesJson){
     let schema=pw_core::tables::Schema::of(tables.tables.iter().map(|t|t.schema.clone()).collect());
     tables.hash=schema.hash.clone();tables.migration.to=schema.hash;
+}
+
+fn case_migration_program(add:bool,released:Option<&pw_core::tables::Schema>)->Program {
+    let table=format!("module Evolving\ntype Kind = AB | A_Z\ntype Row = Row {{ id: Int{} }}\ntable Evolving\n    row Row\n    key id\n    bounded 100\n",if add{", maybe: Option<Kind>"}else{""});
+    let source="module EvolvingData\nimport Evolving\nsource EvolvingData\n    holds Evolving\n    transactions serializable\n    reads strong\n    changes none\n    sets one_call\n";
+    let app="module owned.app\nimport Evolving\npublic query Every() -> List<Evolving.Row>\n    freshness 0.seconds\n    consistency snapshot\n    cache shared\n    concurrency one_per_key\n    on_key_change cancel\n    timeout 2.seconds\n{ Evolving.all() }\ncommand Save(row:Evolving.Row)->()\n    transaction serializable\n    invalidates Every()\n{ Evolving.put(row) }\n";
+    let units=units_of(vec![("Evolving.pw".into(),table),("EvolvingData.pw".into(),source.into()),("app.pw".into(),app.into())]);
+    let tables=pw_core::build::build_with(&units,released).expect("released case successor builds").tables;
+    let mut program=from_units(units);program.tables=tables;program
 }
