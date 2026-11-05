@@ -441,3 +441,98 @@ fn repeated_writes_of_one_key_keep_its_first_committed_descriptor_and_final_use(
             .is_none()
     );
 }
+
+#[test]
+fn registry_accounting_counts_each_actual_path_without_hiding_row_primitive_cost() {
+    let db = database();
+    assert_eq!(db.asset_operations(), 0);
+    assert_eq!(db.statements(), 0);
+    let mut c = db.begin().assert_ok("begin");
+    let r = c
+        .propose_asset("PostImage", candidate('b'))
+        .assert_ok("proposal");
+    assert_eq!(db.asset_operations(), 1);
+    assert_eq!(db.statements(), 0);
+    c.write("pw:tables/assets#insert", &[row(1, Some(&r))])
+        .assert_ok("row insert");
+    assert_eq!(db.statements(), 1);
+    assert_eq!(db.asset_operations(), 1);
+    let p = c.prepare().assert_ok("prepare");
+    assert_eq!(db.asset_operations(), 2);
+    p.publish().assert_ok("publish");
+    assert_eq!(db.asset_operations(), 3);
+    assert_eq!(
+        db.asset_reference("PostImage", &r.key, "png")
+            .assert_ok("resolve"),
+        Some(r.clone())
+    );
+    assert_eq!(db.asset_operations(), 4);
+    assert_eq!(db.statements(), 1);
+    let mut c = db.begin().assert_ok("begin");
+    c.write("pw:tables/assets#delete", &[json!(1)])
+        .assert_ok("delete");
+    let p = c.prepare().assert_ok("prepare removal");
+    assert_eq!(db.asset_operations(), 5);
+    p.publish().assert_ok("publish removal");
+    assert_eq!(db.asset_operations(), 6);
+    assert!(
+        db.pending_asset_collections(0)
+            .assert_ok("bounded jobs")
+            .is_empty()
+    );
+    assert_eq!(db.asset_operations(), 7);
+    assert_eq!(
+        db.pending_asset_collections(1).assert_ok("one job"),
+        [candidate('b')]
+    );
+    assert_eq!(db.asset_operations(), 8);
+    db.asset_collected(&r.generation).assert_ok("completion");
+    assert_eq!(db.asset_operations(), 9);
+    assert!(
+        db.asset_reference("PostImage", &r.key, "png")
+            .assert_ok("no reference")
+            .is_none()
+    );
+    assert_eq!(db.asset_operations(), 10);
+    assert_eq!(db.statements(), 2);
+}
+#[test]
+fn cleanup_enumeration_obeys_zero_one_and_two_bounds_and_completes_only_one_captured_job() {
+    let db = database();
+    let first = seed(&db);
+    let mut c = db.begin().assert_ok("begin");
+    let mut other = candidate('c');
+    other.reference.key = "d".repeat(64);
+    let second = c
+        .propose_asset("PostImage", other.clone())
+        .assert_ok("second bytes");
+    c.write("pw:tables/assets#insert", &[row(2, Some(&second))])
+        .assert_ok("second row");
+    c.commit().assert_ok("commit");
+    let mut c = db.begin().assert_ok("begin");
+    for id in [1, 2] {
+        c.write("pw:tables/assets#delete", &[json!(id)])
+            .assert_ok("remove row");
+    }
+    c.commit().assert_ok("commit both cleanup jobs");
+    assert!(
+        db.pending_asset_collections(0)
+            .assert_ok("zero bound")
+            .is_empty()
+    );
+    assert_eq!(
+        db.pending_asset_collections(1).assert_ok("one bound"),
+        [candidate('b')]
+    );
+    assert_eq!(
+        db.pending_asset_collections(2).assert_ok("two bound"),
+        [candidate('b'), other.clone()]
+    );
+    db.asset_collected(&first.generation)
+        .assert_ok("complete first only");
+    assert_eq!(
+        db.pending_asset_collections(2).assert_ok("remaining job"),
+        [other]
+    );
+    assert!(visible(&db).is_none());
+}

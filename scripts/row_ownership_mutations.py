@@ -71,6 +71,14 @@ HOST_RELATIONS = ROOT / "runtime/pw-host/src/tables/relations.rs"
 CORE_RELATIONS = ROOT / "compiler/pw-core/src/tables/relations.rs"
 
 MUTANTS = [
+    ('upload rows does not count proposal selection', ROOT / 'runtime/pw-table-memory/src/assets.rs',
+     '        self.inner.asset_operations.fetch_add(1, Ordering::SeqCst);\n        registry', '        registry'),
+    ('upload rows does not count prepared generations', ROOT / 'runtime/pw-table-memory/src/lib.rs',
+     '                    .fetch_add(patch.plans().len() as u64, Ordering::SeqCst);', '                    .fetch_add(0, Ordering::SeqCst);'),
+    ('upload rows does not count applied generations', ROOT / 'runtime/pw-table-memory/src/lib.rs',
+     '                self.asset_operations\n                    .fetch_add(operations, Ordering::SeqCst);', '                self.asset_operations\n                    .fetch_add(operations.saturating_sub(operations), Ordering::SeqCst);'),
+    ('upload rows enumerates cleanup jobs beyond its bound', ROOT / 'runtime/pw-table-memory/src/assets.rs',
+     '            .take(limit)', '            .take(limit.saturating_add(1))'),
     ('upload rows omits original touched field uses', ROOT / 'runtime/pw-table-memory/src/assets.rs',
      '(before.as_ref(), 1, 0)', '(before.as_ref(), 0, 0)'),
     ('upload rows omits final touched field uses', ROOT / 'runtime/pw-table-memory/src/assets.rs',
