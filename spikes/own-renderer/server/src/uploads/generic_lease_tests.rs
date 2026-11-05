@@ -1,5 +1,21 @@
 //! Actual staging/preview scope before the generic invocation bridge opens.
 use super::*;
+trait RequireClaim {
+    fn require_claim(self, why: &str) -> Claimed;
+}
+impl RequireClaim for Option<Claimed> {
+    fn require_claim(self, why: &str) -> Claimed {
+        assert!(
+            self.is_some(),
+            "a declaration-scoped claim must be available: {why}"
+        );
+        match self {
+            Some(claimed) => claimed,
+            None => unreachable!(),
+        }
+    }
+}
+
 fn two() -> Uploads {
     let post = tests::declared();
     let mut avatar = post.clone();
@@ -98,7 +114,7 @@ fn identical_bytes_hold_one_staged_blob_until_both_declarations_release_their_ow
     assert_eq!(shared(&u).staged.count().unwrap(), 1);
     let claim = shared(&u)
         .claim("reader")
-        .expect("legacy wrapper claims its first declaration only");
+        .require_claim("legacy wrapper claims its first declaration only");
     shared(&u).discarded(claim);
     assert_eq!(
         preview(&u, "/uploads/post-image", "up-1", "reader").status,
@@ -119,7 +135,7 @@ fn explicit_claims_block_only_their_own_declarations_replacement_and_release() {
     let reader = crate::identity::ReaderIdentity::Guest;
     let first = shared(&u)
         .claim_for("reader", "PostImage", &reader)
-        .expect("own first declaration");
+        .require_claim("own first declaration");
     assert_eq!(first.declaration, "PostImage");
     assert_eq!(first.reader, reader);
     assert_eq!(
@@ -129,7 +145,7 @@ fn explicit_claims_block_only_their_own_declarations_replacement_and_release() {
     );
     let second = shared(&u)
         .claim_for("reader", "Avatar", &reader)
-        .expect("own second declaration");
+        .require_claim("own second declaration");
     assert_eq!(second.id, "up-3");
     assert_eq!(second.declaration, "Avatar");
     assert!(
@@ -162,7 +178,7 @@ fn explicit_claims_block_only_their_own_declarations_replacement_and_release() {
     assert_eq!(preview(&u, "/uploads/avatar", "up-4", "reader").body, b);
     let second = shared(&u)
         .claim_for("reader", "Avatar", &reader)
-        .expect("Avatar can be consumed independently");
+        .require_claim("Avatar can be consumed independently");
     shared(&u).discarded(second);
     assert_eq!(preview(&u, "/uploads/avatar", "up-4", "reader").status, 404);
     assert_eq!(shared(&u).staged.count().unwrap(), 0);
@@ -182,7 +198,7 @@ fn explicit_attachment_and_claim_lookups_use_declaration_and_captured_reader_wit
     let changed = crate::identity::ReaderIdentity::Anonymous;
     let shown = shared(&u)
         .shown_for("reader", "Avatar", &reader)
-        .expect("Avatar attachment");
+        .require_claim("Avatar attachment");
     assert_eq!(shown.src, "/uploads/avatar/up-2");
     assert_eq!((shown.width, shown.height), (8, 5));
     assert!(shared(&u).shown_for("reader", "Avatar", &changed).is_none());
@@ -193,7 +209,7 @@ fn explicit_attachment_and_claim_lookups_use_declaration_and_captured_reader_wit
     assert!(shared(&u).claim_for("foreign", "Avatar", &reader).is_none());
     let claimed = shared(&u)
         .claim_for("reader", "Avatar", &reader)
-        .expect("captured matching reader remains available");
+        .require_claim("captured matching reader remains available");
     assert_eq!(claimed.reader, reader);
     shared(&u).unclaim(claimed);
 }
@@ -205,7 +221,7 @@ fn claim_debug_never_prints_the_cookie_private_lease_id_or_private_image_key() {
     assert_eq!(post(&u, "/uploads/avatar", cookie, &image).status, 303);
     let claimed = shared(&u)
         .claim_for(cookie, "Avatar", &crate::identity::ReaderIdentity::Guest)
-        .expect("own attachment");
+        .require_claim("own attachment");
     let debug = format!("{claimed:?} {claimed:#?}");
     assert!(
         !debug.contains(cookie),
@@ -279,7 +295,7 @@ fn claimed_lease_survives_expiry_and_sweep_until_an_explicit_outcome() {
     assert_eq!(post(&u, "/uploads/avatar", "reader", &image).status, 303);
     let claimed = shared(&u)
         .claim_for("reader", "Avatar", &crate::identity::ReaderIdentity::Guest)
-        .expect("held before expiry");
+        .require_claim("held before expiry");
     {
         let mut state = shared(&u).state.lock().unwrap();
         state
