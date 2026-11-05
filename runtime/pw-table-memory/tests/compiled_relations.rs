@@ -177,32 +177,74 @@ fn relation_manifest_admission_holds_both_tables_and_both_grants_independently()
             .all(|r| r.handle.as_ref().is_some_and(|h| h.seen.is_none())),
         "public target must not receive source's seen projection"
     );
-    for missing in ["Links", "Roots"] {
-        let mut contract = component.contract.clone();
-        contract
-            .required_capabilities
-            .retain(|cap| cap.name() != format!("database.read<{missing}>"));
-        for import in &mut contract.imports {
-            if import.interface == "pw:tables/links" {
-                import.capability = format!(
-                    "database.read<{}>",
-                    if missing == "Roots" { "Links" } else { "Roots" }
+    let predicate = program
+        .components
+        .values()
+        .find(|c| c.contract.exports.iter().any(|e| e.kind == "predicate"))
+        .unwrap();
+    for component in [
+        program.component("RelLast"),
+        program.component("RelMaybe"),
+        predicate,
+    ] {
+        for missing in ["Links", "Roots"] {
+            let mut contract = component.contract.clone();
+            contract
+                .required_capabilities
+                .retain(|cap| cap.name() != format!("database.read<{missing}>"));
+            for import in &mut contract.imports {
+                if import.interface == "pw:tables/links" {
+                    import.capability = format!(
+                        "database.read<{}>",
+                        if missing == "Roots" { "Links" } else { "Roots" }
+                    );
+                }
+            }
+            let absent = Component {
+                bytes: component.bytes.clone(),
+                imports: component.imports.clone(),
+                contract,
+            };
+            let result = program
+                .manifest
+                .admit_reads(&absent.contract, &absent.granted());
+            assert!(
+                result.is_err(),
+                "missing contract AND actual grant {missing}: {result:?}"
+            );
+            assert!(result.unwrap_err().contains(missing));
+            let narrow = absent.granted();
+            for primary in ["Links", "Roots"] {
+                let mut full = component.contract.clone();
+                for import in &mut full.imports {
+                    if import.interface == "pw:tables/links" {
+                        import.capability = format!("database.read<{primary}>");
+                    }
+                }
+                let actual_missing = program.manifest.admit_reads(&full, &narrow);
+                assert!(
+                    actual_missing
+                        .as_ref()
+                        .is_err_and(|why| why.contains(missing)),
+                    "{} original full contract with only actual {missing} withheld, primary{primary}: {actual_missing:?}",
+                    component.contract.component_id
+                );
+                let mut reduced = absent.contract.clone();
+                for import in &mut reduced.imports {
+                    if import.interface == "pw:tables/links" {
+                        import.capability = format!("database.read<{primary}>");
+                    }
+                }
+                let contract_missing = program.manifest.admit_reads(&reduced, &component.granted());
+                assert!(
+                    contract_missing
+                        .as_ref()
+                        .is_err_and(|why| why.contains(missing)),
+                    "{} original full actual grants with only contract {missing} omitted, primary{primary}: {contract_missing:?}",
+                    component.contract.component_id
                 );
             }
         }
-        let absent = Component {
-            bytes: component.bytes.clone(),
-            imports: component.imports.clone(),
-            contract,
-        };
-        let result = program
-            .manifest
-            .admit_reads(&absent.contract, &absent.granted());
-        assert!(
-            result.is_err(),
-            "missing contract AND actual grant {missing}: {result:?}"
-        );
-        assert!(result.unwrap_err().contains(missing));
     }
     let mut contract = component.contract.clone();
     for import in &mut contract.imports {
@@ -242,9 +284,22 @@ fn relation_manifest_admission_holds_both_tables_and_both_grants_independently()
             }
             "target-owned" => {
                 tables[target]["owner"] = json!("author");
+                tables[target]["key"] = json!(["author", "id"]);
+                tables[target]["functions"] = json!([]);
+                for function in tables[source]["functions"].as_array_mut().unwrap() {
+                    if function["relation"] == "posts" {
+                        function["sorted_by"] = json!(["stamp", "author", "id"]);
+                    }
+                }
             }
             "target-order" => {
                 tables[target]["order"] = serde_json::Value::Null;
+                tables[target]["functions"] = json!([]);
+                for function in tables[source]["functions"].as_array_mut().unwrap() {
+                    if function["relation"] == "posts" {
+                        function["sorted_by"] = json!(["id"]);
+                    }
+                }
             }
             "match-kind" | "match-refinement" => {
                 let field = tables[target]["fields"]
@@ -286,6 +341,17 @@ fn relation_manifest_admission_holds_both_tables_and_both_grants_independently()
             result.is_err(),
             "forged {kind} manifest admitted: {result:?}"
         );
+        if kind == "target-owned" {
+            assert!(
+                result.unwrap_err().contains("public target"),
+                "otherwise-valid owned target must fail the relation rule"
+            );
+        } else if kind == "target-order" {
+            assert!(
+                result.unwrap_err().contains("declared target order"),
+                "otherwise-valid unordered target must fail the relation rule"
+            );
+        }
     }
 }
 
@@ -572,5 +638,156 @@ fn public_relations_use_scalar_bool_group_keys_and_allow_anonymous_callers() {
             relation_public_group(false, &[3, 1]),
             relation_public_group(true, &[])
         ])])
+    );
+}
+
+#[test]
+fn an_unchosen_relation_import_and_authorization_only_predicate_keep_both_grants() {
+    let program = relation_program();
+    let component = program.component("RelMaybe");
+    let reads = program
+        .manifest
+        .admit_reads(&component.contract, &component.granted())
+        .assert_ok("full unchosen import");
+    let calls = Arc::new(AtomicUsize::new(0));
+    let mut host = program.platform(ALICE);
+    for (key, read) in reads {
+        let calls = calls.clone();
+        host.insert(
+            key,
+            pw_host::engine::table_read_host::host_fn(
+                read,
+                Arc::new(move |_| {
+                    calls.fetch_add(1, Ordering::SeqCst);
+                    Ok(json!([]))
+                }),
+            ),
+        );
+    }
+    let args = [handle(ALICE), Val::S64(10), Val::S64(2), Val::Bool(false)];
+    assert_eq!(
+        pw_host::engine::call_with_tables_as(
+            &component.bytes,
+            &component.contract,
+            &component.granted(),
+            &pw_host::Limits::unbounded(),
+            &host,
+            &program.manifest,
+            &as_user(ALICE),
+            &component.export(),
+            &args
+        ),
+        Ok(vec![Val::List(vec![])])
+    );
+    let mut contract = component.contract.clone();
+    contract
+        .required_capabilities
+        .retain(|c| c.name() != "database.read<Roots>");
+    let denied = pw_host::engine::call_with_tables_as(
+        &component.bytes,
+        &contract,
+        &component.granted(),
+        &pw_host::Limits::unbounded(),
+        &host,
+        &program.manifest,
+        &as_user(ALICE),
+        &component.export(),
+        &args,
+    );
+    assert!(
+        denied
+            .as_ref()
+            .is_err_and(|why| why.contains("relation read requires") && why.contains("Roots")),
+        "unused import is gated before the false branch: {denied:?}"
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+
+    let tables = MemoryTables::new(program.tables.clone()).assert_ok("memory");
+    let predicate = program
+        .components
+        .values()
+        .find(|c| c.contract.exports.iter().any(|e| e.kind == "predicate"))
+        .unwrap();
+    let mut contract = predicate.contract.clone();
+    contract
+        .required_capabilities
+        .retain(|c| c.name() != "database.read<Roots>");
+    let bad = pw_host::engine::Predicate::new(
+        pw_host::engine::Prepared::compile(&predicate.bytes).assert_ok("compiled Selected"),
+        contract,
+        predicate.granted(),
+    )
+    .assert_ok("predicate's missing target requirement is checked with the table manifest");
+    let predicates = pw_host::engine::Predicates::new([bad]).assert_ok("one Selected predicate");
+    let body = program.component("RelHeld");
+    let prepared = pw_host::engine::Prepared::compile(&body.bytes).assert_ok("RelHeld");
+    let snapshot = tables.snapshot().assert_ok("snapshot");
+    let watched = Watched::new(&snapshot);
+    let denied = prepared.call_authorized_with_tables_as(
+        &body.contract,
+        &body.granted(),
+        &pw_host::Limits::unbounded(),
+        &program.platform(ALICE),
+        &watched,
+        &predicates,
+        &as_user(ALICE),
+        &body.export(),
+        &[handle(ALICE), Val::S64(10), Val::S64(1)],
+        |_, _| Ok(false),
+    );
+    assert!(
+        denied
+            .as_ref()
+            .is_err_and(|why| why.to_string().contains("Roots")),
+        "authorization-only Selected cannot borrow body target authority: {denied:?}"
+    );
+    assert_eq!(watched.body.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn private_membership_match_is_usable_by_its_owner_and_no_foreign_sharer() {
+    let program = private_match_program();
+    let tables = MemoryTables::new(program.tables.clone()).assert_ok("memory");
+    tables
+        .transaction(|tx| {
+            for row in relation_roots() {
+                tx.write("pw:tables/roots#insert", &[row])?;
+            }
+            for row in relation_links() {
+                tx.write("pw:tables/links#insert", &[row])?;
+            }
+            Ok(())
+        })
+        .assert_ok("private membership and public target rows");
+    for (reader, ids) in [(ALICE, vec![4, 3]), (BOB, vec![5])] {
+        assert_eq!(
+            query(
+                &program,
+                &tables,
+                "PrivateMatch",
+                &as_user(reader),
+                &[handle(reader), Val::S64(2)]
+            ),
+            Ok(vec![Val::List(
+                ids.into_iter().map(relation_root_value).collect()
+            )])
+        );
+    }
+    let before = tables.statements();
+    assert!(
+        query(
+            &program,
+            &tables,
+            "PrivateMatch",
+            &as_user(BOB),
+            &[handle(ALICE), Val::S64(2)]
+        )
+        .is_err(),
+        "a sharer of Alice's rows cannot read the relation selected by her private match field"
+    );
+    assert_eq!(
+        tables.statements(),
+        before,
+        "foreign handle refused before data work"
     );
 }

@@ -71,8 +71,8 @@ MUTANTS = [
     (
         "`set` and `sets` head a clause wherever they are written",
         GRAMMAR,
-        '    "layout", "set", "sets", "row", "order", "index", "unique", "refers", "migrate",\n',
-        '    "layout", "row", "order", "index", "unique", "refers", "migrate",\n',
+        '    "layout", "set", "sets", "row", "order", "index", "unique", "refers", "window", "migrate",\n',
+        '    "layout", "row", "order", "index", "unique", "refers", "window", "migrate",\n',
     ),
     (
         "`sets` takes any value",
@@ -311,7 +311,7 @@ MUTANTS = [
         "            let _ = (&bounded, i);\n",
     ),
     ('generated keyed reads have no set pair', BOUNDED, '                        pairs.insert(Self::def(unit, *id), Self::def(unit, *set));\n', '                        let _ = (id, set);\n'),
-    ('generated index pairs ignore their queried fields', BOUNDED, '                        .find(|(_, p, fields)| *p == many && fields == by)\n', '                        .find(|(_, p, fields)| *p == many && (fields == by || true))\n'),
+    ('generated index pairs ignore their queried fields', BOUNDED, '                            && fields == by\n                            && (!primitive.related()', '                            && (fields == by || true)\n                            && (!primitive.related()'),
     ('generated index reads are paired with a prefix batch', BOUNDED, '                        Primitive::Index => Primitive::IndexMany,\n', '                        Primitive::Index => Primitive::PrefixMany,\n'),
     ('generated flat batches replace each individual read in the repair', BOUNDED, '             then give each turn its matching {entries} from the flat result (or {missing} for a \\\n', '             then give every turn the entire {entries} batch from the flat result (or {missing} for a \\\n'),
     ('generated composite keys are described as scalar keys', BOUNDED, '        let input = if held.len() == 1 {\n', '        let input = if true || held.len() == 1 {\n'),

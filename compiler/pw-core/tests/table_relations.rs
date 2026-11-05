@@ -350,6 +350,10 @@ user query Bad(reader: User<UserId>, topics: List<Int>, n: Int) -> List<List<Roo
     assert!(refusal.is_some(), "missing keyed-loop refusal: {got:#?}");
     let hint = format!("{:#?}", refusal.unwrap());
     assert!(
+        !hint.contains("; +"),
+        "no patch marker in rendered relation repair: {hint}"
+    );
+    assert!(
         hint.contains("last_stories_by_reader_topic_many"),
         "correct relation set: {hint}"
     );
@@ -527,4 +531,25 @@ fn relation_row_annotations_obey_visibility_and_require_the_declared_shape() {
         "PW0361",
         "target table",
     );
+}
+
+#[test]
+fn an_owner_may_match_private_fields_but_a_sharer_cannot_select_through_them() {
+    let owner = LINKS
+        .replace("key reader, topic, author, edge", "key reader, edge")
+        .replace(
+            "index by_recipient_topic_author on to, topic, author",
+            "index by_reader_author on reader, author\n    index by_to on to",
+        )
+        .replace("private secret", "private secret, author");
+    let got = diagnostics(&owner, ROOTS, DATA);
+    assert!(
+        got.is_empty(),
+        "owner-only private match is valid beside ordinary shared rows: {got:#?}"
+    );
+    let shared = owner.replace(
+        "index by_to on to",
+        "index by_to on to\n    index by_to_author on to, author",
+    );
+    refused(&shared, ROOTS, DATA, "PW0369", "private match field");
 }

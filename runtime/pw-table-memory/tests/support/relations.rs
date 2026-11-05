@@ -48,6 +48,19 @@ source RelationData
         app.push_str(&format!("\nuser query {name}(reader: User<UserId>, topics: List<Int>, n: Int) -> {returns}\n    freshness 0.seconds\n    consistency read_your_writes\n    cache private\n    key reader,topics,n\n    concurrency one_per_key\n    on_key_change cancel\n    timeout 2.seconds\n{{\n    {body}\n}}\n"));
     }
     app.push_str(r#"
+user query RelMaybe(reader: User<UserId>, topic: Int, n: Int, run: Bool) -> List<Roots.Root>
+    freshness 0.seconds
+    consistency read_your_writes
+    cache private
+    key reader,topic,n,run
+    concurrency one_per_key
+    on_key_change cancel
+    timeout 2.seconds
+{
+    if run { Links.last_posts_by_reader_topic(reader,topic,n) } else { [] }
+}
+"#);
+    app.push_str(r#"
 import context.{ current_user }
 predicate Selected(topic: Int, id: Int)
     says "This post is no longer selected."
@@ -161,4 +174,59 @@ fn relation_public_links()->Vec<serde_json::Value> {
 }
 fn relation_public_group(topic:bool,ids:&[i64])->Val {
     Val::Record(vec![("key".into(),Val::Bool(topic)),("rows".into(),Val::List(ids.iter().map(|id|relation_root_value(*id)).collect()))])
+}
+
+
+fn private_match_program() -> Program {
+    built_from(&[
+        ("Roots.pw",r#"module Roots
+import capability.{ UserId }
+type Root = Root { id: Int, author: UserId, stamp: Int, text: String }
+table Roots
+    row Root
+    key id
+    order stamp
+    index by_author on author
+"#),
+        ("Links.pw",r#"module Links
+import Roots
+import capability.{ UserId }
+type Link = Link { reader: UserId, topic: Int, author: UserId, edge: Int, to: UserId, secret: String }
+table Links
+    row Link
+    key reader, edge
+    index by_reader_author on reader, author
+    index by_to on to
+    owned by reader
+    shares with to
+    private author, secret
+    window posts from Roots row Roots.Root on author to author
+"#),
+        ("RelationData.pw",r#"module RelationData
+import Roots
+import Links
+source RelationData
+    holds Roots, Links
+    transactions serializable
+    reads strong
+    changes none
+    sets one_call
+"#),
+        ("app.pw",r#"module owned.app
+import Roots
+import Links
+import capability.{ User, UserId }
+user query PrivateMatch(reader: User<UserId>, n: Int) -> List<Roots.Root>
+    freshness 0.seconds
+    consistency read_your_writes
+    cache private
+    key reader,n
+    concurrency one_per_key
+    on_key_change cancel
+    timeout 2.seconds
+{
+    Links.last_posts_by_reader(reader,n)
+}
+"#)
+    ])
 }

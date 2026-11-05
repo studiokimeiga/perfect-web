@@ -2180,3 +2180,94 @@ fn the_suite_holds_for_fixed_relation_windows_on_memory() {
         }
     }
 }
+
+/// Exercise the real resource-cache fast path: public target rows do not
+/// make the owned selection public, even when the query arguments are forged.
+pub(super) fn warm_relation_cache(build: &std::path::Path, layer: Layer) {
+    let s = served_by(build, layer);
+    s.identity.signed_in_for_test("a", "alice", "Alice");
+    s.identity.signed_in_for_test("b", "bob", "Bob");
+    let tables = tables_of(build);
+    let rows = tables.iter().map(|table| {
+        let values = if table.windows.is_empty() {
+            vec![serde_json::json!({"id":1,"author":"bob","stamp":1,"text":"FOR_ALICE"}),
+                 serde_json::json!({"id":2,"author":"alice","stamp":2,"text":"FOR_BOB"})]
+        } else {
+            vec![serde_json::json!({"reader":"alice","topic":10,"author":"bob","edge":1,"to":"bob","secret":"ALICE_MEMBERSHIP"}),
+                 serde_json::json!({"reader":"bob","topic":10,"author":"alice","edge":2,"to":"alice","secret":"BOB_MEMBERSHIP"})]
+        };
+        (table.name.clone(), values.into_iter().map(|v| v.as_object().expect("row").clone()).collect())
+    }).collect();
+    written(&s, &tables, &rows);
+    let args = |reader: &str| vec![Val::String(reader.into()), Val::S64(10), Val::S64(1)];
+    let binding = serde_json::json!({
+        "resource":"relations.app.Following",
+        "policy":{"freshness_ms":30_000,"cache":"private","privacy":"user","key":[0,1,2]}
+    });
+    let alice = s
+        .fetch_answer("a", &binding, &args("alice"))
+        .asserted("Alice's selection");
+    let bob = s
+        .fetch_answer("b", &binding, &args("bob"))
+        .asserted("Bob's selection");
+    assert_ne!(alice, bob);
+    for (answer, yes, no) in [
+        (&alice, "FOR_ALICE", "FOR_BOB"),
+        (&bob, "FOR_BOB", "FOR_ALICE"),
+    ] {
+        let text = format!("{answer:?}");
+        assert!(
+            text.contains(yes) && !text.contains(no) && !text.contains("MEMBERSHIP"),
+            "{text}"
+        );
+    }
+    let table_calls = || {
+        s.calls
+            .lock()
+            .expect("calls")
+            .iter()
+            .filter(|(op, _)| pw_host::tables::is_table_import(op))
+            .map(|(op, n)| (op.clone(), *n))
+            .collect::<BTreeMap<_, _>>()
+    };
+    let calls = table_calls();
+    let ran = statements(&s);
+    for _ in 0..2 {
+        assert_eq!(
+            s.fetch_answer("a", &binding, &args("alice"))
+                .asserted("warm Alice"),
+            alice
+        );
+        assert_eq!(
+            s.fetch_answer("b", &binding, &args("bob"))
+                .asserted("warm Bob"),
+            bob
+        );
+    }
+    assert_eq!(
+        table_calls(),
+        calls,
+        "both readers actually use warm resource entries"
+    );
+    assert_eq!(statements(&s), ran, "no adapter read on either warm entry");
+    assert!(
+        s.fetch_answer("b", &binding, &args("alice")).is_err(),
+        "a cached reader handle must still belong to its caller"
+    );
+    assert_eq!(
+        table_calls(),
+        calls,
+        "forged cached reader never calls the adapter"
+    );
+    assert_eq!(
+        s.fetch_answer("a", &binding, &args("alice"))
+            .asserted("Alice remains warm"),
+        alice
+    );
+}
+
+#[test]
+fn warm_relation_selections_are_private_to_each_reader_on_memory() {
+    let (_dir, out) = relations_build();
+    warm_relation_cache(&out, &memory);
+}

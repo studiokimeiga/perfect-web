@@ -9,7 +9,7 @@ import RelationMembers
 import capability.{ User, UserId }
 
 user query Following(reader: User<UserId>, topic: Int, limit: Int) -> List<RelationPosts.Post>
-    freshness 0.seconds
+    freshness 30.seconds
     consistency read_your_writes
     cache private
     key reader,topic,limit

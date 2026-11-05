@@ -1180,7 +1180,7 @@ impl<'p, 'i> Reads<'p, 'i> {
         if primitive.related() {
             return Some(format!(
                 "read them together, before the {place}, with `{table}.{}`: supply {input}{reader}{bound}; \
-+                 match each turn's key/rows group from the result, including an empty rows group for a missing key",
+                 match each turn's key/rows group from the result, including an empty rows group for a missing key",
                 many.name
             ));
         }

@@ -630,3 +630,56 @@ fn public_relations_use_scalar_bool_group_keys_and_allow_anonymous_callers() {
         ])])
     );
 }
+
+#[test]
+fn private_membership_match_is_usable_by_its_owner_and_no_foreign_sharer() {
+    let program = private_match_program();
+    let Some(url) = common::database() else {
+        return;
+    };
+    let scratch = common::Scratch::new(&url, "private_relation_match");
+    let tables =
+        PgTables::open(&url, scratch.schema(), program.tables.clone()).assert_ok("PostgreSQL");
+    tables
+        .transaction(|tx| {
+            for row in relation_roots() {
+                tx.write("pw:tables/roots#insert", &[row])?;
+            }
+            for row in relation_links() {
+                tx.write("pw:tables/links#insert", &[row])?;
+            }
+            Ok(())
+        })
+        .assert_ok("private membership and public target rows");
+    for (reader, ids) in [(ALICE, vec![4, 3]), (BOB, vec![5])] {
+        assert_eq!(
+            q(
+                &program,
+                &tables,
+                "PrivateMatch",
+                &as_user(reader),
+                &[handle(reader), Val::S64(2)]
+            ),
+            Ok(vec![Val::List(
+                ids.into_iter().map(relation_root_value).collect()
+            )])
+        );
+    }
+    let before = tables.statements();
+    assert!(
+        q(
+            &program,
+            &tables,
+            "PrivateMatch",
+            &as_user(BOB),
+            &[handle(ALICE), Val::S64(2)]
+        )
+        .is_err(),
+        "a sharer of Alice's rows cannot read the relation selected by her private match field"
+    );
+    assert_eq!(
+        tables.statements(),
+        before,
+        "foreign handle refused before data work"
+    );
+}
