@@ -611,3 +611,131 @@ No canonical application has been ported by this prerequisite.
 Remaining after this: generic upload claim/publication/reference/GC lifetime,
 initial public fixtures, stable IDs/private child deletion as required, actual
 canonical feed/store ports, final whole campaigns/browser/CI and frozen review.
+
+
+### Next seam: declared public upload references
+
+Decision recorded before upload implementation, after relation record `ff57edc7`.
+This is a local generic capability prerequisite. Existing mixed-layer/upload
+startup refusals stay until the complete replacement passes native checks on
+both adapters and the actual server path. No legacy data conversion is implied.
+
+**Declaration and authority.** A generic upload is declared in the module of
+its own name, following tables' existing module convention. Legacy inline
+uploads remain legacy fixtures until ported. Generate ordinary module types
+`Claim`, `Ref`, `Kind`, `Attached`, `Error` and resource-only `attached`, `claim`,
+`publish`, `discard` functions, plus a pure source-URL projection. Names/formals/
+WIT aliases retain named collision refusal. The operations never write a Post
+or another application domain row. A claimed upload is the existing linear
+resource; `publish` releases it to `Ref`, after which Pleris inserts/updates its
+ordinary row. Alt text stays typed application data, outside the descriptor.
+
+A repeatable table clause `asset image from PostImage` associates one top-level
+`PostImage.Ref` or `Option<PostImage.Ref>` field with that resolved declaration.
+Initial scope is public asset-bearing tables only; no private serving policy is
+introduced. The source explicitly holds the upload and its associated tables;
+all uses of one upload must resolve to the same explicit source. The compiler
+checks actual nominal identity and complete shape/refinements. The host checks
+declaration/source identities, permitted kinds/limits, exact stored descriptor
+shape and emitted operation ABI independently. Generic startup still refuses
+unassociated uploads, malformed/stale metadata and mixed legacy imports.
+
+The descriptor contains content key, unique storage generation, canonical kind
+and dimensions, from sanitized actual bytes. Ref is data, not a stored authority
+handle. A write may copy an exact currently committed live Ref of the SAME
+upload declaration under normal table write authority; no new claim is needed
+for that public data. Unknown/orphan/tombstoned/stale-generation adoption is
+refused. A new verified claim may enroll its actual declaration for matching
+live bytes, subject to that declaration's own limits. Lease/claim identity must
+include the actual declaration, never the first declaration in a vector.
+Session arguments and both resource/database grants are checked before callback,
+including unused imports. Caller-owned table authority is unchanged. Generated
+effects use database.read/write<Upload> plus resource.acquire/release<Claim>;
+source and deployment admission retain both effects. A command acquiring or
+releasing a generic claim requires ordinary idempotent_by and its real commit
+record; runtime commit independently refuses a missing record before publication.
+
+**Reference transactions.** Insert/put/delete/prefix-delete maintain internal
+descriptor/reference bookkeeping in the same transaction as declared rows,
+records and outbox. Rejected/conflicting writes do not drift references. Count
+unchanged, replacement, duplicate fields/rows/declarations and final net state;
+a delete-then-put/move cannot make a transient zero irreversible. No full-table
+payload fetch or app-specific Rust adapter. Publication chooses a live generation
+or a fresh generation inside this adapter transaction and returns that Ref;
+actual bytes are kept in generic commit preparation before COMMIT. A release
+without a final row reference is not an attachment. Explicitly settle its
+disposition after applied commit, without making unreferenced bytes servable.
+
+Maintain at most one live generation per content hash in a physical namespace.
+Same-byte claims reuse it while live references exist. Descriptor metadata is
+immutable per generation. Global last-reference removal, tombstone and a cleanup
+job capturing that generation commit atomically. A tombstoned generation never
+becomes live or reuses its path again; a new claim after it uses a fresh unique
+generation. Physical collection and completion/retry target the captured old
+generation only, never a mutable hash-to-current-generation pointer. Count all
+declarations sharing physical bytes; declaration-specific serving still requires
+its own live reference. Failed cleanup retains its job and cannot undo an applied
+row commit. Failed publication can leave unserved orphan bytes, the existing
+legacy limitation; no orphan sweep is claimed without a separate bounded proof.
+
+**Exclusion and storage fencing.** A schema/deployment registry and its lock
+must own the SAME physical namespace. Enroll a durable namespace identity and
+use isolated subdirectories, so sharing PW_BLOB_DIR across different databases/
+schemas does not merge reference universes. Hosts of one durable deployment
+must share read-after-write storage. Staged ephemeral leases have separate
+host-local namespaces; their local hold counts cannot delete another host's
+staged bytes. Cross-host ephemeral lease failover is not added by this seam.
+
+For upload-enabled generic programs, reserve the existing pool lease, acquire
+the caller session fence if any, then lifetime SESSION advisory lock, then host
+turn, then BEGIN/first snapshot. Unfenced guest/Clock/maintenance/ref mutations
+follow the same relative order. Hold this SAME connection through keep, COMMIT,
+fresh latest-reference check and generation-specific collection; unlock/end
+afterward. Do not wait for lifetime after host turn or use a second pool lease
+while holding it. Session open/close need no lifetime lock; outbox lock remains
+later in commit. This serializes upload-program commands across hosts, with no
+throughput claim. A lock acquired after begin_fenced returns is too late: that
+API already begins and reads its session row. Existing publish_with ends the
+connection before returning; postcommit hooks must execute before that end.
+
+An advisory lock alone does not fence physical storage after its DB connection
+dies. A stale process may resume cleanup after another host republishes identical
+bytes. Unique generation paths, not SHA/content ETags, make that stale cleanup
+harmless. Preserve external /images/<SHA>.<kind> URLs; serving resolves current
+authoritative live descriptor/generation BEFORE 304/ETag handling. No reference
+means404; live descriptor with missing/unreadable storage means503. Never serve
+an orphan/tombstone merely because flat hash bytes exist.
+
+**Uncertain outcomes.** Known refusal/rollback/trap returns held claims; known
+applied commit settles them. Unknown COMMIT gives claims an explicit unresolved
+disposition, not the existing rollback Drop path. Retain their bytes and pending
+identity. Reconciliation reacquires lifetime exclusion, then reads the actual
+durable interaction record: matching record proves applied; absence can prove
+rollback only after the old transaction has ended and while retention can still
+prove absence. Expired/indeterminate evidence stays unresolved, never guessed
+rollback. Session/lease lifecycle and retry must not hand another invocation the
+same unresolved claim. Do not collect on an uncertain outcome. Native witnesses
+must cover receipt reconciliation, principal rotation and lock/drop cleanup.
+
+**Proof before guard replacement.** Require compiler failing regressions with
+valid neighbors; host forged identity/ABI/refinement and independent grant axes;
+actual compiled resource/table flow on memory and PostgreSQL; session/rotated/
+foreign-declaration claims and malformed whole refs; rejected writes, replace,
+duplicates and final net moves; trap/refusal/keep error/late fence/unknown COMMIT;
+reopen, metadata upgrades/reserved names, simultaneous hosts, same-byte last
+delete vs publish in both orders; authoritative HTTP404/503 and304 ordering.
+Terminate host A's actual PostgreSQL backend after committed no-ref inspection
+but before physical unlink, let B republish identical bytes/new generation and
+commit, then resume A and verify B's actual bytes and serving. Add strict faults
+at real assertion sites, complete inventories and exact-source/restoration
+receipts. Existing browser/API assertions remain unchanged final port gates.
+
+Primary PostgreSQL18 docs checked: [explicit locking](https://www.postgresql.org/docs/18/explicit-locking.html)
+and [transaction isolation](https://www.postgresql.org/docs/18/transaction-iso.html).
+The [synthetic protocol probe](../evidence/E14/protected-upload-design-2026-11-04/primary-probe.log)
+on18.6 reproduces advisory-only stale unlink after actual backend termination,
+and preserves new identical bytes with distinct captured paths. It also shows
+late-lock pinned snapshot vs pre-BEGIN fresh snapshot. Separate review found no
+false-pass for that limited claim. Its refs are key-only joined to a mutable
+pointer, paths fixedold/new, no contended snapshot wait, no tombstones, adapters,
+namespace enrollment or HTTP. It is not implementation acceptance.
