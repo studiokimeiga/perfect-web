@@ -34,7 +34,7 @@ e14-data-path:
        echo "== the server: routing, the guestbook, the conformance suite, the reader's account, a guest's identity, the session's cookie kept nowhere"; \
        cargo test --locked -p pw-dev-server --bin pw-dev-server -- tests::tables:: tests::guestbook:: tests::conformance:: notifications::tests:: tables::tests:: tests::sign_in::nothing_the_feed_keeps_holds_a_session_cookie tests::sign_in::on_postgres::nothing_kept_on_postgres_holds_a_session_cookie tests::sign_in::each_feed_operation_answers_its_requests_session_alone tests::sign_in::on_postgres::each_feed_operation_answers_its_requests_session_alone_on_postgres tests::store_accounts::nothing_a_session_keyed_store_keeps_holds_a_session_cookie tests::store_pg::on_postgres_nothing_the_store_keeps_holds_a_session_cookie uploads::tests::a_claim_no_transaction_commits_is_given_back --test-threads=8 --nocapture; \
        echo; echo "== the engine: a guarded command through the gate; the adapter's snapshot"; \
-       cargo test --locked -p pw-table-memory --test compiled_guarded --test compiled_snapshot --test compiled_ranges --test compiled_relations --test compiled_assets; \
+       cargo test --locked -p pw-table-memory --test compiled_guarded --test compiled_snapshot --test compiled_ranges --test compiled_relations --test compiled_assets --test compiled_cases; \
        echo; echo "== the platform's transaction: a command's last step after its records, before its COMMIT"; \
        cargo test --locked -p pw-materialize --lib -- a_commands_last_step; \
        echo; echo "== the compiler: no row holds a handle (PW6901); the reader's account, labelled the reader's; the block's owner"; \

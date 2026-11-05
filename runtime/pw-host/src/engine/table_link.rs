@@ -289,22 +289,30 @@ fn stored(stored: &Stored, ty: &Type) -> Result<(), String> {
              a type the table host serves yet"
                 .into(),
         ),
+        (Stored::Cases(cases), Type::Variant(variant)) => {
+            let tags = crate::tables::case_tags(cases).ok_or("unsupported closed-case encoding")?;
+            let actual = variant.cases().collect::<Vec<_>>();
+            if actual.len() != tags.len()
+                || actual
+                    .iter()
+                    .zip(&tags)
+                    .any(|(case, tag)| case.name != tag || case.ty.is_some())
+            {
+                return Err("variant cases or payloads differ from tables.json".into());
+            }
+            Ok(())
+        }
         (Stored::Option(inner), Type::Option(option)) => self::stored(inner, &option.ty()),
         (Stored::List(inner), Type::List(list)) => self::stored(inner, &list.ty()),
         (Stored::Record(fields), ty) => {
             record(&fields.iter().map(Column::of).collect::<Vec<_>>(), ty)
         }
-        (
-            Stored::Unit
-            | Stored::Set(_)
-            | Stored::Map(..)
-            | Stored::Cases(_)
-            | Stored::Recursive(_),
-            _,
-        ) => Err(format!(
-            "{} is not a type the table host serves yet",
-            described(stored)
-        )),
+        (Stored::Unit | Stored::Set(_) | Stored::Map(..) | Stored::Recursive(_), _) => {
+            Err(format!(
+                "{} is not a type the table host serves yet",
+                described(stored)
+            ))
+        }
         (stored, ty) => Err(format!(
             "{} where tables.json declares {}",
             named(ty),
@@ -767,6 +775,11 @@ pub fn check_value(stored: &Stored, value: &Val) -> Result<(), String> {
                 Ok(())
             }
         }
+        (Stored::Cases(cases), Val::Variant(tag, None))
+            if crate::tables::case_tags(cases).is_some_and(|tags| tags.contains(tag)) =>
+        {
+            Ok(())
+        }
         (Stored::Bool, Val::Bool(_)) => Ok(()),
         (Stored::Float, Val::Float64(x)) if x.is_finite() => Ok(()),
         (Stored::Float, Val::Float64(x)) => Err(format!("{x} is not a finite number")),
@@ -802,6 +815,7 @@ fn atom(value: &Val) -> Result<Atom, String> {
         Val::Bool(b) => Ok(Atom::Bool(*b)),
         Val::S64(n) => Ok(Atom::Int(*n)),
         Val::String(s) => Ok(Atom::Str(s.clone())),
+        Val::Variant(tag, None) => Ok(Atom::Str(tag.clone())),
         other => Err(format!("{} is no key's or order's value", val_named(other))),
     }
 }

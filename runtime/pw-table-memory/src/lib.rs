@@ -1501,12 +1501,16 @@ fn stored<'a>(table: &'a TableJson, field: &str) -> Option<&'a Stored> {
         .map(|f| &f.stored)
 }
 
+fn case_tags(cases: &[pw_core::tables::StoredCase]) -> Option<Vec<String>> {
+    pw_host::tables::closed_case_tags(cases.iter().map(|c| (c.name.as_str(), c.carries.len())))
+}
+
 /// A value every adapter keys by.
 fn scalar(stored: &Stored) -> bool {
     matches!(
         stored,
         Stored::Int { .. } | Stored::String { .. } | Stored::Bool
-    )
+    ) || matches!(stored,Stored::Cases(cases) if case_tags(cases).is_some())
 }
 
 /// A value this adapter stores without losing any of it: an `Option` of an
@@ -1523,7 +1527,8 @@ fn supported(ty: &Stored) -> bool {
         }
         Stored::List(inner) => supported(inner),
         Stored::Record(fields) => fields.iter().all(|f| supported(&f.stored)),
-        Stored::Map(_, _) | Stored::Set(_) | Stored::Cases(_) | Stored::Recursive(_) => false,
+        Stored::Cases(cases) => case_tags(cases).is_some(),
+        Stored::Map(_, _) | Stored::Set(_) | Stored::Recursive(_) => false,
     }
 }
 
@@ -1552,7 +1557,10 @@ fn validates(value: &Value, ty: &Stored) -> bool {
                     .iter()
                     .all(|f| obj.get(&f.name).is_some_and(|v| validates(v, &f.stored)))
         }),
-        Stored::Set(_) | Stored::Map(_, _) | Stored::Cases(_) | Stored::Recursive(_) => false,
+        Stored::Cases(cases) => value
+            .as_str()
+            .is_some_and(|tag| case_tags(cases).is_some_and(|tags| tags.iter().any(|t| t == tag))),
+        Stored::Set(_) | Stored::Map(_, _) | Stored::Recursive(_) => false,
     }
 }
 

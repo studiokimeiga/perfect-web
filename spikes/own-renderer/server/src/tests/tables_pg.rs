@@ -2284,3 +2284,12 @@ fn warm_relation_selections_are_private_to_each_reader_on_postgresql() {
     let (_dir, out) = super::conformance::relations_build();
     super::conformance::warm_relation_cache(&out, &|build| pg_layer(build, &schema.database()));
 }
+
+#[test]
+fn the_suite_holds_for_closed_case_keys_indexes_windows_and_ranges_on_postgresql() {
+    let Some(url) = database() else { return };
+    let (_dir, out) = super::conformance::cases_build();
+    let checked = suite_on_postgresql(&out, &url, "suite_cases");
+    assert!(checked.reads > 0 && checked.writes > 0);
+    assert_eq!(checked.refusals, BTreeMap::from([("CaseRows".into(), 1)]));
+}

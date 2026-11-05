@@ -21,7 +21,7 @@ e14-row-ownership:
        cargo test --locked -p pw-core --test table_owners --test table_counts --test table_windows --test table_ranges --test table_relations --test table_assets; \
        cargo test --locked -p pw-core --test predicate_bodies; \
        cargo test --locked -p pw-host --features engine --lib table_owners; \
-       cargo test --locked -p pw-table-memory --test compiled_owners --test compiled_counts --test compiled_windows --test compiled_ranges --test compiled_relations --test compiled_assets; \
+       cargo test --locked -p pw-table-memory --test compiled_owners --test compiled_counts --test compiled_windows --test compiled_ranges --test compiled_relations --test compiled_assets --test compiled_cases; \
        cargo test --locked -p pw-table-memory --test compiled_predicates; \
        cargo test --locked -p pw-dev-server required_queries || exit 1; \
        echo; echo "== owned rows in Chromium, Firefox and WebKit"; \

@@ -29,9 +29,10 @@ fn scalar(column: &Column, value: &Val) -> Result<Value, String> {
     match value {
         Val::S64(n) => Ok(Value::from(*n)),
         Val::String(s) => Ok(Value::from(s.clone())),
+        Val::Variant(tag, None) => Ok(Value::from(tag.clone())),
         Val::Bool(b) => Ok(Value::from(*b)),
         _ => Err(format!(
-            "key field `{}`: a key is a WIT s64, string or bool",
+            "key field `{}`: a key is a WIT s64, string, bool or closed variant",
             column.name
         )),
     }
@@ -179,6 +180,11 @@ fn json(stored: &Stored, value: &Val) -> Result<Value, String> {
     Ok(match (stored, value) {
         (Stored::Int { .. }, Val::S64(n)) => Value::from(*n),
         (Stored::String { .. }, Val::String(s)) => Value::from(s.clone()),
+        (Stored::Cases(cases), Val::Variant(tag, None))
+            if crate::tables::case_tags(cases).is_some_and(|tags| tags.contains(tag)) =>
+        {
+            Value::from(tag.clone())
+        }
         (Stored::Bool, Val::Bool(b)) => Value::from(*b),
         (Stored::Float, Val::Float64(x)) => serde_json::Number::from_f64(*x)
             .map(Value::Number)

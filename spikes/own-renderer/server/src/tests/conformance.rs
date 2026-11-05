@@ -242,6 +242,20 @@ pub(super) fn tables_of(build: &std::path::Path) -> Vec<Table> {
 /// A stored type the suite generates no value of fails the suite, named:
 /// never a table left out.
 fn value(stored: &Json, seed: usize) -> Json {
+    if let Some(cases) = stored.get("cases").and_then(Json::as_array) {
+        assert!(
+            !cases.is_empty()
+                && cases.iter().all(|c| c
+                    .get("carries")
+                    .is_none_or(|v| v.as_array().is_some_and(Vec::is_empty))),
+            "closed case generator"
+        );
+        return Json::String(pw_host::tables::wit_name(
+            cases[seed % cases.len()]["name"]
+                .as_str()
+                .expect("case name"),
+        ));
+    }
     if stored == "bool" {
         return Json::Bool(seed % 2 == 1);
     }
@@ -339,6 +353,15 @@ pub(super) fn generated(
 
 /// A JSON value as the WIT `Val` of its stored type.
 fn wit(stored: &Json, value: &Json) -> Val {
+    if let Some(cases) = stored.get("cases").and_then(Json::as_array) {
+        let tag = value.as_str().expect("stored case tag");
+        assert!(
+            cases
+                .iter()
+                .any(|case| pw_host::tables::wit_name(case["name"].as_str().expect("name")) == tag)
+        );
+        return Val::Variant(tag.into(), None);
+    }
     if let Some(inner) = stored.get("option") {
         return Val::Option(match value {
             Json::Null => None,
@@ -356,6 +379,7 @@ fn wit(stored: &Json, value: &Json) -> Val {
 /// A WIT `Val` as JSON, the adapter's form: an option's none is null.
 fn json(value: &Val) -> Json {
     match value {
+        Val::Variant(tag, None) => Json::String(tag.clone()),
         Val::Bool(b) => Json::Bool(*b),
         Val::String(s) => Json::String(s.clone()),
         Val::S64(n) => Json::from(*n),
@@ -2270,4 +2294,74 @@ pub(super) fn warm_relation_cache(build: &std::path::Path, layer: Layer) {
 fn warm_relation_selections_are_private_to_each_reader_on_memory() {
     let (_dir, out) = relations_build();
     warm_relation_cache(&out, &memory);
+}
+
+pub(super) fn cases_build() -> (tempfile::TempDir, std::path::PathBuf) {
+    super::tables::built(
+        &[],
+        &[
+            (
+                "CaseRows.pw",
+                r#"module CaseRows
+type Kind = AB | A_Z
+type Row = Row { lane: Kind, id: Int, mark: Kind }
+table CaseRows
+    row Row
+    key lane, id
+    order mark
+    index by_mark on mark
+    bounded 100
+"#,
+            ),
+            (
+                "CaseData.pw",
+                r#"module CaseData
+import CaseRows
+source CaseData
+    holds CaseRows
+    transactions serializable
+    reads strong
+    changes none
+    sets one_call
+"#,
+            ),
+            (
+                "cases.pw",
+                r#"module cases.app
+import CaseRows
+public query Every() -> List<CaseRows.Row>
+    freshness 0.seconds
+    consistency snapshot
+    cache shared
+    concurrency one_per_key
+    on_key_change cancel
+    timeout 2.seconds
+{ CaseRows.all() }
+"#,
+            ),
+        ],
+    )
+}
+#[test]
+fn closed_case_oracle_pins_wire_tags_without_constructor_order() {
+    let stored =
+        serde_json::json!({"cases":[{"name":"AB","carries":[]},{"name":"A_Z","carries":[]}]});
+    assert_eq!(value(&stored, 0), Json::String("ab".into()));
+    assert_eq!(value(&stored, 1), Json::String("a-z".into()));
+    assert_eq!(
+        wit(&stored, &Json::String("a-z".into())),
+        Val::Variant("a-z".into(), None)
+    );
+    assert_eq!(
+        json(&Val::Variant("ab".into(), None)),
+        Json::String("ab".into())
+    );
+    assert!(compare(&Json::String("a-z".into()), &Json::String("ab".into())).is_lt());
+}
+#[test]
+fn the_suite_holds_for_closed_case_keys_indexes_windows_and_ranges_on_memory() {
+    let (_dir, out) = cases_build();
+    let checked = conformance(&out, &memory);
+    assert!(checked.reads > 0 && checked.writes > 0);
+    assert_eq!(checked.refusals, BTreeMap::from([("CaseRows".into(), 1)]));
 }

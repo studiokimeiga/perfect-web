@@ -151,6 +151,40 @@ pub struct Case {
     pub carries: Vec<Stored>,
 }
 
+/// Canonical scalar variant tags, shared by the host and database adapters.
+/// A payload or a normalized identity collision has no lossless closed-tag ABI.
+pub fn closed_case_tags<'a>(
+    cases: impl IntoIterator<Item = (&'a str, usize)>,
+) -> Option<Vec<String>> {
+    let mut tags = Vec::new();
+    let mut seen = BTreeSet::new();
+    for (name, payloads) in cases {
+        if payloads != 0 || !name.chars().any(|c| c.is_ascii_alphanumeric()) {
+            return None;
+        }
+        let tag = wit_name(name);
+        if !seen.insert(tag.clone()) {
+            return None;
+        }
+        tags.push(tag);
+    }
+    (!tags.is_empty()).then_some(tags)
+}
+
+pub(crate) fn case_tags(cases: &[Case]) -> Option<Vec<String>> {
+    closed_case_tags(cases.iter().map(|c| (c.name.as_str(), c.carries.len())))
+}
+
+fn case_shapes(stored: &Stored) -> bool {
+    match stored {
+        Stored::Cases(cases) => case_tags(cases).is_some(),
+        Stored::Option(inner) | Stored::List(inner) | Stored::Set(inner) => case_shapes(inner),
+        Stored::Map(key, value) => case_shapes(key) && case_shapes(value),
+        Stored::Record(fields) => fields.iter().all(|f| case_shapes(&f.stored)),
+        _ => true,
+    }
+}
+
 /// **The primitive a table's function is bound to** (ADR-0338, 1.3;
 /// `pw_core::tables::Primitive`, mirrored by name): one adapter function each,
 /// serving every table.
@@ -865,6 +899,11 @@ impl Manifest {
             let fields: BTreeSet<&str> = table.fields.iter().map(|f| f.name.as_str()).collect();
             if fields.len() != table.fields.len() {
                 return Err(format!("tables.json: {name} repeats a field"));
+            }
+            if !table.fields.iter().all(|field| case_shapes(&field.stored)) {
+                return Err(format!(
+                    "tables.json: {name} has no supported closed-case encoding"
+                ));
             }
             let known = |field: &String| fields.contains(field.as_str());
             if table.key.is_empty() || !table.key.iter().all(known) {

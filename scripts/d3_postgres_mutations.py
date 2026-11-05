@@ -70,6 +70,12 @@ POOL = CRATE / "src/pool.rs"
 CARGO = ROOT / "Cargo.toml"
 
 MUTANTS = [
+    ('closed cases PostgreSQL accepts unknown stored tags', ROOT / 'runtime/pw-table-postgres/src/shape.rs',
+     '            .is_some_and(|tag| case_tags(cases).is_some_and(|tags| tags.iter().any(|t| t == tag))),', '            .is_some_and(|_tag| case_tags(cases).is_some()),'),
+    ('closed cases PostgreSQL stores scalar tags as JSON', ROOT / 'runtime/pw-table-postgres/src/shape.rs',
+     '        Stored::String { .. } | Stored::Cases(_) => (Kind::Bytes, false),', '        Stored::String { .. } => (Kind::Bytes, false),\n        Stored::Cases(_) => (Kind::Json, false),'),
+    ('closed cases PostgreSQL serves assets without a binding', ROOT / 'runtime/pw-table-postgres/src/shape.rs',
+     '        .any(|table| !table.schema.assets.is_empty())', '        .any(|table| false && !table.schema.assets.is_empty())'),
     ('relations scalar ignores its whole source selector', SQL,
      'WHERE {} AND {matched}) ORDER BY {order} LIMIT ${parameter}::bigint",',
      'WHERE ({} OR true) AND {matched}) ORDER BY {order} LIMIT ${parameter}::bigint",'),
@@ -351,6 +357,7 @@ MUTANTS = [
 # Each test binary apart: names can repeat between binaries, and the native
 # assertion validator expects one complete inventory each.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_cases"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_assets"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_relations"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_ranges"],
