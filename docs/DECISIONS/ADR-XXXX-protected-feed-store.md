@@ -816,3 +816,24 @@ content hash. Server local/memory implementations supply physical storage; no
 application operation appears in this boundary. Keep the original upload and
 mixed-layer startup guards until the accepted lifecycle, uncertain-outcome,
 namespace, HTTP and real PostgreSQL backend-death witnesses pass.
+
+
+### Root admission on authorization-only reuse
+
+Accepted 2026-11-04 before the API repair. Review of the first runtime binding
+slice found that call execution runs the new gate, while stub instantiation and
+authorization-only root reuse did not. Keep every entry point fail closed.
+Add a root admission method on Prepared that validates generic table/upload
+declarations, both contract and actual grants, and actual imported WIT types,
+without asking for body callbacks or executing an export. Authorization-only
+reuse receives the root's actual Granted explicitly and performs this admission
+before evaluating predicates. Predicates keep their own grants and invocation
+snapshot; they cannot borrow the root's authority.
+
+The server must run root admission even for a reused query with no authorization
+predicate, before its existing early return. That check needs no new table
+snapshot or data work. Guarded reuse continues to evaluate predicates against
+the same per-invocation read state as fresh execution. A refused root admission
+escapes cache/fallback just as a predicate refusal does. This closes declaration/
+grant/ABI admission parity; actual upload session ownership, lease lifetime and
+durable commit safety remain separate obligations before enabling uploads.
