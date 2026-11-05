@@ -837,3 +837,31 @@ the same per-invocation read state as fresh execution. A refused root admission
 escapes cache/fallback just as a predicate refusal does. This closes declaration/
 grant/ABI admission parity; actual upload session ownership, lease lifetime and
 durable commit safety remain separate obligations before enabling uploads.
+
+
+### Generation transition implementation
+
+Accepted 2026-11-05 before registry code. Share a pure per-generation transition
+planner between indexed memory state and PostgreSQL persistence. Its input is
+an immutable descriptor, prior committed per-declaration positive counts,
+transaction-owned publication plans after claim validation, and original/final
+reference uses of touched rows. Validate every final reference even when its net
+count is zero. The planner does not authenticate a lease or choose a physical
+namespace; those remain the actual transaction/lease bridge's responsibility.
+
+Only a prior LIVE same-declaration reference or that declaration's fresh
+publication plan permits adoption. Descriptor equality includes all Ref fields
+and byte count. Compute counts from final net changes with checked arithmetic;
+reject missing generations, tombstones, contradictory old counts and cross-
+declaration enrollment. A committed last removal tombstones the captured
+generation and queues its cleanup. A new publication with no final row use is
+explicitly retired, never LIVE with zero references. Retain retired generation
+identities; physical keep_new also reserves a generation identity so an orphaned
+or collected path is not reused. No whole-registry JSON load or orphan collector.
+
+Publication usage is based on final touched row uses, not whether some unrelated
+old row already references the same bytes. Multiple declarations can use one
+LIVE physical generation after independent fresh-claim validation, but current
+counts remain declaration-specific. The planner's native tests prove these
+arithmetic/identity rules only; actual claims, locks, storage and uncertain
+commit reconciliation remain required before the existing guards change.
