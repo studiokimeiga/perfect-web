@@ -739,3 +739,40 @@ late-lock pinned snapshot vs pre-BEGIN fresh snapshot. Separate review found no
 false-pass for that limited claim. Its refs are key-only joined to a mutable
 pointer, paths fixedold/new, no contended snapshot wait, no tombstones, adapters,
 namespace enrollment or HTTP. It is not implementation acceptance.
+
+
+### Upload storage wire prerequisite: closed, payload-free cases
+
+Accepted 2026-11-04 before implementation. The compiler emits Upload.Kind as a
+WIT variant even when every case has no payload; the generic host and both row
+adapters currently refuse Stored::Cases. Close that encoding gap before asset
+integration. This is not a second upload kind parser or a new query language.
+
+Serve a nonempty Stored::Cases only when every case is payload-free and every
+normalized WIT case identifier is nonempty and distinct. Its internal row JSON
+is the canonical WIT identifier string (for example Png becomes "png"), and its
+component value is Val::Variant(identifier, None). Enum/string values, unknown
+tags, payloads, empty/ambiguous schemas and all payload-bearing variants remain
+refused. Recursive, Map and Set encodings remain outside this slice. Nested
+records/lists/options use the same closed-tag encoding recursively.
+
+Scalar case columns use PostgreSQL bytea UTF-8 tags, like stored strings. Keys,
+indexes, order marks and canonical set results compare UTF-8 WIT identifiers,
+not constructor ordinal or source spelling. The host checks the actual WIT
+variant's complete ordered case list and absent payloads against tables.json.
+Metadata, ABI and whole values are validated before adapter callbacks or SQL.
+Compiler nominal identity and upload asset bindings remain independent checks;
+a structural case ABI grants no reference or resource authority.
+
+Native witnesses must reverse declaration order and use A_Z versus AB (wire
+a-z sorts before ab, unlike source spelling), cover scalar keys/indexes/window
+and range/set canonicalization plus nested values, malformed whole inputs and
+unsupported schemas, and exercise compiled calls on actual PostgreSQL. Extend
+the independent generic conformance oracle rather than teaching it adapter
+implementation details. Keep asset storage guards until lifecycle integration
+passes. Existing unbound-asset tests must become independently sensitive to
+their guard once the otherwise-supported Ref.kind encoding is installed.
+
+The pinned Wasmtime variant API was inspected in the installed crate source:
+Variant::cases yields ordered name and optional Type, and payload-free cases
+still use Type::Variant/Val::Variant. No dependency/version change is needed.
