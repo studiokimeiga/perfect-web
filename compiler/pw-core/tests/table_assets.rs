@@ -33,9 +33,11 @@ const APP: &str = r#"module photos.app
 import PostImage
 import Posts
 import context.{ current_session }
+import capability.{ Session, SessionId }
 opaque type InteractionId = String
 command keep(id: Int, alt: String) -> Result<(),PostImage.Error>
     idempotent_by InteractionId
+    invalidates Attached(current_session())
     transaction serializable
 {
     let claim = PostImage.claim(current_session())?
@@ -45,10 +47,22 @@ command keep(id: Int, alt: String) -> Result<(),PostImage.Error>
 }
 command discard() -> Result<PostImage.Attached,PostImage.Error>
     idempotent_by InteractionId
+    invalidates Attached(current_session())
     transaction serializable
 {
     let claim = PostImage.claim(current_session())?
     PostImage.discard(current_session(),claim)
+}
+session query Attached(session: Session<SessionId>) -> List<PostImage.Attached>
+    freshness 0.seconds
+    consistency read_your_writes
+    cache private
+    key session
+    concurrency one_per_key
+    on_key_change cancel
+    timeout 2.seconds
+{
+    PostImage.attached(session)
 }
 public query Url(image: PostImage.Ref) -> String
     freshness 0.seconds
@@ -196,27 +210,34 @@ fn a_public_optional_reference_and_resource_only_components_compile() {
             .flat_map(|c| &c.imports)
             .filter(|i| i.interface == "pw:uploads/post-image")
         {
-            let (operation, resource) = if import.name == "claim" {
-                ("read", "acquire")
-            } else {
-                ("write", "release")
+            let (operation, resource) = match import.name.as_str() {
+                "attached" => ("read", None),
+                "claim" => ("read", Some("acquire")),
+                "publish" | "discard" => ("write", Some("release")),
+                other => panic!("unexpected generated upload operation {other}"),
             };
+            if import.name == "attached" {
+                let signature = serde_json::to_value(import.signature.as_ref().unwrap()).unwrap();
+                assert_eq!(
+                    signature["params"],
+                    serde_json::json!([{"declared":{"path":"capability.Session","args":[{"declared":{"path":"capability.SessionId"}}]}}])
+                );
+                assert_eq!(
+                    signature["result"],
+                    serde_json::json!({"builtin":{"ctor":"List","args":[{"declared":{"path":"PostImage.Attached"}}]}})
+                );
+            }
             let caps = import
                 .capabilities
                 .iter()
                 .map(|c| c.name())
                 .collect::<std::collections::BTreeSet<_>>();
-            assert_eq!(
-                caps,
-                [
-                    format!("database.{operation}<PostImage>"),
-                    format!("resource.{resource}<PostImage.Claim>")
-                ]
-                .into_iter()
-                .collect(),
-                "resource-only import {}",
-                import.key()
-            );
+            let mut expected =
+                std::collections::BTreeSet::from([format!("database.{operation}<PostImage>")]);
+            if let Some(resource) = resource {
+                expected.insert(format!("resource.{resource}<PostImage.Claim>"));
+            }
+            assert_eq!(caps, expected, "resource-only import {}", import.key());
         }
         let uploads = serde_json::to_value(&build.uploads).unwrap();
         assert_eq!(uploads[0]["source"], "PhotoData");
@@ -241,6 +262,7 @@ fn a_public_optional_reference_and_resource_only_components_compile() {
             .flat_map(|c| c.required_capabilities.iter().map(|cap| cap.name()))
             .collect::<Vec<_>>();
         for operation in [
+            "pw:uploads/post-image#attached",
             "pw:uploads/post-image#claim",
             "pw:uploads/post-image#publish",
             "pw:uploads/post-image#discard",
