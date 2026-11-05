@@ -39,6 +39,7 @@
 //!   outbox's delivered rows forgotten; and a command fenced on the session
 //!   it acts for, from its first statement to its end.
 
+mod assets;
 mod migrate;
 pub mod platform;
 mod pool;
@@ -268,6 +269,7 @@ struct Platform {
 }
 
 struct Inner {
+    uploads: Option<assets::Binding>,
     shape: Shape,
     /// The same manifest as the host reads it (`pw_host::tables`): its gate,
     /// and what the engine holds each function to.
@@ -307,6 +309,13 @@ pub struct PgTables {
     inner: Arc<Inner>,
 }
 
+/// Explicit trusted storage/metadata input, not an application capability.
+pub struct Uploads {
+    pub metadata: String,
+    pub store: Arc<dyn pw_host::assets::Storage>,
+    pub fresh_namespace: pw_host::assets::Namespace,
+}
+
 impl PgTables {
     /// **The adapter on `url`**, its tables in `schema` (made where missing)
     /// or in the connection's current schema, the build's schema applied or
@@ -322,6 +331,16 @@ impl PgTables {
         manifest: TablesJson,
         options: Options,
     ) -> Result<PgTables, Error> {
+        Self::make(url, schema, manifest, options, None)
+    }
+
+    fn make(
+        url: &str,
+        schema: Option<&str>,
+        manifest: TablesJson,
+        options: Options,
+        uploads: Option<Uploads>,
+    ) -> Result<Self, Error> {
         let built = Schema::of(manifest.tables.iter().map(|t| t.schema.clone()).collect());
         if manifest.hash != built.hash || manifest.migration.to != built.hash {
             return Err(Error::Schema(
@@ -341,8 +360,24 @@ impl PgTables {
         }
         let text = serde_json::to_string(&manifest)
             .map_err(|error| Error::Schema(format!("tables.json: {error}")))?;
-        let host = pw_host::tables::Manifest::from_json(&text).map_err(Error::Schema)?;
-        let shape = shape::shape_of(&manifest)?;
+        let mut host = pw_host::tables::Manifest::from_json(&text).map_err(Error::Schema)?;
+        let uploads = if let Some(uploads) = uploads {
+            host = host
+                .with_uploads(&uploads.metadata)
+                .map_err(Error::Schema)?;
+            Some(assets::Configuration::new(
+                uploads,
+                &manifest,
+                host.uploads().expect("explicit binding"),
+            )?)
+        } else {
+            None
+        };
+        let shape = if uploads.is_some() {
+            shape::shape_of_with_assets(&manifest, true)?
+        } else {
+            shape::shape_of(&manifest)?
+        };
         let counters = Counters::default();
         let pool = Pool::new(url, options.connections, options.wait, "connections");
         let seats = Pool::new(url, options.render_seats, options.seat_wait, "render seats");
@@ -363,7 +398,26 @@ impl PgTables {
             )));
         }
         let names = Names { schema };
-        migrate::apply(conn, &counters, &names, &manifest, &shape)?;
+        let namespace =
+            match migrate::apply(conn, &counters, &names, &manifest, &shape, uploads.as_ref()) {
+                Ok(namespace) => namespace,
+                Err(error) => {
+                    lease.discard();
+                    return Err(error);
+                }
+            };
+        let uploads = match (uploads, namespace) {
+            (Some(config), Some(namespace)) => Some(assets::Binding {
+                namespace,
+                store: config.store,
+            }),
+            (None, None) => None,
+            _ => {
+                return Err(Error::Schema(
+                    "upload namespace enrollment was not completed".into(),
+                ));
+            }
+        };
         drop(lease);
         let s = ident(&names.schema);
         let outbox_lock = migrate::lock_key(&format!("pw_outbox:{}", names.schema));
@@ -416,6 +470,7 @@ impl PgTables {
         );
         Ok(PgTables {
             inner: Arc::new(Inner {
+                uploads,
                 shape,
                 host,
                 names,
@@ -548,6 +603,12 @@ impl PgTables {
         mut place: Lease,
         fenced: Option<platform::Fenced>,
     ) -> Result<Command, Error> {
+        if self.inner.uploads.is_some() {
+            place.discard();
+            return Err(Error::Schema(
+                "upload command lifecycle is not installed".into(),
+            ));
+        }
         let id = match self.inner.take_turn() {
             Ok(id) => id,
             Err(error) => {

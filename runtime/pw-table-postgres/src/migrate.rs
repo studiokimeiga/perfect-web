@@ -25,7 +25,7 @@ use pw_core::tables::{
 };
 
 use crate::pool::{Conn, Counters};
-use crate::shape::{Shape, TableShape, shape_of};
+use crate::shape::{Shape, TableShape, shape_of_with_assets};
 use crate::sql::{self, Names, Object, ident};
 use crate::{Error, database};
 
@@ -111,6 +111,43 @@ const PLATFORM: &[(&str, &str)] = &[
      );
      INSERT INTO {s}.pw_outbox_trimmed (through) VALUES (0);
      CREATE SEQUENCE {s}.pw_host_instances AS bigint;",
+    ),
+    (
+        "0004_upload_generations",
+        "CREATE TABLE {s}.pw_asset_namespace (
+         singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton),
+         namespace text NOT NULL UNIQUE CHECK (namespace ~ '^[0-9a-f]{32}$')
+     );
+     CREATE TABLE {s}.pw_asset_declarations (
+         name text PRIMARY KEY,
+         declaration json NOT NULL
+     );
+     CREATE TABLE {s}.pw_asset_bindings (
+         table_name text NOT NULL,
+         field_name text NOT NULL,
+         upload text NOT NULL REFERENCES {s}.pw_asset_declarations(name),
+         field json NOT NULL,
+         PRIMARY KEY (table_name, field_name)
+     );
+     CREATE TABLE {s}.pw_asset_generations (
+         generation text PRIMARY KEY CHECK (generation ~ '^[0-9a-f]{32}$'),
+         key text NOT NULL CHECK (key ~ '^[0-9a-f]{64}$'),
+         kind text NOT NULL CHECK (kind IN ('png','jpeg','webp','gif')),
+         width bigint NOT NULL CHECK (width > 0 AND width <= 4294967295),
+         height bigint NOT NULL CHECK (height > 0 AND height <= 4294967295),
+         bytes bigint NOT NULL CHECK (bytes > 0),
+         state text NOT NULL CHECK (state IN ('live','tombstone'))
+     );
+     CREATE UNIQUE INDEX pw_asset_live_key ON {s}.pw_asset_generations(key) WHERE state='live';
+     CREATE TABLE {s}.pw_asset_references (
+         generation text NOT NULL REFERENCES {s}.pw_asset_generations(generation),
+         declaration text NOT NULL REFERENCES {s}.pw_asset_declarations(name),
+         count bigint NOT NULL CHECK (count > 0),
+         PRIMARY KEY (generation,declaration)
+     );
+     CREATE TABLE {s}.pw_asset_collections (
+         generation text PRIMARY KEY REFERENCES {s}.pw_asset_generations(generation)
+     );",
     ),
 ];
 
@@ -280,7 +317,7 @@ fn shapes_of(tables: &[TableSchema]) -> Result<Vec<TableShape>, Error> {
             steps: Vec::new(),
         },
     };
-    Ok(shape_of(&manifest)?.tables)
+    Ok(shape_of_with_assets(&manifest, true)?.tables)
 }
 
 /// The same type, its bounds aside: what a change of bounds keeps
@@ -653,7 +690,8 @@ pub(crate) fn apply(
     names: &Names,
     manifest: &TablesJson,
     shape: &Shape,
-) -> Result<(), Error> {
+    uploads: Option<&crate::assets::Configuration>,
+) -> Result<Option<pw_host::assets::Namespace>, Error> {
     // Read committed whatever the connection's default: each statement after
     // the lock is granted reads what the host before committed. At
     // repeatable read or serializable the snapshot would be the lock's own
@@ -664,9 +702,21 @@ pub(crate) fn apply(
     // 2026-11-02).
     conn.batch(counters, "BEGIN ISOLATION LEVEL READ COMMITTED")
         .map_err(database)?;
-    let applied = apply_in(conn, counters, names, manifest, shape);
+    let mut namespace = None;
+    let applied = apply_in(
+        conn,
+        counters,
+        names,
+        manifest,
+        shape,
+        uploads,
+        &mut namespace,
+    );
     match applied {
-        Ok(()) => conn.batch(counters, "COMMIT").map_err(database),
+        Ok(()) => {
+            conn.batch(counters, "COMMIT").map_err(database)?;
+            Ok(namespace)
+        }
         Err(error) => {
             let _ = conn.batch(counters, "ROLLBACK");
             Err(error)
@@ -680,6 +730,8 @@ fn apply_in(
     names: &Names,
     manifest: &TablesJson,
     shape: &Shape,
+    uploads: Option<&crate::assets::Configuration>,
+    namespace: &mut Option<pw_host::assets::Namespace>,
 ) -> Result<(), Error> {
     let s = ident(&names.schema);
     conn.query(
@@ -781,6 +833,13 @@ fn apply_in(
             })
         })
         .transpose()?;
+    *namespace = crate::assets::enroll(
+        conn,
+        counters,
+        names,
+        uploads,
+        recorded.as_ref().map(|r| &r.schema),
+    )?;
     let ddl = match &recorded {
         None => {
             let lines = catalog(conn, counters, names, &tables)?;
@@ -979,7 +1038,7 @@ source UpgradeData
         // Record a declared application schema just as the old adapter did,
         // while only platform 0001/0002 exist. No 0003 database is downgraded
         // to manufacture this fixture.
-        let shape = shape_of(&manifest).unwrap();
+        let shape = crate::shape::shape_of(&manifest).unwrap();
         let names = Names {
             schema: schema.clone(),
         };
@@ -1065,7 +1124,7 @@ source UpgradeData
                 .query_one("SELECT count(*) FROM pw_platform", &[])
                 .unwrap()
                 .get::<_, i64>(0),
-            3
+            4
         );
         assert_eq!(
             client

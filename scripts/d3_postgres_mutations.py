@@ -70,6 +70,24 @@ POOL = CRATE / "src/pool.rs"
 CARGO = ROOT / "Cargo.toml"
 
 MUTANTS = [
+    ('upload enrollment accepts unbound removal of persisted upload metadata', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '        if namespace.is_some() || !declarations.is_empty() || !bindings.is_empty() {', '        if false && (namespace.is_some() || !declarations.is_empty() || !bindings.is_empty()) {'),
+    ('upload enrollment accepts changed immutable base declarations', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '        if config.declarations.get(name) != Some(old) {', '        if false && config.declarations.get(name) != Some(old) {'),
+    ('upload enrollment accepts changed immutable field associations', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '        if config.bindings.get(binding) != Some(old) {', '        if false && config.bindings.get(binding) != Some(old) {'),
+    ('upload enrollment enrolls structural references on existing tables', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '        if !bindings.contains_key(&(table.clone(), field.clone()))\n            && recorded.is_some_and(|schema| schema.tables.iter().any(|t| &t.name == table))', '        if false && !bindings.contains_key(&(table.clone(), field.clone()))\n            && recorded.is_some_and(|schema| schema.tables.iter().any(|t| &t.name == table))'),
+    ('upload enrollment does not verify existing namespace markers', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '            config\n                .store\n                .enroll(&namespace, false)\n                .map_err(storage_error)?;', '            let _ = &namespace;'),
+    ('upload enrollment commits fresh namespace rows without storage enrollment', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '            config\n                .store\n                .enroll(&config.candidate, true)\n                .map_err(storage_error)?;', '            let _ = &config.candidate;'),
+    ('upload enrollment accepts suppressed metadata inserts', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '    if rows.len() != 1 {', '    if false && rows.len() != 1 {'),
+    ('upload enrollment allows collisions with asset platform relation names', ROOT / 'runtime/pw-table-postgres/src/shape.rs',
+     ' || name.starts_with("pw_asset_")', ' || false && name.starts_with("pw_asset_")'),
+    ('upload enrollment enables unfinished command lifetimes after enrollment alone', ROOT / 'runtime/pw-table-postgres/src/lib.rs',
+     '        if self.inner.uploads.is_some() {', '        if false && self.inner.uploads.is_some() {'),
     ('closed cases PostgreSQL additive columns use a different encoding', MIGRATE,
      '    let (kind, nullable) = crate::shape::column_of(&field.stored);', '    let (kind, nullable) = match &field.stored {\n        Stored::Option(inner) if matches!(**inner, Stored::Cases(_)) => (crate::shape::Kind::Json, true),\n        _ => crate::shape::column_of(&field.stored),\n    };'),
     ('closed cases PostgreSQL accepts unknown stored tags', ROOT / 'runtime/pw-table-postgres/src/shape.rs',
@@ -359,6 +377,7 @@ MUTANTS = [
 # Each test binary apart: names can repeat between binaries, and the native
 # assertion validator expects one complete inventory each.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "asset_enrollment"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_cases"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_assets"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "compiled_relations"],

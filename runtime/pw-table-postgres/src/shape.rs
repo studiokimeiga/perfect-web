@@ -276,10 +276,18 @@ fn stored<'a>(table: &'a TableJson, field: &str) -> Option<&'a Stored> {
 /// **The manifest, held whole** (the memory adapter's `shape_of`, refusal for
 /// refusal), and each field's column.
 pub(crate) fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
+    shape_of_with_assets(manifest, false)
+}
+
+pub(crate) fn shape_of_with_assets(
+    manifest: &TablesJson,
+    assets_bound: bool,
+) -> Result<Shape, Error> {
     if manifest
         .tables
         .iter()
         .any(|table| !table.schema.assets.is_empty())
+        && !assets_bound
     {
         return Err(Error::Schema(
             "generic asset reference storage is not installed".into(),
@@ -294,7 +302,7 @@ pub(crate) fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
             return Err(Error::Schema(format!("duplicate table {name}")));
         }
         named("table", name)?;
-        if PLATFORM_TABLES.contains(&name.as_str()) {
+        if PLATFORM_TABLES.contains(&name.as_str()) || name.starts_with("pw_asset_") {
             return Err(Error::Schema(format!(
                 "table {name} has the name of a table the adapter keeps beside the program's"
             )));

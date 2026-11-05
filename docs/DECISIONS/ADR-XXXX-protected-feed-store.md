@@ -941,3 +941,39 @@ and [File::sync_all](https://doc.rust-lang.org/std/fs/struct.File.html#method.sy
 and PostgreSQL18 [session advisory lock lifetime](https://www.postgresql.org/docs/18/explicit-locking.html#ADVISORY-LOCKS).
 The database session ending releases exclusion; only distinct physical generation
 paths can fence a process that resumes stale cleanup after that event.
+
+
+### Durable namespace/metadata enrollment before row lifecycle
+
+Recorded 2026-11-05 before PostgreSQL enrollment implementation. Append platform
+migration0004; retain0001-0003 bytes verbatim. Persist namespace, immutable base
+declarations/bindings, immutable generations, positive per-declaration counts
+and captured cleanup jobs as indexed platform rows. The explicit trusted upload
+constructor validates both manifests before connecting; ordinary unbound open
+still refuses assets. While enrollment is implemented, upload-bound command
+begin remains explicitly closed until actual row/storage/lifetime integration.
+
+Under the existing migration transaction/lock, validate persisted upload metadata
+BEFORE any application schema DDL. Missing existing storage marker refuses;
+fresh storage enrollment completes before its namespace row can commit. Failed
+DDL may leave an unserved namespace reservation; a retry needs a new random
+candidate, never silent marker reuse. Reopen selects the persisted namespace,
+independent of the new host's proposed candidate. Removing/changing declarations
+or bindings refuses, including opening a prior asset database with an unbound
+manifest containing no asset clauses. Base policy and association metadata are
+immutable; lowered deployment admission remains a separate later bridge setting.
+
+In this first slice a NEW asset association is allowed only on a table absent
+from the recorded schema, or on the initial fresh schema. Refuse adding an asset
+clause to ANY previously recorded table, including a new optional Ref field.
+That conservative restriction prevents an already-running older unbound host
+from deleting rows with references in a newly introduced field it cannot track;
+empty/populated checks would not fence that old writer. Additive non-asset
+optional fields and wholly new asset tables remain supported. There is no legacy
+Ref enrollment/conversion. Later relaxing this rule requires a persisted version
+fence held by every old writer or a comparably complete protocol/native proof.
+
+Reserve the pw_asset_ relation prefix for all new platform tables and indexes,
+including automatically named primary-key indexes. Actual command lifetime locks
+and transactional registry transitions remain the next step after enrollment;
+enrollment-only tests do not claim command/HTTP/session/uncertain-outcome safety.
