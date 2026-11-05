@@ -71,6 +71,8 @@ HOST_RELATIONS = ROOT / "runtime/pw-host/src/tables/relations.rs"
 CORE_RELATIONS = ROOT / "compiler/pw-core/src/tables/relations.rs"
 
 MUTANTS = [
+    ('upload registry accepts another registry instance', ROOT / 'runtime/pw-host/src/assets/memory.rs',
+     '        if !Arc::ptr_eq(identity, &self.identity) {', '        if false && !Arc::ptr_eq(identity, &self.identity) {'),
     ('upload registry adopts another declarations live bytes', ROOT / 'runtime/pw-host/src/assets/registry.rs',
      'old.get(&usage.declaration).is_some_and(|n| *n > 0)', '!old.is_empty()'),
     ('upload registry serves another declarations live bytes', ROOT / 'runtime/pw-host/src/assets/registry.rs',

@@ -865,3 +865,40 @@ LIVE physical generation after independent fresh-claim validation, but current
 counts remain declaration-specific. The planner's native tests prove these
 arithmetic/identity rules only; actual claims, locks, storage and uncertain
 commit reconciliation remain required before the existing guards change.
+
+
+### Memory row reference integration and lease cardinality
+
+Recorded 2026-11-05 before row integration. Preserve the existing attachment
+cardinality: one host-local pending lease per (requested session, declaration).
+An invocation has one verified requested session. Claiming freezes that lease
+through known rollback/applied settlement or explicit uncertain reconciliation;
+publish/discard do not return it early, and replacement while claimed refuses.
+Consequently an invocation can propose at most one publication per declaration.
+The registry's duplicate-declaration refusal relies on this bridge invariant;
+the actual bridge must prove it before enabling generic uploads. This does not
+introduce multiple attached files per declaration.
+
+Add an explicit upload-bound memory constructor for trusted host integration;
+the ordinary constructor and server startup guards still refuse unbound assets.
+The adapter captures original/final references only from each touched key and
+declared asset field, including unchanged final references. It prepares the
+shared registry patch alongside row constraints and applies it under the same
+publication lock as rows. Proposals stay transaction-local; dropped commands
+and refused writes do not publish registry changes. Expose captured plans to
+the later storage/lease lifecycle without performing storage effects here.
+Registry work has its own operation counter; row primitive counts keep their
+existing meaning. Native row tests using trusted descriptor proposals prove
+atomic bookkeeping, not authentication, storage or durable receipt safety.
+
+
+### In-memory registry instance affinity
+
+Recorded 2026-11-05 before repairing a review-reproduced foreign-draft refusal.
+A revision is not the identity of the registry that produced it. Retain an
+opaque process-local instance witness in each memory registry draft and patch;
+propose/prepare/apply require that exact witness as well as the revision before
+reading or changing state. Two isolated instances at equal revisions must
+reject each other's drafts and patches. This is neither a persisted namespace
+nor a public generation value and reveals no activity counter. The later
+durable adapter still binds its actual namespace and connection independently.

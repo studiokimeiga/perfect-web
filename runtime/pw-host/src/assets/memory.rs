@@ -5,9 +5,11 @@ use super::{
     ReferenceUse, plan_generation,
 };
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 #[derive(Debug, Default)]
 pub struct Registry {
+    identity: Arc<()>,
     revision: u64,
     generations: BTreeMap<String, Generation>,
     current: BTreeMap<String, String>,
@@ -15,12 +17,14 @@ pub struct Registry {
 }
 #[derive(Debug)]
 pub struct RegistryDraft {
+    identity: Arc<()>,
     revision: u64,
     publications: BTreeMap<String, Publication>,
     candidates: BTreeMap<String, Descriptor>,
 }
 #[derive(Debug)]
 pub struct RegistryPatch {
+    identity: Arc<()>,
     revision: u64,
     plans: Vec<GenerationPlan>,
 }
@@ -32,6 +36,7 @@ impl RegistryPatch {
 impl Registry {
     pub fn begin(&self) -> RegistryDraft {
         RegistryDraft {
+            identity: Arc::clone(&self.identity),
             revision: self.revision,
             publications: BTreeMap::new(),
             candidates: BTreeMap::new(),
@@ -61,7 +66,7 @@ impl Registry {
         declaration: &str,
         incoming: Descriptor,
     ) -> Result<Reference, String> {
-        self.at_revision(draft.revision)?;
+        self.at_revision(&draft.identity, draft.revision)?;
         let declared = manifest
             .declaration(declaration)
             .ok_or("unknown publication declaration")?;
@@ -123,7 +128,7 @@ impl Registry {
         draft: RegistryDraft,
         uses: &[ReferenceUse],
     ) -> Result<RegistryPatch, String> {
-        self.at_revision(draft.revision)?;
+        self.at_revision(&draft.identity, draft.revision)?;
         type Group = (Vec<Publication>, Vec<ReferenceUse>);
         let mut groups: BTreeMap<String, Group> = BTreeMap::new();
         for publication in draft.publications.into_values() {
@@ -167,6 +172,7 @@ impl Registry {
             }
         }
         Ok(RegistryPatch {
+            identity: Arc::clone(&self.identity),
             revision: draft.revision,
             plans,
         })
@@ -174,7 +180,7 @@ impl Registry {
     /// Publish only as the enclosing adapter publishes its rows/records. All
     /// fallible checks precede mutation, so a refused/stale patch changes none.
     pub fn apply(&mut self, patch: RegistryPatch) -> Result<(), String> {
-        self.at_revision(patch.revision)?;
+        self.at_revision(&patch.identity, patch.revision)?;
         if patch.plans.is_empty() {
             return Ok(());
         }
@@ -223,7 +229,10 @@ impl Registry {
         self.collections.remove(generation);
         Ok(())
     }
-    fn at_revision(&self, revision: u64) -> Result<(), String> {
+    fn at_revision(&self, identity: &Arc<()>, revision: u64) -> Result<(), String> {
+        if !Arc::ptr_eq(identity, &self.identity) {
+            return Err("draft or patch belongs to another registry".into());
+        }
         if revision != self.revision {
             return Err("registry snapshot changed before publication".into());
         }

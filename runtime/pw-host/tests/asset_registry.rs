@@ -517,3 +517,48 @@ fn candidate_identity_and_canonical_descriptors_refuse_collisions_before_mutatio
             .is_none()
     );
 }
+
+#[test]
+fn a_foreign_draft_cannot_propose_into_another_registry() {
+    let left = Registry::default();
+    let right = Registry::default();
+    assert!(
+        right
+            .propose(&manifest(), &mut left.begin(), "Photo", descriptor())
+            .is_err(),
+        "drafts belong to their registry"
+    );
+}
+#[test]
+fn even_empty_foreign_drafts_cannot_be_prepared() {
+    let left = Registry::default();
+    let right = Registry::default();
+    assert!(
+        right.prepare(&manifest(), left.begin(), &[]).is_err(),
+        "even empty foreign drafts refuse"
+    );
+}
+#[test]
+fn foreign_patches_cannot_cross_registry_instances_at_the_same_revision() {
+    let mut left = Registry::default();
+    let mut right = Registry::default();
+    let a = publish_one(&mut left, "Photo", descriptor());
+    let mut other = descriptor();
+    other.reference.key = "d".repeat(64);
+    let b = publish_one(&mut right, "Photo", other);
+    assert_ne!(a.key, b.key);
+    assert_eq!(a.generation, b.generation);
+    let patch = left
+        .prepare(&manifest(), left.begin(), &[usage("Photo", 1, 0)])
+        .unwrap();
+    assert!(
+        right.apply(patch).is_err(),
+        "matching revision is not registry identity"
+    );
+    assert_eq!(right.current_reference("Photo", &b.key, "png"), Some(&b));
+    assert_eq!(
+        right.generation(&b.generation).unwrap().references["Photo"],
+        1
+    );
+    assert!(right.pending_collections().next().is_none());
+}
