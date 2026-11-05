@@ -902,3 +902,42 @@ reading or changing state. Two isolated instances at equal revisions must
 reject each other's drafts and patches. This is neither a persisted namespace
 nor a public generation value and reveals no activity counter. The later
 durable adapter still binds its actual namespace and connection independently.
+
+
+### Namespace and generation storage provider
+
+Recorded 2026-11-05 before provider implementation. Add a shared typed storage
+boundary in pw-host::assets: an opaque validated 128-bit Namespace, explicit
+fresh/existing enrollment, keep_new, exact descriptor read and captured-generation
+collection. The concrete development LocalBlobs and MemoryBlobs providers
+implement it alongside their legacy flat-key API; routing/claims remain closed.
+The durable adapter must choose/enroll its namespace within its migration and
+verify existing enrollment before serving or running a command. A missing or
+different marker refuses; an unrelated storage root must not silently enroll
+an already recorded namespace. Random namespace/generation candidates come from
+the operating system, not a public activity counter.
+
+Local storage uses <blob-root>/.generic/<namespace>/generations/<generation>/
+with an immutable descriptor marker and a payload named by its validated hash.
+Reserve each generation directory exclusively BEFORE writing its marker/bytes;
+failure or rollback leaves that identity reserved. Collection removes only the
+captured payload, never its marker/directory. keep_new refuses any previously
+reserved identity, including an orphan or collected generation. Namespace and
+descriptor markers are checked on every operation; full Ref, canonical byte
+count and content hash are checked before successful reads. Writes request file
+and directory sync before returning; native Linux tests do not claim power-loss
+or other-OS/filesystem acceptance. No orphan collector is introduced. Legacy
+flat-key counting must ignore the separate generic storage directory.
+
+Native provider tests use actual arbitrary bytes (not image sanitization) and
+prove cross-handle enrollment, isolated namespaces, exclusive generation
+reservation, corruption/missing reads, same-hash fresh-generation safety and
+old captured cleanup. They do not establish authoritative HTTP liveness,
+database enrollment, claim authority, backend-death fencing or unknown outcome
+reconciliation; those remain actual integration gates.
+
+Primary API checks: Rust [OpenOptions::create_new](https://doc.rust-lang.org/std/fs/struct.OpenOptions.html#method.create_new)
+and [File::sync_all](https://doc.rust-lang.org/std/fs/struct.File.html#method.sync_all),
+and PostgreSQL18 [session advisory lock lifetime](https://www.postgresql.org/docs/18/explicit-locking.html#ADVISORY-LOCKS).
+The database session ending releases exclusion; only distinct physical generation
+paths can fence a process that resumes stale cleanup after that event.

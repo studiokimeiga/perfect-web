@@ -71,6 +71,26 @@ HOST_RELATIONS = ROOT / "runtime/pw-host/src/tables/relations.rs"
 CORE_RELATIONS = ROOT / "compiler/pw-core/src/tables/relations.rs"
 
 MUTANTS = [
+    ('upload storage ignores namespace markers', ROOT / 'spikes/own-renderer/server/src/blob/assets.rs',
+     '        exact_marker(&dir.join(".namespace"), &Self::namespace_marker(namespace))?;', '        let _ = Self::namespace_marker(namespace);'),
+    ('upload storage reuses incomplete generation reservations', ROOT / 'spikes/own-renderer/server/src/blob/assets.rs',
+     '        std::fs::create_dir(&dir)?;\n        let marker = serde_json::to_vec(descriptor)', '        std::fs::create_dir_all(&dir)?;\n        let marker = serde_json::to_vec(descriptor)'),
+    ('upload storage forgets generation reservations after local collection', ROOT / 'spikes/own-renderer/server/src/blob/assets.rs',
+     '        sync_dir(&dir)\n    }\n}\n#[cfg(test)]', '        std::fs::remove_dir_all(&dir)\n    }\n}\n#[cfg(test)]'),
+    ('upload storage keeps collected local payloads', ROOT / 'spikes/own-renderer/server/src/blob/assets.rs',
+     '        match std::fs::remove_file(dir.join(&descriptor.reference.key)) {', '        match File::open(dir.join(&descriptor.reference.key)).map(drop) {'),
+    ('upload storage ignores canonical hashes', ROOT / 'spikes/own-renderer/server/src/blob/assets.rs',
+     '        || BlobKey::of(bytes).hex() != descriptor.reference.key', '        || false && BlobKey::of(bytes).hex() != descriptor.reference.key'),
+    ('upload storage ignores canonical byte counts', ROOT / 'spikes/own-renderer/server/src/blob/assets.rs',
+     '    if bytes.len() as u64 != descriptor.bytes', '    if false && bytes.len() as u64 != descriptor.bytes'),
+    ('upload storage ignores immutable descriptor markers', ROOT / 'spikes/own-renderer/server/src/blob/assets.rs',
+     '        exact_marker(&dir.join(".descriptor"), &marker)?;', '        let _ = marker;'),
+    ('upload storage forgets memory reservations after collection', ROOT / 'spikes/own-renderer/server/src/blob/assets.rs',
+     '        generation.payload = None;', '        generation.payload = None;\n        state.spaces.get_mut(namespace).unwrap().remove(&descriptor.reference.generation);'),
+    ('upload storage accepts unsafe reference path components', ROOT / 'spikes/own-renderer/server/src/blob/assets.rs',
+     '    descriptor.reference.validate().map_err(invalid)?;', '    let _ = &descriptor.reference;'),
+    ('upload storage shares a memory namespace with unrelated storage', ROOT / 'spikes/own-renderer/server/src/blob/assets.rs',
+     '        let space = state\n            .spaces\n            .get_mut(namespace)\n            .ok_or_else(missing_namespace)?;', '        let _ = namespace;\n        let space = state.spaces.values_mut().next().ok_or_else(missing_namespace)?;'),
     ('upload rows prefix deletion omits removed references', ROOT / 'runtime/pw-table-memory/src/lib.rs',
      '            for key in keys {\n                if let Set::Done(prior) = data.set(table, &key, None)? {\n                    first(&key, prior);\n                }\n            }',
      '            for key in keys {\n                if let Set::Done(prior) = data.set(table, &key, None)? {\n                    let _ = prior;\n                }\n            }'),
@@ -603,6 +623,7 @@ MUTANTS = [
 # Each Cargo test binary separately: names can repeat between binaries, and
 # the shared native assertion validator expects one complete inventory.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", "blob::"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-host", "--test", "asset_registry"],
     ["cargo", "test", "--quiet", "-p", "pw-table-memory", "--test", "asset_rows"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-host", "--test", "assets"],
@@ -630,6 +651,8 @@ TESTS = [
 ]
 
 SOURCES = [
+    ROOT / "spikes/own-renderer/server/src/blob/assets.rs",
+    ROOT / "spikes/own-renderer/server/src/blob.rs",
     ROOT / "runtime/pw-host/tests/asset_registry.rs",
     ROOT / "runtime/pw-table-memory/tests/asset_rows.rs",
     ROOT / "runtime/pw-host/tests/assets.rs",

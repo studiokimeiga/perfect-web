@@ -289,6 +289,12 @@ pub struct Reference {
     pub height: u32,
 }
 impl Reference {
+    /// Structural/path validation only; a plain reference grants no lease,
+    /// adoption, serving or physical storage authority.
+    pub fn validate(&self) -> Result<(), String> {
+        self.whole()
+    }
+
     pub fn from_value(value: &serde_json::Value) -> Result<Self, String> {
         let reference: Self = serde_json::from_value(value.clone())
             .map_err(|e| format!("invalid asset reference: {e}"))?;
@@ -344,3 +350,6 @@ pub(crate) fn reference_shape(stored: &Stored, declaration: &Declaration) -> boo
         if key=="key"&&generation=="generation"&&kind=="kind"&&width=="width"&&height=="height"&&plain_string(k)&&plain_string(g)&&plain_int(w)&&plain_int(h)
         && closed_case_tags(cases.iter().map(|c|(c.name.as_str(),c.carries.len()))).as_deref()==Some(declaration.kinds()))
 }
+
+mod storage;
+pub use storage::{Namespace, Storage};
