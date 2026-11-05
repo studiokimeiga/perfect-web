@@ -1,0 +1,26 @@
+Separate reviewer: /root/review_cached_refusals, source-only immutable git show.
+
+275ca48868a4fb27569680543a73be4395be4789:
+No additional runtime authority/privacy/lifetime/race/relation-semantics defect.
+SourceKey authority repair, dual grants, global EXISTS, per-group reply gate,
+staged/snapshot paths and independent oracle coherent. Found stray guidance
+marker and proof gaps (combined missing-grant axes; otherwise-invalid forged
+targets; missing private-match/warm-cache/unused-import/reuse cases).
+
+d8c634c9e513810dc5db300e0a44478718edd355:
+Prior production review carries forward; independent grant axes, valid named
+target refusals, owner-private-match, warm two-reader resource cache and new
+fault definitions address earlier gaps. No new runtime finding. Remaining
+test/claim mismatch: authorization-only test used fresh execution API.
+
+9451277ab47943424fed6c35d5ab20f142903847:
+Test-only delta closes final proof item with actual authorize_with_tables_as,
+full-grant allowed and typed Selected-denied neighbors, body callbacks0, and
+missing predicate Roots contract requirement while actual grants remain full.
+Watched.asked counts predicate-read setup, not exact data callbacks; allowed/
+typed-denied outputs and actual compiled Selected body make witness meaningful.
+No new findings. Earlier production review carries forward.
+
+These are separate source reviews, not native/CI receipts. Frozen d8c native,
+strict and clean source receipts and successor native/strict/clean receipts
+are separate files in this record. Canonical migration and upload code pending.

@@ -1,0 +1,6 @@
+focused campaign: bounded_checker; controls: ['`set` and `sets` head a clause wherever they are written', 'generated index pairs ignore their queried fields']
+baseline: 40 passed, 0 failed
+`set` and `sets` head a clause wherever they are written: KILLED (1 of 40 tests fail)
+generated index pairs ignore their queried fields: KILLED (2 of 40 tests fail)
+2 of 2 mutants killed
+memory bound: no process was stopped

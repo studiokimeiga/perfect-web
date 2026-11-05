@@ -8,23 +8,25 @@
 
 ## Active protected-app migration, 2026-11-04
 
-1. Implement and prove fixed global relation windows needed by the
-   canonical apps. Counts at `15f3c9df`, windows through `5b7f5be8`, and typed
-   order-range counts at `f4fc668f` with the script-only `06a6ad18` control
-   successor passed their named frozen local checks/review. Those close
-   prerequisites only; see the counts/window/range records. Measure actual
-   rows/bytes/fuel, not calls alone.
-2. Implement and prove generic upload claims/publication/reference lifetime.
-   Keep the existing mixed-layer and upload startup refusals until their
-   replacements are real. Existing foundations include retained outboxes,
-   explicit anonymous guest-row callers, owned Clock and compiled Identity
-   joins on immutable transitions. The canonical apps still use legacy layers.
+1. Implement and prove generic upload claims/publication/reference lifetime.
+   Keep the mixed-layer and upload startup refusals until their replacements
+   are real. The upload design must address cross-host last-reference races,
+   database disconnects during physical cleanup, immutable storage generations,
+   declaration/namespace identity and uncertain commits before guard removal.
+2. Close public initialization, stable IDs and private child deletion as needed
+   for the actual ports. Counts at `15f3c9df`, windows through `5b7f5be8`, typed
+   range counts through `06a6ad18` and fixed relation windows at `d8c634c9` with
+   authorization-only test successor `9451277a` passed their named local checks
+   and separate review. See the counts/window/range/relation records. These
+   close prerequisites only; no final app/browser/CI completion is inferred.
 3. Port canonical feed/store rows, projections, transitions and application
    predicates to `.pw`; preserve guest/account carts, payment/scheduling,
-   uploads and private cross-host delivery. Verify the actual PostgreSQL
+   uploads and private cross-host delivery. Foundations include retained
+   outboxes, explicit anonymous guest-row callers, owned Clock and compiled
+   Identity joins on immutable transitions. Verify the actual PostgreSQL
    adapter and persisted rows, then run affected whole campaigns, browser
-   checks and CI on frozen source with independent review. No remote or
-   production conversion work is authorized.
+   checks and CI on frozen source with separate review. No remote or production
+   conversion work is authorized.
 
 The sections below retain their dated sources and historical scope.
 

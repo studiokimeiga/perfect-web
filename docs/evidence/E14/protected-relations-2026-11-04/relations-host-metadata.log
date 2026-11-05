@@ -1,0 +1,37 @@
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+   Compiling pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+    Finished `test` profile [unoptimized] target(s) in 3.35s
+     Running tests/compiled_relations.rs (target/debug/deps/compiled_relations-34df9920119e0c42)
+
+running 3 tests
+test a_relation_never_uses_another_readers_memberships ... FAILED
+test compiled_relation_windows_are_global_and_sets_keep_overlapping_empty_groups ... FAILED
+test relation_manifest_admission_holds_both_tables_and_both_grants_independently ... FAILED
+
+failures:
+
+---- a_relation_never_uses_another_readers_memberships stdout ----
+
+thread 'a_relation_never_uses_another_readers_memberships' (1665931) panicked at runtime/pw-table-memory/tests/support/assert_result.rs:12:9:
+the host reads the compiler's tables.json
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- compiled_relation_windows_are_global_and_sets_keep_overlapping_empty_groups stdout ----
+
+thread 'compiled_relation_windows_are_global_and_sets_keep_overlapping_empty_groups' (1665932) panicked at runtime/pw-table-memory/tests/support/assert_result.rs:12:9:
+the host reads the compiler's tables.json
+
+---- relation_manifest_admission_holds_both_tables_and_both_grants_independently stdout ----
+
+thread 'relation_manifest_admission_holds_both_tables_and_both_grants_independently' (1665933) panicked at runtime/pw-table-memory/tests/support/assert_result.rs:12:9:
+the host reads the compiler's tables.json
+
+
+failures:
+    a_relation_never_uses_another_readers_memberships
+    compiled_relation_windows_are_global_and_sets_keep_overlapping_empty_groups
+    relation_manifest_admission_holds_both_tables_and_both_grants_independently
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+error: test failed, to rerun pass `-p pw-table-memory --test compiled_relations`

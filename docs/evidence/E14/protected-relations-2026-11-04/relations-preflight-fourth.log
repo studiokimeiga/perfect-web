@@ -1,0 +1,30 @@
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+    Checking pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+    Checking pw-conformance v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-conformance)
+    Checking pw-cli v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-cli)
+    Checking pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+    Checking pw-resource v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-resource)
+    Checking pw-resume v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-resume)
+    Finished `dev` profile [unoptimized] target(s) in 5.27s
+# `pw-host`'s engine feature is not exercised by `just test`, because a
+# Wasm engine is not needed to decide a capability question. But an
+# unbuilt cfg rots: a field added to `Import` broke `tests/artifact.rs`
+# and nothing noticed until `just e8-host` ran. Compiled here, run there.
+cargo clippy -p pw-host --features engine --all-targets -- -D warnings
+    Checking pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+    Finished `dev` profile [unoptimized] target(s) in 1.45s
+case-check: OK (5036 paths)
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/data-path/scripts/mutation_anchors.py", line 87, in <module>
+    sys.exit(main())
+  File "/home/haki/code/pw-wt/data-path/scripts/mutation_anchors.py", line 74, in main
+    read, found = problems_in(script)
+  File "/home/haki/code/pw-wt/data-path/scripts/mutation_anchors.py", line 36, in problems_in
+    spec.loader.exec_module(module)
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "/home/haki/code/pw-wt/data-path/scripts/d3_postgres_mutations.py", line 348, in <module>
+    assert sorted(t[-1] for t in TESTS if "--test" in t) == sorted(p.stem for p in (CRATE / "tests").glob("*.rs"))
+AssertionError
+error: recipe `mutation-anchors` failed on line 133 with exit code 1

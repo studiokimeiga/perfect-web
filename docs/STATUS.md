@@ -27,8 +27,15 @@ Typed order-range scalar/heterogeneous-set counts passed frozen affected
 checks and strict controls at `f4fc668f`; the script-only wrong-field successor
 `06a6ad18` passed its own strict control/preflight. Independent review is clear.
 See the [range record](diagnostics/protected-feed-store-ranges-2026-11-04.md).
-Upload lifecycle, fixed global relation reads and the canonical application
-ports remain pending under
+Fixed public-target relation windows passed frozen local checks at `d8c634c9`:
+compiler 350, CLI 5, host 118 (9 existing ignored), memory 132, PostgreSQL 95,
+selected server 180, test-compile/preflight 5,253 and 36/36 strict focused controls.
+The actual authorization-only test successor `9451277a` passed memory 8,
+preflight and 2/2 independent grant controls. Separate immutable review is clear.
+See the [relation record](diagnostics/protected-feed-store-relations-2026-11-04.md).
+These are prerequisite results; canonical feed/store still use legacy layers.
+Upload lifecycle, initialization/stable IDs/private children as required and the
+canonical application ports remain pending under
 [the migration decision](DECISIONS/ADR-XXXX-protected-feed-store.md).
 Earlier green records below apply to their named sources only.
 

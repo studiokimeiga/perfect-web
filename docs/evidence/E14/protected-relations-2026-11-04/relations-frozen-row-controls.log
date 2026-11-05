@@ -1,0 +1,18 @@
+focused campaign: row_ownership; controls: ['relations contract dual grant requirement is omitted', 'relations actual secondary grant requirement is omitted', 'relations protected targets are admitted', 'relations different sources are admitted as colocated', 'relations target order declaration is not required', 'relations match stored kinds and refinements need not agree', 'relations target nominal row annotation is ignored', 'relations target row visibility is ignored', 'relations identity transition uses the public target key as owner authority', 'relations missing empty groups are accepted', 'relations reversed source groups are accepted', 'windows answer more rows than a selector allows', 'counts missing result keys are accepted', 'counts reversed selector order is accepted']
+baseline: 232 passed, 0 failed
+relations contract dual grant requirement is omitted: KILLED (2 of 232 tests fail)
+relations actual secondary grant requirement is omitted: KILLED (1 of 232 tests fail)
+relations protected targets are admitted: KILLED (1 of 232 tests fail)
+relations different sources are admitted as colocated: KILLED (1 of 232 tests fail)
+relations target order declaration is not required: KILLED (1 of 232 tests fail)
+relations match stored kinds and refinements need not agree: KILLED (1 of 232 tests fail)
+relations target nominal row annotation is ignored: KILLED (2 of 232 tests fail)
+relations target row visibility is ignored: KILLED (1 of 232 tests fail)
+relations identity transition uses the public target key as owner authority: KILLED (1 of 232 tests fail)
+relations missing empty groups are accepted: KILLED (1 of 232 tests fail)
+relations reversed source groups are accepted: KILLED (1 of 232 tests fail)
+windows answer more rows than a selector allows: KILLED (2 of 232 tests fail)
+counts missing result keys are accepted: KILLED (2 of 232 tests fail)
+counts reversed selector order is accepted: KILLED (2 of 232 tests fail)
+14 of 14 mutants killed
+memory bound: no process was stopped

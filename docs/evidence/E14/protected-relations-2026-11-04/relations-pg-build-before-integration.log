@@ -1,0 +1,41 @@
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+   Compiling pw-table-postgres v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-postgres)
+   Compiling pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+error[E0063]: missing field `windows` in initializer of `TableJson`
+   --> runtime/pw-table-postgres/src/migrate.rs:262:27
+    |
+262 |             .map(|schema| TableJson {
+    |                           ^^^^^^^^^ missing `windows`
+
+error[E0004]: non-exhaustive patterns: `pw_core::tables::Primitive::RelatedFirst`, `pw_core::tables::Primitive::RelatedFirstMany`, `pw_core::tables::Primitive::RelatedLast` and 1 more not covered
+   --> runtime/pw-table-postgres/src/sql.rs:269:11
+    |
+269 |     match function.primitive {
+    |           ^^^^^^^^^^^^^^^^^^ patterns `pw_core::tables::Primitive::RelatedFirst`, `pw_core::tables::Primitive::RelatedFirstMany`, `pw_core::tables::Primitive::RelatedLast` and 1 more not covered
+    |
+note: `pw_core::tables::Primitive` defined here
+   --> compiler/pw-core/src/tables.rs:59:1
+    |
+ 59 | pub enum Primitive {
+    | ^^^^^^^^^^^^^^^^^^
+...
+ 89 |     RelatedFirst,
+    |     ------------ not covered
+ 90 |     RelatedFirstMany,
+    |     ---------------- not covered
+ 91 |     RelatedLast,
+    |     ----------- not covered
+ 92 |     RelatedLastMany,
+    |     --------------- not covered
+    = note: the matched value is of type `pw_core::tables::Primitive`
+help: ensure that all possible cases are being handled by adding a match arm with a wildcard pattern as shown, or multiple match arms
+    |
+484 ~         ),
+485 ~         _ => todo!(),
+    |
+
+Some errors have detailed explanations: E0004, E0063.
+For more information about an error, try `rustc --explain E0004`.
+error: could not compile `pw-table-postgres` (lib) due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...

@@ -1,0 +1,24 @@
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+    Checking pw-syntax v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-syntax)
+    Checking pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+    Checking pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+    Checking kiokun-server v0.0.0 (/home/haki/code/pw-wt/data-path/spikes/kiokun/server)
+    Checking pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+    Checking pw-conformance v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-conformance)
+    Checking pw-table-postgres v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-postgres)
+    Checking pw-cli v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-cli)
+    Checking pw-dev-server v0.0.0 (/home/haki/code/pw-wt/data-path/spikes/own-renderer/server)
+    Checking pw-fuzz v0.0.0 (/home/haki/code/pw-wt/data-path/tools/fuzz)
+    Checking pw-resource v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-resource)
+    Checking pw-resume v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-resume)
+    Finished `dev` profile [unoptimized] target(s) in 12.34s
+# `pw-host`'s engine feature is not exercised by `just test`, because a
+# Wasm engine is not needed to decide a capability question. But an
+# unbuilt cfg rots: a field added to `Import` broke `tests/artifact.rs`
+# and nothing noticed until `just e8-host` ran. Compiled here, run there.
+cargo clippy -p pw-host --features engine --all-targets -- -D warnings
+    Checking pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+    Finished `dev` profile [unoptimized] target(s) in 0.95s
+case-check: OK (5046 paths)
+mutation anchors: 5253 mutants in 327 scripts, each matching once

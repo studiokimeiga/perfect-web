@@ -1,0 +1,81 @@
+   Compiling pw-syntax v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-syntax)
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+error[E0425]: cannot find function `unseen` in this scope
+    --> compiler/pw-core/src/tables/relations.rs:112:22
+     |
+ 112 |   ...   out.push(unseen(format!("window `{}` requires a public target table, but `{}` is protected",w.name,w.t...
+     |                  ^^^^^^
+     |
+    ::: compiler/pw-core/src/tables.rs:2065:1
+     |
+2065 | / const UNSEEN: &str = "A private field is read by its owner alone (ADR-0384): a reader the table \
+2066 | |      shares with is answered the seen row, the record the compiler declares beside the row \
+2067 | |      without the private fields, so no page, frame, cache entry or answer of theirs can hold \
+2068 | |      one. A field every reader selects or orders rows by, the owner, a sharer, the key, the order \
+2069 | |      and an index a sharer reads by, tells its values to them, and is not private.";
+     | |____________________________________________________________________________________- similarly named constant `UNSEEN` defined here
+     |
+help: a constant with a similar name exists
+     |
+ 112 -             out.push(unseen(format!("window `{}` requires a public target table, but `{}` is protected",w.name,w.target),&window.span,"use a public target table"));
+ 112 +             out.push(UNSEEN(format!("window `{}` requires a public target table, but `{}` is protected",w.name,w.target),&window.span,"use a public target table"));
+     |
+
+error[E0425]: cannot find function `unseen` in this scope
+    --> compiler/pw-core/src/tables/relations.rs:136:22
+     |
+ 136 |   ...   out.push(unseen(format!("window `{}` cannot select through private match field `{}` for a sharer",w.na...
+     |                  ^^^^^^
+     |
+    ::: compiler/pw-core/src/tables.rs:2065:1
+     |
+2065 | / const UNSEEN: &str = "A private field is read by its owner alone (ADR-0384): a reader the table \
+2066 | |      shares with is answered the seen row, the record the compiler declares beside the row \
+2067 | |      without the private fields, so no page, frame, cache entry or answer of theirs can hold \
+2068 | |      one. A field every reader selects or orders rows by, the owner, a sharer, the key, the order \
+2069 | |      and an index a sharer reads by, tells its values to them, and is not private.";
+     | |____________________________________________________________________________________- similarly named constant `UNSEEN` defined here
+     |
+help: a constant with a similar name exists
+     |
+ 136 -             out.push(unseen(format!("window `{}` cannot select through private match field `{}` for a sharer",w.name,w.source_field),&window.span,"match only a field in the shared seen row"));
+ 136 +             out.push(UNSEEN(format!("window `{}` cannot select through private match field `{}` for a sharer",w.name,w.source_field),&window.span,"match only a field in the shared seen row"));
+     |
+
+error[E0308]: mismatched types
+   --> compiler/pw-core/src/tables.rs:564:55
+    |
+564 |                 Ok(window) => { t.windows.push(clause(window)); None }
+    |                                                ------ ^^^^^^ expected `String`, found `WindowClause`
+    |                                                |
+    |                                                arguments to this function are incorrect
+    |
+note: expected because the closure was earlier called with an argument of type `std::string::String`
+   --> compiler/pw-core/src/tables.rs:531:41
+    |
+531 |                     t.row = Some(clause(v.to_string()));
+    |                                  ------ ^^^^^^^^^^^^^ expected because this argument is of type `std::string::String`
+    |                                  |
+    |                                  in this closure call
+note: closure parameter defined here
+   --> compiler/pw-core/src/tables.rs:524:23
+    |
+524 |         let clause = |value| Clause {
+    |                       ^^^^^
+
+error[E0308]: mismatched types
+   --> compiler/pw-core/src/tables.rs:564:48
+    |
+564 |                 Ok(window) => { t.windows.push(clause(window)); None }
+    |                                           ---- ^^^^^^^^^^^^^^ expected `Clause<WindowClause>`, found `Clause<String>`
+    |                                           |
+    |                                           arguments to this method are incorrect
+    |
+    = note: expected struct `tables::Clause<tables::WindowClause>`
+               found struct `tables::Clause<std::string::String>`
+note: method defined here
+   --> /rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/vec/mod.rs:1003:11
+
+Some errors have detailed explanations: E0308, E0425.
+For more information about an error, try `rustc --explain E0308`.
+error: could not compile `pw-core` (lib) due to 4 previous errors

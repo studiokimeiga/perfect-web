@@ -1,0 +1,14 @@
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+    Finished `test` profile [unoptimized] target(s) in 10.45s
+     Running tests/table_relations.rs (target/debug/deps/table_relations-889bfcf6162cb984)
+
+running 6 tests
+test a_relation_row_annotation_is_the_exact_declared_target_row ... ok
+test a_protected_relation_target_is_refused_beside_the_public_neighbor ... ok
+test the_existing_table_neighbor_without_a_relation_is_valid ... ok
+test a_relation_does_not_disclose_memberships_through_a_shared_cache ... ok
+test a_relation_requires_one_explicit_source_for_both_tables ... ok
+test relation_windows_compile_real_owned_shared_and_group_components_with_dual_grants ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+

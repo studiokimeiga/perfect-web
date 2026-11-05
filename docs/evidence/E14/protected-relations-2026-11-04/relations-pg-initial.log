@@ -1,0 +1,15 @@
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+   Compiling pw-table-postgres v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-postgres)
+   Compiling pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+    Finished `test` profile [unoptimized] target(s) in 2.50s
+     Running tests/compiled_relations.rs (target/debug/deps/compiled_relations-891a2b043bb54bcc)
+
+running 5 tests
+test pg_relation_authority_and_whole_bad_requests_reach_no_data_sql ... ok
+test a_relation_predicate_sees_both_staged_tables_and_pins_membership_with_the_body ... ok
+test pg_relations_return_one_global_window_and_canonical_overlapping_groups_after_reopen ... ok
+test public_relations_use_scalar_bool_group_keys_and_allow_anonymous_callers ... ok
+test relation_result_work_is_bounded_across_growing_membership_and_target_cardinality ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.73s
+

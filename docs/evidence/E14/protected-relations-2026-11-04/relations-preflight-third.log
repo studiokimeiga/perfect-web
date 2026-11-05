@@ -1,0 +1,33 @@
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+    Checking pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+    Checking pw-conformance v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-conformance)
+    Checking pw-cli v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-cli)
+error[E0063]: missing field `relation` in initializer of `pw_core::tables::FunctionJson`
+  --> runtime/pw-table-memory/tests/memory.rs:33:5
+   |
+33 |     FunctionJson {
+   |     ^^^^^^^^^^^^ missing `relation`
+
+error[E0063]: missing field `windows` in initializer of `pw_core::tables::TableJson`
+  --> runtime/pw-table-memory/tests/memory.rs:79:22
+   |
+79 |         tables: vec![TableJson {
+   |                      ^^^^^^^^^ missing `windows`
+
+error[E0063]: missing field `relation` in initializer of `pw_core::tables::FunctionJson`
+   --> runtime/pw-table-memory/tests/memory.rs:333:25
+    |
+333 |         functions: vec![FunctionJson {
+    |                         ^^^^^^^^^^^^ missing `relation`
+
+error[E0063]: missing field `windows` in initializer of `pw_core::tables::TableJson`
+   --> runtime/pw-table-memory/tests/memory.rs:324:19
+    |
+324 |     m.tables.push(TableJson {
+    |                   ^^^^^^^^^ missing `windows`
+
+For more information about this error, try `rustc --explain E0063`.
+error: could not compile `pw-table-memory` (test "memory") due to 4 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: recipe `lint` failed on line 117 with exit code 101

@@ -405,7 +405,7 @@ bound using the declared order column's native kind, including bytea for strings
 so no text-collation or JSON comparison replaces the existing value order.
 The [comparison documentation](https://www.postgresql.org/docs/18/functions-comparison.html)
 and [binary-string documentation](https://www.postgresql.org/docs/18/functions-binarystring.html)
-were checked. A local PostgreSQL18.6 synthetic probe confirms Bool and UTF-8-byte
+were checked. A local PostgreSQL 18.6 synthetic probe confirms Bool and UTF-8-byte
 comparisons, including NUL/prefix strings, and distinguishes strict1 from
 inclusive3 over [1,2,2,3] at mark2. No dependency upgrade is introduced.
 
@@ -547,7 +547,7 @@ each selector subquery. Adapter reconstructs empty output groups from validated
 keys; zero SQL rows need no fake target payload. Result work <=N*distinctKeys,
 not N*author-count. No constant internal database-scan-work claim.
 
-Primary documentation checked: PostgreSQL18
+Primary documentation checked: PostgreSQL 18
 [subquery expressions](https://www.postgresql.org/docs/18/functions-subquery.html)
 (EXISTS/correlation) and
 [SELECT](https://www.postgresql.org/docs/18/sql-select.html)
@@ -589,11 +589,24 @@ reversed/foreign/missing/over-limit nested replies are whole refusals.
 Positive relation-only index-prefix case without a separate prefix index, and
 negative with no declared (selector,match) lookup path.
 
-The [local synthetic probe](../evidence/E14/protected-relations-design-2026-11-04/primary-probe.log) ran against PostgreSQL18.6: duplicate
+The [local synthetic probe](../evidence/E14/protected-relations-design-2026-11-04/primary-probe.log) ran against PostgreSQL 18.6: duplicate
 Alice->A edges plus A/B interleaved/tied posts still yield global b3,a3 at N2;
 Bob->C yields c9, absent selector yields no SQL row, overlapping topics each get
 the same A posts independently. All fixture tables were TEMP and rolled back.
 This verifies selected SQL semantics only, not the not-yet-built generic path.
+
+### Local relation prerequisite record
+
+Frozen source `d8c634c9` passes affected compiler 350, CLI 5, host 118 (9 existing
+ignored), memory 132, PostgreSQL 95, selected server 180, test-compile/preflight 5,253
+and strict 36/36 focused controls. The test-only `9451277a` adds actual
+authorization-only reuse proof and passes memory 8/preflight/dual-grant 2/2.
+Separate immutable review is clear, including source-key Identity authority,
+independent contract/actual grants, named schema refusals, private-match paths,
+warm two-reader caches and predicate reuse. Correct-answer all-target and
+per-author postclip controls are caught by real SQL returned-row accounting.
+See the [relation record](../diagnostics/protected-feed-store-relations-2026-11-04.md).
+No canonical application has been ported by this prerequisite.
 
 Remaining after this: generic upload claim/publication/reference/GC lifetime,
 initial public fixtures, stable IDs/private child deletion as required, actual

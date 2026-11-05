@@ -1,0 +1,22 @@
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+    Finished `test` profile [unoptimized] target(s) in 0.44s
+     Running tests/table_relations.rs (target/debug/deps/table_relations-889bfcf6162cb984)
+
+running 14 tests
+test a_protected_relation_target_is_refused_beside_the_public_neighbor ... ok
+test a_relation_does_not_disclose_memberships_through_a_shared_cache ... ok
+test a_relation_loop_names_its_own_set_and_nested_empty_groups ... ok
+test a_relation_row_annotation_is_the_exact_declared_target_row ... ok
+test a_relation_requires_one_explicit_source_for_both_tables ... ok
+test an_owner_may_match_private_fields_but_a_sharer_cannot_select_through_them ... ok
+test duplicate_relation_names_and_user_group_names_are_named_refusals ... ok
+test matching_fields_keep_nominal_identity_and_both_declared_lookup_paths ... ok
+test nominal_names_are_qualified_and_imported_row_spellings_preserve_identity ... ok
+test reader_only_relations_keep_the_existing_empty_set_exception ... ok
+test relation_owner_formals_do_not_alias_the_list_or_bound ... ok
+test relation_row_annotations_obey_visibility_and_require_the_declared_shape ... ok
+test the_existing_table_neighbor_without_a_relation_is_valid ... ok
+test relation_windows_compile_real_owned_shared_and_group_components_with_dual_grants ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.03s
+

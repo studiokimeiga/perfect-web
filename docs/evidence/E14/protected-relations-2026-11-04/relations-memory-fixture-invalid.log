@@ -1,0 +1,37 @@
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+   Compiling pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+error[E0599]: no method named `operation_statements` found for struct `MemoryTables` in the current scope
+  --> runtime/pw-table-memory/tests/compiled_relations.rs:35:23
+   |
+35 |     let before=tables.operation_statements();
+   |                       ^^^^^^^^^^^^^^^^^^^^
+   |
+help: there is a method `statements` with a similar name
+   |
+35 -     let before=tables.operation_statements();
+35 +     let before=tables.statements();
+   |
+
+error[E0599]: no variant, associated function, or constant named `None` found for enum `Caller` in the current scope
+  --> runtime/pw-table-memory/tests/compiled_relations.rs:38:58
+   |
+38 |     let absent=query(&program,&tables,"RelLast",&Caller::None,&[handle(ALICE),Val::S64(10),Val::S64(2)]);
+   |                                                          ^^^^ variant, associated function, or constant not found in `Caller`
+   |
+help: there is a method `ne` with a similar name
+  --> /rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/cmp.rs:263:4
+
+error[E0599]: no method named `operation_statements` found for struct `MemoryTables` in the current scope
+  --> runtime/pw-table-memory/tests/compiled_relations.rs:40:23
+   |
+40 |     assert_eq!(tables.operation_statements()-before,0,"no adapter calls");
+   |                       ^^^^^^^^^^^^^^^^^^^^
+   |
+help: there is a method `statements` with a similar name
+   |
+40 -     assert_eq!(tables.operation_statements()-before,0,"no adapter calls");
+40 +     assert_eq!(tables.statements()-before,0,"no adapter calls");
+   |
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `pw-table-memory` (test "compiled_relations") due to 3 previous errors

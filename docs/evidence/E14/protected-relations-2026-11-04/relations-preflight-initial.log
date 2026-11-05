@@ -1,0 +1,23 @@
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+    Checking pw-syntax v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-syntax)
+    Checking pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+    Checking pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+    Checking kiokun-server v0.0.0 (/home/haki/code/pw-wt/data-path/spikes/kiokun/server)
+    Checking pw-table-memory v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-memory)
+    Checking pw-conformance v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-conformance)
+    Checking pw-table-postgres v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-postgres)
+    Checking pw-dev-server v0.0.0 (/home/haki/code/pw-wt/data-path/spikes/own-renderer/server)
+error: unnecessary use of `clone` to create a slice from a reference
+   --> runtime/pw-table-postgres/tests/compiled_relations.rs:294:42
+    |
+294 |         .write("pw:tables/roots#insert", &[root.clone()])
+    |                                          ^^^^^^^^^^^^^^^ help: try: `std::slice::from_ref(&root)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#cloned_ref_to_slice_refs
+    = note: `-D clippy::cloned-ref-to-slice-refs` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::cloned_ref_to_slice_refs)]`
+
+error: could not compile `pw-table-postgres` (test "compiled_relations") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: recipe `lint` failed on line 117 with exit code 101

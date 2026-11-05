@@ -1,0 +1,13 @@
+   Compiling pw-cli v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-cli)
+    Finished `test` profile [unoptimized] target(s) in 1.33s
+     Running tests/tables.rs (target/debug/deps/tables-a0f41dfdce0e5c67)
+
+running 5 tests
+test actual_compiler_manifest_executes_without_app_specific_rust ... ok
+test an_invalid_or_missing_release_is_an_error ... ok
+test a_released_schema_does_not_skip_executable_support ... ok
+test migration_refusals_precede_unsupported_backend_diagnostics ... ok
+test check_and_build_hold_a_program_to_the_named_release ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
+

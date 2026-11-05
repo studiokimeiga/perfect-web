@@ -1,0 +1,21 @@
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+    Checking pw-dev-server v0.0.0 (/home/haki/code/pw-wt/data-path/spikes/own-renderer/server)
+    Finished `dev` profile [unoptimized] target(s) in 6.27s
+# `pw-host`'s engine feature is not exercised by `just test`, because a
+# Wasm engine is not needed to decide a capability question. But an
+# unbuilt cfg rots: a field added to `Import` broke `tests/artifact.rs`
+# and nothing noticed until `just e8-host` ran. Compiled here, run there.
+cargo clippy -p pw-host --features engine --all-targets -- -D warnings
+    Finished `dev` profile [unoptimized] target(s) in 0.08s
+case-check: OK (5036 paths)
+bounded_checker_mutations.py: `set` and `sets` head a clause wherever they are written: 0 matches in compiler/pw-syntax/src/grammar.rs
+bounded_checker_mutations.py: generated index pairs ignore their queried fields: 0 matches in compiler/pw-core/src/bounded.rs
+data_path_mutations.py: windows memory retains every matching row: 2 matches in runtime/pw-table-memory/src/lib.rs
+data_path_mutations.py: windows memory chooses first rows for last windows: 2 matches in runtime/pw-table-memory/src/lib.rs
+row_ownership_mutations.py: counts missing result keys are accepted: 2 matches in runtime/pw-host/src/engine/table_link.rs
+row_ownership_mutations.py: counts reversed selector order is accepted: 2 matches in runtime/pw-host/src/engine/table_link.rs
+table_host_mutations.py: a function may name a field its table lacks: 0 matches in runtime/pw-host/src/tables.rs
+table_host_mutations.py: the gate trusts an import's claim of its capability: 0 matches in runtime/pw-host/src/tables.rs
+FAIL: 8 of 5230 mutants cannot run as written
+error: recipe `mutation-anchors` failed on line 133 with exit code 1

@@ -1,0 +1,6 @@
+focused campaign: table_host; controls: ['a function may name a field its table lacks', "the gate trusts an import's claim of its capability"]
+baseline: 171 passed, 0 failed
+a function may name a field its table lacks: KILLED (1 of 171 tests fail)
+the gate trusts an import's claim of its capability: KILLED (3 of 171 tests fail)
+2 of 2 mutants killed
+memory bound: no process was stopped

@@ -1,0 +1,270 @@
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-core)
+    Finished `test` profile [unoptimized] target(s) in 1.04s
+     Running tests/table_relations.rs (target/debug/deps/table_relations-889bfcf6162cb984)
+
+running 6 tests
+test relation_windows_compile_real_owned_shared_and_group_components_with_dual_grants ... FAILED
+test a_relation_requires_one_explicit_source_for_both_tables ... FAILED
+test a_relation_row_annotation_is_the_exact_declared_target_row ... FAILED
+test a_protected_relation_target_is_refused_beside_the_public_neighbor ... FAILED
+test the_existing_table_neighbor_without_a_relation_is_valid ... ok
+test a_relation_does_not_disclose_memberships_through_a_shared_cache ... FAILED
+
+failures:
+
+---- relation_windows_compile_real_owned_shared_and_group_components_with_dual_grants stdout ----
+
+thread 'relation_windows_compile_real_owned_shared_and_group_components_with_dual_grants' (1606665) panicked at compiler/pw-core/tests/table_relations.rs:125:9:
+relation checks: [
+    (
+        "Links.pw",
+        [
+            Diagnostic {
+                code: "PW0005",
+                invariant: "a parameter list must be closed",
+                reason: "syntax_error",
+                detector: Parser,
+                severity: Error,
+                message: "unknown policy `window`; the compiler does not know this clause",
+                primary_span: 371..377,
+                related: [],
+                explanation: None,
+                repairs: [],
+            },
+        ],
+    ),
+    (
+        "Roots.pw",
+        [],
+    ),
+    (
+        "RelationData.pw",
+        [
+            Diagnostic {
+                code: "PW0020",
+                invariant: "an imported module must exist in the workspace",
+                reason: "name_resolution",
+                detector: DeclarationRule,
+                severity: Error,
+                message: "no module named `Links` in this workspace",
+                primary_span: 20..32,
+                related: [
+                    Related {
+                        span: 20..32,
+                        label: "resolved against the workspace module graph",
+                        file: None,
+                        unit: None,
+                    },
+                ],
+                explanation: Some(
+                    "Names are visible through lexical scope, module membership, or an explicit import — and through nothing else. External implementation is allowed; a missing declaration is not.",
+                ),
+                repairs: [
+                    Repair {
+                        description: "declare `module Links`, or import a module that exists",
+                        replacement: None,
+                    },
+                ],
+            },
+            Diagnostic {
+                code: "PW0349",
+                invariant: "a source holds what the program's effects name, and each is held by one",
+                reason: "source_malformed",
+                detector: DeclarationRule,
+                severity: Error,
+                message: "`RelationData` holds `Links`, which names no type or module visible here",
+                primary_span: 70..88,
+                related: [
+                    Related {
+                        span: 46..170,
+                        label: "`RelationData` states what it guarantees here",
+                        file: None,
+                        unit: None,
+                    },
+                ],
+                explanation: Some(
+                    "A source holds what an effect names: `database.read<Carts>` names `Carts`, a type or a module the program can see.",
+                ),
+                repairs: [
+                    Repair {
+                        description: "name what `database.read<..>` names, or import `Links`",
+                        replacement: None,
+                    },
+                ],
+            },
+        ],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-std/decode.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-std/effects.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-std/float.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-std/list.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-std/map.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-std/set.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-std/stream.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-std/string.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-platform-web/browser.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-platform-web/build.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-platform-web/capability.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-platform-web/clock.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-platform-web/context.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-platform-web/device.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-platform-web/document.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-platform-web/effects.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-platform-web/events.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-platform-web/html.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-platform-web/log.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-platform-web/payments.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-platform-web/secrets.pw",
+        [],
+    ),
+    (
+        "/home/haki/code/pw-wt/data-path/compiler/pw-core/../../packages/pw-platform-web/style.pw",
+        [],
+    ),
+]
+
+---- a_relation_requires_one_explicit_source_for_both_tables stdout ----
+
+thread 'a_relation_requires_one_explicit_source_for_both_tables' (1606663) panicked at compiler/pw-core/tests/table_relations.rs:110:5:
+expected PW0361 "same source", got [
+    (
+        "PW0005",
+        "unknown policy `window`; the compiler does not know this clause",
+    ),
+    (
+        "PW0020",
+        "no module named `Links` in this workspace",
+    ),
+    (
+        "PW0349",
+        "`RelationData` holds `Links`, which names no type or module visible here",
+    ),
+]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- a_relation_row_annotation_is_the_exact_declared_target_row stdout ----
+
+thread 'a_relation_row_annotation_is_the_exact_declared_target_row' (1606664) panicked at compiler/pw-core/tests/table_relations.rs:110:5:
+expected PW0361 "row type", got [
+    (
+        "PW0005",
+        "unknown policy `window`; the compiler does not know this clause",
+    ),
+    (
+        "PW0020",
+        "no module named `Links` in this workspace",
+    ),
+    (
+        "PW0349",
+        "`RelationData` holds `Links`, which names no type or module visible here",
+    ),
+]
+
+---- a_protected_relation_target_is_refused_beside_the_public_neighbor stdout ----
+
+thread 'a_protected_relation_target_is_refused_beside_the_public_neighbor' (1606661) panicked at compiler/pw-core/tests/table_relations.rs:110:5:
+expected PW0368 "public", got [
+    (
+        "PW0005",
+        "unknown policy `window`; the compiler does not know this clause",
+    ),
+    (
+        "PW0020",
+        "no module named `Links` in this workspace",
+    ),
+    (
+        "PW0349",
+        "`RelationData` holds `Links`, which names no type or module visible here",
+    ),
+]
+
+---- a_relation_does_not_disclose_memberships_through_a_shared_cache stdout ----
+
+thread 'a_relation_does_not_disclose_memberships_through_a_shared_cache' (1606662) panicked at compiler/pw-core/tests/table_relations.rs:110:5:
+expected PW5001 "shared cache", got [
+    (
+        "PW0005",
+        "unknown policy `window`; the compiler does not know this clause",
+    ),
+    (
+        "PW0020",
+        "no module named `Links` in this workspace",
+    ),
+    (
+        "PW0349",
+        "`RelationData` holds `Links`, which names no type or module visible here",
+    ),
+]
+
+
+failures:
+    a_protected_relation_target_is_refused_beside_the_public_neighbor
+    a_relation_does_not_disclose_memberships_through_a_shared_cache
+    a_relation_requires_one_explicit_source_for_both_tables
+    a_relation_row_annotation_is_the_exact_declared_target_row
+    relation_windows_compile_real_owned_shared_and_group_components_with_dual_grants
+
+test result: FAILED. 1 passed; 5 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+error: test failed, to rerun pass `-p pw-core --test table_relations`

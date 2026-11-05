@@ -1,0 +1,22 @@
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+    Finished `test` profile [unoptimized] target(s) in 1.31s
+     Running unittests src/lib.rs (target/debug/deps/pw_host-3f197edde30e19df)
+
+running 1 test
+test engine::table_owners::tests::identity_relation_reads_use_membership_ownership_not_the_public_targets_key ... FAILED
+
+failures:
+
+---- engine::table_owners::tests::identity_relation_reads_use_membership_ownership_not_the_public_targets_key stdout ----
+
+thread 'engine::table_owners::tests::identity_relation_reads_use_membership_ownership_not_the_public_targets_key' (1821387) panicked at runtime/pw-host/src/engine/table_owners.rs:563:9:
+old guest must not read foreign-owned memberships through a sharer
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    engine::table_owners::tests::identity_relation_reads_use_membership_ownership_not_the_public_targets_key
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 38 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p pw-host --lib`
