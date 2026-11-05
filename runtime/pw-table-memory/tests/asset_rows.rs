@@ -536,3 +536,99 @@ fn cleanup_enumeration_obeys_zero_one_and_two_bounds_and_completes_only_one_capt
     );
     assert!(visible(&db).is_none());
 }
+
+#[test]
+fn prefix_delete_tracks_every_removed_asset_and_preserves_an_untouched_group() {
+    let p = built_from(&[
+        (
+            "PostImage.pw",
+            r#"module PostImage
+upload PostImage
+    route "/uploads/photo"
+    serves "/photos"
+    max_bytes 5_000_000
+    types png
+    max_width 4096
+    max_height 4096
+"#,
+        ),
+        (
+            "Assets.pw",
+            r#"module Assets
+import PostImage
+type Item = Item { group: String, id: Int, image: Option<PostImage.Ref> }
+table Assets
+    row Item
+    key group, id
+    bounded 100
+    asset image from PostImage
+"#,
+        ),
+        (
+            "AssetData.pw",
+            r#"module AssetData
+import PostImage
+import Assets
+source AssetData
+    holds PostImage, Assets
+    transactions serializable
+    reads strong
+    changes none
+    sets one_call
+"#,
+        ),
+    ]);
+    let db =
+        MemoryTables::new_with_uploads(p.tables, &p.uploads).assert_ok("composite asset table");
+    let mut c = db.begin().assert_ok("begin");
+    let r = c
+        .propose_asset("PostImage", candidate('b'))
+        .assert_ok("claim");
+    for (group, id) in [("a", 1), ("a", 2), ("b", 1)] {
+        c.write(
+            "pw:tables/assets#insert",
+            &[json!({"group":group,"id":id,"image":r})],
+        )
+        .assert_ok("insert");
+    }
+    c.commit().assert_ok("commit three uses");
+    let mut c = db.begin().assert_ok("begin");
+    c.write("pw:tables/assets#delete-of-group", &[json!("a")])
+        .assert_ok("delete group a");
+    let p = c.prepare().assert_ok("prepare prefix removal");
+    let plans = p.asset_plans().assert_ok("plans");
+    let plan = plans
+        .first()
+        .assert_ok("prefix has a final generation plan");
+    assert_eq!(plan.generation.references.get("PostImage"), Some(&1));
+    assert!(!plan.collect);
+    p.publish().assert_ok("commit prefix removal");
+    assert_eq!(
+        db.read("pw:tables/assets#get", &[json!("a"), json!(1)])
+            .assert_ok("removed"),
+        json!(null)
+    );
+    assert_eq!(
+        db.read("pw:tables/assets#get", &[json!("b"), json!(1)])
+            .assert_ok("untouched"),
+        json!({"group":"b","id":1,"image":r})
+    );
+    assert_eq!(visible(&db), Some(r));
+    let mut c = db.begin().assert_ok("begin");
+    c.write("pw:tables/assets#delete-of-group", &[json!("b")])
+        .assert_ok("delete group b");
+    let p = c.prepare().assert_ok("prepare last group");
+    assert!(
+        p.asset_plans()
+            .assert_ok("plans")
+            .first()
+            .assert_ok("last generation plan")
+            .collect
+    );
+    p.publish().assert_ok("commit last group");
+    assert!(visible(&db).is_none());
+    assert_eq!(
+        db.pending_asset_collections(1).assert_ok("job"),
+        [candidate('b')]
+    );
+}

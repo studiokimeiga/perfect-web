@@ -71,6 +71,9 @@ HOST_RELATIONS = ROOT / "runtime/pw-host/src/tables/relations.rs"
 CORE_RELATIONS = ROOT / "compiler/pw-core/src/tables/relations.rs"
 
 MUTANTS = [
+    ('upload rows prefix deletion omits removed references', ROOT / 'runtime/pw-table-memory/src/lib.rs',
+     '            for key in keys {\n                if let Set::Done(prior) = data.set(table, &key, None)? {\n                    first(&key, prior);\n                }\n            }',
+     '            for key in keys {\n                if let Set::Done(prior) = data.set(table, &key, None)? {\n                    let _ = prior;\n                }\n            }'),
     ('upload rows does not count proposal selection', ROOT / 'runtime/pw-table-memory/src/assets.rs',
      '        self.inner.asset_operations.fetch_add(1, Ordering::SeqCst);\n        registry', '        registry'),
     ('upload rows does not count prepared generations', ROOT / 'runtime/pw-table-memory/src/lib.rs',
