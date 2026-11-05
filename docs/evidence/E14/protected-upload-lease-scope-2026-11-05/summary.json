@@ -1,0 +1,53 @@
+{
+  "source": "1f20302df34d720748dfb171cf60ecfb15b83242",
+  "selected_server": {
+    "upload-lease-frozen-blob__.log": [
+      15,
+      0,
+      0
+    ],
+    "upload-lease-frozen-tests__conformance__.log": [
+      12,
+      0,
+      0
+    ],
+    "upload-lease-frozen-tests__protected_migration__.log": [
+      23,
+      0,
+      0
+    ],
+    "upload-lease-frozen-tests__tables__.log": [
+      14,
+      0,
+      0
+    ],
+    "upload-lease-frozen-tests__tables_pg__.log": [
+      37,
+      0,
+      0
+    ],
+    "upload-lease-frozen-tests__upload_generations__.log": [
+      6,
+      0,
+      0
+    ],
+    "upload-lease-frozen-uploads__.log": [
+      138,
+      0,
+      0
+    ]
+  },
+  "total": [
+    245,
+    0,
+    0
+  ],
+  "new_scope_native": 10,
+  "strict_controls": 11,
+  "strict_baseline": 11,
+  "retained_authority_controls": 11,
+  "retained_authority_inventory": 19,
+  "preflight_anchors": 5402,
+  "supplied_reader_lookup_only": true,
+  "actual_generic_claim_bridge_accepted": false
+}

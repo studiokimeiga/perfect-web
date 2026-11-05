@@ -1,0 +1,19 @@
+
+running 14 tests
+test tests::tables::a_build_whose_row_names_a_handle_is_refused_where_it_is_served ... ok
+test tests::tables::a_commits_rows_and_records_are_kept_together_or_not_at_all ... ok
+test tests::tables::a_command_that_does_not_commit_keeps_nothing ... ok
+test tests::tables::a_guarded_command_writes_its_tables_once_its_predicate_holds ... ok
+test tests::tables::a_program_mixing_its_tables_with_a_hand_written_layer_is_refused ... ok
+test tests::tables::a_program_of_tables_declaring_an_upload_is_refused_where_it_is_served ... ok
+test tests::tables::a_program_that_declares_its_tables_is_served_by_the_generic_adapter ... ok
+test tests::tables::a_run_on_a_readers_behalf_is_answered_their_account_and_never_their_session ... ok
+test tests::tables::a_staged_write_is_invisible_until_its_commit ... ok
+test tests::tables::closed_tables_refuse_a_renders_remembered_operations ... ok
+test tests::tables::closed_tables_refuse_an_answer_closed_while_its_query_was_in_flight ... ok
+test tests::tables::closed_tables_refuse_cached_answers_outside_the_failed_commands_invalidations ... ok
+test tests::tables::closed_tables_refuse_fresh_and_last_known_good_materializations ... ok
+test tests::tables::each_components_host_map_holds_its_own_table_functions_alone ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 1011 filtered out; finished in 1.03s
+

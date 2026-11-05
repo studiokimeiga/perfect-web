@@ -75,9 +75,14 @@ preflight5,392 and 10/10 strict controls (baseline7), separate review clear.
 ActualPG + sanitizer + local files + handler TCP include authoritative404/503
 before304 and real backend-death/captured-unlink proof. See the
 [HTTP record](diagnostics/protected-upload-http-2026-11-05.md).
-These are trusted-proposal/isolated handler tests. Actual session/declaration
-claim bridge, attempt nonce/unknown reconciliation and full compiled Server
-startup are next; startup guard closed, canonical apps legacy.
+Staging declaration scope source `1f20302d` passed selectedserver245,
+preflight5,402, new scope11/11 (baseline11) and retained authority11/11
+(full native19 baseline/final), separate review clear. One lease per actual
+session/declaration, reader-bound preview/claims, direct TTL lookup checks and
+held-expiry retention; see the [lease record](diagnostics/protected-upload-lease-scope-2026-11-05.md).
+These are trusted immutable-reader lookups/isolated handler tests. Actual compiled
+claim/row callbacks, attempt nonce/unknown reconciliation and full Server startup
+are next; startup guard closed, canonical apps legacy.
 Earlier green records below apply to their named sources only.
 
 **Local row browsers and PostgreSQL, 2026-11-03:** code/test source

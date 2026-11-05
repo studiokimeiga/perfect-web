@@ -1,0 +1,13 @@
+baseline 11 native assertions, complete inventories
+KILLED 1/11: collapses actual declaration keys within a session; 6 pass/4 fail
+KILLED 2/11: selects the first declaration for every private preview; 5 pass/5 fail
+KILLED 3/11: shows every attachments first declaration route; 9 pass/1 fail
+KILLED 4/11: claims the first declaration instead of the requested one; 7 pass/3 fail
+KILLED 5/11: ends claims using a different declaration key; 9 pass/1 fail
+KILLED 6/11: returns claims using a different declaration key; 8 pass/2 fail
+KILLED 7/11: prints private session bytes in claim diagnostics; 9 pass/1 fail
+KILLED 8/11: ignores expired unclaimed leases at lookup; 6 pass/4 fail
+KILLED 9/11: expires a held claim before an explicit outcome; 9 pass/1 fail
+KILLED 10/11: sweeps a held claim after its lifetime elapses; 9 pass/1 fail
+KILLED 11/11: a lease is shown to any session; 0 pass/1 fail
+11/11 killed; no invalid or stopped producer

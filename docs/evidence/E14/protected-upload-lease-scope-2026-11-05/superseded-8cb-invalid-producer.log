@@ -1,0 +1,52 @@
+baseline 11 native assertions, complete inventories
+KILLED 1/11: collapses actual declaration keys within a session; 6 pass/4 fail
+KILLED 2/11: selects the first declaration for every private preview; 5 pass/5 fail
+KILLED 3/11: shows every attachments first declaration route; 9 pass/1 fail
+Traceback (most recent call last):
+  File "/home/haki/code/pw-wt/data-path/scripts/generic_upload_leases_mutations.py", line 69, in <module>
+    if __name__=='__main__':sys.exit(main())
+  File "/home/haki/code/pw-wt/data-path/scripts/generic_upload_leases_mutations.py", line 64, in main
+    passed,failed=run(n,[0] if n<len(mutants) else [1]);assert failed>0,f'survived: {label}'
+  File "/home/haki/code/pw-wt/data-path/scripts/generic_upload_leases_mutations.py", line 54, in run
+    if not result.valid: raise RuntimeError(f'invalid native producer {path}: '+child.stdout[-4000:])
+RuntimeError: invalid native producer /tmp/pw-protected-migration/upload-lease-strict/run-04-00.log: 
+running 10 tests
+test uploads::generic_lease_tests::claim_debug_never_prints_the_cookie_private_lease_id_or_private_image_key ... FAILED
+test uploads::generic_lease_tests::claimed_lease_survives_expiry_and_sweep_until_an_explicit_outcome ... FAILED
+test uploads::generic_lease_tests::expired_unclaimed_attachment_metadata_is_hidden_before_periodic_sweep ... ok
+test uploads::generic_lease_tests::expired_unclaimed_lease_cannot_be_acquired_before_periodic_sweep ... ok
+test uploads::generic_lease_tests::expired_unclaimed_private_preview_is_404_before_periodic_sweep ... ok
+test uploads::generic_lease_tests::explicit_attachment_and_claim_lookups_use_declaration_and_captured_reader_without_recapture ... ok
+test uploads::generic_lease_tests::explicit_claims_block_only_their_own_declarations_replacement_and_release ... FAILED
+test uploads::generic_lease_tests::identical_bytes_hold_one_staged_blob_until_both_declarations_release_their_own_lease ... ok
+test uploads::generic_lease_tests::private_preview_route_cannot_borrow_another_declarations_lease ... ok
+test uploads::generic_lease_tests::two_declarations_stage_and_replace_independently_for_one_session ... ok
+
+failures:
+
+---- uploads::generic_lease_tests::claim_debug_never_prints_the_cookie_private_lease_id_or_private_image_key stdout ----
+
+thread 'uploads::generic_lease_tests::claim_debug_never_prints_the_cookie_private_lease_id_or_private_image_key' (3087019) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:208:10:
+own attachment
+
+---- uploads::generic_lease_tests::claimed_lease_survives_expiry_and_sweep_until_an_explicit_outcome stdout ----
+
+thread 'uploads::generic_lease_tests::claimed_lease_survives_expiry_and_sweep_until_an_explicit_outcome' (3087020) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:282:10:
+held before expiry
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- uploads::generic_lease_tests::explicit_claims_block_only_their_own_declarations_replacement_and_release stdout ----
+
+thread 'uploads::generic_lease_tests::explicit_claims_block_only_their_own_declarations_replacement_and_release' (3087025) panicked at spikes/own-renderer/server/src/uploads/generic_lease_tests.rs:132:10:
+own second declaration
+
+
+failures:
+    uploads::generic_lease_tests::claim_debug_never_prints_the_cookie_private_lease_id_or_private_image_key
+    uploads::generic_lease_tests::claimed_lease_survives_expiry_and_sweep_until_an_explicit_outcome
+    uploads::generic_lease_tests::explicit_claims_block_only_their_own_declarations_replacement_and_release
+
+test result: FAILED. 7 passed; 3 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+

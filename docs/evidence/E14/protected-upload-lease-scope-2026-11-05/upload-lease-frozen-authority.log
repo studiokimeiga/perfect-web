@@ -1,0 +1,12 @@
+http-admitted-reader: KILLED
+preview-lease-reader: KILLED
+shown-lease-reader: KILLED
+claim-lease-reader: KILLED
+preview-live-inspection: KILLED
+post-body-current-composite: KILLED
+post-storage-source-inspection: KILLED
+preview-inspection-order: KILLED
+local-publication-gate: KILLED
+previous-lease-current-composite: KILLED
+provisional-refusal-cleanup: KILLED
+scope=FULL, controls=11/11, valid=True, restored=True
