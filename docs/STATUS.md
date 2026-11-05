@@ -52,7 +52,12 @@ ignored), memory156, actual PostgreSQL102, selected server86, preflight5,304 and
 holds fresh/stub/cached paths to independent contract/actual grant axes and WIT
 ABIs; this is metadata/engine proof with mock callbacks. See the
 [binding record](diagnostics/protected-upload-binding-2026-11-05.md).
-Actual upload registry, session/claim ownership, storage, transaction lifetime
+The shared registry/memory bookkeeping source `ae09ede1` passed frozen host145
+(9 existing ignored), memory166, preflight5,335 and 32/32 strict controls.
+Separate review's equal-revision foreign-instance acceptance was reproduced and
+repaired; final immutable review is clear. See the
+[registry/memory record](diagnostics/protected-upload-registry-memory-2026-11-05.md).
+Trusted proposals only: actual session/claim ownership, storage, transaction lifetime
 and HTTP are next; original guards remain closed and canonical apps legacy.
 Earlier green records below apply to their named sources only.
 

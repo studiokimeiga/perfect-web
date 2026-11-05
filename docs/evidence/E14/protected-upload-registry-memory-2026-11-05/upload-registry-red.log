@@ -1,0 +1,59 @@
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+    Finished `test` profile [unoptimized] target(s) in 1.49s
+     Running tests/asset_registry.rs (target/debug/deps/asset_registry-45ef335d1edc6df3)
+
+running 8 tests
+test a_declarations_last_reference_ends_its_adoption_and_serving_even_if_another_keeps_bytes_live ... FAILED
+test a_fresh_publication_requires_a_final_row_use_to_become_live ... FAILED
+test current_same_declaration_references_allow_copy_but_another_declaration_does_not ... FAILED
+test ignored_publications_do_not_enroll_a_declaration_or_count_untouched_rows_as_usage ... FAILED
+test final_net_moves_do_not_transiently_retire_a_generation_and_unchanged_refs_are_validated ... FAILED
+test contradictory_counts_overflow_unknown_declarations_and_descriptors_refuse_whole ... ok
+test plain_reference_data_is_not_authority_to_create_a_generation ... ok
+test last_removal_captures_only_the_old_generation_and_same_bytes_require_a_new_identity ... FAILED
+
+failures:
+
+---- a_declarations_last_reference_ends_its_adoption_and_serving_even_if_another_keeps_bytes_live stdout ----
+
+thread 'a_declarations_last_reference_ends_its_adoption_and_serving_even_if_another_keeps_bytes_live' (2593055) panicked at runtime/pw-host/tests/asset_registry.rs:44:81:
+called `Result::unwrap()` on an `Err` value: "generic asset registry transitions are not installed"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- a_fresh_publication_requires_a_final_row_use_to_become_live stdout ----
+
+thread 'a_fresh_publication_requires_a_final_row_use_to_become_live' (2593056) panicked at runtime/pw-host/tests/asset_registry.rs:18:94:
+called `Result::unwrap()` on an `Err` value: "generic asset registry transitions are not installed"
+
+---- current_same_declaration_references_allow_copy_but_another_declaration_does_not stdout ----
+
+thread 'current_same_declaration_references_allow_copy_but_another_declaration_does_not' (2593058) panicked at runtime/pw-host/tests/asset_registry.rs:33:82:
+called `Result::unwrap()` on an `Err` value: "generic asset registry transitions are not installed"
+
+---- ignored_publications_do_not_enroll_a_declaration_or_count_untouched_rows_as_usage stdout ----
+
+thread 'ignored_publications_do_not_enroll_a_declaration_or_count_untouched_rows_as_usage' (2593060) panicked at runtime/pw-host/tests/asset_registry.rs:74:83:
+called `Result::unwrap()` on an `Err` value: "generic asset registry transitions are not installed"
+
+---- final_net_moves_do_not_transiently_retire_a_generation_and_unchanged_refs_are_validated stdout ----
+
+thread 'final_net_moves_do_not_transiently_retire_a_generation_and_unchanged_refs_are_validated' (2593059) panicked at runtime/pw-host/tests/asset_registry.rs:54:72:
+called `Result::unwrap()` on an `Err` value: "generic asset registry transitions are not installed"
+
+---- last_removal_captures_only_the_old_generation_and_same_bytes_require_a_new_identity stdout ----
+
+thread 'last_removal_captures_only_the_old_generation_and_same_bytes_require_a_new_identity' (2593061) panicked at runtime/pw-host/tests/asset_registry.rs:62:112:
+called `Result::unwrap()` on an `Err` value: "generic asset registry transitions are not installed"
+
+
+failures:
+    a_declarations_last_reference_ends_its_adoption_and_serving_even_if_another_keeps_bytes_live
+    a_fresh_publication_requires_a_final_row_use_to_become_live
+    current_same_declaration_references_allow_copy_but_another_declaration_does_not
+    final_net_moves_do_not_transiently_retire_a_generation_and_unchanged_refs_are_validated
+    ignored_publications_do_not_enroll_a_declaration_or_count_untouched_rows_as_usage
+    last_removal_captures_only_the_old_generation_and_same_bytes_require_a_new_identity
+
+test result: FAILED. 2 passed; 6 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p pw-host --test asset_registry`

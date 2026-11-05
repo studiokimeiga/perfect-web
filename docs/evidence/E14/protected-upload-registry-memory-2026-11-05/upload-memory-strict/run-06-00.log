@@ -1,0 +1,84 @@
+
+running 10 tests
+test duplicate_fields_and_independent_declarations_keep_exact_final_counts_and_serving ... FAILED
+test cleanup_enumeration_obeys_zero_one_and_two_bounds_and_completes_only_one_captured_job ... FAILED
+test ignored_publication_and_captured_old_collection_do_not_serve_or_remove_new_bytes ... FAILED
+test plain_stale_and_changed_refs_refuse_the_whole_row_transaction ... FAILED
+test prefix_delete_tracks_every_removed_asset_and_preserves_an_untouched_group ... FAILED
+test registry_accounting_counts_each_actual_path_without_hiding_row_primitive_cost ... FAILED
+test rejected_duplicate_with_a_fresh_publication_settles_no_untouched_old_row_as_use ... ok
+test rejected_writes_and_final_moves_cannot_drift_reference_counts ... FAILED
+test repeated_writes_of_one_key_keep_its_first_committed_descriptor_and_final_use ... FAILED
+test upload_rows_and_registry_publish_together_and_dropped_preparation_publishes_neither ... ok
+
+failures:
+
+---- duplicate_fields_and_independent_declarations_keep_exact_final_counts_and_serving stdout ----
+
+thread 'duplicate_fields_and_independent_declarations_keep_exact_final_counts_and_serving' (2715828) panicked at runtime/pw-table-memory/tests/asset_rows.rs:336:5:
+assertion `left == right` failed
+  left: Some(4)
+ right: Some(2)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- cleanup_enumeration_obeys_zero_one_and_two_bounds_and_completes_only_one_captured_job stdout ----
+
+thread 'cleanup_enumeration_obeys_zero_one_and_two_bounds_and_completes_only_one_captured_job' (2715827) panicked at runtime/pw-table-memory/tests/asset_rows.rs:523:5:
+assertion `left == right` failed
+  left: []
+ right: [Descriptor { reference: Reference { key: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", generation: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", kind: "png", width: 6, height: 4 }, bytes: 17 }]
+
+---- ignored_publication_and_captured_old_collection_do_not_serve_or_remove_new_bytes stdout ----
+
+thread 'ignored_publication_and_captured_old_collection_do_not_serve_or_remove_new_bytes' (2715829) panicked at runtime/pw-table-memory/tests/asset_rows.rs:221:5:
+assertion `left != right` failed
+  left: "cccccccccccccccccccccccccccccccc"
+ right: "cccccccccccccccccccccccccccccccc"
+
+---- plain_stale_and_changed_refs_refuse_the_whole_row_transaction stdout ----
+
+thread 'plain_stale_and_changed_refs_refuse_the_whole_row_transaction' (2715863) panicked at runtime/pw-table-memory/tests/asset_rows.rs:179:5:
+assertion failed: c.prepare().is_err()
+
+---- prefix_delete_tracks_every_removed_asset_and_preserves_an_untouched_group stdout ----
+
+thread 'prefix_delete_tracks_every_removed_asset_and_preserves_an_untouched_group' (2715864) panicked at runtime/pw-table-memory/tests/asset_rows.rs:603:5:
+assertion `left == right` failed
+  left: Some(3)
+ right: Some(1)
+
+---- registry_accounting_counts_each_actual_path_without_hiding_row_primitive_cost stdout ----
+
+thread 'registry_accounting_counts_each_actual_path_without_hiding_row_primitive_cost' (2715865) panicked at runtime/pw-table-memory/tests/asset_rows.rs:484:5:
+assertion `left == right` failed
+  left: []
+ right: [Descriptor { reference: Reference { key: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", generation: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", kind: "png", width: 6, height: 4 }, bytes: 17 }]
+
+---- rejected_writes_and_final_moves_cannot_drift_reference_counts stdout ----
+
+thread 'rejected_writes_and_final_moves_cannot_drift_reference_counts' (2715871) panicked at runtime/pw-table-memory/tests/asset_rows.rs:107:9:
+assertion `left == right` failed
+  left: Some(2)
+ right: Some(1)
+
+---- repeated_writes_of_one_key_keep_its_first_committed_descriptor_and_final_use stdout ----
+
+thread 'repeated_writes_of_one_key_keep_its_first_committed_descriptor_and_final_use' (2715877) panicked at runtime/pw-table-memory/tests/asset_rows.rs:429:5:
+assertion `left == right` failed
+  left: Some(2)
+ right: Some(1)
+
+
+failures:
+    cleanup_enumeration_obeys_zero_one_and_two_bounds_and_completes_only_one_captured_job
+    duplicate_fields_and_independent_declarations_keep_exact_final_counts_and_serving
+    ignored_publication_and_captured_old_collection_do_not_serve_or_remove_new_bytes
+    plain_stale_and_changed_refs_refuse_the_whole_row_transaction
+    prefix_delete_tracks_every_removed_asset_and_preserves_an_untouched_group
+    registry_accounting_counts_each_actual_path_without_hiding_row_primitive_cost
+    rejected_writes_and_final_moves_cannot_drift_reference_counts
+    repeated_writes_of_one_key_keep_its_first_committed_descriptor_and_final_use
+
+test result: FAILED. 2 passed; 8 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+
+error: test failed, to rerun pass `-p pw-table-memory --test asset_rows`

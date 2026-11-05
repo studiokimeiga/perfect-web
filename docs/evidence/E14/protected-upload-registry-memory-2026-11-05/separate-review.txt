@@ -1,0 +1,9 @@
+Separate immutable review by /root/review_cached_refusals, 2026-11-05.
+Initial c611 review reproduced foreign-instance drafts/patches at equal revision.
+d1b253f6 repair: private Arc witness required by propose/prepare/apply before state.
+No remaining kernel defect. Physical reservation after rollback remains unproved.
+Memory production a15c197f: no defect found. 164a1552 native assertion additions
+close exact accounting and cleanup batch-bound proof gaps. ae09ede1 composite-key
+prefix deletion closes remaining neighboring write-path witness. Final immutable
+review clear. Reviewer ran no tests, edits or mutations. Claims, storage, durable
+receipts, PostgreSQL and canonical ports remain outside this review/acceptance.

@@ -1,0 +1,36 @@
+
+running 18 tests
+test a_compiled_reference_projects_the_existing_public_url_without_host_work ... ok
+test a_host_database_table_is_a_separate_source_from_the_explicit_upload_source ... ok
+test actual_compiled_resource_grants_and_callback_answers_are_checked_independently ... ok
+test actual_compiler_upload_metadata_binds_its_exact_public_reference_field ... ok
+test actual_upload_reference_abi_is_checked_before_any_claim_callback ... ok
+test asset_binding_requires_its_own_explicit_source_even_when_only_one_is_named ... ok
+test asset_metadata_is_not_silently_served_by_an_adapter_with_no_upload_binding ... FAILED
+test authorization_only_ordinary_tables_require_the_actual_root_handle ... ok
+test authorization_only_ordinary_tables_require_the_root_contract_capability ... ok
+test authorization_only_upload_reuse_checks_root_binding_without_running_a_body ... ok
+test authorization_only_uses_the_actual_root_grant_and_contract_axes ... ok
+test compiled_attached_reads_validate_the_declared_record_without_resource_authority ... ok
+test empty_session_inputs_and_empty_claim_answers_are_refused_before_the_next_callback ... ok
+test link_only_instantiation_also_refuses_an_unbound_compiled_upload_import ... ok
+test ordinary_table_primary_identity_is_checked_even_with_both_real_capabilities ... ok
+test real_compiled_upload_imports_need_explicit_binding_before_any_resource_callback ... ok
+test the_runtime_upload_ceiling_matches_the_compiler_wire_policy ... ok
+test otherwise_valid_owned_data_cannot_be_forged_into_a_public_asset_binding ... ok
+
+failures:
+
+---- asset_metadata_is_not_silently_served_by_an_adapter_with_no_upload_binding stdout ----
+
+thread 'asset_metadata_is_not_silently_served_by_an_adapter_with_no_upload_binding' (2700118) panicked at runtime/pw-table-memory/tests/compiled_assets.rs:35:5:
+asset declarations need their actual storage binding
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    asset_metadata_is_not_silently_served_by_an_adapter_with_no_upload_binding
+
+test result: FAILED. 17 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.01s
+
+error: test failed, to rerun pass `-p pw-table-memory --test compiled_assets`

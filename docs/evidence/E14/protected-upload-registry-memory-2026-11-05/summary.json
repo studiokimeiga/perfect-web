@@ -1,0 +1,15 @@
+{
+  "source": "ae09ede16c71743ef6d22640639fd0e52681e3fc",
+  "host": {
+    "passed": 145,
+    "ignored": 9
+  },
+  "memory": {
+    "passed": 166
+  },
+  "registry_native_inventory": 19,
+  "row_native_inventory": 10,
+  "strict_registry": 20,
+  "strict_rows_with_retained_guard": 12,
+  "claims_storage_postgres_accepted": false
+}

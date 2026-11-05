@@ -1,0 +1,22 @@
+baseline 19 native assertions, complete inventory
+KILLED 1/20: upload registry accepts another registry instance; 16 pass/3 fail
+KILLED 2/20: upload registry adopts another declarations live bytes; 17 pass/2 fail
+KILLED 3/20: upload registry serves another declarations live bytes; 16 pass/3 fail
+KILLED 4/20: upload registry republishes a retired generation identity; 18 pass/1 fail
+KILLED 5/20: upload registry leaves ignored zero reference generations live; 17 pass/2 fail
+KILLED 6/20: upload registry settles untouched rows as publication use; 18 pass/1 fail
+KILLED 7/20: upload registry skips unchanged row descriptor validation; 18 pass/1 fail
+KILLED 8/20: upload registry accepts changed immutable byte counts; 17 pass/2 fail
+KILLED 9/20: upload registry retires a net move at its transient zero; 16 pass/3 fail
+KILLED 10/20: upload registry omits keeping fresh referenced bytes; 17 pass/2 fail
+KILLED 11/20: upload registry omits last reference collection; 16 pass/3 fail
+KILLED 12/20: upload registry saturates contradictory original counts; 18 pass/1 fail
+KILLED 13/20: upload registry ignores declaration dimension policy; 18 pass/1 fail
+KILLED 14/20: upload registry allows shared bytes across data sources; 18 pass/1 fail
+KILLED 15/20: upload registry accepts a duplicate lease publication; 18 pass/1 fail
+KILLED 16/20: upload registry accepts a stale registry patch; 18 pass/1 fail
+KILLED 17/20: upload registry reuses a pending generation for different bytes; 18 pass/1 fail
+KILLED 18/20: upload registry forgets retired generation identities after collection; 17 pass/2 fail
+KILLED 19/20: upload registry clears the new hash pointer when old collection finishes; 18 pass/1 fail
+KILLED 20/20: upload registry accepts changed canonical descriptor on adoption; 18 pass/1 fail
+20/20 killed; no invalid or stopped producer
