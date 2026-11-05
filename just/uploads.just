@@ -34,3 +34,10 @@ e14-uploads:
        CARGO_INCREMENTAL=0 python3 scripts/uploads_mutations.py; \
      } > docs/evidence/E14/uploads.txt
     @grep -E "^test result|passed|mutants killed|^---- |panicked at" docs/evidence/E14/uploads.txt
+
+# Generic authority + actual PG/local files + handler TCP composition. Requires
+# the actual throwaway PW_TABLES_DATABASE_URL; includes strict native controls.
+e14-generic-upload-http:
+    @mkdir -p docs/evidence/E14/generic-upload-http
+    @PW_GENERIC_UPLOAD_HTTP_EVIDENCE=docs/evidence/E14/generic-upload-http python3 scripts/generic_upload_http_mutations.py > docs/evidence/E14/generic-upload-http.txt
+    @cat docs/evidence/E14/generic-upload-http.txt

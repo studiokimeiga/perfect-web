@@ -208,6 +208,17 @@ impl TablesPg {
 struct PgSnapshot(Result<pw_table_postgres::Snapshot, String>);
 
 impl DataLayer for TablesPg {
+    fn read_asset(
+        &self,
+        declaration: &str,
+        key: &str,
+        kind: &str,
+    ) -> Result<Option<(pw_host::assets::Descriptor, Vec<u8>)>, String> {
+        self.tables
+            .read_asset(declaration, key, kind)
+            .map_err(|e| format!("{e:?}"))
+    }
+
     /// No operation by name: a program's table functions are linked through
     /// the gate alone, per component ([`DataLayer::table_reads`]).
     fn reads(&self, _session: &str, _stopped: Option<Stopped>) -> Ops {

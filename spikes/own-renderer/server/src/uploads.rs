@@ -188,6 +188,9 @@ pub(crate) struct Shared {
     /// layer's answer, handed once: a blob is served only while one does.
     /// None handed, none is served.
     named: std::sync::OnceLock<Named>,
+    /// The bound generic adapter resolves same-declaration LIVE authority and
+    /// verifies all bytes under its storage lifetime before returning them.
+    generations: std::sync::OnceLock<Generations>,
 }
 
 /// **The leases, as the feed's data layer holds them.**
@@ -196,6 +199,11 @@ pub(crate) type Leases = Arc<Shared>;
 /// **Whether a committed row names the blob with this key** (ADR-0261), as
 /// the data layer answers it.
 pub(crate) type Named = Box<dyn Fn(&str) -> Result<bool, String> + Send + Sync>;
+pub(crate) type Generations = Box<
+    dyn Fn(&str, &str, &str) -> Result<Option<(pw_host::assets::Descriptor, Vec<u8>)>, String>
+        + Send
+        + Sync,
+>;
 
 impl std::fmt::Debug for Shared {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -318,6 +326,7 @@ impl Uploads {
                 lease_for,
                 principals: std::sync::OnceLock::new(),
                 named: std::sync::OnceLock::new(),
+                generations: std::sync::OnceLock::new(),
             })),
         }
     }
@@ -367,6 +376,17 @@ impl Uploads {
         if let Some(shared) = &self.shared {
             let _ = shared.named.set(named);
         }
+    }
+
+    /// Supply the bound adapter's authoritative public-asset reader once,
+    /// before serving any request. Every response, including 304, uses it.
+    pub(crate) fn generations_by(&self, read: Generations) -> Result<(), String> {
+        self.shared
+            .as_ref()
+            .ok_or("no uploads are declared")?
+            .generations
+            .set(read)
+            .map_err(|_| "upload generation reader is already bound".into())
     }
 
     pub(crate) fn leases(&self) -> Option<Leases> {
@@ -613,7 +633,7 @@ impl Shared {
         }
         for d in &self.declared {
             if let Some(name) = under(route, &d.serves) {
-                return self.serve(name, headers);
+                return self.serve(d, name, headers);
             }
             if let Some(id) = under(route, &d.route) {
                 return self.preview(id, session);
@@ -942,13 +962,43 @@ impl Shared {
 
     /// **A committed image**, `<key>.<kind>`, from the deployment's blob
     /// storage, its type sniffed from its bytes again as it is served.
-    fn serve(&self, name: &str, headers: &str) -> Answer {
+    fn serve(&self, declared: &Declared, name: &str, headers: &str) -> Answer {
         let Some((key, ext)) = name
             .split_once('.')
             .and_then(|(hex, ext)| Some((BlobKey::parse(hex)?, ext)))
         else {
             return Answer::text(404, "not found");
         };
+        if let Some(read) = self.generations.get() {
+            let (descriptor, bytes) = match read(&declared.name, key.hex(), ext) {
+                Ok(Some(asset)) => asset,
+                Ok(None) => return Answer::text(404, "not found"),
+                Err(why) => {
+                    eprintln!("pw dev server: reading a current upload generation: {why}");
+                    return Answer::text(503, "unavailable");
+                }
+            };
+            // Freeze and check every returned byte before consulting a cache
+            // validator. A LIVE descriptor with missing/corrupt bytes is 503.
+            let measured = sniff::measure(&bytes);
+            let valid = descriptor.reference.key == key.hex()
+                && descriptor.reference.kind == ext
+                && bytes.len() as u64 == descriptor.bytes
+                && BlobKey::of(&bytes) == key
+                && measured.as_ref().is_ok_and(|m| {
+                    m.kind.word() == ext
+                        && m.width == descriptor.reference.width
+                        && m.height == descriptor.reference.height
+                });
+            if !valid {
+                return Answer::text(503, "unavailable");
+            }
+            let measured = match measured {
+                Ok(m) => m,
+                Err(_) => unreachable!(),
+            };
+            return Self::image_answer(key, measured.kind, bytes, headers);
+        }
         // **Served while a committed row names it** (ADR-0261): a deleted
         // post's image is not, whether or not its bytes are collected yet,
         // and a layer that cannot say is not taken to say yes.
@@ -967,6 +1017,10 @@ impl Shared {
         let Some((kind, bytes)) = found else {
             return Answer::text(404, "not found");
         };
+        Self::image_answer(key, kind, bytes, headers)
+    }
+
+    fn image_answer(key: BlobKey, kind: Kind, bytes: Vec<u8>, headers: &str) -> Answer {
         let etag = format!("\"{}\"", key.hex());
         let not_modified = header(headers, "if-none-match")
             .is_some_and(|v| v.split(',').any(|t| t.trim() == etag || t.trim() == "*"));

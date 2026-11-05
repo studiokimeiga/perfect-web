@@ -216,8 +216,8 @@ MUTANTS = [
         "a layer that cannot say whether a post names a blob is taken to say yes",
         RUST,
         UPLOADS,
-        "                return Answer::text(503, \"unavailable\");\n",
-        "",
+        '                eprintln!("pw dev server: whether a post names {}: {why}", key.hex());\n                return Answer::text(503, "unavailable");\n',
+        '                eprintln!("pw dev server: whether a post names {}: {why}", key.hex());\n',
     ),
     (
         "a claim in flight does not keep its blob",

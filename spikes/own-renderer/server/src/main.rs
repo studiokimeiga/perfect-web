@@ -1918,6 +1918,17 @@ impl Server {
         // from the uploads' leases, in the post's own transaction.
         if let Some(leases) = uploads.leases() {
             data.uploaded_by(leases);
+            if data.tables().and_then(|tables| tables.uploads()).is_some() {
+                let layer = Arc::downgrade(&data);
+                uploads.generations_by(Box::new(move |declaration, key, kind| {
+                    layer.upgrade().ok_or("the data layer is gone")?.read_asset(
+                        declaration,
+                        key,
+                        kind,
+                    )
+                }))?;
+            }
+
             // And it says which blobs its committed rows name (ADR-0261):
             // the uploads serve no other. Held weakly, since the layer holds
             // the leases.
@@ -16925,6 +16936,7 @@ public query Store(",
 
     // The canonical protected-app migration: generic authority seams.
     mod protected_migration;
+    mod upload_generations;
 
     // TRACK SEAM (device-store): a page that holds a value the device keeps,
     // served (ADR-0366).
