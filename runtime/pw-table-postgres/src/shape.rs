@@ -113,6 +113,7 @@ pub(crate) struct ReferenceShape {
 
 #[derive(Debug, Clone)]
 pub(crate) struct TableShape {
+    pub assets: Vec<pw_core::tables::AssetClause>,
     pub name: String,
     pub columns: Vec<Column>,
     /// Column places of the key, in its order.
@@ -414,6 +415,7 @@ pub(crate) fn shape_of_with_assets(
             });
         }
         let shaped_table = TableShape {
+            assets: table.schema.assets.clone(),
             name: name.clone(),
             key: table
                 .schema

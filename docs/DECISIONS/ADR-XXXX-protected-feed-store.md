@@ -1002,3 +1002,38 @@ Otherwise a deferred schema-record hook could rewrite namespace at COMMIT after
 the verification read. Native immediate/deferred trigger regressions and valid
 neighbors pin this order. Primary PostgreSQL18 documentation:
 [SET CONSTRAINTS](https://www.postgresql.org/docs/18/sql-set-constraints.html).
+
+
+### PostgreSQL row/storage command integration
+
+Recorded 2026-11-05 before the next implementation. Replace the enrollment-only
+command refusal only with the accepted actual lifetime: same reserved pool lease,
+session fence where present, namespace SESSION exclusion, host turn, then command
+BEGIN/first snapshot. Retain the lease through canonical keep, COMMIT, fresh
+captured-generation no-reference checks and collection/completion. Schema
+migration takes the same namespace exclusion before application DDL and releases
+it only after transaction completion. Commands cannot acquire it after BEGIN.
+
+Trusted lease-bridge proposals supply canonical descriptors/bytes; the adapter
+chooses current LIVE or fresh generation and shares the pure transition planner.
+Read only touched generations/current declarations, derive original/final uses
+from the existing DML preimages/touched log, and persist descriptor/count/state/
+captured jobs in the same transaction as application rows and records. Every
+published proposal, or a bridge-marked acquired/discarded claim, requires an
+actual interaction record before any physical keep. Pleris idempotency metadata
+alone is insufficient. Row-only copies of a current same-declaration Ref need
+ordinary table authority but no new upload receipt.
+
+Expose prepared disposition plans to the later actual claim bridge. Keep only
+fresh generations with final row uses, after record/outbox preparation and before
+the final session clock fence/COMMIT. Known rollback performs no GC; unknown
+COMMIT performs no GC and preserves OutcomeUnknown for explicit claim handling.
+Known committed collection/completion errors leave durable jobs pending and
+preserve the applied acknowledgement. Cleanup always captures old G; no mutable
+hash pointer chooses a physical deletion. Full claim reconciliation and actual
+server HTTP/backend-death witnesses remain required before startup guards change.
+
+Native adapter tests use trusted proposals and a byte-store test double with
+real PostgreSQL records, not a substitute authorization ledger. Actual compiled
+resource/session callbacks and concrete physical-provider/HTTP composition remain
+separate following tests. There is no implicit legacy database conversion.

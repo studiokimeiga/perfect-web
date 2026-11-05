@@ -1412,6 +1412,7 @@ dependencies = [
  "pw-syntax",
  "pw-table-memory",
  "serde_json",
+ "sha2 0.11.0",
 ]
 
 [[package]]

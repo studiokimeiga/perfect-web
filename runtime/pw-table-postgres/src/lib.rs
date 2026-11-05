@@ -603,12 +603,13 @@ impl PgTables {
         mut place: Lease,
         fenced: Option<platform::Fenced>,
     ) -> Result<Command, Error> {
-        if self.inner.uploads.is_some() {
-            place.discard();
-            return Err(Error::Schema(
-                "upload command lifecycle is not installed".into(),
-            ));
-        }
+        let lifetime = match assets::lock_lifetime(&self.inner, &mut place) {
+            Ok(lifetime) => lifetime,
+            Err(error) => {
+                place.discard();
+                return Err(error);
+            }
+        };
         let id = match self.inner.take_turn() {
             Ok(id) => id,
             Err(error) => {
@@ -620,6 +621,8 @@ impl PgTables {
             inner: Arc::clone(&self.inner),
             state: Arc::new(Mutex::new(Open {
                 id,
+                lifetime,
+                assets: assets::Transaction::default(),
                 lease: Some(place),
                 begun: false,
                 prepared: false,
@@ -790,6 +793,8 @@ type Bound = (Vec<Param>, Option<(Key, Row)>);
 
 /// The open command's state, shared with its host functions.
 struct Open {
+    lifetime: Option<i64>,
+    assets: assets::Transaction,
     id: u64,
     lease: Option<Lease>,
     /// `BEGIN` sent.
@@ -1058,6 +1063,11 @@ impl Inner {
                 if ended.is_err() {
                     lease.discard();
                 }
+            }
+            if let Some(key) = open.lifetime
+                && lease.connected()
+            {
+                self.unfence(&mut lease, key);
             }
             // The session's lock a fenced command held, given back on its
             // connection once its transaction has ended (a connection
@@ -1566,6 +1576,10 @@ impl Command {
                     return Err(error);
                 }
             }
+            if let Err(error) = assets::prepare(&inner, open) {
+                open.failed = Some(error.clone());
+                return Err(error);
+            }
             open.prepared = true;
             let versions = inner.versions.lock().map_err(|_| Error::StoragePoisoned)?;
             changed
@@ -1635,6 +1649,12 @@ impl Prepared {
         if open.ended {
             return Err(Error::Ended);
         }
+        if open.assets.receipt_required && records.interaction.is_none() {
+            return Err(Error::Refused(
+                "upload claims require an actual durable interaction record".into(),
+            ));
+        }
+        let prepared_assets = std::mem::take(&mut open.assets);
         let fence = open.fence.as_ref().map(|f| f.fence.clone());
         let mut handed: Vec<(String, String, String)> = Vec::new();
         for row in records.outbox {
@@ -1733,12 +1753,18 @@ impl Prepared {
                     }
                     outbox.sort_by_key(|(id, _)| *id);
                 }
+                assets::keep(&inner, &prepared_assets)?;
                 Ok(())
             })();
             if let Err(error) = ran {
                 open.failed = Some(error.clone());
                 return Err(error);
             }
+            if let Err(error) = assets::verify_before_commit(&inner, open, &prepared_assets) {
+                open.failed = Some(error.clone());
+                return Err(error);
+            }
+            let conn = inner.command_conn(open)?;
             // A fenced command's session, still as it was admitted, just
             // before its commit (ADR-0369's last check, track
             // `durable-tables`): signed out meanwhile, nothing is kept.
@@ -1773,6 +1799,9 @@ impl Prepared {
                 return Err(error);
             }
         }
+        open.begun = false;
+        open.assets = prepared_assets;
+        let _ = assets::collect_committed(&inner, open);
         {
             let mut versions = inner.versions.lock().map_err(|_| Error::StoragePoisoned)?;
             for t in inner.changed(open) {

@@ -702,7 +702,7 @@ pub(crate) fn apply(
     // 2026-11-02).
     conn.batch(counters, "BEGIN ISOLATION LEVEL READ COMMITTED")
         .map_err(database)?;
-    let mut namespace = None;
+    let mut enrollment = crate::assets::MigrationEnrollment::default();
     let applied = apply_in(
         conn,
         counters,
@@ -710,23 +710,34 @@ pub(crate) fn apply(
         manifest,
         shape,
         uploads,
-        &mut namespace,
+        &mut enrollment,
     )
     .and_then(|()| {
         conn.batch(counters, "SET CONSTRAINTS ALL IMMEDIATE")
             .map_err(database)?;
-        crate::assets::verify(conn, counters, names, uploads, namespace.as_ref())
+        crate::assets::verify(
+            conn,
+            counters,
+            names,
+            uploads,
+            enrollment.namespace.as_ref(),
+        )
     });
-    match applied {
-        Ok(()) => {
-            conn.batch(counters, "COMMIT").map_err(database)?;
-            Ok(namespace)
-        }
+    let completed = match applied {
+        Ok(()) => conn.batch(counters, "COMMIT").map_err(database),
         Err(error) => {
             let _ = conn.batch(counters, "ROLLBACK");
             Err(error)
         }
-    }
+    };
+    let released = if let Some(key) = enrollment.lifetime {
+        crate::assets::release_namespace(conn, counters, key)
+    } else {
+        Ok(())
+    };
+    completed?;
+    released?;
+    Ok(enrollment.namespace)
 }
 
 fn apply_in(
@@ -736,7 +747,7 @@ fn apply_in(
     manifest: &TablesJson,
     shape: &Shape,
     uploads: Option<&crate::assets::Configuration>,
-    namespace: &mut Option<pw_host::assets::Namespace>,
+    enrollment: &mut crate::assets::MigrationEnrollment,
 ) -> Result<(), Error> {
     let s = ident(&names.schema);
     conn.query(
@@ -838,13 +849,16 @@ fn apply_in(
             })
         })
         .transpose()?;
-    *namespace = crate::assets::enroll(
+    enrollment.namespace = crate::assets::enroll(
         conn,
         counters,
         names,
         uploads,
         recorded.as_ref().map(|r| &r.schema),
     )?;
+    if let Some(namespace) = &enrollment.namespace {
+        enrollment.lifetime = Some(crate::assets::acquire_namespace(conn, counters, namespace)?);
+    }
     let ddl = match &recorded {
         None => {
             let lines = catalog(conn, counters, names, &tables)?;

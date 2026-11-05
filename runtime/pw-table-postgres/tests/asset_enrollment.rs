@@ -153,9 +153,9 @@ fn fresh_namespace_and_immutable_metadata_commit_then_reopen_uses_the_recorded_n
             .map(String::as_str),
         Some("0004_upload_generations")
     );
-    assert!(
-        db.begin().is_err(),
-        "enrollment alone must not enable unfinished row lifecycle"
+    drop(
+        db.begin()
+            .assert_ok("actual row/storage lifetime is now installed"),
     );
     let other = open(&s, model("", false), &store, 2).assert_ok("existing enrollment");
     assert_eq!(other.upload_namespace(), db.upload_namespace());

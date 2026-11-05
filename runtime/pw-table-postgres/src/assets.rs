@@ -338,3 +338,16 @@ fn check_recorded_bindings(
     }
     Ok(())
 }
+
+mod command;
+pub(crate) use command::{
+    Transaction, collect_committed, keep, lock_lifetime, prepare, verify_before_commit,
+};
+
+pub(crate) use command::{acquire_namespace, release_namespace};
+
+#[derive(Default)]
+pub(crate) struct MigrationEnrollment {
+    pub namespace: Option<Namespace>,
+    pub lifetime: Option<i64>,
+}
