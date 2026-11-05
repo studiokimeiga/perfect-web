@@ -46,6 +46,14 @@ ignored), memory140, actual PostgreSQL102, selected server63, preflight5,283 and
 18/18 strict controls. Review-reproduced additive-column type drift is repaired
 and independently re-reviewed. See the [wire record](diagnostics/protected-upload-cases-2026-11-04.md).
 Asset storage/lifetime integration remains next; its guards stay closed.
+Generic upload runtime binding source `6a4c906d` passed frozen host126 (9 existing
+ignored), memory156, actual PostgreSQL102, selected server86, preflight5,304 and
+24/24 strict controls. Separate immutable review is clear. Root admission now
+holds fresh/stub/cached paths to independent contract/actual grant axes and WIT
+ABIs; this is metadata/engine proof with mock callbacks. See the
+[binding record](diagnostics/protected-upload-binding-2026-11-05.md).
+Actual upload registry, session/claim ownership, storage, transaction lifetime
+and HTTP are next; original guards remain closed and canonical apps legacy.
 Earlier green records below apply to their named sources only.
 
 **Local row browsers and PostgreSQL, 2026-11-03:** code/test source
