@@ -1098,3 +1098,24 @@ diagnostics. Unclaimed lease expiry applies at metadata/preview/claim lookup,
 even before periodic sweep. Held claims survive elapsed time and sweeping until
 an explicit outcome returns/consumes them. A returned expired lease is hidden
 immediately and later swept; no expiry can silently release an uncertain claim.
+
+
+### Receipt absence currently has no retention proof
+
+Recorded before actual claim outcome implementation, 2026-11-05. Different hosts
+keep different clocks (ADR-0304/0369); no bounded-skew assumption is established.
+A writer's forget_before_ms can prune another attempt's committed receipt while
+that attempt's host still considers it within its local retention day. Reacquired
+namespace exclusion and a missing receipt do not distinguish this from rollback.
+The current recall API supplies no durable retention provenance. Therefore the
+initial actual claim bridge retains Unresolved on absent/nonmatching evidence;
+only a matching raw attempt receipt proves Applied. Explicit known rollback
+still returns claims immediately. Do not infer rollback from a local age check.
+A later negative-proof protocol needs its own complete evidence, including
+expired same-key ON CONFLICT UPDATE replacement as well as DELETE pruning.
+
+Pending invocation metadata is host-local and bounded independently of the staged
+byte cap: at most1024 unresolved entries and16MiB of owned receipt proof text.
+Capacity refusal precedes COMMIT and returns that invocation's claims. Elapsed
+time never clears a pending invocation. Native ledger tests alone do not replace
+the required actual row/receipt/lifetime, compiled resource and startup gates.
