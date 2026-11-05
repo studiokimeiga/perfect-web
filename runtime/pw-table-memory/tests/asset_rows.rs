@@ -55,8 +55,16 @@ fn upload_rows_and_registry_publish_together_and_dropped_preparation_publishes_n
     let p = c.prepare().assert_ok("row integration remains valid");
     let plans = p.asset_plans().assert_ok("row integration remains valid");
     assert_eq!(plans.len(), 1);
-    assert!(plans[0].keep_new);
-    assert_eq!(plans[0].generation.references.get("PostImage"), Some(&1));
+    assert!(plans.first().assert_ok("a generation plan exists").keep_new);
+    assert_eq!(
+        plans
+            .first()
+            .assert_ok("a generation plan exists")
+            .generation
+            .references
+            .get("PostImage"),
+        Some(&1)
+    );
     assert!(visible(&db).is_none());
     drop(p);
     assert!(visible(&db).is_none());
@@ -96,15 +104,32 @@ fn rejected_writes_and_final_moves_cannot_drift_reference_counts() {
         let p = c.prepare().assert_ok("row integration remains valid");
         let plans = p.asset_plans().assert_ok("row integration remains valid");
         assert_eq!(plans.len(), 1);
-        assert_eq!(plans[0].generation.references.get("PostImage"), Some(&1));
-        assert!(!plans[0].collect && !plans[0].keep_new);
+        assert_eq!(
+            plans
+                .first()
+                .assert_ok("a generation plan exists")
+                .generation
+                .references
+                .get("PostImage"),
+            Some(&1)
+        );
+        assert!(
+            !plans.first().assert_ok("a generation plan exists").collect
+                && !plans.first().assert_ok("a generation plan exists").keep_new
+        );
         p.publish().assert_ok("row integration remains valid");
     }
     let mut c = db.begin().assert_ok("row integration remains valid");
     c.write("pw:tables/assets#delete", &[json!(1)])
         .assert_ok("row integration remains valid");
     let p = c.prepare().assert_ok("row integration remains valid");
-    assert!(p.asset_plans().assert_ok("row integration remains valid")[0].collect);
+    assert!(
+        p.asset_plans()
+            .assert_ok("row integration remains valid")
+            .first()
+            .assert_ok("a generation plan exists")
+            .collect
+    );
     p.publish().assert_ok("row integration remains valid");
     assert!(visible(&db).is_none());
     assert_eq!(
@@ -162,8 +187,14 @@ fn ignored_publication_and_captured_old_collection_do_not_serve_or_remove_new_by
         .assert_ok("row integration remains valid");
     let p = c.prepare().assert_ok("row integration remains valid");
     let plans = p.asset_plans().assert_ok("row integration remains valid");
-    assert!(!plans[0].keep_new);
-    assert!(plans[0].used_publications.is_empty());
+    assert!(!plans.first().assert_ok("a generation plan exists").keep_new);
+    assert!(
+        plans
+            .first()
+            .assert_ok("a generation plan exists")
+            .used_publications
+            .is_empty()
+    );
     p.publish().assert_ok("row integration remains valid");
     assert!(visible(&db).is_none());
     let c = db.begin().assert_ok("row integration remains valid");
@@ -273,7 +304,10 @@ fn duplicate_fields_and_independent_declarations_keep_exact_final_counts_and_ser
     .assert_ok("two uses");
     let p = c.prepare().assert_ok("prepare");
     assert_eq!(
-        p.asset_plans().assert_ok("plans")[0]
+        p.asset_plans()
+            .assert_ok("plans")
+            .first()
+            .assert_ok("a generation plan exists")
             .generation
             .references
             .get("PostImage"),
@@ -299,9 +333,25 @@ fn duplicate_fields_and_independent_declarations_keep_exact_final_counts_and_ser
     .assert_ok("three uses");
     let p = c.prepare().assert_ok("prepare");
     let plans = p.asset_plans().assert_ok("plans");
-    assert_eq!(plans[0].generation.references.get("PostImage"), Some(&2));
-    assert_eq!(plans[0].generation.references.get("Avatar"), Some(&1));
-    assert!(!plans[0].keep_new);
+    assert_eq!(
+        plans
+            .first()
+            .assert_ok("a generation plan exists")
+            .generation
+            .references
+            .get("PostImage"),
+        Some(&2)
+    );
+    assert_eq!(
+        plans
+            .first()
+            .assert_ok("a generation plan exists")
+            .generation
+            .references
+            .get("Avatar"),
+        Some(&1)
+    );
+    assert!(!plans.first().assert_ok("a generation plan exists").keep_new);
     p.publish().assert_ok("commit");
     let mut c = db.begin().assert_ok("begin");
     c.write(
@@ -335,8 +385,22 @@ fn rejected_duplicate_with_a_fresh_publication_settles_no_untouched_old_row_as_u
     let p = c.prepare().assert_ok("prepare rejected write");
     let plans = p.asset_plans().assert_ok("plans");
     assert_eq!(plans.len(), 1);
-    assert!(plans[0].used_publications.is_empty());
-    assert_eq!(plans[0].generation.references.get("PostImage"), Some(&1));
+    assert!(
+        plans
+            .first()
+            .assert_ok("a generation plan exists")
+            .used_publications
+            .is_empty()
+    );
+    assert_eq!(
+        plans
+            .first()
+            .assert_ok("a generation plan exists")
+            .generation
+            .references
+            .get("PostImage"),
+        Some(&1)
+    );
     p.publish().assert_ok("commit");
     assert_eq!(visible(&db), Some(r));
 }
