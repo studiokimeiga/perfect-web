@@ -268,6 +268,15 @@ fn stored<'a>(table: &'a TableJson, field: &str) -> Option<&'a Stored> {
 /// **The manifest, held whole** (the memory adapter's `shape_of`, refusal for
 /// refusal), and each field's column.
 pub(crate) fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
+    if manifest
+        .tables
+        .iter()
+        .any(|table| !table.schema.assets.is_empty())
+    {
+        return Err(Error::Schema(
+            "generic asset reference storage is not installed".into(),
+        ));
+    }
     let mut tables = Vec::new();
     let mut functions = BTreeMap::new();
     let place = |name: &str| manifest.tables.iter().position(|t| t.schema.name == name);

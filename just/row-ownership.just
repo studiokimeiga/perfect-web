@@ -18,10 +18,10 @@ e14-row-ownership:
        echo "produced by: just e14-row-ownership"; \
        echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' || echo ' + uncommitted changes')"; \
        echo "rust: $(rustc --version)"; echo; \
-       cargo test --locked -p pw-core --test table_owners --test table_counts --test table_windows --test table_ranges --test table_relations; \
+       cargo test --locked -p pw-core --test table_owners --test table_counts --test table_windows --test table_ranges --test table_relations --test table_assets; \
        cargo test --locked -p pw-core --test predicate_bodies; \
        cargo test --locked -p pw-host --features engine --lib table_owners; \
-       cargo test --locked -p pw-table-memory --test compiled_owners --test compiled_counts --test compiled_windows --test compiled_ranges --test compiled_relations; \
+       cargo test --locked -p pw-table-memory --test compiled_owners --test compiled_counts --test compiled_windows --test compiled_ranges --test compiled_relations --test compiled_assets; \
        cargo test --locked -p pw-table-memory --test compiled_predicates; \
        cargo test --locked -p pw-dev-server required_queries || exit 1; \
        echo; echo "== owned rows in Chromium, Firefox and WebKit"; \

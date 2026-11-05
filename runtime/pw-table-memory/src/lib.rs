@@ -1302,6 +1302,15 @@ fn replay(shape: &Shape, tables: &mut impl Tables, rows: &[(usize, Key, Option<R
 // --- reading the manifest ----------------------------------------------------
 
 fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
+    if manifest
+        .tables
+        .iter()
+        .any(|table| !table.schema.assets.is_empty())
+    {
+        return Err(Error::Schema(
+            "generic asset reference storage is not installed".into(),
+        ));
+    }
     let mut tables = Vec::new();
     let mut functions = BTreeMap::new();
     let place = |name: &str| manifest.tables.iter().position(|t| t.schema.name == name);

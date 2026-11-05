@@ -38,6 +38,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+mod assets;
 mod relations;
 
 use crate::codes;
@@ -268,6 +269,13 @@ pub struct WindowClause {
 }
 
 /// `refers owner to Users`.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct AssetClause {
+    pub field: String,
+    pub upload: String,
+}
+
+/// An ordinary declared row reference.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Reference {
     pub field: String,
@@ -328,6 +336,7 @@ pub struct Table {
     pub indexes: Vec<Clause<IndexClause>>,
     pub references: Vec<Clause<Reference>>,
     pub windows: Vec<Clause<WindowClause>>,
+    pub assets: Vec<Clause<AssetClause>>,
     pub bounded: Option<Clause<u64>>,
     pub migrations: Vec<Clause<Migration>>,
     /// **Whose its rows are** (track `row-ownership`, ADR-0384 H1): `owned by
@@ -529,6 +538,7 @@ fn read(id: DeclId, d: &Decl) -> Table {
         indexes: Vec::new(),
         references: Vec::new(),
         windows: Vec::new(),
+        assets: Vec::new(),
         bounded: None,
         migrations: Vec::new(),
         owner: None,
@@ -572,6 +582,16 @@ fn read(id: DeclId, d: &Decl) -> Table {
                 Ok(i) => {
                     t.indexes.push(Clause {
                         value: i,
+                        span: span.clone(),
+                    });
+                    None
+                }
+                Err(why) => Some(why),
+            },
+            "asset" => match assets::clause(v) {
+                Ok(a) => {
+                    t.assets.push(Clause {
+                        value: a,
                         span: span.clone(),
                     });
                     None
@@ -1241,7 +1261,7 @@ fn planned(
 }
 
 /// A record declaration, as `type Name = Name { a: A, .. }` lowers.
-fn record(name: &str, fields: &[(String, DeclaredType)], span: &Span) -> Decl {
+pub(crate) fn record(name: &str, fields: &[(String, DeclaredType)], span: &Span) -> Decl {
     Decl {
         name: name.to_string(),
         name_span: span.clone(),
@@ -1522,6 +1542,7 @@ fn unambiguous_sources(hirs: &[&Hir], unit: usize, ws: &Workspace, t: &Table) ->
     for (table, span) in std::iter::once((&t.name, &t.span))
         .chain(t.references.iter().map(|r| (&r.value.table, &r.span)))
         .chain(t.windows.iter().map(|r| (&r.value.target, &r.span)))
+        .chain(t.assets.iter().map(|a| (&a.value.upload, &a.span)))
     {
         let Some(name) = source_of(hirs, table) else {
             continue;
@@ -1691,6 +1712,7 @@ pub fn check(hirs: &[&Hir], unit: usize, ws: &Workspace, sigs: &Signatures) -> V
         let mut found = shape(hirs, unit, ws, sigs, &module, t, i > 0);
         found.extend(unambiguous_sources(hirs, unit, ws, t));
         found.extend(relations::check(hirs, unit, ws, sigs, t));
+        found.extend(assets::check(hirs, unit, ws, sigs, t));
         found.extend(distinct_imports(hirs, unit, t));
         if found.is_empty() {
             found.extend(across_sources(hirs, unit, ws, t));
@@ -3141,6 +3163,8 @@ pub struct TableSchema {
     pub indexes: Vec<IndexSchema>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub references: Vec<ReferenceSchema>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub assets: Vec<AssetClause>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -3263,6 +3287,7 @@ pub fn schemas(
             })
             .collect();
         let schema = TableSchema {
+            assets: t.assets.iter().map(|a| a.value.clone()).collect(),
             name: t.name.clone(),
             source: source_of(hirs, &t.name),
             fields,

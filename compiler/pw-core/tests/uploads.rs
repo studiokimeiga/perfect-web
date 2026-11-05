@@ -320,6 +320,8 @@ fn a_build_writes_each_upload_for_its_host() {
     assert_eq!(
         pw_core::uploads::upload_clauses(&hirs),
         [pw_core::uploads::UploadClauses {
+            module: None,
+            source: None,
             name: "PostImage".into(),
             route: "/uploads/post-image".into(),
             serves: "/images".into(),

@@ -68,12 +68,9 @@ MUTANTS = [
         "    \"set\",\n",
         "",
     ),
-    (
-        "`set` and `sets` head a clause wherever they are written",
-        GRAMMAR,
-        '    "layout", "set", "sets", "row", "order", "index", "unique", "refers", "window", "migrate",\n',
-        '    "layout", "row", "order", "index", "unique", "refers", "window", "migrate",\n',
-    ),
+    ('`set` and `sets` head a clause wherever they are written', GRAMMAR,
+     '    "layout", "set", "sets", "row", "order", "index", "unique", "refers", "window", "asset",\n    "migrate",\n',
+     '    "layout", "row", "order", "index", "unique", "refers", "window", "asset",\n    "migrate",\n'),
     (
         "`sets` takes any value",
         POLICY,

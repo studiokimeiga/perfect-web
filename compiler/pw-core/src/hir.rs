@@ -1420,6 +1420,8 @@ pub struct Hir {
     /// gives its module (`tables::generate`), by its id. A declaration not
     /// here is the program's own.
     pub generated: std::collections::BTreeMap<DeclId, crate::tables::Generated>,
+    /// Upload resource declarations synthesized by the same lowering pass.
+    pub generated_uploads: std::collections::BTreeMap<DeclId, crate::uploads::Generated>,
 }
 
 impl Hir {

@@ -50,6 +50,7 @@ fn function(name: &str, primitive: Primitive, by: &[&str], sort: &[&str]) -> Fun
 
 fn manifest() -> TablesJson {
     let schema = TableSchema {
+        assets: Vec::new(),
         name: "Likes".into(),
         source: None,
         fields: vec![
@@ -315,6 +316,7 @@ fn transactions_serialize_concurrent_writers() {
 fn foreign_keys_are_validated_at_commit() {
     let mut m = manifest();
     let users = TableSchema {
+        assets: Vec::new(),
         name: "Users".into(),
         source: None,
         fields: vec![field("id", string())],

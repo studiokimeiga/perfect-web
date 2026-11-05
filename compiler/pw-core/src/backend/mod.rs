@@ -298,6 +298,9 @@ pub const PLATFORM_PACKAGE: &str = "pw:host";
 /// operations to become: the platform's, as `pw:host` is.
 pub const TABLES_PACKAGE: &str = "pw:tables";
 
+/// Resource-only upload facilities, independent of application row writes.
+pub const UPLOADS_PACKAGE: &str = "pw:uploads";
+
 /// **The platform's outbox** (ADR-0208): each event a program declares is a
 /// function of it, taking what the event carries.
 pub const OUTBOX_INTERFACE: &str = "pw:host/outbox";
@@ -336,7 +339,7 @@ pub fn callable_of(
     capability: impl Fn(&str) -> Option<crate::contract::Capability>,
 ) -> Option<ir::CallableImport> {
     let id = host_binding(decl)?;
-    let binding = match [PLATFORM_PACKAGE, TABLES_PACKAGE]
+    let binding = match [PLATFORM_PACKAGE, TABLES_PACKAGE, UPLOADS_PACKAGE]
         .iter()
         .any(|p| id.interface == *p || id.interface.starts_with(&format!("{p}/")))
     {

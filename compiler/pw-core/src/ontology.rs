@@ -729,8 +729,8 @@ impl Ontology {
 /// names the domain being read, and `Stores` is a module.
 pub fn argument_names_visible_from(ws: &Workspace, unit: usize, hirs: &[&Hir]) -> BTreeSet<String> {
     let mut out = BTreeSet::new();
-    for hir in hirs {
-        for (_, decl) in hir.all_decls() {
+    for (owner, hir) in hirs.iter().enumerate() {
+        for (id, decl) in hir.all_decls() {
             if !matches!(decl.kind, DeclKind::Type | DeclKind::Opaque) || decl.name.is_empty() {
                 continue;
             }
@@ -739,6 +739,15 @@ pub fn argument_names_visible_from(ws: &Workspace, unit: usize, hirs: &[&Hir]) -
                 Resolution::Local(_) | Resolution::Imported { .. }
             ) {
                 out.insert(decl.name.clone());
+            }
+            if (owner == unit || decl.visibility.as_deref() != Some("private"))
+                && let Some(module) = hir.module_of(id)
+            {
+                let qualified = format!("{module}.{}", decl.name);
+                if matches!(ws.resolve_path_in(unit,Namespace::Type,&qualified),Resolution::Local(def)|Resolution::Imported{def,..} if def.unit==owner && def.decl==id.0)
+                {
+                    out.insert(qualified);
+                }
             }
         }
         for (id, _) in hir.all_decls() {

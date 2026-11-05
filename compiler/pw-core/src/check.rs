@@ -301,6 +301,7 @@ pub(crate) fn check_inferred_prepared(
             // Track `uploads` (ADR-0260): an upload's clauses, its paths, and
             // the forms that post a file.
             out.extend(crate::uploads::check(hirs, i));
+            out.extend(crate::uploads::check_generated(hirs, i, inference));
             // Tables obey the same prepared semantic environment as every
             // other declaration and can be reached only through given functions.
             out.extend(crate::tables::check(hirs, i, workspace, sigs));
