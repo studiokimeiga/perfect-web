@@ -276,7 +276,7 @@ pub(super) fn record(columns: &[Column], ty: &Type) -> Result<(), String> {
 }
 
 /// A value's WIT type, as a field's stored type gives it.
-fn stored(stored: &Stored, ty: &Type) -> Result<(), String> {
+pub(super) fn stored(stored: &Stored, ty: &Type) -> Result<(), String> {
     match (stored, ty) {
         (Stored::Int { .. }, Type::S64)
         | (Stored::String { .. }, Type::String)

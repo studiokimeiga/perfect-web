@@ -176,7 +176,7 @@ fn record(columns: &[Column], fields: &[(String, Val)]) -> Result<Value, String>
 
 /// A value held exactly (`exact_row` checked its type and bounds), as the
 /// adapter's JSON.
-fn json(stored: &Stored, value: &Val) -> Result<Value, String> {
+pub(super) fn json(stored: &Stored, value: &Val) -> Result<Value, String> {
     Ok(match (stored, value) {
         (Stored::Int { .. }, Val::S64(n)) => Value::from(*n),
         (Stored::String { .. }, Val::String(s)) => Value::from(s.clone()),

@@ -46,6 +46,8 @@ use crate::{ComponentContract, Granted, ImportKind};
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Manifest {
     tables: Vec<Table>,
+    #[serde(skip)]
+    uploads: Option<crate::assets::Manifest>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -79,6 +81,14 @@ struct Table {
     #[serde(default)]
     references: Vec<Reference>,
     functions: Vec<Function>,
+    #[serde(default)]
+    assets: Vec<Asset>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+struct Asset {
+    field: String,
+    upload: String,
 }
 
 /// A fixed public-target relation declared by the source table.
@@ -872,6 +882,54 @@ impl Table {
 }
 
 impl Manifest {
+    /// Bind uploads.json explicitly; a closure's key cannot create a declaration.
+    pub fn with_uploads(mut self, text: &str) -> Result<Self, String> {
+        let uploads = crate::assets::Manifest::from_json(text)?;
+        let mut sources = BTreeSet::new();
+        for declaration in uploads.declarations() {
+            sources.insert(declaration.source().to_string());
+        }
+        for table in &self.tables {
+            if let Some(source) = &table.source {
+                sources.insert(source.clone());
+            }
+            let mut fields = BTreeSet::new();
+            for asset in &table.assets {
+                if table.owner.is_some() || !table.shares.is_empty() || !table.private.is_empty() {
+                    return Err("upload binding: asset tables must be public".into());
+                }
+                if !fields.insert(&asset.field) {
+                    return Err("upload binding: field associated twice".into());
+                }
+                let declaration = uploads
+                    .declaration(&asset.upload)
+                    .ok_or("upload binding: undeclared upload")?;
+                if table.source.as_deref() != Some(declaration.source()) {
+                    return Err(
+                        "upload binding: asset and upload need the same explicit source".into(),
+                    );
+                }
+                let field = table
+                    .fields
+                    .iter()
+                    .find(|f| f.name == asset.field)
+                    .ok_or("upload binding: missing asset field")?;
+                if !crate::assets::reference_shape(&field.stored, declaration) {
+                    return Err(
+                        "upload binding: field has no exact generated reference shape".into(),
+                    );
+                }
+            }
+        }
+        if sources.len() > 1 {
+            return Err("upload binding: multiple sources require separate adapters".into());
+        }
+        self.uploads = Some(uploads);
+        Ok(self)
+    }
+    pub fn uploads(&self) -> Option<&crate::assets::Manifest> {
+        self.uploads.as_ref()
+    }
     /// **`tables.json`, read and held whole** (see the module): a manifest
     /// that is not is refused here, not read past.
     pub fn from_json(text: &str) -> Result<Manifest, String> {

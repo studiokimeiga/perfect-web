@@ -71,6 +71,26 @@ HOST_RELATIONS = ROOT / "runtime/pw-host/src/tables/relations.rs"
 CORE_RELATIONS = ROOT / "compiler/pw-core/src/tables/relations.rs"
 
 MUTANTS = [
+    ('upload binding is bypassed at the engine', ROOT / 'runtime/pw-host/src/lib.rs',
+     '        let upload_functions = crate::assets::gate_links(\n            contract,\n            granted,\n            tables.and_then(crate::tables::Manifest::uploads),\n            command,\n        )?;', '        let upload_functions = std::collections::BTreeMap::<String, crate::assets::Access>::new();'),
+    ('upload binding ignores resource authority', ROOT / 'runtime/pw-host/src/assets.rs',
+     '        for capability in required {', '        for capability in required.into_iter().take(1) {'),
+    ('upload binding ignores actual grants', ROOT / 'runtime/pw-host/src/assets.rs',
+     '                || granted.handle(&capability).is_none()', '                || false && granted.handle(&capability).is_none()'),
+    ('upload binding ignores contract grants', ROOT / 'runtime/pw-host/src/assets.rs',
+     '            if !contract\n                .required_capabilities', '            if false && !contract\n                .required_capabilities'),
+    ('upload binding ignores invocation kind', ROOT / 'runtime/pw-host/src/assets.rs',
+     '        if access.operation != Operation::Attached && !command {', '        if false && access.operation != Operation::Attached && !command {'),
+    ('upload binding ignores emitted operation identity', ROOT / 'runtime/pw-host/src/assets.rs',
+     '        if !required.contains(&import.capability) {', '        if false && !required.contains(&import.capability) {'),
+    ('upload binding skips actual ABI', ROOT / 'runtime/pw-host/src/lib.rs',
+     '                    upload_link::check_import(upload, &ty)?;', '                    let _ = (upload, ty);'),
+    ('upload binding skips callback answer checks', ROOT / 'runtime/pw-host/src/lib.rs',
+     '                            upload_link::check_answer(upload, &out)\n                                .map_err(wasmtime::Error::msg)?;', '                            let _ = (upload, &out);'),
+    ('upload binding accepts wrong stored reference shape', ROOT / 'runtime/pw-host/src/tables.rs',
+     '                if !crate::assets::reference_shape(&field.stored, declaration) {', '                if false && !crate::assets::reference_shape(&field.stored, declaration) {'),
+    ('upload binding accepts missing asset source', ROOT / 'runtime/pw-host/src/tables.rs',
+     '                if table.source.as_deref() != Some(declaration.source()) {', '                if false && table.source.as_deref() != Some(declaration.source()) {'),
     ('closed cases ignore actual WIT variant payloads', LINK,
      '                    .any(|(case, tag)| case.name != tag || case.ty.is_some())', '                    .any(|(case, tag)| case.name != tag)'),
     ('closed cases accept empty or punctuation-only names', ROOT / 'runtime/pw-host/src/tables.rs',
@@ -499,6 +519,7 @@ MUTANTS = [
 # Each Cargo test binary separately: names can repeat between binaries, and
 # the shared native assertion validator expects one complete inventory.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-host", "--test", "assets"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_cases"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "table_assets"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_assets"],
@@ -523,6 +544,7 @@ TESTS = [
 ]
 
 SOURCES = [
+    ROOT / "runtime/pw-host/tests/assets.rs",
     ROOT / "runtime/pw-table-memory/tests/compiled_cases.rs",
     ROOT / "runtime/pw-table-memory/tests/support/cases.rs",
     ROOT / "compiler/pw-core/tests/table_assets.rs",

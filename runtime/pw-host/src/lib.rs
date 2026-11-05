@@ -60,6 +60,9 @@ pub mod plan;
 /// (ADR-0338 D2).
 pub mod tables;
 
+/// Declared generic upload references and admission.
+pub mod assets;
+
 // --- the compiler's artifact, mirrored --------------------------------------
 //
 // ADR-0018/ADR-0020: field-name mirrors of `pw_core::contract`. This crate does
@@ -917,6 +920,8 @@ pub mod engine {
     /// A table import's type, held to tables.json where it is linked, and
     /// each of its answers when it is given.
     pub mod table_link;
+
+    mod upload_link;
 
     /// An owned table's function is its caller's (track `row-ownership`,
     /// ADR-0384 H1): its handle held to the call's reader, an owned row to
@@ -3077,6 +3082,12 @@ pub mod engine {
         // table's write only into a command (ADR-0386).
         let command = export_kind(contract, export) == Some("command");
         let table_functions = crate::tables::gate_links(contract, granted, tables, command)?;
+        let upload_functions = crate::assets::gate_links(
+            contract,
+            granted,
+            tables.and_then(crate::tables::Manifest::uploads),
+            command,
+        )?;
         let functions = imported_functions(&engine, &component);
         let wanted: BTreeSet<&str> = supplied.iter().map(String::as_str).collect();
 
@@ -3110,6 +3121,12 @@ pub mod engine {
                         .ok_or_else(|| format!("`{key}` is no function the component imports"))?;
                     table_link::check_import(function, &ty)?;
                 }
+                let upload = upload_functions.get(&key).cloned();
+                if let Some(upload) = &upload {
+                    let ty = imported_func(&engine, &component, interface, func)
+                        .ok_or_else(|| format!("`{key}` is no function the component imports"))?;
+                    upload_link::check_import(upload, &ty)?;
+                }
                 let named = key.clone();
                 let caller = caller.clone();
                 // What its answer must hold (ADR-0179), as the contract states.
@@ -3139,7 +3156,15 @@ pub mod engine {
                                 .map_err(wasmtime::Error::msg)?,
                             None => args,
                         };
+                        if let Some(upload) = &upload {
+                            upload_link::check_arguments(upload, &args)
+                                .map_err(wasmtime::Error::msg)?;
+                        }
                         let out = implementation(&args).map_err(wasmtime::Error::msg)?;
+                        if let Some(upload) = &upload {
+                            upload_link::check_answer(upload, &out)
+                                .map_err(wasmtime::Error::msg)?;
+                        }
                         // A table function's answer is its function's,
                         // exactly, or the call fails: never projected, never
                         // passed on (the integrator's rulings 7 and 8 of
