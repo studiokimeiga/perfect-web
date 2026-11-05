@@ -2,6 +2,15 @@
 use crate::tables::{Field, Stored, closed_case_tags, wit_name};
 use crate::{ComponentContract, Granted, ImportKind};
 use serde::{Deserialize, Serialize};
+mod memory;
+pub use memory::{Registry, RegistryDraft, RegistryPatch};
+
+mod registry;
+pub use registry::{
+    Descriptor, Generation, GenerationPlan, GenerationState, Publication, ReferenceUse,
+    plan_generation,
+};
+
 use std::collections::{BTreeMap, BTreeSet};
 
 /// Mirrored from the compiler upload declaration ceiling; cross-crate witness pins it.

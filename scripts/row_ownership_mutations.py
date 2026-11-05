@@ -71,6 +71,44 @@ HOST_RELATIONS = ROOT / "runtime/pw-host/src/tables/relations.rs"
 CORE_RELATIONS = ROOT / "compiler/pw-core/src/tables/relations.rs"
 
 MUTANTS = [
+    ('upload registry adopts another declarations live bytes', ROOT / 'runtime/pw-host/src/assets/registry.rs',
+     'old.get(&usage.declaration).is_some_and(|n| *n > 0)', '!old.is_empty()'),
+    ('upload registry serves another declarations live bytes', ROOT / 'runtime/pw-host/src/assets/registry.rs',
+     'self.references.get(declaration).is_some_and(|n| *n > 0)', '{ let _ = declaration; !self.references.is_empty() }'),
+    ('upload registry republishes a retired generation identity', ROOT / 'runtime/pw-host/src/assets/registry.rs',
+     '        if retired {', '        if false && retired {'),
+    ('upload registry leaves ignored zero reference generations live', ROOT / 'runtime/pw-host/src/assets/registry.rs',
+     '    let live = !references.is_empty();', '    let live = !references.is_empty() || existing.is_none();'),
+    ('upload registry settles untouched rows as publication use', ROOT / 'runtime/pw-host/src/assets/registry.rs',
+     '    let used_publications = fresh.intersection(&final_uses).cloned().collect();', '    let used_publications = fresh.intersection(&references.keys().cloned().collect()).cloned().collect();'),
+    ('upload registry skips unchanged row descriptor validation', ROOT / 'runtime/pw-host/src/assets/registry.rs',
+     '        if usage.reference != descriptor.reference {', '        if usage.before != usage.after && usage.reference != descriptor.reference {'),
+    ('upload registry accepts changed immutable byte counts', ROOT / 'runtime/pw-host/src/assets/registry.rs',
+     '        if publication.descriptor != descriptor {', '        if publication.descriptor.reference != descriptor.reference {'),
+    ('upload registry retires a net move at its transient zero', ROOT / 'runtime/pw-host/src/assets/registry.rs',
+     '    let live = !references.is_empty();', '    let live = !references.is_empty() && !uses.iter().any(|u| u.before > 0 && u.after == 0);'),
+    ('upload registry omits keeping fresh referenced bytes', ROOT / 'runtime/pw-host/src/assets/registry.rs',
+     '        keep_new: existing.is_none() && live,', '        keep_new: false,'),
+    ('upload registry omits last reference collection', ROOT / 'runtime/pw-host/src/assets/registry.rs',
+     '        collect: existing.is_some_and(|g| g.state == GenerationState::Live) && !live,', '        collect: false,'),
+    ('upload registry saturates contradictory original counts', ROOT / 'runtime/pw-host/src/assets/registry.rs',
+     '            .checked_sub(before)', '            .checked_sub(before.min(committed))'),
+    ('upload registry ignores declaration dimension policy', ROOT / 'runtime/pw-host/src/assets/registry.rs',
+     '        declaration.validate_reference(&descriptor.reference)?;', '        let _ = &descriptor.reference;'),
+    ('upload registry allows shared bytes across data sources', ROOT / 'runtime/pw-host/src/assets/registry.rs',
+     '    if sources.len() > 1 {', '    if false && sources.len() > 1 {'),
+    ('upload registry accepts a duplicate lease publication', ROOT / 'runtime/pw-host/src/assets/registry.rs',
+     '        if !fresh.insert(publication.declaration.clone()) {', '        if !fresh.insert(publication.declaration.clone()) && false {'),
+    ('upload registry accepts a stale registry patch', ROOT / 'runtime/pw-host/src/assets/memory.rs',
+     '        if revision != self.revision {', '        if false && revision != self.revision {'),
+    ('upload registry reuses a pending generation for different bytes', ROOT / 'runtime/pw-host/src/assets/memory.rs',
+     '                || draft\n                    .candidates\n                    .values()\n                    .any(|d| &d.reference.generation == generation)', ''),
+    ('upload registry forgets retired generation identities after collection', ROOT / 'runtime/pw-host/src/assets/memory.rs',
+     '        self.collections.remove(generation);', '        self.collections.remove(generation);\n        self.generations.remove(generation);'),
+    ('upload registry clears the new hash pointer when old collection finishes', ROOT / 'runtime/pw-host/src/assets/memory.rs',
+     '        self.collections.remove(generation);', '        self.current.remove(&entry.descriptor.reference.key);\n        self.collections.remove(generation);'),
+    ('upload registry accepts changed canonical descriptor on adoption', ROOT / 'runtime/pw-host/src/assets/memory.rs',
+     '            if &same != selected {', '            if false && &same != selected {'),
     ('upload binding versioned namespaces evade admission', ROOT / 'runtime/pw-host/src/assets.rs',
      '        || interface.starts_with("pw:uploads@")', '        || false'),
     ('upload binding ordinary table roots ignore contract capabilities', ROOT / 'runtime/pw-host/src/tables.rs',
@@ -540,6 +578,7 @@ MUTANTS = [
 # Each Cargo test binary separately: names can repeat between binaries, and
 # the shared native assertion validator expects one complete inventory.
 TESTS = [
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-host", "--test", "asset_registry"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-host", "--test", "assets"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "compiled_cases"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "table_assets"],
@@ -565,6 +604,7 @@ TESTS = [
 ]
 
 SOURCES = [
+    ROOT / "runtime/pw-host/tests/asset_registry.rs",
     ROOT / "runtime/pw-host/tests/assets.rs",
     ROOT / "runtime/pw-table-memory/tests/compiled_cases.rs",
     ROOT / "runtime/pw-table-memory/tests/support/cases.rs",
