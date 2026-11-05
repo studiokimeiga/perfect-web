@@ -703,6 +703,17 @@ fn an_unchosen_relation_import_and_authorization_only_predicate_keep_both_grants
     assert_eq!(calls.load(Ordering::SeqCst), 0);
 
     let tables = MemoryTables::new(program.tables.clone()).assert_ok("memory");
+    tables
+        .transaction(|tx| {
+            for row in relation_roots() {
+                tx.write("pw:tables/roots#insert", &[row])?;
+            }
+            for row in relation_links() {
+                tx.write("pw:tables/links#insert", &[row])?;
+            }
+            Ok(())
+        })
+        .assert_ok("predicate reuse neighbors");
     let predicate = program
         .components
         .values()
@@ -739,6 +750,56 @@ fn an_unchosen_relation_import_and_authorization_only_predicate_keep_both_grants
         denied
             .as_ref()
             .is_err_and(|why| why.to_string().contains("Roots")),
+        "fresh Selected cannot borrow body target authority: {denied:?}"
+    );
+    assert_eq!(watched.body.load(Ordering::SeqCst), 0);
+    for (id, allowed) in [(4, true), (5, false)] {
+        let before = watched.asked.load(Ordering::SeqCst);
+        let reused = prepared.authorize_with_tables_as(
+            &body.contract,
+            &pw_host::Limits::unbounded(),
+            &program.platform(ALICE),
+            &watched,
+            &program.predicates(),
+            &as_user(ALICE),
+            &body.export(),
+            &[handle(ALICE), Val::S64(10), Val::S64(id)],
+            |_, _| Ok(false),
+        );
+        assert_eq!(
+            reused.is_ok(),
+            allowed,
+            "full-grant authorization-only neighbor {id}: {reused:?}"
+        );
+        if !allowed {
+            assert_eq!(reused.unwrap_err().refused(), Some("Selected"));
+        }
+        assert!(
+            watched.asked.load(Ordering::SeqCst) > before,
+            "reuse really asks the compiled predicate"
+        );
+        assert_eq!(
+            watched.body.load(Ordering::SeqCst),
+            0,
+            "authorization-only never runs body"
+        );
+    }
+    let denied = prepared.authorize_with_tables_as(
+        &body.contract,
+        &pw_host::Limits::unbounded(),
+        &program.platform(ALICE),
+        &watched,
+        &predicates,
+        &as_user(ALICE),
+        &body.export(),
+        &[handle(ALICE), Val::S64(10), Val::S64(4)],
+        |_, _| Ok(false),
+    );
+    assert!(
+        denied
+            .as_ref()
+            .is_err_and(|why| why.to_string().contains("relation read requires")
+                && why.to_string().contains("Roots")),
         "authorization-only Selected cannot borrow body target authority: {denied:?}"
     );
     assert_eq!(watched.body.load(Ordering::SeqCst), 0);
