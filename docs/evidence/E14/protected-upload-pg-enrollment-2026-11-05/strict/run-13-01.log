@@ -1,0 +1,19 @@
+
+running 1 test
+test asset_metadata_is_not_silently_served_by_an_adapter_with_no_upload_binding ... FAILED
+
+failures:
+
+---- asset_metadata_is_not_silently_served_by_an_adapter_with_no_upload_binding stdout ----
+
+thread 'asset_metadata_is_not_silently_served_by_an_adapter_with_no_upload_binding' (2847839) panicked at runtime/pw-table-postgres/tests/compiled_assets.rs:16:5:
+asset declarations need their actual storage binding
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    asset_metadata_is_not_silently_served_by_an_adapter_with_no_upload_binding
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+error: test failed, to rerun pass `-p pw-table-postgres --test compiled_assets`

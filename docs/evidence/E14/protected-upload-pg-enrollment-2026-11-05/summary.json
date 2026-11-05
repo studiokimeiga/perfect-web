@@ -1,0 +1,17 @@
+{
+  "source": "a79727d40b242f696f21b9529b25b56c89770728",
+  "actual_pg": [
+    123,
+    0,
+    0
+  ],
+  "selected_server": [
+    86,
+    0,
+    0
+  ],
+  "strict_controls": 13,
+  "enrollment_native_inventory": 21,
+  "retained_guard_inventory": 1,
+  "row_lifecycle_accepted": false
+}

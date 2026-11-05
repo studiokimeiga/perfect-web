@@ -1,0 +1,29 @@
+   Compiling pw-table-postgres v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-postgres)
+    Finished `test` profile [unoptimized] target(s) in 1.49s
+     Running tests/asset_enrollment.rs (target/debug/deps/asset_enrollment-df1910337ba18a10)
+
+running 2 tests
+test an_after_insert_rewrite_cannot_hide_behind_returning_values ... FAILED
+test application_schema_recording_cannot_rewrite_the_enrolled_namespace_after_validation ... FAILED
+
+failures:
+
+---- an_after_insert_rewrite_cannot_hide_behind_returning_values stdout ----
+
+thread 'an_after_insert_rewrite_cannot_hide_behind_returning_values' (2826198) panicked at runtime/pw-table-postgres/tests/asset_enrollment.rs:460:5:
+persisted metadata must be checked after pw_asset_namespace finishes
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- application_schema_recording_cannot_rewrite_the_enrolled_namespace_after_validation stdout ----
+
+thread 'application_schema_recording_cannot_rewrite_the_enrolled_namespace_after_validation' (2826199) panicked at runtime/pw-table-postgres/tests/asset_enrollment.rs:460:5:
+persisted metadata must be checked after pw_schema finishes
+
+
+failures:
+    an_after_insert_rewrite_cannot_hide_behind_returning_values
+    application_schema_recording_cannot_rewrite_the_enrolled_namespace_after_validation
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 14 filtered out; finished in 0.52s
+
+error: test failed, to rerun pass `-p pw-table-postgres --test asset_enrollment`

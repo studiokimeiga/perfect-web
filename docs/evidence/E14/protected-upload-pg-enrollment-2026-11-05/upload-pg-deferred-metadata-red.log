@@ -1,0 +1,22 @@
+   Compiling pw-table-postgres v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-postgres)
+    Finished `test` profile [unoptimized] target(s) in 1.75s
+     Running tests/asset_enrollment.rs (target/debug/deps/asset_enrollment-df1910337ba18a10)
+
+running 1 test
+test deferred_schema_recording_cannot_rewrite_namespace_after_the_final_metadata_check ... FAILED
+
+failures:
+
+---- deferred_schema_recording_cannot_rewrite_namespace_after_the_final_metadata_check stdout ----
+
+thread 'deferred_schema_recording_cannot_rewrite_namespace_after_the_final_metadata_check' (2830770) panicked at runtime/pw-table-postgres/tests/asset_enrollment.rs:506:5:
+persisted metadata must be checked after pw_schema finishes: None
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    deferred_schema_recording_cannot_rewrite_namespace_after_the_final_metadata_check
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 18 filtered out; finished in 0.42s
+
+error: test failed, to rerun pass `-p pw-table-postgres --test asset_enrollment`

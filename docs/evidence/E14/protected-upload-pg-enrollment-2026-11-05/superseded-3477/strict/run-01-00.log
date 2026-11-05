@@ -1,0 +1,29 @@
+
+running 11 tests
+test adding_an_asset_clause_to_an_existing_table_even_on_a_new_optional_field_refuses ... ok
+test adding_an_optional_non_asset_field_and_a_wholly_new_asset_table_preserves_enrollment ... ok
+test an_unbound_manifest_cannot_remove_prior_asset_associations ... FAILED
+test changed_base_declaration_refuses_before_an_additive_application_column_is_applied ... ok
+test changed_binding_identity_refuses_before_additive_application_ddl ... ok
+test failed_application_ddl_rolls_back_namespace_rows_but_keeps_the_storage_reservation ... ok
+test every_asset_platform_relation_name_is_reserved_before_connecting_and_a_neighbor_is_ordinary ... ok
+test fresh_namespace_and_immutable_metadata_commit_then_reopen_uses_the_recorded_namespace ... ok
+test missing_existing_marker_or_a_different_storage_root_refuses_without_schema_changes ... ok
+test old_structural_reference_data_is_not_implicitly_enrolled_as_public_upload_authority ... ok
+test suppressed_namespace_or_binding_insertion_refuses_and_rolls_back_the_metadata_transaction ... ok
+
+failures:
+
+---- an_unbound_manifest_cannot_remove_prior_asset_associations stdout ----
+
+thread 'an_unbound_manifest_cannot_remove_prior_asset_associations' (2819859) panicked at runtime/pw-table-postgres/tests/asset_enrollment.rs:228:5:
+prior upload metadata must be checked even with no asset clauses
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    an_unbound_manifest_cannot_remove_prior_asset_associations
+
+test result: FAILED. 10 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.06s
+
+error: test failed, to rerun pass `-p pw-table-postgres --test asset_enrollment`

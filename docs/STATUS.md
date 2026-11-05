@@ -61,7 +61,11 @@ Generation storage provider source `20511c86` passed frozen host145 (9ignored),
 selected server217, preflight5,346 and 11/11 strict controls, native inventory15.
 Separate immutable review is clear. See the
 [storage record](diagnostics/protected-upload-storage-2026-11-05.md).
-Physical bytes only: actual database enrollment, session/claim ownership, transaction lifetime
+PostgreSQL enrollment source `a79727d4` passed frozen actualPG123, selected
+server86, preflight5,358 and 13/13 strict controls (baseline22). Reproduced review
+rewrite/deferred/history gaps are repaired; final immutable review is clear.
+See the [enrollment record](diagnostics/protected-upload-pg-enrollment-2026-11-05.md).
+Enrollment only: actual command registry/storage lifetime, session/claim ownership,
 and HTTP are next; original guards remain closed and canonical apps legacy.
 Earlier green records below apply to their named sources only.
 
