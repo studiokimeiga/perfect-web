@@ -1,10 +1,10 @@
 //! Actual staging/preview scope before the generic invocation bridge opens.
 use super::*;
-trait RequireClaim {
-    fn require_claim(self, why: &str) -> Claimed;
+trait RequireClaim<T> {
+    fn require_claim(self, why: &str) -> T;
 }
-impl RequireClaim for Option<Claimed> {
-    fn require_claim(self, why: &str) -> Claimed {
+impl<T> RequireClaim<T> for Option<T> {
+    fn require_claim(self, why: &str) -> T {
         assert!(
             self.is_some(),
             "a declaration-scoped claim must be available: {why}"
