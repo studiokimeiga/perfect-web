@@ -1274,6 +1274,16 @@ impl Manifest {
                     access.table()
                 )));
             }
+            if target.is_none()
+                && !contract
+                    .required_capabilities
+                    .iter()
+                    .any(|cap| cap.name() == capability)
+            {
+                return Err(refused(format!(
+                    "table operation requires `{capability}` in the contract"
+                )));
+            }
             if !linkable.contains(&key) {
                 return Err(refused(format!("`{capability}` is not granted here")));
             }
@@ -1285,11 +1295,11 @@ impl Manifest {
 
 /// **The table functions a call links, and no other way to link one** (the
 /// integrator's ruling 2 of 2026-10-25; ADR-0386 for a command's writes).
-/// `linkable` trusts each import's own claim of its capability, which is
-/// right for a capability and wrong for a table: an import may claim
-/// `database.read<Other>` on `pw:tables/likes#get`. So where a grant would
-/// link any `pw:tables/…` import, the engine links it only through the gate,
-/// with the program's manifest, and with none it links nothing. A `command`
+/// Every declared table import is admitted, even with no actual table handle:
+/// authorization-only reuse has no later linker to catch a missing import.
+/// A declaration's capability claim cannot define a table operation's meaning.
+/// Every import needs its exact contract capability and an actual handle, held
+/// to the program's manifest, before any body runs or a cached value is reused. A `command`
 /// call's gate admits its writes; any other call's refuses one. Each function
 /// the gate admits is keyed by its import; a table import the grant links is
 /// always one of them, since the gate refuses any it does not admit.
@@ -1299,8 +1309,12 @@ pub fn gate_links(
     tables: Option<&Manifest>,
     command: bool,
 ) -> Result<BTreeMap<String, Access>, String> {
-    let supplied = crate::linkable(contract, granted);
-    let Some(first) = supplied.iter().find(|key| is_table_import(key)) else {
+    let Some(first) = contract
+        .imports
+        .iter()
+        .find(|import| is_table_interface(&import.interface))
+        .map(|import| import.key())
+    else {
         return Ok(BTreeMap::new());
     };
     match tables {

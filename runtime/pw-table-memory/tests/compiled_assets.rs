@@ -650,3 +650,126 @@ public query Noop()->Int
         "{result:?}"
     );
 }
+
+fn ordinary_table_root_axes(missing_contract: bool) {
+    let program = program();
+    let query = program.component("Mine");
+    let prepared = pw_host::engine::Prepared::compile(&query.bytes).unwrap();
+    let calls = Arc::new(AtomicUsize::new(0));
+    let state = UploadAdmissionOnly {
+        manifest: &program.manifest,
+        callbacks: Arc::clone(&calls),
+    };
+    let predicates = program.predicates();
+    let full = query.granted();
+    let args = [handle(ALICE)];
+    assert!(
+        prepared
+            .authorize_with_tables_as(
+                &query.contract,
+                &full,
+                &pw_host::Limits::unbounded(),
+                &program.platform(ALICE),
+                &state,
+                &predicates,
+                &as_user(ALICE),
+                &query.export(),
+                &args,
+                |_, _| Ok(false)
+            )
+            .is_ok()
+    );
+    assert_eq!(
+        calls.load(Ordering::SeqCst),
+        0,
+        "full-grant authorization-only runs no body"
+    );
+    let mut contract = query.contract.clone();
+    let granted = if missing_contract {
+        contract
+            .required_capabilities
+            .retain(|cap| cap.name() != "database.read<Notes>");
+        full
+    } else {
+        upload_grants_without(query, "database.read<Notes>")
+    };
+    let result = prepared.authorize_with_tables_as(
+        &contract,
+        &granted,
+        &pw_host::Limits::unbounded(),
+        &program.platform(ALICE),
+        &state,
+        &predicates,
+        &as_user(ALICE),
+        &query.export(),
+        &args,
+        |_, _| Ok(false),
+    );
+    assert!(
+        result
+            .as_ref()
+            .is_err_and(|why| why.to_string().contains("database.read<Notes>")),
+        "ordinary table root axis contract={missing_contract}: {result:?}"
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    let tables = MemoryTables::new(program.tables.clone()).unwrap();
+    let host = tables
+        .read_host_fns(&query.contract, &query.granted())
+        .unwrap();
+    let result = pw_host::engine::call_with_tables_as(
+        &query.bytes,
+        &contract,
+        &granted,
+        &pw_host::Limits::unbounded(),
+        &host,
+        &program.manifest,
+        &as_user(ALICE),
+        &query.export(),
+        &args,
+    );
+    assert!(
+        result.is_err(),
+        "fresh execution also refuses the missing axis"
+    );
+}
+#[test]
+fn authorization_only_ordinary_tables_require_the_actual_root_handle() {
+    ordinary_table_root_axes(false);
+}
+#[test]
+fn authorization_only_ordinary_tables_require_the_root_contract_capability() {
+    ordinary_table_root_axes(true);
+}
+
+#[test]
+fn ordinary_table_primary_identity_is_checked_even_with_both_real_capabilities() {
+    let program = program();
+    let query = program.component("Mine");
+    let mut contract = query.contract.clone();
+    contract.required_capabilities.push(pw_host::Capability {
+        family: "database".into(),
+        operation: "read".into(),
+        argument: Some("Other".into()),
+    });
+    let grants = Component {
+        bytes: query.bytes.clone(),
+        contract: contract.clone(),
+        imports: query.imports.clone(),
+    }
+    .granted();
+    assert!(
+        program.manifest.admit_reads(&contract, &grants).is_ok(),
+        "both grants do not invalidate an honest primary identity"
+    );
+    let import = contract
+        .imports
+        .iter_mut()
+        .find(|i| pw_host::tables::is_table_interface(&i.interface))
+        .unwrap();
+    import.capability = "database.read<Other>".into();
+    let result = program.manifest.admit_reads(&contract, &grants);
+    assert!(
+        matches!(result,Err(ref why) if why.contains("contract claims") && why.contains("database.read<Notes>")),
+        "{result:?}"
+    );
+}

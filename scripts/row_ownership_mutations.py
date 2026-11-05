@@ -71,6 +71,12 @@ HOST_RELATIONS = ROOT / "runtime/pw-host/src/tables/relations.rs"
 CORE_RELATIONS = ROOT / "compiler/pw-core/src/tables/relations.rs"
 
 MUTANTS = [
+    ('upload binding versioned namespaces evade admission', ROOT / 'runtime/pw-host/src/assets.rs',
+     '        || interface.starts_with("pw:uploads@")', '        || false'),
+    ('upload binding ordinary table roots ignore contract capabilities', ROOT / 'runtime/pw-host/src/tables.rs',
+     '            if target.is_none()\n                && !contract', '            if false && target.is_none()\n                && !contract'),
+    ('upload binding ordinary table roots ignore missing actual handles', ROOT / 'runtime/pw-host/src/tables.rs',
+     '    let Some(first) = contract\n        .imports\n        .iter()\n        .find(|import| is_table_interface(&import.interface))\n        .map(|import| import.key())\n    else {\n        return Ok(BTreeMap::new());\n    };', '    let supplied = crate::linkable(contract, granted);\n    let Some(first) = supplied.iter().find(|key| is_table_import(key)) else {\n        return Ok(BTreeMap::new());\n    };'),
     ('upload binding associates owned rows with public assets', ROOT / 'runtime/pw-host/src/tables.rs',
      '                if table.owner.is_some() || !table.shares.is_empty() || !table.private.is_empty() {', '                if false && (table.owner.is_some() || !table.shares.is_empty() || !table.private.is_empty()) {'),
     ('upload binding skips whole argument checks', ROOT / 'runtime/pw-host/src/lib.rs',

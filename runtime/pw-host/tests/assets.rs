@@ -242,3 +242,28 @@ fn upload_wire_paths_use_the_compilers_literal_path_domain() {
     good["serves"] = json!("/a-z_09/images");
     assert!(Manifest::from_json(&json!([good]).to_string()).is_ok());
 }
+
+#[test]
+fn versioned_and_bare_upload_namespaces_cannot_escape_declaration_admission() {
+    let manifest = manifest();
+    let caps = vec!["database.read<PostImage>".into()];
+    let actual = grants(&caps);
+    for interface in [
+        "pw:uploads",
+        "pw:uploads@1/post-image",
+        "pw:uploads/post-image@1.0.0",
+    ] {
+        let contract = contract(
+            json!([{"interface":interface,"name":"attached","capability":caps[0]}]),
+            &caps,
+        );
+        assert!(
+            gate_links(&contract, &actual, Some(&manifest), false).is_err(),
+            "{interface}"
+        );
+        assert!(
+            gate_links(&contract, &actual, None, false).is_err(),
+            "unbound {interface}"
+        );
+    }
+}

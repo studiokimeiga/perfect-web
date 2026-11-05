@@ -220,7 +220,9 @@ impl Access {
     }
 }
 pub fn is_upload_interface(interface: &str) -> bool {
-    interface == "pw:uploads" || interface.starts_with("pw:uploads/")
+    interface == "pw:uploads"
+        || interface.starts_with("pw:uploads/")
+        || interface.starts_with("pw:uploads@")
 }
 
 /// Every declared import, including an unused one, has both grant axes.
