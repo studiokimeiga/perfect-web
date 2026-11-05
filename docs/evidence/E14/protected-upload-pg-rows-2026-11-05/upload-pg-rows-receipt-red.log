@@ -1,0 +1,61 @@
+
+running 7 tests
+test actual_upload_receipt_answer_cannot_be_rewritten ... FAILED
+test actual_upload_receipt_cannot_be_removed_by_an_immediate_hook ... FAILED
+test actual_upload_receipt_instant_cannot_be_rewritten ... FAILED
+test actual_upload_receipt_is_verified_after_deferred_hooks_before_commit ... FAILED
+test actual_upload_receipt_key_cannot_be_rewritten ... FAILED
+test actual_upload_receipt_is_verified_after_outbox_hooks_before_keep ... FAILED
+test actual_upload_receipt_sent_cannot_be_rewritten ... FAILED
+
+failures:
+
+---- actual_upload_receipt_answer_cannot_be_rewritten stdout ----
+
+thread 'actual_upload_receipt_answer_cannot_be_rewritten' (2987022) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:1654:5:
+answer hook must not commit without the exact requested durable receipt: Ok(Committed { written: {"Assets": 1}, outbox: [] })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- actual_upload_receipt_cannot_be_removed_by_an_immediate_hook stdout ----
+
+thread 'actual_upload_receipt_cannot_be_removed_by_an_immediate_hook' (2987023) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:1654:5:
+removed hook must not commit without the exact requested durable receipt: Ok(Committed { written: {"Assets": 1}, outbox: [] })
+
+---- actual_upload_receipt_instant_cannot_be_rewritten stdout ----
+
+thread 'actual_upload_receipt_instant_cannot_be_rewritten' (2987068) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:1654:5:
+instant hook must not commit without the exact requested durable receipt: Ok(Committed { written: {"Assets": 1}, outbox: [] })
+
+---- actual_upload_receipt_is_verified_after_deferred_hooks_before_commit stdout ----
+
+thread 'actual_upload_receipt_is_verified_after_deferred_hooks_before_commit' (2987069) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:1654:5:
+deferred hook must not commit without the exact requested durable receipt: Ok(Committed { written: {"Assets": 1}, outbox: [] })
+
+---- actual_upload_receipt_key_cannot_be_rewritten stdout ----
+
+thread 'actual_upload_receipt_key_cannot_be_rewritten' (2987083) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:1654:5:
+key hook must not commit without the exact requested durable receipt: Ok(Committed { written: {"Assets": 1}, outbox: [] })
+
+---- actual_upload_receipt_is_verified_after_outbox_hooks_before_keep stdout ----
+
+thread 'actual_upload_receipt_is_verified_after_outbox_hooks_before_keep' (2987082) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:1654:5:
+outbox hook must not commit without the exact requested durable receipt: Ok(Committed { written: {"Assets": 1}, outbox: [(1, Outboxed { kind: Event, name: "changed", values: [] })] })
+
+---- actual_upload_receipt_sent_cannot_be_rewritten stdout ----
+
+thread 'actual_upload_receipt_sent_cannot_be_rewritten' (2987096) panicked at runtime/pw-table-postgres/tests/asset_rows.rs:1654:5:
+sent hook must not commit without the exact requested durable receipt: Ok(Committed { written: {"Assets": 1}, outbox: [] })
+
+
+failures:
+    actual_upload_receipt_answer_cannot_be_rewritten
+    actual_upload_receipt_cannot_be_removed_by_an_immediate_hook
+    actual_upload_receipt_instant_cannot_be_rewritten
+    actual_upload_receipt_is_verified_after_deferred_hooks_before_commit
+    actual_upload_receipt_is_verified_after_outbox_hooks_before_keep
+    actual_upload_receipt_key_cannot_be_rewritten
+    actual_upload_receipt_sent_cannot_be_rewritten
+
+test result: FAILED. 0 passed; 7 failed; 0 ignored; 0 measured; 27 filtered out; finished in 0.80s
+
+error: test failed, to rerun pass `-p pw-table-postgres --test asset_rows`

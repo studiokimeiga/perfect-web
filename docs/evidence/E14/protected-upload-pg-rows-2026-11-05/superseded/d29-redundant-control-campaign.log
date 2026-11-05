@@ -1,0 +1,24 @@
+baseline 35 native assertions, complete inventories
+KILLED 1/28: upload lifecycle keeps without verifying exact receipt after immediate hooks; 28 pass/6 fail
+KILLED 2/28: upload lifecycle commits without verifying exact receipt after deferred hooks; 33 pass/1 fail
+KILLED 3/28: upload lifecycle acknowledges a reinserted captured cleanup job; 33 pass/1 fail
+KILLED 4/28: upload lifecycle keeps the lock transactions old snapshot for the command; 2 pass/32 fail
+KILLED 5/28: upload lifecycle migrates while another command owns the namespace; 33 pass/1 fail
+KILLED 6/28: upload lifecycle commits claims without actual durable receipts; 33 pass/1 fail
+KILLED 7/28: upload lifecycle forgets receipt requirements for held or discarded claims; 33 pass/1 fail
+KILLED 8/28: upload lifecycle keeps before checking actual row asset fields; 33 pass/1 fail
+KILLED 9/28: upload lifecycle keeps before checking actual registry writes; 31 pass/3 fail
+KILLED 10/28: upload lifecycle trusts prepare across receipt hooks; 30 pass/4 fail
+KILLED 11/28: upload lifecycle verifies before deferred receipt hooks finish; 32 pass/2 fail
+KILLED 12/28: upload lifecycle omits original touched reference uses; 22 pass/12 fail
+KILLED 13/28: upload lifecycle omits final touched reference uses; 13 pass/21 fail
+KILLED 14/28: upload lifecycle commits fresh referenced rows without keeping bytes; 18 pass/16 fail
+KILLED 15/28: upload lifecycle deletes reference counts of unrelated generations; 32 pass/2 fail
+KILLED 16/28: upload lifecycle fails to reuse the current live generation; 32 pass/2 fail
+KILLED 17/28: upload lifecycle accepts an already reserved generation proposal; 33 pass/1 fail
+KILLED 18/28: upload lifecycle serves another declarations current bytes; 33 pass/1 fail
+KILLED 19/28: upload lifecycle processes cleanup beyond the requested bound; 29 pass/5 fail
+Traceback (most recent call last):
+  File "/mnt/c/Users/haki/Documents/Codex/2026-11-02/pleris-continuation/work/protected-migration/upload_pg_rows_strict.py", line 31, in <module>
+    passed,failed=run(n,[0] if n<len(mutants) else [1]);assert failed>0,f'survived: {label}'
+AssertionError: survived: upload lifecycle counts suppressed collection completion as done

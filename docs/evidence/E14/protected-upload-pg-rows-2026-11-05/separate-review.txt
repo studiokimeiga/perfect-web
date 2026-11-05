@@ -1,0 +1,12 @@
+Separate immutable review /root/review_cached_refusals, 2026-11-05.
+3a98 review found exact durable receipt, captured-job completion reinsertion and
+ignored race timeout gaps. Seven actual receipt hook tests and one completion
+hook test reproduced unsafe acceptance before repair. d29 source review clear:
+exact key/sent/answer/stored-instant checks after immediate/outbox hooks before
+keep and after deferred flush before final fence/COMMIT; exact captured job
+absence after completion; race asserts actual release after B commit, no timeout.
+738da differs ONLY in controller replacement. Rowcount-only omission became
+redundant with fresh absence check, so it was replaced with omission of complete
+completion verification; independent fresh-absence-only control remains.
+Reviewer confirmed diff and found no new defect. No edits/cargo/mutations run.
+Physical LocalBlobs/HTTP/lease/session claim integration remains outside scope.

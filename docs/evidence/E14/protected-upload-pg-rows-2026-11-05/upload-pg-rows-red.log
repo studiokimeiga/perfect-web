@@ -1,0 +1,50 @@
+   Compiling pw-table-postgres v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-table-postgres)
+    Finished `test` profile [unoptimized] target(s) in 2.95s
+     Running tests/asset_rows.rs (target/debug/deps/asset_rows-4b46d8337cc35374)
+
+running 5 tests
+test a_missing_real_receipt_refuses_before_keep_and_rolls_back_rows_and_registry ... FAILED
+test fresh_publication_keeps_bytes_and_commits_registry_rows_and_actual_receipt_together ... FAILED
+test keep_failure_rolls_back_and_collection_failure_preserves_applied_ack_and_a_durable_job ... FAILED
+test ignored_publication_and_rejected_row_do_not_keep_or_settle_untouched_old_uses ... FAILED
+test plain_changed_and_retired_refs_cannot_create_authority_but_a_current_ref_can_be_copied ... FAILED
+
+failures:
+
+---- a_missing_real_receipt_refuses_before_keep_and_rolls_back_rows_and_registry stdout ----
+
+thread 'a_missing_real_receipt_refuses_before_keep_and_rolls_back_rows_and_registry' (2852571) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+begin
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- fresh_publication_keeps_bytes_and_commits_registry_rows_and_actual_receipt_together stdout ----
+
+thread 'fresh_publication_keeps_bytes_and_commits_registry_rows_and_actual_receipt_together' (2852572) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+namespace lifetime begins before table work
+
+---- keep_failure_rolls_back_and_collection_failure_preserves_applied_ack_and_a_durable_job stdout ----
+
+thread 'keep_failure_rolls_back_and_collection_failure_preserves_applied_ack_and_a_durable_job' (2852614) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+begin
+
+---- ignored_publication_and_rejected_row_do_not_keep_or_settle_untouched_old_uses stdout ----
+
+thread 'ignored_publication_and_rejected_row_do_not_keep_or_settle_untouched_old_uses' (2852613) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+begin
+
+---- plain_changed_and_retired_refs_cannot_create_authority_but_a_current_ref_can_be_copied stdout ----
+
+thread 'plain_changed_and_retired_refs_cannot_create_authority_but_a_current_ref_can_be_copied' (2852624) panicked at runtime/pw-table-postgres/tests/../../pw-table-memory/tests/support/assert_result.rs:12:9:
+begin
+
+
+failures:
+    a_missing_real_receipt_refuses_before_keep_and_rolls_back_rows_and_registry
+    fresh_publication_keeps_bytes_and_commits_registry_rows_and_actual_receipt_together
+    ignored_publication_and_rejected_row_do_not_keep_or_settle_untouched_old_uses
+    keep_failure_rolls_back_and_collection_failure_preserves_applied_ack_and_a_durable_job
+    plain_changed_and_retired_refs_cannot_create_authority_but_a_current_ref_can_be_copied
+
+test result: FAILED. 0 passed; 5 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
+error: test failed, to rerun pass `-p pw-table-postgres --test asset_rows`

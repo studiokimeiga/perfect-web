@@ -65,8 +65,13 @@ PostgreSQL enrollment source `a79727d4` passed frozen actualPG123, selected
 server86, preflight5,358 and 13/13 strict controls (baseline22). Reproduced review
 rewrite/deferred/history gaps are repaired; final immutable review is clear.
 See the [enrollment record](diagnostics/protected-upload-pg-enrollment-2026-11-05.md).
-Enrollment only: actual command registry/storage lifetime, session/claim ownership,
-and HTTP are next; original guards remain closed and canonical apps legacy.
+PostgreSQL row/storage lifecycle source `738da836` passed actualPG157,
+preflight5,383 and 28/28 strict controls (baseline35), separate review clear.
+Indexed exact touched rows/registry and actual receipt checks precede keep and
+COMMIT; captured cleanup preserves applied Ack, unknown outcomes do no GC.
+See the [row/storage record](diagnostics/protected-upload-pg-rows-2026-11-05.md).
+Trusted proposals/ByteStore only: actual session/claim bridge and concrete
+LocalBlobs/HTTP composition are next; server guard closed, canonical apps legacy.
 Earlier green records below apply to their named sources only.
 
 **Local row browsers and PostgreSQL, 2026-11-03:** code/test source
