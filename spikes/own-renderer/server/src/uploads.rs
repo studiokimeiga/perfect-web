@@ -34,6 +34,8 @@
 //! key, with the type sniffed from its bytes, `nosniff`, a sandbox, and kept
 //! forever by any cache, since what a key names never changes.
 
+#[cfg(test)]
+mod generic_lease_tests;
 pub(crate) mod icc;
 pub(crate) mod multipart;
 mod png_state;
@@ -107,18 +109,34 @@ struct Lease {
     claimed: bool,
 }
 
+impl Lease {
+    fn live(&self, lease_for: Duration) -> bool {
+        self.claimed || self.made.elapsed() < lease_for
+    }
+}
+
 /// **A lease a command claimed**: what its post keeps of it. Not `Clone`:
 /// a claim is ended once, by [`Shared::committed`], [`Shared::discarded`]
 /// or [`Shared::unclaim`], each taking it.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 #[must_use = "a claim is committed, discarded or given back"]
 pub(crate) struct Claimed {
+    pub declaration: String,
+    pub reader: crate::identity::ReaderIdentity,
     pub session: String,
     pub id: String,
     pub key: BlobKey,
     pub kind: Kind,
     pub width: u32,
     pub height: u32,
+}
+
+impl std::fmt::Debug for Claimed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Claimed")
+            .field("declaration", &self.declaration)
+            .finish_non_exhaustive()
+    }
 }
 
 /// A prepared blob owns one provisional reference and capacity charge while
@@ -150,10 +168,15 @@ pub(crate) struct Shown {
     pub height: u32,
 }
 
+type LeaseKey = (String, String);
+fn lease_key(session: &str, declaration: &str) -> LeaseKey {
+    (session.to_string(), declaration.to_string())
+}
+
 #[derive(Default)]
 struct State {
-    /// One lease a session.
-    leases: BTreeMap<String, Lease>,
+    /// One independent lease per session and actual declaration.
+    leases: BTreeMap<LeaseKey, Lease>,
     /// How many leases hold each staged blob: the same bytes from two
     /// sessions are one blob.
     holds: BTreeMap<BlobKey, u32>,
@@ -636,7 +659,7 @@ impl Shared {
                 return self.serve(d, name, headers);
             }
             if let Some(id) = under(route, &d.route) {
-                return self.preview(id, session);
+                return self.preview(d, id, session);
             }
         }
         Answer::text(404, "not found")
@@ -796,6 +819,7 @@ impl Shared {
     ) -> Result<(), LeaseRefusal> {
         // Body reads and rewriting hold no gate. Local publication shares the
         // existing gate-before-state order with open/close and command claims.
+        let lease_key = lease_key(session, &declared.name);
         let local = self.principals.get().is_none_or(|p| p.kept().is_none());
         let gate = self
             .principals
@@ -817,7 +841,7 @@ impl Shared {
         let (key, previous) = {
             let mut state = self.state.lock().expect("uploads");
             self.sweep(&mut state);
-            if state.leases.get(session).is_some_and(|l| l.claimed) {
+            if state.leases.get(&lease_key).is_some_and(|l| l.claimed) {
                 return Err((409, "The image attached before is being posted.", None));
             }
             Self::budget(&mut state, &user, size, declared)?;
@@ -830,7 +854,7 @@ impl Shared {
                     None,
                 ));
             }
-            let previous = state.leases.get(session).map(|lease| lease.id.clone());
+            let previous = state.leases.get(&lease_key).map(|lease| lease.id.clone());
             let key = self
                 .staged
                 .put(bytes)
@@ -859,8 +883,11 @@ impl Shared {
         if local && !self.reader_current(session, reader) {
             return Err((403, "Your session changed. Open the page again.", None));
         }
-        if state.leases.get(session).map(|lease| &lease.id) != previous.as_ref()
-            || state.leases.get(session).is_some_and(|lease| lease.claimed)
+        if state.leases.get(&lease_key).map(|lease| &lease.id) != previous.as_ref()
+            || state
+                .leases
+                .get(&lease_key)
+                .is_some_and(|lease| lease.claimed)
         {
             return Err((
                 409,
@@ -869,7 +896,7 @@ impl Shared {
             ));
         }
         Self::budget(&mut state, &user, size, declared)?;
-        if let Some(old) = state.leases.remove(session) {
+        if let Some(old) = state.leases.remove(&lease_key) {
             self.end(&mut state, old);
         }
         state.next += 1;
@@ -880,7 +907,7 @@ impl Shared {
             .or_default()
             .push_back((Instant::now(), size));
         state.leases.insert(
-            session.to_string(),
+            lease_key,
             Lease {
                 reader: reader.clone(),
                 id,
@@ -947,7 +974,7 @@ impl Shared {
     /// Every lease whose time is up and that nothing claims, ended.
     fn sweep(&self, state: &mut State) {
         let now = Instant::now();
-        let over: Vec<String> = state
+        let over: Vec<LeaseKey> = state
             .leases
             .iter()
             .filter(|(_, l)| !l.claimed && now.duration_since(l.made) >= self.lease_for)
@@ -1046,14 +1073,15 @@ impl Shared {
 
     /// **A session's own lease**, shown to it before it posts: kept by no
     /// cache, and to no other session.
-    fn preview(&self, id: &str, session: &str) -> Answer {
+    fn preview(&self, declared: &Declared, id: &str, session: &str) -> Answer {
         let reader = self.reader(session);
         let lease = {
             let state = self.state.lock().expect("uploads");
             state
                 .leases
-                .get(session)
+                .get(&lease_key(session, &declared.name))
                 .filter(|l| l.id == id && l.reader == reader)
+                .filter(|l| l.live(self.lease_for))
                 .map(|l| (l.key.clone(), l.kind))
         };
         let Some((key, kind)) = lease else {
@@ -1071,34 +1099,62 @@ impl Shared {
 
     // ---- What a command's transaction asks of the leases. ----
 
-    /// **What `session` has leased**, as its page shows it.
+    /// Legacy callers select the program's first declaration. Generic resource
+    /// callbacks select an admitted actual declaration explicitly below.
     pub(crate) fn shown(&self, session: &str) -> Option<Shown> {
-        let reader = self.reader(session);
+        self.shown_for(session, &self.declared.first()?.name, &self.reader(session))
+    }
+
+    /// Offline immutable-reader lookup. The caller retains its invocation's
+    /// authority/final fence; this acquires no second database connection.
+    pub(crate) fn shown_for(
+        &self,
+        session: &str,
+        declaration: &str,
+        reader: &crate::identity::ReaderIdentity,
+    ) -> Option<Shown> {
+        let declared = self.declared.iter().find(|d| d.name == declaration)?;
         let state = self.state.lock().expect("uploads");
         let lease = state
             .leases
-            .get(session)
-            .filter(|lease| lease.reader == reader)?;
-        let route = &self.declared.first()?.route;
+            .get(&lease_key(session, declaration))
+            .filter(|lease| lease.reader == *reader)?;
+        if !lease.live(self.lease_for) {
+            return None;
+        }
         Some(Shown {
-            src: format!("{route}/{}", lease.id),
+            src: format!("{}/{}", declared.route, lease.id),
             width: lease.width,
             height: lease.height,
         })
     }
 
-    /// **A command claims `session`'s lease** until its transaction ends: no
-    /// other command can, and no upload or sweep ends it.
     pub(crate) fn claim(&self, session: &str) -> Option<Claimed> {
-        let reader = self.reader(session);
+        self.claim_for(session, &self.declared.first()?.name, &self.reader(session))
+    }
+
+    /// Hold only this declaration's lease of the captured immutable reader.
+    /// Actual resource admission/session handles are checked by the bridge.
+    pub(crate) fn claim_for(
+        &self,
+        session: &str,
+        declaration: &str,
+        reader: &crate::identity::ReaderIdentity,
+    ) -> Option<Claimed> {
+        self.declared.iter().find(|d| d.name == declaration)?;
         let mut state = self.state.lock().expect("uploads");
         let lease = state
             .leases
-            .get_mut(session)
-            .filter(|l| !l.claimed && l.reader == reader)?;
+            .get_mut(&lease_key(session, declaration))
+            .filter(|l| !l.claimed && l.reader == *reader)?;
+        if !lease.live(self.lease_for) {
+            return None;
+        }
         lease.claimed = true;
         Some(Claimed {
-            session: session.to_string(),
+            declaration: declaration.into(),
+            reader: reader.clone(),
+            session: session.into(),
             id: lease.id.clone(),
             key: lease.key.clone(),
             kind: lease.kind,
@@ -1138,9 +1194,13 @@ impl Shared {
         let mut state = self.state.lock().expect("uploads");
         let ours = state
             .leases
-            .get(&claimed.session)
-            .is_some_and(|l| l.id == claimed.id && l.claimed);
-        if ours && let Some(lease) = state.leases.remove(&claimed.session) {
+            .get(&lease_key(&claimed.session, &claimed.declaration))
+            .is_some_and(|l| l.id == claimed.id && l.claimed && l.reader == claimed.reader);
+        if ours
+            && let Some(lease) = state
+                .leases
+                .remove(&lease_key(&claimed.session, &claimed.declaration))
+        {
             self.end(&mut state, lease);
         }
     }
@@ -1151,8 +1211,8 @@ impl Shared {
         let mut state = self.state.lock().expect("uploads");
         if let Some(lease) = state
             .leases
-            .get_mut(&claimed.session)
-            .filter(|l| l.id == claimed.id)
+            .get_mut(&lease_key(&claimed.session, &claimed.declaration))
+            .filter(|l| l.id == claimed.id && l.reader == claimed.reader)
         {
             lease.claimed = false;
         }
@@ -1928,19 +1988,37 @@ pub(crate) mod tests {
     #[test]
     fn a_lease_nothing_claims_ends_when_its_time_does() {
         let d = dir();
-        let u = uploads(d.path(), declared(), Duration::ZERO);
+        let u = uploads(d.path(), declared(), LEASE);
         let s = shared(&u);
         assert_eq!(
             post(&u, "s-1", &png(2, 2), "a.png", "image/png").status,
             303
         );
-        let claimed = s.claim("s-1").expect("claimed before the sweep");
+        let claimed = s.claim("s-1").expect("claimed before its lifetime ends");
+        s.state
+            .lock()
+            .unwrap()
+            .leases
+            .get_mut(&lease_key("s-1", "PostImage"))
+            .unwrap()
+            .made = Instant::now()
+            .checked_sub(LEASE + Duration::from_secs(1))
+            .unwrap();
         assert_eq!(
             post(&u, "s-2", &png(3, 3), "b.png", "image/png").status,
             303
         );
         assert!(s.shown("s-1").is_some(), "a claimed lease is not swept");
         s.unclaim(claimed);
+        s.state
+            .lock()
+            .unwrap()
+            .leases
+            .get_mut(&lease_key("s-2", "PostImage"))
+            .unwrap()
+            .made = Instant::now()
+            .checked_sub(LEASE + Duration::from_secs(1))
+            .unwrap();
         assert_eq!(
             post(&u, "s-3", &png(4, 4), "c.png", "image/png").status,
             303
@@ -2147,7 +2225,7 @@ pub(crate) mod tests {
         );
         let state = shared.state.lock().unwrap();
         assert_eq!(state.staged_bytes, occupied);
-        assert!(!state.leases.contains_key("growth"));
+        assert!(!state.leases.contains_key(&lease_key("growth", "PostImage")));
         assert!(state.spent[&crate::identity::guest_user("growth")].is_empty());
     }
 

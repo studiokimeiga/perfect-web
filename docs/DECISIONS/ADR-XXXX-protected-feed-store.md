@@ -1086,3 +1086,15 @@ headers. Test actual sanitizer, PostgreSQL, LocalBlobs, backend death and HTTP
 request/response bytes together; isolated handler tests do not establish the
 unfinished full Server/compiled claim startup path. Keep that guard closed until
 the actual resource/session/row bridge and its gates complete.
+
+
+Staging uses one actual (session, declaration) lease key. Private previews bind
+the declaration whose route was requested. Explicit resource lookups use their
+admitted declaration and captured immutable reader without a new network read
+under the command's database lifetime. Legacy wrappers select only their first
+declaration while the canonical port is pending. Claimed values retain exact
+declaration/reader/lease identity and redact private cookies/tokens/hashes in
+diagnostics. Unclaimed lease expiry applies at metadata/preview/claim lookup,
+even before periodic sweep. Held claims survive elapsed time and sweeping until
+an explicit outcome returns/consumes them. A returned expired lease is hidden
+immediately and later swept; no expiry can silently release an uncertain claim.

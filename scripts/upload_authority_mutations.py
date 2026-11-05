@@ -71,7 +71,7 @@ CONTROLS = [
         (PREFIX + "same_cookie_same_account_new_generation_cannot_preview_or_claim_old_lease",
          "a new generation cannot inherit private bytes")]),
     ("shown-lease-reader", "attachment metadata accepts another generation's lease", [
-        (UPLOADS, '            .filter(|lease| lease.reader == reader)?;\n',
+        (UPLOADS, '            .filter(|lease| lease.reader == *reader)?;\n',
          '            .filter(|_| true)?;\n')], [
         (PREFIX + "completed_logout_refuses_old_cookie_preview_shown_and_claim",
          "logout must hide the attachment metadata"),
@@ -80,7 +80,7 @@ CONTROLS = [
         (PREFIX + "stale_bound_reader_cannot_take_replacement_generations_lease",
          "bound reader is not recaptured from the live cache")]),
     ("claim-lease-reader", "a command can acquire a predecessor generation's private lease", [
-        (UPLOADS, '            .filter(|l| !l.claimed && l.reader == reader)?;\n',
+        (UPLOADS, '            .filter(|l| !l.claimed && l.reader == *reader)?;\n',
          '            .filter(|l| !l.claimed)?;\n')], [
         (PREFIX + "completed_logout_refuses_old_cookie_preview_shown_and_claim",
          "logout must not acquire a predecessor's lease"),
@@ -153,13 +153,7 @@ CONTROLS = [
         (PREFIX + "local_expiry_after_staged_put_refuses_publication_and_releases_gate",
          "local publication must hold the authority read gate through staged storage")]),
     ("previous-lease-current-composite", "COMPOSITE publication ignores both the exact prepared predecessor and a concurrent claim", [
-        (UPLOADS, '''        if state.leases.get(session).map(|lease| &lease.id) != previous.as_ref()
-            || state.leases.get(session).is_some_and(|lease| lease.claimed)
-        {
-''', '''        if false && (state.leases.get(session).map(|lease| &lease.id) != previous.as_ref()
-            || state.leases.get(session).is_some_and(|lease| lease.claimed))
-        {
-''')], [
+        (UPLOADS, '        if state.leases.get(&lease_key).map(|lease| &lease.id) != previous.as_ref()\n            || state\n                .leases\n                .get(&lease_key)\n                .is_some_and(|lease| lease.claimed)\n        {\n', '        if false && (state.leases.get(&lease_key).map(|lease| &lease.id) != previous.as_ref()\n            || state\n                .leases\n                .get(&lease_key)\n                .is_some_and(|lease| lease.claimed))\n        {\n')], [
         (PREFIX + "a_lease_claimed_during_final_inspection_is_not_replaced",
          "an incoming upload cannot replace a lease claimed during source inspection"),
         (PREFIX + "a_lease_replaced_during_final_inspection_is_not_overwritten",

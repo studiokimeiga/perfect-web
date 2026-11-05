@@ -41,3 +41,9 @@ e14-generic-upload-http:
     @mkdir -p docs/evidence/E14/generic-upload-http
     @PW_GENERIC_UPLOAD_HTTP_EVIDENCE=docs/evidence/E14/generic-upload-http python3 scripts/generic_upload_http_mutations.py > docs/evidence/E14/generic-upload-http.txt
     @cat docs/evidence/E14/generic-upload-http.txt
+
+# Generic per-declaration staging, captured-reader scope and lease lifetimes.
+e14-generic-upload-leases:
+    @mkdir -p docs/evidence/E14/generic-upload-leases
+    @PW_GENERIC_UPLOAD_LEASE_EVIDENCE=docs/evidence/E14/generic-upload-leases python3 scripts/generic_upload_leases_mutations.py > docs/evidence/E14/generic-upload-leases.txt
+    @cat docs/evidence/E14/generic-upload-leases.txt

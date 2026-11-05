@@ -148,7 +148,7 @@ MUTANTS = [
         UPLOADS,
         "            state\n"
         "                .leases\n"
-        "                .get(session)\n"
+        "                .get(&lease_key(session, &declared.name))\n"
         "                .filter(|l| l.id == id && l.reader == reader)\n",
         "            state\n"
         "                .leases\n"
