@@ -1,0 +1,51 @@
+{
+  "source": "f22de943783db700aaadadca486eb3373500016f",
+  "selected_server": {
+    "upload-http-frozen-blob__.log": [
+      15,
+      0,
+      0
+    ],
+    "upload-http-frozen-tests__conformance__.log": [
+      12,
+      0,
+      0
+    ],
+    "upload-http-frozen-tests__protected_migration__.log": [
+      23,
+      0,
+      0
+    ],
+    "upload-http-frozen-tests__tables__.log": [
+      14,
+      0,
+      0
+    ],
+    "upload-http-frozen-tests__tables_pg__.log": [
+      37,
+      0,
+      0
+    ],
+    "upload-http-frozen-tests__upload_generations__.log": [
+      6,
+      0,
+      0
+    ],
+    "upload-http-frozen-uploads__.log": [
+      128,
+      0,
+      0
+    ]
+  },
+  "total": [
+    235,
+    0,
+    0
+  ],
+  "strict_controls": 10,
+  "strict_baseline": 7,
+  "handler_composition_native": 6,
+  "preflight_anchors": 5392,
+  "full_server_startup_accepted": false,
+  "generic_claim_bridge_accepted": false
+}

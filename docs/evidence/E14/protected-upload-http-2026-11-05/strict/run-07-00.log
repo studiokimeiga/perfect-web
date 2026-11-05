@@ -1,0 +1,34 @@
+warning: unused variable: `declared`
+   --> spikes/own-renderer/server/src/uploads.rs:965:21
+    |
+965 |     fn serve(&self, declared: &Declared, name: &str, headers: &str) -> Answer {
+    |                     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_declared`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+
+running 6 tests
+test tests::upload_generations::current_generation_http_validates_real_png_and_jpeg_files_before_304_and_head ... ok
+test tests::upload_generations::backend_death_stale_local_unlink_preserves_new_same_hash_generation_and_http ... ok
+test tests::upload_generations::generation_http_rejects_actual_file_dimensions_differing_from_the_descriptor ... ok
+test tests::upload_generations::generation_http_rejects_actual_file_kind_differing_from_the_descriptor ... ok
+test tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts ... FAILED
+test tests::upload_generations::retired_generation_http_is_404_before_304_even_while_actual_payload_waits_for_collection ... ok
+
+failures:
+
+---- tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts stdout ----
+
+thread 'tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts' (3057372) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:554:5:
+assertion `left == right` failed: other declaration's hash/bytes do not enroll this declaration
+  left: 304
+ right: 404
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts
+
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 1009 filtered out; finished in 0.71s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`

@@ -1,0 +1,42 @@
+
+running 37 tests
+test tests::tables_pg::a_command_is_fenced_from_its_first_statement_or_never ... ok
+test tests::tables_pg::a_command_waiting_for_its_session_holds_no_other_session_up ... ok
+test tests::tables_pg::a_commands_scheduled_run_commits_with_its_rows ... ok
+test tests::tables_pg::a_commands_rows_record_and_outbox_commit_as_one_transaction ... ok
+test tests::tables_pg::a_commit_the_database_rolled_back_is_answered_refused ... ok
+test tests::tables_pg::a_commit_whose_connection_ends_under_it_is_reconciled_not_refused ... ok
+test tests::tables_pg::a_removed_entrys_number_is_never_given_again_on_postgresql ... ok
+test tests::tables_pg::a_render_reads_one_state_of_the_tables_on_postgresql ... ok
+test tests::tables_pg::a_render_without_a_seat_reads_no_other_state ... ok
+test tests::tables_pg::a_run_that_schedules_itself_again_runs_each_generation_once ... ok
+test tests::tables_pg::a_run_whose_taking_is_suppressed_is_retried_after_its_backoff ... ok
+test tests::tables_pg::a_session_past_its_lifetime_at_the_commit_keeps_nothing ... ok
+test tests::tables_pg::a_commit_whose_answer_was_lost_is_answered_from_its_record ... ok
+test tests::tables_pg::a_session_signed_out_before_its_command_commits_keeps_nothing ... ok
+test tests::tables_pg::a_signing_reaches_every_other_open_page_on_postgresql ... ok
+test tests::tables_pg::a_sign_out_waits_for_a_command_admitted_before_it ... ok
+test tests::tables_pg::a_tables_schema_is_a_development_deployments_alone ... ok
+test tests::tables_pg::an_entry_is_its_authors_alone_to_remove_on_postgresql ... ok
+test tests::tables_pg::a_signing_sent_twice_is_one_entry_on_any_host ... ok
+test tests::tables_pg::an_old_generation_of_a_run_does_not_run ... ok
+test tests::tables_pg::each_idempotent_command_sent_again_is_answered_once_on_postgresql ... ok
+test tests::tables_pg::generic_hosts_deliver_remote_changes_and_detect_rows_trimmed_before_reading ... ok
+test tests::tables_pg::generic_hosts_keep_shared_outbox_rows_and_distinct_page_instances ... ok
+test tests::tables_pg::generic_hosts_trim_shared_history_in_bounded_batches_with_a_watermark ... ok
+test tests::tables_pg::generic_hosts_use_the_publishers_ordering_lock_and_wake_after_commit ... ok
+test tests::tables_pg::each_query_reads_its_tables_a_fixed_number_of_times_on_postgresql ... ok
+test tests::tables_pg::owned_rows_and_compiled_predicates_survive_the_durable_server_boundary ... ok
+test tests::tables_pg::requests_of_one_session_at_once_are_each_answered_on_postgresql ... ok
+test tests::tables_pg::sessions_and_sign_ins_past_their_lifetimes_are_swept_by_the_host ... ok
+test tests::tables_pg::nothing_the_tables_keep_holds_a_session_cookie_on_postgresql ... ok
+test tests::tables_pg::the_guestbook_is_served_from_postgresql ... ok
+test tests::tables_pg::the_outbox_retains_delivered_rows_until_the_shared_retention_age ... ok
+test tests::tables_pg::the_suite_holds_for_closed_case_keys_indexes_windows_and_ranges_on_postgresql ... ok
+test tests::tables_pg::the_suite_holds_for_fixed_relation_windows_on_postgresql ... ok
+test tests::tables_pg::the_suite_holds_for_the_guestbooks_tables_on_postgresql ... ok
+test tests::tables_pg::warm_relation_selections_are_private_to_each_reader_on_postgresql ... ok
+test tests::tables_pg::the_suite_holds_for_the_lists_apps_tables_on_postgresql ... ok
+
+test result: ok. 37 passed; 0 failed; 0 ignored; 0 measured; 978 filtered out; finished in 15.17s
+

@@ -70,8 +70,14 @@ preflight5,383 and 28/28 strict controls (baseline35), separate review clear.
 Indexed exact touched rows/registry and actual receipt checks precede keep and
 COMMIT; captured cleanup preserves applied Ack, unknown outcomes do no GC.
 See the [row/storage record](diagnostics/protected-upload-pg-rows-2026-11-05.md).
-Trusted proposals/ByteStore only: actual session/claim bridge and concrete
-LocalBlobs/HTTP composition are next; server guard closed, canonical apps legacy.
+Concrete LocalBlobs/HTTP composition source `f22de943` passed selectedserver235,
+preflight5,392 and 10/10 strict controls (baseline7), separate review clear.
+ActualPG + sanitizer + local files + handler TCP include authoritative404/503
+before304 and real backend-death/captured-unlink proof. See the
+[HTTP record](diagnostics/protected-upload-http-2026-11-05.md).
+These are trusted-proposal/isolated handler tests. Actual session/declaration
+claim bridge, attempt nonce/unknown reconciliation and full compiled Server
+startup are next; startup guard closed, canonical apps legacy.
 Earlier green records below apply to their named sources only.
 
 **Local row browsers and PostgreSQL, 2026-11-03:** code/test source

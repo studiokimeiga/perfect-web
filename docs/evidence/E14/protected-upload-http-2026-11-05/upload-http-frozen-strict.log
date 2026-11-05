@@ -1,0 +1,12 @@
+baseline 7 native assertions, complete inventories
+KILLED 1/10: bypasses current generation authority; 1 pass/5 fail
+KILLED 2/10: serves an unreferenced hash as cache valid; 4 pass/2 fail
+KILLED 3/10: turns a LIVE storage error into not found; 5 pass/1 fail
+KILLED 4/10: answers validators before authority and file verification; 1 pass/5 fail
+KILLED 5/10: accepts file kind differing from its descriptor; 5 pass/1 fail
+KILLED 6/10: accepts measured dimensions differing from its descriptor; 5 pass/1 fail
+KILLED 7/10: uses the first declarations authority for every serving route; 5 pass/1 fail
+KILLED 8/10: releases database exclusion before the real file checkpoint; 5 pass/1 fail
+KILLED 9/10: unlinks a newer same hash physical generation; 4 pass/2 fail
+KILLED 10/10: a layer that cannot say whether a post names a blob is taken to say yes; 0 pass/1 fail
+10/10 killed; no invalid or stopped producer

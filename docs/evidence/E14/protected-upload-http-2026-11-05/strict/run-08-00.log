@@ -1,0 +1,26 @@
+
+running 6 tests
+test tests::upload_generations::current_generation_http_validates_real_png_and_jpeg_files_before_304_and_head ... ok
+test tests::upload_generations::backend_death_stale_local_unlink_preserves_new_same_hash_generation_and_http ... FAILED
+test tests::upload_generations::generation_http_rejects_actual_file_dimensions_differing_from_the_descriptor ... ok
+test tests::upload_generations::generation_http_rejects_actual_file_kind_differing_from_the_descriptor ... ok
+test tests::upload_generations::generation_http_uses_each_routes_current_same_declaration_reference_counts ... ok
+test tests::upload_generations::retired_generation_http_is_404_before_304_even_while_actual_payload_waits_for_collection ... ok
+
+failures:
+
+---- tests::upload_generations::backend_death_stale_local_unlink_preserves_new_same_hash_generation_and_http stdout ----
+
+thread 'tests::upload_generations::backend_death_stale_local_unlink_preserves_new_same_hash_generation_and_http' (3057951) panicked at spikes/own-renderer/server/src/tests/upload_generations.rs:438:5:
+assertion `left == right` failed
+  left: ["0"]
+ right: ["1"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::upload_generations::backend_death_stale_local_unlink_preserves_new_same_hash_generation_and_http
+
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 1009 filtered out; finished in 0.63s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
