@@ -1,0 +1,21 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--quiet",
+    "--locked",
+    "-p",
+    "pw-dev-server",
+    "--bin",
+    "pw-dev-server",
+    "blob::",
+    "--",
+    "--format=pretty",
+    "--test-threads=2"
+  ],
+  "exit": 101,
+  "valid": true,
+  "passed": 14,
+  "failed": 1,
+  "sha256": "98b4e59ec4ca6a22fcfd7813e5d4f425c04d83cb71ed388c9bfd00f39d9f3139"
+}

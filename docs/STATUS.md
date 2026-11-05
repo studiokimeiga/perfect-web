@@ -57,7 +57,11 @@ The shared registry/memory bookkeeping source `ae09ede1` passed frozen host145
 Separate review's equal-revision foreign-instance acceptance was reproduced and
 repaired; final immutable review is clear. See the
 [registry/memory record](diagnostics/protected-upload-registry-memory-2026-11-05.md).
-Trusted proposals only: actual session/claim ownership, storage, transaction lifetime
+Generation storage provider source `20511c86` passed frozen host145 (9ignored),
+selected server217, preflight5,346 and 11/11 strict controls, native inventory15.
+Separate immutable review is clear. See the
+[storage record](diagnostics/protected-upload-storage-2026-11-05.md).
+Physical bytes only: actual database enrollment, session/claim ownership, transaction lifetime
 and HTTP are next; original guards remain closed and canonical apps legacy.
 Earlier green records below apply to their named sources only.
 

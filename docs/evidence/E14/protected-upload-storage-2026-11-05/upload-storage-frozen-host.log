@@ -1,0 +1,252 @@
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/data-path/runtime/pw-host)
+    Finished `test` profile [unoptimized] target(s) in 3.71s
+     Running unittests src/lib.rs (target/debug/deps/pw_host-3f197edde30e19df)
+
+running 40 tests
+test engine::identity_role_tests::identity_transition_authority_is_confined_to_its_lifecycle_export ... ok
+test engine::table_link::tests::a_composite_get_answers_its_own_key_or_none ... ok
+test engine::table_link::tests::a_composite_get_many_answers_asked_keys_once_in_order ... ok
+test engine::table_link::tests::a_prefix_answers_its_own_prefix_once_by_the_tables_order ... ok
+test engine::table_link::tests::a_writes_refusal_is_the_row_that_holds_what_it_would_write ... ok
+test engine::table_link::tests::count_answers_are_nonnegative_and_cover_exactly_the_requested_keys ... ok
+test engine::table_link::tests::index_and_all_answers_hold_their_values_and_bound ... ok
+test engine::table_link::tests::range_answers_cover_every_selector_and_mark_in_canonical_order_without_extras ... ok
+test engine::table_link::tests::values_hold_their_stored_type_and_bounds ... ok
+test engine::table_link::tests::window_answers_hold_direction_ties_and_the_limit_of_each_selector ... ok
+test engine::table_owners::tests::a_handle_is_its_callers_or_nothing_is_read ... ok
+test engine::table_owners::tests::a_row_not_exactly_its_tables_is_refused_before_any_adapter ... ok
+test engine::table_owners::tests::a_sharer_is_answered_the_seen_row ... ok
+test engine::table_owners::tests::a_sharers_count_result_is_not_projected_as_a_stored_row ... ok
+test engine::table_owners::tests::a_transition_reads_and_deletes_old_owner_rows_but_only_writes_new_rows ... ok
+test engine::table_owners::tests::an_owned_row_is_written_by_its_owner_alone ... ok
+test engine::table_owners::tests::identity_relation_reads_use_membership_ownership_not_the_public_targets_key ... ok
+test engine::table_read_host::tests::adapter_errors_and_unsupported_rows_are_refusals ... ok
+test engine::table_read_host::tests::count_callbacks_validate_selectors_before_data_and_encode_only_count_shapes ... ok
+test engine::table_read_host::tests::get_many_preserves_adapter_order_and_empty_reads ... ok
+test engine::table_read_host::tests::get_passes_typed_selectors_and_returns_wit_some_or_none ... ok
+test engine::table_read_host::tests::malformed_or_mistyped_arguments_never_reach_the_adapter ... ok
+test engine::table_read_host::tests::range_callbacks_validate_every_selector_and_typed_mark_before_the_adapter ... ok
+test engine::table_read_host::tests::window_selectors_and_typed_limits_are_checked_before_the_adapter_even_at_zero ... ok
+test engine::table_results::tests::a_row_with_more_or_fewer_fields_than_declared_is_refused ... ok
+test engine::table_link::closed_case_abi_tests::actual_payload_bearing_variant_cannot_link_as_a_closed_case ... ok
+test engine::table_results::tests::a_writes_answer_is_ok_the_refusing_row_or_nothing ... ok
+test engine::table_results::tests::get_many_preserves_bounded_adapter_order_and_empty_lists ... ok
+test engine::table_results::tests::get_preserves_present_and_missing_option_rows ... ok
+test engine::table_results::tests::rows_are_records_in_their_declared_order ... ok
+test engine::table_results::tests::unsupported_and_wrong_result_shapes_fail_closed ... ok
+test engine::table_selectors::tests::a_written_row_is_exactly_its_tables_or_refused ... ok
+test engine::table_selectors::tests::all_takes_nothing_and_a_prefix_its_fields ... ok
+test engine::table_selectors::tests::get_keeps_scalar_key_values_and_types ... ok
+test engine::table_selectors::tests::get_many_keeps_composite_records_by_the_keys_own_names ... ok
+test engine::table_selectors::tests::refuses_a_key_of_other_arity_or_field_names ... ok
+test engine::table_selectors::tests::refuses_keys_of_another_declared_type_or_out_of_bounds ... ok
+test engine::table_selectors::tests::refuses_unsupported_key_shapes_without_defaults_or_coercion ... ok
+test engine::table_write_host::tests::a_malformed_row_never_reaches_the_adapter ... ok
+test engine::table_write_host::tests::a_write_passes_its_row_and_answers_its_wit_type ... ok
+
+test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/admission.rs (target/debug/deps/admission-1fd1b110f377fabf)
+
+running 22 tests
+test a_capabilitys_type_argument_is_part_of_what_is_granted ... ok
+test a_component_dependency_is_not_authority ... ok
+test a_component_granted_nothing_gets_an_empty_linker ... ok
+test a_component_is_admitted_where_its_world_and_its_capabilities_are_both_present ... ok
+test a_component_needing_nothing_is_admitted_and_granted_nothing ... ok
+test a_component_slot_cannot_be_filled_by_a_host_import_or_the_reverse ... ok
+test a_component_that_can_run_nowhere_is_refused_everywhere ... ok
+test a_contract_from_an_unknown_capability_mapping_is_refused ... ok
+test a_guest_receives_a_handle_and_never_the_value ... ok
+test a_handle_from_another_instance_does_not_work_here ... ok
+test a_refused_admission_yields_no_capabilities_at_all ... ok
+test a_runtime_import_can_never_be_authorised ... ok
+test an_admitted_instance_gets_exactly_its_contract_and_not_the_nodes_whole_set ... ok
+test an_artifact_importing_more_than_its_contract_allows_is_refused ... ok
+test an_import_is_classified_before_it_is_compared ... ok
+test an_unknown_node_is_refused_rather_than_defaulted ... ok
+test every_refusal_is_reported_not_only_the_first ... ok
+test importing_fewer_than_allowed_is_fine ... ok
+test placement_and_capability_are_two_checks_and_can_disagree_either_way ... ok
+test the_linker_is_built_from_the_admission_and_not_from_the_node ... ok
+test the_std_runtime_import_set_is_refused_wholesale ... ok
+test the_topology_is_data_the_host_owns ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/artifact.rs (target/debug/deps/artifact-9b61a9b5cc4bb59f)
+
+running 8 tests
+test a_granted_component_instantiates_and_an_ungranted_one_does_not ... ignored, reads the guests `just spike-wasmtime` builds; `just e8-host` runs it
+test a_granted_guest_calls_the_host_and_receives_its_answer ... ignored, reads the guests `just spike-wasmtime` builds; `just e8-host` runs it
+test a_memory_ceiling_denies_growth_rather_than_aborting ... ignored, reads the guests `just spike-wasmtime` builds; `just e8-host` runs it
+test a_refused_admission_yields_no_granted_to_link_from ... ignored, reads the guests `just spike-wasmtime` builds; `just e8-host` runs it
+test an_instance_runs_within_the_budget_its_deployment_declares ... ignored, reads the guests `just spike-wasmtime` builds; `just e8-host` runs it
+test the_declared_component_imports_exactly_what_its_world_says ... ignored, reads the guests `just spike-wasmtime` builds; `just e8-host` runs it
+test the_std_component_is_refused_for_authority_nobody_asked_for ... ignored, reads the guests `just spike-wasmtime` builds; `just e8-host` runs it
+test a_component_that_cannot_be_read_is_not_treated_as_importing_nothing ... ok
+
+test result: ok. 1 passed; 0 failed; 7 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/asset_registry.rs (target/debug/deps/asset_registry-67579c6131394aee)
+
+running 19 tests
+test a_foreign_draft_cannot_propose_into_another_registry ... ok
+test a_declarations_last_reference_ends_its_adoption_and_serving_even_if_another_keeps_bytes_live ... ok
+test a_fresh_other_declaration_can_replace_the_last_old_reference_in_one_final_state ... ok
+test a_fresh_publication_requires_a_final_row_use_to_become_live ... ok
+test candidate_identity_and_canonical_descriptors_refuse_collisions_before_mutation ... ok
+test captured_collection_completion_cannot_clear_a_new_same_hash_generation ... ok
+test committed_liveness_is_declaration_specific_and_ignored_proposals_never_enroll ... ok
+test current_same_declaration_references_allow_copy_but_another_declaration_does_not ... ok
+test contradictory_counts_overflow_unknown_declarations_and_descriptors_refuse_whole ... ok
+test even_empty_foreign_drafts_cannot_be_prepared ... ok
+test final_net_moves_do_not_transiently_retire_a_generation_and_unchanged_refs_are_validated ... ok
+test foreign_patches_cannot_cross_registry_instances_at_the_same_revision ... ok
+test ignored_publications_do_not_enroll_a_declaration_or_count_untouched_rows_as_usage ... ok
+test generation_ids_are_not_reused_after_ignored_publication_or_collection ... ok
+test last_removal_captures_only_the_old_generation_and_same_bytes_require_a_new_identity ... ok
+test plain_reference_data_is_not_authority_to_create_a_generation ... ok
+test shared_generation_proposals_cannot_cross_sources_or_change_descriptor_bytes ... ok
+test stale_or_refused_patches_leave_all_indexes_unchanged ... ok
+test the_index_shares_candidates_in_one_command_and_publishes_only_at_apply ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/assets.rs (target/debug/deps/assets-4f734d35d0ba5188)
+
+running 7 tests
+test reference_shape_is_whole_data_and_declaration_limits_do_not_grant_a_lease ... ok
+test the_host_rejects_a_forged_declaration_above_the_compilers_whole_body_ceiling ... ok
+test unused_or_forged_upload_imports_do_not_define_their_own_meaning ... ok
+test upload_metadata_rejects_legacy_identity_aliases_bad_limits_and_ambiguous_paths ... ok
+test upload_wire_paths_use_the_compilers_literal_path_domain ... ok
+test upload_operations_keep_independent_database_and_resource_grants_in_both_axes ... ok
+test versioned_and_bare_upload_namespaces_cannot_escape_declaration_admission ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/bench.rs (target/debug/deps/bench-45fdaadcdc1123c5)
+
+running 2 tests
+test a_hand_written_rust_guest_through_the_host ... ignored, a benchmark, and it reads the guest `just spike-wasmtime` builds
+test the_compiled_command_through_the_host ... ignored, a benchmark; `just e10-bench` runs it in release
+
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/bounded.rs (target/debug/deps/bounded-63b3e51307db0081)
+
+running 5 tests
+test a_strings_length_is_held_at_both_ends_in_code_points ... ok
+test a_case_the_path_does_not_name_holds_nothing_to_check ... ok
+test a_value_of_another_shape_than_the_contract_says_is_refused ... ok
+test an_argument_is_held_to_its_bounds_at_both_ends ... ok
+test each_item_of_a_list_and_each_field_is_reached ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/compiled_once.rs (target/debug/deps/compiled_once-697b6a6523d4b65d)
+
+running 1 test
+test a_components_bytes_are_compiled_once_a_process ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/contract_mirror.rs (target/debug/deps/contract_mirror-59b3abe603c98fe2)
+
+running 6 tests
+test a_capability_survives_the_crossing_with_its_argument ... ok
+test the_compilers_contracts_deserialize_with_every_field_populated ... ok
+test command_authorization_survives_the_compiler_host_boundary ... ok
+test the_real_contracts_drive_a_real_admission ... ok
+test the_store_page_depends_on_components_without_acquiring_their_authority ... ok
+test the_store_page_does_not_inherit_its_handlers_authority ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/display.rs (target/debug/deps/display-9da8946fe2389dd5)
+
+running 3 tests
+test an_amount_owed_back_is_written_with_its_sign_first ... ok
+test every_amount_is_exact_the_least_and_the_greatest_included ... ok
+test a_price_is_written_as_en_us_writes_dollars ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/engine_proposals.rs (target/debug/deps/engine_proposals-336bd9eb538edd26)
+
+running 5 tests
+test a_component_using_gc_is_refused ... ok
+test a_component_using_none_of_them_loads ... ok
+test a_component_using_the_async_abi_is_refused ... ok
+test a_component_using_exceptions_is_refused ... ok
+test the_import_audit_refuses_them_too ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/host_answers.rs (target/debug/deps/host_answers-60d212357ae26cbc)
+
+running 7 tests
+test a_field_in_another_order_is_read_by_its_name ... ok
+test a_field_the_type_declares_and_the_answer_lacks_is_refused ... ok
+test a_field_the_type_does_not_declare_is_not_passed_in ... ok
+test a_field_under_neither_name_is_refused_by_both ... ok
+test a_field_written_as_the_program_names_it_is_read ... ok
+test an_answer_as_the_type_declares_it_is_passed_as_it_is ... ok
+test a_list_s_rows_and_a_declared_error_are_read_through_their_types ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/list_arguments.rs (target/debug/deps/list_arguments-b34fb64bae043e2a)
+
+running 1 test
+test a_list_of_records_is_read_element_by_element_and_runs ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/planning.rs (target/debug/deps/planning-9c3a7e492496e693)
+
+running 11 tests
+test a_necessarily_remote_edge_that_owes_a_principal_is_not_a_finished_plan ... ok
+test a_refused_component_carries_the_reason_from_every_node ... ok
+test an_edge_whose_ends_share_no_node_is_necessarily_remote ... ok
+test a_topology_that_grants_nothing_cannot_host_the_privileged_components ... ok
+test an_undetermined_signature_does_not_refuse_a_deployment ... ok
+test an_import_naming_nothing_is_dangling_rather_than_silently_ignored ... ok
+test can_be_local_is_disjointness_of_candidate_sets ... ok
+test placement_and_transferability_are_independent_and_only_one_pair_fails ... ok
+test every_edge_in_the_store_program_can_be_bound ... ok
+test the_planner_agrees_with_admit_on_every_pair ... ok
+test the_store_program_is_deployable_on_a_topology_that_serves_it ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/pleris_component.rs (target/debug/deps/pleris_component-2d88053700d434b0)
+
+running 17 tests
+test a_data_layer_failure_is_the_commands_failure ... ok
+test a_data_layer_answer_that_breaks_an_invariant_is_the_commands_failure ... ok
+test a_granted_operation_the_host_does_not_implement_is_refused ... ok
+test a_node_without_the_write_capability_does_not_admit_it ... ok
+test a_quantity_that_is_no_positive_int_is_refused_as_the_arguments_are_decoded ... ok
+test a_world_level_export_is_found_by_its_declaration ... ok
+test an_export_not_declared_by_the_contract_cannot_be_invoked ... ok
+test an_argument_that_breaks_its_invariant_never_reaches_the_component ... ok
+test an_item_that_cannot_be_ordered_is_refused_before_anything_is_written ... ok
+test an_ungranted_operation_is_refused_by_the_engine ... ok
+test arguments_for_an_export_the_component_does_not_have_are_refused ... ok
+test json_arguments_are_typed_by_the_export_they_are_for ... ok
+test requires_cannot_be_bypassed_by_the_raw_call_api ... ok
+test the_artifact_imports_exactly_what_its_contract_allows ... ok
+test the_compiled_command_runs_through_the_host ... ok
+test the_instance_runs_within_its_fuel ... ok
+test sustained_calls_leave_memory_flat ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.02s
+
+   Doc-tests pw_host
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
