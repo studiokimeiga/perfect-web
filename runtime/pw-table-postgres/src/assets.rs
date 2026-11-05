@@ -102,57 +102,19 @@ pub(crate) fn enroll(
     config: Option<&Configuration>,
     recorded: Option<&Schema>,
 ) -> Result<Option<Namespace>, Error> {
+    let Metadata {
+        namespace,
+        declarations,
+        bindings,
+    } = read_metadata(conn, counters, names)?;
     let qualified = |table: &str| names.qualified(table);
-    let rows = conn
-        .query(
-            counters,
-            &format!("SELECT namespace FROM {}", qualified("pw_asset_namespace")),
-            &[],
-        )
-        .map_err(database)?;
-    if rows.len() > 1 {
-        return Err(Error::Drift("multiple upload namespaces recorded".into()));
-    }
-    let namespace = rows
-        .first()
-        .map(|r| r.get::<_, String>(0))
-        .map(|s| {
-            Namespace::parse(&s)
-                .ok_or_else(|| Error::Drift("invalid upload namespace recorded".into()))
-        })
-        .transpose()?;
-    let mut declarations = BTreeMap::new();
-    for r in conn
-        .query(
-            counters,
-            &format!(
-                "SELECT name,declaration::text FROM {}",
-                qualified("pw_asset_declarations")
-            ),
-            &[],
-        )
-        .map_err(database)?
-    {
-        declarations.insert(r.get::<_, String>(0), value(&r.get::<_, String>(1))?);
-    }
-    let mut bindings = BTreeMap::new();
-    for r in conn
-        .query(
-            counters,
-            &format!(
-                "SELECT table_name,field_name,upload,field::text FROM {}",
-                qualified("pw_asset_bindings")
-            ),
-            &[],
-        )
-        .map_err(database)?
-    {
-        bindings.insert(
-            (r.get::<_, String>(0), r.get::<_, String>(1)),
-            json!({"upload":r.get::<_,String>(2),"field":value(&r.get::<_,String>(3))?}),
-        );
-    }
     let Some(config) = config else {
+        if recorded.is_some_and(|schema| schema.tables.iter().any(|table| !table.assets.is_empty()))
+        {
+            return Err(Error::Schema(
+                "recorded upload bindings have lost their enrollment metadata".into(),
+            ));
+        }
         if namespace.is_some() || !declarations.is_empty() || !bindings.is_empty() {
             return Err(Error::Schema(
                 "upload metadata cannot be removed by an unbound manifest".into(),
@@ -247,4 +209,103 @@ pub(crate) fn enroll(
         }
     }
     Ok(Some(namespace))
+}
+
+#[derive(PartialEq)]
+struct Metadata {
+    namespace: Option<Namespace>,
+    declarations: BTreeMap<String, Value>,
+    bindings: BTreeMap<(String, String), Value>,
+}
+fn read_metadata(conn: &mut Conn, counters: &Counters, names: &Names) -> Result<Metadata, Error> {
+    let qualified = |table: &str| names.qualified(table);
+    let rows = conn
+        .query(
+            counters,
+            &format!("SELECT namespace FROM {}", qualified("pw_asset_namespace")),
+            &[],
+        )
+        .map_err(database)?;
+    if rows.len() > 1 {
+        return Err(Error::Drift("multiple upload namespaces recorded".into()));
+    }
+    let namespace = rows
+        .first()
+        .map(|r| r.get::<_, String>(0))
+        .map(|s| {
+            Namespace::parse(&s)
+                .ok_or_else(|| Error::Drift("invalid upload namespace recorded".into()))
+        })
+        .transpose()?;
+    let mut declarations = BTreeMap::new();
+    for r in conn
+        .query(
+            counters,
+            &format!(
+                "SELECT name,declaration::text FROM {}",
+                qualified("pw_asset_declarations")
+            ),
+            &[],
+        )
+        .map_err(database)?
+    {
+        declarations.insert(r.get::<_, String>(0), value(&r.get::<_, String>(1))?);
+    }
+    let mut bindings = BTreeMap::new();
+    for r in conn
+        .query(
+            counters,
+            &format!(
+                "SELECT table_name,field_name,upload,field::text FROM {}",
+                qualified("pw_asset_bindings")
+            ),
+            &[],
+        )
+        .map_err(database)?
+    {
+        bindings.insert(
+            (r.get::<_, String>(0), r.get::<_, String>(1)),
+            json!({"upload":r.get::<_,String>(2),"field":value(&r.get::<_,String>(3))?}),
+        );
+    }
+    Ok(Metadata {
+        namespace,
+        declarations,
+        bindings,
+    })
+}
+/// RETURNING a row count cannot attest to its values, and a later app-schema
+/// record hook can change a prior insert. Read exact persisted values after
+/// the whole migration, while its transaction/lock still owns the metadata.
+pub(crate) fn verify(
+    conn: &mut Conn,
+    counters: &Counters,
+    names: &Names,
+    config: Option<&Configuration>,
+    namespace: Option<&Namespace>,
+) -> Result<(), Error> {
+    let expected = match (config, namespace) {
+        (Some(config), Some(namespace)) => Metadata {
+            namespace: Some(namespace.clone()),
+            declarations: config.declarations.clone(),
+            bindings: config.bindings.clone(),
+        },
+        (None, None) => Metadata {
+            namespace: None,
+            declarations: BTreeMap::new(),
+            bindings: BTreeMap::new(),
+        },
+        _ => {
+            return Err(Error::Schema(
+                "upload enrollment configuration is incomplete".into(),
+            ));
+        }
+    };
+    let stored = read_metadata(conn, counters, names)?;
+    if stored != expected {
+        return Err(Error::Schema(
+            "upload persisted enrollment metadata changed before commit".into(),
+        ));
+    }
+    Ok(())
 }

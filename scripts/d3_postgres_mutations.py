@@ -70,8 +70,12 @@ POOL = CRATE / "src/pool.rs"
 CARGO = ROOT / "Cargo.toml"
 
 MUTANTS = [
-    ('upload enrollment accepts unbound removal of persisted upload metadata', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
-     '        if namespace.is_some() || !declarations.is_empty() || !bindings.is_empty() {', '        if false && (namespace.is_some() || !declarations.is_empty() || !bindings.is_empty()) {'),
+    ('upload enrollment erases asset history after metadata loss', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '        if recorded.is_some_and(|schema| schema.tables.iter().any(|table| !table.assets.is_empty()))', '        if false && recorded.is_some_and(|schema| schema.tables.iter().any(|table| !table.assets.is_empty()))'),
+    ('upload enrollment accepts rewritten persisted metadata after schema recording', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '    if stored != expected {', '    if false && stored != expected {'),
+    ('upload enrollment skips final metadata verification for unbound manifests', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
+     '        (None, None) => Metadata {\n            namespace: None,\n            declarations: BTreeMap::new(),\n            bindings: BTreeMap::new(),\n        },', '        (None, None) => return Ok(()),'),
     ('upload enrollment accepts changed immutable base declarations', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
      '        if config.declarations.get(name) != Some(old) {', '        if false && config.declarations.get(name) != Some(old) {'),
     ('upload enrollment accepts changed immutable field associations', ROOT / 'runtime/pw-table-postgres/src/assets.rs',

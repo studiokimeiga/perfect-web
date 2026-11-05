@@ -424,3 +424,168 @@ fn every_asset_platform_relation_name_is_reserved_before_connecting_and_a_neighb
     PgTables::open(&url, s.schema(), named("pw_assets_app"))
         .assert_ok("close nonreserved neighbor");
 }
+
+fn rewriting_metadata_trigger_refuses(column: &str) {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_rewrite");
+    let store = Arc::new(MarkerStore::default());
+    let mut empty = model("", false).tables;
+    empty.tables.clear();
+    rehash(&mut empty);
+    PgTables::open(&url, s.schema(), empty).assert_ok("platform on empty schema");
+    let (table,rewrite)=match column {
+        "namespace"=>("pw_asset_namespace",format!("NEW.namespace := '{}';",Namespace::from_bytes([9;16]).hex())),
+        "declaration"=>("pw_asset_declarations","NEW.declaration := jsonb_set(NEW.declaration::jsonb,'{max_bytes}','4000000'::jsonb)::json;".into()),
+        "binding"=>("pw_asset_bindings","NEW.field := jsonb_set(NEW.field::jsonb,'{name}','\"other\"'::jsonb)::json;".into()),
+        _=>unreachable!(),
+    };
+    s.sql(&format!("CREATE FUNCTION rewrite_asset_metadata() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN {rewrite} RETURN NEW; END $$; CREATE TRIGGER rewrite_metadata BEFORE INSERT ON {table} FOR EACH ROW EXECUTE FUNCTION rewrite_asset_metadata()" )).assert_ok("rewrite actual metadata input");
+    let refusal = open(&s, model("", false), &store, 1).err();
+    assert!(
+        matches!(&refusal,Some(pw_table_postgres::Error::Schema(why)) if why=="upload persisted enrollment metadata changed before commit"),
+        "one returned row must not acknowledge rewritten {column} metadata: {refusal:?}"
+    );
+    assert_eq!(
+        s.texts("SELECT count(*)::text FROM pw_asset_namespace"),
+        ["0"]
+    );
+    assert_eq!(
+        s.texts("SELECT count(*)::text FROM pw_asset_declarations"),
+        ["0"]
+    );
+    assert_eq!(
+        s.texts("SELECT count(*)::text FROM pw_asset_bindings"),
+        ["0"]
+    );
+    assert_eq!(
+        s.texts("SELECT coalesce(to_regclass('\"Assets\"')::text,'missing')"),
+        ["missing"]
+    );
+    assert!(
+        store
+            .names
+            .lock()
+            .unwrap()
+            .contains(&Namespace::from_bytes([1; 16])),
+        "known rollback retains the physical reservation"
+    );
+    s.sql(&format!("DROP TRIGGER rewrite_metadata ON {table}"))
+        .assert_ok("valid neighbor");
+    open(&s, model("", false), &store, 2).assert_ok("unmodified persisted values enroll");
+}
+#[test]
+fn a_rewritten_namespace_insert_is_not_successful_enrollment() {
+    rewriting_metadata_trigger_refuses("namespace");
+}
+#[test]
+fn a_rewritten_declaration_insert_is_not_successful_enrollment() {
+    rewriting_metadata_trigger_refuses("declaration");
+}
+#[test]
+fn a_rewritten_binding_insert_is_not_successful_enrollment() {
+    rewriting_metadata_trigger_refuses("binding");
+}
+
+fn late_namespace_rewrite_refuses(table: &str) {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_late_rewrite");
+    let store = Arc::new(MarkerStore::default());
+    let mut empty = model("", false).tables;
+    empty.tables.clear();
+    rehash(&mut empty);
+    PgTables::open(&url, s.schema(), empty).assert_ok("platform on empty schema");
+    let changed = Namespace::from_bytes([9; 16]);
+    s.sql(&format!("CREATE FUNCTION rewrite_namespace_late() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN UPDATE \"{}\".pw_asset_namespace SET namespace='{}'; RETURN NEW; END $$; CREATE TRIGGER rewrite_late AFTER INSERT ON {table} FOR EACH ROW EXECUTE FUNCTION rewrite_namespace_late()",s.schema,changed.hex())).assert_ok("after-insert rewrite hook");
+    let refusal = open(&s, model("", false), &store, 1).err();
+    assert!(
+        matches!(&refusal,Some(pw_table_postgres::Error::Schema(why)) if why=="upload persisted enrollment metadata changed before commit"),
+        "persisted metadata must be checked after {table} finishes: {refusal:?}"
+    );
+    assert_eq!(
+        s.texts("SELECT count(*)::text FROM pw_asset_namespace"),
+        ["0"]
+    );
+    assert_eq!(
+        s.texts("SELECT count(*)::text FROM pw_asset_bindings"),
+        ["0"]
+    );
+    assert_eq!(
+        s.texts("SELECT coalesce(to_regclass('\"Assets\"')::text,'missing')"),
+        ["missing"]
+    );
+    s.sql(&format!("DROP TRIGGER rewrite_late ON {table}"))
+        .assert_ok("valid neighbor");
+    open(&s, model("", false), &store, 2).assert_ok("unmodified persisted namespace");
+}
+#[test]
+fn an_after_insert_rewrite_cannot_hide_behind_returning_values() {
+    late_namespace_rewrite_refuses("pw_asset_namespace");
+}
+#[test]
+fn application_schema_recording_cannot_rewrite_the_enrolled_namespace_after_validation() {
+    late_namespace_rewrite_refuses("pw_schema");
+}
+
+#[test]
+fn missing_enrollment_rows_cannot_erase_recorded_asset_history_for_an_unbound_open() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_history");
+    let store = Arc::new(MarkerStore::default());
+    open(&s, model("", false), &store, 1).assert_ok("recorded asset schema");
+    let history = s.texts("SELECT hash FROM pw_schema ORDER BY applied");
+    s.sql("DELETE FROM pw_asset_bindings; DELETE FROM pw_asset_declarations; DELETE FROM pw_asset_namespace").assert_ok("simulate lost enrollment metadata");
+    let mut unbound = model("", false).tables;
+    for t in &mut unbound.tables {
+        t.schema.assets.clear();
+    }
+    rehash(&mut unbound);
+    let refusal = PgTables::open(&url, s.schema(), unbound.clone()).err();
+    assert!(
+        matches!(&refusal,Some(pw_table_postgres::Error::Schema(why)) if why=="recorded upload bindings have lost their enrollment metadata"),
+        "recorded asset associations survive missing authority metadata: {refusal:?}"
+    );
+    assert_eq!(
+        s.texts("SELECT hash FROM pw_schema ORDER BY applied"),
+        history
+    );
+    let neighbor = common::Scratch::new(&url, "asset_no_history");
+    PgTables::open(&url, neighbor.schema(), unbound)
+        .assert_ok("genuinely never-enrolled structural schema");
+}
+
+#[test]
+fn an_unbound_open_rechecks_that_application_schema_recording_created_no_upload_metadata() {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_unbound_late");
+    let mut empty = model("", false).tables;
+    empty.tables.clear();
+    rehash(&mut empty);
+    PgTables::open(&url, s.schema(), empty).assert_ok("ordinary empty schema");
+    s.sql(&format!("CREATE FUNCTION inject_namespace_late() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN INSERT INTO \"{}\".pw_asset_namespace(namespace) VALUES('{}'); RETURN NEW; END $$; CREATE TRIGGER inject_namespace AFTER INSERT ON pw_schema FOR EACH ROW EXECUTE FUNCTION inject_namespace_late()",s.schema,Namespace::from_bytes([9;16]).hex())).assert_ok("late unbound metadata injection");
+    let mut next = model("", false).tables;
+    for table in &mut next.tables {
+        table.schema.assets.clear();
+    }
+    rehash(&mut next);
+    let refusal = PgTables::open(&url, s.schema(), next.clone()).err();
+    assert!(
+        matches!(&refusal,Some(pw_table_postgres::Error::Schema(why)) if why=="upload persisted enrollment metadata changed before commit"),
+        "unbound enrollment must remain absent after all application DDL/recording: {refusal:?}"
+    );
+    assert_eq!(
+        s.texts("SELECT count(*)::text FROM pw_asset_namespace"),
+        ["0"]
+    );
+    s.sql("DROP TRIGGER inject_namespace ON pw_schema")
+        .assert_ok("valid neighbor");
+    PgTables::open(&url, s.schema(), next)
+        .assert_ok("ordinary unbound schema without injected metadata");
+}

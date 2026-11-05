@@ -977,3 +977,18 @@ Reserve the pw_asset_ relation prefix for all new platform tables and indexes,
 including automatically named primary-key indexes. Actual command lifetime locks
 and transactional registry transitions remain the next step after enrollment;
 enrollment-only tests do not claim command/HTTP/session/uncertain-outcome safety.
+
+
+Enrollment review reproduced successful open after BEFORE INSERT hooks rewrote
+the namespace, declaration or binding despite RETURNING1. AFTER INSERT and
+application-schema-record hooks can likewise rewrite earlier metadata after its
+insert returned. Require a fresh exact read of persisted namespace and complete
+immutable declaration/binding maps AFTER all application DDL/schema recording,
+inside the same migration transaction immediately before COMMIT. Mismatches
+refuse and roll back; the storage reservation remains an unserved orphan. Row
+count acknowledgments still independently detect suppressed inserts.
+
+The recorded application schema is also an enrollment-history backstop. If it
+has asset associations, an unbound open refuses even when all current namespace,
+declaration and binding rows were lost. Missing authority metadata is drift,
+not evidence that the schema was never enrolled; do not overwrite that history.

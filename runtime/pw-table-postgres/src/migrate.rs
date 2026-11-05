@@ -711,7 +711,8 @@ pub(crate) fn apply(
         shape,
         uploads,
         &mut namespace,
-    );
+    )
+    .and_then(|()| crate::assets::verify(conn, counters, names, uploads, namespace.as_ref()));
     match applied {
         Ok(()) => {
             conn.batch(counters, "COMMIT").map_err(database)?;
