@@ -1047,3 +1047,42 @@ An INSERT RETURNING row alone does not establish that proof. After captured-job
 DELETE, inspect that exact job's absence on the still-held namespace connection
 before counting completion. A hook that reinserts it leaves a retryable job and
 cannot turn the already-applied command into a refusal.
+
+
+### Unknown claim outcome requires attempt provenance
+
+Recorded 2026-11-05 before the actual server claim bridge. An interaction key,
+canonical sent body, deterministic answer and host-clock millisecond identify a
+logical interaction, not THIS attempt. A's uncertain transaction can actually
+roll back; another host B can then commit the same interaction using a different
+host-local lease before A reacquires namespace exclusion. Equal timestamps and
+answers do not prove A's lease was consumed. Namespace reacquisition proves the
+old transaction ended, not that a later receipt originated in it.
+
+Generate an opaque random attempt nonce for each actual claim-bearing invocation,
+freeze it with that invocation's claims, and persist it as a platform field in
+the existing JSON answer envelope. Keep the interaction key and canonical sent
+body unchanged. Existing answer decoding tolerates platform metadata, preserving
+browser retries; claim reconciliation must inspect the RAW persisted envelope,
+since decoding and re-encoding an Answered drops unknown fields. Only this
+attempt's nonce can establish that its claims committed. Missing or different
+nonce cannot settle this invocation's lease as applied. Absence proves rollback
+only under the accepted reacquired lifetime/ended-old-transaction/retention
+conditions; indeterminate outcomes stay held. Recorded-before-COMMIT is a known
+noncommit of this transaction even if the host answers another attempt's receipt.
+
+Pin with actual unknown-but-rolled-back A, equal-clock deterministic B retry and
+different local leases, plus matching-nonce applied/uncertain neighbors. No new
+registry table/column or client-visible interaction argument is needed.
+
+### Concrete public serving composition
+
+The generic upload handler binds a same-declaration current-generation reader
+from its actual data adapter once before serving. Freeze and verify returned
+bytes before consulting If-None-Match, including HEAD requests. No current ref
+is404 even while its old file remains; LIVE missing/corrupt/unreadable is503
+before304. Preserve the existing external SHA.kind URL, JPEG spelling and image
+headers. Test actual sanitizer, PostgreSQL, LocalBlobs, backend death and HTTP
+request/response bytes together; isolated handler tests do not establish the
+unfinished full Server/compiled claim startup path. Keep that guard closed until
+the actual resource/session/row bridge and its gates complete.
