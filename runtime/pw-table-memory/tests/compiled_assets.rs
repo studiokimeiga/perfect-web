@@ -266,6 +266,21 @@ fn actual_upload_reference_abi_is_checked_before_any_claim_callback() {
         "{result:?}"
     );
     assert_eq!(calls.load(Ordering::SeqCst), 0);
+    let prepared = pw_host::engine::Prepared::compile(&component.bytes).unwrap();
+    let result = prepared.admit_with_tables_as(
+        &component.contract,
+        &component.granted(),
+        &bound,
+        &Caller::Nobody,
+        &component.export(),
+        &[],
+    );
+    assert!(
+        result
+            .as_ref()
+            .is_err_and(|why| why.to_string().contains("upload ABI")),
+        "root ABI: {result:?}"
+    );
 }
 
 #[test]
@@ -346,5 +361,292 @@ fn asset_binding_requires_its_own_explicit_source_even_when_only_one_is_named() 
             .unwrap()
             .with_uploads(&program.uploads)
             .is_err()
+    );
+}
+
+#[test]
+fn a_host_database_table_is_a_separate_source_from_the_explicit_upload_source() {
+    let program = asset_program();
+    let mut table = serde_json::to_value(&program.tables).unwrap();
+    let mut ordinary = table["tables"][0].clone();
+    ordinary["name"] = json!("Plain");
+    ordinary["interface"] = json!("pw:tables/plain");
+    ordinary["assets"] = json!([]);
+    ordinary["fields"]
+        .as_array_mut()
+        .unwrap()
+        .retain(|f| f["name"] == "id");
+    for function in ordinary["functions"].as_array_mut().unwrap() {
+        function["import"] = json!(
+            function["import"]
+                .as_str()
+                .unwrap()
+                .replace("pw:tables/assets", "pw:tables/plain")
+        );
+    }
+    // Same-source ordinary rows are a valid neighbor of asset-bearing rows.
+    table["tables"].as_array_mut().unwrap().push(ordinary);
+    assert!(
+        pw_host::tables::Manifest::from_json(&table.to_string())
+            .unwrap()
+            .with_uploads(&program.uploads)
+            .is_ok()
+    );
+    table["tables"][1]["source"] = serde_json::Value::Null;
+    let result = pw_host::tables::Manifest::from_json(&table.to_string())
+        .unwrap()
+        .with_uploads(&program.uploads);
+    assert!(
+        matches!(result,Err(ref why) if why.contains("multiple sources")),
+        "{result:?}"
+    );
+}
+
+#[test]
+fn link_only_instantiation_also_refuses_an_unbound_compiled_upload_import() {
+    let program = asset_program();
+    for name in ["Keep", "Attached"] {
+        let component = program.component(name);
+        let result = pw_host::engine::instantiate(
+            &component.bytes,
+            &component.contract,
+            &component.granted(),
+        );
+        assert!(
+            matches!(result,Err(ref why) if why.contains("upload gate")),
+            "{name}: {result:?}"
+        );
+    }
+}
+
+#[test]
+fn the_runtime_upload_ceiling_matches_the_compiler_wire_policy() {
+    assert_eq!(pw_host::assets::MOST_BYTES, pw_core::uploads::MOST_BYTES);
+}
+
+struct UploadAdmissionOnly<'a> {
+    manifest: &'a pw_host::tables::Manifest,
+    callbacks: Arc<AtomicUsize>,
+}
+impl pw_host::engine::CallTables for UploadAdmissionOnly<'_> {
+    fn manifest(&self) -> &pw_host::tables::Manifest {
+        self.manifest
+    }
+    fn functions(
+        &self,
+        _: &pw_host::ComponentContract,
+        _: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, HostFn>, String> {
+        self.callbacks.fetch_add(1, Ordering::SeqCst);
+        Err("authorization-only fetched body callbacks".into())
+    }
+    fn predicate_reads(
+        &self,
+        _: &pw_host::ComponentContract,
+        _: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, HostFn>, String> {
+        self.callbacks.fetch_add(1, Ordering::SeqCst);
+        Err("fixture has no predicates".into())
+    }
+}
+#[test]
+fn authorization_only_upload_reuse_checks_root_binding_without_running_a_body() {
+    let program = asset_program();
+    let component = program.component("Attached");
+    let prepared = pw_host::engine::Prepared::compile(&component.bytes).unwrap();
+    let predicates = pw_host::engine::Predicates::new([]).unwrap();
+    let calls = Arc::new(AtomicUsize::new(0));
+    let bound = program
+        .manifest
+        .clone()
+        .with_uploads(&program.uploads)
+        .unwrap();
+    for (manifest, allowed) in [(&bound, true), (&program.manifest, false)] {
+        let state = UploadAdmissionOnly {
+            manifest,
+            callbacks: Arc::clone(&calls),
+        };
+        let result = prepared.authorize_with_tables_as(
+            &component.contract,
+            &component.granted(),
+            &pw_host::Limits::unbounded(),
+            &BTreeMap::new(),
+            &state,
+            &predicates,
+            &Caller::Nobody,
+            &component.export(),
+            &[Val::String("request-session".into())],
+            |_, _| Ok(false),
+        );
+        assert_eq!(
+            result.is_ok(),
+            allowed,
+            "authorization-only root binding: {result:?}"
+        );
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+    }
+}
+
+#[test]
+fn authorization_only_uses_the_actual_root_grant_and_contract_axes() {
+    let program = asset_program();
+    let component = program.component("Attached");
+    let prepared = pw_host::engine::Prepared::compile(&component.bytes).unwrap();
+    let bound = program
+        .manifest
+        .clone()
+        .with_uploads(&program.uploads)
+        .unwrap();
+    let calls = Arc::new(AtomicUsize::new(0));
+    let state = UploadAdmissionOnly {
+        manifest: &bound,
+        callbacks: Arc::clone(&calls),
+    };
+    let predicates = pw_host::engine::Predicates::new([]).unwrap();
+    let mut missing = component.contract.clone();
+    missing.required_capabilities.clear();
+    for (contract, granted) in [
+        (&missing, component.granted()),
+        (
+            &component.contract,
+            upload_grants_without(component, "database.read<PostImage>"),
+        ),
+    ] {
+        let result = prepared.authorize_with_tables_as(
+            contract,
+            &granted,
+            &pw_host::Limits::unbounded(),
+            &BTreeMap::new(),
+            &state,
+            &predicates,
+            &Caller::Nobody,
+            &component.export(),
+            &[Val::String("request-session".into())],
+            |_, _| Ok(false),
+        );
+        assert!(
+            result
+                .as_ref()
+                .is_err_and(|why| why.to_string().contains("upload gate")),
+            "{result:?}"
+        );
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+    }
+}
+
+#[test]
+fn empty_session_inputs_and_empty_claim_answers_are_refused_before_the_next_callback() {
+    let program = asset_program();
+    let bound = program
+        .manifest
+        .clone()
+        .with_uploads(&program.uploads)
+        .unwrap();
+    let calls = Arc::new(AtomicUsize::new(0));
+    let attached = program.component("Attached");
+    let hooks = upload_hooks(attached, &calls);
+    let result = pw_host::engine::call_with_tables_as(
+        &attached.bytes,
+        &attached.contract,
+        &attached.granted(),
+        &pw_host::Limits::unbounded(),
+        &hooks,
+        &bound,
+        &Caller::Nobody,
+        &attached.export(),
+        &[Val::String(String::new())],
+    );
+    assert!(
+        matches!(result,Err(ref why) if why.contains("nonempty handles")),
+        "{result:?}"
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    let keep = program.component("Keep");
+    let mut hooks = upload_hooks(keep, &calls);
+    let called = Arc::clone(&calls);
+    hooks.insert(
+        "pw:uploads/post-image#claim".into(),
+        Arc::new(move |_: &[Val]| {
+            called.fetch_add(1, Ordering::SeqCst);
+            let value = Val::String(String::new());
+            Ok(vec![Val::Result(Ok(Some(Box::new(value))))])
+        }),
+    );
+    let result = pw_host::engine::call_with_tables_as(
+        &keep.bytes,
+        &keep.contract,
+        &keep.granted(),
+        &pw_host::Limits::unbounded(),
+        &hooks,
+        &bound,
+        &Caller::Nobody,
+        &keep.export(),
+        &[],
+    );
+    assert!(
+        matches!(result,Err(ref why) if why.contains("claim answer is empty")),
+        "{result:?}"
+    );
+    assert_eq!(
+        calls.load(Ordering::SeqCst),
+        1,
+        "empty claim never reaches publish"
+    );
+}
+
+#[test]
+fn otherwise_valid_owned_data_cannot_be_forged_into_a_public_asset_binding() {
+    let uploads = asset_program().uploads;
+    let program = built_from(&[
+        (
+            "PrivateAssets.pw",
+            r#"module PrivateAssets
+import capability.{ UserId }
+type Kind = Png | Jpeg
+type Data = Data { key: String, generation: String, kind: Kind, width: Int, height: Int }
+type Row = Row { owner: UserId, id: Int, image: Option<Data> }
+table PrivateAssets
+    row Row
+    key owner, id
+    owned by owner
+"#,
+        ),
+        (
+            "AssetData.pw",
+            r#"module AssetData
+import PrivateAssets
+source AssetData
+    holds PrivateAssets
+    transactions serializable
+    reads strong
+    changes none
+    sets one_call
+"#,
+        ),
+        (
+            "app.pw",
+            r#"module owned.app
+public query Noop()->Int
+    freshness 0.seconds
+    consistency snapshot
+    cache shared
+    concurrency one_per_key
+    on_key_change cancel
+    timeout 2.seconds
+{ 1 }
+"#,
+        ),
+    ]);
+    // Plain owned data with the same structural fields is otherwise valid;
+    // declaring a public upload in this source grants it no asset association.
+    assert!(program.manifest.clone().with_uploads(&uploads).is_ok());
+    let mut tables = serde_json::to_value(&program.tables).unwrap();
+    tables["tables"][0]["assets"] = json!([{"field":"image","upload":"PostImage"}]);
+    let result = pw_host::tables::Manifest::from_json(&tables.to_string())
+        .unwrap()
+        .with_uploads(&uploads);
+    assert!(
+        matches!(result,Err(ref why) if why.contains("asset tables must be public")),
+        "{result:?}"
     );
 }

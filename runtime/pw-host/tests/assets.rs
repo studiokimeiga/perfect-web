@@ -211,3 +211,34 @@ fn reference_shape_is_whole_data_and_declaration_limits_do_not_grant_a_lease() {
     missing.as_object_mut().unwrap().remove("generation");
     assert!(Reference::from_value(&missing).is_err());
 }
+
+#[test]
+fn the_host_rejects_a_forged_declaration_above_the_compilers_whole_body_ceiling() {
+    for bytes in [1u64, 100_000_000] {
+        let mut valid = declaration();
+        valid["max_bytes"] = json!(bytes);
+        assert!(Manifest::from_json(&json!([valid]).to_string()).is_ok());
+    }
+    for bytes in [100_000_001, u64::MAX] {
+        let mut bad = declaration();
+        bad["max_bytes"] = json!(bytes);
+        assert!(
+            Manifest::from_json(&json!([bad]).to_string()).is_err(),
+            "forged upload ceiling {bytes}"
+        );
+    }
+}
+#[test]
+fn upload_wire_paths_use_the_compilers_literal_path_domain() {
+    for path in ["/Images", "/images:private", "/imagés", "/a.b"] {
+        let mut bad = declaration();
+        bad["serves"] = json!(path);
+        assert!(
+            Manifest::from_json(&json!([bad]).to_string()).is_err(),
+            "{path}"
+        );
+    }
+    let mut good = declaration();
+    good["serves"] = json!("/a-z_09/images");
+    assert!(Manifest::from_json(&json!([good]).to_string()).is_ok());
+}

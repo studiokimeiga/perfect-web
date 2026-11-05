@@ -1268,3 +1268,58 @@ fn lifecycle_postcommit_revocation_preserves_committed_postgresql_merge_and_rece
     );
     assert_eq!(schema.count("\"JoinCarts\""), "1");
 }
+
+/// A no-predicate reused answer still admits every declared import. The
+/// unused forged upload is introduced after an otherwise-valid server starts;
+/// this does not relax the startup guard or claim a deployed upload cache.
+#[test]
+fn reused_queries_without_predicates_still_admit_unused_root_imports() {
+    let (_dir, out) = built();
+    let mut server = Server::from_build(out.clone(), out).asserted("ordinary generic server");
+    let query = "protected.cart.CartOf";
+    let args = [Val::String("valid-reader".into())];
+    let calls = table_calls(&server);
+    server
+        .authorize_reused_answer(query, "guest-a", &args)
+        .asserted("valid no-predicate reuse admission");
+    assert_eq!(table_calls(&server), calls);
+    let contract = server
+        .contracts
+        .iter_mut()
+        .find(|c| c.component_id == query)
+        .unwrap();
+    assert!(
+        contract.exports[0]
+            .component
+            .as_ref()
+            .unwrap()
+            .authorization
+            .is_empty()
+    );
+    let mut forged = contract
+        .imports
+        .iter()
+        .find(|i| pw_host::tables::is_table_interface(&i.interface))
+        .unwrap()
+        .clone();
+    forged.interface = "pw:uploads/post-image".into();
+    forged.name = "attached".into();
+    contract.imports.push(forged);
+    // Ordinary node admission succeeds: only the new root declaration gate
+    // can reject this otherwise-unused import before a cached answer escapes.
+    server
+        .authorise(query)
+        .asserted("actual root grants still admitted");
+    let result = server.authorize_reused_answer(query, "guest-a", &args);
+    assert!(
+        result
+            .as_ref()
+            .is_err_and(|why| why.to_string().contains("upload gate")),
+        "{result:?}"
+    );
+    assert_eq!(
+        table_calls(&server),
+        calls,
+        "root admission never fetches body rows"
+    );
+}

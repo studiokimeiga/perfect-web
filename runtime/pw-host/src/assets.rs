@@ -4,6 +4,9 @@ use crate::{ComponentContract, Granted, ImportKind};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
+/// Mirrored from the compiler upload declaration ceiling; cross-crate witness pins it.
+pub const MOST_BYTES: u64 = 100_000_000;
+
 /// A declaration read only through a validated manifest.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Declaration {
@@ -76,6 +79,7 @@ impl Declaration {
         }
         let distinct = self.types.iter().collect::<BTreeSet<_>>();
         if self.max_bytes == 0
+            || self.max_bytes > MOST_BYTES
             || self.max_width == 0
             || self.max_height == 0
             || distinct.is_empty()
@@ -100,13 +104,14 @@ fn identifier(s: &str) -> bool {
         })
 }
 fn path(s: &str) -> bool {
-    s.starts_with('/')
-        && s.len() > 1
+    s.len() > 1
+        && s.starts_with('/')
         && !s.ends_with('/')
-        && !s.contains(['?', '#', '%', '\\'])
-        && !s.chars().any(char::is_whitespace)
         && s[1..].split('/').all(|part| {
-            !part.is_empty() && part != "." && part != ".." && !part.contains(['{', '}'])
+            !part.is_empty()
+                && part
+                    .chars()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '_')
         })
 }
 

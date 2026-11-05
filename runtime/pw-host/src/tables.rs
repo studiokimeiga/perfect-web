@@ -887,12 +887,10 @@ impl Manifest {
         let uploads = crate::assets::Manifest::from_json(text)?;
         let mut sources = BTreeSet::new();
         for declaration in uploads.declarations() {
-            sources.insert(declaration.source().to_string());
+            sources.insert(Some(declaration.source().to_string()));
         }
         for table in &self.tables {
-            if let Some(source) = &table.source {
-                sources.insert(source.clone());
-            }
+            sources.insert(table.source.clone());
             let mut fields = BTreeSet::new();
             for asset in &table.assets {
                 if table.owner.is_some() || !table.shares.is_empty() || !table.private.is_empty() {
@@ -904,11 +902,6 @@ impl Manifest {
                 let declaration = uploads
                     .declaration(&asset.upload)
                     .ok_or("upload binding: undeclared upload")?;
-                if table.source.as_deref() != Some(declaration.source()) {
-                    return Err(
-                        "upload binding: asset and upload need the same explicit source".into(),
-                    );
-                }
                 let field = table
                     .fields
                     .iter()

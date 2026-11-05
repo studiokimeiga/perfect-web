@@ -1672,7 +1672,8 @@ pub mod engine {
             D: FnMut(&str, &[&Val]) -> Result<bool, String>,
         {
             let left = self.authorize_with_tables_as(
-                contract, limits, platform, tables, predicates, caller, export, args, deployment,
+                contract, granted, limits, platform, tables, predicates, caller, export, args,
+                deployment,
             )?;
             let mut host = platform.clone();
             host.extend(tables.functions(contract, granted)?);
@@ -1691,6 +1692,44 @@ pub mod engine {
             .map_err(InvocationError::from)
         }
 
+        /// Root declaration, actual grant and imported ABI admission, without
+        /// body callbacks or data work. Cached queries with no predicate need
+        /// this check too; predicate authorization remains invocation-specific.
+        pub fn admit_with_tables_as(
+            &self,
+            contract: &crate::ComponentContract,
+            granted: &crate::Granted,
+            tables: &crate::tables::Manifest,
+            caller: &crate::tables::Caller,
+            export: &[&str],
+            args: &[Val],
+        ) -> Result<(), InvocationError> {
+            identity_caller(contract, caller, export)?;
+            self.hold_arguments(contract, export, args)?;
+            let command = export_kind(contract, export) == Some("command");
+            for (key, access) in
+                crate::tables::gate_links(contract, granted, Some(tables), command)?
+            {
+                let (interface, name) = key
+                    .split_once('#')
+                    .ok_or_else(|| String::from("table import has no operation"))?;
+                let ty = imported_func(&self.engine, &self.component, interface, name)
+                    .ok_or_else(|| format!("{key} is no actual imported function"))?;
+                table_link::check_import(&access, &ty)?;
+            }
+            for (key, access) in
+                crate::assets::gate_links(contract, granted, tables.uploads(), command)?
+            {
+                let (interface, name) = key
+                    .split_once('#')
+                    .ok_or_else(|| String::from("upload import has no operation"))?;
+                let ty = imported_func(&self.engine, &self.component, interface, name)
+                    .ok_or_else(|| format!("{key} is no actual imported function"))?;
+                upload_link::check_import(&access, &ty)?;
+            }
+            Ok(())
+        }
+
         /// Check this invocation's requirements without running its body,
         /// for a host about to reuse a cached value. Predicate evaluation is
         /// identical to a fresh execution and bounded by the supplied fuel.
@@ -1699,6 +1738,7 @@ pub mod engine {
         pub fn authorize_with_tables_as<D>(
             &self,
             contract: &crate::ComponentContract,
+            granted: &crate::Granted,
             limits: &crate::Limits,
             platform: &std::collections::BTreeMap<String, HostFn>,
             tables: &dyn CallTables,
@@ -1711,9 +1751,7 @@ pub mod engine {
         where
             D: FnMut(&str, &[&Val]) -> Result<bool, String>,
         {
-            identity_caller(contract, caller, export)?;
-            // Its arguments decoded before a predicate reads them.
-            self.hold_arguments(contract, export, args)?;
+            self.admit_with_tables_as(contract, granted, tables.manifest(), caller, export, args)?;
             // A table's function is the call's tables', which the gate
             // admits for each component it links; never the platform's.
             if let Some(key) = platform
@@ -3340,6 +3378,7 @@ pub mod engine {
         // table a contract claims (ADR-0338 D2; the integrator's ruling 2 of
         // 2026-10-25). `call_with_tables` links one through the gate.
         crate::tables::gate_links(contract, granted, None, false)?;
+        crate::assets::gate_links(contract, granted, None, false)?;
 
         // **Grouped by interface, and only the FUNCTIONS.**
         //

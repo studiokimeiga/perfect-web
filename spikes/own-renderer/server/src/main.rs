@@ -5684,19 +5684,26 @@ impl Server {
             .component
             .as_ref()
             .ok_or_else(|| format!("`{component_id}` has no export path"))?;
-        if export.authorization.is_empty() {
-            return Ok(());
-        }
-        let _granted = self.authorise(component_id)?;
+        let granted = self.authorise(component_id)?;
         let prepared = &self
             .components
             .get(component_id)
             .ok_or_else(|| format!("no compiled component `{component_id}`"))?
             .prepared;
-        let predicates = self.program_predicates(contract)?;
         let caller = self.invocation_caller(session);
         let empty = pw_host::tables::Manifest::from_json(r#"{"tables":[]}"#)?;
         let manifest = self.data.tables().unwrap_or(&empty);
+        if export.authorization.is_empty() {
+            return prepared.admit_with_tables_as(
+                contract,
+                &granted,
+                manifest,
+                &caller,
+                &[&export.interface, &export.function],
+                args,
+            );
+        }
+        let predicates = self.program_predicates(contract)?;
         self.with_query_ops(session, None, |host, tables| {
             let call = TableCall {
                 manifest,
@@ -5706,6 +5713,7 @@ impl Server {
             prepared
                 .authorize_with_tables_as(
                     contract,
+                    &granted,
                     &Self::invocation_limits(),
                     host,
                     &call,
