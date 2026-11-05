@@ -776,3 +776,43 @@ their guard once the otherwise-supported Ref.kind encoding is installed.
 The pinned Wasmtime variant API was inspected in the installed crate source:
 Variant::cases yields ordered name and optional Type, and payload-free cases
 still use Type::Variant/Val::Variant. No dependency/version change is needed.
+
+
+### Runtime upload binding and registry ownership
+
+Accepted 2026-11-04 before implementation. Keep the compiler's uploads.json and
+tables.json as separate projections. A shared pw-host assets module reads the
+upload metadata and defines immutable reference/descriptor and transition types.
+Bind that validated upload manifest explicitly to the existing host table
+Manifest, which row-aware engine calls already carry. Every pw:uploads import,
+including an unused one, must pass its declaration identity, independent
+database/resource contract and actual-grant checks, and actual Wasmtime ABI.
+An unbound import fails closed. No implicit binding from a host closure's key.
+The compiler's nominal types remain the source authority; WIT structure and a
+plain Ref provide no lease or publication authority.
+
+At binding, validate public top-level Ref/Option<Ref> asset fields, exact stored
+descriptor/closed-kind shape, unique associations, actual declaration identity,
+unambiguous route/serving identities and the single explicit source supported
+by these adapters. Persist immutable base declaration and asset association
+metadata. Refuse changed/removed bindings, including opening an old asset
+database with a new manifest that has no assets. Base declaration changes are
+conservatively refused in this first slice; deployment-lowered admission limits
+remain separate and do not retroactively change descriptors. No automatic
+conversion of the legacy feed/store database is introduced.
+
+Use indexed memory state and PostgreSQL platform rows, with shared pure
+per-generation transition rules, not a whole-registry JSON snapshot. Retain
+existing platform migration bytes/checksums and append a migration for namespace,
+declarations/bindings, immutable generations, current positive per-declaration
+reference counts and captured-generation cleanup jobs. Choose current LIVE or
+fresh generation and validate every final touched reference under lifetime
+exclusion; compute final net counts across ordinary mutations. Apply registry
+transitions and cleanup jobs in the same command transaction. Resource and
+registry work must remain visible in the adapter's cost accounting.
+
+The shared storage boundary uses enrolled namespace, captured generation and
+content hash. Server local/memory implementations supply physical storage; no
+application operation appears in this boundary. Keep the original upload and
+mixed-layer startup guards until the accepted lifecycle, uncertain-outcome,
+namespace, HTTP and real PostgreSQL backend-death witnesses pass.
