@@ -712,7 +712,11 @@ pub(crate) fn apply(
         uploads,
         &mut namespace,
     )
-    .and_then(|()| crate::assets::verify(conn, counters, names, uploads, namespace.as_ref()));
+    .and_then(|()| {
+        conn.batch(counters, "SET CONSTRAINTS ALL IMMEDIATE")
+            .map_err(database)?;
+        crate::assets::verify(conn, counters, names, uploads, namespace.as_ref())
+    });
     match applied {
         Ok(()) => {
             conn.batch(counters, "COMMIT").map_err(database)?;

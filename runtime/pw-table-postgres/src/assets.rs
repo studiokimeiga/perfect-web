@@ -108,6 +108,7 @@ pub(crate) fn enroll(
         bindings,
     } = read_metadata(conn, counters, names)?;
     let qualified = |table: &str| names.qualified(table);
+    check_recorded_bindings(recorded, &bindings)?;
     let Some(config) = config else {
         if recorded.is_some_and(|schema| schema.tables.iter().any(|table| !table.assets.is_empty()))
         {
@@ -306,6 +307,34 @@ pub(crate) fn verify(
         return Err(Error::Schema(
             "upload persisted enrollment metadata changed before commit".into(),
         ));
+    }
+    Ok(())
+}
+
+/// Schema history remains authoritative even if only part of the enrollment
+/// metadata disappeared. Apply this to bound and unbound constructors alike.
+fn check_recorded_bindings(
+    recorded: Option<&Schema>,
+    bindings: &BTreeMap<(String, String), Value>,
+) -> Result<(), Error> {
+    if let Some(recorded) = recorded {
+        for table in &recorded.tables {
+            for asset in &table.assets {
+                let field = table
+                    .fields
+                    .iter()
+                    .find(|field| field.name == asset.field)
+                    .ok_or_else(|| {
+                        Error::Drift("recorded upload association names no field".into())
+                    })?;
+                let expected = json!({"upload":asset.upload,"field":field});
+                if bindings.get(&(table.name.clone(), asset.field.clone())) != Some(&expected) {
+                    return Err(Error::Schema(
+                        "recorded upload bindings have lost their enrollment metadata".into(),
+                    ));
+                }
+            }
+        }
     }
     Ok(())
 }

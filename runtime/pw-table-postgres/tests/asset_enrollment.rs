@@ -204,7 +204,11 @@ fn changed_base_declaration_refuses_before_an_additive_application_column_is_app
     let mut uploads: serde_json::Value = serde_json::from_str(&changed.uploads).unwrap();
     uploads[0]["max_bytes"] = json!(4_000_000);
     changed.uploads = uploads.to_string();
-    assert!(open(&s, changed, &store, 2).is_err());
+    let refusal = open(&s, changed, &store, 2).err();
+    assert!(
+        matches!(&refusal,Some(pw_table_postgres::Error::Schema(why)) if why=="upload declaration PostImage changed or was removed"),
+        "immutable metadata must refuse before app DDL: {refusal:?}"
+    );
     assert_eq!(s.texts("SELECT count(*)::text FROM information_schema.columns WHERE table_schema=current_schema() AND column_name='caption'"),["0"]);
     assert_eq!(
         s.texts("SELECT declaration->>'max_bytes' FROM pw_asset_declarations"),
@@ -342,7 +346,11 @@ fn changed_binding_identity_refuses_before_additive_application_ddl() {
     changed.uploads = uploads.to_string();
     changed.tables.tables[0].schema.assets[0].upload = "Avatar".into();
     rehash(&mut changed.tables);
-    assert!(open(&s, changed, &store, 2).is_err());
+    let refusal = open(&s, changed, &store, 2).err();
+    assert!(
+        matches!(&refusal,Some(pw_table_postgres::Error::Schema(why)) if why=="upload binding Assets.image changed or was removed"),
+        "immutable metadata must refuse before app DDL: {refusal:?}"
+    );
     assert_eq!(
         s.texts("SELECT upload FROM pw_asset_bindings"),
         ["PostImage"]
@@ -362,9 +370,10 @@ fn suppressed_namespace_or_binding_insertion_refuses_and_rolls_back_the_metadata
         rehash(&mut empty);
         PgTables::open(&url, s.schema(), empty).assert_ok("platform on empty app schema");
         s.sql(&format!("CREATE FUNCTION suppress_asset_insert() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RETURN NULL; END $$; CREATE TRIGGER suppress BEFORE INSERT ON {suppressed} FOR EACH ROW EXECUTE FUNCTION suppress_asset_insert()" )).assert_ok("suppress actual metadata insert");
+        let refusal = open(&s, model("", false), &store, 1).err();
         assert!(
-            open(&s, model("", false), &store, 1).is_err(),
-            "a suppressed {suppressed} insert cannot count as enrolled"
+            matches!(&refusal,Some(pw_table_postgres::Error::Schema(why)) if why=="upload metadata insert was suppressed"),
+            "suppression must refuse before application DDL: {refusal:?}"
         );
         assert_eq!(
             s.texts("SELECT count(*)::text FROM pw_asset_namespace"),
@@ -488,7 +497,7 @@ fn a_rewritten_binding_insert_is_not_successful_enrollment() {
     rewriting_metadata_trigger_refuses("binding");
 }
 
-fn late_namespace_rewrite_refuses(table: &str) {
+fn late_namespace_rewrite_refuses(table: &str, deferred: bool) {
     let Some(url) = common::database() else {
         return;
     };
@@ -499,7 +508,13 @@ fn late_namespace_rewrite_refuses(table: &str) {
     rehash(&mut empty);
     PgTables::open(&url, s.schema(), empty).assert_ok("platform on empty schema");
     let changed = Namespace::from_bytes([9; 16]);
-    s.sql(&format!("CREATE FUNCTION rewrite_namespace_late() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN UPDATE \"{}\".pw_asset_namespace SET namespace='{}'; RETURN NEW; END $$; CREATE TRIGGER rewrite_late AFTER INSERT ON {table} FOR EACH ROW EXECUTE FUNCTION rewrite_namespace_late()",s.schema,changed.hex())).assert_ok("after-insert rewrite hook");
+    let constraint = if deferred { "CONSTRAINT " } else { "" };
+    let timing = if deferred {
+        " DEFERRABLE INITIALLY DEFERRED"
+    } else {
+        ""
+    };
+    s.sql(&format!("CREATE FUNCTION rewrite_namespace_late() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN UPDATE \"{}\".pw_asset_namespace SET namespace='{}'; RETURN NEW; END $$; CREATE {constraint}TRIGGER rewrite_late AFTER INSERT ON {table}{timing} FOR EACH ROW EXECUTE FUNCTION rewrite_namespace_late()",s.schema,changed.hex())).assert_ok("after-insert rewrite hook");
     let refusal = open(&s, model("", false), &store, 1).err();
     assert!(
         matches!(&refusal,Some(pw_table_postgres::Error::Schema(why)) if why=="upload persisted enrollment metadata changed before commit"),
@@ -523,11 +538,11 @@ fn late_namespace_rewrite_refuses(table: &str) {
 }
 #[test]
 fn an_after_insert_rewrite_cannot_hide_behind_returning_values() {
-    late_namespace_rewrite_refuses("pw_asset_namespace");
+    late_namespace_rewrite_refuses("pw_asset_namespace", false);
 }
 #[test]
 fn application_schema_recording_cannot_rewrite_the_enrolled_namespace_after_validation() {
-    late_namespace_rewrite_refuses("pw_schema");
+    late_namespace_rewrite_refuses("pw_schema", false);
 }
 
 #[test]
@@ -588,4 +603,54 @@ fn an_unbound_open_rechecks_that_application_schema_recording_created_no_upload_
         .assert_ok("valid neighbor");
     PgTables::open(&url, s.schema(), next)
         .assert_ok("ordinary unbound schema without injected metadata");
+}
+
+#[test]
+fn deferred_schema_recording_cannot_rewrite_namespace_after_the_final_metadata_check() {
+    late_namespace_rewrite_refuses("pw_schema", true);
+}
+
+fn bound_history_loss_refuses(partial: bool) {
+    let Some(url) = common::database() else {
+        return;
+    };
+    let s = common::Scratch::new(&url, "asset_bound_history");
+    let store = Arc::new(MarkerStore::default());
+    open(&s, model("image", false), &store, 1).assert_ok("two recorded asset associations");
+    let history = s.texts("SELECT hash FROM pw_schema ORDER BY applied");
+    let mut changed = model("image", false);
+    if partial {
+        s.sql("DELETE FROM pw_asset_bindings WHERE field_name='extra'")
+            .assert_ok("lose one persisted association");
+        changed.tables.tables[0]
+            .schema
+            .assets
+            .retain(|a| a.field != "extra");
+    } else {
+        s.sql("DELETE FROM pw_asset_bindings; DELETE FROM pw_asset_declarations; DELETE FROM pw_asset_namespace").assert_ok("lose all authority maps");
+        changed.tables.tables[0].schema.assets.clear();
+    }
+    rehash(&mut changed.tables);
+    let refusal = open(&s, changed, &store, 2).err();
+    assert!(
+        matches!(&refusal,Some(pw_table_postgres::Error::Schema(why)) if why=="recorded upload bindings have lost their enrollment metadata"),
+        "a bound wrapper cannot erase recorded associations after metadata loss: {refusal:?}"
+    );
+    assert_eq!(
+        s.texts("SELECT hash FROM pw_schema ORDER BY applied"),
+        history
+    );
+    assert_eq!(
+        store.names.lock().unwrap().len(),
+        1,
+        "history refusal precedes fresh namespace enrollment"
+    );
+}
+#[test]
+fn a_bound_open_cannot_erase_recorded_associations_after_all_authority_maps_are_lost() {
+    bound_history_loss_refuses(false);
+}
+#[test]
+fn a_bound_open_cannot_erase_a_recorded_association_after_partial_binding_loss() {
+    bound_history_loss_refuses(true);
 }

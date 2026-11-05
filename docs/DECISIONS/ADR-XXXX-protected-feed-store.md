@@ -992,3 +992,13 @@ The recorded application schema is also an enrollment-history backstop. If it
 has asset associations, an unbound open refuses even when all current namespace,
 declaration and binding rows were lost. Missing authority metadata is drift,
 not evidence that the schema was never enrolled; do not overwrite that history.
+
+The history check applies to every constructor: a bound wrapper cannot omit a
+recorded association after full or partial persisted-binding loss. Compare each
+recorded association/field to its current persisted binding before enrollment.
+Flush pending deferrable constraints/triggers after application schema recording
+and BEFORE final metadata verification, using SET CONSTRAINTS ALL IMMEDIATE.
+Otherwise a deferred schema-record hook could rewrite namespace at COMMIT after
+the verification read. Native immediate/deferred trigger regressions and valid
+neighbors pin this order. Primary PostgreSQL18 documentation:
+[SET CONSTRAINTS](https://www.postgresql.org/docs/18/sql-set-constraints.html).

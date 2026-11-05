@@ -70,8 +70,10 @@ POOL = CRATE / "src/pool.rs"
 CARGO = ROOT / "Cargo.toml"
 
 MUTANTS = [
+    ('upload enrollment verifies metadata before deferred schema hooks finish', ROOT / 'runtime/pw-table-postgres/src/migrate.rs',
+     '"SET CONSTRAINTS ALL IMMEDIATE"', '"SELECT 1"'),
     ('upload enrollment erases asset history after metadata loss', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
-     '        if recorded.is_some_and(|schema| schema.tables.iter().any(|table| !table.assets.is_empty()))', '        if false && recorded.is_some_and(|schema| schema.tables.iter().any(|table| !table.assets.is_empty()))'),
+     '                if bindings.get(&(table.name.clone(), asset.field.clone())) != Some(&expected) {', '                if false && bindings.get(&(table.name.clone(), asset.field.clone())) != Some(&expected) {'),
     ('upload enrollment accepts rewritten persisted metadata after schema recording', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
      '    if stored != expected {', '    if false && stored != expected {'),
     ('upload enrollment skips final metadata verification for unbound manifests', ROOT / 'runtime/pw-table-postgres/src/assets.rs',
