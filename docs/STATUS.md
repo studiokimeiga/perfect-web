@@ -41,6 +41,11 @@ Generic upload declaration source `a1f4b2dc` passed frozen selected compiler
 checks, memory/PostgreSQL and preflight, plus 14/14 strict declaration controls;
 separate immutable review is clear. The old asset storage guards remain closed.
 See the [declaration record](diagnostics/protected-upload-declarations-2026-11-04.md).
+Closed-case upload kind wire source `df206cfa` passed frozen host119 (9 existing
+ignored), memory140, actual PostgreSQL102, selected server63, preflight5,283 and
+18/18 strict controls. Review-reproduced additive-column type drift is repaired
+and independently re-reviewed. See the [wire record](diagnostics/protected-upload-cases-2026-11-04.md).
+Asset storage/lifetime integration remains next; its guards stay closed.
 Earlier green records below apply to their named sources only.
 
 **Local row browsers and PostgreSQL, 2026-11-03:** code/test source
