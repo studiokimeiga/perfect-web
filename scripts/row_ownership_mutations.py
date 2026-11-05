@@ -71,6 +71,8 @@ HOST_RELATIONS = ROOT / "runtime/pw-host/src/tables/relations.rs"
 CORE_RELATIONS = ROOT / "compiler/pw-core/src/tables/relations.rs"
 
 MUTANTS = [
+    ('upload storage reads unbounded bytes after metadata validation', ROOT / 'spikes/own-renderer/server/src/blob/assets.rs',
+     '    reader.take(cap).read_to_end(&mut bytes)?;', '    reader.take(cap.saturating_add(1_048_576)).read_to_end(&mut bytes)?;'),
     ('upload storage ignores namespace markers', ROOT / 'spikes/own-renderer/server/src/blob/assets.rs',
      '        exact_marker(&dir.join(".namespace"), &Self::namespace_marker(namespace))?;', '        let _ = Self::namespace_marker(namespace);'),
     ('upload storage reuses incomplete generation reservations', ROOT / 'spikes/own-renderer/server/src/blob/assets.rs',

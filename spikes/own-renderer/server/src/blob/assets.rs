@@ -151,15 +151,18 @@ fn read_sized(path: &Path, length: u64) -> io::Result<Option<Vec<u8>>> {
     if file.metadata()?.len() != length {
         return Err(invalid("stored generation length changed"));
     }
+    read_bounded(file, length).map(Some)
+}
+fn read_bounded(reader: impl Read, length: u64) -> io::Result<Vec<u8>> {
     let cap = length
         .checked_add(1)
         .ok_or_else(|| invalid("generation length overflow"))?;
     let mut bytes = Vec::new();
-    file.take(cap).read_to_end(&mut bytes)?;
+    reader.take(cap).read_to_end(&mut bytes)?;
     if bytes.len() as u64 != length {
         return Err(invalid("generation length changed during read"));
     }
-    Ok(Some(bytes))
+    Ok(bytes)
 }
 fn exact_marker(path: &Path, expected: &[u8]) -> io::Result<()> {
     if read_sized(path, expected.len() as u64)?.as_deref() != Some(expected) {
@@ -546,5 +549,42 @@ mod reservation_tests {
         );
         assert!(dir.is_dir());
         std::fs::remove_dir_all(&root).expect("remove isolated test root");
+    }
+}
+
+#[cfg(test)]
+mod bounded_read_tests {
+    use super::*;
+    use std::sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    };
+    struct Counted {
+        bytes: std::io::Cursor<Vec<u8>>,
+        consumed: Arc<AtomicUsize>,
+    }
+    impl Read for Counted {
+        fn read(&mut self, into: &mut [u8]) -> io::Result<usize> {
+            let n = self.bytes.read(into)?;
+            self.consumed.fetch_add(n, Ordering::SeqCst);
+            Ok(n)
+        }
+    }
+    #[test]
+    fn a_payload_growing_after_its_metadata_check_reads_at_most_expected_length_plus_one() {
+        let consumed = Arc::new(AtomicUsize::new(0));
+        let input = Counted {
+            bytes: std::io::Cursor::new(vec![0; 1_048_576]),
+            consumed: Arc::clone(&consumed),
+        };
+        assert!(read_bounded(input, 8).is_err(), "growth refuses");
+        assert!(
+            consumed.load(Ordering::SeqCst) <= 9,
+            "a refused read must still bound bytes consumed"
+        );
+        assert_eq!(
+            read_bounded(std::io::Cursor::new(b"exact bytes"), 11).expect("valid neighbor"),
+            b"exact bytes"
+        );
     }
 }
