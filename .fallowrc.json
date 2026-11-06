@@ -7,7 +7,10 @@
     "benchmarks/harness/bench.mjs",
     "benchmarks/harness/test/**/*.mjs",
     "benchmarks/baselines/sveltekit/vendor/deepmerge/test.cjs",
-    "benchmarks/baselines/sveltekit/vendor/deepmerge/consumer-test.cjs"
+    "benchmarks/baselines/sveltekit/vendor/deepmerge/consumer-test.cjs",
+    "site/build.mjs",
+    "site/build.test.mjs",
+    "site/www/worker.mjs"
   ],
   "workspaces": {
     "patterns": [
