@@ -45,14 +45,26 @@ const GUIDE = [
 /** The file a path is served from (`html_handling`'s `auto-trailing-slash`). */
 const fileOf = (path) => (path.endsWith("/") ? `${path}index.html` : `${path}.html`).slice(1);
 
+/** A link that leaves the guide's own files: to another scheme, another
+ * host, or a place on its own page. */
+const ABSOLUTE = /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i;
+
 /** A link the guide writes, as the site serves it: a page of the guide is the
  * site's, anything else in the repository is GitHub's. */
 function guideLink(url) {
-  if (/^[a-z][a-z0-9+.-]*:/i.test(url) || url.startsWith("//") || url.startsWith("#")) return url;
+  if (ABSOLUTE.test(url)) return url;
   const [path, hash] = url.split("#");
   const anchor = hash ? `#${hash}` : "";
-  const page = GUIDE.find((p) => path === `${p.name}.md` || path === `./${p.name}.md`);
-  if (page) return page.path + anchor;
+  const page = guidePageAt(path);
+  return page ? page.path + anchor : repositoryLink(path, anchor);
+}
+
+/** The page of the guide a relative link names, if it names one. */
+function guidePageAt(path) {
+  return GUIDE.find((p) => path === `${p.name}.md` || path === `./${p.name}.md`);
+}
+
+function repositoryLink(path, anchor) {
   const target = posix.normalize(posix.join("docs/guide", path));
   return `${path.endsWith("/") ? TREE : BLOB}/${target}${anchor}`;
 }
@@ -200,19 +212,36 @@ ${body}
 `;
 }
 
-/** A page's first paragraph, as plain text for its description. */
-function summaryOf(html, fallback) {
+/** The five entities `escapeHtml` writes, and the characters they are. */
+const ENTITIES = new Map([
+  ["&amp;", "&"],
+  ["&lt;", "<"],
+  ["&gt;", ">"],
+  ["&quot;", '"'],
+  ["&#39;", "'"],
+]);
+
+/** A page's first paragraph, as plain text for its description: its tags
+ * dropped, then its entities read in one pass, so that no `&` one of them
+ * gives starts another. `page` escapes the text again where it writes it. */
+export function summaryOf(html, fallback) {
   const p = /<p>([\s\S]*?)<\/p>/.exec(html)?.[1] ?? fallback;
-  const text = p
-    .replace(/<[^>]+>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
+  const text = withoutTags(p)
+    .replace(/&(?:amp|lt|gt|quot|#39);/g, (entity) => ENTITIES.get(entity))
     .replace(/\s+/g, " ")
     .trim();
   return text.length > 158 ? `${text.slice(0, 155).replace(/\s+\S*$/, "")}…` : text;
+}
+
+/** `html` with its tags dropped, again until no tag is left. */
+function withoutTags(html) {
+  let text = html;
+  let was;
+  do {
+    was = text;
+    text = text.replace(/<[^>]+>/g, "");
+  } while (text !== was);
+  return text;
 }
 
 // --- the guide --------------------------------------------------------------
@@ -223,27 +252,11 @@ const examples = new Map();
 
 function guidePage(entry, index) {
   const md = readFileSync(join(ROOT, "docs/guide", `${entry.name}.md`), "utf8");
-  let previous = null;
+  const kept = { previous: null };
   const code = (text, info, context) => {
-    const [lang = "", ...rest] = info.split(/\s+/).filter(Boolean);
-    const attrs = Object.fromEntries(rest.filter((r) => r.includes("=")).map((r) => r.split("=", 2)));
-    const flags = rest.filter((r) => !r.includes("="));
-    const fails = attrs.fails ? attrs.fails.split(",") : [];
-    const where = { page: entry, heading: context.heading };
-    const output = lang === "text" && flags.includes("pw-check");
-    if (fails.length) {
-      previous = { text, file: attrs.file ?? null, fails, where, output: null };
-      for (const c of fails) {
-        if (!examples.has(c)) examples.set(c, []);
-        examples.get(c).push(previous);
-      }
-    } else if (output && previous && previous.where.heading === context.heading) {
-      previous.output = text;
-      previous = null;
-    } else {
-      previous = null;
-    }
-    return codeFigure(text, { lang, file: attrs.file, fails, gap: attrs.gap, output });
+    const block = blockInfo(info);
+    keep(kept, text, block, { page: entry, heading: context.heading });
+    return codeFigure(text, block);
   };
   const diagnostics = entry.name === "diagnostics";
   const { html, title } = renderMarkdown(md, {
@@ -271,18 +284,58 @@ ${pager}
   return { path: entry.path, title, description: summaryOf(html, title), body };
 }
 
+/** A fenced block's info string, read: its language, its file, the codes the
+ * compiler refuses it with, its gap, and whether it is `pw check`'s output. */
+function blockInfo(info) {
+  const [lang = "", ...rest] = info.split(/\s+/).filter(Boolean);
+  const attrs = Object.fromEntries(rest.filter((r) => r.includes("=")).map((r) => r.split("=", 2)));
+  const fails = attrs.fails ? attrs.fails.split(",") : [];
+  return { lang, file: attrs.file, fails, gap: attrs.gap, output: lang === "text" && rest.includes("pw-check") };
+}
+
+/** Each example the guide refuses with a code, kept by code, and with it
+ * `pw check`'s output where the next block, under the same heading, is it. */
+function keep(kept, text, block, where) {
+  if (block.fails.length) keepExample(kept, text, block, where);
+  else keepOutput(kept, text, block, where);
+}
+
+function keepExample(kept, text, block, where) {
+  kept.previous = { text, file: block.file ?? null, fails: block.fails, where, output: null };
+  for (const c of block.fails) {
+    if (!examples.has(c)) examples.set(c, []);
+    examples.get(c).push(kept.previous);
+  }
+}
+
+function keepOutput(kept, text, block, where) {
+  if (block.output && kept.previous?.where.heading === where.heading) kept.previous.output = text;
+  kept.previous = null;
+}
+
 /** A block of code: Pleris coloured, the compiler's output as it prints it,
  * and above it what the guide says of it. */
-function codeFigure(text, { lang, file, fails = [], gap, output }) {
-  const caption = [];
-  if (file) caption.push(`<span>${escapeHtml(file)}</span>`);
-  if (output) caption.push("<span>pw check</span>");
-  if (fails.length) {
-    caption.push(`<span class="refused">Refused: ${fails.map((c) => `<a href="/e/${c}">${c}</a>`).join(", ")}</span>`);
-  }
-  if (gap) caption.push(`<span>A gap: <code>pw ${escapeHtml(gap)}</code> passes this today</span>`);
+function codeFigure(text, block) {
+  return `<figure class="code${block.output ? " output" : ""}">${captionOf(block)}<pre tabindex="0">${codeOf(text, block.lang)}</pre></figure>`;
+}
+
+/** What the guide says of a block, each where it says it: its file, that it
+ * is `pw check`'s output, the codes it is refused with, and its gap. */
+const CAPTION = [
+  (b) => b.file && `<span>${escapeHtml(b.file)}</span>`,
+  (b) => b.output && "<span>pw check</span>",
+  (b) => b.fails?.length > 0 && `<span class="refused">Refused: ${b.fails.map((c) => `<a href="/e/${c}">${c}</a>`).join(", ")}</span>`,
+  (b) => b.gap && `<span>A gap: <code>pw ${escapeHtml(b.gap)}</code> passes this today</span>`,
+];
+
+function captionOf(block) {
+  const said = CAPTION.map((part) => part(block)).filter(Boolean);
+  return said.length ? `<figcaption>${said.join("")}</figcaption>` : "";
+}
+
+function codeOf(text, lang) {
   const body = lang === "pw" ? highlightPw(text) : escapeHtml(text);
-  return `<figure class="code${output ? " output" : ""}">${caption.length ? `<figcaption>${caption.join("")}</figcaption>` : ""}<pre tabindex="0"><code${lang ? ` class="language-${escapeHtml(lang)}"` : ""}>${body}</code></pre></figure>`;
+  return `<code${lang ? ` class="language-${escapeHtml(lang)}"` : ""}>${body}</code>`;
 }
 
 // --- the codes --------------------------------------------------------------
@@ -290,28 +343,56 @@ function codeFigure(text, { lang, file, fails = [], gap, output }) {
 /** The diagnostic codes, from the guide's list of them. */
 function codes() {
   const lines = readFileSync(join(ROOT, "docs/guide/diagnostics.md"), "utf8").split("\n");
-  const active = [];
-  const retired = [];
-  const renumbered = [];
+  const catalog = { active: [], retired: [], renumbered: [] };
+  for (const { section, rows } of tablesIn(lines)) {
+    for (const row of rows) catalogue(catalog, section, row);
+  }
+  return catalog;
+}
+
+/** Each table in a Markdown file's lines, with the `##` section it is under:
+ * its rows, each a record by its head's cells. */
+function tablesIn(lines) {
+  const tables = [];
   let section = null;
   for (let i = 0; i < lines.length; i++) {
-    const heading = /^## (.+)$/.exec(lines[i]);
-    if (heading) {
-      section = heading[1].trim();
-      continue;
-    }
-    if (!lines[i].startsWith("|") || !/^\|[\s:|-]+\|?\s*$/.test(lines[i + 1] ?? "")) continue;
-    const head = cellsOf(lines[i]);
-    for (i += 2; i < lines.length && lines[i].startsWith("|"); i++) {
-      const cells = cellsOf(lines[i]);
-      const row = Object.fromEntries(head.map((h, k) => [h, cells[k] ?? ""]));
-      if (section === "Retired codes") retired.push({ code: row.Code, why: row.Why });
-      else if (section === "Old numbers") renumbered.push({ code: row["Old number"], now: row.Now, symbol: row.Symbol });
-      else active.push({ code: row.Code, symbol: row.Symbol.replace(/`/g, ""), rule: row["What the program must hold to"], adr: row.ADR, section });
-    }
-    i--;
+    section = sectionOf(lines[i], section);
+    if (!tableStarts(lines, i)) continue;
+    const end = rowsEnd(lines, i + 2);
+    tables.push({ section, rows: recordsOf(lines.slice(i, end)) });
+    i = end - 1;
   }
-  return { active, retired, renumbered };
+  return tables;
+}
+
+/** The section a `##` heading begins, or the one a line is already in. */
+function sectionOf(line, section) {
+  return /^## (.+)$/.exec(line)?.[1].trim() ?? section;
+}
+
+function tableStarts(lines, i) {
+  return lines[i].startsWith("|") && /^\|[\s:|-]+\|?\s*$/.test(lines[i + 1] ?? "");
+}
+
+function rowsEnd(lines, from) {
+  let end = from;
+  while (end < lines.length && lines[end].startsWith("|")) end++;
+  return end;
+}
+
+/** A table's rows after its head and alignments, each by its head's cells. */
+function recordsOf(rows) {
+  const head = cellsOf(rows[0]);
+  return rows.slice(2).map((row) => {
+    const cells = cellsOf(row);
+    return Object.fromEntries(head.map((h, k) => [h, cells[k] ?? ""]));
+  });
+}
+
+function catalogue(catalog, section, row) {
+  if (section === "Retired codes") catalog.retired.push({ code: row.Code, why: row.Why });
+  else if (section === "Old numbers") catalog.renumbered.push({ code: row["Old number"], now: row.Now, symbol: row.Symbol });
+  else catalog.active.push({ code: row.Code, symbol: row.Symbol.replace(/`/g, ""), rule: row["What the program must hold to"], adr: row.ADR, section });
 }
 
 const md = (text) => inline(text, { link: guideLink });
@@ -327,7 +408,7 @@ function codePage(entry) {
       return `${codeFigure(ex.text, { lang: "pw", file: ex.file, fails: ex.fails })}${out}<p class="note">From ${from}. A test holds the guide's examples to the compiler.</p>`;
     })
     .join("\n");
-  const adrs = entry.adr && entry.adr !== "—" ? `<h2>The decisions behind it</h2><p>${md(entry.adr)}</p>` : "";
+  const adrs = decisionsOf(entry);
   const body = `<article class="prose">
 <p class="crumbs"><a href="/e/">Error codes</a> · ${escapeHtml(entry.section)}</p>
 <h1><code>${entry.code}</code></h1>
@@ -344,6 +425,10 @@ ${adrs}
     description: `${entry.code} (${entry.symbol}): the program must hold to this: ${summaryOf(`<p>${md(entry.rule)}</p>`, entry.rule)}.`,
     body,
   };
+}
+
+function decisionsOf(entry) {
+  return entry.adr && entry.adr !== "—" ? `<h2>The decisions behind it</h2><p>${md(entry.adr)}</p>` : "";
 }
 
 function retiredPage(entry) {
@@ -510,15 +595,33 @@ ${rows}
   };
 }
 
+/** The two pages for an address with nothing at it: the site's, and the
+ * codes'. */
+const NOT_FOUND = {
+  site: {
+    path: "/404",
+    title: "Not found",
+    lead: "There is no page at this address.",
+    links: '<a href="/">Pleris</a> · <a href="/guide/">The guide</a> · <a href="/e/">Error codes</a>',
+  },
+  codes: {
+    path: "/e/404",
+    title: "No such code",
+    lead: "The compiler prints no code with this number.",
+    links: '<a href="/e/">Every code</a>, with its rule.',
+  },
+};
+
 function notFound(inCodes) {
+  const { path, title, lead, links } = inCodes ? NOT_FOUND.codes : NOT_FOUND.site;
   return {
-    path: inCodes ? "/e/404" : "/404",
-    title: inCodes ? "No such code" : "Not found",
+    path,
+    title,
     description: "There is no page here.",
     body: `<article class="prose">
-<h1>${inCodes ? "No such code" : "Not found"}</h1>
-<p class="lead">${inCodes ? "The compiler prints no code with this number." : "There is no page at this address."}</p>
-<p>${inCodes ? '<a href="/e/">Every code</a>, with its rule.' : '<a href="/">Pleris</a> · <a href="/guide/">The guide</a> · <a href="/e/">Error codes</a>'}</p>
+<h1>${title}</h1>
+<p class="lead">${lead}</p>
+<p>${links}</p>
 </article>`,
   };
 }
@@ -529,13 +632,15 @@ function notFound(inCodes) {
  * in the repository, its links made whole, so that a reader with no
  * browser follows them. */
 function markdownCopy(md) {
-  return md.replace(/\]\(([^)\s]+)\)/g, (_, url) => {
-    if (/^[a-z][a-z0-9+.-]*:/i.test(url) || url.startsWith("#")) return `](${url})`;
-    const [path, hash] = url.split("#");
-    const page = GUIDE.find((p) => path === `${p.name}.md` || path === `./${p.name}.md`);
-    if (page) return `](${ORIGIN}/guide/${page.name}.md${hash ? `#${hash}` : ""})`;
-    return `](${guideLink(url)})`;
-  });
+  return md.replace(/\]\(([^)\s]+)\)/g, (_, url) => `](${copyLink(url)})`);
+}
+
+/** A link of the guide's Markdown, made whole: to a page of the guide, that
+ * page's Markdown here; to anything else, where `guideLink` sends it. */
+function copyLink(url) {
+  const [path, hash] = url.split("#");
+  const page = ABSOLUTE.test(url) ? null : guidePageAt(path);
+  return page ? `${ORIGIN}/guide/${page.name}.md${hash ? `#${hash}` : ""}` : guideLink(url);
 }
 
 /** **What an agent reads first** (llmstxt.org): what Pleris is, and where
@@ -584,13 +689,27 @@ function headers() {
 export function build(out = join(SITE, "dist")) {
   examples.clear();
   rmSync(out, { recursive: true, force: true });
+  // The guide first: its pages keep the examples a code's page shows.
   const pages = GUIDE.map((entry, i) => guidePage(entry, i));
   const catalog = codes();
-  pages.push(codesIndex(catalog));
-  for (const c of catalog.active) pages.push(codePage(c));
-  for (const c of catalog.retired) pages.push(retiredPage(c));
-  for (const c of catalog.renumbered) pages.push(renumberedPage(c));
-  pages.push(home(catalog.active.length), notFound(false), notFound(true));
+  pages.push(...codePages(catalog), home(catalog.active.length), notFound(false), notFound(true));
+  const written = writePages(out, pages);
+  writeFiles(out, pages, catalog);
+  return { written, catalog };
+}
+
+function codePages(catalog) {
+  return [
+    codesIndex(catalog),
+    ...catalog.active.map((c) => codePage(c)),
+    ...catalog.retired.map((c) => retiredPage(c)),
+    ...catalog.renumbered.map((c) => renumberedPage(c)),
+  ];
+}
+
+/** Each page, written to the file it is served from. Returns each page's
+ * HTML, by path. */
+function writePages(out, pages) {
   const written = new Map();
   for (const p of pages) {
     const file = join(out, fileOf(p.path));
@@ -599,18 +718,24 @@ export function build(out = join(SITE, "dist")) {
     writeFileSync(file, html);
     written.set(p.path, html);
   }
+  return written;
+}
+
+/** The rest: the static files, the guide's Markdown, `llms.txt`, the
+ * policy and the sitemap. */
+function writeFiles(out, pages, catalog) {
   for (const f of readdirSync(join(SITE, "static"))) copyFileSync(join(SITE, "static", f), join(out, f));
   for (const p of GUIDE) {
     writeFileSync(join(out, "guide", `${p.name}.md`), markdownCopy(readFileSync(join(ROOT, "docs/guide", `${p.name}.md`), "utf8")));
   }
   writeFileSync(join(out, "llms.txt"), llms(catalog.active.length));
   writeFileSync(join(out, "_headers"), headers());
+  writeFileSync(join(out, "sitemap.xml"), sitemap(pages));
+}
+
+function sitemap(pages) {
   const listed = pages.filter((p) => !p.path.endsWith("404")).map((p) => `<url><loc>${ORIGIN}${p.path}</loc></url>`);
-  writeFileSync(
-    join(out, "sitemap.xml"),
-    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${listed.join("\n")}\n</urlset>\n`,
-  );
-  return { written, catalog };
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${listed.join("\n")}\n</urlset>\n`;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

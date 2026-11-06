@@ -10,7 +10,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { STYLE_HASH, build } from "./build.mjs";
+import { STYLE_HASH, build, summaryOf } from "./build.mjs";
 import { highlightPw, inline, renderMarkdown } from "./markdown.mjs";
 
 test("a heading takes GitHub's id, and a repeated one is numbered", () => {
@@ -87,10 +87,30 @@ test("Pleris is coloured with spans alone: the text is the program", () => {
   assert.match(html, /<span class="tag">&lt;p<\/span>/);
 });
 
+test("a page's description is its first paragraph's text, each entity read once", () => {
+  // `&amp;lt;` is the text `&lt;`: read twice, it would be `<`.
+  const html = "<h1>T</h1>\n<p>A <code>&amp;lt;b&amp;gt;</code> tag &amp; <em>more</em>.</p>";
+  assert.equal(summaryOf(html, "T"), "A &lt;b&gt; tag & more.");
+  assert.equal(summaryOf("<h1>T</h1>", "the title"), "the title");
+});
+
 test("the whole site: every page and code, no script, one hashed style, no link to nowhere", (t) => {
   const out = mkdtempSync(join(tmpdir(), "pleris-site-"));
   t.after(() => rmSync(out, { recursive: true, force: true }));
   const { written, catalog } = build(out);
+  assertEveryPage(written, catalog);
+  for (const [path, html] of written) assertPage(path, html, written);
+  const headers = readFileSync(join(out, "_headers"), "utf8");
+  assert.ok(headers.includes(`style-src '${STYLE_HASH}'`), headers);
+  assertForAgents(out);
+  // The home page's sample is the guide's, with what the compiler prints.
+  assert.match(written.get("/"), /error: \[PW0606\]/);
+  // A code's page shows the guide's example the compiler refuses with it.
+  assert.match(written.get("/e/PW5001"), /Refused: <a href="\/e\/PW5001">PW5001<\/a>/);
+});
+
+/** Each page of the guide, the site's own, and one for every code. */
+function assertEveryPage(written, catalog) {
   const pages = ["/", "/404", "/e/", "/e/404", "/guide/", "/guide/why", "/guide/tour", "/guide/tour-server"];
   for (const p of [...pages, "/guide/tour-pages", "/guide/errors", "/guide/tutorial", "/guide/diagnostics"]) {
     assert.ok(written.has(p), `no page at ${p}`);
@@ -99,25 +119,34 @@ test("the whole site: every page and code, no script, one hashed style, no link 
   for (const c of [...catalog.active, ...catalog.retired, ...catalog.renumbered]) {
     assert.ok(written.has(`/e/${c.code}`), `no page for ${c.code}`);
   }
-  for (const [path, html] of written) {
-    assert.doesNotMatch(html, /<script/i, path);
-    assert.doesNotMatch(html, /\sstyle="/i, `${path}: a style attribute the policy refuses`);
-    assert.match(html, /^<!doctype html>\n<html lang="en">/, path);
-    assert.match(html, /<title>[^<]+<\/title>/, path);
-    const style = /<style>([\s\S]*?)<\/style>/.exec(html)[1];
-    assert.equal(`sha256-${createHash("sha256").update(style).digest("base64")}`, STYLE_HASH, path);
-    for (const [, href] of html.matchAll(/href="([^"]+)"/g)) {
-      if (/^https?:/.test(href) || href === "/favicon.svg") continue;
-      const [target = "", hash] = href.split("#");
-      const at = target === "" ? path : target;
-      assert.ok(written.has(at), `${path} links to ${href}: no such page`);
-      if (hash) assert.ok(written.get(at).includes(` id="${hash}"`), `${path} links to ${href}: no such anchor`);
-    }
-  }
-  const headers = readFileSync(join(out, "_headers"), "utf8");
-  assert.ok(headers.includes(`style-src '${STYLE_HASH}'`), headers);
-  // What an agent reads: llms.txt, a title first, and each page it names
-  // written, as the guide's Markdown with its links made whole.
+}
+
+/** A page: no script, no style attribute, the one hashed style, a title,
+ * and no link to nowhere. */
+function assertPage(path, html, written) {
+  assert.doesNotMatch(html, /<script/i, path);
+  assert.doesNotMatch(html, /\sstyle="/i, `${path}: a style attribute the policy refuses`);
+  assert.match(html, /^<!doctype html>\n<html lang="en">/, path);
+  assert.match(html, /<title>[^<]+<\/title>/, path);
+  const style = /<style>([\s\S]*?)<\/style>/.exec(html)[1];
+  assert.equal(`sha256-${createHash("sha256").update(style).digest("base64")}`, STYLE_HASH, path);
+  for (const [, href] of html.matchAll(/href="([^"]+)"/g)) assertLink(path, href, written);
+}
+
+const external = (href) => /^https?:/.test(href) || href === "/favicon.svg";
+
+/** A link to another site, or to a page written here and the anchor it names. */
+function assertLink(path, href, written) {
+  if (external(href)) return;
+  const [target, hash] = href.split("#");
+  const at = target || path;
+  assert.ok(written.has(at), `${path} links to ${href}: no such page`);
+  assert.ok(!hash || written.get(at).includes(` id="${hash}"`), `${path} links to ${href}: no such anchor`);
+}
+
+/** What an agent reads: llms.txt, a title first, and each page it names
+ * written, as the guide's Markdown with its links made whole. */
+function assertForAgents(out) {
   const llms = readFileSync(join(out, "llms.txt"), "utf8");
   assert.match(llms, /^# Pleris\n/);
   for (const [, url] of llms.matchAll(/\]\((https:\/\/pleris\.dev\/[^)]+)\)/g)) {
@@ -128,8 +157,4 @@ test("the whole site: every page and code, no script, one hashed style, no link 
   const why = readFileSync(join(out, "guide/why.md"), "utf8");
   assert.doesNotMatch(why, /\]\((?![a-z]+:|#)/, "a relative link left in the guide's Markdown");
   assert.match(why, /\]\(https:\/\/pleris\.dev\/guide\/tour\.md\)/);
-  // The home page's sample is the guide's, with what the compiler prints.
-  assert.match(written.get("/"), /error: \[PW0606\]/);
-  // A code's page shows the guide's example the compiler refuses with it.
-  assert.match(written.get("/e/PW5001"), /Refused: <a href="\/e\/PW5001">PW5001<\/a>/);
-});
+}

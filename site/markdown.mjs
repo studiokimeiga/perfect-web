@@ -5,6 +5,10 @@
 // text, escaped, and a comment is dropped, so a page can carry no script the
 // site's policy did not write. `build.test.mjs` holds each construct, and the
 // whole guide.
+//
+// Each block and each piece of a line is read by its own reader, tried in
+// order: a reader answers with its HTML and where it ends, or with nothing,
+// and the next is tried.
 
 /** Text as HTML: safe in an element's content and in a quoted attribute. */
 export function escapeHtml(s) {
@@ -39,6 +43,8 @@ const FENCE = /^( {0,3})(`{3,}|~{3,})(.*)$/;
 const HEADING = /^ {0,3}(#{1,6})\s+(.*?)\s*#*\s*$/;
 const MARKER = /^( *)([-*+]|\d{1,9}[.)])\s+(.*)$/;
 const DELIMITER = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/;
+const COMMENT = /^\s*<!--/;
+const BLANK = /^\s*$/;
 
 /**
  * `src` as HTML. `options.link(url)` gives each link's address (the site
@@ -48,7 +54,14 @@ const DELIMITER = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/;
  * its headings and its title (its first `#` heading's text).
  */
 export function renderMarkdown(src, options = {}) {
-  const ctx = {
+  const ctx = contextOf(options);
+  const html = blocks(src.replace(/\r\n?/g, "\n").split("\n"), ctx);
+  const title = ctx.headings.find((h) => h.level === 1)?.text ?? "";
+  return { html, headings: ctx.headings, title };
+}
+
+function contextOf(options) {
+  return {
     link: options.link ?? ((url) => url),
     code: options.code ?? ((text) => `<pre tabindex="0"><code>${escapeHtml(text)}</code></pre>`),
     cell: options.cell ?? ((html) => html),
@@ -56,106 +69,122 @@ export function renderMarkdown(src, options = {}) {
     headings: [],
     heading: null,
   };
-  const html = blocks(src.replace(/\r\n?/g, "\n").split("\n"), ctx);
-  const title = ctx.headings.find((h) => h.level === 1)?.text ?? "";
-  return { html, headings: ctx.headings, title };
 }
 
+// --- blocks ------------------------------------------------------------------
+
+/** The lines that begin a block, and so end a paragraph. */
+const STARTS = [FENCE, HEADING, MARKER, COMMENT];
+
 function startsBlock(line, next) {
-  return (
-    FENCE.test(line) ||
-    HEADING.test(line) ||
-    MARKER.test(line) ||
-    /^\s*<!--/.test(line) ||
-    (/^\s*\|/.test(line) && next !== undefined && DELIMITER.test(next))
-  );
+  return STARTS.some((re) => re.test(line)) || opensTable(line, next);
 }
+
+/** A table: a row, and under it the row of its columns' alignments. */
+function opensTable(line, next) {
+  return /^\s*\|/.test(line) && next !== undefined && DELIMITER.test(next);
+}
+
+/** Each kind of block, in the order a line is read as one: a paragraph is
+ * what a line is that is nothing else. A block whose `html` is null is
+ * dropped. */
+const BLOCKS = [blank, comment, fenced, headingAt, tableAt, listBlock, paragraph];
 
 function blocks(lines, ctx) {
   const out = [];
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    if (/^\s*$/.test(line)) {
-      i++;
-      continue;
-    }
-    if (/^\s*<!--/.test(line)) {
-      while (i < lines.length && !lines[i].includes("-->")) i++;
-      i++;
-      continue;
-    }
-    const fence = FENCE.exec(line);
-    if (fence) {
-      const [, indent, marker, info] = fence;
-      const close = new RegExp(`^ {0,3}${marker[0] === "`" ? "`" : "~"}{${marker.length},}\\s*$`);
-      const body = [];
-      i++;
-      while (i < lines.length && !close.test(lines[i])) {
-        const lead = lines[i].search(/\S|$/);
-        body.push(lines[i].slice(Math.min(indent.length, lead)));
-        i++;
-      }
-      i++;
-      out.push(ctx.code(body.join("\n"), info.trim(), { heading: ctx.heading }));
-      continue;
-    }
-    const heading = HEADING.exec(line);
-    if (heading) {
-      const level = heading[1].length;
-      const text = plainText(heading[2]);
-      const id = ctx.slug(text);
-      ctx.headings.push({ level, text, id });
-      ctx.heading = { level, text, id };
-      out.push(`<h${level} id="${id}">${inline(heading[2], ctx)}</h${level}>`);
-      i++;
-      continue;
-    }
-    if (/^\s*\|/.test(line) && i + 1 < lines.length && DELIMITER.test(lines[i + 1])) {
-      const rows = [];
-      let j = i;
-      while (j < lines.length && /^\s*\|/.test(lines[j])) rows.push(lines[j++]);
-      out.push(table(rows, ctx));
-      i = j;
-      continue;
-    }
-    if (MARKER.test(line)) {
-      const list = listAt(lines, i, ctx);
-      out.push(list.html);
-      i = list.next;
-      continue;
-    }
-    const para = [];
-    while (i < lines.length && !/^\s*$/.test(lines[i]) && (para.length === 0 || !startsBlock(lines[i], lines[i + 1]))) {
-      para.push(lines[i].trim());
-      i++;
-    }
-    out.push(`<p>${inline(para.join("\n"), ctx)}</p>`);
+  for (let i = 0; i < lines.length; ) {
+    const block = blockAt(lines, i, ctx);
+    if (block.html !== null) out.push(block.html);
+    i = block.next;
   }
   return out.join("\n");
 }
 
+function blockAt(lines, i, ctx) {
+  for (const read of BLOCKS) {
+    const block = read(lines, i, ctx);
+    if (block) return block;
+  }
+}
+
+function blank(lines, i) {
+  return BLANK.test(lines[i]) ? { html: null, next: i + 1 } : null;
+}
+
+/** A comment, dropped: its lines, to the one that closes it. */
+function comment(lines, i) {
+  if (!COMMENT.test(lines[i])) return null;
+  let k = i;
+  while (k < lines.length && !lines[k].includes("-->")) k++;
+  return { html: null, next: k + 1 };
+}
+
+function fenced(lines, i, ctx) {
+  const fence = FENCE.exec(lines[i]);
+  if (!fence) return null;
+  const [, indent, marker, info] = fence;
+  const close = new RegExp(`^ {0,3}${marker[0]}{${marker.length},}\\s*$`);
+  const body = [];
+  let k = i + 1;
+  while (k < lines.length && !close.test(lines[k])) {
+    const lead = lines[k].search(/\S|$/);
+    body.push(lines[k].slice(Math.min(indent.length, lead)));
+    k++;
+  }
+  return { html: ctx.code(body.join("\n"), info.trim(), { heading: ctx.heading }), next: k + 1 };
+}
+
+function headingAt(lines, i, ctx) {
+  const heading = HEADING.exec(lines[i]);
+  if (!heading) return null;
+  const level = heading[1].length;
+  const text = plainText(heading[2]);
+  const id = ctx.slug(text);
+  ctx.headings.push({ level, text, id });
+  ctx.heading = { level, text, id };
+  return { html: `<h${level} id="${id}">${inline(heading[2], ctx)}</h${level}>`, next: i + 1 };
+}
+
+function tableAt(lines, i, ctx) {
+  if (!opensTable(lines[i], lines[i + 1])) return null;
+  let k = i;
+  while (k < lines.length && /^\s*\|/.test(lines[k])) k++;
+  return { html: table(lines.slice(i, k), ctx), next: k };
+}
+
+function listBlock(lines, i, ctx) {
+  return MARKER.test(lines[i]) ? listAt(lines, i, ctx) : null;
+}
+
+/** A paragraph: its first line, and each after it that is not blank and
+ * begins no block. */
+function paragraph(lines, i, ctx) {
+  let k = i + 1;
+  while (k < lines.length && continuesParagraph(lines[k], lines[k + 1])) k++;
+  const text = lines.slice(i, k).map((line) => line.trim()).join("\n");
+  return { html: `<p>${inline(text, ctx)}</p>`, next: k };
+}
+
+function continuesParagraph(line, next) {
+  return !BLANK.test(line) && !startsBlock(line, next);
+}
+
+// --- tables ------------------------------------------------------------------
+
 /** A row's cells, split at each `|` that is not escaped; `\|` is a `|` in its
  * cell's text, in code too, as GitHub reads a table. */
 export function cellsOf(row) {
-  let s = row.trim();
-  if (s.startsWith("|")) s = s.slice(1);
-  if (s.endsWith("|") && !s.endsWith("\\|")) s = s.slice(0, -1);
-  const cells = [];
-  let cell = "";
-  for (let k = 0; k < s.length; k++) {
-    if (s[k] === "\\" && s[k + 1] === "|") {
-      cell += "|";
-      k++;
-    } else if (s[k] === "|") {
-      cells.push(cell.trim());
-      cell = "";
-    } else {
-      cell += s[k];
-    }
-  }
-  cells.push(cell.trim());
-  return cells;
+  return withoutEdgePipes(row.trim())
+    .split(/(?<!\\)\|/)
+    .map((cell) => cell.replace(/\\\|/g, "|").trim());
+}
+
+/** A row without the `|` that opens it and the one that closes it, where it
+ * has them; an escaped `\|` closes nothing. */
+function withoutEdgePipes(s) {
+  const from = s.startsWith("|") ? 1 : 0;
+  const to = s.endsWith("|") && !s.endsWith("\\|") ? -1 : s.length;
+  return s.slice(from, to);
 }
 
 function table(rows, ctx) {
@@ -176,181 +205,266 @@ function table(rows, ctx) {
   return `<div class="table" tabindex="0"><table>\n<thead><tr>${th}</tr></thead>\n<tbody>\n${body}\n</tbody>\n</table></div>`;
 }
 
+// --- lists -------------------------------------------------------------------
+
 /** A list, and each of its items: the lines after its marker, and those
  * indented past it (a blank line inside an item where the next line is). */
 function listAt(lines, start, ctx) {
   const first = MARKER.exec(lines[start]);
-  const indent = first[1].length;
-  const ordered = /\d/.test(first[2]);
+  const list = { indent: first[1].length, ordered: /\d/.test(first[2]), loose: false };
   const items = [];
-  let loose = false;
   let i = start;
-  while (i < lines.length) {
-    const m = MARKER.exec(lines[i]);
-    if (!m || m[1].length !== indent || /\d/.test(m[2]) !== ordered) break;
-    const contentAt = m[0].length - m[3].length;
-    const body = [m[3]];
-    i++;
-    while (i < lines.length) {
-      const line = lines[i];
-      if (/^\s*$/.test(line)) {
-        let j = i + 1;
-        while (j < lines.length && /^\s*$/.test(lines[j])) j++;
-        if (j < lines.length && lines[j].search(/\S/) > indent) {
-          body.push("");
-          loose = true;
-          i++;
-          continue;
-        }
-        break;
-      }
-      const lead = line.search(/\S/);
-      if (lead <= indent) break;
-      body.push(line.slice(Math.min(lead, contentAt)));
-      i++;
-    }
-    items.push(body);
-    // A blank line between two items of one list makes it loose.
-    let j = i;
-    while (j < lines.length && /^\s*$/.test(lines[j])) j++;
-    const next = j < lines.length ? MARKER.exec(lines[j]) : null;
-    if (j > i && next && next[1].length === indent && /\d/.test(next[2]) === ordered) {
-      loose = true;
-      i = j;
-    }
+  for (let m = first; sameList(m, list); m = MARKER.exec(lines[i] ?? "")) {
+    const item = itemAt(lines, i, m, list);
+    items.push(item.body);
+    i = afterItem(lines, item.next, list);
   }
-  const start1 = ordered ? Number.parseInt(first[2], 10) : 1;
-  const tag = ordered ? "ol" : "ul";
-  const html = items
-    .map((body) => {
-      let inner = blocks(body, ctx);
-      // A tight list's item holds its text, not a paragraph of it.
-      if (!loose) inner = inner.replace(/^<p>([\s\S]*?)<\/p>/, "$1");
-      return `<li>${inner}</li>`;
-    })
-    .join("\n");
-  return { html: `<${tag}${ordered && start1 !== 1 ? ` start="${start1}"` : ""}>\n${html}\n</${tag}>`, next: i };
+  return { html: listHtml(items, first, list, ctx), next: i };
 }
 
+/** Whether a marker is one of this list's: at its indent, and numbered as
+ * its first is. */
+function sameList(m, list) {
+  return m !== null && m[1].length === list.indent && /\d/.test(m[2]) === list.ordered;
+}
+
+/** An item's lines: the text after its marker, and each line after that
+ * belongs to it (`itemLine`). */
+function itemAt(lines, i, m, list) {
+  const contentAt = m[0].length - m[3].length;
+  const body = [m[3]];
+  let k = i + 1;
+  for (let line = itemLine(lines, k, contentAt, list); line !== null; line = itemLine(lines, k, contentAt, list)) {
+    body.push(line);
+    k++;
+  }
+  return { body, next: k };
+}
+
+/** Line `k` as its item holds it, from the column its text starts at; or
+ * null, where the item has ended. */
+function itemLine(lines, k, contentAt, list) {
+  if (k >= lines.length) return null;
+  if (BLANK.test(lines[k])) return blankInItem(lines, k, list);
+  const lead = lines[k].search(/\S/);
+  return lead > list.indent ? lines[k].slice(Math.min(lead, contentAt)) : null;
+}
+
+/** A blank line inside an item, where the next line that is not blank is
+ * indented past the list's marker; the list is then loose. */
+function blankInItem(lines, k, list) {
+  const j = nextFilled(lines, k);
+  if (j >= lines.length || lines[j].search(/\S/) <= list.indent) return null;
+  list.loose = true;
+  return "";
+}
+
+/** The first line at or after `k` that is not blank, or the end. */
+function nextFilled(lines, k) {
+  let j = k;
+  while (j < lines.length && BLANK.test(lines[j])) j++;
+  return j;
+}
+
+/** Where a list goes on after an item: past the blank lines before its next
+ * item, which make it loose; or at the item's end. */
+function afterItem(lines, k, list) {
+  const j = nextFilled(lines, k);
+  if (j === k || !sameList(MARKER.exec(lines[j] ?? ""), list)) return k;
+  list.loose = true;
+  return j;
+}
+
+function listHtml(items, first, list, ctx) {
+  const tag = list.ordered ? "ol" : "ul";
+  const start = list.ordered ? Number.parseInt(first[2], 10) : 1;
+  const html = items.map((body) => `<li>${itemHtml(body, list, ctx)}</li>`).join("\n");
+  return `<${tag}${start !== 1 ? ` start="${start}"` : ""}>\n${html}\n</${tag}>`;
+}
+
+/** An item's blocks. A tight list's item holds its text, not a paragraph
+ * of it. */
+function itemHtml(body, list, ctx) {
+  const inner = blocks(body, ctx);
+  return list.loose ? inner : inner.replace(/^<p>([\s\S]*?)<\/p>/, "$1");
+}
+
+// --- a line ------------------------------------------------------------------
+
 const ESCAPABLE = /[\\`*_{}[\]()#+\-.!|<>~]/;
+
+/** Each piece of markup a line holds, in the order a character is read as
+ * one; a character that begins none is text. */
+const INLINES = [escapeAt, codeSpanAt, linkHere, autolinkAt, strongAt, emphasisAt];
 
 /** One line's markup, its text escaped. */
 export function inline(text, ctx = { link: (u) => u }) {
   let out = "";
-  let i = 0;
-  const word = (c) => c !== undefined && /[\p{L}\p{N}]/u.test(c);
-  while (i < text.length) {
-    const c = text[i];
-    if (c === "\\" && i + 1 < text.length && ESCAPABLE.test(text[i + 1])) {
-      out += escapeHtml(text[i + 1]);
-      i += 2;
-      continue;
-    }
-    if (c === "`") {
-      let n = 0;
-      while (text[i + n] === "`") n++;
-      let close = -1;
-      for (let k = i + n; k < text.length; k++) {
-        if (text[k] !== "`") continue;
-        let run = 0;
-        while (text[k + run] === "`") run++;
-        if (run === n) {
-          close = k;
-          break;
-        }
-        k += run - 1;
-      }
-      if (close !== -1) {
-        let code = text.slice(i + n, close).replace(/\n/g, " ");
-        if (code.length > 1 && code.startsWith(" ") && code.endsWith(" ") && code.trim()) code = code.slice(1, -1);
-        out += `<code>${escapeHtml(code)}</code>`;
-        i = close + n;
-        continue;
-      }
-      out += "`".repeat(n);
-      i += n;
-      continue;
-    }
-    if (c === "[") {
-      const link = linkAt(text, i);
-      if (link) {
-        out += `<a href="${escapeHtml(ctx.link(link.url))}">${inline(link.label, ctx)}</a>`;
-        i = link.end;
-        continue;
-      }
-    }
-    if (c === "<") {
-      const auto = /^<(https?:\/\/[^\s<>]+)>/.exec(text.slice(i));
-      if (auto) {
-        out += `<a href="${escapeHtml(auto[1])}">${escapeHtml(auto[1])}</a>`;
-        i += auto[0].length;
-        continue;
-      }
-    }
-    if (c === "*" && text[i + 1] === "*" && text[i + 2] && text[i + 2] !== " ") {
-      const close = text.indexOf("**", i + 2);
-      if (close > i + 2 && text[close - 1] !== " ") {
-        out += `<strong>${inline(text.slice(i + 2, close), ctx)}</strong>`;
-        i = close + 2;
-        continue;
-      }
-    }
-    if ((c === "*" || c === "_") && text[i + 1] && text[i + 1] !== " " && text[i + 1] !== c && (c === "*" || !word(text[i - 1]))) {
-      let close = -1;
-      for (let k = i + 1; k < text.length; k++) {
-        if (text[k] === "`") {
-          // Code inside emphasis is read whole: its `*` or `_` closes nothing.
-          const end = text.indexOf("`", k + 1);
-          if (end === -1) break;
-          k = end;
-          continue;
-        }
-        if (text[k] === c && text[k - 1] !== " " && text[k + 1] !== c && (c === "*" || !word(text[k + 1]))) {
-          close = k;
-          break;
-        }
-      }
-      if (close > i + 1) {
-        out += `<em>${inline(text.slice(i + 1, close), ctx)}</em>`;
-        i = close + 1;
-        continue;
-      }
-    }
-    out += c === "\n" ? "\n" : escapeHtml(c);
-    i++;
+  for (let i = 0; i < text.length; ) {
+    const piece = inlineAt(text, i, ctx);
+    out += piece.html;
+    i = piece.end;
   }
   return out;
 }
 
+function inlineAt(text, i, ctx) {
+  for (const read of INLINES) {
+    const piece = read(text, i, ctx);
+    if (piece) return piece;
+  }
+  return { html: escapeHtml(text[i]), end: i + 1 };
+}
+
+/** A backslash before a character Markdown could read as markup: the
+ * character, as text. */
+function escapeAt(text, i) {
+  return text[i] === "\\" && ESCAPABLE.test(text[i + 1] ?? "") ? { html: escapeHtml(text[i + 1]), end: i + 2 } : null;
+}
+
+/** Code: from a run of backticks to the next run of as many. With none, the
+ * run is text. */
+function codeSpanAt(text, i) {
+  if (text[i] !== "`") return null;
+  const n = /^`*/.exec(text.slice(i))[0].length;
+  const close = closingRun(text, i + n, n);
+  return close === -1
+    ? { html: "`".repeat(n), end: i + n }
+    : { html: `<code>${escapeHtml(codeText(text.slice(i + n, close)))}</code>`, end: close + n };
+}
+
+/** Where the next run of exactly `n` backticks from `from` starts, or -1. */
+function closingRun(text, from, n) {
+  const runs = /`+/g;
+  runs.lastIndex = from;
+  for (let m = runs.exec(text); m; m = runs.exec(text)) {
+    if (m[0].length === n) return m.index;
+  }
+  return -1;
+}
+
+/** Code's text: each line end a space, and one space taken from each end
+ * where both have one and the code is not all spaces. */
+function codeText(raw) {
+  const code = raw.replace(/\n/g, " ");
+  return /^ [\s\S]*\S[\s\S]* $/.test(code) ? code.slice(1, -1) : code;
+}
+
+function linkHere(text, i, ctx) {
+  const link = text[i] === "[" ? linkAt(text, i) : null;
+  return link && { html: `<a href="${escapeHtml(ctx.link(link.url))}">${inline(link.label, ctx)}</a>`, end: link.end };
+}
+
+function autolinkAt(text, i) {
+  const auto = text[i] === "<" ? /^<(https?:\/\/[^\s<>]+)>/.exec(text.slice(i)) : null;
+  return auto && { html: `<a href="${escapeHtml(auto[1])}">${escapeHtml(auto[1])}</a>`, end: i + auto[0].length };
+}
+
+/** `**strong**`: opened before a character that is not a space, and closed
+ * after one. */
+function strongAt(text, i, ctx) {
+  const close = /^\*\*[^ ]/.test(text.slice(i, i + 3)) ? text.indexOf("**", i + 2) : -1;
+  return close > i + 2 && text[close - 1] !== " "
+    ? { html: `<strong>${inline(text.slice(i + 2, close), ctx)}</strong>`, end: close + 2 }
+    : null;
+}
+
+/** `*emphasis*` or `_emphasis_`; a `_` inside a word, as in `snake_case`,
+ * opens and closes nothing. */
+function emphasisAt(text, i, ctx) {
+  const close = opensEmphasis(text, i) ? emphasisClose(text, i) : -1;
+  return close > i + 1 ? { html: `<em>${inline(text.slice(i + 1, close), ctx)}</em>`, end: close + 1 } : null;
+}
+
+function opensEmphasis(text, i) {
+  const c = text[i];
+  return "*_".includes(c) && ![undefined, " ", c].includes(text[i + 1]) && flanks(c, text[i - 1]);
+}
+
+/** Where the emphasis opened at `i` closes, or -1. Code inside emphasis is
+ * read whole: its `*` or `_` closes nothing. */
+function emphasisClose(text, i) {
+  for (let k = i + 1; k < text.length; k = pastCode(text, k)) {
+    if (closesEmphasis(text, k, text[i])) return k;
+  }
+  return -1;
+}
+
+/** The position after `k`: past code, where `k` opens it, and the end where
+ * that code does not close. */
+function pastCode(text, k) {
+  if (text[k] !== "`") return k + 1;
+  const end = text.indexOf("`", k + 1);
+  return end === -1 ? text.length : end + 1;
+}
+
+function closesEmphasis(text, k, c) {
+  return text[k] === c && text[k - 1] !== " " && text[k + 1] !== c && flanks(c, text[k + 1]);
+}
+
+/** Whether `c` may open or close emphasis beside `neighbour`: a `*` beside
+ * anything, a `_` beside no letter or digit. */
+function flanks(c, neighbour) {
+  return c === "*" || !word(neighbour);
+}
+
+function word(c) {
+  return c !== undefined && /[\p{L}\p{N}]/u.test(c);
+}
+
+// --- links -------------------------------------------------------------------
+
+const BRACKETS = new Map([
+  ["[", 1],
+  ["]", -1],
+]);
+const PARENS = new Map([
+  ["(", 1],
+  [")", -1],
+]);
+
 /** `[label](url)` at `at`: its label, address and end, or none. */
 function linkAt(text, at) {
-  let depth = 0;
-  let k = at;
-  for (; k < text.length; k++) {
-    if (text[k] === "\\") {
-      k++;
-      continue;
-    }
-    if (text[k] === "`") {
-      const end = text.indexOf("`", k + 1);
-      if (end === -1) return null;
-      k = end;
-      continue;
-    }
-    if (text[k] === "[") depth++;
-    if (text[k] === "]" && --depth === 0) break;
-  }
-  if (k >= text.length || text[k + 1] !== "(") return null;
-  let parens = 0;
-  let e = k + 2;
-  for (; e < text.length; e++) {
-    if (text[e] === "(") parens++;
-    if (text[e] === ")" && parens-- === 0) break;
-    if (/\s/.test(text[e])) return null;
-  }
-  if (e >= text.length) return null;
-  return { label: text.slice(at + 1, k), url: text.slice(k + 2, e), end: e + 1 };
+  const k = labelEnd(text, at);
+  const e = k !== -1 && text[k + 1] === "(" ? urlEnd(text, k + 2) : -1;
+  return e === -1 ? null : { label: text.slice(at + 1, k), url: text.slice(k + 2, e), end: e + 1 };
 }
+
+/** Where the label opened at `at` closes: its `]`, past escapes, code and
+ * the brackets nested in it; or -1. */
+function labelEnd(text, at) {
+  let depth = 0;
+  for (let k = at; k < text.length; k = labelStep(text, k)) {
+    depth += BRACKETS.get(text[k]) ?? 0;
+    if (depth === 0) return k;
+  }
+  return -1;
+}
+
+/** The position a label is read at after `k`: past an escaped character, or
+ * past code; the end, where that code does not close. */
+function labelStep(text, k) {
+  return text[k] === "\\" ? k + 2 : pastCode(text, k);
+}
+
+/** Where the address opened at `from` closes: its `)`, past the parentheses
+ * nested in it; or -1, where whitespace or the end comes first. */
+function urlEnd(text, from) {
+  const at = closingParen(text.slice(from).split(/\s/, 1)[0]);
+  return at === -1 ? -1 : from + at;
+}
+
+/** Where `s`'s first `)` that closes nothing opened in it is, or -1. */
+function closingParen(s) {
+  let parens = 0;
+  for (let e = 0; e < s.length; e++) {
+    parens += PARENS.get(s[e]) ?? 0;
+    if (parens < 0) return e;
+  }
+  return -1;
+}
+
+// --- Pleris ------------------------------------------------------------------
 
 const KEYWORDS = new Set(
   (
@@ -362,6 +476,11 @@ const KEYWORDS = new Set(
   ).split(" "),
 );
 
+/** The class of each of `highlightPw`'s groups, in order: a comment, a
+ * string, a block's keyword, a tag, a number, a type. A word, the seventh,
+ * is a keyword or nothing. */
+const KINDS = [null, "c", "s", "k", "tag", "n", "t"];
+
 /** **Pleris source, coloured**: comments, strings, numbers, keywords, types
  * and constructors, and the tags of a view's markup. Only `<span>`s are
  * added: the text the reader copies is the program as written. */
@@ -372,10 +491,14 @@ export function highlightPw(src) {
   let last = 0;
   for (const m of src.matchAll(re)) {
     out += escapeHtml(src.slice(last, m.index));
-    const [token] = m;
-    const kind = m[1] ? "c" : m[2] ? "s" : m[3] ? "k" : m[4] ? "tag" : m[5] ? "n" : m[6] ? "t" : KEYWORDS.has(token) ? "k" : null;
-    out += kind ? `<span class="${kind}">${escapeHtml(token)}</span>` : escapeHtml(token);
-    last = m.index + token.length;
+    const kind = kindOf(m);
+    out += kind ? `<span class="${kind}">${escapeHtml(m[0])}</span>` : escapeHtml(m[0]);
+    last = m.index + m[0].length;
   }
   return out + escapeHtml(src.slice(last));
+}
+
+function kindOf(m) {
+  const group = m.findIndex((g, n) => n > 0 && g);
+  return KINDS[group] ?? (KEYWORDS.has(m[0]) ? "k" : null);
 }
