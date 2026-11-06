@@ -163,6 +163,10 @@ th{background:var(--soft);font-weight:600}
 .versus h3{grid-column:1/-1;font-size:1.22rem;margin:0 0 .15rem}
 .versus figure.code{margin:0}
 .versus pre{font-size:.78rem;white-space:pre-wrap;overflow-wrap:anywhere}
+.said code{display:block}
+.said .ln{display:flex}
+.said .gutter{white-space:pre;flex:none}
+.said .txt{white-space:pre-wrap;overflow-wrap:anywhere;min-width:0}
 .versus p{margin:.55rem 0 0;font-size:.92rem;color:var(--muted)}
 figure.code figcaption .shipped{color:var(--s)}
 .section h3{font-size:1.15rem;margin:1.8rem 0 .2rem}
@@ -581,7 +585,7 @@ export async function deletePost(id: string) {
   },
   {
     title: "An old answer, shown for a new question",
-    code: "PW0325",
+    code: "PW5309",
     them: "React",
     file: "Search.tsx",
     source: `useEffect(() => {
@@ -638,14 +642,55 @@ const SPEED = [
   },
 ];
 
-/** What `pw check` prints, less its notes: the error, the lines it points
- * at, and its help. A code's page shows the rest. */
-function withoutNotes(output) {
+// **What `pw check` prints, laid out to read in a narrow box.** Its words and
+// their order are the compiler's. A label it writes after its markers, which
+// would run past `COLUMNS`, goes on the line under them, as far left as it must
+// to fit and never left of a span still open. Every other line keeps its lead
+// (the gutter, `error: [PW…] `, `= note: `), and its text wraps under itself,
+// not at the box's edge.
+
+const COLUMNS = 80;
+/** A line of markers under source, and the label after them. */
+const MARKED = /^(\s*\|[ |_/\\^-]*[-^]) (\S.*)$/;
+/** What a line's text wraps under: its gutter, or what its kind begins with. */
+const LEAD = /^(?:(?:error|warning): \[PW\d+\] |\s*= \w+: |\s*\d+ \| ?)/;
+
+function laidOut(output) {
   return output
+    .trimEnd()
     .split("\n")
-    .filter((line) => !line.startsWith("   = note:"))
-    .join("\n")
+    .flatMap((line) => {
+      const marked = MARKED.exec(line);
+      return marked ? markedLines(line, marked) : [plainLine(line)];
+    });
+}
+
+function plainLine(line) {
+  const lead = LEAD.exec(line)?.[0] ?? "";
+  return { lead, text: line.slice(lead.length) };
+}
+
+function markedLines(line, [, markers, label]) {
+  if (line.length <= COLUMNS) return [{ lead: `${markers} `, text: label }];
+  const bars = openBars(markers);
+  const at = Math.max(bars.length + 1, Math.min(markers.search(/[-^_]/), COLUMNS - label.length));
+  return [
+    { lead: markers, text: "" },
+    { lead: bars.padEnd(at), text: label },
+  ];
+}
+
+/** The gutter, and each bar of a span still open, before a line's markers:
+ * a bar that turns into `_` is a span ending there. */
+function openBars(markers) {
+  return markers
+    .replace(/\|(?=_)/g, " ")
+    .slice(0, markers.search(/[-^_]/))
     .trimEnd();
+}
+
+function lineHtml({ lead, text }) {
+  return `<span class="ln"><span class="gutter">${escapeHtml(lead)}</span><span class="txt">${escapeHtml(text)}</span></span>`;
 }
 
 function shipped(m) {
@@ -655,7 +700,7 @@ function shipped(m) {
 function refused(m) {
   const example = (examples.get(m.code) ?? []).find((ex) => ex.output);
   if (!example) throw new Error(`the guide's ${m.code} example and its output: the home page shows them`);
-  return `<figure class="code output"><figcaption><span>Pleris</span><span>pw check</span><span class="refused">Refused: <a href="/e/${m.code}">${m.code}</a></span></figcaption><pre tabindex="0"><code>${escapeHtml(withoutNotes(example.output))}</code></pre></figure>`;
+  return `<figure class="code output"><figcaption><span>Pleris</span><span>pw check</span><span class="refused">Refused: <a href="/e/${m.code}">${m.code}</a></span></figcaption><pre class="said" tabindex="0"><code>${laidOut(example.output).map(lineHtml).join("")}</code></pre></figure>`;
 }
 
 function mistake(m) {

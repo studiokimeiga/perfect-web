@@ -219,41 +219,66 @@ error: [PW5003] `key` is Secret<Payments> and is rendered into markup
 ### An old answer shown for a new question
 
 A search box that fetches as its reader types can show the answer to an
-earlier word, when that answer arrives last. A query whose key can change
-says what happens to the work for the old key:
+earlier word, when that answer arrives last. In Pleris a page's signal
+can key a query, which the page reads again whenever the signal changes,
+and the query must say what happens to the read for the old key:
 
-```pw fails=PW0325
-module search
+```pw fails=PW5309
+module find
 
-type Item = Item { name: String }
+type Item = Item { id: String, name: String }
 
-fn matching(q: String) -> List<Item> !{ database.read<Item> }
+fn matching(term: String) -> List<Item> !{ database.read<Item> }
     host "shop:data/items#search"
 
-public query Search(q: String) -> List<Item>
+public query Search(term: String) -> List<Item>
     freshness   30.seconds
     consistency snapshot
     cache       shared
-    concurrency one_per_key
+    key         term
     timeout     2.seconds
 {
-    matching(q)
+    matching(term)
+}
+
+page Find() {
+    route "/find"
+    cache private
+
+    signal term: String = ""
+
+    let found = query Search(term)
+
+    view {
+        <title>Find</title>
+        <main>
+            <input type="search" aria-label="Search" bind:value={term} />
+            <ul>
+                {#each found as item (item.id)}
+                    <li>{item.name}</li>
+                {/each}
+            </ul>
+        </main>
+    }
 }
 ```
 
 ```text pw-check
-error: [PW0325] `Search` declares no policy for superseded keys
-  --> search.pw:12:5
+error: [PW5309] `term` keys `found`, and `find.Search` declares no `on_key_change`
+  --> find.pw:24:30
    |
- 8 | public query Search(q: String) -> List<Item>
-   |              ------ this query is keyed, so its key can change
-...
-12 |     concurrency one_per_key
-   |     ^^^^^^^^^^^^^^^^^^^^^^^ `Search` declares no policy for superseded keys
+22 |     signal term: String = ""
+   |     ------------------------ `term` is declared a signal here
+23 |
+24 |     let found = query Search(term)
+   |                              ^^^^ `term` keys `found`, and `find.Search` declares no `on_key_change`
    |
-   = note: when a keyed read's key changes while it runs, the work for the old key is stale; a policy says whether it is cancelled or kept, and without one the old answer can arrive after the new key and be shown for it
-   = help: declare `on_key_change cancel | supersede | keep`
+   = note: When the signal changes while the old key's read is in flight, that read is stale work. The query says what it does: `cancel` stops it, `supersede` lets it finish and drops its answer, and `keep` lets it finish and asks for the new key after it. In none is an old key's answer shown for the new one (ADR-0152).
+   = help: declare `on_key_change cancel | supersede | keep` on `find.Search`
 ```
+
+Whichever it declares, the server applies only a page's latest read, so
+an old key's answer is never shown for the new one (ADR-0152).
 
 ### And more, each with a code
 

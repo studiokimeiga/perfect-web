@@ -105,7 +105,7 @@ test("the whole site: every page and code, no script, one hashed style, no link 
   assertForAgents(out);
   // The home page shows each mistake as the compiler refuses it, in the
   // words the guide's test holds it to.
-  for (const code of ["PW5001", "PW0338", "PW5048", "PW5003", "PW0325"]) {
+  for (const code of ["PW5001", "PW0338", "PW5048", "PW5003", "PW5309"]) {
     assert.match(written.get("/"), new RegExp(`error: \\[${code}\\]`), code);
   }
   // A code's page shows the guide's example the compiler refuses with it.
