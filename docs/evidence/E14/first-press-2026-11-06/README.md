@@ -318,6 +318,48 @@ survivor. The 149 recipes CI's planner reaches from these changes
 (`python3 scripts/ci_plan.py --changed 1d82a2b2 HEAD`) were not run: they
 are hosted CI's, and this branch is not published.
 
+## Before the push (`prepush/`)
+
+AGENTS.md asks for `just preflight` and the affected tests and recipes at
+the exact commit before a branch's first push. `prepush-verify.sh` runs
+these one after another, so that no browser timing competes with cargo:
+`just preflight`; `just evidence-gates`; the tests of `pw-render`,
+`pw-render-wasm` and `pw-dev-server`; every own-renderer app, built with
+this runtime (`run.sh`, `todomvc.sh`, `keyed-store.sh`, `feed.sh`,
+`guestbook.sh`, `kiokun-site.sh`); the whole own-renderer suite in Chromium
+and Firefox; and the runtime-size gates.
+
+**Run 1, at `4faf2d26`** (`run1-*`):
+- `just preflight` passed.
+- `just evidence-gates` failed 1 test of 1,187: the renderer's contract
+  (`renderer-contract.test.mjs`). 10 of its 13 tests failed with
+  `ReferenceError: delivered is not defined`, from `1f021e1d` on. The file
+  passes at `1cb6cce2` and at #75's head.
+- The suite did not start, because `kiokun-server` was not built.
+
+The branch's earlier gates had not run `just evidence-gates`, which
+`just ci` runs.
+
+**Fixed in `3b1136e3`.** The harness now takes the runtime's own
+`delivered` and `attempted`, and a 14th test holds the renderer's address
+at a delivery. Two mutations of `delivered` each fail that test.
+
+**Run 2, at `3b1136e3`** (`run2-*`):
+
+| Check | Result |
+|---|---|
+| `just preflight`: fmt, Clippy `-D warnings` for the workspace and for `pw-host`'s engine, case-check, 4,992 mutation anchors | passed |
+| `just evidence-gates` | passed: 1,187 tests, 5 skipped; Node 19 and 3 |
+| The three crates' tests | passed: 861 in `pw-dev-server` |
+| Every app's build | passed |
+| The whole suite, Chromium and Firefox | 1,066 tests: 1,053 passed, 13 skipped, none failed; no spec unserved |
+| Gates 7b and 7d | held: 44,097 + 21,284 B Brotli; the renderer 77,336 B |
+
+The 13 skipped tests are skipped by the specs' own conditions: Chromium-only
+APIs in Firefox (layout instability, request priority, runtime size and
+others), and `stream.spec.mjs`'s tests that launch the host's own Chrome,
+which this PC does not have. Skipped tests are not passes.
+
 ## Not run, or failed for the environment
 
 - **WebKit could not open a page on this PC this session**: Playwright's
@@ -327,5 +369,7 @@ are hosted CI's, and this branch is not published.
   environment's, not this branch's: every WebKit test, the unchanged ones
   included, failed the same way. WebKit remains a gate.
 - Firefox and WebKit timings, the store, the servers' rows, open tabs and
-  idle visitors were not measured in this A/B. The full browser suites and
-  exact-head CI were not run.
+  idle visitors were not measured in this A/B.
+- The full own-renderer suite ran in Chromium and Firefox only (`prepush/`).
+  WebKit, the recipes that need PostgreSQL, the 149 recipes of the verify
+  plan and exact-head CI were not run.

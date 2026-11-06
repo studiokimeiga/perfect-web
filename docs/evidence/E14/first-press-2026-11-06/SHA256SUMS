@@ -20,6 +20,16 @@ e6931b9a5f26125a16873f18a601d1563673db3a43d6032f3fb2c87bb246b56f  ./mutations/mu
 2ce9a429da9a0433b5166ca356aea1a122fd47c3d1866c1387e76881dfb1ed97  ./mutations/reanchored-controls.log
 8019c25a492028cb90ab95e97433a939c499594f1573cb4466ef48b20f09ae7e  ./mutations/stable-layout-two-engines.txt
 ee104aeb954a7e885017ee48d0a4debda82a09d64ff3d12b46759a7ecfc414a1  ./mutations/stable_layout_two_engines.py.gz
+25cc0c24a0992d96ab523e1dad7274f86526e9c1cde4b84162a06b682f4a597d  ./prepush/prepush-verify.sh.gz
+a2e0b16d03447e063f7665d5bbb29dc4c36a8cc913e32d5398c36fd88a1ef7f8  ./prepush/run1-evidence-gates.log.gz
+b9481527c6006f65778b6cbc8d6e4b129169a344a7cc4a126169ebb8b4cfca5a  ./prepush/run1-specs.log
+646d19943e0b2b0139bcbaf6a280649fd44a72ebfda12e0c41235996c4e395be  ./prepush/run1-verify.log
+58bd5644191fe454d558e28df98cb1ca3e0ef0c852b25eaf4d27014cc3e2d656  ./prepush/run2-cargo-test.log.gz
+7c22c0f310b3109ad383dc8f4167e93921c6db1c8b3429939a90992fe1599460  ./prepush/run2-evidence-gates.log.gz
+6e53671645e318ba8dfb5b9ed92aa441d52524a53547405c69b49b3688935aed  ./prepush/run2-preflight.log.gz
+03a0849228116659132c0331c2a53f59f979f27d42383965d61a09a076f00513  ./prepush/run2-size.log
+12829f9e06accfeb3bdeaf03019cc31dc3c89237edf500176baa44b97f83cd8c  ./prepush/run2-specs.log.gz
+0e00198f74a986efa7ce9d1de7ae68e92b97a32f7206bcc1569436a581556a60  ./prepush/run2-verify.log
 e4af6d659f306834b4c2c5ae8174b7b1050ed691cbaa5dc8949225b10a35b57c  ./runs/base-firefox.json.gz
 eaebed17e5e551c8b4cc97fa1b0df5fa3ee52b91fcba63a95fb4ed37996acd55  ./runs/base-firefox.log
 b1cf514178b649401393d313c0aa382aa4cc9366e41edaf053a3e653c4a663a1  ./runs/base-store-store.json.gz
