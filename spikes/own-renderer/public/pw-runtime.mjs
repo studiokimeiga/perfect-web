@@ -3938,6 +3938,12 @@ async function softNavigate(url, how, mine, chosen = false) {
   if (!response.ok || !servedBuild || response.headers.get("pw-build") !== servedBuild) {
     return loadWhole(at, how);
   }
+  // And the same delivery (the first press's ADR). The next runtime is asked
+  // for at this one's, and asks for the files a browser keeps a year at it.
+  // A host given new files of the same build would answer with its new
+  // runtime, and that runtime would take this delivery's kept Wasm. A
+  // document of another delivery is loaded whole.
+  if (response.headers.get("pw-delivery") !== DELIVERY) return loadWhole(at, how);
   const next = new DOMParser().parseFromString(text, "text/html");
   let nextParts = null;
   try {

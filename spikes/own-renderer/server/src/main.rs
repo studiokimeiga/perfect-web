@@ -7642,6 +7642,15 @@ impl Server {
         // **The build that served it** (ADR-0300), which a page that keeps
         // its parts across a navigation holds the next document to.
         let build = format!("pw-build: {}\r\n", self.build_id);
+        // **The delivery it names its files at** (the first press's ADR): a
+        // versioned build's only. A page that navigates in place holds the
+        // next document to it as it does to the build, since its runtime
+        // asks for files a browser keeps a year at its own.
+        let delivery = self
+            .delivery
+            .version
+            .as_ref()
+            .map_or(String::new(), |v| format!("pw-delivery: {v}\r\n"));
         // What it may load and run (`csp`).
         let policy = format!("content-security-policy: {}\r\n", self.policy());
         if settling.waiting.is_empty() && settling.settled.is_empty() {
@@ -7649,14 +7658,14 @@ impl Server {
                 stream,
                 200,
                 "text/html; charset=utf-8",
-                &format!("{PRIVATE}{cookie}{build}{policy}"),
+                &format!("{PRIVATE}{cookie}{build}{delivery}{policy}"),
                 page.as_bytes(),
             );
             return;
         }
         let head = format!(
             "HTTP/1.1 200 OK\r\ncontent-type: text/html; charset=utf-8\r\n{NOSNIFF}{PRIVATE}{cookie}\
-             {build}{policy}connection: close\r\n\r\n"
+             {build}{delivery}{policy}connection: close\r\n\r\n"
         );
         let shell = page.strip_suffix(DOCUMENT_END).unwrap_or(page);
         if stream
@@ -17338,6 +17347,10 @@ public query Store(",
             page.contains(&format!("pw-build: {}\r\n", s.build_id)),
             "{page}"
         );
+        assert!(
+            !page.contains("pw-delivery:"),
+            "a development build names no delivery: {page}"
+        );
         let manifest = manifest_of(page.split_once("\r\n\r\n").map_or("", |(_, b)| b));
         assert_eq!(manifest["resume"]["build"], s.build_id.as_str());
         assert_eq!(manifest["resume"]["document"], home.schema.as_str());
@@ -17596,6 +17609,10 @@ public query Store(",
         let s = Server::from_build(out.clone(), out).expect("served");
         let version = s.delivery.version.clone().expect("a delivery id");
         let page = get_as(&s, "a", "/");
+        assert!(
+            page.contains(&format!("pw-delivery: {version}\r\n")),
+            "a page navigated to in place is held to its delivery: {page}"
+        );
         let script = format!("import(\"/pw-runtime.mjs?b={version}\")");
         assert!(
             page.contains(&format!("<script>{script}</script>")),
