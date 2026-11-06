@@ -86,6 +86,32 @@ test("a link to a form changes the signal, and what reads it", async ({ page }) 
   await expect(page.locator("#specs")).toHaveCount(0);
 });
 
+test("a link to a form is followed in its press's own task", async ({ page }) => {
+  // The first press's ADR: not in the `hashchange` a browser dispatches a
+  // task later, before which it often paints a frame without the change.
+  await ready(page);
+  // What a change of the signal needs, loaded by a first one: this holds the
+  // order of tasks, not a module's network.
+  await page.locator("#to-specs").click();
+  await expect(page.locator("#tab")).toHaveText("specs");
+  const seen = await page.evaluate(async () => {
+    let hashchanges = 0;
+    addEventListener("hashchange", () => hashchanges++);
+    let taskRan = false;
+    setTimeout(() => (taskRan = true), 0);
+    document.querySelector("#to-reviews").click();
+    // Microtasks only: a task, `hashchange` among them, cannot run in these.
+    const tab = () => document.querySelector("#tab").textContent.trim();
+    for (let i = 0; i < 200 && tab() !== "reviews"; i++) await Promise.resolve();
+    return { tab: tab(), taskRan, hash: location.hash, hashchanges };
+  });
+  expect(seen).toEqual({ tab: "reviews", taskRan: false, hash: "#/reviews", hashchanges: 0 });
+  // A new entry, as the browser makes for a fragment: back is overview's
+  // neighbour, specs.
+  await page.goBack();
+  await expect(page.locator("#tab")).toHaveText("specs");
+});
+
 test("back and forward follow the address", async ({ page }) => {
   await ready(page);
   await page.locator("#to-specs").click();

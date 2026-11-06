@@ -2101,6 +2101,44 @@ function followFragment(binding) {
 function bindFragment(binding) {
   followFragment(binding);
   addEventListener("hashchange", () => followFragment(binding), { signal: life.signal });
+  followFragmentLinks(binding);
+}
+
+/**
+ * **A link to one of the fragment's forms, followed in its press** (the
+ * first press's ADR). The browser's own fragment navigation tells a page in
+ * a `hashchange` it dispatches in a task of its own, and a frame is often
+ * painted without the change before it: the head-to-head's filter took 31 ms
+ * to its frame, React's router 15 (ADR-0392, finding 22).
+ *
+ * So a primary click, with no key held and nothing having claimed it, on an
+ * `<a href>` to this page at one of the binding's forms, sets the address as
+ * the browser would (a new entry, none where the address is already it) and
+ * the signal follows it in the click's own task. Anything else is left to
+ * the browser: another page, another window, a download, a fragment that is
+ * no form (an element's id, which the browser scrolls to). Back and forward
+ * come as `hashchange`, as before; the address is still the signal's only
+ * writer (PW6105).
+ */
+function followFragmentLinks(binding) {
+  const forms = new Set(binding.forms.map((f) => f.form));
+  document.addEventListener(
+    "click",
+    (e) => {
+      if (e.defaultPrevented || e.button !== 0) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = e.target instanceof Element ? e.target.closest("a[href]") : null;
+      if (!a || !(a instanceof HTMLAnchorElement)) return;
+      if (a.hasAttribute("download") || (a.target && a.target !== "_self")) return;
+      const url = new URL(a.href, location.href);
+      if (url.origin !== location.origin || url.pathname !== location.pathname) return;
+      if (url.search !== location.search || !url.hash || !forms.has(url.hash.slice(1))) return;
+      e.preventDefault();
+      if (url.href !== location.href) history.pushState(null, "", url.href);
+      followFragment(binding);
+    },
+    { signal: life.signal },
+  );
 }
 
 // --- `autofocus` on an element a block shows (track `todomvc`) --------------
