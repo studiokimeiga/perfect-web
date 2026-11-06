@@ -10,6 +10,15 @@ Each mutant undoes one part of PW5014's rule:
 - `aria-labelledby` must reach an element with text, and a blank
   `aria-label` names nothing.
 
+And each part the input-button ADR adds (2026-11-06):
+- an `<input>` button names itself: a `submit` or `reset` by its `value`, or
+  with none by the label HTML gives it; a `button` by its `value` alone; a
+  blank `value` names nothing;
+- an image button is named by its `alt`, PW5053's to hold, and PW5014 does
+  not report it a second time; a `hidden` input is no control;
+- `type` is an `<input>`'s alone;
+- a button is refused with a button's message, note, reason and repair.
+
 The tests in `labels.rs` and the generality witnesses must then fail. The
 browser's half, that each accepted way gives the control its name, is
 `e2e/parsed-tree.spec.mjs` in the own-renderer suite.
@@ -96,23 +105,37 @@ MUTANTS = [
         "                    !hidden\n",
         "                    true\n",
     ),
+    # Since the input-button ADR an `aria-label`, a button's `value` and an
+    # image button's `alt` are read by one helper, `names_with`.
     (
         "a blank `aria-label` names a control",
         CHECK,
-        "                AttrValue::Static(_) => non_blank(attrs, \"aria-label\"),\n",
-        "                AttrValue::Static(_) => true,\n",
+        "        let labelled = names_with(attrs, \"aria-label\") == Some(true);\n",
+        "        let labelled = names_with(attrs, \"aria-label\").is_some();\n",
     ),
     (
-        "a computed `aria-label` is refused",
+        "a name the program computes is refused: an `aria-label`'s, a `value`'s",
         CHECK,
-        "                AttrValue::Expr(_) => true,\n                AttrValue::None => false,\n",
-        "                AttrValue::Expr(_) => false,\n                AttrValue::None => false,\n",
+        "        AttrValue::Expr(_) => true,\n        AttrValue::None => false,\n    })\n",
+        "        AttrValue::Expr(_) => false,\n        AttrValue::None => false,\n    })\n",
+    ),
+    (
+        "an attribute written alone names: an `aria-label`, a `value`",
+        CHECK,
+        "        AttrValue::Expr(_) => true,\n        AttrValue::None => false,\n    })\n",
+        "        AttrValue::Expr(_) => true,\n        AttrValue::None => true,\n    })\n",
+    ),
+    (
+        "a blank attribute names: an `aria-label`, a `value`",
+        CHECK,
+        "        AttrValue::Static(_) => non_blank(attrs, name),\n",
+        "        AttrValue::Static(_) => true,\n",
     ),
     (
         "`aria-labelledby` names a control whatever it reaches",
         CHECK,
-        "        if labelled || labelled_by(body, n, &by_id).is_some() {\n",
-        "        if labelled || attrs.iter().any(|a| a.name == \"aria-labelledby\") {\n",
+        "        if labelled || labelled_by(body, n, &by_id).is_some() || names_itself(tag, attrs) {\n",
+        "        if labelled || attrs.iter().any(|a| a.name == \"aria-labelledby\") || names_itself(tag, attrs) {\n",
     ),
     (
         "an IDREF to an element with no text names a control",
@@ -123,8 +146,89 @@ MUTANTS = [
     (
         "an input's `type` is read case by case",
         CHECK,
-        "                    let typ = static_attr(attrs, \"type\").map(str::to_ascii_lowercase);\n",
-        "                    let typ = static_attr(attrs, \"type\").map(str::to_string);\n",
+        "    static_attr(attrs, \"type\").map(str::to_ascii_lowercase)\n",
+        "    static_attr(attrs, \"type\").map(str::to_string)\n",
+    ),
+    # --- the input-button ADR ---
+    (
+        "an image button is PW5014's again, refused for having no `<label>`",
+        CHECK,
+        "                    if matches!(typ.as_deref(), Some(\"hidden\" | \"image\")) {\n",
+        "                    if matches!(typ.as_deref(), Some(\"hidden\")) {\n",
+    ),
+    (
+        "a hidden input is a control",
+        CHECK,
+        "                    if matches!(typ.as_deref(), Some(\"hidden\" | \"image\")) {\n",
+        "                    if matches!(typ.as_deref(), Some(\"image\")) {\n",
+    ),
+    (
+        "a `<select>`'s or a `<textarea>`'s `type` is read",
+        CHECK,
+        "                    let typ = (tag.as_str() == \"input\")\n"
+        "                        .then(|| input_type(attrs))\n"
+        "                        .flatten();\n",
+        "                    let typ = input_type(attrs);\n",
+    ),
+    (
+        "a button names itself whatever element it is",
+        CHECK,
+        "    let default = match (tag, input_type(attrs).as_deref()) {\n",
+        "    let default = match (\"input\", input_type(attrs).as_deref()) {\n",
+    ),
+    (
+        "a `submit` or `reset` with no `value` has no label",
+        CHECK,
+        "        (\"input\", Some(\"submit\" | \"reset\")) => true,\n",
+        "        (\"input\", Some(\"submit\" | \"reset\")) => false,\n",
+    ),
+    (
+        "a `button` input with no `value` has a label",
+        CHECK,
+        "        (\"input\", Some(\"button\")) => false,\n",
+        "        (\"input\", Some(\"button\")) => true,\n",
+    ),
+    (
+        "a button's `value` is not read",
+        CHECK,
+        "    names_with(attrs, \"value\").unwrap_or(default)\n",
+        "    default\n",
+    ),
+    (
+        "a blank `value` names a button",
+        CHECK,
+        "    names_with(attrs, \"value\").unwrap_or(default)\n",
+        "    names_with(attrs, \"value\").is_some() || default\n",
+    ),
+    (
+        "a button is refused with a field's message, reason and repair",
+        CHECK,
+        "                    let button = matches!(typ.as_deref(), Some(\"submit\" | \"reset\" | \"button\"));\n",
+        "                    let button = false;\n",
+    ),
+    (
+        "a button is refused with a field's message",
+        CHECK,
+        "                            Some(t) if button => format!(\"`<input type=\\\"{t}\\\">` has no label\"),\n",
+        "                            Some(_) if false => String::new(),\n",
+    ),
+    (
+        "the note does not say a button's `value` is blank",
+        CHECK,
+        "        if let Some(a) = attr(\"value\") {\n",
+        "        if let Some(a) = attr(\"value\").filter(|_| false) {\n",
+    ),
+    (
+        "the note does not say a `button` input has no `value`",
+        CHECK,
+        "        if let Some(a) = attr(\"type\") {\n",
+        "        if let Some(a) = attr(\"type\").filter(|_| false) {\n",
+    ),
+    (
+        "a field is given a button's note",
+        CHECK,
+        "        && matches!(t.as_str(), \"submit\" | \"reset\" | \"button\")\n    {\n",
+        "        && !t.is_empty()\n    {\n",
     ),
 ]
 
