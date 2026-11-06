@@ -1,0 +1,32 @@
+== 2026-11-06T13:29:01-05:00 commit 0f3e1cc5a12a5c8c5155a358157d3c8ddfac37f3; uncommitted code paths: 0
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14); node: v22.21.1
+== 2026-11-06T13:29:01-05:00 reached mutation scripts (reached.py against master, 3 lines)
+== 2026-11-06T13:29:02-05:00 just preflight
+exit preflight 0
+    Checking pw-host v0.0.0 (/home/haki/code/pw-wt/stale-key/runtime/pw-host)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 23.84s
+case-check: OK (4690 paths)
+mutation anchors: 4974 mutants in 324 scripts, each matching once
+== 2026-11-06T13:30:26-05:00 just evidence-gates
+exit evidence-gates 1
+Ran 1177 tests in 606.631s
+FAILED (errors=1, skipped=5)
+== 2026-11-06T13:40:33-05:00 pw-core, pw-cli's guide, pw-syntax's corpus formatting
+exit pw-core 0
+pw-core: 1814 passed, 0 failed, 2 ignored
+exit guide 0
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.52s
+exit corpus_fmt 0
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.89s
+== 2026-11-06T13:54:35-05:00 mutation controls: one_checker
+exit one_checker 0
+the declaration rules run only in the command: KILLED (4 of 23 tests fail)
+a rule restates its invariant in its own words: KILLED (1 of 23 tests fail)
+an unbounded retry has no boundary span: KILLED (1 of 23 tests fail)
+a retry without idempotency does not name its policy: KILLED (1 of 23 tests fail)
+a retry without idempotency is not explained: KILLED (1 of 23 tests fail)
+5 of 5 mutants killed
+== 2026-11-06T14:04:28-05:00 restored
+mutation anchors: 4974 mutants in 324 scripts, each matching once
+exit anchors 0
+STALE_VERIFY_FINISHED

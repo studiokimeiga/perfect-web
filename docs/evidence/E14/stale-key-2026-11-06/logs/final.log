@@ -1,0 +1,25 @@
+== 2026-11-06T14:05:17-05:00 commit 6272dc1e691f4e08fc0f550689f399b1e137583c; uncommitted code paths: 0
+== 2026-11-06T14:05:17-05:00 the guide's list of codes
+docs/guide/diagnostics.md is current
+exit guide_diagnostics --check 0
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.051s
+
+OK
+exit test_guide_diagnostics 0
+== 2026-11-06T14:05:17-05:00 pw-cli: the guide
+exit guide 0
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.09s
+== 2026-11-06T14:05:27-05:00 the browser test that timed out under load, alone
+exit browser_assertion_proof 0
+Ran 11 tests in 26.307s
+OK (skipped=3)
+== 2026-11-06T14:05:53-05:00 just evidence-gates, whole
+exit evidence-gates 0
+Ran 1177 tests in 548.302s
+OK (skipped=5)
+# tests 19
+# pass 19
+# fail 0
+STALE_FINAL_FINISHED

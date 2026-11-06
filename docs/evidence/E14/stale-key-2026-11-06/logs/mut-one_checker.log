@@ -1,0 +1,8 @@
+baseline: 23 passed, 0 failed
+the declaration rules run only in the command: KILLED (4 of 23 tests fail)
+a rule restates its invariant in its own words: KILLED (1 of 23 tests fail)
+an unbounded retry has no boundary span: KILLED (1 of 23 tests fail)
+a retry without idempotency does not name its policy: KILLED (1 of 23 tests fail)
+a retry without idempotency is not explained: KILLED (1 of 23 tests fail)
+5 of 5 mutants killed
+memory bound: no process was stopped
