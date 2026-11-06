@@ -197,10 +197,10 @@ Pleris is a research project, and these are true today (2026-10-15):
   refuses programs it passes (a `<title>` that reads a signal, a computed
   list in an `{#each}`), so build
   before you trust a green check. Effects in an `{#each}` head are now
-  checked, including its list and key (ADR-0345). An `<img>` without `alt`
-  is not refused. [The tour's last section](tour-pages.md#where-pw-check-stops)
-  shows the remaining gaps and the repaired effect refusal in programs
-  the guide's test compiles. The message for `&&` now names Pleris's `&`
+  checked, including its list and key (ADR-0345), and an `<img>` without
+  `alt` is refused (PW5053). [The tour's last section](tour-pages.md#where-pw-check-stops)
+  shows what the backends cannot run yet and the repaired effect refusal,
+  in programs the guide's test compiles. The message for `&&` now names Pleris's `&`
   spelling ([errors](errors.md)).
 - **Missing features**: offline and real-time collaboration, i18n,
   background jobs beyond a scheduled command (ADR-0334), and charts.

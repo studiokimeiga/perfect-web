@@ -10566,6 +10566,11 @@ fn markup_rules(hir: &Hir, decl: &Decl, out: &mut Vec<Diagnostic>) {
                     }
                 }
 
+                // An image with nothing to stand for it (PW5053).
+                if tag.as_str() == "img" && !has_alt(attrs) {
+                    out.push(image_without_alt(hir, decl, body, id));
+                }
+
                 // A form control with nothing naming it.
                 if matches!(tag.as_str(), "input" | "select" | "textarea") {
                     // `hidden` and `submit` inputs are not labelled controls.
@@ -10721,6 +10726,52 @@ fn labelled_but_for_its_id(
         .take_while(|&&n| n != control)
         .any(|&n| has(n, "id"));
     labelled && (earlier || inside_each(body, order).contains(&control))
+}
+
+// --- what stands for an image (the image ADR) --------------------------------
+
+/// Whether an `<img>` has an `alt`, whatever it holds: text, `""` (or the
+/// attribute alone, which HTML reads as `""`), or a value's. A `title`, an
+/// `aria-label` and a `role` are not one: HTML requires `alt` of every
+/// `<img>`, and only `alt` is shown where the image does not load.
+fn has_alt(attrs: &[hir::Attr]) -> bool {
+    attrs.iter().any(|a| a.name == "alt")
+}
+
+/// **An image with no `alt`** (PW5053), reported at the element.
+fn image_without_alt(hir: &Hir, decl: &Decl, body: &Body, id: hir::NodeId) -> Diagnostic {
+    Diagnostic {
+        code: crate::codes::IMAGE_WITHOUT_ALT.id,
+        invariant: crate::codes::IMAGE_WITHOUT_ALT.invariant,
+        reason: "image_without_alt",
+        detector: Detector::DeclarationRule,
+        severity: Severity::Error,
+        message: "`<img>` has no `alt`".to_string(),
+        primary_span: body.node_span(id),
+        related: vec![Related::new(
+            hir.decl_span(decl_id_of(hir, decl)),
+            format!("`{}` renders this image", decl.name),
+        )],
+        explanation: Some(
+            "Nothing stands for an image with no `alt`: a screen reader announces it as an \
+             image, often by its file name, and where it does not load the page shows no \
+             text in its place. HTML requires `alt` of every `<img>`: what the image shows, \
+             or `\"\"` for one that shows nothing a reader needs, such as decoration or what \
+             the text beside it already says, which a screen reader then passes over. An \
+             `aria-label` or a `title` is not shown where the image fails to load."
+                .to_string(),
+        ),
+        repairs: vec![
+            Repair {
+                description: "write `alt=\"…\"` saying what the image shows".to_string(),
+                replacement: None,
+            },
+            Repair {
+                description: "or `alt=\"\"` if it shows nothing a reader needs".to_string(),
+                replacement: None,
+            },
+        ],
+    }
 }
 
 /// An attribute's value when it is written as text, its quotes removed.

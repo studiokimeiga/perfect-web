@@ -1,0 +1,31 @@
+// @corpus: rejected
+// @id: R-096
+// @category: an image with no text alternative
+// @rule: PW5053
+// @invariant: image_without_alt
+// @charter: §8.2, §17.4
+// @milestone: 14
+// @expect-error: `<img>` has no `alt`
+// @expect-error: write `alt="…"` saying what the image shows
+//
+// The HTML standard requires `alt` of every `<img>` (4.8.4.4): text that
+// says what the image shows, or `alt=""` for one that shows nothing a reader
+// needs. Without it a screen reader announces the image as an image, often
+// by its file name, and a page whose image does not load shows no text in
+// its place. Until 2026-11-06 `pw check` passed this page, and the guide
+// showed it as a gap in the checks (ADR-0343).
+
+module store.front
+
+page Front() {
+    route "/"
+
+    view {
+        <title>Blue Bottle</title>
+        <main>
+            <h1>Blue Bottle</h1>
+            <!-- ERROR: no `alt`: nothing says what the photo shows. -->
+            <img src="/images/front.jpg" width="640" height="480">
+        </main>
+    }
+}

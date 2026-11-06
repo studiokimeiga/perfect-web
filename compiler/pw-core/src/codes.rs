@@ -657,6 +657,10 @@ codes! {
         "interactive behaviour belongs on an element that can receive it";
     CONTROL_WITHOUT_LABEL = "PW5014" / control_without_label / 1, Markup,
         "a form control must have something that names it";
+    // The image ADR: until 2026-11-06 an `<img>` with no `alt` checked
+    // clean, and the guide showed it as a gap in the checks (ADR-0343).
+    IMAGE_WITHOUT_ALT = "PW5053" / image_without_alt / 1, Markup,
+        "an image says what it shows: an `<img>` has an `alt`, empty only where it shows nothing a reader needs";
     // ADR-0042. Until 2026-09-25 nothing read a block's markers: `{:else}`
     // was dropped and both of an `if`'s branches rendered together.
     MALFORMED_TEMPLATE_BLOCK = "PW5019" / malformed_template_block / 1, Markup,

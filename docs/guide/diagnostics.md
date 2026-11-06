@@ -14,7 +14,7 @@ code the compiler can emit, from its registry, `compiler/pw-core/src/codes.rs`.
 - **What the program must hold to**: the registry's own sentence.
 - **ADR**: the decisions its registry entry cites, where it cites one.
 
-220 codes are registered; 94 of them cite an ADR in the registry.
+221 codes are registered; 95 of them cite an ADR in the registry.
 A code whose entry cites none is marked `—`: search `docs/DECISIONS/` for its
 number or its symbol.
 
@@ -218,6 +218,7 @@ number or its symbol.
 | PW5012 | `invalid_nesting` | an element may only contain the children HTML permits | — |
 | PW5013 | `handler_on_inert` | interactive behaviour belongs on an element that can receive it | — |
 | PW5014 | `control_without_label` | a form control must have something that names it | — |
+| PW5053 | `image_without_alt` | an image says what it shows: an `<img>` has an `alt`, empty only where it shows nothing a reader needs | [0343](../DECISIONS/ADR-0343-a-guide-whose-examples-compile.md) |
 | PW5019 | `malformed_template_block` | a template block closes with its own name and holds only the markers it takes | [0042](../DECISIONS/ADR-0042-template-branches-and-attributes.md) |
 | PW5020 | `view_element` | an element named with a capital letter is a view the compiler composes | [0072](../DECISIONS/ADR-0072-an-element-named-with-a-capital-is-a-view.md) |
 | PW5021 | `loop_key` | a loop's key is its element, or a field read from it | [0073](../DECISIONS/ADR-0073-a-template-reads-each-value-by-path.md) |
