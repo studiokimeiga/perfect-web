@@ -59,4 +59,3 @@ error: [PW5014] `<input>` has no associated label
    = help: or wrap the control in a `<label>` with text
 pw check: 1 file(s), 1 error(s), 0 warning(s)
 exit: 1
-

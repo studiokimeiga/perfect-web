@@ -16,6 +16,8 @@ Commits on claude/competent-dirac-a03323:
    Inputs: find.pw (the page found on 2026-11-06) and find-refused.pw (the
    new refusals). Earlier the same day, a pw built at 5d4d4d55 refused
    find.pw's two buttons with PW5014 the same way (seen, not kept as a file).
+   This file and repro-after.txt each ended with an empty line, the
+   recording loop's own `echo`; it was removed for `git diff --check`.
 
 2. The change, after: repro-after.txt
    In this worktree, at 5be06de4, the same pages:
