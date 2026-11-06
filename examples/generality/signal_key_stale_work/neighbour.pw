@@ -1,0 +1,42 @@
+// @status: NEIGHBOUR
+// @invariant: signal_key_stale_work
+// @dimension: valid neighbour — the same page, its query saying what the old page's read does
+
+module generality.results_page_ok
+
+type Hit = Hit { id: String, title: String }
+
+fn hits(term: String, page: Int) -> List<Hit> !{ database.read<Hit> }
+    host "search:data/hits#page"
+
+public query Results(term: String, page: Int) -> List<Hit>
+    freshness     1.minutes
+    consistency   snapshot
+    cache         shared
+    key           term, page
+    on_key_change supersede
+    timeout       2.seconds
+{
+    hits(term, page)
+}
+
+page Find(term: String) {
+    route "/find/{term}"
+    cache private
+
+    signal page: Int = 1
+
+    let shown = query Results(term, page)
+
+    view {
+        <title>Results</title>
+        <main>
+            <ol>
+                {#each shown as hit (hit.id)}
+                    <li>{hit.title}</li>
+                {/each}
+            </ol>
+            <button type="button" on:press={() => page = page + 1}>Next</button>
+        </main>
+    }
+}

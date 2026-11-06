@@ -59,7 +59,7 @@ R-025  enforced                  PW5005
        browser-only API on origin
 R-026  enforced                  PW5005
        server secret referenced by edge artifact
-R-027  enforced                  PW0325
+R-027  enforced                  PW5309
        query key changes without stale-work cancellation policy
 R-028  enforced                  PW2004
        subscription outlives component scope

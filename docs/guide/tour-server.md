@@ -136,8 +136,9 @@ public query Menu(store: Int) -> List<Item>
 | `timeout` | how long a read may take |
 | `retry`, `fallback` | bounded retries, and what to show when the origin fails |
 
-No clause is required on every query, but some go together. A keyed query
-that sets `concurrency` says what happens when its key changes (PW0325);
+No clause is required on every query, but some go together. A query a
+page's signal keys says what happens to the read for its old key
+(`on_key_change`, PW5309), because that key changes while the page is open;
 a `session` query is never stale (`freshness 0.seconds`, PW0102). The
 compiler checks `consistency`; the development server does not enforce it
 at run time yet.

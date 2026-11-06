@@ -14,7 +14,7 @@ code the compiler can emit, from its registry, `compiler/pw-core/src/codes.rs`.
 - **What the program must hold to**: the registry's own sentence.
 - **ADR**: the decisions its registry entry cites, where it cites one.
 
-220 codes are registered; 94 of them cite an ADR in the registry.
+219 codes are registered; 94 of them cite an ADR in the registry.
 A code whose entry cites none is marked `—`: search `docs/DECISIONS/` for its
 number or its symbol.
 
@@ -95,7 +95,6 @@ number or its symbol.
 | PW0364 | `all_unbounded` | a table is read whole, by `all()`, only where it states `bounded` | — |
 | PW0365 | `refers_across_sources` | a reference to a table another source holds is held by no database: the referred row may be missing, which `get` answers as `None` | — |
 | PW0366 | `migration_unstated` | a change from the schema released that loses or reinterprets data is stated by a `migrate`, and each `migrate` states one | — |
-| PW0325 | `stale_key_policy` | a keyed query must say what happens when its key changes | — |
 | PW0327 | `written_rollback` | an optimistic transition's reversal is derived, not written | [0025](../DECISIONS/ADR-0025-an-optimistic-clause-targets-a-resource-entry.md) |
 | PW0330 | `optimistic_not_pure` | an optimistic transition must be a pure function of the resource's value | — |
 | PW0334 | `derived_not_pure` | a `derived` value, and a value a template computes, is computed from other values, and performs no effect | [0082](../DECISIONS/ADR-0082-a-derived-value-performs-no-effect.md), [0226](../DECISIONS/ADR-0226-a-value-the-template-computes-compiles.md) |
@@ -395,3 +394,4 @@ compiler never prints them; a fixture's `@rule` must name a current registered c
 | PW0329 | PW5010 | `unsafe_audit_incomplete` |
 | PW0322 | PW5010 | `unsafe_audit_incomplete` |
 | PW3010 | PW5010 | `unsafe_audit_incomplete` |
+| PW0325 | PW5309 | `signal_key_stale_work` |

@@ -336,6 +336,12 @@ pub const DEPRECATED_ALIASES: &[(&str, &str)] = &[
     // R-024 has no audit record at all, which is the most incomplete one.
     ("PW0322", "PW5010"),
     ("PW3010", "PW5010"),
+    // "A query whose key changes says what its stale work does", asked twice
+    // until the stale-key ADR: PW0325 of a keyed query alone that declared a
+    // `concurrency`, PW5309 of a query a page's signal keys. A key changes
+    // while its read is in flight only in the second, so the second is the
+    // one code. Unlike the numbers above, `pw check` printed this one.
+    ("PW0325", "PW5309"),
 ];
 
 /// The unregistered marker. A diagnostic carrying it named a code the registry
