@@ -21,12 +21,15 @@
 //!
 //! What it does not copy is serde's wording: a refusal here says what was
 //! refused in its own words, and a caller reports it as a request that is
-//! not one (`pw-render-wasm`'s code 2), as it reported serde's. Nor one
-//! leniency: serde's derives also read a struct, or a tagged variant, written
-//! as a list of its fields in order (`["text", 3, "greeting", "text"]`); the
-//! compiler writes objects (its IR is serialized by the same derives), and
-//! this refuses a list where an object belongs. So this reads nothing serde
-//! refuses, and reads everything the compiler writes as serde does.
+//! not one (`pw-render-wasm`'s code 2), as it reported serde's. Nor two
+//! leniencies: serde's derives also read a struct, or a tagged variant,
+//! written as a list of its fields in order (`["text", 3, "greeting",
+//! "text"]`), and an enum's unit variant written as a one-key map
+//! (`{"text": null}`) as well as by its name. The compiler writes objects and
+//! names (its IR is serialized by the same derives), and this refuses both
+//! forms (`tests/decode.rs`, `serdes_two_leniencies_are_refused_here`). So
+//! this reads nothing serde refuses, and reads everything the compiler
+//! writes as serde does.
 
 use std::collections::BTreeMap;
 

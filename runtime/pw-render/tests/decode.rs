@@ -95,6 +95,28 @@ fn mutants(v: &Value) -> Vec<Value> {
     out
 }
 
+/// **serde's two leniencies, refused here** (the first press's review): its
+/// derives also read a struct, or a tagged variant, written as a list of its
+/// fields in order, and an enum's unit variant written as a one-key map
+/// (`{"text": null}`) as well as by its name. The compiler writes neither, and
+/// this reads neither: the safe direction, reading nothing serde refuses.
+#[test]
+fn serdes_two_leniencies_are_refused_here() {
+    let written = json!({"part": "text", "id": 1, "value": "v", "context": "text"});
+    assert_eq!(agree_on_part(&written), Some(text(1, "v")));
+    for lenient in [
+        json!({"part": "text", "id": 1, "value": "v", "context": {"text": null}}),
+        json!(["text", 1, "v", "text"]),
+    ] {
+        assert_eq!(
+            serde_json::from_value::<Part>(lenient.clone()).ok(),
+            Some(text(1, "v")),
+            "serde reads {lenient}"
+        );
+        assert!(decode::part(&lenient).is_err(), "this refuses {lenient}");
+    }
+}
+
 fn st(s: &str) -> Chunk {
     Chunk::Static(s.to_string())
 }
