@@ -1,0 +1,30 @@
+module twice
+
+import context.{ current_session }
+import capability.{ Session, SessionId }
+
+type Post = Post { id: String, text: String }
+
+type PostError =
+    | Unavailable
+
+fn publish(s: Session<SessionId>, text: String) -> Result<Post, PostError> !{ database.write<Post> }
+    host "blog:data/posts#publish"
+
+command post(text: String) -> Result<Post, PostError> {
+    publish(current_session(), text)
+}
+
+page Write() {
+    route "/write"
+
+    signal sent: Int = 0
+
+    view {
+        <title>Write</title>
+        <button type="button" on:press={() => match post("Hello") {
+            Ok(_) => sent = sent + 1,
+            Err(_) => (),
+        }}>Post</button>
+    }
+}

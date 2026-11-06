@@ -1,0 +1,40 @@
+   Compiling serde_core v1.0.229
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.47
+   Compiling serde v1.0.229
+   Compiling foldhash v0.2.0
+   Compiling equivalent v1.0.2
+   Compiling bitflags v2.13.1
+   Compiling zmij v1.0.23
+   Compiling anyhow v1.0.104
+   Compiling autocfg v1.5.1
+   Compiling semver v1.0.28
+   Compiling serde_json v1.0.151
+   Compiling leb128fmt v0.1.0
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling unicode-width v0.2.2
+   Compiling log v0.4.33
+   Compiling id-arena v2.3.0
+   Compiling countme v3.0.1
+   Compiling hashbrown v0.14.5
+   Compiling rustc-hash v1.1.0
+   Compiling text-size v1.1.1
+   Compiling anstyle v1.0.14
+   Compiling annotate-snippets v0.12.16
+   Compiling memoffset v0.9.1
+   Compiling rowan v0.17.0
+   Compiling syn v3.0.3
+   Compiling pw-syntax v0.0.0 (/home/haki/code/pw-wt/idempotency-help/compiler/pw-syntax)
+   Compiling hashbrown v0.17.1
+   Compiling serde_derive v1.0.229
+   Compiling indexmap v2.14.0
+   Compiling wasmparser v0.257.1
+   Compiling wasm-encoder v0.257.1
+   Compiling wit-parser v0.257.1
+   Compiling wasm-metadata v0.257.1
+   Compiling wit-component v0.257.1
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/idempotency-help/compiler/pw-core)
+   Compiling pw-cli v0.0.0 (/home/haki/code/pw-wt/idempotency-help/compiler/pw-cli)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 50.26s
