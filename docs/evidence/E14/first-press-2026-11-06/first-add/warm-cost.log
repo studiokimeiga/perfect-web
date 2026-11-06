@@ -1,0 +1,2 @@
+CPU x1: codes 0 0 0 0 0 0; first warm() median 5.2 ms (5.1 5.1 5.9 5.9 5.2 4.9); second 1.3 ms
+CPU x4: codes 0 0 0 0 0 0; first warm() median 23.7 ms (22.8 22.6 23.7 28.3 21.8 24.8); second 4.4 ms

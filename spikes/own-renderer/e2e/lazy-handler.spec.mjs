@@ -333,8 +333,22 @@ test("nothing is prefetched without a policy that says so", async ({ page }) => 
   const links = await page.evaluate(() =>
     [...document.querySelectorAll("link")].map((l) => `${l.rel}:${l.href}`),
   );
+  // What every page's runtime boots with is asked for by its head (the
+  // first press's ADR): the runtime, the decision's code and this build's
+  // handler table. Each is asked for by every boot, so none is speculative,
+  // and none is a handler's code.
+  const origin = new URL(page.url()).origin;
+  const boot = [
+    `modulepreload:${origin}/pw-runtime.mjs`,
+    `preload:${origin}/pw-resume.wasm`,
+    `preload:${origin}/pw-handlers`,
+  ];
   expect(
-    links.filter((l) => /preload|prefetch|modulepreload/.test(l)),
-    "and the document asks for no speculative load",
+    links.filter((l) => /preload|prefetch|modulepreload/.test(l)).sort(),
+    "the document asks for what its runtime boots with",
+  ).toEqual([...boot].sort());
+  expect(
+    links.filter((l) => l.includes("/handler/")),
+    "and for no handler's code",
   ).toEqual([]);
 });

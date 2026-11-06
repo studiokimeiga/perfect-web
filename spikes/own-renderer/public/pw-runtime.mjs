@@ -383,9 +383,32 @@ let decide = null;
  * handler table: empty until the table is read. */
 let servedBuild = "";
 
+/** Whether its build warms (the first press's ADR): the table's `#warm|1`. */
+let buildWarms = false;
+
+/** The delivery this runtime was asked for at (`?b=`, the first press's
+ * ADR); none for a development build. */
+const DELIVERY = new URL(import.meta.url).searchParams.get("b");
+
+/** A file of the build at this delivery, as the head asked for it. */
+function delivered(path) {
+  return DELIVERY ? `${path}?b=${encodeURIComponent(DELIVERY)}` : path;
+}
+
+/** A module at this runtime's delivery, and under the specifier of its
+ * `attempt` after a failed one (ADR-0382): the first is its address alone. */
+function attempted(path, attempt) {
+  const at = delivered(path);
+  return attempt === 0 ? at : `${at}${at.includes("?") ? "&" : "?"}attempt=${attempt}`;
+}
+
 async function bootDecision() {
-  const response = await fetch("/pw-resume.wasm");
-  const { instance } = await WebAssembly.instantiateStreaming(response, {});
+  // The decision and the table together, each answered by the head's
+  // preload (the first press's ADR).
+  const tableText = fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : ""));
+  // A failed decision fails the boot; the table's rejection is not unheard.
+  tableText.catch(() => {});
+  const { instance } = await WebAssembly.instantiateStreaming(fetch(delivered("/pw-resume.wasm")), {});
   const { memory, alloc, decide_manifest, last_recovery, know, know_document } =
     instance.exports;
 
@@ -399,7 +422,7 @@ async function bootDecision() {
   // runtime and never from the document: a document cached from another
   // build names handlers this one may not have. If the table cannot be read,
   // nothing is known and every handler is refused, which is the closed side.
-  const table = await fetch("/pw-handlers").then((r) => (r.ok ? r.text() : ""));
+  const table = await tableText;
   const known = know(...write(table));
   log.push(`knows ${known} handler(s)`);
   // **What this build says of this page's documents** (ADR-0300): its name,
@@ -407,6 +430,8 @@ async function bootDecision() {
   // from the document; the decision holds each handler's document to them.
   const lines = table.split("\n");
   servedBuild = lines.find((l) => l.startsWith("#build|"))?.slice("#build|".length) ?? "";
+  // Whether the build warms: the table's word, never the document's.
+  buildWarms = lines.includes("#warm|1");
   const page = lines.find((l) => l.startsWith(`#page|${PAGE}|`));
   if (page && know_document) {
     const [, , schema, scope] = page.split("|");
@@ -555,10 +580,15 @@ function loadHandler(identity) {
   // permanently dead. The identity still names the module; the counter only
   // makes the failed attempt distinguishable from the next one.
   const attempt = attempts.get(identity) ?? 0;
-  const url = attempt === 0 ? `/handler/${identity}.mjs` : `/handler/${identity}.mjs?attempt=${attempt}`;
-  const pending = within(import(url), `the handler ${identity}`).then((module) => {
-    loaded.set(identity, module);
-    log.push(`loaded ${identity}`);
+  const url = attempted(`/handler/${identity}.mjs`, attempt);
+  // No deadline: the load is shared, and each press waits within its own
+  // (ADR-0382; the first press's review).
+  const pending = import(url).then((module) => {
+    // What a load given up brings late is not used (ADR-0382).
+    if (loaded.get(identity) === pending) {
+      loaded.set(identity, module);
+      log.push(`loaded ${identity}`);
+    }
     return module;
   });
   loaded.set(identity, pending);
@@ -577,7 +607,11 @@ function loadHandler(identity) {
 function within(loading, what) {
   let timer;
   const late = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`${what}: none within ${loadDeadline} ms`)), loadDeadline);
+    timer = setTimeout(
+      // Marked: a wait given up, not a failed load.
+      () => reject(Object.assign(new Error(`${what}: none within ${loadDeadline} ms`), { givenUp: true })),
+      loadDeadline,
+    );
   });
   return Promise.race([loading, late]).finally(() => clearTimeout(timer));
 }
@@ -816,8 +850,7 @@ class RetiredRenderer extends Error {}
 function speculations() {
   if (!parts.speculation) return Promise.resolve(null);
   if (speculationModule) return speculationModule;
-  const url =
-    speculationAttempts === 0 ? parts.speculation : `${parts.speculation}?attempt=${speculationAttempts}`;
+  const url = attempted(parts.speculation, speculationAttempts);
   const rendering = parts.regions ? renderModule() : null;
   const owner = { renderer: null, retired: false };
   const trackedRenderer = rendering?.then((exports) => {
@@ -825,10 +858,8 @@ function speculations() {
     owner.retired ||= rendererLoaded !== exports;
     return exports;
   }) ?? null;
-  const loading = within(
-    Promise.all([speculationLoaded ?? import(url), trackedRenderer]),
-    "the speculation module",
-  ).then(
+  // No deadline: each press waits within its own (`speculationsWithin`).
+  const loading = Promise.all([speculationLoaded ?? import(url), trackedRenderer]).then(
     ([module, renderer]) => {
       if (!currentSpeculation(loading, owner, renderer)) {
         if (speculationModule === loading) {
@@ -850,14 +881,36 @@ function speculations() {
       speculationOwner = null;
       speculationAttempts += 1;
       // A renderer still loading is forgotten with it: the next press asks
-      // for it again rather than wait on the load this one gave up.
+      // for both again.
       forgetRenderer(rendering);
       throw error;
     },
   );
   speculationModule = loading;
   speculationOwner = owner;
+  owner.rendering = rendering;
   return loading;
+}
+
+/** A press's wait for the speculation module, within its own deadline
+ * (ADR-0382): given up, it forgets the load and the renderer loading with it. */
+async function speculationsWithin() {
+  const loading = speculations();
+  try {
+    return await within(loading, "the speculation module");
+  } catch (error) {
+    if (error?.givenUp) forgetSpeculation(loading);
+    throw error;
+  }
+}
+
+function forgetSpeculation(loading) {
+  if (speculationModule !== loading) return;
+  const rendering = speculationOwner?.rendering ?? null;
+  speculationModule = null;
+  speculationOwner = null;
+  speculationAttempts += 1;
+  forgetRenderer(rendering);
 }
 
 /** Publication needs both the coordinator and its native owner still current. */
@@ -915,7 +968,7 @@ async function speculate(component, args, interaction) {
   // it fails the press, as before.
   let module;
   try {
-    module = await speculations();
+    module = await speculationsWithin();
   } catch (error) {
     if (error instanceof RetiredRenderer) throw error;
     log.push(`${component} sent unspeculated: ${error.message ?? error}`);
@@ -967,7 +1020,7 @@ async function resolveSpeculation(ids, committed, basis) {
   }
   // Ownership is settled before any fallible await or redraw. A frame that
   // arrives during the load remains authoritative when rendering resumes.
-  const module = await speculations();
+  const module = await speculationsWithin();
   for (const binding of touched) render(module, binding);
 }
 
@@ -1452,7 +1505,7 @@ function renderModule() {
   if (rendererLoaded) return Promise.resolve(rendererLoaded);
   if (renderer) return renderer;
   // Not kept failed (ADR-0382): the next need asks the network again.
-  const loading = fetch("/pw-render.wasm")
+  const loading = fetch(delivered("/pw-render.wasm"))
     .then((r) => WebAssembly.instantiateStreaming(r, {}))
     .then(
       ({ instance }) => {
@@ -1959,7 +2012,7 @@ function computedValues() {
   // specifier, as a speculation's load does. No deadline: a press does not
   // wait for it, and a page's boot does, where a value the device keeps is
   // migrated by it; a slow load there is better waited for than failed.
-  const url = computedAttempts === 0 ? parts.computed : `${parts.computed}?attempt=${computedAttempts}`;
+  const url = attempted(parts.computed, computedAttempts);
   computedModule = import(url).then(
     (module) => {
       log.push(`loaded ${parts.computed}`);
@@ -2084,6 +2137,41 @@ function followFragment(binding) {
 function bindFragment(binding) {
   followFragment(binding);
   addEventListener("hashchange", () => followFragment(binding), { signal: life.signal });
+  followFragmentLinks(binding);
+}
+
+const MODIFIER_KEYS = ["metaKey", "ctrlKey", "shiftKey", "altKey"];
+
+/** The `<a href>` a primary, unmodified, unclaimed click is on. */
+function linkOf(e) {
+  const a = plainClick(e) && e.target instanceof Element ? e.target.closest("a[href]") : null;
+  return a instanceof HTMLAnchorElement ? a : null;
+}
+
+function plainClick(e) {
+  return !e.defaultPrevented && e.button === 0 && !MODIFIER_KEYS.some((key) => e[key]);
+}
+
+/** **A link to one of the fragment's forms, followed in its press** (the
+ * first press's ADR), not a task later in `hashchange`: a primary,
+ * unmodified, unclaimed click to this page at a form. Back and forward still
+ * come as `hashchange`. */
+function followFragmentLinks(binding) {
+  const forms = new Set(binding.forms.map((f) => f.form));
+  document.addEventListener(
+    "click",
+    (e) => {
+      const a = linkOf(e);
+      if (!a || a.hasAttribute("download") || (a.target && a.target !== "_self")) return;
+      const url = new URL(a.href, location.href);
+      if (url.origin !== location.origin || url.pathname !== location.pathname) return;
+      if (url.search !== location.search || !url.hash || !forms.has(url.hash.slice(1))) return;
+      e.preventDefault();
+      if (url.href !== location.href) history.pushState(null, "", url.href);
+      followFragment(binding);
+    },
+    { signal: life.signal },
+  );
 }
 
 // --- `autofocus` on an element a block shows (track `todomvc`) --------------
@@ -2618,13 +2706,10 @@ const RELOADING = new Set(["reload", "refetch-region", "rerender-private-slot", 
  * page for ever. The button then stays inert, and says so.
  */
 function recoverOnPress(part, owners, verdict) {
-  const listens = DOM_EVENTS[part.event || "press"];
+  const { listens } = eventOf(part);
   if (!listens) return;
   for (const el of owners) {
-    const parts = bound.get(el) ?? new Set();
-    if (parts.has(part.id)) continue;
-    parts.add(part.id);
-    bound.set(el, parts);
+    if (!claim(el, part.id)) continue;
     el.addEventListener(listens, (e) => {
       const asks = verdict.recovery === "require-user-confirmation";
       if (!RELOADING.has(verdict.recovery) && !asks) {
@@ -2853,68 +2938,95 @@ function bindEvents() {
   }
 }
 
-/** One event part of `template`, bound to every element it has: the
- * page's, or a view's in each of its instances (ADR-0203). */
-function bindEvent(template, part) {
-  if (part.kind !== "event") return;
-  // A part of a view's instance is named by its template, and the page's
-  // as it always was.
-  const named = template === PAGE ? `${part.id}` : `${template}:${part.id}`;
+/**
+ * **The decision for one handler part**, asked once and kept, by the name
+ * its template gives it: whether its handler may attach (and so be fetched),
+ * and, refused, why. One function for binding and for warming (the first
+ * press's ADR), so the two cannot disagree about what is authorised.
+ */
+function verdictOf(named, part) {
+  if (!verdicts.has(named)) verdicts.set(named, decided(named, part));
+  return verdicts.get(named);
+}
+
+function decided(named, part) {
+  const manifest = manifestFor(part);
+  const verdict =
+    decide && manifest ? decide(manifest) : { attach: false, recovery: "no-decision" };
+  if (!verdict.attach) {
+    // With its CODE: only the code tells an unknown handler from a widened
+    // privacy scope from a stale document schema.
+    log.push(`refused ${named}: code ${verdict.code} recovery ${verdict.recovery}`);
+  }
+  return verdict;
+}
+
+/** A part of a view's instance is named by its template, and the page's
+ * as it always was. */
+function nameOf(template, part) {
+  return template === PAGE ? `${part.id}` : `${template}:${part.id}`;
+}
+
+function eventOf(part) {
+  const event = part.event || "press";
+  return { event, listens: DOM_EVENTS[event] };
+}
+
+/** Bound once: a block a signal renders again binds what it made, and
+ * leaves what was bound before alone (ADR-0130). */
+function claim(el, id) {
+  const parts = bound.get(el) ?? new Set();
+  if (parts.has(id)) return false;
+  parts.add(id);
+  bound.set(el, parts);
+  return true;
+}
+
+function bindingOf(template, part) {
+  if (part.kind !== "event") return null;
+  const named = nameOf(template, part);
   // Every INSTANCE of this template position. A template-scoped id names a
   // position in the template; the document has one instance per loop item,
   // and all three Add buttons carry `data-pw="0"`.
   const addresses = addressesFor(`e${part.owner}`, template);
   const owners = addresses.map((a) => index.get(a).element).filter(Boolean);
-  if (owners.length === 0) {
-    // A part in a block not rendered now (ADR-0130) is bound when it is.
-    if (!booted) log.push(`no element ${part.owner} for part ${named}`);
-    return;
-  }
+  if (owners.length > 0) return listenerFor(part, named, addresses, owners);
+  // A part in a block not rendered now (ADR-0130) is bound when it is.
+  if (!booted) log.push(`no element ${part.owner} for part ${named}`);
+  return null;
+}
 
-  // The decision, before anything is bound. `decide` returning anything but
-  // "attach" leaves the element without a listener — the button is inert
-  // rather than wrong.
-  //
-  // Asked NOW rather than on interaction, deliberately. A refused handler
-  // must never load its code: fetching first and checking after would make
-  // the refusal a formality the network had already ignored.
-  let verdict = verdicts.get(named);
-  if (!verdict) {
-    const manifest = manifestFor(part);
-    verdict =
-      decide && manifest ? decide(manifest) : { attach: false, recovery: "no-decision" };
-    verdicts.set(named, verdict);
-    if (!verdict.attach) {
-      // The CODE as well as the recovery. "refused 5: none" says a handler
-      // was refused and nothing about why; the code is the one field that
-      // distinguishes an unknown handler from a widened privacy scope from
-      // a stale document schema.
-      log.push(`refused ${named}: code ${verdict.code} recovery ${verdict.recovery}`);
-    }
-  }
+/**
+ * The decision, before anything is bound: refused, the element loads no
+ * code, and recovers when pressed (`recoverOnPress`).
+ *
+ * Asked NOW rather than on interaction, deliberately. A refused handler
+ * must never load its code: fetching first and checking after would make
+ * the refusal a formality the network had already ignored.
+ */
+function listenerFor(part, named, addresses, owners) {
+  const verdict = verdictOf(named, part);
   if (!verdict.attach) {
     recoverOnPress(part, owners, verdict);
-    return;
+    return null;
   }
-
   // The event the part handles, and what to do before any code loads.
-  const event = part.event || "press";
-  const listens = DOM_EVENTS[event];
+  const { event, listens } = eventOf(part);
   if (!listens) {
     log.push(`no listener for event ${event} of part ${named}`);
-    return;
+    return null;
   }
-  const modifiers = part.modifiers ?? [];
+  return { named, addresses, owners, event, listens, modifiers: part.modifiers ?? [] };
+}
 
-  let fresh = 0;
-  for (const el of owners) {
-    // Bound once: a block a signal renders again binds what it made, and
-    // leaves what was bound before alone (ADR-0130).
-    const parts = bound.get(el) ?? new Set();
-    if (parts.has(part.id)) continue;
-    parts.add(part.id);
-    bound.set(el, parts);
-    fresh++;
+/** One event part of `template`, bound to every element it has: the
+ * page's, or a view's in each of its instances (ADR-0203). */
+function bindEvent(template, part) {
+  const binding = bindingOf(template, part);
+  if (!binding) return;
+  const { event, listens, modifiers } = binding;
+  const fresh = binding.owners.filter((el) => claim(el, part.id));
+  for (const el of fresh) {
     el.addEventListener(listens, async (e) => {
       // Declared, so done now, synchronously (ADR-0131).
       if (modifiers.includes("prevent")) e.preventDefault();
@@ -2954,7 +3066,8 @@ function bindEvent(template, part) {
         // somebody presses this button.
         let module;
         try {
-          module = await loadHandler(part.value);
+          // Within this press's own deadline (ADR-0382).
+          module = await within(loadHandler(part.value), `the handler ${part.value}`);
         } finally {
           // Its turn, loaded or not: a press whose code failed to load
           // must not hold up every press after it.
@@ -3046,11 +3159,167 @@ function bindEvent(template, part) {
       }
     });
   }
-  if (fresh > 0) {
-    log.push(
-      `attached ${named} to ${owners.length} instance(s): ${addresses.join(" ")}`,
-    );
+  if (fresh.length > 0) {
+    const { named, owners, addresses } = binding;
+    log.push(`attached ${named} to ${owners.length} instance(s): ${addresses.join(" ")}`);
   }
+}
+
+// --- warming: what a press needs, there before it is pressed --------------
+//
+// The first press's ADR, amending E7-L where a build says `#warm|1`: once
+// interactive, loaded and idle, by the press's own loaders. A handler the
+// decision refused is never fetched. Development builds warm none.
+
+function rendersBlock(live) {
+  return live.kind !== "value" && !SET_IN_PLACE.has(live.kind);
+}
+
+/** Whether a signal or a speculation renders anything here with the
+ * renderer: a block, a row, a region (`flushSignals`, `showRegions`). */
+function rendersInBrowser() {
+  if (parts.regions && Object.keys(parts.regions).length > 0) return true;
+  return (parts.live ?? []).some(rendersBlock);
+}
+
+function quietly(loading, what) {
+  loading?.catch((error) => log.push(`warming ${what} failed: ${error.message ?? error}`));
+}
+
+/** **Warm what this page's presses need**, in the order they need it: the
+ * renderer, the computed and speculation modules, the handlers shown, then
+ * the rest. */
+function warm() {
+  if (rendersInBrowser()) quietly(renderModule(), "the renderer");
+  warmComputed();
+  warmSpeculation();
+  const identities = warmable();
+  for (const identity of identities) warmHandler(identity);
+  log.push(`warming ${identities.size} handler(s)`);
+}
+
+// Each module forgets a failed load itself (ADR-0382), as for a press.
+function warmComputed() {
+  if (parts.computed && !computedModule) quietly(computedValues(), parts.computed);
+}
+
+function warmSpeculation() {
+  if (parts.speculation && !speculationModule && !speculationLoaded) {
+    quietly(speculations(), parts.speculation);
+  }
+}
+
+/** The handlers the decision authorised, those shown first (a Set keeps
+ * the order). */
+function warmable() {
+  const shown = new Set();
+  const later = new Set();
+  for (const [template, list] of manifests) {
+    for (const part of list.filter((p) => authorised(template, p))) {
+      (addressesFor(`e${part.owner}`, template).length > 0 ? shown : later).add(part.value);
+    }
+  }
+  return new Set([...shown, ...later]);
+}
+
+function authorised(template, part) {
+  return part.kind === "event" && part.value && verdictOf(nameOf(template, part), part).attach;
+}
+
+/** One handler no press has asked for yet, under any specifier. */
+function warmHandler(identity) {
+  if (loaded.has(identity) || (attempts.get(identity) ?? 0) > 0) return;
+  const loading = loadHandler(identity);
+  loading.catch((error) => {
+    // Forgotten as a press's failed load is, unless a press forgot it.
+    if (loaded.get(identity) === loading) {
+      loaded.delete(identity);
+      attempts.set(identity, (attempts.get(identity) ?? 0) + 1);
+    }
+    log.push(`warming ${identity} failed: ${error.message ?? error}`);
+  });
+}
+
+/** **A press's own paths, run once on nothing** (the first press's ADR): the
+ * renderer's on its sample (`warm`), the morph's on a copy of a block in an
+ * inert document. A block holding a `<dialog>`, or larger than
+ * `WARM_ELEMENTS`, is passed over. Each step waits for idle; none runs once
+ * the runtime has ended. */
+async function warmPaths() {
+  if (!rendersInBrowser()) return;
+  const x = await renderModule();
+  if (!(await idleAndLive())) return;
+  warmRenderer(x);
+  const block = warmableBlock();
+  if (block) await warmBlock(block);
+}
+
+async function idleAndLive() {
+  await idleness();
+  return !life.signal.aborted;
+}
+
+function warmRenderer(x) {
+  try {
+    if (x.warm && x.warm() !== 0) log.push("the renderer refused its warm-up");
+  } catch (e) {
+    retireRenderer(x);
+    throw e;
+  }
+}
+
+function warmableBlock() {
+  for (const live of (parts.live ?? []).filter(rendersBlock)) {
+    const block = blockOf(live);
+    if (warmsOn(block)) return block;
+  }
+  return null;
+}
+
+function blockOf(live) {
+  const at = index.get(addressOf([], live.part));
+  return { part: live.part, nodes: at?.start ? between(at.start, at.end) : null };
+}
+
+function warmsOn({ nodes }) {
+  if (!nodes || dialogsIn(nodes, true).length || dialogsIn(nodes, false).length) return false;
+  const elements = nodes.reduce((n, node) => n + (node.nodeType === 1 ? 1 + node.getElementsByTagName("*").length : 0), 0);
+  return elements <= WARM_ELEMENTS;
+}
+
+async function warmBlock({ part, nodes }) {
+  const html = await renderBlock(part);
+  if (!(await idleAndLive())) return;
+  const inert = document.implementation.createHTMLDocument("");
+  const copy = inert.createElement("div");
+  for (const n of nodes) copy.append(inert.importNode(n, true));
+  morphChildren(copy, [...copy.childNodes], parseInstance(html), null, []);
+  log.push(`warmed the paths of block ${part}`);
+}
+
+/** The most elements a block's paths are warmed on: any block serves. */
+const WARM_ELEMENTS = 400;
+
+/** The browser's next idle period (in WebKit, a moment's pause). */
+function idleness() {
+  return new Promise((resolve) => {
+    const later = window.requestIdleCallback ?? ((f) => setTimeout(f, 1));
+    later(() => resolve(), { timeout: 1000 });
+  });
+}
+
+/** Warming, once the page is loaded and the browser idle, where the
+ * build that served it asks for it, and while the runtime is live. */
+function warmWhenIdle() {
+  if (!buildWarms) return;
+  const idle = async () => {
+    if (!(await idleAndLive())) return;
+    warm();
+    // Once what they run is loaded: `renderBlock` waits for it.
+    warmPaths().catch((e) => log.push(`warming the paths failed: ${e.message ?? e}`));
+  };
+  if (document.readyState === "complete") idle();
+  else addEventListener("load", idle, { once: true, signal: life.signal });
 }
 
 async function attach() {
@@ -3102,6 +3371,9 @@ async function attach() {
   window.__pw.signals = Object.fromEntries(signals);
   window.__pw.ready = true;
   document.documentElement.dataset.pwReady = "1";
+  // What its presses will need, where its build warms (the first press's
+  // ADR): after it is interactive, never before.
+  warmWhenIdle();
 }
 
 // --- the protocol ---------------------------------------------------------
@@ -3396,9 +3668,15 @@ async function pollOnce() {
   // Which document this page is (ADR-0161): each is its own subscriber.
   const response = await fetch(`/stream?doc=${documentCursor}&since=${cursor}`, {
     signal: life.signal,
+    priority: SUBSCRIPTION_PRIORITY,
   });
   applyBatch(await response.json());
 }
+
+/** **A subscription asks at low priority** (the first press's ADR): a
+ * command takes the next of HTTP/1.1's six connections ahead of other tabs'
+ * held subscriptions. */
+const SUBSCRIPTION_PRIORITY = "low";
 
 /**
  * The streaming adapter: one connection, many batches.
@@ -3410,6 +3688,7 @@ async function pollOnce() {
 async function streamOnce() {
   const response = await fetch(`/stream?doc=${documentCursor}&since=${cursor}&mode=stream`, {
     signal: life.signal,
+    priority: SUBSCRIPTION_PRIORITY,
   });
   if (!response.body) throw new Error("no streaming body");
   const reader = response.body.getReader();
@@ -3732,6 +4011,9 @@ async function softNavigate(url, how, mine, chosen = false) {
   if (!response.ok || !servedBuild || response.headers.get("pw-build") !== servedBuild) {
     return loadWhole(at, how);
   }
+  // And the same delivery, or the next runtime would meet this one's kept
+  // Wasm (the first press's review).
+  if (response.headers.get("pw-delivery") !== DELIVERY) return loadWhole(at, how);
   const next = new DOMParser().parseFromString(text, "text/html");
   let nextParts = null;
   try {
@@ -3781,7 +4063,15 @@ function handOver() {
   delete document.documentElement.dataset.pwNavigating;
   document.documentElement.dataset.pwReady = "0";
   life.abort();
-  import(`/pw-runtime.mjs?document=${window.__pwSoftNavigations}`).catch((e) => {
+  // Its renderer let go: this module stays in the module map (the first
+  // press's review), and nothing here renders again.
+  renderer = null;
+  rendererLoaded = null;
+  wasm = null;
+  if (speculationOwner) speculationOwner.renderer = null;
+  // At this runtime's delivery, where it has one (the first press's ADR).
+  const next = delivered("/pw-runtime.mjs");
+  import(`${next}${next.includes("?") ? "&" : "?"}document=${window.__pwSoftNavigations}`).catch((e) => {
     log.push(`the next runtime did not load: ${e}`);
     showAgain();
   });
@@ -3813,11 +4103,8 @@ addEventListener("beforeunload", () => pending?.abort(), { signal: life.signal }
 document.addEventListener(
   "click",
   (e) => {
-    if (!parts.layout || e.defaultPrevented || e.button !== 0) return;
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    const a = e.target instanceof Element ? e.target.closest("a[href]") : null;
-    if (!a || !(a instanceof HTMLAnchorElement)) return;
-    if (a.hasAttribute("download") || a.hasAttribute("data-pw-reload")) return;
+    const a = parts.layout ? linkOf(e) : null;
+    if (!a || a.hasAttribute("download") || a.hasAttribute("data-pw-reload")) return;
     if (a.target && a.target !== "_self") return;
     if (a.relList.contains("external")) return;
     const url = new URL(a.href, location.href);

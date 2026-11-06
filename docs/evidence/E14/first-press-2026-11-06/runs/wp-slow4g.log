@@ -1,0 +1,163 @@
+  settled: one-minute load 0.37 -> 0.37 in 0 s (goal under 8)
+head-to-head: todomvc
+  started pleris-todomvc on 13961 (pid 4033321)
+  started static-react on 13962 (pid 4033357)
+  started static-svelte on 13963 (pid 4033365)
+  todomvc: chromium cold: 5 rounds of 3
+  todomvc: chromium warm: 5 rounds of 3
+  todomvc: chromium cold slow-4g: 5 rounds of 3
+  todomvc: chromium warm slow-4g: 5 rounds of 3
+machine: 13th Gen Intel(R) Core(TM) i9-13900K, 32 logical CPUs, 47 GiB; Ubuntu 22.04.3 LTS; kernel 6.18.54.1-microsoft-standard-WSL2; node v22.21.1
+load average: 0.37 1.65 2.04 at the start, 0.93 1.42 1.9 at the end
+settled before measuring: one-minute load 0.37 -> 0.37 in 0 s (waits at most 0 s for under 8)
+playwright: 1.58.0; browsers: chromium 145.0.7632.6
+runs: 5 per cell (at least 5); conditions cold, warm; engines chromium; Chromium also shaped: Lighthouse's Slow 4G as it applies it through DevTools: 562.5 ms a request, 1.6 Mbit/s x 0.9 down, 750 kbit/s x 0.9 up, CPU x4 (latency 562.5 ms, 188743 B/s down, 86400 B/s up, as sent); servers: not measured; seed 20261025
+commit: cb7a215630ea86b06ea7d28ea016c795ca770e14 + uncommitted changes; 2026-11-06T09:50:21.428Z to 2026-11-06T09:52:20.784Z
+
+== where Pleris loses: 11 row(s) of the tables below in which another stack does better
+  LOSS todomvc: first load, bytes received as each host sent them (Chromium, cold): Pleris 141,822 | React 70,085 | Svelte 20,821  (better: React, Svelte)
+  LOSS todomvc: first load, bytes decoded (Chromium, cold): Pleris 419,144 | React 248,720 | Svelte 57,354  (better: React, Svelte)
+  LOSS todomvc: first load, bytes as a static host compresses them, Brotli 11, TodoMVC's common files aside (Chromium, cold): Pleris 126,737 | React 67,161 | Svelte 16,992  (better: React, Svelte)
+  LOSS todomvc: first load, requests (Chromium, cold): Pleris 19 | React 5 | Svelte 5  (better: React, Svelte)
+  LOSS todomvc: interaction "add", bytes received (Chromium, cold): Pleris 406 | React 0 | Svelte 0  (better: React, Svelte)
+  LOSS todomvc: interaction "toggle", bytes received (Chromium, cold): Pleris 449 | React 0 | Svelte 0  (better: React, Svelte)
+  LOSS todomvc: interactive, ms, median (chromium, warm): Pleris 15 ms | React 12 ms | Svelte 8.3 ms  (better: Svelte)
+  LOSS todomvc: first contentful paint, ms, median (chromium, cold, slow-4g): Pleris 1260 ms | React 1200 ms | Svelte 1196 ms  (better: React, Svelte)
+  LOSS todomvc: interactive, ms, median (chromium, cold, slow-4g): Pleris 1417 ms | React 1671 ms | Svelte 1295 ms  (better: Svelte)
+  LOSS todomvc: interaction "toggle" to its frame, ms, median (chromium, cold, slow-4g): Pleris 22 ms | React 24 ms | Svelte 19 ms  (better: Svelte)
+  LOSS todomvc: interaction "toggle" to its frame, ms, median (chromium, warm, slow-4g): Pleris 16 ms | React 13 ms | Svelte 14 ms  (better: React, Svelte)
+
+== where Pleris is best: 4 row(s); 20 more where it is neither (spreads overlap, or it is between the others)
+  BEST todomvc: largest contentful paint, ms, median (chromium, cold, slow-4g): Pleris 1260 ms | React 1680 ms | Svelte 1308 ms
+  BEST todomvc: interaction "filter" to its frame, ms, median (chromium, cold, slow-4g): Pleris 15 ms | React 17 ms | Svelte 29 ms
+  BEST todomvc: largest contentful paint, ms, median (chromium, warm, slow-4g): Pleris 616 ms | React 1192 ms | Svelte 1176 ms
+  BEST todomvc: interactive, ms, median (chromium, warm, slow-4g): Pleris 645 ms | React 1189 ms | Svelte 1168 ms
+
+== TodoMVC
+  Pleris     own renderer, this commit; written by this project (examples/todomvc, track todomvc); served by ../../../pw-targets/first-press/release/pw-dev-server dist-todomvc; interactive when the runtime sets data-pw-ready; build minifies: yes; host compresses: root-assets; host lets a cache keep its files: yes
+  React      React 19.2.5, react-router-dom 7.14.2, webpack 5.106.2; written by TodoMVC's maintainers (tastejs/todomvc@ff43b02e, examples/react); served by node benchmarks/headtohead/static-host.mjs --port 13962 --mount /react/dist=benchmarks/headtohead/todomvc/react/dist; interactive when its field is in the document (rendered by the client, handlers attached as it renders); build minifies: yes; host compresses: all; host lets a cache keep its files: yes
+  Svelte     Svelte 5.55.5, Vite 8.0.10; written by TodoMVC's maintainers (tastejs/todomvc@ff43b02e, examples/svelte); served by node benchmarks/headtohead/static-host.mjs --port 13963 --mount /svelte/dist=benchmarks/headtohead/todomvc/svelte/dist; interactive when its field is in the document (rendered by the client, handlers attached as it renders); build minifies: yes; host compresses: all; host lets a cache keep its files: yes
+
+bytes of the first load, cold, Chromium (every cold run of a stack received the same, or its range is shown):
+  decoded: the responses' bodies; Brotli 11, gzip 9: those bodies as a static host compresses them, for every stack alike;
+  received: what the browser received as each host sent it (headers included); app br: Brotli 11 without TodoMVC's common files (base.js, learn.json)
+  stack      requests   decoded Brotli 11   gzip 9  received  as sent          app br  by kind (decoded/br)
+  Pleris           19   419,144   126,737  151,527   141,822  br              126,737  style 3: 9,528/2,650; document 1: 10,974/2,112; script 12: 72,998/23,156; other 1: 292/199; wasm 2: 325,352/98,620
+  React             5   248,720    68,624   79,766    70,085  br               67,161  document 1: 645/234; style 1: 7,400/2,008; script 2: 240,666/66,369; other 1: 9/13
+  Svelte            5    57,354    19,306   21,898    20,821  br               16,992  document 1: 841/280; style 1: 7,129/1,910; script 2: 49,375/17,103; other 1: 9/13
+  scripts and styles a minifier still shrinks by 10% or more (esbuild 0.28.2's, lib.mjs's rule), as served:
+    Pleris     /todomvc-base.css 1,818 -> 1,441; /todomvc-app.css 7,277 -> 5,613; /computed/todomvc.app.Todos~ui.mjs 4,839 -> 1,851; /handler/f80d574d379ee9e9.mjs 3,414 -> 1,392; /handler/d5f9bbe064dac9b8.mjs 1,084 -> 519; /handler/8412388d5acb6c91.mjs 1,226 -> 575; /handler/7bed2c9f49c8c146.mjs 3,432 -> 1,392; /handler/8002f6408eb906fa.mjs 3,194 -> 1,349
+    React      none
+    Svelte     /svelte/dist/base.js 7,253 -> 3,770 (TodoMVC's common file)
+  interaction "add" (cold, Chromium): requests / decoded / Brotli 11 / received
+    Pleris       1       174       133       406  /todomvc-circle.svg 174
+    React        0         0         0         0  
+    Svelte       0         0         0         0  
+  interaction "toggle" (cold, Chromium): requests / decoded / Brotli 11 / received
+    Pleris       1       237       176       449  /todomvc-checked.svg 237
+    React        0         0         0         0  
+    Svelte       0         0         0         0  
+  interaction "filter" (cold, Chromium): requests / decoded / Brotli 11 / received
+    Pleris       0         0         0         0  
+    React        0         0         0         0  
+    Svelte       0         0         0         0  
+  warm (the same context after one whole visit; Chromium): requests / answered 304 / received
+    Pleris      19   0    11,585
+    React        5   3     1,338
+    Svelte       5   1       759
+
+times, ms from navigation start: median [first-third quartile] (min-max, n); interactions from the input event to the frame after the change; layout shift a score
+  chromium, cold, unshaped (loopback):
+    Pleris     first contentful paint 32 [28-32] (24-32, n=5)
+               largest contentful p. 32 [28-32] (24-32, n=5)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=5)
+               interactive            26 [25-27] (24-29, n=5)
+               "add"                  8.0 [7.8-8.3] (7.1-16, n=5)
+               "toggle"               16 [15-16] (15-16, n=5)
+               "filter"               15 [15-15] (14-15, n=5)
+    React      first contentful paint 36 [36-36] (32-44, n=5)
+               largest contentful p. 56 [56-56] (56-60, n=5)
+               layout shift           0.006 [0.006-0.006] (0.006-0.006, n=5)
+               interactive            43 [42-43] (42-51, n=5)
+               "add"                  8.5 [7.3-12] (6.8-14, n=5)
+               "toggle"               15 [14-15] (13-15, n=5)
+               "filter"               15 [15-15] (14-15, n=5)
+    Svelte     first contentful paint 32 [28-32] (28-36, n=5)
+               largest contentful p. 32 [28-32] (28-36, n=5)
+               layout shift           0.000 [0.000-0.006] (0.000-0.006, n=5)
+               interactive            17 [17-25] (16-29, n=5)
+               "add"                  7.5 [7.1-7.7] (5.8-9.2, n=5)
+               "toggle"               14 [14-15] (14-15, n=5)
+               "filter"               31 [31-31] (30-32, n=5)
+  chromium, warm, unshaped (loopback):
+    Pleris     first contentful paint 28 [28-28] (28-32, n=5)
+               largest contentful p. 28 [28-28] (28-32, n=5)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=5)
+               interactive            15 [13-16] (9.6-16, n=5)
+               "add"                  4.7 [3.9-9.4] (3.6-13, n=5)
+               "toggle"               15 [14-15] (14-15, n=5)
+               "filter"               15 [14-15] (14-15, n=5)
+    React      first contentful paint 28 [28-28] (28-28, n=5)
+               largest contentful p. 28 [28-28] (28-28, n=5)
+               layout shift           0.000 [0.000-0.000] (0.000-0.006, n=5)
+               interactive            12 [11-12] (11-15, n=5)
+               "add"                  7.9 [5.7-8.5] (5.4-13, n=5)
+               "toggle"               15 [15-15] (15-15, n=5)
+               "filter"               15 [15-15] (14-15, n=5)
+    Svelte     first contentful paint 24 [24-36] (24-36, n=5)
+               largest contentful p. 24 [24-36] (24-36, n=5)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=5)
+               interactive            8.3 [8.2-9.1] (7.9-10, n=5)
+               "add"                  8.9 [6.5-10] (5.5-14, n=5)
+               "toggle"               15 [15-15] (15-15, n=5)
+               "filter"               31 [31-31] (30-32, n=5)
+  chromium, cold, slow-4g (Lighthouse's Slow 4G as it applies it through DevTools: 562.5 ms a request, 1.6 Mbit/s x 0.9 down, 750 kbit/s x 0.9 up, CPU x4):
+    Pleris     first contentful paint 1260 [1256-1260] (1252-1260, n=5)
+               largest contentful p. 1260 [1256-1260] (1252-1260, n=5)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=5)
+               interactive            1417 [1417-1421] (1414-1422, n=5)
+               "add"                  31 [29-32] (28-34, n=5)
+               "toggle"               22 [21-23] (15-24, n=5)
+               "filter"               15 [14-15] (14-16, n=5)
+    React      first contentful paint 1200 [1200-1204] (1192-1204, n=5)
+               largest contentful p. 1680 [1660-1684] (1656-1688, n=5)
+               layout shift           0.006 [0.006-0.006] (0.006-0.006, n=5)
+               interactive            1671 [1653-1674] (1649-1680, n=5)
+               "add"                  33 [32-35] (30-35, n=5)
+               "toggle"               24 [22-25] (15-25, n=5)
+               "filter"               17 [16-18] (14-19, n=5)
+    Svelte     first contentful paint 1196 [1196-1200] (1192-1204, n=5)
+               largest contentful p. 1308 [1308-1312] (1304-1316, n=5)
+               layout shift           0.006 [0.006-0.006] (0.006-0.006, n=5)
+               interactive            1295 [1293-1297] (1292-1300, n=5)
+               "add"                  34 [32-36] (29-36, n=5)
+               "toggle"               19 [19-19] (18-20, n=5)
+               "filter"               29 [28-29] (28-30, n=5)
+  chromium, warm, slow-4g (Lighthouse's Slow 4G as it applies it through DevTools: 562.5 ms a request, 1.6 Mbit/s x 0.9 down, 750 kbit/s x 0.9 up, CPU x4):
+    Pleris     first contentful paint 616 [608-616] (596-616, n=5)
+               largest contentful p. 616 [608-616] (596-616, n=5)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=5)
+               interactive            645 [643-645] (640-645, n=5)
+               "add"                  16 [16-16] (15-17, n=5)
+               "toggle"               16 [15-16] (15-17, n=5)
+               "filter"               15 [14-15] (14-15, n=5)
+    React      first contentful paint 1160 [1160-1164] (1160-1168, n=5)
+               largest contentful p. 1192 [1192-1196] (1188-1208, n=5)
+               layout shift           0.006 [0.006-0.006] (0.006-0.006, n=5)
+               interactive            1189 [1186-1192] (1183-1201, n=5)
+               "add"                  16 [16-16] (12-16, n=5)
+               "toggle"               13 [13-14] (12-15, n=5)
+               "filter"               13 [13-13] (12-14, n=5)
+    Svelte     first contentful paint 600 [600-608] (600-608, n=5)
+               largest contentful p. 1176 [1172-1176] (1172-1180, n=5)
+               layout shift           0.006 [0.006-0.006] (0.006-0.006, n=5)
+               interactive            1168 [1168-1169] (1165-1169, n=5)
+               "add"                  16 [9.6-16] (9.3-18, n=5)
+               "toggle"               14 [13-14] (13-15, n=5)
+               "filter"               29 [29-30] (27-31, n=5)
+
+
+
+
+
+head-to-head: every rule held (validate.mjs)

@@ -1,0 +1,66 @@
+   -1.57  RunTask                         0.15ms  
+   -1.45  RunMicrotasks                   0.02ms  
+   -1.25  RunTask                         0.30ms  
+   -0.99  RunMicrotasks                   0.03ms  
+   -0.15  RunTask                        14.88ms  
+   -0.04  ScheduleStyleRecalculation           I  67264617E966FE06532BD7CD565E6066
+    0.00  EventDispatch                   8.68ms  keydown
+    0.17  RunMicrotasks                   8.48ms  
+    0.60  InvalidateLayout                     I  67264617E966FE06532BD7CD565E6066
+    7.53  ParseHTML                       0.04ms  
+    7.59  ParseHTML                       0.00ms  
+    8.69  EventDispatch                   5.77ms  keypress
+    8.70  UpdateLayoutTree                0.59ms  
+    9.04  ResourceSendRequest                  I  http://localhost:13801/todomvc-circle.svg
+    9.24  InvalidateLayout                     I  67264617E966FE06532BD7CD565E6066
+    9.30  Layout                          5.02ms  
+   14.40  EventDispatch                   0.01ms  beforeinput
+   14.42  EventDispatch                   0.00ms  textInput
+   14.73  RunTask                         0.84ms  
+   14.74  BeginMainThreadFrame                 I  
+   14.80  PageAnimator::serviceScriptedAnimations    0.01ms  
+   14.84  PrePaint                        0.13ms  67264617E966FE06532BD7CD565E6066
+   14.99  Paint                           0.14ms  67264617E966FE06532BD7CD565E6066
+   15.00  Paint                           0.12ms  67264617E966FE06532BD7CD565E6066
+   15.41  Commit                          0.14ms  
+   15.42  UpdateLayer                     0.01ms  
+   15.59  EventDispatch                   0.00ms  keyup
+   15.61  RunTask                         1.23ms  
+   15.66  ResourceReceiveResponse              I  67264617E966FE06532BD7CD565E6066
+   16.25  ParseHTML                       0.03ms  
+   16.26  ScheduleStyleRecalculation           I  2933F6050CDA71618D0BDC73567C5ACA
+   16.29  EventDispatch                   0.00ms  readystatechange
+   16.34  EventDispatch                        I  readystatechange
+   16.43  ScheduleStyleRecalculation           I  2933F6050CDA71618D0BDC73567C5ACA
+   16.47  EventDispatch                   0.00ms  readystatechange
+   16.48  EventDispatch                        I  DOMContentLoaded
+   16.48  UpdateLayoutTree                0.16ms  
+   16.62  InvalidateLayout                     I  2933F6050CDA71618D0BDC73567C5ACA
+   16.65  EventDispatch                   0.00ms  readystatechange
+   16.65  EventDispatch                        I  load
+   16.65  EventDispatch                   0.00ms  pageshow
+   16.66  Layout                          0.02ms  
+   16.70  ResourceFinish                       I  
+   16.86  PageAnimator::serviceScriptedAnimations    0.00ms  
+   16.88  PrePaint                        0.02ms  2933F6050CDA71618D0BDC73567C5ACA
+   16.90  PageAnimator::serviceScriptedAnimations    0.00ms  
+   16.91  PrePaint                        0.00ms  2933F6050CDA71618D0BDC73567C5ACA
+   18.71  RunTask                         0.42ms  
+   22.03  RunTask                         0.74ms  
+   22.05  BeginMainThreadFrame                 I  
+   22.10  PageAnimator::serviceScriptedAnimations    0.01ms  
+   22.15  PrePaint                        0.03ms  67264617E966FE06532BD7CD565E6066
+   22.21  Paint                           0.33ms  67264617E966FE06532BD7CD565E6066
+   22.26  Paint                           0.27ms  67264617E966FE06532BD7CD565E6066
+   22.33  InvalidateLayout                     I  2933F6050CDA71618D0BDC73567C5ACA
+   22.34  InvalidateLayout                     I  2933F6050CDA71618D0BDC73567C5ACA
+   22.39  Layout                          0.04ms  
+   22.43  PrePaint                        0.03ms  2933F6050CDA71618D0BDC73567C5ACA
+   22.59  Commit                          0.17ms  
+   22.59  UpdateLayer                     0.00ms  
+   22.79  PageAnimator::serviceScriptedAnimations    0.02ms  
+   22.80  EventDispatch                   0.00ms  resize
+   22.81  PrePaint                        0.00ms  2933F6050CDA71618D0BDC73567C5ACA
+   23.27  RunTask                         0.18ms  
+
+frames: BeginFrame@5.1  Paint@15.0  Paint@15.0  Commit@15.4  Commit@15.5  Commit@15.5  DrawFrame@17.5  BeginFrame@21.8  Paint@22.2  Paint@22.3  Commit@22.6  Commit@22.6  Commit@22.7  DrawFrame@23.3  BeginFrame@38.5

@@ -5,10 +5,18 @@ within the deadline, and a load that failed is not kept.
 Each mutant undoes one piece: a handler's module, or the page's speculation
 module, waited for without a deadline; a failed speculation load kept, or
 asked for again under the same specifier, which the browser keeps failed; a
-failed renderer load kept; a press whose speculation cannot load failed
-rather than sent unspeculated; a renderer load a press gave up on kept; a
-module's load timed by a send's deadline; a page's computed values kept
-failed, or asked for again under the same specifier.
+speculation load a press gave up waiting for asked for again under the same
+specifier, which the browser keeps in flight; a failed renderer load kept; a
+press whose speculation cannot load failed rather than sent unspeculated; a
+renderer load a press gave up on kept; a module's load timed by a send's
+deadline; a page's computed values kept failed, or asked for again under the
+same specifier.
+
+Since the first press's review (2026-11-06) a load is shared, by a warm-up
+and by each press that asks while it is in flight, and each press waits for
+it within a deadline of its own: the deadline's mutants undo the press's
+wait (`within` at the press, `speculationsWithin`), and a wait given up
+forgets its load in `forgetSpeculation`, a failed load in `speculations`.
 
 `e2e/press-modules.spec.mjs` and `e2e/computed-modules.spec.mjs`, in
 Chromium, must fail for each. Only complete
@@ -41,17 +49,14 @@ MUTANTS = [
     (
         "a handler's module is waited for without a deadline",
         RUNTIME,
-        "  const pending = within(import(url), `the handler ${identity}`).then((module) => {\n",
-        "  const pending = import(url).then((module) => {\n",
+        "          module = await within(loadHandler(part.value), `the handler ${part.value}`);\n",
+        "          module = await loadHandler(part.value);\n",
     ),
     (
         "the speculation module is waited for without a deadline",
         RUNTIME,
-        "  const loading = within(\n"
-        "    Promise.all([speculationLoaded ?? import(url), trackedRenderer]),\n"
-        '    "the speculation module",\n'
-        "  ).then(\n",
-        "  const loading = Promise.all([speculationLoaded ?? import(url), trackedRenderer]).then(\n",
+        '    return await within(loading, "the speculation module");\n',
+        "    return await loading;\n",
     ),
     (
         "a failed speculation load is kept",
@@ -63,8 +68,16 @@ MUTANTS = [
     (
         "a failed speculation load is asked for again under the same specifier",
         RUNTIME,
-        "      speculationAttempts += 1;\n",
-        "",
+        "      speculationAttempts += 1;\n"
+        "      // A renderer still loading is forgotten with it: the next press asks\n",
+        "      // A renderer still loading is forgotten with it: the next press asks\n",
+    ),
+    (
+        "a speculation load a press gave up waiting for is asked for again under the same specifier",
+        RUNTIME,
+        "  speculationAttempts += 1;\n"
+        "  forgetRenderer(rendering);\n",
+        "  forgetRenderer(rendering);\n",
     ),
     (
         "a failed renderer load is kept",
@@ -75,14 +88,19 @@ MUTANTS = [
     (
         "a renderer load a press gave up on is kept",
         RUNTIME,
-        "      forgetRenderer(rendering);\n",
-        "",
+        "  speculationAttempts += 1;\n"
+        "  forgetRenderer(rendering);\n"
+        "}\n",
+        "  speculationAttempts += 1;\n"
+        "}\n",
     ),
     (
         "a module's load is timed by a send's deadline",
         RUNTIME,
-        "    timer = setTimeout(() => reject(new Error(`${what}: none within ${loadDeadline} ms`)), loadDeadline);\n",
-        "    timer = setTimeout(() => reject(new Error(`${what}: none within ${sendDeadline} ms`)), sendDeadline);\n",
+        "      () => reject(Object.assign(new Error(`${what}: none within ${loadDeadline} ms`), { givenUp: true })),\n"
+        "      loadDeadline,\n",
+        "      () => reject(Object.assign(new Error(`${what}: none within ${sendDeadline} ms`), { givenUp: true })),\n"
+        "      sendDeadline,\n",
     ),
     (
         "a failed computed values load is kept",
@@ -101,13 +119,13 @@ MUTANTS = [
         RUNTIME,
         "  let module;\n"
         "  try {\n"
-        "    module = await speculations();\n"
+        "    module = await speculationsWithin();\n"
         "  } catch (error) {\n"
         "    if (error instanceof RetiredRenderer) throw error;\n"
         "    log.push(`${component} sent unspeculated: ${error.message ?? error}`);\n"
         "    return [];\n"
         "  }\n",
-        "  const module = await speculations();\n",
+        "  const module = await speculationsWithin();\n",
     ),
 ]
 

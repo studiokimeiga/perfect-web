@@ -1,0 +1,2 @@
+chromium {"constructedByTemplate":0,"constructedByImport":0} requests: []
+firefox {"constructedByTemplate":0,"constructedByImport":0} requests: []
