@@ -417,8 +417,11 @@ fn sent_without_idempotency(
                  InteractionId` runs the command once for it (ADR-0121)."
                     .to_string(),
             ),
+            // Both steps: `idempotent_by` names a type, and a program with no
+            // `InteractionId` that only adds the clause is refused next
+            // (PW0335, "names no type visible here").
             repairs: vec![Repair {
-                description: "declare `idempotent_by InteractionId`".to_string(),
+                description: "declare `idempotent_by InteractionId`, and `opaque type InteractionId = String` if the program has none".to_string(),
                 replacement: None,
             }],
         });
