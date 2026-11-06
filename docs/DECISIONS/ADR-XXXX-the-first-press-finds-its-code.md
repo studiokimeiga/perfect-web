@@ -116,6 +116,27 @@ keeps that, and changes only when the browser asks for them.
    moment later loses nothing: it asks from its cursor. Not the whole
    repair: a connection still frees only when some subscription's hold
    ends, which one origin's shared subscription or HTTP/2 would remove.
+10. **A production build's files are named at one version a cache keeps**
+    (ADR-0392's "Next" 2; the store's visit after its first was interactive
+    under Slow 4G at 1,186 ms, the frameworks' at 690 and 643, every file
+    asked for again). The **delivery id** is a digest of the build's name and
+    of every file beside its documents; a production build's documents name
+    the runtime, the decision's Wasm, the handler table and each file their
+    markup names at it (`?b=<id>`), and the runtime, reading the id from its
+    own address, asks for the renderer and those files at it too. A file or
+    the table asked for at the id the host serves is kept a year
+    (`immutable`); at another id (a document of an earlier build, in the
+    browser's history) the host's current file is sent as before and kept
+    by no cache under that name. The page's policy allows the versioned
+    script by its own hash. The compiled modules a page loads (handlers,
+    computed values, speculations) are digested into the id too, by their
+    names in the build, and asked for at it (`/handler/<identity>.mjs?b=…`;
+    a retry's `attempt` after it). A development build is versioned not at
+    all: its documents and every address are byte for byte as before.
+    Measured (`ver5`, before the modules were versioned): TodoMVC's visit
+    after its first is interactive under Slow 4G at 650 ms (React 1,202,
+    Svelte 1,168); the store's at 640 ms (1,186 before; Next.js 686,
+    SvelteKit 639).
 
 ## Measured (the development PC, 2026-11-06)
 

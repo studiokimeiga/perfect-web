@@ -97,7 +97,7 @@ test("a production build says its pages warm what their presses need", async () 
     const files = await optimizeAssets(dir);
     assert.deepEqual(files, ["pw-runtime.mjs"]);
     const delivery = JSON.parse((await readFile(path.join(dir, "delivery.json"))).toString());
-    assert.deepEqual(delivery, { warm: true });
+    assert.deepEqual(delivery, { warm: true, versioned: true });
     await assert.rejects(readFile(path.join(dir, "delivery.json.br")), { code: "ENOENT" });
   } finally {
     await rm(dir, { recursive: true, force: true });

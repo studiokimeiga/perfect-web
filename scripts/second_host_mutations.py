@@ -561,13 +561,15 @@ MUTANTS = [
         "the runtime's files admitted as every other request is",
         "assets",
         SERVER,
+        # Re-anchored by the first press's ADR: the file is served with the
+        # request's whole path, whose query names its delivery.
         '    if method == "GET"\n'
         "        && matches!(\n"
         "            route,\n"
         '            "/pw-runtime.mjs" | "/pw-resume.wasm" | "/pw-render.wasm"\n'
         "        )\n"
         "    {\n"
-        "        serve_file(server, &mut stream, route, &headers);\n"
+        "        serve_file(server, &mut stream, path, &headers);\n"
         "        return;\n"
         "    }\n",
         "",

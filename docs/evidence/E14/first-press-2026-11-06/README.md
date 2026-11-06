@@ -137,6 +137,53 @@ record; the server rows are three rounds each.
 | peak memory under load | 39.9 MiB | 39.9 MiB | 138-141 | 101-103 |
 | first load received | 41,911 B | 45,049 B | 140,212 | 35,026 |
 
+### The store's record, by the instrument's rules (`fp-store-record`)
+
+Then the same at `1cb6cce2` with the default five server rounds a stack:
+`head-to-head: every rule held (validate.mjs)` (`runs/fp-store-record.log`).
+Pleris is best in 14 rows and loses 10:
+
+| store, medians | Pleris | Next.js | SvelteKit |
+|---|---:|---:|---:|
+| a press with 19 other tabs open | **23 ms** | 48 | 48 |
+| interactive, Slow 4G, cold | **1,381 ms** | 2,083 | 1,753 |
+| add to its frame, Slow 4G, cold / warm visit | **18 / 14 ms** | 638 / 615 | 1,189 / 1,172 |
+| interactive, loopback, cold | **26 ms** | 76 | 32 |
+| add to its frame, loopback, cold | **14 ms** | 30 | 31 |
+| the add's bytes | **280 B** | 2,392 | 701 |
+| server CPU a request under load | **0.26 ms** | 6.42 | 1.54 |
+| peak memory under load | **45.0 MiB** | 142 | 105 |
+| interactive, Slow 4G, warm visit | 1,186 ms | 690 | 643 |
+| first load received | 45,049 B | 140,217 | 35,018 |
+| first paint, loopback, cold | 28 ms | 32 | 24 |
+| latency under load, p50 | 1.50 ms | 4.48 | 1.26 |
+| server CPU for 20 idle visitors | 6.00 ms/s | 2.00 | 1.00 |
+| an idle page's requests a minute | 29.7 | 0 | 0 |
+
+(The idle page's requests are its live subscription, a feature the other
+two do not have: their pages hear of no change.)
+
+## Named at one version: a visit after the first (`ver5-*`)
+
+The branch with decision 10 (a production build's files at its delivery id,
+kept `immutable`), handler modules not yet versioned. TodoMVC with Slow 4G
+also measured warm (`--conditions cold,warm`); the store's record by the
+instrument's rules. All three runs: `every rule held`.
+
+| visit after the first, Slow 4G, medians | Pleris | React / Next.js | Svelte / SvelteKit |
+|---|---:|---:|---:|
+| TodoMVC: interactive | **650 ms** | 1,202 | 1,168 |
+| TodoMVC: largest paint | **620 ms** | 1,208 | 1,176 |
+| store: interactive (1,186 before) | 640 ms | 686 | 639 |
+| store: add to its frame | **15 ms** | 615 | 1,170 |
+
+The store's record (`runs/ver5-store.log`) then loses 8 rows, where the
+record before lost 10: first-load bytes and requests against SvelteKit
+(45,322 B to 35,018, 7 requests to 6 for Next.js), latency under load (p50
+1.61 ms to SvelteKit's 1.33, p99 3.66 to 2.82), and its idle pages'
+subscriptions (29.7 requests a minute, 6.00 ms of server CPU a second for 20
+visitors, against 0 and 2.00 for pages that hear no changes).
+
 ## Not run, or failed for the environment
 
 - **WebKit could not open a page on this PC this session**: Playwright's

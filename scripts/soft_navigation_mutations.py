@@ -75,8 +75,10 @@ MUTANTS = [
     (
         "the old runtime goes on after handing the page over",
         RUNTIME,
-        "  life.abort();\n  import(",
-        "  import(",
+        # Re-anchored by the first press's ADR: the next runtime is asked for
+        # at this one's delivery.
+        "  life.abort();\n  // At this runtime's delivery, where it has one (the first press's ADR).\n",
+        "  // At this runtime's delivery, where it has one (the first press's ADR).\n",
     ),
     (
         "what a leaving page is told is applied",

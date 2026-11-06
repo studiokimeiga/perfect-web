@@ -37,11 +37,14 @@ async function packAsset(directory, entry) {
 /**
  * **How a production build is delivered** (the first press's ADR): its
  * pages warm what their presses need once they are interactive, rather than
- * fetching each press's code when it is pressed. The server reads this file
- * beside the assets and tells the browser on its handler table (`#warm|1`).
- * A development build has none, and warms nothing (E7-L).
+ * fetching each press's code when it is pressed (`warm`; the server tells
+ * the browser on its handler table, `#warm|1`); and its files are named at
+ * one version, a digest of the build and of every file beside its documents,
+ * which a browser keeps until the build changes (`versioned`). The server
+ * reads this file beside the assets. A development build has none: it warms
+ * nothing (E7-L), and names each file as it is.
  */
-export const DELIVERY = { warm: true };
+export const DELIVERY = { warm: true, versioned: true };
 
 /**
  * **The compiled modules a page loads** (the first press's ADR): its

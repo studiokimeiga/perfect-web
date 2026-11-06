@@ -1059,6 +1059,10 @@ struct Server {
     /// in every host; a test lengthens it to show that a push, not a slice,
     /// delivers its frames).
     wake_at_least: std::time::Duration,
+    /// **How this build's files are named on the wire** ([`Delivery`]): at
+    /// a version a cache keeps, a production build's; as they are, a
+    /// development build's.
+    delivery: Delivery,
     /// The document's static assets.
     dist: std::path::PathBuf,
     /// **Where the compiler's browser artifacts are** (ADR-0123): the
@@ -2031,8 +2035,11 @@ impl Server {
         }
         // TRACK SEAM (second-host): its pages numbered in its instance.
         let first_page = hosts::first_page(data.instance());
+        // How its files are named on the wire (the first press's ADR).
+        let delivery = Delivery::of(&dist, &artifacts, &build_id);
         Server {
             cart_by_reader,
+            delivery,
             build_id,
             needs,
             templates,
@@ -6958,7 +6965,9 @@ impl Server {
             + &pw_render::head_canonical(template, &env, self.origin.get().map(String::as_str))
                 .map_err(|e| format!("`{path}`'s canonical address does not render: {e:?}"))?;
         Ok((
-            signal_document(
+            // As this build's delivery names its files (the first press's
+            // ADR): at its version, a production build's.
+            self.delivery.deliver(signal_document(
                 &body,
                 &title,
                 &metadata,
@@ -6966,7 +6975,7 @@ impl Server {
                 plan,
                 &self.templates,
                 &self.build_id,
-            ),
+            )),
             env,
             template,
         ))
@@ -7581,7 +7590,14 @@ impl Server {
             frames: self.payments.get().map(|p| p.provider.clone()),
             forms: self.identity.sign_in_origin(),
         };
-        csp::document(RUNTIME_SOURCE, self.data.style(), &self.needs, &deployment)
+        // The script as this build's delivery writes it (the first press's
+        // ADR): at its version, a production build's.
+        csp::document(
+            &self.delivery.runtime_source(),
+            self.data.style(),
+            &self.needs,
+            &deployment,
+        )
     }
 
     /// **A document, and each streamed region's arm as its query settles**
@@ -9392,7 +9408,7 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             "/pw-runtime.mjs" | "/pw-resume.wasm" | "/pw-render.wasm"
         )
     {
-        serve_file(server, &mut stream, route, &headers);
+        serve_file(server, &mut stream, path, &headers);
         return;
     }
     let upload_request = server.uploads.claims(method, route);
@@ -10592,6 +10608,9 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                     "text/javascript; charset=utf-8",
                     &path,
                     bytes,
+                    // Kept a year asked for at this build's delivery,
+                    // whose id digests it (the first press's ADR).
+                    server.delivery.cache_policy(query),
                 ),
                 Err(_) => respond_build(
                     &mut stream,
@@ -10621,6 +10640,9 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                     "text/javascript; charset=utf-8",
                     &path,
                     bytes,
+                    // Kept a year asked for at this build's delivery,
+                    // whose id digests it (the first press's ADR).
+                    server.delivery.cache_policy(query),
                 ),
                 Err(_) => respond_build(
                     &mut stream,
@@ -10658,6 +10680,9 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                     "text/javascript; charset=utf-8",
                     &path,
                     module,
+                    // Kept a year asked for at this build's delivery,
+                    // whose id digests it (the first press's ADR).
+                    server.delivery.cache_policy(query),
                 ),
                 Err(_) => respond_build(
                     &mut stream,
@@ -10747,11 +10772,20 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             for (identity, capture) in server.handler_table() {
                 table.push_str(&format!("{identity}|{capture}\n"));
             }
+            // Asked for at this build's delivery (the first press's ADR),
+            // the table is the delivery's, and kept a year: the delivery's
+            // id is a digest of the build's name and files, and a new build
+            // is a new id. Asked otherwise, kept by no cache, as before.
+            let kept = if server.delivery.current(query) {
+                "cache-control: public, max-age=31536000, immutable\r\n"
+            } else {
+                ""
+            };
             write_response(
                 &mut stream,
                 200,
                 "text/plain; charset=utf-8",
-                &format!("pw-build: {}\r\n", server.build_id),
+                &format!("pw-build: {}\r\n{kept}", server.build_id),
                 table.as_bytes(),
             );
         }
@@ -10878,7 +10912,7 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 request_reader.as_ref().expect("page admission"),
             )
         }
-        ("GET", _) => serve_file(server, &mut stream, route, &headers),
+        ("GET", _) => serve_file(server, &mut stream, path, &headers),
         _ => respond(&mut stream, 405, "text/plain", &session, fresh, b"method"),
     }
 }
@@ -11291,7 +11325,9 @@ fn serve_bound(
                     }
                 })
                 .collect();
-            let html = document(
+            // As this build's delivery names its files (the first press's
+            // ADR): at its version, a production build's.
+            let html = server.delivery.deliver(document(
                 &rendered,
                 &title,
                 &metadata,
@@ -11303,7 +11339,7 @@ fn serve_bound(
                 speculation,
                 &holds,
                 &server.build_id,
-            );
+            ));
             server.respond_streaming(
                 stream,
                 session,
@@ -11650,13 +11686,22 @@ fn accepts_asset_encoding(headers: &str, encoding: &str) -> bool {
 /// (`optimize-assets.mjs`). A build without one, as every development build
 /// is, warms nothing: a press fetches its code when it is pressed (E7-L).
 fn warms(dist: &std::path::Path) -> bool {
+    delivery_says(dist, "warm")
+}
+
+/// Whether a build's packaging says `key` of its delivery: `true` at `key`
+/// in `delivery.json` beside its assets, and nothing else.
+fn delivery_says(dist: &std::path::Path, key: &str) -> bool {
     std::fs::read_to_string(dist.join("delivery.json"))
         .ok()
         .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
-        .is_some_and(|delivery| delivery["warm"] == serde_json::Value::Bool(true))
+        .is_some_and(|delivery| delivery[key] == serde_json::Value::Bool(true))
 }
 
-fn serve_file(server: &Server, stream: &mut TcpStream, route: &str, request_headers: &str) {
+fn serve_file(server: &Server, stream: &mut TcpStream, path: &str, request_headers: &str) {
+    // The request's query names the delivery it asks at, if any (the first
+    // press's ADR); the file is the route's.
+    let (route, query) = path.split_once('?').unwrap_or((path, ""));
     let name = route.trim_start_matches('/');
     // No traversal: a request names a file in dist and nothing above it.
     if name.contains("..") || name.contains('/') {
@@ -11688,22 +11733,26 @@ fn serve_file(server: &Server, stream: &mut TcpStream, route: &str, request_head
         respond_build(stream, 200, mime, &bytes);
         return;
     }
-    respond_representation(stream, request_headers, mime, &path, bytes);
+    // Kept a year at this build's delivery, asked again otherwise.
+    let policy = server.delivery.cache_policy(query);
+    respond_representation(stream, request_headers, mime, &path, bytes, policy);
 }
 
 /// **A file of the build, as its packaging wrote it** (PR #75's delivery,
 /// and the first press's ADR for the compiled modules): the representation
 /// the request accepts of those the packaging wrote beside it (`.br`, `.gz`),
 /// else the file as it is; a strong ETag for that representation, and a 304
-/// with no body for a request that holds it; `public, no-cache`, so a cache
-/// keeps it and asks again before using it. The same for every reader: no
-/// session, no cookie. `bytes` are the file's own.
+/// with no body for a request that holds it; `policy` its cache policy:
+/// `public, no-cache`, so a cache keeps it and asks again before using it,
+/// or, asked at its build's delivery, kept a year ([`Delivery`]). The same
+/// for every reader: no session, no cookie. `bytes` are the file's own.
 fn respond_representation(
     stream: &mut TcpStream,
     request_headers: &str,
     mime: &str,
     path: &std::path::Path,
     mut bytes: Vec<u8>,
+    policy: &str,
 ) {
     use sha2::Digest;
 
@@ -11738,7 +11787,7 @@ fn respond_representation(
                 .any(|candidate| candidate.trim() == tag)
         });
     let mut response_headers =
-        format!("cache-control: public, no-cache\r\netag: {tag}\r\nvary: accept-encoding\r\n");
+        format!("cache-control: {policy}\r\netag: {tag}\r\nvary: accept-encoding\r\n");
     if let Some(algorithm) = encoding {
         response_headers.push_str(&format!("content-encoding: {algorithm}\r\n"));
     }
@@ -12256,6 +12305,213 @@ const RUNTIME: &str = "<script>import(\"/pw-runtime.mjs\")</script>";
 const BOOT: &str = "<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n\
      <link rel=\"preload\" href=\"/pw-resume.wasm\" as=\"fetch\" crossorigin>\n\
      <link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n";
+
+/// **How a production build's files are named on the wire** (the first
+/// press's ADR, ADR-0392's "Next" 2: names a cache may keep). Every file a
+/// document names, and every one its runtime asks for, is asked for at one
+/// version, so that a browser keeps each until the build changes and asks
+/// for none of them again on a visit after its first. Until 2026-11-06 a
+/// visit after the first asked again for each (`public, no-cache`), and
+/// under Slow 4G the store was interactive on such a visit at 1,183 ms, the
+/// frameworks' at 700 and 658.
+///
+/// One version for them all: the **delivery id**, a digest of the build's
+/// name and of every file beside the documents (`dist`), so a change to any
+/// of them is a new id. A file asked for at the id the host serves is sent
+/// `immutable`, for a year; at another id (a document of an earlier build,
+/// kept in the browser's history), the file the host has, revalidated as
+/// before, and kept by no cache under that name. The runtime reads the id
+/// from its own address and asks for the decision's Wasm, the renderer's and
+/// the handler table at it.
+///
+/// A development build has none: its documents name every file as they did
+/// (`BOOT`, `RUNTIME`), and the browser suites see the addresses they pin.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct Delivery {
+    /// The delivery id, a production build's only.
+    version: Option<String>,
+    /// The files beside the documents a document may name, each by its
+    /// address (`/todomvc-app.css`): only these are named at the version.
+    files: std::collections::BTreeSet<String>,
+}
+
+impl Delivery {
+    /// The delivery of the build in `dist`, named `build`, whose compiled
+    /// modules are in `artifacts`: versioned where its packaging says
+    /// (`{"versioned": true}` in `delivery.json`). The id digests the
+    /// compiled modules a page loads too (its handlers', computed values'
+    /// and speculations'), which are asked for at it.
+    fn of(dist: &std::path::Path, artifacts: &std::path::Path, build: &str) -> Delivery {
+        use sha2::Digest;
+        if !delivery_says(dist, "versioned") {
+            return Delivery::default();
+        }
+        let files_in = |dir: &std::path::Path| -> Vec<std::path::PathBuf> {
+            std::fs::read_dir(dir)
+                .into_iter()
+                .flatten()
+                .flatten()
+                .map(|e| e.path())
+                .filter(|p| p.is_file())
+                .collect()
+        };
+        let mut paths = files_in(dist);
+        paths.sort();
+        let mut modules: Vec<std::path::PathBuf> = ["handlers", "computed", "speculations"]
+            .iter()
+            .flat_map(|d| files_in(&artifacts.join(d)))
+            .collect();
+        modules.sort();
+        let mut digest = sha2::Sha256::new();
+        digest.update(build.as_bytes());
+        let mut files = std::collections::BTreeSet::new();
+        for path in paths {
+            let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+                continue;
+            };
+            let Ok(bytes) = std::fs::read(&path) else {
+                continue;
+            };
+            digest.update([0u8]);
+            digest.update(name.as_bytes());
+            digest.update([0u8]);
+            digest.update(sha2::Sha256::digest(&bytes));
+            let named = matches!(
+                path.extension().and_then(|e| e.to_str()),
+                Some("mjs" | "js" | "wasm" | "css" | "svg")
+            );
+            if named {
+                files.insert(format!("/{name}"));
+            }
+        }
+        for path in modules {
+            let Ok(bytes) = std::fs::read(&path) else {
+                continue;
+            };
+            // By its name in the build, not where the build is: two hosts of
+            // one build name it alike.
+            let name = path.strip_prefix(artifacts).unwrap_or(&path);
+            digest.update([1u8]);
+            digest.update(name.to_string_lossy().as_bytes());
+            digest.update([0u8]);
+            digest.update(sha2::Sha256::digest(&bytes));
+        }
+        let version = digest
+            .finalize()
+            .iter()
+            .take(8)
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>();
+        Delivery {
+            version: Some(version),
+            files,
+        }
+    }
+
+    /// A file's address as a document names it: at the version, where the
+    /// build has one.
+    fn named(&self, path: &str) -> String {
+        match &self.version {
+            Some(v) => format!("{path}?b={v}"),
+            None => path.to_string(),
+        }
+    }
+
+    /// What the head asks for as the runtime boots ([`BOOT`]), each at the
+    /// address the runtime asks for it at.
+    fn boot(&self) -> String {
+        match self.version {
+            None => BOOT.to_string(),
+            Some(_) => format!(
+                "<link rel=\"modulepreload\" href=\"{}\">\n\
+                 <link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>\n\
+                 <link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>\n",
+                self.named("/pw-runtime.mjs"),
+                self.named("/pw-resume.wasm"),
+                self.named("/pw-handlers"),
+            ),
+        }
+    }
+
+    /// The text of the script that starts the runtime ([`RUNTIME_SOURCE`]),
+    /// which a document's policy allows by its hash.
+    fn runtime_source(&self) -> String {
+        match self.version {
+            None => RUNTIME_SOURCE.to_string(),
+            Some(_) => format!("import(\"{}\")", self.named("/pw-runtime.mjs")),
+        }
+    }
+
+    /// The script that starts the runtime ([`RUNTIME`]).
+    fn runtime(&self) -> String {
+        match self.version {
+            None => RUNTIME.to_string(),
+            Some(_) => format!("<script>{}</script>", self.runtime_source()),
+        }
+    }
+
+    /// `document`, each file beside it that its markup names
+    /// (`href="/todomvc-app.css"`, `src="/logo.svg"`) named at the version.
+    /// An attribute holds a value's text escaped (`&quot;`), so only markup
+    /// writes the quoted address this replaces.
+    fn name_files(&self, document: String) -> String {
+        if self.version.is_none() {
+            return document;
+        }
+        let mut document = document;
+        for file in &self.files {
+            for attribute in ["href", "src"] {
+                let plain = format!("{attribute}=\"{file}\"");
+                if document.contains(&plain) {
+                    document =
+                        document.replace(&plain, &format!("{attribute}=\"{}\"", self.named(file)));
+                }
+            }
+        }
+        document
+    }
+
+    /// **A document as this delivery sends it**: the head's boot links and
+    /// the script that starts the runtime, as [`signal_document`] and
+    /// [`document`] write them ([`BOOT`], [`RUNTIME`]), at the version, and
+    /// each file the markup names. A development build's, as written.
+    fn deliver(&self, document: String) -> String {
+        if self.version.is_none() {
+            return document;
+        }
+        let document = document.replacen(BOOT, &self.boot(), 1);
+        let document = match document.rfind(RUNTIME) {
+            Some(at) => format!(
+                "{}{}{}",
+                &document[..at],
+                self.runtime(),
+                &document[at + RUNTIME.len()..]
+            ),
+            None => document,
+        };
+        self.name_files(document)
+    }
+
+    /// Whether a request's query names this delivery: `b=` its id.
+    fn current(&self, query: &str) -> bool {
+        self.version.as_deref().is_some_and(|v| {
+            query
+                .split('&')
+                .any(|p| p.strip_prefix("b=").is_some_and(|b| b == v))
+        })
+    }
+
+    /// The cache policy of a file asked for with `query`: kept a year and
+    /// never asked again, at this delivery; kept and asked again before each
+    /// use, otherwise (PR #75's).
+    fn cache_policy(&self, query: &str) -> &'static str {
+        if self.current(query) {
+            "public, max-age=31536000, immutable"
+        } else {
+            "public, no-cache"
+        }
+    }
+}
 
 /// **Its text**, which a document's policy allows by its hash (`csp`).
 /// `RUNTIME`'s, as a test holds it.
@@ -17156,6 +17412,177 @@ public query Store(",
         assert!(!handlers(&lazy).is_empty(), "{lazy}");
         assert_eq!(handlers(&lazy), handlers(&warm));
         assert_eq!(lazy.lines().count() + 1, warm.lines().count());
+    }
+
+    /// **A development build names its files as they are** (the first
+    /// press's ADR): no delivery id, so every document is written as it was,
+    /// byte for byte, and every file is asked again before each use.
+    #[test]
+    fn a_development_build_names_its_files_as_they_are() {
+        let dir = tempfile::tempdir().expect("a directory");
+        std::fs::write(dir.path().join("pw-runtime.mjs"), "export {};\n").expect("written");
+        let delivery = Delivery::of(dir.path(), &dir.path().join("build"), "b1");
+        assert_eq!(delivery, Delivery::default());
+        assert_eq!(delivery.boot(), BOOT);
+        assert_eq!(delivery.runtime(), RUNTIME);
+        assert_eq!(delivery.runtime_source(), RUNTIME_SOURCE);
+        let document = format!("<head>\n{BOOT}</head><body><link href=\"/a.css\">{RUNTIME}</body>");
+        assert_eq!(delivery.deliver(document.clone()), document);
+        assert_eq!(delivery.cache_policy("b=anything"), "public, no-cache");
+    }
+
+    /// **A production build names its files at one version, which a cache
+    /// keeps** (the first press's ADR): the head's boot links, the script
+    /// that starts the runtime and each file the markup names, at the
+    /// delivery id; a request at that id kept a year, at another or none
+    /// asked again. Only markup's quoted addresses are named: a value's text,
+    /// escaped, is left as it is.
+    #[test]
+    fn a_production_build_names_its_files_at_one_version() {
+        let dir = tempfile::tempdir().expect("a directory");
+        for (file, bytes) in [
+            ("delivery.json", "{\"warm\": true, \"versioned\": true}\n"),
+            ("pw-runtime.mjs", "export {};\n"),
+            ("pw-resume.wasm", "\0asm"),
+            ("app.css", "p{}"),
+            ("notes.txt", "not served by name"),
+        ] {
+            std::fs::write(dir.path().join(file), bytes).expect("written");
+        }
+        let delivery = Delivery::of(dir.path(), &dir.path().join("build"), "b1");
+        let version = delivery.version.clone().expect("a delivery id");
+        assert_eq!(version.len(), 16, "{version}");
+        assert!(version.bytes().all(|b| b.is_ascii_hexdigit()), "{version}");
+        assert_eq!(
+            delivery
+                .files
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            vec!["/app.css", "/pw-resume.wasm", "/pw-runtime.mjs"]
+        );
+        let document = format!(
+            "<head>\n{BOOT}</head><body><link rel=\"stylesheet\" href=\"/app.css\">\
+             <p title=\"href=&quot;/app.css&quot;\">href=\"/app.css\" said</p>\n{RUNTIME}\n</body>"
+        );
+        let delivered = delivery.deliver(document);
+        let at = |path: &str| format!("{path}?b={version}");
+        for link in [
+            format!(
+                "<link rel=\"modulepreload\" href=\"{}\">",
+                at("/pw-runtime.mjs")
+            ),
+            format!(
+                "<link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>",
+                at("/pw-resume.wasm")
+            ),
+            format!(
+                "<link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>",
+                at("/pw-handlers")
+            ),
+            format!("<link rel=\"stylesheet\" href=\"{}\">", at("/app.css")),
+            format!("<script>import(\"{}\")</script>", at("/pw-runtime.mjs")),
+        ] {
+            assert!(delivered.contains(&link), "{link} in {delivered}");
+        }
+        assert!(
+            !delivered.contains(BOOT) && !delivered.contains(RUNTIME),
+            "{delivered}"
+        );
+        assert!(
+            delivered.contains("title=\"href=&quot;/app.css&quot;\""),
+            "{delivered}"
+        );
+        assert_eq!(
+            delivery.runtime_source(),
+            format!("import(\"{}\")", at("/pw-runtime.mjs"))
+        );
+        assert_eq!(
+            delivery.cache_policy(&format!("b={version}")),
+            "public, max-age=31536000, immutable"
+        );
+        assert_eq!(
+            delivery.cache_policy(&format!("document=2&b={version}")),
+            "public, max-age=31536000, immutable"
+        );
+        assert_eq!(
+            delivery.cache_policy("b=0000000000000000"),
+            "public, no-cache"
+        );
+        assert_eq!(delivery.cache_policy(""), "public, no-cache");
+    }
+
+    /// **The delivery id is the build's and its files'**: the same for the
+    /// same, and another for another build's name or any file's bytes.
+    #[test]
+    fn the_delivery_id_changes_with_the_build_and_with_any_file() {
+        let dir = tempfile::tempdir().expect("a directory");
+        std::fs::write(dir.path().join("delivery.json"), "{\"versioned\": true}").expect("written");
+        std::fs::write(dir.path().join("app.css"), "p{}").expect("written");
+        let id = |build: &str| {
+            Delivery::of(dir.path(), &dir.path().join("build"), build)
+                .version
+                .expect("an id")
+        };
+        let first = id("b1");
+        assert_eq!(id("b1"), first, "the same build and files");
+        assert_ne!(id("b2"), first, "another build");
+        std::fs::write(dir.path().join("app.css"), "p{color:red}").expect("written");
+        assert_ne!(id("b1"), first, "another file's bytes");
+        std::fs::write(dir.path().join("notes.txt"), "x").expect("written");
+        let with_notes = id("b1");
+        std::fs::write(dir.path().join("notes.txt"), "y").expect("written");
+        assert_ne!(id("b1"), with_notes, "any file beside the documents");
+        // And a compiled module a page loads, which is asked for at the id.
+        let handlers = dir.path().join("build/handlers");
+        std::fs::create_dir_all(&handlers).expect("a directory");
+        std::fs::write(handlers.join("0123456789abcdef.mjs"), "export const a = 1;")
+            .expect("written");
+        let with_handler = id("b1");
+        assert_ne!(with_handler, with_notes);
+        std::fs::write(handlers.join("0123456789abcdef.mjs"), "export const a = 2;")
+            .expect("written");
+        assert_ne!(id("b1"), with_handler, "a handler's module");
+    }
+
+    /// **A production build's page and table, as served**: the page names
+    /// the runtime at the delivery, and its policy allows that script, by
+    /// that script's hash; the table asked for at the delivery is kept a
+    /// year, and asked for otherwise is kept by no cache.
+    #[test]
+    fn a_production_build_serves_its_page_and_table_at_its_delivery() {
+        let (_dir, out) = built_feed_with(|app| app.to_string());
+        std::fs::write(
+            out.join("delivery.json"),
+            "{\"warm\": true, \"versioned\": true}\n",
+        )
+        .expect("written");
+        let s = Server::from_build(out.clone(), out).expect("served");
+        let version = s.delivery.version.clone().expect("a delivery id");
+        let page = get_as(&s, "a", "/");
+        let script = format!("import(\"/pw-runtime.mjs?b={version}\")");
+        assert!(
+            page.contains(&format!("<script>{script}</script>")),
+            "{page}"
+        );
+        assert!(
+            page.contains(&csp::sha256_source(&script)),
+            "the page's policy allows the script it runs: {page}"
+        );
+        assert!(
+            !page.contains(&csp::sha256_source(RUNTIME_SOURCE)),
+            "{page}"
+        );
+        let kept = get_as(&s, "a", &format!("/pw-handlers?b={version}"));
+        assert!(
+            kept.contains("cache-control: public, max-age=31536000, immutable\r\n"),
+            "{kept}"
+        );
+        for asked in ["/pw-handlers", "/pw-handlers?b=0000000000000000"] {
+            let table = get_as(&s, "a", asked);
+            assert!(table.starts_with("HTTP/1.1 200"), "{table}");
+            assert!(!table.contains("cache-control"), "{asked}: {table}");
+        }
     }
 
     /// One GET of `path` with `headers` added, through the server's own

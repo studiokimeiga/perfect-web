@@ -387,6 +387,26 @@ let servedBuild = "";
  * (the first press's ADR): its handler table's `#warm|1`. */
 let buildWarms = false;
 
+/** **The delivery this runtime was asked for at** (the first press's ADR):
+ * the version a production build's documents name its files at
+ * (`/pw-runtime.mjs?b=…`), which a browser keeps until the build changes;
+ * none for a development build's. */
+const DELIVERY = new URL(import.meta.url).searchParams.get("b");
+
+/** A file of the build, at this runtime's delivery: as the document's head
+ * asked for it (`BOOT`), so the head's request answers this one, and as a
+ * cache keeps it. */
+function delivered(path) {
+  return DELIVERY ? `${path}?b=${encodeURIComponent(DELIVERY)}` : path;
+}
+
+/** A module at this runtime's delivery, and under the specifier of its
+ * `attempt` after a failed one (ADR-0382): the first is its address alone. */
+function attempted(path, attempt) {
+  const at = delivered(path);
+  return attempt === 0 ? at : `${at}${at.includes("?") ? "&" : "?"}attempt=${attempt}`;
+}
+
 async function bootDecision() {
   // The decision's code and this build's table, asked for together (the
   // first press's ADR): neither needs the other to be asked for, and the
@@ -394,12 +414,12 @@ async function bootDecision() {
   // here is answered by that request. Until 2026-11-06 the table was asked
   // for once the decision had compiled: one more round trip before a page
   // was interactive, 562.5 ms of it under Slow 4G.
-  const tableText = fetch("/pw-handlers").then((r) => (r.ok ? r.text() : ""));
+  const tableText = fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : ""));
   // A decision that fails to load still fails the boot, as it did; the table
   // asked for beside it must not then fail again, unheard, as a rejection
   // nothing waited for.
   tableText.catch(() => {});
-  const { instance } = await WebAssembly.instantiateStreaming(fetch("/pw-resume.wasm"), {});
+  const { instance } = await WebAssembly.instantiateStreaming(fetch(delivered("/pw-resume.wasm")), {});
   const { memory, alloc, decide_manifest, last_recovery, know, know_document } =
     instance.exports;
 
@@ -572,7 +592,7 @@ function loadHandler(identity) {
   // permanently dead. The identity still names the module; the counter only
   // makes the failed attempt distinguishable from the next one.
   const attempt = attempts.get(identity) ?? 0;
-  const url = attempt === 0 ? `/handler/${identity}.mjs` : `/handler/${identity}.mjs?attempt=${attempt}`;
+  const url = attempted(`/handler/${identity}.mjs`, attempt);
   const pending = within(import(url), `the handler ${identity}`).then((module) => {
     loaded.set(identity, module);
     log.push(`loaded ${identity}`);
@@ -833,8 +853,7 @@ class RetiredRenderer extends Error {}
 function speculations() {
   if (!parts.speculation) return Promise.resolve(null);
   if (speculationModule) return speculationModule;
-  const url =
-    speculationAttempts === 0 ? parts.speculation : `${parts.speculation}?attempt=${speculationAttempts}`;
+  const url = attempted(parts.speculation, speculationAttempts);
   const rendering = parts.regions ? renderModule() : null;
   const owner = { renderer: null, retired: false };
   const trackedRenderer = rendering?.then((exports) => {
@@ -1469,7 +1488,7 @@ function renderModule() {
   if (rendererLoaded) return Promise.resolve(rendererLoaded);
   if (renderer) return renderer;
   // Not kept failed (ADR-0382): the next need asks the network again.
-  const loading = fetch("/pw-render.wasm")
+  const loading = fetch(delivered("/pw-render.wasm"))
     .then((r) => WebAssembly.instantiateStreaming(r, {}))
     .then(
       ({ instance }) => {
@@ -1976,7 +1995,7 @@ function computedValues() {
   // specifier, as a speculation's load does. No deadline: a press does not
   // wait for it, and a page's boot does, where a value the device keeps is
   // migrated by it; a slow load there is better waited for than failed.
-  const url = computedAttempts === 0 ? parts.computed : `${parts.computed}?attempt=${computedAttempts}`;
+  const url = attempted(parts.computed, computedAttempts);
   computedModule = import(url).then(
     (module) => {
       log.push(`loaded ${parts.computed}`);
@@ -2106,19 +2125,11 @@ function bindFragment(binding) {
 
 /**
  * **A link to one of the fragment's forms, followed in its press** (the
- * first press's ADR). The browser's own fragment navigation tells a page in
- * a `hashchange` it dispatches in a task of its own, and a frame is often
- * painted without the change before it: the head-to-head's filter took 31 ms
- * to its frame, React's router 15 (ADR-0392, finding 22).
- *
- * So a primary click, with no key held and nothing having claimed it, on an
- * `<a href>` to this page at one of the binding's forms, sets the address as
- * the browser would (a new entry, none where the address is already it) and
- * the signal follows it in the click's own task. Anything else is left to
- * the browser: another page, another window, a download, a fragment that is
- * no form (an element's id, which the browser scrolls to). Back and forward
- * come as `hashchange`, as before; the address is still the signal's only
- * writer (PW6105).
+ * first press's ADR): not in the `hashchange` a browser dispatches a task
+ * later, often after a frame (the filter: 31 ms, React's router 15). A
+ * primary, unmodified, unclaimed click on an `<a href>` to this page at a
+ * form sets the address as the browser would and the signal follows at once;
+ * anything else stays the browser's. Back and forward come as `hashchange`.
  */
 function followFragmentLinks(binding) {
   const forms = new Set(binding.forms.map((f) => f.form));
@@ -3121,43 +3132,14 @@ function bindEvent(template, part) {
 
 // --- warming: what a press needs, there before it is pressed --------------
 //
-// The first press's ADR, amending E7-L's ruling for a build that says so.
-// E7-L put a handler's bytes on the wire at its first press and nowhere
-// before. Measured head to head (ADR-0392, finding 17), that made a page's
-// first press its slowest: under Slow 4G, TodoMVC's first add waited 2.3 s
-// for two handlers, its computed values and the renderer, where React and
-// Svelte fetch nothing.
-//
-// A page whose build warms (its handler table's `#warm|1`, which a
-// production build's packaging asks for: `delivery.json`) asks, once it is
-// interactive and loaded and the browser is idle, for what its presses will
-// need:
-//
-// - each handler the decision AUTHORISED, loaded by the loader a press
-//   loads it with (`loadHandler`). The decision is asked first, as for a
-//   press, so a refused handler is still never fetched (E7-L's order
-//   holds: decide, then fetch). Loading a handler's module evaluates it,
-//   which defines its `run` and runs nothing (a compiled handler's module
-//   is its body as a function, and constants): no handler runs before its
-//   press;
-// - the page's computed module and its speculation module, by their own
-//   loaders, the same way;
-// - the renderer, where the page renders a block or a row in the browser.
-//
-// Loaded, not merely fetched: a module the browser has fetched but not
-// evaluated still answers its first `import()` a task later, and in that
-// task's wait the browser paints a frame without the press. Traced in
-// Chromium on 2026-11-06, a TodoMVC toggle whose handler had only been
-// preloaded changed the page 13.6 ms after its press and showed it in the
-// frame after next.
-//
-// Warming changes WHEN those modules arrive, never whether a press may run
-// or what it runs: a press asks its loader as it always did, and finds the
-// module there. A warm load that fails is forgotten as a press's is
-// (ADR-0382), so the press asks under its next specifier. A build that does
-// not say so, as no development build does, warms nothing, as before:
-// "nothing is prefetched without a policy that says so"
-// (`lazy-handler.spec.mjs`).
+// The first press's ADR (amending E7-L for a build that says so, `#warm|1`):
+// once interactive, loaded and idle, a page loads by the press's own loaders
+// the renderer, its computed and speculation modules and each handler the
+// decision AUTHORISED (a refused one is still never fetched). Loaded, not
+// merely preloaded: a preloaded module answers its first `import()` a task
+// later, after a frame. A handler's module defines its `run` and runs
+// nothing. A failed warm load is forgotten as a press's is (ADR-0382). A
+// development build warms nothing (`lazy-handler.spec.mjs`).
 
 /** Whether a signal or a speculation renders anything here with the
  * renderer: a block, a row, a region (`flushSignals`, `showRegions`). */
@@ -3579,16 +3561,11 @@ async function pollOnce() {
 }
 
 /**
- * **A subscription asks at low priority** (the first press's ADR, ADR-0392's
- * finding 20). Over HTTP/1.1 a browser opens six connections to a host and
- * shares them among all its pages; each page of an app holds one with its
- * subscription nearly all the time. With twenty pages of the store open, a
- * press's command waited 10 s behind the others' subscriptions (Next.js's
- * 54 ms). A browser queues a host's waiting requests by priority, so a
- * command, at a fetch's default priority, takes the next connection a
- * subscription lets go of, ahead of the subscriptions waiting for one. A
- * subscription asked a moment later is no change a page can see: it asks
- * from its cursor, and what was pushed meanwhile waits for it on the server.
+ * **A subscription asks at low priority** (the first press's ADR): over
+ * HTTP/1.1 a browser's pages share six connections to a host, and with
+ * twenty store tabs open a press waited 10 s behind their subscriptions. A
+ * browser queues waiting requests by priority, so a command takes the next
+ * connection free; a subscription asked later loses nothing (its cursor).
  */
 const SUBSCRIPTION_PRIORITY = "low";
 
@@ -3974,7 +3951,9 @@ function handOver() {
   delete document.documentElement.dataset.pwNavigating;
   document.documentElement.dataset.pwReady = "0";
   life.abort();
-  import(`/pw-runtime.mjs?document=${window.__pwSoftNavigations}`).catch((e) => {
+  // At this runtime's delivery, where it has one (the first press's ADR).
+  const next = delivered("/pw-runtime.mjs");
+  import(`${next}${next.includes("?") ? "&" : "?"}document=${window.__pwSoftNavigations}`).catch((e) => {
     log.push(`the next runtime did not load: ${e}`);
     showAgain();
   });
