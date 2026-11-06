@@ -16,6 +16,7 @@
 //! render_instance(ptr, len)   -> code  one instance of a loop (ADR-0172)
 //! instance_changes(ptr, len)  -> code  what changed in one (ADR-0172)
 //! attribute_value(ptr, len)   -> code  an attribute as written (ADR-0172)
+//! warm()                      -> code  each of these run once on a sample
 //! out_ptr() / out_len()                the answer, or why it was refused
 //! ```
 //!
@@ -119,6 +120,40 @@ pub unsafe extern "C" fn captures_value(ptr: *const u8, len: usize) -> u32 {
     let (code, out) = captures(bytes);
     *OUT.lock().unwrap() = out;
     code
+}
+
+/// **Each request run once, on a sample, and thrown away** (the first
+/// press's ADR). A browser compiles a WebAssembly function the first time
+/// it is called (V8 compiles lazily: TodoMVC's first add compiled 521 of
+/// this module's functions, 24 ms of it at 4x CPU), so a page's first change
+/// paid for compiling the paths it renders by. The runtime calls this when
+/// the page is idle. The sample holds every part a block can hold, in each
+/// context, at values of each wire form (`warm.json`). `0`, or the first
+/// code that was not; the answer is left as it was.
+#[unsafe(no_mangle)]
+pub extern "C" fn warm() -> u32 {
+    warm_up()
+}
+
+/// The sample [`warm`] runs: one request each export reads its own fields
+/// of, and an attribute's, whose part is its own. Each is read as any
+/// request is, so the warm-up adds no reader of its own to the module.
+const WARM: &str = include_str!("warm.json");
+const WARM_ATTRIBUTE: &str = r#"{"part":{"part":"attribute","id":1,"owner":1,"name":"aria-label","value":"flag","context":"attribute"},"values":{"flag":"on"}}"#;
+
+/// [`warm`], each request in turn.
+pub fn warm_up() -> u32 {
+    let sample = WARM.as_bytes();
+    [
+        render(sample).0,
+        instance(sample).0,
+        changes(sample).0,
+        captures(sample).0,
+        attribute(WARM_ATTRIBUTE.as_bytes()).0,
+    ]
+    .into_iter()
+    .find(|&code| code != 0)
+    .unwrap_or(0)
 }
 
 /// A request read: its JSON, its part, the values it gives, set into a
@@ -529,5 +564,138 @@ mod tests {
         assert_eq!(shown, "<b>&lt;i&gt;Menu&lt;/i&gt;</b>");
         assert!(html.contains("<!--pw:s2@"), "{html}");
         assert_eq!(render(request("").as_bytes()).0, 1);
+    }
+
+    /// **The warm-up's sample is rendered, by every request** (the first
+    /// press's ADR): one the renderer refused would warm only the way to the
+    /// refusal. Each row renders, its view's instance and its streamed
+    /// placeholder too, and an unsafe address is made safe.
+    #[test]
+    fn the_warm_up_renders_its_sample_in_every_request() {
+        assert_eq!(super::warm_up(), 0);
+        let (code, html) = render(super::WARM.as_bytes());
+        assert_eq!(code, 0, "{html}");
+        for shown in [
+            "&amp; &lt;eggs&gt;",
+            "<em>",
+            "<s>done</s>",
+            "-->z<!--",
+            "-->p<!--",
+            "<p>…</p>",
+        ] {
+            assert!(html.contains(shown), "{shown} in {html}");
+        }
+        assert!(html.contains("href=\"about:blank\""), "{html}");
+        assert!(!html.contains("JavaScript:"), "{html}");
+        let (code, out) = super::changes(super::WARM.as_bytes());
+        assert_eq!(code, 0, "{out}");
+        assert_ne!(out, "null", "a row's own changes, not the row again");
+    }
+
+    /// **The sample holds every part a block can hold, and each context**:
+    /// a kind it lacks is a path a first change still compiles. Exhaustive,
+    /// so a kind the IR gains fails here until the sample has it or says why
+    /// not.
+    #[test]
+    fn the_warm_up_s_sample_holds_every_part_a_block_can() {
+        use pw_render::ir::{Chunk, Context, Part};
+        use std::collections::BTreeSet;
+        fn walk(chunks: &[Chunk], seen: &mut BTreeSet<String>) {
+            for chunk in chunks {
+                if let Chunk::Dynamic(p) = chunk {
+                    part(p, seen);
+                }
+            }
+        }
+        fn part(p: &Part, seen: &mut BTreeSet<String>) {
+            let kind = match p {
+                Part::Text { context, .. } | Part::Attribute { context, .. } => {
+                    seen.insert(format!("{context:?}"));
+                    if matches!(p, Part::Text { .. }) {
+                        "text"
+                    } else {
+                        "attribute"
+                    }
+                }
+                Part::BooleanAttribute { .. } => "boolean_attribute",
+                Part::Event { .. } => "event",
+                Part::Conditional {
+                    then, otherwise, ..
+                } => {
+                    walk(then, seen);
+                    walk(otherwise, seen);
+                    "conditional"
+                }
+                Part::Each { body, .. } => {
+                    walk(body, seen);
+                    "each"
+                }
+                Part::Match { arms, .. } => {
+                    arms.iter().for_each(|a| walk(&a.body, seen));
+                    "match"
+                }
+                Part::Stream {
+                    placeholder,
+                    ready,
+                    failed,
+                    ..
+                } => {
+                    walk(placeholder, seen);
+                    walk(&ready.body, seen);
+                    walk(&failed.body, seen);
+                    "stream"
+                }
+                Part::InterpolatedAttribute { context, .. } => {
+                    seen.insert(format!("{context:?}"));
+                    "interpolated_attribute"
+                }
+                Part::Instance { .. } => "instance",
+                // Written into the head by its host, and no block's: a raw
+                // value, which the browser's renderer is granted no
+                // capability for (`read`), and a construct refused.
+                Part::Title { .. }
+                | Part::Meta { .. }
+                | Part::Canonical { .. }
+                | Part::RawHtml { .. }
+                | Part::Blocked { .. } => "none a block renders",
+            };
+            seen.insert(kind.to_string());
+        }
+        let sample: serde_json::Value = serde_json::from_str(super::WARM).unwrap();
+        let mut seen = BTreeSet::new();
+        part(
+            &pw_render::decode::part(&sample["part"]).unwrap(),
+            &mut seen,
+        );
+        for t in pw_render::decode::templates(&sample["templates"]).unwrap() {
+            walk(&t.chunks, &mut seen);
+        }
+        let contexts = [
+            Context::Text,
+            Context::Attribute,
+            Context::Url,
+            Context::Style,
+            Context::Content,
+        ];
+        let kinds = [
+            "text",
+            "attribute",
+            "boolean_attribute",
+            "event",
+            "conditional",
+            "each",
+            "match",
+            "stream",
+            "interpolated_attribute",
+            "instance",
+        ];
+        for want in kinds
+            .map(String::from)
+            .into_iter()
+            .chain(contexts.map(|c| format!("{c:?}")))
+        {
+            assert!(seen.contains(&want), "the sample holds no {want}: {seen:?}");
+        }
+        assert!(!seen.contains("none a block renders"), "{seen:?}");
     }
 }

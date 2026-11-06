@@ -137,6 +137,35 @@ keeps that, and changes only when the browser asks for them.
     after its first is interactive under Slow 4G at 650 ms (React 1,202,
     Svelte 1,168); the store's at 640 ms (1,186 before; Next.js 686,
     SvelteKit 639).
+11. **A press's own paths are run once, on nothing, when the page is idle.**
+    With its code warmed, TodoMVC's first add still took 8 ms unthrottled
+    and 33-35 ms at 4x CPU from its key to the change in the document, its
+    second about 1 ms: a browser compiles a function the first time it is
+    called, and the trace showed 521 of the renderer's WebAssembly functions
+    compiled inside the press (21-22 ms at 4x CPU) and 75 JavaScript ones.
+    Once a production build's page is idle, its runtime asks the renderer
+    to run each of its requests once on a sample (`warm`, its sample in
+    `runtime/pw-render-wasm/src/warm.json`: every part a block can hold, in
+    each escaping context, at values of each wire form), then renders the
+    page's first block at the values it shows, which computes every value
+    the page derives, and morphs it into a copy in a document of its own,
+    which is inert: nothing imported into it loads or runs. One block calls
+    the functions any block's change calls, so the work is bounded whatever
+    the page's size. Both are thrown away; a block holding a `<dialog>` is
+    passed over, since a morph closes and refocuses one. A unit test fails when
+    the IR gains a kind of part the sample lacks or the sample stops
+    rendering; `warm.spec.mjs` holds that the document is not changed by a
+    single mutation and that focus does not move. Measured with
+    `first-add.mjs` (a page left idle after its load, two rounds of eight
+    runs, medians): key to the change 32.5-34.9 → 7.2-8.3 ms at 4x CPU and
+    7.8-8.0 → 1.6-1.8 ms unthrottled; to the frame after it 60-70 → 36-45 ms
+    and 16.6-17.0 → 10.3-10.6 ms; no WebAssembly compiled in the press. In
+    the head-to-head (`wp-*`), TodoMVC's first add under Slow 4G went from
+    51 ms (`warm4`) to 31, React's 33 and Svelte's 34 in the same run; at
+    loopback, cold, from 16-18 to 8.0-11 (React 8.5-8.9, Svelte 7.5-8.8).
+    What it costs: the renderer's `warm()` takes 5.2 ms of an idle page's
+    time unthrottled and 23.7 ms at 4x CPU, the compiling the press no
+    longer does; the sample adds 990 bytes to the renderer as sent (Brotli).
 
 ## Measured (the development PC, 2026-11-06)
 
@@ -169,10 +198,14 @@ Every run held `validate.mjs`'s rules.
 ## What it costs, plainly
 
 - **Bytes.** A page that warms downloads, after it is interactive, what its
-  presses would have: TodoMVC's first load is now 175 KB received, two and a
-  half times React's and eight times Svelte's, 92 KB of it the renderer's
-  Wasm. Under Slow 4G the warming takes about 1.7 s over HTTP/1.1's six
-  connections. A visitor who never presses pays for it.
+  presses would have: TodoMVC's first load is 141,822 B received (`wp`),
+  twice React's and nearly seven times Svelte's, 77 KB of it the renderer's
+  Wasm as sent. Under Slow 4G the warming takes about 1.7 s over HTTP/1.1's
+  six connections. A visitor who never presses pays for it.
+- **Idle time.** Decision 11 spends 5.2 ms of an idle page's time
+  unthrottled (23.7 ms at 4x CPU, in one task) compiling what a first
+  change would have; a press made during it waits for it, and then runs
+  that much faster.
 - **First paint.** The boot preloads share the first round trip's bandwidth
   with the stylesheets: about 20 ms later under Slow 4G (1,244 to 1,264 ms
   in one A/B, the same in the next); the page is interactive 1.76 s sooner.
@@ -182,37 +215,63 @@ Every run held `validate.mjs`'s rules.
 
 ## Not claimed
 
-Firefox, WebKit and the store's head-to-head were not run for this A/B; the
-server rows, open tabs and idle visitors were not run; field performance is
-not claimed; the host is still the development host (no keep-alive, no
-HTTP/2, no immutable caching). The affected specs passed in Chromium and
-Firefox (252 passed, 16 skipped); WebKit could not open a page on the PC in
-this session, for any test, changed or not (the evidence's README). The full
-`just e14-head-to-head`, the full browser suites in three engines and
-exact-head CI remain the gates (AGENTS.md); local runs do not replace them.
+Field performance is not claimed. The head-to-head's records here are
+Chromium's; Firefox's TodoMVC run is indicative only (the instrument
+refuses a Firefox-only record, see the evidence's README), and WebKit could
+not open a page on the PC in this session, for any test, changed or not.
+The host is still the development host: no keep-alive, no HTTP/2 (decision
+10 gave it immutable caching of a production build's files). The specs the
+changes reach passed in Chromium and Firefox (the evidence's README lists
+each run). The full `just e14-head-to-head`, the full browser suites in
+three engines and exact-head CI remain the gates (AGENTS.md); local runs do
+not replace them.
 
 ## Next
 
-1. The renderer's Wasm: 54% of its code (199 KB of 367 KB) is serde's
-   generic deserialization of the template IR (a name-section attribution,
-   2026-11-06); a decoder of its own, held to serde's by a differential test
-   over the corpus, keeps one renderer and most of those bytes off the wire.
-   Then the decision's Wasm, which is on the critical path (21 KB Brotli).
-2. Fewer warm requests: a host that keeps connections alive or speaks
-   HTTP/2 (ADR-0392's "production host"); content-hashed, immutable names,
-   so a warm visit downloads only its document.
-3. The fragment's click handled where it is made (as React's router does),
-   so the filter lands in its press's frame.
-4. Compiled templates for the browser, if the decoder's savings leave the
-   renderer the largest loss: an ADR of their own, since they are a second
-   implementation of what ADR-0130 keeps as one.
+1. **The decision's Wasm is the largest file on the boot's round trip**
+   (21 KB Brotli of 37 KB with the runtime; Svelte's TodoMVC is 21 KB in
+   all), and what is left of the gap to Svelte's interactive time under
+   Slow 4G is those bytes. Part of its weight is its decision traces, built
+   with `format!` (Rust's formatting machinery) and logged by the runtime;
+   how much was not measured here. Shrinking them changes what a refused
+   handler says, so it is the owner's call (question 3).
+2. **A live page's idle requests** (the store: 29.7 a minute, where the
+   frameworks' pages hear no change and ask nothing): a stream is held two
+   seconds and opened again at once, and ADR-0297's `LIVE` (3 s) and the
+   cursor's acknowledgement by the next request both rest on that. Holding
+   a stream for tens of seconds needs an explicit liveness signal in their
+   place: an ADR of its own.
+3. Fewer warm requests and one connection's latency: a host that keeps
+   connections alive or speaks HTTP/2 (ADR-0392's "production host").
+4. Compiled templates for the browser, if the renderer stays TodoMVC's
+   largest first-load cost (77 KB Brotli, warmed): an ADR of their own,
+   since they are a second implementation of what ADR-0130 keeps as one.
 
 ## Questions for the integrator
 
 1. Should a development build warm too? Warming changes what a press
    waits for, and the browser suites run development builds; this ADR keeps
    them lazy so E7-L's tests keep their meaning, and holds warming to
-   `warm.spec.mjs`.
+   `warm.spec.mjs`. With every base page's build warming (a `delivery.json`
+   put beside it for the run), 15 tests of `press-modules.spec.mjs` and
+   `keyed-list.spec.mjs` fail in Chromium and Firefox, the same 15 with and
+   without decision 11: each installs its fault after the page is ready, or
+   counts the runtime's log lines, and expects the press to be the first to
+   load. Under warming they would install their faults before the load; the
+   case they could not see, a warm load that never answers, is held by
+   `warm.spec.mjs` (the press fails at its deadline and the next one loads).
 2. Should the head-to-head also time a press made at the moment a page
    says it is interactive, before its network is quiet? A warming page's
    first press then waits for what is still arriving.
+3. Is the decision's trace text part of what the browser's build must
+   carry? A build of `pw-resume` for the browser that kept each verdict and
+   its code, and not the words, would be smaller on the boot's round trip;
+   the runtime would log the code alone, and the native decision would keep
+   its words.
+4. May a page's policy allow `data:` images (ADR-0333 allows `'self'`
+   only)? TodoMVC's first add and first toggle each fetch one drawing of the
+   checkbox, which React's and Svelte's sheets carry inline; under Slow 4G
+   (562.5 ms a request) the checkbox would be drawn that long after the
+   change, which the instrument, timing the change's frame, does not see. The
+   alternative within the policy is for the page to preload both drawings,
+   two more requests in its first load.

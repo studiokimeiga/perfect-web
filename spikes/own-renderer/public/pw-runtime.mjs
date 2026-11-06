@@ -3197,13 +3197,49 @@ function warm() {
   log.push(`warming ${identities.size} handler(s)`);
 }
 
+/** **A press's own paths, run once on nothing** (the first press's ADR): a
+ * browser compiles a function the first time it is called, so a first
+ * change paid for compiling the renderer's paths and the morph's. The
+ * renderer runs its own on a sample (`warm`); the page's first block is
+ * rendered at its values (computing all the page derives) and morphed into
+ * a copy in an inert document, where nothing loads or runs; both thrown
+ * away. A block holding a `<dialog>` is passed over. */
+async function warmPaths() {
+  if (!rendersInBrowser()) return;
+  const x = await renderModule();
+  try {
+    if (x.warm && x.warm() !== 0) log.push("the renderer refused its warm-up");
+  } catch (e) {
+    retireRenderer(x);
+    throw e;
+  }
+  for (const live of parts.live ?? []) {
+    if (life.signal.aborted) return;
+    if (live.kind === "value" || SET_IN_PLACE.has(live.kind)) continue;
+    const at = index.get(addressOf([], live.part));
+    if (!at?.start) continue;
+    const nodes = between(at.start, at.end);
+    if (dialogsIn(nodes, true).length || dialogsIn(nodes, false).length) continue;
+    const html = await renderBlock(live.part);
+    const inert = document.implementation.createHTMLDocument("");
+    const copy = inert.createElement("div");
+    for (const n of nodes) copy.append(inert.importNode(n, true));
+    morphChildren(copy, [...copy.childNodes], parseInstance(html), null, []);
+    return log.push(`warmed the paths of block ${live.part}`);
+  }
+}
+
 /** Warming, once the page is loaded and the browser idle, where the
  * build that served it asks for it. */
 function warmWhenIdle() {
   if (!buildWarms) return;
   const idle = () => {
     const later = window.requestIdleCallback ?? ((f) => setTimeout(f, 1));
-    later(warm, { timeout: 1000 });
+    later(() => {
+      warm();
+      // Once what they run is loaded: `renderBlock` waits for it.
+      warmPaths().catch((e) => log.push(`warming the paths failed: ${e.message ?? e}`));
+    }, { timeout: 1000 });
   };
   if (document.readyState === "complete") idle();
   else addEventListener("load", idle, { once: true, signal: life.signal });

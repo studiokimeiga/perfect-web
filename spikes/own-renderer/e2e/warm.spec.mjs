@@ -194,6 +194,26 @@ test("a warm load that fails leaves the first press to fetch it again", async ({
   await page.unrouteAll({ behavior: "ignoreErrors" }).catch(() => {});
 });
 
+test("a warm load that never answers holds the first press no longer than its deadline", async ({ page }) => {
+  // A stalled connection: every warm load is held open, unanswered. The
+  // press that needs one waits for it as for its own load, until a load's
+  // deadline (ADR-0382, lowered here by `?load-deadline=`), and fails
+  // there; the next press asks under its next specifier, which is answered.
+  await warming(page);
+  await page.route("**/handler/**", async (route) => {
+    if (new URL(route.request().url()).searchParams.has("attempt")) await route.continue();
+  });
+  await ready(page, "/StorePage.html?load-deadline=1500");
+  expect(await warmed(page)).toBe(5);
+  await page.locator("#menu button").first().click();
+  await expect(page.locator("[data-pw-handler-error]")).toHaveCount(1, { timeout: 6_000 });
+  await expect(page.locator("#cart-count")).toHaveText("0");
+  await page.locator("#menu button").first().click();
+  await expect(page.locator("#cart-count")).toHaveText("1");
+  await expect(page.locator("[data-pw-handler-error]")).toHaveCount(0);
+  await page.unrouteAll({ behavior: "ignoreErrors" }).catch(() => {});
+});
+
 test("the renderer and the speculation module are warmed with the handlers", async ({ page }) => {
   // The store page speculates (ADR-0122) and renders its cart's rows in the
   // browser (ADR-0172): its first Add needs the speculation module and the
@@ -215,6 +235,46 @@ test("the renderer and the speculation module are warmed with the handlers", asy
   await expect(page.locator("#cart-count")).toHaveText("1");
   const during = asked.slice(before);
   expect(during.filter((p) => p === "/pw-render.wasm" || p === speculation || p.startsWith("/handler/"))).toEqual([]);
+});
+
+test("a build that warms runs a block's paths on a copy, and the page is as it was", async ({ page }) => {
+  // The first press's ADR: the renderer runs each of its requests on its
+  // own sample, and each block is rendered at the values it shows and
+  // morphed into a copy in an inert document. Nothing the page shows
+  // changes and nothing takes focus; the first press renders as before.
+  // The demo panel's `{#match}` block is one the browser renders.
+  await page.addInitScript(() => {
+    window.__changes = [];
+    let ready = false;
+    new MutationObserver((records) => {
+      if (ready) for (const r of records) window.__changes.push(`${r.type} ${r.target.nodeName}`);
+      ready = document.documentElement.dataset.pwReady === "1";
+    }).observe(document, { subtree: true, childList: true, attributes: true, characterData: true });
+  });
+  await warming(page);
+  await ready(page, "/page/demo.panel.PanelPage~ui");
+  const shown = () => page.evaluate(() => [document.body.innerHTML, document.activeElement?.localName]);
+  const before = await shown();
+  await page.waitForFunction(() => (window.__pw?.log ?? []).some((l) => l.startsWith("warmed the paths")));
+  const log = await page.evaluate(() => window.__pw.log);
+  const blocks = await page.evaluate(() =>
+    window.__pw.parts.live
+      .filter((l) => !["value", "text", "attribute", "boolean_attribute"].includes(l.kind))
+      .map((l) => l.part),
+  );
+  expect(blocks.length, "the page has a block the browser renders").toBeGreaterThan(0);
+  // Its first, and only one: one block calls what any block's change does.
+  expect(log.filter((l) => l.startsWith("warmed the paths"))).toEqual([`warmed the paths of block ${blocks[0]}`]);
+  expect(log).not.toContain("the renderer refused its warm-up");
+  expect(await page.evaluate(() => window.__changes), "no change to the document").toEqual([]);
+  expect(await shown()).toEqual(before);
+  expect(before[1]).toBe("body");
+
+  await page.locator("#open-cart").click();
+  await expect(page.locator("#cart-panel")).toBeVisible();
+  await expect(page.locator("#shut")).toHaveCount(0);
+  await page.locator("#close").click();
+  await expect(page.locator("#shut")).toBeVisible();
 });
 
 test("a build that does not warm fetches no handler before a press", async ({ page }) => {
