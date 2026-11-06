@@ -214,6 +214,48 @@ test("a warm load that never answers holds the first press no longer than its de
   await page.unrouteAll({ behavior: "ignoreErrors" }).catch(() => {});
 });
 
+/** Each request `pattern` matches, answered `ms` after it is asked for. */
+async function slow(page, pattern, ms) {
+  await page.route(pattern, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+    await route.continue().catch(() => {});
+  });
+}
+
+// ADR-0382 gives a press a deadline of its own, counted from the press. In
+// both tests below, each module is answered 2.5 s after it is asked for,
+// under a 2 s deadline, and the press comes 1.5 s into the warm-up's wait:
+// its module arrives a second inside its own deadline. Until 2026-11-06 the
+// deadline was the load's, started by the warm-up, and the press failed (or
+// was sent unspeculated) half a second after it was made; a press made
+// later waited for its own retry, as slow (the first press's review).
+test("a press made during a warm load waits for it within a deadline of its own", async ({ page }) => {
+  await warming(page);
+  await slow(page, "**/handler/**", 2_500);
+  await ready(page, "/StorePage.html?load-deadline=2000");
+  expect(await warmed(page)).toBe(5);
+  await page.waitForTimeout(1_500);
+  await page.locator("#menu button").first().click();
+  await expect(page.locator("#cart-count")).toHaveText("1", { timeout: 6_000 });
+  expect(await page.evaluate(() => window.__pw.handlerErrors ?? 0)).toBe(0);
+  await page.unrouteAll({ behavior: "ignoreErrors" }).catch(() => {});
+});
+
+test("a press made during a warm speculation load waits for it within a deadline of its own", async ({ page }) => {
+  await warming(page);
+  await slow(page, "**/speculation/**", 2_500);
+  await ready(page, "/StorePage.html?load-deadline=2000");
+  expect(await page.evaluate(() => window.__pw.parts.speculation)).toMatch(/^\/speculation\//);
+  await warmed(page);
+  await page.waitForTimeout(1_500);
+  await page.locator("#menu button").first().click();
+  await expect(page.locator("#cart-count")).toHaveText("1", { timeout: 6_000 });
+  const log = await page.evaluate(() => window.__pw.log);
+  expect(log.filter((l) => /sent unspeculated/.test(l))).toEqual([]);
+  expect(log.some((l) => /^speculated /.test(l))).toBe(true);
+  await page.unrouteAll({ behavior: "ignoreErrors" }).catch(() => {});
+});
+
 test("the renderer and the speculation module are warmed with the handlers", async ({ page }) => {
   // The store page speculates (ADR-0122) and renders its cart's rows in the
   // browser (ADR-0172): its first Add needs the speculation module and the

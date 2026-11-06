@@ -238,7 +238,9 @@ test("a press resuming after renderer retirement creates no unsent transition", 
     source("class RetiredRenderer extends Error", "/** The page's speculation module,") +
     source("async function speculate(", "/** The command answered:") +
     "\n({ speculate })", {
-    speculations: async () => module, current: () => state, render: () => {}, log: [],
+    // A press waits for the speculation module within a deadline of its own
+    // (`speculationsWithin`, the first press's review): the seam's name.
+    speculationsWithin: async () => module, current: () => state, render: () => {}, log: [],
     parts: { regions: {} }, wasm: null, rendererLoaded: null, nextSpeculation: 0,
     restoreSpeculation: async () => {},
   });
@@ -255,7 +257,7 @@ function settlement() {
   const drawn = [];
   const actual = vm.runInNewContext(source("async function resolveSpeculation(", "/** An `entry_value` frame:") +
     "\n({ resolveSpeculation })", {
-    speculated: states, speculations: () => load.promise, log: [],
+    speculated: states, speculationsWithin: () => load.promise, log: [],
     render: (_module, binding) => drawn.push({ binding, state: structuredClone(states.get(binding)) }),
   });
   return { actual, load, states, drawn };

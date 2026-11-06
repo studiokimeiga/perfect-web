@@ -593,9 +593,18 @@ function loadHandler(identity) {
   // makes the failed attempt distinguishable from the next one.
   const attempt = attempts.get(identity) ?? 0;
   const url = attempted(`/handler/${identity}.mjs`, attempt);
-  const pending = within(import(url), `the handler ${identity}`).then((module) => {
-    loaded.set(identity, module);
-    log.push(`loaded ${identity}`);
+  // No deadline here. A load is shared by a warm-up and by each press that
+  // asks while it is in flight, and each press waits for it within a
+  // deadline of its own, counted from the press (`within`, ADR-0382). Until
+  // 2026-11-06 the deadline was the load's, so a press made late in a
+  // warm-up's wait had only what was left of the warm-up's (the first
+  // press's review).
+  const pending = import(url).then((module) => {
+    // What a load given up brings late is not used (ADR-0382).
+    if (loaded.get(identity) === pending) {
+      loaded.set(identity, module);
+      log.push(`loaded ${identity}`);
+    }
     return module;
   });
   loaded.set(identity, pending);
@@ -614,7 +623,11 @@ function loadHandler(identity) {
 function within(loading, what) {
   let timer;
   const late = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`${what}: none within ${loadDeadline} ms`)), loadDeadline);
+    timer = setTimeout(
+      // Marked, so that a wait given up is told from a load that failed.
+      () => reject(Object.assign(new Error(`${what}: none within ${loadDeadline} ms`), { givenUp: true })),
+      loadDeadline,
+    );
   });
   return Promise.race([loading, late]).finally(() => clearTimeout(timer));
 }
@@ -861,10 +874,9 @@ function speculations() {
     owner.retired ||= rendererLoaded !== exports;
     return exports;
   }) ?? null;
-  const loading = within(
-    Promise.all([speculationLoaded ?? import(url), trackedRenderer]),
-    "the speculation module",
-  ).then(
+  // No deadline here: a press waits for this shared load within its own
+  // (`speculationsWithin`), as for a handler's.
+  const loading = Promise.all([speculationLoaded ?? import(url), trackedRenderer]).then(
     ([module, renderer]) => {
       if (!currentSpeculation(loading, owner, renderer)) {
         if (speculationModule === loading) {
@@ -886,14 +898,36 @@ function speculations() {
       speculationOwner = null;
       speculationAttempts += 1;
       // A renderer still loading is forgotten with it: the next press asks
-      // for it again rather than wait on the load this one gave up.
+      // for both again, as after a wait given up (`speculationsWithin`).
       forgetRenderer(rendering);
       throw error;
     },
   );
   speculationModule = loading;
   speculationOwner = owner;
+  owner.rendering = rendering;
   return loading;
+}
+
+/** **A press's wait for the page's speculation module**, within a deadline
+ * of its own, counted from the press (ADR-0382). A wait given up forgets the
+ * load it waited for, as a failed load is forgotten, and the renderer still
+ * loading with it, so the next press asks again. Until 2026-11-06 the
+ * deadline was the shared load's (the first press's review). */
+async function speculationsWithin() {
+  const loading = speculations();
+  try {
+    return await within(loading, "the speculation module");
+  } catch (error) {
+    if (error?.givenUp && speculationModule === loading) {
+      const rendering = speculationOwner?.rendering ?? null;
+      speculationModule = null;
+      speculationOwner = null;
+      speculationAttempts += 1;
+      forgetRenderer(rendering);
+    }
+    throw error;
+  }
 }
 
 /** Publication needs both the coordinator and its native owner still current. */
@@ -951,7 +985,7 @@ async function speculate(component, args, interaction) {
   // it fails the press, as before.
   let module;
   try {
-    module = await speculations();
+    module = await speculationsWithin();
   } catch (error) {
     if (error instanceof RetiredRenderer) throw error;
     log.push(`${component} sent unspeculated: ${error.message ?? error}`);
@@ -1003,7 +1037,7 @@ async function resolveSpeculation(ids, committed, basis) {
   }
   // Ownership is settled before any fallible await or redraw. A frame that
   // arrives during the load remains authoritative when rendering resumes.
-  const module = await speculations();
+  const module = await speculationsWithin();
   for (const binding of touched) render(module, binding);
 }
 
@@ -3031,7 +3065,9 @@ function bindEvent(template, part) {
         // somebody presses this button.
         let module;
         try {
-          module = await loadHandler(part.value);
+          // Within this press's deadline, counted from now (ADR-0382),
+          // whoever started the load.
+          module = await within(loadHandler(part.value), `the handler ${part.value}`);
         } finally {
           // Its turn, loaded or not: a press whose code failed to load
           // must not hold up every press after it.
