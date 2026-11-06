@@ -1,0 +1,62 @@
+== 2026-11-06T12:35:32-05:00 commit d94b6ecdf2ddc8e54ebf9d13b1e14930136ca3a8; uncommitted paths: 0
+just: /home/haki/.local/bin/just just 1.58.0
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14); node: v22.21.1
+dev servers already running: 0
+== 2026-11-06T12:35:32-05:00 just preflight
+exit preflight 0
+    Checking wasmtime v48.0.8
+    Checking pw-host v0.0.0 (/home/haki/code/pw-wt/todomvc-checks/runtime/pw-host)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 19.70s
+case-check: OK (4687 paths)
+mutation anchors: 4977 mutants in 324 scripts, each matching once
+== 2026-11-06T12:36:40-05:00 just evidence-gates
+exit evidence-gates 1
+Ran 1177 tests in 360.573s
+FAILED (failures=1, skipped=5)
+== 2026-11-06T12:42:41-05:00 cargo test: pw-render, pw-render-wasm, pw-dev-server
+exit cargo test 0
+test result: ok. 867 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 116.50s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.13s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+== 2026-11-06T12:45:03-05:00 builds: the CLI, the servers (pw-dev-server, kiokun-server), then every own-renderer app
+exit build 0
+exit run.sh 0
+exit todomvc.sh 0
+exit keyed-store.sh 0
+exit feed.sh 0
+exit guestbook.sh 0
+exit kiokun-site.sh 0
+delivery.json in development builds: 
+== 2026-11-06T12:45:20-05:00 the whole own-renderer suite (chromium, firefox)
+exit specs 0
+Running 1044 tests using 16 workers
+  11 skipped
+  1033 passed (5.3m)
+== 2026-11-06T12:50:38-05:00 runtime size (gates 7b, 7d)
+exit runtime-size 0
+EVIDENCE interactive-script-bytes=157269 brotli=41656
+EVIDENCE interactive-wasm-bytes=57951 brotli=21284
+EVIDENCE renderer-wasm-bytes=406192 gzip=125186 brotli=99732
+  3 passed (8.7s)
+== 2026-11-06T12:50:49-05:00 tree after
+PREPUSH_VERIFY_FINISHED

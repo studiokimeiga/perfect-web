@@ -1,0 +1,23 @@
+browser host map: 1 of 80 hosts for 3 selected tests
+
+Running 3 tests using 1 worker
+
+[1/3] [chromium] › e2e/runtime-size.spec.mjs:74:1 › gate 7a: the static route ships no browser runtime
+[chromium] › e2e/runtime-size.spec.mjs:74:1 › gate 7a: the static route ships no browser runtime
+EVIDENCE static-route-script-bytes=0 wasm-bytes=0
+
+[2/3] [chromium] › e2e/runtime-size.spec.mjs:89:1 › gate 7b: the interactive route's runtime is bounded as it is sent
+[chromium] › e2e/runtime-size.spec.mjs:89:1 › gate 7b: the interactive route's runtime is bounded as it is sent
+EVIDENCE interactive-script-bytes=157269 brotli=41656
+
+EVIDENCE interactive-wasm-bytes=57951 brotli=21284
+
+EVIDENCE  script 157269 gzip=49293 brotli=41656 http://127.0.0.1:14887/pw-runtime.mjs
+
+EVIDENCE  wasm 57951 gzip=24939 brotli=21284 http://127.0.0.1:14887/pw-resume.wasm
+
+[3/3] [chromium] › e2e/runtime-size.spec.mjs:105:1 › gate 7d: the renderer a page fetches to render a block again is bounded as it is sent
+[chromium] › e2e/runtime-size.spec.mjs:105:1 › gate 7d: the renderer a page fetches to render a block again is bounded as it is sent
+EVIDENCE renderer-wasm-bytes=406192 gzip=125186 brotli=99732
+
+  3 passed (10.1s)

@@ -1,0 +1,62 @@
+styles mutants only: 4
+baseline (server): 4 passed, 0 failed
+baseline (browser): 52 passed, 0 failed
+EVIDENCE checkbox unchecked: largest 42, mean 2.03, over an eighth 21 of 1600; ink apart: ring 0.0 points in colour, 13.6% in amount
+EVIDENCE checkbox checked: largest 66, mean 3.19, over an eighth 65 of 1600; ink apart: ring 0.8 points in colour, 13.8% in amount; tick 0.1 points in colour, -0.3% in amount
+  1) [chromium] › e2e/todomvc.spec.mjs:986:1 › a todo's checkbox is fetched as nothing, and the tick takes no press 
+    Error: a press on the tick unchecks it
+    Expected pattern: not /completed/
+    Received string: "completed"
+      - a press on the tick unchecks it with timeout 5000ms
+      - waiting for locator('.todo-list li').first()
+          - unexpected value "completed"
+    [cause]: Error: PW_ASSERTION:2f48d6a435e7b7eebf4be06e0e14a9c1365cef56630440f1c14ffba8d03ccc68
+  1 failed
+  51 passed (9.5s)
+  run_suite: kept 2 of 2 entries of its output (1.7 KiB) in kept-traces/local/20261106T192109Z-2780997/run-1
+  run_suite: exit 1
+
+the tick takes a press made on it [styles]: KILLED by the browser's tests (1 of 52 tests fail)
+EVIDENCE checkbox unchecked: largest 106, mean 8.19, over an eighth 175 of 1600; ink apart: ring 0.0 points in colour, 11.6% in amount
+  1) [chromium] › e2e/todomvc.spec.mjs:1014:1 › a todo's checkbox is the official drawing, pixel for pixel 
+    Error: unchecked: the bounds its drawing is past
+    - Expected  - 1
+    - Array []
+    [cause]: Error: PW_ASSERTION:415e294e1798f30b2263007d8f1d10d69091e77b613526c4a88b99f9e9b0e46d
+  1 failed
+  51 passed (4.3s)
+  run_suite: kept 1 of 1 entries of its output (96 B) in kept-traces/local/20261106T192121Z-2785090/run-1
+  run_suite: exit 1
+
+the ring is drawn off its centre [styles]: KILLED by the browser's tests (1 of 52 tests fail)
+EVIDENCE checkbox unchecked: largest 42, mean 2.03, over an eighth 21 of 1600; ink apart: ring 0.0 points in colour, 13.6% in amount
+EVIDENCE checkbox checked: largest 193, mean 41.07, over an eighth 413 of 1600; ink apart: ring 17.9 points in colour, 102.5% in amount; tick 0.8 points in colour, 351.0% in amount
+  1) [chromium] › e2e/todomvc.spec.mjs:1014:1 › a todo's checkbox is the official drawing, pixel for pixel 
+    Error: checked: the bounds its drawing is past
+    - Expected  - 1
+    - Array []
+    [cause]: Error: PW_ASSERTION:426f2501ffe0cda2288cc68d02b4538eda64758dfa370ef2bdf455437b0b0a01
+  1 failed
+  51 passed (5.9s)
+  run_suite: kept 1 of 1 entries of its output (96 B) in kept-traces/local/20261106T192128Z-2788957/run-1
+  run_suite: exit 1
+
+a path's relative points are read as absolute [styles]: KILLED by the browser's tests (1 of 52 tests fail)
+EVIDENCE checkbox unchecked: largest 42, mean 2.03, over an eighth 21 of 1600; ink apart: ring 0.0 points in colour, 13.6% in amount
+EVIDENCE checkbox checked: largest 70, mean 3.76, over an eighth 94 of 1600; ink apart: ring 56.7 points in colour, 5.2% in amount; tick 0.1 points in colour, -0.3% in amount
+  1) [chromium] › e2e/todomvc.spec.mjs:1014:1 › a todo's checkbox is the official drawing, pixel for pixel 
+    Error: checked: the bounds its drawing is past
+    - Expected  - 1
+    - Array []
+    [cause]: Error: PW_ASSERTION:f22b4a953459eab65f4f77812037846b8e0caff70e44b96a2fd6af270a7c708e
+  1 failed
+  51 passed (6.0s)
+  run_suite: kept 1 of 1 entries of its output (96 B) in kept-traces/local/20261106T192136Z-2793351/run-1
+  run_suite: exit 1
+
+the checked ring keeps the unchecked colour [styles]: KILLED by the browser's tests (1 of 52 tests fail)
+restored (server): 4 passed, 0 failed
+restored (browser): 52 passed, 0 failed
+4 of 4 mutants killed; 0 refused; 0 survived
+memory bound: no process was stopped
+exit 0
