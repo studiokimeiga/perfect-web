@@ -10,4 +10,5 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-pw-resume = { path = "../pw-resume" }
+# Without the trace's words: no page reads them (`pw_resume::Trace`).
+pw-resume = { path = "../pw-resume", default-features = false }
