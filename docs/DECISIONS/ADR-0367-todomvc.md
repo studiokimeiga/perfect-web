@@ -6,6 +6,65 @@ the integrator's rulings (below). Milestone: E14, track `todomvc` (W7), its
 first milestone. Builds on the integrator's rulings in docs/PARALLEL.md,
 "2026-10-09, W7's plan: TodoMVC", and of 2026-10-14 on the fragment (below).
 
+## Amendment: a todo's checkbox drawn in CSS, 2026-11-06
+
+**Why.** Until now `todomvc-styles.mjs` wrote the official sheet's two
+checkbox drawings out as SVG files. Their rules pointed at the files (the
+Decision's bullet on the stylesheets, below), so a page fetched the circle
+with its first todo and the tick with its first toggle. Each drawing came one
+request after the frame that showed its todo: a round trip, 562.5 ms under
+Lighthouse's Slow 4G. TodoMVC's React and Svelte apps draw theirs from the
+official sheet's `data:` images, which a page's policy refuses here
+(`img-src 'self'`, ADR-0333).
+
+**How.** `todomvc-styles.mjs` still reads the two drawings out of the
+official sheet as it ships, but writes them in CSS, in `todomvc-pleris.css`:
+- Each circle is a radial gradient at the centre and radius its viewBox gives
+  it (`xMidYMid meet`), its colour at the radius, fading out over one stroke
+  width either side. That carries the same ink as the stroke.
+- The tick is the path's polygon, as a `clip-path` on the label's `::after`,
+  over the same 40-pixel box.
+- The `::after` is placed in the item, and the label stays unpositioned, so
+  the invisible checkbox over it keeps its presses. The tick takes no pointer
+  itself.
+- The tick's box is placed with `round()` on the row of pixels a browser
+  draws the background's image on.
+- A drawing it cannot read, such as a curve or a filled circle, fails the
+  build.
+
+No SVG is written, so the host's `.svg` media type, the track's seam for
+them, is removed.
+
+**Held to the official drawing, pixel for pixel.** `e2e/todomvc.spec.mjs`
+draws the official sheet, alone and with this app's after it, in two pages
+with no policy and one layout. It compares the two 40-pixel boxes, unchecked
+and checked. Measured on 2026-11-06:
+
+| | Unchecked: mean, pixels over an eighth | Checked |
+|---|---|---|
+| Chromium 145 | 2.03, 21 of 1,600 | 3.19, 65 |
+| Firefox | 1.02, 2 | 1.64, 19 |
+
+The bounds are about half again the larger: mean 3 and 35 pixels unchecked,
+4.75 and 100 checked. A gradient and a clip are anti-aliased otherwise than
+an SVG's stroke and path. No closer drawing was found among six ring
+profiles, the tick at sub-pixel offsets and a `path()` clip.
+
+**The cost.**
+- The drawing is CSS made to match the official one, held to it within those
+  bounds, not the same image.
+- WebKit was not measured here, because it cannot open a page on this PC. It
+  is held to the same bounds, and CI runs it.
+
+**Its controls** (`scripts/todomvc_mutations.py`):
+- the tick taking a press made on it;
+- the ring drawn two pixels off its centre;
+- a path's relative points read as absolute;
+- the checked ring in the unchecked colour.
+
+The host's `.svg` mutant went with its seam. The spec now holds 52 tests in
+each engine, which was 50.
+
 ## Amendment: live TodoMVC witnesses and strict mutation evidence, 2026-10-21
 
 Verify 39538607183 at `34f3` exposed four survivors among the 43 semantic

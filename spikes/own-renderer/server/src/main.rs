@@ -11513,10 +11513,8 @@ fn serve_file(server: &Server, stream: &mut TcpStream, route: &str) {
         // A stylesheet the build ships, which a page's policy allows from
         // this origin, and which a browser applies only as `text/css`.
         Some("css") => "text/css; charset=utf-8",
-        // TRACK SEAM (todomvc): a drawing the build ships, which the page's
-        // stylesheet draws a checkbox with (`img-src 'self'`, ADR-0333): a
-        // browser draws an image only as `image/svg+xml`, under `nosniff`.
-        Some("svg") => "image/svg+xml",
+        // No build ships an image: TodoMVC's checkbox, the one that did, is
+        // drawn by its stylesheet since 2026-11-06 (ADR-0367's amendment).
         _ => "application/octet-stream",
     };
     match std::fs::read(&path) {

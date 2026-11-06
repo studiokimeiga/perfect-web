@@ -21,6 +21,7 @@
 //   `{id, title, completed}`, which no server is told.
 // - Routing: `#/`, `#/active`, `#/completed`, filtered by the model, the
 //   `selected` class on the links, and a fragment kept on reload.
+import { readFileSync } from "node:fs";
 import { test } from "@playwright/test";
 import { expect } from "../assertion-expect.mjs";
 import { TODOMVC_PORTS } from "../host-metadata.mjs";
@@ -826,14 +827,125 @@ test("the stylesheets are TodoMVC's own, and shown", async ({ page, request }) =
     return [style.color, style.fontSize];
   });
   expect(h1).toEqual(["rgb(184, 63, 69)", "80px"]);
-  // The checkbox's drawings are served from this origin, as images.
-  for (const drawing of ["/todomvc-circle.svg", "/todomvc-checked.svg"]) {
-    const response = await request.get(drawing);
-    expect(response.status(), drawing).toBe(200);
-    expect(response.headers()["content-type"], drawing).toBe("image/svg+xml");
-  }
   // And the licence of the one that asks for credit travels with it.
   const licence = await request.get("/todomvc-app-css.license.txt");
   expect(licence.status()).toBe(200);
   expect(await licence.text()).toContain("Creative Commons Attribution 4.0");
+});
+
+// --- A todo's checkbox, drawn by this app's sheet ------------------------------
+//
+// The official sheet draws a todo's checkbox as two `data:` images, which a
+// page's policy refuses (ADR-0333); `todomvc-styles.mjs` draws the same two
+// drawings in CSS. Until 2026-11-06 it served them as two SVG files, each
+// fetched with the first todo or the first toggle, and shown a round trip
+// after the frame that showed it.
+
+const PACKAGES = new URL("../node_modules/", import.meta.url);
+const OFFICIAL = readFileSync(new URL("todomvc-app-css/index.css", PACKAGES), "utf8");
+const BASE = readFileSync(new URL("todomvc-common/base.css", PACKAGES), "utf8");
+
+/**
+ * **How far this app's drawing may be from the official one**, by state: the
+ * mean over the 1,600 pixels of each pixel's largest channel difference, and
+ * how many pixels differ by more than an eighth. A gradient and a clip are
+ * anti-aliased otherwise than an SVG's stroke and path, and no closer drawing
+ * was found (2026-11-06: six ring profiles, the tick at sub-pixel offsets, a
+ * `path()` clip). Measured on this branch's drawing, 2026-11-06:
+ *
+ *   Chromium 145: unchecked mean 2.03, 21 over; checked mean 3.19, 65 over
+ *   Firefox:      unchecked mean 1.02,  2 over; checked mean 1.64, 19 over
+ *
+ * Each bound is about half again the larger, so that rendering's own drift
+ * passes and a drawing moved, recoloured or reshaped does not
+ * (`scripts/todomvc_mutations.py`). WebKit does not open a page on the PC
+ * these were measured on; it is held to the same bounds.
+ */
+const BOUNDS = {
+  unchecked: { mean: 3, over: 35 },
+  checked: { mean: 4.75, over: 100 },
+};
+
+/** A page with no policy, so that the official sheet's own `data:` drawings
+ * show, holding one todo as TodoMVC's markup has it, under `sheets`. */
+async function drawnBy(context, ...sheets) {
+  const page = await context.newPage();
+  const style = sheets.map((s) => `<style>${s}</style>`).join("");
+  await page.setContent(
+    `${style}<section class="todoapp"><section class="main"><ul class="todo-list"><li><div class="view">` +
+      `<input class="toggle" type="checkbox"><label>${ONE}</label></div></li></ul></section></section>`,
+  );
+  return page;
+}
+
+/** The box the official sheet draws a checkbox in: 40 pixels square, at the
+ * left of its label and halfway down it (`center left`). */
+async function checkbox(page) {
+  const label = await page.locator("label").boundingBox();
+  return page.screenshot({ clip: { x: label.x, y: label.y + (label.height - 40) / 2, width: 40, height: 40 } });
+}
+
+/** How far two screenshots of one size differ, read in the browser: the
+ * largest difference of any channel of any pixel, the mean of each pixel's
+ * largest, and how many pixels differ by more than an eighth. */
+function difference(page, a, b) {
+  return page.evaluate(async ([a, b]) => {
+    const pixels = async (png) => {
+      const image = new Image();
+      image.src = `data:image/png;base64,${png}`;
+      await image.decode();
+      const canvas = Object.assign(document.createElement("canvas"), { width: image.width, height: image.height });
+      const context = canvas.getContext("2d");
+      context.drawImage(image, 0, 0);
+      return context.getImageData(0, 0, image.width, image.height).data;
+    };
+    const [p, q] = [await pixels(a), await pixels(b)];
+    const each = [];
+    for (let i = 0; i < p.length; i += 4) {
+      each.push(Math.max(Math.abs(p[i] - q[i]), Math.abs(p[i + 1] - q[i + 1]), Math.abs(p[i + 2] - q[i + 2])));
+    }
+    return { largest: Math.max(...each), mean: each.reduce((s, d) => s + d, 0) / each.length, over: each.filter((d) => d > 32).length };
+  }, [a.toString("base64"), b.toString("base64")]);
+}
+
+test("a todo's checkbox is fetched as nothing, and the tick takes no press", async ({ page }) => {
+  const images = [];
+  page.on("request", (r) => r.resourceType() === "image" && images.push(r.url()));
+  await open(page);
+  await add(page, ONE);
+  await items(page).first().locator(".toggle").check();
+  await expect(items(page).first()).toHaveClass(/completed/);
+  const drawn = await items(page).first().locator("label").evaluate((l) => [
+    getComputedStyle(l).backgroundImage,
+    getComputedStyle(l, "::after").clipPath,
+  ]);
+  expect(drawn[0], "the circle is the sheet's").toMatch(/^radial-gradient\(/);
+  expect(drawn[1], "and the tick").toMatch(/^polygon\(/);
+  expect(images, "and no image is fetched for it").toEqual([]);
+  // A press on the tick itself is the checkbox's: the tick is drawn over the
+  // checkbox, and takes no pointer. The point is on its short stroke, midway
+  // between the official path's (27, 56)–(42, 71) and (23, 60)–(43, 80), in
+  // the drawing's 40-pixel box (`todomvc-styles.mjs` places them), wherever
+  // the item lays that box out.
+  const item = items(page).first();
+  const box = await item.boundingBox();
+  const top = await item.locator("label").evaluate((l) => Number.parseFloat(getComputedStyle(l, "::after").top));
+  await page.mouse.click(box.x + 18.15, box.y + top + 25.11);
+  await expect(item, "a press on the tick unchecks it").not.toHaveClass(/completed/);
+});
+
+test("a todo's checkbox is the official drawing, pixel for pixel", async ({ page, request }) => {
+  const ours = await (await request.get("/todomvc-pleris.css")).text();
+  const official = await drawnBy(page.context(), BASE, OFFICIAL);
+  const drawn = await drawnBy(page.context(), BASE, OFFICIAL, ours);
+  for (const state of ["unchecked", "checked"]) {
+    if (state === "checked") {
+      for (const p of [official, drawn]) await p.locator(".toggle").check();
+    }
+    const [a, b] = [await checkbox(official), await checkbox(drawn)];
+    const apart = await difference(official, a, b);
+    console.log(`EVIDENCE checkbox ${state}: largest ${apart.largest}, mean ${apart.mean.toFixed(2)}, over an eighth ${apart.over} of 1600`);
+    expect(apart.mean, `${state}: the mean difference`).toBeLessThan(BOUNDS[state].mean);
+    expect(apart.over, `${state}: the pixels apart by more than an eighth`).toBeLessThan(BOUNDS[state].over);
+  }
 });
