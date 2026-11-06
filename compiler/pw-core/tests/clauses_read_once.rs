@@ -119,7 +119,7 @@ fn a_parenthesis_in_a_keys_string_ends_nothing() {
     let src = |emits: &str| {
         format!(
             "module m\n\nevent Searched(term: String)\n\n\
-             command search() -> Result<Int, String>\n    emits {emits}\n{{\n    Ok(1)\n}}\n"
+             command search() -> Result<Int, String>\n    requires Anyone\n    emits {emits}\n{{\n    Ok(1)\n}}\n"
         )
     };
     // The control.
@@ -194,7 +194,7 @@ fn an_interfaces_terms_are_checked_as_any_declarations() {
              fn label(n: Int) -> String !{{}} {{\n    \"x\"\n}}\n\n\
              fn seen(n: Int) -> Int !{{ session.read }} {{\n    n\n}}\n\n\
              fn apply(f: fn(Int, Int) -> Int, n: Int) -> Int !{{}} {{\n    f(n, n)\n}}\n\n\
-             command c(x: Int) -> Result<Int, String>\n    {clause}\n"
+             command c(x: Int) -> Result<Int, String>\n    requires Anyone\n    {clause}\n"
         )
     };
     let codes = |clause: &str| -> Vec<String> {

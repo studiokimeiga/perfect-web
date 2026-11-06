@@ -49,6 +49,7 @@ query EveryItem() -> List<Item>
 }
 
 command make_list(list: TodoList) -> Result<(), TodoList>
+    requires    Anyone
     transaction serializable
     invalidates EveryList(), ListAt(list.slug), EveryItem()
 {
@@ -56,6 +57,7 @@ command make_list(list: TodoList) -> Result<(), TodoList>
 }
 
 command keep_item(item: Item) -> ()
+    requires    Anyone
     transaction serializable
     invalidates ItemsOf(item.list), OpenItems(), EveryItem()
 {
@@ -63,6 +65,7 @@ command keep_item(item: Item) -> ()
 }
 
 command drop_item(list: ListId, item: ItemId) -> ()
+    requires    Anyone
     transaction serializable
     invalidates ItemsOf(list), OpenItems(), EveryItem()
 {
@@ -70,6 +73,7 @@ command drop_item(list: ListId, item: ItemId) -> ()
 }
 
 command clear_list(list: ListId) -> ()
+    requires    Anyone
     transaction serializable
     invalidates ItemsOf(list), OpenItems(), EveryItem()
 {

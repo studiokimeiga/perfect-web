@@ -71,7 +71,7 @@ fn program(listens: &str, clauses: &str, body: &str, extra: &str) -> String {
              on_key_change  cancel\n    \
              timeout        2.seconds\n\
          {{\n    count_of(reader)\n}}\n\n\
-         command noted() -> Int\n    \
+         command noted() -> Int\n    requires Anyone\n    \
              idempotent_by InteractionId\n    \
              {clauses}\n\
          {{\n    {body}\n}}\n"

@@ -289,6 +289,8 @@ pub(crate) fn check_inferred_prepared(
         .map(|(i, u)| {
             let mut out = resolution.remove(&i).unwrap_or_default();
             out.extend(sent_without_idempotency(&u.hir, i, &sent));
+            // The requires ADR: a command a reader can run says who may.
+            out.extend(who_may_run(&u.hir, i, &sent));
             // ADR-0157: a command is one request a page's handler sends, and
             // what it answers is whether it committed.
             out.extend(called_outside_a_handler(&u.hir, i, sigs));
@@ -424,6 +426,157 @@ fn sent_without_idempotency(
         });
     }
     out
+}
+
+/// **A command says who may run it** (the requires ADR, PW0367).
+///
+/// The server runs a command for any request that names it, whether or not a
+/// page shows its button (`/command/<id>` admits every command it hosts but
+/// one the platform invokes), so who may run it belongs to the command. A
+/// command a reader can run declares `requires`: the predicates a request must
+/// hold, or `Anyone`, alone. One the platform runs says `invoked_by` instead,
+/// and PW6401 holds it to no `requires`. `Anyone` is the platform's: a program
+/// that declared its own would be read as everyone's.
+fn who_may_run(
+    hir: &Hir,
+    unit: usize,
+    sent: &BTreeMap<crate::resolve::DefId, Vec<(usize, hir::Span)>>,
+) -> Vec<Diagnostic> {
+    let mut out = Vec::new();
+    for (id, decl) in hir.all_decls() {
+        match decl.kind {
+            hir::DeclKind::Predicate if decl.name == crate::policy::ANYONE => {
+                out.push(anyone_declared(hir, id, decl));
+            }
+            hir::DeclKind::Command if decl.policy("invoked_by").is_none() => {
+                let presses = sent
+                    .get(&crate::resolve::DefId { unit, decl: id.0 })
+                    .map_or(&[][..], Vec::as_slice);
+                out.extend(runner_unstated(hir, id, decl, presses));
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
+/// What a request to a reader-run command must hold, unsaid: no `requires`,
+/// or `Anyone` with arguments or beside another predicate. A `requires` that
+/// does not parse is its clause's own refusal.
+fn runner_unstated(
+    hir: &Hir,
+    id: hir::DeclId,
+    decl: &hir::Decl,
+    presses: &[(usize, hir::Span)],
+) -> Option<Diagnostic> {
+    let (reason, message, at, repairs) = match decl.policy("requires") {
+        None => (
+            "runner_unstated",
+            format!(
+                "`{}` runs for any reader's request, and says nothing of who may run it",
+                decl.name
+            ),
+            decl.name_span.clone(),
+            vec![
+                "declare `requires` with what a reader must hold, such as `requires SignedIn`",
+                "or `requires Anyone`, if anyone may run it",
+            ],
+        ),
+        Some(requires) => {
+            let predicates = crate::policy::predicates(&requires.value).ok()?;
+            let anyone = predicates
+                .iter()
+                .find(|p| p.name == crate::policy::ANYONE)?;
+            let (reason, message) = if !anyone.arguments.is_empty() {
+                (
+                    "anyone_given_arguments",
+                    "gives `Anyone` arguments, and it takes none",
+                )
+            } else if predicates.len() > 1 {
+                (
+                    "anyone_beside_others",
+                    "requires `Anyone` beside another predicate",
+                )
+            } else {
+                return None;
+            };
+            (
+                reason,
+                format!("`{}` {message}", decl.name),
+                requires.span.clone(),
+                vec!["write `requires Anyone` alone, or name only what a reader must hold"],
+            )
+        }
+    };
+    let related = if presses.is_empty() {
+        vec![Related::new(
+            hir.decl_span(id),
+            format!(
+                "a request that names `{}` runs it, with or without a page",
+                decl.name
+            ),
+        )]
+    } else {
+        presses
+            .iter()
+            .map(|(unit, span)| {
+                Related::in_unit(
+                    *unit,
+                    span.clone(),
+                    "a press sends it from here".to_string(),
+                )
+            })
+            .collect()
+    };
+    Some(Diagnostic {
+        code: crate::codes::WHO_MAY_RUN.id,
+        invariant: crate::codes::WHO_MAY_RUN.invariant,
+        reason,
+        detector: Detector::DeclarationRule,
+        severity: Severity::Error,
+        message,
+        primary_span: at,
+        related,
+        explanation: Some(WHO_MAY_RUN_WHY.to_string()),
+        repairs: repairs
+            .into_iter()
+            .map(|description| Repair {
+                description: description.to_string(),
+                replacement: None,
+            })
+            .collect(),
+    })
+}
+
+const WHO_MAY_RUN_WHY: &str = "The server runs a command for any request that names it, whether \
+     or not a page shows its button: a request is an address and a body, and anyone can send \
+     one. So who may run a command is the command's to say. `requires` names what every request \
+     must hold, as `requires SignedIn, OwnsPost(post)`; `requires Anyone` says anyone may, and \
+     stands alone. A command the platform runs says `invoked_by` instead.";
+
+/// `predicate Anyone`, declared by a program: `Anyone` is the platform's, and
+/// nothing asks it, so a program's own would be read as everyone's.
+fn anyone_declared(hir: &Hir, id: hir::DeclId, decl: &hir::Decl) -> Diagnostic {
+    Diagnostic {
+        code: crate::codes::WHO_MAY_RUN.id,
+        invariant: crate::codes::WHO_MAY_RUN.invariant,
+        reason: "anyone_declared",
+        detector: Detector::DeclarationRule,
+        severity: Severity::Error,
+        message:
+            "`predicate Anyone` is declared, and `Anyone` is the platform's: every reader holds it"
+                .to_string(),
+        primary_span: decl.name_span.clone(),
+        related: vec![Related::new(
+            hir.decl_span(id),
+            "a `requires Anyone` would not ask this".to_string(),
+        )],
+        explanation: Some(WHO_MAY_RUN_WHY.to_string()),
+        repairs: vec![Repair {
+            description: "name the predicate otherwise".to_string(),
+            replacement: None,
+        }],
+    }
 }
 
 /// **A page says when its address names nothing** (ADR-0163, PW0342):

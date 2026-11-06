@@ -25,6 +25,7 @@ command remind(order: String) -> Result<Int, String>
 }
 
 command remind_later(order: String) -> Result<Int, String> !{ clock.schedule }
+    requires Anyone
 {
     schedule remind(order) at minutes(30)
     Ok(1)

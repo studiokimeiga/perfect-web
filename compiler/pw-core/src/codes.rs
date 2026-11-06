@@ -276,6 +276,12 @@ codes! {
     // command a page's handler calls says how a second delivery is answered.
     SENT_WITHOUT_IDEMPOTENCY = "PW0338" / sent_without_idempotency / 1, DeclarationRules,
         "a command a page's handler calls declares `idempotent_by`";
+    // The requires ADR: the server runs a command for any request that names
+    // it, so a command no page sends is a request away as well. Until
+    // 2026-11-06 a command that said nothing of who may run it compiled, and
+    // anyone could.
+    WHO_MAY_RUN = "PW0367" / who_may_run / 1, DeclarationRules,
+        "a command a reader can run says who may: `requires` and the predicates every request must hold, or `requires Anyone`, which stands alone and is the platform's";
     // ADR-0157: a command is one request, and its caller is answered whether
     // it committed. Called from a declaration, its body ran without its
     // policies, and the checker and the backend typed the call differently.

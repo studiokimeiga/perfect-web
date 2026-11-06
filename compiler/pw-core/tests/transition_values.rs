@@ -55,7 +55,7 @@ fn command(transition: &str, body: bool) -> String {
         "module m\n\nevent Changed(id: Int)\n\n\
          query Thing(x: Int) -> Int\n    invalidates_on Changed(x)\n{{\n    x\n}}\n\n\
          fn label(n: Int) -> String !{{}} {{\n    \"x\"\n}}\n\n\
-         command c(x: Int) -> Result<Int, String>\n    emits Changed(x)\n    \
+         command c(x: Int) -> Result<Int, String>\n    requires Anyone\n    emits Changed(x)\n    \
          optimistic Thing(x) as t => {transition}\n{}",
         if body { "{\n    Ok(x)\n}\n" } else { "" }
     )

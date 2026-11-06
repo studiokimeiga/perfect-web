@@ -17,6 +17,7 @@ command remind(order: String) -> Result<Int, String>
 }
 
 command remind_then(order: String, when: Instant) -> Result<Int, String> !{ clock.schedule }
+    requires Anyone
 {
     schedule remind(order) after when
     Ok(1)
