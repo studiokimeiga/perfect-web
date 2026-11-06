@@ -417,6 +417,63 @@ passed: 1,187 evidence-gate tests; 863 server tests; 1,074 browser tests,
 fixes reach, every mutant is killed: 119 of 119. The sources were restored,
 and the 4,993 anchors still match once each.
 
+## The code-health audit (`audit/`)
+
+At the pushed head, `ad788543`, every CI check passed except `audit`. That
+job runs Fallow (`fallow-rs/fallow@v3`, 3.23.0) on the change against #75's
+head, `5c53870d`, and fails on any finding the change introduces (gate
+`new-only`). It found eight (`fallow-audit-ad788543.json.gz`):
+
+| Finding | Cyclomatic |
+|---|---:|
+| `warm` | 19 |
+| `warmPaths` | 19 |
+| `bindEvent` | 13 |
+| `speculationsWithin` | 7 |
+| `verdictOf` | 5 |
+| `compressModules` (`optimize-assets.mjs`) | 5 |
+| an observer in `warm.spec.mjs` | 5 |
+| five lines of link check, the same in `followFragmentLinks` and in the soft navigation | a clone |
+
+`bindEvent` had improved on #75's (CRAP 306 to 182). It counts as introduced
+because its category changed. The audit estimates no coverage here
+(`coverage_tier: none`), so its CRAP is CC² + CC, and 30, at cyclomatic 5,
+fails.
+
+`d962441b` splits each function into helpers of cyclomatic 4 or less, and
+changes no behaviour; its message says how. The press's listener is
+untouched, at its indentation. Two `press_modules` anchors moved with their
+code into `forgetSpeculation`.
+
+**At `d962441b`** (`final-verify3.log`, `prepush5-*`):
+
+| Check | Result |
+|---|---|
+| The audit, as CI runs it (`fallow-audit-d962441b.json.gz`) | passed: none introduced; 71 complexity findings and 1 clone inherited, down from 72 and 2 |
+| `just preflight` | passed |
+| `just evidence-gates` | 1,187 tests, 5 skipped |
+| The three crates' tests | passed: 863 in `pw-dev-server` |
+| Every app built | passed |
+| The whole suite, Chromium and Firefox | 1,074 tests: 1,061 passed, 13 skipped, none failed |
+| Gates 7b and 7d | held: 44,223 + 21,284 = 65,507 B, of 65,536 |
+
+The runtime grew by 296 B Brotli, from 43,927. Gate 7b's margin is now 29 B.
+
+The four mutation scripts the change reaches (`reached.py ad788543`), each
+run whole (`mut3-*`):
+
+| Script | Killed |
+|---|---|
+| `press_modules` | 11 of 11 |
+| `runtime_recovery` | 3 of 3 |
+| `address_fragment` | 23 of 23 |
+| `navigate` | 19 of 19 |
+
+Every mutant is killed: 56 of 56. The recipes of `address_fragment` and
+`navigate` run them with `CARGO_INCREMENTAL=0`; this run did not, which
+changes only how cargo caches what it builds. The sources were restored,
+and the 4,993 anchors still match once each.
+
 ## Not run, or failed for the environment
 
 - **WebKit could not open a page on this PC this session**: Playwright's
