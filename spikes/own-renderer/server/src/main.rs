@@ -10433,8 +10433,11 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             mine.cut_until = Some(now + std::time::Duration::from_millis(window));
             drop(faults);
             // Its subscriptions waiting on the table end now, not at their
-            // next look.
+            // next look: woken under the table, where each looks for a cut
+            // before it waits, so none misses it (the first press's review).
+            let table = server.pending.lock().expect("pending");
             server.pending.wake();
+            drop(table);
             respond_json(&mut stream, 200, &session, fresh, "{}");
         }
         // **A materializer failure** (charter §15.5, ADR-0176): this
@@ -11047,6 +11050,14 @@ fn stream_open(
                 )
             });
             if batch.is_none() {
+                // A cut since the look above is seen here, under the table
+                // its wake takes, so none is missed before the wait (the
+                // first press's review).
+                if server.cut_off(session, opened) {
+                    drop(queue);
+                    ended(format_args!("stream cut off at pass {pass}"));
+                    return;
+                }
                 // Nothing new: wait for a wake, within the hold, the table
                 // released meanwhile.
                 let left = until.saturating_duration_since(std::time::Instant::now());
@@ -11169,6 +11180,11 @@ fn stream_frames(
                 )
             });
             if batch.is_none() {
+                // As a held stream's: a cut since the look above, seen
+                // under the table its wake takes.
+                if server.cut_off(session, opened) {
+                    return;
+                }
                 let left = until.saturating_duration_since(std::time::Instant::now());
                 if left.is_zero() {
                     break;
@@ -15791,6 +15807,42 @@ public query Store(",
             assert!(
                 after < std::time::Duration::from_secs(1),
                 "written {after:?} after its push, so by the wake, not the hold's end"
+            );
+            open.join().expect("ended");
+        });
+    }
+
+    /// **A cut wakes a held subscription at once** (the first press's
+    /// review): its slice lengthened past its hold, only the cut's wake can
+    /// end it within a second. Until then a deleted wake passed every test,
+    /// the stream ending at its next look as well.
+    #[test]
+    fn a_cut_wakes_a_held_subscription_at_once() {
+        let mut s = rendering_server();
+        s.wake_at_least = std::time::Duration::from_secs(60);
+        let session = "cut-woken";
+        let (_, document) = s.serve_document(session);
+        let doc: Doc = (session.to_string(), document);
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+        let _page = TcpStream::connect(listener.local_addr().expect("addr")).expect("connect");
+        let (mut held, _) = listener.accept().expect("accept");
+        let s = &s;
+        std::thread::scope(|scope| {
+            let open =
+                scope.spawn(move || stream_open(s, &mut held, session, false, document, document));
+            until("the stream waiting on the table", || {
+                s.pending.waiters() == 1
+            });
+            let cut = std::time::Instant::now();
+            let armed = posted(s, "/bench/reconnect?for=0", session, "cut-woken-1", "");
+            assert!(armed.starts_with("HTTP/1.1 200"), "{armed}");
+            until("the stream ended by its cut", || {
+                trail_says(s, &doc, "stream cut off at pass")
+            });
+            let after = cut.elapsed();
+            assert!(
+                after < std::time::Duration::from_secs(1),
+                "ended {after:?} after its cut, so by the wake, not the hold's end"
             );
             open.join().expect("ended");
         });
