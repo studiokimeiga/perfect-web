@@ -133,8 +133,9 @@ function read(svg) {
 const px = (n) => `${Number(n.toFixed(3))}px`;
 
 /** A stroked circle as a radial gradient: its colour at its radius, fading
- * to nothing a stroke's width either side, which carries as much ink as an
- * anti-aliased stroke of that width. */
+ * to nothing a stroke's width either side, which lays the ink a stroke of
+ * that width covers. (Chromium and Firefox lay 12 to 13% less for the
+ * official stroke, measured 2026-11-06; the spec's ink bounds allow it.) */
 function ringOf(c) {
   return `radial-gradient(circle at ${px(c.x)} ${px(c.y)}, transparent ${px(c.r - c.width)}, ${c.colour} ${px(c.r)}, transparent ${px(c.r + c.width)})`;
 }
@@ -187,6 +188,14 @@ export function sheetOf(official) {
     "}",
     "",
   ].join("\n");
+}
+
+/** **The official checkbox's ring**, in pixels of its 40-pixel box: its
+ * centre, radius, stroke width and colour. `e2e/todomvc.spec.mjs` tells the
+ * ring's ink from the tick's by it. */
+export function ringIn(official) {
+  const [ring] = read(drawingIn(official, ".todo-list li .toggle + label")).circles;
+  return ring;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

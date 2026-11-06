@@ -25,6 +25,7 @@ import { readFileSync } from "node:fs";
 import { test } from "@playwright/test";
 import { expect } from "../assertion-expect.mjs";
 import { TODOMVC_PORTS } from "../host-metadata.mjs";
+import { ringIn } from "../todomvc-styles.mjs";
 
 test.use({
   baseURL: async ({}, use, testInfo) => {
@@ -844,6 +845,8 @@ test("the stylesheets are TodoMVC's own, and shown", async ({ page, request }) =
 const PACKAGES = new URL("../node_modules/", import.meta.url);
 const OFFICIAL = readFileSync(new URL("todomvc-app-css/index.css", PACKAGES), "utf8");
 const BASE = readFileSync(new URL("todomvc-common/base.css", PACKAGES), "utf8");
+/** The official ring, in pixels of the checkbox's 40-pixel box. */
+const RING = ringIn(OFFICIAL);
 
 /**
  * **How far this app's drawing may be from the official one**, by state: the
@@ -854,7 +857,7 @@ const BASE = readFileSync(new URL("todomvc-common/base.css", PACKAGES), "utf8");
  * `path()` clip). Measured on this branch's drawing, 2026-11-06:
  *
  *   Chromium 145: unchecked mean 2.03, 21 over; checked mean 3.19, 65 over
- *   Firefox:      unchecked mean 1.02,  2 over; checked mean 1.64, 19 over
+ *   Firefox 146:  unchecked mean 1.02,  2 over; checked mean 1.64, 19 over
  *
  * Each bound is about half again the larger, so that rendering's own drift
  * passes and a drawing moved, recoloured or reshaped does not
@@ -865,6 +868,65 @@ const BOUNDS = {
   unchecked: { mean: 3, over: 35 },
   checked: { mean: 4.75, over: 100 },
 };
+
+/**
+ * **How far this app's ink may be from the official ink**, in each region the
+ * official drawing inks: the ring (within 2.5 pixels of its radius) and,
+ * checked, the tick inside it. A region's ink is, per channel, the sum over
+ * its pixels of 255 less the value. Anti-aliasing keeps it, since an edge
+ * drawn otherwise spreads the same ink over other pixels. So the ink shows
+ * what the bounds above cannot on a line under a pixel wide: a colour or a
+ * lightness changed.
+ * - `colour`: how far apart the three channels' differences from the
+ *   official ink are, in points (a colour moves one channel, not another);
+ * - `amount`: their mean, in percent either way (a lightness moves them all).
+ * Measured on this branch's drawing, 2026-11-06 (its ring lays 14 to 15% more
+ * ink than the browsers lay for the official stroke):
+ *
+ *   Chromium 145: the ring 0.8 points apart in colour at most, 13.6 to 13.8%
+ *                 in amount; the tick 0.1 and 0.3%
+ *   Firefox 146:  the ring 0.7 points, 14.8 to 15.2%; the tick 0.0 and 0.3%
+ *
+ * The checked ring in the unchecked colour is 57 points apart in colour, the
+ * tick in the ring's colour 16, and a ring half as dark 43% in amount. The
+ * amount's bound is about half again the larger; the colour's is wider, as a
+ * drawing in the right colours stays within a point.
+ */
+const INK = { colour: 5, amount: 23 };
+
+/** How far this app's ink in a region, `[official, ours]` per channel, is
+ * from the official ink: in colour, in points, and in amount, in percent. */
+function inkApart([official, ours]) {
+  const apart = official.map((o, c) => ((ours[c] - o) / o) * 100);
+  return { colour: Math.max(...apart) - Math.min(...apart), amount: apart.reduce((s, d) => s + d, 0) / apart.length };
+}
+
+/** Each region the official drawing inks, with how far this app's ink there
+ * is from it. */
+const inked = (ink) =>
+  Object.entries(ink)
+    .filter(([, [official]]) => official.some((c) => c > 0))
+    .map(([region, both]) => [region, inkApart(both)]);
+
+/** **The bounds a drawing is past**, each with what was measured: none, for
+ * a drawing within them. A measure that is no number is past its bound. One
+ * list, compared with `toEqual`, rather than each measure with
+ * `toBeLessThan`: `toBeLessThan` does not name itself when it fails, so
+ * `assertion-expect.mjs` cannot prove its failure, and
+ * `scripts/todomvc_mutations.py` refuses the mutant it catches rather than
+ * counting a kill. */
+function boundsPast(apart, bound) {
+  return [
+    ["the mean difference", apart.mean, bound.mean],
+    ["the pixels apart by more than an eighth", apart.over, bound.over],
+    ...inked(apart.ink).flatMap(([region, ink]) => [
+      [`the ${region}'s ink apart in colour, in points`, ink.colour, INK.colour],
+      [`the ${region}'s ink apart in amount, in percent either way`, Math.abs(ink.amount), INK.amount],
+    ]),
+  ]
+    .filter(([, measured, under]) => !(measured < under))
+    .map(([what, measured, under]) => `${what}: ${Number(measured.toFixed(2))}, not under ${under}`);
+}
 
 /** A page with no policy, so that the official sheet's own `data:` drawings
  * show, holding one todo as TodoMVC's markup has it, under `sheets`. */
@@ -885,11 +947,13 @@ async function checkbox(page) {
   return page.screenshot({ clip: { x: label.x, y: label.y + (label.height - 40) / 2, width: 40, height: 40 } });
 }
 
-/** How far two screenshots of one size differ, read in the browser: the
- * largest difference of any channel of any pixel, the mean of each pixel's
- * largest, and how many pixels differ by more than an eighth. */
+/** How far two screenshots of the checkbox's box differ, read in the
+ * browser: the largest difference of any channel of any pixel, the mean of
+ * each pixel's largest, how many pixels differ by more than an eighth, and
+ * the ink each lays, `[official, ours]` per channel, in each region: the
+ * ring (within 2.5 pixels of its radius), the tick (inside it) and beyond. */
 function difference(page, a, b) {
-  return page.evaluate(async ([a, b]) => {
+  return page.evaluate(async ([a, b, ring]) => {
     const pixels = async (png) => {
       const image = new Image();
       image.src = `data:image/png;base64,${png}`;
@@ -900,12 +964,23 @@ function difference(page, a, b) {
       return context.getImageData(0, 0, image.width, image.height).data;
     };
     const [p, q] = [await pixels(a), await pixels(b)];
+    // The n-th pixel's region, by its centre's distance from the ring's.
+    const regionOf = (n) => {
+      const d = Math.hypot((n % 40) + 0.5 - ring.x, Math.floor(n / 40) + 0.5 - ring.y) - ring.r;
+      return Math.abs(d) <= 2.5 ? "ring" : d < 0 ? "tick" : "beyond";
+    };
+    const ink = Object.fromEntries(["ring", "tick", "beyond"].map((r) => [r, [[0, 0, 0], [0, 0, 0]]]));
     const each = [];
     for (let i = 0; i < p.length; i += 4) {
       each.push(Math.max(Math.abs(p[i] - q[i]), Math.abs(p[i + 1] - q[i + 1]), Math.abs(p[i + 2] - q[i + 2])));
+      const [official, ours] = ink[regionOf(i / 4)];
+      for (let c = 0; c < 3; c++) {
+        official[c] += 255 - p[i + c];
+        ours[c] += 255 - q[i + c];
+      }
     }
-    return { largest: Math.max(...each), mean: each.reduce((s, d) => s + d, 0) / each.length, over: each.filter((d) => d > 32).length };
-  }, [a.toString("base64"), b.toString("base64")]);
+    return { largest: Math.max(...each), mean: each.reduce((s, d) => s + d, 0) / each.length, over: each.filter((d) => d > 32).length, ink };
+  }, [a.toString("base64"), b.toString("base64"), RING]);
 }
 
 test("a todo's checkbox is fetched as nothing, and the tick takes no press", async ({ page }) => {
@@ -919,8 +994,10 @@ test("a todo's checkbox is fetched as nothing, and the tick takes no press", asy
     getComputedStyle(l).backgroundImage,
     getComputedStyle(l, "::after").clipPath,
   ]);
-  expect(drawn[0], "the circle is the sheet's").toMatch(/^radial-gradient\(/);
-  expect(drawn[1], "and the tick").toMatch(/^polygon\(/);
+  // `toEqual`, not `toMatch`: only a matcher that names itself when it fails
+  // gives a failure `assertion-expect.mjs` can prove, and
+  // `scripts/todomvc_mutations.py` counts no other failure as a kill.
+  expect(drawn.map((d) => d.split("(")[0]), "the circle and the tick are the sheet's").toEqual(["radial-gradient", "polygon"]);
   expect(images, "and no image is fetched for it").toEqual([]);
   // A press on the tick itself is the checkbox's: the tick is drawn over the
   // checkbox, and takes no pointer. The point is on its short stroke, midway
@@ -944,8 +1021,8 @@ test("a todo's checkbox is the official drawing, pixel for pixel", async ({ page
     }
     const [a, b] = [await checkbox(official), await checkbox(drawn)];
     const apart = await difference(official, a, b);
-    console.log(`EVIDENCE checkbox ${state}: largest ${apart.largest}, mean ${apart.mean.toFixed(2)}, over an eighth ${apart.over} of 1600`);
-    expect(apart.mean, `${state}: the mean difference`).toBeLessThan(BOUNDS[state].mean);
-    expect(apart.over, `${state}: the pixels apart by more than an eighth`).toBeLessThan(BOUNDS[state].over);
+    const inks = inked(apart.ink).map(([region, ink]) => `${region} ${ink.colour.toFixed(1)} points in colour, ${ink.amount.toFixed(1)}% in amount`);
+    console.log(`EVIDENCE checkbox ${state}: largest ${apart.largest}, mean ${apart.mean.toFixed(2)}, over an eighth ${apart.over} of 1600; ink apart: ${inks.join("; ")}`);
+    expect(boundsPast(apart, BOUNDS[state]), `${state}: the bounds its drawing is past`).toEqual([]);
   }
 });
