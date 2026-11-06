@@ -16,7 +16,7 @@ Since the first press's review (2026-11-06) a load is shared, by a warm-up
 and by each press that asks while it is in flight, and each press waits for
 it within a deadline of its own: the deadline's mutants undo the press's
 wait (`within` at the press, `speculationsWithin`), and a wait given up
-forgets its load in `speculationsWithin`, a failed load in `speculations`.
+forgets its load in `forgetSpeculation`, a failed load in `speculations`.
 
 `e2e/press-modules.spec.mjs` and `e2e/computed-modules.spec.mjs`, in
 Chromium, must fail for each. Only complete
@@ -75,9 +75,9 @@ MUTANTS = [
     (
         "a speculation load a press gave up waiting for is asked for again under the same specifier",
         RUNTIME,
-        "      speculationAttempts += 1;\n"
-        "      forgetRenderer(rendering);\n",
-        "      forgetRenderer(rendering);\n",
+        "  speculationAttempts += 1;\n"
+        "  forgetRenderer(rendering);\n",
+        "  forgetRenderer(rendering);\n",
     ),
     (
         "a failed renderer load is kept",
@@ -88,11 +88,11 @@ MUTANTS = [
     (
         "a renderer load a press gave up on is kept",
         RUNTIME,
-        "      speculationAttempts += 1;\n"
-        "      forgetRenderer(rendering);\n"
-        "    }\n",
-        "      speculationAttempts += 1;\n"
-        "    }\n",
+        "  speculationAttempts += 1;\n"
+        "  forgetRenderer(rendering);\n"
+        "}\n",
+        "  speculationAttempts += 1;\n"
+        "}\n",
     ),
     (
         "a module's load is timed by a send's deadline",

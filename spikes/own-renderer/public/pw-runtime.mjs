@@ -899,15 +899,18 @@ async function speculationsWithin() {
   try {
     return await within(loading, "the speculation module");
   } catch (error) {
-    if (error?.givenUp && speculationModule === loading) {
-      const rendering = speculationOwner?.rendering ?? null;
-      speculationModule = null;
-      speculationOwner = null;
-      speculationAttempts += 1;
-      forgetRenderer(rendering);
-    }
+    if (error?.givenUp) forgetSpeculation(loading);
     throw error;
   }
+}
+
+function forgetSpeculation(loading) {
+  if (speculationModule !== loading) return;
+  const rendering = speculationOwner?.rendering ?? null;
+  speculationModule = null;
+  speculationOwner = null;
+  speculationAttempts += 1;
+  forgetRenderer(rendering);
 }
 
 /** Publication needs both the coordinator and its native owner still current. */
@@ -2137,6 +2140,18 @@ function bindFragment(binding) {
   followFragmentLinks(binding);
 }
 
+const MODIFIER_KEYS = ["metaKey", "ctrlKey", "shiftKey", "altKey"];
+
+/** The `<a href>` a primary, unmodified, unclaimed click is on. */
+function linkOf(e) {
+  const a = plainClick(e) && e.target instanceof Element ? e.target.closest("a[href]") : null;
+  return a instanceof HTMLAnchorElement ? a : null;
+}
+
+function plainClick(e) {
+  return !e.defaultPrevented && e.button === 0 && !MODIFIER_KEYS.some((key) => e[key]);
+}
+
 /** **A link to one of the fragment's forms, followed in its press** (the
  * first press's ADR), not a task later in `hashchange`: a primary,
  * unmodified, unclaimed click to this page at a form. Back and forward still
@@ -2146,11 +2161,8 @@ function followFragmentLinks(binding) {
   document.addEventListener(
     "click",
     (e) => {
-      if (e.defaultPrevented || e.button !== 0) return;
-      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-      const a = e.target instanceof Element ? e.target.closest("a[href]") : null;
-      if (!a || !(a instanceof HTMLAnchorElement)) return;
-      if (a.hasAttribute("download") || (a.target && a.target !== "_self")) return;
+      const a = linkOf(e);
+      if (!a || a.hasAttribute("download") || (a.target && a.target !== "_self")) return;
       const url = new URL(a.href, location.href);
       if (url.origin !== location.origin || url.pathname !== location.pathname) return;
       if (url.search !== location.search || !url.hash || !forms.has(url.hash.slice(1))) return;
@@ -2694,13 +2706,10 @@ const RELOADING = new Set(["reload", "refetch-region", "rerender-private-slot", 
  * page for ever. The button then stays inert, and says so.
  */
 function recoverOnPress(part, owners, verdict) {
-  const listens = DOM_EVENTS[part.event || "press"];
+  const { listens } = eventOf(part);
   if (!listens) return;
   for (const el of owners) {
-    const parts = bound.get(el) ?? new Set();
-    if (parts.has(part.id)) continue;
-    parts.add(part.id);
-    bound.set(el, parts);
+    if (!claim(el, part.id)) continue;
     el.addEventListener(listens, (e) => {
       const asks = verdict.recovery === "require-user-confirmation";
       if (!RELOADING.has(verdict.recovery) && !asks) {
@@ -2936,72 +2945,88 @@ function bindEvents() {
  * press's ADR), so the two cannot disagree about what is authorised.
  */
 function verdictOf(named, part) {
-  let verdict = verdicts.get(named);
-  if (!verdict) {
-    const manifest = manifestFor(part);
-    verdict =
-      decide && manifest ? decide(manifest) : { attach: false, recovery: "no-decision" };
-    verdicts.set(named, verdict);
-    if (!verdict.attach) {
-      // The CODE as well as the recovery. "refused 5: none" says a handler
-      // was refused and nothing about why; the code is the one field that
-      // distinguishes an unknown handler from a widened privacy scope from
-      // a stale document schema.
-      log.push(`refused ${named}: code ${verdict.code} recovery ${verdict.recovery}`);
-    }
+  if (!verdicts.has(named)) verdicts.set(named, decided(named, part));
+  return verdicts.get(named);
+}
+
+function decided(named, part) {
+  const manifest = manifestFor(part);
+  const verdict =
+    decide && manifest ? decide(manifest) : { attach: false, recovery: "no-decision" };
+  if (!verdict.attach) {
+    // With its CODE: only the code tells an unknown handler from a widened
+    // privacy scope from a stale document schema.
+    log.push(`refused ${named}: code ${verdict.code} recovery ${verdict.recovery}`);
   }
   return verdict;
 }
 
-/** One event part of `template`, bound to every element it has: the
- * page's, or a view's in each of its instances (ADR-0203). */
-function bindEvent(template, part) {
-  if (part.kind !== "event") return;
-  // A part of a view's instance is named by its template, and the page's
-  // as it always was.
-  const named = template === PAGE ? `${part.id}` : `${template}:${part.id}`;
+/** A part of a view's instance is named by its template, and the page's
+ * as it always was. */
+function nameOf(template, part) {
+  return template === PAGE ? `${part.id}` : `${template}:${part.id}`;
+}
+
+function eventOf(part) {
+  const event = part.event || "press";
+  return { event, listens: DOM_EVENTS[event] };
+}
+
+/** Bound once: a block a signal renders again binds what it made, and
+ * leaves what was bound before alone (ADR-0130). */
+function claim(el, id) {
+  const parts = bound.get(el) ?? new Set();
+  if (parts.has(id)) return false;
+  parts.add(id);
+  bound.set(el, parts);
+  return true;
+}
+
+function bindingOf(template, part) {
+  if (part.kind !== "event") return null;
+  const named = nameOf(template, part);
   // Every INSTANCE of this template position. A template-scoped id names a
   // position in the template; the document has one instance per loop item,
   // and all three Add buttons carry `data-pw="0"`.
   const addresses = addressesFor(`e${part.owner}`, template);
   const owners = addresses.map((a) => index.get(a).element).filter(Boolean);
-  if (owners.length === 0) {
-    // A part in a block not rendered now (ADR-0130) is bound when it is.
-    if (!booted) log.push(`no element ${part.owner} for part ${named}`);
-    return;
-  }
+  if (owners.length > 0) return listenerFor(part, named, addresses, owners);
+  // A part in a block not rendered now (ADR-0130) is bound when it is.
+  if (!booted) log.push(`no element ${part.owner} for part ${named}`);
+  return null;
+}
 
-  // The decision, before anything is bound. `decide` returning anything but
-  // "attach" leaves the element without a listener — the button is inert
-  // rather than wrong.
-  //
-  // Asked NOW rather than on interaction, deliberately. A refused handler
-  // must never load its code: fetching first and checking after would make
-  // the refusal a formality the network had already ignored.
+/**
+ * The decision, before anything is bound: refused, the element loads no
+ * code, and recovers when pressed (`recoverOnPress`).
+ *
+ * Asked NOW rather than on interaction, deliberately. A refused handler
+ * must never load its code: fetching first and checking after would make
+ * the refusal a formality the network had already ignored.
+ */
+function listenerFor(part, named, addresses, owners) {
   const verdict = verdictOf(named, part);
   if (!verdict.attach) {
     recoverOnPress(part, owners, verdict);
-    return;
+    return null;
   }
-
   // The event the part handles, and what to do before any code loads.
-  const event = part.event || "press";
-  const listens = DOM_EVENTS[event];
+  const { event, listens } = eventOf(part);
   if (!listens) {
     log.push(`no listener for event ${event} of part ${named}`);
-    return;
+    return null;
   }
-  const modifiers = part.modifiers ?? [];
+  return { named, addresses, owners, event, listens, modifiers: part.modifiers ?? [] };
+}
 
-  let fresh = 0;
-  for (const el of owners) {
-    // Bound once: a block a signal renders again binds what it made, and
-    // leaves what was bound before alone (ADR-0130).
-    const parts = bound.get(el) ?? new Set();
-    if (parts.has(part.id)) continue;
-    parts.add(part.id);
-    bound.set(el, parts);
-    fresh++;
+/** One event part of `template`, bound to every element it has: the
+ * page's, or a view's in each of its instances (ADR-0203). */
+function bindEvent(template, part) {
+  const binding = bindingOf(template, part);
+  if (!binding) return;
+  const { event, listens, modifiers } = binding;
+  const fresh = binding.owners.filter((el) => claim(el, part.id));
+  for (const el of fresh) {
     el.addEventListener(listens, async (e) => {
       // Declared, so done now, synchronously (ADR-0131).
       if (modifiers.includes("prevent")) e.preventDefault();
@@ -3134,67 +3159,85 @@ function bindEvent(template, part) {
       }
     });
   }
-  if (fresh > 0) {
-    log.push(
-      `attached ${named} to ${owners.length} instance(s): ${addresses.join(" ")}`,
-    );
+  if (fresh.length > 0) {
+    const { named, owners, addresses } = binding;
+    log.push(`attached ${named} to ${owners.length} instance(s): ${addresses.join(" ")}`);
   }
 }
 
 // --- warming: what a press needs, there before it is pressed --------------
 //
 // The first press's ADR, amending E7-L where a build says `#warm|1`: once
-// interactive, loaded and idle, by the press's own loaders, the renderer,
-// the computed and speculation modules and each handler the decision
-// AUTHORISED (a refused one is never fetched). Development builds warm none.
+// interactive, loaded and idle, by the press's own loaders. A handler the
+// decision refused is never fetched. Development builds warm none.
+
+function rendersBlock(live) {
+  return live.kind !== "value" && !SET_IN_PLACE.has(live.kind);
+}
 
 /** Whether a signal or a speculation renders anything here with the
  * renderer: a block, a row, a region (`flushSignals`, `showRegions`). */
 function rendersInBrowser() {
   if (parts.regions && Object.keys(parts.regions).length > 0) return true;
-  return (parts.live ?? []).some((l) => l.kind !== "value" && !SET_IN_PLACE.has(l.kind));
+  return (parts.live ?? []).some(rendersBlock);
+}
+
+function quietly(loading, what) {
+  loading?.catch((error) => log.push(`warming ${what} failed: ${error.message ?? error}`));
 }
 
 /** **Warm what this page's presses need**, in the order they need it: the
  * renderer, the computed and speculation modules, the handlers shown, then
  * the rest. */
 function warm() {
-  if (life.signal.aborted) return;
-  const quietly = (loading, what) =>
-    loading?.catch((error) => log.push(`warming ${what} failed: ${error.message ?? error}`));
   if (rendersInBrowser()) quietly(renderModule(), "the renderer");
-  // Each forgets a failed load itself (ADR-0382), as for a press.
+  warmComputed();
+  warmSpeculation();
+  const identities = warmable();
+  for (const identity of identities) warmHandler(identity);
+  log.push(`warming ${identities.size} handler(s)`);
+}
+
+// Each module forgets a failed load itself (ADR-0382), as for a press.
+function warmComputed() {
   if (parts.computed && !computedModule) quietly(computedValues(), parts.computed);
+}
+
+function warmSpeculation() {
   if (parts.speculation && !speculationModule && !speculationLoaded) {
     quietly(speculations(), parts.speculation);
   }
-  // Authorised handlers, those shown first (a Set keeps the order).
+}
+
+/** The handlers the decision authorised, those shown first (a Set keeps
+ * the order). */
+function warmable() {
   const shown = new Set();
   const later = new Set();
   for (const [template, list] of manifests) {
-    for (const part of list) {
-      if (part.kind !== "event" || !part.value) continue;
-      const named = template === PAGE ? `${part.id}` : `${template}:${part.id}`;
-      if (!verdictOf(named, part).attach) continue;
-      const bound = addressesFor(`e${part.owner}`, template).length > 0;
-      (bound ? shown : later).add(part.value);
+    for (const part of list.filter((p) => authorised(template, p))) {
+      (addressesFor(`e${part.owner}`, template).length > 0 ? shown : later).add(part.value);
     }
   }
-  const identities = new Set([...shown, ...later]);
-  for (const identity of identities) {
-    // Not one a press has already asked for, under any specifier.
-    if (loaded.has(identity) || (attempts.get(identity) ?? 0) > 0) continue;
-    const loading = loadHandler(identity);
-    loading.catch((error) => {
-      // Forgotten as a press's failed load is, unless a press forgot it.
-      if (loaded.get(identity) === loading) {
-        loaded.delete(identity);
-        attempts.set(identity, (attempts.get(identity) ?? 0) + 1);
-      }
-      log.push(`warming ${identity} failed: ${error.message ?? error}`);
-    });
-  }
-  log.push(`warming ${identities.size} handler(s)`);
+  return new Set([...shown, ...later]);
+}
+
+function authorised(template, part) {
+  return part.kind === "event" && part.value && verdictOf(nameOf(template, part), part).attach;
+}
+
+/** One handler no press has asked for yet, under any specifier. */
+function warmHandler(identity) {
+  if (loaded.has(identity) || (attempts.get(identity) ?? 0) > 0) return;
+  const loading = loadHandler(identity);
+  loading.catch((error) => {
+    // Forgotten as a press's failed load is, unless a press forgot it.
+    if (loaded.get(identity) === loading) {
+      loaded.delete(identity);
+      attempts.set(identity, (attempts.get(identity) ?? 0) + 1);
+    }
+    log.push(`warming ${identity} failed: ${error.message ?? error}`);
+  });
 }
 
 /** **A press's own paths, run once on nothing** (the first press's ADR): the
@@ -3203,34 +3246,55 @@ function warm() {
  * `WARM_ELEMENTS`, is passed over. Each step waits for idle; none runs once
  * the runtime has ended. */
 async function warmPaths() {
-  if (!rendersInBrowser() || life.signal.aborted) return;
+  if (!rendersInBrowser()) return;
   const x = await renderModule();
+  if (!(await idleAndLive())) return;
+  warmRenderer(x);
+  const block = warmableBlock();
+  if (block) await warmBlock(block);
+}
+
+async function idleAndLive() {
   await idleness();
-  if (life.signal.aborted) return;
+  return !life.signal.aborted;
+}
+
+function warmRenderer(x) {
   try {
     if (x.warm && x.warm() !== 0) log.push("the renderer refused its warm-up");
   } catch (e) {
     retireRenderer(x);
     throw e;
   }
-  for (const live of parts.live ?? []) {
-    if (life.signal.aborted) return;
-    if (live.kind === "value" || SET_IN_PLACE.has(live.kind)) continue;
-    const at = index.get(addressOf([], live.part));
-    if (!at?.start) continue;
-    const nodes = between(at.start, at.end);
-    if (dialogsIn(nodes, true).length || dialogsIn(nodes, false).length) continue;
-    const elements = nodes.reduce((n, node) => n + (node.nodeType === 1 ? 1 + node.getElementsByTagName("*").length : 0), 0);
-    if (elements > WARM_ELEMENTS) continue;
-    const html = await renderBlock(live.part);
-    await idleness();
-    if (life.signal.aborted) return;
-    const inert = document.implementation.createHTMLDocument("");
-    const copy = inert.createElement("div");
-    for (const n of nodes) copy.append(inert.importNode(n, true));
-    morphChildren(copy, [...copy.childNodes], parseInstance(html), null, []);
-    return log.push(`warmed the paths of block ${live.part}`);
+}
+
+function warmableBlock() {
+  for (const live of (parts.live ?? []).filter(rendersBlock)) {
+    const block = blockOf(live);
+    if (warmsOn(block)) return block;
   }
+  return null;
+}
+
+function blockOf(live) {
+  const at = index.get(addressOf([], live.part));
+  return { part: live.part, nodes: at?.start ? between(at.start, at.end) : null };
+}
+
+function warmsOn({ nodes }) {
+  if (!nodes || dialogsIn(nodes, true).length || dialogsIn(nodes, false).length) return false;
+  const elements = nodes.reduce((n, node) => n + (node.nodeType === 1 ? 1 + node.getElementsByTagName("*").length : 0), 0);
+  return elements <= WARM_ELEMENTS;
+}
+
+async function warmBlock({ part, nodes }) {
+  const html = await renderBlock(part);
+  if (!(await idleAndLive())) return;
+  const inert = document.implementation.createHTMLDocument("");
+  const copy = inert.createElement("div");
+  for (const n of nodes) copy.append(inert.importNode(n, true));
+  morphChildren(copy, [...copy.childNodes], parseInstance(html), null, []);
+  log.push(`warmed the paths of block ${part}`);
 }
 
 /** The most elements a block's paths are warmed on: any block serves. */
@@ -3245,16 +3309,14 @@ function idleness() {
 }
 
 /** Warming, once the page is loaded and the browser idle, where the
- * build that served it asks for it. */
+ * build that served it asks for it, and while the runtime is live. */
 function warmWhenIdle() {
   if (!buildWarms) return;
-  const idle = () => {
-    const later = window.requestIdleCallback ?? ((f) => setTimeout(f, 1));
-    later(() => {
-      warm();
-      // Once what they run is loaded: `renderBlock` waits for it.
-      warmPaths().catch((e) => log.push(`warming the paths failed: ${e.message ?? e}`));
-    }, { timeout: 1000 });
+  const idle = async () => {
+    if (!(await idleAndLive())) return;
+    warm();
+    // Once what they run is loaded: `renderBlock` waits for it.
+    warmPaths().catch((e) => log.push(`warming the paths failed: ${e.message ?? e}`));
   };
   if (document.readyState === "complete") idle();
   else addEventListener("load", idle, { once: true, signal: life.signal });
@@ -4041,11 +4103,8 @@ addEventListener("beforeunload", () => pending?.abort(), { signal: life.signal }
 document.addEventListener(
   "click",
   (e) => {
-    if (!parts.layout || e.defaultPrevented || e.button !== 0) return;
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    const a = e.target instanceof Element ? e.target.closest("a[href]") : null;
-    if (!a || !(a instanceof HTMLAnchorElement)) return;
-    if (a.hasAttribute("download") || a.hasAttribute("data-pw-reload")) return;
+    const a = parts.layout ? linkOf(e) : null;
+    if (!a || a.hasAttribute("download") || a.hasAttribute("data-pw-reload")) return;
     if (a.target && a.target !== "_self") return;
     if (a.relList.contains("external")) return;
     const url = new URL(a.href, location.href);

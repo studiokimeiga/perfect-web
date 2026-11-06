@@ -64,18 +64,7 @@ const MODULES = ["build/handlers", "build/computed", "build/speculations"];
 export async function compressModules(directory) {
   const done = [];
   for (const sub of MODULES) {
-    let entries;
-    try {
-      entries = await readdir(path.join(directory, sub), { withFileTypes: true });
-    } catch (error) {
-      if (error.code === "ENOENT") continue;
-      throw error;
-    }
-    const names = entries
-      .filter((entry) => entry.isFile() && entry.name.endsWith(".mjs"))
-      .map((entry) => entry.name)
-      .sort((a, b) => a.localeCompare(b, "en"));
-    for (const name of names) {
+    for (const name of await modulesIn(path.join(directory, sub))) {
       const file = path.join(directory, sub, name);
       const body = await readFile(file);
       await writeFile(file + ".br", brotliCompressSync(body, BR));
@@ -84,6 +73,22 @@ export async function compressModules(directory) {
     }
   }
   return done;
+}
+
+/** The modules in one of a build's module directories, sorted; none where
+ * the build has no such directory. */
+async function modulesIn(directory) {
+  let entries;
+  try {
+    entries = await readdir(directory, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === "ENOENT") return [];
+    throw error;
+  }
+  return entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".mjs"))
+    .map((entry) => entry.name)
+    .sort((a, b) => a.localeCompare(b, "en"));
 }
 
 export async function optimizeAssets(directory) {

@@ -294,13 +294,11 @@ test("a build that warms runs a block's paths on a copy, and the page is as it w
   await page.addInitScript(() => {
     window.__changes = [];
     let ready = false;
+    // The mark itself, set by the test, is not the page's change.
+    const mark = (r) => r.attributeName === "data-probe" && r.target.getAttribute("data-probe") === "kept";
     new MutationObserver((records) => {
       if (ready) {
-        for (const r of records) {
-          // The mark itself, set by the test, is not the page's change.
-          if (r.attributeName === "data-probe" && r.target.getAttribute("data-probe") === "kept") continue;
-          window.__changes.push(`${r.type} ${r.target.nodeName}`);
-        }
+        for (const r of records.filter((r) => !mark(r))) window.__changes.push(`${r.type} ${r.target.nodeName}`);
       }
       ready = document.documentElement.dataset.pwReady === "1";
     }).observe(document, { subtree: true, childList: true, attributes: true, characterData: true });
