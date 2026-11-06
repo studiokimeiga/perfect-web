@@ -285,19 +285,42 @@ test("a build that warms runs a block's paths on a copy, and the page is as it w
   // morphed into a copy in an inert document. Nothing the page shows
   // changes and nothing takes focus; the first press renders as before.
   // The demo panel's `{#match}` block is one the browser renders.
+  //
+  // Rendered at the values the page shows, a morph of the live block would
+  // change nothing either (the first press's review), so the block is marked
+  // first: `#shut` is given an attribute its rendering does not have, which
+  // a morph of the live block would take away and one of a copy cannot. The
+  // page's idle callbacks, where the warm-up runs, are held until it is.
   await page.addInitScript(() => {
     window.__changes = [];
     let ready = false;
     new MutationObserver((records) => {
-      if (ready) for (const r of records) window.__changes.push(`${r.type} ${r.target.nodeName}`);
+      if (ready) {
+        for (const r of records) {
+          // The mark itself, set by the test, is not the page's change.
+          if (r.attributeName === "data-probe" && r.target.getAttribute("data-probe") === "kept") continue;
+          window.__changes.push(`${r.type} ${r.target.nodeName}`);
+        }
+      }
       ready = document.documentElement.dataset.pwReady === "1";
     }).observe(document, { subtree: true, childList: true, attributes: true, characterData: true });
+    const held = [];
+    let released = false;
+    const run = (f) => f({ didTimeout: false, timeRemaining: () => 50 });
+    window.requestIdleCallback = (f) => (released ? setTimeout(() => run(f), 0) : held.push(f));
+    window.__idle = () => {
+      released = true;
+      for (const f of held.splice(0)) run(f);
+    };
   });
   await warming(page);
   await ready(page, "/page/demo.panel.PanelPage~ui");
+  await page.locator("#shut").evaluate((el) => el.setAttribute("data-probe", "kept"));
   const shown = () => page.evaluate(() => [document.body.innerHTML, document.activeElement?.localName]);
   const before = await shown();
+  await page.evaluate(() => window.__idle());
   await page.waitForFunction(() => (window.__pw?.log ?? []).some((l) => l.startsWith("warmed the paths")));
+  expect(await page.locator("#shut").getAttribute("data-probe"), "the live block is not morphed").toBe("kept");
   const log = await page.evaluate(() => window.__pw.log);
   const blocks = await page.evaluate(() =>
     window.__pw.parts.live
