@@ -60,23 +60,26 @@ MUTANTS = [
         "an open stream is not ended",
         "server",
         SERVER,
-        "        // Cut off since it opened (ADR-0175): it ends, with no more bytes.\n"
-        "        if server.cut_off(session, opened) {\n",
-        "        // Cut off since it opened (ADR-0175): it ends, with no more bytes.\n"
-        "        if false && server.cut_off(session, opened) {\n",
+        # Re-anchored by the first press's review: the stream looks for a cut
+        # once a pass, under the table, where it looked before taking it and
+        # (for a few hours) again before its wait, which let either look be
+        # removed with nothing failing.
+        "            // the wait below is never missed (the first press's review).\n"
+        "            if server.cut_off(session, opened) {\n",
+        "            // the wait below is never missed (the first press's review).\n"
+        "            if false && server.cut_off(session, opened) {\n",
     ),
     (
         "an open long poll is not ended",
         "server",
         SERVER,
-        # Re-anchored by the first press's ADR: the poll waits on the table
-        # through its hold, rather than forty passes of 25 ms.
-        "    let until = opened + POLL_HOLD;\n"
-        "    loop {\n"
-        "        if server.cut_off(session, opened) {\n",
-        "    let until = opened + POLL_HOLD;\n"
-        "    loop {\n"
-        "        if false && server.cut_off(session, opened) {\n",
+        # Re-anchored by the first press's ADR (the poll waits on the table
+        # through its hold, rather than forty passes of 25 ms), and by its
+        # review: one look for a cut a pass, under the table, as the stream's.
+        "            // looked for once a pass under the table a cut's wake takes.\n"
+        "            if server.cut_off(session, opened) {\n",
+        "            // looked for once a pass under the table a cut's wake takes.\n"
+        "            if false && server.cut_off(session, opened) {\n",
     ),
     (
         "a new subscription is not refused",

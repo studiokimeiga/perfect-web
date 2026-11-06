@@ -11018,16 +11018,20 @@ fn stream_open(
     let until = opened + STREAM_HOLD;
     let mut pass = 0u64;
     loop {
-        // Cut off since it opened (ADR-0175): it ends, with no more bytes.
-        if server.cut_off(session, opened) {
-            ended(format_args!("stream cut off at pass {pass}"));
-            return;
-        }
-        pass += 1;
         let batch = {
             let asked = std::time::Instant::now();
             let mut queue = server.pending.lock().expect("pending");
             let waited = asked.elapsed().as_millis();
+            // Cut off since it opened (ADR-0175): it ends, with no more
+            // bytes. Looked for once a pass, before anything is written,
+            // under the table a cut's wake takes, so that a cut made before
+            // the wait below is never missed (the first press's review).
+            if server.cut_off(session, opened) {
+                drop(queue);
+                ended(format_args!("stream cut off at pass {pass}"));
+                return;
+            }
+            pass += 1;
             let Some(waiting) = queue.get_mut(&doc) else {
                 // Forgotten while the stream was held: the next request
                 // is told to reload.
@@ -11050,14 +11054,6 @@ fn stream_open(
                 )
             });
             if batch.is_none() {
-                // A cut since the look above is seen here, under the table
-                // its wake takes, so none is missed before the wait (the
-                // first press's review).
-                if server.cut_off(session, opened) {
-                    drop(queue);
-                    ended(format_args!("stream cut off at pass {pass}"));
-                    return;
-                }
                 // Nothing new: wait for a wake, within the hold, the table
                 // released meanwhile.
                 let left = until.saturating_duration_since(std::time::Instant::now());
@@ -11157,11 +11153,13 @@ fn stream_frames(
     // passed (the first press's ADR).
     let until = opened + POLL_HOLD;
     loop {
-        if server.cut_off(session, opened) {
-            return;
-        }
         let batch = {
             let mut queue = server.pending.lock().expect("pending");
+            // As a held stream's: cut off, it is closed with no answer,
+            // looked for once a pass under the table a cut's wake takes.
+            if server.cut_off(session, opened) {
+                return;
+            }
             let waiting = queue
                 .entry(doc.clone())
                 .or_insert_with(|| Subscriber::at(document));
@@ -11180,11 +11178,6 @@ fn stream_frames(
                 )
             });
             if batch.is_none() {
-                // As a held stream's: a cut since the look above, seen
-                // under the table its wake takes.
-                if server.cut_off(session, opened) {
-                    return;
-                }
                 let left = until.saturating_duration_since(std::time::Instant::now());
                 if left.is_zero() {
                     break;
