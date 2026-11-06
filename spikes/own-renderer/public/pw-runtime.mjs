@@ -383,19 +383,14 @@ let decide = null;
  * handler table: empty until the table is read. */
 let servedBuild = "";
 
-/** Whether the build that served this runtime warms what its presses need
- * (the first press's ADR): its handler table's `#warm|1`. */
+/** Whether its build warms (the first press's ADR): the table's `#warm|1`. */
 let buildWarms = false;
 
-/** **The delivery this runtime was asked for at** (the first press's ADR):
- * the version a production build's documents name its files at
- * (`/pw-runtime.mjs?b=…`), which a browser keeps until the build changes;
- * none for a development build's. */
+/** The delivery this runtime was asked for at (`?b=`, the first press's
+ * ADR); none for a development build. */
 const DELIVERY = new URL(import.meta.url).searchParams.get("b");
 
-/** A file of the build, at this runtime's delivery: as the document's head
- * asked for it (`BOOT`), so the head's request answers this one, and as a
- * cache keeps it. */
+/** A file of the build at this delivery, as the head asked for it. */
 function delivered(path) {
   return DELIVERY ? `${path}?b=${encodeURIComponent(DELIVERY)}` : path;
 }
@@ -408,16 +403,10 @@ function attempted(path, attempt) {
 }
 
 async function bootDecision() {
-  // The decision's code and this build's table, asked for together (the
-  // first press's ADR): neither needs the other to be asked for, and the
-  // document's head has already asked for both (`BOOT`), so each `fetch`
-  // here is answered by that request. Until 2026-11-06 the table was asked
-  // for once the decision had compiled: one more round trip before a page
-  // was interactive, 562.5 ms of it under Slow 4G.
+  // The decision and the table together, each answered by the head's
+  // preload (the first press's ADR).
   const tableText = fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : ""));
-  // A decision that fails to load still fails the boot, as it did; the table
-  // asked for beside it must not then fail again, unheard, as a rejection
-  // nothing waited for.
+  // A failed decision fails the boot; the table's rejection is not unheard.
   tableText.catch(() => {});
   const { instance } = await WebAssembly.instantiateStreaming(fetch(delivered("/pw-resume.wasm")), {});
   const { memory, alloc, decide_manifest, last_recovery, know, know_document } =
@@ -441,8 +430,7 @@ async function bootDecision() {
   // from the document; the decision holds each handler's document to them.
   const lines = table.split("\n");
   servedBuild = lines.find((l) => l.startsWith("#build|"))?.slice("#build|".length) ?? "";
-  // **Whether this build warms what its presses need** (the first press's
-  // ADR): the build's word, from the same table, never the document's.
+  // Whether the build warms: the table's word, never the document's.
   buildWarms = lines.includes("#warm|1");
   const page = lines.find((l) => l.startsWith(`#page|${PAGE}|`));
   if (page && know_document) {
@@ -593,12 +581,8 @@ function loadHandler(identity) {
   // makes the failed attempt distinguishable from the next one.
   const attempt = attempts.get(identity) ?? 0;
   const url = attempted(`/handler/${identity}.mjs`, attempt);
-  // No deadline here. A load is shared by a warm-up and by each press that
-  // asks while it is in flight, and each press waits for it within a
-  // deadline of its own, counted from the press (`within`, ADR-0382). Until
-  // 2026-11-06 the deadline was the load's, so a press made late in a
-  // warm-up's wait had only what was left of the warm-up's (the first
-  // press's review).
+  // No deadline: the load is shared, and each press waits within its own
+  // (ADR-0382; the first press's review).
   const pending = import(url).then((module) => {
     // What a load given up brings late is not used (ADR-0382).
     if (loaded.get(identity) === pending) {
@@ -624,7 +608,7 @@ function within(loading, what) {
   let timer;
   const late = new Promise((_, reject) => {
     timer = setTimeout(
-      // Marked, so that a wait given up is told from a load that failed.
+      // Marked: a wait given up, not a failed load.
       () => reject(Object.assign(new Error(`${what}: none within ${loadDeadline} ms`), { givenUp: true })),
       loadDeadline,
     );
@@ -874,8 +858,7 @@ function speculations() {
     owner.retired ||= rendererLoaded !== exports;
     return exports;
   }) ?? null;
-  // No deadline here: a press waits for this shared load within its own
-  // (`speculationsWithin`), as for a handler's.
+  // No deadline: each press waits within its own (`speculationsWithin`).
   const loading = Promise.all([speculationLoaded ?? import(url), trackedRenderer]).then(
     ([module, renderer]) => {
       if (!currentSpeculation(loading, owner, renderer)) {
@@ -898,7 +881,7 @@ function speculations() {
       speculationOwner = null;
       speculationAttempts += 1;
       // A renderer still loading is forgotten with it: the next press asks
-      // for both again, as after a wait given up (`speculationsWithin`).
+      // for both again.
       forgetRenderer(rendering);
       throw error;
     },
@@ -909,11 +892,8 @@ function speculations() {
   return loading;
 }
 
-/** **A press's wait for the page's speculation module**, within a deadline
- * of its own, counted from the press (ADR-0382). A wait given up forgets the
- * load it waited for, as a failed load is forgotten, and the renderer still
- * loading with it, so the next press asks again. Until 2026-11-06 the
- * deadline was the shared load's (the first press's review). */
+/** A press's wait for the speculation module, within its own deadline
+ * (ADR-0382): given up, it forgets the load and the renderer loading with it. */
 async function speculationsWithin() {
   const loading = speculations();
   try {
@@ -2157,14 +2137,10 @@ function bindFragment(binding) {
   followFragmentLinks(binding);
 }
 
-/**
- * **A link to one of the fragment's forms, followed in its press** (the
- * first press's ADR): not in the `hashchange` a browser dispatches a task
- * later, often after a frame (the filter: 31 ms, React's router 15). A
- * primary, unmodified, unclaimed click on an `<a href>` to this page at a
- * form sets the address as the browser would and the signal follows at once;
- * anything else stays the browser's. Back and forward come as `hashchange`.
- */
+/** **A link to one of the fragment's forms, followed in its press** (the
+ * first press's ADR), not a task later in `hashchange`: a primary,
+ * unmodified, unclaimed click to this page at a form. Back and forward still
+ * come as `hashchange`. */
 function followFragmentLinks(binding) {
   const forms = new Set(binding.forms.map((f) => f.form));
   document.addEventListener(
@@ -3065,8 +3041,7 @@ function bindEvent(template, part) {
         // somebody presses this button.
         let module;
         try {
-          // Within this press's deadline, counted from now (ADR-0382),
-          // whoever started the load.
+          // Within this press's own deadline (ADR-0382).
           module = await within(loadHandler(part.value), `the handler ${part.value}`);
         } finally {
           // Its turn, loaded or not: a press whose code failed to load
@@ -3168,14 +3143,10 @@ function bindEvent(template, part) {
 
 // --- warming: what a press needs, there before it is pressed --------------
 //
-// The first press's ADR (amending E7-L for a build that says so, `#warm|1`):
-// once interactive, loaded and idle, a page loads by the press's own loaders
-// the renderer, its computed and speculation modules and each handler the
-// decision AUTHORISED (a refused one is still never fetched). Loaded, not
-// merely preloaded: a preloaded module answers its first `import()` a task
-// later, after a frame. A handler's module defines its `run` and runs
-// nothing. A failed warm load is forgotten as a press's is (ADR-0382). A
-// development build warms nothing (`lazy-handler.spec.mjs`).
+// The first press's ADR, amending E7-L where a build says `#warm|1`: once
+// interactive, loaded and idle, by the press's own loaders, the renderer,
+// the computed and speculation modules and each handler the decision
+// AUTHORISED (a refused one is never fetched). Development builds warm none.
 
 /** Whether a signal or a speculation renders anything here with the
  * renderer: a block, a row, a region (`flushSignals`, `showRegions`). */
@@ -3184,13 +3155,9 @@ function rendersInBrowser() {
   return (parts.live ?? []).some((l) => l.kind !== "value" && !SET_IN_PLACE.has(l.kind));
 }
 
-/** **Warm what this page's presses need** (see above), in the order a
- * press needs it, which over HTTP/1.1 (six requests at a time to a host)
- * is the order it arrives in: the renderer first, the largest and the
- * longest to arrive; then the page's computed and speculation modules,
- * which any change of a signal or any command of the page needs; then the
- * handlers of what the page shows now, which can be pressed now; then the
- * handlers of what it does not show yet, its rows' and its blocks'. */
+/** **Warm what this page's presses need**, in the order they need it: the
+ * renderer, the computed and speculation modules, the handlers shown, then
+ * the rest. */
 function warm() {
   if (life.signal.aborted) return;
   const quietly = (loading, what) =>
@@ -3201,8 +3168,7 @@ function warm() {
   if (parts.speculation && !speculationModule && !speculationLoaded) {
     quietly(speculations(), parts.speculation);
   }
-  // Each authorised handler, those bound to an element now before those
-  // that are not: a Set keeps the order identities are added in.
+  // Authorised handlers, those shown first (a Set keeps the order).
   const shown = new Set();
   const later = new Set();
   for (const [template, list] of manifests) {
@@ -3220,9 +3186,7 @@ function warm() {
     if (loaded.has(identity) || (attempts.get(identity) ?? 0) > 0) continue;
     const loading = loadHandler(identity);
     loading.catch((error) => {
-      // Forgotten as a press forgets its failed load, so the next press asks
-      // under its next specifier, which no failure the browser keeps
-      // answers; unless a press waiting on this load has forgotten it first.
+      // Forgotten as a press's failed load is, unless a press forgot it.
       if (loaded.get(identity) === loading) {
         loaded.delete(identity);
         attempts.set(identity, (attempts.get(identity) ?? 0) + 1);
@@ -3233,16 +3197,16 @@ function warm() {
   log.push(`warming ${identities.size} handler(s)`);
 }
 
-/** **A press's own paths, run once on nothing** (the first press's ADR): a
- * browser compiles a function the first time it is called, so a first
- * change paid for compiling the renderer's paths and the morph's. The
- * renderer runs its own on a sample (`warm`); the page's first block is
- * rendered at its values (computing all the page derives) and morphed into
- * a copy in an inert document, where nothing loads or runs; both thrown
- * away. A block holding a `<dialog>` is passed over. */
+/** **A press's own paths, run once on nothing** (the first press's ADR): the
+ * renderer's on its sample (`warm`), the morph's on a copy of a block in an
+ * inert document. A block holding a `<dialog>`, or larger than
+ * `WARM_ELEMENTS`, is passed over. Each step waits for idle; none runs once
+ * the runtime has ended. */
 async function warmPaths() {
-  if (!rendersInBrowser()) return;
+  if (!rendersInBrowser() || life.signal.aborted) return;
   const x = await renderModule();
+  await idleness();
+  if (life.signal.aborted) return;
   try {
     if (x.warm && x.warm() !== 0) log.push("the renderer refused its warm-up");
   } catch (e) {
@@ -3256,13 +3220,28 @@ async function warmPaths() {
     if (!at?.start) continue;
     const nodes = between(at.start, at.end);
     if (dialogsIn(nodes, true).length || dialogsIn(nodes, false).length) continue;
+    const elements = nodes.reduce((n, node) => n + (node.nodeType === 1 ? 1 + node.getElementsByTagName("*").length : 0), 0);
+    if (elements > WARM_ELEMENTS) continue;
     const html = await renderBlock(live.part);
+    await idleness();
+    if (life.signal.aborted) return;
     const inert = document.implementation.createHTMLDocument("");
     const copy = inert.createElement("div");
     for (const n of nodes) copy.append(inert.importNode(n, true));
     morphChildren(copy, [...copy.childNodes], parseInstance(html), null, []);
     return log.push(`warmed the paths of block ${live.part}`);
   }
+}
+
+/** The most elements a block's paths are warmed on: any block serves. */
+const WARM_ELEMENTS = 400;
+
+/** The browser's next idle period (in WebKit, a moment's pause). */
+function idleness() {
+  return new Promise((resolve) => {
+    const later = window.requestIdleCallback ?? ((f) => setTimeout(f, 1));
+    later(() => resolve(), { timeout: 1000 });
+  });
 }
 
 /** Warming, once the page is loaded and the browser idle, where the
@@ -3632,13 +3611,9 @@ async function pollOnce() {
   applyBatch(await response.json());
 }
 
-/**
- * **A subscription asks at low priority** (the first press's ADR): over
- * HTTP/1.1 a browser's pages share six connections to a host, and with
- * twenty store tabs open a press waited 10 s behind their subscriptions. A
- * browser queues waiting requests by priority, so a command takes the next
- * connection free; a subscription asked later loses nothing (its cursor).
- */
+/** **A subscription asks at low priority** (the first press's ADR): a
+ * command takes the next of HTTP/1.1's six connections ahead of other tabs'
+ * held subscriptions. */
 const SUBSCRIPTION_PRIORITY = "low";
 
 /**
@@ -3974,11 +3949,8 @@ async function softNavigate(url, how, mine, chosen = false) {
   if (!response.ok || !servedBuild || response.headers.get("pw-build") !== servedBuild) {
     return loadWhole(at, how);
   }
-  // And the same delivery (the first press's ADR). The next runtime is asked
-  // for at this one's, and asks for the files a browser keeps a year at it.
-  // A host given new files of the same build would answer with its new
-  // runtime, and that runtime would take this delivery's kept Wasm. A
-  // document of another delivery is loaded whole.
+  // And the same delivery, or the next runtime would meet this one's kept
+  // Wasm (the first press's review).
   if (response.headers.get("pw-delivery") !== DELIVERY) return loadWhole(at, how);
   const next = new DOMParser().parseFromString(text, "text/html");
   let nextParts = null;
@@ -4029,6 +4001,12 @@ function handOver() {
   delete document.documentElement.dataset.pwNavigating;
   document.documentElement.dataset.pwReady = "0";
   life.abort();
+  // Its renderer let go: this module stays in the module map (the first
+  // press's review), and nothing here renders again.
+  renderer = null;
+  rendererLoaded = null;
+  wasm = null;
+  if (speculationOwner) speculationOwner.renderer = null;
   // At this runtime's delivery, where it has one (the first press's ADR).
   const next = delivered("/pw-runtime.mjs");
   import(`${next}${next.includes("?") ? "&" : "?"}document=${window.__pwSoftNavigations}`).catch((e) => {

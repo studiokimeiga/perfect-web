@@ -75,10 +75,10 @@ MUTANTS = [
     (
         "the old runtime goes on after handing the page over",
         RUNTIME,
-        # Re-anchored by the first press's ADR: the next runtime is asked for
-        # at this one's delivery.
-        "  life.abort();\n  // At this runtime's delivery, where it has one (the first press's ADR).\n",
-        "  // At this runtime's delivery, where it has one (the first press's ADR).\n",
+        # Re-anchored by the first press's ADR and its review: the old
+        # runtime's renderer is let go after it.
+        "  life.abort();\n  // Its renderer let go: this module stays in the module map (the first\n",
+        "  // Its renderer let go: this module stays in the module map (the first\n",
     ),
     (
         "what a leaving page is told is applied",
