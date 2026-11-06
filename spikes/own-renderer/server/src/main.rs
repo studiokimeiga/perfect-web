@@ -11707,9 +11707,6 @@ fn accepts_asset_encoding(headers: &str, encoding: &str) -> bool {
     })
 }
 
-/// Public assets are not content-hashed in their URLs yet. They may be stored
-/// but must be revalidated on every use, unlike private pages (no-store) or
-/// hashed, immutable production assets (a future production-host milestone).
 /// **Whether a build warms what its presses need** (the first press's ADR):
 /// its packaging's word, `{"warm": true}` in `delivery.json` beside its
 /// assets, which a production build's packaging writes
@@ -12349,10 +12346,11 @@ const BOOT: &str = "<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n\
 /// name and of every file beside the documents (`dist`), so a change to any
 /// of them is a new id. A file asked for at the id the host serves is sent
 /// `immutable`, for a year; at another id (a document of an earlier build,
-/// kept in the browser's history), the file the host has, revalidated as
-/// before, and kept by no cache under that name. The runtime reads the id
-/// from its own address and asks for the decision's Wasm, the renderer's and
-/// the handler table at it.
+/// kept in the browser's history), the file the host has, revalidated before
+/// each use as before (`public, no-cache`). The runtime reads the id from its
+/// own address and asks for the decision's Wasm, the renderer's and the
+/// handler table at it. A soft navigation stays within one delivery
+/// (`pw-delivery`), and only tags are named at it, never a reader's text.
 ///
 /// A development build has none: its documents name every file as they did
 /// (`BOOT`, `RUNTIME`), and the browser suites see the addresses they pin.
@@ -17727,8 +17725,33 @@ public query Store(",
             "{\"warm\": true, \"versioned\": true}\n",
         )
         .expect("written");
+        std::fs::write(out.join("app.css"), "p{}").expect("written");
         let s = Server::from_build(out.clone(), out).expect("served");
         let version = s.delivery.version.clone().expect("a delivery id");
+        // A file of the build and a compiled module, as their own routes
+        // serve them: kept a year at the delivery, revalidated at another
+        // (the first press's review: the policy was held only through
+        // `cache_policy` and the table's route).
+        let handler = s
+            .handler_identities()
+            .iter()
+            .next()
+            .cloned()
+            .expect("a handler");
+        for path in ["/app.css".to_string(), format!("/handler/{handler}.mjs")] {
+            let kept = get_as(&s, "a", &format!("{path}?b={version}"));
+            assert!(kept.starts_with("HTTP/1.1 200"), "{path}: {kept}");
+            assert!(
+                kept.contains("cache-control: public, max-age=31536000, immutable\r\n"),
+                "{path} at the delivery: {kept}"
+            );
+            let other = get_as(&s, "a", &format!("{path}?b=0000000000000000"));
+            assert!(other.starts_with("HTTP/1.1 200"), "{path}: {other}");
+            assert!(
+                other.contains("public, no-cache") && !other.contains("immutable"),
+                "{path} at another delivery: {other}"
+            );
+        }
         let page = get_as(&s, "a", "/");
         assert!(
             page.contains(&format!("pw-delivery: {version}\r\n")),
