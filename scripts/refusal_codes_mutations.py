@@ -112,14 +112,12 @@ def main():
     # Stopped from outside, the source is still restored: SIGTERM raises
     # here, and the `finally` below runs.
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(1))
-    if not build():
-        print("FAIL: the unmutated source does not build; no control can mean anything")
-        mutation_baseline.explain()
-        return 1
+    # A source that does not build is a baseline that is not green.
+    built = build()
     for suite in SUITES:
-        passed, failed = run_suite(suite)
+        passed, failed = run_suite(suite) if built else (0, 0)
         print(f"baseline {suite}: {passed} passed, {failed} failed", flush=True)
-        if failed or not passed:
+        if not built or failed or not passed:
             print("FAIL: the unmutated baseline is not green; no control can mean anything")
             mutation_baseline.explain()
             return 1
