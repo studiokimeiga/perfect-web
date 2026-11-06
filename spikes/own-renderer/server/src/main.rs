@@ -12451,24 +12451,48 @@ impl Delivery {
     }
 
     /// `document`, each file beside it that its markup names
-    /// (`href="/todomvc-app.css"`, `src="/logo.svg"`) named at the version.
-    /// An attribute holds a value's text escaped (`&quot;`), so only markup
-    /// writes the quoted address this replaces.
+    /// (`href="/todomvc-app.css"`, `src="/logo.svg"`) named at the version,
+    /// **in its tags only**. A reader's text is sent as written: text escapes
+    /// `&`, `<` and `>`, never `"` (`escape::text`), so a post, a title or a
+    /// textarea's value may read `href="/app.css"`. Until 2026-11-06 a
+    /// versioned build named the file there too (the first press's review).
+    /// Text cannot open a tag, its `<` escaped, and within a tag an
+    /// attribute's value escapes `"` (`&quot;`): there only markup writes the
+    /// quoted address this replaces.
     fn name_files(&self, document: String) -> String {
-        if self.version.is_none() {
+        if self.version.is_none() || self.files.is_empty() {
             return document;
         }
-        let mut document = document;
+        let mut named = String::with_capacity(document.len() + 256);
+        let mut rest = document.as_str();
+        while let Some(open) = rest.find('<') {
+            let (text, from) = rest.split_at(open);
+            named.push_str(text);
+            let (tag, after) = from.split_at(from.find('>').map_or(from.len(), |at| at + 1));
+            self.name_in(tag, &mut named);
+            rest = after;
+        }
+        named.push_str(rest);
+        named
+    }
+
+    /// One tag, written into `named`, each file it names by `href` or `src`
+    /// at the version.
+    fn name_in(&self, tag: &str, named: &mut String) {
+        if !tag.contains("=\"/") {
+            named.push_str(tag);
+            return;
+        }
+        let mut tag = tag.to_string();
         for file in &self.files {
             for attribute in ["href", "src"] {
                 let plain = format!("{attribute}=\"{file}\"");
-                if document.contains(&plain) {
-                    document =
-                        document.replace(&plain, &format!("{attribute}=\"{}\"", self.named(file)));
+                if tag.contains(&plain) {
+                    tag = tag.replace(&plain, &format!("{attribute}=\"{}\"", self.named(file)));
                 }
             }
         }
-        document
+        named.push_str(&tag);
     }
 
     /// **A document as this delivery sends it**: the head's boot links and
@@ -17461,9 +17485,14 @@ public query Store(",
                 .collect::<Vec<_>>(),
             vec!["/app.css", "/pw-resume.wasm", "/pw-runtime.mjs"]
         );
+        // A reader's text that reads like an attribute is the reader's: text
+        // escapes `&`, `<` and `>`, never `"` (`escape::text`), so a post, a
+        // title or a textarea's value can hold `href="/app.css"` as written.
         let document = format!(
-            "<head>\n{BOOT}</head><body><link rel=\"stylesheet\" href=\"/app.css\">\
-             <p title=\"href=&quot;/app.css&quot;\">href=\"/app.css\" said</p>\n{RUNTIME}\n</body>"
+            "<head>\n<title>src=\"/pw-runtime.mjs\" said</title>\n{BOOT}</head><body>\
+             <link rel=\"stylesheet\" href=\"/app.css\">\
+             <p title=\"href=&quot;/app.css&quot;\">href=\"/app.css\" said</p>\
+             <textarea>&lt;img src=\"/app.css\"&gt;</textarea>\n{RUNTIME}\n</body>"
         );
         let delivered = delivery.deliver(document);
         let at = |path: &str| format!("{path}?b={version}");
@@ -17493,6 +17522,13 @@ public query Store(",
             delivered.contains("title=\"href=&quot;/app.css&quot;\""),
             "{delivered}"
         );
+        for text in [
+            "<title>src=\"/pw-runtime.mjs\" said</title>",
+            "<p title=\"href=&quot;/app.css&quot;\">href=\"/app.css\" said</p>",
+            "<textarea>&lt;img src=\"/app.css\"&gt;</textarea>",
+        ] {
+            assert!(delivered.contains(text), "a reader's text, as written: {text} in {delivered}");
+        }
         assert_eq!(
             delivery.runtime_source(),
             format!("import(\"{}\")", at("/pw-runtime.mjs"))
