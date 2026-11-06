@@ -86,6 +86,18 @@ test("a link to a form changes the signal, and what reads it", async ({ page }) 
   await expect(page.locator("#specs")).toHaveCount(0);
 });
 
+test("a link to the form the page is at makes no entry of its own", async ({ page }) => {
+  // As the browser does for a link to the fragment it is at: the address is
+  // replaced, not pushed, so back leaves the form (the first press's review).
+  await ready(page);
+  await page.locator("#to-reviews").click();
+  await expect(page.locator("#tab")).toHaveText("reviews");
+  await page.locator("#to-reviews").click();
+  await expect(page.locator("#tab")).toHaveText("reviews");
+  await page.goBack();
+  await expect(page.locator("#tab")).toHaveText("overview");
+});
+
 test("a link to a form is followed in its press's own task", async ({ page }) => {
   // The first press's ADR: not in the `hashchange` a browser dispatches a
   // task later, before which it often paints a frame without the change.
@@ -103,7 +115,11 @@ test("a link to a form is followed in its press's own task", async ({ page }) =>
     // Microtasks only: a task, `hashchange` among them, cannot run in these.
     const tab = () => document.querySelector("#tab").textContent.trim();
     for (let i = 0; i < 200 && tab() !== "reviews"; i++) await Promise.resolve();
-    return { tab: tab(), taskRan, hash: location.hash, hashchanges };
+    const inPress = { tab: tab(), taskRan, hash: location.hash };
+    // Tasks later, still no `hashchange`: the browser did not follow the link
+    // itself, which it would have told in one (the first press's review).
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    return { ...inPress, hashchanges };
   });
   expect(seen).toEqual({ tab: "reviews", taskRan: false, hash: "#/reviews", hashchanges: 0 });
   // A new entry, as the browser makes for a fragment: back is overview's
