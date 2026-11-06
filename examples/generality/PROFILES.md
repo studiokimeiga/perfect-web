@@ -89,7 +89,7 @@ generator only where malformed structure could crash a later phase.
 
 `unkeyed_list`, `invalid_nesting`, `handler_on_inert`,
 `control_without_label`, `handler_signature_mismatch`, `unsafe_audit_incomplete`,
-`retry_not_idempotent`, `retry_unbounded`, `stale_key_policy`,
+`retry_not_idempotent`, `retry_unbounded`, `signal_key_stale_work`,
 `optimistic_no_rollback`.
 
 Track `tables` (ADR-0338, D1): `table_malformed`, `data_not_declared`,

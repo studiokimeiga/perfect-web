@@ -1,0 +1,67 @@
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/stale-key/compiler/pw-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.45s
+     Running tests/checking_source.rs (/home/haki/pw-targets/site/debug/deps/checking_source-5ede6e8c91896562)
+
+running 20 tests
+test a_fixtures_header_is_held_to_its_code_as_written ... ok
+test an_unmodelled_capability_family_never_manufactures_a_placement_error ... ok
+test the_environment_spans_every_file_checked_together ... ok
+test constructor_arity_is_respected ... ok
+test a_match_whose_scrutinee_type_is_unknown_is_not_reported ... ok
+test a_nullary_constructor_is_not_read_as_a_binding ... ok
+test the_unhandled_variant_case_is_caught_at_its_real_span ... ok
+test no_accepted_corpus_file_reports_a_body_level_error ... ok
+test no_diagnostic_restates_its_invariant_in_its_own_words ... ok
+test the_structured_concurrency_rules_run_on_real_bodies ... ok
+  95/95 rejected fixtures produce a compile error
+  95/95 emit their declared canonical code
+  95/95 fully enforce the complete declared invariant
+test corpus_enforcement_is_reported_as_three_numbers_not_one ... ok
+test every_body_level_rejection_matches_its_declared_rule ... ok
+test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
+  single-defect isolation: 95/95
+test every_rejected_fixture_emits_only_its_own_defect ... ok
+test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
+test semantic_coverage_of_the_rejected_corpus_does_not_regress ... ok
+test the_committed_enforcement_table_is_what_the_corpus_checks_now ... ok
+test the_privacy_and_placement_rules_catch_their_corpus_cases ... ok
+test a_fixtures_declared_symbol_matches_the_symbol_it_is_caught_by ... ok
+test every_diagnostic_carries_what_charter_16_3_requires has been running for over 60 seconds
+test every_diagnostic_carries_what_charter_16_3_requires ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 62.16s
+
+     Running tests/corpus_history.rs (/home/haki/pw-targets/site/debug/deps/corpus_history-424f860e0b6d436e)
+
+running 9 tests
+test the_history_is_not_edited_to_match_the_present ... ok
+test the_c30_texts_change_no_key_and_check_clean ... ok
+test the_c10_texts_are_reported_where_their_defects_are ... ok
+test historical_event_annotation_is_blocked_not_a_nominal_mismatch ... ok
+test the_c16_texts_are_reported_where_their_defects_are ... ok
+test the_c9_texts_are_still_caught_for_their_invariant_and_refused_for_the_title ... ok
+test historical_unknown_captures_remain_refused_and_imported_controls_keep_their_rule ... ok
+  historical compatibility: 4/10 C0 texts still caught
+    R-022: FixtureDidNotExpressIt
+    R-030: FixtureDidNotExpressIt
+    R-010: FixtureDidNotExpressIt
+    R-001: FixtureDidNotExpressIt
+    R-004: FixtureDidNotExpressIt
+    R-024: FixtureDidNotExpressIt
+test the_pre_change_text_of_every_repaired_fixture_still_fails ... ok
+  historical compatibility: 22/25 C8 declared-invariant catches; 1 syntax refusal; 2 classified
+    R-027-query-key-changes-without-stale-work-cancellation-policy.pw: FixtureDidNotExpressIt: C8's R-027 is a query alone. Nothing in it changes the key its read is keyed by, so no read of it goes stale: its category, a key that changes without a stale-work policy (charter §15.6, test 7), needs a key that changes. A key changes while its read runs only where a page's signal keys the query (ADR-0152), and the stale-key ADR made PW0325, the rule it declared, PW5309's old number. The current fixture is that page, refused for signal_key_stale_work (C30); the old text keeps only the two unresolved types C8's repair imported.
+    R-035-layout-write-during-measure-phase.pw: FixtureDidNotExpressIt: C8's ElementRef receiver has no visible type. The original stays refused for its exact unresolved-receiver diagnostics; adding only its import restores wrong_frame_phase at the setter, and the current typed fixture retains that violation while its pure typed neighbour is clean.
+test the_c8_text_of_every_repaired_rejected_fixture_is_still_caught ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.04s
+
+     Running tests/one_checker.rs (/home/haki/pw-targets/site/debug/deps/one_checker-f99ca9f1f18b1fab)
+
+running 3 tests
+test check_sources_runs_the_declaration_rules ... ok
+test the_build_refuses_what_check_refuses ... ok
+test a_program_that_checks_builds ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.06s
+

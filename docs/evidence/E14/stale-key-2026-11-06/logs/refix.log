@@ -1,0 +1,51 @@
+== 2026-11-06T13:25:09-05:00 fmt
+Diff in /home/haki/code/pw-wt/stale-key/compiler/pw-core/tests/corpus_history.rs:789:
+ #[test]
+ fn the_c30_texts_change_no_key_and_check_clean() {
+     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/history/C30");
+[31m-    for path in [
+(B[m[31m-        C8_R027,
+(B[m[31m-        "generality/stale_key_policy/caught.pw",
+(B[m[31m-    ] {
+(B[m[32m+    for path in [C8_R027, "generality/stale_key_policy/caught.pw"] {
+(B[m         let name = path.rsplit('/').next().expect("a file name");
+         let src = std::fs::read_to_string(root.join(path)).expect(path);
+         let declares = |clause: &str| src.lines().any(|l| l.trim_start().starts_with(clause));
+exit fmt 1
+== 2026-11-06T13:25:10-05:00 just evidence-corpus
+running 1 test
+wrote docs/evidence/E2D/corpus-enforcement.txt
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 19 filtered out; finished in 19.91s
+
+95/95 enforce their declared invariant
+exit evidence-corpus 0
+ docs/evidence/E2D/corpus-enforcement.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+-R-027  enforced                  PW0325
++R-027  enforced                  PW5309
+== 2026-11-06T13:25:35-05:00 the failed tests
+exit lib diagnostics 0
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 194 filtered out; finished in 0.12s
+exit history/source/one_checker 0
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 62.16s
+  historical compatibility: 4/10 C0 texts still caught
+    R-022: FixtureDidNotExpressIt
+    R-030: FixtureDidNotExpressIt
+    R-010: FixtureDidNotExpressIt
+    R-001: FixtureDidNotExpressIt
+    R-004: FixtureDidNotExpressIt
+    R-024: FixtureDidNotExpressIt
+  historical compatibility: 22/25 C8 declared-invariant catches; 1 syntax refusal; 2 classified
+    R-027-query-key-changes-without-stale-work-cancellation-policy.pw: FixtureDidNotExpressIt: C8's R-027 is a query alone. Nothing in it changes the key its read is keyed by, so no read of it goes stale: its category, a key that changes without a stale-work policy (charter §15.6, test 7), needs a key that changes. A key changes while its read runs only where a page's signal keys the query (ADR-0152), and the stale-key ADR made PW0325, the rule it declared, PW5309's old number. The current fixture is that page, refused for signal_key_stale_work (C30); the old text keeps only the two unresolved types C8's repair imported.
+    R-035-layout-write-during-measure-phase.pw: FixtureDidNotExpressIt: C8's ElementRef receiver has no visible type. The original stays refused for its exact unresolved-receiver diagnostics; adding only its import restores wrong_frame_phase at the setter, and the current typed fixture retains that violation while its pure typed neighbour is clean.
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.04s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.06s
+== 2026-11-06T13:26:51-05:00 just generality
+  generality-tested:      65 / 65
+  generality untested:    0 — []
+exit generality 0
+== 2026-11-06T13:28:11-05:00 mutation anchors
+mutation anchors: 4974 mutants in 324 scripts, each matching once
+exit anchors 0
+STALE_REFIX_FINISHED
