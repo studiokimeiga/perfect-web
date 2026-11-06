@@ -125,11 +125,11 @@ th{background:var(--soft);font-weight:600}
 .pager small{display:block;color:var(--muted)}
 .edit{margin-top:1rem;font-size:.9rem;color:var(--muted)}
 @media (max-width:56rem){.doc{grid-template-columns:minmax(0,1fr);gap:1.5rem}.doc>nav{position:static}.doc>nav ol{display:flex;flex-wrap:wrap;gap:.2rem}}
-.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:3rem;align-items:center;padding:1rem 0 1.5rem}
-@media (max-width:62rem){.hero{grid-template-columns:minmax(0,1fr)}}
+.hero{max-width:50rem;padding:1rem 0 1.5rem}
 .pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:.2rem .75rem;font-size:.85rem;color:var(--muted);background:var(--soft)}
 .hero h1{font-size:clamp(2.2rem,4.6vw,3.4rem);line-height:1.06;letter-spacing:-.035em;margin:.9rem 0}
 .lead{font-size:1.15rem;color:var(--muted);margin:0}
+.lead+.lead{margin-top:1rem}
 .actions{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1.6rem}
 .button{display:inline-block;padding:.65rem 1.15rem;border-radius:9px;border:1px solid var(--line);color:var(--fg);text-decoration:none;font-weight:600}
 .button:hover{background:var(--soft)}
@@ -138,26 +138,18 @@ th{background:var(--soft);font-weight:600}
 .section{margin-top:4rem}
 .section>h2{font-size:1.75rem;margin:0 0 .4rem}
 .section>p.sub{color:var(--muted);margin:0 0 1.5rem;max-width:46rem}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(16.5rem,1fr));gap:1rem;list-style:none;padding:0;margin:0}
-.card{border:1px solid var(--line);border-radius:12px;padding:1.1rem 1.2rem;background:var(--soft)}
-.card h3{font-size:1.02rem;margin:0 0 .35rem}
-.card p{margin:0;color:var(--muted);font-size:.95rem}
-.card .code-link{display:inline-block;margin-top:.6rem;font:600 .82rem ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .bench td:not(:first-child),.bench th:not(:first-child){text-align:right;white-space:nowrap}
 .bench td.best{font-weight:700;color:var(--accent)}
-.bench td:first-child{min-width:13rem}
+.bench td:first-child{min-width:12rem}
+@media (max-width:40rem){.bench{font-size:.82rem}.bench th,.bench td{padding:.45rem .4rem}.bench td:first-child{min-width:0}}
 .note{color:var(--muted);font-size:.92rem;max-width:52rem}
-.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(20rem,1fr));gap:2rem}
+.invite{font-size:1.1rem;margin-top:1.4rem}
 .crumbs{color:var(--muted);font-size:.92rem;margin:0 0 .6rem}
 .rule{font-size:1.25rem;line-height:1.5;margin:.6rem 0 1.4rem;max-width:46rem}
 .symbol{margin:-.4rem 0 0;color:var(--muted)}
 .codes td:first-child{white-space:nowrap}
 .codes code{overflow-wrap:normal;white-space:nowrap}
 .prose h1 code{font-size:inherit;background:none;padding:0}
-.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;list-style:none;padding:0;margin:0}
-.stats li{border:1px solid var(--line);border-radius:12px;padding:1.1rem 1.2rem;background:var(--soft)}
-.stats b{display:block;font-size:2.3rem;line-height:1.05;letter-spacing:-.03em;color:var(--accent)}
-.stats span{display:block;margin-top:.45rem;color:var(--muted);font-size:.92rem;line-height:1.45}
 .versus{display:grid;grid-template-columns:minmax(0,1fr);gap:.6rem 1.2rem;margin:0 0 2.8rem}
 @media (min-width:72rem){.versus{grid-template-columns:minmax(0,2fr) minmax(0,3fr)}}
 .versus h3{grid-column:1/-1;font-size:1.22rem;margin:0 0 .15rem}
@@ -221,7 +213,7 @@ function page({ path, title, description, body }) {
 ${body}
 </main>
 <footer class="foot"><div>
-<span>Pleris is a research project, MIT or Apache-2.0 licensed. This site is static HTML: no script, no cookie, no tracking.</span>
+<span>Pleris is a research project, MIT or Apache-2.0 licensed. This site is static HTML, with no script and no cookie.</span>
 <span><a href="/guide/">Guide</a> · <a href="/e/">Error codes</a> · <a href="${REPO}">GitHub</a></span>
 </div></footer>
 </body>
@@ -520,8 +512,9 @@ ${oldRows}
 
 // --- the home page ----------------------------------------------------------
 
-/** The head-to-head's record (ADR-0392's instrument), from PR #76's evidence. */
-const EVIDENCE = `${REPO}/blob/perf/first-press-20261106/docs/evidence/E14/first-press-2026-11-06/README.md`;
+/** The head-to-head's record (ADR-0392's instrument), from PR #76's evidence,
+ * at the commit it was pushed at: a branch's link breaks when it is deleted. */
+const EVIDENCE = `${REPO}/blob/14a3a7f64f22165f0fc596f8c24e4cd9b0bf1de9/docs/evidence/E14/first-press-2026-11-06/README.md`;
 
 /** How the checks are checked: `python3 scripts/mutation_anchors.py` counts
  * the mutants, and the build counts the scripts, so that a script added or
@@ -532,10 +525,15 @@ const MUTANTS = { mutants: 4974, scripts: 324 };
  * **The same mistake, in each.** Its code in Next.js or React, which
  * compiles and ships it; and the guide's example of it, refused, as
  * `pw check` prints it (`examples`: the guide's test holds what it prints).
+ *
+ * Each pair is one Pleris refuses as written. Two left on 2026-11-06, when a
+ * review read them against the repository: a double click is two presses,
+ * which Pleris runs twice as the store's contract asks (ADR-0121), and a
+ * command that requires nothing compiles (ADR-0307).
  */
 const MISTAKES = [
   {
-    title: "One reader's data, served to the next",
+    title: "One reader's cart, served to the next",
     code: "PW5001",
     them: "Next.js",
     file: "app/api/cart/route.ts",
@@ -548,30 +546,6 @@ const MISTAKES = [
     ships: "A shared cache now serves one reader's cart to whoever asks next.",
   },
   {
-    title: "A request sent twice, an order placed twice",
-    code: "PW0338",
-    them: "Next.js",
-    file: "app/actions.ts",
-    source: `"use server";
-
-export async function placeOrder(cart: Cart) {
-  await db.order.create({ data: { items: cart.items } });
-}`,
-    ships: "A double click, or a request a network retries, places a second order.",
-  },
-  {
-    title: "A button for something its reader may not do",
-    code: "PW5048",
-    them: "Next.js",
-    file: "app/actions.ts",
-    source: `"use server";
-
-export async function deletePost(id: string) {
-  await db.post.delete({ where: { id } });
-}`,
-    ships: "Who may delete is a check each action has to remember. This one forgot, and anyone can call it.",
-  },
-  {
     title: "A secret, written into the page",
     code: "PW5003",
     them: "Next.js",
@@ -581,7 +555,7 @@ export async function deletePost(id: string) {
   // PayButton is a client component.
   return <PayButton apiKey={key} />;
 }`,
-    ships: "The key is in the page every visitor of it downloads.",
+    ships: "The key is in the page every visitor downloads.",
   },
   {
     title: "An old answer, shown for a new question",
@@ -597,96 +571,67 @@ export async function deletePost(id: string) {
   },
 ];
 
-/** More of what the compiler refuses, each in the registry's own words. */
-const MORE = [
-  ["Outside data, trusted as typed", "PW0601"],
-  ["An error, silently dropped", "PW0618"],
-  ["A missing value, used anyway", "PW0600"],
-  ["A reader's own data, shown stale", "PW0102"],
-  ["A shared cache, keyed without its tenant", "PW5004"],
-  ["A page's rendering that reaches the database", "PW0401"],
-  ["A function that says it is pure and is not", "PW0400"],
-  ["A case forgotten", "PW0305"],
-  ["A link to nowhere", "PW5009"],
-  ["A form control nobody can name", "PW5014"],
-];
-
-/** The head-to-head, each row's best marked, whichever framework it is. */
+/**
+ * **The head-to-head, by its own verdicts.** Each row is one the instrument
+ * printed under `BEST` (Pleris ahead, `AHEAD`) or `LOSS` (the stacks it named
+ * as better, by column), or under neither (`null`: the spreads overlap), in
+ * the run named. Pleris's column is first.
+ *
+ * The store's add is not here: Pleris's store shows an add before the server
+ * answers, and ADR-0120's contract left that out of all three, so the Next.js
+ * and SvelteKit stores wait for the server.
+ */
+const AHEAD = "ahead";
 const SPEED = [
   {
     title: "TodoMVC, against TodoMVC's own React and Svelte apps",
     them: ["React", "Svelte"],
+    run: "runs/wp-slow4g.log",
     rows: [
-      ["Ready to use, first visit (Slow 4G)", ["1,417 ms", "1,671 ms", "1,295 ms"], [2]],
-      ["Ready to use, the visit after (Slow 4G)", ["645 ms", "1,189 ms", "1,168 ms"], [0]],
-      ["First paint (Slow 4G)", ["1,260 ms", "1,200 ms", "1,196 ms"], [2]],
-      ["The first todo added, to its frame (Slow 4G)", ["31 ms", "33 ms", "34 ms"], [0]],
-      ["The first toggle, to its frame (Slow 4G)", ["22 ms", "24 ms", "19 ms"], [2]],
-      ["A filter, to its frame (Slow 4G)", ["15 ms", "17 ms", "29 ms"], [0]],
-      ["Downloaded on a first visit", ["142 KB", "70 KB", "21 KB"], [2]],
+      ["Ready to use, first visit, ms (Slow 4G)", ["1,417", "1,671", "1,295"], [2]],
+      ["Ready to use, the next visit, ms (Slow 4G)", ["645", "1,189", "1,168"], AHEAD],
+      ["First paint, ms (Slow 4G)", ["1,260", "1,200", "1,196"], [1, 2]],
+      ["A todo added, ms to its frame (Slow 4G)", ["31", "33", "34"], null],
+      ["A todo toggled, ms to its frame (Slow 4G)", ["22", "24", "19"], [2]],
+      ["A filter, ms to its frame (Slow 4G)", ["15", "17", "29"], AHEAD],
+      ["Downloaded on a first visit, KB", ["142", "70", "21"], [1, 2]],
+      ["Requests on a first visit", ["19", "5", "5"], [1, 2]],
     ],
   },
   {
     title: "A store, against the same store in Next.js and SvelteKit",
     them: ["Next.js", "SvelteKit"],
+    run: "runs/wp-store.log",
     rows: [
-      ["Ready to use, first visit (Slow 4G)", ["1,381 ms", "2,067 ms", "1,749 ms"], [0]],
-      ["Ready to use, the visit after (Slow 4G)", ["626 ms", "660 ms", "638 ms"], [0]],
-      ["An item added, to its frame (Slow 4G)", ["13 ms", "638 ms", "1,179 ms"], [0]],
-      ["A press, with 19 other tabs of it open", ["21 ms", "43 ms", "44 ms"], [0]],
-      ["Server CPU for each request, under load", ["0.20 ms", "5.12 ms", "1.17 ms"], [0]],
-      ["Latency under load, median and 99th percentile", ["1.09 / 2.88 ms", "3.57 / 6.57 ms", "0.81 / 2.37 ms"], [2]],
-      ["Downloaded on a first visit", ["46 KB", "140 KB", "35 KB"], [2]],
-      ["Requests a minute from an open, idle page", ["29.7", "0", "0"], [1, 2]],
+      ["Ready to use, first visit, ms (Slow 4G)", ["1,381", "2,067", "1,749"], AHEAD],
+      ["Ready to use, the next visit, ms (Slow 4G)", ["626", "660", "638"], AHEAD],
+      ["Downloaded on a first visit, KB", ["46", "140", "35"], [2]],
+      ["Server CPU a request, under load, ms", ["0.20", "5.12", "1.17"], AHEAD],
+      ["Server memory at its peak, under load, MiB", ["45", "143", "105"], AHEAD],
+      ["Latency under load, median, ms", ["1.09", "3.57", "0.81"], [2]],
+      ["Requests a minute from an idle page", ["29.7", "0", "0"], [1, 2]],
+      ["Server CPU for 20 idle pages, ms a second", ["5.00", "2.00", "1.00"], [1, 2]],
     ],
   },
 ];
 
-// **What `pw check` prints, laid out to read in a narrow box.** Its words and
-// their order are the compiler's. A label it writes after its markers, which
-// would run past `COLUMNS`, goes on the line under them, as far left as it must
-// to fit and never left of a span still open. Every other line keeps its lead
-// (the gutter, `error: [PW…] `, `= note: `), and its text wraps under itself,
-// not at the box's edge.
-
-const COLUMNS = 80;
-/** A line of markers under source, and the label after them. */
-const MARKED = /^(\s*\|[ |_/\\^-]*[-^]) (\S.*)$/;
-/** What a line's text wraps under: its gutter, or what its kind begins with. */
-const LEAD = /^(?:(?:error|warning): \[PW\d+\] |\s*= \w+: |\s*\d+ \| ?)/;
-
-function laidOut(output) {
-  return output
-    .trimEnd()
-    .split("\n")
-    .flatMap((line) => {
-      const marked = MARKED.exec(line);
-      return marked ? markedLines(line, marked) : [plainLine(line)];
-    });
+/** How many rows Pleris leads, of how many shown. */
+function score() {
+  const rows = SPEED.flatMap((t) => t.rows);
+  return { ahead: rows.filter(([, , verdict]) => verdict === AHEAD).length, rows: rows.length };
 }
+
+// **What `pw check` says, laid out to read in a narrow box.** The home page
+// shows its `error:` and `= help:` lines, in the compiler's words. Each keeps
+// its lead (`error: [PW…] `, `= help: `), and its text wraps under itself, not
+// at the box's edge. The whole output, markers and all, is on the code's page.
+
+/** What a line's text wraps under: what its kind begins with. */
+const LEAD = /^(?:(?:error|warning): \[PW\d+\] |= \w+: )/;
 
 function plainLine(line) {
   const lead = LEAD.exec(line)?.[0] ?? "";
   return { lead, text: line.slice(lead.length) };
-}
-
-function markedLines(line, [, markers, label]) {
-  if (line.length <= COLUMNS) return [{ lead: `${markers} `, text: label }];
-  const bars = openBars(markers);
-  const at = Math.max(bars.length + 1, Math.min(markers.search(/[-^_]/), COLUMNS - label.length));
-  return [
-    { lead: markers, text: "" },
-    { lead: bars.padEnd(at), text: label },
-  ];
-}
-
-/** The gutter, and each bar of a span still open, before a line's markers:
- * a bar that turns into `_` is a span ending there. */
-function openBars(markers) {
-  return markers
-    .replace(/\|(?=_)/g, " ")
-    .slice(0, markers.search(/[-^_]/))
-    .trimEnd();
 }
 
 function lineHtml({ lead, text }) {
@@ -697,10 +642,18 @@ function shipped(m) {
   return `<figure class="code"><figcaption><span>${m.them}</span><span>${escapeHtml(m.file)}</span><span class="shipped">Compiles, and ships</span></figcaption><pre tabindex="0"><code class="language-ts">${escapeHtml(m.source)}</code></pre></figure>`;
 }
 
+/** What `pw check` says is wrong and how to repair it: its `error:` line and
+ * its `= help:` lines, the rest on the code's page. */
+function verdictLines(output) {
+  const said = output.split("\n").filter((l) => /^(?:error|warning): |^\s*= help: /.test(l));
+  if (!said.some((l) => l.includes("= help: "))) throw new Error(`no help in what pw check printed:\n${output}`);
+  return said.map((l) => plainLine(l.trimStart()));
+}
+
 function refused(m) {
   const example = (examples.get(m.code) ?? []).find((ex) => ex.output);
   if (!example) throw new Error(`the guide's ${m.code} example and its output: the home page shows them`);
-  return `<figure class="code output"><figcaption><span>Pleris</span><span>pw check</span><span class="refused">Refused: <a href="/e/${m.code}">${m.code}</a></span></figcaption><pre class="said" tabindex="0"><code>${laidOut(example.output).map(lineHtml).join("")}</code></pre></figure>`;
+  return `<figure class="code output"><figcaption><span>Pleris</span><span>pw check</span><span class="refused">Refused: <a href="/e/${m.code}">${m.code}</a></span></figcaption><pre class="said" tabindex="0"><code>${verdictLines(example.output).map(lineHtml).join("")}</code></pre></figure>`;
 }
 
 function mistake(m) {
@@ -711,18 +664,11 @@ function mistake(m) {
 </article>`;
 }
 
-function ruleOf(catalog, code) {
-  const entry = catalog.active.find((c) => c.code === code);
-  if (!entry) throw new Error(`the home page names ${code}, which the registry does not hold`);
-  return entry.rule;
-}
-
-function moreCard(catalog, [title, code]) {
-  return `<li class="card"><h3>${escapeHtml(title)}</h3><p>${md(ruleOf(catalog, code))}</p><a class="code-link" href="/e/${code}">${code}</a></li>`;
-}
-
-function benchRow([what, values, best]) {
-  const cells = values.map((v, i) => `<td${best.includes(i) ? ' class="best"' : ""}>${v}</td>`).join("");
+/** A row's cells, the one the instrument found ahead marked: Pleris's, or
+ * each that beat it. */
+function benchRow([what, values, verdict]) {
+  const better = verdict === AHEAD ? [0] : (verdict ?? []);
+  const cells = values.map((v, i) => `<td${better.includes(i) ? ' class="best"' : ""}>${v}</td>`).join("");
   return `<tr><td>${escapeHtml(what)}</td>${cells}</tr>`;
 }
 
@@ -743,93 +689,63 @@ function mutationScripts() {
   return found;
 }
 
+/**
+ * **The home page**, opening with the goal and its test. "Perfect" is a claim
+ * only with a test that could fail it, so the page states one, and then shows
+ * where Pleris stands on it: the bugs it refuses, and the rows it leads and
+ * trails, by the instrument's own verdicts.
+ */
 function home(catalog) {
   const scripts = mutationScripts();
-  const stats = [
-    ["25×", "less server CPU for each request than Next.js, serving the same store"],
-    ["13 ms", "from a press to its frame on a slow phone network, where Next.js took 638 ms"],
-    [String(catalog.active.length), "rules every program is held to, each with a code and a page"],
-    [MUTANTS.mutants.toLocaleString("en-US"), "bugs planted in Pleris on purpose, each of which a test must catch"],
-  ]
-    .map(([n, what]) => `<li><b>${n}</b><span>${escapeHtml(what)}</span></li>`)
-    .join("\n");
+  const { ahead, rows } = score();
   const body = `<section class="hero">
-<div>
 <span class="pill">A research project · not released yet</span>
 <h1>Building the perfect web framework.</h1>
-<p class="lead">Pleris is a language for web apps, with a compiler and a server for it: the data, the server's reads and writes, and the pages, in one language. Its compiler refuses the mistakes Next.js, SvelteKit, React and Svelte let through, and its runtime is measured against all four.</p>
+<p class="lead">Pleris is a language for web apps: their pages, and the server code those pages call. You declare what a program means, such as whose data it holds and how fresh an answer must be, and the compiler refuses it until that holds.</p>
+<p class="lead">Perfect has a test: every bug a compiler can rule out is refused before it ships, and no other framework wins a measured row. Pleris refuses each bug below, and leads ${ahead} of the ${rows} rows measured further down. The rest is the work.</p>
 <div class="actions">
-<a class="button primary" href="#mistakes">The same mistake, twice</a>
+<a class="button primary" href="#refused">What it refuses</a>
 <a class="button" href="/guide/">Read the guide</a>
 <a class="button" href="${REPO}">GitHub</a>
 </div>
-</div>
-<ul class="stats">
-${stats}
-</ul>
 </section>
 
-<section class="section" id="mistakes">
-<h2>The same mistake, twice</h2>
-<p class="sub">Each of these compiles in Next.js or React, and ships. In Pleris the compiler refuses it, in its own words. Each Pleris program is the guide's, which a test runs through the compiler.</p>
+<section class="section" id="refused">
+<h2>It ships in Next.js and React. It does not compile in Pleris.</h2>
+<p class="sub">Each refusal is the guide's own example, which a test runs through the compiler.</p>
 ${MISTAKES.map(mistake).join("\n")}
-</section>
-
-<section class="section" id="rules">
-<h2>And whole classes more</h2>
-<p class="sub">${catalog.active.length} rules every program is held to, each with a code, its rule in one sentence, and a page.</p>
-<ul class="cards">
-${MORE.map((m) => moreCard(catalog, m)).join("\n")}
-</ul>
-<p><a href="/e/">Every rule and its code</a></p>
+<p>Three of the ${catalog.active.length} codes the compiler refuses a program with, each with its rule and a page: <a href="/e/">every code</a>.</p>
 </section>
 
 <section class="section" id="speed">
-<h2>Measured against all four</h2>
-<p class="sub">The same apps, measured by the project's own instrument: Chromium on one development PC, medians of five runs. Slow 4G is Lighthouse's profile of a slow phone network. The best in each row is marked, whichever framework it is.</p>
+<h2>Measured, losses included</h2>
+<p class="sub">Two apps against their rivals, by the project's own instrument: Chromium on one PC, medians of five runs. Slow 4G is Lighthouse's slow-phone profile, which also slows the CPU four times. A marked number is the instrument's verdict, Pleris ahead or each framework ahead of it; a row with no mark is within the noise.</p>
 ${SPEED.map(benchTable).join("\n")}
-<p class="note">Where another framework is marked, Pleris is behind, and that row is work in progress. These numbers come from a branch still under review (PR #76), and field performance is not claimed. <a href="${EVIDENCE}">Every run, and the command that makes it.</a></p>
+<p class="note">An exploratory run on PR #76's branch, before its review; field performance is not claimed. An idle Pleris page asks for its live updates, which the other two stores do not have. The store's add is left out: Pleris's store shows it before the server answers, and the other two, as their shared contract wrote them, wait for the server. <a href="${EVIDENCE}">Every row the instrument records, and its commands.</a></p>
 </section>
 
-<section class="section" id="secure">
-<h2>Secure without configuring it</h2>
-<ul class="points">
-<li><strong>A page runs only what its build wrote.</strong> Each page carries a content security policy generated from its build (<a href="${BLOB}/docs/DECISIONS/ADR-0333-what-a-page-may-run-is-generated-from-its-build.md">ADR-0333</a>).</li>
-<li><strong>Data says whose it is</strong>, everyone's, a session's or a user's, and the label follows it through every call, branch and return (<a href="/e/PW5001">PW5001</a>, <a href="/e/PW5006">PW5006</a>).</li>
-<li><strong>A session's handle never reaches the browser</strong>, and nothing the browser sends can claim one (<a href="/e/PW5040">PW5040</a>, <a href="/e/PW5039">PW5039</a>).</li>
-<li><strong>A command says who may run it</strong>, the server asks on every call, and no page shows its button to anyone else (<a href="/e/PW5048">PW5048</a>).</li>
-</ul>
-</section>
-
-<section class="section two" id="checked">
-<div>
-<h2>Each check, checked</h2>
-<p>A test that cannot fail checks nothing. So each of Pleris's checks is broken on purpose: ${scripts} scripts plant ${MUTANTS.mutants.toLocaleString("en-US")} bugs in its own source, one at a time, and each must make a test fail. The guide's examples are compiled by a test too, so what this site says the compiler prints is what it prints.</p>
-<p><a href="${TREE}/scripts">The scripts</a></p>
-</div>
-<div>
-<h2>Made for agents</h2>
-<p>An AI writes Pleris from its guide and its compiler. Every refusal has a code and a page an agent can read, such as <a href="/e/PW0338">pleris.dev/e/PW0338</a>, and <a href="/llms.txt">llms.txt</a> gives it the whole guide as Markdown.</p>
-</div>
+<section class="section" id="checked">
+<h2>How we know</h2>
+<p>A test that cannot fail checks nothing, so Pleris's tests are tested too: ${scripts} scripts plant ${MUTANTS.mutants.toLocaleString("en-US")} bugs in its own source, one at a time, and each must make a test fail. Every refusal on this site is the guide's example, compiled by a test. Every code has a page an agent can read, and <a href="/llms.txt">llms.txt</a> gives it the whole guide. <a href="${TREE}/scripts">The scripts</a></p>
 </section>
 
 <section class="section" id="status">
 <h2>Not finished</h2>
-<p class="sub">Pleris is a research project, and is not released yet. Before you build on it:</p>
+<p class="sub">Pleris is not released. Before you build on it:</p>
 <ul class="points">
 <li>An app's storage is written in Rust, behind host bindings.</li>
 <li>Sign-in is a development provider, and there is one server.</li>
 <li>There is no static or edge build: an app runs on its own server.</li>
 <li>There is no <code>pw new</code>, no project file and no editor support.</li>
-<li>Some checks have gaps, and the guide shows each.</li>
+<li>Some checks have gaps: <a href="/guide/why#what-it-does-not-do-yet">the guide lists them</a>.</li>
 </ul>
-<p>Each of these, and each row above that another framework wins, is work in progress. <a href="/guide/why#what-it-does-not-do-yet">The whole list.</a></p>
+<p class="invite">If this is the standard you want to build to, <a href="/guide/">start with the guide</a>, or follow the work on <a href="${REPO}">GitHub</a>.</p>
 </section>`;
   return {
     path: "/",
     title: "Pleris: building the perfect web framework",
     description:
-      "Pleris is a language for web apps whose compiler refuses the mistakes Next.js, SvelteKit, React and Svelte let through: one reader's data served to another, an order placed twice, a secret in the page. Measured against all four.",
+      "Pleris is a language for web apps whose compiler refuses whole classes of bugs before they ship: one reader's data served to another, a secret in the page, an old answer shown for a new question. Measured against Next.js, SvelteKit, React and Svelte, losses included.",
     body,
   };
 }

@@ -104,10 +104,18 @@ test("the whole site: every page and code, no script, one hashed style, no link 
   assert.ok(headers.includes(`style-src '${STYLE_HASH}'`), headers);
   assertForAgents(out);
   // The home page shows each mistake as the compiler refuses it, in the
-  // words the guide's test holds it to.
-  for (const code of ["PW5001", "PW0338", "PW5048", "PW5003", "PW5309"]) {
-    assert.match(written.get("/"), new RegExp(`error: \\[${code}\\]`), code);
+  // words the guide's test holds it to, with the help that repairs it.
+  const homePage = written.get("/");
+  for (const code of ["PW5001", "PW5003", "PW5309"]) {
+    assert.match(homePage, new RegExp(`error: \\[${code}\\]`), code);
   }
+  assert.equal((homePage.match(/= help: /g) ?? []).length, 3, "one help line a refusal");
+  // The hero's score is the tables' own: the rows whose Pleris cell is
+  // marked ahead, of every row the page shows.
+  const rows = [...homePage.matchAll(/<tr><td>[^<]*<\/td>(<td[^>]*>)/g)];
+  const led = rows.filter(([, first]) => first.includes('class="best"')).length;
+  assert.ok(rows.length > 0, "the home page measures nothing");
+  assert.match(homePage, new RegExp(`leads ${led} of the ${rows.length} rows`));
   // A code's page shows the guide's example the compiler refuses with it.
   assert.match(written.get("/e/PW5001"), /Refused: <a href="\/e\/PW5001">PW5001<\/a>/);
 });
