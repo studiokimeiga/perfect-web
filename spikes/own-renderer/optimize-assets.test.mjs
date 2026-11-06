@@ -38,3 +38,20 @@ test("the production build minifies and compresses only public client assets", a
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("a production build says its pages warm what their presses need", async () => {
+  // The first press's ADR: the server reads this file beside the assets and
+  // tells the browser on its handler table. Written once, as JSON, and never
+  // compressed or served as an asset itself.
+  const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+  try {
+    await writeFile(path.join(dir, "pw-runtime.mjs"), "export const a = 1;\n");
+    const files = await optimizeAssets(dir);
+    assert.deepEqual(files, ["pw-runtime.mjs"]);
+    const delivery = JSON.parse((await readFile(path.join(dir, "delivery.json"))).toString());
+    assert.deepEqual(delivery, { warm: true });
+    await assert.rejects(readFile(path.join(dir, "delivery.json.br")), { code: "ENOENT" });
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

@@ -34,6 +34,15 @@ async function packAsset(directory, entry) {
   await writeFile(file + ".gz", gzipSync(body, { level: 9, mtime: 0 }));
 }
 
+/**
+ * **How a production build is delivered** (the first press's ADR): its
+ * pages warm what their presses need once they are interactive, rather than
+ * fetching each press's code when it is pressed. The server reads this file
+ * beside the assets and tells the browser on its handler table (`#warm|1`).
+ * A development build has none, and warms nothing (E7-L).
+ */
+export const DELIVERY = { warm: true };
+
 export async function optimizeAssets(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   // Deterministic order and only root-level shared assets. Compiled handler
@@ -41,6 +50,7 @@ export async function optimizeAssets(directory) {
   const assets = entries.filter((entry) => entry.isFile() && ASSET.test(entry.name));
   assets.sort((a, b) => a.name.localeCompare(b.name, "en"));
   for (const asset of assets) await packAsset(directory, asset);
+  await writeFile(path.join(directory, "delivery.json"), `${JSON.stringify(DELIVERY)}\n`);
   return assets.map((asset) => asset.name);
 }
 

@@ -383,9 +383,23 @@ let decide = null;
  * handler table: empty until the table is read. */
 let servedBuild = "";
 
+/** Whether the build that served this runtime warms what its presses need
+ * (the first press's ADR): its handler table's `#warm|1`. */
+let buildWarms = false;
+
 async function bootDecision() {
-  const response = await fetch("/pw-resume.wasm");
-  const { instance } = await WebAssembly.instantiateStreaming(response, {});
+  // The decision's code and this build's table, asked for together (the
+  // first press's ADR): neither needs the other to be asked for, and the
+  // document's head has already asked for both (`BOOT`), so each `fetch`
+  // here is answered by that request. Until 2026-11-06 the table was asked
+  // for once the decision had compiled: one more round trip before a page
+  // was interactive, 562.5 ms of it under Slow 4G.
+  const tableText = fetch("/pw-handlers").then((r) => (r.ok ? r.text() : ""));
+  // A decision that fails to load still fails the boot, as it did; the table
+  // asked for beside it must not then fail again, unheard, as a rejection
+  // nothing waited for.
+  tableText.catch(() => {});
+  const { instance } = await WebAssembly.instantiateStreaming(fetch("/pw-resume.wasm"), {});
   const { memory, alloc, decide_manifest, last_recovery, know, know_document } =
     instance.exports;
 
@@ -399,7 +413,7 @@ async function bootDecision() {
   // runtime and never from the document: a document cached from another
   // build names handlers this one may not have. If the table cannot be read,
   // nothing is known and every handler is refused, which is the closed side.
-  const table = await fetch("/pw-handlers").then((r) => (r.ok ? r.text() : ""));
+  const table = await tableText;
   const known = know(...write(table));
   log.push(`knows ${known} handler(s)`);
   // **What this build says of this page's documents** (ADR-0300): its name,
@@ -407,6 +421,9 @@ async function bootDecision() {
   // from the document; the decision holds each handler's document to them.
   const lines = table.split("\n");
   servedBuild = lines.find((l) => l.startsWith("#build|"))?.slice("#build|".length) ?? "";
+  // **Whether this build warms what its presses need** (the first press's
+  // ADR): the build's word, from the same table, never the document's.
+  buildWarms = lines.includes("#warm|1");
   const page = lines.find((l) => l.startsWith(`#page|${PAGE}|`));
   if (page && know_document) {
     const [, , schema, scope] = page.split("|");
@@ -2853,6 +2870,30 @@ function bindEvents() {
   }
 }
 
+/**
+ * **The decision for one handler part**, asked once and kept, by the name
+ * its template gives it: whether its handler may attach (and so be fetched),
+ * and, refused, why. One function for binding and for warming (the first
+ * press's ADR), so the two cannot disagree about what is authorised.
+ */
+function verdictOf(named, part) {
+  let verdict = verdicts.get(named);
+  if (!verdict) {
+    const manifest = manifestFor(part);
+    verdict =
+      decide && manifest ? decide(manifest) : { attach: false, recovery: "no-decision" };
+    verdicts.set(named, verdict);
+    if (!verdict.attach) {
+      // The CODE as well as the recovery. "refused 5: none" says a handler
+      // was refused and nothing about why; the code is the one field that
+      // distinguishes an unknown handler from a widened privacy scope from
+      // a stale document schema.
+      log.push(`refused ${named}: code ${verdict.code} recovery ${verdict.recovery}`);
+    }
+  }
+  return verdict;
+}
+
 /** One event part of `template`, bound to every element it has: the
  * page's, or a view's in each of its instances (ADR-0203). */
 function bindEvent(template, part) {
@@ -2878,20 +2919,7 @@ function bindEvent(template, part) {
   // Asked NOW rather than on interaction, deliberately. A refused handler
   // must never load its code: fetching first and checking after would make
   // the refusal a formality the network had already ignored.
-  let verdict = verdicts.get(named);
-  if (!verdict) {
-    const manifest = manifestFor(part);
-    verdict =
-      decide && manifest ? decide(manifest) : { attach: false, recovery: "no-decision" };
-    verdicts.set(named, verdict);
-    if (!verdict.attach) {
-      // The CODE as well as the recovery. "refused 5: none" says a handler
-      // was refused and nothing about why; the code is the one field that
-      // distinguishes an unknown handler from a widened privacy scope from
-      // a stale document schema.
-      log.push(`refused ${named}: code ${verdict.code} recovery ${verdict.recovery}`);
-    }
-  }
+  const verdict = verdictOf(named, part);
   if (!verdict.attach) {
     recoverOnPress(part, owners, verdict);
     return;
@@ -3053,6 +3081,114 @@ function bindEvent(template, part) {
   }
 }
 
+// --- warming: what a press needs, there before it is pressed --------------
+//
+// The first press's ADR, amending E7-L's ruling for a build that says so.
+// E7-L put a handler's bytes on the wire at its first press and nowhere
+// before. Measured head to head (ADR-0392, finding 17), that made a page's
+// first press its slowest: under Slow 4G, TodoMVC's first add waited 2.3 s
+// for two handlers, its computed values and the renderer, where React and
+// Svelte fetch nothing.
+//
+// A page whose build warms (its handler table's `#warm|1`, which a
+// production build's packaging asks for: `delivery.json`) asks, once it is
+// interactive and loaded and the browser is idle, for what its presses will
+// need:
+//
+// - each handler the decision AUTHORISED, loaded by the loader a press
+//   loads it with (`loadHandler`). The decision is asked first, as for a
+//   press, so a refused handler is still never fetched (E7-L's order
+//   holds: decide, then fetch). Loading a handler's module evaluates it,
+//   which defines its `run` and runs nothing (a compiled handler's module
+//   is its body as a function, and constants): no handler runs before its
+//   press;
+// - the page's computed module and its speculation module, by their own
+//   loaders, the same way;
+// - the renderer, where the page renders a block or a row in the browser.
+//
+// Loaded, not merely fetched: a module the browser has fetched but not
+// evaluated still answers its first `import()` a task later, and in that
+// task's wait the browser paints a frame without the press. Traced in
+// Chromium on 2026-11-06, a TodoMVC toggle whose handler had only been
+// preloaded changed the page 13.6 ms after its press and showed it in the
+// frame after next.
+//
+// Warming changes WHEN those modules arrive, never whether a press may run
+// or what it runs: a press asks its loader as it always did, and finds the
+// module there. A warm load that fails is forgotten as a press's is
+// (ADR-0382), so the press asks under its next specifier. A build that does
+// not say so, as no development build does, warms nothing, as before:
+// "nothing is prefetched without a policy that says so"
+// (`lazy-handler.spec.mjs`).
+
+/** Whether a signal or a speculation renders anything here with the
+ * renderer: a block, a row, a region (`flushSignals`, `showRegions`). */
+function rendersInBrowser() {
+  if (parts.regions && Object.keys(parts.regions).length > 0) return true;
+  return (parts.live ?? []).some((l) => l.kind !== "value" && !SET_IN_PLACE.has(l.kind));
+}
+
+/** **Warm what this page's presses need** (see above), in the order a
+ * press needs it, which over HTTP/1.1 (six requests at a time to a host)
+ * is the order it arrives in: the renderer first, the largest and the
+ * longest to arrive; then the page's computed and speculation modules,
+ * which any change of a signal or any command of the page needs; then the
+ * handlers of what the page shows now, which can be pressed now; then the
+ * handlers of what it does not show yet, its rows' and its blocks'. */
+function warm() {
+  if (life.signal.aborted) return;
+  const quietly = (loading, what) =>
+    loading?.catch((error) => log.push(`warming ${what} failed: ${error.message ?? error}`));
+  if (rendersInBrowser()) quietly(renderModule(), "the renderer");
+  // Each forgets a failed load itself (ADR-0382), as for a press.
+  if (parts.computed && !computedModule) quietly(computedValues(), parts.computed);
+  if (parts.speculation && !speculationModule && !speculationLoaded) {
+    quietly(speculations(), parts.speculation);
+  }
+  // Each authorised handler, those bound to an element now before those
+  // that are not: a Set keeps the order identities are added in.
+  const shown = new Set();
+  const later = new Set();
+  for (const [template, list] of manifests) {
+    for (const part of list) {
+      if (part.kind !== "event" || !part.value) continue;
+      const named = template === PAGE ? `${part.id}` : `${template}:${part.id}`;
+      if (!verdictOf(named, part).attach) continue;
+      const bound = addressesFor(`e${part.owner}`, template).length > 0;
+      (bound ? shown : later).add(part.value);
+    }
+  }
+  const identities = new Set([...shown, ...later]);
+  for (const identity of identities) {
+    // Not one a press has already asked for, under any specifier.
+    if (loaded.has(identity) || (attempts.get(identity) ?? 0) > 0) continue;
+    const loading = loadHandler(identity);
+    loading.catch((error) => {
+      // Forgotten as a press forgets its failed load, so the next press asks
+      // under its next specifier, which no failure the browser keeps
+      // answers; unless a press waiting on this load has forgotten it first.
+      if (loaded.get(identity) === loading) {
+        loaded.delete(identity);
+        attempts.set(identity, (attempts.get(identity) ?? 0) + 1);
+      }
+      log.push(`warming ${identity} failed: ${error.message ?? error}`);
+    });
+  }
+  log.push(`warming ${identities.size} handler(s)`);
+}
+
+/** Warming, once the page is loaded and the browser idle, where the
+ * build that served it asks for it. */
+function warmWhenIdle() {
+  if (!buildWarms) return;
+  const idle = () => {
+    const later = window.requestIdleCallback ?? ((f) => setTimeout(f, 1));
+    later(warm, { timeout: 1000 });
+  };
+  if (document.readyState === "complete") idle();
+  else addEventListener("load", idle, { once: true, signal: life.signal });
+}
+
 async function attach() {
   // Marked, so activation cost is a MEASUREMENT rather than a wall-clock guess
   // taken from outside. `performance.measure` attributes the work to this
@@ -3102,6 +3238,9 @@ async function attach() {
   window.__pw.signals = Object.fromEntries(signals);
   window.__pw.ready = true;
   document.documentElement.dataset.pwReady = "1";
+  // What its presses will need, where its build warms (the first press's
+  // ADR): after it is interactive, never before.
+  warmWhenIdle();
 }
 
 // --- the protocol ---------------------------------------------------------

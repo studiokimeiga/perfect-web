@@ -1051,6 +1051,10 @@ struct Server {
     /// contracts: this server links no compiler. Compiled once, with the
     /// artifact's imports read once — both are properties of the bytes.
     components: BTreeMap<String, Loaded>,
+    /// **Whether this build warms what its pages' presses need** (the first
+    /// press's ADR), as its packaging says ([`warms`]): told to the browser
+    /// on the handler table's `#warm` line.
+    warm: bool,
     /// The document's static assets.
     dist: std::path::PathBuf,
     /// **Where the compiler's browser artifacts are** (ADR-0123): the
@@ -1987,6 +1991,7 @@ impl Server {
             applied: Mutex::new(BTreeMap::new()),
             sessions: Mutex::new(BTreeMap::new()),
             components,
+            warm: warms(&dist),
             dist,
             artifacts,
             pending: Table::default(),
@@ -10640,6 +10645,12 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             // scope (ADR-0300), which the browser's decision holds a document
             // of that page to. `#` lines, as no handler's identity begins.
             let mut table = format!("#build|{}\n", server.build_id);
+            // Whether the browser warms what this build's presses need
+            // (the first press's ADR): the build's word, as the rest of
+            // this table is, and a `#` line the decision does not read.
+            if server.warm {
+                table.push_str("#warm|1\n");
+            }
             for (page, plan) in &server.plans {
                 if let Some(template) = server.templates.iter().find(|t| &t.path == page) {
                     table.push_str(&format!(
@@ -11518,6 +11529,18 @@ fn accepts_asset_encoding(headers: &str, encoding: &str) -> bool {
 /// Public assets are not content-hashed in their URLs yet. They may be stored
 /// but must be revalidated on every use, unlike private pages (no-store) or
 /// hashed, immutable production assets (a future production-host milestone).
+/// **Whether a build warms what its presses need** (the first press's ADR):
+/// its packaging's word, `{"warm": true}` in `delivery.json` beside its
+/// assets, which a production build's packaging writes
+/// (`optimize-assets.mjs`). A build without one, as every development build
+/// is, warms nothing: a press fetches its code when it is pressed (E7-L).
+fn warms(dist: &std::path::Path) -> bool {
+    std::fs::read_to_string(dist.join("delivery.json"))
+        .ok()
+        .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
+        .is_some_and(|delivery| delivery["warm"] == serde_json::Value::Bool(true))
+}
+
 fn serve_file(server: &Server, stream: &mut TcpStream, route: &str, request_headers: &str) {
     use sha2::Digest;
 
@@ -11812,7 +11835,7 @@ fn signal_document(
     format!(
         "<!doctype html>\n<html{root}>\n<head>\n<meta charset=\"utf-8\">\n\
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
-         <title>{}</title>\n{metadata}{device}</head>\n<body>\n{body}\n\
+         <title>{}</title>\n{metadata}{device}{BOOT}</head>\n<body>\n{body}\n\
          {announcer}\n<script type=\"application/json\" id=\"pw-parts\">{json}</script>\n\
          {RUNTIME}\n{DOCUMENT_END}",
         pw_render::escape::text(title)
@@ -12066,7 +12089,7 @@ fn document(
     format!(
         "<!doctype html>\n<html{root}>\n<head>\n<meta charset=\"utf-8\">\n\
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
-         <title>{title}</title>\n{metadata}{style}{device}</head>\n<body>\n{body}\n\
+         <title>{title}</title>\n{metadata}{style}{device}{BOOT}</head>\n<body>\n{body}\n\
          {announcer}\n<script type=\"application/json\" id=\"pw-parts\">{json}</script>\n\
          {RUNTIME}\n{DOCUMENT_END}",
         title = pw_render::escape::text(title)
@@ -12080,6 +12103,29 @@ fn document(
 /// only once the whole response has arrived, in every engine, and an `async`
 /// one does in WebKit.
 const RUNTIME: &str = "<script>import(\"/pw-runtime.mjs\")</script>";
+
+/// **What every document's runtime asks for before it can attach a handler,
+/// asked for by the document's head** (the first press's ADR): the runtime,
+/// the resume decision's code and this build's handler table. Without them
+/// each was a round trip after the one before it: the runtime was asked for
+/// once the parser reached `RUNTIME`, the decision once the runtime ran, and
+/// the table once the decision had compiled. Under Slow 4G that was three
+/// requests of 562.5 ms each, one after another, before a page was
+/// interactive (ADR-0392, finding 18's "interactive last").
+///
+/// Each is fetched exactly as the runtime asks for it, so the browser uses
+/// what the head fetched rather than fetching it again: the module by its
+/// URL in the module map, and the two `fetch()`es as CORS requests with the
+/// same-origin credentials a `fetch` makes by default, which is what
+/// `crossorigin` (anonymous) asks for. Nothing speculative: every document
+/// that carries `RUNTIME` asks for all three as it boots, and none of them
+/// is a handler's code (E7-L's ruling holds: no handler is fetched here).
+/// Last in the head, after the page's own stylesheets, which a first paint
+/// waits for: measured under Slow 4G, the three cost the first paint about
+/// 20 ms of shared bandwidth and saved its interactivity 1.76 s.
+const BOOT: &str = "<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n\
+     <link rel=\"preload\" href=\"/pw-resume.wasm\" as=\"fetch\" crossorigin>\n\
+     <link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n";
 
 /// **Its text**, which a document's policy allows by its hash (`csp`).
 /// `RUNTIME`'s, as a test holds it.
@@ -16806,6 +16852,100 @@ public query Store(",
         assert_eq!(manifest["resume"]["scope"], "session:");
     }
 
+    /// **A document asks for what its runtime boots with, from its head**
+    /// (the first press's ADR): the runtime as a module preload, and the
+    /// decision's code and this build's handler table as the CORS fetches
+    /// the runtime makes, so that the runtime's own requests are answered by
+    /// them; after its stylesheets; and no handler's code (E7-L). On a page
+    /// that reads queries, and on one of signals alone.
+    #[test]
+    fn a_document_preloads_what_its_runtime_boots_with() {
+        let s = served_feed();
+        let page = get_as(&s, "a", "/");
+        let template = Template {
+            path: "t.P".into(),
+            name: "P".into(),
+            params: vec![],
+            schema: "s".into(),
+            chunks: vec![],
+        };
+        let signals = signal_document(
+            "<main></main>",
+            "P",
+            "<link rel=\"stylesheet\" href=\"/p.css\">\n",
+            &template,
+            &serde_json::json!({}),
+            &[],
+            COMMITTED_ARTIFACTS,
+        );
+        for document in [page.as_str(), signals.as_str()] {
+            let head = document
+                .split_once("<head>")
+                .and_then(|(_, rest)| rest.split_once("</head>"))
+                .map(|(head, _)| head)
+                .expect("a head");
+            for link in [
+                "<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n",
+                "<link rel=\"preload\" href=\"/pw-resume.wasm\" as=\"fetch\" crossorigin>\n",
+                "<link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n",
+            ] {
+                assert!(head.ends_with(BOOT) && BOOT.contains(link), "{head}");
+            }
+            assert!(!head.contains("/handler/"), "no handler's code: {head}");
+            // The runtime it preloads is the one the document starts.
+            assert!(document.contains(RUNTIME), "{document}");
+        }
+        assert!(
+            signals
+                .contains("<link rel=\"stylesheet\" href=\"/p.css\">\n<link rel=\"modulepreload\""),
+            "after the page's stylesheets: {signals}"
+        );
+    }
+
+    /// **A build warms what its presses need only where its packaging says
+    /// so** (the first press's ADR): `{"warm": true}` in `delivery.json`
+    /// beside the assets, which a production build's packaging writes; no
+    /// file, another value or a file that is not JSON warms nothing, as no
+    /// development build does (E7-L).
+    #[test]
+    fn a_build_warms_only_where_its_delivery_says_so() {
+        let dir = tempfile::tempdir().expect("a directory");
+        assert!(!warms(dir.path()), "no delivery file: a development build");
+        let says = |text: &str| {
+            std::fs::write(dir.path().join("delivery.json"), text).expect("written");
+            warms(dir.path())
+        };
+        assert!(says("{\"warm\": true}\n"));
+        assert!(!says("{\"warm\": false}\n"));
+        assert!(!says("{\"warm\": \"true\"}\n"), "only `true` warms");
+        assert!(!says("{}\n"));
+        assert!(!says("warm"), "not JSON");
+    }
+
+    /// **The browser is told on the handler table** (the first press's
+    /// ADR): `#warm|1` where the build warms and nothing where it does not,
+    /// a `#` line the decision does not read, with every handler line the
+    /// same either way, so what may attach does not depend on it.
+    #[test]
+    fn the_handler_table_says_whether_its_build_warms() {
+        let mut s = served_feed();
+        let body = |t: &str| t.split_once("\r\n\r\n").map_or("", |(_, b)| b).to_string();
+        let lazy = body(&get_as(&s, "a", "/pw-handlers"));
+        assert!(!lazy.contains("#warm"), "{lazy}");
+        s.server.warm = true;
+        let warm = body(&get_as(&s, "a", "/pw-handlers"));
+        assert!(warm.contains("#warm|1\n"), "{warm}");
+        let handlers = |t: &str| {
+            t.lines()
+                .filter(|l| !l.starts_with('#'))
+                .map(str::to_string)
+                .collect::<Vec<_>>()
+        };
+        assert!(!handlers(&lazy).is_empty(), "{lazy}");
+        assert_eq!(handlers(&lazy), handlers(&warm));
+        assert_eq!(lazy.lines().count() + 1, warm.lines().count());
+    }
+
     /// **A build that names no build is not served** (ADR-0300): it was
     /// written before builds were named, and is built again.
     #[test]
@@ -20347,10 +20487,12 @@ public query Store(",
             COMMITTED_ARTIFACTS,
         );
         let (head, body) = page.split_once("</head>").expect("a head");
+        // And what its runtime boots with last (the first press's ADR),
+        // after what it says of itself and the stylesheets a paint waits for.
         assert!(
-            head.ends_with(
-                "<title>Panel &amp; co</title>\n<meta name=\"description\" content=\"A panel.\">\n"
-            ),
+            head.ends_with(&format!(
+                "<title>Panel &amp; co</title>\n<meta name=\"description\" content=\"A panel.\">\n{BOOT}"
+            )),
             "{head}"
         );
         assert!(
