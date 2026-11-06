@@ -10766,7 +10766,12 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             // Whether the browser warms what this build's presses need
             // (the first press's ADR): the build's word, as the rest of
             // this table is, and a `#` line the decision does not read.
-            if server.warm {
+            // Not where admission reads a kept source. A warm-up asks for
+            // its modules together, and two admissions of one session that
+            // overlap answer one of them 503, a command `session_changed`
+            // (ADR-0389, amended 2026-11-02). Until that is repaired, such
+            // a host's pages press as a development build's do.
+            if server.warm && !server.identity.principals().admits_from_a_kept_source() {
                 table.push_str("#warm|1\n");
             }
             for (page, plan) in &server.plans {
@@ -17451,6 +17456,67 @@ public query Store(",
         assert_eq!(lazy.lines().count() + 1, warm.lines().count());
     }
 
+    /// A kept source that knows no session: every reader is anonymous.
+    struct NoSessionSource;
+
+    impl identity::Kept for NoSessionSource {
+        fn session(
+            &self,
+            _: &[u8],
+            _: &identity::SessionLifetimes,
+        ) -> Result<Option<identity::SessionIdentity>, String> {
+            Ok(None)
+        }
+        fn inspect(
+            &self,
+            _: &[u8],
+            _: &identity::SessionLifetimes,
+        ) -> Result<Option<identity::SessionIdentity>, String> {
+            Ok(None)
+        }
+        fn open(&self, _: &[u8], _: &identity::Principal, _: &[u8; 16]) -> Result<(), String> {
+            Ok(())
+        }
+        fn close(&self, _: &[u8]) -> Result<(), String> {
+            Ok(())
+        }
+        fn begin_sign_in(&self, _: &[u8], _: &str, _: &str) -> Result<(), String> {
+            Ok(())
+        }
+        fn take_sign_in(
+            &self,
+            _: &[u8],
+        ) -> Result<Option<(String, String, std::time::Duration)>, String> {
+            Ok(None)
+        }
+    }
+
+    /// **A host that admits from a kept source does not warm** (the first
+    /// press's review). A warm-up asks for its modules together, and there,
+    /// of two admissions of one session that overlap, one is answered 503,
+    /// a command `session_changed` (ADR-0389, amended 2026-11-02), until
+    /// that is repaired. With accounts on and nothing kept, it warms.
+    #[test]
+    fn a_host_that_admits_from_a_kept_source_does_not_warm() {
+        let mut s = served_feed();
+        s.server.warm = true;
+        let body = |t: &str| t.split_once("\r\n\r\n").map_or("", |(_, b)| b).to_string();
+        s.identity
+            .signed_in_for_test("existing", "reader", "Reader");
+        let unkept = body(&get_as(&s, "existing", "/pw-handlers"));
+        assert!(
+            unkept.contains("#warm|1\n"),
+            "accounts on, nothing kept: {unkept}"
+        );
+        s.identity.principals().keep_in(Arc::new(NoSessionSource));
+        let kept = get_as(&s, "existing", "/pw-handlers");
+        assert!(kept.starts_with("HTTP/1.1 200"), "{kept}");
+        assert!(
+            !body(&kept).contains("#warm"),
+            "admitted from a kept source: {kept}"
+        );
+    }
+
     /// **A development build names its files as they are** (the first
     /// press's ADR): no delivery id, so every document is written as it was,
     /// byte for byte, and every file is asked again before each use.
@@ -17540,7 +17606,10 @@ public query Store(",
             "<p title=\"href=&quot;/app.css&quot;\">href=\"/app.css\" said</p>",
             "<textarea>&lt;img src=\"/app.css\"&gt;</textarea>",
         ] {
-            assert!(delivered.contains(text), "a reader's text, as written: {text} in {delivered}");
+            assert!(
+                delivered.contains(text),
+                "a reader's text, as written: {text} in {delivered}"
+            );
         }
         assert_eq!(
             delivery.runtime_source(),
