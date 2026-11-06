@@ -11,5 +11,5 @@ cf960a52b55472d34fef8a7f1a280601d3cbc492e873f14f2435472c0e41f698  ./logs/pw-core
 6f8b3afaa537df626e6be35fe7a84508712b1fe3eb752d86e3fd3a694f283cad  ./scripts/help-demo/retry.pw.txt
 8c8e45617a330016fc47bc1afbe3190e16f52ab630930ff95f158a34f1936cff  ./scripts/help-demo/twice.pw.txt
 1d8cbd7a1d7b4dc67f68fccc110f4751bd50f9188e2784315644fdb5d887949b  ./scripts/help-verify.sh
-2c1d2a2b4d9695bdd5985b4801268ffb6d6ce2d0349785f944c54a8415f29280  ./scripts/help_demo.py
+0255bbee87f4271d865fe819c41abf12b8b73388a329f05b8d950e095fe3af84  ./scripts/help_demo.py
 282ea04c5830d56fb3e14d43c7c84027a10a45c8aaf7124cd864be3fce8351fb  ./scripts/reached.py

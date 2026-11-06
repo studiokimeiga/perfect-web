@@ -46,7 +46,7 @@ for name, code, clause, typ in CASES:
     src = (demo / name).read_text()
     assert src.count(clause[0]) == 1 and src.count(typ[0]) == 1, name
     status, codes, out = check(name, src)
-    helps = [l.strip() for l in out.splitlines() if l.strip().startswith("= help:") and "InteractionId" in l]
+    helps = [line.strip() for line in out.splitlines() if line.strip().startswith("= help:") and "InteractionId" in line]
     ok = code in codes and any(NEW in h for h in helps)
     print(f"{name} as written: exit {status}, codes {codes}; {'OK' if ok else 'FAIL'}")
     for h in helps:
@@ -56,9 +56,9 @@ for name, code, clause, typ in CASES:
     status, codes, out = check(name, only)
     ok = "PW0335" in codes and code not in codes
     print(f"{name} with the clause alone: exit {status}, codes {codes}; {'OK' if ok else 'FAIL'}")
-    for l in out.splitlines():
-        if l.startswith("error: [PW0335]"):
-            print(f"    {l}")
+    for line in out.splitlines():
+        if line.startswith("error: [PW0335]"):
+            print(f"    {line}")
     failed += not ok
     both = only.replace(*typ)
     status, codes, out = check(name, both)

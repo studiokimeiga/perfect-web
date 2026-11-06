@@ -15,6 +15,9 @@ Evidence for branch `fix/idempotency-help-20261106`, from `master` at
 - The programs are filed as `.pw.txt`, so that no census of the
   repository's sources (`check_build_programs.py`, `mutant_programs.py`)
   takes them for programs. `help_demo.py` read them as `.pw`.
+- `help_demo.py` is as it ran, but for one name: its loop variable `l` is
+  `line`, for Ruff's E741, which CI holds new Python to. Run again after
+  the rename, it printed the same 9 of 9.
 
 ## The help, followed as a reader would (`logs/demo.log`)
 
