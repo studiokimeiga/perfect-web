@@ -1,0 +1,91 @@
+The page found on 2026-11-06, and the new refusals, after the change
+
+produced by: ./target/debug/pw check --plain find.pw find-refused.pw (in this worktree)
+commit: 5be06de4356383efbaeacce798e522028377467e
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+== pw check --plain find.pw
+
+pw check: 1 file(s), no diagnostics
+exit: 0
+
+== pw check --plain find-refused.pw
+
+error: [PW5053] `<input type="image">` has no `alt`
+  --> pw5014-find-refused.pw:6:9
+   |
+ 3 | / view Find() !{} {
+ 4 | |     <form method="get" action="/find">
+ 5 | |         <label>Find <input type="search" name="q" /></label>
+ 6 | |         <input type="image" src="/search.png" />
+   | |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `<input type="image">` has no `alt`
+...  |
+10 | |     </form>
+11 | | }
+   | |_- `Find` renders this button
+   |
+   = note: An image button's `alt` is its label: what a screen reader announces, and the text the button shows where the image does not load. HTML requires one, and not empty, saying what the button does rather than what the image shows. An `<img>` may have `alt=""` where it shows nothing a reader needs; a button always does something a reader needs. An `aria-label` or a `title` is not shown where the image fails to load.
+   = help: write `alt="…"` saying what the button does
+error: [PW5053] `<input type="image">` has a blank `alt`
+  --> pw5014-find-refused.pw:7:9
+   |
+ 3 | / view Find() !{} {
+ 4 | |     <form method="get" action="/find">
+ 5 | |         <label>Find <input type="search" name="q" /></label>
+ 6 | |         <input type="image" src="/search.png" />
+ 7 | |         <input type="image" src="/search.png" alt="" aria-label="Search" />
+   | |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^------^^^^^^^^^^^^^^^^^^^^^^^
+   | |         |                                     |
+   | |         |                                     this `alt` is the button's label, and it is blank
+   | |         `<input type="image">` has a blank `alt`
+...  |
+10 | |     </form>
+11 | | }
+   | |_- `Find` renders this button
+   |
+   = note: An image button's `alt` is its label: what a screen reader announces, and the text the button shows where the image does not load. HTML requires one, and not empty, saying what the button does rather than what the image shows. An `<img>` may have `alt=""` where it shows nothing a reader needs; a button always does something a reader needs. An `aria-label` or a `title` is not shown where the image fails to load.
+   = help: write `alt="…"` saying what the button does
+error: [PW5014] `<input type="submit">` has no label
+  --> pw5014-find-refused.pw:8:9
+   |
+ 3 | / view Find() !{} {
+ 4 | |     <form method="get" action="/find">
+ 5 | |         <label>Find <input type="search" name="q" /></label>
+ 6 | |         <input type="image" src="/search.png" />
+ 7 | |         <input type="image" src="/search.png" alt="" aria-label="Search" />
+ 8 | |         <input type="submit" value="" />
+   | |         ^^^^^^^^^^^^^^^^^^^^^--------^^^
+   | |         |                    |
+   | |         |                    this `value` is the button's label, and it is blank
+   | |         `<input type="submit">` has no label
+ 9 | |         <input type="button" />
+10 | |     </form>
+11 | | }
+   | |_- `Find` renders this control
+   |
+   = note: A button with no name is announced as "button" and nothing else. An `<input>` button's label is its `value`: the text it shows and what a screen reader reads. HTML gives a `submit` or a `reset` with no `value` a label of its own, "Submit" or "Reset", and an empty `value` takes its place, so the button shows nothing; a `button` input has no label but its `value`.
+   = help: write `value="…"` saying what the button does
+   = help: or supply `aria-label`/`aria-labelledby`, or wrap the button in a `<label>` with text
+error: [PW5014] `<input type="button">` has no label
+  --> pw5014-find-refused.pw:9:9
+   |
+ 3 | / view Find() !{} {
+ 4 | |     <form method="get" action="/find">
+ 5 | |         <label>Find <input type="search" name="q" /></label>
+ 6 | |         <input type="image" src="/search.png" />
+...  |
+ 9 | |         <input type="button" />
+   | |         ^^^^^^^-------------^^^
+   | |         |      |
+   | |         |      an `<input type="button">` is named by its `value`, and this one has none
+   | |         `<input type="button">` has no label
+10 | |     </form>
+11 | | }
+   | |_- `Find` renders this control
+   |
+   = note: A button with no name is announced as "button" and nothing else. An `<input>` button's label is its `value`: the text it shows and what a screen reader reads. HTML gives a `submit` or a `reset` with no `value` a label of its own, "Submit" or "Reset", and an empty `value` takes its place, so the button shows nothing; a `button` input has no label but its `value`.
+   = help: write `value="…"` saying what the button does
+   = help: or supply `aria-label`/`aria-labelledby`, or wrap the button in a `<label>` with text
+pw check: 1 file(s), 4 error(s), 0 warning(s)
+exit: 1
+

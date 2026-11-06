@@ -1,0 +1,68 @@
+The input-button ADR's evidence, 2026-11-06: each command in order, where it
+ran, and the files it wrote. Paths are WSL Ubuntu's. Each file below names
+the commit it was recorded at in its header.
+
+Commits on claude/competent-dirac-a03323:
+- 5d4d4d55  origin/master when the branch was cut (PR #70's merge).
+- bdbdf6df  this branch's merge of fix/img-alt-20261106 at 7bd477fa (PW5053).
+- 5be06de4  the change.
+
+1. The defect, before: repro-before.txt
+   In a detached worktree at the base, with a target of its own:
+     git worktree add --detach /home/haki/code/pw-wt/pw5014-mut-c bdbdf6df
+     cd /home/haki/code/pw-wt/pw5014-mut-c
+     CARGO_TARGET_DIR=/home/haki/pw-targets/pw5014-mut-c cargo build --locked -p pw-cli
+     ./target/debug/pw check --plain find.pw find-refused.pw
+   Inputs: find.pw (the page found on 2026-11-06) and find-refused.pw (the
+   new refusals). Earlier the same day, a pw built at 5d4d4d55 refused
+   find.pw's two buttons with PW5014 the same way (seen, not kept as a file).
+
+2. The change, after: repro-after.txt
+   In this worktree, at 5be06de4, the same pages:
+     CARGO_TARGET_DIR=/home/haki/pw-targets/pw5014-buttons cargo build --locked -p pw-cli
+     ./target/debug/pw check --plain find.pw find-refused.pw
+
+3. Each engine's names for the buttons: ax-names.txt
+     gunzip -c ax-names.cjs.gz > ax-names.cjs && node ax-names.cjs "$PWD/buttons.html"
+   Playwright 1.58.0, from the main checkout's node_modules; Chromium's
+   names are its own accessibility tree, over CDP; every engine's second
+   column is Playwright's own computation. Inputs: buttons.html, and the
+   script, gzipped so that no analyzer reads it as the repository's code.
+
+4. The mutation campaigns: <script>-mutations.txt
+   Each script whole, at 5be06de4, in a detached worktree with a target of
+   its own, so that no two campaigns mutate one tree:
+     git worktree add --detach /home/haki/code/pw-wt/pw5014-mut-b 5be06de4
+     git -C /home/haki/code/pw-wt/pw5014-mut-c checkout --detach 5be06de4
+     bash campaign.sh /home/haki/code/pw-wt/pw5014-mut-b /home/haki/pw-targets/pw5014-mut-b OUT labels ids
+     bash campaign.sh /home/haki/code/pw-wt/pw5014-mut-c /home/haki/pw-targets/pw5014-mut-c OUT images shared_cache effect_value condition_truth affine
+   Results, every mutant killed by a failing test (none by a failed
+   build), the source as committed after each script:
+     labels 31 of 31, ids 13 of 13, images 24 of 24,
+     shared_cache 5 of 5, effect_value 4 of 4, condition_truth 6 of 6,
+     affine 7 of 7.
+
+5. The gates: pw-core-tests.txt (+ .log.gz), guide.txt,
+   mutation-anchors.txt, preflight.txt, evidence-gates.txt (+ .log.gz)
+   In this worktree, at 5be06de4:
+     bash docs/evidence/E14/input-buttons-2026-11-06/gates.sh /home/haki/pw-targets/pw5014-buttons "$PWD/docs/evidence/E14/input-buttons-2026-11-06"
+   Results, each exit 0, each header at 5be06de4 with no uncommitted
+   change: pw-core 242 test binaries, 1836 passed, 0 failed, 2 ignored;
+   the guide's test 15 passed; 5013 mutants in 325 scripts, each anchor
+   matching once; just preflight; just evidence-gates, 1177 tests OK
+   (5 skipped).
+   Before it, node_modules was installed here from the local store
+   (pnpm install --frozen-lockfile --offline, the lockfile the main
+   checkout's): the evidence gates' browser-assertion tests need
+   @playwright/test. A run before that install failed those six tests
+   only, with "Cannot find module '@playwright/test/package.json'".
+
+Not run here (the ADR's Evidence section says why):
+- scripts/page_policy_mutations.py and scripts/scheduled_mutations.py,
+  reached through the generality suite only;
+- scripts/guide_mutations.py, reached through diagnostics.md's PW5053 row.
+
+The machine: other sessions built and tested on it at the same time;
+CARGO_BUILD_JOBS=8 and PW_MUTANT_INCREMENTAL=1, from ~/pw-setup/env.sh.
+This worktree's .git link was made relative and its executable bits
+restored before any of this: the desktop app's checkout had neither.

@@ -248,14 +248,39 @@ Read on 2026-11-06.
   are not listed there yet.
 - **The parsed-tree suite's claim**, "in all three engines", rests on one
   implementation. Reading each engine's own tree is a change of its own.
+- **Three reached mutation scripts were not run here**: `page_policy`,
+  `scheduled` and `guide` (see Evidence). They need a hosted run, or a
+  session with an assigned port range.
 
 ## Evidence
 
 `docs/evidence/E14/input-buttons-2026-11-06/`, each file from a command
-recorded in `commands.txt`:
-- the page above before and after, by `pw check --plain`;
-- `ax-names.txt`, Chromium's names, and its script and page;
+recorded in `commands.txt`, at `5be06de4` unless it says otherwise:
+- the page above and the new refusals, by `pw check --plain`: before, at
+  `bdbdf6df`, and after;
+- `ax-names.txt`, each engine's names for the buttons, with its script and
+  page;
 - `cargo test -p pw-core`, whole, and `cargo test -p pw-cli --test guide`;
 - `just preflight`, `just evidence-gates` and
   `python3 scripts/mutation_anchors.py`;
-- each mutation script the change reaches, run whole.
+- each mutation script below, run whole, with no survivor:
+  - reached by the code and its tests: `labels` (31 of 31 killed), `ids`
+    (13 of 13), whose tests include `labels.rs` and whose anchors sit in
+    PW5014's block, and `images` (24 of 24);
+  - reached by the generality witnesses alone: `shared_cache` (5 of 5),
+    `effect_value` (4 of 4), `condition_truth` (6 of 6) and `affine`
+    (7 of 7).
+
+Reached and not run here:
+- **`page_policy` and `scheduled`**, which run the generality suite among
+  others. Their other suites need a browser suite on a port and
+  pw-dev-server's tests against the shared PostgreSQL, and this session has
+  no port range. Witnesses added to the generality suite can only add
+  failures under a mutant, never remove one, so none of their kills can be
+  lost; the four consumers run above agree.
+- **`guide`**, reached through `diagnostics.md`'s PW5053 row, written again
+  from the registry, which the guide's test holds equal to it. Its mutants
+  are the guide's pages, its test, the generator and the tutorial's app,
+  none of them changed here, and its browser mutants need the guestbook
+  spec on a port. The image ADR's branch changes that script and the guide,
+  and runs it.

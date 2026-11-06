@@ -1,0 +1,13 @@
+just evidence-gates
+
+produced by: just evidence-gates (gates.sh, in /home/haki/code/perfect-web/.claude/worktrees/competent-dirac-a03323)
+commit: 5be06de4356383efbaeacce798e522028377467e
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+started: 2026-11-06T21:25:04Z
+
+(the whole log: evidence-gates.log.gz)
+
+Ran 1177 tests in 341.676s
+OK (skipped=5)
+exit: 0
+finished: 2026-11-06T21:30:46Z

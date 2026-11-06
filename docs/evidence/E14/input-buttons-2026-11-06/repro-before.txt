@@ -1,0 +1,62 @@
+The page found on 2026-11-06, and the new refusals, before the change
+
+produced by: ./target/debug/pw check --plain find.pw find-refused.pw (in a detached worktree at the base, /home/haki/code/pw-wt/pw5014-mut-c)
+commit: bdbdf6dfb4250c01eb99ea8bfd3f4e4935a2ac1a
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+== pw check --plain find.pw
+
+error: [PW5014] `<input>` has no associated label
+ --> pw5014-find.pw:5:9
+  |
+3 | / view Find() !{} {
+4 | |     <form method="get" action="/find">
+5 | |         <input type="image" src="/search.png" alt="Search" />
+  | |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `<input>` has no associated label
+6 | |         <input type="reset" />
+7 | |     </form>
+8 | | }
+  | |_- `Find` renders this control
+  |
+  = note: A control with no accessible name is announced as "edit text" and nothing else. `name` is submitted to the server; it is not read to the user. An `id` names nothing by itself: a label names the control when it is in the same declaration, has text, and its `for` is the control's `id` or it wraps the control. A placeholder is not a label: it disappears when someone types.
+  = help: associate a `<label for=...>`, or supply `aria-label`/`aria-labelledby`
+  = help: or wrap the control in a `<label>` with text
+error: [PW5014] `<input>` has no associated label
+ --> pw5014-find.pw:6:9
+  |
+3 | / view Find() !{} {
+4 | |     <form method="get" action="/find">
+5 | |         <input type="image" src="/search.png" alt="Search" />
+6 | |         <input type="reset" />
+  | |         ^^^^^^^^^^^^^^^^^^^^^^ `<input>` has no associated label
+7 | |     </form>
+8 | | }
+  | |_- `Find` renders this control
+  |
+  = note: A control with no accessible name is announced as "edit text" and nothing else. `name` is submitted to the server; it is not read to the user. An `id` names nothing by itself: a label names the control when it is in the same declaration, has text, and its `for` is the control's `id` or it wraps the control. A placeholder is not a label: it disappears when someone types.
+  = help: associate a `<label for=...>`, or supply `aria-label`/`aria-labelledby`
+  = help: or wrap the control in a `<label>` with text
+pw check: 1 file(s), 2 error(s), 0 warning(s)
+exit: 1
+
+== pw check --plain find-refused.pw
+
+error: [PW5014] `<input>` has no associated label
+  --> pw5014-find-refused.pw:6:9
+   |
+ 3 | / view Find() !{} {
+ 4 | |     <form method="get" action="/find">
+ 5 | |         <label>Find <input type="search" name="q" /></label>
+ 6 | |         <input type="image" src="/search.png" />
+   | |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `<input>` has no associated label
+...  |
+10 | |     </form>
+11 | | }
+   | |_- `Find` renders this control
+   |
+   = note: A control with no accessible name is announced as "edit text" and nothing else. `name` is submitted to the server; it is not read to the user. An `id` names nothing by itself: a label names the control when it is in the same declaration, has text, and its `for` is the control's `id` or it wraps the control. A placeholder is not a label: it disappears when someone types.
+   = help: associate a `<label for=...>`, or supply `aria-label`/`aria-labelledby`
+   = help: or wrap the control in a `<label>` with text
+pw check: 1 file(s), 1 error(s), 0 warning(s)
+exit: 1
+
