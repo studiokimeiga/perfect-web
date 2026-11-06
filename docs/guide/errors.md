@@ -271,7 +271,7 @@ error: [PW5048] this control sends `post`, which `requires SignedIn`, and is sho
 38 | |  }
    | |__- `Write`
    |
-   = note: A press the server refuses was a dead control: the owner, signed out, pressed Post and the post went with no word (2026-10-08). A page asks a predicate of its reader by naming it, and the deployment answers it as it answers `requires`, so a control shown under it is refused only if the reader changed since the page was rendered, and then told where the press was (ADR-0302). `SignedIn` is the program's to declare (`predicate SignedIn says "…"`) where only the deployment knows it.
+   = note: A control the server refuses is a dead control: shown to a reader for whom `SignedIn` does not hold, it offers a press that can only be refused. A page asks a predicate of its reader by naming it, and the deployment answers it as it answers `requires`, so a control shown under it is refused only if the reader changed since the page was rendered, and then told where the press was (ADR-0302). `SignedIn` is the program's to declare (`predicate SignedIn says "…"`) where only the deployment knows it.
    = help: show it where `SignedIn` holds: `{#if SignedIn}` around it, or `hidden={!SignedIn}` on it; where no reader's answer can decide it, as in a part served to everyone, mark its event `|refusable`
 ```
 

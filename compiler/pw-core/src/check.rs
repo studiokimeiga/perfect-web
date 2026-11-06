@@ -8370,7 +8370,7 @@ fn privacy_and_placement(
                     Some(p) => Related::new(
                         p.span.clone(),
                         format!(
-                            "`{}` is {label}, so what `{}` makes from it is",
+                            "`{}` is {label}, so what `{}` makes from it is too",
                             p.name, decl.name
                         ),
                     ),

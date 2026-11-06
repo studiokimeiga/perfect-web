@@ -321,14 +321,14 @@ pub fn check(hirs: &[&Hir], ws: &Workspace, sigs: &Signatures, unit: usize) -> V
                     primary_span: body.node_span(control),
                     related: related.clone(),
                     explanation: Some(format!(
-                        "A press the server refuses was a dead control: the owner, signed out, \
-                         pressed Post and the post went with no word (2026-10-08). A page asks \
-                         a predicate of its reader by naming it, and the deployment answers it \
-                         as it answers `requires`, so a control shown under it is refused only \
-                         if the reader changed since the page was rendered, and then told \
-                         where the press was (ADR-0302). `{predicate}` is the program's to \
-                         declare (`predicate {predicate} says \"…\"`) where only the deployment \
-                         knows it."
+                        "A control the server refuses is a dead control: shown to a reader \
+                         for whom `{predicate}` does not hold, it offers a press that can only \
+                         be refused. A page asks a predicate of its reader by naming it, and \
+                         the deployment answers it as it answers `requires`, so a control \
+                         shown under it is refused only if the reader changed since the page \
+                         was rendered, and then told where the press was (ADR-0302). \
+                         `{predicate}` is the program's to declare (`predicate {predicate} \
+                         says \"…\"`) where only the deployment knows it."
                     )),
                     repairs: vec![Repair {
                         description: format!(

@@ -40,9 +40,9 @@ index bec40ea..aba6d22 100644
  import Events.{ CartChanged }
  
 @@ -99,6 +100,20 @@ session query Cart(session: Session<SessionId>) -> Result<Cart, CartError>
- // The mutation. Idempotent by interaction id, so a double-tap is one add, and
- // optimistic with a declared rollback so the count moves before the round trip
- // and moves back if it fails.
+ // The mutation. Idempotent by interaction id: a request sent twice is one add,
+ // and two presses are two. Optimistic, with a declared rollback, so the count
+ // moves before the round trip and moves back if it fails.
 +// **The session's delivery estimate** (E14, T10), from an estimator that is
 +// slow and sometimes fails.
 +session query Estimate(session: Session<SessionId>) -> Result<DeliveryEstimate, EstimateError>
