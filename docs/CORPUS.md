@@ -1217,3 +1217,24 @@ matching. Its original loop also has the now-detected per-element read defect;
 the revised fixture retains only PW0400. The complete old program and actual
 new diagnostic remain in train10-generic-call-composition-before.txt. Separate
 joint tests preserve that property's PW0405 and its explicit-call neighbours.
+
+## C31: an image says what it shows, 2026-11-06
+
+Opened because a charter category was added: an image with no text
+alternative, under §8.2's "missing labels" and §17.4's "labels". PW5053
+refuses an `<img>` with no `alt`. The image ADR
+(`ADR-XXXX-an-image-says-what-it-shows.md`, numbered when it lands) is the
+decision. No fixture changes, and no invariant is retired. C30 is the
+stale-key change's, a separate draft PR; if this lands first, it is C30.
+
+```text
+Corpus version:            C31
+Accepted programs:         44
+Rejected programs:         96
+Charter categories:        44/44 accepted, 96/96 rejected
+Generality at open:        66/66 invariants generality-tested
+```
+
+| Fixture | Change | Kind |
+|---|---|---|
+| R-096 | a page whose photo has no `alt`, refused with PW5053 | new category |

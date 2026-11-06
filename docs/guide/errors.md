@@ -279,6 +279,47 @@ Wrapping the button in `{#if SignedIn} .. {/if}` repairs it, and the page
 must then be a `session page`: a page that asks something of its reader is
 not the same for every reader.
 
+### An image with no `alt`
+
+An `<img>` says what it shows, to a reader who cannot see it and to every
+reader when it does not load:
+
+```pw fails=PW5053
+module front
+
+page Front() {
+    route "/"
+
+    view {
+        <title>Blue Bottle</title>
+        <main>
+            <h1>Blue Bottle</h1>
+            <img src="/front.jpg" width="640" height="480">
+        </main>
+    }
+}
+```
+
+```text pw-check
+error: [PW5053] `<img>` has no `alt`
+  --> front.pw:10:13
+   |
+ 3 | / page Front() {
+ 4 | |     route "/"
+ 5 | |
+ 6 | |     view {
+...  |
+10 | |             <img src="/front.jpg" width="640" height="480">
+   | |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `<img>` has no `alt`
+...  |
+13 | | }
+   | |_- `Front` renders this image
+   |
+   = note: Nothing stands for an image with no `alt`: a screen reader announces it as an image, often by its file name, and where it does not load the page shows no text in its place. HTML requires `alt` of every `<img>`: what the image shows, or `""` for one that shows nothing a reader needs, such as decoration or what the text beside it already says, which a screen reader then passes over. An `aria-label` or a `title` is not shown where the image fails to load.
+   = help: write `alt="…"` saying what the image shows
+   = help: or `alt=""` if it shows nothing a reader needs
+```
+
 ## When the build refuses what the check passed
 
 `pw build` has refusals of its own. It prints them as lines that begin
