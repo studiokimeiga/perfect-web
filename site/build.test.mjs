@@ -99,12 +99,15 @@ test("the whole site: every page and code, no script, one hashed style, no link 
   t.after(() => rmSync(out, { recursive: true, force: true }));
   const { written, catalog } = build(out);
   assertEveryPage(written, catalog);
-  for (const [path, html] of written) assertPage(path, html, written);
+  for (const [path, html] of written) assertPage(path, html, written, out);
   const headers = readFileSync(join(out, "_headers"), "utf8");
   assert.ok(headers.includes(`style-src '${STYLE_HASH}'`), headers);
   assertForAgents(out);
-  // The home page's sample is the guide's, with what the compiler prints.
-  assert.match(written.get("/"), /error: \[PW0606\]/);
+  // The home page shows each mistake as the compiler refuses it, in the
+  // words the guide's test holds it to.
+  for (const code of ["PW5001", "PW0338", "PW5048", "PW5003", "PW0325"]) {
+    assert.match(written.get("/"), new RegExp(`error: \\[${code}\\]`), code);
+  }
   // A code's page shows the guide's example the compiler refuses with it.
   assert.match(written.get("/e/PW5001"), /Refused: <a href="\/e\/PW5001">PW5001<\/a>/);
 });
@@ -123,21 +126,26 @@ function assertEveryPage(written, catalog) {
 
 /** A page: no script, no style attribute, the one hashed style, a title,
  * and no link to nowhere. */
-function assertPage(path, html, written) {
+function assertPage(path, html, written, out) {
   assert.doesNotMatch(html, /<script/i, path);
   assert.doesNotMatch(html, /\sstyle="/i, `${path}: a style attribute the policy refuses`);
   assert.match(html, /^<!doctype html>\n<html lang="en">/, path);
   assert.match(html, /<title>[^<]+<\/title>/, path);
   const style = /<style>([\s\S]*?)<\/style>/.exec(html)[1];
   assert.equal(`sha256-${createHash("sha256").update(style).digest("base64")}`, STYLE_HASH, path);
-  for (const [, href] of html.matchAll(/href="([^"]+)"/g)) assertLink(path, href, written);
+  for (const [, href] of html.matchAll(/href="([^"]+)"/g)) assertLink(path, href, written, out);
 }
 
 const external = (href) => /^https?:/.test(href) || href === "/favicon.svg";
 
-/** A link to another site, or to a page written here and the anchor it names. */
-function assertLink(path, href, written) {
-  if (external(href)) return;
+/** A link to another site, or to a file the build wrote that is no page,
+ * such as `llms.txt`. */
+const elsewhere = (href, out) => external(href) || /\.(?:txt|md|xml)$/.test(href) && existsSync(join(out, href));
+
+/** A link to another site, to a file the build wrote, or to a page written
+ * here and the anchor it names. */
+function assertLink(path, href, written, out) {
+  if (elsewhere(href, out)) return;
   const [target, hash] = href.split("#");
   const at = target || path;
   assert.ok(written.has(at), `${path} links to ${href}: no such page`);

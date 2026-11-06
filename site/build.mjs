@@ -154,7 +154,20 @@ th{background:var(--soft);font-weight:600}
 .codes td:first-child{white-space:nowrap}
 .codes code{overflow-wrap:normal;white-space:nowrap}
 .prose h1 code{font-size:inherit;background:none;padding:0}
-.hero figure.code pre{font-size:.74rem}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;list-style:none;padding:0;margin:0}
+.stats li{border:1px solid var(--line);border-radius:12px;padding:1.1rem 1.2rem;background:var(--soft)}
+.stats b{display:block;font-size:2.3rem;line-height:1.05;letter-spacing:-.03em;color:var(--accent)}
+.stats span{display:block;margin-top:.45rem;color:var(--muted);font-size:.92rem;line-height:1.45}
+.versus{display:grid;grid-template-columns:minmax(0,1fr);gap:.6rem 1.2rem;margin:0 0 2.8rem}
+@media (min-width:72rem){.versus{grid-template-columns:minmax(0,2fr) minmax(0,3fr)}}
+.versus h3{grid-column:1/-1;font-size:1.22rem;margin:0 0 .15rem}
+.versus figure.code{margin:0}
+.versus pre{font-size:.78rem;white-space:pre-wrap;overflow-wrap:anywhere}
+.versus p{margin:.55rem 0 0;font-size:.92rem;color:var(--muted)}
+figure.code figcaption .shipped{color:var(--s)}
+.section h3{font-size:1.15rem;margin:1.8rem 0 .2rem}
+.points{padding-left:1.2rem;max-width:50rem}
+.points li{margin:.5rem 0}
 .foot{border-top:1px solid var(--line);color:var(--muted);font-size:.9rem}
 .foot>div{max-width:var(--max);margin:0 auto;padding:1.5rem 1.25rem 2.5rem;display:flex;flex-wrap:wrap;gap:.6rem 1.5rem;justify-content:space-between}
 .foot a{color:inherit}
@@ -503,94 +516,275 @@ ${oldRows}
 
 // --- the home page ----------------------------------------------------------
 
-/** What the compiler refuses: the guide's own six (docs/guide/why.md). */
-const REFUSALS = [
-  ["A user's data in a cache everyone shares", "A query says whose data it returns, and a session's data cannot sit in a shared cache.", "PW5001"],
-  ["Rendering that reaches the database", "A view declares that it has no effects, and the compiler checks the claim through every call it makes.", "PW0401"],
-  ["A function that says it is pure and is not", "An effect row is a claim: a helper that reads the clock makes every caller that claims purity wrong.", "PW0400"],
-  ["A case forgotten", "Every match covers every case, and a misspelt case is a case the type lacks, never a catch-all.", "PW0305"],
-  ["A link to nowhere", "Every internal link is matched against the program's routes.", "PW5009"],
-  ["A form control nobody can name", "A control a screen reader cannot announce is refused, as are a duplicate id and a page with no title.", "PW5014"],
-];
-
 /** The head-to-head's record (ADR-0392's instrument), from PR #76's evidence. */
 const EVIDENCE = `${REPO}/blob/perf/first-press-20261106/docs/evidence/E14/first-press-2026-11-06/README.md`;
-const BENCH = [
-  ["TodoMVC: the first todo added, to the frame that shows it (Slow 4G)", "31 ms", "33 ms", "34 ms", "React", "Svelte"],
-  ["A store: ready to use on a first visit (Slow 4G)", "1,381 ms", "2,067 ms", "1,749 ms", "Next.js", "SvelteKit"],
-  ["A store: ready to use on the next visit (Slow 4G)", "626 ms", "660 ms", "638 ms", "Next.js", "SvelteKit"],
-  ["A store: a press with 19 other tabs of it open", "21 ms", "43 ms", "44 ms", "Next.js", "SvelteKit"],
-  ["A store: server CPU for each request, under load", "0.20 ms", "5.12 ms", "1.17 ms", "Next.js", "SvelteKit"],
+
+/** How the checks are checked: `python3 scripts/mutation_anchors.py` counts
+ * the mutants, and the build counts the scripts, so that a script added or
+ * taken away stops the build until this says so. */
+const MUTANTS = { mutants: 4974, scripts: 324 };
+
+/**
+ * **The same mistake, in each.** Its code in Next.js or React, which
+ * compiles and ships it; and the guide's example of it, refused, as
+ * `pw check` prints it (`examples`: the guide's test holds what it prints).
+ */
+const MISTAKES = [
+  {
+    title: "One reader's data, served to the next",
+    code: "PW5001",
+    them: "Next.js",
+    file: "app/api/cart/route.ts",
+    source: `export async function GET() {
+  const cart = await getCart(await currentUser());
+  return Response.json(cart, {
+    headers: { "Cache-Control": "public, max-age=60" },
+  });
+}`,
+    ships: "A shared cache now serves one reader's cart to whoever asks next.",
+  },
+  {
+    title: "A request sent twice, an order placed twice",
+    code: "PW0338",
+    them: "Next.js",
+    file: "app/actions.ts",
+    source: `"use server";
+
+export async function placeOrder(cart: Cart) {
+  await db.order.create({ data: { items: cart.items } });
+}`,
+    ships: "A double click, or a request a network retries, places a second order.",
+  },
+  {
+    title: "A button for something its reader may not do",
+    code: "PW5048",
+    them: "Next.js",
+    file: "app/actions.ts",
+    source: `"use server";
+
+export async function deletePost(id: string) {
+  await db.post.delete({ where: { id } });
+}`,
+    ships: "Who may delete is a check each action has to remember. This one forgot, and anyone can call it.",
+  },
+  {
+    title: "A secret, written into the page",
+    code: "PW5003",
+    them: "Next.js",
+    file: "app/checkout/page.tsx",
+    source: `export default function Checkout() {
+  const key = process.env.PAYMENTS_KEY!;
+  // PayButton is a client component.
+  return <PayButton apiKey={key} />;
+}`,
+    ships: "The key is in the page every visitor of it downloads.",
+  },
+  {
+    title: "An old answer, shown for a new question",
+    code: "PW0325",
+    them: "React",
+    file: "Search.tsx",
+    source: `useEffect(() => {
+  fetch(\`/api/search?q=\${q}\`)
+    .then((r) => r.json())
+    .then(setResults);
+}, [q]);`,
+    ships: "Type quickly, and the answer to an earlier word can arrive last, and stay.",
+  },
 ];
 
-function home(codeCount) {
-  const sample = (examples.get("PW0606") ?? []).find((ex) => ex.output);
-  if (!sample) throw new Error("the guide's PW0606 example and its output: the home page shows them");
-  const cards = REFUSALS.map(
-    ([title, text, code]) =>
-      `<li class="card"><h3>${escapeHtml(title)}</h3><p>${escapeHtml(text)}</p><a class="code-link" href="/e/${code}">${code}</a></li>`,
-  ).join("\n");
-  const rows = BENCH.map(
-    ([what, pleris, a, b, an, bn]) =>
-      `<tr><td>${escapeHtml(what)}</td><td class="best">${pleris}</td><td>${a} <small>${an}</small></td><td>${b} <small>${bn}</small></td></tr>`,
-  ).join("\n");
+/** More of what the compiler refuses, each in the registry's own words. */
+const MORE = [
+  ["Outside data, trusted as typed", "PW0601"],
+  ["An error, silently dropped", "PW0618"],
+  ["A missing value, used anyway", "PW0600"],
+  ["A reader's own data, shown stale", "PW0102"],
+  ["A shared cache, keyed without its tenant", "PW5004"],
+  ["A page's rendering that reaches the database", "PW0401"],
+  ["A function that says it is pure and is not", "PW0400"],
+  ["A case forgotten", "PW0305"],
+  ["A link to nowhere", "PW5009"],
+  ["A form control nobody can name", "PW5014"],
+];
+
+/** The head-to-head, each row's best marked, whichever framework it is. */
+const SPEED = [
+  {
+    title: "TodoMVC, against TodoMVC's own React and Svelte apps",
+    them: ["React", "Svelte"],
+    rows: [
+      ["Ready to use, first visit (Slow 4G)", ["1,417 ms", "1,671 ms", "1,295 ms"], [2]],
+      ["Ready to use, the visit after (Slow 4G)", ["645 ms", "1,189 ms", "1,168 ms"], [0]],
+      ["First paint (Slow 4G)", ["1,260 ms", "1,200 ms", "1,196 ms"], [2]],
+      ["The first todo added, to its frame (Slow 4G)", ["31 ms", "33 ms", "34 ms"], [0]],
+      ["The first toggle, to its frame (Slow 4G)", ["22 ms", "24 ms", "19 ms"], [2]],
+      ["A filter, to its frame (Slow 4G)", ["15 ms", "17 ms", "29 ms"], [0]],
+      ["Downloaded on a first visit", ["142 KB", "70 KB", "21 KB"], [2]],
+    ],
+  },
+  {
+    title: "A store, against the same store in Next.js and SvelteKit",
+    them: ["Next.js", "SvelteKit"],
+    rows: [
+      ["Ready to use, first visit (Slow 4G)", ["1,381 ms", "2,067 ms", "1,749 ms"], [0]],
+      ["Ready to use, the visit after (Slow 4G)", ["626 ms", "660 ms", "638 ms"], [0]],
+      ["An item added, to its frame (Slow 4G)", ["13 ms", "638 ms", "1,179 ms"], [0]],
+      ["A press, with 19 other tabs of it open", ["21 ms", "43 ms", "44 ms"], [0]],
+      ["Server CPU for each request, under load", ["0.20 ms", "5.12 ms", "1.17 ms"], [0]],
+      ["Latency under load, median and 99th percentile", ["1.09 / 2.88 ms", "3.57 / 6.57 ms", "0.81 / 2.37 ms"], [2]],
+      ["Downloaded on a first visit", ["46 KB", "140 KB", "35 KB"], [2]],
+      ["Requests a minute from an open, idle page", ["29.7", "0", "0"], [1, 2]],
+    ],
+  },
+];
+
+/** What `pw check` prints, less its notes: the error, the lines it points
+ * at, and its help. A code's page shows the rest. */
+function withoutNotes(output) {
+  return output
+    .split("\n")
+    .filter((line) => !line.startsWith("   = note:"))
+    .join("\n")
+    .trimEnd();
+}
+
+function shipped(m) {
+  return `<figure class="code"><figcaption><span>${m.them}</span><span>${escapeHtml(m.file)}</span><span class="shipped">Compiles, and ships</span></figcaption><pre tabindex="0"><code class="language-ts">${escapeHtml(m.source)}</code></pre></figure>`;
+}
+
+function refused(m) {
+  const example = (examples.get(m.code) ?? []).find((ex) => ex.output);
+  if (!example) throw new Error(`the guide's ${m.code} example and its output: the home page shows them`);
+  return `<figure class="code output"><figcaption><span>Pleris</span><span>pw check</span><span class="refused">Refused: <a href="/e/${m.code}">${m.code}</a></span></figcaption><pre tabindex="0"><code>${escapeHtml(withoutNotes(example.output))}</code></pre></figure>`;
+}
+
+function mistake(m) {
+  return `<article class="versus">
+<h3>${escapeHtml(m.title)}</h3>
+<div>${shipped(m)}<p>${escapeHtml(m.ships)}</p></div>
+<div>${refused(m)}<p><a href="/e/${m.code}">The whole program, and why it is refused</a></p></div>
+</article>`;
+}
+
+function ruleOf(catalog, code) {
+  const entry = catalog.active.find((c) => c.code === code);
+  if (!entry) throw new Error(`the home page names ${code}, which the registry does not hold`);
+  return entry.rule;
+}
+
+function moreCard(catalog, [title, code]) {
+  return `<li class="card"><h3>${escapeHtml(title)}</h3><p>${md(ruleOf(catalog, code))}</p><a class="code-link" href="/e/${code}">${code}</a></li>`;
+}
+
+function benchRow([what, values, best]) {
+  const cells = values.map((v, i) => `<td${best.includes(i) ? ' class="best"' : ""}>${v}</td>`).join("");
+  return `<tr><td>${escapeHtml(what)}</td>${cells}</tr>`;
+}
+
+function benchTable(t) {
+  const head = ["Pleris", ...t.them].map((name) => `<th scope="col">${name}</th>`).join("");
+  return `<h3>${escapeHtml(t.title)}</h3>
+<div class="table" tabindex="0"><table class="bench"><thead><tr><th scope="col">Measured</th>${head}</tr></thead><tbody>
+${t.rows.map(benchRow).join("\n")}
+</tbody></table></div>`;
+}
+
+/** The scripts that check the checks, counted as the build finds them. */
+function mutationScripts() {
+  const found = readdirSync(join(ROOT, "scripts")).filter((f) => f.endsWith("_mutations.py")).length;
+  if (found !== MUTANTS.scripts) {
+    throw new Error(`${found} mutation scripts, and the home page says ${MUTANTS.scripts}: count the mutants again`);
+  }
+  return found;
+}
+
+function home(catalog) {
+  const scripts = mutationScripts();
+  const stats = [
+    ["25×", "less server CPU for each request than Next.js, serving the same store"],
+    ["13 ms", "from a press to its frame on a slow phone network, where Next.js took 638 ms"],
+    [String(catalog.active.length), "rules every program is held to, each with a code and a page"],
+    [MUTANTS.mutants.toLocaleString("en-US"), "bugs planted in Pleris on purpose, each of which a test must catch"],
+  ]
+    .map(([n, what]) => `<li><b>${n}</b><span>${escapeHtml(what)}</span></li>`)
+    .join("\n");
   const body = `<section class="hero">
 <div>
 <span class="pill">A research project · not released yet</span>
-<h1>Web apps whose compiler refuses whole classes of bugs.</h1>
-<p class="lead">Pleris is a language for web apps, with a compiler and a server for it. You write the data, the server's reads and writes, and the pages in one language, and the compiler refuses programs with bugs that TypeScript, React, Next.js and Svelte let through to production.</p>
+<h1>Building the perfect web framework.</h1>
+<p class="lead">Pleris is a language for web apps, with a compiler and a server for it: the data, the server's reads and writes, and the pages, in one language. Its compiler refuses the mistakes Next.js, SvelteKit, React and Svelte let through, and its runtime is measured against all four.</p>
 <div class="actions">
-<a class="button primary" href="/guide/">Read the guide</a>
-<a class="button" href="/guide/why">Why Pleris</a>
+<a class="button primary" href="#mistakes">The same mistake, twice</a>
+<a class="button" href="/guide/">Read the guide</a>
 <a class="button" href="${REPO}">GitHub</a>
 </div>
 </div>
-<div>
-${codeFigure(sample.text, { lang: "pw", file: "price.pw" })}
-${codeFigure(sample.output, { lang: "text", output: true })}
-</div>
-</section>
-
-<section class="section">
-<h2>What the compiler refuses</h2>
-<p class="sub">Each refusal has a code, a one-sentence rule and the decision behind it: ${codeCount} codes, from the compiler's own registry.</p>
-<ul class="cards">
-${cards}
+<ul class="stats">
+${stats}
 </ul>
-<p><a href="/e/">Every error code</a> · <a href="/guide/why">What it refuses, and what it does not do yet</a></p>
 </section>
 
-<section class="section">
-<h2>Fast where a reader feels it</h2>
-<p class="sub">The same apps in Pleris, React, Svelte, Next.js and SvelteKit, measured by the project's own instrument: Chromium on one development PC, medians of five runs; Slow 4G is Lighthouse's profile of a slow phone network.</p>
-<div class="table" tabindex="0"><table class="bench"><thead><tr><th scope="col">Measured</th><th scope="col">Pleris</th><th scope="col">React or Next.js</th><th scope="col">Svelte or SvelteKit</th></tr></thead><tbody>
-${rows}
-</tbody></table></div>
-<p class="note">Where it still loses: the first download (TodoMVC sends 142 KB, Svelte 21 KB), Svelte's first visit by about 120 ms, and latency under load against SvelteKit, whose server keeps connections open. These numbers come from a branch still under review (PR #76), and field performance is not claimed. <a href="${EVIDENCE}">The runs, the commands and every row, losses first.</a></p>
+<section class="section" id="mistakes">
+<h2>The same mistake, twice</h2>
+<p class="sub">Each of these compiles in Next.js or React, and ships. In Pleris the compiler refuses it, in its own words. Each Pleris program is the guide's, which a test runs through the compiler.</p>
+${MISTAKES.map(mistake).join("\n")}
 </section>
 
-<section class="section two">
+<section class="section" id="rules">
+<h2>And whole classes more</h2>
+<p class="sub">${catalog.active.length} rules every program is held to, each with a code, its rule in one sentence, and a page.</p>
+<ul class="cards">
+${MORE.map((m) => moreCard(catalog, m)).join("\n")}
+</ul>
+<p><a href="/e/">Every rule and its code</a></p>
+</section>
+
+<section class="section" id="speed">
+<h2>Measured against all four</h2>
+<p class="sub">The same apps, measured by the project's own instrument: Chromium on one development PC, medians of five runs. Slow 4G is Lighthouse's profile of a slow phone network. The best in each row is marked, whichever framework it is.</p>
+${SPEED.map(benchTable).join("\n")}
+<p class="note">Where another framework is marked, Pleris is behind, and that row is work in progress. These numbers come from a branch still under review (PR #76), and field performance is not claimed. <a href="${EVIDENCE}">Every run, and the command that makes it.</a></p>
+</section>
+
+<section class="section" id="secure">
+<h2>Secure without configuring it</h2>
+<ul class="points">
+<li><strong>A page runs only what its build wrote.</strong> Each page carries a content security policy generated from its build (<a href="${BLOB}/docs/DECISIONS/ADR-0333-what-a-page-may-run-is-generated-from-its-build.md">ADR-0333</a>).</li>
+<li><strong>Data says whose it is</strong>, everyone's, a session's or a user's, and the label follows it through every call, branch and return (<a href="/e/PW5001">PW5001</a>, <a href="/e/PW5006">PW5006</a>).</li>
+<li><strong>A session's handle never reaches the browser</strong>, and nothing the browser sends can claim one (<a href="/e/PW5040">PW5040</a>, <a href="/e/PW5039">PW5039</a>).</li>
+<li><strong>A command says who may run it</strong>, the server asks on every call, and no page shows its button to anyone else (<a href="/e/PW5048">PW5048</a>).</li>
+</ul>
+</section>
+
+<section class="section two" id="checked">
 <div>
-<h2>Every example compiles</h2>
-<p>Each example in the guide is a whole program, and a test runs every one through the real compiler: one meant to compile must build, one meant to fail must fail with exactly the codes it names, and where a page shows the compiler's output, the compiler must print exactly that.</p>
-<p><a href="/guide/tutorial">Build a guestbook with sign-in</a>, end to end.</p>
+<h2>Each check, checked</h2>
+<p>A test that cannot fail checks nothing. So each of Pleris's checks is broken on purpose: ${scripts} scripts plant ${MUTANTS.mutants.toLocaleString("en-US")} bugs in its own source, one at a time, and each must make a test fail. The guide's examples are compiled by a test too, so what this site says the compiler prints is what it prints.</p>
+<p><a href="${TREE}/scripts">The scripts</a></p>
 </div>
 <div>
-<h2>What it does not do yet</h2>
-<ul>
+<h2>Made for agents</h2>
+<p>An AI writes Pleris from its guide and its compiler. Every refusal has a code and a page an agent can read, such as <a href="/e/PW0338">pleris.dev/e/PW0338</a>, and <a href="/llms.txt">llms.txt</a> gives it the whole guide as Markdown.</p>
+</div>
+</section>
+
+<section class="section" id="status">
+<h2>Not finished</h2>
+<p class="sub">Pleris is a research project, and is not released yet. Before you build on it:</p>
+<ul class="points">
 <li>An app's storage is written in Rust, behind host bindings.</li>
 <li>Sign-in is a development provider, and there is one server.</li>
-<li>No <code>pw new</code>, no project file and no editor support.</li>
-<li>Some checks have gaps, each shown in the guide.</li>
+<li>There is no static or edge build: an app runs on its own server.</li>
+<li>There is no <code>pw new</code>, no project file and no editor support.</li>
+<li>Some checks have gaps, and the guide shows each.</li>
 </ul>
-<p><a href="/guide/why#what-it-does-not-do-yet">The whole list, honestly.</a></p>
-</div>
+<p>Each of these, and each row above that another framework wins, is work in progress. <a href="/guide/why#what-it-does-not-do-yet">The whole list.</a></p>
 </section>`;
   return {
     path: "/",
-    title: "Pleris: web apps whose compiler refuses whole classes of bugs",
+    title: "Pleris: building the perfect web framework",
     description:
-      "Pleris is a language for web apps, with a compiler and a server for it. The compiler refuses programs with bugs that TypeScript, React, Next.js and Svelte let through.",
+      "Pleris is a language for web apps whose compiler refuses the mistakes Next.js, SvelteKit, React and Svelte let through: one reader's data served to another, an order placed twice, a secret in the page. Measured against all four.",
     body,
   };
 }
@@ -692,7 +886,7 @@ export function build(out = join(SITE, "dist")) {
   // The guide first: its pages keep the examples a code's page shows.
   const pages = GUIDE.map((entry, i) => guidePage(entry, i));
   const catalog = codes();
-  pages.push(...codePages(catalog), home(catalog.active.length), notFound(false), notFound(true));
+  pages.push(...codePages(catalog), home(catalog), notFound(false), notFound(true));
   const written = writePages(out, pages);
   writeFiles(out, pages, catalog);
   return { written, catalog };

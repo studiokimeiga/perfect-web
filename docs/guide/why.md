@@ -41,6 +41,20 @@ session query MyCart(session: Session<SessionId>) -> Cart
 }
 ```
 
+```text pw-check
+error: [PW5001] `MyCart` is Session<SessionId> and declares a shared cache
+  --> cart.pw:13:5
+   |
+10 | session query MyCart(session: Session<SessionId>) -> Cart
+   |                      --------------------------- `session` is Session<SessionId>, so what `MyCart` makes from it is
+...
+13 |     cache         shared
+   |     ^^^^^^^^^^^^^^^^^^^^ `MyCart` is Session<SessionId> and declares a shared cache
+   |
+   = note: A shared cache may contain only `Public` values, because every user reads it. The cause chain: `MyCart` materializes its parameter `session`, which is labeled `Session<SessionId>`, and `Session<SessionId>` does not flow into `Public` — so one user's value would be served to another. A key naming the reader does not make it shareable: an entry only that reader can hit gains nothing from a shared cache, and puts their value where every reader's is held (ADR-0128).
+   = help: make the cache private, which stores per session
+```
+
 The label follows the value through calls, branches and returns (ADR-0128,
 ADR-0129, ADR-0252, ADR-0282).
 
@@ -163,14 +177,91 @@ page Search() {
 }
 ```
 
+### A secret rendered into the page
+
+A Next.js server component can hand any value to a client component, and
+React writes it into the page every visitor of it downloads. In Pleris a
+secret is labelled where it is made, and the label follows it to the page:
+
+```pw fails=PW5003
+module checkout
+
+import secrets
+import capability.{ Secret, Payments }
+
+page Checkout() {
+    route     "/checkout"
+    placement origin
+
+    let key: Secret<Payments> = secrets.payments()
+
+    view {
+        <title>Checkout</title>
+        <pay-button api_key={key} />
+    }
+}
+```
+
+```text pw-check
+error: [PW5003] `key` is Secret<Payments> and is rendered into markup
+  --> checkout.pw:14:30
+   |
+10 |     let key: Secret<Payments> = secrets.payments()
+   |     ---------------------------------------------- `key` becomes Secret<Payments> here
+...
+14 |         <pay-button api_key={key} />
+   |                              ^^^ `key` is Secret<Payments> and is rendered into markup
+   |
+   = note: Markup is sent to the browser. Secret<Payments> may exist only in the origin world, so rendering it moves it across a boundary it may not cross — the value is in the HTML whether or not anything reads it.
+   = help: perform the privileged operation on the origin and render only its result
+```
+
+### An old answer shown for a new question
+
+A search box that fetches as its reader types can show the answer to an
+earlier word, when that answer arrives last. A query whose key can change
+says what happens to the work for the old key:
+
+```pw fails=PW0325
+module search
+
+type Item = Item { name: String }
+
+fn matching(q: String) -> List<Item> !{ database.read<Item> }
+    host "shop:data/items#search"
+
+public query Search(q: String) -> List<Item>
+    freshness   30.seconds
+    consistency snapshot
+    cache       shared
+    concurrency one_per_key
+    timeout     2.seconds
+{
+    matching(q)
+}
+```
+
+```text pw-check
+error: [PW0325] `Search` declares no policy for superseded keys
+  --> search.pw:12:5
+   |
+ 8 | public query Search(q: String) -> List<Item>
+   |              ------ this query is keyed, so its key can change
+...
+12 |     concurrency one_per_key
+   |     ^^^^^^^^^^^^^^^^^^^^^^^ `Search` declares no policy for superseded keys
+   |
+   = note: when a keyed read's key changes while it runs, the work for the old key is stale; a policy says whether it is cancelled or kept, and without one the old answer can arrive after the new key and be shown for it
+   = help: declare `on_key_change cancel | supersede | keep`
+```
+
 ### And more, each with a code
 
 A button that sends a command its reader may not run (ADR-0307), a command
-a page can send twice without saying how a repeat is answered (ADR-0154), a
-query that keeps running for a key the page no longer shows, an unchecked
-cast of outside data, a secret serialized to the browser. The
-[diagnostic codes](diagnostics.md) list all of them, from the compiler's
-own registry.
+a page can send twice without saying how a repeat is answered (ADR-0154),
+both shown in [errors](errors.md); an unchecked cast of outside data; a
+failure left unhandled. The [diagnostic codes](diagnostics.md) list all of
+them, from the compiler's own registry.
 
 ## What it does not do yet
 
