@@ -86,6 +86,20 @@ test("gate 7a: the static route ships no browser runtime", async ({ page }) => {
   console.log(`EVIDENCE static-route-script-bytes=${bytes.script} wasm-bytes=${bytes.wasm}`);
 });
 
+test("the decision's WebAssembly carries none of its trace's words", async ({ request }) => {
+  // The refusal codes' ADR: no page read the decision's causal trace, and its
+  // words were a tenth of the decision every page downloads. A refusal is
+  // told by its code (`PWR04`), which pleris.dev explains, and its recovery.
+  const wasm = await (await request.get("/pw-resume.wasm")).body();
+  for (const words of ["handler identity found", "capture schema matches exactly", "does not admit"]) {
+    expect(wasm.includes(words), `the words "${words}"`).toBe(false);
+  }
+  const { instance } = await WebAssembly.instantiate(wasm, {});
+  const exports = Object.keys(instance.exports);
+  expect(exports, "nor an export of them").not.toContain("last_trace_ptr");
+  expect(exports, "and the decision is whole").toEqual(expect.arrayContaining(["decide_manifest", "last_recovery"]));
+});
+
 test("gate 7b: the interactive route's runtime is bounded as it is sent", async ({ page }) => {
   const bytes = await transferred(page, () => ready(page));
   console.log(`EVIDENCE interactive-script-bytes=${bytes.script} brotli=${bytes.sent.script}`);

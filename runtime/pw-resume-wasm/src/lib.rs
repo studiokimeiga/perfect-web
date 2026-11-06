@@ -16,20 +16,24 @@
 //! # The ABI
 //!
 //! ```text
-//! alloc(len)            -> ptr        the caller writes the manifest here
-//! decide(ptr, len)      -> code       0 resume, 1 migrate, 2.. a refusal
-//! last_recovery()       -> code       which recovery the refusal chose
-//! last_trace_ptr/len()               the causal trace, UTF-8
+//! alloc(len)                -> ptr    the caller writes the manifest here
+//! decide_manifest(ptr, len) -> code   0 resume, 1 migrate, 2.. a refusal
+//! last_recovery()           -> code   which recovery the refusal chose
 //! ```
 //!
 //! The manifest is the same `|`-separated encoding the fuzzer's harness uses,
 //! so a browser input and a fuzz input are the same bytes.
+//!
+//! The decision's causal trace is not exported. No page read it, and this
+//! build compiles none of its words (`pw-resume`'s `trace` feature, off
+//! here), which were a tenth of every page's decision. A refusal is told by
+//! its code, which `pleris.dev/e/PWR<code>` explains, and by its recovery
+//! (the refusal codes' ADR).
 
 use std::sync::Mutex;
 
 use pw_resume::*;
 
-static TRACE: Mutex<String> = Mutex::new(String::new());
 static RECOVERY: Mutex<u32> = Mutex::new(0);
 
 /// **The handlers this build compiled**, each by its identity and the
@@ -142,12 +146,7 @@ pub unsafe extern "C" fn decide_manifest(ptr: *const u8, len: usize) -> u32 {
             let _ = authorise(&entry, &d).map(attach);
             1
         }
-        Decision::Refuse {
-            why,
-            recovery,
-            trace,
-        } => {
-            *TRACE.lock().unwrap() = trace.join("\n");
+        Decision::Refuse { why, recovery, .. } => {
             *RECOVERY.lock().unwrap() = match recovery {
                 Recovery::RefetchRegion => 0,
                 Recovery::RerenderPrivateSlot => 1,
@@ -171,7 +170,6 @@ pub unsafe extern "C" fn decide_manifest(ptr: *const u8, len: usize) -> u32 {
         }
     };
     if d.attaches() {
-        TRACE.lock().unwrap().clear();
         *RECOVERY.lock().unwrap() = u32::MAX;
     }
     code
@@ -180,16 +178,6 @@ pub unsafe extern "C" fn decide_manifest(ptr: *const u8, len: usize) -> u32 {
 #[unsafe(no_mangle)]
 pub extern "C" fn last_recovery() -> u32 {
     *RECOVERY.lock().unwrap()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn last_trace_ptr() -> *const u8 {
-    TRACE.lock().unwrap().as_ptr()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn last_trace_len() -> usize {
-    TRACE.lock().unwrap().len()
 }
 
 /// `scheme|abi|build|handler|capture|document|scope|captures|construct`

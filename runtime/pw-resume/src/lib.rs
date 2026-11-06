@@ -510,21 +510,41 @@ impl Decision {
     }
 }
 
+/// **The decision's causal trace, in words.**
+///
+/// With the `trace` feature off it holds nothing, and no step's words are
+/// compiled: each step is given as a closure that is never called, so its
+/// text and its formatting never reach the binary. The browser's build
+/// leaves the feature off. No page reads the trace, and its words were
+/// bytes every page downloaded; the refusal's code and recovery remain.
+#[derive(Default)]
+struct Trace(Vec<String>);
+
+impl Trace {
+    #[cfg(feature = "trace")]
+    fn note(&mut self, words: impl FnOnce() -> String) {
+        self.0.push(words());
+    }
+
+    #[cfg(not(feature = "trace"))]
+    fn note(&mut self, _words: impl FnOnce() -> String) {}
+}
+
 /// Decide whether a manifest entry may be attached to this runtime's code.
 ///
 /// Order matters: the cheapest and most fundamental checks first, so a trace
 /// reads as a chain of narrowing rather than a list of unrelated failures.
 pub fn decide(entry: &ResumeEntry, rt: &Runtime, construct: Construct) -> Decision {
-    let mut trace = Vec::new();
-    let refuse = |why: Refusal, trace: Vec<String>| Decision::Refuse {
+    let mut trace = Trace::default();
+    let refuse = |why: Refusal, trace: Trace| Decision::Refuse {
         recovery: construct.recovery_for(&entry.privacy_scope),
         why,
-        trace,
+        trace: trace.0,
     };
 
     // 0. The manifest must be well formed before anything reads it.
     if entry.captures.is_empty() && entry.capture_schema != SchemaHash::of_fields(&[]) {
-        trace.push("manifest declares a non-empty schema and carries no bytes".into());
+        trace.note(|| "manifest declares a non-empty schema and carries no bytes".into());
         return refuse(
             Refusal::MalformedManifest("captures are empty under a non-empty schema"),
             trace,
@@ -536,37 +556,36 @@ pub fn decide(entry: &ResumeEntry, rt: &Runtime, construct: Construct) -> Decisi
     //    runtime is not "a different handler" — it is a question with no
     //    answer, and it fails closed through the ordinary recovery path.
     if entry.hash_scheme != CURRENT_SCHEME {
-        trace.push(format!(
-            "manifest hash scheme {} != this build's {}",
-            entry.hash_scheme.0, CURRENT_SCHEME.0
-        ));
+        trace.note(|| {
+            format!(
+                "manifest hash scheme {} != this build's {}",
+                entry.hash_scheme.0, CURRENT_SCHEME.0
+            )
+        });
         return refuse(Refusal::UnsupportedHashScheme(entry.hash_scheme), trace);
     }
-    trace.push(format!("hash scheme {} understood", entry.hash_scheme.0));
+    trace.note(|| format!("hash scheme {} understood", entry.hash_scheme.0));
 
     // 2. ABI. An unsupported ABI means nothing below can even be interpreted.
     if !rt.abi.contains(&entry.platform_abi) {
-        trace.push(format!("abi {} not in {:?}", entry.platform_abi.0, rt.abi));
+        trace.note(|| format!("abi {} not in {:?}", entry.platform_abi.0, rt.abi));
         return refuse(Refusal::UnsupportedAbi(entry.platform_abi.clone()), trace);
     }
-    trace.push(format!("abi {} supported", entry.platform_abi.0));
+    trace.note(|| format!("abi {} supported", entry.platform_abi.0));
 
     // 2. Handler identity. A name would match here; content does not.
     let Some(handler_schema) = rt.handlers.get(&entry.handler) else {
-        trace.push("no code with this handler identity".into());
+        trace.note(|| "no code with this handler identity".into());
         return refuse(Refusal::UnknownHandler(entry.handler.clone()), trace);
     };
-    trace.push("handler identity found".into());
+    trace.note(|| "handler identity found".into());
 
     // 3. Privacy, BEFORE any decoding. A widened scope must not reach the
     //    point where bytes are interpreted, even to fail.
     if let Some(into) = &rt.scope
         && !entry.privacy_scope.can_flow_to(into)
     {
-        trace.push(format!(
-            "{:?} does not admit {:?}",
-            entry.privacy_scope, into
-        ));
+        trace.note(|| format!("{:?} does not admit {:?}", entry.privacy_scope, into));
         return refuse(
             Refusal::PrivacyWidened {
                 from: entry.privacy_scope.clone(),
@@ -575,22 +594,22 @@ pub fn decide(entry: &ResumeEntry, rt: &Runtime, construct: Construct) -> Decisi
             trace,
         );
     }
-    trace.push("privacy scope is equal or narrower".into());
+    trace.note(|| "privacy scope is equal or narrower".into());
 
     // 4. The document part must still have the shape the manifest was written
     //    against, or the captures describe positions that no longer exist.
     if let Some(doc) = &rt.document_schema
         && *doc != entry.document_schema
     {
-        trace.push("document part schema differs".into());
+        trace.note(|| "document part schema differs".into());
         return refuse(Refusal::DocumentSchemaMismatch, trace);
     }
-    trace.push("document part schema matches".into());
+    trace.note(|| "document part schema matches".into());
 
     // 5. Captures. Exact match, or an explicit migration between exactly these
     //    two schemas. No structural inference.
     if *handler_schema == entry.capture_schema {
-        trace.push("capture schema matches exactly".into());
+        trace.note(|| "capture schema matches exactly".into());
         return Decision::Resume;
     }
     let migration = rt
@@ -598,7 +617,7 @@ pub fn decide(entry: &ResumeEntry, rt: &Runtime, construct: Construct) -> Decisi
         .iter()
         .find(|m| m.from == entry.capture_schema && m.to == *handler_schema);
     let Some(migration) = migration else {
-        trace.push("no migration between these two schemas".into());
+        trace.note(|| "no migration between these two schemas".into());
         return refuse(
             Refusal::NoMigration {
                 from: entry.capture_schema.clone(),
@@ -607,11 +626,11 @@ pub fn decide(entry: &ResumeEntry, rt: &Runtime, construct: Construct) -> Decisi
             trace,
         );
     };
-    trace.push("explicit migration found".into());
+    trace.note(|| "explicit migration found".into());
     match (migration.apply)(&entry.captures) {
         Ok(produced) => Decision::Migrate { produced },
         Err(e) => {
-            trace.push(format!("migration returned an error: {}", e.0));
+            trace.note(|| format!("migration returned an error: {}", e.0));
             refuse(Refusal::MigrationFailed(e), trace)
         }
     }
@@ -708,6 +727,8 @@ pub fn patch_applies(document: &BuildId, patch: &BuildId) -> Decision {
     if document == patch {
         return Decision::Resume;
     }
+    let mut trace = Trace::default();
+    trace.note(|| format!("document build {} != patch build {}", document.0, patch.0));
     Decision::Refuse {
         why: Refusal::MixedBuild {
             document: document.clone(),
@@ -716,9 +737,6 @@ pub fn patch_applies(document: &BuildId, patch: &BuildId) -> Decision {
         // A mixed-generation stream cannot be repaired by re-fetching a region:
         // the document itself belongs to the older generation.
         recovery: Recovery::ReloadDocument,
-        trace: vec![format!(
-            "document build {} != patch build {}",
-            document.0, patch.0
-        )],
+        trace: trace.0,
     }
 }

@@ -287,6 +287,43 @@ there, so build before you trust a green check. The last section of
 [part 3](tour-pages.md#where-pw-check-stops) shows what `pw check` passes
 and `pw build` refuses, in programs the guide's test compiles.
 
+## When the browser refuses a handler
+
+A page's browser asks one question before it attaches a handler: may this
+build's code read what this document captured? The decision answers it in
+the browser, against the build that served the page, and a handler it
+refuses is never downloaded. The usual cause is a document from another
+build, which a cache kept or a redeploy outdated.
+
+A refused button recovers when it is pressed:
+- it reads the page again, never replaying the press;
+- it asks first, where what the reader typed would be lost;
+- where nothing safe is possible, it says the page is out of date.
+
+The browser's console names the refusal by a code, and the code's page says
+what it means:
+
+```text
+Pleris: handler 5 not attached: PWR04, https://pleris.dev/e/PWR04, recovery reload
+```
+
+| Code | Refusal | What it means |
+|---|---|---|
+| PWR02 | Hash scheme | The document's identities came from a hash scheme this build does not implement, so they cannot be compared at all. |
+| PWR03 | Runtime ABI | The document was written for a runtime ABI this build does not support. |
+| PWR04 | Unknown handler | This build has no code with the handler's identity. The page came from another build, or the handler changed since. |
+| PWR05 | Privacy widened | The document's captures are scoped more narrowly than this page: a session's may not be resumed into a public page, nor one reader's into another's. |
+| PWR06 | Document schema | The part of the document the handler belongs to has another shape in this build. |
+| PWR07 | No migration | The handler reads another capture schema than the document holds, and the program declares no migration between them. |
+| PWR08 | Migration failed | The declared migration between the two capture schemas failed on these captures. |
+| PWR09 | Malformed | The document declares captures for the handler and carries none. |
+| PWR10 | Mixed build | A streamed patch came from another build than the document. |
+
+A document that carries no resume manifest gives the decision nothing to
+read. The console then says `no decision` instead of a code, and the handler
+stays unattached. That is the closed side: a page that does nothing, never
+one that attaches anyway.
+
 ## Every code
 
 [The diagnostic codes](diagnostics.md) lists all of them, generated from the
