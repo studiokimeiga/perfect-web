@@ -72,6 +72,27 @@ keeps that, and changes only when the browser asks for them.
    press asks under its next specifier. A press never waits for warming to
    begin: it asks its loader as before, and finds the module loading or
    loaded.
+5. **The renderer's Wasm reads the IR without serde's derived visitors**
+   (`pw_render::decode`): the same JSON into the same types, held to the
+   derives by a differential test over the compiler's IR, every part kind
+   and every one-step mutation of them (`tests/decode.rs`). The derives stay
+   for every native reader, so the renderer remains one implementation; the
+   Wasm falls from 406,192 to 262,527 bytes (Brotli 92 KB to 76 KB). One
+   leniency is deliberately not copied: serde also reads a struct written as
+   a list of its fields, which the compiler never writes; this refuses it.
+6. **A link to one of a page's fragment forms is followed in its press**:
+   a primary, unmodified, unclaimed click on an `<a href>` to this page at a
+   declared form sets the address with `pushState` (no entry where it is the
+   address already) and the signal follows in the click's task, as React's
+   router does; anything else stays the browser's, and back and forward still
+   arrive as `hashchange`.
+7. **A production build's compiled modules are compressed**: its handlers',
+   computed values' and speculations' modules get Brotli and gzip siblings
+   (`compressModules`), never rewritten (their bytes are the compiler's,
+   their URL the identity's), and the server sends them, as PR #75 sends
+   the runtime, in the representation a request accepts, with a strong
+   validator per representation, `public, no-cache` and no session. A
+   development build has no siblings, and its modules go as they are.
 
 ## Measured (the development PC, 2026-11-06)
 

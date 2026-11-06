@@ -10515,10 +10515,17 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
         {
             let module = route.trim_start_matches("/speculation/");
             let module = module.split('?').next().unwrap_or(module);
-            match std::fs::read(server.artifacts.join("speculations").join(module)) {
-                Ok(bytes) => {
-                    respond_build(&mut stream, 200, "text/javascript; charset=utf-8", &bytes)
-                }
+            let path = server.artifacts.join("speculations").join(module);
+            match std::fs::read(&path) {
+                // As its packaging wrote it, compressed where it was (the
+                // first press's ADR): the same for every reader.
+                Ok(bytes) => respond_representation(
+                    &mut stream,
+                    &headers,
+                    "text/javascript; charset=utf-8",
+                    &path,
+                    bytes,
+                ),
                 Err(_) => respond_build(
                     &mut stream,
                     404,
@@ -10539,10 +10546,15 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
         {
             let module = route.split('?').next().unwrap_or(route);
             let file = module.trim_start_matches("/computed/");
-            match std::fs::read(server.artifacts.join("computed").join(file)) {
-                Ok(bytes) => {
-                    respond_build(&mut stream, 200, "text/javascript; charset=utf-8", &bytes)
-                }
+            let path = server.artifacts.join("computed").join(file);
+            match std::fs::read(&path) {
+                Ok(bytes) => respond_representation(
+                    &mut stream,
+                    &headers,
+                    "text/javascript; charset=utf-8",
+                    &path,
+                    bytes,
+                ),
                 Err(_) => respond_build(
                     &mut stream,
                     404,
@@ -10571,10 +10583,15 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 );
                 return;
             }
-            match std::fs::read(server.handler_module(id)) {
-                Ok(module) => {
-                    respond_build(&mut stream, 200, "text/javascript; charset=utf-8", &module)
-                }
+            let path = server.handler_module(id);
+            match std::fs::read(&path) {
+                Ok(module) => respond_representation(
+                    &mut stream,
+                    &headers,
+                    "text/javascript; charset=utf-8",
+                    &path,
+                    module,
+                ),
                 Err(_) => respond_build(
                     &mut stream,
                     404,
@@ -11542,8 +11559,6 @@ fn warms(dist: &std::path::Path) -> bool {
 }
 
 fn serve_file(server: &Server, stream: &mut TcpStream, route: &str, request_headers: &str) {
-    use sha2::Digest;
-
     let name = route.trim_start_matches('/');
     // No traversal: a request names a file in dist and nothing above it.
     if name.contains("..") || name.contains('/') {
@@ -11560,7 +11575,7 @@ fn serve_file(server: &Server, stream: &mut TcpStream, route: &str, request_head
         Some("svg") => "image/svg+xml",
         _ => "application/octet-stream",
     };
-    let Ok(mut bytes) = std::fs::read(&path) else {
+    let Ok(bytes) = std::fs::read(&path) else {
         respond_build(stream, 404, "text/plain", b"not found");
         return;
     };
@@ -11575,19 +11590,38 @@ fn serve_file(server: &Server, stream: &mut TcpStream, route: &str, request_head
         respond_build(stream, 200, mime, &bytes);
         return;
     }
+    respond_representation(stream, request_headers, mime, &path, bytes);
+}
+
+/// **A file of the build, as its packaging wrote it** (PR #75's delivery,
+/// and the first press's ADR for the compiled modules): the representation
+/// the request accepts of those the packaging wrote beside it (`.br`, `.gz`),
+/// else the file as it is; a strong ETag for that representation, and a 304
+/// with no body for a request that holds it; `public, no-cache`, so a cache
+/// keeps it and asks again before using it. The same for every reader: no
+/// session, no cookie. `bytes` are the file's own.
+fn respond_representation(
+    stream: &mut TcpStream,
+    request_headers: &str,
+    mime: &str,
+    path: &std::path::Path,
+    mut bytes: Vec<u8>,
+) {
+    use sha2::Digest;
+
     let mut encoding = None;
-    if compressible {
-        // The build pipeline writes both representations, without changing
-        // the uncompressed file or any user/session-specific HTML response.
-        for (algorithm, suffix) in [("br", "br"), ("gzip", "gz")] {
-            if !accepts_asset_encoding(request_headers, algorithm) {
-                continue;
-            }
-            if let Ok(compressed) = std::fs::read(server.dist.join(format!("{name}.{suffix}"))) {
-                bytes = compressed;
-                encoding = Some(algorithm);
-                break;
-            }
+    // The build pipeline writes both representations, without changing the
+    // uncompressed file or any user/session-specific HTML response.
+    for (algorithm, suffix) in [("br", "br"), ("gzip", "gz")] {
+        if !accepts_asset_encoding(request_headers, algorithm) {
+            continue;
+        }
+        let mut sibling = path.as_os_str().to_owned();
+        sibling.push(format!(".{suffix}"));
+        if let Ok(compressed) = std::fs::read(&sibling) {
+            bytes = compressed;
+            encoding = Some(algorithm);
+            break;
         }
     }
 
@@ -11605,10 +11639,8 @@ fn serve_file(server: &Server, stream: &mut TcpStream, route: &str, request_head
                 .split(',')
                 .any(|candidate| candidate.trim() == tag)
         });
-    let mut response_headers = format!("cache-control: public, no-cache\r\netag: {tag}\r\n");
-    if compressible {
-        response_headers.push_str("vary: accept-encoding\r\n");
-    }
+    let mut response_headers =
+        format!("cache-control: public, no-cache\r\netag: {tag}\r\nvary: accept-encoding\r\n");
     if let Some(algorithm) = encoding {
         response_headers.push_str(&format!("content-encoding: {algorithm}\r\n"));
     }
@@ -16944,6 +16976,117 @@ public query Store(",
         assert!(!handlers(&lazy).is_empty(), "{lazy}");
         assert_eq!(handlers(&lazy), handlers(&warm));
         assert_eq!(lazy.lines().count() + 1, warm.lines().count());
+    }
+
+    /// One GET of `path` with `headers` added, through the server's own
+    /// handling: the answer's head, and its body's bytes as sent.
+    fn get_bytes(s: &Server, path: &str, headers: &str) -> (String, Vec<u8>) {
+        let listener = std::net::TcpListener::bind(("127.0.0.1", 0)).expect("bind");
+        let at = listener.local_addr().expect("address");
+        std::thread::scope(|scope| {
+            scope.spawn(|| {
+                let (stream, _) = listener.accept().expect("accept");
+                handle(s, stream);
+            });
+            let mut client = std::net::TcpStream::connect(at).expect("connect");
+            client
+                .write_all(
+                    format!(
+                        "GET {path} HTTP/1.1\r\nHost: t\r\nCookie: pw-session=a\r\n{headers}\r\n"
+                    )
+                    .as_bytes(),
+                )
+                .expect("request");
+            let mut answer = Vec::new();
+            let _ = std::io::Read::read_to_end(&mut client, &mut answer);
+            let split = answer
+                .windows(4)
+                .position(|w| w == b"\r\n\r\n")
+                .expect("a head");
+            (
+                String::from_utf8_lossy(&answer[..split]).to_string(),
+                answer[split + 4..].to_vec(),
+            )
+        })
+    }
+
+    /// **A compiled module is sent as its packaging wrote it** (the first
+    /// press's ADR): a handler's and a page's computed values', each in the
+    /// representation the request accepts of those its production packaging
+    /// wrote beside it, else as it is, which is all a development build
+    /// has; each with a validator for that representation, a 304 for a
+    /// request that holds it, a public cache policy and no session. What
+    /// this build does not name is refused as before.
+    #[test]
+    fn a_compiled_module_is_sent_as_its_packaging_wrote_it() {
+        let s = served_feed();
+        let id = s
+            .handler_identities()
+            .into_iter()
+            .next()
+            .expect("a handler");
+        let handler = (format!("/handler/{id}.mjs"), s.handler_module(&id));
+        let computed = (
+            "/computed/feed.app.Home~ui.mjs".to_string(),
+            s.artifacts.join("computed").join("feed.app.Home~ui.mjs"),
+        );
+        for (url, path) in [handler, computed] {
+            let plain = std::fs::read(&path).expect("the module");
+            // A development build's: no other representation, the module.
+            let (head, body) = get_bytes(&s, &url, "Accept-Encoding: br, gzip\r\n");
+            assert!(head.starts_with("HTTP/1.1 200"), "{head}");
+            assert_eq!(body, plain, "{url}");
+            assert!(!head.contains("content-encoding"), "{head}");
+            assert!(
+                head.contains("cache-control: public, no-cache\r\n"),
+                "{head}"
+            );
+            assert!(head.contains("vary: accept-encoding\r\n"), "{head}");
+            assert!(!head.to_ascii_lowercase().contains("set-cookie"), "{head}");
+            // A production build's: what the request accepts, Brotli first.
+            let sibling = |suffix: &str| {
+                let mut p = path.as_os_str().to_owned();
+                p.push(suffix);
+                std::path::PathBuf::from(p)
+            };
+            std::fs::write(sibling(".br"), b"brotli's bytes").expect("written");
+            std::fs::write(sibling(".gz"), b"gzip's bytes").expect("written");
+            let (head, body) = get_bytes(&s, &url, "Accept-Encoding: gzip, br\r\n");
+            assert!(head.contains("content-encoding: br\r\n"), "{head}");
+            assert_eq!(body, b"brotli's bytes");
+            let (head, body) = get_bytes(&s, &url, "Accept-Encoding: gzip, br;q=0\r\n");
+            assert!(head.contains("content-encoding: gzip\r\n"), "{head}");
+            assert_eq!(body, b"gzip's bytes");
+            let (plain_head, body) = get_bytes(&s, &url, "");
+            assert!(!plain_head.contains("content-encoding"), "{plain_head}");
+            assert_eq!(body, plain);
+            // One validator a representation, and a 304 for the one held.
+            let etag = |head: &str| {
+                head.lines()
+                    .find_map(|l| l.strip_prefix("etag: "))
+                    .expect("an etag")
+                    .to_string()
+            };
+            let plain_tag = etag(&plain_head);
+            let (head, body) = get_bytes(&s, &url, &format!("If-None-Match: {plain_tag}\r\n"));
+            assert!(head.starts_with("HTTP/1.1 304"), "{head}");
+            assert!(body.is_empty());
+            let (head, _) = get_bytes(
+                &s,
+                &url,
+                &format!("Accept-Encoding: br\r\nIf-None-Match: {plain_tag}\r\n"),
+            );
+            assert!(
+                head.starts_with("HTTP/1.1 200"),
+                "another representation: {head}"
+            );
+        }
+        let (head, _) = get_bytes(
+            &s,
+            "/handler/ffffffffffffffff.mjs",
+            "Accept-Encoding: br\r\n",
+        );
+        assert!(head.starts_with("HTTP/1.1 404"), "{head}");
     }
 
     /// **A build that names no build is not served** (ADR-0300): it was

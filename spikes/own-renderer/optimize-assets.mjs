@@ -43,13 +43,55 @@ async function packAsset(directory, entry) {
  */
 export const DELIVERY = { warm: true };
 
+/**
+ * **The compiled modules a page loads** (the first press's ADR): its
+ * handlers, its computed values and its speculations, in the build's
+ * directory, where the server serves them from. A production page warms
+ * them, so each is sent with every first visit.
+ */
+const MODULES = ["build/handlers", "build/computed", "build/speculations"];
+
+/**
+ * Each compiled module compressed beside itself, as it is: never minified or
+ * otherwise rewritten, since its bytes are its compiler's and its URL its
+ * identity's (`/handler/<identity>.mjs`). Brotli and gzip, as the root
+ * assets are; the server sends the one a request accepts. Returns the
+ * modules, relative to `directory`, in a deterministic order.
+ */
+export async function compressModules(directory) {
+  const done = [];
+  for (const sub of MODULES) {
+    let entries;
+    try {
+      entries = await readdir(path.join(directory, sub), { withFileTypes: true });
+    } catch (error) {
+      if (error.code === "ENOENT") continue;
+      throw error;
+    }
+    const names = entries
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".mjs"))
+      .map((entry) => entry.name)
+      .sort((a, b) => a.localeCompare(b, "en"));
+    for (const name of names) {
+      const file = path.join(directory, sub, name);
+      const body = await readFile(file);
+      await writeFile(file + ".br", brotliCompressSync(body, BR));
+      await writeFile(file + ".gz", gzipSync(body, { level: 9, mtime: 0 }));
+      done.push(`${sub}/${name}`);
+    }
+  }
+  return done;
+}
+
 export async function optimizeAssets(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   // Deterministic order and only root-level shared assets. Compiled handler
-  // modules have their own content/identity contract and stay untouched.
+  // modules have their own content/identity contract: they are compressed
+  // beside themselves (`compressModules`) and never rewritten.
   const assets = entries.filter((entry) => entry.isFile() && ASSET.test(entry.name));
   assets.sort((a, b) => a.name.localeCompare(b.name, "en"));
   for (const asset of assets) await packAsset(directory, asset);
+  await compressModules(directory);
   await writeFile(path.join(directory, "delivery.json"), `${JSON.stringify(DELIVERY)}\n`);
   return assets.map((asset) => asset.name);
 }
