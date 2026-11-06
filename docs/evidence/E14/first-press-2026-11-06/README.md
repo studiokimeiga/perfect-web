@@ -184,6 +184,112 @@ record before lost 10: first-load bytes and requests against SvelteKit
 subscriptions (29.7 requests a minute, 6.00 ms of server CPU a second for 20
 visitors, against 0 and 2.00 for pages that hear no changes).
 
+## A press's own paths, warmed (decision 11; `first-add/`)
+
+The first add on a TodoMVC page left idle 2.5 s after its load (its code
+warmed), timed in the page from the Enter keydown's own time stamp to the
+first change of the document and to the frame after it (`requestAnimation
+Frame` then a task), with a Chromium trace of the main thread over the same
+span (`first-add/first-add.mjs`, gzipped). A is the branch's runtime before
+decision 11, B with it; each a production build (`PW_PRODUCTION_ASSETS=1`,
+`PW_OUT=…`), both served by one release host
+(`first-add/firstadd-ab.sh`). Eight runs a cell, two rounds each
+(`first-add/first-add.log`); medians, ms:
+
+| first add | A | B |
+|---|---:|---:|
+| key to the change, 4x CPU | 32.5 / 34.9 | **7.2 / 8.3** |
+| key to the frame after it, 4x CPU | 60.4 / 69.6 | **36.1 / 44.9** |
+| key to the change, unthrottled | 8.0 / 7.8 | **1.8 / 1.6** |
+| key to the frame after it, unthrottled | 16.6 / 17.0 | **10.6 / 10.3** |
+| WebAssembly compiled in the press (trace) | 521 functions: 21-22 ms at 4x, 5 unthrottled | none |
+| JavaScript compiled in the press (trace) | 75 compilations: 5.4-5.6 ms at 4x | not among the 22 largest events |
+
+What remains at 4x CPU between the change and the frame is the browser's
+layout of the new list and footer, 13-14 ms, forced inside the Enter's
+default handling (`Editor::HandleKeyboardEvent`), in A and B alike; React's
+and Svelte's adds lay out the same TodoMVC markup.
+
+What the warm-up costs, idle (`first-add/warm-cost.mjs`): on a page whose
+runtime never calls it, a fresh instance of the renderer, `warm()` timed:
+5.2 ms unthrottled and 23.7 ms at 4x CPU on its first call, which is the
+compiling the press no longer does; 1.3 and 4.4 ms on a second. Its sample
+adds 4,874 bytes to the renderer (990 Brotli: 262,527 to 267,401; 76,346 to
+77,336).
+
+Run for it, in Chromium and Firefox: eighteen development-build spec files
+the warm-up could reach, while it still warmed every block (404 tests: 401
+passed, 3 skipped; `keyed.spec.mjs` not run, its build not made;
+`first-add/warmpaths-verify.log.gz`); then on its final form, eleven
+(`warm`, `signals`, `todomvc`, `keyed-list`, `keyed`, `press-modules`,
+`lazy-handler`, `dialog`, `focus`, `views`, `device-store`): 274 passed, the
+two new `warm.spec.mjs` tests among them (`first-add/last-check.log`).
+`runtime-size.spec.mjs` (gate 7b: the runtime 44,097 B Brotli and the
+decision's Wasm 21,284, 65,381 of the 65,536 bound; 7d: the renderer
+77,336); `pw-render-wasm`'s tests (10, two new), `pw-render`'s, clippy and
+rustfmt on `pw-render-wasm`, and the mutation anchors (4,992, each matching
+once). Whether nodes imported into the inert document load or run
+anything (`first-add/inert-probe.mjs`): an `img`, `video`, `audio`,
+`iframe`, `object`, a `picture`'s source, a stylesheet `link` and a defined
+custom element, in Chromium and Firefox: no request, no constructor.
+
+### The head-to-head with it (`runs/wp-*`)
+
+The instrument as above (`first-add/wp-bench.sh`): TodoMVC, loopback and
+Slow 4G, cold and warm, then the store's record (five server rounds), each
+run `every rule held (validate.mjs)`. The store
+was built after decision 11 took its final form (one block warmed);
+TodoMVC, which has one block, before it, which warms the same. Medians:
+
+| TodoMVC | `warm4` | `wp` | React | Svelte |
+|---|---:|---:|---:|---:|
+| first add, Slow 4G, cold | 51 ms | **31 ms** | 33 | 34 |
+| first toggle, Slow 4G, cold | 25 ms | 22 ms | 24 | 19 |
+| filter, Slow 4G, cold | - | **15 ms** | 17 | 29 |
+| add, loopback, cold (two runs) | 18 ms | 11 / 8.0 ms | 8.9 / 8.5 | 8.8 / 7.5 |
+| interactive, Slow 4G, cold | 1,413 ms | 1,417 ms | 1,671 | 1,295 |
+| interactive, Slow 4G, warm visit | 650 ms (`ver5`) | **645 ms** | 1,189 | 1,168 |
+| first paint, Slow 4G, cold | - | 1,260 ms | 1,200 | 1,196 |
+| first load received | 140,029 B | 141,822 B | 70,085 | 20,821 |
+
+TodoMVC's add and toggle each still fetch one drawing of the checkbox
+(`/todomvc-circle.svg`, 406 B; `/todomvc-checked.svg`, 449 B), which
+React's and Svelte's sheets carry as `data:` images and this app's policy
+refuses (`img-src 'self'`, ADR-0333; `todomvc-styles.mjs`): the frame is
+not held for it, but under Slow 4G the checkbox would be drawn a request
+(562.5 ms) later, which the instrument does not time. The ADR asks.
+
+| store | `fp-store-record` | `wp-store` | Next.js | SvelteKit |
+|---|---:|---:|---:|---:|
+| interactive, Slow 4G, cold | 1,381 ms | **1,381 ms** | 2,067 | 1,749 |
+| interactive, Slow 4G, warm visit | 1,186 ms | **626 ms** | 660 | 638 |
+| add to its frame, Slow 4G, cold | 18 ms | **13 ms** | 638 | 1,179 |
+| interactive, loopback, cold | 26 ms | **24 ms** | 57 | 29 |
+| add to its frame, loopback, cold | 14 ms | **15 ms** | 30 | 31 |
+| a press with 19 other tabs open | 23.3 ms | **21.1 ms** | 43.3 | 43.6 |
+| server CPU a request under load | 0.26 ms | **0.20 ms** | 5.12 | 1.17 |
+| peak memory under load | 45.0 MiB | **45.4 MiB** | 143 | 105 |
+| latency under load, p50 / p99 | 1.50 / - ms | 1.09 / 2.88 ms | 3.57 / 6.57 | 0.81 / 2.37 |
+| first load received | 45,049 B | 45,536 B | 140,217 | 35,018 |
+| an idle page's requests a minute | 29.7 | 29.7 | 0 | 0 |
+| server CPU for 20 idle visitors | 6.00 ms/s | 5.00 ms/s | 2.00 | 1.00 |
+
+The store's record is best in 12 rows and loses 8 (`fp-store-record`: 14
+and 10; `ver5-store`: lost 8): first-load bytes against SvelteKit (three
+rows), requests against Next.js (7 to 6), latency under load against
+SvelteKit (p50, p99), and its live subscription's idle requests and CPU.
+
+### Warming everywhere
+
+With every base and TodoMVC page's build warming (a `delivery.json` put
+beside each for the run), the same eighteen less `lazy-handler` and `warm`:
+15 failed, in `press-modules.spec.mjs` (seven a browser) and
+`keyed-list.spec.mjs` (one), and the same 15 with the runtime before
+decision 11 (`first-add/head-warming.log`). Each installs its fault after
+the page is ready, or counts the runtime's log lines, and expects the press
+to be the first to load: under warming the module has loaded by then. The
+ADR's first question.
+
 ## Firefox (`base-firefox`, `fp-firefox`)
 
 TodoMVC in Firefox, loopback, cold and warm, five runs, PR #75 against the

@@ -1,0 +1,73 @@
+exit run.sh (head) 0
+exit specs (head) 1
+[2/46] [firefox] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module failed to load is sent unspeculated, and the next press loads it again
+[6/46] [chromium] › e2e/press-modules.spec.mjs:79:1 › a renderer that failed to load is loaded again for the next block a signal renders
+[10/46] [firefox] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer failed to load is sent unspeculated, and the next press loads it again
+[12/46] [firefox] › e2e/press-modules.spec.mjs:79:1 › a renderer that failed to load is loaded again for the next block a signal renders
+[14/46] [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer failed to load is sent unspeculated, and the next press loads it again
+[15/46] [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module failed to load is sent unspeculated, and the next press loads it again
+    Error: expect(locator).toHaveCount(expected) failed
+  2) [chromium] › e2e/press-modules.spec.mjs:79:1 › a renderer that failed to load is loaded again for the next block a signal renders 
+    Error: expect(locator).toHaveCount(expected) failed
+  6) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module failed to load is sent unspeculated, and the next press loads it again 
+  7) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer failed to load is sent unspeculated, and the next press loads it again 
+    Error: expect(locator).toHaveText(expected) failed
+  9) [firefox] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module failed to load is sent unspeculated, and the next press loads it again 
+    Error: expect(locator).toHaveText(expected) failed
+  12) [firefox] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer failed to load is sent unspeculated, and the next press loads it again 
+  14) [firefox] › e2e/press-modules.spec.mjs:79:1 › a renderer that failed to load is loaded again for the next block a signal renders 
+  15 failed
+    [chromium] › e2e/keyed-list.spec.mjs:344:1 › a duplicate key is refused, and nothing changes ───
+    [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module failed to load is sent unspeculated, and the next press loads it again 
+    [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module never loaded is sent unspeculated, and the next press loads it again 
+    [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer failed to load is sent unspeculated, and the next press loads it again 
+    [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer never loaded is sent unspeculated, and the next press loads it again 
+    [chromium] › e2e/press-modules.spec.mjs:79:1 › a renderer that failed to load is loaded again for the next block a signal renders 
+    [chromium] › e2e/press-modules.spec.mjs:99:1 › a press whose handler's module never loads fails at the deadline, and the next press loads it again 
+    [chromium] › e2e/press-modules.spec.mjs:120:1 › a press made after one whose module never loads runs once that load is given up 
+    [firefox] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module failed to load is sent unspeculated, and the next press loads it again 
+    [firefox] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module never loaded is sent unspeculated, and the next press loads it again 
+    [firefox] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer failed to load is sent unspeculated, and the next press loads it again 
+    [firefox] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer never loaded is sent unspeculated, and the next press loads it again 
+    [firefox] › e2e/press-modules.spec.mjs:79:1 › a renderer that failed to load is loaded again for the next block a signal renders 
+    [firefox] › e2e/press-modules.spec.mjs:99:1 › a press whose handler's module never loads fails at the deadline, and the next press loads it again 
+    [firefox] › e2e/press-modules.spec.mjs:120:1 › a press made after one whose module never loads runs once that load is given up 
+  27 passed (59.6s)
+exit run.sh (tree) 0
+exit specs (tree) 1
+[4/46] [chromium] › e2e/press-modules.spec.mjs:79:1 › a renderer that failed to load is loaded again for the next block a signal renders
+[8/46] [firefox] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer failed to load is sent unspeculated, and the next press loads it again
+[9/46] [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module failed to load is sent unspeculated, and the next press loads it again
+[10/46] [firefox] › e2e/press-modules.spec.mjs:79:1 › a renderer that failed to load is loaded again for the next block a signal renders
+[11/46] [firefox] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module failed to load is sent unspeculated, and the next press loads it again
+[15/46] [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer failed to load is sent unspeculated, and the next press loads it again
+    Error: expect(locator).toHaveCount(expected) failed
+  2) [chromium] › e2e/press-modules.spec.mjs:79:1 › a renderer that failed to load is loaded again for the next block a signal renders 
+  3) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer failed to load is sent unspeculated, and the next press loads it again 
+  6) [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module failed to load is sent unspeculated, and the next press loads it again 
+    Error: expect(locator).toHaveText(expected) failed
+    Error: expect(locator).toHaveCount(expected) failed
+    Error: expect(locator).toHaveText(expected) failed
+  11) [firefox] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer failed to load is sent unspeculated, and the next press loads it again 
+  13) [firefox] › e2e/press-modules.spec.mjs:79:1 › a renderer that failed to load is loaded again for the next block a signal renders 
+  14) [firefox] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module failed to load is sent unspeculated, and the next press loads it again 
+  15 failed
+    [chromium] › e2e/keyed-list.spec.mjs:344:1 › a duplicate key is refused, and nothing changes ───
+    [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module failed to load is sent unspeculated, and the next press loads it again 
+    [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module never loaded is sent unspeculated, and the next press loads it again 
+    [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer failed to load is sent unspeculated, and the next press loads it again 
+    [chromium] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer never loaded is sent unspeculated, and the next press loads it again 
+    [chromium] › e2e/press-modules.spec.mjs:79:1 › a renderer that failed to load is loaded again for the next block a signal renders 
+    [chromium] › e2e/press-modules.spec.mjs:99:1 › a press whose handler's module never loads fails at the deadline, and the next press loads it again 
+    [chromium] › e2e/press-modules.spec.mjs:120:1 › a press made after one whose module never loads runs once that load is given up 
+    [firefox] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module failed to load is sent unspeculated, and the next press loads it again 
+    [firefox] › e2e/press-modules.spec.mjs:51:5 › a press whose speculation module never loaded is sent unspeculated, and the next press loads it again 
+    [firefox] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer failed to load is sent unspeculated, and the next press loads it again 
+    [firefox] › e2e/press-modules.spec.mjs:51:5 › a press whose renderer never loaded is sent unspeculated, and the next press loads it again 
+    [firefox] › e2e/press-modules.spec.mjs:79:1 › a renderer that failed to load is loaded again for the next block a signal renders 
+    [firefox] › e2e/press-modules.spec.mjs:99:1 › a press whose handler's module never loads fails at the deadline, and the next press loads it again 
+    [firefox] › e2e/press-modules.spec.mjs:120:1 › a press made after one whose module never loads runs once that load is given up 
+  27 passed (58.2s)
+runtime restored
+exit final run.sh 0
+HEAD_WARMING_FINISHED

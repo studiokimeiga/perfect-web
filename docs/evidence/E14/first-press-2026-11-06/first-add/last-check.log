@@ -1,0 +1,38 @@
+== 2026-11-06T05:03:01-05:00 anchors, unit tests
+mutation anchors: 4992 mutants in 324 scripts, each matching once
+exit anchors 0
+
+running 10 tests
+..........
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+exit cargo test 0
+== 2026-11-06T05:03:02-05:00 dists
+exit build 0
+exit run.sh 0
+exit todomvc.sh 0
+exit keyed-store.sh 0
+== 2026-11-06T05:03:07-05:00 specs (chromium, firefox)
+exit specs 0
+e2e/computed-modules.spec.mjs is not run: dist-feed was built with another pw-runtime.mjs: run feed.sh
+e2e/feed.spec.mjs is not run: dist-feed was built with another pw-runtime.mjs: run feed.sh
+e2e/guestbook.spec.mjs is not run: dist-guestbook is not built: run guestbook.sh
+e2e/identity.spec.mjs is not run: dist-feed was built with another pw-runtime.mjs: run feed.sh
+e2e/kiokun-site.spec.mjs is not run: dist-kiokun is not built: run kiokun-site.sh
+e2e/messages.spec.mjs is not run: dist-feed was built with another pw-runtime.mjs: run feed.sh
+e2e/notifications.spec.mjs is not run: dist-feed was built with another pw-runtime.mjs: run feed.sh
+e2e/upload-metadata.spec.mjs is not run: dist-feed was built with another pw-runtime.mjs: run feed.sh
+e2e/uploads.spec.mjs is not run: dist-feed was built with another pw-runtime.mjs: run feed.sh
+Running 274 tests using 16 workers
+  274 passed (1.3m)
+== 2026-11-06T05:04:26-05:00 runtime size
+exit runtime-size 0
+EVIDENCE interactive-script-bytes=167172 brotli=44097
+EVIDENCE interactive-wasm-bytes=57951 brotli=21284
+EVIDENCE renderer-wasm-bytes=267401 gzip=94092 brotli=77336
+LAST_CHECK_FINISHED
