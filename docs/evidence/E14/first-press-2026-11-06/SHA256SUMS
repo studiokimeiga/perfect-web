@@ -1,3 +1,9 @@
+e6931b9a5f26125a16873f18a601d1563673db3a43d6032f3fb2c87bb246b56f  ./mutations/mutations.sh.gz
+2ce9a429da9a0433b5166ca356aea1a122fd47c3d1866c1387e76881dfb1ed97  ./mutations/reanchored-controls.log
+8019c25a492028cb90ab95e97433a939c499594f1573cb4466ef48b20f09ae7e  ./mutations/stable-layout-two-engines.txt
+ee104aeb954a7e885017ee48d0a4debda82a09d64ff3d12b46759a7ecfc414a1  ./mutations/stable_layout_two_engines.py.gz
+e4af6d659f306834b4c2c5ae8174b7b1050ed691cbaa5dc8949225b10a35b57c  ./runs/base-firefox.json.gz
+eaebed17e5e551c8b4cc97fa1b0df5fa3ee52b91fcba63a95fb4ed37996acd55  ./runs/base-firefox.log
 b1cf514178b649401393d313c0aa382aa4cc9366e41edaf053a3e653c4a663a1  ./runs/base-store-store.json.gz
 e2d6067d9621bad44f7ca59274975847f0abe54d7465ab45a4c146915fd37858  ./runs/base-store-store.log
 cffd54548efe07695114c692f4360da6c1207b8bb5931982dc09b2c919e2641b  ./runs/base1-loopback.json.gz
@@ -8,6 +14,8 @@ e88a1e76dd0a9aa72e4c86df8fd854f103b0c2cc0afcb527bdc7dc045efeeb8e  ./runs/boot1-l
 32f5e291389d68d510e9770161eff2200da7eda7219138ed8131c2c51959ecba  ./runs/boot1-loopback.log
 dee691fbf22221335ad33d0aa10ad5240b2b11a6882a0b91dcd010e37d5faae0  ./runs/boot1-slow4g.json.gz
 a07a172e9ab242b1bded8b45bf9fe58878622efc3914c55655f4327dbba21217  ./runs/boot1-slow4g.log
+8cc34ae9bcbf65b156248701025d1c661956d979ae1bbf0cc06f367b252bade6  ./runs/fp-firefox.json.gz
+25c7f469959745237fcad0b0881788fbb98bb636731f92085615fded39de3a33  ./runs/fp-firefox.log
 3f775eef5bbe19b77268fa2edc4ae781baca9889ecc2c315203d0d81f70e751a  ./runs/fp-store-record.json.gz
 97aca5deae17f43d17512403c0106100f3b6f95c98a6ab2723ccf3d5976b17ef  ./runs/fp-store-record.log
 a565d8ac771c181c41852f5ab80c1f5f0aba3e13f741080840a774ae46897a7b  ./runs/fp-store-store.json.gz

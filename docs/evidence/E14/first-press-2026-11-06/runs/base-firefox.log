@@ -1,0 +1,95 @@
+  settled: one-minute load 6.58 -> 6.58 in 0 s (goal under 8)
+head-to-head: todomvc
+  started pleris-todomvc on 13961 (pid 3923092)
+  started static-react on 13962 (pid 3923128)
+  started static-svelte on 13963 (pid 3923135)
+  todomvc: firefox cold: 5 rounds of 3
+  todomvc: firefox warm: 5 rounds of 3
+machine: 13th Gen Intel(R) Core(TM) i9-13900K, 32 logical CPUs, 47 GiB; Ubuntu 22.04.3 LTS; kernel 6.18.54.1-microsoft-standard-WSL2; node v22.21.1
+load average: 6.58 4.31 3.37 at the start, 3.64 3.84 3.25 at the end
+settled before measuring: one-minute load 6.58 -> 6.58 in 0 s (waits at most 0 s for under 8)
+playwright: 1.58.0; browsers: firefox 146.0.1
+runs: 5 per cell (at least 5); conditions cold, warm; engines firefox; Chromium also shaped: no; servers: not measured; seed 20261025
+commit: 1d82a2b260d2673e2ab2e780f4654a900eecebdb; 2026-11-06T09:09:03.291Z to 2026-11-06T09:09:45.048Z
+
+== where Pleris loses: 6 row(s) of the tables below in which another stack does better
+  LOSS todomvc: interactive, ms, median (firefox, cold): Pleris 69 ms | React 66 ms | Svelte 51 ms  (better: Svelte)
+  LOSS todomvc: interaction "add" to its frame, ms, median (firefox, cold): Pleris 27 ms | React 8.0 ms | Svelte 7.0 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "toggle" to its frame, ms, median (firefox, cold): Pleris 16 ms | React 7.0 ms | Svelte 15 ms  (better: React, Svelte)
+  LOSS todomvc: interactive, ms, median (firefox, warm): Pleris 54 ms | React 51 ms | Svelte 36 ms  (better: Svelte)
+  LOSS todomvc: interaction "add" to its frame, ms, median (firefox, warm): Pleris 29 ms | React 3.0 ms | Svelte 3.0 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "toggle" to its frame, ms, median (firefox, warm): Pleris 17 ms | React 5.0 ms | Svelte 16 ms  (better: React, Svelte)
+
+== where Pleris is best: 3 row(s); 5 more where it is neither (spreads overlap, or it is between the others)
+  BEST todomvc: first contentful paint, ms, median (firefox, cold): Pleris 29 ms | React 51 ms | Svelte 65 ms
+  BEST todomvc: largest contentful paint, ms, median (firefox, cold): Pleris 29 ms | React 66 ms | Svelte 65 ms
+  BEST todomvc: largest contentful paint, ms, median (firefox, warm): Pleris 16 ms | React 63 ms | Svelte 47 ms
+
+== TodoMVC
+  Pleris     own renderer, this commit; written by this project (examples/todomvc, track todomvc); served by ../../../pw-targets/pr75-baseline/release/pw-dev-server dist-todomvc; interactive when the runtime sets data-pw-ready; build minifies: yes; host compresses: root-assets; host lets a cache keep its files: yes
+  React      React 19.2.5, react-router-dom 7.14.2, webpack 5.106.2; written by TodoMVC's maintainers (tastejs/todomvc@ff43b02e, examples/react); served by node benchmarks/headtohead/static-host.mjs --port 13962 --mount /react/dist=benchmarks/headtohead/todomvc/react/dist; interactive when its field is in the document (rendered by the client, handlers attached as it renders); build minifies: yes; host compresses: all; host lets a cache keep its files: yes
+  Svelte     Svelte 5.55.5, Vite 8.0.10; written by TodoMVC's maintainers (tastejs/todomvc@ff43b02e, examples/svelte); served by node benchmarks/headtohead/static-host.mjs --port 13963 --mount /svelte/dist=benchmarks/headtohead/todomvc/svelte/dist; interactive when its field is in the document (rendered by the client, handlers attached as it renders); build minifies: yes; host compresses: all; host lets a cache keep its files: yes
+
+bytes of the first load, cold, Chromium (every cold run of a stack received the same, or its range is shown):
+  decoded: the responses' bodies; Brotli 11, gzip 9: those bodies as a static host compresses them, for every stack alike;
+  received: what the browser received as each host sent it (headers included); app br: Brotli 11 without TodoMVC's common files (base.js, learn.json)
+  stack      requests   decoded Brotli 11   gzip 9  received  as sent          app br  by kind (decoded/br)
+  scripts and styles a minifier still shrinks by 10% or more (esbuild 0.28.2's, lib.mjs's rule), as served:
+  interaction "add" (cold, Chromium): requests / decoded / Brotli 11 / received
+  interaction "toggle" (cold, Chromium): requests / decoded / Brotli 11 / received
+  interaction "filter" (cold, Chromium): requests / decoded / Brotli 11 / received
+  warm (the same context after one whole visit; Chromium): requests / answered 304 / received
+
+times, ms from navigation start: median [first-third quartile] (min-max, n); interactions from the input event to the frame after the change; layout shift a score
+  firefox, cold, unshaped (loopback):
+    Pleris     first contentful paint 29 [26-34] (25-36, n=5)
+               largest contentful p. 29 [26-34] (25-36, n=5)
+               layout shift           not reported (5 runs)
+               interactive            69 [67-70] (64-83, n=5)
+               "add"                  27 [26-34] (23-39, n=5)
+               "toggle"               16 [16-17] (16-17, n=5)
+               "filter"               16 [15-16] (14-17, n=5)
+    React      first contentful paint 51 [45-66] (45-167, n=5)
+               largest contentful p. 66 [60-67] (60-187, n=5)
+               layout shift           not reported (5 runs)
+               interactive            66 [58-67] (58-186, n=5)
+               "add"                  8.0 [8.0-10] (7.0-11, n=5)
+               "toggle"               7.0 [7.0-7.0] (6.0-7.0, n=5)
+               "filter"               15 [13-15] (13-17, n=5)
+    Svelte     first contentful paint 65 [55-67] (54-71, n=5)
+               largest contentful p. 65 [55-67] (54-71, n=5)
+               layout shift           not reported (5 runs)
+               interactive            51 [51-53] (45-55, n=5)
+               "add"                  7.0 [7.0-7.0] (6.0-10, n=5)
+               "toggle"               15 [15-15] (15-16, n=5)
+               "filter"               16 [15-17] (14-17, n=5)
+  firefox, warm, unshaped (loopback):
+    Pleris     first contentful paint 16 [15-18] (14-33, n=5)
+               largest contentful p. 16 [15-18] (14-33, n=5)
+               layout shift           not reported (5 runs)
+               interactive            54 [51-55] (51-96, n=5)
+               "add"                  29 [29-30] (25-30, n=5)
+               "toggle"               17 [17-18] (16-18, n=5)
+               "filter"               15 [15-17] (15-17, n=5)
+    React      first contentful paint 44 [43-47] (41-48, n=5)
+               largest contentful p. 63 [62-63] (60-64, n=5)
+               layout shift           not reported (5 runs)
+               interactive            51 [50-51] (48-57, n=5)
+               "add"                  3.0 [3.0-3.0] (3.0-4.0, n=5)
+               "toggle"               5.0 [4.0-5.0] (4.0-6.0, n=5)
+               "filter"               15 [15-16] (14-17, n=5)
+    Svelte     first contentful paint 15 [15-15] (14-16, n=5)
+               largest contentful p. 47 [46-48] (45-49, n=5)
+               layout shift           not reported (5 runs)
+               interactive            36 [35-38] (35-38, n=5)
+               "add"                  3.0 [3.0-3.0] (3.0-4.0, n=5)
+               "toggle"               16 [16-16] (16-17, n=5)
+               "filter"               16 [16-16] (15-16, n=5)
+
+
+
+
+
+head-to-head: REFUSED: 2 problem(s); nothing above is a measurement
+  todomvc/react: build: no served file was matched to the vendored build
+  todomvc/svelte: build: no served file was matched to the vendored build

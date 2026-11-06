@@ -184,6 +184,34 @@ record before lost 10: first-load bytes and requests against SvelteKit
 subscriptions (29.7 requests a minute, 6.00 ms of server CPU a second for 20
 visitors, against 0 and 2.00 for pages that hear no changes).
 
+## Firefox (`base-firefox`, `fp-firefox`)
+
+TodoMVC in Firefox, loopback, cold and warm, five runs, PR #75 against the
+branch at `1f021e1d`. Both runs were refused by `validate.mjs` for one
+reason, the same on both sides: in a Firefox-only run it matches no served
+React or Svelte file to the vendored builds (it reads their bodies from
+Chromium). Pleris's own cells are comparable side to side; nothing here is
+a measurement of record. Medians, ms:
+
+| Firefox, loopback | PR #75 cold / warm | branch cold / warm | React cold / warm |
+|---|---:|---:|---:|
+| interactive | 69 / 54 | 54 / 41 | 64-66 / 46-51 |
+| add to its frame | 27 / 29 | 17 / 6.0 | 8.0 / 6.0-7.0 |
+| toggle | 16 / 17 | 8.0 / 6.0 | 7.0 / 15 |
+| filter | 16 / 15 | **5.0 / 5.0** | 15 / 15-16 |
+
+## Mutation controls this branch re-anchored
+
+Each script run whole after the re-anchoring, its sources restored after
+(`mutations/`): `connection_faults` 10 of 10 killed, `optimistic_posts` 11
+of 11, `metadata` 34 of 34, `soft_navigation` 12 of 12; `stable_layout`
+6 of 6 in Chromium and Firefox (its script's own run needs WebKit, which
+cannot open a page here); `second_host`'s `assets` control, killed by hand
+(its script needs two PostgreSQL databases this PC has no role for). No
+survivor. The 149 recipes CI's planner reaches from these changes
+(`python3 scripts/ci_plan.py --changed 1d82a2b2 HEAD`) were not run: they
+are hosted CI's, and this branch is not published.
+
 ## Not run, or failed for the environment
 
 - **WebKit could not open a page on this PC this session**: Playwright's

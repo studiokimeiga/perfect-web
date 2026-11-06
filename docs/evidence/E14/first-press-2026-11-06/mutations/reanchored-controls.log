@@ -1,0 +1,115 @@
+== 2026-11-06T03:48:45-05:00 clean tree: 0 changes
+== 2026-11-06T03:48:49-05:00 second_host assets (by hand)
+baseline: 0 ['test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 869 filtered out; finished in 1.24s']
+mutant: 101 ['test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 869 filtered out; finished in 1.29s'] KILLED
+== 2026-11-06T03:49:02-05:00 connection_faults_mutations.py
+baseline (server): 3 passed, 0 failed
+baseline (browser): 3 passed, 0 failed
+the drop is not taken [server]: KILLED (2 of 3 tests fail)
+`before` runs the command [server]: KILLED (2 of 3 tests fail)
+`after` sends the answer [server]: KILLED (1 of 3 tests fail)
+an open stream is not ended [server]: KILLED (1 of 3 tests fail)
+an open long poll is not ended [server]: KILLED (1 of 3 tests fail)
+a new subscription is not refused [server]: KILLED (1 of 3 tests fail)
+the window refuses nothing [server]: KILLED (1 of 3 tests fail)
+a cut ends what opened after it [server]: KILLED (1 of 3 tests fail)
+`/bench/drop` arms nothing [browser]: KILLED (2 of 3 tests fail)
+`/bench/reconnect` cuts nothing [server]: KILLED (1 of 3 tests fail)
+10 of 10 mutants killed
+memory bound: no process was stopped
+exit connection_faults_mutations.py 0
+== 2026-11-06T03:52:39-05:00 optimistic_posts_mutations.py
+baseline: 6 passed, 0 failed
+a key left unnamed is a name that does not resolve: KILLED (5 of 6 tests fail)
+`_` is unnamed wherever a policy writes it: KILLED (1 of 6 tests fail)
+the speculation reads `_` as no key: KILLED (4 of 6 tests fail)
+a key left unnamed matches no key: KILLED (4 of 6 tests fail)
+what a page shows holds no value it speculates on: KILLED (3 of 6 tests fail)
+a page is served no value it speculates on: KILLED (2 of 6 tests fail)
+a change sends no value a page speculates on: KILLED (2 of 6 tests fail)
+a longer read sends no value a page speculates on: KILLED (1 of 6 tests fail)
+a value that did not change is sent again: KILLED (1 of 6 tests fail)
+a commit's answer names no value it changed: KILLED (1 of 6 tests fail)
+the store's cart is speculated twice: KILLED (1 of 6 tests fail)
+11 of 11 mutants killed
+memory bound: no process was stopped
+exit optimistic_posts_mutations.py 0
+== 2026-11-06T03:54:59-05:00 metadata_mutations.py
+baseline (core): 5 passed, 0 failed
+baseline (render): 9 passed, 0 failed
+baseline (server): 2 passed, 0 failed
+an item's property is taken as the page's metadata [core]: KILLED (2 of 5 tests fail)
+an item's property that names the page's metadata is let through [core]: KILLED (1 of 5 tests fail)
+metadata in a view is let through [core]: KILLED (1 of 5 tests fail)
+metadata inside an element or a block is let through [core]: KILLED (1 of 5 tests fail)
+the host's charset, http-equiv or viewport is let through [core]: KILLED (1 of 5 tests fail)
+the viewport is the host's only as written in lower case [core]: KILLED (1 of 5 tests fail)
+metadata that names nothing is let through [core]: KILLED (1 of 5 tests fail)
+metadata named by both name and property is let through [core]: KILLED (1 of 5 tests fail)
+metadata named by a computed value is let through [core]: KILLED (1 of 5 tests fail)
+an attribute the head does not write is let through [core]: KILLED (1 of 5 tests fail)
+metadata with no content is let through [core]: KILLED (1 of 5 tests fail)
+metadata with a blank content is let through [core]: KILLED (1 of 5 tests fail)
+content computed in place is let through [core]: KILLED (1 of 5 tests fail)
+a hole computed in place is read as a value [core]: KILLED (1 of 5 tests fail)
+a content computed in place is read as a value [core]: KILLED (1 of 5 tests fail)
+a name HTML allows once, stated twice, is let through [core]: KILLED (1 of 5 tests fail)
+a name HTML lets repeat is refused [core]: KILLED (1 of 5 tests fail)
+names are compared by their case [core]: KILLED (1 of 5 tests fail)
+a name HTML allows once is known only in lower case [core]: KILLED (1 of 5 tests fail)
+metadata is lowered with the rest of the view [core]: KILLED (3 of 5 tests fail)
+metadata is numbered before the title [core]: KILLED (1 of 5 tests fail)
+the text after metadata's last value is dropped [core]: KILLED (1 of 5 tests fail)
+an item's property at the top of a page is taken into its head [core]: KILLED (1 of 5 tests fail)
+an item's property inside an element is refused [core]: KILLED (1 of 5 tests fail)
+metadata may read a signal [core]: KILLED (1 of 5 tests fail)
+metadata that reads a speculated value is refused as a title is [core]: KILLED (1 of 5 tests fail)
+metadata is written into the body [render]: KILLED (2 of 3 tests fail)
+metadata is written unescaped [render]: KILLED (2 of 3 tests fail)
+metadata is written from a value that is HTML [render]: KILLED (1 of 3 tests fail)
+the binary's document is written without its metadata [render]: KILLED (1 of 3 tests fail)
+a static page that states its title ships the runtime [render]: KILLED (1 of 9 tests fail)
+the store's page is written without its metadata [server]: KILLED (1 of 2 tests fail)
+a signal page is written without its metadata [server]: KILLED (1 of 2 tests fail)
+the store's metadata is rendered from no values [server]: KILLED (1 of 2 tests fail)
+34 of 34 mutants killed
+memory bound: no process was stopped
+exit metadata_mutations.py 0
+== 2026-11-06T03:59:56-05:00 stable_layout_mutations.py
+baseline: 14 passed, 8 failed
+FAIL: the unmutated baseline is not green; no mutant can mean anything
+what failed, as its commands said it:
+  pnpm exec playwright test e2e/stable-layout.spec.mjs --reporter=line (exit 1):
+    failed: [webkit] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: a long category Error: browserContext.newPage: Test timeout of 30000ms exceeded.
+    failed: [webkit] › e2e/stable-layout.spec.mjs:33:3 › the store's page does not shift as it loads, on a desktop Error: browserContext.newPage: Test timeout of 30000ms exceeded.
+    failed: [webkit] › e2e/stable-layout.spec.mjs:33:3 › the store's page does not shift as it loads, on a phone Error: browserContext.newPage: Test timeout of 30000ms exceeded.
+    failed: [webkit] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: many short categories Error: browserContext.newPage: Test timeout of 30000ms exceeded.
+    failed: [webkit] › e2e/stable-layout.spec.mjs:96:3 › no item contained is on screen when the page is first laid out: many one-item categories, then a long one Error: browserContext.newPage: Test timeout of 30000ms exceeded.
+    failed: [webkit] › e2e/stable-layout.spec.mjs:121:1 › a contained item's placeholder is an item's height Error: browserContext.newPage: Test timeout of 30000ms exceeded.
+    failed: [webkit] › e2e/stable-layout.spec.mjs:136:1 › the store's style is in its head, where it is read before the body Error: browserContext.newPage: Test timeout of 30000ms exceeded.
+    failed: [webkit] › e2e/stable-layout.spec.mjs:113:1 › the store's own menu is not contained, as it is short Error: browserContext.newPage: Test timeout of 30000ms exceeded.
+  its browser run's output: kept 1 of 1 entries of its output (439 B) in /home/haki/code/pw-wt/first-press/spikes/own-renderer/kept-traces/local/20261106T090046Z/stable_layout_mutations-baseline
+memory bound: no process was stopped
+exit stable_layout_mutations.py 1
+== 2026-11-06T04:00:46-05:00 soft_navigation_mutations.py
+baseline: 14 passed, 0 failed
+every link loads its page whole: KILLED (7 of 14 tests fail)
+a handler's navigation after its commit loads its page whole: KILLED (1 of 14 tests fail)
+back and forward read nothing: KILLED (1 of 14 tests fail)
+a page of another build is kept: KILLED (1 of 14 tests fail)
+the page's markup is not shown in the slot: KILLED (6 of 14 tests fail)
+the layout's regions are not taken from the next document: KILLED (1 of 14 tests fail)
+focus is left where it was: KILLED (1 of 14 tests fail)
+the old runtime goes on after handing the page over: KILLED (1 of 14 tests fail)
+what a leaving page is told is applied: KILLED (1 of 14 tests fail)
+a reader's next choice waits for the navigation in flight: KILLED (1 of 14 tests fail)
+a page shown again from the back-forward cache does not listen: KILLED (1 of 14 tests fail)
+a page with no layout is shown in this one: KILLED (1 of 14 tests fail)
+12 of 12 mutants killed
+memory bound: no process was stopped
+exit soft_navigation_mutations.py 0
+== 2026-11-06T04:05:15-05:00 anchors (restoration)
+mutation anchors: 4992 mutants in 324 scripts, each matching once
+exit anchors 0
+== 2026-11-06T04:05:16-05:00 tree: 0 changes
+MUTATIONS_FINISHED
