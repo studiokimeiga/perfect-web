@@ -35,11 +35,21 @@ writes. The tests hold three things:
   - `/e/<code>`, a page for each code, retired codes and old numbers
     included. Where the guide has an example the compiler refuses with
     that code, the page shows it with the compiler's output;
-  - `/e/`, every code, with its rule.
-- **Nothing else runs or loads:** no script, no cookie, no request to
-  another origin.
+  - `/e/`, every code, with its rule;
+  - `/llms.txt`, what an agent reads first: what Pleris is, and where the
+    guide is, as Markdown (`/guide/<page>.md`, each page with its links
+    made whole). The guide is written for an AI agent as much as for a
+    developer.
+- **Nothing else runs or loads:** no script, no cookie, nothing from
+  another origin. Cloudflare's own Network Error Logging headers stay: a
+  browser reports a request that failed to Cloudflare, and nothing else.
+  The zone's Real User Measurements are off, so Cloudflare injects no
+  script.
 - **Policy (`_headers`):** the one stylesheet is written into each page and
   allowed by its hash. HSTS is on, and no page may be framed.
+  `connect-src 'self'` gives no script a way out, since none runs. It lets
+  a browser's own tools, such as Lighthouse, read `robots.txt` and
+  `llms.txt` through a page.
 
 ## Deploy
 

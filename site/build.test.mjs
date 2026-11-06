@@ -6,7 +6,7 @@
 
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -116,6 +116,18 @@ test("the whole site: every page and code, no script, one hashed style, no link 
   }
   const headers = readFileSync(join(out, "_headers"), "utf8");
   assert.ok(headers.includes(`style-src '${STYLE_HASH}'`), headers);
+  // What an agent reads: llms.txt, a title first, and each page it names
+  // written, as the guide's Markdown with its links made whole.
+  const llms = readFileSync(join(out, "llms.txt"), "utf8");
+  assert.match(llms, /^# Pleris\n/);
+  for (const [, url] of llms.matchAll(/\]\((https:\/\/pleris\.dev\/[^)]+)\)/g)) {
+    const path = new URL(url).pathname;
+    const file = path.endsWith("/") ? `${path}index.html` : path;
+    assert.ok(existsSync(join(out, file)), `llms.txt names ${url}: not written`);
+  }
+  const why = readFileSync(join(out, "guide/why.md"), "utf8");
+  assert.doesNotMatch(why, /\]\((?![a-z]+:|#)/, "a relative link left in the guide's Markdown");
+  assert.match(why, /\]\(https:\/\/pleris\.dev\/guide\/tour\.md\)/);
   // The home page's sample is the guide's, with what the compiler prints.
   assert.match(written.get("/"), /error: \[PW0606\]/);
   // A code's page shows the guide's example the compiler refuses with it.

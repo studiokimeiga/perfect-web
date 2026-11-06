@@ -22,14 +22,24 @@ const TREE = `${REPO}/tree/master`;
 
 /** The guide's pages, in its own reading order (docs/guide/README.md). */
 const GUIDE = [
-  { name: "README", path: "/guide/", short: "Start here" },
-  { name: "why", path: "/guide/why", short: "Why Pleris" },
-  { name: "tour", path: "/guide/tour", short: "The language" },
-  { name: "tour-server", path: "/guide/tour-server", short: "Data on the server" },
-  { name: "tour-pages", path: "/guide/tour-pages", short: "Pages" },
-  { name: "errors", path: "/guide/errors", short: "Errors and diagnostics" },
-  { name: "tutorial", path: "/guide/tutorial", short: "Tutorial: a guestbook" },
-  { name: "diagnostics", path: "/guide/diagnostics", short: "The diagnostic codes" },
+  { name: "README", path: "/guide/", short: "Start here", about: "what the guide covers, and the order to read it in" },
+  { name: "why", path: "/guide/why", short: "Why Pleris", about: "what the compiler refuses that other frameworks let through, and what Pleris does not do yet" },
+  { name: "tour", path: "/guide/tour", short: "The language", about: "modules, types, records, sum types, functions, effects, results and money" },
+  {
+    name: "tour-server",
+    path: "/guide/tour-server",
+    short: "Data on the server",
+    about: "host bindings, sources, queries and live updates, commands, predicates, privacy and time",
+  },
+  {
+    name: "tour-pages",
+    path: "/guide/tour-pages",
+    short: "Pages",
+    about: "routes and query parameters, markup, signals and handlers, forms, layouts and navigation",
+  },
+  { name: "errors", path: "/guide/errors", short: "Errors and diagnostics", about: "reading what the compiler says, and the first mistakes a TypeScript developer makes" },
+  { name: "tutorial", path: "/guide/tutorial", short: "Tutorial: a guestbook", about: "one small app with sign-in, built end to end and run on the development server" },
+  { name: "diagnostics", path: "/guide/diagnostics", short: "The diagnostic codes", about: "every code, its rule and its ADR" },
 ];
 
 /** The file a path is served from (`html_handling`'s `auto-trailing-slash`). */
@@ -515,12 +525,49 @@ function notFound(inCodes) {
 
 // --- the policy and the rest -------------------------------------------------
 
+/** **The guide's Markdown, for an agent** (`llms.txt`): each page as it is
+ * in the repository, its links made whole, so that a reader with no
+ * browser follows them. */
+function markdownCopy(md) {
+  return md.replace(/\]\(([^)\s]+)\)/g, (_, url) => {
+    if (/^[a-z][a-z0-9+.-]*:/i.test(url) || url.startsWith("#")) return `](${url})`;
+    const [path, hash] = url.split("#");
+    const page = GUIDE.find((p) => path === `${p.name}.md` || path === `./${p.name}.md`);
+    if (page) return `](${ORIGIN}/guide/${page.name}.md${hash ? `#${hash}` : ""})`;
+    return `](${guideLink(url)})`;
+  });
+}
+
+/** **What an agent reads first** (llmstxt.org): what Pleris is, and where
+ * the guide and the codes are, as Markdown. */
+function llms(codeCount) {
+  const pages = GUIDE.map((p) => `- [${p.short}](${ORIGIN}/guide/${p.name}.md): ${p.about}`).join("\n");
+  return `# Pleris
+
+> Pleris is a language for web apps, with a compiler and a server for it. You write the data, the server's reads and writes, and the pages in one language, and the compiler refuses programs with whole classes of bugs that TypeScript, React, Next.js and Svelte let through. A research project, not released yet.
+
+Every example in the guide is a whole program that a test compiles. Every diagnostic the compiler prints carries a code, such as \`[PW0606]\`, and ${ORIGIN}/e/PW0606 explains it: ${codeCount} codes, from the compiler's registry.
+
+## The guide
+
+${pages}
+
+## Optional
+
+- [Error codes](${ORIGIN}/e/): one page for each code, with its rule
+- [Source](${REPO}): the compiler, the server, the decisions (ADRs) and their evidence
+`;
+}
+
 /** What each response says beside the page (`_headers`): the pages' policy
  * allows their one style, by its hash, the icon from this origin, and
- * nothing else; no page may be framed or framed into another's. */
+ * nothing else; no page may be framed or framed into another's. A page runs
+ * no script, so `connect-src 'self'` gives none a way out. It lets a
+ * browser's own tools, such as an audit, read the site's `robots.txt` and
+ * `llms.txt` through the page. */
 function headers() {
   return `/*
-  Content-Security-Policy: default-src 'none'; style-src '${STYLE_HASH}'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'none'; style-src '${STYLE_HASH}'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
@@ -553,6 +600,10 @@ export function build(out = join(SITE, "dist")) {
     written.set(p.path, html);
   }
   for (const f of readdirSync(join(SITE, "static"))) copyFileSync(join(SITE, "static", f), join(out, f));
+  for (const p of GUIDE) {
+    writeFileSync(join(out, "guide", `${p.name}.md`), markdownCopy(readFileSync(join(ROOT, "docs/guide", `${p.name}.md`), "utf8")));
+  }
+  writeFileSync(join(out, "llms.txt"), llms(catalog.active.length));
   writeFileSync(join(out, "_headers"), headers());
   const listed = pages.filter((p) => !p.path.endsWith("404")).map((p) => `<url><loc>${ORIGIN}${p.path}</loc></url>`);
   writeFileSync(
