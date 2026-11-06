@@ -93,6 +93,19 @@ keeps that, and changes only when the browser asks for them.
    the runtime, in the representation a request accepts, with a strong
    validator per representation, `public, no-cache` and no session. A
    development build has no siblings, and its modules go as they are.
+8. **A held subscription waits on the subscriber table, woken by a push**
+   (ADR-0392's finding 21: each held stream asked the table every 25 ms,
+   and twenty idle visitors cost the host 16.0 ms of CPU a second, the Node
+   servers' 2.00). The table carries a condition each push of frames (all
+   six sites) and each forced reconnect wakes; a held stream or long poll
+   waits on it, for 250 ms at most at a time (`WAKE_AT_LEAST`, which also
+   bounds how late it sees a subscriber forgotten while idle), through the
+   same two-second and one-second holds as before. A frame is written as
+   it is pushed rather than at the next 25 ms pass. Tests hold both: an idle
+   stream looks at its subscriber at most twelve times in its hold, where
+   it looked eighty; and with its slice lengthened past its hold, a frame
+   pushed through the server's own path is written within a second of its
+   push, which only the wake can do.
 
 ## Measured (the development PC, 2026-11-06)
 

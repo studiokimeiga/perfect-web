@@ -69,9 +69,13 @@ MUTANTS = [
         "an open long poll is not ended",
         "server",
         SERVER,
-        "    for _ in 0..40 {\n"
+        # Re-anchored by the first press's ADR: the poll waits on the table
+        # through its hold, rather than forty passes of 25 ms.
+        "    let until = opened + POLL_HOLD;\n"
+        "    loop {\n"
         "        if server.cut_off(session, opened) {\n",
-        "    for _ in 0..40 {\n"
+        "    let until = opened + POLL_HOLD;\n"
+        "    loop {\n"
         "        if false && server.cut_off(session, opened) {\n",
     ),
     (

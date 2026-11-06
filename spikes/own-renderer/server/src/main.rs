@@ -1055,6 +1055,10 @@ struct Server {
     /// press's ADR), as its packaging says ([`warms`]): told to the browser
     /// on the handler table's `#warm` line.
     warm: bool,
+    /// **The longest a held subscription waits for a wake** ([`WAKE_AT_LEAST`]
+    /// in every host; a test lengthens it to show that a push, not a slice,
+    /// delivers its frames).
+    wake_at_least: std::time::Duration,
     /// The document's static assets.
     dist: std::path::PathBuf,
     /// **Where the compiler's browser artifacts are** (ADR-0123): the
@@ -1367,8 +1371,26 @@ struct Turn<'a>(&'a Turns);
 /// (render-merge), NEXT 4c, the integrator's ruling 2: a render never waits
 /// for the table while it holds its seat; a document's last attempt
 /// (ADR-0151) holds the table while its render waits for one).
+///
+/// **And woken as frames are pushed** (the first press's ADR, ADR-0392's
+/// finding 21): a subscription waiting for its page's frames waits on the
+/// table's condition, which each push of frames, and each cut-off, wakes;
+/// it looks at its own subscriber again then. Until 2026-11-06 each held
+/// subscription asked the table every 25 ms, idle or not: twenty idle
+/// visitors cost the host 16.0 ms of CPU a second, the Node servers' 2.00.
 #[derive(Default)]
-struct Table(Mutex<BTreeMap<Doc, Subscriber>>);
+struct Table(
+    Mutex<BTreeMap<Doc, Subscriber>>,
+    std::sync::Condvar,
+    /// How many subscriptions wait on the condition now: a test's to read.
+    std::sync::atomic::AtomicUsize,
+);
+
+/// **The longest a held subscription waits for a wake** before it looks at
+/// its subscriber again anyway: what it would otherwise only see at its next
+/// request, a subscriber forgotten while idle, is seen within it. A frame
+/// pushed for it, or a cut-off, wakes it at once.
+const WAKE_AT_LEAST: std::time::Duration = std::time::Duration::from_millis(250);
 
 impl Table {
     fn lock(&self) -> std::sync::LockResult<std::sync::MutexGuard<'_, BTreeMap<Doc, Subscriber>>> {
@@ -1378,6 +1400,39 @@ impl Table {
             "the subscriber table taken in a render (NEXT 4c)"
         );
         self.0.lock()
+    }
+
+    /// **Wake every subscription waiting on the table**: frames were pushed
+    /// for some page, or a session was cut off. Each looks at its own
+    /// subscriber; one with nothing new waits again.
+    fn wake(&self) {
+        self.1.notify_all();
+    }
+
+    /// **Wait for a wake, or `timeout`**, the table's guard released while
+    /// waiting and held again after. A panic elsewhere poisons nothing here:
+    /// the guard is taken back as it is.
+    fn wait<'a>(
+        &self,
+        guard: std::sync::MutexGuard<'a, BTreeMap<Doc, Subscriber>>,
+        timeout: std::time::Duration,
+    ) -> std::sync::MutexGuard<'a, BTreeMap<Doc, Subscriber>> {
+        use std::sync::atomic::Ordering;
+        // Counted while the table is still held, so a test that sees a
+        // waiter and then pushes takes the table only once it waits.
+        self.2.fetch_add(1, Ordering::SeqCst);
+        let guard = match self.1.wait_timeout(guard, timeout) {
+            Ok((guard, _)) => guard,
+            Err(poisoned) => poisoned.into_inner().0,
+        };
+        self.2.fetch_sub(1, Ordering::SeqCst);
+        guard
+    }
+
+    /// **A test's: how many subscriptions wait on the table now.**
+    #[cfg(test)]
+    fn waiters(&self) -> usize {
+        self.2.load(std::sync::atomic::Ordering::SeqCst)
     }
 
     #[cfg(test)]
@@ -1992,6 +2047,7 @@ impl Server {
             sessions: Mutex::new(BTreeMap::new()),
             components,
             warm: warms(&dist),
+            wake_at_least: WAKE_AT_LEAST,
             dist,
             artifacts,
             pending: Table::default(),
@@ -5913,6 +5969,8 @@ impl Server {
                         applied: applied.clone(),
                     });
                 }
+                // Its subscription, waiting on the table, is woken for them.
+                self.pending.wake();
                 break;
             }
             });
@@ -6290,6 +6348,8 @@ impl Server {
                 }),
             });
         }
+        // The subscriptions waiting on the table, woken for them.
+        self.pending.wake();
         Ok(())
     }
 
@@ -7445,6 +7505,8 @@ impl Server {
         for frame in speculated {
             waiting.push(frame);
         }
+        // Its subscription, waiting on the table, is woken for them.
+        self.pending.wake();
         Ok(KeyOutcome::Applied)
         })
     }
@@ -7496,6 +7558,7 @@ impl Server {
                 protocol: CURRENT,
                 recovery: Recovery::Reload,
             });
+            self.pending.wake();
         }
     }
 
@@ -10344,6 +10407,9 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             mine.cut_from = Some(now);
             mine.cut_until = Some(now + std::time::Duration::from_millis(window));
             drop(faults);
+            // Its subscriptions waiting on the table end now, not at their
+            // next look.
+            server.pending.wake();
             respond_json(&mut stream, 200, &session, fresh, "{}");
         }
         // **A materializer failure** (charter §15.5, ADR-0176): this
@@ -10465,6 +10531,7 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 }
             }
             drop(queue);
+            server.pending.wake();
             respond_json(&mut stream, 202, &session, fresh, "{}");
         }
         // What the materializer holds for the PUBLIC menu entry. Enough to
@@ -10893,14 +10960,19 @@ fn stream_open(
     };
 
     // Bounded, like the long poll: a held connection is a held thread, and
-    // three engine families times six workers is eighteen of them.
+    // three engine families times six workers is eighteen of them. Two
+    // seconds, as eighty passes of 25 ms were; a pass now runs when the
+    // table is woken (a frame pushed, a cut-off) or a slice has passed.
     let opened = std::time::Instant::now();
-    for pass in 0..80 {
+    let until = opened + STREAM_HOLD;
+    let mut pass = 0u64;
+    loop {
         // Cut off since it opened (ADR-0175): it ends, with no more bytes.
         if server.cut_off(session, opened) {
             ended(format_args!("stream cut off at pass {pass}"));
             return;
         }
+        pass += 1;
         let batch = {
             let asked = std::time::Instant::now();
             let mut queue = server.pending.lock().expect("pending");
@@ -10915,19 +10987,28 @@ fn stream_open(
             }
             waiting.seen = std::time::Instant::now();
             let (cursor, frames) = waiting.after(written);
-            if frames.is_empty() {
-                None
-            } else {
+            let batch = (!frames.is_empty()).then(|| {
                 let body: Vec<serde_json::Value> = frames
                     .into_iter()
                     .map(|f| serde_json::to_value(f).expect("frame"))
                     .collect();
-                Some((
+                (
                     waiting.reader.clone(),
                     cursor,
                     serde_json::to_string(&body).expect("frames"),
-                ))
+                )
+            });
+            if batch.is_none() {
+                // Nothing new: wait for a wake, within the hold, the table
+                // released meanwhile.
+                let left = until.saturating_duration_since(std::time::Instant::now());
+                if left.is_zero() {
+                    break;
+                }
+                drop(server.pending.wait(queue, left.min(server.wake_at_least)));
+                continue;
             }
+            batch
         };
 
         if let Some((reader, cursor, frames)) = batch {
@@ -10948,13 +11029,20 @@ fn stream_open(
             ended(format_args!("wrote through {cursor}, {} bytes", line.len()));
             written = cursor;
         }
-        std::thread::sleep(std::time::Duration::from_millis(25));
     }
     ended(format_args!(
-        "stream ended after its passes, {} ms",
+        "stream ended after its passes ({pass}), {} ms",
         opened.elapsed().as_millis()
     ));
 }
+
+/// **How long a streamed subscription is held** before the page asks again:
+/// two seconds, as eighty passes of 25 ms were until 2026-11-06.
+const STREAM_HOLD: std::time::Duration = std::time::Duration::from_secs(2);
+
+/// **How long a long poll is held** before it answers an empty batch: one
+/// second, as forty passes of 25 ms were.
+const POLL_HOLD: std::time::Duration = std::time::Duration::from_secs(1);
 
 fn stream_frames(
     server: &Server,
@@ -11005,7 +11093,11 @@ fn stream_frames(
         return;
     }
 
-    for _ in 0..40 {
+    // Held a second at most, as forty passes of 25 ms were; a pass now runs
+    // when the table is woken (a frame pushed, a cut-off) or a slice has
+    // passed (the first press's ADR).
+    let until = opened + POLL_HOLD;
+    loop {
         if server.cut_off(session, opened) {
             return;
         }
@@ -11017,19 +11109,26 @@ fn stream_frames(
             waiting.seen = std::time::Instant::now();
             waiting.acknowledge(since);
             let (cursor, frames) = waiting.after(since);
-            if frames.is_empty() {
-                None
-            } else {
+            let batch = (!frames.is_empty()).then(|| {
                 let body: Vec<serde_json::Value> = frames
                     .into_iter()
                     .map(|frame| serde_json::to_value(frame).expect("frame"))
                     .collect();
-                Some((
+                (
                     waiting.reader.clone(),
                     cursor,
                     serde_json::to_string(&body).expect("frames"),
-                ))
+                )
+            });
+            if batch.is_none() {
+                let left = until.saturating_duration_since(std::time::Instant::now());
+                if left.is_zero() {
+                    break;
+                }
+                drop(server.pending.wait(queue, left.min(server.wake_at_least)));
+                continue;
             }
+            batch
         };
         if let Some((reader, cursor, frames)) = batch {
             if !server.delivery_allowed(&doc, reader.as_ref()) {
@@ -11041,7 +11140,6 @@ fn stream_frames(
             respond_json(stream, 200, session, fresh, &json);
             return;
         }
-        std::thread::sleep(std::time::Duration::from_millis(25));
     }
     respond_json(
         stream,
@@ -15320,6 +15418,88 @@ public query Store(",
             .expect("pending")
             .get(doc)
             .is_some_and(|waiting| waiting.trail.iter().any(|note| note.contains(what)))
+    }
+
+    /// The number a held stream's trail gives for its passes, once it ended
+    /// after them.
+    fn passes_of(s: &Server, doc: &Doc) -> Option<u64> {
+        s.pending
+            .lock()
+            .expect("pending")
+            .get(doc)?
+            .trail
+            .iter()
+            .find_map(|note| {
+                note.split("stream ended after its passes (")
+                    .nth(1)?
+                    .split(')')
+                    .next()?
+                    .parse()
+                    .ok()
+            })
+    }
+
+    /// **A held subscription with nothing for it waits on the table, and does
+    /// not ask it forty times a second** (the first press's ADR, ADR-0392's
+    /// finding 21: twenty idle visitors cost the host 16.0 ms of CPU a
+    /// second). It looks at its subscriber a slice at a time through its
+    /// whole hold, and ends after it, as it did after eighty passes of 25 ms.
+    #[test]
+    fn an_idle_subscription_waits_on_the_table_rather_than_asking_it() {
+        let s = rendering_server();
+        let session = "idle";
+        let (_, document) = s.serve_document(session);
+        let doc: Doc = (session.to_string(), document);
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+        let _page = TcpStream::connect(listener.local_addr().expect("addr")).expect("connect");
+        let (mut held, _) = listener.accept().expect("accept");
+        let begun = std::time::Instant::now();
+        stream_open(&s, &mut held, session, false, document, document);
+        let held_for = begun.elapsed();
+        assert!(held_for >= STREAM_HOLD, "held its whole hold: {held_for:?}");
+        let passes = passes_of(&s, &doc).expect("it ended after its passes");
+        // Two seconds in slices of 250 ms: nine looks, give or take a wake.
+        assert!(
+            passes <= 12,
+            "{passes} passes: {:?}",
+            s.pending.lock().expect("pending")[&doc].trail
+        );
+    }
+
+    /// **A frame pushed for a held subscription wakes it** (the first
+    /// press's ADR): written as it is pushed, not at the subscription's next
+    /// look. Its slice is lengthened past its hold, so only the push's wake
+    /// can deliver the frame before the hold ends; the push is made once the
+    /// subscription waits, as the table counts it.
+    #[test]
+    fn a_frame_pushed_for_a_held_subscription_wakes_it() {
+        let mut s = rendering_server();
+        s.wake_at_least = std::time::Duration::from_secs(60);
+        let session = "woken";
+        let (_, document) = s.serve_document(session);
+        let doc: Doc = (session.to_string(), document);
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+        let _page = TcpStream::connect(listener.local_addr().expect("addr")).expect("connect");
+        let (mut held, _) = listener.accept().expect("accept");
+        let s = &s;
+        std::thread::scope(|scope| {
+            let open =
+                scope.spawn(move || stream_open(s, &mut held, session, false, document, document));
+            until("the stream waiting on the table", || {
+                s.pending.waiters() == 1
+            });
+            let pushed = std::time::Instant::now();
+            // A frame pushed through the server's own path, which wakes.
+            let answer = posted(s, "/command/menu_ghost", session, "ghost-1", "");
+            assert!(answer.starts_with("HTTP/1.1 202"), "{answer}");
+            until("the frame written", || trail_says(s, &doc, "wrote through"));
+            let after = pushed.elapsed();
+            assert!(
+                after < std::time::Duration::from_secs(1),
+                "written {after:?} after its push, so by the wake, not the hold's end"
+            );
+            open.join().expect("ended");
+        });
     }
 
     /// **A forced reconnect** (charter §15.5, ADR-0175): the session's open
