@@ -124,11 +124,15 @@ pub unsafe extern "C" fn captures_value(ptr: *const u8, len: usize) -> u32 {
 /// A request read: its JSON, its part, the values it gives, set into a
 /// rendering environment, and the templates of the views it renders an
 /// instance of (ADR-0203). `Err((2, why))` for a request that is not one.
+///
+/// The part and the templates are read by [`pw_render::decode`], which
+/// reads the IR as serde's derives do without their generic visitors, which
+/// were most of this module's bytes (the first press's ADR).
 fn read(request: &[u8]) -> Result<Read, (u32, String)> {
     let request = serde_json::from_slice::<serde_json::Value>(request)
         .map_err(|_| (2, "the request is not JSON".to_string()))?;
-    let part: pw_render::ir::Part = serde_json::from_value(request["part"].clone())
-        .map_err(|e| (2, format!("the part: {e}")))?;
+    let part =
+        pw_render::decode::part(&request["part"]).map_err(|e| (2, format!("the part: {e}")))?;
     let mut env = pw_render::Env::new();
     if let Some(values) = request["values"].as_object() {
         for (name, value) in values {
@@ -138,7 +142,7 @@ fn read(request: &[u8]) -> Result<Read, (u32, String)> {
     let templates = match request.get("templates") {
         None => Vec::new(),
         Some(t) => {
-            serde_json::from_value(t.clone()).map_err(|e| (2, format!("the templates: {e}")))?
+            pw_render::decode::templates(t).map_err(|e| (2, format!("the templates: {e}")))?
         }
     };
     Ok((request, part, env, templates))
@@ -268,7 +272,7 @@ pub fn captures(request: &[u8]) -> (u32, String) {
         Ok(r) => r,
         Err(_) => return (2, "the request is not JSON".to_string()),
     };
-    let parts: Vec<pw_render::ir::Part> = match serde_json::from_value(request["parts"].clone()) {
+    let parts = match pw_render::decode::parts(&request["parts"]) {
         Ok(p) => p,
         Err(e) => return (2, format!("the parts: {e}")),
     };
