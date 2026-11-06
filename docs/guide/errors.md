@@ -201,7 +201,7 @@ error: [PW0338] `post` is called by a page's handler, and declares no `idempoten
    |                                                       ------------- a press sends it from here
    |
    = note: A browser's request can reach the server twice: a retrying proxy, a flaky network or a client's own retry sends it again after the first arrived (RFC 9110 lets a client retry only a request it knows to be idempotent). Each press carries an interaction, and `idempotent_by InteractionId` runs the command once for it (ADR-0121).
-   = help: declare `idempotent_by InteractionId`
+   = help: declare `idempotent_by InteractionId`, and `opaque type InteractionId = String` if the program has none
 ```
 
 `InteractionId` is a type your program declares:

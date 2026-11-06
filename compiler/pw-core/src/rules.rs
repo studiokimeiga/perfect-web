@@ -348,7 +348,11 @@ fn check_resource(decl: &Decl, out: &mut Vec<Finding>) {
                 "retrying a non-idempotent mutation can apply it more than once: a request \
                  that failed in transit may have arrived, and its sender cannot tell",
             )
-            .repair("add `idempotent_by InteractionId`"),
+            // Both steps, as PW0338's: the clause names a type the program
+            // may not have yet (PW0335 refuses the clause alone).
+            .repair(
+                "add `idempotent_by InteractionId`, and `opaque type InteractionId = String` if the program has none",
+            ),
         );
     }
 
