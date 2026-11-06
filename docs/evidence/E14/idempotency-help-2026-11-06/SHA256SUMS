@@ -7,9 +7,9 @@
 cf960a52b55472d34fef8a7f1a280601d3cbc492e873f14f2435472c0e41f698  ./logs/pw-core.log.gz
 3afbd660cc60eb075e9b39b492a636c275aee509909980d556676460cc5ce790  ./logs/reached.txt
 40f70c1a8857475c597d5c853f17c880ad2f804e0e1e015b17ea7862d932a856  ./logs/verify.log
-1276da26b94b822da5bc519c0f5fabaa6427b55611f7d7ec9cc53d83b8e27d84  ./scripts/help-demo/clock.pw
-6f8b3afaa537df626e6be35fe7a84508712b1fe3eb752d86e3fd3a694f283cad  ./scripts/help-demo/retry.pw
-8c8e45617a330016fc47bc1afbe3190e16f52ab630930ff95f158a34f1936cff  ./scripts/help-demo/twice.pw
+1276da26b94b822da5bc519c0f5fabaa6427b55611f7d7ec9cc53d83b8e27d84  ./scripts/help-demo/clock.pw.txt
+6f8b3afaa537df626e6be35fe7a84508712b1fe3eb752d86e3fd3a694f283cad  ./scripts/help-demo/retry.pw.txt
+8c8e45617a330016fc47bc1afbe3190e16f52ab630930ff95f158a34f1936cff  ./scripts/help-demo/twice.pw.txt
 1d8cbd7a1d7b4dc67f68fccc110f4751bd50f9188e2784315644fdb5d887949b  ./scripts/help-verify.sh
 2c1d2a2b4d9695bdd5985b4801268ffb6d6ce2d0349785f944c54a8415f29280  ./scripts/help_demo.py
 282ea04c5830d56fb3e14d43c7c84027a10a45c8aaf7124cd864be3fce8351fb  ./scripts/reached.py

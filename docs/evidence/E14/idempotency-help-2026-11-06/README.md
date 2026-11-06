@@ -12,6 +12,9 @@ Evidence for branch `fix/idempotency-help-20261106`, from `master` at
   `help_demo.py`, which follows each help as a reader would, with the
   programs in `scripts/help-demo/`; and `reached.py`, which lists the
   mutation scripts with an anchor within 3 lines of a changed line.
+- The programs are filed as `.pw.txt`, so that no census of the
+  repository's sources (`check_build_programs.py`, `mutant_programs.py`)
+  takes them for programs. `help_demo.py` read them as `.pw`.
 
 ## The help, followed as a reader would (`logs/demo.log`)
 
