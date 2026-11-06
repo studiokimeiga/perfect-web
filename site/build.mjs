@@ -471,7 +471,7 @@ function renumberedPage(entry) {
 <p class="crumbs"><a href="/e/">Error codes</a> · Old numbers</p>
 <h1><code>${entry.code}</code></h1>
 <p class="rule">An old number, now <a href="/e/${entry.now}"><code>${entry.now}</code></a> (${md(entry.symbol)}).</p>
-<p>The corpus's fixtures wrote it before one invariant got one code. The compiler never prints it.</p>
+<p>It named the invariant <code>${entry.now}</code> names. One invariant has one code, so the compiler prints <code>${entry.now}</code>, and this number is never given to another.</p>
 </article>`,
   };
 }
