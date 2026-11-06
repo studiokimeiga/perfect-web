@@ -1,7 +1,7 @@
 # ADR-XXXX: the first press finds its code: boot preloads, and a production build warms
 
-Status: proposed, 2026-11-06, on branch `perf/first-press-20261106`, stacked
-on PR #75 (`perf/production-assets-20261104`, itself stacked on #68's
+Status: proposed, 2026-11-06, on branch `perf/first-press-20261106` (PR #76,
+a draft), stacked on PR #75 (`perf/production-assets-20261104`, itself stacked on #68's
 head-to-head). Proposed under the owner's standing order of 2026-10-25
 ("deciding by best judgement without asking") and the owner's instruction of
 2026-11-06 to continue the performance work against Next.js, SvelteKit,
@@ -62,6 +62,13 @@ keeps that, and changes only when the browser asks for them.
    stays off the page's critical path, and the decision is still asked
    first, so a refused handler is never fetched. A development build, as
    every build before it, fetches a handler at its first press.
+
+   A host that admits from a kept source (accounts on, and sessions kept
+   where every host reads them, ADR-0369) does not warm, until ADR-0389's
+   repair. There, of two admissions of one session that overlap, one is
+   answered 503, a command `session_changed` (ADR-0389, amended
+   2026-11-02), and a warm-up's requests overlap by design (the review,
+   below; question 5).
 3. **Loaded, not merely fetched.** Warming uses the press's loaders
    (`loadHandler`, `computedValues`, `speculations`, `renderModule`), so a
    module is fetched and evaluated before the press: a compiled handler's
@@ -72,14 +79,22 @@ keeps that, and changes only when the browser asks for them.
    press asks under its next specifier. A press never waits for warming to
    begin: it asks its loader as before, and finds the module loading or
    loaded.
+
+   It waits for that load within a deadline of its own, counted from the
+   press. A load has no deadline of its own, since a warm-up and later
+   presses share it. (The review: a press made late in a warm-up's wait had
+   only what was left of the warm-up's.)
 5. **The renderer's Wasm reads the IR without serde's derived visitors**
    (`pw_render::decode`): the same JSON into the same types, held to the
    derives by a differential test over the compiler's IR, every part kind
    and every one-step mutation of them (`tests/decode.rs`). The derives stay
    for every native reader, so the renderer remains one implementation; the
-   Wasm falls from 406,192 to 262,527 bytes (Brotli 92 KB to 76 KB). One
-   leniency is deliberately not copied: serde also reads a struct written as
-   a list of its fields, which the compiler never writes; this refuses it.
+   Wasm falls from 406,192 to 262,527 bytes (Brotli 92 KB to 76 KB).
+
+   Two of serde's leniencies are deliberately not copied: it also reads a
+   struct written as a list of its fields, and an enum's unit variant
+   written as a one-key map. The compiler writes neither, and this refuses
+   both; a test holds each (the review found the second).
 6. **A link to one of a page's fragment forms is followed in its press**:
    a primary, unmodified, unclaimed click on an `<a href>` to this page at a
    declared form sets the address with `pushState` (no entry where it is the
@@ -106,6 +121,11 @@ keeps that, and changes only when the browser asks for them.
    it looked eighty; and with its slice lengthened past its hold, a frame
    pushed through the server's own path is written within a second of its
    push, which only the wake can do.
+
+   A cut (ADR-0175) is looked for again under the table before each wait,
+   and its wake is made holding the table, so none is missed between the
+   look and the wait. A test now holds the cut's wake too; before the
+   review, deleting that wake passed every test.
 9. **A subscription asks at low priority** (finding 20: with nineteen other
    tabs of the store open, a press took 10 s, Next.js's 54 ms). Over
    HTTP/1.1 a browser shares six connections to a host among its pages and
@@ -116,6 +136,10 @@ keeps that, and changes only when the browser asks for them.
    moment later loses nothing: it asks from its cursor. Not the whole
    repair: a connection still frees only when some subscription's hold
    ends, which one origin's shared subscription or HTTP/2 would remove.
+
+   The priority is shown in Chromium only (`transport.spec.mjs`). A browser
+   that ignores the hint sends the subscription as before, and finding 20
+   stands there.
 10. **A production build's files are named at one version a cache keeps**
     (ADR-0392's "Next" 2; the store's visit after its first was interactive
     under Slow 4G at 1,186 ms, the frameworks' at 690 and 643, every file
@@ -126,8 +150,8 @@ keeps that, and changes only when the browser asks for them.
     own address, asks for the renderer and those files at it too. A file or
     the table asked for at the id the host serves is kept a year
     (`immutable`); at another id (a document of an earlier build, in the
-    browser's history) the host's current file is sent as before and kept
-    by no cache under that name. The page's policy allows the versioned
+    browser's history) the host's current file is sent as before,
+    revalidated before each use (`public, no-cache`). The page's policy allows the versioned
     script by its own hash. The compiled modules a page loads (handlers,
     computed values, speculations) are digested into the id too, by their
     names in the build, and asked for at it (`/handler/<identity>.mjs?b=…`;
@@ -137,6 +161,15 @@ keeps that, and changes only when the browser asks for them.
     after its first is interactive under Slow 4G at 650 ms (React 1,202,
     Svelte 1,168); the store's at 640 ms (1,186 before; Next.js 686,
     SvelteKit 639).
+
+    Two amendments from the review, below:
+    - **Only tags are named at the id.** A reader's text is sent as
+      written, since text escapes no `"`.
+    - **A soft navigation stays within one delivery.** A versioned document
+      says its delivery (`pw-delivery`), and a page that navigates in place
+      holds the next document to it, as it does to its build (ADR-0300). A
+      document of another delivery is loaded whole, so a runtime never
+      meets another delivery's Wasm in the cache.
 11. **A press's own paths are run once, on nothing, when the page is idle.**
     With its code warmed, TodoMVC's first add still took 8 ms unthrottled
     and 33-35 ms at 4x CPU from its key to the change in the document, its
@@ -149,13 +182,26 @@ keeps that, and changes only when the browser asks for them.
     each escaping context, at values of each wire form), then renders the
     page's first block at the values it shows, which computes every value
     the page derives, and morphs it into a copy in a document of its own,
-    which is inert: nothing imported into it loads or runs. One block calls
-    the functions any block's change calls, so the work is bounded whatever
-    the page's size. Both are thrown away; a block holding a `<dialog>` is
-    passed over, since a morph closes and refocuses one. A unit test fails when
-    the IR gains a kind of part the sample lacks or the sample stops
-    rendering; `warm.spec.mjs` holds that the document is not changed by a
-    single mutation and that focus does not move. Measured with
+    which is inert: nothing imported into it loads or runs. Both are thrown
+    away. One block calls the functions any block's change calls, so one
+    serves. Two kinds of block are passed over:
+    - a block holding a `<dialog>`, since a morph closes and refocuses one;
+    - a block larger than 400 elements (a page's main list), whose copy and
+      morph would cost more than the change they prepare.
+
+    Each step waits for the browser's next idle period, and none runs once
+    the runtime has ended. A runtime that hands its page over lets its
+    renderer go (the review).
+
+    The tests:
+    - a unit test fails when the IR gains a kind of part the sample lacks,
+      or the sample stops rendering;
+    - `warm.spec.mjs` holds that the document is not changed by a single
+      mutation, that focus does not move, and that a mark set on the live
+      block survives the warm-up, which a morph of the live block would take
+      away. (The review: rendered at the values it shows, a morph of the
+      live block changed nothing either, so without the mark that test
+      could not fail.) Measured with
     `first-add.mjs` (a page left idle after its load, two rounds of eight
     runs, medians): key to the change 32.5-34.9 → 7.2-8.3 ms at 4x CPU and
     7.8-8.0 → 1.6-1.8 ms unthrottled; to the frame after it 60-70 → 36-45 ms
@@ -226,6 +272,59 @@ each run). The full `just e14-head-to-head`, the full browser suites in
 three engines and exact-head CI remain the gates (AGENTS.md); local runs do
 not replace them.
 
+The review's fixes (below) are held by tests and mutation controls, not by
+measurement: the numbers above were taken before them. Also not claimed:
+- **A host that keeps sessions.** It does not warm (decision 2). The head's
+  preload of the table can still overlap the page's own admitted
+  stylesheets and images there, as those already overlap each other
+  (ADR-0389).
+- **A file replaced in a running host's `dist`.** It is sent `immutable`
+  under the id the host computed when it started, until the host restarts.
+- **Every push site's wake.** Two wakes are held by tests: a frame pushed,
+  and a cut. A lost wake at the other four sites would delay a frame by
+  one slice at most.
+- **The edges of a fragment link:**
+  - a form that is also an element's id is not scrolled to;
+  - a `<base target>` is not read;
+  - the page's own `hashchange` listeners do not hear a link followed in
+    its press.
+- **The warm-up's 400-element bound**, which is a judgement, not a
+  measurement.
+
+## The independent review (2026-11-06)
+
+AGENTS.md asks for a separate reviewer before a pull request. Two reviewers
+read the branch's diff, read-only, one the server and delivery and one the
+runtime and the renderer; their findings were hypotheses until reproduced.
+None was critical. Each fix has its own commit and a test that fails
+without it (built and served as the suite serves it), except where noted:
+
+| Finding | Disposition |
+|---|---|
+| A versioned build named files inside a reader's text | Fixed: tags only (`d30a5810`) |
+| A soft navigation across a redeploy paired a new runtime with old, kept Wasm | Fixed: `pw-delivery` (`874068b7`) |
+| A press inherited a warm-up's deadline | Fixed: a deadline per press (`72edb56d`) |
+| "The page is as it was" could not fail | Fixed: a mark a live morph removes (`85faaa9a`) |
+| Overlapping session admissions, made routine | Guarded: no warming where admission reads a kept source (`b6e38417`); question 5 |
+| A cut's wake could be lost, and none was tested | Fixed and tested (`906fdbaf`); one look for a cut a pass, so that its control sees the look go (`21863b22`) |
+| The cache policy, untested through its routes | Tested (`bf07fe9e`) |
+| `warmPaths` outlived its runtime, ran outside idle, and had no bound | Fixed; read, not observed, by a test (`d8e1b639`) |
+| A fragment link's `pushState` during a browser load | Not reproduced in Chromium or Firefox; unchanged (`d8e1b639`) |
+| `fragment.spec`'s new assertion could not fail | Fixed (`caa44bd3`) |
+| The decoder's second leniency | Documented and tested (`eafdd9da`) |
+| A file replaced in place is sent `immutable` | Not changed; not claimed |
+| This ADR's "kept by no cache", a lost executable bit, a stale comment | Fixed (`bf07fe9e`, `bfe02214`) |
+
+The pre-push check found one more, outside the review. The renderer's
+contract test had failed since `1f021e1d`, because its harness lacked the
+runtime's new `delivered` and `attempted`. It is fixed in `3b1136e3`.
+
+At the last fix, `21863b22`, the whole check passed (the browser suite:
+1,061 of 1,074, 13 skipped by their own conditions). Every mutation script
+the fixes reach was run whole, and killed every mutant: 119 of 119 in eight
+scripts. The evidence's README, under "The review's fixes", lists each red
+and green.
+
 ## Next
 
 1. **The decision's Wasm is the largest file on the boot's round trip**
@@ -275,3 +374,9 @@ not replace them.
    change, which the instrument, timing the change's frame, does not see. The
    alternative within the policy is for the page to preload both drawings,
    two more requests in its first load.
+5. Should ADR-0389's repair land before warming builds serve hosts that
+   keep sessions? The repair would answer a request superseded by another
+   admission from its own read, or serialize one session's admissions.
+   Until it lands, such a host does not warm (decision 2). The alternative
+   ADR-0389 names, exempting the handler table as the runtime's three files
+   are, would take the table out of it but not the handlers' modules.

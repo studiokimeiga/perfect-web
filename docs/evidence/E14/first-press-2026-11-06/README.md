@@ -360,6 +360,63 @@ APIs in Firefox (layout instability, request priority, runtime size and
 others), and `stream.spec.mjs`'s tests that launch the host's own Chrome,
 which this PC does not have. Skipped tests are not passes.
 
+## The review's fixes (`review/`)
+
+Two separate reviewers read the branch's diff after its first push (AGENTS.md).
+The ADR's "The independent review" lists each finding and what became of it.
+Each fix was checked red and green as it was made: its mutant built and
+served as the suite serves it, the logs here, and their scripts beside them.
+
+| Fix | Green | Red |
+|---|---|---|
+| Files named in tags only (`d30a5810`) | the delivery tests, 12 | `name_files` as it was: the title's text rewritten (`inline-reds.log`) |
+| A soft navigation within one delivery (`874068b7`) | `soft-navigation.spec`, 30 (Chromium, Firefox) | the runtime's check removed: the new test fails in both |
+| A deadline per press (`72edb56d`) | the load specs, 122 passed, 2 skipped | the earlier runtime: the two new tests fail, 4 of 4 |
+| The warm-up's live-page probe (`85faaa9a`) | `warm.spec`, 22 | the copy's morph made on the live block: fails in both |
+| No warming where admission reads a kept source (`b6e38417`) | the warm tests, 3 | the guard removed: the new test fails |
+| `warmPaths` at idle and with its runtime; the renderer let go (`d8e1b639`) | six specs, 147 passed, 1 skipped; gates 7b and 7d | read, not observed: a runtime's module scope is not visible from a page |
+| The fragment spec's assertions (`caa44bd3`) | `fragment.spec`, 38 | an entry pushed for the address it is at: fails in both |
+| A cut seen under the table (`906fdbaf`, `21863b22`) | the cut, wake and reconnect tests, 15 | the wake deleted: the stream ended 1.999 s after its cut |
+| The cache policy through its routes (`bf07fe9e`) | the delivery tests | each of two routes ignoring the query: fails (`inline-reds.log`) |
+
+**At `bf07fe9e`, the whole check** (`final-verify.log`, `prepush3-*`):
+
+| Check | Result |
+|---|---|
+| `just preflight` | passed |
+| `just evidence-gates` | 1,187 tests |
+| The three crates' tests | passed |
+| Every app built | passed |
+| The whole suite, Chromium and Firefox | 1,074 tests: 1,061 passed, 13 skipped, none failed |
+| Gates 7b and 7d | held: 43,927 + 21,284 B |
+
+The mutation scripts the fixes reach were run whole, as each one's recipe
+runs it (`mut-*`). A script is reached when one of its anchors lies within
+three lines of a changed line (`reached.py`).
+
+| Script | Killed |
+|---|---|
+| `press_modules` | 11 of 11 |
+| `soft_navigation` | 12 of 12 |
+| `page_policy` | 44 of 44 |
+| `address_fragment` | 23 of 23 |
+| `build_id` | 12 of 12 |
+| `press_order` | 1 of 1 |
+| `shared_output` | 6 of 6 |
+| `connection_faults` | 8 of 10 |
+
+`connection_faults`'s two survivors were "an open stream is not ended" and
+"an open long poll is not ended". The A5 fix had added a second look for a
+cut beside the first, so removing either look broke nothing. `21863b22`
+makes it one look a pass, under the table.
+
+**At `21863b22`** (`final-verify2.log`, `prepush4-*`), the same whole check
+passed: 1,187 evidence-gate tests; 863 server tests; 1,074 browser tests,
+1,061 passed, 13 skipped, none failed; gates 7b and 7d.
+`connection_faults` then killed 10 of 10. Across the eight scripts the
+fixes reach, every mutant is killed: 119 of 119. The sources were restored,
+and the 4,993 anchors still match once each.
+
 ## Not run, or failed for the environment
 
 - **WebKit could not open a page on this PC this session**: Playwright's
