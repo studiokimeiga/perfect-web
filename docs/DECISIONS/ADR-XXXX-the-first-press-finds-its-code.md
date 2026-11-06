@@ -106,6 +106,16 @@ keeps that, and changes only when the browser asks for them.
    it looked eighty; and with its slice lengthened past its hold, a frame
    pushed through the server's own path is written within a second of its
    push, which only the wake can do.
+9. **A subscription asks at low priority** (finding 20: with nineteen other
+   tabs of the store open, a press took 10 s, Next.js's 54 ms). Over
+   HTTP/1.1 a browser shares six connections to a host among its pages and
+   queues the waiting requests by priority; each page's subscription holds
+   one nearly always. Both adapters' requests now carry `priority: "low"`,
+   so a command, at a fetch's default priority, takes the next connection
+   free ahead of every other page's subscription. A subscription asked a
+   moment later loses nothing: it asks from its cursor. Not the whole
+   repair: a connection still frees only when some subscription's hold
+   ends, which one origin's shared subscription or HTTP/2 would remove.
 
 ## Measured (the development PC, 2026-11-06)
 
@@ -113,17 +123,23 @@ i9-13900K, 32 CPUs, WSL2, Chromium 145, Playwright 1.58.0; TodoMVC; five runs
 a cell; A is PR #75's head (`1d82a2b2`, its source `5c53870d`), B this
 branch; each side built and served by its own release host. Medians.
 
-| | A: PR #75 | B: this ADR | React | Svelte |
-|---|---:|---:|---:|---:|
-| interactive, Slow 4G | 3,176 ms | **1,414 ms** | 1,703 | 1,302 |
-| first add, Slow 4G | 2,383 ms | **96 ms** | 41 | 38 |
-| first toggle, Slow 4G | 633 ms | **23 ms** | ~30 | ~26 |
-| toggle, loopback, cold | 29 ms | **15 ms** | 13 | 14 |
-| add, loopback, cold | 40 ms | **16 ms** | 10 | 9.9 |
-| add, loopback, warm visit | 37 ms | **6.6 ms** | 7-13 | 5-8 |
-| first paint, Slow 4G | 1,244 ms | 1,244-1,264 ms | 1,204 | 1,204 |
-| first load received | 52,836 B | **175,377 B** | 70,085 | 20,821 |
-| first load requests | 7 | 19 | 5 | 5 |
+| | A: PR #75 | B: decisions 1-4 | B: and 5-7 | React | Svelte |
+|---|---:|---:|---:|---:|---:|
+| interactive, Slow 4G | 3,176 ms | **1,414 ms** | **1,413 ms** | 1,682-1,703 | 1,302 |
+| first add, Slow 4G | 2,383 ms | 96 ms | **51 ms** | 35-41 | 35-38 |
+| first toggle, Slow 4G | 633 ms | 23 ms | **25 ms** | 24-30 | 21-26 |
+| filter, loopback, cold | 29 ms | 31 ms | **14 ms** | 13-15 | 29-30 |
+| toggle, loopback, cold | 29 ms | **15 ms** | **15 ms** | 13 | 14 |
+| add, loopback, cold | 40 ms | 16 ms | 18 ms | 10 | 8.4-9.9 |
+| add, loopback, warm visit | 37 ms | 6.6 ms | 12 ms | 7-13 | 5-8 |
+| first paint, Slow 4G | 1,244 ms | 1,244 ms | 1,256 ms | 1,200-1,204 | 1,204 |
+| first load received | 52,836 B | 175,377 B | **140,029 B** | 70,085 | 20,821 |
+| first load requests | 7 | 19 | 19 | 5 | 5 |
+
+(B "decisions 1-4" is the `warm3` record, "and 5-7" `warm4`: the decoder,
+the fragment's links and compressed compiled modules. React's and Svelte's
+ranges are their medians across the two records. The loopback adds differ
+within their spreads: 16 [13-17] and 18 [17-27].)
 
 The raw runs and commands are in
 [`evidence/E14/first-press-2026-11-06/`](../evidence/E14/first-press-2026-11-06/README.md).

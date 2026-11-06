@@ -1,0 +1,184 @@
+== base-store 1d82a2b2 2026-11-06T02:43:21-05:00 build
+pw-render: 2 file(s) written to /home/haki/code/pw-wt/browser-perf-pr75-20261105/spikes/own-renderer/dist-baseline
+pw-render: 2 file(s) written to /home/haki/code/pw-wt/browser-perf-pr75-20261105/spikes/own-renderer/dist-baseline.again
+built the benchmark's store into /home/haki/code/pw-wt/browser-perf-pr75-20261105/spikes/own-renderer/dist-baseline
+next build 0
+sveltekit build 0
+== 2026-11-06T02:44:16-05:00 measure (chromium cold+warm loopback, slow-4g cold, servers)
+  settled: one-minute load 3.78 -> 3.78 in 0 s (goal under 8)
+head-to-head: store
+  started pleris-store on 13964 (pid 3698431)
+  started next-store on 13965 (pid 3698467)
+  started sveltekit-store on 13966 (pid 3698482)
+  store: chromium cold: 5 rounds of 3
+  store: chromium warm: 5 rounds of 3
+  store: chromium cold slow-4g: 5 rounds of 3
+  store: chromium warm slow-4g: 5 rounds of 3
+  store: 3 rounds of 3 under 100/s for 10 s
+  store: 3 rounds of 3: 20 idle visitors for 10 s, then a press with 19 other tabs open
+machine: 13th Gen Intel(R) Core(TM) i9-13900K, 32 logical CPUs, 47 GiB; Ubuntu 22.04.3 LTS; kernel 6.18.54.1-microsoft-standard-WSL2; node v22.21.1
+load average: 3.78 5.64 4.49 at the start, 0.14 0.63 2.13 at the end
+settled before measuring: one-minute load 3.78 -> 3.78 in 0 s (waits at most 0 s for under 8)
+playwright: 1.58.0; browsers: chromium 145.0.7632.6
+runs: 5 per cell (at least 5); conditions cold, warm; engines chromium; Chromium also shaped: Lighthouse's Slow 4G as it applies it through DevTools: 562.5 ms a request, 1.6 Mbit/s x 0.9 down, 750 kbit/s x 0.9 up, CPU x4 (latency 562.5 ms, 188743 B/s down, 86400 B/s up, as sent); servers: 3 runs a stack; seed 20261025
+commit: 1d82a2b260d2673e2ab2e780f4654a900eecebdb; 2026-11-06T07:44:16.968Z to 2026-11-06T07:57:19.585Z
+
+== where Pleris loses: 12 row(s) of the tables below in which another stack does better
+  LOSS store: first load, bytes received as each host sent them (Chromium, cold): Pleris 41,911 | Next.js 140,212 | SvelteKit 35,026  (better: SvelteKit)
+  LOSS store: first load, bytes decoded (Chromium, cold): Pleris 111,351 | Next.js 464,836 | SvelteKit 86,952  (better: SvelteKit)
+  LOSS store: first load, bytes as a static host compresses them, Brotli 11 (Chromium, cold): Pleris 37,984 | Next.js 117,111 | SvelteKit 30,462  (better: SvelteKit)
+  LOSS store: interaction "add", bytes received (Chromium, cold): Pleris 4,314 | Next.js 2,389 | SvelteKit 701  (better: Next.js, SvelteKit)
+  LOSS store: interactive, ms, median (chromium, cold, slow-4g): Pleris 2540 ms | Next.js 2079 ms | SvelteKit 1757 ms  (better: Next.js, SvelteKit)
+  LOSS store: interaction "add" to its frame, ms, median (chromium, cold, slow-4g): Pleris 1170 ms | Next.js 641 ms | SvelteKit 1194 ms  (better: Next.js)
+  LOSS store: interactive, ms, median (chromium, warm, slow-4g): Pleris 2325 ms | Next.js 695 ms | SvelteKit 642 ms  (better: Next.js, SvelteKit)
+  LOSS store: interaction "add" to its frame, ms, median (chromium, warm, slow-4g): Pleris 1162 ms | Next.js 612 ms | SvelteKit 1164 ms  (better: Next.js)
+  LOSS store: latency under load, p50, ms, median: Pleris 1.39 | Next.js 4.36 | SvelteKit 1.18  (better: SvelteKit)
+  LOSS store: requests an idle visitor's page makes a minute (20 visitors, a browser context each), median: Pleris 29.7 | Next.js 0.00 | SvelteKit 0.00  (better: Next.js, SvelteKit)
+  LOSS store: server CPU, ms a second, for 20 idle visitors, median: Pleris 18.0 | Next.js 1.00 | SvelteKit 2.00  (better: Next.js, SvelteKit)
+  LOSS store: a press with 19 other tabs of the app open in one browser, ms to its change (Chromium), median: Pleris 10,051 | Next.js 39.8 | SvelteKit 47.2  (better: Next.js, SvelteKit)
+
+== where Pleris is best: 6 row(s); 14 more where it is neither (spreads overlap, or it is between the others)
+  BEST store: first load, requests (Chromium, cold): Pleris 4 | Next.js 6 | SvelteKit 9
+  BEST store: first contentful paint, ms, median (chromium, cold): Pleris 24 ms | Next.js 36 ms | SvelteKit 28 ms
+  BEST store: largest contentful paint, ms, median (chromium, cold): Pleris 24 ms | Next.js 36 ms | SvelteKit 28 ms
+  BEST store: interactive, ms, median (chromium, cold): Pleris 30 ms | Next.js 72 ms | SvelteKit 36 ms
+  BEST store: server CPU per request, ms, median: Pleris 0.21 | Next.js 6.08 | SvelteKit 1.46
+  BEST store: server resident memory at its peak under load, MiB, median: Pleris 39.9 | Next.js 138 | SvelteKit 103
+
+== the store (ADR-0120's three stores, one contract)
+  Pleris     own renderer, this commit; written by this project (benchmarks/baselines/pleris, ADR-0156); served by ../../../pw-targets/pr75-baseline/release/pw-dev-server dist-baseline; interactive when the runtime sets data-pw-ready; build minifies: yes; host compresses: root-assets; host lets a cache keep its files: yes
+  Next.js    Next.js 16.4.1, React 19.3.0; written by this project (benchmarks/baselines/next-react, ADR-0120); served by node benchmarks/baselines/next-react/node_modules/next/dist/bin/next start --port 13965 --hostname 127.0.0.1; interactive when the hydrated App Router writes its state to history.state; build minifies: yes; host compresses: all; host lets a cache keep its files: yes
+  SvelteKit  SvelteKit 2.70.3, Svelte 5.57.1, adapter-node 5.5.7; written by this project (benchmarks/baselines/sveltekit, ADR-0120); served by node build; interactive when SvelteKit's router starts after hydrating (history.scrollRestoration set); build minifies: yes; host compresses: static; host lets a cache keep its files: yes
+
+bytes of the first load, cold, Chromium (every cold run of a stack received the same, or its range is shown):
+  decoded: the responses' bodies; Brotli 11, gzip 9: those bodies as a static host compresses them, for every stack alike;
+  received: what the browser received as each host sent it (headers included); app br: Brotli 11 without TodoMVC's common files (base.js, learn.json)
+  stack      requests   decoded Brotli 11   gzip 9  received  as sent          app br  by kind (decoded/br)
+  Pleris            4  111,352*    37,984   43,736 41,912~41,911  br               37,984  document 1: 3,396/921; script 1: 49,880/15,674; wasm 1: 57,951/21,284; other 1: 124/105
+  Next.js           6   464,836   117,111  137,128   140,212  gzip            117,111  document 1: 8,707/1,892; script 5: 456,129/115,219
+  SvelteKit         9    86,952    30,462   33,741    35,026  br               30,462  document 1: 1,810/634; script 8: 85,142/29,828
+  scripts and styles a minifier still shrinks by 10% or more (esbuild 0.28.2's, lib.mjs's rule), as served:
+    Pleris     /handler/caf313daa7fe21a1.mjs 1,242 -> 763; /speculation/store.page.StorePage~ui.mjs 2,514 -> 1,000
+    Next.js    none
+    SvelteKit  none
+  interaction "add" (cold, Chromium): requests / decoded / Brotli 11 / received
+    Pleris       3     3,865     1,397     4,314  /handler/caf313daa7fe21a1.mjs 1,242, /speculation/store.page.StorePage~ui.mjs 2,514, POST /command/store.page.add_to_cart 109
+    Next.js      1     5,104     1,311     2,389  POST /stores/blue-bottle 5,104
+    SvelteKit    2       356       228       701  POST /stores/blue-bottle 43, /stores/blue-bottle/__data.json 313
+  warm (the same context after one whole visit; Chromium): requests / answered 304 / received
+    Pleris       4   1 4,928~4,927
+    Next.js      6   0     2,899
+    SvelteKit    9   0     2,499
+
+times, ms from navigation start: median [first-third quartile] (min-max, n); interactions from the input event to the frame after the change; layout shift a score
+  chromium, cold, unshaped (loopback):
+    Pleris     first contentful paint 24 [24-24] (24-32, n=5)
+               largest contentful p. 24 [24-24] (24-32, n=5)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=5)
+               interactive            30 [29-31] (29-37, n=5)
+               "add"                  30 [30-30] (29-31, n=5)
+    Next.js    first contentful paint 36 [28-64] (24-80, n=5)
+               largest contentful p. 36 [28-64] (24-80, n=5)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=5)
+               interactive            72 [72-76] (68-123, n=5)
+               "add"                  30 [29-31] (28-31, n=5)
+    SvelteKit  first contentful paint 28 [28-32] (24-36, n=5)
+               largest contentful p. 28 [28-32] (24-36, n=5)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=5)
+               interactive            36 [33-38] (31-40, n=5)
+               "add"                  30 [28-30] (28-31, n=5)
+  chromium, warm, unshaped (loopback):
+    Pleris     first contentful paint 32 [24-36] (20-52, n=5)
+               largest contentful p. 32 [24-36] (20-52, n=5)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=5)
+               interactive            19 [17-20] (15-21, n=5)
+               "add"                  31 [31-31] (30-31, n=5)
+    Next.js    first contentful paint 36 [36-36] (36-36, n=5)
+               largest contentful p. 36 [36-36] (36-36, n=5)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=5)
+               interactive            33 [33-34] (31-35, n=5)
+               "add"                  31 [31-31] (30-31, n=5)
+    SvelteKit  first contentful paint 36 [24-52] (24-52, n=5)
+               largest contentful p. 36 [24-52] (24-52, n=5)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=5)
+               interactive            18 [16-18] (14-20, n=5)
+               "add"                  31 [31-31] (30-32, n=5)
+  chromium, cold, slow-4g (Lighthouse's Slow 4G as it applies it through DevTools: 562.5 ms a request, 1.6 Mbit/s x 0.9 down, 750 kbit/s x 0.9 up, CPU x4):
+    Pleris     first contentful paint 616 [612-624] (608-628, n=5)
+               largest contentful p. 616 [612-624] (608-628, n=5)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=5)
+               interactive            2540 [2538-2545] (2530-2548, n=5)
+               "add"                  1170 [1170-1173] (1169-1180, n=5)
+    Next.js    first contentful paint 620 [620-628] (616-644, n=5)
+               largest contentful p. 620 [620-628] (616-644, n=5)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=5)
+               interactive            2079 [2073-2126] (2064-2142, n=5)
+               "add"                  641 [637-644] (635-651, n=5)
+    SvelteKit  first contentful paint 620 [612-620] (612-624, n=5)
+               largest contentful p. 620 [612-620] (612-624, n=5)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=5)
+               interactive            1757 [1747-1759] (1746-1760, n=5)
+               "add"                  1194 [1193-1196] (1191-1200, n=5)
+  chromium, warm, slow-4g (Lighthouse's Slow 4G as it applies it through DevTools: 562.5 ms a request, 1.6 Mbit/s x 0.9 down, 750 kbit/s x 0.9 up, CPU x4):
+    Pleris     first contentful paint 604 [596-608] (592-608, n=5)
+               largest contentful p. 604 [596-608] (592-608, n=5)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=5)
+               interactive            2325 [2319-2326] (2318-2343, n=5)
+               "add"                  1162 [1161-1162] (1159-1162, n=5)
+    Next.js    first contentful paint 612 [604-620] (604-624, n=5)
+               largest contentful p. 612 [604-620] (604-624, n=5)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=5)
+               interactive            695 [693-702] (681-719, n=5)
+               "add"                  612 [612-612] (611-615, n=5)
+    SvelteKit  first contentful paint 600 [600-604] (600-608, n=5)
+               largest contentful p. 600 [600-604] (600-608, n=5)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=5)
+               interactive            642 [638-658] (635-665, n=5)
+               "add"                  1164 [1160-1164] (1160-1166, n=5)
+
+server under a fixed open load: 100 requests/s for 10 s, each of the page's document (after 50 warm-up requests), 3 runs a stack, every stack once a round in a shuffled order: median [first-third quartile] (min-max, n)
+  Pleris     answered 3000/3000 {"200":3000}; processes 1
+             CPU per request, ms         0.21 [0.18-0.24] (0.16-0.27, n=3)
+             latency p50, ms             1.39 [1.37-1.46] (1.36-1.52, n=3)
+             latency p99, ms             2.90 [2.77-3.03] (2.63-3.15, n=3)
+             resident memory at peak, MiB 39.9 [37.6-42.2] (35.2-44.5, n=3)
+  Next.js    answered 3000/3000 {"200":3000}; processes 1
+             CPU per request, ms         6.08 [6.01-6.54] (5.94-7.01, n=3)
+             latency p50, ms             4.36 [4.34-4.72] (4.32-5.07, n=3)
+             latency p99, ms             7.57 [7.21-17.9] (6.85-28.3, n=3)
+             resident memory at peak, MiB 138 [136-141] (135-144, n=3)
+  SvelteKit  answered 3000/3000 {"200":3000}; processes 1
+             CPU per request, ms         1.46 [1.41-1.50] (1.36-1.54, n=3)
+             latency p50, ms             1.18 [1.17-1.34] (1.16-1.51, n=3)
+             latency p99, ms             2.83 [2.68-3.09] (2.53-3.35, n=3)
+             resident memory at peak, MiB 103 [101-106] (98.6-109, n=3)
+
+idle visitors: 20 pages of the app in Chromium, each in a browser context of its own (as separate people's browsers), loaded and left alone for 10 s; 3 runs a stack: median [first-third quartile] (min-max, n)
+  Pleris     requests a page a minute    29.7 [29.7-29.9] (29.7-30.0, n=3)
+             server CPU, ms a second     18.0 [16.5-18.5] (15.0-19.0, n=3)
+             server resident memory, MiB 48.9 [48.1-49.1] (47.4-49.3, n=3)
+  Next.js    requests a page a minute    0.00 [0.00-0.00] (0.00-0.00, n=3)
+             server CPU, ms a second     1.00 [1.00-1.50] (1.00-2.00, n=3)
+             server resident memory, MiB 113 [111-113] (109-114, n=3)
+  SvelteKit  requests a page a minute    0.00 [0.00-0.00] (0.00-0.00, n=3)
+             server CPU, ms a second     2.00 [1.50-2.00] (1.00-2.00, n=3)
+             server resident memory, MiB 105 [105-105] (104-106, n=3)
+
+a press with other tabs open: 20 tabs of the app in ONE browser context (one person's browser, whose six connections to a host over HTTP/1.1 they share), left 4 s, then the app's first interaction in the last tab, ms to its change; 3 runs a stack: median [first-third quartile] (min-max, n)
+  Pleris     10051 [10051-10052] (10050-10054, n=3)
+  Next.js    40 [40-45] (39-49, n=3)
+  SvelteKit  47 [44-50] (41-53, n=3)
+
+
+head-to-head: REFUSED: 9 problem(s); nothing above is a measurement
+  load: store/pleris has 3 run(s), fewer than 5
+  load: store/next-react has 3 run(s), fewer than 5
+  load: store/sveltekit has 3 run(s), fewer than 5
+  idle: store/pleris has 3 run(s), fewer than 5
+  idle: store/next-react has 3 run(s), fewer than 5
+  idle: store/sveltekit has 3 run(s), fewer than 5
+  press: store/pleris has 3 run(s), fewer than 5
+  press: store/next-react has 3 run(s), fewer than 5
+  press: store/sveltekit has 3 run(s), fewer than 5
+exit 1
+STORE_BENCH_DONE base-store

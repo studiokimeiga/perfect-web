@@ -3573,9 +3573,24 @@ async function pollOnce() {
   // Which document this page is (ADR-0161): each is its own subscriber.
   const response = await fetch(`/stream?doc=${documentCursor}&since=${cursor}`, {
     signal: life.signal,
+    priority: SUBSCRIPTION_PRIORITY,
   });
   applyBatch(await response.json());
 }
+
+/**
+ * **A subscription asks at low priority** (the first press's ADR, ADR-0392's
+ * finding 20). Over HTTP/1.1 a browser opens six connections to a host and
+ * shares them among all its pages; each page of an app holds one with its
+ * subscription nearly all the time. With twenty pages of the store open, a
+ * press's command waited 10 s behind the others' subscriptions (Next.js's
+ * 54 ms). A browser queues a host's waiting requests by priority, so a
+ * command, at a fetch's default priority, takes the next connection a
+ * subscription lets go of, ahead of the subscriptions waiting for one. A
+ * subscription asked a moment later is no change a page can see: it asks
+ * from its cursor, and what was pushed meanwhile waits for it on the server.
+ */
+const SUBSCRIPTION_PRIORITY = "low";
 
 /**
  * The streaming adapter: one connection, many batches.
@@ -3587,6 +3602,7 @@ async function pollOnce() {
 async function streamOnce() {
   const response = await fetch(`/stream?doc=${documentCursor}&since=${cursor}&mode=stream`, {
     signal: life.signal,
+    priority: SUBSCRIPTION_PRIORITY,
   });
   if (!response.body) throw new Error("no streaming body");
   const reader = response.body.getReader();

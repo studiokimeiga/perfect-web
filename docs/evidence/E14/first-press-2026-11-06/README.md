@@ -83,6 +83,60 @@ a later task, after a frame, and the change 13.6 ms after the press.
   `compiled-handler`, `protocol-boundary`): 252 passed, 16 skipped, none
   failed. Skipped tests are not passes.
 
+## Later on the branch (`warm4`)
+
+`warm4` measures the branch after three more commits: the renderer's IR
+decoder (`pw-render.wasm` 406,192 to 262,527 bytes), a fragment's form
+links followed in their press, and compressed compiled modules. Same
+command, same machine (`runs/warm4-*.log`, `.json.gz`):
+
+| | `warm3` | `warm4` | React | Svelte |
+|---|---:|---:|---:|---:|
+| filter, loopback, cold | 31 | **14** | 15 | 30 |
+| first add, Slow 4G | 96 | **51** | 35 | 35 |
+| first toggle, Slow 4G | 23 | 25 | 24 | 21 |
+| interactive, Slow 4G | 1,414 | 1,413 | 1,682 | 1,302 |
+| first load received (B) | 175,377 | **140,029** | 70,085 | 20,821 |
+
+A boot profile (`trace/boot-profile.txt`; Chromium's CPU profiler, CPU x4,
+five loads of the development build) finds no one cost to cut: the
+runtime's evaluation about 11 ms, its activation 16 ms (the decision about
+4 ms of it), the device's read 2 ms. What is left of the gap to Svelte under
+Slow 4G is bytes on the boot's round trip: the decision's Wasm (21 KB
+Brotli) and the runtime (16 KB).
+
+## The store against Next.js and SvelteKit (`base-store`, `fp-store`)
+
+The head-to-head's store app on each side (`runs/*-store.log`): PR #75's head
+(`base-store`) and this branch at `096199c2` plus the subscriptions' low
+priority, then uncommitted (`fp-store`). Command, each side, after
+`PW_PRODUCTION_ASSETS=1 bash spikes/own-renderer/baseline-store.sh` and the
+two frameworks' production builds:
+
+```sh
+CARGO_TARGET_DIR=<side's target> PORT=13741 node benchmarks/headtohead/head-to-head.mjs \
+  --apps store --stacks pleris,next-react,sveltekit --engines chromium --runs 5 \
+  --conditions cold,warm --server-runs 3 --settle 0 --json <side>-store.json
+```
+
+**Both runs were REFUSED by `validate.mjs`**: three server rounds a stack,
+where its rules ask five (`--server-runs 3` was this session's choice, to
+save time, and the wrong one). Its nine problems are those counts alone; the
+browser cells had their five runs. So nothing below is a measurement of
+record; the server rows are three rounds each.
+
+| store, medians | PR #75 | this branch | Next.js | SvelteKit |
+|---|---:|---:|---:|---:|
+| a press with 19 other tabs open | 10,051 ms | **27 ms** | 40-50 | 47-49 |
+| interactive, Slow 4G, cold | 2,540 ms | **1,379 ms** | 2,073-2,079 | 1,754-1,757 |
+| add to its frame, Slow 4G, cold | 1,170 ms | **18 ms** | 636-641 | 1,190-1,194 |
+| interactive, Slow 4G, warm visit | 2,325 ms | 1,183 ms | 695-700 | 642-658 |
+| add, loopback, cold | - | **14 ms** | 30 | 30 |
+| server CPU for 20 idle visitors | 18.0 ms/s | 5.00 ms/s | 1.00-2.00 | 2.00 |
+| server CPU a request under load | 0.21 ms | 0.28 ms | 6.08-6.35 | 1.38-1.46 |
+| peak memory under load | 39.9 MiB | 39.9 MiB | 138-141 | 101-103 |
+| first load received | 41,911 B | 45,049 B | 140,212 | 35,026 |
+
 ## Not run, or failed for the environment
 
 - **WebKit could not open a page on this PC this session**: Playwright's
