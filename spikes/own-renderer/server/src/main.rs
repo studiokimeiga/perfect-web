@@ -1055,6 +1055,18 @@ struct Server {
     /// press's ADR), as its packaging says ([`warms`]): told to the browser
     /// on the handler table's `#warm` line.
     warm: bool,
+    /// **How long a kept connection waits for its next request** (the
+    /// keep-alive ADR): [`KEEP_ALIVE_IDLE`] in every host. A test's host
+    /// waits [`TEST_KEEP_ALIVE_IDLE`], so that a client reading one answer to
+    /// its end has its close at once; a test of keep-alive sets it.
+    keep_alive: std::time::Duration,
+    /// **The connections open now** (the keep-alive ADR): past
+    /// [`KEPT_AT_MOST`], an answer closes its connection.
+    open: Arc<std::sync::atomic::AtomicUsize>,
+    /// **The kept connections waiting for their next request** (the
+    /// keep-alive ADR), by their peer's address: arming a dropped command
+    /// (`/bench/drop`) closes them ([`Idle`]).
+    idle: Mutex<BTreeMap<std::net::SocketAddr, TcpStream>>,
     /// **The longest a held subscription waits for a wake** ([`WAKE_AT_LEAST`]
     /// in every host; a test lengthens it to show that a push, not a slice,
     /// delivers its frames).
@@ -2058,6 +2070,13 @@ impl Server {
             sessions: Mutex::new(BTreeMap::new()),
             components,
             warm: warms(&dist),
+            keep_alive: if cfg!(test) {
+                TEST_KEEP_ALIVE_IDLE
+            } else {
+                KEEP_ALIVE_IDLE
+            },
+            open: Arc::default(),
+            idle: Mutex::new(BTreeMap::new()),
             wake_at_least: WAKE_AT_LEAST,
             dist,
             artifacts,
@@ -7615,7 +7634,7 @@ impl Server {
     #[allow(clippy::too_many_arguments)]
     fn respond_streaming(
         &self,
-        stream: &mut TcpStream,
+        stream: &mut Conn,
         session: &str,
         fresh: bool,
         reader: &identity::ReaderIdentity,
@@ -9372,12 +9391,220 @@ fn main() {
     }
 }
 
-/// **A connection's request answered, and then what its commit dropped told
-/// to every other session that reads it** (ADR-0219): after the connection
-/// is closed, so the author is answered without waiting for every reader.
+/// **How long a kept connection waits for its next request's first byte**
+/// (the keep-alive ADR): Node's default `keepAliveTimeout`, 5 s. Past it the
+/// host closes the connection; the browser opens another for its next
+/// request, as it does for a connection a host closed while it was idle.
+const KEEP_ALIVE_IDLE: std::time::Duration = std::time::Duration::from_secs(5);
+
+/// The connection lines of an answer that keeps its connection: what HTTP/1.1
+/// assumes, said, and how long the host keeps it idle ([`KEEP_ALIVE_IDLE`]),
+/// so that a client sends no request on a connection about to close.
+const KEEPS: &str = "connection: keep-alive\r\nkeep-alive: timeout=5\r\n";
+
+/// **A test host's wait for a kept connection's next request** (the
+/// keep-alive ADR): a test's client reads one answer to its end.
+const TEST_KEEP_ALIVE_IDLE: std::time::Duration = std::time::Duration::from_millis(1);
+
+/// **How long a request's head and body may take once begun** (the
+/// keep-alive ADR): a client that has begun a request sends it at once. A
+/// connection that has said nothing in this long is closed, so a client
+/// that opens connections and sends nothing ties up no thread for long.
+const REQUEST_READ_AT_MOST: std::time::Duration = std::time::Duration::from_secs(10);
+
+/// **The most connections a host keeps open between requests** (the
+/// keep-alive ADR): each holds a thread. Past this many open at once, an
+/// answer closes its connection; the next request opens another.
+const KEPT_AT_MOST: usize = 512;
+
+/// **A connection, and whether its answer keeps it for the next request**
+/// (the keep-alive ADR). Every answer is written to one. Its head says
+/// `connection: keep-alive` only where its request allowed it, the request's
+/// body was read whole, and the host has no more than [`KEPT_AT_MOST`]
+/// connections open. HTTP/1.1 keeps a connection unless an answer says
+/// otherwise (RFC 9112 §9.3), so every head [`write_response`] writes says
+/// which.
+///
+/// **Only an answer of a known length, written whole by [`write_response`],
+/// keeps its connection.** Any other closes it, whatever its request
+/// allowed: a stream, whose body ends with the connection; a fault (an answer
+/// left unfinished, a connection held); an upload's own answer; and a request
+/// answered with nothing, as a subscription cut off is (ADR-0175), whose
+/// close is its answer.
+///
+/// A request owns a twin of its connection ([`Conn::twin`]): the same
+/// socket, and what is decided of it shared with the loop that answers the
+/// connection's requests one after another ([`handle`]).
+struct Conn {
+    stream: TcpStream,
+    keeping: Arc<Keeping>,
+}
+
+/// What a connection's twins share (the keep-alive ADR): whether the answer
+/// being written keeps the connection, and whether an answer was written
+/// whole.
+#[derive(Default)]
+struct Keeping {
+    keep: std::sync::atomic::AtomicBool,
+    answered: std::sync::atomic::AtomicBool,
+}
+
+impl Conn {
+    fn of(stream: TcpStream) -> Conn {
+        Conn {
+            stream,
+            keeping: Arc::default(),
+        }
+    }
+
+    /// **This connection again, for one request**: its socket, and what is
+    /// decided of it, shared.
+    fn twin(&self) -> std::io::Result<Conn> {
+        Ok(Conn {
+            stream: self.stream.try_clone()?,
+            keeping: self.keeping.clone(),
+        })
+    }
+
+    /// A request begun: its connection closed after it unless the request,
+    /// read whole, allows otherwise; and nothing answered yet.
+    fn begin(&self) {
+        self.keep(false);
+        self.answered(false);
+    }
+
+    /// Whether this answer keeps its connection.
+    fn keep(&self, keep: bool) {
+        self.keeping
+            .keep
+            .store(keep, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    /// Whether an answer of a known length was written whole.
+    fn answered(&self, whole: bool) {
+        self.keeping
+            .answered
+            .store(whole, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    /// Whether the connection is kept for a next request: an answer written
+    /// whole, which said so.
+    fn kept(&self) -> bool {
+        self.keeps()
+            && self
+                .keeping
+                .answered
+                .load(std::sync::atomic::Ordering::SeqCst)
+    }
+
+    fn keeps(&self) -> bool {
+        self.keeping.keep.load(std::sync::atomic::Ordering::SeqCst)
+    }
+
+    /// The connection lines of this answer's head.
+    fn connection(&self) -> &'static str {
+        if self.keeps() {
+            KEEPS
+        } else {
+            "connection: close\r\n"
+        }
+    }
+}
+
+impl std::ops::Deref for Conn {
+    type Target = TcpStream;
+    fn deref(&self) -> &TcpStream {
+        &self.stream
+    }
+}
+
+impl std::ops::DerefMut for Conn {
+    fn deref_mut(&mut self) -> &mut TcpStream {
+        &mut self.stream
+    }
+}
+
+/// **A connection counted while it is open** (the keep-alive ADR).
+struct Open<'a>(&'a std::sync::atomic::AtomicUsize);
+
+impl<'a> Open<'a> {
+    fn counted(open: &'a std::sync::atomic::AtomicUsize) -> Open<'a> {
+        open.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        Open(open)
+    }
+}
+
+impl Drop for Open<'_> {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+
+/// **A connection's requests answered, one after another, and after each
+/// what its commit dropped told to every other session that reads it**
+/// (ADR-0219; the keep-alive ADR): after its answer is written whole, so the
+/// author is answered without waiting for every reader. The connection is
+/// kept while its answers say so, at most `server.keep_alive` idle between
+/// two requests; a request already sent behind the last (pipelined) is
+/// answered in its turn. A connection not kept is closed before the telling,
+/// as one that held one request was, so a stream ends at once.
 fn handle(server: &Server, stream: TcpStream) {
-    answer_connection(server, stream);
-    server.tell_waiting();
+    let _open = Open::counted(&server.open);
+    let Ok(read) = stream.try_clone() else {
+        return;
+    };
+    let mut reader = BufReader::new(read);
+    let conn = Conn::of(stream);
+    loop {
+        let Ok(request) = conn.twin() else {
+            return;
+        };
+        answer_connection(server, request, &mut reader);
+        let kept = conn.kept();
+        if !kept {
+            let _ = conn.shutdown(std::net::Shutdown::Both);
+        }
+        let _idle = kept.then(|| Idle::listed(server, &conn));
+        server.tell_waiting();
+        if !kept || !next_request(&conn, &mut reader, server.keep_alive) {
+            return;
+        }
+    }
+}
+
+/// **A kept connection listed while it waits for its next request** (the
+/// keep-alive ADR), so that arming a dropped command can close it: unlisted
+/// when its next request begins, or when it closes.
+struct Idle<'a> {
+    server: &'a Server,
+    at: Option<std::net::SocketAddr>,
+}
+
+impl<'a> Idle<'a> {
+    fn listed(server: &'a Server, conn: &Conn) -> Idle<'a> {
+        let at = conn.peer_addr().ok().and_then(|at| {
+            let listed = conn.try_clone().ok()?;
+            server.idle.lock().expect("idle").insert(at, listed);
+            Some(at)
+        });
+        Idle { server, at }
+    }
+}
+
+impl Drop for Idle<'_> {
+    fn drop(&mut self) {
+        if let Some(at) = self.at {
+            self.server.idle.lock().expect("idle").remove(&at);
+        }
+    }
+}
+
+/// **Whether a kept connection's next request begins within `idle`**: its
+/// first byte read, or read already with the request before it.
+fn next_request(conn: &Conn, reader: &mut BufReader<TcpStream>, idle: std::time::Duration) -> bool {
+    let idle = idle.max(std::time::Duration::from_millis(1));
+    conn.set_read_timeout(Some(idle)).is_ok()
+        && reader.fill_buf().is_ok_and(|bytes| !bytes.is_empty())
 }
 
 /// **A refused admission, told by its kind** (ADR-0389, amended 2026-11-02):
@@ -9393,7 +9620,7 @@ fn refused_admission(server: &Server, why: &dyn std::fmt::Display) {
     let _ = server;
 }
 
-fn session_changed(stream: &mut TcpStream, session: &str, fresh: bool) {
+fn session_changed(stream: &mut Conn, session: &str, fresh: bool) {
     respond_json(
         stream,
         403,
@@ -9403,14 +9630,68 @@ fn session_changed(stream: &mut TcpStream, session: &str, fresh: bool) {
     );
 }
 
-fn answer_connection(server: &Server, mut stream: TcpStream) {
-    let mut reader = BufReader::new(stream.try_clone().expect("clone"));
+/// **A request's body length, as its head frames it** (the keep-alive ADR;
+/// RFC 9112 §6.3): none, or one `content-length` of digits. Refused, and its
+/// connection closed, so that no request is ever read out of another's
+/// body: a `transfer-encoding` (this host reads no chunked body: 501), and
+/// two lengths, a length that is no number, a header folded onto the line
+/// before, or whitespace between a header's name and its colon (400,
+/// RFC 9112 §5.1–5.2).
+fn framed_length(headers: &str) -> Result<usize, (u16, &'static str)> {
+    let mut lengths = Vec::new();
+    for line in headers.lines() {
+        if line.starts_with([' ', '\t']) {
+            return Err((400, "a header is folded"));
+        }
+        let Some((name, value)) = line.split_once(':') else {
+            continue;
+        };
+        if name != name.trim_end() {
+            return Err((400, "whitespace before a header's colon"));
+        }
+        if name.eq_ignore_ascii_case("transfer-encoding") {
+            return Err((501, "transfer-encoding is not supported"));
+        }
+        if name.eq_ignore_ascii_case("content-length") {
+            lengths.push(value.trim());
+        }
+    }
+    match lengths.as_slice() {
+        [] => Ok(0),
+        [one] if !one.is_empty() && one.bytes().all(|b| b.is_ascii_digit()) => one
+            .parse()
+            .map_err(|_| (400, "content-length is too large")),
+        [_] => Err((400, "content-length is not a number")),
+        _ => Err((400, "more than one content-length")),
+    }
+}
+
+/// Whether a request asks that its connection close after its answer
+/// (`connection: close`, RFC 9112 §9.6).
+fn asks_to_close(headers: &str) -> bool {
+    headers
+        .lines()
+        .filter_map(|line| line.split_once(':'))
+        .filter(|(name, _)| name.eq_ignore_ascii_case("connection"))
+        .flat_map(|(_, value)| value.split(','))
+        .any(|token| token.trim().eq_ignore_ascii_case("close"))
+}
+
+/// **One request of a connection, answered** (the keep-alive ADR): read from
+/// `reader`, which holds what the connection sent past the request before
+/// it, and answered on `stream`, which it keeps for the next request only
+/// where the request allows it and its body is read whole.
+fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<TcpStream>) {
+    // Closed unless this request, read whole and answered, allows otherwise.
+    stream.begin();
+    let _ = stream.set_read_timeout(Some(REQUEST_READ_AT_MOST));
     let mut request = String::new();
-    if reader.read_line(&mut request).is_err() {
+    if reader.read_line(&mut request).unwrap_or(0) == 0 {
         return;
     }
     let mut parts = request.split_whitespace();
     let (method, path) = (parts.next().unwrap_or(""), parts.next().unwrap_or("/"));
+    let version = parts.next().unwrap_or("");
 
     let mut headers = String::new();
     loop {
@@ -9420,6 +9701,27 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
         }
         headers.push_str(&line);
     }
+    // How its body is framed, before anything reads it (the keep-alive ADR).
+    let length = match framed_length(&headers) {
+        Ok(length) => length,
+        Err((code, why)) => {
+            respond(
+                &mut stream,
+                code,
+                "text/plain; charset=utf-8",
+                "",
+                false,
+                why.as_bytes(),
+            );
+            return;
+        }
+    };
+    // Kept for the next request where HTTP/1.1 keeps it, the request did not
+    // ask to close, and the host has room; and only once its body is read.
+    let persists = version == "HTTP/1.1"
+        && !asks_to_close(&headers)
+        && server.open.load(std::sync::atomic::Ordering::SeqCst) <= KEPT_AT_MOST;
+    stream.keep(persists && length == 0);
     let (session, fresh) = session_of(&headers);
     // TRACK SEAM (second-host): the session as the hosts keep it, read once
     // for the request (ADR-0369): signed in or out on another host, it is so
@@ -9483,7 +9785,7 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                     &headers,
                     &session,
                     fresh,
-                    &mut reader,
+                    reader,
                     &mut stream,
                 )
             },
@@ -9491,19 +9793,10 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
         return;
     }
 
-    // The body, when the request declares one. Bounded: a command's arguments
-    // are a few values, and a length nothing checks is an allocation anyone
-    // can ask for.
+    // The body, when the request declares one (`framed_length`, above).
+    // Bounded: a command's arguments are a few values, and a length nothing
+    // checks is an allocation anyone can ask for.
     const MAX_BODY: usize = 64 * 1024;
-    let length = headers
-        .lines()
-        .find_map(|l| {
-            let (k, v) = l.split_once(':')?;
-            k.trim()
-                .eq_ignore_ascii_case("content-length")
-                .then(|| v.trim().parse::<usize>().ok())?
-        })
-        .unwrap_or(0);
     if length > MAX_BODY {
         respond(
             &mut stream,
@@ -9519,6 +9812,10 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
     if reader.read_exact(&mut body).is_err() {
         return;
     }
+    // Its body read whole, its connection may be kept (the keep-alive ADR);
+    // and what answers it reads the connection unbounded, as before.
+    stream.keep(persists);
+    let _ = stream.set_read_timeout(None);
 
     // NEXT 6c: the provider's webhook, held to its signature. It comes from
     // the provider, not this origin, and carries no session.
@@ -10385,6 +10682,15 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                     return;
                 }
             };
+            // Its next command goes on a connection of its own (the
+            // keep-alive ADR): a browser sends a request again by itself
+            // where a kept connection it reused closes before any answer, so
+            // the drop would never reach the page. Every kept connection
+            // waiting for its next request is closed; the browser opens
+            // another, as it does for one a host closed while idle.
+            for (_, idle) in std::mem::take(&mut *server.idle.lock().expect("idle")) {
+                let _ = idle.shutdown(std::net::Shutdown::Both);
+            }
             server
                 .connection_faults
                 .lock()
@@ -10972,7 +11278,7 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
 /// encoding would look exactly like a transport that drops frames.
 fn stream_open(
     server: &Server,
-    stream: &mut TcpStream,
+    stream: &mut Conn,
     session: &str,
     fresh: bool,
     document: u64,
@@ -11112,13 +11418,7 @@ const STREAM_HOLD: std::time::Duration = std::time::Duration::from_secs(2);
 /// second, as forty passes of 25 ms were.
 const POLL_HOLD: std::time::Duration = std::time::Duration::from_secs(1);
 
-fn stream_frames(
-    server: &Server,
-    stream: &mut TcpStream,
-    session: &str,
-    fresh: bool,
-    _query: &str,
-) {
+fn stream_frames(server: &Server, stream: &mut Conn, session: &str, fresh: bool, _query: &str) {
     // A bounded hold, deliberately short. Each waiting subscriber occupies a
     // connection and a thread, and three engine families times six workers is
     // eighteen pages each holding one — a longer hold made the suite flaky
@@ -11229,7 +11529,7 @@ fn stream_frames(
 #[allow(clippy::too_many_arguments)]
 fn serve_bound(
     server: &Server,
-    stream: &mut TcpStream,
+    stream: &mut Conn,
     session: &str,
     fresh: bool,
     page: &str,
@@ -11240,7 +11540,7 @@ fn serve_bound(
     let principals = server.identity.principals();
     principals.with_reader(session, reader_identity, || {
         let template = server.template_of(page);
-        let unavailable = |stream: &mut TcpStream, why: Unread| {
+        let unavailable = |stream: &mut Conn, why: Unread| {
             if !server.delivery_allowed(&(session.to_string(), 0), Some(reader_identity)) {
                 session_changed(stream, session, fresh);
                 return;
@@ -11401,7 +11701,7 @@ fn serve_bound(
 #[allow(clippy::too_many_arguments)]
 fn moved(
     server: &Server,
-    stream: &mut TcpStream,
+    stream: &mut Conn,
     session: &str,
     fresh: bool,
     page: &str,
@@ -11418,7 +11718,7 @@ fn moved(
         .split('/')
         .filter_map(|s| s.strip_prefix('{').and_then(|s| s.strip_suffix('}')))
         .collect();
-    let fault = |stream: &mut TcpStream, why: String| {
+    let fault = |stream: &mut Conn, why: String| {
         eprintln!("pw-dev-server: `{page}` cannot be moved: {why}");
         respond(
             stream,
@@ -11495,7 +11795,7 @@ fn canonical_origin(
 /// (ADR-0130, ADR-0162): from `/page/<path>?..`, or its route.
 fn serve_page(
     server: &Server,
-    stream: &mut TcpStream,
+    stream: &mut Conn,
     session: &str,
     fresh: bool,
     path: &str,
@@ -11504,7 +11804,7 @@ fn serve_page(
 ) {
     let principals = server.identity.principals();
     principals.with_reader(session, reader_identity, || {
-        let not_found = |stream: &mut TcpStream, why: String| {
+        let not_found = |stream: &mut Conn, why: String| {
             if !server.delivery_allowed(&(session.to_string(), 0), Some(reader_identity)) {
                 session_changed(stream, session, fresh);
                 return;
@@ -11731,7 +12031,7 @@ fn delivery_says(dist: &std::path::Path, key: &str) -> bool {
         .is_some_and(|delivery| delivery[key] == serde_json::Value::Bool(true))
 }
 
-fn serve_file(server: &Server, stream: &mut TcpStream, path: &str, request_headers: &str) {
+fn serve_file(server: &Server, stream: &mut Conn, path: &str, request_headers: &str) {
     // The request's query names the delivery it asks at, if any (the first
     // press's ADR); the file is the route's.
     let (route, query) = path.split_once('?').unwrap_or((path, ""));
@@ -11780,7 +12080,7 @@ fn serve_file(server: &Server, stream: &mut TcpStream, path: &str, request_heade
 /// or, asked at its build's delivery, kept a year ([`Delivery`]). The same
 /// for every reader: no session, no cookie. `bytes` are the file's own.
 fn respond_representation(
-    stream: &mut TcpStream,
+    stream: &mut Conn,
     request_headers: &str,
     mime: &str,
     path: &std::path::Path,
@@ -12611,7 +12911,7 @@ fn session_of(headers: &str) -> (String, bool) {
 
 /// **A change to the store's data refused** (track `store-pg`): 409, and
 /// why. Nothing of it was kept.
-fn refused_json(stream: &mut TcpStream, session: &str, fresh: bool, why: String) {
+fn refused_json(stream: &mut Conn, session: &str, fresh: bool, why: String) {
     let why = serde_json::Value::String(why);
     respond_json(
         stream,
@@ -12622,7 +12922,7 @@ fn refused_json(stream: &mut TcpStream, session: &str, fresh: bool, why: String)
     );
 }
 
-fn respond_json(stream: &mut TcpStream, code: u16, session: &str, fresh: bool, body: &str) {
+fn respond_json(stream: &mut Conn, code: u16, session: &str, fresh: bool, body: &str) {
     respond(
         stream,
         code,
@@ -12635,7 +12935,7 @@ fn respond_json(stream: &mut TcpStream, code: u16, session: &str, fresh: bool, b
 
 /// **An answer begun and never finished** (ADR-0381's fault): its head, whose
 /// `content-length` promises the whole body, and the body's first half.
-fn respond_in_part(stream: &mut TcpStream, code: u16, session: &str, fresh: bool, body: &str) {
+fn respond_in_part(stream: &mut Conn, code: u16, session: &str, fresh: bool, body: &str) {
     let cookie = if fresh {
         identity::session_cookie(session)
     } else {
@@ -12655,7 +12955,7 @@ fn respond_in_part(stream: &mut TcpStream, code: u16, session: &str, fresh: bool
 /// **A connection held open** (ADR-0381's fault): nothing more is written to
 /// it, and it is read until its client closes it, or for [`HOLD_AT_MOST`], so
 /// the hold ends with the page that gave up on it.
-fn hold_open(stream: &mut TcpStream) {
+fn hold_open(stream: &mut Conn) {
     let until = std::time::Instant::now() + HOLD_AT_MOST;
     let _ = stream.set_read_timeout(Some(std::time::Duration::from_millis(50)));
     let mut read = [0u8; 64];
@@ -12684,10 +12984,12 @@ fn reason(code: u16) -> &'static str {
         200 => "OK",
         307 => "Temporary Redirect",
         308 => "Permanent Redirect",
+        400 => "Bad Request",
         404 => "Not Found",
         405 => "Method Not Allowed",
         413 => "Content Too Large",
         500 => "Internal Server Error",
+        501 => "Not Implemented",
         503 => "Service Unavailable",
         _ => "",
     }
@@ -12702,7 +13004,7 @@ const PRIVATE: &str = "cache-control: private, no-store\r\n";
 
 /// **A response to a session's request**: kept by no cache, and with the
 /// cookie that names a fresh session (ADR-0184).
-fn respond(stream: &mut TcpStream, code: u16, mime: &str, session: &str, fresh: bool, body: &[u8]) {
+fn respond(stream: &mut Conn, code: u16, mime: &str, session: &str, fresh: bool, body: &[u8]) {
     let cookie = if fresh {
         // TRACK SEAM (identity): the session cookie, HttpOnly and Secure
         // outside this machine.
@@ -12736,7 +13038,7 @@ fn runs_nothing(mime: &str) -> String {
 /// fresh session's cookie went on whatever it asked for first, and a cache
 /// that kept that file would have given the session to everyone it served
 /// the file to, who would then all share one cart.
-fn respond_build(stream: &mut TcpStream, code: u16, mime: &str, body: &[u8]) {
+fn respond_build(stream: &mut Conn, code: u16, mime: &str, body: &[u8]) {
     write_response(stream, code, mime, &runs_nothing(mime), body);
 }
 
@@ -12747,17 +13049,21 @@ fn respond_build(stream: &mut TcpStream, code: u16, mime: &str, body: &[u8]) {
 /// origin's scripts (`'self'`): this is what makes that its JavaScript.
 const NOSNIFF: &str = "x-content-type-options: nosniff\r\n";
 
-fn write_response(stream: &mut TcpStream, code: u16, mime: &str, headers: &str, body: &[u8]) {
+/// **An answer of a known length** (the keep-alive ADR): its connection kept
+/// or closed after it as `stream` says.
+fn write_response(stream: &mut Conn, code: u16, mime: &str, headers: &str, body: &[u8]) {
     let head = format!(
-        "HTTP/1.1 {code} {}\r\ncontent-type: {mime}\r\ncontent-length: {}\r\n{NOSNIFF}{headers}connection: close\r\n\r\n",
+        "HTTP/1.1 {code} {}\r\ncontent-type: {mime}\r\ncontent-length: {}\r\n{NOSNIFF}{headers}{}\r\n",
         reason(code),
-        body.len()
+        body.len(),
+        stream.connection()
     );
-    let _ = stream.write_all(head.as_bytes());
-    let _ = stream.write_all(body);
-    let _ = stream.flush();
-    let mut sink = Vec::new();
-    let _ = stream.take(0).read_to_end(&mut sink);
+    let whole = stream
+        .write_all(head.as_bytes())
+        .and_then(|()| stream.write_all(body))
+        .and_then(|()| stream.flush())
+        .is_ok();
+    stream.answered(whole);
 }
 
 /// Trace events accept only bounded operation metadata. A caller cannot
@@ -15766,7 +16072,7 @@ public query Store(",
         let doc: Doc = (session.to_string(), document);
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
         let _page = TcpStream::connect(listener.local_addr().expect("addr")).expect("connect");
-        let (mut held, _) = listener.accept().expect("accept");
+        let mut held = Conn::of(listener.accept().expect("accept").0);
         let begun = std::time::Instant::now();
         stream_open(&s, &mut held, session, false, document, document);
         let held_for = begun.elapsed();
@@ -15794,7 +16100,7 @@ public query Store(",
         let doc: Doc = (session.to_string(), document);
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
         let _page = TcpStream::connect(listener.local_addr().expect("addr")).expect("connect");
-        let (mut held, _) = listener.accept().expect("accept");
+        let mut held = Conn::of(listener.accept().expect("accept").0);
         let s = &s;
         std::thread::scope(|scope| {
             let open =
@@ -15829,7 +16135,7 @@ public query Store(",
         let doc: Doc = (session.to_string(), document);
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
         let _page = TcpStream::connect(listener.local_addr().expect("addr")).expect("connect");
-        let (mut held, _) = listener.accept().expect("accept");
+        let mut held = Conn::of(listener.accept().expect("accept").0);
         let s = &s;
         std::thread::scope(|scope| {
             let open =
@@ -15871,7 +16177,7 @@ public query Store(",
         let ms = std::time::Duration::from_millis;
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
         let mut page = TcpStream::connect(listener.local_addr().expect("addr")).expect("connect");
-        let (mut held, _) = listener.accept().expect("accept");
+        let mut held = Conn::of(listener.accept().expect("accept").0);
         std::thread::scope(|scope| {
             let open =
                 scope.spawn(|| stream_open(&s, &mut held, session, false, document, document));
@@ -15948,7 +16254,7 @@ public query Store(",
         let doc: Doc = (session.to_string(), document);
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
         let _page = TcpStream::connect(listener.local_addr().expect("addr")).expect("connect");
-        let (mut held, _) = listener.accept().expect("accept");
+        let mut held = Conn::of(listener.accept().expect("accept").0);
         std::thread::scope(|scope| {
             let open =
                 scope.spawn(|| stream_open(&s, &mut held, session, false, document, document));
@@ -16894,6 +17200,8 @@ public query Store(",
     mod session_commands;
     #[cfg(feature = "session-postgres-tests")]
     mod session_commands_pg;
+    // The keep-alive ADR: a connection kept for its next request.
+    mod keep_alive;
     // ADR-0389, amended 2026-11-02: overlapping admissions of one session.
     mod session_overlap;
     mod session_receipt_recovery;
@@ -19595,7 +19903,7 @@ public query Store(",
         let (_, document) = s.serve_document(session);
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
         let mut gone = TcpStream::connect(listener.local_addr().expect("addr")).expect("connect");
-        let (mut held, _) = listener.accept().expect("accept");
+        let mut held = Conn::of(listener.accept().expect("accept").0);
         std::thread::scope(|scope| {
             scope.spawn(|| stream_open(&s, &mut held, session, false, document, document));
             s.command(ADD, session, &add_shown("espresso", 1), false)
@@ -21713,7 +22021,7 @@ public query Store(",
         );
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
         let _page = TcpStream::connect(listener.local_addr().expect("addr")).expect("connect");
-        let (mut held, _) = listener.accept().expect("accept");
+        let mut held = Conn::of(listener.accept().expect("accept").0);
         std::thread::scope(|scope| {
             scope.spawn(|| stream_open(&s, &mut held, session, false, document, applied));
             // The stream has opened, and acknowledged what the page applied,
