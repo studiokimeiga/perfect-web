@@ -1,0 +1,17 @@
+baseline: 9 passed, 0 failed
+a payment's command given what is no `Settled` names no boundary: KILLED (1 of 9 tests fail)
+a command the platform invokes keyed by nothing names no boundary: KILLED (1 of 9 tests fail)
+a command the platform invokes may hold a reader to a predicate: KILLED (1 of 9 tests fail)
+a command the platform invokes may take any parameters: KILLED (1 of 9 tests fail)
+the program's own `Settled` is taken for the platform's: KILLED (1 of 9 tests fail)
+two commands may answer a payment's outcome: KILLED (1 of 9 tests fail)
+the first command is refused rather than the second: KILLED (2 of 9 tests fail)
+a page may press a command the platform invokes: KILLED (1 of 9 tests fail)
+the contract does not say who invokes the command: KILLED (1 of 9 tests fail)
+who invokes a command is not part of its interface: KILLED (1 of 9 tests fail)
+a word the platform does not invoke by is taken: KILLED (1 of 9 tests fail)
+the clause is taken on a query: KILLED (1 of 9 tests fail)
+a command the platform invokes need not be idempotent: KILLED (2 of 9 tests fail)
+the host takes a reader's press of a command the platform invokes: KILLED (1 of 9 tests fail)
+14 of 14 mutants killed
+memory bound: no process was stopped

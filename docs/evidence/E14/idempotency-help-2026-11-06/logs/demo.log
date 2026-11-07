@@ -1,0 +1,16 @@
+twice.pw as written: exit 1, codes ['PW0338']; OK
+    = help: declare `idempotent_by InteractionId`, and `opaque type InteractionId = String` if the program has none
+twice.pw with the clause alone: exit 1, codes ['PW0335']; OK
+    error: [PW0335] `idempotent_by InteractionId`: `InteractionId` names no type visible here
+twice.pw with the clause and the type: exit 0, codes []; OK
+retry.pw as written: exit 1, codes ['PW0312']; OK
+    = help: add `idempotent_by InteractionId`, and `opaque type InteractionId = String` if the program has none
+retry.pw with the clause alone: exit 1, codes ['PW0335']; OK
+    error: [PW0335] `idempotent_by InteractionId`: `InteractionId` names no type visible here
+retry.pw with the clause and the type: exit 0, codes []; OK
+clock.pw as written: exit 1, codes ['PW6405']; OK
+    = help: declare `idempotent_by InteractionId` on `remind`, and `opaque type InteractionId = String` if the program has none
+clock.pw with the clause alone: exit 1, codes ['PW0335']; OK
+    error: [PW0335] `idempotent_by InteractionId`: `InteractionId` names no type visible here
+clock.pw with the clause and the type: exit 0, codes []; OK
+9 of 9 steps as the help says
