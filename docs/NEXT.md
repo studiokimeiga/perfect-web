@@ -47,6 +47,28 @@ stays open, in order:
    takes the next free number when it lands. The dependency updates
    (#16-#26, #65) are checked and landed on their own.
 
+7. **What train-14's review found and left for its own work:**
+   - **A query answers `POST /command/<id>`** (medium confidence, not run):
+     `pw build` writes a component for each query too, the server loads every
+     component, and the route never asks what kind an export is. A query no
+     page reads can be called with any arguments, and a query cannot declare
+     `requires`. A query's id posted as a command should answer 404.
+   - **The older markup rules compare names exactly**, as PW5053 and PW5014
+     did until train-14: PW5013's interactive elements, `role`, `tabindex`.
+     HTML lower-cases both a tag's name and an attribute's; read them as it
+     does, or refuse a name HTML would rewrite, beside SVG's own.
+   - **The InteractionId help** (PW0338, PW0312, PW6405) prints even where
+     the program declares the type, and says "declare" where the type is
+     declared in another module and only needs importing.
+   - **The refusal codes' guide** lists PWR10, which `decide_manifest` never
+     returns, and PWR07's row leaves out `CaptureSchemaMismatch`.
+   - #71's test waits on its condition by polling every 10 ms; the table's
+     condition variable would make it an event. #73 pins no test to its 24
+     shards, and its plan can still grow to 40.
+   - The pleris.dev branch (`site/pleris-dev`, PR #77) still holds the two
+     Wrangler cache files train-14 left out; whether to delete that branch
+     after the merge is the owner's call.
+
 ## Current local continuation, 2026-11-02
 
 Fetched `origin/master` is `5d4d4d55`; D3 PostgreSQL, added-table references,
