@@ -98,7 +98,8 @@ fn a_page_counts_follows(s: &Server) {
     let answered = follow(s, "a", "follow", "u-ada", "i-2");
     assert!(answered.committed, "{:?}", answered.result);
     assert_eq!(counts(s, "b", "u-ada"), "1 follower · 0 following");
-    assert_eq!(counts(s, "b", "u-a"), "0 followers · 1 following");
+    let a = crate::identity::guest_user("a");
+    assert_eq!(counts(s, "b", &a), "0 followers · 1 following");
 }
 
 #[test]
@@ -119,7 +120,7 @@ fn the_relation_is_the_readers(s: &Server) {
     let theirs = shown(s, "b", "feed.app.ProfilePage~ui", &of("u-ada"));
     assert!(!theirs.contains("Unfollow"), "{theirs}");
     // The reader's own page, once it is someone: it follows.
-    let mine = page(s, "u-a");
+    let mine = page(s, &crate::identity::guest_user("a"));
     assert!(mine.contains("This is you."), "{mine}");
     assert!(!mine.contains("Follow"), "{mine}");
 }
@@ -135,7 +136,8 @@ fn no_one_is_not_found(s: &Server) {
     // `a` is someone once it follows.
     let answered = follow(s, "a", "follow", "u-ada", "i-1");
     assert!(answered.committed, "{:?}", answered.result);
-    for (user, interaction) in [("u-a", "i-2"), ("u-nobody", "i-3")] {
+    let a = crate::identity::guest_user("a");
+    for (user, interaction) in [(a.as_str(), "i-2"), ("u-nobody", "i-3")] {
         let answered = follow(s, "a", "follow", user, interaction);
         assert!(!answered.committed, "{user}: {:?}", answered.result);
         assert!(

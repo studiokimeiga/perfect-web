@@ -1250,6 +1250,33 @@ pub mod engine {
             .call_with_tables(contract, granted, limits, host, tables, export, args)
     }
 
+    /// **[`call_with_tables`], its `requires` evaluated first** (track
+    /// `data-path`; what ADR-0386 left open: "authorized commands using
+    /// tables"): the deployment answers each predicate the export requires,
+    /// as [`call_authorized_within`] asks it, before the component is
+    /// instantiated, and only then are its table functions linked, through
+    /// the gate alone, with `tables`. A refused predicate runs nothing, so a
+    /// command it refuses stages no write.
+    #[allow(clippy::too_many_arguments)]
+    pub fn call_authorized_with_tables<F>(
+        bytes: &[u8],
+        contract: &crate::ComponentContract,
+        granted: &crate::Granted,
+        limits: &crate::Limits,
+        host: &std::collections::BTreeMap<String, HostFn>,
+        tables: &crate::tables::Manifest,
+        export: &[&str],
+        args: &[wasmtime::component::Val],
+        evaluate: F,
+    ) -> Result<Vec<wasmtime::component::Val>, String>
+    where
+        F: FnMut(&str, &[&Val]) -> Result<bool, String>,
+    {
+        Prepared::compile(bytes)?.call_authorized_with_tables(
+            contract, granted, limits, host, tables, export, args, evaluate,
+        )
+    }
+
     /// Invoke an export after the deployment explicitly evaluates its
     /// authorization preconditions.
     #[allow(clippy::too_many_arguments)]
@@ -1464,6 +1491,39 @@ pub mod engine {
                 limits,
                 host,
                 None,
+                export,
+                args,
+            )
+        }
+
+        /// [`call_authorized_with_tables`], on the compiled component.
+        #[allow(clippy::too_many_arguments)]
+        pub fn call_authorized_with_tables<F>(
+            &self,
+            contract: &crate::ComponentContract,
+            granted: &crate::Granted,
+            limits: &crate::Limits,
+            host: &std::collections::BTreeMap<String, HostFn>,
+            tables: &crate::tables::Manifest,
+            export: &[&str],
+            args: &[wasmtime::component::Val],
+            evaluate: F,
+        ) -> Result<Vec<wasmtime::component::Val>, String>
+        where
+            F: FnMut(&str, &[&Val]) -> Result<bool, String>,
+        {
+            // Its arguments decoded, then its predicates answered, before
+            // anything is instantiated or linked.
+            self.hold_arguments(contract, export, args)?;
+            authorize_export(contract, export, args, evaluate)?;
+            run(
+                &self.engine,
+                &self.component,
+                contract,
+                granted,
+                limits,
+                host,
+                Some(tables),
                 export,
                 args,
             )

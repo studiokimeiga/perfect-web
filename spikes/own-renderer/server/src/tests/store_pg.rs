@@ -140,8 +140,8 @@ fn on_postgres_a_cart_change_commits_with_its_event_in_one_transaction() {
     let rows = sql
         .query(
             "SELECT s.name, s.committed_in = c.committed_in \
-             FROM outbox_seen s, cart_lines c WHERE c.owner = 'u-a'",
-            &[],
+             FROM outbox_seen s, cart_lines c WHERE c.owner = $1",
+            &[&crate::identity::guest_user("a")],
         )
         .expect("read");
     let seen: Vec<(String, bool)> = rows.iter().map(|r| (r.get(0), r.get(1))).collect();
@@ -190,8 +190,8 @@ fn on_postgres_a_routes_change_commits_with_its_event_in_one_transaction() {
         .sql()
         .query(
             "SELECT s.name, s.committed_in = o.committed_in \
-             FROM outbox_seen s, orders o WHERE o.owner = 'u-a'",
-            &[],
+             FROM outbox_seen s, orders o WHERE o.owner = $1",
+            &[&crate::identity::guest_user("a")],
         )
         .expect("read");
     let seen: Vec<(String, bool)> = rows.iter().map(|r| (r.get(0), r.get(1))).collect();
@@ -219,7 +219,9 @@ fn on_postgres_a_cart_change_reaches_the_sessions_open_page() {
     let answered = add(&s, "a", "espresso", 2, "i-1");
     assert!(answered.committed, "{:?}", answered.result);
     assert_eq!(
-        s.materializer.state("cart:a").as_deref(),
+        s.materializer
+            .state(&crate::store::cart_state_key("a"))
+            .as_deref(),
         Some("2"),
         "the commit's rows, recorded"
     );
@@ -281,7 +283,11 @@ fn on_postgres_a_refused_commit_commits_neither_its_state_nor_its_event() {
         0,
         "none written"
     );
-    assert_eq!(s.materializer.state("cart:a"), None, "nothing recorded");
+    assert_eq!(
+        s.materializer.state(&crate::store::cart_state_key("a")),
+        None,
+        "nothing recorded"
+    );
     assert_eq!(s.materializer.retained_events(), 0);
     assert!(
         patch_sets(&s, "a")
@@ -476,7 +482,7 @@ fn on_postgres_a_second_hosts_commit_answers_what_the_first_committed() {
     let (layer, host, _dir) = hosts(&url);
     let s = host();
     let request = [shown("espresso"), serde_json::json!(1)];
-    let key = format!("a\u{1f}{ADD}\u{1f}press-1");
+    let key = crate::identity::interaction_key("a", ADD, "press-1");
     let (_, _, sent) = s.receipt_keys("a", ADD, "press-1", &request);
     let first = r#"{"committed":true,"why":null,"refused":null,"result":{"first":true}}"#;
     {
@@ -556,8 +562,11 @@ fn on_postgres_an_order_keeps_its_lines_and_the_outboxes_hold_only_its_hosts_row
             (session.to_string(), "cortado".to_string(), 1),
         ]
     };
-    // Each the reader's, its session's guest's (track `store-accounts`).
-    assert_eq!(lines, [want("u-a"), want("u-b")].concat());
+    // Each the reader's, its session's guest's (track `store-accounts`),
+    // whose id is its session's digest (track `data-path`), in their order.
+    let mut owners = ["a", "b"].map(crate::identity::guest_user);
+    owners.sort();
+    assert_eq!(lines, [want(&owners[0]), want(&owners[1])].concat());
     assert_eq!(
         s.count("SELECT count(*) FROM cart_lines"),
         0,
@@ -623,6 +632,7 @@ fn on_postgres_the_two_layers_answer_alike() {
             );
     }
     let s = |v: &str| Val::String(v.to_string());
+    let a = crate::identity::session_handle("a");
     let reads: Vec<(&str, Vec<Val>)> = vec![
         ("store:data/stores#list", vec![]),
         ("store:data/stores#get", vec![s("47")]),
@@ -642,10 +652,12 @@ fn on_postgres_the_two_layers_answer_alike() {
         ("store:data/kitchen#prep-minutes", vec![s("48")]),
         ("store:data/recommendations#for-store", vec![s("47")]),
         ("store:data/recommendations#for-store", vec![s("48")]),
-        ("store:data/carts#current", vec![s("a")]),
-        ("store:data/orders#current", vec![s("a")]),
-        ("store:data/orders#placed", vec![s("a")]),
-        ("store:data/estimates#current", vec![s("a")]),
+        // Session `a`'s, by the handle a program holds it by (track
+        // `data-path`).
+        ("store:data/carts#current", vec![s(&a)]),
+        ("store:data/orders#current", vec![s(&a)]),
+        ("store:data/orders#placed", vec![s(&a)]),
+        ("store:data/estimates#current", vec![s(&a)]),
     ];
     // Each read's answer, its estimate's `generated-at` (a clock reading)
     // left out.
@@ -1043,4 +1055,115 @@ fn on_postgres_two_hosts_commit_a_run_once() {
             .get::<_, i64>(0),
         1
     );
+}
+
+/// **Every row of every table of the layer's schema, as text**: each row as
+/// PostgreSQL writes a row as text, its `bytea` in hex.
+fn every_row(layer: &StorePg) -> String {
+    let mut sql = layer.sql();
+    let tables: Vec<String> = sql
+        .query(
+            "SELECT table_name::text FROM information_schema.tables \
+             WHERE table_schema = $1 AND table_type = 'BASE TABLE'",
+            &[&layer.schema()],
+        )
+        .expect("the schema's tables")
+        .iter()
+        .map(|row| row.get(0))
+        .collect();
+    let mut text = String::new();
+    for table in tables {
+        let rows = sql
+            .query(
+                &format!("SELECT t::text FROM \"{}\".\"{table}\" t", layer.schema()),
+                &[],
+            )
+            .expect("a table's rows");
+        for row in rows {
+            text.push_str(&format!("{table}: {}\n", row.get::<_, String>(0)));
+        }
+    }
+    text
+}
+
+/// **Nothing the store keeps on PostgreSQL holds a session's cookie** (track
+/// `data-path`, the re-review of 2026-11-02, which searched the feed's rows
+/// and not the store's): a reader signed in through the flow reads the
+/// store, adds to the cart through the command's route and is given an
+/// estimate through its route; in the canonical store, whose cart is the
+/// reader's user's, and in the benchmark's, whose cart is the session's
+/// (`Cart(current_session())`). No row of any table of the store's schema
+/// (its carts, orders and estimates, its sessions and sign-ins, its records,
+/// its outbox) holds the session, the one the browser came with, or any
+/// form of either a reader could turn back into it (`holds_none_of`); nor
+/// does the page. The neighbours: the cart's line is there, and the
+/// estimate, by the program's handle where the store keys them by session.
+#[test]
+fn on_postgres_nothing_the_store_keeps_holds_a_session_cookie() {
+    let Some(url) = database() else { return };
+    for base in ["examples", "benchmarks/baselines/pleris"] {
+        let layer = Arc::new(StorePg::for_test(&url).expect("opened"));
+        let (dir, out) = built_from_patches_in(base, |app| app.to_string(), &[]);
+        let server = Server::from_build_layers(out.clone(), out, None, Some(layer.clone()))
+            .expect("served on PostgreSQL");
+        let s = OnPostgres {
+            served: Served { server, _dir: dir },
+            layer,
+        };
+        let provider = Arc::new(super::sign_in::TestProvider::default());
+        s.identity
+            .use_provider(provider.clone(), super::sign_in::REDIRECT);
+        let came_with = crate::identity::new_session_id();
+        let ada = super::sign_in::signed_in(&s, &provider, &came_with, "ada");
+        let cookie = format!("pw-session={ada}");
+        // The store's page, which reads the cart, served to the reader.
+        let (page, ..) = s
+            .serve_document_settled(
+                &ada,
+                "store.page.StorePage~ui",
+                &store_params(STORE_ID),
+                &[],
+            )
+            .unwrap_or_else(|_| panic!("{base}: the store's page"));
+        // The messages name what is missing and print no answer: an answer
+        // may carry the session's cookie, and a failing run's log is kept.
+        // The canonical store adds the item as its page shows it; the
+        // benchmark's, by its id.
+        let item = match base {
+            "examples" => shown("espresso"),
+            _ => serde_json::json!("espresso"),
+        };
+        let body = serde_json::json!([item, 1]).to_string();
+        let added = super::sign_in::command(&s, ADD, &ada, "i-add", &body);
+        assert!(
+            added.contains("\"committed\":true"),
+            "{base}: the add commits"
+        );
+        let estimated = super::sign_in::exchanged(
+            &s,
+            &format!(
+                "POST /bench/estimate?minutes=35 HTTP/1.1\r\nHost: t\r\nCookie: {cookie}\r\n\
+                 Sec-Fetch-Site: same-origin\r\nContent-Length: 0\r\n\r\n"
+            ),
+        );
+        assert!(
+            estimated.starts_with("HTTP/1.1 200"),
+            "{base}: the estimate is set"
+        );
+        let rows = every_row(&s.layer);
+        assert!(
+            rows.lines()
+                .any(|row| row.starts_with("cart_lines: ") && row.contains("espresso")),
+            "{base}: the cart's line is kept"
+        );
+        let handle = crate::identity::session_handle(&ada);
+        assert!(
+            rows.lines()
+                .any(|row| row.starts_with("estimates: ") && row.contains(&handle)),
+            "{base}: the estimate, by the program's handle on the session"
+        );
+        super::guestbook::holds_none_of(&rows, &[&ada, &came_with]);
+        super::guestbook::holds_none_of(&page, &[&ada, &came_with]);
+        drop(s);
+    }
 }

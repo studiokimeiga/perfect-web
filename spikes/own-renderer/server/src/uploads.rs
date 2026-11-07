@@ -790,7 +790,7 @@ impl Shared {
         }
         let user = match reader {
             crate::identity::ReaderIdentity::Account(identity) => identity.principal.user.clone(),
-            _ => format!("u-{session}"),
+            _ => crate::identity::guest_user(session),
         };
         let size = sent;
         let staged_size = size.max(bytes.len() as u64);
@@ -1188,10 +1188,13 @@ impl Shared {
 }
 
 /// **The read a page makes of its session's lease**, the program's
-/// `List<Attached>`, none or one: `feed:data/uploads#attached`.
-pub(crate) fn attached_op(leases: Option<Leases>) -> HostFn {
+/// `List<Attached>`, none or one: `feed:data/uploads#attached`. The session
+/// is passed as the program's handle on it, the request's (track
+/// `data-path`).
+pub(crate) fn attached_op(leases: Option<Leases>, asked: crate::data::Requested) -> HostFn {
     Arc::new(move |args: &[Val]| match args {
-        [Val::String(session)] => {
+        [Val::String(handle)] => {
+            let session = asked.session("uploads#attached", handle)?;
             let shown = leases.as_ref().and_then(|l| l.shown(session));
             Ok(vec![Val::List(
                 shown
@@ -1306,9 +1309,10 @@ impl Drop for Claims {
 /// **A command claims its session's lease**: `feed:data/uploads#claim`,
 /// the program's `resource.acquire<Upload>`. The handle is the lease's id;
 /// none leased, or claimed by another command, is not found.
-pub(crate) fn claim_op(claims: Claiming) -> HostFn {
+pub(crate) fn claim_op(claims: Claiming, asked: crate::data::Requested) -> HostFn {
     Arc::new(move |args: &[Val]| match args {
-        [Val::String(session)] => {
+        [Val::String(handle)] => {
+            let session = asked.session("uploads#claim", handle)?;
             let mut claims = claims.lock().expect("claims");
             let claimed = claims.leases.as_ref().and_then(|l| l.claim(session));
             Ok(vec![match claimed {
@@ -1327,9 +1331,14 @@ pub(crate) fn claim_op(claims: Claiming) -> HostFn {
 /// **A command discards the claim it holds**: `feed:data/uploads#discard`,
 /// the program's `resource.release<Upload>`. Its lease ends when the
 /// command commits, and what it showed is the answer.
-pub(crate) fn discard_op(claims: Claiming, staged: impl Fn() + Send + Sync + 'static) -> HostFn {
+pub(crate) fn discard_op(
+    claims: Claiming,
+    asked: crate::data::Requested,
+    staged: impl Fn() + Send + Sync + 'static,
+) -> HostFn {
     Arc::new(move |args: &[Val]| match args {
-        [Val::String(session), Val::String(upload)] => {
+        [Val::String(handle), Val::String(upload)] => {
+            let session = asked.session("uploads#discard", handle)?;
             let mut claims = claims.lock().expect("claims");
             let serves_route = claims
                 .leases
@@ -2049,7 +2058,10 @@ pub(crate) mod tests {
                 "actual retained bytes accounted"
             );
             assert_eq!(
-                state.spent["u-growth"].back().unwrap().1,
+                state.spent[&crate::identity::guest_user("growth")]
+                    .back()
+                    .unwrap()
+                    .1,
                 sent.len() as u64,
                 "hourly incoming bytes"
             );
@@ -2082,7 +2094,7 @@ pub(crate) mod tests {
         let state = shared.state.lock().unwrap();
         assert_eq!(state.staged_bytes, occupied);
         assert!(!state.leases.contains_key("growth"));
-        assert!(state.spent["u-growth"].is_empty());
+        assert!(state.spent[&crate::identity::guest_user("growth")].is_empty());
     }
 
     /// **A user's budget**: so many images an hour, and so many times the
@@ -2184,9 +2196,12 @@ pub(crate) mod tests {
             303
         );
         let call = |op: &HostFn, args: &[Val]| op(args).expect("runs").remove(0);
+        // The program holds its session by its handle (track `data-path`).
+        let asked = || crate::data::Requested::by("s-1");
+        let mine = || Val::String(crate::identity::session_handle("s-1"));
         let id = {
             let claims = Claims::new(Some(leases.clone()));
-            let claimed = call(&claim_op(claims.clone()), &[Val::String("s-1".into())]);
+            let claimed = call(&claim_op(claims.clone(), asked()), &[mine()]);
             let Val::Result(Ok(Some(id))) = claimed else {
                 panic!("claimed: {claimed:?}")
             };
@@ -2201,17 +2216,28 @@ pub(crate) mod tests {
             "the lease is the session's again"
         );
         let claims = Claims::new(Some(leases.clone()));
-        let again = call(&claim_op(claims.clone()), &[Val::String("s-1".into())]);
+        let again = call(&claim_op(claims.clone(), asked()), &[mine()]);
         assert!(matches!(again, Val::Result(Ok(_))), "{again:?}");
-        // Another session's handle, or one not claimed, is not found.
+        // Another session's handle is refused, the session itself too (a
+        // program holds no cookie); an upload not claimed is not found.
+        for not_mine in [crate::identity::session_handle("s-2"), "s-1".to_string()] {
+            let refused = discard_op(claims.clone(), asked(), || {})(&[
+                Val::String(not_mine),
+                Val::String(id.clone()),
+            ]);
+            assert!(
+                matches!(&refused, Err(why) if why.contains("another session")),
+                "{refused:?}"
+            );
+        }
         let other = call(
-            &discard_op(claims.clone(), || {}),
-            &[Val::String("s-2".into()), Val::String(id.clone())],
+            &discard_op(claims.clone(), asked(), || {}),
+            &[mine(), Val::String("not-claimed".into())],
         );
         assert!(matches!(other, Val::Result(Err(_))), "{other:?}");
         let discarded = call(
-            &discard_op(claims.clone(), || {}),
-            &[Val::String("s-1".into()), Val::String(id.clone())],
+            &discard_op(claims.clone(), asked(), || {}),
+            &[mine(), Val::String(id.clone())],
         );
         assert!(matches!(discarded, Val::Result(Ok(_))), "{discarded:?}");
         assert!(

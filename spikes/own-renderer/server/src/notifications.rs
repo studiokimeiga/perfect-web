@@ -29,6 +29,61 @@ pub(crate) fn principal_operation(principals: &Principals, session: &str) -> Hos
     Arc::new(move |_args: &[Val]| Ok(vec![Val::String(user.clone())]))
 }
 
+/// **The platform's account operation**, by its key (track `data-path`):
+/// `context.account_of(user)`.
+pub(crate) const PRINCIPAL_ACCOUNT: &str = "pw:host/principal#account";
+
+/// **The platform's account operation for one request** (track
+/// `data-path`): asked with the reader's own handle, the account the reader
+/// signed in to ([`account`]: its user's id and the name its provider gave
+/// it), and `None` where there is none. A program holds no other user's
+/// handle (ADR-0263), so a handle that is not the reader's is a refusal,
+/// never another user's account.
+pub(crate) fn account_operation(principals: &Principals, session: &str) -> HostFn {
+    let user = user_of(principals, session);
+    let account = account(principals, session).map(|(id, name)| {
+        Box::new(Val::Record(vec![
+            ("id".into(), Val::String(id)),
+            ("name".into(), Val::String(name)),
+        ]))
+    });
+    Arc::new(move |args: &[Val]| match args {
+        [Val::String(of)] if *of == user => Ok(vec![Val::Option(account.clone())]),
+        [Val::String(_)] => {
+            Err("`pw:host/principal#account` answers the reader's own handle alone".into())
+        }
+        other => Err(format!("principal#account received {other:?}")),
+    })
+}
+
+/// **The account `session`'s reader signed in to** (track `data-path`, the
+/// integrator's ruling 2 of 2026-11-02): its user's id, and the name its
+/// provider last gave it, as the platform records it; or none. An account
+/// exists only for a user signed in to one:
+/// - a reader's own session: the account a sign-in opened it for; none
+///   where no one signed in, and none for the guest model's guest;
+/// - a session the platform opens on a reader's behalf (a scheduled run, a
+///   payment's settlement; `identity::ON_BEHALF`) is never an account of its
+///   own: its principal is the platform's stand-in. It answers the account
+///   its reader signed in to, as the platform records it, which is what a
+///   call of that reader's answers; none for a guest's or a signed-out
+///   reader's run, and none where no sign-in of theirs is recorded here.
+///
+/// Until 2026-11-02 a stand-in passed for an account, as its issuer is not
+/// `guest`: a guest's run was handed its user's id, then `u-` and its
+/// session's cookie, and an account's run the name `""`.
+pub(crate) fn account(principals: &Principals, session: &str) -> Option<(String, String)> {
+    let principal = principals.of(session)?;
+    let recorded = principals.account_name(&principal.user);
+    if session.starts_with(crate::identity::ON_BEHALF) {
+        return recorded.map(|name| (principal.user, name));
+    }
+    (!principal.is_guest()).then(|| {
+        let name = recorded.unwrap_or(principal.name);
+        (principal.user, name)
+    })
+}
+
 /// **Whether a binding's argument, as a page's plan writes it, is the
 /// reader's user**: `current_user()`, or `context.current_user()`.
 pub(crate) fn is_current_user(arg: &str) -> bool {
@@ -232,14 +287,142 @@ mod tests {
     fn the_principal_operation_answers_the_sessions_user_and_a_guests_where_none_signed_in() {
         let principals = Principals::default();
         let read = principal_operation(&principals, "s-1");
-        // The guest model: every session its own guest.
+        // The guest model: every session its own guest, named by its
+        // session's digest.
         assert_eq!(
             read(&[]).expect("read"),
-            vec![Val::String("u-s-1".to_string())]
+            vec![Val::String(crate::identity::guest_user("s-1"))]
         );
         // Two sessions, two users: one session's handle is never another's.
         let other = principal_operation(&principals, "s-2");
         assert_ne!(read(&[]).expect("read"), other(&[]).expect("read"));
+    }
+
+    /// **A guest's identity is never its session** (track `data-path`, the
+    /// integrator's ruling 1 of 2026-11-02): its user's id, its handle and
+    /// its name are made from a one-way digest of the session, 128 bits of
+    /// it in the id, and none of them holds the session; two sessions are
+    /// two guests, and one session one guest every time.
+    #[test]
+    fn a_guests_id_handle_and_name_are_its_sessions_digest_never_its_session() {
+        let session = "s-0123456789abcdef0123456789abcdef";
+        let guest = crate::identity::Principal::guest(session);
+        let principals = Principals::default();
+        let user = principals.user_of(session);
+        assert_eq!(user, guest.user, "the guest model's user is the guest");
+        let digest = user.strip_prefix("u-").unwrap_or_default();
+        assert_eq!(digest.len(), 32, "128 bits, in hex: {user}");
+        assert!(digest.bytes().all(|b| b.is_ascii_hexdigit()), "{user}");
+        for (what, shown) in [
+            ("id", &guest.user),
+            ("handle", &guest.handle),
+            ("name", &guest.name),
+        ] {
+            assert!(
+                !shown.contains(session) && !shown.contains("0123456789abcdef"),
+                "a guest's {what} holds its session: {shown}"
+            );
+        }
+        assert_eq!(guest.handle, format!("@{}", &digest[..10]));
+        assert_eq!(guest.name, format!("Guest {}", &digest[..10]));
+        // Domain-separated: not the digest a session is kept by.
+        assert_ne!(
+            digest,
+            crate::identity::hex(&crate::identity::kept_hash(session)[..16])
+        );
+        // One session one guest; another session another.
+        assert_eq!(crate::identity::guest_user(session), user);
+        assert_ne!(crate::identity::guest_user("s-other"), user);
+        // A signed-out reader, in the accounts model, is the same guest id.
+        let identity = crate::identity::Identity::default();
+        identity.signed_in_for_test("s-ada", "u-ada", "Ada");
+        assert_eq!(identity.principals().user_of(session), user);
+    }
+
+    /// **The account operation answers the reader's account, for the
+    /// reader's own handle alone** (track `data-path`): its user's id and its
+    /// provider's name for an account; none where no one signed in, and none
+    /// for a guest; a refusal for a handle that is not the reader's.
+    #[test]
+    fn the_account_operation_answers_the_readers_account_for_their_handle_alone() {
+        let identity = crate::identity::Identity::default();
+        let principals = identity.principals();
+        let account = |session: &str| account_operation(&principals, session);
+        let given = |user: &str| [Val::String(user.to_string())];
+        // The guest model: every session its own guest, and none an account.
+        let guest = account("s-1")(&given(&crate::identity::guest_user("s-1")));
+        assert_eq!(guest, Ok(vec![Val::Option(None)]));
+        identity.signed_in_for_test("s-2", "u-ada", "Ada");
+        assert_eq!(
+            account("s-2")(&given("u-ada")),
+            Ok(vec![Val::Option(Some(Box::new(Val::Record(vec![
+                ("id".into(), Val::String("u-ada".into())),
+                ("name".into(), Val::String("Ada".into())),
+            ]))))])
+        );
+        // Signed out, in the accounts model: no one.
+        assert_eq!(
+            account("s-3")(&given(&crate::identity::guest_user("s-3"))),
+            Ok(vec![Val::Option(None)])
+        );
+        // Another user's handle is no handle a program holds.
+        let refused = account("s-3")(&given("u-ada"));
+        assert!(
+            refused
+                .as_ref()
+                .is_err_and(|why| why.contains("reader's own handle")),
+            "another user's handle is refused as no handle of the reader's own"
+        );
+    }
+
+    /// **A session the platform opens on a reader's behalf has no account of
+    /// its own** (track `data-path`, the integrator's ruling 2 of
+    /// 2026-11-02): a scheduled run's (`clock`) and a payment's settlement's
+    /// (`payments`) answer the account their reader signed in to, id and
+    /// name as a call of the reader's own answers them, and none for a
+    /// guest's or a signed-out reader's, whose stand-in is never an account.
+    #[test]
+    fn a_stand_in_answers_its_readers_account_and_never_one_of_its_own() {
+        let identity = crate::identity::Identity::default();
+        let principals = identity.principals();
+        identity.signed_in_for_test("s-ada", "u-ada", "Ada");
+        let own = account(&principals, "s-ada");
+        assert_eq!(own, Some(("u-ada".to_string(), "Ada".to_string())));
+        let signed_out = principals.user_of("s-out");
+        for invoker in ["clock", "payments"] {
+            let ada = principals.on_behalf(invoker, &format!("{invoker}-ada"), "u-ada");
+            assert_eq!(
+                account(&principals, ada.session()),
+                own,
+                "{invoker}: Ada's run answers Ada's account"
+            );
+            let out = principals.on_behalf(invoker, &format!("{invoker}-out"), &signed_out);
+            assert_eq!(
+                account(&principals, out.session()),
+                None,
+                "{invoker}: a signed-out reader's run answers no account"
+            );
+        }
+        // The account is still theirs once they sign out.
+        let behalf = principals.on_behalf("clock", "clock-later", "u-ada");
+        identity.signed_out_for_test("s-ada");
+        assert_eq!(account(&principals, behalf.session()), own);
+        // The guest model: a guest's run answers none.
+        let guests = crate::identity::Identity::default();
+        let principals = guests.principals();
+        let guest = principals.user_of("s-guest");
+        for invoker in ["clock", "payments"] {
+            let run = principals.on_behalf(invoker, &format!("{invoker}-guest"), &guest);
+            assert!(
+                principals.of(run.session()).is_some(),
+                "{invoker}: the stand-in is open"
+            );
+            assert_eq!(
+                account(&principals, run.session()),
+                None,
+                "{invoker}: a guest's run answers no account"
+            );
+        }
     }
 
     #[test]

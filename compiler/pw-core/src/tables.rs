@@ -1030,8 +1030,39 @@ fn malformed(message: String, span: Span, related: Vec<Related>, repair: String)
     )
 }
 
+/// **PW6901: a row holds a handle** (track `data-path`, the integrator's
+/// ruling 3 of 2026-11-02). A handle is its reader's alone (ADR-0263), and
+/// its value is a user's id, or a session's, whose id is its cookie's:
+/// stored, every reader of the table reads it, with no label to say whose it
+/// is. Found storing `current_user()` in a row read by a shared query, which
+/// served another session `u-` and a guest's session.
+fn holds_handle(t: &Table, row: &str, field: &str, whose: &str, span: Span) -> Diagnostic {
+    refusal(
+        codes::ROW_HOLDS_HANDLE,
+        "row_holds_handle",
+        Severity::Error,
+        format!(
+            "`{row}`'s field `{field}` holds {whose} handle, and `{}` stores it where every \
+             reader of the table reads it",
+            t.name
+        ),
+        span,
+        Vec::new(),
+        "A handle reads the data of the one it names, and only its own reader holds it: the \
+         platform makes it from the request it answers (`current_user()`). A table's rows are \
+         read by every reader whose reads reach the table, and a row keeps no label: a handle \
+         stored there would be handed to them all. A row names someone by an id, which grants \
+         nothing: the reader's own, from `context.account_of(current_user())`.",
+        format!(
+            "store an id in `{field}`: a `UserId`, such as the reader's account's \
+             (`account_of(current_user())`'s `id`)"
+        ),
+    )
+}
+
 /// **The tables `unit` declares, and the bindings it writes, held to the
-/// declaration** (ADR-0338, decision 4): PW0361, PW0362 and PW0365.
+/// declaration** (ADR-0338, decision 4): PW0361, PW0362, PW0365 and, the
+/// data-path track's, PW6901.
 pub fn check(hirs: &[&Hir], unit: usize, ws: &Workspace, sigs: &Signatures) -> Vec<Diagnostic> {
     let Some(hir) = hirs.get(unit) else {
         return Vec::new();
@@ -1172,6 +1203,18 @@ fn shape(
                 return out;
             }
         };
+    // PW6901 (track `data-path`): no field holds a handle, wherever its type
+    // holds it: a row is read by every reader of the table, and the table's
+    // boundary keeps no label (a handle's value is its user's id, or the
+    // session's own).
+    for (name, ty) in &fields {
+        if let Some(whose) = ty
+            .as_ref()
+            .and_then(|ty| crate::check::handle_in(sigs, ty, &mut BTreeSet::new()))
+        {
+            out.push(holds_handle(t, &row.value, name, whose, row.span.clone()));
+        }
+    }
     let field = |f: &str| fields.iter().find(|(n, _)| n == f);
     // Each field a clause names is the row's, of a type an adapter keys.
     let fields_of = |clause: &str, names: &[String], span: &Span, out: &mut Vec<Diagnostic>| {

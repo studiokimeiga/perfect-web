@@ -58,7 +58,9 @@ fn estimating(s: &Server, least: i64, most: i64) {
         "a",
         "store:host/estimates#set",
         &[
-            Val::String("a".into()),
+            // The session by its handle, as the host keys it (track
+            // `data-path`).
+            Val::String(crate::identity::session_handle("a")),
             Val::S64(least),
             Val::Option(Some(Box::new(Val::S64(most)))),
         ],
@@ -756,7 +758,7 @@ fn an_order_is_sent_its_estimates_most_and_five_minutes_before() {
         "a",
         "store:host/estimates#set",
         &[
-            Val::String("a".into()),
+            Val::String(crate::identity::session_handle("a")),
             Val::S64(20),
             Val::Option(Some(Box::new(Val::S64(50)))),
         ],

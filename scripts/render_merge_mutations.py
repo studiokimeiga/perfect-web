@@ -183,8 +183,8 @@ MUTANTS = [
         "a call answered again is counted as made",
         "memory",
         MAIN,
-        '                let f = counted(&name, f);\n                let f = match &render {\n                    Some(render) => render.once(\n                        &self\n                            .identity\n                            .principals()\n                            .receipt_reader(session)\n                            .to_string(),\n                        &name,\n                        f,\n                    ),\n                    None => f,\n                };\n',
-        '                let f = match &render {\n                    Some(render) => render.once(\n                        &self\n                            .identity\n                            .principals()\n                            .receipt_reader(session)\n                            .to_string(),\n                        &name,\n                        f,\n                    ),\n                    None => f,\n                };\n                let f = counted(&name, f);\n',
+        '            let f = counted(name, f);\n            match &render {\n                Some(render) => render.once(\n                    &self\n                        .identity\n                        .principals()\n                        .receipt_reader(session)\n                        .to_string(),\n                    name,\n                    f,\n                ),\n                None => f,\n            }\n',
+        '            let f = match &render {\n                Some(render) => render.once(\n                    &self\n                        .identity\n                        .principals()\n                        .receipt_reader(session)\n                        .to_string(),\n                    name,\n                    f,\n                ),\n                None => f,\n            };\n            counted(name, f)\n',
     ),
     (
         "the platform's calls are merged",
@@ -424,7 +424,11 @@ MUTANTS = [
         "the feed's render in memory reads the feed as it is now",
         "memory",
         FEED,
-        "            Some(state) => reads_of(state.clone(), self.principals()),\n",
+        "            Some(state) => reads_of(\n"
+        "                state.clone(),\n"
+        "                self.principals(),\n"
+        "                crate::data::Requested::by(session),\n"
+        "            ),\n",
         "            Some(_) => self.reads(session, stopped),\n",
     ),
     (

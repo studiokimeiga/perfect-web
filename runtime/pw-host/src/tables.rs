@@ -593,6 +593,12 @@ impl Manifest {
         })
     }
 
+    /// **Each table it declares, by name** (track `data-path`): what a host
+    /// serving it grants a node, each table's read and write.
+    pub fn names(&self) -> impl Iterator<Item = &str> {
+        self.tables.iter().map(|table| table.name.as_str())
+    }
+
     /// **The gate for a query** (PR #29's, moved here so that the engine
     /// holds every table import to it): the table reads an admitted
     /// component may link, by import, each as tables.json declares it. Every

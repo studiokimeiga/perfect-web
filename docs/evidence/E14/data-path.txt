@@ -1,0 +1,134 @@
+D2 - an app with no Rust data layer: declared tables served through the gate, the guestbook on them, the conformance suite
+
+produced by: just e14-data-path
+commit: ea192e1bf3c47d3dd8396257897bc6d20dc736ad
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+== the server: routing, the guestbook, the conformance suite, the reader's account
+   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/data-path/spikes/own-renderer/server)
+    Finished `test` profile [unoptimized] target(s) in 4.14s
+     Running unittests src/main.rs (target/debug/deps/pw_dev_server-82eb30218404e06e)
+
+running 18 tests
+test notifications::tests::the_account_operation_answers_the_readers_account_for_their_handle_alone ... ok
+test tests::tables::a_guarded_command_writes_its_tables_once_its_predicate_holds ... ok
+test tests::tables::a_staged_write_is_invisible_until_its_commit ... ok
+test tests::tables::a_commits_rows_and_records_are_kept_together_or_not_at_all ... ok
+test tests::tables::each_components_host_map_holds_its_own_table_functions_alone ... ok
+test tests::tables::a_program_that_declares_its_tables_is_served_by_the_generic_adapter ... ok
+conformance: the lists app's tables, 164 reads checked
+test tests::conformance::the_suite_holds_for_the_lists_apps_tables ... ok
+test tests::guestbook::a_signing_sent_twice_is_one_entry ... ok
+test tests::guestbook::a_removed_entrys_number_is_never_given_again ... ok
+test tests::guestbook::a_signing_reaches_every_other_open_page_of_the_entries ... ok
+test tests::conformance::each_idempotent_command_sent_again_is_answered_once ... ok
+test tests::guestbook::an_entry_is_its_authors_alone_to_remove ... ok
+conformance: the guestbook's tables, 111 reads checked
+test tests::conformance::the_suite_holds_for_the_guestbooks_tables ... ok
+test tests::guestbook::a_render_reads_one_state_of_the_tables ... ok
+test tests::guestbook::the_guestbook_is_served_from_the_tables_it_declares ... ok
+test tests::tables::a_program_mixing_its_tables_with_a_hand_written_layer_is_refused ... ok
+test tests::tables::a_command_that_does_not_commit_keeps_nothing ... ok
+test tests::conformance::each_query_reads_its_tables_a_fixed_number_of_times_at_two_sizes ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 857 filtered out; finished in 0.39s
+
+
+== the engine: a guarded command through the gate; the adapter's snapshot
+    Finished `test` profile [unoptimized] target(s) in 0.08s
+     Running tests/compiled_guarded.rs (target/debug/deps/compiled_guarded-f45044dd2862a686)
+
+running 3 tests
+test a_refused_predicate_runs_nothing_and_writes_nothing ... ok
+test a_guarded_tables_command_runs_only_answered_and_through_the_gate ... ok
+test a_guarded_command_writes_through_the_gate_once_its_predicate_holds ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/compiled_snapshot.rs (target/debug/deps/compiled_snapshot-af0f433f8f62ba54)
+
+running 2 tests
+test a_snapshot_another_adapter_took_reads_none_of_these_tables ... ok
+test a_snapshot_reads_the_tables_as_it_found_them_though_a_commit_follows ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+
+== the platform's reader: their account, labelled the reader's
+    Finished `test` profile [unoptimized] target(s) in 0.06s
+     Running tests/handles.rs (target/debug/deps/handles-17829808d3d67b0c)
+
+running 5 tests
+test a_local_callback_is_not_a_handle_constructor ... ok
+test the_readers_account_is_the_readers ... ok
+test a_data_layer_answers_ids_never_handles ... ok
+test a_program_constructs_no_handle ... ok
+test nothing_the_browser_supplies_holds_a_handle ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+
+     Running tests/platform_contracts.rs (target/debug/deps/platform_contracts-ccefde98f1bd330a)
+
+running 4 tests
+test the_trusted_platform_contract_is_hashed ... ok
+test every_platform_signature_is_internally_consistent ... ok
+test the_signatures_the_checkers_depend_on_are_exercised ... ok
+test the_platform_library_parses_resolves_and_checks_clean ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+
+== the tutorial is the app (compiler/pw-cli/tests/guide.rs)
+   Compiling pw-cli v0.0.0 (/home/haki/code/pw-wt/data-path/compiler/pw-cli)
+    Finished `test` profile [unoptimized] target(s) in 0.46s
+     Running tests/guide.rs (target/debug/deps/guide-0de43282f5124be3)
+
+running 15 tests
+test a_fence_is_read_as_commonmark_reads_it ... ok
+test a_gaps_build_output_belongs_to_the_gap_before_it ... ok
+test a_page_is_held_to_the_directory_it_names ... ok
+test a_pages_file_blocks_are_its_program_in_order ... ok
+test a_page_with_no_example_or_a_block_unseen_is_reported ... ok
+test a_program_differs_from_a_directory_by_a_file_or_a_byte ... ok
+test a_refused_examples_codes_are_read_from_its_output ... ok
+test an_info_string_says_what_a_block_is ... ok
+test an_unclosed_or_indented_fence_is_refused ... ok
+test shown_output_belongs_to_the_refused_example_before_it ... ok
+test the_reference_is_held_to_the_registry ... ok
+test a_pages_program_is_the_directory_it_names ... ok
+test the_diagnostic_reference_lists_every_registered_code ... ok
+test every_example_in_the_guide_compiles_as_it_says ... ok
+test a_wrong_example_is_reported_and_a_right_one_is_not ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.33s
+
+
+== mutation controls (scripts/data_path_mutations.py)
+baseline: 28 passed, 0 failed
+a tables program's calls go around the gate: KILLED (14 of 28 tests fail)
+a command links the published reads, not its staging: KILLED (13 of 28 tests fail)
+a component's host map holds another component's table functions: KILLED (13 of 28 tests fail)
+a query's reads ignore its render's snapshot: KILLED (1 of 28 tests fail)
+a build with no page is refused: KILLED (9 of 28 tests fail)
+a command's rows are published before its records are written: KILLED (1 of 28 tests fail)
+a publication that fails keeps the command's records: KILLED (3 of 28 tests fail)
+a command that wrote reports no rows, and commits nothing: KILLED (15 of 28 tests fail)
+the layer grants no table's write: KILLED (13 of 28 tests fail)
+a program mixing its tables with a hand-written layer is served: KILLED (1 of 28 tests fail)
+a guarded tables command runs unanswered: KILLED (4 of 28 tests fail)
+a guarded tables command links its tables without their manifest: KILLED (16 of 28 tests fail)
+a snapshot reads the tables as last committed: KILLED (2 of 28 tests fail)
+a snapshot another adapter took is read: KILLED (1 of 28 tests fail)
+a read answers its rows in no order (a set read in its keys'): KILLED (2 of 28 tests fail)
+a prefix read answers past its prefix: KILLED (4 of 28 tests fail)
+a primitive answers another table's rows: KILLED (16 of 28 tests fail)
+an index is not kept on a write: KILLED (3 of 28 tests fail)
+a staged write is visible before its commit: KILLED (4 of 28 tests fail)
+the account operation answers another user's handle: KILLED (1 of 28 tests fail)
+a guest is an account, its session handed a program: KILLED (1 of 28 tests fail)
+a removed entry's number is given again: KILLED (1 of 28 tests fail)
+anyone removes an entry but its author: KILLED (4 of 28 tests fail)
+the newest entries are not first: KILLED (1 of 28 tests fail)
+every entry is the reader's: KILLED (2 of 28 tests fail)
+25 of 25 mutants killed
+memory bound: no process was stopped

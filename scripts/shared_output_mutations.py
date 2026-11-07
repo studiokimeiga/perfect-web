@@ -66,12 +66,8 @@ MUTANTS = [
         "a session's cart is materialized in the public partition",
         "server",
         SERVER,
-        "        &[owner],\n"
-        "        Partition::Session {\n"
-        "            id: session.to_string(),\n"
-        "        },\n",
-        "        &[owner],\n"
-        "        Partition::Public,\n",
+        "    EntryIdentity::new(\"store.page.Cart\", &[owner], session_partition(session)).generation(BUILD)\n",
+        "    EntryIdentity::new(\"store.page.Cart\", &[owner], Partition::Public).generation(BUILD)\n",
     ),
     (
         "the store's page may be kept by any cache, as the browser is told",

@@ -1,0 +1,19 @@
+// A command a predicate guards, over a declared table, for the engine's
+// test of `call_authorized_with_tables` (track `data-path`): its `requires`
+// answered before its body runs, and its write then linked through the
+// table gate alone. It uses compiler-generated operations, not handwritten
+// host bindings.
+module tables.guarded
+
+import Lists.{ TodoList }
+import Lists
+
+predicate SignedIn
+    says "Sign in to make a list."
+
+command make_signed(list: TodoList) -> Result<(), TodoList>
+    requires    SignedIn
+    transaction serializable
+{
+    Lists.insert(list)
+}

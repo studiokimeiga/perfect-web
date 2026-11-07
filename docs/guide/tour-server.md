@@ -1,8 +1,8 @@
 # A tour of Pleris, part 2: data on the server
 
 [Part 1](tour.md) covered the language. This part covers how a program
-reads and writes data: host bindings, sources, queries, events, commands,
-privacy and time. [Part 3](tour-pages.md) puts them on pages.
+reads and writes data: host bindings, tables, sources, queries, events,
+commands, privacy and time. [Part 3](tour-pages.md) puts them on pages.
 
 The examples are modelled on the reference apps: `examples/feed` (a social
 feed) and `examples/store` (a food-delivery store).
@@ -35,12 +35,59 @@ fn rename(item: String, name: String) -> Result<Item, String> !{ database.write<
 - The platform's own operations are bound the same way: `current_session()`
   is `host "pw:host/session#read"` in the platform package.
 
-**Today the operations are written in Rust**, in the development server's
-data layers: the feed's, the store's and kiokun's. A program uses one data
-layer, chosen by its operations' prefix (`feed:`, `kiokun:`, otherwise the
-store's). The server checks at start that every operation a program imports
-is supplied, but not its signature: a record of the wrong shape is refused
-when the call is answered (ADR-0218, ADR-0291).
+**These operations are written in Rust**, in the development server's
+data layers for the reference apps: the feed's, the store's and kiokun's.
+A program uses one data layer, chosen by its operations' prefix (`feed:`,
+`kiokun:`, otherwise the store's). The server checks at start that every
+operation a program imports is supplied, but not its signature: a record
+of the wrong shape is refused when the call is answered (ADR-0218,
+ADR-0291). A program of your own declares its data instead, as tables.
+
+## Tables
+
+A `table` declares data a program keeps, in the module of its name, and
+the compiler writes its reads and writes as that module's functions:
+
+```pw
+module Notes
+
+type Note = Note { id: String, text: String, added: Int }
+
+table Notes
+    row     Note
+    key     id
+    order   added
+    bounded 100
+
+query Newest() -> List<Note>
+    consistency strong
+{
+    Notes.all()
+}
+
+command keep(note: Note) -> Result<(), Note>
+    transaction serializable
+    invalidates Newest()
+{
+    Notes.insert(note)
+}
+```
+
+- `row` is the record each row is, `key` the fields that find one, `order`
+  how rows of one prefix of the key come back, and `bounded 100` the most
+  rows the table holds, which is what lets it be read whole (`all()`).
+- The functions are `Notes.get(id)`, `Notes.get_many(ids)`, `Notes.all()`,
+  `Notes.insert(note)` (refused, answering the row that holds its key),
+  `Notes.put(note)` and `Notes.delete(id)`; an `index` adds reads by other
+  fields, and a key of several fields reads of its prefixes. Each has its
+  effect, `database.read<Notes>` or `database.write<Notes>`, and no other
+  way reaches the rows (PW0362).
+- A command's writes are one transaction, committed with its events and
+  invalidations or not at all (PW5106 holds it to naming what goes stale).
+- The development server serves every program's tables with one generic
+  adapter, in memory, through a gate that links each component to its own
+  tables' functions alone (ADR-0338, ADR-0385, ADR-0386). The
+  [tutorial](tutorial.md)'s guestbook is built this way.
 
 ## Sources
 
@@ -350,7 +397,10 @@ Every query and page says whose data it shows:
 is reading", and nothing else can make them. A value read with one carries
 its label through every call, branch and return, and a labelled value
 cannot reach a shared cache (PW5001), a public page, or a log or a browser
-it must not (ADR-0128, ADR-0129, ADR-0263, ADR-0270).
+it must not (ADR-0128, ADR-0129, ADR-0263, ADR-0270). Neither is a
+credential: `current_session()` is a one-way digest of the session, never
+the cookie the browser holds, so whatever a program keys by it, emits or
+keeps opens no session.
 
 ```pw
 module feed.unread

@@ -82,8 +82,8 @@ MUTANTS = [
         "the host answers the reader's user with the session",
         SERVER,
         NOTES,
-        "    let user = user_of(principals, session);\n",
-        "    let user = session.to_string();\n",
+        "    let user = user_of(principals, session);\n    Arc::new(move |_args: &[Val]| Ok(vec![Val::String(user.clone())]))\n",
+        "    let user = session.to_string();\n    Arc::new(move |_args: &[Val]| Ok(vec![Val::String(user.clone())]))\n",
     ),
     (
         "a page's `current_user()` is given another user's id",
@@ -213,8 +213,8 @@ MUTANTS = [
         "in the browser, the reader's user is their session",
         BROWSER,
         NOTES,
-        "    let user = user_of(principals, session);\n",
-        "    let user = format!(\"{session} \");\n",
+        "    let user = user_of(principals, session);\n    Arc::new(move |_args: &[Val]| Ok(vec![Val::String(user.clone())]))\n",
+        "    let user = format!(\"{session} \");\n    Arc::new(move |_args: &[Val]| Ok(vec![Val::String(user.clone())]))\n",
     ),
     (
         "in the browser, another user's notifications are listed",

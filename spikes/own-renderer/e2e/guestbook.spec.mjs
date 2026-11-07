@@ -1,15 +1,20 @@
 // The guide's tutorial app (ADR-0343, a guide whose examples compile): the
 // guestbook `docs/guide/tutorial.md` builds, in three engines, on hosts of
 // its own (GUESTBOOK_PORTS), its sessions signed in through the development
-// identity provider (`PW_IDENTITY=dev-accounts`). What the tutorial says the
+// identity provider (`PW_IDENTITY=dev-accounts`). Its data is the tables it
+// declares, served by the development server's generic memory adapter, with
+// no data layer of its own (track `data-path`). What the tutorial says the
 // app does, it does:
 //   - a signed-out reader reads the entries, is asked to sign in, and is
-//     given no composer;
+//     given no composer and no Remove;
 //   - signed up, a guest signs the guestbook: the entry is shown at once,
-//     before the server answers, then as the server wrote it, theirs to
-//     remove and no one else's;
+//     before the server answers, then as the server wrote it, under their
+//     name, theirs to remove and no one else's;
 //   - another reader's open page is told of the entry, and of its removal,
-//     without a reload.
+//     without a reload;
+//   - a signing the server refuses is said where the composer is, and the
+//     entry shown at once goes (track `data-path`, the integrator's note a
+//     and ruling S3 of 2026-11-02).
 import { test } from "@playwright/test";
 import { expect } from "../assertion-expect.mjs";
 import { GUESTBOOK_PORTS } from "../host-metadata.mjs";
@@ -52,20 +57,38 @@ async function signUp(page, who, name) {
   await expect(page.locator("#me")).toHaveText(`Signed in as ${name}`);
 }
 
-test("a signed-out reader reads the entries and is given no composer", async ({ page }) => {
-  await home(page);
-  await expect(page).toHaveTitle("Guestbook");
-  // The feed's data layer starts with one post, which the guestbook shows.
-  await expect(entry(page, "Hello, feed.")).toHaveCount(1);
-  await expect(page.locator("#signed-out")).toHaveText("Sign in to sign the guestbook.");
-  await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
-  await expect(page.getByLabel("Your message")).toBeHidden();
-  await expect(page.getByRole("button", { name: "Remove" })).toHaveCount(0);
+/** `page`'s reader signs `words`, and the entry is the server's. */
+async function sign(page, words, name) {
+  await page.getByLabel("Your message").fill(words);
+  await page.getByRole("button", { name: "Sign", exact: true }).click();
+  await expect(entry(page, words).locator(".by")).toHaveText(name);
+}
+
+test("a signed-out reader reads the entries and is given no composer", async ({ browser }, testInfo) => {
+  // Someone signs first, so there is an entry to read.
+  const writer = await browser.newContext();
+  const page = await writer.newPage();
+  const name = `Ann ${testInfo.project.name}`;
+  await signUp(page, handle(testInfo, "ann"), name);
+  const words = `Welcome, from ${testInfo.project.name} ${Date.now()}`;
+  await sign(page, words, name);
+  await writer.close();
+  const reader = await browser.newContext();
+  const other = await reader.newPage();
+  await home(other);
+  await expect(other).toHaveTitle("Guestbook");
+  await expect(entry(other, words)).toHaveCount(1);
+  await expect(entry(other, words).locator(".by")).toHaveText(name);
+  await expect(other.locator("#signed-out")).toHaveText("Sign in to sign the guestbook.");
+  await expect(other.getByRole("button", { name: "Sign in" })).toBeVisible();
+  await expect(other.getByLabel("Your message")).toBeHidden();
+  await expect(other.getByRole("button", { name: "Remove" })).toHaveCount(0);
+  await reader.close();
 });
 
 test("a guest signs up, signs, and the entry is theirs alone to remove", async ({ browser }, testInfo) => {
-  const context = await browser.newContext();
-  const page = await context.newPage();
+  const [mine, theirs] = [await browser.newContext(), await browser.newContext()];
+  const [page, other] = [await mine.newPage(), await theirs.newPage()];
   const name = `Grace ${testInfo.project.name}`;
   await signUp(page, handle(testInfo, "grace"), name);
   const words = `Thanks for having us, from ${testInfo.project.name} ${Date.now()}`;
@@ -76,10 +99,13 @@ test("a guest signs up, signs, and the entry is theirs alone to remove", async (
   await expect(page.locator("main > ul > li").first()).toContainText(words);
   await expect(entry(page, words).locator(".by")).toHaveText(name);
   // Theirs to remove, once the server's row stands in the pending one's
-  // place; the feed's post is not.
+  // place; and another signed-in reader is offered no Remove on it.
   await expect(entry(page, words).getByRole("button", { name: "Remove" })).toHaveCount(1);
-  await expect(entry(page, "Hello, feed.").getByRole("button", { name: "Remove" })).toHaveCount(0);
-  await context.close();
+  await signUp(other, handle(testInfo, "alan"), `Alan ${testInfo.project.name}`);
+  await expect(entry(other, words)).toHaveCount(1);
+  await expect(entry(other, words).getByRole("button", { name: "Remove" })).toHaveCount(0);
+  await mine.close();
+  await theirs.close();
 });
 
 test("an entry is shown before the server answers, and offers no Remove until it has", async ({ browser }, testInfo) => {
@@ -109,6 +135,36 @@ test("an entry is shown before the server answers, and offers no Remove until it
   await expect(entry(page, words).locator(".by")).toHaveText(name);
   await expect(entry(page, words)).toHaveCount(1);
   await expect(entry(page, words).getByRole("button", { name: "Remove" })).toHaveCount(1);
+  await context.close();
+});
+
+test("a signing the server refuses is said, and the entry shown at once goes", async ({ browser }, testInfo) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  const name = `Ida ${testInfo.project.name}`;
+  await signUp(page, handle(testInfo, "ida"), name);
+  // The answer the server gives a full guestbook, `Err(Full)` (the server's
+  // own tests reach it at the table's bound of 1,000 entries), given here
+  // at the network, so what is observed is the page's handling of it.
+  await page.route("**/command/guestbook.book.sign", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ committed: false, result: { $case: "err", value: { $case: "full" } } }),
+    }),
+  );
+  const words = `One too many, from ${testInfo.project.name} ${Date.now()}`;
+  await page.getByLabel("Your message").fill(words);
+  await page.getByRole("button", { name: "Sign", exact: true }).click();
+  await expect(page.locator("#said")).toHaveText("The guestbook is full: it keeps 1,000 entries.");
+  await expect(entry(page, words)).toHaveCount(0);
+  // The draft is kept, to send again; sent once there is room, it is kept,
+  // and what was said is cleared.
+  await expect(page.getByLabel("Your message")).toHaveValue(words);
+  await page.unroute("**/command/guestbook.book.sign");
+  await page.getByRole("button", { name: "Sign", exact: true }).click();
+  await expect(entry(page, words).locator(".by")).toHaveText(name);
+  await expect(page.locator("#said")).toHaveText("");
   await context.close();
 });
 

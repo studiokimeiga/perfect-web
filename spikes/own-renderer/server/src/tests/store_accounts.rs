@@ -586,3 +586,41 @@ fn a_stale_press_is_refused_before_the_order_waits() {
         started.elapsed()
     );
 }
+
+/// **Nothing a store keyed by the session keeps holds the session's
+/// cookie** (track `data-path`, the integrator's ruling of 2026-11-02): a
+/// reader of the store whose cart is a session's (`Cart(current_session())`,
+/// the benchmark's copy), signed in through the flow, reads the store and
+/// adds to the cart. The cart is the program's handle on the session's
+/// (`identity::session_handle`), and so are its entry's key and partition
+/// and its state's key; nothing the host keeps or logs holds the session,
+/// or the one the browser came with, as written or in hex. Until this
+/// ruling the cart was keyed by the cookie, and a store on PostgreSQL kept
+/// it in `cart_lines.session`.
+#[test]
+fn nothing_a_session_keyed_store_keeps_holds_a_session_cookie() {
+    let provider = Arc::new(TestProvider::default());
+    let s = served_from_patches(|app| app.to_string(), &[]);
+    s.identity.use_provider(provider.clone(), REDIRECT);
+    let came_with = crate::identity::new_session_id();
+    let ada = signed_in(&s, &provider, &came_with, "ada");
+    s.serve_document_settled(
+        &ada,
+        "store.page.StorePage~ui",
+        &store_params(STORE_ID),
+        &[],
+    )
+    .expect("served");
+    s.command(ADD, &ada, &add("espresso", 1), false)
+        .expect("ada adds");
+    assert_eq!(s.cart_lines(&ada), [("espresso".to_string(), 1)]);
+    let kept = super::guestbook::kept_by_host(&s, &ada);
+    assert!(
+        kept.contains(&format!(
+            "session:{}",
+            crate::identity::session_handle(&ada)
+        )),
+        "the cart's entry, in the partition of the program's handle on the session"
+    );
+    super::guestbook::holds_none_of(&kept, &[&ada, &came_with]);
+}
