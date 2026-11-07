@@ -229,7 +229,10 @@ const REJECTED_CATEGORIES: &[&str] = &[
     "a rigid parameter declares no members",
     "a function value receiver keeps its effect",
     "a recursive generic invocation keeps its effect",
-    // The requires ADR, corpus C32: PW0367, a command a reader can run says
+    // ADR-0404, corpus C31: PW5053, an `<img>` says what it shows
+    // (R-096).
+    "an image with no text alternative",
+    // ADR-0406, corpus C32: PW0367, a command a reader can run says
     // who may run it (R-097).
     "a command that says nothing of who may run it",
 ];
