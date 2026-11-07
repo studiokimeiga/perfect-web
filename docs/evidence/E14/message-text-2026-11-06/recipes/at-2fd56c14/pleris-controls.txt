@@ -1,0 +1,18 @@
+E14 - every task's four controls, the Pleris stack
+
+produced by: just e14-pleris-controls
+commit: 2fd56c145310dc1d41f99cec67733a00e7479d06
+node: v22.21.1  pnpm: 10.15.1  rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+T01 pleris: negative ok, positive ok, unsafe ok (caught at check), harness ok
+T02 pleris: negative ok, positive ok, unsafe ok (caught at hidden), harness ok
+T03 pleris: negative ok, positive ok, unsafe ok (caught at check), harness ok
+T04 pleris: negative ok, positive ok, unsafe ok (caught at check), harness ok
+T05 pleris: negative ok, positive ok, unsafe ok (caught at check), harness ok
+T06 pleris: negative ok, positive ok, unsafe ok (caught at check), harness ok
+T07 pleris: negative ok, positive ok, unsafe ok (caught at hidden), harness ok
+T08 pleris: negative ok, positive ok, unsafe ok (caught at check), harness ok
+T09 pleris: negative ok, positive ok, unsafe ok (caught at hidden), harness ok
+T10 pleris: negative ok, positive ok, unsafe ok (caught at check), harness ok
+T11 pleris: negative ok, positive ok, unsafe ok (caught at check), harness ok
+T12 pleris: negative ok, positive ok, unsafe ok (caught at check), harness ok

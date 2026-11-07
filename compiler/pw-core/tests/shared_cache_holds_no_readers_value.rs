@@ -231,6 +231,80 @@ fn a_shared_fragment_of_a_query_given_the_session_is_refused() {
     assert_eq!(codes(&src), Vec::<String>::new(), "{:?}", reported(&src));
 }
 
+/// **The note on the parameter a value comes from is a whole sentence.** A
+/// review of pleris.dev on 2026-11-06 found it stopping mid-way, as it had
+/// since ADR-0128 wrote it: "`session` is Session<SessionId>, so what `Cart`
+/// makes from it is".
+#[test]
+fn the_parameter_a_readers_value_comes_from_is_noted_in_a_whole_sentence() {
+    let src = format!(
+        "{IMPORTS}{}",
+        query(
+            "public query Cart",
+            "session: Session<SessionId>",
+            CART,
+            "shared",
+            "session",
+            "Carts.current(session)",
+        )
+    );
+    let notes: Vec<String> = check_sources(&sources(&src))
+        .into_iter()
+        .filter(|(n, _)| n == "t.pw")
+        .flat_map(|(_, ds)| ds)
+        .filter(|d| d.code == "PW5001")
+        .flat_map(|d| d.related.into_iter().map(|r| r.label))
+        .collect();
+    assert_eq!(
+        notes,
+        ["`session` is Session<SessionId>, so what `Cart` makes from it is too"]
+    );
+}
+
+/// **What is said of the parameter is its own label.** A query given a
+/// session and an organization holds both, and until 2026-11-06 the note and
+/// the cause chain said its `session` was both. The control: the message
+/// says all the query holds.
+#[test]
+fn the_parameter_is_noted_with_its_own_label_where_more_are_given() {
+    let src = format!(
+        "{IMPORTS}{}",
+        query(
+            "query Cart",
+            "session: Session<SessionId>, org: Organization<OrganizationId>",
+            CART,
+            "shared",
+            "session, org",
+            "Carts.current(session)",
+        )
+    );
+    let found: Vec<_> = check_sources(&sources(&src))
+        .into_iter()
+        .filter(|(n, _)| n == "t.pw")
+        .flat_map(|(_, ds)| ds)
+        .filter(|d| d.code == "PW5001")
+        .collect();
+    assert_eq!(found.len(), 1, "{found:#?}");
+    let d = &found[0];
+    let notes: Vec<&str> = d.related.iter().map(|r| r.label.as_str()).collect();
+    assert_eq!(
+        notes,
+        ["`session` is Session<SessionId>, so what `Cart` makes from it is too"]
+    );
+    let why = d.explanation.as_deref().unwrap_or_default();
+    assert!(
+        why.contains(
+            "its parameter `session`, which is labeled `Session<SessionId>`, and \
+             `Session<SessionId>` does not flow into `Public`"
+        ),
+        "{why}"
+    );
+    assert_eq!(
+        d.message,
+        "`Cart` is Session<SessionId> ⊔ Organization<OrganizationId> and declares a shared cache"
+    );
+}
+
 #[test]
 fn a_readers_value_in_a_tenants_cache_is_one_defect() {
     // Given the session and reading the tenant, keyed by neither. The session

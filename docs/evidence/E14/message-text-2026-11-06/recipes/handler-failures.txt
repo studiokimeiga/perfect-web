@@ -1,0 +1,70 @@
+ADR-0159 - a handler handles what its command answers
+
+produced by: just e14-handler-failures
+commit: c30ef1f384b921a1ae120dfaef2ba193ee10977c
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+== the rule (compiler/pw-core/tests/results_handled.rs)
+
+test a_discarded_value_is_not_a_result ... ok
+test a_handler_gives_the_runtime_no_failure_to_drop ... ok
+test a_statements_result_is_handled ... ok
+test a_returned_result_is_used ... ok
+test a_handler_that_handles_its_failure_is_the_control ... ok
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+== the compiled handlers, a discard by name among them (compiler/pw-core/tests/handlers.rs)
+
+test a_value_the_handler_did_not_capture_is_not_read ... ok
+test a_handler_that_calls_no_command_is_refused ... ok
+test a_command_inside_a_function_is_refused ... ok
+test a_command_parameter_a_browser_cannot_send_is_refused ... ok
+test a_handler_that_discards_its_answer_with_underscore_sends_it ... ok
+test a_handler_calls_several_commands_in_order ... ok
+test an_opaque_constructor_sends_its_representation ... ok
+test a_command_is_sent_again_as_its_retry_clause_says ... ok
+test a_handler_that_discards_its_answer_by_name_sends_it ... ok
+test a_case_and_a_record_holding_one_are_sent_as_the_browser_holds_them ... ok
+test a_handler_branches_between_commands ... ok
+test a_string_with_escapes_sends_its_value ... ok
+test a_refused_command_stops_the_handler_before_the_next ... ok
+test each_path_read_is_read_where_the_document_carries_it ... ok
+test a_handler_computes_what_it_sends ... ok
+test a_record_or_a_list_is_sent_as_json_carries_it ... ok
+test an_int_a_javascript_number_cannot_carry_stops_the_handler_before_it_sends ... ok
+test a_program_that_does_not_check_compiles_no_handlers ... ok
+test the_stores_handlers_compile_to_the_calls_their_bodies_make ... ok
+test a_handler_calls_its_commands_by_the_contracts_own_ids ... ok
+test a_module_and_its_event_part_name_one_handler ... ok
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.09s
+
+== the canonical store with its demos, the benchmark's store, kiokun
+
+pw check: 73 file(s), no diagnostics
+pw check: 43 file(s), no diagnostics
+pw check: 27 file(s), no diagnostics
+
+== mutation controls (scripts/handler_failures_mutations.py)
+
+baseline: 26 passed, 0 failed
+a handler's last value is used: KILLED (1 of 26 tests fail)
+a value a handler returns is used: KILLED (1 of 26 tests fail)
+a handler's `?` passes its failure on: KILLED (1 of 26 tests fail)
+a lambda inside a handler is taken for the handler: KILLED (1 of 26 tests fail)
+a block ending in a binding is refused: KILLED (2 of 26 tests fail)
+a handler that discards its call's answer is named nothing: KILLED (2 of 26 tests fail)
+6 of 6 mutants killed
+memory bound: no process was stopped
+
+== ADR-0099's, against the walk ADR-0159 rewrote (scripts/results_handled_mutations.py)
+
+baseline: 5 passed, 0 failed
+the rule does not run: KILLED (3 of 5 tests fail)
+a unit body's last value is used: KILLED (1 of 5 tests fail)
+a statement's value is used: KILLED (1 of 5 tests fail)
+a returned value is dropped: KILLED (1 of 5 tests fail)
+a code clause's block is dropped: KILLED (1 of 5 tests fail)
+a loop's body is used: KILLED (1 of 5 tests fail)
+a lambda's body is dropped: KILLED (1 of 5 tests fail)
+7 of 7 mutants killed
+memory bound: no process was stopped
