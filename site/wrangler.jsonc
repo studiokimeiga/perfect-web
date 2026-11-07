@@ -1,0 +1,18 @@
+// pleris.dev: the site's static files (`node site/build.mjs`), served by
+// Cloudflare's Workers static assets. No script runs for them, so a request
+// costs nothing. `www.pleris.dev` is `www/`'s: a redirect to this one.
+{
+  "name": "pleris-dev",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    // `/guide/why` is `guide/why.html`; `/guide/` is `guide/index.html`.
+    "html_handling": "auto-trailing-slash",
+    // An address with no page gets the nearest `404.html` (`e/404.html` under `/e/`).
+    "not_found_handling": "404-page"
+  },
+  "routes": [{ "pattern": "pleris.dev", "custom_domain": true }],
+  // Served at pleris.dev alone, not at a workers.dev address too.
+  "workers_dev": false,
+  "preview_urls": false
+}
