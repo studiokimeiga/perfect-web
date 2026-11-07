@@ -191,10 +191,16 @@ impl Writer {
         }
     }
 
-    /// **Is this the writer `contract`'s command runs for?** The platform
-    /// for a command `invoked_by` it; a reader for any other, which a request
-    /// runs. A host that ran a reader's command as the platform would change
-    /// every reader's rows from a request.
+    /// **Is this the writer `contract`'s command runs for?** A reader for a
+    /// command a request runs: a host that ran it as the platform would
+    /// change every reader's rows from a request. The platform for a command
+    /// another of its own invokes (`invoked_by Payments`). And for a command
+    /// the clock invokes, the reader whose command scheduled it, on whose
+    /// behalf it runs (`pw_core`'s `invoked.rs`), with the arguments that
+    /// reader's request gave: its host begins the run for the reader it
+    /// recorded with the schedule, or for the platform where the platform's
+    /// own command scheduled it. Run as the platform for a reader's
+    /// schedule, it would change any row a reader named.
     pub fn admits(&self, contract: &ComponentContract) -> Result<(), String> {
         let invoked = contract
             .exports
@@ -220,7 +226,7 @@ impl Writer {
                  platform's",
                 contract.component_id
             )),
-            (Writer::Reader(_), Some(by)) => Err(format!(
+            (Writer::Reader(_), Some(by)) if *by != CLOCK => Err(format!(
                 "`{}` is invoked by {by}, for no reader, and its writes are the platform's",
                 contract.component_id
             )),
@@ -228,6 +234,10 @@ impl Writer {
         }
     }
 }
+
+/// The invoker that runs a command on the behalf of the reader whose command
+/// scheduled it (`invoked_by Clock`).
+const CLOCK: &str = "Clock";
 
 /// An index a table declares: `index by_done on done`, `unique by_slug on
 /// slug`.

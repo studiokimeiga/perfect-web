@@ -9,7 +9,8 @@ every failure an assertion's; a mutant that does not build kills nothing):
 
 1. the rule: a table a command a reader can run writes says who may change
    its rows, refused at its name beside the call that writes, through what
-   the command calls; a command the platform runs does not count; a table
+   the command calls, and through each command the clock runs for its
+   schedule, in turn; a command the platform runs does not count; a table
    that says who is not refused, and one whose word is no owner's is told
    once (PW0335's);
 2. the clause: `owner` heads a table's clause only, where its word follows,
@@ -20,15 +21,18 @@ every failure an assertion's; a mutant that does not build kills nothing):
 4. a row holds no handle (PW6901, track data-path's, carried here);
 5. the enforcement, on the memory adapter: a reader's put, delete and
    prefix's delete change only its own rows; an insert records its writer
-   and a put keeps the owner; a row undone or published keeps its owner; the
-   adapter reads each table's owner from the manifest;
+   and a put keeps the owner; a row undone keeps its owner; the adapter
+   reads each table's owner from the manifest;
 6. the host's writer: its scope is its reader's id of the table's kind, a
-   signed-out reader owns no user's row, and a reader's command is never the
-   platform's;
-7. the enforcement, on PostgreSQL: the owned put and delete statements, a
-   row recording no owner being no reader's, the owner column made, a put of
-   another's row answered as written, and the migration of an owner (made,
-   given up only as stated, never of another kind).
+   signed-out reader owns no user's row, a reader's command is never the
+   platform's, another invoker's never a reader's, and the clock's run is
+   the reader's who scheduled it;
+7. the enforcement, on PostgreSQL: the owned put (its guard on the row its
+   conflict found) and delete statements, a row recording no owner being no
+   reader's, the owner column made, a put of another's row answered as
+   written, one that met a row inserted since answered alike, and the
+   migration of an owner (made, given up only as stated, never of another
+   kind).
 
 They need a database: `PW_TABLES_DATABASE_URL` (or `PW_STORE_DATABASE_URL`,
 `PW_FEED_DATABASE_URL`), a throwaway one; without it the PostgreSQL tests
@@ -67,6 +71,12 @@ MUTANTS = [
     ("a command the platform runs counts as a reader's", TABLES,
      '            if decl.kind != DeclKind::Command || decl.policy("invoked_by").is_some() {\n',
      "            if decl.kind != DeclKind::Command {\n"),
+    ("a write a reader's command schedules is not the reader's", TABLES,
+     "            for (first, at) in scheduled_by(hirs, ws, unit, decl) {\n",
+     "            for (first, at) in Vec::<(DefId, Span)>::new() {\n"),
+    ("a schedule's own schedules are not followed", TABLES,
+     "                        scheduled_by(hirs, ws, def.unit, target)\n",
+     "                        Vec::<(DefId, Span)>::new()\n"),
     ("the call that writes is not named, only the command", TABLES,
      "                    .map_or_else(|| decl.name_span.clone(), |s| s.span.clone());\n",
      "                    .map_or_else(|| decl.name_span.clone(), |_| decl.name_span.clone());\n"),
@@ -126,9 +136,13 @@ MUTANTS = [
     ("a row put again takes its writer as its owner", MEMORY,
      "                Some(existing) => existing.owner.clone(),\n",
      "                Some(_) => scope.owner().map(str::to_string),\n"),
-    ("a row undone or published keeps the owner it had", MEMORY,
-     "        (Some(left), Some(right)) => left.owner == right.owner && same_fields(left, right),\n",
-     "        (Some(left), Some(right)) => same_fields(left, right),\n"),
+    ("an undone row loses its owner", MEMORY,
+     "                .map(|((table, key), prior)| (table, key, prior))\n",
+     "                .map(|((table, key), prior)| {\n"
+     "                    let owner = None;\n"
+     "                    let row = prior.map(|row| Arc::new(Held { fields: row.fields.clone(), owner }));\n"
+     "                    (table, key, row)\n"
+     "                })\n"),
     ("the adapter reads no owner from the manifest", MEMORY,
      "            owner: host.owner_of(name),\n",
      "            owner: host.owner_of(name).and(None),\n"),
@@ -144,6 +158,12 @@ MUTANTS = [
      "            (Writer::Reader(reader), Some(OwnerKind::Session)) => {\n"
      "                Ok(Scope::Owned(reader.user.as_deref().unwrap_or(&reader.session)))\n"
      "            }\n"),
+    ("a clock's run is never its reader's", HOST,
+     "            (Writer::Reader(_), Some(by)) if *by != CLOCK => Err(format!(\n",
+     "            (Writer::Reader(_), Some(by)) => Err(format!(\n"),
+    ("any invoker's command runs for a reader", HOST,
+     "            (Writer::Reader(_), Some(by)) if *by != CLOCK => Err(format!(\n",
+     "            (Writer::Reader(_), Some(by)) if false && *by != CLOCK => Err(format!(\n"),
     ("a reader's command runs as the platform", HOST,
      "            (Writer::Platform, None) => Err(format!(\n",
      "            (Writer::Platform, None) if false => Err(format!(\n"),

@@ -104,7 +104,8 @@ type Row = Arc<Held>;
 /// are all a read, a refusal or a commit ever answers, and beside them the
 /// reader who inserted it, where its table records one. The owner is in no
 /// field, so no program reads or writes it, and it moves with the row
-/// through every write, undo and publish.
+/// through every write and undo of the working tables, where each write is
+/// decided; the published tables answer reads, which never read it.
 #[derive(Debug, Clone, PartialEq)]
 struct Held {
     fields: Map<String, Value>,
@@ -955,6 +956,8 @@ impl Inner {
         self.healthy_locked()?;
         let ended = open.take().ok_or(Error::Ended)?;
         if let Some(published) = published.as_mut() {
+            // Each row a read sees changed. A row's owner is the working
+            // tables' (where every write is decided), never read from these.
             let rows = changed(tables, &ended.touched);
             let written: BTreeSet<usize> = rows.iter().map(|(table, _, _)| *table).collect();
             let state = Arc::make_mut(published);
@@ -981,7 +984,9 @@ impl Inner {
 }
 
 /// **Each key a command changed**, with its row now: each it touched whose
-/// row is not the one it held before.
+/// row is not the one it held before, as a read sees it (its fields: a row
+/// put back as it was for another owner is no change a read sees, as
+/// PostgreSQL's adapter answers it too).
 fn changed(
     tables: &[Data],
     touched: &BTreeMap<(usize, Key), Option<Row>>,
@@ -1001,7 +1006,7 @@ fn changed(
 /// snapshots holding different bits after a successful command.
 fn same_rows(left: &Option<Row>, right: &Option<Row>) -> bool {
     match (left, right) {
-        (Some(left), Some(right)) => left.owner == right.owner && same_fields(left, right),
+        (Some(left), Some(right)) => same_fields(left, right),
         (None, None) => true,
         _ => false,
     }

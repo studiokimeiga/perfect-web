@@ -345,11 +345,12 @@ fn the_platform_changes_any_row_and_owns_none() {
 }
 
 /// A command undone restores each row with its owner; one committed
-/// publishes each with it.
+/// publishes each with it. A row put back as it was for another owner is no
+/// write a read sees (PostgreSQL's `written` alike), and is published so.
 #[test]
 fn undone_and_published_rows_keep_their_owners() {
     let tables = alices("session");
-    {
+    let platform_puts_back = |commit: bool| {
         let mut command = tables.begin(Writer::Platform).assert_ok("its turn");
         command
             .write(DELETE_ITEM, &[json!("groceries"), json!("milk")])
@@ -357,45 +358,49 @@ fn undone_and_published_rows_keep_their_owners() {
         command
             .write(INSERT_ITEM, &[item_json("groceries", "milk", false, 1)])
             .assert_ok("the same row, inserted again");
-        // Dropped: undone.
-    }
-    write(
-        &tables,
-        bob(),
-        DELETE_ITEM,
-        &[json!("groceries"), json!("milk")],
-    )
-    .assert_ok("Bob's delete");
-    assert_ne!(
-        item_now(&tables, "groceries", "milk"),
-        Value::Null,
-        "the row restored is Alice's still"
-    );
-    // Committed: the same fields, now the platform's row, are published so.
-    let mut command = tables.begin(Writer::Platform).assert_ok("its turn");
-    command
-        .write(DELETE_ITEM, &[json!("groceries"), json!("milk")])
-        .assert_ok("its delete");
-    command
-        .write(INSERT_ITEM, &[item_json("groceries", "milk", false, 1)])
-        .assert_ok("its insert");
+        let written = command.written().assert_ok("written");
+        if commit {
+            command.commit().assert_ok("its commit");
+        }
+        written
+    };
+    let delete_milk = |who: Writer| {
+        write(
+            &tables,
+            who,
+            DELETE_ITEM,
+            &[json!("groceries"), json!("milk")],
+        )
+        .assert_ok("a delete");
+        item_now(&tables, "groceries", "milk")
+    };
+    // Undone: the row is Alice's again, Bob's delete absent, hers not.
+    platform_puts_back(false);
+    assert_ne!(delete_milk(bob()), Value::Null, "Bob's delete changed it");
     assert_eq!(
-        command.written().assert_ok("written"),
-        ["Items".to_string()].into(),
-        "a row whose owner changed is written"
+        delete_milk(alice()),
+        Value::Null,
+        "the row restored is hers"
     );
-    command.commit().assert_ok("its commit");
+    // Committed: the same fields, now the platform's, no reader's.
     write(
         &tables,
         alice(),
-        DELETE_ITEM,
-        &[json!("groceries"), json!("milk")],
+        INSERT_ITEM,
+        &[item_json("groceries", "milk", false, 1)],
     )
-    .assert_ok("Alice's delete");
-    assert_ne!(
-        item_now(&tables, "groceries", "milk"),
+    .assert_ok("hers again");
+    assert_eq!(
+        platform_puts_back(true),
+        std::collections::BTreeSet::new(),
+        "no read sees a row's owner"
+    );
+    assert_ne!(delete_milk(alice()), Value::Null, "her delete changed it");
+    assert_ne!(delete_milk(bob()), Value::Null, "his delete changed it");
+    assert_eq!(
+        delete_milk(Writer::Platform),
         Value::Null,
-        "the published row is no reader's"
+        "the platform's does"
     );
 }
 
@@ -573,23 +578,40 @@ fn a_writers_scope_is_its_readers_id_of_the_tables_kind() {
     assert_eq!(Scope::Any.owner(), None);
 }
 
-/// The platform's writer is a command `invoked_by` it, and a reader's any
-/// other: a contract that says otherwise refuses the writer.
+/// A reader's writer is a command a request runs; the platform's, a command
+/// another of its own invokes; and a command the clock invokes is run for
+/// the reader whose command scheduled it, or for the platform where the
+/// platform's own command did. A contract that says otherwise refuses it.
 #[test]
 fn a_writer_is_admitted_for_its_own_kind_of_command() {
     let program = app_owned("session");
     let contract = program.reader(DROP_ITEM).contract.clone();
     assert_eq!(alice().admits(&contract), Ok(()));
     assert!(Writer::Platform.admits(&contract).is_err());
-    let mut invoked = contract;
-    invoked.exports[0]
-        .component
-        .as_mut()
-        .expect("its component's export")
-        .invoked_by = Some("Payments".into());
-    assert_eq!(Writer::Platform.admits(&invoked), Ok(()));
+    let invoked_by = |by: &str| {
+        let mut invoked = contract.clone();
+        invoked.exports[0]
+            .component
+            .as_mut()
+            .assert_ok("its component's export")
+            .invoked_by = Some(by.into());
+        invoked
+    };
+    let payments = invoked_by("Payments");
+    assert_eq!(Writer::Platform.admits(&payments), Ok(()));
     let refused = alice()
-        .admits(&invoked)
+        .admits(&payments)
         .assert_err("a reader's writes for the platform's command");
     assert!(refused.contains("is invoked by Payments"), "{refused}");
+    let clock = invoked_by("Clock");
+    assert_eq!(
+        alice().admits(&clock),
+        Ok(()),
+        "the reader who scheduled it"
+    );
+    assert_eq!(
+        Writer::Platform.admits(&clock),
+        Ok(()),
+        "the platform's schedule"
+    );
 }

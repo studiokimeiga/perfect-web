@@ -284,7 +284,7 @@ pub(crate) fn check_inferred_prepared(
     let bounded = crate::bounded::Reads::of(hirs, workspace, sigs, inference, &sources);
     // The owned-rows ADR: each table a command a reader can run writes, over
     // every unit, since a command in one module writes a table in another.
-    let reader_writes = crate::tables::written_by_readers(hirs, inference);
+    let reader_writes = crate::tables::written_by_readers(hirs, workspace, inference);
     let paths: Vec<&str> = units.iter().map(|u| u.path.as_str()).collect();
     let diagnostics = units
         .iter()

@@ -134,7 +134,8 @@ command forget_note(note: NoteId) -> ()
   it, as `requires Anyone` says it of a command.
 - Reads are unchanged: who sees a row is its query's audience, and `owner`
   is who changes it. A table only the platform's commands write
-  (`invoked_by`) needs no `owner`.
+  (`invoked_by`) needs no `owner`, but a command the clock runs for a
+  reader's `schedule` writes for that reader, so its tables say one.
 
 ## Queries
 

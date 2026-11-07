@@ -229,28 +229,91 @@ fn a_write_through_a_helper_is_the_commands() {
     );
 }
 
+/// An order a payment settles: keyed by the order a payment names.
+const ORDERS: &str = "module Orders\n\
+\n\
+type Order = Order { id: String, total: Int }\n\
+\n\
+table Orders\n    row Order\n    key id\nOWNER";
+
 /// A table only the platform's commands write needs none: no reader runs
-/// them (PW6401). Beside a reader's command, only the reader's is named.
+/// them (PW6401). The program checks clean (the control: nothing else
+/// refuses it). Beside a reader's command, only the reader's is named.
 #[test]
 fn a_table_only_the_platform_writes_needs_no_owner() {
-    let notes = notes("");
-    let platform = "opaque type InteractionId = String\n\n\
-                    command sweep(shelf: Shelf) -> Result<Int, String>\n    invoked_by    Payments\n    \
-                    idempotent_by InteractionId\n{\n    Notes.delete_of_shelf(shelf)\n    Ok(1)\n}\n";
-    let alone = app(platform);
-    assert_eq!(
-        who_may_change(&[("Notes.pw", &notes), ("app.pw", &alone)]),
-        [],
-        "the platform's command alone"
+    let orders = ORDERS.replace("OWNER", "");
+    let settle = "module pay\n\nimport payments.{ Settled }\nimport Orders\n\n\
+                  opaque type InteractionId = String\n\n\
+                  command settle(settled: Settled) -> Result<Int, String>\n    invoked_by    Payments\n    \
+                  idempotent_by InteractionId\n{\n    Orders.delete(settled.order)\n    Ok(1)\n}\n";
+    let found = diagnostics(&[("Orders.pw", &orders), ("pay.pw", settle)]);
+    assert!(found.is_empty(), "{found:#?}");
+    let beside = format!(
+        "{settle}\ncommand cancel(order: String) -> ()\n    requires Anyone\n{{\n    \
+         Orders.delete(order)\n}}\n"
     );
-    let beside = app(&format!("{platform}\n{FORGET}"));
-    let found = who_may_change(&[("Notes.pw", &notes), ("app.pw", &beside)]);
+    let found = who_may_change(&[("Orders.pw", &orders), ("pay.pw", &beside)]);
     assert_eq!(found.len(), 1, "{found:#?}");
     let named: Vec<&str> = found[0].3.iter().map(|n| n.2.as_str()).collect();
     assert_eq!(
         named,
-        ["`forget` writes it, and runs for any reader's request"]
+        ["`cancel` writes it, and runs for any reader's request"]
     );
+}
+
+/// A command the clock invokes runs on the behalf of the reader whose
+/// command scheduled it, with the arguments that reader's request gave
+/// (`invoked.rs`): what it writes, the reader's command writes, told at the
+/// `schedule`. Through each schedule it makes in turn too. Scheduled by no
+/// reader's command, it is the platform's alone.
+#[test]
+fn a_write_a_readers_command_schedules_is_the_readers() {
+    const CLOCKED: &str = "opaque type InteractionId = String\n\n\
+        command forget(shelf: Shelf, id: NoteId) -> Result<Int, String>\n    invoked_by    Clock\n    \
+        idempotent_by InteractionId\n{\n    Notes.delete(shelf, id)\n    Ok(1)\n}\n";
+    const LATER: &str = "command forget_later(shelf: Shelf, id: NoteId) -> Result<Int, String> \
+        !{ clock.schedule }\n    requires Anyone\n{\n    schedule forget(shelf, id) after minutes(30)\n    \
+        Ok(1)\n}\n";
+    let notes = notes("");
+    let program = |body: &str| {
+        app(body).replace("import Notes\n", "import Notes\nimport clock.{ minutes }\n")
+    };
+    // Scheduled by no reader's command: the platform's alone, and clean.
+    let alone = program(CLOCKED);
+    let found = diagnostics(&[("Notes.pw", &notes), ("app.pw", &alone)]);
+    assert!(found.is_empty(), "{found:#?}");
+    // Scheduled by a reader's command: the reader's write.
+    let scheduled = program(&format!("{CLOCKED}\n{LATER}"));
+    let found = who_may_change(&[("Notes.pw", &notes), ("app.pw", &scheduled)]);
+    assert_eq!(found.len(), 1, "{found:#?}");
+    assert_eq!(
+        found[0].3,
+        [(
+            "app.pw".to_string(),
+            "schedule forget(shelf, id) after minutes(30)".to_string(),
+            "`forget_later` schedules `forget`, which writes it on its behalf, and runs for any \
+             reader's request"
+                .to_string()
+        )]
+    );
+    // Through a schedule the clocked command makes in turn.
+    let relay = "command relay(shelf: Shelf, id: NoteId) -> Result<Int, String> !{ clock.schedule }\n    \
+                 invoked_by    Clock\n    idempotent_by InteractionId\n{\n    \
+                 schedule forget(shelf, id) after minutes(5)\n    Ok(1)\n}\n";
+    let later = LATER.replace("schedule forget(", "schedule relay(");
+    let chained = program(&format!("{CLOCKED}\n{relay}\n{later}"));
+    let found = who_may_change(&[("Notes.pw", &notes), ("app.pw", &chained)]);
+    assert_eq!(found.len(), 1, "{found:#?}");
+    assert!(
+        found[0].3[0]
+            .2
+            .starts_with("`forget_later` schedules `relay`"),
+        "{found:#?}"
+    );
+    // The control: owned, the same program checks clean.
+    let owned = crate::notes("    owner session\n");
+    let found = diagnostics(&[("Notes.pw", &owned), ("app.pw", &scheduled)]);
+    assert!(found.is_empty(), "{found:#?}");
 }
 
 /// One refusal a table, beside every command that writes it; a table in the

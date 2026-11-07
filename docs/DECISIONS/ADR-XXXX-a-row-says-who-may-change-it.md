@@ -164,7 +164,9 @@ ADRs).
 - **The rule, PW0370 `who_may_change`** (`tables::written_by_readers` and
   `tables::who_may_change`, called beside PW0367): every command not
   `invoked_by` the platform whose effects, inferred through every call it
-  makes, hold `database.write<T>` of a declared table `T`. A table with no
+  makes, hold `database.write<T>` of a declared table `T`, or that schedules
+  a command the clock runs, which writes one, on its behalf (below, the
+  review's first finding). A table with no
   `owner` is refused at its name, once, each such command named beside it at
   the call that writes (in its own unit where it is another's).
 - **What a database records.** `TableSchema.owner` is `user` or `session`;
@@ -187,14 +189,19 @@ ADRs).
   kind. A reader signed in as no one is refused every write to an `owner
   user` table, whatever the row, so that the answer says nothing of
   another's. `Writer::admits` holds the writer to the command's contract: a
-  reader's for a command a request runs, the platform's for one `invoked_by`
-  it, so that no host runs a reader's command as the platform.
+  reader's for a command a request runs; the platform's for one another of
+  its own invokes (`invoked_by Payments`); and for one the clock invokes,
+  the reader whose command scheduled it, on whose behalf it runs, or the
+  platform where the platform's own command scheduled it. No host runs a
+  reader's command as the platform.
 - **The memory adapter**: a row is held as its fields and, beside them, its
-  owner, so the owner moves with the row through every write, undo and
-  publish, and every answer (a read, a refusal) is the fields alone. An
-  insert records its writer; a put keeps the owner a row records; another
-  reader's row is absent to a put, a delete and a prefix's delete: nothing
-  changes, and the answer is the one a missing row has.
+  owner, so the owner moves with the row through every write and undo of
+  the tables commands write, and every answer (a read, a refusal) is the
+  fields alone. An insert records its writer; a put keeps the owner a row
+  records; another reader's row is absent to a put, a delete and a prefix's
+  delete: nothing changes, and the answer is the one a missing row has. A
+  row put back as it was for another owner is no change a read sees, and
+  neither adapter counts it written.
 - **PostgreSQL**: an owned table has a column of the adapter's own,
   `"pw:owner"` (no field of a program's can be named so), null for a row no
   reader owns. The owned insert, put and delete statements take the writer
@@ -216,6 +223,54 @@ ADRs).
 - **An insert of a key another reader's row holds** is refused as any
   insert of a held key is, answered with that row: reads are unchanged, so
   the same command could read it, and the key is taken.
+
+## The independent review (2026-11-07), and what changed
+
+A separate reviewer read `79eb2ce7`. Each finding was reproduced or settled
+by a test before its repair, and each repair has a mutant in
+`who_may_change_mutations.py`:
+
+1. **(High) A reader's command could change any row by scheduling a
+   command the clock runs.** `schedule forget(shelf, id) after ..` charges
+   the reader's command only `clock.schedule`, so PW0370 did not see
+   `forget`'s writes; and the clock's run, `invoked_by Clock`, was admitted
+   only as the platform, which changes any row, with the arguments the
+   reader chose. A command the clock invokes runs on the behalf of the
+   reader whose command scheduled it (`invoked.rs`), so now:
+   - PW0370 follows each `schedule` of a reader's command to the command it
+     names, and each schedule that command makes in turn, and tells the
+     write at the `schedule` (`a_write_a_readers_command_schedules_is_the_
+     readers`);
+   - `Writer::admits` takes a clock's run as the reader's who scheduled it
+     (or the platform's, for a schedule the platform's own command made).
+     **No scheduler reaches the table adapters yet**: when one does, it
+     records the reader's ids (its session's and its user's) with each
+     schedule and begins the run for them.
+2. **(Medium) The put's race under read committed**: found the same day,
+   before the review saw it fixed (`ac17131c`, above).
+3. **(Low) The adapters answered `written` differently** for a row put back
+   as it was for another owner (memory counted it, PostgreSQL did not). No
+   read sees an owner, so neither counts it now; the memory adapter's owner
+   lives in the tables commands write, where every write is decided, and the
+   undo restores it (now with a positive control: Alice's own delete works
+   after the undo, which a lost owner would refuse).
+4. **Tests that proved less than they said**, each sharpened: the
+   platform's fixture was itself refused (PW6402) and is now a valid
+   `invoked_by Payments` command that checks clean; "no owner column" was
+   any SQL error and is now the catalog's answer; the race's setup panicked
+   outside an assertion, which the strict producer refused (the one INVALID
+   mutant of the run at `ac17131c`).
+
+Noted by the review, and not decided here:
+- `invoked_by Payments`: a settlement acts on the order a reader named when
+  the payment began, a confused deputy if that order is another's.
+- A command that `requires Anyone` and writes an `owner user` table
+  compiles; a signed-out reader's request then fails at its write. Pairing
+  them at compile time needs a predicate the platform knows means "signed
+  in".
+- An older host still running when a newer one migrates the database
+  writes unscoped until it stops: the schema is held to at a host's start,
+  not at each transaction (D3's rule for every change, not this one's).
 
 ## The tables this migration says `owner anyone` (for the owner)
 

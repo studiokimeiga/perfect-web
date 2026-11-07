@@ -1851,18 +1851,79 @@ pub fn every(hirs: &[&Hir]) -> Vec<(usize, Table)> {
 pub struct ReaderWrite {
     pub unit: usize,
     pub command: String,
-    /// The call that writes, where its body makes one; else its name.
+    /// The call that writes, where its body makes one; else its name. For a
+    /// write a command it schedules makes, that `schedule`.
     pub at: Span,
+    /// The command the clock runs on the reader's behalf, which writes, where
+    /// the reader's command schedules it rather than writing itself.
+    pub scheduled: Option<String>,
+}
+
+/// The tables `id`'s effects, inferred through every call it makes, write.
+fn tables_written(
+    tables: &BTreeSet<String>,
+    inference: &crate::effects::Inference,
+    unit: usize,
+    hir: &Hir,
+    id: DeclId,
+) -> BTreeSet<String> {
+    inference
+        .effective_effects(unit, hir, id)
+        .iter()
+        .filter_map(|e| crate::effects::database_domain(e, "write"))
+        .filter(|domain| tables.contains(*domain))
+        .map(str::to_string)
+        .collect()
+}
+
+/// **Each command the clock invokes that `decl` schedules**, with where:
+/// `schedule forget(shelf, id) after 1.hours` names it as a call does
+/// (`scheduled.rs`; PW6501 refuses one that names another).
+fn scheduled_by(hirs: &[&Hir], ws: &Workspace, unit: usize, decl: &Decl) -> Vec<(DefId, Span)> {
+    let Some(body) = decl.body.map(|b| hirs[unit].body(b)) else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    for id in body.walk() {
+        let crate::hir::Expr::Keyword {
+            keyword, modifiers, ..
+        } = body.expr(id)
+        else {
+            continue;
+        };
+        if keyword != "schedule" {
+            continue;
+        }
+        let name = modifiers.first().map(String::as_str).unwrap_or_default();
+        if let Resolution::Local(def) | Resolution::Imported { def, .. } =
+            ws.resolve_in(unit, Namespace::Term, name)
+        {
+            let target = hirs[def.unit].decl(DeclId(def.decl));
+            if target.kind == DeclKind::Command
+                && target
+                    .policy("invoked_by")
+                    .is_some_and(|p| p.value.trim() == "Clock")
+            {
+                out.push((def, body.expr_span(id)));
+            }
+        }
+    }
+    out
 }
 
 /// **Each declared table a command a reader can run writes**, by the table's
 /// name, with each such command. A command writes a table where its effects,
 /// inferred through every call it makes, hold `database.write<Table>`: its
 /// generated `insert`, `put`, `delete` or `delete_of_<fields>`, called in its
-/// body or in what it calls. A command `invoked_by` the platform is no
-/// reader's (PW6401), and writes for none.
+/// body or in what it calls. And where it schedules a command the clock
+/// invokes that writes one, at a time or after one: the clock runs it on the
+/// reader's behalf (`invoked.rs`), with the arguments the reader's request
+/// gave, so its writes are the reader's, through every schedule it makes in
+/// turn. A command `invoked_by` the platform, run by none of a reader's
+/// schedules, is no reader's (PW6401), and writes for none.
 pub fn written_by_readers(
     hirs: &[&Hir],
+    ws: &Workspace,
     inference: &crate::effects::Inference,
 ) -> BTreeMap<String, Vec<ReaderWrite>> {
     let tables: BTreeSet<String> = every(hirs).into_iter().map(|(_, t)| t.name).collect();
@@ -1876,30 +1937,60 @@ pub fn written_by_readers(
             if decl.kind != DeclKind::Command || decl.policy("invoked_by").is_some() {
                 continue;
             }
-            let written: BTreeSet<String> = inference
-                .effective_effects(unit, hir, id)
-                .iter()
-                .filter_map(|e| crate::effects::database_domain(e, "write"))
-                .filter(|domain| tables.contains(*domain))
-                .map(str::to_string)
-                .collect();
-            if written.is_empty() {
-                continue;
+            let written = tables_written(&tables, inference, unit, hir, id);
+            if !written.is_empty() {
+                let sources = decl
+                    .body
+                    .map(|b| inference.infer_at(unit, hir.body(b)).sources)
+                    .unwrap_or_default();
+                for table in written {
+                    let at = sources
+                        .iter()
+                        .find(|s| {
+                            crate::effects::database_domain(&s.effect, "write") == Some(&table)
+                        })
+                        .map_or_else(|| decl.name_span.clone(), |s| s.span.clone());
+                    out.entry(table).or_default().push(ReaderWrite {
+                        unit,
+                        command: decl.name.clone(),
+                        at,
+                        scheduled: None,
+                    });
+                }
             }
-            let sources = decl
-                .body
-                .map(|b| inference.infer_at(unit, hir.body(b)).sources)
-                .unwrap_or_default();
-            for table in written {
-                let at = sources
-                    .iter()
-                    .find(|s| crate::effects::database_domain(&s.effect, "write") == Some(&table))
-                    .map_or_else(|| decl.name_span.clone(), |s| s.span.clone());
-                out.entry(table).or_default().push(ReaderWrite {
-                    unit,
-                    command: decl.name.clone(),
-                    at,
-                });
+            // What it schedules, and what that schedules in turn, each told
+            // at the schedule this command writes.
+            for (first, at) in scheduled_by(hirs, ws, unit, decl) {
+                let mut seen: BTreeSet<DefId> = BTreeSet::new();
+                let mut next = vec![first];
+                let mut written: BTreeSet<String> = BTreeSet::new();
+                while let Some(def) = next.pop() {
+                    if !seen.insert(def) {
+                        continue;
+                    }
+                    let target = hirs[def.unit].decl(DeclId(def.decl));
+                    written.extend(tables_written(
+                        &tables,
+                        inference,
+                        def.unit,
+                        hirs[def.unit],
+                        DeclId(def.decl),
+                    ));
+                    next.extend(
+                        scheduled_by(hirs, ws, def.unit, target)
+                            .into_iter()
+                            .map(|(d, _)| d),
+                    );
+                }
+                let named = hirs[first.unit].decl(DeclId(first.decl)).name.clone();
+                for table in written {
+                    out.entry(table).or_default().push(ReaderWrite {
+                        unit,
+                        command: decl.name.clone(),
+                        at: at.clone(),
+                        scheduled: Some(named.clone()),
+                    });
+                }
             }
         }
     }
@@ -1912,8 +2003,9 @@ const WHO_MAY_CHANGE_WHY: &str = "A command a reader can run is a request away, 
      user` or `owner session` the platform records the reader who inserts each row, in no field \
      the program sees, and a `put`, a `delete` or a `delete_of_<fields>` from a request changes \
      only its reader's rows: another reader's row is treated as absent. `owner anyone` says any \
-     reader may change any row, outright. A table only the platform's commands (`invoked_by`) \
-     write needs none.";
+     reader may change any row, outright. A command the clock runs for a reader's schedule \
+     writes for that reader; a table only the platform's other commands (`invoked_by`) write \
+     needs none.";
 
 /// **A table a reader's command writes says who may change its rows** (the
 /// owned-rows ADR, PW0370): refused at the table's name, beside each command
@@ -1952,10 +2044,17 @@ pub fn who_may_change(
                     Related::in_unit(
                         w.unit,
                         w.at.clone(),
-                        format!(
-                            "`{}` writes it, and runs for any reader's request",
-                            w.command
-                        ),
+                        match &w.scheduled {
+                            None => format!(
+                                "`{}` writes it, and runs for any reader's request",
+                                w.command
+                            ),
+                            Some(scheduled) => format!(
+                                "`{}` schedules `{scheduled}`, which writes it on its behalf, \
+                                 and runs for any reader's request",
+                                w.command
+                            ),
+                        },
                     )
                 })
                 .collect(),

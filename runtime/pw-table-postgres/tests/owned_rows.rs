@@ -92,6 +92,15 @@ fn owners(scratch: &Scratch) -> Vec<String> {
     )
 }
 
+/// Whether `Notes` has the adapter's owner column, as the catalog says.
+fn owner_column(scratch: &Scratch) -> bool {
+    scratch.texts(&format!(
+        "SELECT count(*)::text FROM information_schema.columns \
+         WHERE table_schema = '{}' AND table_name = 'Notes' AND column_name = 'pw:owner'",
+        scratch.schema
+    )) == ["1"]
+}
+
 /// The database, or a note that this test passes for want of one.
 fn database_for(what: &str) -> Option<Scratch> {
     match database() {
@@ -156,11 +165,8 @@ fn the_owner_is_a_column_of_the_adapters_and_in_no_field() {
     // A table no reader owns has no such column.
     let anyone = Scratch::new(&scratch.url, "owned_column_anyone");
     let _ = alices(&anyone, "    owner anyone\n");
-    assert!(
-        owners(&anyone)[0].starts_with("error:"),
-        "{:?}",
-        owners(&anyone)
-    );
+    assert!(owner_column(&scratch), "the control: an owned table has it");
+    assert!(!owner_column(&anyone), "{:?}", owners(&anyone));
 }
 
 /// A prefix's delete removes its reader's rows of the prefix alone, and a
@@ -313,9 +319,10 @@ fn race(scratch: &Scratch, isolation: Isolation, setting: &str) -> (Result<(), E
         options,
     )
     .assert_ok("the adapter opens");
-    let mut hers = postgres::Client::connect(&scratch.url, postgres::NoTls).expect("a connection");
+    let mut hers =
+        postgres::Client::connect(&scratch.url, postgres::NoTls).assert_ok("a connection");
     hers.batch_execute(&format!("SET search_path TO \"{}\"; BEGIN", scratch.schema))
-        .expect("her transaction");
+        .assert_ok("her transaction");
     hers.execute(
         "INSERT INTO \"Notes\" (shelf, id, slug, text, \"pw:owner\") VALUES ($1, $2, $3, $4, $5)",
         &[
@@ -326,7 +333,7 @@ fn race(scratch: &Scratch, isolation: Isolation, setting: &str) -> (Result<(), E
             &"s-alice",
         ],
     )
-    .expect("her row, not yet committed");
+    .assert_ok("her row, not yet committed");
     let answered = std::thread::scope(|scope| {
         let his = scope.spawn(|| {
             let mut command = tables.begin(bob())?;
@@ -342,9 +349,9 @@ fn race(scratch: &Scratch, isolation: Isolation, setting: &str) -> (Result<(), E
                 .first()
                 .is_some_and(|n| n != "0")
         });
-        hers.batch_execute("COMMIT").expect("her commit");
+        hers.batch_execute("COMMIT").assert_ok("her commit");
         assert!(waiting, "Bob's put never waited on her row");
-        his.join().expect("Bob's put")
+        his.join().assert_ok("Bob's put")
     });
     (answered, tables)
 }
@@ -462,11 +469,7 @@ fn a_table_comes_to_record_owners_and_gives_them_up_only_as_stated() {
         built_against("    owner anyone\n", &lock("    owner session\n")),
     )
     .assert_ok("the owners given up");
-    assert!(
-        owners(&scratch)[0].starts_with("error:"),
-        "{:?}",
-        owners(&scratch)
-    );
+    assert!(!owner_column(&scratch), "{:?}", owners(&scratch));
     write(&widened, bob(), DELETE, &[json!("home"), json!("jam")]).assert_ok("anyone's delete");
     assert_eq!(now(&widened, "jam"), Value::Null);
 }

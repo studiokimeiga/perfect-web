@@ -361,7 +361,7 @@ error: [PW0370] `Notes` is written by a command any reader's request runs, and s
 14 |     Notes.delete(note)
    |     ------------------ `forget_note` writes it, and runs for any reader's request
    |
-   = note: A command a reader can run is a request away, and its arguments are the request's: `drop_item(list, item)` deletes whichever item a request names, anyone's. So a table such a command writes says whose its rows are. With `owner user` or `owner session` the platform records the reader who inserts each row, in no field the program sees, and a `put`, a `delete` or a `delete_of_<fields>` from a request changes only its reader's rows: another reader's row is treated as absent. `owner anyone` says any reader may change any row, outright. A table only the platform's commands (`invoked_by`) write needs none.
+   = note: A command a reader can run is a request away, and its arguments are the request's: `drop_item(list, item)` deletes whichever item a request names, anyone's. So a table such a command writes says whose its rows are. With `owner user` or `owner session` the platform records the reader who inserts each row, in no field the program sees, and a `put`, a `delete` or a `delete_of_<fields>` from a request changes only its reader's rows: another reader's row is treated as absent. `owner anyone` says any reader may change any row, outright. A command the clock runs for a reader's schedule writes for that reader; a table only the platform's other commands (`invoked_by`) write needs none.
    = help: declare `owner user` or `owner session`: the platform records the reader who inserts each row, and only that reader's requests change it
    = help: or `owner anyone`, if any reader may change any row
 ```
