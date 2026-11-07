@@ -5,8 +5,10 @@
 //! A command's `schedule cmd(args) at when` calls its schedules' import,
 //! which stages the run with the command's writes ([`Scheduling`]): written
 //! in the layer's transaction, or the materializer's, or not at all. One run
-//! is pending for each command and its arguments, by its key: scheduled
-//! again, it moves, and `unschedule cmd(args)` cancels it. The host runs each
+//! is pending for each command, its arguments and the user whose command
+//! scheduled it, by its key (ADR-0334, amended 2026-11-07): scheduled again
+//! by that user, it moves, and `unschedule cmd(args)` cancels it; another
+//! user's scheduling of the same arguments is another run. The host runs each
 //! one due on behalf of the user whose command scheduled it, as a press is
 //! run, keyed by its scheduling so that it commits once
 //! (`Server::run_scheduled`).
@@ -65,8 +67,6 @@ pub(crate) fn select(
 /// was given it, staged with the command's writes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Scheduling {
-    /// The command and its arguments: one run is pending for each.
-    pub key: String,
     /// The command's component.
     pub command: String,
     /// Its arguments, as a press sends them: a JSON array.
@@ -101,7 +101,7 @@ impl Scheduling {
     /// a duration counted from the commit, which the host reads then.
     pub(crate) fn at_commit(&self, now_ms: i64, user: &str) -> Scheduled {
         Scheduled {
-            key: self.key.clone(),
+            key: key(user, &self.command, &self.args),
             command: self.command.clone(),
             args: self.args.clone(),
             user: user.to_string(),
@@ -114,9 +114,14 @@ impl Scheduling {
     }
 }
 
-/// **A run's key**: its command and its arguments, as a press sends them.
-pub(crate) fn key(command: &str, args: &str) -> String {
-    format!("{command}\u{1f}{args}")
+/// **A run's key**: the user whose command scheduled it, its command and its
+/// arguments, as a press sends them (ADR-0334, amended 2026-11-07). Until
+/// then it named the command and its arguments alone, so another reader's
+/// scheduling of the same arguments replaced a reader's pending run, which
+/// then ran on the other's behalf, and the other's cancel cancelled it.
+/// Migrations `store/0022` and `feed/0014` give each kept key its user.
+pub(crate) fn key(user: &str, command: &str, args: &str) -> String {
+    format!("{user}\u{1f}{command}\u{1f}{args}")
 }
 
 /// How many times a run that trapped or was refused runs again before it is
@@ -390,7 +395,6 @@ mod tests {
     #[test]
     fn a_duration_is_counted_from_the_commit() {
         let s = |when| Scheduling {
-            key: key("t.expire", "[\"o-1\"]"),
             command: "t.expire".into(),
             args: "[\"o-1\"]".into(),
             when,
@@ -399,5 +403,20 @@ mod tests {
         assert_eq!(s(When::At(5)).at_commit(1000, "u").due_ms, Some(5));
         assert_eq!(s(When::Cancel).at_commit(1000, "u").due_ms, None);
         assert_eq!(s(When::At(5)).at_commit(1000, "u").user, "u");
+    }
+
+    /// **A run's key names the user whose command scheduled it** (ADR-0334,
+    /// amended 2026-11-07): two users' schedulings of one command and its
+    /// arguments are two runs, and one user's again is the same run.
+    #[test]
+    fn a_runs_key_names_the_user_whose_command_scheduled_it() {
+        let s = Scheduling {
+            command: "t.expire".into(),
+            args: "[\"o-1\"]".into(),
+            when: When::After(30),
+        };
+        assert_ne!(s.at_commit(0, "a").key, s.at_commit(0, "b").key);
+        assert_eq!(s.at_commit(0, "a").key, s.at_commit(9, "a").key);
+        assert_eq!(s.at_commit(0, "a").key, key("a", "t.expire", "[\"o-1\"]"));
     }
 }

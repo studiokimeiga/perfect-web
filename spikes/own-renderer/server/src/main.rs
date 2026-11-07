@@ -2587,7 +2587,6 @@ impl Server {
                         .expect("staged runs")
                         .scheduled
                         .push(schedules::Scheduling {
-                            key: schedules::key(&scheduling.command, &args),
                             command: scheduling.command.clone(),
                             args,
                             when,

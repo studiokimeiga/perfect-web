@@ -1324,7 +1324,7 @@ where
     T: crate::data::DataLayer + crate::schedules::Runs,
 {
     let scheduled = |due| crate::schedules::Scheduled {
-        key: crate::schedules::key("test.expire", "[]"),
+        key: crate::schedules::key("private-test-reader", "test.expire", "[]"),
         command: "test.expire".to_string(),
         args: "[]".to_string(),
         user: "private-test-reader".to_string(),

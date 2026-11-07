@@ -943,6 +943,53 @@ fn on_postgres_a_run_outlives_the_host_that_scheduled_it() {
     assert_eq!(runs_kept(&layer), 0);
 }
 
+/// **A run kept under the old key is its scheduler's after the upgrade**
+/// (ADR-0334, amended 2026-11-07; migration `0022`). A key written before
+/// named the command and its arguments alone. Migrated, it names the user
+/// too, as `schedules::key` writes it now, so that reader's next scheduling
+/// of it moves it rather than leaving a second run beside it.
+#[test]
+fn on_postgres_a_run_kept_under_the_old_key_is_its_schedulers_after_the_upgrade() {
+    let Some(url) = database() else { return };
+    let (layer, host, _dir) = scheduling_hosts(&url);
+    let s = host();
+    assert!(super::store_scheduled::in_five(&s, "espresso", false, "i-1").committed);
+    let (key, command, args, user): (String, String, String, String) = {
+        let row = layer
+            .sql()
+            .query_one("SELECT key, command, args, user_id FROM schedules", &[])
+            .expect("one run");
+        (row.get(0), row.get(1), row.get(2), row.get(3))
+    };
+    assert_eq!(key, crate::schedules::key(&user, &command, &args));
+    // The row as a host before the amendment kept it, then the migration.
+    let old = format!("{command}\u{1f}{args}");
+    layer
+        .sql()
+        .execute("UPDATE schedules SET key = $1", &[&old])
+        .expect("kept as before");
+    layer
+        .sql()
+        .batch_execute(include_str!(
+            "../../migrations/store/0022_schedule_key_names_its_scheduler.sql"
+        ))
+        .expect("migrated");
+    let migrated: String = layer
+        .sql()
+        .query_one("SELECT key FROM schedules", &[])
+        .expect("one run")
+        .get(0);
+    assert_eq!(migrated, key, "the user, the command and its arguments");
+    // Its reader schedules it again: the one run moves.
+    assert!(super::store_scheduled::in_five(&s, "espresso", false, "i-2").committed);
+    let kept: i64 = layer
+        .sql()
+        .query_one("SELECT count(*) FROM schedules", &[])
+        .expect("counted")
+        .get(0);
+    assert_eq!(kept, 1, "moved, not doubled");
+}
+
 /// Legacy ambiguous work is quarantined after upgrade (ADR0388). An old
 /// action may already have committed; receipt expiry must not make it run again.
 #[test]
