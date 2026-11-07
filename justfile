@@ -163,6 +163,9 @@ evidence-gates:
     @python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
     @node --test benchmarks/baselines/sveltekit/vendor/deepmerge/test.cjs benchmarks/baselines/sveltekit/vendor/deepmerge/consumer-test.cjs
     @node --test spikes/own-renderer/optimize-assets.test.mjs
+    # pleris.dev's build checks its own pages: every code, link and count
+    # (train-14's review found no gate ran it).
+    @node --test site/build.test.mjs
 
 # ADR-0245: a verification run's evidence, fetched into docs/evidence/. The
 # run is a GitHub Actions run of `verify`, by its id; each file it fetches

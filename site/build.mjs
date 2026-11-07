@@ -7,6 +7,7 @@
 //
 //   node site/build.mjs [out]      out: site/dist
 
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { copyFileSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, posix } from "node:path";
@@ -516,10 +517,6 @@ ${oldRows}
  * at the commit it was pushed at: a branch's link breaks when it is deleted. */
 const EVIDENCE = `${REPO}/blob/14a3a7f64f22165f0fc596f8c24e4cd9b0bf1de9/docs/evidence/E14/first-press-2026-11-06/README.md`;
 
-/** How the checks are checked: `python3 scripts/mutation_anchors.py` counts
- * the mutants, and the build counts the scripts, so that a script added or
- * taken away stops the build until this says so. */
-const MUTANTS = { mutants: 4974, scripts: 324 };
 
 /**
  * **The same mistake, in each.** Its code in Next.js or React, which
@@ -680,13 +677,21 @@ ${t.rows.map(benchRow).join("\n")}
 </tbody></table></div>`;
 }
 
-/** The scripts that check the checks, counted as the build finds them. */
-function mutationScripts() {
+/** **How the checks are checked**, counted when the site is built: the
+ * mutants `python3 scripts/mutation_anchors.py` reads, each matching its
+ * anchor exactly once, and the scripts that hold them. An anchor that does
+ * not match stops the build, so the page never states a count that does not
+ * hold. Until train-14 both counts were written here by hand, and only the
+ * scripts' was checked: a mutant added to a script changed nothing. */
+function mutationCounts() {
+  const out = execFileSync("python3", [join(ROOT, "scripts/mutation_anchors.py")], { cwd: ROOT, encoding: "utf8" });
+  const said = /mutation anchors: (\d+) mutants in (\d+) scripts, each matching once/.exec(out);
+  if (!said) throw new Error(`mutation_anchors.py said nothing the build can read:
+${out}`);
+  const [mutants, scripts] = [Number(said[1]), Number(said[2])];
   const found = readdirSync(join(ROOT, "scripts")).filter((f) => f.endsWith("_mutations.py")).length;
-  if (found !== MUTANTS.scripts) {
-    throw new Error(`${found} mutation scripts, and the home page says ${MUTANTS.scripts}: count the mutants again`);
-  }
-  return found;
+  if (scripts !== found) throw new Error(`mutation_anchors.py read ${scripts} scripts, and scripts/ holds ${found}`);
+  return { mutants, scripts };
 }
 
 /**
@@ -696,7 +701,7 @@ function mutationScripts() {
  * trails, by the instrument's own verdicts.
  */
 function home(catalog) {
-  const scripts = mutationScripts();
+  const { mutants, scripts } = mutationCounts();
   const { ahead, rows } = score();
   const body = `<section class="hero">
 <span class="pill">A research project · not released yet</span>
@@ -726,7 +731,7 @@ ${SPEED.map(benchTable).join("\n")}
 
 <section class="section" id="checked">
 <h2>How we know</h2>
-<p>A test that cannot fail checks nothing, so Pleris's tests are tested too: ${scripts} scripts plant ${MUTANTS.mutants.toLocaleString("en-US")} bugs in its own source, one at a time, and each must make a test fail. Every refusal on this site is the guide's example, compiled by a test. Every code has a page an agent can read, and <a href="/llms.txt">llms.txt</a> gives it the whole guide. <a href="${TREE}/scripts">The scripts</a></p>
+<p>A test that cannot fail checks nothing, so Pleris's tests are tested too: ${scripts} scripts plant ${mutants.toLocaleString("en-US")} bugs in its own source, one at a time, and each must make a test fail. Every refusal on this site is the guide's example, compiled by a test. Every code has a page an agent can read, and <a href="/llms.txt">llms.txt</a> gives it the whole guide. <a href="${TREE}/scripts">The scripts</a></p>
 </section>
 
 <section class="section" id="status">
