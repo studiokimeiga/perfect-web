@@ -1,0 +1,31 @@
+The guard (compiler/pw-core/tests/printed_texts_carry_no_dates.rs), and its red control
+
+commit: 103db6dc9e04bd83cb16688ce897c38ab5368602
+base: 5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+== at this commit: $ cargo test --locked -p pw-core --test printed_texts_carry_no_dates
+test a_literal_is_read_as_rust_reads_it ... ok
+test no_string_the_compiler_prints_holds_a_date ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+== the control: the four changed sources as the base holds them
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.03s
+dated literals reported: 15
+compiler/pw-core/src/annotations.rs:136: 2026-09-26 in "A `Result` carries a failure, and a value nothing uses
+compiler/pw-core/src/annotations.rs:831: 2026-09-26 in "Which event an `on:` attribute delivers is declared by
+compiler/pw-core/src/check.rs:1540: 2026-09-26 in "A call names a function, a data operation, or a type it bui
+compiler/pw-core/src/check.rs:1746: 2026-09-26 in "A policy's value is one its domain has: a word the policy l
+compiler/pw-core/src/check.rs:3635: 2026-09-26 in "A name written twice where it is declared says two things, 
+compiler/pw-core/src/check.rs:5211: 2026-10-03 in "In markup, `//` and `/*` begin no comment: what follows is 
+compiler/pw-core/src/check.rs:5325: 2026-09-26 in "A view renders into a page that loads the platform's runtim
+compiler/pw-core/src/check.rs:5413: 2026-09-26 in "The renderer escapes a value by where it sits: text, an att
+compiler/pw-core/src/check.rs:5611: 2026-09-26 in "HTML lowercases every tag it parses, so an element named wi
+compiler/pw-core/src/check.rs:6536: 2026-08-10 in "An `{policy}` value is executable code: it runs on the clie
+compiler/pw-core/src/check.rs:9775: 2026-09-26 in "A key identifies each element of the list, so it is read fr
+compiler/pw-core/src/check.rs:9955: 2026-09-25 in "A block's markers decide what renders. A marker the block d
+compiler/pw-core/src/graph.rs:937: 2026-09-26 in "`{policy}` names {wanted}. A command invalidates a resource'
+compiler/pw-core/src/holds.rs:265: 2026-10-10 in "What a template reads is rendered from a value: a binding, a
+compiler/pw-core/src/holds.rs:324: 2026-10-08 in "A press the server refuses was a dead control: the owner, si
+
+sources restored to HEAD: yes

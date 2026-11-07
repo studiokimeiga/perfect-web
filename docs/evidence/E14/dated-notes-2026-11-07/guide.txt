@@ -1,0 +1,24 @@
+Recorded on the tree committed as 103db6dc; the run began before the commit was made, and no file it reads changed since
+
+commit: 103db6dc9e04bd83cb16688ce897c38ab5368602
+base: 5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+$ cargo test --locked -p pw-cli --test guide
+
+test a_fence_is_read_as_commonmark_reads_it ... ok
+test a_gaps_build_output_belongs_to_the_gap_before_it ... ok
+test a_page_is_held_to_the_directory_it_names ... ok
+test a_pages_file_blocks_are_its_program_in_order ... ok
+test a_page_with_no_example_or_a_block_unseen_is_reported ... ok
+test a_refused_examples_codes_are_read_from_its_output ... ok
+test a_program_differs_from_a_directory_by_a_file_or_a_byte ... ok
+test an_info_string_says_what_a_block_is ... ok
+test an_unclosed_or_indented_fence_is_refused ... ok
+test shown_output_belongs_to_the_refused_example_before_it ... ok
+test the_reference_is_held_to_the_registry ... ok
+test a_pages_program_is_the_directory_it_names ... ok
+test the_diagnostic_reference_lists_every_registered_code ... ok
+test every_example_in_the_guide_compiles_as_it_says ... ok
+test a_wrong_example_is_reported_and_a_right_one_is_not ... ok
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.21s

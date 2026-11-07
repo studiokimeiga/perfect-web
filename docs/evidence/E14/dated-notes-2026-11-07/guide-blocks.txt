@@ -1,0 +1,13 @@
+Every text pw-check block of docs/guide against the built pw (PW5048's regenerated)
+
+commit: 103db6dc9e04bd83cb16688ce897c38ab5368602
+base: 5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+same     docs/guide/errors.md:19
+same     docs/guide/errors.md:57
+same     docs/guide/errors.md:82
+same     docs/guide/errors.md:140
+same     docs/guide/errors.md:191
+same     docs/guide/errors.md:256
+0 block(s) changed

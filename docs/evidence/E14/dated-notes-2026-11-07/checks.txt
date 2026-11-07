@@ -1,0 +1,12 @@
+Mutation anchors and rustfmt
+
+commit: 103db6dc9e04bd83cb16688ce897c38ab5368602
+base: 5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+== python3 scripts/mutation_anchors.py
+mutation anchors: 4974 mutants in 324 scripts, each matching once
+exit 0
+
+== cargo fmt --all -- --check
+exit 0

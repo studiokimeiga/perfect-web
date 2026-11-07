@@ -933,13 +933,12 @@ pub fn check(
                         at.clone(),
                         format!("`{}` is the node with the edge", decl.name),
                     )],
+                    // Until 2026-09-26 the graph looked a name up wherever a name
+                    // might be, and drew the edge to whatever it found.
                     explanation: Some(format!(
                         "`{policy}` names {wanted}. A command invalidates a resource's \
                          entries and emits events; a materialization depends on resources \
-                         and materializations, and listens for events. The graph looked \
-                         `{}` up wherever a name might be until 2026-09-26, and drew \
-                         the edge to whatever it found.",
-                        node.name
+                         and materializations, and listens for events."
                     )),
                     repairs: vec![Repair {
                         description: format!("name {wanted} here"),
