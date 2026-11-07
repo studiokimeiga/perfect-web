@@ -1,0 +1,13 @@
+baseline: 13 passed, 0 failed
+an image with no `alt` is not refused: KILLED (6 of 13 tests fail)
+an image a loop renders is not read: KILLED (2 of 13 tests fail)
+a `<picture>`'s `<source>` is held to it: KILLED (1 of 13 tests fail)
+a `title` stands for an image: KILLED (2 of 13 tests fail)
+an `aria-label` stands for an image: KILLED (1 of 13 tests fail)
+a `role` stands for an image: KILLED (1 of 13 tests fail)
+an empty `alt` is refused: KILLED (3 of 13 tests fail)
+an `alt` a value gives is refused: KILLED (2 of 13 tests fail)
+the image is reported at its declaration, not at the element: KILLED (3 of 13 tests fail)
+the declaration that renders the image is not named: KILLED (5 of 13 tests fail)
+10 of 10 mutants killed
+memory bound: no process was stopped
