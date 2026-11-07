@@ -254,8 +254,8 @@ fn pending(shown: List<Entry>, text: Words) -> List<Entry> !{} {
 - `requires SignedIn`: checked by the server before the body runs. A
   refused press is answered 403, and the page says the predicate's words
   where the button was.
-- `idempotent_by InteractionId`: a press sent twice (a retry, a double
-  click) commits once.
+- `idempotent_by InteractionId`: a press's request sent again (a retry)
+  commits once. A double click is two presses, and signs twice.
 - `emits Signed(...)`: the event is written with the post, in the same
   transaction, so it is sent if and only if the post is kept.
 - `optimistic Entries(...) as shown => pending(shown, text)`: the page
