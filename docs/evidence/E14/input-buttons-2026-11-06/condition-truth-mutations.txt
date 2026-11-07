@@ -1,0 +1,24 @@
+scripts/condition_truth_mutations.py, run whole
+
+produced by: bash campaign.sh /home/haki/code/pw-wt/pw5014-mut-c /home/haki/pw-targets/pw5014-mut-c OUT condition_truth
+commit: 5be06de4356383efbaeacce798e522028377467e
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+CARGO_BUILD_JOBS=8 PW_MUTANT_INCREMENTAL=1
+started: 2026-11-06T20:53:28Z
+
+baseline: 33 passed, 0 failed
+a number has a truth: KILLED (4 of 20 tests fail)
+a record has a truth: KILLED (1 of 26 tests fail)
+a string is not tested non-empty: KILLED (1 of 26 tests fail)
+a list is not tested non-empty: KILLED (1 of 20 tests fail)
+a number is said as a case: KILLED (1 of 20 tests fail)
+a vowel takes "a": KILLED (1 of 33 tests fail)
+6 of 6 mutants killed
+memory bound: no process was stopped
+exit: 0
+finished: 2026-11-06T21:02:38Z
+
+== python3 scripts/mutation_anchors.py, after
+mutation anchors: 5013 mutants in 325 scripts, each matching once
+exit: 0
+source: as committed

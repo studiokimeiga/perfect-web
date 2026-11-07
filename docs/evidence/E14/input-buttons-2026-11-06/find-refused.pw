@@ -1,0 +1,11 @@
+module find_refused
+
+view Find() !{} {
+    <form method="get" action="/find">
+        <label>Find <input type="search" name="q" /></label>
+        <input type="image" src="/search.png" />
+        <input type="image" src="/search.png" alt="" aria-label="Search" />
+        <input type="submit" value="" />
+        <input type="button" />
+    </form>
+}

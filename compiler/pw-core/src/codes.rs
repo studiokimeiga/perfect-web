@@ -663,8 +663,10 @@ codes! {
         "a form control must have something that names it";
     // The image ADR: until 2026-11-06 an `<img>` with no `alt` checked
     // clean, and the guide showed it as a gap in the checks (ADR-0343).
+    // The input-button ADR holds an image button's `alt` here too: it is
+    // the button's label, so HTML lets it be neither missing nor empty.
     IMAGE_WITHOUT_ALT = "PW5053" / image_without_alt / 1, Markup,
-        "an image says what it shows: an `<img>` has an `alt`, empty only where it shows nothing a reader needs";
+        "an image says what it shows: an `<img>` has an `alt`, empty only where it shows nothing a reader needs, and an image button an `alt` that says what it does";
     // ADR-0042. Until 2026-09-25 nothing read a block's markers: `{:else}`
     // was dropped and both of an `if`'s branches rendered together.
     MALFORMED_TEMPLATE_BLOCK = "PW5019" / malformed_template_block / 1, Markup,

@@ -1,0 +1,493 @@
+cargo test -p pw-core, whole
+
+produced by: cargo test --locked --no-fail-fast -p pw-core (gates.sh, in /home/haki/code/perfect-web/.claude/worktrees/competent-dirac-a03323)
+commit: 5be06de4356383efbaeacce798e522028377467e
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+started: 2026-11-06T21:17:50Z
+
+(the whole log: pw-core-tests.log.gz)
+
+     Running unittests src/lib.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/pw_core-8efd964006d9e075)
+test result: ok. 198 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.78s
+     Running tests/address_fragment.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/address_fragment-f6cc74b165b5d51c)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
+     Running tests/affine_bindings.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/affine_bindings-ade71bb2974c4652)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
+     Running tests/affine_loops.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/affine_loops-21243b25539b58aa)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+     Running tests/answers.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/answers-fd3b4f8e72fa6c5f)
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+     Running tests/any_type.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/any_type-314d7ee5a2d4d8fb)
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+     Running tests/argument_invariants.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/argument_invariants-cacab741fddabe64)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+     Running tests/arm_member_reads.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/arm_member_reads-d09cd4ad44c9277d)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.48s
+     Running tests/assignments.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/assignments-73a8d391334e724a)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/attribute_case.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/attribute_case-5544b9de6405cd45)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/authorization.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/authorization-aa208378edc4a3b3)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/backend_lowering.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/backend_lowering-7740db487d0b26c5)
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.08s
+     Running tests/bind.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/bind-97272caa68d0fa59)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+     Running tests/block_clauses.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/block_clauses-45e40bb6a91e5253)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.97s
+     Running tests/blocks_that_render_a_query.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/blocks_that_render_a_query-fc6b602eda426887)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.11s
+     Running tests/boundary_matrix.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/boundary_matrix-ff7d7818dda02b88)
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.59s
+     Running tests/bounded_reads.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/bounded_reads-b145cf1a7a574b92)
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.83s
+     Running tests/bounded_tables.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/bounded_tables-b682a1ee8fc5e6de)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+     Running tests/build.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/build-614f73cadac942c6)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.71s
+     Running tests/build_id.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/build_id-56ae3bc41fea945b)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.81s
+     Running tests/built_pages.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/built_pages-32ce9a1e0e664c58)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.47s
+     Running tests/call_arity.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/call_arity-2ef684d535c367a1)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+     Running tests/call_lines.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/call_lines-4a15c05fc23bb785)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/callback_parameters.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/callback_parameters-d78db9fa4e2539b7)
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+     Running tests/calls_and_branches.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/calls_and_branches-faf0218826e803ca)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+     Running tests/calls_name_terms.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/calls_name_terms-01809160c32e7538)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/canonical.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/canonical-5d357e3f44f89008)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+     Running tests/canonical_abi.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/canonical_abi-fe6e4355faf55e1d)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.24s
+     Running tests/capability_argument.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/capability_argument-d3c0a7da2453e70e)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/capture_shorthand.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/capture_shorthand-2400f41c0b7ffc04)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+     Running tests/case_and_delivery.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/case_and_delivery-e545721683ebbda5)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
+     Running tests/case_mapping.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/case_mapping-a5147d6938f3b7d8)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.55s
+     Running tests/case_names.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/case_names-f95c90154730f8fe)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+     Running tests/causal_evidence.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/causal_evidence-fb84ae0de087fab8)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/check_is_build.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/check_is_build-fa0902d0075947f0)
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+     Running tests/check_latency.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/check_latency-415a74ae0d6dfb26)
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 42.24s
+     Running tests/checking_source.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/checking_source-9f178075f0e423b6)
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 42.14s
+     Running tests/children_as_rendered.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/children_as_rendered-e69563bac0742c17)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/clause_keys.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/clause_keys-be37e848720d1ec8)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/clause_places.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/clause_places-911713b86587f2a0)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/clauses_read_once.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/clauses_read_once-bc8558624e21267c)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+     Running tests/clock_compared.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/clock_compared-07a1a00b7538777d)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
+     Running tests/code_in_markup.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/code_in_markup-088473626f71f98c)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/component.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/component-fdce04b86457688d)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.50s
+     Running tests/component_contract.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/component_contract-152cba9fe1a3790d)
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/component_names.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/component_names-0add7c2dd8210168)
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.61s
+     Running tests/computed_conditions.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/computed_conditions-1f1ffaf32d9dba2b)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.79s
+     Running tests/computed_holes.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/computed_holes-dfc128c4d2c9d734)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.12s
+     Running tests/computed_rows.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/computed_rows-9c1162f3e5a010a2)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.72s
+     Running tests/computed_signals.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/computed_signals-615af1ff0d2e0a38)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.84s
+     Running tests/contract_matrix.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/contract_matrix-2198222c17adfaa3)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/controls_where_they_hold.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/controls_where_they_hold-fa810d674815c0f6)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+     Running tests/corpus_declarations.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/corpus_declarations-d0641b209985f3d1)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+     Running tests/corpus_history.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/corpus_history-a49d891f5f5383f8)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.98s
+     Running tests/cross_file.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/cross_file-6ff95fd0c13482e1)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/data_sources.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/data_sources-03010c0c5d127f3a)
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.61s
+     Running tests/declared_events.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/declared_events-e80a00ba8b94467b)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+     Running tests/declared_once.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/declared_once-dcdbccd1a9de93af)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/derived_purity.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/derived_purity-74bbbf18640c46f3)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+     Running tests/device_store.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/device_store-7b5255a5744e7780)
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.19s
+     Running tests/dialogs.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/dialogs-e63b904ed2b10eb5)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+     Running tests/differential_vs_koka.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/differential_vs_koka-053801167ce17797)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/each_head_effects.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/each_head_effects-bb205260c0faefca)
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+     Running tests/each_heads.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/each_heads-ccaa3675d954a945)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+     Running tests/each_typing.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/each_typing-dceff05bbf2af1ef)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+     Running tests/effect_convergence.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/effect_convergence-2f91941a17289895)
+test result: ok. 6 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.93s
+     Running tests/effect_declarations.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/effect_declarations-21a7a1459dd405f0)
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/effect_oracle.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/effect_oracle-97f9013323490bec)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+     Running tests/effect_prelude.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/effect_prelude-cc569e26e540f887)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+     Running tests/effect_resolution.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/effect_resolution-0e94ac93ee9e9975)
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+     Running tests/effect_vocabulary.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/effect_vocabulary-5eb8f51329fcd620)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.78s
+     Running tests/effective_effects.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/effective_effects-7a6960b03b44190a)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/effects_through_values.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/effects_through_values-8f6a7751e0091852)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
+     Running tests/events.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/events-cf1ab58e961ab328)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+     Running tests/every_entry.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/every_entry-1bebbff4f6bc7e3c)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+     Running tests/every_expression_is_read.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/every_expression_is_read-87bdf13f150218fe)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.76s
+     Running tests/every_handler_is_resumable.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/every_handler_is_resumable-f3a73c5e95db4861)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.88s
+     Running tests/every_name_resolves.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/every_name_resolves-7413a11771c543a9)
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+     Running tests/evidence_is_current.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/evidence_is_current-4dbacc2159ca7312)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.58s
+     Running tests/evidence_reachability.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/evidence_reachability-2558023313cf6afd)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.98s
+     Running tests/execution_context.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/execution_context-d5f53d9fc6136d2c)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/explicit_imports.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/explicit_imports-f2402ce28454d5e5)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+     Running tests/field_assignment.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/field_assignment-d82055c47be3264d)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+     Running tests/field_calls.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/field_calls-30b00e8b47145435)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/form_controls.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/form_controls-f55d78112cf79509)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+     Running tests/form_routes.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/form_routes-a9015824600c90cd)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+     Running tests/frame_phase_matrix.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/frame_phase_matrix-b323bedefd4a5c98)
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+     Running tests/function_captures.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/function_captures-0cee02d78d7c1b3b)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/generality.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/generality-d42cbc4e5ec21258)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 58.85s
+     Running tests/generic_effects.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/generic_effects-775744d49a04a75e)
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.72s
+     Running tests/graphs_on_the_wire.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/graphs_on_the_wire-313da8dea34889c3)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
+     Running tests/handler_captures.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/handler_captures-8f0eb017b72e5dff)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+     Running tests/handlers.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/handlers-1769b7ae918673e6)
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.06s
+     Running tests/handlers_by_file.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/handlers_by_file-4ebb4b204796238a)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+     Running tests/handlers_in_the_browser.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/handlers_in_the_browser-98187e20eb299b9d)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.91s
+     Running tests/handlers_where_they_run.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/handlers_where_they_run-31a32b1b4bd8c050)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+     Running tests/handles.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/handles-6d31e105f076ed47)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+     Running tests/head_only.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/head_only-772f3b6b7cc2c593)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+     Running tests/held_where_it_runs.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/held_where_it_runs-d500ad63ec721806)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.59s
+     Running tests/host_bindings.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/host_bindings-d093cd73f56b5eb2)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
+     Running tests/ids_and_aria.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/ids_and_aria-a96a9bcfde6a299b)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+     Running tests/images.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/images-f6cd27e18d17d08f)
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+     Running tests/interpolation_spans.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/interpolation_spans-8db49455e1c9fa4c)
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/invariants.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/invariants-09d05d50c6f719cb)
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.81s
+     Running tests/invoked_by.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/invoked_by-0837ac672c2dea74)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+     Running tests/key_audit.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/key_audit-10102aa09ebce5d8)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/keyed.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/keyed-b23ebd6fc59e2711)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+     Running tests/keys_cover_reads.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/keys_cover_reads-ceaf9181ce67e6af)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
+     Running tests/koka_backend.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/koka_backend-d205796539671b0b)
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+     Running tests/labels.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/labels-7c30adc080b9d9f9)
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+     Running tests/labels_follow_values.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/labels_follow_values-a57675a60f3a2cf1)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.86s
+     Running tests/labels_through_calls.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/labels_through_calls-4c075c2acc05e78c)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+     Running tests/labels_through_plain_values.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/labels_through_plain_values-8db3bd7f82a2da82)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
+     Running tests/labels_through_values.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/labels_through_values-2fe0a9d091791b27)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+     Running tests/last_segment.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/last_segment-2cd42b35044398b3)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+     Running tests/layouts.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/layouts-4272cbeef94b43a4)
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.72s
+     Running tests/let_discard.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/let_discard-c54fe6e33c8f0349)
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.18s
+     Running tests/lexical_scope.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/lexical_scope-0e8751851ee21827)
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+     Running tests/links.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/links-d4e6b42c3600def8)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/listener_keys.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/listener_keys-e51c4c3e277cbbb4)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/lists_and_literals.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/lists_and_literals-5a355965fcfee2ca)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+     Running tests/lowering.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/lowering-72d7d78ec02b76c0)
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+     Running tests/map_keys.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/map_keys-93c0f4cd4c9168f0)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+     Running tests/marko_adapter.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/marko_adapter-3646c283404000af)
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/markup_comments.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/markup_comments-0fce738065631f8d)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/match_exhaustiveness.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/match_exhaustiveness-2fb050652d74ca08)
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s
+     Running tests/matched_resources.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/matched_resources-67d10d524acfd478)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s
+     Running tests/materialization_bodies.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/materialization_bodies-9015610f22fa0559)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.84s
+     Running tests/materialization_chains.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/materialization_chains-30c86bcce2c0b802)
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
+     Running tests/materializations_kept.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/materializations_kept-7e406473657d9f97)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.56s
+     Running tests/member_reads_in_blocks.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/member_reads_in_blocks-06f15d2a499ce91a)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.85s
+     Running tests/member_resolution.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/member_resolution-f2608bcf09372d33)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+     Running tests/members.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/members-ed29d46ef48f38a9)
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+     Running tests/metadata.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/metadata-9eb82fd161d7d0dc)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.21s
+     Running tests/name_keyed_maps.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/name_keyed_maps-18d30935d950d516)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+     Running tests/named_arguments.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/named_arguments-f1b40b3869d621e5)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+     Running tests/named_handlers.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/named_handlers-b41c31f7a2c7ac7c)
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.31s
+     Running tests/names_mean_their_binding.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/names_mean_their_binding-38128e16d2904777)
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.25s
+     Running tests/navigate.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/navigate-5554337b70e63f3d)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
+     Running tests/nested_lists.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/nested_lists-302b04cc13cea687)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.35s
+     Running tests/nested_scope.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/nested_scope-5e36a31ec4ae5c84)
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+     Running tests/not_found.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/not_found-d41cb2b3841eb8a9)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+     Running tests/one_checker.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/one_checker-1ebdd9eb85b1ed8f)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.61s
+     Running tests/one_comparison.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/one_comparison-7802035b4b7c7326)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+     Running tests/one_name_for_a_case.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/one_name_for_a_case-531e3afe508a47a3)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/one_parser.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/one_parser-08a0350002483138)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+     Running tests/optimistic_keys.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/optimistic_keys-6f17677713de65e7)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.25s
+     Running tests/origins.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/origins-89c1b9c45b950b8e)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/ownership.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/ownership-e243815db2cf97d9)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+     Running tests/page_blocks.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/page_blocks-8f89b728e05ba63b)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
+     Running tests/page_parameters.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/page_parameters-e62646e695931bb7)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.12s
+     Running tests/patterns.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/patterns-a4470aaadd2e6eb7)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/placement_migration.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/placement_migration-3b8981511608d1ec)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+     Running tests/platform_contracts.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/platform_contracts-c940805fc2d80137)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+     Running tests/platform_markup.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/platform_markup-348c12dd3f7d8a0a)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/policy_consumers.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/policy_consumers-84d486829ccb5d60)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+     Running tests/policy_term_positions.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/policy_term_positions-0c9c8015d5f1acf9)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.59s
+     Running tests/policy_values.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/policy_values-47db4a05f2ea7681)
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.55s
+     Running tests/predicates.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/predicates-7b61ddeba0806c4a)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/principal.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/principal-82f36f8d23ff4571)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+     Running tests/privacy_by_resolution.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/privacy_by_resolution-fa88c189caf8a221)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+     Running tests/private_is_not_importable.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/private_is_not_importable-55045b09307bbb3f)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
+     Running tests/provide.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/provide-3d6c15fee55cf2e7)
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+     Running tests/qualified_device.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/qualified_device-bbcb552111df1427)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+     Running tests/queries_name_resources.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/queries_name_resources-f8e4594f6862aef6)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
+     Running tests/query_attributes.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/query_attributes-6a28e0bc4d56403d)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+     Running tests/query_reads.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/query_reads-6df686c8c2a0c4b6)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+     Running tests/query_retry.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/query_retry-e4b7429aabe51e03)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+     Running tests/query_values.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/query_values-530d355cde6747b5)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+     Running tests/read_whole.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/read_whole-471fda07e300c30f)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.23s
+     Running tests/reads_name_their_kind.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/reads_name_their_kind-07c4095c7e2bde9c)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+     Running tests/reads_through_calls.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/reads_through_calls-266ccaf34c0c59d5)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.18s
+     Running tests/record_fields.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/record_fields-34e9d1f84c760d09)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+     Running tests/recursive_declared_types.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/recursive_declared_types-4976a4ce54943bf7)
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/recursive_types.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/recursive_types-b350af3988ce11c3)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
+     Running tests/redirects.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/redirects-92596330a38851f1)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+     Running tests/registered_codes.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/registered_codes-ac269310d7379aa9)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+     Running tests/related_files.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/related_files-493f1a56186020f7)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.10s
+     Running tests/resolve_corpus.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/resolve_corpus-68e3b7d4d65a1f38)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 27.26s
+     Running tests/resolved_identity.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/resolved_identity-f2be2ab0fbbb5b41)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/resolved_types.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/resolved_types-5d6dc7ea99a45855)
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+     Running tests/resource_clauses.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/resource_clauses-51f00a28cbbfa017)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s
+     Running tests/results_handled.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/results_handled-f76f9c5d6ba7d9d4)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/returned_labels.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/returned_labels-3b0c359b3c342ce2)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+     Running tests/robustness.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/robustness-029466cc7adf1bc0)
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 22.01s
+     Running tests/routes.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/routes-bf64b34b7d96cec2)
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+     Running tests/row_reads.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/row_reads-2c66ce3953343a02)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
+     Running tests/rule_fixtures.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/rule_fixtures-c211b8922f425804)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+     Running tests/scheduled.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/scheduled-69fee762f94026cb)
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+     Running tests/scheduled_orders.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/scheduled_orders-80a4c781bf59c49f)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+     Running tests/semantic_diff.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/semantic_diff-95890753c73b78f8)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+     Running tests/semantic_ownership.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/semantic_ownership-e6546d2a91e468cb)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+     Running tests/session_to_browser.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/session_to_browser-7ccdd655165601b5)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+     Running tests/shared_cache_holds_no_readers_value.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/shared_cache_holds_no_readers_value-9fba523048ea6190)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.58s
+     Running tests/signals.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/signals-1aa8e4f20b2fdeae)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
+     Running tests/signals_render_again.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/signals_render_again-7c9d6913c3d1b79a)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.12s
+     Running tests/signature_authority.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/signature_authority-65f443a3364e9676)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/signature_behavior.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/signature_behavior-f6be6da6ccc3d740)
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/speculated_arms.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/speculated_arms-2dc5e9cef869e353)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.00s
+     Running tests/speculated_graphs.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/speculated_graphs-8e92aa6234c91f23)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+     Running tests/speculated_instances.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/speculated_instances-79eb00c225cfbb39)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+     Running tests/speculated_routes.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/speculated_routes-72f04e6a727eb3cf)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.06s
+     Running tests/speculated_values.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/speculated_values-d526afe204de93e2)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+     Running tests/speculation_reconciled.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/speculation_reconciled-c0db86cca914c59f)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
+     Running tests/statements_separated.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/statements_separated-e9601b82eeacb332)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s
+     Running tests/stream_plan.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/stream_plan-8170a6b547bf1ce4)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.59s
+     Running tests/streams.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/streams-226396110fccf705)
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+     Running tests/streams_and_resources.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/streams_and_resources-6ebcee13d6fc049d)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
+     Running tests/string_escapes.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/string_escapes-a7d465c338091791)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests/string_holes.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/string_holes-a50849aae161b021)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/string_invariants.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/string_invariants-37eaff569ae1d445)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s
+     Running tests/sum_types.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/sum_types-4bfcadd23ac4ae6b)
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+     Running tests/table_host_reader_fixture.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/table_host_reader_fixture-61e6e335223734e5)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+     Running tests/tables.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/tables-83bb3ec3b7f3dad0)
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.78s
+     Running tests/template_blocks.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/template_blocks-bba2db7d52eb840e)
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.75s
+     Running tests/template_operands.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/template_operands-0db8b8998e739627)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+     Running tests/template_representations.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/template_representations-a62c598a077c93c6)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.81s
+     Running tests/template_text.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/template_text-9f75b410c948de49)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+     Running tests/template_truth.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/template_truth-a10970269007bbd0)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+     Running tests/template_values.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/template_values-f9536faea5773eda)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.53s
+     Running tests/timeouts.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/timeouts-4818e846a1109f68)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.58s
+     Running tests/titles.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/titles-785aa2cf89922f55)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.18s
+     Running tests/top_level_captures.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/top_level_captures-bfce3adb8ccaaea6)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.61s
+     Running tests/transition_values.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/transition_values-e3df24a245c80dd6)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+     Running tests/unit_value.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/unit_value-9ffb9f8edff85e8b)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+     Running tests/unknown_policy.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/unknown_policy-595d0fbb1846dbf5)
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+     Running tests/unreachable_arms.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/unreachable_arms-084fefb9049f76b5)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+     Running tests/unresolved_provenance.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/unresolved_provenance-2694823a120bffcb)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+     Running tests/uploads.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/uploads-7ff709faa0c6cb3a)
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+     Running tests/user_visibility.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/user_visibility-007133c69eed32f5)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+     Running tests/value_relations.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/value_relations-6f566b98301b50b0)
+test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+     Running tests/view_elements.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/view_elements-c6c9f0e9646918bd)
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+     Running tests/view_positions.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/view_positions-8e6825923e77097d)
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.68s
+     Running tests/views_compose.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/views_compose-438afc5c94d7e054)
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.70s
+     Running tests/views_contain_themselves.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/views_contain_themselves-7722f441b940e5e9)
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
+     Running tests/wasm_encoding.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/wasm_encoding-44eb89a909b6f724)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.53s
+     Running tests/what_a_component_does.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/what_a_component_does-85143a444ab1bd3d)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
+     Running tests/wit_worlds.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/wit_worlds-5a3a65cdadbd0c11)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
+     Running tests/writes_invalidated.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/writes_invalidated-ae2c3ece0642e7df)
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
+     Running tests/writes_reach_fragments.rs (/home/haki/pw-targets/pw5014-buttons/debug/deps/writes_reach_fragments-cdbd23c592bc768e)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+exit: 0
+finished: 2026-11-06T21:24:45Z

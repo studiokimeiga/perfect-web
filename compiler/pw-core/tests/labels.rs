@@ -293,9 +293,173 @@ fn a_reference_to_an_id_every_row_has_is_its_ids_defect_alone() {
 }
 
 #[test]
-fn hidden_submit_and_button_inputs_need_no_label() {
+fn a_hidden_input_is_no_control() {
     clean(r#"<input type="hidden" name="t" value="1" />"#);
     clean(r#"<input type="HIDDEN" name="t" value="1" />"#);
+}
+
+// --- what names an input button (the input-button ADR) ----------------------
+//
+// HTML gives each button state its own label (4.10.5.1.18 to .21), and
+// HTML-AAM's name for it follows (4.1.2, 4.1.3). Until 2026-11-06 PW5014
+// passed `submit` and `button` inputs whatever they held and refused `reset`
+// and `image` ones, which HTML names, for having no `<label>`.
+
+/// The one diagnostic `markup` gets, whole: its message and every note.
+fn refused_as(markup: &str, expected: &str) {
+    assert_eq!(labels(markup), [expected], "{markup}");
+}
+
+const A_FIELD: &str = "PW5014 `<input>` has no associated label | `V` renders this control";
+
+/// A `submit` or `reset` input with no `value` shows the label HTML gives
+/// it: "an implementation-defined string that means "Reset" or some such".
+#[test]
+fn a_reset_or_submit_button_with_no_value_has_the_label_html_gives_it() {
+    // Refused until 2026-11-06, for having no `<label>`.
+    clean(r#"<input type="reset" />"#);
+    clean(r#"<input type="RESET" />"#);
+    clean(r#"<input type="submit" />"#);
+    // Control: a text field has no label of its own, and is refused as one.
+    refused_as(r#"<input type="text" name="q" />"#, A_FIELD);
+}
+
+#[test]
+fn a_button_is_named_by_its_value() {
+    clean(r#"<input type="reset" value="Clear the search" />"#);
     clean(r#"<input type="submit" value="Send" />"#);
     clean(r#"<input type="button" value="Send" />"#);
+    clean(r#"<input type="Button" value="Send" />"#);
+    // A value the program computes is taken as a name, as an `aria-label`'s
+    // is (ADR-0143).
+    clean(r#"<input type="button" value={caption} />"#);
+    clean(r#"<input type="reset" value={caption} />"#);
+}
+
+/// An empty `value` is the button's label all the same, so the button shows
+/// none, and HTML-AAM gives the default only where `value` is absent.
+#[test]
+fn a_button_whose_value_is_blank_has_no_label() {
+    for (markup, typ) in [
+        (r#"<input type="reset" value="" />"#, "reset"),
+        (r#"<input type="submit" value="  " />"#, "submit"),
+        (r#"<input type="SUBMIT" value />"#, "submit"),
+        (r#"<input type="button" value="" />"#, "button"),
+    ] {
+        refused_as(
+            markup,
+            &format!(
+                "PW5014 `<input type=\"{typ}\">` has no label | `V` renders this control | \
+                 this `value` is the button's label, and it is blank"
+            ),
+        );
+    }
+}
+
+/// HTML: a `button` input's label "must be the value of that attribute;
+/// otherwise, it must be the empty string". It has no default.
+#[test]
+fn a_button_input_with_no_value_has_no_label() {
+    let none = "PW5014 `<input type=\"button\">` has no label | `V` renders this control | \
+                an `<input type=\"button\">` is named by its `value`, and this one has none";
+    refused_as(r#"<input type="button" />"#, none);
+    // Its `id` is not why: no `<label for>` would be the repair a field takes.
+    refused_as(r#"<input type="button" id="b" />"#, none);
+}
+
+#[test]
+fn a_button_with_no_label_of_its_own_is_named_as_any_control_is() {
+    // An icon button: the image is the page's, the name an `aria-label`.
+    clean(r#"<input type="submit" value="" aria-label="Search" />"#);
+    clean(r#"<input type="button" aria-label="Close" />"#);
+    clean(r#"<h2 id="h">Close</h2><input type="button" aria-labelledby="h" />"#);
+    // HTML-AAM 4.1.2, step 2: the label it is associated with.
+    clean(r#"<label>Close <input type="button" /></label>"#);
+    clean(r#"<label for="b">Close</label><input type="button" id="b" />"#);
+    // Control: a blank `aria-label` names nothing here either.
+    refused(
+        r#"<input type="button" aria-label="" />"#,
+        "this `aria-label` is blank",
+    );
+}
+
+/// The refusal says how a button is named: by its `value` first.
+#[test]
+fn a_button_is_refused_with_the_repair_a_button_takes() {
+    let src = view(r#"<input type="button" />"#);
+    let mut sources = library();
+    sources.push(("t.pw".to_string(), src));
+    let diags: Vec<_> = check_sources(&sources)
+        .into_iter()
+        .filter(|(n, _)| n == "t.pw")
+        .flat_map(|(_, ds)| ds)
+        .collect();
+    assert_eq!(diags.len(), 1, "{diags:#?}");
+    let d = &diags[0];
+    assert_eq!((d.code, d.reason), ("PW5014", "button_without_label"));
+    assert_eq!(d.message, "`<input type=\"button\">` has no label");
+    assert_eq!(
+        d.repairs.first().map(|r| r.description.as_str()),
+        Some("write `value=\"…\"` saying what the button does")
+    );
+    assert!(
+        d.explanation
+            .as_deref()
+            .is_some_and(|e| e.contains("is announced as \"button\"")),
+        "{d:#?}"
+    );
+    // Control: a field is refused with a field's repair.
+    let src = view(r#"<input type="text" name="q" />"#);
+    let mut sources = library();
+    sources.push(("t.pw".to_string(), src));
+    let d = check_sources(&sources)
+        .into_iter()
+        .filter(|(n, _)| n == "t.pw")
+        .flat_map(|(_, ds)| ds)
+        .next()
+        .expect("refused");
+    assert_eq!((d.code, d.reason), ("PW5014", "control_without_label"));
+    assert!(
+        d.repairs[0]
+            .description
+            .starts_with("associate a `<label for=...>`"),
+        "{d:#?}"
+    );
+}
+
+/// An image button's label is its `alt` (HTML 4.10.5.1.19), which HTML
+/// requires and does not let be empty: PW5053's to hold (`images.rs`), and
+/// not reported a second time here.
+#[test]
+fn an_image_button_is_named_by_its_alt_and_reported_once() {
+    // Refused until 2026-11-06, for having no `<label>`.
+    clean(r#"<input type="image" src="/search.png" alt="Search" />"#);
+    clean(r#"<input type="IMAGE" src="/search.png" alt="Search" />"#);
+    for markup in [
+        r#"<input type="image" src="/search.png" />"#,
+        r#"<input type="image" src="/search.png" alt="" aria-label="Search" />"#,
+    ] {
+        let got = reported(&view(markup));
+        assert_eq!(got.len(), 1, "{markup}: {got:#?}");
+        assert!(got[0].starts_with("PW5053 "), "{markup}: {got:#?}");
+    }
+}
+
+/// `type` is an `<input>`'s attribute: on a `<select>` or a `<textarea>` it
+/// makes no button and hides nothing.
+#[test]
+fn only_an_input_has_a_type() {
+    for (markup, tag) in [
+        (r#"<textarea type="image" name="n"></textarea>"#, "textarea"),
+        (r#"<textarea type="reset" name="n"></textarea>"#, "textarea"),
+        (
+            r#"<select type="hidden" name="s"><option>S</option></select>"#,
+            "select",
+        ),
+    ] {
+        refused_as(
+            markup,
+            &format!("PW5014 `<{tag}>` has no associated label | `V` renders this control"),
+        );
+    }
 }

@@ -10,6 +10,16 @@ Each mutant undoes one part of PW5053's rule:
 - a `title`, an `aria-label` or a `role` does not;
 - only an `<img>` is held to it: a `<picture>`'s `<source>` is not.
 
+And the image button the input-button ADR adds (2026-11-06):
+- an `<input type="image">`, its `type` read whatever its case and on an
+  `<input>` alone, is refused where its `alt` is missing, blank or written
+  alone: its `alt` is its label, so it is never blank, as an `<img>`'s may
+  be;
+- an `alt` a value gives names it, and a `title`, an `aria-label` or a
+  `<label>` does not;
+- it is reported at the element, beside the declaration that renders it,
+  with a note at an empty `alt`, and its own reason and repair.
+
 The tests in `images.rs` and the generality witnesses must then fail.
 
 Run from the repository root. The source is restored after every mutant,
@@ -26,6 +36,12 @@ CHECK = ROOT / "compiler/pw-core/src/check.rs"
 
 HAS_ALT = "    attrs.iter().any(|a| a.name == \"alt\")\n"
 IMAGE = "                if tag.as_str() == \"img\" && !has_alt(attrs) {\n"
+# The image button (the input-button ADR).
+IMAGE_BUTTON = (
+    "                if tag.as_str() == \"input\"\n"
+    "                    && input_type(attrs).as_deref() == Some(\"image\")\n"
+)
+BUTTON_ALT = "                    && names_with(attrs, \"alt\") != Some(true)\n"
 
 # (what is undone, file, anchor, replacement)
 MUTANTS = [
@@ -95,6 +111,99 @@ MUTANTS = [
         CHECK,
         "            format!(\"`{}` renders this image\", decl.name),\n",
         "            String::new(),\n",
+    ),
+    # --- the image button (the input-button ADR) ---
+    (
+        "an image button with no text in its `alt` is not refused",
+        CHECK,
+        IMAGE_BUTTON,
+        "                if false\n"
+        "                    && input_type(attrs).as_deref() == Some(\"image\")\n",
+    ),
+    (
+        "an image button's `type` is read case by case",
+        CHECK,
+        IMAGE_BUTTON,
+        "                if tag.as_str() == \"input\"\n"
+        "                    && static_attr(attrs, \"type\") == Some(\"image\")\n",
+    ),
+    (
+        "`type=\"image\"` makes an image button of any element",
+        CHECK,
+        IMAGE_BUTTON,
+        "                if true\n"
+        "                    && input_type(attrs).as_deref() == Some(\"image\")\n",
+    ),
+    (
+        "an image button may have an empty `alt`, as an `<img>` may",
+        CHECK,
+        BUTTON_ALT,
+        "                    && names_with(attrs, \"alt\").is_none()\n",
+    ),
+    (
+        "an `alt` a value gives does not name an image button",
+        CHECK,
+        BUTTON_ALT,
+        "                    && static_attr(attrs, \"alt\").is_none_or(|v| v.trim().is_empty())\n",
+    ),
+    (
+        "an `aria-label` stands for an image button's `alt`",
+        CHECK,
+        BUTTON_ALT,
+        "                    && names_with(attrs, \"alt\") != Some(true)\n"
+        "                    && names_with(attrs, \"aria-label\") != Some(true)\n",
+    ),
+    (
+        "a `title` stands for an image button's `alt`",
+        CHECK,
+        BUTTON_ALT,
+        "                    && names_with(attrs, \"alt\") != Some(true)\n"
+        "                    && names_with(attrs, \"title\") != Some(true)\n",
+    ),
+    (
+        "an image button that something names as a control needs no `alt`",
+        CHECK,
+        BUTTON_ALT,
+        "                    && names_with(attrs, \"alt\") != Some(true)\n"
+        "                    && !named.contains(&id)\n",
+    ),
+    (
+        "the image button is reported at its declaration, not at the element",
+        CHECK,
+        "        .to_string(),\n        primary_span: body.node_span(id),\n        related,\n",
+        "        .to_string(),\n"
+        "        primary_span: hir.decl_span(decl_id_of(hir, decl)),\n"
+        "        related,\n",
+    ),
+    (
+        "the declaration that renders the image button is not named",
+        CHECK,
+        "        format!(\"`{}` renders this button\", decl.name),\n",
+        "        String::new(),\n",
+    ),
+    (
+        "an empty `alt` on an image button is not pointed at",
+        CHECK,
+        "    related.extend(alt.map(|a| {\n",
+        "    related.extend(alt.filter(|_| false).map(|a| {\n",
+    ),
+    (
+        "an image button's blank `alt` is reported as a missing one",
+        CHECK,
+        '            Some(_) => "`<input type=\\"image\\">` has a blank `alt`",\n',
+        '            Some(_) => "`<input type=\\"image\\">` has no `alt`",\n',
+    ),
+    (
+        "an image button is refused for an image's reason",
+        CHECK,
+        "        reason: \"image_button_without_alt\",\n",
+        "        reason: \"image_without_alt\",\n",
+    ),
+    (
+        "an image button is given an image's repair",
+        CHECK,
+        '            description: "write `alt=\\"…\\"` saying what the button does".to_string(),\n',
+        '            description: "write `alt=\\"…\\"` saying what the image shows".to_string(),\n',
     ),
 ]
 
