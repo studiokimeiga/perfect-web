@@ -6,6 +6,26 @@
 
 # Next
 
+## Current local continuation, 2026-11-02
+
+Fetched `origin/master` is `5d4d4d55`; D3 PostgreSQL, added-table references,
+session overlap and preverify's disk-fixture repair are already merged.
+The older queues below remain dated history.
+
+1. Prepare integration of the local closed-table cache fence on
+   `fix/tables-cached-refusals`. Source `b496bdc3` has four native regressions,
+   a complete 60/60 data-path campaign, 15 browser checks, passing local CI
+   and independent final review. Re-plan, number and complete the required
+   published-head gates before landing. See its
+   [execution record](diagnostics/tables-cached-refusals-2026-11-02.md).
+2. Audit PR #72's exact-head recipe evidence, then reconcile row ownership
+   without overwriting `/home/haki/code/pw-wt/row-ownership`'s dirty files.
+3. Validate durable declared tables and row-authorized feed/store migration,
+   using real two-user `.pw` witnesses. The paid E14 study stays deferred.
+
+Remote publication and deployment require current authorization. Local tests
+and implementation continue within that boundary.
+
 
 ## Local session continuation, 2026-10-26
 

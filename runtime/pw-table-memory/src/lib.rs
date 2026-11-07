@@ -375,6 +375,13 @@ impl MemoryTables {
         self.inner.fail();
     }
 
+    /// Whether this adapter still permits reads, including answers a host
+    /// cached before it failed closed. Checking does not execute a primitive
+    /// or take a snapshot; a cached answer must not bypass storage failure.
+    pub fn check_health(&self) -> Result<(), Error> {
+        self.inner.healthy()
+    }
+
     /// **The adapter for a build's `tables.json`, as `pw build` wrote it**
     /// (track `data-path`): what a host serving the build is given, read
     /// whole and held as [`MemoryTables::new`] holds it.

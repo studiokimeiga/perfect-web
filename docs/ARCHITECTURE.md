@@ -64,11 +64,15 @@ Those historical measurements are not new measurements of the current tree.
 App-specific host composites remain a separate deferred obligation
 (`E10-S10`, ADR-0119). The store and feed still use their Rust data layers.
 ADR-0338 accepts declarations of tables with generic per-database adapters;
-D1 declarations are being validated on a track, and D2 memory/D3 PostgreSQL
-adapters are not thereby implemented. ADR-0337's store statement-count tests
-are the current measured conformance starting point, not a finished common
-adapter suite. One render's shared snapshot and connection bound remain the
-unfinished render-merge track.
+D1 declarations, the D2 gated memory reads/writes and the D3 PostgreSQL
+adapter are in fetched master `5d4d4d55` (2026-11-02); ADR-0350, ADR-0385,
+ADR-0386 and ADR-0393 govern them. Generic development-server routing and
+the guestbook without app-specific Rust are on unmerged PR #72 at `687dd922`,
+including a reusable conformance suite. Durable server integration and row
+authority remain separate obligations. The render-merge implementation is in
+main history; its remaining snapshot limits remain explicit in its ADR and
+tests. This corrects the older October track inventory without promoting
+unmerged work to a landing.
 
 ## Current integration boundary (2026-10-15)
 

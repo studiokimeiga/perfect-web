@@ -664,6 +664,15 @@ handed the handle): `e14-session-command-authority`, `e14-uploads`,
   instant is kept as long as its query keeps answers. The guestbook's keep
   none (`freshness 0`); a program whose queries keep theirs would show a
   write whose records were lost until its answer is invalidated.
+  **Local continuation, 2026-11-02:** the failing-first probe at `069ffc6f`
+  shows an unaffected warm query still answering after an actual failed
+  COMMIT. The cache read boundary now checks the adapter before reading and
+  before delivering an answer, including shared flights and fallback; kept
+  materializations use the same fence. Healthy caches and ordinary fallback
+  retain their behavior. This refuses subsequent reads, without promising
+  cache-byte eviction or undoing already delivered responses. Exact commands,
+  review and remaining acceptance gates are in the
+  [continuation record](../diagnostics/tables-cached-refusals-2026-11-02.md).
 - **S1's "never a panic" is the tables' path alone** (the same, recorded as
   found): `Materializer::command`, every other layer's transaction, still
   panics where its outbox insert or its COMMIT fails

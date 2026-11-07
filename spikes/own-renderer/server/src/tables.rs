@@ -213,6 +213,12 @@ impl DataLayer for TablesLayer {
         Ops::new()
     }
 
+    fn check_read(&self) -> Result<(), String> {
+        self.tables
+            .check_health()
+            .map_err(|e| format!("the tables refuse reads: {e:?}"))
+    }
+
     /// The published tables as they are now: every query of one render reads
     /// them, whatever commits meanwhile. None where the adapter has failed,
     /// whose every read then fails.

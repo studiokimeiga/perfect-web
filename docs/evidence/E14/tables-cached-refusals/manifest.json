@@ -1,0 +1,116 @@
+{
+  "source_commit": "b496bdc34467269c2b436350ba1cfb2a52e268ed",
+  "branch": "fix/tables-cached-refusals",
+  "base": "687dd9225de06cb6fd245ba54489fbd7dcb31761",
+  "commands": [
+    {
+      "source": "069ffc6f7e51ede213aae02070a97da10c84bc04",
+      "exit": 1,
+      "command": "cargo test --locked -p pw-dev-server --bin pw-dev-server -- tests::tables::closed_tables_refuse_cached_answers_outside_the_failed_commands_invalidations --exact --nocapture",
+      "result": "0 passed, 1 completed assertion failure; expected regression"
+    },
+    {
+      "source": "4b314278ce785b2747eed47373acf4b1cbecb307",
+      "exit": 1,
+      "command": "cargo test --locked -p pw-dev-server --bin pw-dev-server -- tests::tables::closed_tables_refuse_a_renders_remembered_operations --exact --nocapture",
+      "result": "0 passed, 1 completed assertion failure; expected review regression"
+    },
+    {
+      "source": "b496bdc34467269c2b436350ba1cfb2a52e268ed",
+      "exit": 0,
+      "command": "just e14-data-path",
+      "result": "whole 60/60 controls killed; native mutation baseline 62/0; browser 15/15 in Chromium, Firefox, WebKit; no memory-bound stop"
+    },
+    {
+      "source": "b496bdc34467269c2b436350ba1cfb2a52e268ed",
+      "exit": 0,
+      "command": "RUST_TEST_THREADS=8 just ci",
+      "result": "ci: OK",
+      "generated_input": "docs/evidence/E14/data-path.txt",
+      "note": "Code/tests are the exact source commit; only the completed generated data-path receipt was dirty at CI start. Its exact bytes are retained above. This is local evidence, not a hosted exact-head landing receipt."
+    },
+    {
+      "source": "b496bdc34467269c2b436350ba1cfb2a52e268ed",
+      "exit": 0,
+      "command": "python3 scripts/ci_plan.py --changed 5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6 b496bdc34467269c2b436350ba1cfb2a52e268ed --current",
+      "result": "160 recipes in 16 shards; the broader plan and full hosted browser jobs are not claimed complete"
+    },
+    {
+      "exit": 1,
+      "command": "just doctor",
+      "result": "standalone Koka and Wasmtime executables absent; no installation attempted"
+    }
+  ],
+  "interrupted": {
+    "source": "03149f73d91dde4fbd266817eb1b480c5304b0f8",
+    "exit": 1,
+    "completed_controls": 3,
+    "campaign_credit": false,
+    "reason": "Stopped for independent-review witness correction; source restoration passed all 5035 anchors"
+  },
+  "review": {
+    "source": "b496bdc34467269c2b436350ba1cfb2a52e268ed",
+    "reviewer": "/root/review_cached_refusals",
+    "mode": "independent read-only committed-source review; reviewer ran no tests",
+    "outstanding_actionable_findings": 0
+  },
+  "limits": [
+    "publication-to-COMMIT visibility window",
+    "already returned values and later HTTP/frame delivery",
+    "retained cache bytes are not evicted",
+    "row authority and durable integration remain separate",
+    "broader recipe/browser/hosted publication gates remain pending"
+  ],
+  "files": [
+    {
+      "file": "regression-069ffc6f.log.gz",
+      "raw_sha256": "1a431568bdc204bccf80dd469e93ee668cdc2381015c419007e9569cb291eb8e",
+      "gzip_sha256": "b4115bde21c3d427449d11c0588423c87a542117bb64bc11cefd6844f9ec879f"
+    },
+    {
+      "file": "render-regression-4b314278.log.gz",
+      "raw_sha256": "57cff2f23a01ac0c790216950815c96cd9b0967ca0fdac579e2fad7b6d4b220c",
+      "gzip_sha256": "25060b2c52274083f7da56188688e200212dcd1ce34d141b58eaba9ff8034e6a"
+    },
+    {
+      "file": "interrupted-03149f73.log.gz",
+      "raw_sha256": "2e34bcb5b169fe972490ab7c8ff3ae8e638f738b08f3684446993bbdfd20a0ee",
+      "gzip_sha256": "cb692f49002b91ce7e1f7e9c62551a26f431ab4e37e7005b2ca9741bb2620d00"
+    },
+    {
+      "file": "interim-server-c9fa13c1.log.gz",
+      "raw_sha256": "153ccc8d5982897deaac9bc1bccf4dfd057a72d5bc5e3a4b3c18464f1d1aa404",
+      "gzip_sha256": "4f9dcb3b5394ccf9ec56a85b7a9494bd7408159e805643ef21818c43586e5ad9"
+    },
+    {
+      "file": "interim-evidence-gates.log.gz",
+      "raw_sha256": "d5e114f7ad0cea8af37658e07f8cfead8cc2a984d0b5ba8a71f0b757c24f19e3",
+      "gzip_sha256": "824c72751b05a08847b99dd45846d4d86cb62cd2693af612c5e18d96198a545a"
+    },
+    {
+      "file": "data-path-b496bdc3.log.gz",
+      "raw_sha256": "25f7d564884c6bbb75ec23eb79613acc0888a4e50ce809da77c90d5892e1cb18",
+      "gzip_sha256": "e5dd098264faa2aab7e6e19584917f6488a759ab0b6998814cdff6455f8e3a58"
+    },
+    {
+      "file": "ci-b496bdc3.log.gz",
+      "raw_sha256": "9555f0fb3b52586633cbe32e67fb3fb0f8b773254744694a4d1cc128c1728551",
+      "gzip_sha256": "c2b786558f9e14e061a81464256839b1354ea868b2b2a3d475205b3cedf5ecd1"
+    },
+    {
+      "file": "ci-start-status.log.gz",
+      "raw_sha256": "364c6bef27f4f97507fb0834d8ab188544a8ef8aec953dde814663ad69bc63c6",
+      "gzip_sha256": "e701cf59832ade7ab057f97f05bd5bffac52554d028f52b936dadb77fe4d0b2a"
+    },
+    {
+      "file": "plan-current-b496bdc3.log.gz",
+      "raw_sha256": "c13e7490e8041c04351c087800731185cf3eff79b11ee17c5216f09d508aed8e",
+      "gzip_sha256": "25f9ba4d313cdaffdfb8efbcbc90a7ce77e85b079aaa9faa5aaa517e272ec9dd"
+    },
+    {
+      "file": "doctor.log.gz",
+      "raw_sha256": "63d9ec636e7d7ca67ea114049f2bb1dea1b07abfe983085804cb07469bf4286c",
+      "gzip_sha256": "bafc6b4f842e0477f911dba8578d73ca0494e7c8ad2249b20a4bf22bdd386964"
+    }
+  ]
+}
