@@ -57,6 +57,13 @@ stays open, in order:
    and 6 in local tooling are dismissed with their reasons, and train-15 pins
    every workflow action and scopes `verify`'s token (the other 27).
 
+8. **Mutants counted killed because they do not build** (found 2026-11-08):
+   13 lines in 11 evidence files besides cross-session's (repaired in
+   train-15). Each is either the type system refusing the fault, a real
+   protection to say so beside it, or a replacement gone stale, as
+   cross-session's called a method that no longer existed, which controls
+   nothing: rewrite it to build, and find the test that kills it.
+
 ## Current local continuation, 2026-11-02
 
 Fetched `origin/master` is `5d4d4d55`; D3 PostgreSQL, added-table references,
