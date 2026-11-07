@@ -143,8 +143,13 @@ jobs:
               # Checkout is GitHub's test merge commit. Compare with the
               # actual merge base to include every change introduced by the
               # PR, regardless of how many commits were pushed.
+              # In 24 shards: a pull request's run is the merge's gate and
+              # what it waits on, and the organization runs 60 jobs at once
+              # (GitHub Team), not the Free plan's 20; past 24, a whole plan
+              # ends no sooner than its slowest recipe (ADR-0290, amended
+              # 2026-11-02).
               base=$(git merge-base "origin/$GITHUB_BASE_REF" "$GITHUB_SHA")
-              python3 scripts/ci_plan.py --shards 9 --changed "$base" "$GITHUB_SHA" --current >> "$GITHUB_OUTPUT"
+              python3 scripts/ci_plan.py --shards 24 --changed "$base" "$GITHUB_SHA" --current >> "$GITHUB_OUTPUT"
               git diff --name-only "$base" "$GITHUB_SHA" |
                 python3 scripts/quality_scope.py --browser >> "$GITHUB_OUTPUT"
               ;;
@@ -162,7 +167,9 @@ jobs:
               else
                 echo "$why"
                 # 17 shards, a database recipe's among them, and three browser
-                # jobs: the Free plan's 20 at once (ADR-0249, ADR-0278).
+                # jobs: the Free plan's 20 at once (ADR-0249, ADR-0278); kept
+                # for the nightly, which no merge waits on, though the
+                # organization now runs 60 (ADR-0290, amended 2026-11-02).
                 python3 scripts/ci_plan.py --shards 17 --all >> "$GITHUB_OUTPUT"
               fi ;;
             *)
