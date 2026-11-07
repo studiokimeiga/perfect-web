@@ -46,10 +46,12 @@ MUTANTS = [
         "                    \"`{name}` declares `retry {}` but is not idempotent\",",
         "                    \"`{name}` declares a retry policy{} but is not idempotent\",",
     ),
+    # Until the stale-key ADR this mutant removed PW0325's explanation; that
+    # rule is PW5309's now, outside `rules.rs`. R-014's rule is explained here.
     (
-        "a keyed query's stale-work rule is not explained",
+        "a retry without idempotency is not explained",
         RULES,
-        "            .explain(\n                \"when a keyed read's key changes while it runs, the work for the old key is \\\n                 stale; a policy says whether it is cancelled or kept, and without one the old \\\n                 answer can arrive after the new key and be shown for it\",\n            )\n",
+        "            .explain(\n                \"retrying a non-idempotent mutation can apply it more than once: a request \\\n                 that failed in transit may have arrived, and its sender cannot tell\",\n            )\n",
         "",
     ),
 ]

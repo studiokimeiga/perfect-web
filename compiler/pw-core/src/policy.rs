@@ -353,8 +353,8 @@ pub fn domain_of(head: &str) -> Option<Domain> {
         "key" | "dedupe_by" => Domain::ParamRef,
         // `parallel` is the manifest's second mode (ADR-0089).
         "concurrency" => Domain::Word(&["one_per_key", "parallel"]),
-        // The three PW0325's repair names and R-027 expects; the charter's
-        // "cancels or supersedes stale work" (ADR-0089).
+        // The three PW5309's repair names and R-027 expects; the charter's
+        // "cancels or supersedes stale work" (ADR-0089, ADR-0152).
         "on_key_change" => Domain::Word(&["cancel", "supersede", "keep"]),
         "idempotent_by" => Domain::TypeRef,
 

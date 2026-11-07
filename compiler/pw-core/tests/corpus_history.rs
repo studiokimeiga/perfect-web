@@ -355,20 +355,55 @@ fn historical_event_annotation_is_blocked_not_a_nominal_mismatch() {
 /// on 2026-09-24 (`docs/CORPUS.md` §C8), because the value relations made a
 /// written type that names nothing an error. This suite distinguishes their
 /// required rejections: declared-invariant catches, the existing R-019 syntax
-/// boundary, and R-035's explicitly classified missing receiver import. A
-/// classified original is still refused; it is not a declared-invariant catch.
+/// boundary, and two explicitly classified texts: R-035's missing receiver
+/// import, and R-027's query, whose key nothing changes. A classified original
+/// is checked by its own control; it is not a declared-invariant catch.
 // C8's original R-035 cannot establish a receiver effect: ElementRef was
 // never imported. Preserve that refusal rather than inferring a member from
 // a program-wide spelling. The import-only and typed controls below retain
 // the illegal phase effect as a separate, causal obligation.
-const C8_CLASSIFIED: &[(&str, Why, &str)] = &[(
-    "R-035-layout-write-during-measure-phase.pw",
-    Why::FixtureDidNotExpressIt,
-    "C8's ElementRef receiver has no visible type. The original stays refused \
-     for its exact unresolved-receiver diagnostics; adding only its import \
-     restores wrong_frame_phase at the setter, and the current typed fixture \
-     retains that violation while its pure typed neighbour is clean.",
-)];
+const C8_CLASSIFIED: &[(&str, Why, &str)] = &[
+    (
+        "R-035-layout-write-during-measure-phase.pw",
+        Why::FixtureDidNotExpressIt,
+        "C8's ElementRef receiver has no visible type. The original stays refused \
+         for its exact unresolved-receiver diagnostics; adding only its import \
+         restores wrong_frame_phase at the setter, and the current typed fixture \
+         retains that violation while its pure typed neighbour is clean.",
+    ),
+    (
+        C8_R027,
+        Why::FixtureDidNotExpressIt,
+        "C8's R-027 is a query alone. Nothing in it changes the key its read is \
+         keyed by, so no read of it goes stale: its category, a key that changes \
+         without a stale-work policy (charter §15.6, test 7), needs a key that \
+         changes. A key changes while its read runs only where a page's signal \
+         keys the query (ADR-0152), and the stale-key ADR made PW0325, the rule \
+         it declared, PW5309's old number. The current fixture is that page, \
+         refused for signal_key_stale_work (C30); the old text keeps only the \
+         two unresolved types C8's repair imported.",
+    ),
+];
+
+const C8_R027: &str = "R-027-query-key-changes-without-stale-work-cancellation-policy.pw";
+
+/// C8's R-027 reports the types C8's repair imported, and nothing else: no
+/// page changes its query's key (`C8_CLASSIFIED`).
+fn c8_r027_changes_no_key(name: &str, src: &str) {
+    assert!(
+        !src.lines().any(|l| l.trim_start().starts_with("page ")),
+        "{name}: a page could change the key"
+    );
+    let symbols: Vec<&'static str> = check_sources(&c8_program(name, src))
+        .into_iter()
+        .find(|(n, _)| n == name)
+        .expect("C8's R-027 was actually checked")
+        .1
+        .iter()
+        .map(|d| d.symbol())
+        .collect();
+    assert_eq!(symbols, ["unresolved_type", "unresolved_type"], "{name}");
+}
 
 fn c8_r035_diagnostics(name: &str, src: &str) -> Vec<pw_core::diagnostics::Diagnostic> {
     let judged = check_sources(&c8_program(name, src));
@@ -549,8 +584,13 @@ fn the_c8_text_of_every_repaired_rejected_fixture_is_still_caught() {
             .find(|(file, _, _)| *file == name.as_str())
         {
             assert_eq!(*class, Why::FixtureDidNotExpressIt);
-            assert_eq!(declared, "wrong_frame_phase");
-            c8_r035_keeps_its_refusal_and_typed_phase_controls(name, src);
+            if name == C8_R027 {
+                assert_eq!(declared, "stale_key_policy");
+                c8_r027_changes_no_key(name, src);
+            } else {
+                assert_eq!(declared, "wrong_frame_phase");
+                c8_r035_keeps_its_refusal_and_typed_phase_controls(name, src);
+            }
             classified.push((name.as_str(), *class, *why));
             continue;
         }
@@ -574,7 +614,8 @@ fn the_c8_text_of_every_repaired_rejected_fixture_is_still_caught() {
             continue;
         }
         // Declaration-header rules run inside `check_sources` since ADR-0090;
-        // R-014, R-015 and R-027 are such rules.
+        // R-014's and R-015's are such rules (R-027's was, until the
+        // stale-key ADR).
         if !symbols.contains(&declared.as_str()) {
             wrong.push(format!(
                 "{name}: its pre-C8 text is no longer caught for `{declared}` \
@@ -587,13 +628,13 @@ fn the_c8_text_of_every_repaired_rejected_fixture_is_still_caught() {
     assert!(wrong.is_empty(), "{}", wrong.join("\n"));
     assert_eq!(
         C8_CLASSIFIED.len(),
-        1,
-        "one explicitly classified C8 fixture"
+        2,
+        "two explicitly classified C8 fixtures"
     );
     assert_eq!(classified.len(), C8_CLASSIFIED.len());
     assert_eq!(
         (invariant_caught, syntax_refused, classified.len()),
-        (23, 1, 1)
+        (22, 1, 2)
     );
     assert_eq!(
         invariant_caught + syntax_refused + classified.len(),
@@ -732,6 +773,40 @@ fn the_c16_texts_are_reported_where_their_defects_are() {
         symbols("rules/annotations/decoded-not-cast.pw"),
         ["unresolved_name"]
     );
+}
+
+/// **C30: a key that changes is asked where it changes** (the stale-key ADR,
+/// `docs/CORPUS.md` §C30).
+///
+/// R-027 was a query alone that declares a `concurrency` and no
+/// `on_key_change`, refused by PW0325; `stale_key_policy`'s GENERAL witness
+/// was the same query with another `concurrency`. Nothing in either changes
+/// the query's key, so no read of it goes stale, and since PW0325 became
+/// PW5309's old number both check clean: this is the change the ADR made, and
+/// what it keeps. The class is refused where a key changes: R-027 is now a
+/// page whose signal keys the query, and so is `signal_key_stale_work`'s
+/// GENERAL witness.
+#[test]
+fn the_c30_texts_change_no_key_and_check_clean() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples/history/C30");
+    for path in [C8_R027, "generality/stale_key_policy/caught.pw"] {
+        let name = path.rsplit('/').next().expect("a file name");
+        let src = std::fs::read_to_string(root.join(path)).expect(path);
+        let declares = |clause: &str| src.lines().any(|l| l.trim_start().starts_with(clause));
+        assert!(
+            declares("concurrency") && !declares("on_key_change") && !declares("page "),
+            "{path}: no longer the shape PW0325 refused"
+        );
+        let found: Vec<(&'static str, String)> = check_sources(&c8_program(name, &src))
+            .into_iter()
+            .find(|(n, _)| n == name)
+            .expect("the C30 text was actually checked")
+            .1
+            .iter()
+            .map(|d| (d.code, d.message.clone()))
+            .collect();
+        assert!(found.is_empty(), "{path}: {found:?}");
+    }
 }
 
 /// A C8 fixture's program: the library, the accepted modules it imports, and

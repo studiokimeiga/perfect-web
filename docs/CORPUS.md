@@ -1217,3 +1217,36 @@ matching. Its original loop also has the now-detected per-element read defect;
 the revised fixture retains only PW0400. The complete old program and actual
 new diagnostic remain in train10-generic-call-composition-before.txt. Separate
 joint tests preserve that property's PW0405 and its explicit-call neighbours.
+
+## C30: a key that changes is asked where it changes, 2026-11-06
+
+Opened because a fixture was wrong about the language. R-027 was a query
+alone that declares a `concurrency` and no `on_key_change`, refused by
+PW0325. Nothing in it changes the key, so no read of it goes stale. A key
+changes while its read runs only where a page's signal keys the query
+(ADR-0152), and PW5309 asks for the policy there. The stale-key ADR
+(`ADR-XXXX-a-key-that-changes-is-asked-where-it-changes.md`, numbered when it
+lands) removes PW0325's rule and makes PW0325 PW5309's old number. No
+category changes.
+
+```text
+Corpus version:            C30
+Accepted programs:         44
+Rejected programs:         95
+Charter categories:        44/44 accepted, 95/95 rejected
+Generality at open:        65/65 invariants generality-tested
+```
+
+| Fixture | Change | Kind |
+|---|---|---|
+| R-027 | a page whose search box's signal keys the query, which still declares `concurrency one_per_key` and no `on_key_change`; `@rule` PW0325 → PW5309, `@invariant` `stale_key_policy` → `signal_key_stale_work`, both `@expect-error` lines restated | fixture wrong about the language: it changed no key |
+| `generality/stale_key_policy/` | removed; `generality/signal_key_stale_work/` holds the invariant's GENERAL witness, a page whose `Int` signal keys a query with no `concurrency`, and its NEIGHBOUR | invariant folded into PW5309 |
+
+The history question has a different answer for R-027, and the suite says
+so rather than dropping it:
+
+- its C8 text is classified `FixtureDidNotExpressIt` in `corpus_history.rs`,
+  and reports only the two unresolved types C8's repair imported;
+- its text before this version, and the removed GENERAL witness, are in
+  `examples/history/C30/`. Both check clean, which is the change, and
+  `the_c30_texts_change_no_key_and_check_clean` holds it.
