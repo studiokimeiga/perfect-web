@@ -253,8 +253,11 @@ MUTANTS = [
         "a reader's press of the settling command is taken",
         MEMORY,
         SERVER,
-        "                server.components.contains_key(id) && !server.invoked_by_platform(id)\n",
-        "                server.components.contains_key(id)\n",
+        "                server.components.contains_key(id)\n"
+        "                    && server.is_command(id)\n"
+        "                    && !server.invoked_by_platform(id)\n",
+        "                server.components.contains_key(id)\n"
+        "                    && server.is_command(id)\n",
     ),
     (
         "a browser may present a session the platform opened on a reader's behalf",

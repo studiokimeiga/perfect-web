@@ -76,6 +76,10 @@ import 'just/d3-postgres.just'
 import 'just/outbound-https.just'
 import 'just/data-path.just'
 import 'just/head-to-head.just'
+import 'just/images.just'
+import 'just/who-may-run.just'
+import 'just/command-route.just'
+import 'just/session-reader.just'
 
 default:
     @just --list

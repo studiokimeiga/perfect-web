@@ -2202,6 +2202,19 @@ impl Server {
         payments::invoked_by_platform(&self.contracts, component_id)
     }
 
+    /// **Whether `component_id`'s export is a command**, the only kind a
+    /// reader's request may run (train-14's review). `pw build` compiles a
+    /// query, a page, a derived value and a function to components too, and
+    /// the server hosts them all; none of them is a request's to run by its
+    /// id, and a query declares no `requires`.
+    fn is_command(&self, component_id: &str) -> bool {
+        self.contracts
+            .iter()
+            .find(|c| c.component_id == component_id)
+            .and_then(|c| c.exports.first())
+            .is_some_and(|e| e.kind == "command")
+    }
+
     /// **A payment the provider's word settled, acted on** (NEXT 6c, step
     /// seven): the command the program declares `invoked_by Payments`, run
     /// on behalf of the reader who began the payment, in a hold of its own
@@ -9776,10 +9789,14 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
         // the 404 below rather than to a default. A command the platform
         // invokes (NEXT 6c, `invoked_by Payments`) is not a reader's to press,
         // and falls through with them, as a Convex client's call of an
-        // internal function finds no public one.
+        // internal function finds no public one. Nor is any export but a
+        // command: a query, a page, a derived value or a function the build
+        // compiled falls through too (train-14's review: a query was run here).
         ("POST", route)
             if route.strip_prefix("/command/").is_some_and(|id| {
-                server.components.contains_key(id) && !server.invoked_by_platform(id)
+                server.components.contains_key(id)
+                    && server.is_command(id)
+                    && !server.invoked_by_platform(id)
             }) =>
         {
             let id = &route["/command/".len()..];
@@ -15491,6 +15508,49 @@ public query Store(",
             let _ = client.read_to_string(&mut answer);
             answer
         })
+    }
+
+    /// **A query is not a command** (train-14's review). `pw build` writes a
+    /// component for each query as for each command, and the server hosts
+    /// them all. Until 2026-11-07 `POST /command/<id>` ran any of them, so a
+    /// query no page reads answered a request with any arguments, and a query
+    /// declares no `requires` (ADR-0406). Only an export of kind `command` is
+    /// a reader's to send; a query's id falls through to the 404, as an
+    /// `invoked_by` command's does.
+    #[test]
+    fn a_query_posted_as_a_command_is_not_found() {
+        let s = rendering_server();
+        // Every hosted export that is no command, by its contract's kind.
+        let others: Vec<(String, String)> = s
+            .contracts
+            .iter()
+            .filter_map(|c| {
+                let kind = &c.exports.first()?.kind;
+                (kind != "command" && s.components.contains_key(&c.component_id))
+                    .then(|| (c.component_id.clone(), kind.clone()))
+            })
+            .collect();
+        // The floor: the server hosts queries, so the route is asked of
+        // components it holds.
+        assert!(
+            others.iter().filter(|(_, kind)| kind == "query").count() >= 2,
+            "hosted exports that are no command: {others:?}"
+        );
+        for (id, kind) in &others {
+            let answer = posted(&s, &format!("/command/{id}"), "session-q", "press-q", "[]");
+            assert!(answer.starts_with("HTTP/1.1 404"), "{kind} {id}: {answer}");
+        }
+        // The control: a command is still a reader's to send.
+        let body = serde_json::json!([shown("cortado"), 1]).to_string();
+        let added = posted(
+            &s,
+            &format!("/command/{ADD}"),
+            "session-q",
+            "press-c",
+            &body,
+        );
+        // A command commits and answers 202, as the page reads it.
+        assert!(added.starts_with("HTTP/1.1 202"), "{added}");
     }
 
     /// **A one-shot network error** (charter §15.5, ADR-0175): the session's
