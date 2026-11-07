@@ -1,0 +1,163 @@
+   -1.76  UpdateLayoutTree                0.17ms  
+   -1.62  InvalidateLayout                     I  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   -1.61  InvalidateLayout                     I  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   -1.59  Layout                          1.33ms  
+   -0.16  PrePaint                        0.07ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   -0.09  HitTest                         0.01ms  
+   -0.07  PrePaint                        0.00ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   -0.07  HitTest                         0.00ms  
+    0.00  EventDispatch                   0.43ms  pointerdown
+    0.14  FunctionCall                    0.22ms  listener
+    0.27  PrePaint                        0.00ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    0.28  HitTest                         0.06ms  
+    0.35  PrePaint                        0.00ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    0.35  HitTest                         0.00ms  
+    0.44  EventDispatch                   0.02ms  mousedown
+    0.46  PrePaint                        0.00ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    0.47  HitTest                         0.00ms  
+    0.48  ScheduleStyleRecalculation           I  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    0.50  EventDispatch                   0.01ms  blur
+    0.52  EventDispatch                   0.01ms  focusout
+    0.53  EventDispatch                   0.00ms  DOMFocusOut
+    0.54  UpdateLayoutTree                0.22ms  
+    0.76  EventDispatch                   0.00ms  focus
+    0.76  EventDispatch                        I  focusin
+    0.76  EventDispatch                   0.00ms  DOMFocusIn
+    0.82  PrePaint                        0.04ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    0.96  RunTask                         3.31ms  
+    0.99  PrePaint                        0.00ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    0.99  HitTest                         0.00ms  
+    1.01  EventDispatch                   0.04ms  pointerup
+    1.05  EventDispatch                   0.02ms  mouseup
+    1.15  EventDispatch                   2.12ms  click
+    1.16  ScheduleStyleRecalculation           I  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    1.29  RunMicrotasks                   1.87ms  
+    2.51  ParseHTML                       0.07ms  
+    2.59  ParseHTML                       0.00ms  
+    2.98  InvalidateLayout                     I  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    3.24  EventDispatch                   0.02ms  input
+    3.26  EventDispatch                   0.01ms  change
+    3.28  UpdateLayoutTree                0.50ms  
+    3.49  ResourceSendRequest                  I  http://localhost:13801/todomvc-checked.svg
+    3.78  Layout                          0.20ms  
+    4.09  PrePaint                        0.07ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    5.07  RunTask                         0.34ms  
+    5.36  RunMicrotasks                   0.04ms  
+    9.10  RunTask                         1.40ms  
+    9.11  BeginMainThreadFrame                 I  
+    9.14  UpdateLayoutTree                0.04ms  
+    9.30  PrePaint                        0.01ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    9.31  HitTest                         0.02ms  
+    9.42  PageAnimator::serviceScriptedAnimations    0.01ms  
+    9.44  PrePaint                        0.00ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    9.52  Paint                           0.30ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    9.56  Paint                           0.10ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    9.67  Paint                           0.03ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    9.74  Paint                           0.01ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    9.75  Paint                           0.02ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    9.78  Paint                           0.01ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    9.79  Paint                           0.02ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    9.81  Paint                           0.01ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+    9.81  Paint                           0.01ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   10.27  Commit                          0.18ms  
+   10.28  UpdateLayer                     0.01ms  
+   10.50  RunTask                         1.55ms  
+   10.71  ResourceReceiveResponse              I  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   11.45  ParseHTML                       0.05ms  
+   11.47  ScheduleStyleRecalculation           I  FAF7F8EF5D80236F9FD0F1F0AA877B2D
+   11.52  EventDispatch                   0.00ms  readystatechange
+   11.57  EventDispatch                        I  readystatechange
+   11.68  ScheduleStyleRecalculation           I  FAF7F8EF5D80236F9FD0F1F0AA877B2D
+   11.71  EventDispatch                   0.00ms  readystatechange
+   11.72  EventDispatch                        I  DOMContentLoaded
+   11.72  UpdateLayoutTree                0.12ms  
+   11.81  InvalidateLayout                     I  FAF7F8EF5D80236F9FD0F1F0AA877B2D
+   11.85  EventDispatch                   0.00ms  readystatechange
+   11.86  EventDispatch                   0.00ms  load
+   11.86  EventDispatch                   0.00ms  pageshow
+   11.87  Layout                          0.05ms  
+   11.96  ResourceFinish                       I  
+   12.10  PageAnimator::serviceScriptedAnimations    0.01ms  
+   12.12  PrePaint                        0.04ms  FAF7F8EF5D80236F9FD0F1F0AA877B2D
+   12.17  PageAnimator::serviceScriptedAnimations    0.00ms  
+   12.17  PrePaint                        0.00ms  FAF7F8EF5D80236F9FD0F1F0AA877B2D
+   12.38  RunTask                         0.66ms  
+   25.93  RunTask                         1.49ms  
+   25.99  BeginMainThreadFrame                 I  
+   26.04  UpdateLayoutTree                0.23ms  
+   26.08  ScheduleStyleRecalculation           I  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   26.34  PageAnimator::serviceScriptedAnimations    0.01ms  
+   26.43  PrePaint                        0.03ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   26.50  Paint                           0.69ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   26.66  Paint                           0.53ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   26.78  InvalidateLayout                     I  FAF7F8EF5D80236F9FD0F1F0AA877B2D
+   26.79  InvalidateLayout                     I  FAF7F8EF5D80236F9FD0F1F0AA877B2D
+   26.85  Layout                          0.07ms  
+   26.93  PrePaint                        0.04ms  FAF7F8EF5D80236F9FD0F1F0AA877B2D
+   27.33  Commit                          0.07ms  
+   27.34  UpdateLayer                     0.00ms  
+   27.46  PageAnimator::serviceScriptedAnimations    0.03ms  
+   27.48  EventDispatch                   0.00ms  resize
+   27.50  PrePaint                        0.01ms  FAF7F8EF5D80236F9FD0F1F0AA877B2D
+   28.41  RunTask                         0.24ms  
+   42.79  RunTask                         0.89ms  
+   42.83  BeginMainThreadFrame                 I  
+   42.91  UpdateLayoutTree                0.11ms  
+   42.93  ScheduleStyleRecalculation           I  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   43.08  PageAnimator::serviceScriptedAnimations    0.01ms  
+   43.08  ScheduleStyleRecalculation           I  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   43.10  UpdateLayoutTree                0.01ms  
+   43.14  PrePaint                        0.04ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   43.21  Paint                           0.22ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   43.29  Paint                           0.14ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   43.39  PrePaint                        0.01ms  FAF7F8EF5D80236F9FD0F1F0AA877B2D
+   43.57  Commit                          0.10ms  
+   43.58  UpdateLayer                     0.01ms  
+   59.46  RunTask                         0.68ms  
+   59.48  BeginMainThreadFrame                 I  
+   59.51  UpdateLayoutTree                0.12ms  
+   59.54  ScheduleStyleRecalculation           I  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   59.69  PageAnimator::serviceScriptedAnimations    0.01ms  
+   59.74  PrePaint                        0.03ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   59.78  Paint                           0.18ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   59.84  Paint                           0.12ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   59.92  PrePaint                        0.00ms  FAF7F8EF5D80236F9FD0F1F0AA877B2D
+   60.06  Commit                          0.06ms  
+   60.07  UpdateLayer                     0.00ms  
+   75.87  RunTask                         0.74ms  
+   75.90  BeginMainThreadFrame                 I  
+   75.93  UpdateLayoutTree                0.13ms  
+   75.96  ScheduleStyleRecalculation           I  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   76.15  PageAnimator::serviceScriptedAnimations    0.05ms  
+   76.24  PrePaint                        0.03ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   76.29  Paint                           0.16ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   76.34  Paint                           0.10ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   76.41  PrePaint                        0.00ms  FAF7F8EF5D80236F9FD0F1F0AA877B2D
+   76.53  Commit                          0.06ms  
+   76.54  UpdateLayer                     0.00ms  
+   92.64  RunTask                         1.19ms  
+   92.69  BeginMainThreadFrame                 I  
+   92.73  UpdateLayoutTree                0.28ms  
+   92.78  ScheduleStyleRecalculation           I  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   93.10  PageAnimator::serviceScriptedAnimations    0.02ms  
+   93.11  ScheduleStyleRecalculation           I  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   93.13  UpdateLayoutTree                0.03ms  
+   93.20  PrePaint                        0.04ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   93.27  Paint                           0.27ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   93.35  Paint                           0.18ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+   93.47  PrePaint                        0.01ms  FAF7F8EF5D80236F9FD0F1F0AA877B2D
+   93.74  Commit                          0.06ms  
+   93.75  UpdateLayer                     0.00ms  
+  109.30  RunTask                         1.21ms  
+  109.34  BeginMainThreadFrame                 I  
+  109.38  UpdateLayoutTree                0.20ms  
+  109.43  ScheduleStyleRecalculation           I  1C3950F6A6D3BD0A147B9E773EE7C9A9
+  109.67  PageAnimator::serviceScriptedAnimations    0.01ms  
+  109.73  PrePaint                        0.05ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+  109.82  Paint                           0.44ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+  109.96  Paint                           0.29ms  1C3950F6A6D3BD0A147B9E773EE7C9A9
+  110.19  PrePaint                        0.01ms  FAF7F8EF5D80236F9FD0F1F0AA877B2D
+  110.43  Commit                          0.06ms  
+  110.44  UpdateLayer                     0.01ms  
+
+frames: BeginFrame@8.7  Paint@9.5  Paint@9.6  Paint@9.7  Paint@9.7  Paint@9.8  Paint@9.8  Paint@9.8  Paint@9.8  Paint@9.8  Commit@10.3  Commit@10.3  Commit@10.4  DrawFrame@11.3  BeginFrame@25.4  Paint@26.5

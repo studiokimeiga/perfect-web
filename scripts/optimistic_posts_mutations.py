@@ -75,8 +75,13 @@ MUTANTS = [
     (
         "a longer read sends no value a page speculates on",
         SERVER,
-        "        for frame in speculated {\n            waiting.push(frame);\n        }\n        Ok(KeyOutcome::Applied)\n",
-        "        let _ = speculated;\n        Ok(KeyOutcome::Applied)\n",
+        # Re-anchored by the first press's ADR: the push wakes the table.
+        "        for frame in speculated {\n            waiting.push(frame);\n        }\n"
+        "        // Its subscription, waiting on the table, is woken for them.\n"
+        "        self.pending.wake();\n        Ok(KeyOutcome::Applied)\n",
+        "        let _ = speculated;\n"
+        "        // Its subscription, waiting on the table, is woken for them.\n"
+        "        self.pending.wake();\n        Ok(KeyOutcome::Applied)\n",
     ),
     (
         "a value that did not change is sent again",

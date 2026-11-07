@@ -185,6 +185,31 @@ test("a page of another build is loaded whole", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your cart");
 });
 
+// The first press's ADR: a versioned build's runtime asks for the files a
+// browser keeps a year at its own delivery. A host given new files of the
+// same build answers with another delivery (`pw-delivery`), whose runtime
+// must not meet this one's kept Wasm, so its page is loaded whole. This
+// development build names none, so any delivery named is another.
+test("a page of another delivery of the same build is loaded whole", async ({ page }) => {
+  await ready(page, "/");
+  await mark(page);
+  let answered = false;
+  await page.route("**/cart", async (route) => {
+    if (answered) return route.continue();
+    answered = true;
+    const response = await route.fetch();
+    await route.fulfill({
+      response,
+      headers: { ...response.headers(), "pw-delivery": "0000000000000000" },
+    });
+  });
+  await page.locator("#header-cart").click();
+  await expect(page).toHaveURL(/\/cart$/);
+  await settled(page);
+  expect(await page.evaluate(() => window.__kept ?? false)).toBe(false);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your cart");
+});
+
 test("a link opened elsewhere, or with a key held, is the browser's", async ({ page }) => {
   await ready(page, "/");
   // A key held: the browser's own (a new tab or window), not this page's.

@@ -1065,6 +1065,18 @@ struct Server {
     /// contracts: this server links no compiler. Compiled once, with the
     /// artifact's imports read once — both are properties of the bytes.
     components: BTreeMap<String, Loaded>,
+    /// **Whether this build warms what its pages' presses need** (the first
+    /// press's ADR), as its packaging says ([`warms`]): told to the browser
+    /// on the handler table's `#warm` line.
+    warm: bool,
+    /// **The longest a held subscription waits for a wake** ([`WAKE_AT_LEAST`]
+    /// in every host; a test lengthens it to show that a push, not a slice,
+    /// delivers its frames).
+    wake_at_least: std::time::Duration,
+    /// **How this build's files are named on the wire** ([`Delivery`]): at
+    /// a version a cache keeps, a production build's; as they are, a
+    /// development build's.
+    delivery: Delivery,
     /// The document's static assets.
     dist: std::path::PathBuf,
     /// **Where the compiler's browser artifacts are** (ADR-0123): the
@@ -1388,8 +1400,26 @@ struct Turn<'a>(&'a Turns);
 /// (render-merge), NEXT 4c, the integrator's ruling 2: a render never waits
 /// for the table while it holds its seat; a document's last attempt
 /// (ADR-0151) holds the table while its render waits for one).
+///
+/// **And woken as frames are pushed** (the first press's ADR, ADR-0392's
+/// finding 21): a subscription waiting for its page's frames waits on the
+/// table's condition, which each push of frames, and each cut-off, wakes;
+/// it looks at its own subscriber again then. Until 2026-11-06 each held
+/// subscription asked the table every 25 ms, idle or not: twenty idle
+/// visitors cost the host 16.0 ms of CPU a second, the Node servers' 2.00.
 #[derive(Default)]
-struct Table(Mutex<BTreeMap<Doc, Subscriber>>);
+struct Table(
+    Mutex<BTreeMap<Doc, Subscriber>>,
+    std::sync::Condvar,
+    /// How many subscriptions wait on the condition now: a test's to read.
+    std::sync::atomic::AtomicUsize,
+);
+
+/// **The longest a held subscription waits for a wake** before it looks at
+/// its subscriber again anyway: what it would otherwise only see at its next
+/// request, a subscriber forgotten while idle, is seen within it. A frame
+/// pushed for it, or a cut-off, wakes it at once.
+const WAKE_AT_LEAST: std::time::Duration = std::time::Duration::from_millis(250);
 
 impl Table {
     fn lock(&self) -> std::sync::LockResult<std::sync::MutexGuard<'_, BTreeMap<Doc, Subscriber>>> {
@@ -1399,6 +1429,39 @@ impl Table {
             "the subscriber table taken in a render (NEXT 4c)"
         );
         self.0.lock()
+    }
+
+    /// **Wake every subscription waiting on the table**: frames were pushed
+    /// for some page, or a session was cut off. Each looks at its own
+    /// subscriber; one with nothing new waits again.
+    fn wake(&self) {
+        self.1.notify_all();
+    }
+
+    /// **Wait for a wake, or `timeout`**, the table's guard released while
+    /// waiting and held again after. A panic elsewhere poisons nothing here:
+    /// the guard is taken back as it is.
+    fn wait<'a>(
+        &self,
+        guard: std::sync::MutexGuard<'a, BTreeMap<Doc, Subscriber>>,
+        timeout: std::time::Duration,
+    ) -> std::sync::MutexGuard<'a, BTreeMap<Doc, Subscriber>> {
+        use std::sync::atomic::Ordering;
+        // Counted while the table is still held, so a test that sees a
+        // waiter and then pushes takes the table only once it waits.
+        self.2.fetch_add(1, Ordering::SeqCst);
+        let guard = match self.1.wait_timeout(guard, timeout) {
+            Ok((guard, _)) => guard,
+            Err(poisoned) => poisoned.into_inner().0,
+        };
+        self.2.fetch_sub(1, Ordering::SeqCst);
+        guard
+    }
+
+    /// **A test's: how many subscriptions wait on the table now.**
+    #[cfg(test)]
+    fn waiters(&self) -> usize {
+        self.2.load(std::sync::atomic::Ordering::SeqCst)
     }
 
     #[cfg(test)]
@@ -2037,8 +2100,11 @@ impl Server {
         }
         // TRACK SEAM (second-host): its pages numbered in its instance.
         let first_page = hosts::first_page(data.instance());
+        // How its files are named on the wire (the first press's ADR).
+        let delivery = Delivery::of(&dist, &artifacts, &build_id);
         Server {
             cart_by_reader,
+            delivery,
             build_id,
             needs,
             templates,
@@ -2052,6 +2118,8 @@ impl Server {
             applied: Mutex::new(BTreeMap::new()),
             sessions: Mutex::new(BTreeMap::new()),
             components,
+            warm: warms(&dist),
+            wake_at_least: WAKE_AT_LEAST,
             dist,
             artifacts,
             pending: Table::default(),
@@ -6110,6 +6178,8 @@ impl Server {
                         applied: applied.clone(),
                     });
                 }
+                // Its subscription, waiting on the table, is woken for them.
+                self.pending.wake();
                 break;
             }
             });
@@ -6475,6 +6545,8 @@ impl Server {
                 }),
             });
         }
+        // The subscriptions waiting on the table, woken for them.
+        self.pending.wake();
         Ok(())
     }
 
@@ -7077,7 +7149,9 @@ impl Server {
             + &pw_render::head_canonical(template, &env, self.origin.get().map(String::as_str))
                 .map_err(|e| format!("`{path}`'s canonical address does not render: {e:?}"))?;
         Ok((
-            signal_document(
+            // As this build's delivery names its files (the first press's
+            // ADR): at its version, a production build's.
+            self.delivery.deliver(signal_document(
                 &body,
                 &title,
                 &metadata,
@@ -7085,7 +7159,7 @@ impl Server {
                 plan,
                 &self.templates,
                 &self.build_id,
-            ),
+            )),
             env,
             template,
         ))
@@ -7624,6 +7698,8 @@ impl Server {
         for frame in speculated {
             waiting.push(frame);
         }
+        // Its subscription, waiting on the table, is woken for them.
+        self.pending.wake();
         Ok(KeyOutcome::Applied)
         })
     }
@@ -7675,6 +7751,7 @@ impl Server {
                 protocol: CURRENT,
                 recovery: Recovery::Reload,
             });
+            self.pending.wake();
         }
     }
 
@@ -7697,7 +7774,14 @@ impl Server {
             frames: self.payments.get().map(|p| p.provider.clone()),
             forms: self.identity.sign_in_origin(),
         };
-        csp::document(RUNTIME_SOURCE, self.data.style(), &self.needs, &deployment)
+        // The script as this build's delivery writes it (the first press's
+        // ADR): at its version, a production build's.
+        csp::document(
+            &self.delivery.runtime_source(),
+            self.data.style(),
+            &self.needs,
+            &deployment,
+        )
     }
 
     /// **A document, and each streamed region's arm as its query settles**
@@ -7742,6 +7826,15 @@ impl Server {
         // **The build that served it** (ADR-0300), which a page that keeps
         // its parts across a navigation holds the next document to.
         let build = format!("pw-build: {}\r\n", self.build_id);
+        // **The delivery it names its files at** (the first press's ADR): a
+        // versioned build's only. A page that navigates in place holds the
+        // next document to it as it does to the build, since its runtime
+        // asks for files a browser keeps a year at its own.
+        let delivery = self
+            .delivery
+            .version
+            .as_ref()
+            .map_or(String::new(), |v| format!("pw-delivery: {v}\r\n"));
         // What it may load and run (`csp`).
         let policy = format!("content-security-policy: {}\r\n", self.policy());
         if settling.waiting.is_empty() && settling.settled.is_empty() {
@@ -7749,14 +7842,14 @@ impl Server {
                 stream,
                 200,
                 "text/html; charset=utf-8",
-                &format!("{PRIVATE}{cookie}{build}{policy}"),
+                &format!("{PRIVATE}{cookie}{build}{delivery}{policy}"),
                 page.as_bytes(),
             );
             return;
         }
         let head = format!(
             "HTTP/1.1 200 OK\r\ncontent-type: text/html; charset=utf-8\r\n{NOSNIFF}{PRIVATE}{cookie}\
-             {build}{policy}connection: close\r\n\r\n"
+             {build}{delivery}{policy}connection: close\r\n\r\n"
         );
         let shell = page.strip_suffix(DOCUMENT_END).unwrap_or(page);
         if stream
@@ -10535,6 +10628,12 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             mine.cut_from = Some(now);
             mine.cut_until = Some(now + std::time::Duration::from_millis(window));
             drop(faults);
+            // Its subscriptions waiting on the table end now, not at their
+            // next look: woken under the table, where each looks for a cut
+            // before it waits, so none misses it (the first press's review).
+            let table = server.pending.lock().expect("pending");
+            server.pending.wake();
+            drop(table);
             respond_json(&mut stream, 200, &session, fresh, "{}");
         }
         // **A materializer failure** (charter §15.5, ADR-0176): this
@@ -10656,6 +10755,7 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 }
             }
             drop(queue);
+            server.pending.wake();
             respond_json(&mut stream, 202, &session, fresh, "{}");
         }
         // What the materializer holds for the PUBLIC menu entry. Enough to
@@ -10706,10 +10806,20 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
         {
             let module = route.trim_start_matches("/speculation/");
             let module = module.split('?').next().unwrap_or(module);
-            match std::fs::read(server.artifacts.join("speculations").join(module)) {
-                Ok(bytes) => {
-                    respond_build(&mut stream, 200, "text/javascript; charset=utf-8", &bytes)
-                }
+            let path = server.artifacts.join("speculations").join(module);
+            match std::fs::read(&path) {
+                // As its packaging wrote it, compressed where it was (the
+                // first press's ADR): the same for every reader.
+                Ok(bytes) => respond_representation(
+                    &mut stream,
+                    &headers,
+                    "text/javascript; charset=utf-8",
+                    &path,
+                    bytes,
+                    // Kept a year asked for at this build's delivery,
+                    // whose id digests it (the first press's ADR).
+                    server.delivery.cache_policy(query),
+                ),
                 Err(_) => respond_build(
                     &mut stream,
                     404,
@@ -10730,10 +10840,18 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
         {
             let module = route.split('?').next().unwrap_or(route);
             let file = module.trim_start_matches("/computed/");
-            match std::fs::read(server.artifacts.join("computed").join(file)) {
-                Ok(bytes) => {
-                    respond_build(&mut stream, 200, "text/javascript; charset=utf-8", &bytes)
-                }
+            let path = server.artifacts.join("computed").join(file);
+            match std::fs::read(&path) {
+                Ok(bytes) => respond_representation(
+                    &mut stream,
+                    &headers,
+                    "text/javascript; charset=utf-8",
+                    &path,
+                    bytes,
+                    // Kept a year asked for at this build's delivery,
+                    // whose id digests it (the first press's ADR).
+                    server.delivery.cache_policy(query),
+                ),
                 Err(_) => respond_build(
                     &mut stream,
                     404,
@@ -10762,10 +10880,18 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 );
                 return;
             }
-            match std::fs::read(server.handler_module(id)) {
-                Ok(module) => {
-                    respond_build(&mut stream, 200, "text/javascript; charset=utf-8", &module)
-                }
+            let path = server.handler_module(id);
+            match std::fs::read(&path) {
+                Ok(module) => respond_representation(
+                    &mut stream,
+                    &headers,
+                    "text/javascript; charset=utf-8",
+                    &path,
+                    module,
+                    // Kept a year asked for at this build's delivery,
+                    // whose id digests it (the first press's ADR).
+                    server.delivery.cache_policy(query),
+                ),
                 Err(_) => respond_build(
                     &mut stream,
                     404,
@@ -10836,6 +10962,17 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             // scope (ADR-0300), which the browser's decision holds a document
             // of that page to. `#` lines, as no handler's identity begins.
             let mut table = format!("#build|{}\n", server.build_id);
+            // Whether the browser warms what this build's presses need
+            // (the first press's ADR): the build's word, as the rest of
+            // this table is, and a `#` line the decision does not read.
+            // Not where admission reads a kept source. A warm-up asks for
+            // its modules together, and two admissions of one session that
+            // overlap answer one of them 503, a command `session_changed`
+            // (ADR-0389, amended 2026-11-02). Until that is repaired, such
+            // a host's pages press as a development build's do.
+            if server.warm && !server.identity.principals().admits_from_a_kept_source() {
+                table.push_str("#warm|1\n");
+            }
             for (page, plan) in &server.plans {
                 if let Some(template) = server.templates.iter().find(|t| &t.path == page) {
                     table.push_str(&format!(
@@ -10848,11 +10985,20 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             for (identity, capture) in server.handler_table() {
                 table.push_str(&format!("{identity}|{capture}\n"));
             }
+            // Asked for at this build's delivery (the first press's ADR),
+            // the table is the delivery's, and kept a year: the delivery's
+            // id is a digest of the build's name and files, and a new build
+            // is a new id. Asked otherwise, kept by no cache, as before.
+            let kept = if server.delivery.current(query) {
+                "cache-control: public, max-age=31536000, immutable\r\n"
+            } else {
+                ""
+            };
             write_response(
                 &mut stream,
                 200,
                 "text/plain; charset=utf-8",
-                &format!("pw-build: {}\r\n", server.build_id),
+                &format!("pw-build: {}\r\n{kept}", server.build_id),
                 table.as_bytes(),
             );
         }
@@ -10979,7 +11125,7 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 request_reader.as_ref().expect("page admission"),
             )
         }
-        ("GET", _) => serve_file(server, &mut stream, route, &headers),
+        ("GET", _) => serve_file(server, &mut stream, path, &headers),
         _ => respond(&mut stream, 405, "text/plain", &session, fresh, b"method"),
     }
 }
@@ -11061,18 +11207,27 @@ fn stream_open(
     };
 
     // Bounded, like the long poll: a held connection is a held thread, and
-    // three engine families times six workers is eighteen of them.
+    // three engine families times six workers is eighteen of them. Two
+    // seconds, as eighty passes of 25 ms were; a pass now runs when the
+    // table is woken (a frame pushed, a cut-off) or a slice has passed.
     let opened = std::time::Instant::now();
-    for pass in 0..80 {
-        // Cut off since it opened (ADR-0175): it ends, with no more bytes.
-        if server.cut_off(session, opened) {
-            ended(format_args!("stream cut off at pass {pass}"));
-            return;
-        }
+    let until = opened + STREAM_HOLD;
+    let mut pass = 0u64;
+    loop {
         let batch = {
             let asked = std::time::Instant::now();
             let mut queue = server.pending.lock().expect("pending");
             let waited = asked.elapsed().as_millis();
+            // Cut off since it opened (ADR-0175): it ends, with no more
+            // bytes. Looked for once a pass, before anything is written,
+            // under the table a cut's wake takes, so that a cut made before
+            // the wait below is never missed (the first press's review).
+            if server.cut_off(session, opened) {
+                drop(queue);
+                ended(format_args!("stream cut off at pass {pass}"));
+                return;
+            }
+            pass += 1;
             let Some(waiting) = queue.get_mut(&doc) else {
                 // Forgotten while the stream was held: the next request
                 // is told to reload.
@@ -11083,19 +11238,28 @@ fn stream_open(
             }
             waiting.seen = std::time::Instant::now();
             let (cursor, frames) = waiting.after(written);
-            if frames.is_empty() {
-                None
-            } else {
+            let batch = (!frames.is_empty()).then(|| {
                 let body: Vec<serde_json::Value> = frames
                     .into_iter()
                     .map(|f| serde_json::to_value(f).expect("frame"))
                     .collect();
-                Some((
+                (
                     waiting.reader.clone(),
                     cursor,
                     serde_json::to_string(&body).expect("frames"),
-                ))
+                )
+            });
+            if batch.is_none() {
+                // Nothing new: wait for a wake, within the hold, the table
+                // released meanwhile.
+                let left = until.saturating_duration_since(std::time::Instant::now());
+                if left.is_zero() {
+                    break;
+                }
+                drop(server.pending.wait(queue, left.min(server.wake_at_least)));
+                continue;
             }
+            batch
         };
 
         if let Some((reader, cursor, frames)) = batch {
@@ -11116,13 +11280,20 @@ fn stream_open(
             ended(format_args!("wrote through {cursor}, {} bytes", line.len()));
             written = cursor;
         }
-        std::thread::sleep(std::time::Duration::from_millis(25));
     }
     ended(format_args!(
-        "stream ended after its passes, {} ms",
+        "stream ended after its passes ({pass}), {} ms",
         opened.elapsed().as_millis()
     ));
 }
+
+/// **How long a streamed subscription is held** before the page asks again:
+/// two seconds, as eighty passes of 25 ms were until 2026-11-06.
+const STREAM_HOLD: std::time::Duration = std::time::Duration::from_secs(2);
+
+/// **How long a long poll is held** before it answers an empty batch: one
+/// second, as forty passes of 25 ms were.
+const POLL_HOLD: std::time::Duration = std::time::Duration::from_secs(1);
 
 fn stream_frames(
     server: &Server,
@@ -11173,31 +11344,44 @@ fn stream_frames(
         return;
     }
 
-    for _ in 0..40 {
-        if server.cut_off(session, opened) {
-            return;
-        }
+    // Held a second at most, as forty passes of 25 ms were; a pass now runs
+    // when the table is woken (a frame pushed, a cut-off) or a slice has
+    // passed (the first press's ADR).
+    let until = opened + POLL_HOLD;
+    loop {
         let batch = {
             let mut queue = server.pending.lock().expect("pending");
+            // As a held stream's: cut off, it is closed with no answer,
+            // looked for once a pass under the table a cut's wake takes.
+            if server.cut_off(session, opened) {
+                return;
+            }
             let waiting = queue
                 .entry(doc.clone())
                 .or_insert_with(|| Subscriber::at(document));
             waiting.seen = std::time::Instant::now();
             waiting.acknowledge(since);
             let (cursor, frames) = waiting.after(since);
-            if frames.is_empty() {
-                None
-            } else {
+            let batch = (!frames.is_empty()).then(|| {
                 let body: Vec<serde_json::Value> = frames
                     .into_iter()
                     .map(|frame| serde_json::to_value(frame).expect("frame"))
                     .collect();
-                Some((
+                (
                     waiting.reader.clone(),
                     cursor,
                     serde_json::to_string(&body).expect("frames"),
-                ))
+                )
+            });
+            if batch.is_none() {
+                let left = until.saturating_duration_since(std::time::Instant::now());
+                if left.is_zero() {
+                    break;
+                }
+                drop(server.pending.wait(queue, left.min(server.wake_at_least)));
+                continue;
             }
+            batch
         };
         if let Some((reader, cursor, frames)) = batch {
             if !server.delivery_allowed(&doc, reader.as_ref()) {
@@ -11209,7 +11393,6 @@ fn stream_frames(
             respond_json(stream, 200, session, fresh, &json);
             return;
         }
-        std::thread::sleep(std::time::Duration::from_millis(25));
     }
     respond_json(
         stream,
@@ -11361,7 +11544,9 @@ fn serve_bound(
                     }
                 })
                 .collect();
-            let html = document(
+            // As this build's delivery names its files (the first press's
+            // ADR): at its version, a production build's.
+            let html = server.delivery.deliver(document(
                 &rendered,
                 &title,
                 &metadata,
@@ -11373,7 +11558,7 @@ fn serve_bound(
                 speculation,
                 &holds,
                 &server.build_id,
-            );
+            ));
             server.respond_streaming(
                 stream,
                 session,
@@ -11711,12 +11896,28 @@ fn accepts_asset_encoding(headers: &str, encoding: &str) -> bool {
     })
 }
 
-/// Public assets are not content-hashed in their URLs yet. They may be stored
-/// but must be revalidated on every use, unlike private pages (no-store) or
-/// hashed, immutable production assets (a future production-host milestone).
-fn serve_file(server: &Server, stream: &mut TcpStream, route: &str, request_headers: &str) {
-    use sha2::Digest;
+/// **Whether a build warms what its presses need** (the first press's ADR):
+/// its packaging's word, `{"warm": true}` in `delivery.json` beside its
+/// assets, which a production build's packaging writes
+/// (`optimize-assets.mjs`). A build without one, as every development build
+/// is, warms nothing: a press fetches its code when it is pressed (E7-L).
+fn warms(dist: &std::path::Path) -> bool {
+    delivery_says(dist, "warm")
+}
 
+/// Whether a build's packaging says `key` of its delivery: `true` at `key`
+/// in `delivery.json` beside its assets, and nothing else.
+fn delivery_says(dist: &std::path::Path, key: &str) -> bool {
+    std::fs::read_to_string(dist.join("delivery.json"))
+        .ok()
+        .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
+        .is_some_and(|delivery| delivery[key] == serde_json::Value::Bool(true))
+}
+
+fn serve_file(server: &Server, stream: &mut TcpStream, path: &str, request_headers: &str) {
+    // The request's query names the delivery it asks at, if any (the first
+    // press's ADR); the file is the route's.
+    let (route, query) = path.split_once('?').unwrap_or((path, ""));
     let name = route.trim_start_matches('/');
     // No traversal: a request names a file in dist and nothing above it.
     if name.contains("..") || name.contains('/') {
@@ -11733,7 +11934,7 @@ fn serve_file(server: &Server, stream: &mut TcpStream, route: &str, request_head
         Some("svg") => "image/svg+xml",
         _ => "application/octet-stream",
     };
-    let Ok(mut bytes) = std::fs::read(&path) else {
+    let Ok(bytes) = std::fs::read(&path) else {
         respond_build(stream, 404, "text/plain", b"not found");
         return;
     };
@@ -11748,19 +11949,42 @@ fn serve_file(server: &Server, stream: &mut TcpStream, route: &str, request_head
         respond_build(stream, 200, mime, &bytes);
         return;
     }
+    // Kept a year at this build's delivery, asked again otherwise.
+    let policy = server.delivery.cache_policy(query);
+    respond_representation(stream, request_headers, mime, &path, bytes, policy);
+}
+
+/// **A file of the build, as its packaging wrote it** (PR #75's delivery,
+/// and the first press's ADR for the compiled modules): the representation
+/// the request accepts of those the packaging wrote beside it (`.br`, `.gz`),
+/// else the file as it is; a strong ETag for that representation, and a 304
+/// with no body for a request that holds it; `policy` its cache policy:
+/// `public, no-cache`, so a cache keeps it and asks again before using it,
+/// or, asked at its build's delivery, kept a year ([`Delivery`]). The same
+/// for every reader: no session, no cookie. `bytes` are the file's own.
+fn respond_representation(
+    stream: &mut TcpStream,
+    request_headers: &str,
+    mime: &str,
+    path: &std::path::Path,
+    mut bytes: Vec<u8>,
+    policy: &str,
+) {
+    use sha2::Digest;
+
     let mut encoding = None;
-    if compressible {
-        // The build pipeline writes both representations, without changing
-        // the uncompressed file or any user/session-specific HTML response.
-        for (algorithm, suffix) in [("br", "br"), ("gzip", "gz")] {
-            if !accepts_asset_encoding(request_headers, algorithm) {
-                continue;
-            }
-            if let Ok(compressed) = std::fs::read(server.dist.join(format!("{name}.{suffix}"))) {
-                bytes = compressed;
-                encoding = Some(algorithm);
-                break;
-            }
+    // The build pipeline writes both representations, without changing the
+    // uncompressed file or any user/session-specific HTML response.
+    for (algorithm, suffix) in [("br", "br"), ("gzip", "gz")] {
+        if !accepts_asset_encoding(request_headers, algorithm) {
+            continue;
+        }
+        let mut sibling = path.as_os_str().to_owned();
+        sibling.push(format!(".{suffix}"));
+        if let Ok(compressed) = std::fs::read(&sibling) {
+            bytes = compressed;
+            encoding = Some(algorithm);
+            break;
         }
     }
 
@@ -11778,10 +12002,8 @@ fn serve_file(server: &Server, stream: &mut TcpStream, route: &str, request_head
                 .split(',')
                 .any(|candidate| candidate.trim() == tag)
         });
-    let mut response_headers = format!("cache-control: public, no-cache\r\netag: {tag}\r\n");
-    if compressible {
-        response_headers.push_str("vary: accept-encoding\r\n");
-    }
+    let mut response_headers =
+        format!("cache-control: {policy}\r\netag: {tag}\r\nvary: accept-encoding\r\n");
     if let Some(algorithm) = encoding {
         response_headers.push_str(&format!("content-encoding: {algorithm}\r\n"));
     }
@@ -12008,7 +12230,7 @@ fn signal_document(
     format!(
         "<!doctype html>\n<html{root}>\n<head>\n<meta charset=\"utf-8\">\n\
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
-         <title>{}</title>\n{metadata}{device}</head>\n<body>\n{body}\n\
+         <title>{}</title>\n{metadata}{device}{BOOT}</head>\n<body>\n{body}\n\
          {announcer}\n<script type=\"application/json\" id=\"pw-parts\">{json}</script>\n\
          {RUNTIME}\n{DOCUMENT_END}",
         pw_render::escape::text(title)
@@ -12262,7 +12484,7 @@ fn document(
     format!(
         "<!doctype html>\n<html{root}>\n<head>\n<meta charset=\"utf-8\">\n\
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
-         <title>{title}</title>\n{metadata}{style}{device}</head>\n<body>\n{body}\n\
+         <title>{title}</title>\n{metadata}{style}{device}{BOOT}</head>\n<body>\n{body}\n\
          {announcer}\n<script type=\"application/json\" id=\"pw-parts\">{json}</script>\n\
          {RUNTIME}\n{DOCUMENT_END}",
         title = pw_render::escape::text(title)
@@ -12276,6 +12498,261 @@ fn document(
 /// only once the whole response has arrived, in every engine, and an `async`
 /// one does in WebKit.
 const RUNTIME: &str = "<script>import(\"/pw-runtime.mjs\")</script>";
+
+/// **What every document's runtime asks for before it can attach a handler,
+/// asked for by the document's head** (the first press's ADR): the runtime,
+/// the resume decision's code and this build's handler table. Without them
+/// each was a round trip after the one before it: the runtime was asked for
+/// once the parser reached `RUNTIME`, the decision once the runtime ran, and
+/// the table once the decision had compiled. Under Slow 4G that was three
+/// requests of 562.5 ms each, one after another, before a page was
+/// interactive (ADR-0392, finding 18's "interactive last").
+///
+/// Each is fetched exactly as the runtime asks for it, so the browser uses
+/// what the head fetched rather than fetching it again: the module by its
+/// URL in the module map, and the two `fetch()`es as CORS requests with the
+/// same-origin credentials a `fetch` makes by default, which is what
+/// `crossorigin` (anonymous) asks for. Nothing speculative: every document
+/// that carries `RUNTIME` asks for all three as it boots, and none of them
+/// is a handler's code (E7-L's ruling holds: no handler is fetched here).
+/// Last in the head, after the page's own stylesheets, which a first paint
+/// waits for: measured under Slow 4G, the three cost the first paint about
+/// 20 ms of shared bandwidth and saved its interactivity 1.76 s.
+const BOOT: &str = "<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n\
+     <link rel=\"preload\" href=\"/pw-resume.wasm\" as=\"fetch\" crossorigin>\n\
+     <link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n";
+
+/// **How a production build's files are named on the wire** (the first
+/// press's ADR, ADR-0392's "Next" 2: names a cache may keep). Every file a
+/// document names, and every one its runtime asks for, is asked for at one
+/// version, so that a browser keeps each until the build changes and asks
+/// for none of them again on a visit after its first. Until 2026-11-06 a
+/// visit after the first asked again for each (`public, no-cache`), and
+/// under Slow 4G the store was interactive on such a visit at 1,183 ms, the
+/// frameworks' at 700 and 658.
+///
+/// One version for them all: the **delivery id**, a digest of the build's
+/// name and of every file beside the documents (`dist`), so a change to any
+/// of them is a new id. A file asked for at the id the host serves is sent
+/// `immutable`, for a year; at another id (a document of an earlier build,
+/// kept in the browser's history), the file the host has, revalidated before
+/// each use as before (`public, no-cache`). The runtime reads the id from its
+/// own address and asks for the decision's Wasm, the renderer's and the
+/// handler table at it. A soft navigation stays within one delivery
+/// (`pw-delivery`), and only tags are named at it, never a reader's text.
+///
+/// A development build has none: its documents name every file as they did
+/// (`BOOT`, `RUNTIME`), and the browser suites see the addresses they pin.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct Delivery {
+    /// The delivery id, a production build's only.
+    version: Option<String>,
+    /// The files beside the documents a document may name, each by its
+    /// address (`/todomvc-app.css`): only these are named at the version.
+    files: std::collections::BTreeSet<String>,
+}
+
+impl Delivery {
+    /// The delivery of the build in `dist`, named `build`, whose compiled
+    /// modules are in `artifacts`: versioned where its packaging says
+    /// (`{"versioned": true}` in `delivery.json`). The id digests the
+    /// compiled modules a page loads too (its handlers', computed values'
+    /// and speculations'), which are asked for at it.
+    fn of(dist: &std::path::Path, artifacts: &std::path::Path, build: &str) -> Delivery {
+        use sha2::Digest;
+        if !delivery_says(dist, "versioned") {
+            return Delivery::default();
+        }
+        let files_in = |dir: &std::path::Path| -> Vec<std::path::PathBuf> {
+            std::fs::read_dir(dir)
+                .into_iter()
+                .flatten()
+                .flatten()
+                .map(|e| e.path())
+                .filter(|p| p.is_file())
+                .collect()
+        };
+        let mut paths = files_in(dist);
+        paths.sort();
+        let mut modules: Vec<std::path::PathBuf> = ["handlers", "computed", "speculations"]
+            .iter()
+            .flat_map(|d| files_in(&artifacts.join(d)))
+            .collect();
+        modules.sort();
+        let mut digest = sha2::Sha256::new();
+        digest.update(build.as_bytes());
+        let mut files = std::collections::BTreeSet::new();
+        for path in paths {
+            let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+                continue;
+            };
+            let Ok(bytes) = std::fs::read(&path) else {
+                continue;
+            };
+            digest.update([0u8]);
+            digest.update(name.as_bytes());
+            digest.update([0u8]);
+            digest.update(sha2::Sha256::digest(&bytes));
+            let named = matches!(
+                path.extension().and_then(|e| e.to_str()),
+                Some("mjs" | "js" | "wasm" | "css" | "svg")
+            );
+            if named {
+                files.insert(format!("/{name}"));
+            }
+        }
+        for path in modules {
+            let Ok(bytes) = std::fs::read(&path) else {
+                continue;
+            };
+            // By its name in the build, not where the build is: two hosts of
+            // one build name it alike.
+            let name = path.strip_prefix(artifacts).unwrap_or(&path);
+            digest.update([1u8]);
+            digest.update(name.to_string_lossy().as_bytes());
+            digest.update([0u8]);
+            digest.update(sha2::Sha256::digest(&bytes));
+        }
+        let version = digest
+            .finalize()
+            .iter()
+            .take(8)
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>();
+        Delivery {
+            version: Some(version),
+            files,
+        }
+    }
+
+    /// A file's address as a document names it: at the version, where the
+    /// build has one.
+    fn named(&self, path: &str) -> String {
+        match &self.version {
+            Some(v) => format!("{path}?b={v}"),
+            None => path.to_string(),
+        }
+    }
+
+    /// What the head asks for as the runtime boots ([`BOOT`]), each at the
+    /// address the runtime asks for it at.
+    fn boot(&self) -> String {
+        match self.version {
+            None => BOOT.to_string(),
+            Some(_) => format!(
+                "<link rel=\"modulepreload\" href=\"{}\">\n\
+                 <link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>\n\
+                 <link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>\n",
+                self.named("/pw-runtime.mjs"),
+                self.named("/pw-resume.wasm"),
+                self.named("/pw-handlers"),
+            ),
+        }
+    }
+
+    /// The text of the script that starts the runtime ([`RUNTIME_SOURCE`]),
+    /// which a document's policy allows by its hash.
+    fn runtime_source(&self) -> String {
+        match self.version {
+            None => RUNTIME_SOURCE.to_string(),
+            Some(_) => format!("import(\"{}\")", self.named("/pw-runtime.mjs")),
+        }
+    }
+
+    /// The script that starts the runtime ([`RUNTIME`]).
+    fn runtime(&self) -> String {
+        match self.version {
+            None => RUNTIME.to_string(),
+            Some(_) => format!("<script>{}</script>", self.runtime_source()),
+        }
+    }
+
+    /// `document`, each file beside it that its markup names
+    /// (`href="/todomvc-app.css"`, `src="/logo.svg"`) named at the version,
+    /// **in its tags only**. A reader's text is sent as written: text escapes
+    /// `&`, `<` and `>`, never `"` (`escape::text`), so a post, a title or a
+    /// textarea's value may read `href="/app.css"`. Until 2026-11-06 a
+    /// versioned build named the file there too (the first press's review).
+    /// Text cannot open a tag, its `<` escaped, and within a tag an
+    /// attribute's value escapes `"` (`&quot;`): there only markup writes the
+    /// quoted address this replaces.
+    fn name_files(&self, document: String) -> String {
+        if self.version.is_none() || self.files.is_empty() {
+            return document;
+        }
+        let mut named = String::with_capacity(document.len() + 256);
+        let mut rest = document.as_str();
+        while let Some(open) = rest.find('<') {
+            let (text, from) = rest.split_at(open);
+            named.push_str(text);
+            let (tag, after) = from.split_at(from.find('>').map_or(from.len(), |at| at + 1));
+            self.name_in(tag, &mut named);
+            rest = after;
+        }
+        named.push_str(rest);
+        named
+    }
+
+    /// One tag, written into `named`, each file it names by `href` or `src`
+    /// at the version.
+    fn name_in(&self, tag: &str, named: &mut String) {
+        if !tag.contains("=\"/") {
+            named.push_str(tag);
+            return;
+        }
+        let mut tag = tag.to_string();
+        for file in &self.files {
+            for attribute in ["href", "src"] {
+                let plain = format!("{attribute}=\"{file}\"");
+                if tag.contains(&plain) {
+                    tag = tag.replace(&plain, &format!("{attribute}=\"{}\"", self.named(file)));
+                }
+            }
+        }
+        named.push_str(&tag);
+    }
+
+    /// **A document as this delivery sends it**: the head's boot links and
+    /// the script that starts the runtime, as [`signal_document`] and
+    /// [`document`] write them ([`BOOT`], [`RUNTIME`]), at the version, and
+    /// each file the markup names. A development build's, as written.
+    fn deliver(&self, document: String) -> String {
+        if self.version.is_none() {
+            return document;
+        }
+        let document = document.replacen(BOOT, &self.boot(), 1);
+        let document = match document.rfind(RUNTIME) {
+            Some(at) => format!(
+                "{}{}{}",
+                &document[..at],
+                self.runtime(),
+                &document[at + RUNTIME.len()..]
+            ),
+            None => document,
+        };
+        self.name_files(document)
+    }
+
+    /// Whether a request's query names this delivery: `b=` its id.
+    fn current(&self, query: &str) -> bool {
+        self.version.as_deref().is_some_and(|v| {
+            query
+                .split('&')
+                .any(|p| p.strip_prefix("b=").is_some_and(|b| b == v))
+        })
+    }
+
+    /// The cache policy of a file asked for with `query`: kept a year and
+    /// never asked again, at this delivery; kept and asked again before each
+    /// use, otherwise (PR #75's).
+    fn cache_policy(&self, query: &str) -> &'static str {
+        if self.current(query) {
+            "public, max-age=31536000, immutable"
+        } else {
+            "public, no-cache"
+        }
+    }
+}
 
 /// **Its text**, which a document's policy allows by its hash (`csp`).
 /// `RUNTIME`'s, as a test holds it.
@@ -15440,6 +15917,124 @@ public query Store(",
             .is_some_and(|waiting| waiting.trail.iter().any(|note| note.contains(what)))
     }
 
+    /// The number a held stream's trail gives for its passes, once it ended
+    /// after them.
+    fn passes_of(s: &Server, doc: &Doc) -> Option<u64> {
+        s.pending
+            .lock()
+            .expect("pending")
+            .get(doc)?
+            .trail
+            .iter()
+            .find_map(|note| {
+                note.split("stream ended after its passes (")
+                    .nth(1)?
+                    .split(')')
+                    .next()?
+                    .parse()
+                    .ok()
+            })
+    }
+
+    /// **A held subscription with nothing for it waits on the table, and does
+    /// not ask it forty times a second** (the first press's ADR, ADR-0392's
+    /// finding 21: twenty idle visitors cost the host 16.0 ms of CPU a
+    /// second). It looks at its subscriber a slice at a time through its
+    /// whole hold, and ends after it, as it did after eighty passes of 25 ms.
+    #[test]
+    fn an_idle_subscription_waits_on_the_table_rather_than_asking_it() {
+        let s = rendering_server();
+        let session = "idle";
+        let (_, document) = s.serve_document(session);
+        let doc: Doc = (session.to_string(), document);
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+        let _page = TcpStream::connect(listener.local_addr().expect("addr")).expect("connect");
+        let (mut held, _) = listener.accept().expect("accept");
+        let begun = std::time::Instant::now();
+        stream_open(&s, &mut held, session, false, document, document);
+        let held_for = begun.elapsed();
+        assert!(held_for >= STREAM_HOLD, "held its whole hold: {held_for:?}");
+        let passes = passes_of(&s, &doc).expect("it ended after its passes");
+        // Two seconds in slices of 250 ms: nine looks, give or take a wake.
+        assert!(
+            passes <= 12,
+            "{passes} passes: {:?}",
+            s.pending.lock().expect("pending")[&doc].trail
+        );
+    }
+
+    /// **A frame pushed for a held subscription wakes it** (the first
+    /// press's ADR): written as it is pushed, not at the subscription's next
+    /// look. Its slice is lengthened past its hold, so only the push's wake
+    /// can deliver the frame before the hold ends; the push is made once the
+    /// subscription waits, as the table counts it.
+    #[test]
+    fn a_frame_pushed_for_a_held_subscription_wakes_it() {
+        let mut s = rendering_server();
+        s.wake_at_least = std::time::Duration::from_secs(60);
+        let session = "woken";
+        let (_, document) = s.serve_document(session);
+        let doc: Doc = (session.to_string(), document);
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+        let _page = TcpStream::connect(listener.local_addr().expect("addr")).expect("connect");
+        let (mut held, _) = listener.accept().expect("accept");
+        let s = &s;
+        std::thread::scope(|scope| {
+            let open =
+                scope.spawn(move || stream_open(s, &mut held, session, false, document, document));
+            until("the stream waiting on the table", || {
+                s.pending.waiters() == 1
+            });
+            let pushed = std::time::Instant::now();
+            // A frame pushed through the server's own path, which wakes.
+            let answer = posted(s, "/command/menu_ghost", session, "ghost-1", "");
+            assert!(answer.starts_with("HTTP/1.1 202"), "{answer}");
+            until("the frame written", || trail_says(s, &doc, "wrote through"));
+            let after = pushed.elapsed();
+            assert!(
+                after < std::time::Duration::from_secs(1),
+                "written {after:?} after its push, so by the wake, not the hold's end"
+            );
+            open.join().expect("ended");
+        });
+    }
+
+    /// **A cut wakes a held subscription at once** (the first press's
+    /// review): its slice lengthened past its hold, only the cut's wake can
+    /// end it within a second. Until then a deleted wake passed every test,
+    /// the stream ending at its next look as well.
+    #[test]
+    fn a_cut_wakes_a_held_subscription_at_once() {
+        let mut s = rendering_server();
+        s.wake_at_least = std::time::Duration::from_secs(60);
+        let session = "cut-woken";
+        let (_, document) = s.serve_document(session);
+        let doc: Doc = (session.to_string(), document);
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+        let _page = TcpStream::connect(listener.local_addr().expect("addr")).expect("connect");
+        let (mut held, _) = listener.accept().expect("accept");
+        let s = &s;
+        std::thread::scope(|scope| {
+            let open =
+                scope.spawn(move || stream_open(s, &mut held, session, false, document, document));
+            until("the stream waiting on the table", || {
+                s.pending.waiters() == 1
+            });
+            let cut = std::time::Instant::now();
+            let armed = posted(s, "/bench/reconnect?for=0", session, "cut-woken-1", "");
+            assert!(armed.starts_with("HTTP/1.1 200"), "{armed}");
+            until("the stream ended by its cut", || {
+                trail_says(s, &doc, "stream cut off at pass")
+            });
+            let after = cut.elapsed();
+            assert!(
+                after < std::time::Duration::from_secs(1),
+                "ended {after:?} after its cut, so by the wake, not the hold's end"
+            );
+            open.join().expect("ended");
+        });
+    }
+
     /// **A forced reconnect** (charter §15.5, ADR-0175): the session's open
     /// subscription ends at once; a new one is closed with no answer for the
     /// cut's window; and one after it is sent what was queued meanwhile.
@@ -17017,10 +17612,495 @@ public query Store(",
             page.contains(&format!("pw-build: {}\r\n", s.build_id)),
             "{page}"
         );
+        assert!(
+            !page.contains("pw-delivery:"),
+            "a development build names no delivery: {page}"
+        );
         let manifest = manifest_of(page.split_once("\r\n\r\n").map_or("", |(_, b)| b));
         assert_eq!(manifest["resume"]["build"], s.build_id.as_str());
         assert_eq!(manifest["resume"]["document"], home.schema.as_str());
         assert_eq!(manifest["resume"]["scope"], "session:");
+    }
+
+    /// **A document asks for what its runtime boots with, from its head**
+    /// (the first press's ADR): the runtime as a module preload, and the
+    /// decision's code and this build's handler table as the CORS fetches
+    /// the runtime makes, so that the runtime's own requests are answered by
+    /// them; after its stylesheets; and no handler's code (E7-L). On a page
+    /// that reads queries, and on one of signals alone.
+    #[test]
+    fn a_document_preloads_what_its_runtime_boots_with() {
+        let s = served_feed();
+        let page = get_as(&s, "a", "/");
+        let template = Template {
+            path: "t.P".into(),
+            name: "P".into(),
+            params: vec![],
+            schema: "s".into(),
+            chunks: vec![],
+        };
+        let signals = signal_document(
+            "<main></main>",
+            "P",
+            "<link rel=\"stylesheet\" href=\"/p.css\">\n",
+            &template,
+            &serde_json::json!({}),
+            &[],
+            COMMITTED_ARTIFACTS,
+        );
+        for document in [page.as_str(), signals.as_str()] {
+            let head = document
+                .split_once("<head>")
+                .and_then(|(_, rest)| rest.split_once("</head>"))
+                .map(|(head, _)| head)
+                .expect("a head");
+            for link in [
+                "<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n",
+                "<link rel=\"preload\" href=\"/pw-resume.wasm\" as=\"fetch\" crossorigin>\n",
+                "<link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n",
+            ] {
+                assert!(head.ends_with(BOOT) && BOOT.contains(link), "{head}");
+            }
+            assert!(!head.contains("/handler/"), "no handler's code: {head}");
+            // The runtime it preloads is the one the document starts.
+            assert!(document.contains(RUNTIME), "{document}");
+        }
+        assert!(
+            signals
+                .contains("<link rel=\"stylesheet\" href=\"/p.css\">\n<link rel=\"modulepreload\""),
+            "after the page's stylesheets: {signals}"
+        );
+    }
+
+    /// **A build warms what its presses need only where its packaging says
+    /// so** (the first press's ADR): `{"warm": true}` in `delivery.json`
+    /// beside the assets, which a production build's packaging writes; no
+    /// file, another value or a file that is not JSON warms nothing, as no
+    /// development build does (E7-L).
+    #[test]
+    fn a_build_warms_only_where_its_delivery_says_so() {
+        let dir = tempfile::tempdir().expect("a directory");
+        assert!(!warms(dir.path()), "no delivery file: a development build");
+        let says = |text: &str| {
+            std::fs::write(dir.path().join("delivery.json"), text).expect("written");
+            warms(dir.path())
+        };
+        assert!(says("{\"warm\": true}\n"));
+        assert!(!says("{\"warm\": false}\n"));
+        assert!(!says("{\"warm\": \"true\"}\n"), "only `true` warms");
+        assert!(!says("{}\n"));
+        assert!(!says("warm"), "not JSON");
+    }
+
+    /// **The browser is told on the handler table** (the first press's
+    /// ADR): `#warm|1` where the build warms and nothing where it does not,
+    /// a `#` line the decision does not read, with every handler line the
+    /// same either way, so what may attach does not depend on it.
+    #[test]
+    fn the_handler_table_says_whether_its_build_warms() {
+        let mut s = served_feed();
+        let body = |t: &str| t.split_once("\r\n\r\n").map_or("", |(_, b)| b).to_string();
+        let lazy = body(&get_as(&s, "a", "/pw-handlers"));
+        assert!(!lazy.contains("#warm"), "{lazy}");
+        s.server.warm = true;
+        let warm = body(&get_as(&s, "a", "/pw-handlers"));
+        assert!(warm.contains("#warm|1\n"), "{warm}");
+        let handlers = |t: &str| {
+            t.lines()
+                .filter(|l| !l.starts_with('#'))
+                .map(str::to_string)
+                .collect::<Vec<_>>()
+        };
+        assert!(!handlers(&lazy).is_empty(), "{lazy}");
+        assert_eq!(handlers(&lazy), handlers(&warm));
+        assert_eq!(lazy.lines().count() + 1, warm.lines().count());
+    }
+
+    /// A kept source that knows no session: every reader is anonymous.
+    struct NoSessionSource;
+
+    impl identity::Kept for NoSessionSource {
+        fn session(
+            &self,
+            _: &[u8],
+            _: &identity::SessionLifetimes,
+        ) -> Result<Option<identity::SessionIdentity>, String> {
+            Ok(None)
+        }
+        fn inspect(
+            &self,
+            _: &[u8],
+            _: &identity::SessionLifetimes,
+        ) -> Result<Option<identity::SessionIdentity>, String> {
+            Ok(None)
+        }
+        fn open(&self, _: &[u8], _: &identity::Principal, _: &[u8; 16]) -> Result<(), String> {
+            Ok(())
+        }
+        fn close(&self, _: &[u8]) -> Result<(), String> {
+            Ok(())
+        }
+        fn begin_sign_in(&self, _: &[u8], _: &str, _: &str) -> Result<(), String> {
+            Ok(())
+        }
+        fn take_sign_in(
+            &self,
+            _: &[u8],
+        ) -> Result<Option<(String, String, std::time::Duration)>, String> {
+            Ok(None)
+        }
+    }
+
+    /// **A host that admits from a kept source does not warm** (the first
+    /// press's review). A warm-up asks for its modules together, and there,
+    /// of two admissions of one session that overlap, one is answered 503,
+    /// a command `session_changed` (ADR-0389, amended 2026-11-02), until
+    /// that is repaired. With accounts on and nothing kept, it warms.
+    #[test]
+    fn a_host_that_admits_from_a_kept_source_does_not_warm() {
+        let mut s = served_feed();
+        s.server.warm = true;
+        let body = |t: &str| t.split_once("\r\n\r\n").map_or("", |(_, b)| b).to_string();
+        s.identity
+            .signed_in_for_test("existing", "reader", "Reader");
+        let unkept = body(&get_as(&s, "existing", "/pw-handlers"));
+        assert!(
+            unkept.contains("#warm|1\n"),
+            "accounts on, nothing kept: {unkept}"
+        );
+        s.identity.principals().keep_in(Arc::new(NoSessionSource));
+        let kept = get_as(&s, "existing", "/pw-handlers");
+        assert!(kept.starts_with("HTTP/1.1 200"), "{kept}");
+        assert!(
+            !body(&kept).contains("#warm"),
+            "admitted from a kept source: {kept}"
+        );
+    }
+
+    /// **A development build names its files as they are** (the first
+    /// press's ADR): no delivery id, so every document is written as it was,
+    /// byte for byte, and every file is asked again before each use.
+    #[test]
+    fn a_development_build_names_its_files_as_they_are() {
+        let dir = tempfile::tempdir().expect("a directory");
+        std::fs::write(dir.path().join("pw-runtime.mjs"), "export {};\n").expect("written");
+        let delivery = Delivery::of(dir.path(), &dir.path().join("build"), "b1");
+        assert_eq!(delivery, Delivery::default());
+        assert_eq!(delivery.boot(), BOOT);
+        assert_eq!(delivery.runtime(), RUNTIME);
+        assert_eq!(delivery.runtime_source(), RUNTIME_SOURCE);
+        let document = format!("<head>\n{BOOT}</head><body><link href=\"/a.css\">{RUNTIME}</body>");
+        assert_eq!(delivery.deliver(document.clone()), document);
+        assert_eq!(delivery.cache_policy("b=anything"), "public, no-cache");
+    }
+
+    /// **A production build names its files at one version, which a cache
+    /// keeps** (the first press's ADR): the head's boot links, the script
+    /// that starts the runtime and each file the markup names, at the
+    /// delivery id; a request at that id kept a year, at another or none
+    /// asked again. Only markup's quoted addresses are named: a value's text,
+    /// escaped, is left as it is.
+    #[test]
+    fn a_production_build_names_its_files_at_one_version() {
+        let dir = tempfile::tempdir().expect("a directory");
+        for (file, bytes) in [
+            ("delivery.json", "{\"warm\": true, \"versioned\": true}\n"),
+            ("pw-runtime.mjs", "export {};\n"),
+            ("pw-resume.wasm", "\0asm"),
+            ("app.css", "p{}"),
+            ("notes.txt", "not served by name"),
+        ] {
+            std::fs::write(dir.path().join(file), bytes).expect("written");
+        }
+        let delivery = Delivery::of(dir.path(), &dir.path().join("build"), "b1");
+        let version = delivery.version.clone().expect("a delivery id");
+        assert_eq!(version.len(), 16, "{version}");
+        assert!(version.bytes().all(|b| b.is_ascii_hexdigit()), "{version}");
+        assert_eq!(
+            delivery
+                .files
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            vec!["/app.css", "/pw-resume.wasm", "/pw-runtime.mjs"]
+        );
+        // A reader's text that reads like an attribute is the reader's: text
+        // escapes `&`, `<` and `>`, never `"` (`escape::text`), so a post, a
+        // title or a textarea's value can hold `href="/app.css"` as written.
+        let document = format!(
+            "<head>\n<title>src=\"/pw-runtime.mjs\" said</title>\n{BOOT}</head><body>\
+             <link rel=\"stylesheet\" href=\"/app.css\">\
+             <p title=\"href=&quot;/app.css&quot;\">href=\"/app.css\" said</p>\
+             <textarea>&lt;img src=\"/app.css\"&gt;</textarea>\n{RUNTIME}\n</body>"
+        );
+        let delivered = delivery.deliver(document);
+        let at = |path: &str| format!("{path}?b={version}");
+        for link in [
+            format!(
+                "<link rel=\"modulepreload\" href=\"{}\">",
+                at("/pw-runtime.mjs")
+            ),
+            format!(
+                "<link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>",
+                at("/pw-resume.wasm")
+            ),
+            format!(
+                "<link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>",
+                at("/pw-handlers")
+            ),
+            format!("<link rel=\"stylesheet\" href=\"{}\">", at("/app.css")),
+            format!("<script>import(\"{}\")</script>", at("/pw-runtime.mjs")),
+        ] {
+            assert!(delivered.contains(&link), "{link} in {delivered}");
+        }
+        assert!(
+            !delivered.contains(BOOT) && !delivered.contains(RUNTIME),
+            "{delivered}"
+        );
+        assert!(
+            delivered.contains("title=\"href=&quot;/app.css&quot;\""),
+            "{delivered}"
+        );
+        for text in [
+            "<title>src=\"/pw-runtime.mjs\" said</title>",
+            "<p title=\"href=&quot;/app.css&quot;\">href=\"/app.css\" said</p>",
+            "<textarea>&lt;img src=\"/app.css\"&gt;</textarea>",
+        ] {
+            assert!(
+                delivered.contains(text),
+                "a reader's text, as written: {text} in {delivered}"
+            );
+        }
+        assert_eq!(
+            delivery.runtime_source(),
+            format!("import(\"{}\")", at("/pw-runtime.mjs"))
+        );
+        assert_eq!(
+            delivery.cache_policy(&format!("b={version}")),
+            "public, max-age=31536000, immutable"
+        );
+        assert_eq!(
+            delivery.cache_policy(&format!("document=2&b={version}")),
+            "public, max-age=31536000, immutable"
+        );
+        assert_eq!(
+            delivery.cache_policy("b=0000000000000000"),
+            "public, no-cache"
+        );
+        assert_eq!(delivery.cache_policy(""), "public, no-cache");
+    }
+
+    /// **The delivery id is the build's and its files'**: the same for the
+    /// same, and another for another build's name or any file's bytes.
+    #[test]
+    fn the_delivery_id_changes_with_the_build_and_with_any_file() {
+        let dir = tempfile::tempdir().expect("a directory");
+        std::fs::write(dir.path().join("delivery.json"), "{\"versioned\": true}").expect("written");
+        std::fs::write(dir.path().join("app.css"), "p{}").expect("written");
+        let id = |build: &str| {
+            Delivery::of(dir.path(), &dir.path().join("build"), build)
+                .version
+                .expect("an id")
+        };
+        let first = id("b1");
+        assert_eq!(id("b1"), first, "the same build and files");
+        assert_ne!(id("b2"), first, "another build");
+        std::fs::write(dir.path().join("app.css"), "p{color:red}").expect("written");
+        assert_ne!(id("b1"), first, "another file's bytes");
+        std::fs::write(dir.path().join("notes.txt"), "x").expect("written");
+        let with_notes = id("b1");
+        std::fs::write(dir.path().join("notes.txt"), "y").expect("written");
+        assert_ne!(id("b1"), with_notes, "any file beside the documents");
+        // And a compiled module a page loads, which is asked for at the id.
+        let handlers = dir.path().join("build/handlers");
+        std::fs::create_dir_all(&handlers).expect("a directory");
+        std::fs::write(handlers.join("0123456789abcdef.mjs"), "export const a = 1;")
+            .expect("written");
+        let with_handler = id("b1");
+        assert_ne!(with_handler, with_notes);
+        std::fs::write(handlers.join("0123456789abcdef.mjs"), "export const a = 2;")
+            .expect("written");
+        assert_ne!(id("b1"), with_handler, "a handler's module");
+    }
+
+    /// **A production build's page and table, as served**: the page names
+    /// the runtime at the delivery, and its policy allows that script, by
+    /// that script's hash; the table asked for at the delivery is kept a
+    /// year, and asked for otherwise is kept by no cache.
+    #[test]
+    fn a_production_build_serves_its_page_and_table_at_its_delivery() {
+        let (_dir, out) = built_feed_with(|app| app.to_string());
+        std::fs::write(
+            out.join("delivery.json"),
+            "{\"warm\": true, \"versioned\": true}\n",
+        )
+        .expect("written");
+        std::fs::write(out.join("app.css"), "p{}").expect("written");
+        let s = Server::from_build(out.clone(), out).expect("served");
+        let version = s.delivery.version.clone().expect("a delivery id");
+        // A file of the build and a compiled module, as their own routes
+        // serve them: kept a year at the delivery, revalidated at another
+        // (the first press's review: the policy was held only through
+        // `cache_policy` and the table's route).
+        let handler = s
+            .handler_identities()
+            .iter()
+            .next()
+            .cloned()
+            .expect("a handler");
+        for path in ["/app.css".to_string(), format!("/handler/{handler}.mjs")] {
+            let kept = get_as(&s, "a", &format!("{path}?b={version}"));
+            assert!(kept.starts_with("HTTP/1.1 200"), "{path}: {kept}");
+            assert!(
+                kept.contains("cache-control: public, max-age=31536000, immutable\r\n"),
+                "{path} at the delivery: {kept}"
+            );
+            let other = get_as(&s, "a", &format!("{path}?b=0000000000000000"));
+            assert!(other.starts_with("HTTP/1.1 200"), "{path}: {other}");
+            assert!(
+                other.contains("public, no-cache") && !other.contains("immutable"),
+                "{path} at another delivery: {other}"
+            );
+        }
+        let page = get_as(&s, "a", "/");
+        assert!(
+            page.contains(&format!("pw-delivery: {version}\r\n")),
+            "a page navigated to in place is held to its delivery: {page}"
+        );
+        let script = format!("import(\"/pw-runtime.mjs?b={version}\")");
+        assert!(
+            page.contains(&format!("<script>{script}</script>")),
+            "{page}"
+        );
+        assert!(
+            page.contains(&csp::sha256_source(&script)),
+            "the page's policy allows the script it runs: {page}"
+        );
+        assert!(
+            !page.contains(&csp::sha256_source(RUNTIME_SOURCE)),
+            "{page}"
+        );
+        let kept = get_as(&s, "a", &format!("/pw-handlers?b={version}"));
+        assert!(
+            kept.contains("cache-control: public, max-age=31536000, immutable\r\n"),
+            "{kept}"
+        );
+        for asked in ["/pw-handlers", "/pw-handlers?b=0000000000000000"] {
+            let table = get_as(&s, "a", asked);
+            assert!(table.starts_with("HTTP/1.1 200"), "{table}");
+            assert!(!table.contains("cache-control"), "{asked}: {table}");
+        }
+    }
+
+    /// One GET of `path` with `headers` added, through the server's own
+    /// handling: the answer's head, and its body's bytes as sent.
+    fn get_bytes(s: &Server, path: &str, headers: &str) -> (String, Vec<u8>) {
+        let listener = std::net::TcpListener::bind(("127.0.0.1", 0)).expect("bind");
+        let at = listener.local_addr().expect("address");
+        std::thread::scope(|scope| {
+            scope.spawn(|| {
+                let (stream, _) = listener.accept().expect("accept");
+                handle(s, stream);
+            });
+            let mut client = std::net::TcpStream::connect(at).expect("connect");
+            client
+                .write_all(
+                    format!(
+                        "GET {path} HTTP/1.1\r\nHost: t\r\nCookie: pw-session=a\r\n{headers}\r\n"
+                    )
+                    .as_bytes(),
+                )
+                .expect("request");
+            let mut answer = Vec::new();
+            let _ = std::io::Read::read_to_end(&mut client, &mut answer);
+            let split = answer
+                .windows(4)
+                .position(|w| w == b"\r\n\r\n")
+                .expect("a head");
+            (
+                String::from_utf8_lossy(&answer[..split]).to_string(),
+                answer[split + 4..].to_vec(),
+            )
+        })
+    }
+
+    /// **A compiled module is sent as its packaging wrote it** (the first
+    /// press's ADR): a handler's and a page's computed values', each in the
+    /// representation the request accepts of those its production packaging
+    /// wrote beside it, else as it is, which is all a development build
+    /// has; each with a validator for that representation, a 304 for a
+    /// request that holds it, a public cache policy and no session. What
+    /// this build does not name is refused as before.
+    #[test]
+    fn a_compiled_module_is_sent_as_its_packaging_wrote_it() {
+        let s = served_feed();
+        let id = s
+            .handler_identities()
+            .into_iter()
+            .next()
+            .expect("a handler");
+        let handler = (format!("/handler/{id}.mjs"), s.handler_module(&id));
+        let computed = (
+            "/computed/feed.app.Home~ui.mjs".to_string(),
+            s.artifacts.join("computed").join("feed.app.Home~ui.mjs"),
+        );
+        for (url, path) in [handler, computed] {
+            let plain = std::fs::read(&path).expect("the module");
+            // A development build's: no other representation, the module.
+            let (head, body) = get_bytes(&s, &url, "Accept-Encoding: br, gzip\r\n");
+            assert!(head.starts_with("HTTP/1.1 200"), "{head}");
+            assert_eq!(body, plain, "{url}");
+            assert!(!head.contains("content-encoding"), "{head}");
+            assert!(
+                head.contains("cache-control: public, no-cache\r\n"),
+                "{head}"
+            );
+            assert!(head.contains("vary: accept-encoding\r\n"), "{head}");
+            assert!(!head.to_ascii_lowercase().contains("set-cookie"), "{head}");
+            // A production build's: what the request accepts, Brotli first.
+            let sibling = |suffix: &str| {
+                let mut p = path.as_os_str().to_owned();
+                p.push(suffix);
+                std::path::PathBuf::from(p)
+            };
+            std::fs::write(sibling(".br"), b"brotli's bytes").expect("written");
+            std::fs::write(sibling(".gz"), b"gzip's bytes").expect("written");
+            let (head, body) = get_bytes(&s, &url, "Accept-Encoding: gzip, br\r\n");
+            assert!(head.contains("content-encoding: br\r\n"), "{head}");
+            assert_eq!(body, b"brotli's bytes");
+            let (head, body) = get_bytes(&s, &url, "Accept-Encoding: gzip, br;q=0\r\n");
+            assert!(head.contains("content-encoding: gzip\r\n"), "{head}");
+            assert_eq!(body, b"gzip's bytes");
+            let (plain_head, body) = get_bytes(&s, &url, "");
+            assert!(!plain_head.contains("content-encoding"), "{plain_head}");
+            assert_eq!(body, plain);
+            // One validator a representation, and a 304 for the one held.
+            let etag = |head: &str| {
+                head.lines()
+                    .find_map(|l| l.strip_prefix("etag: "))
+                    .expect("an etag")
+                    .to_string()
+            };
+            let plain_tag = etag(&plain_head);
+            let (head, body) = get_bytes(&s, &url, &format!("If-None-Match: {plain_tag}\r\n"));
+            assert!(head.starts_with("HTTP/1.1 304"), "{head}");
+            assert!(body.is_empty());
+            let (head, _) = get_bytes(
+                &s,
+                &url,
+                &format!("Accept-Encoding: br\r\nIf-None-Match: {plain_tag}\r\n"),
+            );
+            assert!(
+                head.starts_with("HTTP/1.1 200"),
+                "another representation: {head}"
+            );
+        }
+        let (head, _) = get_bytes(
+            &s,
+            "/handler/ffffffffffffffff.mjs",
+            "Accept-Encoding: br\r\n",
+        );
+        assert!(head.starts_with("HTTP/1.1 404"), "{head}");
     }
 
     /// **A build that names no build is not served** (ADR-0300): it was
@@ -20487,10 +21567,12 @@ public query Store(",
             COMMITTED_ARTIFACTS,
         );
         let (head, body) = page.split_once("</head>").expect("a head");
+        // And what its runtime boots with last (the first press's ADR),
+        // after what it says of itself and the stylesheets a paint waits for.
         assert!(
-            head.ends_with(
-                "<title>Panel &amp; co</title>\n<meta name=\"description\" content=\"A panel.\">\n"
-            ),
+            head.ends_with(&format!(
+                "<title>Panel &amp; co</title>\n<meta name=\"description\" content=\"A panel.\">\n{BOOT}"
+            )),
             "{head}"
         );
         assert!(

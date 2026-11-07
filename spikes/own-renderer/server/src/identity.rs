@@ -1096,6 +1096,14 @@ impl Principals {
         self.0.kept.get().cloned()
     }
 
+    /// **Whether admission reads a kept source** (ADR-0369): accounts on,
+    /// and sessions kept where every host reads them. There, of two
+    /// admissions of one session whose reads overlap, the later is refused
+    /// (`Superseded`; ADR-0389, amended 2026-11-02: found, not changed).
+    pub(crate) fn admits_from_a_kept_source(&self) -> bool {
+        self.0.kept.get().is_some() && self.0.accounts.load(Ordering::SeqCst)
+    }
+
     /// TRACK SEAM (second-host): **`session` as it is kept, read once for a
     /// request** (ADR-0369): signed in on another host, or by this one
     /// before it restarted, it is signed in here; signed out anywhere, or

@@ -1,0 +1,51 @@
+== 2026-11-06T08:17:57-05:00 anchors, the renderer's contract
+press_modules_mutations.py: a handler's module is waited for without a deadline: 0 matches in spikes/own-renderer/public/pw-runtime.mjs
+press_modules_mutations.py: the speculation module is waited for without a deadline: 0 matches in spikes/own-renderer/public/pw-runtime.mjs
+press_modules_mutations.py: a failed speculation load is asked for again under the same specifier: 2 matches in spikes/own-renderer/public/pw-runtime.mjs
+press_modules_mutations.py: a renderer load a press gave up on is kept: 2 matches in spikes/own-renderer/public/pw-runtime.mjs
+press_modules_mutations.py: a module's load is timed by a send's deadline: 0 matches in spikes/own-renderer/public/pw-runtime.mjs
+press_modules_mutations.py: a press whose speculation cannot load fails: 0 matches in spikes/own-renderer/public/pw-runtime.mjs
+FAIL: 6 of 4992 mutants cannot run as written
+exit anchors 1
+✖ a press resuming after renderer retirement creates no unsent transition (1.389716ms)
+✖ all failed press IDs are removed before loading or redrawing any binding (0.790981ms)
+✖ a failed rollback load leaves neither owned ID pending (0.735805ms)
+ℹ tests 14
+ℹ pass 11
+ℹ fail 3
+✖ failing tests:
+✖ a press resuming after renderer retirement creates no unsent transition (1.389716ms)
+✖ all failed press IDs are removed before loading or redrawing any binding (0.790981ms)
+✖ a failed rollback load leaves neither owned ID pending (0.735805ms)
+== 2026-11-06T08:17:58-05:00 build (the fix)
+exit run.sh 0
+== 2026-11-06T08:18:02-05:00 the load specs (the fix), chromium and firefox
+exit green 0
+e2e/computed-modules.spec.mjs is not run: dist-feed was built with another pw-runtime.mjs: run feed.sh
+e2e/feed.spec.mjs is not run: dist-feed was built with another pw-runtime.mjs: run feed.sh
+e2e/guestbook.spec.mjs is not run: dist-guestbook was built with another pw-runtime.mjs: run guestbook.sh
+e2e/identity.spec.mjs is not run: dist-feed was built with another pw-runtime.mjs: run feed.sh
+e2e/keyed.spec.mjs is not run: dist-keyed was built with another pw-runtime.mjs: run keyed-store.sh
+e2e/kiokun-site.spec.mjs is not run: dist-kiokun was built with another pw-runtime.mjs: run kiokun-site.sh
+e2e/messages.spec.mjs is not run: dist-feed was built with another pw-runtime.mjs: run feed.sh
+e2e/notifications.spec.mjs is not run: dist-feed was built with another pw-runtime.mjs: run feed.sh
+e2e/todomvc.spec.mjs is not run: dist-todomvc was built with another pw-runtime.mjs: run todomvc.sh
+e2e/upload-metadata.spec.mjs is not run: dist-feed was built with another pw-runtime.mjs: run feed.sh
+e2e/uploads.spec.mjs is not run: dist-feed was built with another pw-runtime.mjs: run feed.sh
+  2 skipped
+  122 passed (1.1m)
+== 2026-11-06T08:19:09-05:00 red: the committed runtime
+exit run.sh (old) 0
+exit red 1 (expected non-zero)
+  1) [chromium] › e2e/warm.spec.mjs:244:1 › a press made during a warm speculation load waits for it within a deadline of its own 
+  2) [firefox] › e2e/warm.spec.mjs:244:1 › a press made during a warm speculation load waits for it within a deadline of its own 
+  3) [chromium] › e2e/warm.spec.mjs:232:1 › a press made during a warm load waits for it within a deadline of its own 
+  4) [firefox] › e2e/warm.spec.mjs:232:1 › a press made during a warm load waits for it within a deadline of its own 
+  4 failed
+exit run.sh (restored) 0
+== 2026-11-06T08:19:37-05:00 restored
+runtime: the fix, restored
+ spikes/own-renderer/e2e/warm.spec.mjs     | 42 ++++++++++++++++++++++
+ spikes/own-renderer/public/pw-runtime.mjs | 58 +++++++++++++++++++++++++------
+ 2 files changed, 89 insertions(+), 11 deletions(-)
+B1_VERIFY_FINISHED

@@ -1,0 +1,43 @@
+== 2026-11-06T10:14:59-05:00 commit 21863b22fa07ec55a402bb1f6f2152569a54c30a; uncommitted code paths: 0
+== 2026-11-06T10:14:59-05:00 the whole pre-push check (TAG=prepush4)
+exit prepush4 0
+exit preflight 0
+exit evidence-gates 0
+Ran 1187 tests in 378.552s
+OK (skipped=5)
+exit cargo test 0
+test result: ok. 863 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 110.99s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+exit build 0
+exit run.sh 0
+exit todomvc.sh 0
+exit keyed-store.sh 0
+exit feed.sh 0
+exit guestbook.sh 0
+exit kiokun-site.sh 0
+exit specs 0
+Running 1074 tests using 16 workers
+  13 skipped
+  1061 passed (5.2m)
+exit runtime-size 0
+EVIDENCE interactive-script-bytes=167059 brotli=43927
+EVIDENCE interactive-wasm-bytes=57951 brotli=21284
+EVIDENCE renderer-wasm-bytes=267401 gzip=94092 brotli=77336
+  3 passed (9.4s)
+== 2026-11-06T10:29:10-05:00 mutation controls: connection_faults
+exit connection_faults 0
+the drop is not taken [server]: KILLED (2 of 3 tests fail)
+`before` runs the command [server]: KILLED (2 of 3 tests fail)
+`after` sends the answer [server]: KILLED (1 of 3 tests fail)
+an open stream is not ended [server]: KILLED (1 of 3 tests fail)
+an open long poll is not ended [server]: KILLED (1 of 3 tests fail)
+a new subscription is not refused [server]: KILLED (1 of 3 tests fail)
+the window refuses nothing [server]: KILLED (1 of 3 tests fail)
+a cut ends what opened after it [server]: KILLED (1 of 3 tests fail)
+`/bench/drop` arms nothing [browser]: KILLED (2 of 3 tests fail)
+`/bench/reconnect` cuts nothing [server]: KILLED (1 of 3 tests fail)
+10 of 10 mutants killed
+== 2026-11-06T10:32:51-05:00 restored
+mutation anchors: 4993 mutants in 324 scripts, each matching once
+exit anchors 0
+FINAL_VERIFY2_FINISHED

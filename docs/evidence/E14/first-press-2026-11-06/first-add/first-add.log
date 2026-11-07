@@ -1,0 +1,221 @@
+ .../ADR-XXXX-the-first-press-finds-its-code.md     |  21 +++
+ runtime/pw-render-wasm/src/lib.rs                  | 168 +++++++++++++++++++++
+ spikes/own-renderer/e2e/warm.spec.mjs              |  57 +++++++
+ spikes/own-renderer/public/pw-runtime.mjs          |  40 ++++-
+ 4 files changed, 285 insertions(+), 1 deletion(-)
+A(HEAD) CPU x4, 8 runs; warm log: ["warming 10 handler(s)"]
+  key->mutation  median 32.5  runs 36.9 36.8 30.5 30.8 31.8 32.5 31.7 32.9
+  key->rAF       median 50.9  runs 58.3 59.2 50.9 48.2 49.4 51.6 48.3 50.3
+  key->after     median 60.4  runs 69.4 71.9 64.7 55.9 59.6 60.4 56.1 58.9
+  main thread, key to frame, by event (ms per run, total incl. nested; count per run):
+      50.06    10.3  EventDispatch
+      35.59    10.0  v8.callFunction
+      33.40     1.1  RunMicrotasks
+      20.66   521.0  wasm.CompileLazy
+      15.72    16.9  Document::UpdateStyleAndLayout
+      15.69     2.0  Editor::HandleKeyboardEvent
+      15.47    14.9  Blink.ForcedStyleAndLayout.UpdateTime
+      15.41    13.4  LocalFrameView::UpdateStyleAndLayout
+      12.47     2.3  LocalFrameView::layout
+      12.47     2.3  Layout
+      12.45     1.0  Blink.Layout.UpdateTime
+      12.39     2.3  LocalFrameView::performLayout
+      12.00    36.3  RunTask
+      11.63    33.8  ThreadControllerImpl::RunTask
+       8.99   520.9  wasm.CompileBaseline
+       5.35    75.5  V8.CompileCode
+       4.70     3.0  ResponseBodyLoader::OnStateChange
+       4.10     7.4  InlineNode::ShapeTextIncludingFirstLine
+       3.45   521.0  wasm.AddCompiledCode
+       3.42     2.0  UpdateLayoutTree
+       3.36     2.0  ImageResourceContent::updateImage
+       3.33     1.0  ResponseBodyLoader::DidFinishLoadingBody
+B(warm paths) CPU x4, 8 runs; warm log: ["warming 10 handler(s)","warmed the paths of 1 block(s)"]
+  key->mutation  median 7.2  runs 6.9 7.2 5.9 7.2 8.3 6.6 5.8 7.4
+  key->rAF       median 26.8  runs 31.8 29.1 22.5 23.6 26.8 23.3 24.1 28.4
+  key->after     median 36.1  runs 44.3 41.8 31.1 31.9 36.1 32.0 35.2 38.5
+  main thread, key to frame, by event (ms per run, total incl. nested; count per run):
+      24.37    10.1  EventDispatch
+      16.11    17.6  Document::UpdateStyleAndLayout
+      16.04     2.0  Editor::HandleKeyboardEvent
+      15.95    14.9  Blink.ForcedStyleAndLayout.UpdateTime
+      15.91    12.0  LocalFrameView::UpdateStyleAndLayout
+      13.07     2.3  LocalFrameView::layout
+      13.06     2.3  Layout
+      13.00     1.0  Blink.Layout.UpdateTime
+      13.00     2.3  LocalFrameView::performLayout
+      11.42    34.9  RunTask
+      10.69    33.1  ThreadControllerImpl::RunTask
+       9.23    10.0  v8.callFunction
+       7.41     1.0  RunMicrotasks
+       4.59     3.0  ResponseBodyLoader::OnStateChange
+       4.23     7.5  InlineNode::ShapeTextIncludingFirstLine
+       3.58     1.0  ResponseBodyLoader::DidFinishLoadingBody
+       3.40     2.0  ImageResourceContent::updateImage
+       3.36     1.6  SVGImage::DataChanged
+       3.36     2.0  UpdateLayoutTree
+       3.35     1.0  IsolatedSVGDocumentHost::IsolatedSVGDocumentHost
+       3.33     2.0  Document::updateStyle
+       2.75     2.0  Document::recalcStyle
+A(HEAD) CPU x4, 8 runs; warm log: ["warming 10 handler(s)"]
+  key->mutation  median 34.9  runs 32.8 29.3 32.0 34.1 36.5 36.4 34.9 41.6
+  key->rAF       median 57.6  runs 49.4 47.0 49.4 56.4 58.1 59.4 57.6 62.9
+  key->after     median 69.6  runs 56.7 56.0 56.9 66.2 72.3 71.4 69.6 74.5
+  main thread, key to frame, by event (ms per run, total incl. nested; count per run):
+      52.93    10.3  EventDispatch
+      37.92    10.0  v8.callFunction
+      35.94     1.0  RunMicrotasks
+      21.99   521.0  wasm.CompileLazy
+      16.60    15.3  Document::UpdateStyleAndLayout
+      16.52     2.0  Editor::HandleKeyboardEvent
+      16.40    13.5  Blink.ForcedStyleAndLayout.UpdateTime
+      16.35    11.0  LocalFrameView::UpdateStyleAndLayout
+      13.41     2.0  LocalFrameView::layout
+      13.41     2.0  Layout
+      13.38     1.0  Blink.Layout.UpdateTime
+      13.38     2.0  LocalFrameView::performLayout
+      12.14    26.9  RunTask
+      11.58    25.1  ThreadControllerImpl::RunTask
+      10.10   520.6  wasm.CompileBaseline
+       5.57    75.1  V8.CompileCode
+       5.22     3.0  ResponseBodyLoader::OnStateChange
+       4.39   521.0  wasm.AddCompiledCode
+       3.93     7.5  InlineNode::ShapeTextIncludingFirstLine
+       3.62     2.0  UpdateLayoutTree
+       3.60     2.0  Document::updateStyle
+       3.49     1.0  ResponseBodyLoader::DidFinishLoadingBody
+B(warm paths) CPU x4, 8 runs; warm log: ["warming 10 handler(s)","warmed the paths of 1 block(s)"]
+  key->mutation  median 8.3  runs 6.9 6.3 9.9 9.1 7.5 7.0 8.3 10.5
+  key->rAF       median 30.8  runs 26.2 26.7 34.8 28.9 31.3 30.8 29.7 32.6
+  key->after     median 44.9  runs 36.5 34.7 46.9 38.8 43.9 45.9 44.9 46.6
+  main thread, key to frame, by event (ms per run, total incl. nested; count per run):
+      28.16    10.0  EventDispatch
+      18.13     2.0  Editor::HandleKeyboardEvent
+      18.07    18.9  Document::UpdateStyleAndLayout
+      18.03    15.0  LocalFrameView::UpdateStyleAndLayout
+      17.75    17.3  Blink.ForcedStyleAndLayout.UpdateTime
+      14.50     2.5  LocalFrameView::layout
+      14.45     2.5  Layout
+      14.38     1.0  Blink.Layout.UpdateTime
+      14.26     2.5  LocalFrameView::performLayout
+      14.17    30.9  RunTask
+      13.39    30.0  ThreadControllerImpl::RunTask
+      11.11    10.0  v8.callFunction
+       9.12     1.0  RunMicrotasks
+       5.75     3.0  ResponseBodyLoader::OnStateChange
+       4.50     7.1  InlineNode::ShapeTextIncludingFirstLine
+       4.47     1.0  ResponseBodyLoader::DidFinishLoadingBody
+       4.28     2.0  ImageResourceContent::updateImage
+       4.11     2.0  UpdateLayoutTree
+       4.03     2.0  Document::updateStyle
+       4.02     2.0  SVGImage::DataChanged
+       3.91     1.0  IsolatedSVGDocumentHost::IsolatedSVGDocumentHost
+       3.67     2.0  Document::recalcStyle
+A(HEAD) CPU x1, 8 runs; warm log: ["warming 10 handler(s)"]
+  key->mutation  median 8.0  runs 8.3 8.0 7.7 8.3 8.6 8.0 7.9 7.6
+  key->rAF       median 13.9  runs 14.5 13.9 13.5 15.2 14.0 13.8 13.7 13.3
+  key->after     median 16.6  runs 16.6 16.1 18.4 17.7 17.0 16.6 15.9 16.4
+  main thread, key to frame, by event (ms per run, total incl. nested; count per run):
+      13.49     9.5  EventDispatch
+       8.61    10.0  v8.callFunction
+       8.15     1.0  RunMicrotasks
+       5.17    16.0  Document::UpdateStyleAndLayout
+       5.16     2.0  Editor::HandleKeyboardEvent
+       5.14    11.6  LocalFrameView::UpdateStyleAndLayout
+       5.11    13.5  Blink.ForcedStyleAndLayout.UpdateTime
+       4.98   521.0  wasm.CompileLazy
+       4.21     2.0  LocalFrameView::layout
+       4.21     2.0  Layout
+       4.19     1.0  Blink.Layout.UpdateTime
+       4.18     2.0  LocalFrameView::performLayout
+       3.12    42.5  RunTask
+       2.96    39.8  ThreadControllerImpl::RunTask
+       2.49   520.8  wasm.CompileBaseline
+       1.59     3.0  ResponseBodyLoader::OnStateChange
+       1.38     7.5  InlineNode::ShapeTextIncludingFirstLine
+       1.18     1.0  ResponseBodyLoader::DidFinishLoadingBody
+       1.14     2.0  ImageResourceContent::updateImage
+       1.10     1.9  SVGImage::DataChanged
+       1.10    75.0  V8.CompileCode
+       1.09     2.0  UpdateLayoutTree
+B(warm paths) CPU x1, 8 runs; warm log: ["warming 10 handler(s)","warmed the paths of 1 block(s)"]
+  key->mutation  median 1.8  runs 2.2 2.5 1.8 2.1 1.4 1.7 1.7 1.6
+  key->rAF       median 7.8  runs 14.9 8.4 7.5 7.8 9.7 7.4 7.7 7.1
+  key->after     median 10.6  runs 17.4 10.4 9.3 10.6 12.4 9.3 9.6 18.5
+  main thread, key to frame, by event (ms per run, total incl. nested; count per run):
+       7.03    10.3  EventDispatch
+       5.01    16.4  Document::UpdateStyleAndLayout
+       4.98     2.0  Editor::HandleKeyboardEvent
+       4.98    12.0  LocalFrameView::UpdateStyleAndLayout
+       4.94    13.6  Blink.ForcedStyleAndLayout.UpdateTime
+       4.14     2.0  LocalFrameView::layout
+       4.14     2.0  Layout
+       4.12     2.0  LocalFrameView::performLayout
+       4.12     1.0  Blink.Layout.UpdateTime
+       2.85    41.4  RunTask
+       2.66    39.3  ThreadControllerImpl::RunTask
+       2.28    10.3  v8.callFunction
+       1.89     2.1  RunMicrotasks
+       1.33     7.4  InlineNode::ShapeTextIncludingFirstLine
+       1.25     3.0  ResponseBodyLoader::OnStateChange
+       1.04     1.0  ResponseBodyLoader::DidFinishLoadingBody
+       1.01     2.0  ImageResourceContent::updateImage
+       0.99     2.0  UpdateLayoutTree
+       0.98     1.6  SVGImage::DataChanged
+       0.97     1.0  IsolatedSVGDocumentHost::IsolatedSVGDocumentHost
+       0.96     2.0  Document::updateStyle
+       0.84     2.0  Document::recalcStyle
+A(HEAD) CPU x1, 8 runs; warm log: ["warming 10 handler(s)"]
+  key->mutation  median 7.8  runs 7.8 7.8 8.1 8.1 8.1 7.4 7.2 6.9
+  key->rAF       median 13.9  runs 14.5 13.3 13.5 13.9 16.5 13.9 13.7 11.4
+  key->after     median 17.0  runs 17.1 16.5 16.0 17.1 19.1 16.5 17.0 13.6
+  main thread, key to frame, by event (ms per run, total incl. nested; count per run):
+      12.77    10.3  EventDispatch
+       8.15    10.0  v8.callFunction
+       7.72     1.5  RunMicrotasks
+       4.87    16.1  Document::UpdateStyleAndLayout
+       4.86     2.0  Editor::HandleKeyboardEvent
+       4.85    12.3  LocalFrameView::UpdateStyleAndLayout
+       4.82    13.9  Blink.ForcedStyleAndLayout.UpdateTime
+       4.74   521.0  wasm.CompileLazy
+       4.01     2.0  LocalFrameView::layout
+       4.01     2.0  Layout
+       3.99     1.0  Blink.Layout.UpdateTime
+       3.99     2.0  LocalFrameView::performLayout
+       3.16    41.1  RunTask
+       2.99    39.0  ThreadControllerImpl::RunTask
+       2.39   520.5  wasm.CompileBaseline
+       1.54     3.0  ResponseBodyLoader::OnStateChange
+       1.25     1.0  ResponseBodyLoader::DidFinishLoadingBody
+       1.21     2.0  ImageResourceContent::updateImage
+       1.21     7.5  InlineNode::ShapeTextIncludingFirstLine
+       1.18     1.9  SVGImage::DataChanged
+       1.16     1.0  IsolatedSVGDocumentHost::IsolatedSVGDocumentHost
+       1.08    75.8  V8.CompileCode
+B(warm paths) CPU x1, 8 runs; warm log: ["warming 10 handler(s)","warmed the paths of 1 block(s)"]
+  key->mutation  median 1.6  runs 1.8 1.6 1.4 1.6 1.4 1.6 1.5 1.6
+  key->rAF       median 8.6  runs 8.6 10.3 6.8 8.6 5.9 6.8 7.7 10.8
+  key->after     median 10.3  runs 10.9 13.2 8.6 10.3 7.8 9.0 9.6 13.3
+  main thread, key to frame, by event (ms per run, total incl. nested; count per run):
+       6.64    10.1  EventDispatch
+       4.88    15.8  Document::UpdateStyleAndLayout
+       4.86     2.0  Editor::HandleKeyboardEvent
+       4.85    10.8  LocalFrameView::UpdateStyleAndLayout
+       4.82    13.8  Blink.ForcedStyleAndLayout.UpdateTime
+       4.13     2.0  LocalFrameView::layout
+       4.13     2.0  Layout
+       4.12     1.0  Blink.Layout.UpdateTime
+       4.12     2.0  LocalFrameView::performLayout
+       2.67    38.8  RunTask
+       2.50    36.5  ThreadControllerImpl::RunTask
+       2.00    10.1  v8.callFunction
+       1.66     1.9  RunMicrotasks
+       1.23     7.4  InlineNode::ShapeTextIncludingFirstLine
+       1.19     3.0  ResponseBodyLoader::OnStateChange
+       0.99     1.0  ResponseBodyLoader::DidFinishLoadingBody
+       0.95     2.0  ImageResourceContent::updateImage
+       0.92     1.8  SVGImage::DataChanged
+       0.91     1.0  IsolatedSVGDocumentHost::IsolatedSVGDocumentHost
+       0.87     2.0  UpdateLayoutTree
+       0.84     2.0  Document::updateStyle
+       0.74     2.0  Document::recalcStyle

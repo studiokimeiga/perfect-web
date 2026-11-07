@@ -1,0 +1,21 @@
+== 2026-11-06T08:23:11-05:00 green
+exit green 1
+== 2026-11-06T08:23:13-05:00 red: the warm-up morphs the live block
+exit run.sh (mutant) 0
+exit red 1 (expected non-zero)
+  1) [chromium] › e2e/warm.spec.mjs:282:1 › a build that warms runs a block's paths on a copy, and the page is as it was 
+    Error: the live block is not morphed
+    Expected: "kept"
+    Received: null
+    > 323 |   expect(await page.locator("#shut").getAttribute("data-probe"), "the live block is not morphed").toBe("kept");
+  2) [firefox] › e2e/warm.spec.mjs:282:1 › a build that warms runs a block's paths on a copy, and the page is as it was 
+    Error: the live block is not morphed
+    Expected: "kept"
+    Received: null
+    > 323 |   expect(await page.locator("#shut").getAttribute("data-probe"), "the live block is not morphed").toBe("kept");
+  2 failed
+exit run.sh (restored) 0
+== 2026-11-06T08:23:29-05:00 restored
+ spikes/own-renderer/e2e/warm.spec.mjs | 25 ++++++++++++++++++++++++-
+ 1 file changed, 24 insertions(+), 1 deletion(-)
+B2_VERIFY_FINISHED

@@ -75,8 +75,10 @@ MUTANTS = [
     (
         "the old runtime goes on after handing the page over",
         RUNTIME,
-        "  life.abort();\n  import(",
-        "  import(",
+        # Re-anchored by the first press's ADR and its review: the old
+        # runtime's renderer is let go after it.
+        "  life.abort();\n  // Its renderer let go: this module stays in the module map (the first\n",
+        "  // Its renderer let go: this module stays in the module map (the first\n",
     ),
     (
         "what a leaving page is told is applied",

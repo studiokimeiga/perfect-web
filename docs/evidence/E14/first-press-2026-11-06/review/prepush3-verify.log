@@ -1,0 +1,70 @@
+== 2026-11-06T08:47:35-05:00 commit bf07fe9e63b001c03d443c9d4d16389872e0c64a; uncommitted paths: 0
+just: /home/haki/.local/bin/just just 1.58.0
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14); node: v22.21.1
+dev servers already running: 0
+== 2026-11-06T08:47:35-05:00 just preflight
+exit preflight 0
+# and nothing noticed until `just e8-host` ran. Compiled here, run there.
+cargo clippy -p pw-host --features engine --all-targets -- -D warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.08s
+case-check: OK (4642 paths)
+mutation anchors: 4993 mutants in 324 scripts, each matching once
+== 2026-11-06T08:47:46-05:00 just evidence-gates
+exit evidence-gates 0
+Ran 1187 tests in 384.439s
+OK (skipped=5)
+# tests 19
+# pass 19
+# fail 0
+# tests 3
+# pass 3
+# fail 0
+== 2026-11-06T08:54:11-05:00 cargo test: pw-render, pw-render-wasm, pw-dev-server
+exit cargo test 0
+test result: ok. 863 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 104.86s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.82s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.98s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 32 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+== 2026-11-06T08:56:03-05:00 builds: the CLI, the servers (pw-dev-server, kiokun-server), then every own-renderer app
+exit build 0
+exit run.sh 0
+exit todomvc.sh 0
+exit keyed-store.sh 0
+exit feed.sh 0
+exit guestbook.sh 0
+exit kiokun-site.sh 0
+delivery.json in development builds: spikes/own-renderer/dist-baseline/delivery.json 
+== 2026-11-06T08:56:20-05:00 the whole own-renderer suite (chromium, firefox)
+exit specs 0
+Running 1074 tests using 16 workers
+  13 skipped
+  1061 passed (4.8m)
+== 2026-11-06T09:01:11-05:00 runtime size (gates 7b, 7d)
+exit runtime-size 0
+EVIDENCE interactive-script-bytes=167059 brotli=43927
+EVIDENCE interactive-wasm-bytes=57951 brotli=21284
+EVIDENCE renderer-wasm-bytes=267401 gzip=94092 brotli=77336
+  3 passed (8.0s)
+== 2026-11-06T09:01:21-05:00 tree after
+ M docs/DECISIONS/ADR-XXXX-the-first-press-finds-its-code.md
+PREPUSH_VERIFY_FINISHED
