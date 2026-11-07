@@ -1692,11 +1692,13 @@ fn not_a_term(
             hir.decl_span(decl_id_of(hir, decl)),
             format!("called inside `{}`", decl.name),
         )],
+        // Until 2026-09-26 such a call checked: every analysis answered for
+        // it as it does for a call to nothing.
         explanation: Some(format!(
             "A call names a function, a data operation, or a type it builds. \
-             {how} Until 2026-09-26 such a call checked: every analysis \
-             answered for it as it does for a call to nothing, and the value \
-             it was said to produce had no type."
+             {how} Every analysis would answer for such a call as it does for a \
+             call to nothing, and the value it is said to produce would have no \
+             type."
         )),
         repairs: vec![Repair {
             description: format!("use `{path}` as {what} is used, or call a function"),
@@ -1898,15 +1900,17 @@ fn policy_value(
             hir.decl_span(id),
             format!("{of} `{}`", decl.name),
         )],
+        // Until 2026-09-26 such a value checked, and each reader of the clause
+        // decided alone what it meant.
         explanation: Some(
             "A policy's value is one its domain has: a word the policy lists, a \
              duration, a length, a world, a parameter of the declaration, a type, an \
              authorization predicate over command parameters, or an operator given \
              its arguments by name, wherever the policy is written. A value the \
-             compiler does not understand is not a policy nobody wrote. Until \
-             2026-09-26 such a value checked, and each reader of the clause decided \
-             alone what it meant: `cache Shared` was no shared cache to the privacy \
-             rule, and no cache to the manifest."
+             compiler does not understand is not a policy nobody wrote: each reader \
+             of the clause would decide alone what it meant, and `cache Shared` \
+             would be no shared cache to the privacy rule, and no cache to the \
+             manifest."
                 .to_string(),
         ),
         repairs: vec![Repair {
@@ -3788,11 +3792,12 @@ fn declared_once(hir: &Hir) -> Vec<Diagnostic> {
                     hir.decl_span(id),
                     format!("`{}` is declared here", decl.name),
                 )],
+                // Until 2026-09-26 each checked.
                 explanation: Some(
                     "A name written twice where it is declared says two things, and one of \
                      them is dropped: a body sees one of two parameters, a field access one of \
                      two fields, every reader of a policy its first writing, and HTML an \
-                     attribute's first value. Until 2026-09-26 each checked."
+                     attribute's first value."
                         .to_string(),
                 ),
                 repairs: vec![Repair {
@@ -5364,10 +5369,12 @@ fn comment_as_text(hir: &Hir) -> Vec<Diagnostic> {
                         hir.decl_span(decl_id),
                         format!("`{}` renders this", decl.name),
                     )],
+                    // Until 2026-10-03 such a line between two elements checked,
+                    // and the page showed it.
                     explanation: Some(
                         "In markup, `//` and `/*` begin no comment: what follows is the \
-                         page's text, as in HTML and JSX. Until 2026-10-03 such a line \
-                         between two elements checked, and the page showed it (ADR-0167)."
+                         page's text, as in HTML and JSX, and the page would show it \
+                         (ADR-0167)."
                             .to_string(),
                     ),
                     repairs: vec![
@@ -5478,13 +5485,13 @@ fn code_in_markup(hir: &Hir) -> Vec<Diagnostic> {
                         hir.decl_span(decl_id),
                         format!("`{}` renders this", decl.name),
                     )],
+                    // Until 2026-09-26 both checked and built.
                     explanation: Some(
                         "A view renders into a page that loads the platform's runtime after \
                          the view's markup, by a relative URL; a `<base>` element anywhere in \
                          the document moves it, and every link after it. An animation sets \
                          the attribute it names, so `<animate attributeName=\"href\">` gives a \
-                         link a URL that never passed the check a URL attribute gets. Until \
-                         2026-09-26 both checked and built."
+                         link a URL that never passed the check a URL attribute gets."
                             .to_string(),
                     ),
                     repairs: vec![Repair {
@@ -5566,12 +5573,13 @@ fn code_in_markup(hir: &Hir) -> Vec<Diagnostic> {
                         hir.decl_span(decl_id),
                         format!("`{}` renders this", decl.name),
                     )],
+                    // Until 2026-09-26 `<script>{msg}</script>` and `onclick={msg}`
+                    // checked and built, and ran `msg`.
                     explanation: Some(
                         "The renderer escapes a value by where it sits: text, an attribute, a \
                          URL, a style. A script, an inline handler, a `srcdoc` document and a \
                          stylesheet are none of those, and no escaping makes a value in them \
-                         inert. Until 2026-09-26 `<script>{msg}</script>` and \
-                         `onclick={msg}` checked and built, and ran `msg`."
+                         inert: `<script>{msg}</script>` and `onclick={msg}` would run `msg`."
                             .to_string(),
                     ),
                     repairs: vec![Repair {
@@ -5764,10 +5772,12 @@ fn view_elements(
                     hir.decl_span(decl_id),
                     format!("`{}` renders this", decl.name),
                 )],
+                // Until 2026-09-26 one built as an unknown HTML element, and the
+                // view's markup was never rendered.
                 explanation: Some(
                     "HTML lowercases every tag it parses, so an element named with a capital \
-                     letter is a view. Until 2026-09-26 one built as an unknown HTML element: \
-                     the view's markup was never rendered."
+                     letter is a view. Built as HTML, it would be an element no browser \
+                     knows, and the view's markup would never render."
                         .to_string(),
                 ),
                 repairs: vec![Repair {
@@ -6689,14 +6699,14 @@ fn unresolved_in_policy_term(
             hir.decl_span(decl_id_of(hir, decl)),
             format!("written in `{policy}` on `{}`", decl.name),
         )],
+        // This value was kept as unparsed text until 2026-08-10, so nothing
+        // had ever asked.
         explanation: Some(format!(
             "An `{policy}` value is executable code: it runs on the client, and \
              its names come from lexical scope like any other term's. `{name}` \
              is not a parameter, not a local, and not a declaration this file \
-             can see.\n\nThis value was kept as unparsed text until \
-             2026-08-10, so nothing had ever asked. Making it a term means it \
-             is checked like a term — no ambient binding is supplied because \
-             the policy is spelled `{policy}`."
+             can see.\n\nThe value is checked as any term is: no ambient binding \
+             is supplied because the policy is spelled `{policy}`."
         )),
         repairs: vec![Repair {
             description: format!(
@@ -9958,10 +9968,10 @@ fn loop_keys(hir: &Hir, id: crate::hir::DeclId, decl: &Decl, out: &mut Vec<Diagn
                 hir.decl_span(id),
                 format!("`{}` renders this", decl.name),
             )],
+            // Until 2026-09-26 a key whose head was another name keyed on a field
+            // of the element, silently.
             explanation: Some(
-                "A key identifies each element of the list, so it is read from the element. \
-                 Until 2026-09-26 a key whose head was another name keyed on a field of the \
-                 element, silently."
+                "A key identifies each element of the list, so it is read from the element."
                     .to_string(),
             ),
             repairs: vec![Repair {
@@ -10138,10 +10148,12 @@ fn template_blocks(
         message,
         primary_span: span,
         related: related(),
+        // Until 2026-09-25 a dropped `{:else}` rendered both of an `if`'s
+        // branches at once.
         explanation: Some(
             "A block's markers decide what renders. A marker the block does not take \
-             is not ignored safely: until 2026-09-25 a dropped `{:else}` rendered both \
-             of an `if`'s branches at once."
+             is not ignored safely: an `if` whose `{:else}` were dropped would render \
+             both of its branches at once."
                 .to_string(),
         ),
         repairs: Vec::new(),

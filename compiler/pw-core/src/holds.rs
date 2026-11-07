@@ -261,13 +261,15 @@ pub fn check(hirs: &[&Hir], ws: &Workspace, sigs: &Signatures, unit: usize) -> V
                 message,
                 primary_span: span.clone(),
                 related: related.clone(),
+                // Until 2026-10-10 such a name built, and the page failed where it
+                // was served.
                 explanation: Some(
                     "What a template reads is rendered from a value: a binding, a parameter, \
-                     a signal or a constant. A name that holds none built, and the page \
-                     failed where it was served (\"no value for `SignedIn`\", until \
-                     2026-10-10). A predicate with no parameters is the one exception: the \
-                     page asks it of its reader, and the deployment answers it as it \
-                     answers `requires` (ADR-0307)."
+                     a signal or a constant. A name that holds none would build, and the \
+                     page would fail where it is served (\"no value for `SignedIn`\"). A \
+                     predicate with no parameters is the one exception: the page asks it of \
+                     its reader, and the deployment answers it as it answers `requires` \
+                     (ADR-0307)."
                         .to_string(),
                 ),
                 repairs: vec![Repair {

@@ -133,9 +133,9 @@ fn results_are_handled(
             _ => (
                 "result_dropped",
                 format!("this `{ty}` is dropped, and its failure with it"),
+                // Until 2026-09-26 a statement's `Result` was dropped without a word.
                 "A `Result` carries a failure, and a value nothing uses handles neither \
-                 of its cases: the program goes on as though it had succeeded. Until \
-                 2026-09-26 a statement's `Result` was dropped without a word.",
+                 of its cases: the program goes on as though it had succeeded.",
                 "pass the failure on with `?`, handle it with `match`, or discard it, `let _ = ..`",
             ),
         };
@@ -827,12 +827,12 @@ fn unknown_event(
             at.clone(),
             format!("`{}` binds a handler to it here", decl.name),
         )],
+        // The runtime listens for a click whatever the name, so until 2026-09-26
+        // such a handler ran by accident.
         explanation: Some(
             "Which event an `on:` attribute delivers is declared by the platform, in \
-             `events`. An attribute naming no declared event binds its handler to nothing. \
-             The runtime listens for a click whatever the name, so until 2026-09-26 such \
-             a handler ran by accident, and a runtime that listens for the named event \
-             would never run it."
+             `events`. An attribute naming no declared event binds its handler to nothing: \
+             a runtime that listens for the named event would never run it."
                 .to_string(),
         ),
         repairs: vec![Repair {
