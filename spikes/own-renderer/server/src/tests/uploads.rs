@@ -163,6 +163,21 @@ fn an_image_attached_is_posted_with_its_post_and_served() {
     attached_and_posted(&served_feed());
 }
 
+/// **An upload's connection is closed after its answer** (the keep-alive
+/// ADR): an upload reads its own body, and nothing tells its connection
+/// whether that body was read whole, so the connection is not kept for a
+/// next request, though the request allows it.
+#[test]
+fn an_uploads_connection_is_closed_after_its_answer() {
+    let s = served_feed();
+    let head = attach(&s, "a", &fixture("six-by-four.png"));
+    assert!(head.starts_with("http/1.1 303"), "{head}");
+    assert!(
+        head.lines().any(|line| line == "connection: close"),
+        "{head}"
+    );
+}
+
 /// **What names a place, a device, a person or a time is neither kept nor
 /// served** (track `upload-metadata`, ADR-0383): a phone's photo, attached
 /// over HTTP and posted, is shown turned as it was taken, and served by the

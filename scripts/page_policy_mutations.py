@@ -335,8 +335,10 @@ MUTANTS = [
         "an answer's type may be sniffed",
         SERVER_TESTS,
         SERVER,
-        "content-length: {}\\r\\n{NOSNIFF}{headers}connection: close\\r\\n\\r\\n\",\n",
-        "content-length: {}\\r\\n{headers}connection: close\\r\\n\\r\\n\",\n",
+        # Re-anchored by the keep-alive ADR: the connection line is the
+        # answer's own (`Conn::connection`).
+        "content-length: {}\\r\\n{NOSNIFF}{headers}{}\\r\\n\",\n",
+        "content-length: {}\\r\\n{headers}{}\\r\\n\",\n",
     ),
     (
         "a streamed document's type may be sniffed",

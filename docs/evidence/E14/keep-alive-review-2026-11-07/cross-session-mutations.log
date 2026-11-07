@@ -1,0 +1,11 @@
+baseline: 6 passed, 0 failed
+no other session is told: KILLED (2 of 6 tests fail)
+a session's own entry reaches the others: KILLED (1 of 6 tests fail)
+a whole query's drop reaches no one: KILLED (2 of 6 tests fail)
+every open page is read again: KILLED (2 of 6 tests fail)
+the committing session is told again: KILLED (1 of 6 tests fail)
+the author waits for every reader: KILLED (does not build)
+what waits is never told: KILLED (2 of 6 tests fail)
+a connection tells no one: KILLED (1 of 6 tests fail)
+8 of 8 mutants killed
+memory bound: no process was stopped
