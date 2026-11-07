@@ -157,8 +157,10 @@ MUTANTS = [
         "every response says OK",
         "server",
         SERVER,
-        "        reason(code),\n        body.len()\n",
-        "        \"OK\",\n        body.len()\n",
+        # Re-anchored by the keep-alive ADR: the head says how its
+        # connection ends, after its length.
+        "        reason(code),\n        body.len(),\n        stream.connection()\n",
+        "        \"OK\",\n        body.len(),\n        stream.connection()\n",
     ),
     (
         "the not-found page has no heading",
