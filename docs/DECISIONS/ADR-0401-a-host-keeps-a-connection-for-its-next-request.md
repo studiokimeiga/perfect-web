@@ -1,11 +1,12 @@
-# ADR-XXXX: a host keeps a connection for its next request
+# ADR-0401: a host keeps a connection for its next request
 
-Status: proposed, 2026-11-06, on branch `perf/keep-alive-20261106`, on top of
-the first press (PR #76) with master merged in (`ac3ea31c`). Proposed under
-the owner's standing order of 2026-10-25 (decide by best judgement, without
-asking) and the owner's approval on 2026-11-06 of "keep-alive in the host" as
-a follow-up of its own. Not landed; not numbered (the integrator numbers
-ADRs). Milestone: E14.
+Status: accepted 2026-11-08, landed with train-15 under the owner's delegation
+of 2026-10-02, after its review's repairs. Proposed 2026-11-06, on branch
+`perf/keep-alive-20261106`, on top of the first press (PR #76) with master
+merged in (`ac3ea31c`). Proposed under the owner's standing order of
+2026-10-25 (decide by best judgement, without asking) and the owner's approval
+on 2026-11-06 of "keep-alive in the host" as a follow-up of its own.
+Milestone: E14.
 
 ## Context
 

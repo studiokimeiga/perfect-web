@@ -2,6 +2,12 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Train-15, 2026-11-08:** on train-14, it lands keep-alive (PR #86, ADR-0401)
+with its review's repairs, TodoMVC's checkbox drawn in CSS (PR #81, ADR-0367
+amended; its WebKit failure was the test measuring device pixels), and every
+workflow action pinned to a commit with `verify`'s token scoped to reading.
+Longer holds (#87, ADR-0402 reserved) stay held.
+
 **Train-14, 2026-11-07:** the owner asked that every open PR be merged. Train-14
 merges, onto `5d4d4d55`: PR #73 (24 verify shards), #71 (the scheduled-order
 race), #72 with the closed-table cache repair (ADR-0394), the performance stack
