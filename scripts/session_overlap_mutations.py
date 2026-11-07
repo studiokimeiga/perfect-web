@@ -15,6 +15,8 @@ admission (`main.rs`) or of the admission's statements (`hosts.rs`):
   admission overtook removes nothing; the tickets compared before the gate
   and the sessions lock are taken;
 - the runtime's three files answered before admission (PR #63's exemption);
+- (from the first press, its ADR amended 2026-11-06) a warming host that
+  keeps sessions does not warm, as before the repair;
 - a refused admission, a page's or a command's, not logged by its kind;
 - (from the review, on PostgreSQL) an admission's read that waits for the
   session's lock; a write due at every admission; a due write that waits for
@@ -24,7 +26,7 @@ admission (`main.rs`) or of the admission's statements (`hosts.rs`):
   the write; a session connection that bounds no lock wait.
 
 The tests: identity.rs's admission tests, and `tests::session_overlap::`'s
-four in this process and its seven on PostgreSQL, in one frozen inventory.
+four in this process and its eight on PostgreSQL, in one frozen inventory.
 The PostgreSQL tests skip without a database, so this script refuses to run
 without PW_FEED_DATABASE_URL: it never passes by skipping.
 
@@ -68,9 +70,11 @@ TEST_NAMES = [
     "identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session",
     "identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure",
     "identity::tests::two_overlapping_admissions_of_one_session_are_each_answered",
+    "tests::session_overlap::a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered",
     "tests::session_overlap::every_request_is_admitted_and_a_failed_read_refuses_it",
     "tests::session_overlap::in_memory_a_request_admitted_while_another_is_under_way_is_answered",
     "tests::session_overlap::on_postgres_a_due_touch_is_skipped_under_a_commands_lock_and_made_once_free",
+    "tests::session_overlap::on_postgres_a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered",
     "tests::session_overlap::on_postgres_a_session_signed_out_between_the_read_and_the_write_is_no_one",
     "tests::session_overlap::on_postgres_admissions_under_a_commands_lock_delay_no_other_readers_page",
     "tests::session_overlap::on_postgres_an_admission_never_waits_for_a_command_holding_its_session",
@@ -172,10 +176,18 @@ MUTANTS = [
      '            "/pw-runtime.mjs" | "/pw-resume.wasm" | "/pw-render.wasm"\n'
      "        )\n"
      "    {\n"
-     "        serve_file(server, &mut stream, route);\n"
+     # The first press's `serve_file`: the request's whole path, whose query
+     # names its delivery, and its headers (merged 2026-11-06).
+     "        serve_file(server, &mut stream, path, &headers);\n"
      "        return;\n"
      "    }\n"
      "    let upload_request = server.uploads.claims(method, route);\n"),
+    # From the first press (its ADR, amended 2026-11-06): a host that keeps
+    # sessions warms, now that its warm-up's overlapping admissions are each
+    # answered.
+    ("a host that keeps sessions does not warm (the first press's rule before the repair)", MAIN,
+     "            if server.warm {\n",
+     "            if server.warm && server.identity.principals().kept().is_none() {\n"),
     ("a page's refused admission is not logged", MAIN,
      "            Err(why) => {\n"
      "                refused_admission(server, &why);\n"

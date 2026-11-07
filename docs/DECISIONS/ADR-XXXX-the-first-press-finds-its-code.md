@@ -8,6 +8,47 @@ head-to-head). Proposed under the owner's standing order of 2026-10-25
 React and Svelte without asking. Not landed; not numbered (PARALLEL.md: the
 integrator numbers ADRs). Milestone: E14 (ADR-0392's "Next", items 1 and 5).
 
+## Amendment: a host that keeps sessions warms, 2026-11-06
+
+**Why.** Decision 2 kept a host that admits from a kept source from warming
+"until ADR-0389's repair", and question 5 asked whether the repair should land
+first. It had already landed: master took it on 2026-11-06 in PR #67, which
+added ADR-0389's sections of 2026-11-02, "Overlapping admissions of one
+session are each answered" and its review. This branch was cut at
+`45e0c1a6`, before that.
+
+**What changes.** The change is on branch `perf/kept-source-warms-20261106`,
+on top of #76 with master merged in at `ac3ea31c`:
+- The handler table says `#warm|1` wherever the build warms, on a host that
+  keeps sessions too. `Principals::admits_from_a_kept_source`, which only
+  this rule read, is removed, and so is its test.
+- The merge had two conflicts, both PR #63's exemption of the runtime's three
+  files, and resolved them to master's side, which removed it. Those files
+  are admitted as every request is. The GET fallback serves them with the
+  request's whole path, its query naming the delivery, as the exemption did.
+  `scripts/session_overlap_mutations.py`'s control that restores the
+  exemption is rewritten for this branch's `serve_file`; as master wrote it,
+  it would no longer build.
+
+**Held by.**
+- `tests::session_overlap::a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered`:
+  - A warming host whose sessions are kept says `#warm|1`.
+  - Six requests of one session, sent together, are each answered. Five
+    are what a warming page has under way: the runtime, its WebAssembly, the
+    handler table, the renderer and a handler module. The sixth is a second
+    tab's page.
+  - Every admission read meets the others before any ends. Six is as many as
+    a browser sends to one origin over HTTP/1.1 at a time.
+- Its PostgreSQL twin, `on_postgres_…`, with a press in place of the page.
+- `scripts/session_overlap_mutations.py`:
+  - It holds both tests in its frozen inventory, now 24 tests.
+  - It has a control for the rule restored: a host that keeps sessions does
+    not warm.
+
+**Unchanged.** Admission, delivery's inspection and a command's fence are
+ADR-0389's. A warm-up asks only for the build's files and the handler
+modules the decision authorised, and admits each as before.
+
 ## Context
 
 ADR-0392 measured where Pleris loses to the mainstream stacks, and its
@@ -64,11 +105,11 @@ keeps that, and changes only when the browser asks for them.
    every build before it, fetches a handler at its first press.
 
    A host that admits from a kept source (accounts on, and sessions kept
-   where every host reads them, ADR-0369) does not warm, until ADR-0389's
-   repair. There, of two admissions of one session that overlap, one is
-   answered 503, a command `session_changed` (ADR-0389, amended
-   2026-11-02), and a warm-up's requests overlap by design (the review,
-   below; question 5).
+   where every host reads them, ADR-0369) warms as any other: see the
+   amendment of 2026-11-06, above. Until then it did not, because there, of
+   two admissions of one session that overlapped, one was answered 503 and
+   a command `session_changed` (ADR-0389, amended 2026-11-02). A warm-up's
+   requests overlap by design. ADR-0389's overlap repair answers each.
 3. **Loaded, not merely fetched.** Warming uses the press's loaders
    (`loadHandler`, `computedValues`, `speculations`, `renderModule`), so a
    module is fetched and evaluated before the press: a compiled handler's
@@ -274,10 +315,10 @@ not replace them.
 
 The review's fixes (below) are held by tests and mutation controls, not by
 measurement: the numbers above were taken before them. Also not claimed:
-- **A host that keeps sessions.** It does not warm (decision 2). The head's
-  preload of the table can still overlap the page's own admitted
-  stylesheets and images there, as those already overlap each other
-  (ADR-0389).
+- **A host that keeps sessions, in a browser.** It warms since the
+  amendment of 2026-11-06. Its host's tests, in this process and on
+  PostgreSQL, hold that. No browser test runs a warming build on hosts that
+  keep sessions: the second host's spec runs development builds.
 - **A file replaced in a running host's `dist`.** It is sent `immutable`
   under the id the host computed when it started, until the host restarts.
 - **Every push site's wake.** Two wakes are held by tests: a frame pushed,
@@ -305,7 +346,7 @@ without it (built and served as the suite serves it), except where noted:
 | A soft navigation across a redeploy paired a new runtime with old, kept Wasm | Fixed: `pw-delivery` (`874068b7`) |
 | A press inherited a warm-up's deadline | Fixed: a deadline per press (`72edb56d`) |
 | "The page is as it was" could not fail | Fixed: a mark a live morph removes (`85faaa9a`) |
-| Overlapping session admissions, made routine | Guarded: no warming where admission reads a kept source (`b6e38417`); question 5 |
+| Overlapping session admissions, made routine | Guarded: no warming where admission reads a kept source (`b6e38417`); question 5. Lifted by the amendment of 2026-11-06: ADR-0389's overlap repair (PR #67) answers each |
 | A cut's wake could be lost, and none was tested | Fixed and tested (`906fdbaf`); one look for a cut a pass, so that its control sees the look go (`21863b22`) |
 | The cache policy, untested through its routes | Tested (`bf07fe9e`) |
 | `warmPaths` outlived its runtime, ran outside idle, and had no bound | Fixed; read, not observed, by a test (`d8e1b639`) |
@@ -375,8 +416,6 @@ and green.
    alternative within the policy is for the page to preload both drawings,
    two more requests in its first load.
 5. Should ADR-0389's repair land before warming builds serve hosts that
-   keep sessions? The repair would answer a request superseded by another
-   admission from its own read, or serialize one session's admissions.
-   Until it lands, such a host does not warm (decision 2). The alternative
-   ADR-0389 names, exempting the handler table as the runtime's three files
-   are, would take the table out of it but not the handlers' modules.
+   keep sessions? **Answered** by the amendment of 2026-11-06: the repair had
+   landed on master (PR #67). With master merged in, such a host warms, and
+   its warm-up's overlapping requests are each answered.

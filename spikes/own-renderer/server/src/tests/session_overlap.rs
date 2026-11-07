@@ -22,6 +22,11 @@
 //! an expired row deleted) is made only where nobody holds the lock. The
 //! tests hold the lock as a command does (`hosts::command_session_lock`).
 //!
+//! And, from the first press (its ADR, amended 2026-11-06): **a host that
+//! keeps sessions warms**, and a warm-up's requests, sent together, are each
+//! answered. Six requests of one session read it at once, in this process
+//! and on PostgreSQL, where one of them is a press.
+//!
 //! The PostgreSQL tests pass doing nothing without a database:
 //! `just e14-session-overlap` refuses to run without one.
 
@@ -328,6 +333,157 @@ fn on_postgres_two_requests_of_one_session_whose_admissions_overlap_are_each_ans
     }
     kept.after_each_read(None);
     assert!(failures.is_empty(), "{failures:#?}");
+}
+
+/// **What a warming page has under way at once**: the runtime, its
+/// WebAssembly and the handler table its head asks for together, and the
+/// renderer and a handler module it warms (`warm` in `pw-runtime.mjs`).
+/// With one more request of the session beside them, six: as many as a
+/// browser sends to one origin over HTTP/1.1 at a time.
+fn warm_up(s: &Server) -> Vec<Ask> {
+    let handler = s
+        .handler_identities()
+        .into_iter()
+        .next()
+        .expect("the feed has a handler");
+    [
+        "/pw-runtime.mjs".to_string(),
+        "/pw-resume.wasm".into(),
+        "/pw-handlers".into(),
+        "/pw-render.wasm".into(),
+        format!("/handler/{handler}.mjs"),
+    ]
+    .into_iter()
+    .map(Ask::Get)
+    .collect()
+}
+
+/// Each of `asks` sent at once as `session`, its answers in its order.
+fn sent_at_once(s: &Server, session: &str, asks: &[Ask]) -> Vec<String> {
+    std::thread::scope(|scope| {
+        let sent: Vec<_> = asks
+            .iter()
+            .enumerate()
+            .map(|(n, ask)| scope.spawn(move || ask.sent(s, session, n)))
+            .collect();
+        sent.into_iter()
+            .map(|answer| answer.join().expect("each request answered"))
+            .collect()
+    })
+}
+
+/// Each of `asks` not answered as it is alone, with its status line.
+fn not_answered(asks: &[Ask], answers: &[String]) -> Vec<String> {
+    asks.iter()
+        .zip(answers)
+        .filter(|(ask, answer)| !ask.answered(answer))
+        .map(|(ask, answer)| format!("{ask:?}: {}", answer.lines().next().unwrap_or("no answer")))
+        .collect()
+}
+
+/// Whether the handler table `answer` says its build warms (`#warm|1`).
+fn says_it_warms(answer: &str) -> bool {
+    answer.starts_with("HTTP/1.1 200 OK")
+        && answer
+            .split_once("\r\n\r\n")
+            .is_some_and(|(_, table)| table.lines().any(|line| line == "#warm|1"))
+}
+
+/// **A host that keeps sessions warms, and a warm-up's requests, sent
+/// together, are each answered** (the first press's ADR, amended
+/// 2026-11-06). The first press warmed no such host: of two admissions of
+/// one session whose reads overlapped, one was refused, and a warm-up asks
+/// for its modules together. Here a warming page's five requests and a
+/// second tab's page read the session at once, every read meeting the
+/// others before any ends.
+#[test]
+fn a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered() {
+    let mut s = served_feed();
+    s.server.warm = true;
+    with_runtime_files(&s);
+    s.identity.signed_in_for_test("reader", "ada", "Ada");
+    let identity::ReaderIdentity::Account(reader) = s.identity.principals().bound_reader("reader")
+    else {
+        panic!("an account reader");
+    };
+    let source = Arc::new(Paired {
+        reader,
+        meeting: Mutex::new(Meeting::of(1)),
+        reads: AtomicUsize::new(0),
+        alone: AtomicUsize::new(0),
+    });
+    s.identity.principals().keep_in(source.clone());
+    let table = get_as(&s, "reader", "/pw-handlers");
+    assert!(
+        says_it_warms(&table),
+        "a warming host that keeps sessions says it warms: {table}"
+    );
+    let mut asks = warm_up(&s);
+    asks.push(Ask::Get("/".into()));
+    *source.meeting.lock().expect("meeting") = Meeting::of(asks.len());
+    let before = (
+        source.reads.load(Ordering::SeqCst),
+        source.alone.load(Ordering::SeqCst),
+    );
+    let answers = sent_at_once(&s, "reader", &asks);
+    let read = (
+        source.reads.load(Ordering::SeqCst) - before.0,
+        source.alone.load(Ordering::SeqCst) - before.1,
+    );
+    assert_eq!(
+        read,
+        (asks.len(), 0),
+        "each admitted at once: (reads, alone)"
+    );
+    let refused = not_answered(&asks, &answers);
+    assert!(refused.is_empty(), "{refused:#?}");
+}
+
+/// **On PostgreSQL, a host that keeps sessions warms, and a warm-up's
+/// requests are each answered, beside a press made while it warms** (the
+/// first press's ADR, amended 2026-11-06): a warming page's five requests
+/// and a post read the session at once, each read meeting the others after
+/// it reads (a test's step in `SessionsPg::session`).
+#[test]
+fn on_postgres_a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered() {
+    let Some(url) = database() else { return };
+    let db = Schema::new(&url, "warmup");
+    let provider = Arc::new(TestProvider::default());
+    let mut a = feed_host_signing_in(&url, &db, &provider);
+    a.server.warm = true;
+    with_runtime_files(&a);
+    let ada = signed_in(&a, &provider, "s-warm", "ada");
+    let table = get_as(&a, &ada, "/pw-handlers");
+    assert!(
+        says_it_warms(&table),
+        "a warming host that keeps sessions says it warms: {table}"
+    );
+    let kept = a.identity.principals().kept().expect("sessions kept");
+    let mut asks = warm_up(&a);
+    asks.push(Ask::Post("warming".into()));
+    let meeting = Arc::new(Mutex::new(Meeting::of(asks.len())));
+    let (reads, alone) = (Arc::new(AtomicUsize::new(0)), Arc::new(AtomicUsize::new(0)));
+    let step = {
+        let (meeting, reads, alone) = (meeting.clone(), reads.clone(), alone.clone());
+        move || {
+            reads.fetch_add(1, Ordering::SeqCst);
+            let meeting = meeting.lock().expect("meeting").clone();
+            if !meeting.arrive() {
+                alone.fetch_add(1, Ordering::SeqCst);
+            }
+        }
+    };
+    kept.after_each_read(Some(Arc::new(step)));
+    let answers = sent_at_once(&a, &ada, &asks);
+    kept.after_each_read(None);
+    let read = (reads.load(Ordering::SeqCst), alone.load(Ordering::SeqCst));
+    assert_eq!(
+        read,
+        (asks.len(), 0),
+        "each admitted at once: (reads, alone)"
+    );
+    let refused = not_answered(&asks, &answers);
+    assert!(refused.is_empty(), "{refused:#?}");
 }
 
 /// **How long an admission may take while a command holds its session's
