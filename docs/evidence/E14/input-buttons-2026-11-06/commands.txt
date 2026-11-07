@@ -68,3 +68,9 @@ The machine: other sessions built and tested on it at the same time;
 CARGO_BUILD_JOBS=8 and PW_MUTANT_INCREMENTAL=1, from ~/pw-setup/env.sh.
 This worktree's .git link was made relative and its executable bits
 restored before any of this: the desktop app's checkout had neither.
+
+Note (train-14's integrator, 2026-11-07): the two inputs are kept as
+`find.pw.txt` and `find-refused.pw.txt`. Every tracked `.pw` file is a
+program the check census (`just e14-check-is-build`) must cover, and a
+record of an input is none. To reproduce, copy each to its `.pw` name
+first. The records above name them as they were when they were run.
