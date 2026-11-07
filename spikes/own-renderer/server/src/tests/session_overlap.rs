@@ -390,7 +390,7 @@ fn says_it_warms(answer: &str) -> bool {
 }
 
 /// **A host that keeps sessions warms, and a warm-up's requests, sent
-/// together, are each answered** (the first press's ADR, amended
+/// together, are each answered** (ADR-0399, amended
 /// 2026-11-06). The first press warmed no such host: of two admissions of
 /// one session whose reads overlapped, one was refused, and a warm-up asks
 /// for its modules together. Here a warming page's five requests and a

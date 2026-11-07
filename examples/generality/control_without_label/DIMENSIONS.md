@@ -21,7 +21,7 @@ rule read only the control's own attributes. A row for
 there, stood here too: since ADR-0185 that reference is PW5032's, and the
 witness is `reference_names_nothing/labelledby-nothing.pw`.
 
-The last two rows were added on 2026-11-06 (the input-button ADR). Until
+The last two rows were added on 2026-11-06 (ADR-0405). Until
 then PW5014 refused both of `buttons.pw`'s buttons for having no `<label>`,
 and passed every `submit` input, `blank-submit.pw`'s included. An image
 button's `alt` is held by PW5053: `image_without_alt/image-button-empty-alt.pw`.

@@ -378,7 +378,7 @@ const C8_CLASSIFIED: &[(&str, Why, &str)] = &[
          keyed by, so no read of it goes stale: its category, a key that changes \
          without a stale-work policy (charter §15.6, test 7), needs a key that \
          changes. A key changes while its read runs only where a page's signal \
-         keys the query (ADR-0152), and the stale-key ADR made PW0325, the rule \
+         keys the query (ADR-0152), and ADR-0403 made PW0325, the rule \
          it declared, PW5309's old number. The current fixture is that page, \
          refused for signal_key_stale_work (C30); the old text keeps only the \
          two unresolved types C8's repair imported.",
@@ -775,7 +775,7 @@ fn the_c16_texts_are_reported_where_their_defects_are() {
     );
 }
 
-/// **C30: a key that changes is asked where it changes** (the stale-key ADR,
+/// **C30: a key that changes is asked where it changes** (ADR-0403,
 /// `docs/CORPUS.md` §C30).
 ///
 /// R-027 was a query alone that declares a `concurrency` and no

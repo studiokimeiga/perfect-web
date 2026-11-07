@@ -1,4 +1,4 @@
-# The refusal codes' ADR: the browser's decision carries none of its trace's
+# ADR-0400: the browser's decision carries none of its trace's
 # words, and a refused handler is told in the console by its code and the
 # page that explains it (`pleris.dev/e/PWR04`). The decision's tests with its
 # trace and without, the two browser tests in Chromium, and the mutation
@@ -7,7 +7,7 @@ e14-refusal-codes:
     @BUILD_ONLY=1 bash spikes/own-renderer/run.sh > /dev/null
     @cargo build --quiet --locked -p pw-dev-server
     @mkdir -p docs/evidence/E14
-    @{ echo "The refusal codes' ADR - a refusal has a code and a page, and the browser's decision carries no words"; echo; \
+    @{ echo "ADR-0400 - a refusal has a code and a page, and the browser's decision carries no words"; echo; \
        echo "produced by: just e14-refusal-codes"; \
        echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' ':(exclude)spikes/own-renderer/store-ir.json' || echo ' + uncommitted changes')"; \
        echo "rust: $(rustc --version)"; echo "node: $(node --version)"; \

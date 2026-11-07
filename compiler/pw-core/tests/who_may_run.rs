@@ -1,4 +1,4 @@
-//! **A command says who may run it** (PW0367, the requires ADR).
+//! **A command says who may run it** (PW0367, ADR-0406).
 //!
 //! The server runs a command for any request that names it, whether or not a
 //! page shows its button. Until 2026-11-06 a command that said nothing of who

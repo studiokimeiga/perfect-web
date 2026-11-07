@@ -4,7 +4,7 @@
 //
 // Structurally different from R-027: the key is a number, beside a page's
 // parameter, and the query declares no `concurrency`. That is the shape
-// `PW0325` let through until the stale-key ADR, which asked for the policy
+// `PW0325` let through until ADR-0403, which asked for the policy
 // only where a `concurrency` was written.
 
 module generality.results_page

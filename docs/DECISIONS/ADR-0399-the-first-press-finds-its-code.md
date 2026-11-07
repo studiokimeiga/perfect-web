@@ -1,12 +1,13 @@
-# ADR-XXXX: the first press finds its code: boot preloads, and a production build warms
+# ADR-0399: the first press finds its code: boot preloads, and a production build warms
 
-Status: proposed, 2026-11-06, on branch `perf/first-press-20261106` (PR #76,
-a draft), stacked on PR #75 (`perf/production-assets-20261104`, itself stacked on #68's
-head-to-head). Proposed under the owner's standing order of 2026-10-25
-("deciding by best judgement without asking") and the owner's instruction of
-2026-11-06 to continue the performance work against Next.js, SvelteKit,
-React and Svelte without asking. Not landed; not numbered (PARALLEL.md: the
-integrator numbers ADRs). Milestone: E14 (ADR-0392's "Next", items 1 and 5).
+Status: accepted 2026-11-07, landed with train-14 under the owner's delegation
+of 2026-10-02. Proposed 2026-11-06, on branch `perf/first-press-20261106` (PR
+#76, a draft), stacked on PR #75 (`perf/production-assets-20261104`, itself
+stacked on #68's head-to-head). Proposed under the owner's standing order of
+2026-10-25 ("deciding by best judgement without asking") and the owner's
+instruction of 2026-11-06 to continue the performance work against Next.js,
+SvelteKit, React and Svelte without asking. Milestone: E14 (ADR-0392's "Next",
+items 1 and 5).
 
 ## Amendment: a host that keeps sessions warms, 2026-11-06
 

@@ -1,4 +1,4 @@
-// The first press's ADR: a build that warms fetches, once its page is
+// ADR-0399: a build that warms fetches, once its page is
 // interactive and loaded, the code its presses will need, so that its first
 // press waits for no network. E7-L's order still holds: the decision is
 // asked first, and a refused handler is never fetched.
@@ -120,7 +120,7 @@ test("a warmed handler's first press fetches nothing", async ({ page }) => {
 });
 
 test("a handler the decision refuses is never warmed", async ({ page }) => {
-  // The first press's ADR keeps E7-L's order: decide, then fetch. A
+  // ADR-0399 keeps E7-L's order: decide, then fetch. A
   // document naming a handler this build did not compile (as one cached
   // from another build would) is refused it, and its code never fetched,
   // while the four it may run are warmed.
@@ -280,7 +280,7 @@ test("the renderer and the speculation module are warmed with the handlers", asy
 });
 
 test("a build that warms runs a block's paths on a copy, and the page is as it was", async ({ page }) => {
-  // The first press's ADR: the renderer runs each of its requests on its
+  // ADR-0399: the renderer runs each of its requests on its
   // own sample, and each block is rendered at the values it shows and
   // morphed into a copy in an inert document. Nothing the page shows
   // changes and nothing takes focus; the first press renders as before.

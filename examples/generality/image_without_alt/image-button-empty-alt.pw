@@ -3,7 +3,7 @@
 // @dimension: indirect invalid — an image button with `alt=""` beside an `aria-label`
 //
 // An `<img>` may have `alt=""`; an image button may not, because its `alt`
-// is its label (the input-button ADR). The `aria-label` names it to a screen
+// is its label (ADR-0405). The `aria-label` names it to a screen
 // reader, and nothing gives it a label where the image does not load.
 module generality.image_button_empty_alt
 

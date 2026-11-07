@@ -1,9 +1,9 @@
-# ADR-XXXX: an image says what it shows
+# ADR-0404: an image says what it shows
 
-Status: proposed, 2026-11-06, on branch `fix/img-alt-20261106` (a draft PR
-against `master`). Asked for by the owner on 2026-11-06: "an `<img>`
-without `alt` should be refused". Not landed; not numbered (PARALLEL.md:
-the integrator numbers ADRs).
+Status: accepted 2026-11-07, landed with train-14 under the owner's delegation
+of 2026-10-02. Proposed 2026-11-06, on branch `fix/img-alt-20261106` (a draft
+PR against `master`). Asked for by the owner on 2026-11-06: "an `<img>`
+without `alt` should be refused".
 
 ## Context
 

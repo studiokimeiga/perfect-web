@@ -28,7 +28,7 @@
 //! build compiles none of its words (`pw-resume`'s `trace` feature, off
 //! here), which were a tenth of every page's decision. A refusal is told by
 //! its code, which `pleris.dev/e/PWR<code>` explains, and by its recovery
-//! (the refusal codes' ADR).
+//! (ADR-0400).
 
 use std::sync::Mutex;
 

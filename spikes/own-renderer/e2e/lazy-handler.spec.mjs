@@ -232,7 +232,7 @@ test("a handler this build did not compile is refused, whatever the document say
 
   expect(log, "the build's handlers are known").toMatch(/knows \d+ handler\(s\)/);
   expect(log, "this one is not among them").toMatch(/refused \d+: code 4 /);
-  // The refusal codes' ADR: a developer is told in the console, by the code
+  // ADR-0400: a developer is told in the console, by the code
   // and the page that explains it.
   expect(warned, "the console names the refusal and its page").toContainEqual(
     expect.stringMatching(/^Pleris: handler \d+ not attached: PWR04, https:\/\/pleris\.dev\/e\/PWR04, recovery \S+$/),

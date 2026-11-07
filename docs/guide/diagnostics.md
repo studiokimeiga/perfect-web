@@ -14,7 +14,7 @@ code the compiler can emit, from its registry, `compiler/pw-core/src/codes.rs`.
 - **What the program must hold to**: the registry's own sentence.
 - **ADR**: the decisions its registry entry cites, where it cites one.
 
-222 codes are registered; 96 of them cite an ADR in the registry.
+222 codes are registered; 97 of them cite an ADR in the registry.
 A code whose entry cites none is marked `—`: search `docs/DECISIONS/` for its
 number or its symbol.
 
@@ -74,7 +74,7 @@ number or its symbol.
 | PW0102 | `session_state_is_fresh` | session-owned state may not be served stale | — |
 | PW0312 | `retry_not_idempotent` | a command that retries must be idempotent | — |
 | PW0338 | `sent_without_idempotency` | a command a page's handler calls declares `idempotent_by` | [0154](../DECISIONS/ADR-0154-a-command-a-page-sends-declares-idempotent-by.md) |
-| PW0367 | `who_may_run` | a command a reader can run says who may: `requires` and the predicates every request must hold, or `requires Anyone`, which stands alone and is the platform's | — |
+| PW0367 | `who_may_run` | a command a reader can run says who may: `requires` and the predicates every request must hold, or `requires Anyone`, which stands alone and is the platform's | [0406](../DECISIONS/ADR-0406-a-command-says-who-may-run-it.md) |
 | PW0339 | `command_outside_a_handler` | a command is called only by a page's handler | [0157](../DECISIONS/ADR-0157-a-handler-is-answered-what-its-command-did.md) |
 | PW0340 | `route_names_its_parameters` | a route is `/` and segments, a word or a `{parameter}` each, and names each of its page's parameters once | [0160](../DECISIONS/ADR-0160-a-page-s-route.md) |
 | PW0341 | `route_declared_twice` | one route is one page's: an address names the page it is for | — |
@@ -218,7 +218,7 @@ number or its symbol.
 | PW5012 | `invalid_nesting` | an element may only contain the children HTML permits | — |
 | PW5013 | `handler_on_inert` | interactive behaviour belongs on an element that can receive it | — |
 | PW5014 | `control_without_label` | a form control must have something that names it | — |
-| PW5053 | `image_without_alt` | an image says what it shows: an `<img>` has an `alt`, empty only where it shows nothing a reader needs, and an image button an `alt` that says what it does | [0343](../DECISIONS/ADR-0343-a-guide-whose-examples-compile.md) |
+| PW5053 | `image_without_alt` | an image says what it shows: an `<img>` has an `alt`, empty only where it shows nothing a reader needs, and an image button an `alt` that says what it does | [0404](../DECISIONS/ADR-0404-an-image-says-what-it-shows.md), [0343](../DECISIONS/ADR-0343-a-guide-whose-examples-compile.md), [0405](../DECISIONS/ADR-0405-an-input-button-names-itself.md) |
 | PW5019 | `malformed_template_block` | a template block closes with its own name and holds only the markers it takes | [0042](../DECISIONS/ADR-0042-template-branches-and-attributes.md) |
 | PW5020 | `view_element` | an element named with a capital letter is a view the compiler composes | [0072](../DECISIONS/ADR-0072-an-element-named-with-a-capital-is-a-view.md) |
 | PW5021 | `loop_key` | a loop's key is its element, or a field read from it | [0073](../DECISIONS/ADR-0073-a-template-reads-each-value-by-path.md) |

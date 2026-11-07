@@ -189,7 +189,7 @@ fn violations(entry: &ResumeEntry, rt: &Runtime, c: Construct, d: &Decision) -> 
     } = d
     {
         // In words where the decision keeps them: the `trace` feature, which
-        // the browser's build leaves out (the refusal codes' ADR).
+        // the browser's build leaves out (ADR-0400).
         if cfg!(feature = "trace") && trace.is_empty() {
             return Some("refused with no causal trace".into());
         }

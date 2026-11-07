@@ -2,6 +2,22 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Train-14, 2026-11-07:** the owner asked that every open PR be merged. Train-14
+merges, onto `5d4d4d55`: PR #73 (24 verify shards), #71 (the scheduled-order
+race), #72 with the closed-table cache repair (ADR-0394), the performance stack
+#68, #75, #76, #78, #85 (ADR-0392, ADR-0398 to ADR-0400), pleris.dev
+#77, and the compiler changes #79, #80, #82, #84, #83, #88, #89, #90
+(ADR-0403 to ADR-0406). It lands only on its own green `ci` and `verify`.
+- Corpus C32: 44 accepted, 97 rejected programs, every charter category
+  covered; generality 67 / 67 (`image_without_alt` and `who_may_run`).
+- Held, each with its reason in [NEXT](NEXT.md): #86 and #87 (a review
+  found a request-smuggling hole and a 25 s recovery wait), #91 (not adopted:
+  ADR-0407 rules for `owned by`), #64 (`e14-pleris-controls` T11 failed), #81 (its
+  checkbox test fails in WebKit), #74 (experimental; claims ADR-0394), and
+  the dependency updates.
+
+The paragraphs below are dated history: #72 and the cache repair are merged.
+
 **Local continuation, 2026-11-02:** freshly fetched `origin/master` is
 `5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6`. D3 (PR #66), the added-table
 reference repair (#69), session overlap (#67), and the disk-fixture repair

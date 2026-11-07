@@ -1,12 +1,12 @@
-# ADR-XXXX: an input button names itself
+# ADR-0405: an input button names itself
 
-Status: proposed, 2026-11-06, on branch `claude/competent-dirac-a03323`.
-Not landed; not numbered (PARALLEL.md: the integrator numbers ADRs).
+Status: accepted 2026-11-07, landed with train-14 under the owner's delegation
+of 2026-10-02. Proposed 2026-11-06, on branch `claude/competent-dirac-a03323`.
 Milestone: E14. A correction to PW5014 (`control_without_label`, ADR-0143),
 found on 2026-11-06 while adding PW5053, the `<img>` alt rule. It extends
-PW5053 (`image_without_alt`, the image ADR,
-`ADR-XXXX-an-image-says-what-it-shows.md` on `fix/img-alt-20261106`), so
-the branch merges that one at `7bd477fa` and builds on it.
+PW5053 (`image_without_alt`, ADR-0404,
+`ADR-0404-an-image-says-what-it-shows.md` on `fix/img-alt-20261106`), so the
+branch merges that one at `7bd477fa` and builds on it.
 
 ## Context
 
@@ -109,7 +109,7 @@ Read on 2026-11-06.
    Unlike an `<img>`'s, the `alt` may not be empty: it is the button's
    label, and a button always does something a reader needs. A `title`,
    an `aria-label`, an `aria-labelledby` or a `<label>` does not stand in
-   for it, for the image ADR's reasons: HTML requires the `alt` beside
+   for it, for ADR-0404's reasons: HTML requires the `alt` beside
    them, and none of them is shown where the image does not load.
 3. **PW5014 does not report an image button.** Its name is its `alt`,
    which decision 2 holds: each image button is refused by PW5053 or named
@@ -140,7 +140,7 @@ Read on 2026-11-06.
   `aria-label` or a `title`.
 - **They differ on emptiness, by HTML's own rules.** `alt=""` is right for
   a decorative `<img>` and wrong for an image button.
-- **The image ADR deferred this.** Its alternatives say: "`<input
+- **ADR-0404 deferred this.** Its alternatives say: "`<input
   type="image">` is PW5014's today, and PW5014 refuses one with an `alt`
   for having no `<label>`, as it does `<input type="reset">`. ... That
   defect is the next change, on its own." This ADR is that change. Its
@@ -166,7 +166,7 @@ Read on 2026-11-06.
   what stands in for it. The symbol reads as the defect:
   `image_without_alt`.
 - **WCAG F65's set.** Taking an `aria-label`, `aria-labelledby` or `title`
-  in place of the `alt` is rejected, as in the image ADR.
+  in place of the `alt` is rejected, as in ADR-0404.
 - **Take `title` as a button's name**, HTML-AAM's last step. Rejected, as
   ADR-0143 rejected it for every control.
 - **Name a `submit` or `reset` with an empty `value` "Submit" or
@@ -237,7 +237,7 @@ Read on 2026-11-06.
 
 ## Questions for the integrator
 
-- **The image ADR is amended here.** Its decision 3 and PW5053's registry
+- **ADR-0404 is amended here.** Its decision 3 and PW5053's registry
   sentence change on this branch, which merges `fix/img-alt-20261106` at
   `7bd477fa`. If that branch gains commits, merge it here again; if it is
   rewritten, this branch must be merged with it again. Folding this
@@ -282,5 +282,5 @@ Reached and not run here:
   from the registry, which the guide's test holds equal to it. Its mutants
   are the guide's pages, its test, the generator and the tutorial's app,
   none of them changed here, and its browser mutants need the guestbook
-  spec on a port. The image ADR's branch changes that script and the guide,
+  spec on a port. ADR-0404's branch changes that script and the guide,
   and runs it.

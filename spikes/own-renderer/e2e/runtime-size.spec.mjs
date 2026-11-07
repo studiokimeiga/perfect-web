@@ -87,7 +87,7 @@ test("gate 7a: the static route ships no browser runtime", async ({ page }) => {
 });
 
 test("the decision's WebAssembly carries none of its trace's words", async ({ request }) => {
-  // The refusal codes' ADR: no page read the decision's causal trace, and its
+  // ADR-0400: no page read the decision's causal trace, and its
   // words were a tenth of the decision every page downloads. A refusal is
   // told by its code (`PWR04`), which pleris.dev explains, and its recovery.
   const wasm = await (await request.get("/pw-resume.wasm")).body();

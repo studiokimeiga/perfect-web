@@ -1,10 +1,10 @@
-# ADR-XXXX: a key that changes is asked for its stale work where it changes
+# ADR-0403: a key that changes is asked for its stale work where it changes
 
-Status: proposed, 2026-11-06, on branch `fix/stale-key-rule-20261106` (a
-draft PR against `master`). Decided by the owner on 2026-11-06, choosing
-this over rewording PW0325 or requiring the policy of every keyed query.
-Not landed; not numbered (PARALLEL.md: the integrator numbers ADRs).
-Amends ADR-0152's account of PW0325.
+Status: accepted 2026-11-07, landed with train-14 under the owner's delegation
+of 2026-10-02. Proposed 2026-11-06, on branch `fix/stale-key-rule-20261106` (a
+draft PR against `master`). Decided by the owner on 2026-11-06, choosing this
+over rewording PW0325 or requiring the policy of every keyed query. Amends
+ADR-0152's account of PW0325.
 
 ## Context
 

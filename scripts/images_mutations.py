@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mutation controls for the image ADR: an `<img>` says what it shows.
+"""Mutation controls for ADR-0404: an `<img>` says what it shows.
 
 Each mutant undoes one part of PW5053's rule:
 - an `<img>` with no `alt` is refused, wherever its view renders it, a loop
@@ -10,7 +10,7 @@ Each mutant undoes one part of PW5053's rule:
 - a `title`, an `aria-label` or a `role` does not;
 - only an `<img>` is held to it: a `<picture>`'s `<source>` is not.
 
-And the image button the input-button ADR adds (2026-11-06):
+And the image button ADR-0405 adds (2026-11-06):
 - an `<input type="image">`, its `type` read whatever its case and on an
   `<input>` alone, is refused where its `alt` is missing, blank or written
   alone: its `alt` is its label, so it is never blank, as an `<img>`'s may
@@ -36,7 +36,7 @@ CHECK = ROOT / "compiler/pw-core/src/check.rs"
 
 HAS_ALT = "    attrs.iter().any(|a| a.name == \"alt\")\n"
 IMAGE = "                if tag.as_str() == \"img\" && !has_alt(attrs) {\n"
-# The image button (the input-button ADR).
+# The image button (ADR-0405).
 IMAGE_BUTTON = (
     "                if tag.as_str() == \"input\"\n"
     "                    && input_type(attrs).as_deref() == Some(\"image\")\n"
@@ -112,7 +112,7 @@ MUTANTS = [
         "            format!(\"`{}` renders this image\", decl.name),\n",
         "            String::new(),\n",
     ),
-    # --- the image button (the input-button ADR) ---
+    # --- the image button (ADR-0405) ---
     (
         "an image button with no text in its `alt` is not refused",
         CHECK,

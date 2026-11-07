@@ -1224,9 +1224,7 @@ Opened because a fixture was wrong about the language. R-027 was a query
 alone that declares a `concurrency` and no `on_key_change`, refused by
 PW0325. Nothing in it changes the key, so no read of it goes stale. A key
 changes while its read runs only where a page's signal keys the query
-(ADR-0152), and PW5309 asks for the policy there. The stale-key ADR
-(`ADR-XXXX-a-key-that-changes-is-asked-where-it-changes.md`, numbered when it
-lands) removes PW0325's rule and makes PW0325 PW5309's old number. No
+(ADR-0152), and PW5309 asks for the policy there. [ADR-0403](DECISIONS/ADR-0403-a-key-that-changes-is-asked-where-it-changes.md) removes PW0325's rule and makes PW0325 PW5309's old number. No
 category changes.
 
 ```text
@@ -1255,8 +1253,7 @@ so rather than dropping it:
 
 Opened because a charter category was added: an image with no text
 alternative, under §8.2's "missing labels" and §17.4's "labels". PW5053
-refuses an `<img>` with no `alt`. The image ADR
-(`ADR-XXXX-an-image-says-what-it-shows.md`, numbered when it lands) is the
+refuses an `<img>` with no `alt`. [ADR-0404](DECISIONS/ADR-0404-an-image-says-what-it-shows.md) is the
 decision. No fixture changes, and no invariant is retired.
 
 ```text
@@ -1275,9 +1272,7 @@ Generality at open:        66/66 invariants generality-tested
 
 Opened because the specification changed, and a charter category was added
 under §7.5's "explicit mutation with authorization". A command a reader can
-run declares `requires` (PW0367); `requires Anyone` says anyone may. The
-requires ADR (`ADR-XXXX-a-command-says-who-may-run-it.md`, numbered when it
-lands) is the decision.
+run declares `requires` (PW0367); `requires Anyone` says anyone may. [ADR-0406](DECISIONS/ADR-0406-a-command-says-who-may-run-it.md) is the decision.
 
 ```text
 Corpus version:            C32

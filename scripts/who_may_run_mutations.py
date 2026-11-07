@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mutation controls for the requires ADR: a command says who may run it.
+"""Mutation controls for ADR-0406: a command says who may run it.
 
 Each mutant undoes one part of PW0367's rule, or of what `Anyone` means:
 - a command a reader can run, and one only a request names, says who may

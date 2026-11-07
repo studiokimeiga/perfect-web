@@ -3294,3 +3294,36 @@ The head-to-head: TodoMVC against TodoMVC's own React and Svelte apps and the st
 [ADR-0393](DECISIONS/ADR-0393-declared-tables-on-postgresql.md):
 Any program's declared tables on PostgreSQL, answering as the memory adapter does (ADR-0338's D3, track `d3-postgres`; independently reviewed and repaired 2026-11-02, its PR holds the landing record).
 - `runtime/pw-table-postgres` behind the memory adapter's interface: the schema made from tables.json once under an advisory lock and recorded, an unstated destructive change or a drifted catalog refused at start; one prepared statement per primitive (`= ANY`, `unnest`); a command one serializable transaction with the interaction's record and the outbox in commit order; a `COMMIT` never answered an unknown outcome. The review's eight repairs: nested floats exact (serde_json `float_roundtrip`, workspace-wide), a key field's retype and two objects of one name refused, the migration at read committed, backfills as hex or quoted, five more drifts seen, a write whose answer is unread failing its command, a lost outbox row refusing the commit. The development server does not serve it yet (`data-path`); a shared trait, scheduled runs and the outbox's reader are its follow-ups.
+
+**2026-11-07 — Train-14.** Ten decisions land together, numbered by the integrator at the merge: the data path (0394, reserved 2026-11-02), the week's performance, refusal and compiler changes (0398-0400, 0403-0406), and the ruling on row ownership (0407). ADR-0395 to ADR-0397 stay reserved for row ownership, deploy and durable tables, and ADR-0401 and ADR-0402 for keep-alive (#86) and longer holds (#87), which a review held for repair; none of these has landed.
+
+[ADR-0394](DECISIONS/ADR-0394-an-app-with-no-rust-data-layer.md):
+An app with no Rust data layer: its declared tables served through the gate (track `data-path`, PR #72; independently reviewed and repaired 2026-11-02).
+- A program whose contracts import a table's function is served from its build's `tables.json` by the generic memory adapter; every call goes through `call_authorized_with_tables`, which admits per component only what its contract and grant allow.
+- The guestbook runs on its own declared tables with no Rust data layer. With it lands the closed-table cache repair (`fix/tables-cached-refusals`): a cached query no longer answers after its adapter closes.
+
+[ADR-0398](DECISIONS/ADR-0398-production-asset-delivery.md):
+Public browser assets are packaged for production: the runtime minified, top-level JS, CSS, SVG and Wasm precompressed (Brotli, gzip), served with negotiated encoding, strong ETags and revalidation; private responses keep their boundary (PR #75, the head-to-head's first loss repaired).
+
+[ADR-0399](DECISIONS/ADR-0399-the-first-press-finds-its-code.md):
+The first press finds its code: a document preloads what its runtime boots with, and a production build warms its handlers once the page is interactive (PR #76).
+
+[ADR-0400](DECISIONS/ADR-0400-a-refusal-has-a-code-and-a-page.md):
+A refusal has a code and a page: the browser's decision compiles no words, and names each refusal `PWR02`-`PWR10`, which pleris.dev explains (PR #78).
+
+
+
+[ADR-0403](DECISIONS/ADR-0403-a-key-that-changes-is-asked-where-it-changes.md):
+A key that changes is asked for its stale work where it changes: PW5309 alone; PW0325 becomes its old number (PR #79, corpus C30).
+
+[ADR-0404](DECISIONS/ADR-0404-an-image-says-what-it-shows.md):
+An image says what it shows: PW5053 refuses an `<img>` with no `alt`; only `alt` stands for the image (PR #82, corpus C31).
+
+[ADR-0405](DECISIONS/ADR-0405-an-input-button-names-itself.md):
+An input button names itself: PW5014 reads a `submit` or `reset` by its value or HTML's default label, and PW5053 holds an image button to its `alt` (PR #84; amends ADR-0404).
+
+[ADR-0406](DECISIONS/ADR-0406-a-command-says-who-may-run-it.md):
+A command says who may run it: PW0367 refuses a command a reader can run that declares no `requires`; `requires Anyone` says anyone may, and is no precondition (PR #83, corpus C32).
+
+[ADR-0407](DECISIONS/ADR-0407-one-model-of-row-ownership.md):
+One model of row ownership: a row's owner is a field the platform checks against the writer, and its key leads with the owner (`owned by`, the row-ownership track). PR #91's hidden owner is not adopted: its keys are global, so a reader who first writes a key owns it and the rightful reader's writes are silently lost; what it found is carried into the track's landing.

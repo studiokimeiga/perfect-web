@@ -35,7 +35,7 @@ async function packAsset(directory, entry) {
 }
 
 /**
- * **How a production build is delivered** (the first press's ADR): its
+ * **How a production build is delivered** (ADR-0399): its
  * pages warm what their presses need once they are interactive, rather than
  * fetching each press's code when it is pressed (`warm`; the server tells
  * the browser on its handler table, `#warm|1`); and its files are named at
@@ -47,7 +47,7 @@ async function packAsset(directory, entry) {
 export const DELIVERY = { warm: true, versioned: true };
 
 /**
- * **The compiled modules a page loads** (the first press's ADR): its
+ * **The compiled modules a page loads** (ADR-0399): its
  * handlers, its computed values and its speculations, in the build's
  * directory, where the server serves them from. A production page warms
  * them, so each is sent with every first visit.

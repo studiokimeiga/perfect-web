@@ -580,8 +580,8 @@ fn generality_is_reported_separately_from_conformance() {
     // PW0365's warning has its own witnesses too. 65 / 65 at the combined
     // train-12 merge: device-store adds two witnesses (ADR-0366, C28),
     // generic effects adds three (ADR-0351, C29). 66 / 66 on 2026-11-06:
-    // the image ADR's `image_without_alt`, an `<img>` with no `alt` (C31).
-    // 67 / 67 at train-14's merge: the requires ADR's `who_may_run`, a
+    // ADR-0404's `image_without_alt`, an `<img>` with no `alt` (C31).
+    // 67 / 67 at train-14's merge: ADR-0406's `who_may_run`, a
     // command that says who may run it (C32). Measured below; update STATUS
     // and NEXT with the integrated result.
     assert_eq!(

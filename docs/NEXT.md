@@ -6,6 +6,47 @@
 
 # Next
 
+## After train-14, 2026-11-07
+
+Train-14 merges 22 PRs and the cache repair ([STATUS](STATUS.md)). What
+stays open, in order:
+
+1. **Row ownership lands as ADR-0407 rules.** `owned by <field>` (the
+   row-ownership track, reserved ADR-0395) is master's model; PR #91 does
+   not merge. Split the row, data and durable slice from
+   `fix/row-data-integration` (uploads, the outbox and the feed and store
+   go in PRs of their own), merge master, renumber its codes (ADR-0406
+   holds PW0367), add `requires` to its fixtures, carry #91's findings
+   (ADR-0407's decision 3), and re-run its gates on GitHub.
+2. **PRs #86 and #87, repaired before they land** (reserved ADR-0401 and
+   ADR-0402; an independent review on 2026-11-07):
+   - #86, keep-alive: a head read stops at a read error (a non-UTF-8 header
+     value, a stall) and is answered as complete on a kept connection, so a
+     proxy that reuses connections can be made to smuggle a request (any
+     error or end before the blank line is a 400 and a close; the head's
+     size is capped). Also: three file handles a connection against the
+     usual 1024, and an accept loop that spins when out of them; a next
+     request that waits for others' telling; a read bound per read rather
+     than a deadline, which no test holds; HEAD answered with a body.
+   - #87, longer holds: a failed regeneration (ADR-0176) is retried only by
+     the page's next subscription request, now up to 25 s away; frames pile
+     past `MAX_WAITING` on a held stream; and each tab holds one of
+     HTTP/1.1's six connections to an origin for 25 s.
+   - When both land, their mutation scripts and `session_overlap`'s run
+     whole, and #86's connection cap is read against #87's holds.
+3. **PR #81:** its pixel test of the checkbox fails in WebKit ("checked: the
+   bounds its drawing is past"); its session repairs the drawing.
+4. **PR #64:** `e14-pleris-controls` failed T11's positive control and
+   harness at `484437e2`; find the cause before it lands.
+5. **Two defects on master** (ADR-0407's decision 4), each its own PR: the
+   development server's scheduler keys a run by its command and arguments
+   alone (`schedules.rs`'s `key`), so one reader's schedule moves another's
+   pending run; and D3's PostgreSQL `put` is answered from its statement's
+   snapshot (`sql.rs`'s `old`), which a concurrent command can make wrong.
+6. **PR #74** names its decision ADR-0394, which the data path holds; it
+   takes the next free number when it lands. The dependency updates
+   (#16-#26, #65) are checked and landed on their own.
+
 ## Current local continuation, 2026-11-02
 
 Fetched `origin/master` is `5d4d4d55`; D3 PostgreSQL, added-table references,

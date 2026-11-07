@@ -282,7 +282,7 @@ codes! {
     // command a page's handler calls says how a second delivery is answered.
     SENT_WITHOUT_IDEMPOTENCY = "PW0338" / sent_without_idempotency / 1, DeclarationRules,
         "a command a page's handler calls declares `idempotent_by`";
-    // The requires ADR: the server runs a command for any request that names
+    // ADR-0406: the server runs a command for any request that names
     // it, so a command no page sends is a request away as well. Until
     // 2026-11-06 a command that said nothing of who may run it compiled, and
     // anyone could.
@@ -667,9 +667,9 @@ codes! {
         "interactive behaviour belongs on an element that can receive it";
     CONTROL_WITHOUT_LABEL = "PW5014" / control_without_label / 1, Markup,
         "a form control must have something that names it";
-    // The image ADR: until 2026-11-06 an `<img>` with no `alt` checked
+    // ADR-0404: until 2026-11-06 an `<img>` with no `alt` checked
     // clean, and the guide showed it as a gap in the checks (ADR-0343).
-    // The input-button ADR holds an image button's `alt` here too: it is
+    // ADR-0405 holds an image button's `alt` here too: it is
     // the button's label, so HTML lets it be neither missing nor empty.
     IMAGE_WITHOUT_ALT = "PW5053" / image_without_alt / 1, Markup,
         "an image says what it shows: an `<img>` has an `alt`, empty only where it shows nothing a reader needs, and an image button an `alt` that says what it does";

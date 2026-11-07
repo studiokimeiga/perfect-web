@@ -1,4 +1,4 @@
-//! **An image says what it shows** (PW5053, the image ADR).
+//! **An image says what it shows** (PW5053, ADR-0404).
 //!
 //! The HTML standard requires `alt` of every `<img>` (4.8.4.4): text that
 //! says what the image shows, or the empty string for one that shows nothing
@@ -151,7 +151,7 @@ fn each_image_is_reported_where_it_is() {
     );
 }
 
-// --- an image button (the input-button ADR) ----------------------------------
+// --- an image button (ADR-0405) ----------------------------------
 //
 // HTML 4.10.5.1.19: an `<input type="image">`'s `alt` "provides the textual
 // label for the button", and "must be present, and must contain a non-empty

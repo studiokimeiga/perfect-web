@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mutation controls for the refusal codes' ADR: the browser's decision
+"""Mutation controls for ADR-0400: the browser's decision
 carries none of its trace's words, and a refused handler is told in the
 console by its code and the page that explains it.
 

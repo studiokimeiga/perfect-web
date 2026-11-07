@@ -289,7 +289,7 @@ pub(crate) fn check_inferred_prepared(
         .map(|(i, u)| {
             let mut out = resolution.remove(&i).unwrap_or_default();
             out.extend(sent_without_idempotency(&u.hir, i, &sent));
-            // The requires ADR: a command a reader can run says who may.
+            // ADR-0406: a command a reader can run says who may.
             out.extend(who_may_run(&u.hir, i, &sent));
             // ADR-0157: a command is one request a page's handler sends, and
             // what it answers is whether it committed.
@@ -431,7 +431,7 @@ fn sent_without_idempotency(
     out
 }
 
-/// **A command says who may run it** (the requires ADR, PW0367).
+/// **A command says who may run it** (ADR-0406, PW0367).
 ///
 /// The server runs a command for any request that names it, whether or not a
 /// page shows its button (`/command/<id>` admits every command it hosts but
@@ -10788,7 +10788,7 @@ fn markup_rules(hir: &Hir, decl: &Decl, out: &mut Vec<Diagnostic>) {
                         .flatten();
                     // A `hidden` input is no control. An image button is
                     // named by its `alt`, which PW5053 holds to text above:
-                    // the one defect is reported once (the input-button ADR).
+                    // the one defect is reported once (ADR-0405).
                     if matches!(typ.as_deref(), Some("hidden" | "image")) {
                         continue;
                     }
@@ -10813,7 +10813,7 @@ fn markup_rules(hir: &Hir, decl: &Decl, out: &mut Vec<Diagnostic>) {
                     )];
                     related.extend(unnamed_because(body, &order, id, &decl.name));
                     // A button's label is its `value`, and the repair is one
-                    // (the input-button ADR).
+                    // (ADR-0405).
                     let button = matches!(typ.as_deref(), Some("submit" | "reset" | "button"));
                     out.push(Diagnostic {
                         code: "PW5014",
@@ -10904,7 +10904,7 @@ fn markup_rules(hir: &Hir, decl: &Decl, out: &mut Vec<Diagnostic>) {
 /// - an `aria-label` names it unless it is blank. One the program computes is
 ///   taken as a name: whether it is empty is known only when it runs;
 /// - an `<input>` button names itself, by its `value` or by the label HTML
-///   gives it (`names_itself`, the input-button ADR).
+///   gives it (`names_itself`, ADR-0405).
 ///
 /// An `id` names nothing by itself. Until ADR-0143 one counted as a name, on
 /// the assumption that a label pointed at it, and nothing checked that one
@@ -10953,7 +10953,7 @@ fn input_type(attrs: &[hir::Attr]) -> Option<String> {
     static_attr(attrs, "type").map(str::to_ascii_lowercase)
 }
 
-/// **Whether an `<input>` button names itself** (the input-button ADR; HTML
+/// **Whether an `<input>` button names itself** (ADR-0405; HTML
 /// 4.10.5.1.18, .20 and .21; HTML-AAM 4.1.2). Its label is its `value`, when
 /// that has text or the program computes it. With no `value`, a `submit` or a
 /// `reset` has the label HTML gives it, "Submit" or "Reset", and a `button`
@@ -11010,7 +11010,7 @@ fn labelled_but_for_its_id(
     labelled && (earlier || inside_each(body, order).contains(&control))
 }
 
-// --- what stands for an image (the image ADR) --------------------------------
+// --- what stands for an image (ADR-0404) --------------------------------
 
 /// Whether an `<img>` has an `alt`, whatever it holds: text, `""` (or the
 /// attribute alone, which HTML reads as `""`), or a value's. A `title`, an

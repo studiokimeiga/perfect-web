@@ -10,7 +10,7 @@ Each mutant undoes one part of PW5014's rule:
 - `aria-labelledby` must reach an element with text, and a blank
   `aria-label` names nothing.
 
-And each part the input-button ADR adds (2026-11-06):
+And each part ADR-0405 adds (2026-11-06):
 - an `<input>` button names itself: a `submit` or `reset` by its `value`, or
   with none by the label HTML gives it; a `button` by its `value` alone; a
   blank `value` names nothing;
@@ -105,7 +105,7 @@ MUTANTS = [
         "                    !hidden\n",
         "                    true\n",
     ),
-    # Since the input-button ADR an `aria-label`, a button's `value` and an
+    # Since ADR-0405 an `aria-label`, a button's `value` and an
     # image button's `alt` are read by one helper, `names_with`.
     (
         "a blank `aria-label` names a control",
@@ -149,7 +149,7 @@ MUTANTS = [
         "    static_attr(attrs, \"type\").map(str::to_ascii_lowercase)\n",
         "    static_attr(attrs, \"type\").map(str::to_string)\n",
     ),
-    # --- the input-button ADR ---
+    # --- ADR-0405 ---
     (
         "an image button is PW5014's again, refused for having no `<label>`",
         CHECK,

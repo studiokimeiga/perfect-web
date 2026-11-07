@@ -383,7 +383,7 @@ let decide = null;
  * handler table: empty until the table is read. */
 let servedBuild = "";
 
-/** Whether its build warms (the first press's ADR): the table's `#warm|1`. */
+/** Whether its build warms (ADR-0399): the table's `#warm|1`. */
 let buildWarms = false;
 
 /** The delivery this runtime was asked for at (`?b=`, the first press's
@@ -404,7 +404,7 @@ function attempted(path, attempt) {
 
 async function bootDecision() {
   // The decision and the table together, each answered by the head's
-  // preload (the first press's ADR).
+  // preload (ADR-0399).
   const tableText = fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : ""));
   // A failed decision fails the boot; the table's rejection is not unheard.
   tableText.catch(() => {});
@@ -2964,7 +2964,7 @@ function decided(named, part) {
 }
 
 /** A refusal's code, `PWR04`, and its page at `pleris.dev`, as the compiler's
- * `PW0606` has one (the refusal codes' ADR). The number is the decision's. */
+ * `PW0606` has one (ADR-0400). The number is the decision's. */
 function explained(code) {
   const name = `PWR${String(code).padStart(2, "0")}`;
   return code ? `${name}, https://pleris.dev/e/${name}` : "no decision";
@@ -3176,7 +3176,7 @@ function bindEvent(template, part) {
 
 // --- warming: what a press needs, there before it is pressed --------------
 //
-// The first press's ADR, amending E7-L where a build says `#warm|1`: once
+// ADR-0399, amending E7-L where a build says `#warm|1`: once
 // interactive, loaded and idle, by the press's own loaders. A handler the
 // decision refused is never fetched. Development builds warm none.
 
@@ -3249,7 +3249,7 @@ function warmHandler(identity) {
   });
 }
 
-/** **A press's own paths, run once on nothing** (the first press's ADR): the
+/** **A press's own paths, run once on nothing** (ADR-0399): the
  * renderer's on its sample (`warm`), the morph's on a copy of a block in an
  * inert document. A block holding a `<dialog>`, or larger than
  * `WARM_ELEMENTS`, is passed over. Each step waits for idle; none runs once
@@ -3682,7 +3682,7 @@ async function pollOnce() {
   applyBatch(await response.json());
 }
 
-/** **A subscription asks at low priority** (the first press's ADR): a
+/** **A subscription asks at low priority** (ADR-0399): a
  * command takes the next of HTTP/1.1's six connections ahead of other tabs'
  * held subscriptions. */
 const SUBSCRIPTION_PRIORITY = "low";
@@ -4078,7 +4078,7 @@ function handOver() {
   rendererLoaded = null;
   wasm = null;
   if (speculationOwner) speculationOwner.renderer = null;
-  // At this runtime's delivery, where it has one (the first press's ADR).
+  // At this runtime's delivery, where it has one (ADR-0399).
   const next = delivered("/pw-runtime.mjs");
   import(`${next}${next.includes("?") ? "&" : "?"}document=${window.__pwSoftNavigations}`).catch((e) => {
     log.push(`the next runtime did not load: ${e}`);

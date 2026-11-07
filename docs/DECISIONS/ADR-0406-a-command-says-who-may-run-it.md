@@ -1,11 +1,12 @@
-# ADR-XXXX: a command says who may run it
+# ADR-0406: a command says who may run it
 
-Status: proposed, 2026-11-06, on branch `feat/mandatory-requires-20261106`
-(a draft PR against `master`). Decided by the owner on 2026-11-06: after a
-review of pleris.dev found that "a command that requires nothing compiles"
-(ADR-0307), the owner chose to make the compiler hold every command to
-saying who may run it, rather than soften the site. Not landed; not
-numbered (PARALLEL.md: the integrator numbers ADRs).
+Status: accepted 2026-11-07, landed with train-14 under the owner's delegation
+of 2026-10-02. Proposed 2026-11-06, on branch
+`feat/mandatory-requires-20261106` (a draft PR against `master`). Decided by
+the owner on 2026-11-06: after a review of pleris.dev found that "a command
+that requires nothing compiles" (ADR-0307), the owner chose to make the
+compiler hold every command to saying who may run it, rather than soften the
+site.
 
 ## Context
 

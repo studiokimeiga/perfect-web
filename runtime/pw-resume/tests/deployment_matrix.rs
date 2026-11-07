@@ -102,7 +102,7 @@ fn assert_refused(d: &Decision, expected: Refusal, recovery: Recovery) {
             assert_eq!(*why, expected, "refused for the wrong reason");
             assert_eq!(*got, recovery, "wrong recovery action");
             // In words where the decision keeps them: the `trace` feature,
-            // which the browser's build leaves out (the refusal codes' ADR).
+            // which the browser's build leaves out (ADR-0400).
             assert!(
                 !cfg!(feature = "trace") || !trace.is_empty(),
                 "a refusal must carry a causal trace"

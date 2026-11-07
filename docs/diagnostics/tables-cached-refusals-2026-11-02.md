@@ -7,7 +7,7 @@ its uncommitted work are preserved. No remote changes are authorized here.
 
 ## Reproduced invariant and repair boundary
 
-ADR-0394 (currently `ADR-XXXX-an-app-with-no-rust-data-layer.md`), decision
+ADR-0394 (currently `ADR-0394-an-app-with-no-rust-data-layer.md`), decision
 4, requires tables to fail closed after publication whose platform COMMIT
 fails. A direct adapter read refuses `StoragePoisoned`, but a warm query
 outside that command's invalidations still answers from the resource cache.
