@@ -161,6 +161,8 @@ module twice
 import context.{ current_session }
 import capability.{ Session, SessionId }
 
+opaque type InteractionId = String
+
 type Post = Post { id: String, text: String }
 
 type PostError =
@@ -190,22 +192,23 @@ page Write() {
 
 ```text pw-check
 error: [PW0338] `post` is called by a page's handler, and declares no `idempotent_by`
-  --> twice.pw:14:1
+  --> twice.pw:16:1
    |
-14 | / command post(text: String) -> Result<Post, PostError> {
-15 | |     publish(current_session(), text)
-16 | | }
+16 | / command post(text: String) -> Result<Post, PostError> {
+17 | |     publish(current_session(), text)
+18 | | }
    | |_^ `post` is called by a page's handler, and declares no `idempotent_by`
 ...
-25 |           <button type="button" on:press={() => match post("Hello") {
+27 |           <button type="button" on:press={() => match post("Hello") {
    |                                                       ------------- a press sends it from here
    |
    = note: A browser's request can reach the server twice: a retrying proxy, a flaky network or a client's own retry sends it again after the first arrived (RFC 9110 lets a client retry only a request it knows to be idempotent). Each press carries an interaction, and `idempotent_by InteractionId` runs the command once for it (ADR-0121).
    = help: declare `idempotent_by InteractionId`
 ```
 
-`InteractionId` is a type your program declares:
-`opaque type InteractionId = String`.
+`InteractionId` is a type the program declares, as this one does at its
+top: `opaque type InteractionId = String`. Each press carries one, and
+the command runs once for it.
 
 ### A button its reader may not press
 

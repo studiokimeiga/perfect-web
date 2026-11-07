@@ -1,0 +1,10 @@
+// www.pleris.dev: a permanent redirect of every request to the same address
+// on pleris.dev (`worker.mjs`).
+{
+  "name": "pleris-dev-www",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-01",
+  "routes": [{ "pattern": "www.pleris.dev", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false
+}
