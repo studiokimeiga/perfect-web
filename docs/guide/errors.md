@@ -197,14 +197,14 @@ page Write() {
 error: [PW0338] `post` is called by a page's handler, and declares no `idempotent_by`
   --> twice.pw:16:1
    |
-14 | / command post(text: String) -> Result<Post, PostError>
-15 | |     requires Anyone
-16 | | {
-17 | |     publish(current_session(), text)
-18 | | }
+16 | / command post(text: String) -> Result<Post, PostError>
+17 | |     requires Anyone
+18 | | {
+19 | |     publish(current_session(), text)
+20 | | }
    | |_^ `post` is called by a page's handler, and declares no `idempotent_by`
 ...
-27 |           <button type="button" on:press={() => match post("Hello") {
+29 |           <button type="button" on:press={() => match post("Hello") {
    |                                                       ------------- a press sends it from here
    |
    = note: A browser's request can reach the server twice: a retrying proxy, a flaky network or a client's own retry sends it again after the first arrived (RFC 9110 lets a client retry only a request it knows to be idempotent). Each press carries an interaction, and `idempotent_by InteractionId` runs the command once for it (ADR-0121).
