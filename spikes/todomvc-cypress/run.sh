@@ -50,13 +50,18 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$HERE/../.." && pwd)"
+# Where cargo writes its builds: CARGO_TARGET_DIR where it is set (a
+# worktree's own target), else the repository's `target/`. A relative one
+# is cargo's working directory's, which is this script's at its start.
+TARGET_DIR="${CARGO_TARGET_DIR:-$REPO_ROOT/target}"
+case "$TARGET_DIR" in /*) ;; *) TARGET_DIR="$PWD/$TARGET_DIR" ;; esac
 SPIKE="$REPO_ROOT/spikes/own-renderer"
 DIST_NAME="${TODOMVC_DIST:-dist-todomvc}"
 case "$DIST_NAME" in
   /*) DIST="$DIST_NAME" ;;
   *) DIST="$SPIKE/$DIST_NAME" ;;
 esac
-SERVER="${PW_DEV_SERVER:-$REPO_ROOT/target/debug/pw-dev-server}"
+SERVER="${PW_DEV_SERVER:-$TARGET_DIR/debug/pw-dev-server}"
 XVFB="${XVFB_BIN:-Xvfb}"
 PORT="$(( ${PORT:-3141} + 143 ))"
 if [ "${DIAGNOSTIC:-}" = 1 ]; then

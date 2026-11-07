@@ -10,6 +10,11 @@
 # something a reader verifies from the commands rather than from a sentence.
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# Where cargo writes its builds: CARGO_TARGET_DIR where it is set (a
+# worktree's own target), else the repository's `target/`. A relative one
+# is cargo's working directory's, which is this script's at its start.
+TARGET_DIR="${CARGO_TARGET_DIR:-$REPO_ROOT/target}"
+case "$TARGET_DIR" in /*) ;; *) TARGET_DIR="$PWD/$TARGET_DIR" ;; esac
 SPIKE="$REPO_ROOT/spikes/own-renderer"
 OUT="${PW_OUT:-$SPIKE/dist}"
 # E14's harness builds a sandbox's copy of the store (ADR-0123): its sources
@@ -107,8 +112,8 @@ echo "== 3d. the browser's WebAssembly =="
 # decision, and the renderer a signal's block is rendered again by (ADR-0130).
 cargo build --quiet --manifest-path "$REPO_ROOT/Cargo.toml" \
   -p pw-resume-wasm -p pw-render-wasm --target wasm32-unknown-unknown --profile browser
-cp "$REPO_ROOT/target/wasm32-unknown-unknown/browser/pw_resume_wasm.wasm" "$OUT/pw-resume.wasm"
-cp "$REPO_ROOT/target/wasm32-unknown-unknown/browser/pw_render_wasm.wasm" "$OUT/pw-render.wasm"
+cp "$TARGET_DIR/wasm32-unknown-unknown/browser/pw_resume_wasm.wasm" "$OUT/pw-resume.wasm"
+cp "$TARGET_DIR/wasm32-unknown-unknown/browser/pw_render_wasm.wasm" "$OUT/pw-render.wasm"
 echo "   $(ls "$OUT" | tr '\n' ' ')"
 
 echo
