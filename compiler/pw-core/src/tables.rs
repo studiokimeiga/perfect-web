@@ -161,9 +161,12 @@ pub struct Reference {
 }
 
 /// `migrate title renamed from name`, `migrate notes dropped`, `migrate rank
-/// backfilled with 0`: a field's change from the schema released.
+/// backfilled with 0`: a field's change from the schema released. `migrate
+/// owner session dropped`: the owners its rows recorded, given up.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Migration {
+    /// The field it changes; `owner` for [`Change::OwnersDropped`], which
+    /// changes no field.
     pub field: String,
     pub change: Change,
 }
@@ -177,6 +180,10 @@ pub enum Change {
     /// Each row released holds this value in it: a field added that is no
     /// `Option`, or a field whose type changed.
     Backfilled(Literal),
+    /// The table was released recording each row's owner, of this kind, and
+    /// records none now: the owners are given up, and any reader may change
+    /// any row (the owned-rows ADR; the review of 2026-11-07).
+    OwnersDropped(OwnerKind),
 }
 
 /// **A value a migration writes into every row**: a literal of the field's
@@ -360,11 +367,27 @@ fn literal(value: &str) -> Option<Literal> {
         .flatten()
 }
 
-/// `title renamed from name`, `notes dropped`, `rank backfilled with 0`.
+/// `title renamed from name`, `notes dropped`, `rank backfilled with 0`;
+/// `owner session dropped`, the owners given up, which no field's change
+/// can be read as: a field's is its name and then its change.
 fn migration(value: &str) -> Result<Migration, String> {
-    const FORMS: &str = "is written `<field> renamed from <old>`, `<field> dropped` or `<field> \
-                         backfilled with <literal>`";
+    const FORMS: &str = "is written `<field> renamed from <old>`, `<field> dropped`, `<field> \
+                         backfilled with <literal>` or `owner <user|session> dropped`";
     let value = value.trim();
+    if let ["owner", kind, "dropped"] = value.split_whitespace().collect::<Vec<_>>()[..] {
+        let kind = match kind {
+            "user" => OwnerKind::User,
+            "session" => OwnerKind::Session,
+            "anyone" => {
+                return Err("gives up no owner: `owner anyone` records none".to_string());
+            }
+            _ => return Err(FORMS.to_string()),
+        };
+        return Ok(Migration {
+            field: "owner".to_string(),
+            change: Change::OwnersDropped(kind),
+        });
+    }
     let (field, rest) = value.split_once(' ').unwrap_or((value, ""));
     if !is_name(field) {
         return Err(FORMS.to_string());
@@ -1431,10 +1454,16 @@ fn shape(
             field(&r.value.field).map(|(_, ty)| ty.as_ref()),
         ));
     }
+    // Each statement by what it changes: a field, by its name, or the owners
+    // recorded, which no field's name is (a name has no space).
     let mut stated: BTreeMap<&str, &Span> = BTreeMap::new();
     for m in &t.migrations {
         let mig = &m.value;
-        if let Some(first) = stated.insert(&mig.field, &m.span) {
+        let changes = match mig.change {
+            Change::OwnersDropped(_) => "owner ",
+            _ => mig.field.as_str(),
+        };
+        if let Some(first) = stated.insert(changes, &m.span) {
             out.push(malformed(
                 format!("`migrate` states two changes of `{}`", mig.field),
                 m.span.clone(),
@@ -1444,6 +1473,20 @@ fn shape(
         }
         let in_row = field(&mig.field);
         let fault = match &mig.change {
+            Change::OwnersDropped(kind) => {
+                t.owner
+                    .as_ref()
+                    .and_then(|o| o.value.recorded())
+                    .map(|now| {
+                        format!(
+                            "`migrate owner {} dropped` gives up the owners `{}` still records: it \
+                         says `owner {}`",
+                            kind.word(),
+                            t.name,
+                            now.word()
+                        )
+                    })
+            }
             Change::Dropped => in_row.is_some().then(|| {
                 format!(
                     "`migrate {} dropped` names a field `{}` still has",
@@ -1909,6 +1952,76 @@ fn scheduled_by(hirs: &[&Hir], ws: &Workspace, unit: usize, decl: &Decl) -> Vec<
         }
     }
     out
+}
+
+/// **For whom the clock runs a command it invokes**: the kind of writer whose
+/// command scheduled the run.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum RunsFor {
+    /// The platform: a command another of its own invokes (`invoked_by
+    /// Payments`) scheduled it, for no reader.
+    Platform,
+    /// A reader: a command a reader's request runs scheduled it.
+    Reader,
+}
+
+impl RunsFor {
+    /// The word a contract writes it with (`runs_for`).
+    pub fn word(self) -> &'static str {
+        match self {
+            RunsFor::Platform => "platform",
+            RunsFor::Reader => "reader",
+        }
+    }
+}
+
+/// **For whom the clock runs each command it invokes**, by the command (the
+/// owned-rows ADR; the review of 2026-11-07): for a reader where a command a
+/// reader's request runs schedules it, for the platform where a command the
+/// platform invokes does, and, where a command the clock runs schedules it,
+/// for whom that one runs, in turn. A host begins each run for the writer
+/// whose command scheduled it and is held to these
+/// (`pw_host::tables::Writer::admits`, by each contract's `runs_for`), so a
+/// run only readers schedule is never begun as the platform, which changes
+/// any row. A command no command schedules runs for no one.
+pub fn clock_runs(hirs: &[&Hir], ws: &Workspace) -> BTreeMap<DefId, BTreeSet<RunsFor>> {
+    // Each schedule: the command that makes it, that command's own writer
+    // (none for one the clock runs, whose writers are its runs'), and the
+    // command it schedules.
+    let mut schedules: Vec<(DefId, Option<RunsFor>, DefId)> = Vec::new();
+    for (unit, hir) in hirs.iter().enumerate() {
+        for (id, decl) in hir.all_decls() {
+            if decl.kind != DeclKind::Command {
+                continue;
+            }
+            let writer = match decl.policy("invoked_by").map(|p| p.value.trim()) {
+                None => Some(RunsFor::Reader),
+                Some("Clock") => None,
+                Some(_) => Some(RunsFor::Platform),
+            };
+            let from = DefId { unit, decl: id.0 };
+            for (to, _) in scheduled_by(hirs, ws, unit, decl) {
+                schedules.push((from, writer, to));
+            }
+        }
+    }
+    let mut out: BTreeMap<DefId, BTreeSet<RunsFor>> = BTreeMap::new();
+    loop {
+        let mut grew = false;
+        for &(from, writer, to) in &schedules {
+            let writers: BTreeSet<RunsFor> = match writer {
+                Some(writer) => BTreeSet::from([writer]),
+                None => out.get(&from).cloned().unwrap_or_default(),
+            };
+            let runs = out.entry(to).or_default();
+            for writer in writers {
+                grew |= runs.insert(writer);
+            }
+        }
+        if !grew {
+            return out;
+        }
+    }
 }
 
 /// **Each declared table a command a reader can run writes**, by the table's
@@ -2598,9 +2711,10 @@ pub struct Plan {
 
 const UNSTATED: &str = "A change from the schema released that loses or reinterprets data runs \
      against rows a database already holds. It is planned only where the program states it: a \
-     field `renamed from` its old name, a field `dropped`, or a field added or retyped \
-     `backfilled with` the value each row released holds. A key changed, a table dropped and a \
-     table moved between sources have no statement: each moves rows, which no migration does.";
+     field `renamed from` its old name, a field `dropped`, a field added or retyped `backfilled \
+     with` the value each row released holds, or the owners its rows recorded, `owner session \
+     dropped`. A key changed, a table dropped and a table moved between sources have no \
+     statement: each moves rows, which no migration does.";
 
 /// **The program held to the schema released** (ADR-0338, 1.4; PW0366): the
 /// steps from `released` to what the program declares, and a refusal, in
@@ -2915,8 +3029,16 @@ pub fn held_to(
             }
         }
         // Who may change its rows (the owned-rows ADR). Recording an owner
-        // from now on, or giving the owners up, is a step; an owner of
-        // another kind would read each owner recorded as another reader.
+        // from now on is a step. Giving the owners recorded up loses them,
+        // which no later build gets back, and lets any reader change any
+        // row: a step only as the program states it, as a field dropped is
+        // (the review of 2026-11-07). An owner of another kind would read
+        // each owner recorded as another reader.
+        let owners_dropped = |was: OwnerKind| {
+            stated
+                .iter()
+                .position(|m| m.value.change == Change::OwnersDropped(was))
+        };
         match (old.owner, schema.owner) {
             (was, is) if was == is => {}
             (Some(was), Some(is)) => refused.push((
@@ -2937,6 +3059,33 @@ pub fn held_to(
                     ),
                 ),
             )),
+            (Some(was), None) => match owners_dropped(was) {
+                Some(i) => {
+                    used.insert(i);
+                    steps.push(Step::ChangeOwner {
+                        table: table.clone(),
+                        from: Some(was),
+                        to: None,
+                    });
+                }
+                None => refused.push((
+                    *unit,
+                    refuse(
+                        "migration_unstated",
+                        format!(
+                            "`{table}` was released `owner {}` and records no owner now: the \
+                             owner each row records would be lost",
+                            was.word()
+                        ),
+                        t.owner.as_ref().map_or(t.span.clone(), |o| o.span.clone()),
+                        format!(
+                            "state it: `migrate owner {0} dropped`, and any reader may change \
+                             any row; or keep `owner {0}`",
+                            was.word()
+                        ),
+                    ),
+                )),
+            },
             (from, to) => steps.push(Step::ChangeOwner {
                 table: table.clone(),
                 from,
@@ -2946,7 +3095,7 @@ pub fn held_to(
         // A statement the change does not use states nothing. One the row
         // itself refuses is PW0361's, told once (ADR-0112).
         for (i, m) in stated.iter().enumerate() {
-            if used.contains(&i) || !shaped(&m.value, &schema.fields) {
+            if used.contains(&i) || !shaped(&m.value, schema) {
                 continue;
             }
             refused.push((
@@ -2989,15 +3138,17 @@ pub fn held_to(
     (plan, refused)
 }
 
-/// **Does the row admit `m`**, as `shape` holds it (PW0361)? A field dropped
-/// that the row has not, a field renamed that it has from one it has not,
-/// a field backfilled that it has with a value of its stored type.
-fn shaped(m: &Migration, fields: &[FieldSchema]) -> bool {
-    let field = |f: &str| fields.iter().find(|g| g.name == f);
+/// **Does the table admit `m`**, as `shape` holds it (PW0361)? A field
+/// dropped that the row has not, a field renamed that it has from one it has
+/// not, a field backfilled that it has with a value of its stored type, the
+/// owners given up by a table that records none.
+fn shaped(m: &Migration, schema: &TableSchema) -> bool {
+    let field = |f: &str| schema.fields.iter().find(|g| g.name == f);
     match &m.change {
         Change::Dropped => field(&m.field).is_none(),
         Change::Renamed { from } => field(&m.field).is_some() && field(from).is_none(),
         Change::Backfilled(v) => field(&m.field).is_some_and(|f| f.stored.admits(v)),
+        Change::OwnersDropped(_) => schema.owner.is_none(),
     }
 }
 
@@ -3032,6 +3183,7 @@ fn written_migration(m: &Migration) -> String {
         Change::Renamed { from } => format!("{} renamed from {from}", m.field),
         Change::Dropped => format!("{} dropped", m.field),
         Change::Backfilled(v) => format!("{} backfilled with {v}", m.field),
+        Change::OwnersDropped(kind) => format!("owner {} dropped", kind.word()),
     }
 }
 

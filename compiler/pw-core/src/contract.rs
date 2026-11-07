@@ -700,6 +700,16 @@ pub struct ComponentExport {
     /// that is not there, and invokes it only on its provider's word.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub invoked_by: Option<String>,
+    /// **For whom the clock runs it**, where it is `invoked_by Clock` (the
+    /// owned-rows ADR; the review of 2026-11-07): `reader`, where a command a
+    /// reader's request runs schedules it, `platform`, where one the platform
+    /// invokes does, each through the schedules a run makes in turn
+    /// (`tables::clock_runs`). A host begins each run for the writer whose
+    /// command scheduled it, and admits no writer of another kind: a run only
+    /// readers schedule, begun as the platform, would change any row a
+    /// reader named.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub runs_for: Vec<String>,
     /// **Where an argument must hold an invariant** (ADR-0179): a browser's
     /// request is a claim, and a host checks it before the component runs.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -1494,6 +1504,10 @@ fn contracts_with_privacy(
     // both answer questions about the same rows.
     let ontology = Ontology::build_with(hirs, ws);
 
+    // For whom the clock runs each command it invokes: the writers whose
+    // commands schedule it (the owned-rows ADR).
+    let clock_runs = crate::tables::clock_runs(hirs, ws);
+
     // What the program says about each TYPE — is it a resource, is it produced
     // only by a scoped declaration. The same facts `resume.rs` asks about a
     // capture, asked here about a signature: one boundary-transfer analysis,
@@ -1782,6 +1796,14 @@ fn contracts_with_privacy(
             component.invoked_by = decl
                 .policy("invoked_by")
                 .map(|p| p.value.trim().to_string());
+            if component.invoked_by.as_deref() == Some("Clock") {
+                component.runs_for = clock_runs
+                    .get(&crate::resolve::DefId { unit, decl: id.0 })
+                    .into_iter()
+                    .flatten()
+                    .map(|writer| writer.word().to_string())
+                    .collect();
+            }
             component.bounded = bounded_params(sigs, crate::resolve::DefId { unit, decl: id.0 });
             let exports = vec![Export {
                 name: decl.name.clone(),
@@ -1910,10 +1932,15 @@ fn schema_of(
                 text.push_str("|idempotent_by:");
                 text.push_str(key);
             }
-            // Who may invoke it is its interface, as who must hold what is.
+            // Who may invoke it is its interface, as who must hold what is,
+            // and for whom the clock runs it, as who invokes it.
             if let Some(invoker) = &component.invoked_by {
                 text.push_str("|invoked_by:");
                 text.push_str(invoker);
+            }
+            for writer in &component.runs_for {
+                text.push_str("|runs_for:");
+                text.push_str(writer);
             }
             // What the host checks of an argument before the component runs
             // (ADR-0179), as authorization is.

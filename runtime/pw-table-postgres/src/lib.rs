@@ -876,29 +876,39 @@ impl Inner {
                     let holder: Option<i32> = row.get(1);
                     let old_held: bool = row.get(2 + n);
                     let (key, written) = written.ok_or(Error::StoragePoisoned)?;
-                    // Another reader's row is absent to a put, which then
-                    // wrote nothing, and is answered as written: the row at
-                    // its key in the statement's snapshot, or one inserted
-                    // since (under an isolation weaker than serializable),
-                    // which the update's guard left as it was: nothing
-                    // written, though there was room and no holder.
-                    let others = owned && old_held && !row.get::<_, bool>(3 + 2 * n);
-                    let since = owned
-                        && count == 0
-                        && holder.is_none()
-                        && !old_held
-                        && row.get::<_, bool>(4 + 2 * n);
-                    if others || since {
-                        Ok(Ok(()))
-                    } else if holder.is_some() {
-                        Ok(Err(conflict(row)?))
-                    } else if count == 1 || old_held {
-                        let before = if old_held {
+                    // An owned table's statement answers, last, whether the
+                    // row its snapshot held at the key was its writer's, and
+                    // whether a row anew had room. Every row of a table no
+                    // reader owns is its writer's.
+                    let mine = !owned || row.get::<_, bool>(3 + 2 * n);
+                    let room = owned && row.get::<_, bool>(4 + 2 * n);
+                    // Its count, not its snapshot, says whether it wrote:
+                    // under an isolation weaker than serializable, the row
+                    // the snapshot held may be deleted before the insert
+                    // runs, which then writes its writer's row anew (the
+                    // review of 2026-11-07). The row it replaced is the
+                    // snapshot's only where that one was its writer's.
+                    let wrote = count == 1;
+                    if wrote {
+                        let before = if old_held && mine {
                             Some(decode(table, row, 3 + n)?)
                         } else {
                             None
                         };
                         first(open, key, before, Some(written));
+                        Ok(Ok(()))
+                    } else if old_held && !mine {
+                        // Another reader's row is absent to a put, whatever
+                        // it holds: nothing written, answered as written.
+                        Ok(Ok(()))
+                    } else if holder.is_some() {
+                        Ok(Err(conflict(row)?))
+                    } else if old_held || room {
+                        // Nothing written, and nothing refused it: the row
+                        // at its key as it was, where a row is its key alone
+                        // (`DO NOTHING`), or, owned, another reader's row,
+                        // inserted since the snapshot or put in place of its
+                        // writer's, which the update's guard left as it was.
                         Ok(Ok(()))
                     } else {
                         Ok(Err(bound()))

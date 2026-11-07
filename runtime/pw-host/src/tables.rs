@@ -120,7 +120,11 @@ pub struct Reader {
 
 impl Reader {
     /// A reader by its session's id, and its user's where it is signed in.
-    /// An empty id names no one, and is refused.
+    /// An empty id names no one, and is refused. A host makes each from its
+    /// own record of the request's session and signed-in user, never from
+    /// anything the request sends (a header, an argument, a cookie's value):
+    /// the ids are what each row's ownership is (the owned-rows ADR, its
+    /// second review).
     pub fn new(session: &str, user: Option<&str>) -> Result<Reader, String> {
         if session.is_empty() || user.is_some_and(str::is_empty) {
             return Err("a reader's session and user are each named by an id".to_string());
@@ -195,49 +199,78 @@ impl Writer {
     /// command a request runs: a host that ran it as the platform would
     /// change every reader's rows from a request. The platform for a command
     /// another of its own invokes (`invoked_by Payments`). And for a command
-    /// the clock invokes, the reader whose command scheduled it, on whose
-    /// behalf it runs (`pw_core`'s `invoked.rs`), with the arguments that
-    /// reader's request gave: its host begins the run for the reader it
+    /// the clock invokes, the writer whose command scheduled the run, on
+    /// whose behalf it runs (`pw_core`'s `invoked.rs`), with the arguments
+    /// that writer's command gave: its host begins the run for the reader it
     /// recorded with the schedule, or for the platform where the platform's
-    /// own command scheduled it. Run as the platform for a reader's
-    /// schedule, it would change any row a reader named.
+    /// own command scheduled it, and is held to the kinds the contract says
+    /// schedule it (`runs_for`, the review of 2026-11-07). A run only
+    /// readers schedule, begun as the platform, would change any row a
+    /// reader named. Of a command both schedule, each run is held to the
+    /// writer its host recorded with it, which no contract can check.
     pub fn admits(&self, contract: &ComponentContract) -> Result<(), String> {
-        let invoked = contract
+        let commands = contract
             .exports
             .iter()
             .filter(|export| export.kind == "command")
-            .map(|export| {
-                export
-                    .component
-                    .as_ref()
-                    .and_then(|c| c.invoked_by.as_deref())
-            })
+            .map(|export| export.component.as_ref())
             .collect::<Vec<_>>();
-        let [invoked_by] = invoked.as_slice() else {
+        let [component] = commands.as_slice() else {
             return Err(format!(
                 "`{}` exports {} commands, and a command's writes are one command's",
                 contract.component_id,
-                invoked.len()
+                commands.len()
             ));
         };
-        match (self, invoked_by) {
+        let id = &contract.component_id;
+        match (self, component.and_then(|c| c.invoked_by.as_deref())) {
             (Writer::Platform, None) => Err(format!(
-                "`{}` is a command a reader runs, and its writes are its reader's, never the \
-                 platform's",
-                contract.component_id
+                "`{id}` is a command a reader runs, and its writes are its reader's, never the \
+                 platform's"
             )),
-            (Writer::Reader(_), Some(by)) if *by != CLOCK => Err(format!(
-                "`{}` is invoked by {by}, for no reader, and its writes are the platform's",
-                contract.component_id
+            (writer, Some(CLOCK)) => {
+                let runs_for = component.map_or(&[][..], |c| c.runs_for.as_slice());
+                let kind = match writer {
+                    Writer::Reader(_) => READER,
+                    Writer::Platform => PLATFORM,
+                };
+                let admitted = runs_for.iter().any(|k| k == kind);
+                if admitted {
+                    Ok(())
+                } else if runs_for.is_empty() {
+                    Err(format!(
+                        "`{id}` is run by the clock for no writer: no command schedules it"
+                    ))
+                } else if kind == PLATFORM {
+                    Err(format!(
+                        "`{id}` is run by the clock for the reader whose command scheduled it, \
+                         and its writes are that reader's, never the platform's"
+                    ))
+                } else {
+                    Err(format!(
+                        "`{id}` is run by the clock for the platform's own schedules, for no \
+                         reader, and its writes are the platform's"
+                    ))
+                }
+            }
+            (Writer::Reader(_), Some(by)) => Err(format!(
+                "`{id}` is invoked by {by}, for no reader, and its writes are the platform's"
             )),
+            // A request's command for its reader; another invoker's for the
+            // platform.
             _ => Ok(()),
         }
     }
 }
 
-/// The invoker that runs a command on the behalf of the reader whose command
+/// The invoker that runs a command on the behalf of the writer whose command
 /// scheduled it (`invoked_by Clock`).
 const CLOCK: &str = "Clock";
+
+/// The writers the clock runs a command for, as a contract's `runs_for`
+/// names them (`pw_core::tables::RunsFor`, mirrored by word).
+const READER: &str = "reader";
+const PLATFORM: &str = "platform";
 
 /// An index a table declares: `index by_done on done`, `unique by_slug on
 /// slug`.

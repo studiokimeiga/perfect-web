@@ -247,6 +247,7 @@ fn a_hand_written_rust_guest_through_the_host() {
                 authorization: Vec::new(),
                 idempotent_by: None,
                 invoked_by: None,
+                runs_for: Vec::new(),
                 bounded: Vec::new(),
             }),
         }],

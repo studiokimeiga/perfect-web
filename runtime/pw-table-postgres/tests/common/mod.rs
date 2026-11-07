@@ -12,10 +12,13 @@
 
 use crate::assert_result::*;
 
+use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 
 use pw_core::check::Unit;
 use pw_core::tables::{Schema, TablesJson};
+use pw_host::engine::{HostFn, Val};
 use serde_json::{Value, json};
 
 /// The throwaway database the tests may use, if one is named.
@@ -142,7 +145,9 @@ pub fn until(mut condition: impl FnMut() -> bool) -> bool {
     false
 }
 
-fn units(sources: &[(&str, &str)], fixtures: &[&str]) -> Vec<Unit> {
+/// The platform's sources, `examples/tables`' `fixtures`, each edited by
+/// `edit`, and `sources`, as units.
+fn units(sources: &[(&str, &str)], fixtures: &[&str], edit: &dyn Fn(&str) -> String) -> Vec<Unit> {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let mut files: Vec<(String, String)> = Vec::new();
     for directory in ["packages/pw-std", "packages/pw-platform-web"] {
@@ -163,7 +168,7 @@ fn units(sources: &[(&str, &str)], fixtures: &[&str]) -> Vec<Unit> {
         let path = root.join("examples/tables").join(name);
         files.push((
             path.display().to_string(),
-            std::fs::read_to_string(&path).expect("fixture source"),
+            edit(&std::fs::read_to_string(&path).expect("fixture source")),
         ));
     }
     for (path, src) in sources {
@@ -182,14 +187,14 @@ fn units(sources: &[(&str, &str)], fixtures: &[&str]) -> Vec<Unit> {
 
 /// `examples/tables`' fixtures, with the platform's sources, as units.
 pub fn fixture_units(fixtures: &[&str]) -> Vec<Unit> {
-    units(&[], fixtures)
+    units(&[], fixtures, &|src| src.to_string())
 }
 
 /// **The program `sources` declare, as `pw build` builds it** against the
 /// schema `released` (its `schema.lock`), or none: its build.
 pub fn build(sources: &[(&str, &str)], released: Option<&Schema>) -> pw_core::build::Build {
-    let build =
-        pw_core::build::build_with(&units(sources, &[]), released).assert_ok("the program builds");
+    let build = pw_core::build::build_with(&units(sources, &[], &|src| src.to_string()), released)
+        .assert_ok("the program builds");
     assert!(build.refusals().is_empty(), "{:?}", build.refusals());
     build
 }
@@ -308,4 +313,145 @@ pub fn thing_row(owner: &str, n: i64, rank: i64, slug: &str, flag: bool) -> Valu
 pub fn open_things(scratch: &Scratch) -> pw_table_postgres::PgTables {
     pw_table_postgres::PgTables::open(&scratch.url, scratch.schema(), things())
         .assert_ok("the adapter opens on a schema of its own")
+}
+
+// --- the compiled programs ---------------------------------------------------
+
+/// What the app's and the writers' node grants.
+pub const NODE: &[&str] = &[
+    "database.read<Lists>",
+    "database.read<Items>",
+    "database.write<Lists>",
+    "database.write<Items>",
+    "outbox.write",
+];
+
+/// **One compiled component of `examples/tables`**: its bytes, its contract
+/// as the host reads it, and the imports Wasmtime finds in its bytes.
+pub struct Compiled {
+    pub bytes: Vec<u8>,
+    pub contract: pw_host::ComponentContract,
+    pub imports: Vec<String>,
+}
+
+impl Compiled {
+    /// Its admission on a node granting [`NODE`], and what it grants.
+    pub fn granted(&self) -> pw_host::Granted {
+        let grants: Vec<String> = NODE.iter().map(|g| format!("{g:?}")).collect();
+        let topology = pw_host::Topology::from_json(&format!(
+            r#"{{"nodes":[{{"name":"origin","world":"origin","grants":[{}]}}]}}"#,
+            grants.join(",")
+        ))
+        .assert_ok("topology");
+        let admission = pw_host::admit(&self.contract, &topology, "origin", &self.imports);
+        assert!(admission.is_admitted(), "{admission:?}");
+        pw_host::Granted::from(&admission, &Default::default()).assert_ok("granted")
+    }
+
+    fn export(&self) -> [String; 2] {
+        let export = self.contract.exports[0]
+            .component
+            .as_ref()
+            .assert_ok("a component path");
+        [export.interface.clone(), export.function.clone()]
+    }
+
+    /// Its platform imports (the outbox's invalidations), each recording
+    /// what it was handed.
+    pub fn platform(&self) -> (BTreeMap<String, HostFn>, Arc<Mutex<Vec<String>>>) {
+        let calls: Arc<Mutex<Vec<String>>> = Arc::default();
+        let mut host = BTreeMap::new();
+        for import in &self.contract.imports {
+            if pw_host::tables::is_table_interface(&import.interface) {
+                continue;
+            }
+            let (key, record) = (import.key(), Arc::clone(&calls));
+            let named = key.clone();
+            let callback: HostFn = Arc::new(move |args| {
+                if let Ok(mut calls) = record.lock() {
+                    calls.push(format!("{named} {args:?}"));
+                }
+                Ok(Vec::new())
+            });
+            host.insert(key, callback);
+        }
+        (host, calls)
+    }
+
+    /// Call its export, its table imports linked by `tables`.
+    pub fn call(
+        &self,
+        granted: &pw_host::Granted,
+        host: &BTreeMap<String, HostFn>,
+        tables: &pw_host::tables::Manifest,
+        args: &[Val],
+    ) -> Result<Vec<Val>, String> {
+        let [interface, function] = self.export();
+        pw_host::engine::call_with_tables(
+            &self.bytes,
+            &self.contract,
+            granted,
+            &pw_host::Limits::unbounded(),
+            host,
+            tables,
+            &[interface.as_str(), function.as_str()],
+            args,
+        )
+    }
+}
+
+/// `examples/tables`' program with `program`, compiled: tables.json and
+/// each of `ids`.
+pub fn compiled(program: &str, ids: &[&str]) -> (TablesJson, BTreeMap<String, Compiled>) {
+    compiled_edited(program, ids, &|src| src.to_string())
+}
+
+/// [`compiled`], each of its sources (`Lists.pw`, `Items.pw`, `ListData.pw`
+/// and `program`) edited by `edit` first.
+pub fn compiled_edited(
+    program: &str,
+    ids: &[&str],
+    edit: &dyn Fn(&str) -> String,
+) -> (TablesJson, BTreeMap<String, Compiled>) {
+    let units = units(&[], &["Lists.pw", "Items.pw", "ListData.pw", program], edit);
+    let build = pw_core::build::build(&units).assert_ok("the program builds");
+    assert!(build.refusals().is_empty(), "{:?}", build.refusals());
+    let contracts = pw_host::ComponentContract::from_json(
+        &serde_json::to_string(&build.contracts).assert_ok("contracts"),
+    )
+    .assert_ok("the host reads the contracts");
+    let mut out = BTreeMap::new();
+    for &id in ids {
+        let artifact = build
+            .components
+            .iter()
+            .find(|(component, _)| component == id)
+            .map(|(_, artifact)| artifact);
+        assert!(
+            matches!(
+                artifact,
+                Some(pw_core::backend::component::Built::Component { .. })
+            ),
+            "{id} did not compile: {artifact:?}"
+        );
+        let Some(pw_core::backend::component::Built::Component { compiled, .. }) = artifact else {
+            continue;
+        };
+        let bytes = compiled.component.bytes.clone();
+        let imports = pw_host::engine::imports_of(&bytes).assert_ok("its imports");
+        let contract = contracts
+            .iter()
+            .find(|c| c.component_id == id)
+            .cloned()
+            .assert_ok("its contract");
+        out.insert(
+            id.to_string(),
+            Compiled {
+                bytes,
+                contract,
+                imports,
+            },
+        );
+    }
+    (build.tables, out)
 }

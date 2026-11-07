@@ -175,11 +175,13 @@ ADRs).
   table that says `owner anyone`. tables.json carries it (flattened), the
   host's manifest reads it, refusing a kind it does not know, and
   `Manifest::owner_of` answers it.
-- **PW0366** (the schema released): an owner recorded from now on, or given
-  up, is a step (`Step::ChangeOwner`); rows released before are owned by no
-  reader, so no request changes them, and the platform's commands still
-  may. An owner of another kind (`user` to `session`, or back) is refused:
-  each recorded owner would be read as another kind of reader.
+- **PW0366** (the schema released): an owner recorded from now on is a step
+  (`Step::ChangeOwner`); rows released before are owned by no reader, so no
+  request changes them, and the platform's commands still may. The owners
+  given up are a step only as the program states it, `migrate owner session
+  dropped`, as a field's drop is (the second review, below). An owner of
+  another kind (`user` to `session`, or back) is refused: each recorded
+  owner would be read as another kind of reader.
 - **The writer** (`pw_host::tables`): every command's transaction is begun
   for a `Writer`, a request's `Reader` (its session's id, and its user's
   where it is signed in, each an id its host makes, never a secret) or the
@@ -191,9 +193,9 @@ ADRs).
   another's. `Writer::admits` holds the writer to the command's contract: a
   reader's for a command a request runs; the platform's for one another of
   its own invokes (`invoked_by Payments`); and for one the clock invokes,
-  the reader whose command scheduled it, on whose behalf it runs, or the
-  platform where the platform's own command scheduled it. No host runs a
-  reader's command as the platform.
+  the writer whose command scheduled the run, on whose behalf it runs, of a
+  kind the contract's `runs_for` names (the second review, below). No host
+  runs a reader's command as the platform, nor a run only readers schedule.
 - **The memory adapter**: a row is held as its fields and, beside them, its
   owner, so the owner moves with the row through every write and undo of
   the tables commands write, and every answer (a read, a refusal) is the
@@ -218,8 +220,9 @@ ADRs).
   with the guard removed (Bob's text in Alice's row) and passes with it. At
   serializable, PostgreSQL refuses the same interleaving itself (40001). The
   migration adds the column where a table comes to record owners (each row
-  then null), drops it only where the build's migration is from the schema
-  recorded, and refuses an owner of another kind.
+  then null), drops it only where the migration from the schema recorded
+  states it (the second review, below), and refuses an owner of another
+  kind.
 - **An insert of a key another reader's row holds** is refused as any
   insert of a held key is, answered with that row: reads are unchanged, so
   the same command could read it, and the key is taken.
@@ -272,6 +275,110 @@ Noted by the review, and not decided here:
   writes unscoped until it stops: the schema is held to at a host's start,
   not at each transaction (D3's rule for every change, not this one's).
 
+## The second review (2026-11-07, at `70dec392`), and what changed
+
+A second independent review read `70dec392`. It confirmed two defects and
+asked for two more repairs. Each repair has a test that fails without it,
+and mutants in `who_may_change_mutations.py`.
+
+1. **(Confirmed) A PostgreSQL put was answered by its snapshot, not by what
+   it wrote.** Bob puts a key whose row is Alice's while her transaction
+   deletes it. Under read committed, his statement's snapshot still holds
+   her row (`old`), and his insert waits on her delete, then writes his own
+   row once she commits (`count` 1). The answer read "another reader's row"
+   before the count, so his write was answered as none: missing from
+   `touched` and from `written()`, no version bumped, and the references'
+   check at prepare skipped. Now the count decides first. A put that wrote
+   records its write, and the row it replaced is the snapshot's only where
+   that row was its writer's. One that wrote nothing met one of these:
+   another's row (absent, whatever it holds), a holder (a conflict), a row
+   inserted since or put in place of its writer's (left as it was), or the
+   bound. The same reading closes the mirror case the review did not name:
+   Bob's own row, replaced by Alice's while his put waits, was answered as
+   his write, and a version was bumped for nothing; now nothing is written.
+   `a_put_is_answered_by_what_it_wrote_not_by_its_snapshot` makes both
+   interleavings at read committed and at serializable. The first defect
+   reaches serializable too: where the delete is another writer's at read
+   committed, PostgreSQL commits Bob's put, since its serializable checks
+   hold only among serializable transactions. So the repair is not only
+   for `ConnectionDefault`.
+2. **(Confirmed) PostgreSQL's `admits` call was untested.** No PostgreSQL
+   test called `host_fns`, so deleting the call survived. The ported
+   `a_readers_command_is_never_the_platforms` runs the app's compiled
+   `drop_item` through PostgreSQL's functions. As the platform, it is
+   refused before it runs. As Bob, it is admitted and changes nothing of
+   Alice's. As Alice, it deletes her item. Parity's compiled-component
+   harness moved to the crate's `tests/common` for it.
+3. **The owners could be given up silently.** A table released `owner
+   session` that came to say `owner anyone` (or nothing) was a migration
+   step with no statement, and PostgreSQL dropped its owner column, which
+   no later build gets back. Now the owners are given up only as the
+   program states it, `migrate owner session dropped`, as a field's drop
+   is:
+   - unstated, PW0366 refuses the change;
+   - a statement of another kind, or one for a table released without
+     owners, states no change (PW0366);
+   - one beside an owner the table still records is malformed (PW0361);
+   - `owner anyone` records none to drop.
+   No field's change reads as that statement: `migrate owner dropped` still
+   drops a field named `owner`, and the two may stand side by side.
+   PostgreSQL's migration requires the statement's step too, from the
+   schema recorded, as it does a field's drop, and refuses a plan without
+   it.
+4. **The clock's runs.** `admits` let the platform begin any `invoked_by
+   Clock` command. The review's suggested fix was to refuse the platform for
+   every clock command a reader's command schedules. That would refuse the
+   store's own `send_to_store`, which `place_order` (a reader's) and
+   `settle_payment` (`invoked_by Payments`, the platform's) both schedule.
+   So, for each command the clock invokes, the compiler finds the writers
+   whose commands schedule it, through each run's schedules in turn
+   (`tables::clock_runs`). Its contract says so in `runs_for`: `reader`,
+   `platform`, both, or none. `admits` refuses a writer of a kind that no
+   command schedules it for. A run only readers schedule (A-036's `remind`,
+   the store's `expire_order`) is never the platform's now.
+
+   **What a contract cannot hold, not decided here.** For a command both
+   kinds schedule, each run's writer is the one its host recorded with the
+   schedule. Today's scheduler (the development server's `schedules.rs`)
+   records a run's user only. It runs the command on a session it makes
+   (`on_behalf("clock", "schedule-<id>", user)`), and it keys runs by
+   command and arguments alone. So one reader's `schedule` with the same
+   arguments moves another reader's pending run onto itself, and its
+   `unschedule` cancels it. And an `owner session` table's run would act
+   as a session no request has. No scheduler reaches the table adapters
+   yet. **The follow-up:** key each run by its writer (the scheduling
+   session's and user's ids, or the platform), and begin it for that
+   writer.
+
+Recorded at the review's request, not repaired here:
+
+5. **`Reader::new` takes two strings.** When #72 wires requests to the
+   table adapters, it must build each `Reader` only from the host's own
+   record of the request's session and signed-in user. It must never use
+   anything the request sends (a header, an argument, a cookie's value):
+   those ids are the ownership.
+6. **An `owner session` row is stranded at sign-in.** Signing in gives the
+   reader a new session id, which defends against session fixation. A row
+   the anonymous session owned is then no session's that any request has:
+   neither the user nor the new session can change it. Settle this, by
+   carrying a session's rows to its signed-in user or to the new session,
+   before narrowing `Lists`, `Items` or `Chores` to `owner session`.
+
+Found while repairing, and older than this change (D3, ADR-0393). The put
+of a table no reader owns keeps the same read-committed imprecision in two
+cases:
+- In a table whose row is its key alone (`DO NOTHING`), a row inserted
+  since the snapshot is answered as if the bound refused the put.
+- A row deleted since the snapshot by another writer, which this put writes
+  again with the same fields, is taken for a row put back as it was. Its
+  commit then bumps no version, though the row was gone in between. The
+  same holds in an owned table where the deleter is the row's own owner.
+
+Neither reaches serializable among the adapter's own commands. The
+follow-up is to answer each put from the row its conflict found: PostgreSQL
+18's `RETURNING old.*` gives the row an `ON CONFLICT` update replaced, or
+null where the statement inserted (checked on 18.6).
+
 ## The tables this migration says `owner anyone` (for the owner)
 
 Each was written by commands any reader runs, and anyone could change any of
@@ -286,7 +393,9 @@ decision 4 says, with what narrowing them would reach (findings 4 to 6):
 
 No other program, fixture or test of the repository has a table a reader's
 command writes. A table only the platform's commands write needs none, and
-none exists yet.
+none exists yet. **Before narrowing any of them to `owner session`**,
+settle how a session's rows survive sign-in (the second review's sixth
+item): today they would be stranded.
 
 ## Not decided here, found while building
 
@@ -295,6 +404,13 @@ none exists yet.
 - A read that answers a row only if it is the reader's (finding 6).
 - A platform command that inserts a row for a reader: its rows are no
   reader's.
+- A `Reader` built only from the host's record of a request's session and
+  user, when #72 wires requests to the adapters (the second review's fifth
+  item).
+- A session's rows at sign-in (its sixth item).
+- A scheduled run keyed by its writer, and begun for it (its fourth item).
+- PostgreSQL's put answered from the row its conflict found, for owned and
+  unowned tables alike (found while repairing its first item).
 
 ## Evidence
 

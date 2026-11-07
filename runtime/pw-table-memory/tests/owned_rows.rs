@@ -580,38 +580,106 @@ fn a_writers_scope_is_its_readers_id_of_the_tables_kind() {
 
 /// A reader's writer is a command a request runs; the platform's, a command
 /// another of its own invokes; and a command the clock invokes is run for
-/// the reader whose command scheduled it, or for the platform where the
-/// platform's own command did. A contract that says otherwise refuses it.
+/// the writer whose command scheduled it, of a kind its contract says some
+/// command schedules it for (`runs_for`, the review of 2026-11-07): a run
+/// only readers schedule is never the platform's, nor one only the platform
+/// schedules a reader's; one both schedule is either's, and one nothing
+/// schedules no one's. A contract that says otherwise refuses it.
 #[test]
 fn a_writer_is_admitted_for_its_own_kind_of_command() {
     let program = app_owned("session");
     let contract = program.reader(DROP_ITEM).contract.clone();
     assert_eq!(alice().admits(&contract), Ok(()));
     assert!(Writer::Platform.admits(&contract).is_err());
-    let invoked_by = |by: &str| {
+    let invoked_by = |by: &str, runs_for: &[&str]| {
         let mut invoked = contract.clone();
-        invoked.exports[0]
+        let export = invoked.exports[0]
             .component
             .as_mut()
-            .assert_ok("its component's export")
-            .invoked_by = Some(by.into());
+            .assert_ok("its component's export");
+        export.invoked_by = Some(by.into());
+        export.runs_for = runs_for.iter().map(|w| w.to_string()).collect();
         invoked
     };
-    let payments = invoked_by("Payments");
+    let payments = invoked_by("Payments", &[]);
     assert_eq!(Writer::Platform.admits(&payments), Ok(()));
     let refused = alice()
         .admits(&payments)
         .assert_err("a reader's writes for the platform's command");
     assert!(refused.contains("is invoked by Payments"), "{refused}");
-    let clock = invoked_by("Clock");
+    let readers = invoked_by("Clock", &["reader"]);
     assert_eq!(
-        alice().admits(&clock),
+        alice().admits(&readers),
         Ok(()),
         "the reader who scheduled it"
     );
+    let refused = Writer::Platform
+        .admits(&readers)
+        .assert_err("a run only readers schedule, as the platform");
+    assert!(
+        refused.contains("its writes are that reader's, never the platform's"),
+        "{refused}"
+    );
+    let platforms = invoked_by("Clock", &["platform"]);
     assert_eq!(
-        Writer::Platform.admits(&clock),
+        Writer::Platform.admits(&platforms),
         Ok(()),
         "the platform's schedule"
     );
+    let refused = alice()
+        .admits(&platforms)
+        .assert_err("a run only the platform schedules, as a reader");
+    assert!(
+        refused.contains("for the platform's own schedules"),
+        "{refused}"
+    );
+    let both = invoked_by("Clock", &["platform", "reader"]);
+    assert_eq!(alice().admits(&both), Ok(()));
+    assert_eq!(Writer::Platform.admits(&both), Ok(()));
+    let none = invoked_by("Clock", &[]);
+    for writer in [alice(), Writer::Platform] {
+        let refused = writer
+            .admits(&none)
+            .assert_err("a run no command schedules");
+        assert!(refused.contains("no command schedules it"), "{refused}");
+    }
+}
+
+/// **The compiler's `runs_for` reaches the host**: the app with a reader's
+/// command that schedules one the clock invokes, built; that command's
+/// contract, as the host reads it, admits the reader and refuses the
+/// platform.
+#[test]
+fn a_run_a_readers_command_schedules_is_never_the_platforms() {
+    const LATER: &str = "\nopaque type InteractionId = String\n\n\
+        command drop_later(list: ListId, item: ItemId) -> Result<Int, String> \
+        !{ clock.schedule }\n    requires Anyone\n{\n    \
+        schedule drop_due(list, item) after minutes(30)\n    Ok(1)\n}\n\n\
+        command drop_due(list: ListId, item: ItemId) -> Result<Int, String>\n    \
+        invoked_by    Clock\n    idempotent_by InteractionId\n    \
+        invalidates   ItemsOf(list), OpenItems(), EveryItem()\n{\n    \
+        Items.delete(list, item)\n    Ok(1)\n}\n";
+    let built = build_edited("app.pw", |src| {
+        let src = src.replacen(
+            "import Items\n",
+            "import Items\nimport clock.{ minutes }\n",
+            1,
+        );
+        format!("{src}{LATER}")
+    });
+    assert!(built.as_ref().err().is_none(), "{:?}", built.as_ref().err());
+    let build = built.assert_ok("it builds");
+    assert!(build.refusals().is_empty(), "{:?}", build.refusals());
+    let contracts = pw_host::ComponentContract::from_json(
+        &serde_json::to_string(&build.contracts).assert_ok("contracts"),
+    )
+    .assert_ok("the host reads the compiler's contracts");
+    let due = contracts
+        .iter()
+        .find(|c| c.component_id == "tables.app.drop_due")
+        .assert_ok("drop_due's contract");
+    let export = due.exports[0].component.as_ref().assert_ok("its export");
+    assert_eq!(export.runs_for, ["reader"]);
+    assert_eq!(alice().admits(due), Ok(()));
+    assert!(Writer::Platform.admits(due).is_err());
 }

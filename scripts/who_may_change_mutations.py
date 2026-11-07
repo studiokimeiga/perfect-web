@@ -16,8 +16,10 @@ every failure an assertion's; a mutant that does not build kills nothing):
 2. the clause: `owner` heads a table's clause only, where its word follows,
    of three words;
 3. what is recorded: `owner user` and `owner session` in the schema, `owner
-   anyone` nothing; an owner recorded from now on or given up is a step of
-   the migration, and one of another kind is refused (PW0366);
+   anyone` nothing; an owner recorded from now on is a step of the
+   migration, the owners given up only as `migrate owner <kind> dropped`
+   states it, of the kind released, and a fault beside an owner still
+   recorded; one of another kind is refused (PW0366);
 4. a row holds no handle (PW6901, track data-path's, carried here);
 5. the enforcement, on the memory adapter: a reader's put, delete and
    prefix's delete change only its own rows; an insert records its writer
@@ -26,13 +28,16 @@ every failure an assertion's; a mutant that does not build kills nothing):
 6. the host's writer: its scope is its reader's id of the table's kind, a
    signed-out reader owns no user's row, a reader's command is never the
    platform's, another invoker's never a reader's, and the clock's run is
-   the reader's who scheduled it;
+   for the writers its contract's `runs_for` names, which the compiler
+   finds by the commands that schedule it, through each run's schedules;
 7. the enforcement, on PostgreSQL: the owned put (its guard on the row its
    conflict found) and delete statements, a row recording no owner being no
-   reader's, the owner column made, a put of another's row answered as
-   written, one that met a row inserted since answered alike, and the
-   migration of an owner (made, given up only as stated, never of another
-   kind).
+   reader's, the owner column made, a put answered by what its statement
+   wrote (another's row absent whatever it holds, a row inserted since left
+   as it was, a write where another's row was deleted, none where its own
+   was replaced, the row it replaced its own alone), the adapter's
+   functions held to their writer, and the migration of an owner (made,
+   given up only as the migration states it, never of another kind).
 
 They need a database: `PW_TABLES_DATABASE_URL` (or `PW_STORE_DATABASE_URL`,
 `PW_FEED_DATABASE_URL`), a throwaway one; without it the PostgreSQL tests
@@ -57,6 +62,8 @@ TABLES = ROOT / "compiler/pw-core/src/tables.rs"
 POLICY = ROOT / "compiler/pw-core/src/policy.rs"
 GRAMMAR = ROOT / "compiler/pw-syntax/src/grammar.rs"
 HOST = ROOT / "runtime/pw-host/src/tables.rs"
+HOST_LIB = ROOT / "runtime/pw-host/src/lib.rs"
+CONTRACT = ROOT / "compiler/pw-core/src/contract.rs"
 MEMORY = ROOT / "runtime/pw-table-memory/src/lib.rs"
 PG = ROOT / "runtime/pw-table-postgres/src/lib.rs"
 SQL = ROOT / "runtime/pw-table-postgres/src/sql.rs"
@@ -115,6 +122,20 @@ MUTANTS = [
     ("an owner recorded or given up is no step", TABLES,
      "            (was, is) if was == is => {}\n",
      "            (was, is) if was == is || was.is_none() || is.is_none() => {}\n"),
+    # The review of 2026-11-07: the owners given up only as stated.
+    ("the owners are given up though no migrate states it", TABLES,
+     "                .position(|m| m.value.change == Change::OwnersDropped(was))\n",
+     "                .position(|m| m.value.change == Change::OwnersDropped(was))\n"
+     "                .or(Some(usize::MAX))\n"),
+    ("a statement of another kind gives the owners up", TABLES,
+     "                .position(|m| m.value.change == Change::OwnersDropped(was))\n",
+     "                .position(|m| matches!(m.value.change, Change::OwnersDropped(_)))\n"),
+    ("the owners given up beside an owner still recorded are no fault", TABLES,
+     "                    .and_then(|o| o.value.recorded())\n",
+     "                    .and_then(|_| None::<OwnerKind>)\n"),
+    ("`migrate owner session dropped` is read as a field's change", TABLES,
+     '    if let ["owner", kind, "dropped"] = value.split_whitespace().collect::<Vec<_>>()[..] {\n',
+     '    if let ["owner", kind, "dropped", "."] = value.split_whitespace().collect::<Vec<_>>()[..] {\n'),
     # 4. a row holds no handle
     ("a row holding a handle is not refused", TABLES,
      "            .and_then(|ty| crate::check::handle_in(sigs, ty, &mut BTreeSet::new()))\n",
@@ -159,11 +180,34 @@ MUTANTS = [
      "                Ok(Scope::Owned(reader.user.as_deref().unwrap_or(&reader.session)))\n"
      "            }\n"),
     ("a clock's run is never its reader's", HOST,
-     "            (Writer::Reader(_), Some(by)) if *by != CLOCK => Err(format!(\n",
-     "            (Writer::Reader(_), Some(by)) => Err(format!(\n"),
+     "                let admitted = runs_for.iter().any(|k| k == kind);\n",
+     "                let admitted = runs_for.iter().any(|k| k == kind) && kind == PLATFORM;\n"),
+    ("a run only readers schedule is the platform's too", HOST,
+     "                let admitted = runs_for.iter().any(|k| k == kind);\n",
+     "                let admitted = runs_for.iter().any(|k| k == kind) || kind == PLATFORM;\n"),
+    ("a run only the platform schedules is a reader's too", HOST,
+     "                let admitted = runs_for.iter().any(|k| k == kind);\n",
+     "                let admitted = runs_for.iter().any(|k| k == kind) || kind == READER;\n"),
     ("any invoker's command runs for a reader", HOST,
-     "            (Writer::Reader(_), Some(by)) if *by != CLOCK => Err(format!(\n",
-     "            (Writer::Reader(_), Some(by)) if false && *by != CLOCK => Err(format!(\n"),
+     "            (Writer::Reader(_), Some(by)) => Err(format!(\n",
+     "            (Writer::Reader(_), Some(by)) if false => Err(format!(\n"),
+    ("the host reads no `runs_for` from a contract", HOST_LIB,
+     "    #[serde(default)]\n    pub runs_for: Vec<String>,\n",
+     "    #[serde(default, rename = \"runs for\")]\n    pub runs_for: Vec<String>,\n"),
+    # The compiler's half: for whom the clock runs each command, in its
+    # contract (the review of 2026-11-07).
+    ("the clock runs a reader's schedule for no reader", TABLES,
+     "                None => Some(RunsFor::Reader),\n",
+     "                None => None,\n"),
+    ("the clock runs the platform's schedule for no one", TABLES,
+     "                Some(_) => Some(RunsFor::Platform),\n",
+     "                Some(_) => None,\n"),
+    ("a run's own schedules run for no one", TABLES,
+     "                None => out.get(&from).cloned().unwrap_or_default(),\n",
+     "                None => BTreeSet::new(),\n"),
+    ("a contract says for whom the clock runs nothing", CONTRACT,
+     '            if component.invoked_by.as_deref() == Some("Clock") {\n',
+     '            if component.invoked_by.as_deref() == Some("no Clock") {\n'),
     ("a reader's command runs as the platform", HOST,
      "            (Writer::Platform, None) => Err(format!(\n",
      "            (Writer::Platform, None) if false => Err(format!(\n"),
@@ -180,18 +224,33 @@ MUTANTS = [
     ("PostgreSQL makes no owner column", SQL,
      "    if table.owner.is_some() {\n        parts.push(format!(\"{} text\", ident(OWNER)));\n",
      "    if false {\n        parts.push(format!(\"{} text\", ident(OWNER)));\n"),
-    ("PostgreSQL answers another reader's put as its own", PG,
-     "                    let others = owned && old_held && !row.get::<_, bool>(3 + 2 * n);\n",
-     "                    let others = false && owned && old_held && !row.get::<_, bool>(3 + 2 * n);\n"),
+    ("PostgreSQL answers another reader's put by a unique value's holder", PG,
+     "                    } else if old_held && !mine {\n",
+     "                    } else if false && old_held && !mine {\n"),
     ("a put that met a row inserted since is answered refused", PG,
-     "                    let since = owned\n",
-     "                    let since = false\n"),
+     "                    } else if old_held || room {\n",
+     "                    } else if old_held {\n"),
+    # The review of 2026-11-07: an answer read from the snapshot, not from
+    # what the statement wrote.
+    ("a put that wrote where another reader's row was is answered as no write", PG,
+     "                    let wrote = count == 1;\n",
+     "                    let wrote = count == 1 && !(old_held && !mine);\n"),
+    ("a put whose row was replaced while it waited is answered as a write", PG,
+     "                    let wrote = count == 1;\n",
+     "                    let wrote = count == 1 || (old_held && mine);\n"),
+    ("the row a put replaced is the snapshot's, whoever's", PG,
+     "                        let before = if old_held && mine {\n",
+     "                        let before = if old_held {\n"),
+    ("PostgreSQL's functions admit any writer for a command", PG,
+     "            .admits(contract)\n            .map_err(Error::Input)?;\n",
+     "            .admits(contract)\n            .or_else(|_| Ok::<(), String>(()))\n"
+     "            .map_err(Error::Input)?;\n"),
     ("a table that comes to record owners gains no column", MIGRATE,
      "            (None, Some(_)) => columns_sql.push(sql::owner_column(names, table, true)),\n",
      "            (None, Some(_)) => {}\n"),
-    ("an old build gives the owners up", MIGRATE,
-     "            (Some(_), None) if stated_applies => {\n",
-     "            (Some(_), None) if stated_applies || true => {\n"),
+    ("PostgreSQL gives the owners up though no migration states it", MIGRATE,
+     "                match stated_give_up {\n",
+     "                match stated_give_up.or(Some(usize::MAX)) {\n"),
     ("an owner of another kind is taken on PostgreSQL", MIGRATE,
      "            (Some(before), Some(after)) if before == after => {}\n",
      "            (Some(before), Some(after)) if before == after || true => {}\n"),

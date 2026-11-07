@@ -6516,7 +6516,7 @@
   {
     "component_id": "store.page.expire_order",
     "capability_mapping": 1,
-    "abi_schema": "773978126174b1e0",
+    "abi_schema": "1aafd7fe4bf9f9e9",
     "required_capabilities": [
       {
         "family": "database",
@@ -6978,7 +6978,10 @@
           "interface": "pw:app/store-page-expire-order-api@0.1.0",
           "function": "expire-order",
           "idempotent_by": "InteractionId",
-          "invoked_by": "Clock"
+          "invoked_by": "Clock",
+          "runs_for": [
+            "reader"
+          ]
         }
       }
     ]
@@ -9291,7 +9294,7 @@
   {
     "component_id": "store.page.send_to_store",
     "capability_mapping": 1,
-    "abi_schema": "3e017e0550a4f7ce",
+    "abi_schema": "8dc7736492d392ce",
     "required_capabilities": [
       {
         "family": "database",
@@ -9518,7 +9521,11 @@
           "interface": "pw:app/store-page-send-to-store-api@0.1.0",
           "function": "send-to-store",
           "idempotent_by": "InteractionId",
-          "invoked_by": "Clock"
+          "invoked_by": "Clock",
+          "runs_for": [
+            "platform",
+            "reader"
+          ]
         }
       }
     ]

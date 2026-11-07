@@ -136,6 +136,9 @@ command forget_note(note: NoteId) -> ()
   is who changes it. A table only the platform's commands write
   (`invoked_by`) needs no `owner`, but a command the clock runs for a
   reader's `schedule` writes for that reader, so its tables say one.
+- Once released, a table that comes to record owners holds each row it had
+  as no reader's. One that gives them up says so, as a dropped field does:
+  `migrate owner session dropped` (PW0366 refuses the change unstated).
 
 ## Queries
 

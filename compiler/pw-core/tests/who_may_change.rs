@@ -316,6 +316,74 @@ fn a_write_a_readers_command_schedules_is_the_readers() {
     assert!(found.is_empty(), "{found:#?}");
 }
 
+/// **A contract says for whom the clock runs a command** (the review of
+/// 2026-11-07): `reader` where a reader's command schedules it, `platform`
+/// where the command the platform invokes does, both where both do, each
+/// through a schedule a run makes in turn; nothing where no command
+/// schedules it, and nothing on a command the clock does not run. A host
+/// holds each run's writer to it (`pw_host::tables::Writer::admits`).
+#[test]
+fn a_contract_says_for_whom_the_clock_runs_a_command() {
+    let clocked = |name: &str, then: &str| {
+        let effects = if then.is_empty() {
+            ""
+        } else {
+            " !{ clock.schedule }"
+        };
+        format!(
+            "command {name}(order: String) -> Result<Int, String>{effects}\n    invoked_by    \
+             Clock\n    idempotent_by InteractionId\n{{\n{then}    Ok(1)\n}}\n\n"
+        )
+    };
+    let source = format!(
+        "module pay\n\nimport payments.{{ Settled }}\nimport clock.{{ minutes }}\n\n\
+         opaque type InteractionId = String\n\n\
+         command settle(settled: Settled) -> Result<Int, String> !{{ clock.schedule }}\n    \
+         invoked_by    Payments\n    idempotent_by InteractionId\n{{\n    \
+         schedule send(settled.order) after minutes(5)\n    \
+         schedule refund(settled.order) after minutes(5)\n    Ok(1)\n}}\n\n\
+         command place(order: String) -> Result<Int, String> !{{ clock.schedule }}\n    \
+         requires Anyone\n{{\n    schedule send(order) after minutes(5)\n    \
+         schedule expire(order) after minutes(30)\n    Ok(1)\n}}\n\n{}{}{}{}{}",
+        clocked("send", ""),
+        clocked("refund", ""),
+        clocked("expire", "    schedule purge(order) after minutes(5)\n"),
+        clocked("purge", ""),
+        clocked("idle", ""),
+    );
+    let found = diagnostics(&[("pay.pw", &source)]);
+    assert!(found.is_empty(), "the control: it checks clean: {found:#?}");
+    let files = program(&[("pay.pw", &source)]);
+    let build = pw_core::build::build(&units(&files)).expect("the program builds");
+    let runs_for = |id: &str| -> Vec<String> {
+        let export = build
+            .contracts
+            .iter()
+            .find(|c| c.component_id == id)
+            .and_then(|c| c.exports.first())
+            .and_then(|e| e.component.clone());
+        assert!(export.is_some(), "no command export for {id}");
+        export.map(|c| c.runs_for).unwrap_or_default()
+    };
+    assert_eq!(runs_for("pay.send"), ["platform", "reader"]);
+    assert_eq!(runs_for("pay.refund"), ["platform"]);
+    assert_eq!(runs_for("pay.expire"), ["reader"]);
+    assert_eq!(
+        runs_for("pay.purge"),
+        ["reader"],
+        "through the schedule a reader's run makes"
+    );
+    assert!(runs_for("pay.idle").is_empty(), "no command schedules it");
+    assert!(
+        runs_for("pay.place").is_empty(),
+        "the clock does not run it"
+    );
+    assert!(
+        runs_for("pay.settle").is_empty(),
+        "the clock does not run it"
+    );
+}
+
 /// One refusal a table, beside every command that writes it; a table in the
 /// command's own module is told there.
 #[test]
@@ -418,11 +486,17 @@ fn diff(before: &str, after: &str) -> (Vec<Step>, Vec<String>) {
     (plan.steps, refused)
 }
 
+/// What PW0366 says of a table released `owner session` that records none.
+const LOST: &str = "`Notes` was released `owner session` and records no owner now: the owner \
+                    each row records would be lost";
+
 /// A table released without owners comes to record them: a step, each row
-/// released owned by no reader. One released with them gives them up: a
-/// step too. One whose rows recorded a user comes to record a session (or
-/// the other way): each owner recorded would be read as another kind of
-/// reader, refused.
+/// released owned by no reader. One released with them gives them up only as
+/// the program states it, `migrate owner session dropped` (the review of
+/// 2026-11-07): the owners are lost for good, and any reader may change any
+/// row, as a field's values are lost where it is dropped. One whose rows
+/// recorded a user comes to record a session (or the other way): each owner
+/// recorded would be read as another kind of reader, refused.
 #[test]
 fn a_change_of_owner_is_a_step_and_of_its_kind_refused() {
     let none = notes("");
@@ -442,8 +516,18 @@ fn a_change_of_owner_is_a_step_and_of_its_kind_refused() {
         diff(&anyone, &user),
         (vec![change(None, Some(OwnerKind::User))], Vec::new())
     );
+    // Given up: no step, and refused, where nothing states it; a step where
+    // the program does.
     assert_eq!(
         diff(&session, &anyone),
+        (Vec::new(), vec![LOST.to_string()])
+    );
+    let (steps, refused) = diff(&user, &none);
+    assert!(steps.is_empty(), "{steps:#?}");
+    assert_eq!(refused.len(), 1, "with no `owner` at all: {refused:#?}");
+    let stated = notes("    owner anyone\n    migrate owner session dropped\n");
+    assert_eq!(
+        diff(&session, &stated),
         (vec![change(Some(OwnerKind::Session), None)], Vec::new())
     );
     // The control: the same owner released and declared changes nothing.
@@ -459,4 +543,92 @@ fn a_change_of_owner_is_a_step_and_of_its_kind_refused() {
     );
     let (_, refused) = diff(&session, &user);
     assert_eq!(refused.len(), 1, "{refused:#?}");
+}
+
+/// **The owners given up are stated of the kind released** (the review of
+/// 2026-11-07). `migrate owner user dropped` gives up no session's owners,
+/// and states no change of a table released without owners; beside an
+/// owner the table still records, it is malformed (PW0361), told once; and
+/// `owner anyone` records none to give up. A field named `owner` keeps
+/// statements of its own beside it: the two change different things.
+#[test]
+fn the_owners_given_up_are_stated_of_the_kind_released() {
+    let session = notes("    owner session\n");
+    let anyone = notes("    owner anyone\n");
+    let stale = |kind: &str| {
+        format!(
+            "`migrate owner {kind} dropped` states no change of `Notes` from the schema released"
+        )
+    };
+    let (steps, refused) = diff(
+        &session,
+        &notes("    owner anyone\n    migrate owner user dropped\n"),
+    );
+    assert!(steps.is_empty(), "{steps:#?}");
+    assert_eq!(refused, [LOST.to_string(), stale("user")]);
+    let (steps, refused) = diff(
+        &anyone,
+        &notes("    owner anyone\n    migrate owner session dropped\n"),
+    );
+    assert!(steps.is_empty(), "{steps:#?}");
+    assert_eq!(refused, [stale("session")]);
+    // Malformed, alone, released or not.
+    let still = notes("    owner session\n    migrate owner session dropped\n");
+    let told = |found: Vec<(String, pw_core::diagnostics::Diagnostic)>| -> Vec<(String, String)> {
+        found
+            .into_iter()
+            .map(|(_, d)| (d.code.to_string(), d.message))
+            .collect()
+    };
+    let malformed = (
+        "PW0361".to_string(),
+        "`migrate owner session dropped` gives up the owners `Notes` still records: it says \
+         `owner session`"
+            .to_string(),
+    );
+    assert_eq!(
+        told(diagnostics(&[("Notes.pw", &still)])),
+        std::slice::from_ref(&malformed)
+    );
+    let against = check_sources_with(&program(&[("Notes.pw", &still)]), Some(&released(&session)))
+        .into_iter()
+        .filter(|(n, _)| n == "Notes.pw")
+        .flat_map(|(n, ds)| ds.into_iter().map(move |d| (n.clone(), d)))
+        .collect();
+    assert_eq!(told(against), [malformed]);
+    let nothing = notes("    owner anyone\n    migrate owner anyone dropped\n");
+    let found = told(diagnostics(&[("Notes.pw", &nothing)]));
+    assert_eq!(found.len(), 1, "{found:#?}");
+    assert!(
+        found[0]
+            .1
+            .ends_with("gives up no owner: `owner anyone` records none"),
+        "{found:#?}"
+    );
+    // A field named `owner`, dropped as the owners are given up.
+    let with_field = |owner: &str| {
+        notes(owner).replace(
+            "type Note = Note { shelf: Shelf, id: NoteId, text: String }",
+            "type Note = Note { shelf: Shelf, id: NoteId, text: String, owner: String }",
+        )
+    };
+    let after =
+        notes("    owner anyone\n    migrate owner dropped\n    migrate owner session dropped\n");
+    assert_eq!(
+        diff(&with_field("    owner session\n"), &after),
+        (
+            vec![
+                Step::DropField {
+                    table: "Notes".to_string(),
+                    field: "owner".to_string(),
+                },
+                Step::ChangeOwner {
+                    table: "Notes".to_string(),
+                    from: Some(OwnerKind::Session),
+                    to: None,
+                },
+            ],
+            Vec::new()
+        )
+    );
 }

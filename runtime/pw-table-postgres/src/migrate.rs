@@ -471,21 +471,31 @@ pub(crate) fn changes(
         }
         // Who may change its rows (the owned-rows ADR): the owner column
         // made, where its rows record one from now on, each row it holds
-        // owned by no reader; given up, losing the owners, only by a build
-        // whose migration is from the schema recorded; and never read as
+        // owned by no reader; given up, losing the owners, only as the
+        // migration from the schema recorded states it (`migrate owner
+        // session dropped`), as a field is dropped; and never read as
         // another kind of reader's.
         match (was.owner, now.owner) {
             (None, None) => {}
             (Some(before), Some(after)) if before == after => {}
             (None, Some(_)) => columns_sql.push(sql::owner_column(names, table, true)),
-            (Some(_), None) if stated_applies => {
-                columns_sql.push(sql::owner_column(names, table, false));
+            (Some(before), None) => {
+                let stated_give_up = stated.iter().position(|s| {
+                    matches!(s, Step::ChangeOwner { table: t, from: Some(from), to: None }
+                        if t == table && *from == before)
+                });
+                match stated_give_up {
+                    Some(i) => {
+                        used.insert(i);
+                        columns_sql.push(sql::owner_column(names, table, false));
+                    }
+                    None => refused.push(format!(
+                        "`{table}`'s rows record their {0} as owner, and this build records none: \
+                         the owners would be lost (state `migrate owner {0} dropped`)",
+                        before.word()
+                    )),
+                }
             }
-            (Some(before), None) => refused.push(format!(
-                "`{table}`'s rows record their {} as owner, and this build records none: the \
-                 owners would be lost, and tables.json's migration is not from the schema recorded",
-                before.word()
-            )),
             (Some(before), Some(after)) => refused.push(format!(
                 "`{table}`'s rows record their {} as owner, and this build declares `owner {}`: \
                  each owner recorded would be read as another kind of reader",
@@ -537,6 +547,11 @@ pub(crate) fn changes(
                 | Step::RetypeField { .. }
                 | Step::AddField {
                     backfill: Some(_),
+                    ..
+                }
+                | Step::ChangeOwner {
+                    from: Some(_),
+                    to: None,
                     ..
                 }
         );
