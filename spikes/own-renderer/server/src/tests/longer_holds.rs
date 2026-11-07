@@ -91,11 +91,7 @@ fn a_held_stream_keeps_its_page_live() {
 
 /// How long a hold of [`HOLD`] lasted when its page went away
 /// `after` it began, `hold` running it on the host's end of the connection.
-fn held_after_gone(
-    hold: impl FnOnce(Conn) + Send,
-    page: TcpStream,
-    held: Conn,
-) -> Duration {
+fn held_after_gone(hold: impl FnOnce(Conn) + Send, page: TcpStream, held: Conn) -> Duration {
     std::thread::scope(|scope| {
         let begun = Instant::now();
         let holding = scope.spawn(move || hold(held));
