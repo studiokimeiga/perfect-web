@@ -1,0 +1,22 @@
+== 2026-11-06T18:51:55-05:00 commit 7bd477fa2064ba1c41c6b594a0670d58441cac1a; uncommitted code paths: 0
+== 2026-11-06T18:51:55-05:00 cargo fmt --check; pw-core, every test
+exit fmt 0
+exit pw-core 0
+pw-core: 1820 passed, 0 failed, 2 ignored
+== 2026-11-06T19:01:42-05:00 just evidence-gates, whole
+exit evidence-gates 0
+Ran 1177 tests in 375.409s
+OK (skipped=5)
+# tests 19
+# pass 19
+# fail 0
+== 2026-11-06T19:07:57-05:00 mutation controls: guide, whole
+exit guide 1
+baseline: the guide's tests, 22 ran, 0 failed
+baseline: the guestbook in Chromium, 0 ran, 0 failed
+FAIL: the unmutated baseline is not green; no mutant can mean anything
+  its browser run's output: kept 1 of 1 entries of its output (45 B) in /home/haki/code/pw-wt/img-alt/spikes/own-renderer/kept-traces/local/20261107T000841Z/guide_mutations-baseline
+== 2026-11-06T19:08:41-05:00 restored
+mutation anchors: 4984 mutants in 325 scripts, each matching once
+exit anchors 0
+IMG_FINAL_FINISHED
