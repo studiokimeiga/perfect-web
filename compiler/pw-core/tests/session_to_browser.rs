@@ -86,14 +86,16 @@ fn no_answer_holds_a_sessions_handle() {
         1
     );
     assert_eq!(
-        codes("command which() -> Session<SessionId> {\n    current_session()\n}\n"),
+        codes(
+            "command which() -> Session<SessionId>\n    requires Anyone\n{\n    current_session()\n}\n"
+        ),
         ["PW5040"]
     );
     // The controls: the session's data answered, and a user's handle,
     // which names a user and opens nothing.
     assert!(codes(&query("Mine", "Cart", "cart_of(session)")).is_empty());
     assert!(
-        codes("command who() -> User<UserId> !{ session.read } {\n    current_user()\n}\n")
+        codes("command who() -> User<UserId> !{ session.read }\n    requires Anyone\n{\n    current_user()\n}\n")
             .is_empty()
     );
 }

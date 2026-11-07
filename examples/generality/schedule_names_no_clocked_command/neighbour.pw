@@ -11,6 +11,7 @@ import clock.{ minutes }
 import orders.reminders.{ remind }
 
 command later(order: String) -> Result<Int, String> !{ clock.schedule }
+    requires Anyone
 {
     schedule remind(order) after minutes(5)
     unschedule remind(order)

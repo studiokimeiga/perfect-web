@@ -14,7 +14,7 @@ code the compiler can emit, from its registry, `compiler/pw-core/src/codes.rs`.
 - **What the program must hold to**: the registry's own sentence.
 - **ADR**: the decisions its registry entry cites, where it cites one.
 
-221 codes are registered; 96 of them cite an ADR in the registry.
+222 codes are registered; 96 of them cite an ADR in the registry.
 A code whose entry cites none is marked `—`: search `docs/DECISIONS/` for its
 number or its symbol.
 
@@ -74,6 +74,7 @@ number or its symbol.
 | PW0102 | `session_state_is_fresh` | session-owned state may not be served stale | — |
 | PW0312 | `retry_not_idempotent` | a command that retries must be idempotent | — |
 | PW0338 | `sent_without_idempotency` | a command a page's handler calls declares `idempotent_by` | [0154](../DECISIONS/ADR-0154-a-command-a-page-sends-declares-idempotent-by.md) |
+| PW0367 | `who_may_run` | a command a reader can run says who may: `requires` and the predicates every request must hold, or `requires Anyone`, which stands alone and is the platform's | — |
 | PW0339 | `command_outside_a_handler` | a command is called only by a page's handler | [0157](../DECISIONS/ADR-0157-a-handler-is-answered-what-its-command-did.md) |
 | PW0340 | `route_names_its_parameters` | a route is `/` and segments, a word or a `{parameter}` each, and names each of its page's parameters once | [0160](../DECISIONS/ADR-0160-a-page-s-route.md) |
 | PW0341 | `route_declared_twice` | one route is one page's: an address names the page it is for | — |

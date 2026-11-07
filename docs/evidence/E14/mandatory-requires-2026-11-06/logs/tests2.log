@@ -1,0 +1,23 @@
+== 2026-11-06T18:56:05-05:00 fmt; the codes page; the enforcement table
+exit fmt 0
+wrote docs/guide/diagnostics.md
+exit guide_diagnostics 0
+running 1 test
+wrote docs/evidence/E2D/corpus-enforcement.txt
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 19 filtered out; finished in 15.96s
+
+96/96 enforce their declared invariant
+exit evidence-corpus 0
+-95/95 enforce their declared invariant
++96/96 enforce their declared invariant
++R-097  enforced                  PW0367
++       a command that says nothing of who may run it
+== 2026-11-06T18:56:23-05:00 the failed tests and the new ones
+exit tests 101
+tests: 232 passed, 1 failed
+test a_payments_command_is_told_at_its_invoked_by_clause ... FAILED
+== 2026-11-06T18:59:04-05:00 the guide
+exit guide 0
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.51s
+REQUIRES_TESTS2_FINISHED

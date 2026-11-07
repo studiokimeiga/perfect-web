@@ -57,7 +57,7 @@ fn page(visibility: &str, markup: &str) -> String {
          predicate OwnsNote(note: Int)\n    says \"Only its author can do this.\"\n\n\
          command post_note(text: String) -> Result<Int, String>\n    \
          requires      SignedIn\n    idempotent_by InteractionId\n{{\n    Ok(1)\n}}\n\n\
-         command plain_note(text: String) -> Result<Int, String>\n    \
+         command plain_note(text: String) -> Result<Int, String>\n    requires Anyone\n    \
          idempotent_by InteractionId\n{{\n    Ok(1)\n}}\n\n\
          {visibility}page P() {{\n    route \"/p\"\n{cache}\n    view {{\n        <title>P</title>\n        \
          <main>\n            {markup}\n        </main>\n    }}\n}}\n",

@@ -11,6 +11,7 @@ import Items
 
 // Its own write, read back before it commits.
 command insert_then_get(list: TodoList) -> Result<Option<TodoList>, TodoList>
+    requires    Anyone
     transaction serializable
 {
     match Lists.insert(list) {
@@ -21,6 +22,7 @@ command insert_then_get(list: TodoList) -> Result<Option<TodoList>, TodoList>
 
 // An item kept, then the open items, read through the index the put kept.
 command put_then_open(item: Item) -> List<Item>
+    requires    Anyone
     transaction serializable
 {
     Items.put(item)
@@ -29,6 +31,7 @@ command put_then_open(item: Item) -> List<Item>
 
 // A list kept whole, refused by the list that holds its slug.
 command rename(list: TodoList) -> Result<(), TodoList>
+    requires    Anyone
     transaction serializable
 {
     Lists.put(list)
@@ -36,6 +39,7 @@ command rename(list: TodoList) -> Result<(), TodoList>
 
 // A write, then a division by `by`: by zero, it stops after its write.
 command insert_then_divide(list: TodoList, by: Int) -> Result<Int, TodoList>
+    requires    Anyone
     transaction serializable
 {
     match Lists.insert(list) {

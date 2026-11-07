@@ -56,6 +56,7 @@ query OneChore(room: Room, id: ChoreId) -> Option<Chore>
 }
 
 command add_chore(chore: Chore) -> Result<(), Chore>
+    requires    Anyone
     transaction serializable
     invalidates InRoom(chore.room), Undone(), EveryChore(), OneChore(chore.room, chore.id)
 {
@@ -63,6 +64,7 @@ command add_chore(chore: Chore) -> Result<(), Chore>
 }
 
 command finish_room(room: Room) -> ()
+    requires    Anyone
     transaction serializable
     invalidates InRoom(room), Undone(), EveryChore(), OneChore(room, _)
 {

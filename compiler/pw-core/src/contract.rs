@@ -1852,6 +1852,9 @@ fn authorization_of(decl: &crate::hir::Decl) -> Vec<AuthorizationRequirement> {
     match crate::policy::predicates(&policy.value) {
         Ok(predicates) => predicates
             .into_iter()
+            // `Anyone` holds for every reader: nothing to ask (the requires
+            // ADR). PW0367 refuses it beside another predicate.
+            .filter(|predicate| predicate.name != crate::policy::ANYONE)
             .map(|predicate| AuthorizationRequirement {
                 predicate: predicate.name,
                 arguments: predicate

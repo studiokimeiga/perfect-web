@@ -117,6 +117,7 @@ fn publish(s: Session<SessionId>, text: String) -> Result<Post, PostError> !{ da
     host "blog:data/posts#publish"
 
 command post(text: String) -> Result<Post, PostError>
+    requires      Anyone
     idempotent_by InteractionId
 {
     publish(current_session(), text)
@@ -139,9 +140,9 @@ page Write() {
 
 ```text pw-check
 error: [PW0620] `post` answers whether it committed, not its value: `p` is bound to nothing
-  --> answer.pw:30:16
+  --> answer.pw:31:16
    |
-30 |             Ok(p) => last = "sent",
+31 |             Ok(p) => last = "sent",
    |                ^ `post` answers whether it committed, not its value: `p` is bound to nothing
    |
    = note: A command's caller is answered `Ok`, or an error the command declares (ADR-0157). The value it produced reaches the page from the query it invalidates, so the page has one source for what it shows: a value read from the answer would be a second, which the query's next change would contradict.
@@ -171,7 +172,9 @@ type PostError =
 fn publish(s: Session<SessionId>, text: String) -> Result<Post, PostError> !{ database.write<Post> }
     host "blog:data/posts#publish"
 
-command post(text: String) -> Result<Post, PostError> {
+command post(text: String) -> Result<Post, PostError>
+    requires Anyone
+{
     publish(current_session(), text)
 }
 
@@ -194,7 +197,9 @@ page Write() {
 error: [PW0338] `post` is called by a page's handler, and declares no `idempotent_by`
   --> twice.pw:16:1
    |
-16 | / command post(text: String) -> Result<Post, PostError> {
+14 | / command post(text: String) -> Result<Post, PostError>
+15 | |     requires Anyone
+16 | | {
 17 | |     publish(current_session(), text)
 18 | | }
    | |_^ `post` is called by a page's handler, and declares no `idempotent_by`
@@ -322,6 +327,49 @@ error: [PW5053] `<img>` has no `alt`
    = help: write `alt="…"` saying what the image shows
    = help: or `alt=""` if it shows nothing a reader needs
 ```
+
+### A command anyone can run, by saying nothing
+
+No page sends `delete_post`, and that protects nothing: the server runs a
+command for any request that names it. So every command says who may:
+
+```pw fails=PW0367
+module admin
+
+opaque type PostId = String
+
+type Post = Post { id: PostId, text: String }
+
+type PostError =
+    | Missing
+
+fn remove(post: PostId) -> Result<(), PostError> !{ database.write<Post> }
+    host "blog:data/posts#remove"
+
+command delete_post(post: PostId) -> Result<(), PostError> {
+    remove(post)
+}
+```
+
+```text pw-check
+error: [PW0367] `delete_post` runs for any reader's request, and says nothing of who may run it
+  --> admin.pw:13:9
+   |
+13 |   command delete_post(post: PostId) -> Result<(), PostError> {
+   |   -       ^^^^^^^^^^^ `delete_post` runs for any reader's request, and says nothing of who may run it
+   |  _|
+   | |
+14 | |     remove(post)
+15 | | }
+   | |_- a request that names `delete_post` runs it, with or without a page
+   |
+   = note: The server runs a command for any request that names it, whether or not a page shows its button: a request is an address and a body, and anyone can send one. So who may run a command is the command's to say. `requires` names what every request must hold, as `requires SignedIn, OwnsPost(post)`; `requires Anyone` says anyone may, and stands alone. A command the platform runs says `invoked_by` instead.
+   = help: declare `requires` with what a reader must hold, such as `requires SignedIn`
+   = help: or `requires Anyone`, if anyone may run it
+```
+
+`requires Anyone` is how a command says anyone may run it, where a reviewer
+reads it.
 
 ## When the build refuses what the check passed
 

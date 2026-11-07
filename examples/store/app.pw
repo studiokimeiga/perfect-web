@@ -372,6 +372,7 @@ predicate SignedIn
 // platform before any command runs (docs/PARALLEL.md, Q3).
 command add_to_cart(item: MenuItem, quantity: PositiveInt)
     -> Result<UserCart, CartError>
+    requires      Anyone
     idempotent_by InteractionId
     retry         transport_only(max = 2, jitter = true)
     transaction   serializable
@@ -396,6 +397,7 @@ command add_to_cart(item: MenuItem, quantity: PositiveInt)
 // the item's availability is read again inside it.
 command increase_in_cart(item: MenuItemId)
     -> Result<UserCart, CartError>
+    requires      Anyone
     idempotent_by InteractionId
     retry         transport_only(max = 2, jitter = true)
     transaction   serializable
@@ -413,6 +415,7 @@ command increase_in_cart(item: MenuItemId)
 // line goes.
 command decrease_in_cart(item: MenuItemId)
     -> Result<UserCart, CartError>
+    requires      Anyone
     idempotent_by InteractionId
     retry         transport_only(max = 2, jitter = true)
     optimistic    Cart(current_user()) as cart => UserCarts.with_fewer(cart, item)
@@ -425,6 +428,7 @@ command decrease_in_cart(item: MenuItemId)
 // **A line, gone** (charter §15.3, ADR-0172).
 command remove_from_cart(item: MenuItemId)
     -> Result<UserCart, CartError>
+    requires      Anyone
     idempotent_by InteractionId
     retry         transport_only(max = 2, jitter = true)
     optimistic    Cart(current_user()) as cart => UserCarts.without(cart, item)
@@ -442,6 +446,7 @@ command remove_from_cart(item: MenuItemId)
 // the whole claim, and the one thing a single-handler demo cannot show.
 command clear_cart()
     -> Result<UserCart, CartError>
+    requires      Anyone
     idempotent_by InteractionId
     retry         transport_only(max = 2, jitter = true)
     invalidates   Cart(current_user())
@@ -626,6 +631,7 @@ fn take_back(reader: User<UserId>, awaited: AwaitedPayment) -> Result<OrderStatu
 // refused: Money carries no invariant.
 command choose_tip(tip: Tip)
     -> Result<Tip, TipError>
+    requires      Anyone
     idempotent_by InteractionId
     retry         transport_only(max = 2, jitter = true)
     transaction   serializable
@@ -643,6 +649,7 @@ command choose_tip(tip: Tip)
 // least subtotal.
 command apply_promo(code: String)
     -> Result<Chosen, PromoError>
+    requires      Anyone
     idempotent_by InteractionId
     retry         transport_only(max = 2, jitter = true)
     transaction   serializable
@@ -658,6 +665,7 @@ command apply_promo(code: String)
 // **The cart's promo code taken off** (track `order-total`).
 command remove_promo()
     -> Result<Chosen, PromoError>
+    requires      Anyone
     idempotent_by InteractionId
     retry         transport_only(max = 2, jitter = true)
     transaction   serializable
@@ -673,6 +681,7 @@ command remove_promo()
 // name.
 command choose_time(when: Option<Instant>)
     -> Result<Option<Instant>, OrderError>
+    requires      Anyone
     idempotent_by InteractionId
     retry         transport_only(max = 2, jitter = true)
     transaction   serializable
@@ -713,6 +722,7 @@ command send_to_store(order: String)
 // estimate depend on it, in each of the reader's sessions.
 command add_address(label: AddressLabel, place: PlaceId)
     -> Result<List<Address>, AddressError>
+    requires      Anyone
     idempotent_by InteractionId
     retry         transport_only(max = 2, jitter = true)
     transaction   serializable
@@ -725,6 +735,7 @@ command add_address(label: AddressLabel, place: PlaceId)
 // **An address's label, changed.**
 command rename_address(id: AddressId, label: AddressLabel)
     -> Result<List<Address>, AddressError>
+    requires      Anyone
     idempotent_by InteractionId
     retry         transport_only(max = 2, jitter = true)
     invalidates   SavedAddresses(current_user())
@@ -736,6 +747,7 @@ command rename_address(id: AddressId, label: AddressLabel)
 // **An address, gone**: the chosen one leaves none chosen.
 command remove_address(id: AddressId)
     -> Result<List<Address>, AddressError>
+    requires      Anyone
     idempotent_by InteractionId
     retry         transport_only(max = 2, jitter = true)
     invalidates   SavedAddresses(current_user())
@@ -747,6 +759,7 @@ command remove_address(id: AddressId)
 // **An address chosen for deliveries.**
 command choose_address(id: AddressId)
     -> Result<List<Address>, AddressError>
+    requires      Anyone
     idempotent_by InteractionId
     retry         transport_only(max = 2, jitter = true)
     invalidates   SavedAddresses(current_user())

@@ -42,6 +42,7 @@ command add_later(item: MenuItemId)
 // `refuse`, a declared error, which commits nothing.
 command add_in_five(item: MenuItemId, refuse: Bool)
     -> Result<Int, CartError>
+    requires      Anyone
     idempotent_by InteractionId
 {
     schedule add_later(item) after minutes(5)
@@ -54,6 +55,7 @@ command add_in_five(item: MenuItemId, refuse: Bool)
 // A test's: the store's sweep of `order`, scheduled five minutes on.
 command sweep_in_five(order: String)
     -> Result<Int, CartError>
+    requires      Anyone
     idempotent_by InteractionId
 {
     schedule expire_order(order) after minutes(5)

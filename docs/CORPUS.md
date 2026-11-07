@@ -1270,3 +1270,29 @@ Generality at open:        66/66 invariants generality-tested
 | Fixture | Change | Kind |
 |---|---|---|
 | R-096 | a page whose photo has no `alt`, refused with PW5053 | new category |
+
+## C32: a command says who may run it, 2026-11-06
+
+Opened because the specification changed, and a charter category was added
+under §7.5's "explicit mutation with authorization". A command a reader can
+run declares `requires` (PW0367); `requires Anyone` says anyone may. The
+requires ADR (`ADR-XXXX-a-command-says-who-may-run-it.md`, numbered when it
+lands) is the decision.
+
+```text
+Corpus version:            C32
+Accepted programs:         44
+Rejected programs:         97
+Charter categories:        44/44 accepted, 97/97 rejected
+Generality at open:        67/67 invariants generality-tested
+```
+
+| Fixture | Change | Kind |
+|---|---|---|
+| R-097 | a command no page sends, `delete_post`, with no `requires`, refused with PW0367 | new category |
+| A-036, A-050, R-067, R-069, R-108 | each command with neither `requires` nor `invoked_by` gains `requires Anyone`: anyone could run it, and it now says so | specification changed, meaning kept |
+| nine generality witnesses (`device_value_to_a_command`, `invoked_command_not_idempotent`, `invoked_command_pressed`, `invoked_twice`, `schedule_names_no_clocked_command`, `schedule_time`, `scheduled_outside_a_command`) | the same | specification changed, meaning kept |
+
+The texts under `examples/history/` keep what they were. A command in one
+that says nothing of who may run it is now refused for that too, beside the
+invariant its history test asks about.

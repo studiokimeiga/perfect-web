@@ -177,8 +177,8 @@ R-094  enforced                  PW0401
        a function value receiver keeps its effect
 R-095  enforced                  PW0400
        a recursive generic invocation keeps its effect
-R-096  enforced                  PW5053
-       an image with no text alternative
+R-097  enforced                  PW0367
+       a command that says nothing of who may run it
 R-100  enforced                  PW0361
        a table keyed by a field no database keys a row by
 R-101  enforced                  PW0361

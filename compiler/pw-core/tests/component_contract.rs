@@ -247,6 +247,26 @@ fn requires_is_an_export_precondition_and_part_of_the_abi() {
     assert_ne!(restock.abi_schema, without.abi_schema);
 }
 
+/// **`requires Anyone` asks nothing** (the requires ADR). `Anyone` is the
+/// platform's predicate, which every reader holds: the export carries no
+/// requirement for it, and its ABI is the unrestricted one's, since a host
+/// runs the two alike.
+#[test]
+fn requires_anyone_is_no_precondition() {
+    let anyone = PROGRAM.replace("requires SignedIn", "requires Anyone");
+    let c = one(&[&anyone], "shop.origin.Restock");
+    let export = c.exports[0].component.as_ref().expect("compiled export");
+    assert!(
+        export.authorization.is_empty(),
+        "{:?}",
+        export.authorization
+    );
+
+    let unrestricted = PROGRAM.replace("    requires SignedIn\n", "");
+    let without = one(&[&unrestricted], "shop.origin.Restock");
+    assert_eq!(c.abi_schema, without.abi_schema);
+}
+
 /// **`idempotent_by` reaches the host, and is part of the ABI** (ADR-0121).
 /// It was checked and read by nothing until 2026-10-02, so a retried request
 /// ran its command twice.

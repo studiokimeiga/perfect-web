@@ -815,6 +815,13 @@ pub fn duration(v: &str) -> Option<u64> {
     n.checked_mul(per)
 }
 
+/// **The platform's predicate, which every reader holds** (the requires ADR):
+/// `requires Anyone` says a command is anyone's to run. A command a reader can
+/// run says who may (PW0367), and this is how it says "anyone". No program
+/// declares it, it takes no argument and stands alone, and nothing asks it:
+/// the contract carries no requirement for it, and a page needs no guard.
+pub const ANYONE: &str = "Anyone";
+
 /// One deployment authorization predicate written by a command.
 ///
 /// `requires SignedIn, OwnsOrder(order)` is declarative. The compiler records

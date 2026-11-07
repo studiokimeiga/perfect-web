@@ -17,6 +17,7 @@ command remind(order: String) -> Result<Int, String>
 }
 
 command remind_later(order: String) -> Result<Int, String> !{ clock.schedule }
+    requires      Anyone
     idempotent_by InteractionId
 {
     schedule remind(order) after minutes(30)

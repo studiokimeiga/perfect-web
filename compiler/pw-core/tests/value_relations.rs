@@ -214,7 +214,7 @@ fn v1_a_call_inside_a_policy_term_is_checked_with_its_binder_typed() {
             "module o\n\ntype Cart = Cart {{ n: Int }}\ntype E = | Bad\n\n\
              query Current(k: Int) -> Result<Cart, E> {{ todo }}\n\n\
              fn bump(c: Cart, by: Int) -> Cart {{ c }}\n\n\
-             command add(k: Int) -> Result<Cart, E>\n    \
+             command add(k: Int) -> Result<Cart, E>\n    requires Anyone\n    \
              optimistic Current(k) as cart => bump({arg}, 1)\n    \
              invalidates Current(k)\n{{\n    todo\n}}\n"
         )
@@ -278,7 +278,7 @@ fn v1_a_listeners_wildcard_is_decided_and_its_parameters_are_checked() {
         format!(
             "module l\n\ntype C = C {{ n: Int }}\ntype E = | Bad\n\nevent Moved(k: Int)\n\n\
              query Current(k: Int) -> Result<C, E> {{ todo }}\n\n\
-             command add(k: Int) -> Result<C, E>\n    {clause}\n{{\n    todo\n}}\n"
+             command add(k: Int) -> Result<C, E>\n    requires Anyone\n    {clause}\n{{\n    todo\n}}\n"
         )
     };
     let every = evaluated("invalidates Current(_)");

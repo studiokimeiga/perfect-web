@@ -24,12 +24,14 @@ command remind(order: String) -> Result<Int, String>
 }
 
 command remind_later(order: String) -> Result<Int, String> !{ clock.schedule }
+    requires Anyone
 {
     schedule remind(order) after minutes(30)
     Ok(1)
 }
 
 command never_mind(order: String) -> Result<Int, String> !{ clock.schedule }
+    requires Anyone
 {
     unschedule remind(order)
     Ok(1)

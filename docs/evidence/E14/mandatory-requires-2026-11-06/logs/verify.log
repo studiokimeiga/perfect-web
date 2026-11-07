@@ -1,0 +1,156 @@
+== 2026-11-06T19:00:02-05:00 commit 815ec2595136a87a0d879d8c8cbe78560818a5bf; uncommitted code paths: 0
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14); node: v22.21.1
+== 2026-11-06T19:00:02-05:00 reached mutation scripts (reached.py against master, 3 lines)
+command_retry_mutations.py: 1 anchor(s) in changed code: the store's `add_to_cart` declares no retry
+evidence_integrity_2_mutations.py: 1 anchor(s) in changed code: the committed table drifts from what the corpus checks
+who_may_run_mutations.py: 9 anchor(s) in changed code: a command that says nothing of who may run it is not refused; a command the platform runs is asked for `requires` too; `Anyone` beside another predicate is taken; `Anyone` with arguments is taken
+== 2026-11-06T19:00:03-05:00 just preflight
+exit preflight 0
+    Checking pw-host v0.0.0 (/home/haki/code/pw-wt/requires/runtime/pw-host)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 16.66s
+case-check: OK (4693 paths)
+mutation anchors: 4983 mutants in 325 scripts, each matching once
+== 2026-11-06T19:01:10-05:00 pw-core, every test; pw-cli's guide; pw-syntax's corpus formatting
+exit pw-core 0
+pw-core: 1821 passed, 0 failed, 2 ignored
+exit guide 0
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.52s
+exit corpus_fmt 0
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.80s
+== 2026-11-06T19:08:45-05:00 just evidence-gates
+exit evidence-gates 0
+Ran 1177 tests in 404.448s
+OK (skipped=5)
+# tests 19
+# pass 19
+# fail 0
+== 2026-11-06T19:15:30-05:00 mutation controls: command_retry
+exit command_retry 0
+`transport_only` retries a command that is not idempotent [core]: KILLED (1 of 40 tests fail)
+`retry none` is refused as a retry [core]: KILLED (1 of 40 tests fail)
+the clause is not read [core]: KILLED (1 of 8 tests fail)
+the policy is not passed where the command is sent [core]: KILLED (1 of 8 tests fail)
+the store's `add_to_cart` declares no retry [core]: KILLED (1 of 8 tests fail)
+nothing is sent again [browser]: KILLED (3 of 5 tests fail)
+an answer is sent again [browser]: KILLED (1 of 5 tests fail)
+there is no bound [browser]: KILLED (1 of 5 tests fail)
+a request is sent again under another interaction [browser]: KILLED (1 of 5 tests fail)
+9 of 9 mutants killed
+== 2026-11-06T19:21:28-05:00 mutation controls: evidence_integrity_2
+exit evidence_integrity_2 0
+the helper exits 0 whatever the suite did [helper]: KILLED (9 failure reports in 16 tests run)
+the helper stops at the first failed run [helper]: KILLED (3 failure reports in 16 tests run)
+the helper passes a run that passed no test [helper]: KILLED (1 failure reports in 16 tests run)
+the helper keeps no failed count [helper]: KILLED (2 failure reports in 16 tests run)
+a recipe swallows its suite again, read by the gate [gate]: KILLED (1 failure reports in 6 tests run)
+a recipe swallows its suite again, run with stand-ins [recipes]: KILLED (1 failure reports in 2 tests run)
+the benchmark's controls are swallowed again [gate]: KILLED (1 failure reports in 6 tests run)
+the gate reads no `||` after a suite [gate]: KILLED (6 failure reports in 6 tests run)
+the gate reads no condition [gate]: KILLED (3 failure reports in 6 tests run)
+the gate reads no group or loop that holds a suite [gate]: KILLED (5 failure reports in 6 tests run)
+the gate reads no `set +e` [gate]: KILLED (1 failure reports in 6 tests run)
+the gate reads no `-` line [gate]: KILLED (1 failure reports in 6 tests run)
+the gate reads no shell without `-e` [gate]: KILLED (1 failure reports in 6 tests run)
+the gate lets a suite outside the helper be [gate]: KILLED (1 failure reports in 6 tests run)
+the gate reads no `bench.mjs` [gate]: KILLED (2 failure reports in 6 tests run)
+the gate has no floor [gate]: KILLED (2 failure reports in 6 tests run)
+the historical report is read as another failed suite [history]: KILLED (1 failure reports in 3 tests run)
+a zero run count with leading zeros passes [helper]: KILLED (2 failure reports in 16 tests run)
+a parameter's default stops a recipe's header again [plan]: KILLED (3 failure reports in 96 tests run)
+the benchmark's controls get no browsers [plan]: KILLED (1 failure reports in 96 tests run)
+a change to the configuration plans nothing by it [plan]: KILLED (2 failure reports in 96 tests run)
+a mutation script's suite does not count [plan]: KILLED (1 failure reports in 96 tests run)
+a changed e2e module reaches no spec [plan]: KILLED (1 failure reports in 96 tests run)
+a recipe that runs every spec is planned by none [plan]: KILLED (1 failure reports in 96 tests run)
+the programs are the old list again [programs]: KILLED (2 failure reports in 10 tests run)
+a mutant in no program is let be [programs]: KILLED (1 failure reports in 10 tests run)
+a library's mutant is checked only in its own program [programs]: KILLED (2 failure reports in 10 tests run)
+a fixture's directory is one program [programs]: KILLED (1 failure reports in 10 tests run)
+a tie between sources is resolved [programs]: KILLED (1 failure reports in 10 tests run)
+a fixture's own directory is a source of its imports [programs]: KILLED (1 failure reports in 10 tests run)
+a named mutant is wrong where any one program checks it [programs]: KILLED (1 failure reports in 10 tests run)
+a named mutant every program checks is let be [programs]: KILLED (2 failure reports in 10 tests run)
+the registry translates an old number again [core]: KILLED (1 failure reports in 198 tests run)
+the corpus's test translates an old number again [core]: KILLED (1 failure reports in 198 tests run)
+the committed table drifts from what the corpus checks [corpus]: KILLED (1 failure reports in 1 tests run)
+e9-latency names macbook.md wherever it runs [latency]: KILLED (1 failure reports in 1 tests run)
+e9-latency records no load [latency]: KILLED (1 failure reports in 1 tests run)
+37 of 37 mutants killed
+== 2026-11-06T19:28:37-05:00 mutation controls: guide
+exit guide 0
+an example no longer type-checks: KILLED by every_example_in_the_guide_compiles_as_it_says (1 of 22 tests fail; Rust body assertion)
+an example is not as `pw fmt` writes it: KILLED by every_example_in_the_guide_compiles_as_it_says (1 of 22 tests fail; Rust body assertion)
+an example checks clean and `pw build` refuses it: KILLED by every_example_in_the_guide_compiles_as_it_says (1 of 22 tests fail; Rust body assertion)
+a refused example is refused no more: KILLED by every_example_in_the_guide_compiles_as_it_says (1 of 22 tests fail; Rust body assertion)
+a refused example is refused by another code: KILLED by every_example_in_the_guide_compiles_as_it_says (1 of 22 tests fail; Rust body assertion)
+output a page shows is not what `pw check` prints: KILLED by every_example_in_the_guide_compiles_as_it_says (1 of 22 tests fail; Rust body assertion)
+a block says nothing of what it is: KILLED by every_example_in_the_guide_compiles_as_it_says (1 of 22 tests fail; Rust body assertion)
+a block is in a language the guide is not written in: KILLED by every_example_in_the_guide_compiles_as_it_says (1 of 22 tests fail; Rust body assertion)
+a fence is indented: KILLED by every_example_in_the_guide_compiles_as_it_says (1 of 22 tests fail; Rust body assertion)
+a fence is never closed: KILLED by every_example_in_the_guide_compiles_as_it_says (1 of 22 tests fail; Rust body assertion)
+a page's files no longer check together: KILLED by every_example_in_the_guide_compiles_as_it_says (1 of 22 tests fail; Rust body assertion)
+the tutorial and the app differ by a byte: KILLED by a_pages_program_is_the_directory_it_names (1 of 22 tests fail; Rust body assertion)
+the tutorial builds a file the app does not have: KILLED by a_pages_program_is_the_directory_it_names (2 of 22 tests fail; Rust body assertion)
+the closed title gap claims check still accepts it: KILLED by every_example_in_the_guide_compiles_as_it_says (1 of 22 tests fail; Rust body assertion)
+a build gap is closed: the build accepts it: KILLED by every_example_in_the_guide_compiles_as_it_says (1 of 22 tests fail; Rust body assertion)
+a check gap is closed: the check refuses it: KILLED by every_example_in_the_guide_compiles_as_it_says (1 of 22 tests fail; Rust body assertion)
+the closed two-signal gap is claimed to be refused still: KILLED by every_example_in_the_guide_compiles_as_it_says (1 of 22 tests fail; Rust body assertion)
+the reference has no row for a code: KILLED by test_the_committed_page_is_what_the_registry_writes, the_diagnostic_reference_lists_every_registered_code (2 of 22 tests fail; Rust body assertion, Python body assertion)
+the reference gives a code another invariant: KILLED by test_the_committed_page_is_what_the_registry_writes, the_diagnostic_reference_lists_every_registered_code (2 of 22 tests fail; Rust body assertion, Python body assertion)
+the reference has a row for a code the compiler lacks: KILLED by test_the_committed_page_is_what_the_registry_writes, the_diagnostic_reference_lists_every_registered_code (2 of 22 tests fail; Rust body assertion, Python body assertion)
+a clean example need not check clean: KILLED by a_wrong_example_is_reported_and_a_right_one_is_not (1 of 22 tests fail; Rust body assertion)
+an example need not be as `pw fmt` writes it: KILLED by a_wrong_example_is_reported_and_a_right_one_is_not (1 of 22 tests fail; Rust body assertion)
+an example that parses is held to the format only where it is clean: KILLED by a_wrong_example_is_reported_and_a_right_one_is_not (1 of 22 tests fail; Rust body assertion)
+a clean example need not build: KILLED by a_wrong_example_is_reported_and_a_right_one_is_not (1 of 22 tests fail; Rust body assertion)
+a build gap may build: KILLED by a_wrong_example_is_reported_and_a_right_one_is_not (1 of 22 tests fail; Rust body assertion)
+a gap's build output need not be what is shown: KILLED by a_wrong_example_is_reported_and_a_right_one_is_not (1 of 22 tests fail; Rust body assertion)
+a refused example need not be refused: KILLED by a_wrong_example_is_reported_and_a_right_one_is_not (1 of 22 tests fail; Rust body assertion)
+a refusal's codes are compared as a subset of what is reported: KILLED by a_wrong_example_is_reported_and_a_right_one_is_not (1 of 22 tests fail; Rust body assertion)
+a refusal's codes are compared as a superset of what is reported: KILLED by a_wrong_example_is_reported_and_a_right_one_is_not (1 of 22 tests fail; Rust body assertion)
+output a page shows of a refusal need not be what is printed: KILLED by a_wrong_example_is_reported_and_a_right_one_is_not (1 of 22 tests fail; Rust body assertion)
+output a page shows keeps the closing count `pw check` prints: KILLED by every_example_in_the_guide_compiles_as_it_says (1 of 22 tests fail; Rust body assertion)
+a fence of another character closes a block: KILLED by an_unclosed_or_indented_fence_is_refused (1 of 22 tests fail; Rust body assertion)
+a closing fence may carry text: KILLED by an_unclosed_or_indented_fence_is_refused (1 of 22 tests fail; Rust body assertion)
+a shorter fence closes a block: KILLED by a_page_with_no_example_or_a_block_unseen_is_reported (1 of 22 tests fail; Rust body assertion)
+an indented fence is accepted: KILLED by an_unclosed_or_indented_fence_is_refused (1 of 22 tests fail; Rust body assertion)
+a fence never closed is accepted: KILLED by an_unclosed_or_indented_fence_is_refused (1 of 22 tests fail; Rust body assertion)
+two backticks are a fence: KILLED by a_fence_is_read_as_commonmark_reads_it (1 of 22 tests fail; Rust body assertion)
+an attribute a block does not take is skipped: KILLED by an_info_string_says_what_a_block_is (1 of 22 tests fail; Rust body assertion)
+an attribute may be given twice: KILLED by an_info_string_says_what_a_block_is (1 of 22 tests fail; Rust body assertion)
+a file may be outside the page's tree: KILLED by an_info_string_says_what_a_block_is (1 of 22 tests fail; Rust body assertion)
+a block may be a gap and a refusal: KILLED by an_info_string_says_what_a_block_is (1 of 22 tests fail; Rust body assertion)
+another language's block takes attributes: KILLED by an_info_string_says_what_a_block_is (1 of 22 tests fail; Rust body assertion)
+a language the guide is not written in passes: KILLED by an_info_string_says_what_a_block_is (1 of 22 tests fail; Rust body assertion)
+a page's pieces are joined with no blank line: KILLED by a_pages_file_blocks_are_its_program_in_order (2 of 22 tests fail; Rust body assertion)
+output belongs to any block before it: KILLED by shown_output_belongs_to_the_refused_example_before_it (1 of 22 tests fail; Rust body assertion)
+a build's output belongs to any block before it: KILLED by a_gaps_build_output_belongs_to_the_gap_before_it (1 of 22 tests fail; Rust body assertion)
+a build gap need not show what `pw build` prints: KILLED by a_gaps_build_output_belongs_to_the_gap_before_it (1 of 22 tests fail; Rust body assertion)
+a page with no example is accepted: KILLED by a_page_with_no_example_or_a_block_unseen_is_reported (1 of 22 tests fail; Rust body assertion)
+a Pleris block the reader of pages did not see goes unnoticed: KILLED by a_page_with_no_example_or_a_block_unseen_is_reported (1 of 22 tests fail; Rust body assertion)
+a page's pieces are not counted: KILLED by a_page_with_no_example_or_a_block_unseen_is_reported, every_example_in_the_guide_compiles_as_it_says (2 of 22 tests fail; Rust body assertion)
+the index is held to show Pleris: KILLED by every_example_in_the_guide_compiles_as_it_says (1 of 22 tests fail; Rust body assertion)
+a page's program is not compared with the directory it names: KILLED by a_page_is_held_to_the_directory_it_names (1 of 22 tests fail; Rust body assertion)
+a page that names a directory and builds nothing in it is accepted: KILLED by a_page_is_held_to_the_directory_it_names (1 of 22 tests fail; Rust body assertion)
+the directory a page names is read with its spaces: KILLED by a_page_is_held_to_the_directory_it_names (2 of 22 tests fail; Rust body assertion)
+a file the page lacks is not noticed: KILLED by a_program_differs_from_a_directory_by_a_file_or_a_byte (2 of 22 tests fail; Rust body assertion)
+trailing space is no difference: KILLED by a_program_differs_from_a_directory_by_a_file_or_a_byte (2 of 22 tests fail; Rust body assertion)
+a row's invariant is not compared with the registry's: KILLED by the_reference_is_held_to_the_registry (1 of 22 tests fail; Rust body assertion)
+a code with no row is not reported: KILLED by the_reference_is_held_to_the_registry (1 of 22 tests fail; Rust body assertion)
+a row for a code the compiler lacks is not reported: KILLED by the_reference_is_held_to_the_registry (1 of 22 tests fail; Rust body assertion)
+an ADR a comment cites twice is listed twice: KILLED by test_each_entry_with_its_invariant_and_the_adrs_its_comment_cites (1 of 22 tests fail; Python body assertion)
+a comment is taken by the entry after the next: KILLED by test_each_entry_with_its_invariant_and_the_adrs_its_comment_cites (2 of 22 tests fail; Python body assertion)
+a line that is no entry is skipped: KILLED by test_a_line_that_is_no_entry_is_refused_not_skipped (1 of 22 tests fail; Python body assertion)
+a pipe in a cell ends it: KILLED by test_a_pipe_in_a_cell_is_escaped (2 of 22 tests fail; Python body assertion)
+a retired code's reason loses its continuation: KILLED by test_a_retired_code_with_its_reason_continued_across_lines (2 of 22 tests fail; Python body assertion)
+the retired codes are left out of the page: KILLED by test_the_committed_page_is_what_the_registry_writes (1 of 22 tests fail; Python body assertion)
+the last code of each owner is left out of the page: KILLED by test_the_committed_page_is_what_the_registry_writes (2 of 22 tests fail; Python body assertion)
+a signed entry does not clear the draft: KILLED by the spec (1 of 4 tests fail)
+Remove is offered on another reader's entry and not on one's own: KILLED by the spec (3 of 4 tests fail)
+a reader signed out is shown the signed-in half: KILLED by the spec (4 of 4 tests fail)
+the entry is shown last, not first, before the server answers: KILLED by the spec (1 of 4 tests fail)
+the entry can be removed before the server has it: KILLED by the spec (1 of 4 tests fail)
+the composer is shown to a reader signed out: KILLED by the checker (PW5048)
+Remove is shown to a reader signed out: KILLED by the checker (PW5048)
+the entries are not told of a signed entry: KILLED by the checker (PW5107)
+74 of 74 mutants killed; 0 refused; 0 survived
+== 2026-11-06T19:36:13-05:00 mutation controls: who_may_run
