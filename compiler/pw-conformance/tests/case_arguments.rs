@@ -29,7 +29,9 @@ type Size =
     | Small
     | Large
 
-command tipped(t: Tip) -> Result<Int, String> {
+command tipped(t: Tip) -> Result<Int, String>
+    requires Anyone
+{
     Ok(match t {
         NoTip => 0,
         Fifteen => 15,
@@ -38,21 +40,27 @@ command tipped(t: Tip) -> Result<Int, String> {
     })
 }
 
-command sized(s: Size) -> Result<Int, String> {
+command sized(s: Size) -> Result<Int, String>
+    requires Anyone
+{
     Ok(match s {
         Small => 1,
         Large => 2,
     })
 }
 
-command maybe(n: Option<Int>) -> Result<Int, String> {
+command maybe(n: Option<Int>) -> Result<Int, String>
+    requires Anyone
+{
     Ok(match n {
         Some(x) => x,
         None => 0 - 1,
     })
 }
 
-command either(r: Result<Int, String>) -> Result<Int, String> {
+command either(r: Result<Int, String>) -> Result<Int, String>
+    requires Anyone
+{
     Ok(match r {
         Ok(x) => x,
         Err(_) => 0 - 2,
@@ -181,24 +189,28 @@ type Tree =
     | Branch(Int, List<Tree>)
 
 command choose(t: Tip) -> Result<Int, String>
+    requires      Anyone
     idempotent_by InteractionId
 {{
     Ok(0)
 }}
 
 command maybe_pressed(n: Option<Int>) -> Result<Int, String>
+    requires      Anyone
     idempotent_by InteractionId
 {{
     Ok(0)
 }}
 
 command either_pressed(r: Result<Int, String>) -> Result<Int, String>
+    requires      Anyone
     idempotent_by InteractionId
 {{
     Ok(0)
 }}
 
 command planted(t: Tree) -> Result<Int, String>
+    requires      Anyone
     idempotent_by InteractionId
 {{
     Ok(0)

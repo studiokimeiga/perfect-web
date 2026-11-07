@@ -773,9 +773,9 @@ mod tests {
         // The inversion of the rule this code used to carry, and it is a real
         // inversion rather than a deletion: `optimistic` alone was the error
         // and is now correct; `rollback` was required and is now refused.
-        let bad = "module c\ncommand add(i: ItemId) -> Cart\n    optimistic Cart() as c => c.add(i)\n    rollback c => c.remove(i)\n{\n    0\n}\n";
+        let bad = "module c\ncommand add(i: ItemId) -> Cart\n    requires Anyone\n    optimistic Cart() as c => c.add(i)\n    rollback c => c.remove(i)\n{\n    0\n}\n";
         assert!(codes(bad).contains(&"PW0327"));
-        let good = "module c\ncommand add(i: ItemId) -> Cart\n    optimistic Cart() as c => c.add(i)\n{\n    0\n}\n";
+        let good = "module c\ncommand add(i: ItemId) -> Cart\n    requires Anyone\n    optimistic Cart() as c => c.add(i)\n{\n    0\n}\n";
         assert!(!codes(good).contains(&"PW0327"));
     }
 

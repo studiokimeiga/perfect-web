@@ -78,8 +78,8 @@ def main(paths):
             open(path, "w", encoding="utf-8").write(new)
         for c in changed:
             print("changed", c)
-        for l in left:
-            print("LEFT   ", l)
+        for entry in left:
+            print("LEFT   ", entry)
 
 
 if __name__ == "__main__":

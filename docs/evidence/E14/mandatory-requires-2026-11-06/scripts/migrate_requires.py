@@ -35,7 +35,7 @@ def migrate(lines):
             i += 1
             continue
         block = lines[start : j + 1]
-        clauses = [k for k, l in enumerate(block) if k > 0 and CLAUSE.match(l) and not l.strip().startswith("->")]
+        clauses = [k for k, text in enumerate(block) if k > 0 and CLAUSE.match(text) and not text.strip().startswith("->")]
         keys = [CLAUSE.match(block[k]).group("key") for k in clauses]
         if "requires" in keys or "invoked_by" in keys:
             out.extend(block)

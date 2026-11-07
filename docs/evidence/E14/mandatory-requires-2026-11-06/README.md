@@ -58,3 +58,47 @@ disk filled (`logs/mut-who_may_run-stopped.log`):
 
 GitHub's `verify` for #83 plans 16 shards of the recipes the change
 reaches. Its evidence is fetched with `just evidence-fetch <run>`.
+
+## After the push: what #83's hosted checks found (2026-11-07)
+
+At `9b348f1c`, `ci` (run 42332222311) failed its Rust tests (the
+development server's and the rest) and its non-unit jobs, and Quality (run
+42332222348) failed Ruff's new-only check. Repaired in the commit after it:
+
+- **PW0367 refused programs written inside other crates' tests**, which the
+  first pass (`pw-core`'s tests) did not reach. Each command a reader can
+  run there now says `requires Anyone`, as anyone could run it before; none
+  of those tests is about authorization:
+  - `pw-conformance`'s `tests/case_arguments.rs`: `tipped`, `sized`,
+    `maybe`, `either`, `choose`, `maybe_pressed`, `either_pressed` and
+    `planted` (its 6 failing tests);
+  - the development server's scheduled tests: `store_scheduled.rs`'s
+    `add_in_five` and `sweep_in_five`, `scheduled_orders.rs`'s
+    `send_in_five`, and `scheduled_replay.rs`'s four `queue_*` (its 14
+    failing tests: the store they add to no longer built);
+  - `pw-core`'s two `rules.rs` programs, a PW0327 check that passed either
+    way, so that each checks clean.
+
+  `scripts/find_unstated.py` found them: every command in a program written
+  in a Rust source, outside `pw-core`'s tests, with neither `requires` nor
+  `invoked_by`. `scripts/migrate_requires_rs3.py` made the edits, each
+  matched once. What it lists and was left: two doc comments
+  (`pw-host`'s `tests/pleris_component.rs`, the server's `main.rs`), two
+  `replacen` patterns in the server's `main.rs`, and `pw-syntax`'s
+  formatter test, which checks nothing. The `.pw` files outside the
+  corpus's history hold none but R-097 and `who_may_run`'s GENERAL witness,
+  each refused on purpose.
+- **`corpus-check`** holds each fixture's `@category` to the charter §16
+  categories it lists, and lacked R-097's: added. `test-compile` stopped
+  there, so its later steps had not run; it now passes whole.
+- **Ruff E741**, an ambiguous variable `l`, in `scripts/migrate_requires.py`
+  (now `text`) and `scripts/migrate_requires_rs.py` (now `entry`). Only the
+  name changed: each script does what it did, and what it made stands.
+  `SHA256SUMS` is refreshed for them and the two new scripts.
+
+Locally, with no debug info and no incremental cache, in the worktree's own
+target: `cargo test -p pw-conformance` (every binary), `-p pw-core --lib
+rules::` (16), `-p pw-dev-server scheduled` (49, the 14 among them), `just
+test-compile` (whole), `cargo fmt --all -- --check` and
+`mutation_anchors.py` (4983 mutants in 325 scripts, each matching once).
+The whole workspace is left to GitHub.
