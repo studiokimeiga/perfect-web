@@ -11,6 +11,5 @@ store's contract leaves out. The independent review of PR #88 found them.
 | `checks.txt` | `scripts/mutation_anchors.py`, and the parts of `just preflight` a change of comments and prose reaches: rustfmt, the case check, compileall. Its clippy is left to CI: no Rust source changed. |
 | `ci-plan.txt` | The 41 recipes the change reaches, almost all because they read `examples/store`. They are left to this branch's hosted verification. |
 
-Recorded in WSL Ubuntu 22.04 by `collect_dt.sh` (kept in the session's
-scratchpad), with `CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0
-CARGO_INCREMENTAL=0`.
+Recorded in WSL Ubuntu 22.04 by `collect_dt.sh.gz` (beside this file), with
+`CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0 CARGO_INCREMENTAL=0`.
