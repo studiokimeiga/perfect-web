@@ -1,0 +1,11 @@
+Recorded on the tree committed as 103db6dc; the run began before the commit was made, and no file it reads changed since
+
+commit: 103db6dc9e04bd83cb16688ce897c38ab5368602
+base: 5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+$ cargo clippy --locked -p pw-core --all-targets -- -D warnings
+
+    Checking wit-component v0.257.1
+    Checking pw-core v0.0.0 (/home/haki/code/pw-wt/dated-notes/compiler/pw-core)
+    Finished `dev` profile [unoptimized] target(s) in 13.99s
