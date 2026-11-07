@@ -1,0 +1,5 @@
+idempotent_commands_mutations.py: 1 anchor(s) in changed code: the contract does not carry idempotent_by
+invariants_mutations.py: 1 anchor(s) in changed code: an export states no argument's invariant
+invoked_by_mutations.py: 2 anchor(s) in changed code: the contract does not say who invokes the command; who invokes a command is not part of its interface
+tables_mutations.py: 1 anchor(s) in changed code: an unused migration is accepted
+who_may_change_mutations.py: 24 anchor(s) in changed code: an owner of another kind is taken (PW0366); an owner recorded or given up is no step; the owners are given up though no migrate states it; a statement of another kind gives the owners up

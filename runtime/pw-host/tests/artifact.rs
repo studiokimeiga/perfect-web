@@ -93,6 +93,7 @@ fn contract(imports: Vec<Import>) -> ComponentContract {
                 authorization: vec![],
                 idempotent_by: None,
                 invoked_by: None,
+                runs_for: vec![],
                 bounded: vec![],
             }),
         }],

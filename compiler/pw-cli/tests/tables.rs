@@ -2,6 +2,14 @@
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
+/// The reader every command here is begun for (the owned-rows ADR): one
+/// request's, in a table no reader owns, where it changes any row.
+fn a_reader() -> pw_table_memory::Writer {
+    pw_table_memory::Writer::Reader(
+        pw_table_memory::Reader::new("session-1", None).expect("a reader"),
+    )
+}
+
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
@@ -241,7 +249,7 @@ fn actual_compiler_manifest_executes_without_app_specific_rust() {
     let second = serde_json::json!({
         "id": "a", "name": "first", "slug": "first", "added": 10
     });
-    db.transaction(|tx| {
+    db.transaction(a_reader(), |tx| {
         tx.write(&insert, std::slice::from_ref(&first))?;
         tx.write(&insert, std::slice::from_ref(&second))?;
         Ok(())
@@ -266,7 +274,7 @@ fn actual_compiler_manifest_executes_without_app_specific_rust() {
         "id": "c", "name": "collision", "slug": "first", "added": 30
     });
     assert!(matches!(
-        db.transaction(|tx| tx.write(&insert, &[duplicate_slug])),
+        db.transaction(a_reader(), |tx| tx.write(&insert, &[duplicate_slug])),
         Err(pw_table_memory::Error::Conflict { .. })
     ));
     assert_eq!(
@@ -278,14 +286,18 @@ fn actual_compiler_manifest_executes_without_app_specific_rust() {
     let updated = serde_json::json!({
         "id": "a", "name": "updated", "slug": "first", "added": 40
     });
-    db.transaction(|tx| tx.write(&put, std::slice::from_ref(&updated)))
-        .unwrap();
+    db.transaction(a_reader(), |tx| {
+        tx.write(&put, std::slice::from_ref(&updated))
+    })
+    .unwrap();
     assert_eq!(
         db.read(&all, &[]).unwrap(),
         serde_json::json!([first, updated])
     );
-    db.transaction(|tx| tx.write(&delete, &[serde_json::json!("b")]))
-        .unwrap();
+    db.transaction(a_reader(), |tx| {
+        tx.write(&delete, &[serde_json::json!("b")])
+    })
+    .unwrap();
     assert_eq!(db.read(&all, &[]).unwrap(), serde_json::json!([updated]));
     std::fs::remove_dir_all(dir).unwrap();
 }

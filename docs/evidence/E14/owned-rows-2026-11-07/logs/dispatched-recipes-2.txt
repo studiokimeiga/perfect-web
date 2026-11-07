@@ -1,0 +1,5 @@
+# gh workflow run verify.yml --ref feat/owned-rows-20261107 -f shards=12 -f recipes="..."
+# the 8 that python3 scripts/ci_plan.py --shards 24 --changed 70dec392 HEAD [--current] plans, and e14-d2-writes, e14-scheduled, e14-guide
+e14-check-is-build e14-d3-postgres e14-idempotent-commands e14-invariants e14-invoked-by e14-outbound-https e14-payments e14-tables e14-d2-writes e14-scheduled e14-guide
+# run 42365521769 at bc4cd704: cancelled for 4df6414b (every shard that ended had passed: the browsers in three engines, recipe shards 0-7, 9, 10; shard 8 cancelled)
+# run 42368284590 at 4df6414b

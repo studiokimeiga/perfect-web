@@ -44,7 +44,20 @@ use std::time::Duration;
 
 use postgres::error::{Severity, SqlState};
 use pw_core::tables::{Primitive, Schema, TablesJson};
+use pw_host::tables::Scope;
+/// Whose a command's writes are, as [`PgTables::begin`] takes it (the
+/// host's, `pw_host::tables`).
+pub use pw_host::tables::{Reader, Writer};
 use serde_json::{Map, Value};
+
+/// **A table's owner kind, as the host names it** (the owned-rows ADR):
+/// `pw_host::tables::OwnerKind` mirrors the compiler's by name.
+fn host_owner(kind: pw_core::tables::OwnerKind) -> pw_host::tables::OwnerKind {
+    match kind {
+        pw_core::tables::OwnerKind::User => pw_host::tables::OwnerKind::User,
+        pw_core::tables::OwnerKind::Session => pw_host::tables::OwnerKind::Session,
+    }
+}
 
 use crate::pool::{Conn, Counters, Lease, Pool};
 use crate::shape::{Key, Shape, check_row, row_key, same_rows, typed_selections, typed_selector};
@@ -60,6 +73,10 @@ pub enum Error {
     Schema(String),
     /// What a function was given is not what it takes.
     Input(String),
+    /// **A write to an owned table its writer can own no row of** (the
+    /// owned-rows ADR; the memory adapter's): a reader signed in as no one,
+    /// writing a table whose rows record their user. Nothing was written.
+    Unowned(String),
     /// A write refused by the row that holds its key or a unique value it
     /// would hold. Nothing was written.
     Conflict { table: String, existing: Value },
@@ -468,11 +485,12 @@ impl PgTables {
     }
 
     /// **A command's transaction**: begun once the command before it has
-    /// ended, one at a time. Its connection and `BEGIN` wait for its first
-    /// statement, so a command that touches no table costs the database
-    /// nothing. Its writes are kept only when it commits, and undone whole
-    /// where it is dropped instead.
-    pub fn begin(&self) -> Result<Command, Error> {
+    /// ended, one at a time, for `writer`, whom each of its writes to an
+    /// owned table is held to (the owned-rows ADR). Its connection and
+    /// `BEGIN` wait for its first statement, so a command that touches no
+    /// table costs the database nothing. Its writes are kept only when it
+    /// commits, and undone whole where it is dropped instead.
+    pub fn begin(&self, writer: Writer) -> Result<Command, Error> {
         let inner = &self.inner;
         let mut turn = inner.turn.lock().map_err(|_| Error::StoragePoisoned)?;
         if turn.0.is_some() {
@@ -501,6 +519,7 @@ impl PgTables {
             inner: Arc::clone(inner),
             state: Arc::new(Mutex::new(Open {
                 id,
+                writer,
                 lease: None,
                 begun: false,
                 prepared: false,
@@ -533,11 +552,12 @@ impl PgTables {
     /// record, ADR-0246 and ADR-0325.)
     pub fn transaction<T>(
         &self,
+        writer: Writer,
         mut action: impl FnMut(&mut Command) -> Result<T, Error>,
     ) -> Result<T, Error> {
         let mut attempt = 1;
         loop {
-            let ran = self.begin().and_then(|mut command| {
+            let ran = self.begin(writer.clone()).and_then(|mut command| {
                 let answer = action(&mut command)?;
                 command.commit()?;
                 Ok(answer)
@@ -648,6 +668,8 @@ type Bound = (Vec<Param>, Option<(Key, Row)>);
 /// The open command's state, shared with its host functions.
 struct Open {
     id: u64,
+    /// Whose its writes are: what each write to an owned table is held to.
+    writer: Writer,
     lease: Option<Lease>,
     /// `BEGIN` sent.
     begun: bool,
@@ -738,6 +760,19 @@ impl Inner {
             .statements
             .get(import)
             .ok_or_else(|| Error::Input(format!("undeclared table operation {import}")))?;
+        // Whose rows it changes (the owned-rows ADR): any row, or only its
+        // reader's own. A reader who can own no row of the table is refused
+        // before the database sees anything.
+        let owned = table.owner.is_some();
+        let scope = open
+            .writer
+            .scope(table.owner.map(host_owner))
+            .map_err(|why| Error::Unowned(format!("{}: {why}", table.name)))?;
+        // An owned table's statement is also given the writer: its id, the
+        // owner a row it inserts records (`$me`), and whether it changes any
+        // row (`$any`, the platform's).
+        let me = || -> Param { Box::new(scope.owner().map(str::to_string)) };
+        let any = || -> Param { Box::new(scope == Scope::Any) };
         // Everything a write is given is held before the database sees it.
         let (params, written): Bound = match function.primitive {
             Primitive::Insert | Primitive::Put => {
@@ -745,7 +780,7 @@ impl Inner {
                     return Err(Error::Input("insert/put expects one row".into()));
                 };
                 let (key, row) = check_row(table, value)?;
-                let params = table
+                let mut params: Vec<Param> = table
                     .columns
                     .iter()
                     .map(|c| {
@@ -755,16 +790,26 @@ impl Inner {
                         bind(c, value)
                     })
                     .collect::<Result<_, _>>()?;
+                if owned {
+                    params.push(me());
+                    if function.primitive == Primitive::Put {
+                        params.push(any());
+                    }
+                }
                 (params, Some((key, row)))
             }
             Primitive::Delete | Primitive::DeletePrefix => {
                 let key = typed_selector(table, function, import, args)?;
-                let params = function
+                let mut params: Vec<Param> = function
                     .by
                     .iter()
                     .zip(&key)
                     .map(|(&f, atom)| bind_atom(&table.columns[f], atom))
                     .collect::<Result<_, _>>()?;
+                if owned {
+                    params.push(me());
+                    params.push(any());
+                }
                 (params, None)
             }
             _ => return Err(Error::Input(format!("{import} is not a table write"))),
@@ -831,15 +876,39 @@ impl Inner {
                     let holder: Option<i32> = row.get(1);
                     let old_held: bool = row.get(2 + n);
                     let (key, written) = written.ok_or(Error::StoragePoisoned)?;
-                    if holder.is_some() {
-                        Ok(Err(conflict(row)?))
-                    } else if count == 1 || old_held {
-                        let before = if old_held {
+                    // An owned table's statement answers, last, whether the
+                    // row its snapshot held at the key was its writer's, and
+                    // whether a row anew had room. Every row of a table no
+                    // reader owns is its writer's.
+                    let mine = !owned || row.get::<_, bool>(3 + 2 * n);
+                    let room = owned && row.get::<_, bool>(4 + 2 * n);
+                    // Its count, not its snapshot, says whether it wrote:
+                    // under an isolation weaker than serializable, the row
+                    // the snapshot held may be deleted before the insert
+                    // runs, which then writes its writer's row anew (the
+                    // review of 2026-11-07). The row it replaced is the
+                    // snapshot's only where that one was its writer's.
+                    let wrote = count == 1;
+                    if wrote {
+                        let before = if old_held && mine {
                             Some(decode(table, row, 3 + n)?)
                         } else {
                             None
                         };
                         first(open, key, before, Some(written));
+                        Ok(Ok(()))
+                    } else if old_held && !mine {
+                        // Another reader's row is absent to a put, whatever
+                        // it holds: nothing written, answered as written.
+                        Ok(Ok(()))
+                    } else if holder.is_some() {
+                        Ok(Err(conflict(row)?))
+                    } else if old_held || room {
+                        // Nothing written, and nothing refused it: the row
+                        // at its key as it was, where a row is its key alone
+                        // (`DO NOTHING`), or, owned, another reader's row,
+                        // inserted since the snapshot or put in place of its
+                        // writer's, which the update's guard left as it was.
                         Ok(Ok(()))
                     } else {
                         Ok(Err(bound()))
@@ -1021,6 +1090,14 @@ impl Command {
                 "staged table callbacks require one explicit command export".into(),
             ));
         }
+        // Whose writes they are: a reader's for a command a request runs,
+        // the platform's for one it invokes (the owned-rows ADR).
+        self.state
+            .lock()
+            .map_err(|_| Error::StoragePoisoned)?
+            .writer
+            .admits(contract)
+            .map_err(Error::Input)?;
         let mut out = BTreeMap::new();
         let admitted = self
             .inner

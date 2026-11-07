@@ -751,6 +751,19 @@ mod tests {
         assert_eq!(out, format_source(&out));
     }
 
+    /// A table's `owner` (the owned-rows ADR) is aligned as each clause of
+    /// its table is.
+    #[test]
+    fn a_tables_owner_is_aligned_as_its_other_clauses() {
+        let src = "module Notes\n\ntable Notes\n    row Note\n    key   id\n  owner    session\n";
+        let out = format_source(src);
+        assert_eq!(
+            out,
+            "module Notes\n\ntable Notes\n    row   Note\n    key   id\n    owner session\n"
+        );
+        assert_eq!(out, format_source(&out));
+    }
+
     #[test]
     fn a_template_region_is_copied_verbatim() {
         // Markup whitespace is not the formatter's to normalise.

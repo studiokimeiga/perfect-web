@@ -96,6 +96,50 @@ query Latest(id: String) -> Post
 }
 ```
 
+## Tables
+
+A `table` declares data the platform keeps, with no Rust: its row, its key,
+and the reads and writes it gives its module, `Notes.get(id)`,
+`Notes.insert(note)`, `Notes.put(note)`, `Notes.delete(id)` (ADR-0338). A
+table that a command a reader can run writes says whose its rows are
+(PW0370):
+
+```pw
+module Notes
+
+opaque type NoteId = String
+
+type Note = Note { id: NoteId, text: String }
+
+table Notes
+    row   Note
+    key   id
+    owner session
+
+command forget_note(note: NoteId) -> ()
+    requires Anyone
+{
+    Notes.delete(note)
+}
+```
+
+- `owner session` and `owner user`: the platform records the reader who
+  inserts each row, its session or its signed-in user, in no field the
+  program sees. A `put`, a `delete` or a `delete_of_<fields>` from a request
+  changes only that reader's rows. Sent with another reader's note,
+  `forget_note` changes nothing, and is answered as for a note that is not
+  there. A reader signed in as no one writes no row of an `owner user`
+  table.
+- `owner anyone`: any reader may change any row, said where a reviewer reads
+  it, as `requires Anyone` says it of a command.
+- Reads are unchanged: who sees a row is its query's audience, and `owner`
+  is who changes it. A table only the platform's commands write
+  (`invoked_by`) needs no `owner`, but a command the clock runs for a
+  reader's `schedule` writes for that reader, so its tables say one.
+- Once released, a table that comes to record owners holds each row it had
+  as no reader's. One that gives them up says so, as a dropped field does:
+  `migrate owner session dropped` (PW0366 refuses the change unstated).
+
 ## Queries
 
 A page reads data only through a `query`: a declared, keyed, cached read.

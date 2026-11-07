@@ -1,8 +1,8 @@
 D3 - any program's declared tables on PostgreSQL, answering as the memory adapter does
 
 produced by: just e14-d3-postgres
-commit: bfe0c4a376b6f60c80566a834794fb31a6bcd339
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/41450961585 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 4df6414b381c41cf4c1f2c0232fc7934269dd6ec
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42368284590 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
@@ -12,24 +12,24 @@ test a_bounded_table_grows_no_further_than_its_bound ... ok
 test a_nested_float_is_answered_bit_for_bit ... ok
 test a_row_is_answered_exactly_as_it_was_written ... ok
 test a_row_another_writer_left_out_of_its_type_is_refused_not_answered ... ok
-test a_refinement_is_held_by_its_check_whoever_writes ... ok
 test a_statement_is_prepared_once_on_a_connection_never_per_call ... ok
+test a_refinement_is_held_by_its_check_whoever_writes ... ok
 test a_write_is_refused_by_the_row_holding_its_key_then_a_unique_value ... ok
 test all_refuses_a_table_another_writer_grew_past_its_bound ... ok
-test reads_come_in_tables_json_order_strings_by_their_bytes ... ok
 test a_write_whose_answer_cannot_be_read_fails_its_command ... ok
+test reads_come_in_tables_json_order_strings_by_their_bytes ... ok
 test what_a_function_is_given_is_held_before_the_database_sees_it ... ok
-test each_primitive_is_one_statement_at_two_sizes ... ok
 test the_compilers_functions_are_each_served ... ok
-test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.76s
+test each_primitive_is_one_statement_at_two_sizes ... ok
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.40s
 
 == tests/commands.rs
 test a_command_touching_no_table_costs_the_database_nothing ... ok
 test a_command_dropped_or_refused_at_its_prepare_keeps_nothing ... ok
-test a_command_reads_its_own_writes_and_no_other_read_sees_them_before_it_commits ... ok
 test a_commit_keeps_every_outbox_row_it_was_given_or_nothing ... ok
-test a_reference_may_be_written_before_the_row_it_refers_to ... ok
+test a_command_reads_its_own_writes_and_no_other_read_sees_them_before_it_commits ... ok
 test a_commit_never_answered_is_not_taken_for_a_refusal ... ok
+test a_reference_may_be_written_before_the_row_it_refers_to ... ok
 test a_snapshot_reads_one_moment_whatever_commits_meanwhile ... ok
 test a_commit_the_database_refuses_keeps_nothing ... ok
 test a_transaction_runs_again_where_the_database_could_not_serialize_it ... ok
@@ -37,11 +37,11 @@ test one_command_of_a_host_writes_at_a_time ... ok
 test provides_measures_what_a_command_is_given ... ok
 test serializable_refuses_write_skew_between_two_hosts ... ok
 test the_connections_default_read_committed_admits_write_skew ... ok
-test the_platforms_records_commit_with_the_writes ... ok
 test the_outbox_takes_its_ids_in_commit_order ... ok
+test the_platforms_records_commit_with_the_writes ... ok
 test written_names_each_table_a_command_changed_and_no_other ... ok
 test render_seats_are_bounded_and_every_one_given_back ... ok
-test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.03s
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.16s
 
 == tests/migrations.rs
 test a_backfill_is_the_value_stated_whatever_the_servers_string_syntax ... ok
@@ -50,81 +50,83 @@ test a_change_that_loses_data_is_made_only_where_the_program_states_it ... ok
 test a_name_two_objects_would_share_is_refused_at_open ... ok
 test a_database_holding_nothing_is_made_from_tables_json_and_recorded ... ok
 test a_key_field_retyped_is_refused_and_its_key_kept ... ok
+test a_table_added_may_refer_to_a_table_held_and_to_one_added_with_it ... ok
 test a_schema_is_applied_once_whoever_opens_it_and_whenever ... ok
 test an_additive_change_is_made_and_keeps_every_row ... ok
 test an_older_build_that_would_only_drop_an_index_is_refused ... ok
-test a_table_no_schema_recorded_or_a_record_edited_by_hand_refuses_the_start ... ok
 test hosts_racing_under_a_serializable_default_each_open_it_made_once ... ok
+test a_table_no_schema_recorded_or_a_record_edited_by_hand_refuses_the_start ... ok
 test a_catalog_changed_by_hand_refuses_the_start ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.37s
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.04s
 
 == tests/parity.rs
 test an_ended_commands_functions_act_on_nothing_on_either_adapter ... ok
 test the_compiled_writers_answer_alike_on_memory_and_postgresql ... ok
 test the_compiled_app_answers_alike_on_memory_and_postgresql ... ok
 test a_random_workload_answers_alike_on_memory_and_postgresql ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.54s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.56s
 
 == tests/durability.rs
 test the_first_host_commits_and_ends ... ok
 test a_commit_outlives_the_host_that_made_it ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s
 
 == mutation controls (scripts/d3_postgres_mutations.py)
 
-baseline: 49 passed, 0 failed
-a set read is looped per key: KILLED (1 of 49 tests fail)
-a command's transaction is the connection's default: KILLED (3 of 49 tests fail)
-a migration is applied twice: KILLED (15 of 49 tests fail)
-drift is accepted: KILLED (1 of 49 tests fail)
-the platform's tables are applied twice: KILLED (17 of 49 tests fail)
-the migration's lock is not taken: KILLED (2 of 49 tests fail)
-a record's hash is not held to its schema's: KILLED (1 of 49 tests fail)
-a table made by another hand is taken for none: KILLED (1 of 49 tests fail)
-a field is dropped though no migrate states it: KILLED (1 of 49 tests fail)
-an older build takes a newer database back: KILLED (1 of 49 tests fail)
-a refinement is held by no check: KILLED (4 of 49 tests fail)
-a string's bytes are counted for its code points: KILLED (2 of 49 tests fail)
-nested values are kept as jsonb: KILLED (44 of 49 tests fail)
-rows come in another order than tables.json's: KILLED (5 of 49 tests fail)
-a write is answered by a unique value's holder before its key's: KILLED (2 of 49 tests fail)
-a refused insert is answered as written: KILLED (4 of 49 tests fail)
-a put is refused by its own row's unique value: KILLED (3 of 49 tests fail)
-a unique value is left to the database, which aborts the transaction: KILLED (5 of 49 tests fail)
-a growth write passes the bound: KILLED (2 of 49 tests fail)
-all answers past its bound: KILLED (1 of 49 tests fail)
-a selector is not held to its declared type: KILLED (2 of 49 tests fail)
-a written row is not held to its table: KILLED (2 of 49 tests fail)
-a stored row is answered unchecked: KILLED (2 of 49 tests fail)
-a statement is prepared on every call: KILLED (1 of 49 tests fail)
-two commands of a host run at once: KILLED (1 of 49 tests fail)
-a command writes outside a transaction: KILLED (15 of 49 tests fail)
-a command reads outside its transaction: KILLED (5 of 49 tests fail)
-a prepared command writes on: KILLED (1 of 49 tests fail)
-a row put back as it was is a write: KILLED (2 of 49 tests fail)
-references are held at the commit, not where the command prepares: KILLED (4 of 49 tests fail)
-references are held at each write: KILLED (4 of 49 tests fail)
-the records commit outside the command's transaction: KILLED (5 of 49 tests fail)
-an interaction is recorded twice: KILLED (1 of 49 tests fail)
-a live interaction's record is overwritten: KILLED (1 of 49 tests fail)
-a refused commit is answered as committed: KILLED (3 of 49 tests fail)
-a commit never answered is answered refused: KILLED (1 of 49 tests fail)
-a serialization failure is taken for another error: KILLED (2 of 49 tests fail)
-a serialization failure is not run again: KILLED (1 of 49 tests fail)
-the outbox's ids are taken out of commit order: KILLED (1 of 49 tests fail)
-render seats are unbounded: KILLED (1 of 49 tests fail)
-a render's snapshot reads the latest commit: KILLED (1 of 49 tests fail)
-the migration reads at the connection's default isolation: KILLED (1 of 49 tests fail)
-a key field retyped is taken for a field retyped: KILLED (1 of 49 tests fail)
-a backfilled string is a literal the server's string syntax reads: KILLED (1 of 49 tests fail)
-the least Int backfilled is a negated literal: KILLED (1 of 49 tests fail)
-a rule is no drift: KILLED (1 of 49 tests fail)
-a table inheriting one is no drift: KILLED (1 of 49 tests fail)
-triggers not firing are no drift: KILLED (1 of 49 tests fail)
-an unlogged table is no drift: KILLED (1 of 49 tests fail)
-two objects given one name are made, one replacing the other: KILLED (1 of 49 tests fail)
-a write whose answer cannot be read leaves its command whole: KILLED (1 of 49 tests fail)
-a commit keeps fewer outbox rows than it carries: KILLED (1 of 49 tests fail)
-a nested float is read back by serde_json's inexact parser: KILLED (2 of 49 tests fail)
-53 of 53 mutants killed
+baseline: 61 passed, 0 failed
+a set read is looped per key: KILLED (1 of 61 tests fail)
+a command's transaction is the connection's default: KILLED (5 of 61 tests fail)
+a migration is applied twice: KILLED (17 of 61 tests fail)
+drift is accepted: KILLED (1 of 61 tests fail)
+the platform's tables are applied twice: KILLED (19 of 61 tests fail)
+the migration's lock is not taken: KILLED (2 of 61 tests fail)
+a record's hash is not held to its schema's: KILLED (1 of 61 tests fail)
+a table made by another hand is taken for none: KILLED (1 of 61 tests fail)
+a field is dropped though no migrate states it: KILLED (1 of 61 tests fail)
+an older build takes a newer database back: KILLED (1 of 61 tests fail)
+a table a change adds is shaped alone: KILLED (1 of 61 tests fail)
+a refinement is held by no check: KILLED (4 of 61 tests fail)
+a string's bytes are counted for its code points: KILLED (2 of 61 tests fail)
+nested values are kept as jsonb: KILLED (45 of 61 tests fail)
+rows come in another order than tables.json's: KILLED (5 of 61 tests fail)
+a write is answered by a unique value's holder before its key's: KILLED (2 of 61 tests fail)
+a refused insert is answered as written: KILLED (5 of 61 tests fail)
+a put is refused by its own row's unique value: KILLED (6 of 61 tests fail)
+a unique value is left to the database, which aborts the transaction: KILLED (6 of 61 tests fail)
+a growth write passes the bound: KILLED (2 of 61 tests fail)
+all answers past its bound: KILLED (1 of 61 tests fail)
+a selector is not held to its declared type: KILLED (2 of 61 tests fail)
+a written row is not held to its table: KILLED (2 of 61 tests fail)
+a stored row is answered unchecked: KILLED (2 of 61 tests fail)
+a statement is prepared on every call: KILLED (1 of 61 tests fail)
+two commands of a host run at once: KILLED (1 of 61 tests fail)
+a command writes outside a transaction: KILLED (18 of 61 tests fail)
+a command reads outside its transaction: KILLED (5 of 61 tests fail)
+a prepared command writes on: KILLED (1 of 61 tests fail)
+a row put back as it was is a write: KILLED (2 of 61 tests fail)
+references are held at the commit, not where the command prepares: KILLED (5 of 61 tests fail)
+references are held at each write: KILLED (5 of 61 tests fail)
+the records commit outside the command's transaction: KILLED (5 of 61 tests fail)
+an interaction is recorded twice: KILLED (1 of 61 tests fail)
+a live interaction's record is overwritten: KILLED (1 of 61 tests fail)
+a refused commit is answered as committed: KILLED (3 of 61 tests fail)
+a commit never answered is answered refused: KILLED (1 of 61 tests fail)
+a serialization failure is taken for another error: KILLED (4 of 61 tests fail)
+a serialization failure is not run again: KILLED (1 of 61 tests fail)
+the outbox's ids are taken out of commit order: KILLED (1 of 61 tests fail)
+render seats are unbounded: KILLED (1 of 61 tests fail)
+a render's snapshot reads the latest commit: KILLED (1 of 61 tests fail)
+the migration reads at the connection's default isolation: KILLED (1 of 61 tests fail)
+a key field retyped is taken for a field retyped: KILLED (1 of 61 tests fail)
+a backfilled string is a literal the server's string syntax reads: KILLED (1 of 61 tests fail)
+the least Int backfilled is a negated literal: KILLED (1 of 61 tests fail)
+a rule is no drift: KILLED (1 of 61 tests fail)
+a table inheriting one is no drift: KILLED (1 of 61 tests fail)
+triggers not firing are no drift: KILLED (1 of 61 tests fail)
+an unlogged table is no drift: KILLED (1 of 61 tests fail)
+two objects given one name are made, one replacing the other: KILLED (1 of 61 tests fail)
+a write whose answer cannot be read leaves its command whole: KILLED (1 of 61 tests fail)
+a commit keeps fewer outbox rows than it carries: KILLED (1 of 61 tests fail)
+a nested float is read back by serde_json's inexact parser: KILLED (2 of 61 tests fail)
+54 of 54 mutants killed
 memory bound: no process was stopped

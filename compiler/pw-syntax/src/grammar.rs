@@ -246,7 +246,7 @@ pub const STMT_CLAUSE_KEYWORDS: &[&str] =
 /// take names; a table's clauses take their named fields. A call `set.size()`
 /// or `row.word`, or a binding `unique` alone on its line, is not a clause.
 const NAMED_HEADS: &[&str] = &[
-    "layout", "set", "sets", "row", "order", "index", "unique", "refers", "migrate",
+    "layout", "set", "sets", "row", "order", "index", "unique", "refers", "migrate", "owner",
 ];
 
 /// A table's bounded clause takes a literal count on its line, and so does
@@ -306,6 +306,11 @@ pub const POLICY_KEYWORDS: &[&str] = &[
     "refers",
     "bounded",
     "migrate",
+    // The owned-rows ADR: who may change a table's rows, `owner user`,
+    // `owner session` or `owner anyone`. A clause only where its word
+    // follows on its line (`NAMED_HEADS`): `owner` is a name a body may
+    // begin with, and a field's (`refers owner to Users`).
+    "owner",
     // Track `device-store` (ADR-0366): the version of a value the device
     // keeps, a clause only where its count follows on its line
     // (`COUNTED_HEADS`); its `migrate` is a table's word, for the same
@@ -4436,7 +4441,8 @@ mod tests {
         let src = "module Todos\n\ntable Todos\n    row     Todo\n    key     owner, id\n    \
                    order   added\n    index   by_list on list\n    unique  by_slug on slug\n    \
                    refers  owner to Users\n    bounded 500\n    \
-                   migrate title renamed from name\n\nfn after() -> Int !{} {\n    1\n}\n";
+                   migrate title renamed from name\n    owner   session\n\n\
+                   fn after() -> Int !{} {\n    1\n}\n";
         let p = parse_ok(src);
         assert_lossless(src, &p);
         let heads: Vec<String> = texts(&p, K::Policy)
@@ -4446,7 +4452,7 @@ mod tests {
         assert_eq!(
             heads,
             [
-                "row", "key", "order", "index", "unique", "refers", "bounded", "migrate"
+                "row", "key", "order", "index", "unique", "refers", "bounded", "migrate", "owner"
             ],
             "{:?}",
             texts(&p, K::Policy)
@@ -4480,6 +4486,8 @@ mod tests {
             ("index", " + 1"),
             ("unique", ""),
             ("bounded", ".count"),
+            ("owner", ".name"),
+            ("owner", ""),
         ] {
             let src = format!(
                 "materialize M() {{\n    regenerate on_invalidation\n    {head}{rest}\n}}\n"
@@ -4493,7 +4501,7 @@ mod tests {
             );
         }
         // And each is a clause where its value follows.
-        for clause in ["row Todo", "order added", "bounded 5"] {
+        for clause in ["row Todo", "order added", "bounded 5", "owner user"] {
             let src = format!("materialize M() {{\n    {clause}\n}}\n");
             let p = parse_tree(&src);
             assert!(

@@ -17,6 +17,14 @@ use pw_core::tables::{Schema, TablesJson};
 use pw_table_postgres::{Error, PgTables};
 use serde_json::json;
 
+/// The reader every command here is begun for (the owned-rows ADR): one
+/// request's, in a table no reader owns, where it changes any row.
+fn a_reader() -> pw_host::tables::Writer {
+    pw_host::tables::Writer::Reader(
+        pw_host::tables::Reader::new("session-1", None).expect("a reader"),
+    )
+}
+
 /// The things' program with `Things.pw` edited by `edit`, built against
 /// `released`: its tables.json, and its schema (its `schema.lock`).
 fn things_where(edit: impl Fn(&str) -> String, released: Option<&Schema>) -> (TablesJson, Schema) {
@@ -43,7 +51,7 @@ fn open(scratch: &Scratch, manifest: TablesJson) -> Result<PgTables, Error> {
 fn seeded(scratch: &Scratch) -> PgTables {
     let tables = open_things(scratch);
     tables
-        .transaction(|tx| {
+        .transaction(a_reader(), |tx| {
             tx.write(&owner("insert"), &[owner_row("a")])?;
             tx.write(&thing("insert"), &[thing_row("a", 1, 5, "eight888", true)])?;
             tx.write(&thing("insert"), &[thing_row("a", 2, 6, "two", false)])
@@ -257,7 +265,7 @@ fn a_table_added_may_refer_to_a_table_held_and_to_one_added_with_it() {
     );
     let tables = opened.assert_ok("the added tables made");
     tables
-        .transaction(|tx| {
+        .transaction(a_reader(), |tx| {
             tx.write("pw:tables/kennels#insert", &[json!({"id": "k1"})])?;
             tx.write(
                 "pw:tables/pets#insert",
@@ -265,7 +273,7 @@ fn a_table_added_may_refer_to_a_table_held_and_to_one_added_with_it() {
             )
         })
         .assert_ok("a pet of an owner held, in a kennel added with it");
-    let refused = tables.transaction(|tx| {
+    let refused = tables.transaction(a_reader(), |tx| {
         tx.write(
             "pw:tables/pets#insert",
             &[json!({"owner": "nobody", "name": "rex", "kennel": "k1"})],
@@ -342,7 +350,7 @@ fn a_change_that_loses_data_is_made_only_where_the_program_states_it() {
         .assert_ok("its index, made again");
     assert_eq!(flagged.as_array().map(Vec::len), Some(2));
     // Every row written from now on gives the backfilled fields.
-    let mut tx = tables.begin().assert_ok("a command");
+    let mut tx = tables.begin(a_reader()).assert_ok("a command");
     let mut row = thing_row("a", 3, 7, "three", true);
     if let Some(o) = row.as_object_mut() {
         o.remove("note");

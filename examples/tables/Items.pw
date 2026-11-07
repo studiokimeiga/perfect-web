@@ -7,7 +7,9 @@
 // A list's items: keyed by the list first, so a list's items are one prefix
 // of the key, `Items.of_list(list)`, and all of several lists' one set read,
 // `Items.of_list_many(lists)`; in the order they were added. An item names
-// its list, which the source holds beside it (`refers`).
+// its list, which the source holds beside it (`refers`). Any reader may
+// change any item, as before rows had owners (`owner anyone`, the owned-rows
+// ADR); an item is its list's visitor's, which `owner session` would make it.
 
 module Items
 
@@ -35,3 +37,4 @@ table Items
     order  added
     index  by_done on done
     refers list to Lists
+    owner  anyone

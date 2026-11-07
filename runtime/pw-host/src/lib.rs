@@ -395,6 +395,12 @@ pub struct ComponentExport {
     /// there. Mirrored by field name, ADR-0018.
     #[serde(default)]
     pub invoked_by: Option<String>,
+    /// For whom the clock runs it, where it is invoked by `Clock`: `reader`,
+    /// `platform`, or both, by the commands that schedule it (the owned-rows
+    /// ADR). [`tables::Writer::admits`] holds a run's writer to it. Mirrored
+    /// by field name, ADR-0018.
+    #[serde(default)]
+    pub runs_for: Vec<String>,
     /// Where an argument must hold an invariant (ADR-0179). Mirrored by field
     /// name, ADR-0018.
     #[serde(default)]

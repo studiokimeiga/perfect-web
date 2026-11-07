@@ -327,6 +327,49 @@ error: [PW0367] `delete_post` runs for any reader's request, and says nothing of
 `requires Anyone` is how a command says anyone may run it, where a reviewer
 reads it.
 
+### A row anyone can change, by naming it
+
+`forget_note` says who may run it, and nothing of whose note it forgets:
+sent with another reader's id, it deletes theirs. So a table that a
+reader's command writes says whose its rows are:
+
+```pw fails=PW0370
+module Notes
+
+opaque type NoteId = String
+
+type Note = Note { id: NoteId, text: String }
+
+table Notes
+    row Note
+    key id
+
+command forget_note(note: NoteId) -> ()
+    requires Anyone
+{
+    Notes.delete(note)
+}
+```
+
+```text pw-check
+error: [PW0370] `Notes` is written by a command any reader's request runs, and says nothing of who may change its rows
+  --> Notes.pw:7:7
+   |
+ 7 | table Notes
+   |       ^^^^^ `Notes` is written by a command any reader's request runs, and says nothing of who may change its rows
+...
+14 |     Notes.delete(note)
+   |     ------------------ `forget_note` writes it, and runs for any reader's request
+   |
+   = note: A command a reader can run is a request away, and its arguments are the request's: `drop_item(list, item)` deletes whichever item a request names, anyone's. So a table such a command writes says whose its rows are. With `owner user` or `owner session` the platform records the reader who inserts each row, in no field the program sees, and a `put`, a `delete` or a `delete_of_<fields>` from a request changes only its reader's rows: another reader's row is treated as absent. `owner anyone` says any reader may change any row, outright. A command the clock runs for a reader's schedule writes for that reader; a table only the platform's other commands (`invoked_by`) write needs none.
+   = help: declare `owner user` or `owner session`: the platform records the reader who inserts each row, and only that reader's requests change it
+   = help: or `owner anyone`, if any reader may change any row
+```
+
+`owner session` repairs it: the platform records the session that inserts
+each note, and a request deletes its own notes alone. `owner anyone` says
+that any reader may change any note, where a reviewer reads it.
+
 ## When the build refuses what the check passed
 
 `pw build` has refusals of its own. It prints them as lines that begin

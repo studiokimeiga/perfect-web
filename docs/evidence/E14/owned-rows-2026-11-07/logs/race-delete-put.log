@@ -1,0 +1,33 @@
+# bash docs/evidence/E14/owned-rows-2026-11-07/scripts/race_delete_put.sh "READ COMMITTED", then "SERIALIZABLE" (2026-11-07T10:35:55Z)
+pg_sleep
+
+(1 row)
+ pg_sleep 
+----------
+ 
+(1 row)
+
+?column? count holder old_held pw_mine
+answer: 1  t f
+(1 row)
+after (READ COMMITTED):
+shelf id slug text pw:owner
+home milk b his s-bob
+(1 row)
+NOTICE:  drop cascades to table pr91_review_PID.notes
+====
+pg_sleep
+
+(1 row)
+ pg_sleep 
+----------
+ 
+(1 row)
+
+ERROR:  could not serialize access due to read/write dependencies among transactions
+DETAIL:  Reason code: Canceled on identification as a pivot, during write.
+HINT:  The transaction might succeed if retried.
+after (SERIALIZABLE):
+shelf id slug text pw:owner
+(0 rows)
+NOTICE:  drop cascades to table pr91_review_PID.notes

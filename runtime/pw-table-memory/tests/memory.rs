@@ -10,6 +10,14 @@ use assert_result::*;
 
 use std::sync::Arc;
 
+/// The reader every command here is begun for (the owned-rows ADR): one
+/// request's, in a table no reader owns, where it changes any row.
+fn a_reader() -> pw_host::tables::Writer {
+    pw_host::tables::Writer::Reader(
+        pw_host::tables::Reader::new("session-1", None).expect("a reader"),
+    )
+}
+
 fn field(name: &str, stored: Stored) -> FieldSchema {
     FieldSchema {
         name: name.into(),
@@ -71,6 +79,7 @@ fn manifest() -> TablesJson {
             },
         ],
         references: vec![],
+        owner: None,
     };
     let hash = Schema::of(vec![schema.clone()]).hash;
     TablesJson {
@@ -135,7 +144,7 @@ fn like(from: &str, to: &str, rank: i64) -> Value {
 #[test]
 fn compiler_manifest_drives_reads_without_app_specific_storage() {
     let db = MemoryTables::new(manifest()).assert_ok("valid domain result");
-    db.transaction(|tx| {
+    db.transaction(a_reader(), |tx| {
         tx.write(&call("insert"), &[like("a", "c", 10)])?;
         tx.write(&call("insert"), &[like("a", "b", 2)])?;
         tx.write(&call("insert"), &[like("d", "c", 5)])?;
@@ -176,7 +185,7 @@ fn compiler_manifest_drives_reads_without_app_specific_storage() {
 #[test]
 fn set_queries_deduplicate_and_sort_not_by_input_order() {
     let db = MemoryTables::new(manifest()).assert_ok("valid domain result");
-    db.transaction(|tx| {
+    db.transaction(a_reader(), |tx| {
         tx.write(&call("insert"), &[like("x", "d", 30)])?;
         tx.write(&call("insert"), &[like("z", "a", 3)])?;
         tx.write(&call("insert"), &[like("x", "b", 20)])?;
@@ -214,10 +223,12 @@ fn set_queries_deduplicate_and_sort_not_by_input_order() {
 #[test]
 fn rejected_and_abandoned_writes_do_not_publish() {
     let db = MemoryTables::new(manifest()).assert_ok("valid domain result");
-    db.transaction(|tx| tx.write(&call("insert"), &[like("a", "b", 1)]))
-        .assert_ok("valid domain result");
+    db.transaction(a_reader(), |tx| {
+        tx.write(&call("insert"), &[like("a", "b", 1)])
+    })
+    .assert_ok("valid domain result");
     assert!(matches!(
-        db.transaction(|tx| {
+        db.transaction(a_reader(), |tx| {
             tx.write(&call("insert"), &[like("other", "c", 1)])?;
             Ok(())
         }),
@@ -228,7 +239,7 @@ fn rejected_and_abandoned_writes_do_not_publish() {
         json!([like("a", "b", 1)])
     );
 
-    let abandoned: Result<(), Error> = db.transaction(|tx| {
+    let abandoned: Result<(), Error> = db.transaction(a_reader(), |tx| {
         tx.write(&call("insert"), &[like("other", "c", 2)])?;
         Err(Error::Input("business rule rejected".into()))
     });
@@ -238,7 +249,7 @@ fn rejected_and_abandoned_writes_do_not_publish() {
         json!([like("a", "b", 1)])
     );
 
-    db.transaction(|tx| {
+    db.transaction(a_reader(), |tx| {
         tx.write(&call("put"), &[like("a", "b", 3)])?;
         tx.write(&call("insert"), &[like("new", "d", 4)])?;
         tx.write(&call("delete"), &[json!("new"), json!("d")])?;
@@ -261,7 +272,7 @@ fn invalid_rows_and_schema_hash_fail_closed() {
         json!({ "from": "a", "to": "b", "rank": 1.25, "note": null }),
     ] {
         assert!(matches!(
-            db.transaction(|tx| tx.write(&call("insert"), &[row])),
+            db.transaction(a_reader(), |tx| tx.write(&call("insert"), &[row])),
             Err(Error::Input(_))
         ));
     }
@@ -281,7 +292,7 @@ fn transactions_serialize_concurrent_writers() {
     for n in 0..12 {
         let db = Arc::clone(&db);
         threads.push(std::thread::spawn(move || {
-            db.transaction(|tx| {
+            db.transaction(a_reader(), |tx| {
                 tx.write(&call("insert"), &[like("a", &format!("user-{n}"), n)])?;
                 Ok(())
             })
@@ -316,6 +327,7 @@ fn foreign_keys_are_validated_at_commit() {
         order: None,
         indexes: vec![],
         references: vec![],
+        owner: None,
     };
     m.tables.push(TableJson {
         schema: users,
@@ -342,10 +354,11 @@ fn foreign_keys_are_validated_at_commit() {
     m.migration.to = m.hash.clone();
     let db = MemoryTables::new(m).assert_ok("valid domain result");
     assert!(matches!(
-        db.transaction(|tx| tx.write(&call("insert"), &[like("a", "missing", 1)])),
+        db.transaction(a_reader(), |tx| tx
+            .write(&call("insert"), &[like("a", "missing", 1)])),
         Err(Error::Input(_))
     ));
-    db.transaction(|tx| {
+    db.transaction(a_reader(), |tx| {
         tx.write("pw:tables/users#insert", &[json!({ "id": "b" })])?;
         tx.write(&call("insert"), &[like("a", "b", 1)])?;
         Ok(())

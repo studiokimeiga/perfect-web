@@ -265,6 +265,7 @@ TESTS = [
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "commands"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "durability"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "migrations"],
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "owned_rows"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "parity"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "primitives"],
 ]

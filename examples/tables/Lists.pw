@@ -26,10 +26,13 @@ opaque type Slug = String where String.length(value) <= 64
 
 type TodoList = TodoList { id: ListId, name: String, slug: Slug, added: Int }
 
-// Read whole on the home page, so it states the most lists it holds.
+// Read whole on the home page, so it states the most lists it holds. Any
+// reader may change any list, as before rows had owners (the owned-rows
+// ADR); a list is its visitor's, which `owner session` would make it.
 table Lists
     row     TodoList
     key     id
     order   added
     unique  by_slug on slug
     bounded 100
+    owner   anyone

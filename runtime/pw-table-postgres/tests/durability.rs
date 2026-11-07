@@ -14,6 +14,14 @@ use common::*;
 use pw_table_postgres::{Interaction, OutboxKind, Outboxed, PgTables, Records};
 use serde_json::{Value, json};
 
+/// The reader every command here is begun for (the owned-rows ADR): one
+/// request's, in a table no reader owns, where it changes any row.
+fn a_reader() -> pw_host::tables::Writer {
+    pw_host::tables::Writer::Reader(
+        pw_host::tables::Reader::new("session-1", None).expect("a reader"),
+    )
+}
+
 /// Set to the schema the first host writes in: this binary run as that
 /// host, its one test [`the_first_host_commits_and_ends`].
 const FIRST_HOST: &str = "PW_D3_FIRST_HOST_SCHEMA";
@@ -93,7 +101,7 @@ fn the_first_host_commits_and_ends() {
     };
     let Some(url) = database() else { return };
     let tables = PgTables::open(&url, Some(&schema), things()).assert_ok("the first host");
-    let mut tx = tables.begin().assert_ok("a command");
+    let mut tx = tables.begin(a_reader()).assert_ok("a command");
     for id in ["a", "b"] {
         tx.write(&owner("insert"), &[owner_row(id)])
             .assert_ok("an owner");
@@ -117,7 +125,9 @@ fn the_first_host_commits_and_ends() {
             }],
         })
         .assert_ok("committed");
-    let mut open = tables.begin().assert_ok("a command it never commits");
+    let mut open = tables
+        .begin(a_reader())
+        .assert_ok("a command it never commits");
     open.write(&owner("insert"), &[owner_row("never")])
         .assert_ok("written");
     // The host ends here, its command open: its process, its connections.

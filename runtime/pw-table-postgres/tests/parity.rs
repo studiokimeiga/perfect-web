@@ -21,13 +21,20 @@ mod assert_result;
 use assert_result::*;
 
 use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex};
 
 use common::*;
 use pw_host::engine::{HostFn, Val};
 use pw_table_memory::MemoryTables;
 use pw_table_postgres::PgTables;
 use serde_json::{Value, json};
+
+/// The reader every command here is begun for (the owned-rows ADR): one
+/// request's, in a table no reader owns, where it changes any row.
+fn a_reader() -> pw_host::tables::Writer {
+    pw_host::tables::Writer::Reader(
+        pw_host::tables::Reader::new("session-1", None).expect("a reader"),
+    )
+}
 
 /// **An answer, as both adapters can give it**: a value, as its JSON text
 /// (a float's sign and kind kept), or an error by its kind and words.
@@ -219,8 +226,8 @@ fn a_random_workload_answers_alike_on_memory_and_postgresql() {
         _ => {}
     };
     for step in 0..160 {
-        let mut on_memory = memory.begin().assert_ok("a memory command");
-        let mut on_postgres = postgres.begin().assert_ok("a postgres command");
+        let mut on_memory = memory.begin(a_reader()).assert_ok("a memory command");
+        let mut on_postgres = postgres.begin(a_reader()).assert_ok("a postgres command");
         for _ in 0..=c.below(5) {
             let (import, args) = if c.below(4) == 0 {
                 let (import, args) = c.pick(&reads).clone();
@@ -270,134 +277,6 @@ fn a_random_workload_answers_alike_on_memory_and_postgresql() {
 
 // --- the compiled programs ---------------------------------------------------
 
-/// What the app's and the writers' node grants.
-const NODE: &[&str] = &[
-    "database.read<Lists>",
-    "database.read<Items>",
-    "database.write<Lists>",
-    "database.write<Items>",
-    "outbox.write",
-];
-
-struct Compiled {
-    bytes: Vec<u8>,
-    contract: pw_host::ComponentContract,
-    imports: Vec<String>,
-}
-
-impl Compiled {
-    fn granted(&self) -> pw_host::Granted {
-        let grants: Vec<String> = NODE.iter().map(|g| format!("{g:?}")).collect();
-        let topology = pw_host::Topology::from_json(&format!(
-            r#"{{"nodes":[{{"name":"origin","world":"origin","grants":[{}]}}]}}"#,
-            grants.join(",")
-        ))
-        .assert_ok("topology");
-        let admission = pw_host::admit(&self.contract, &topology, "origin", &self.imports);
-        assert!(admission.is_admitted(), "{admission:?}");
-        pw_host::Granted::from(&admission, &Default::default()).assert_ok("granted")
-    }
-
-    fn export(&self) -> [String; 2] {
-        let export = self.contract.exports[0]
-            .component
-            .as_ref()
-            .assert_ok("a component path");
-        [export.interface.clone(), export.function.clone()]
-    }
-
-    /// Its platform imports (the outbox's invalidations), each recording
-    /// what it was handed.
-    fn platform(&self) -> (BTreeMap<String, HostFn>, Arc<Mutex<Vec<String>>>) {
-        let calls: Arc<Mutex<Vec<String>>> = Arc::default();
-        let mut host = BTreeMap::new();
-        for import in &self.contract.imports {
-            if pw_host::tables::is_table_interface(&import.interface) {
-                continue;
-            }
-            let (key, record) = (import.key(), Arc::clone(&calls));
-            let named = key.clone();
-            let callback: HostFn = Arc::new(move |args| {
-                if let Ok(mut calls) = record.lock() {
-                    calls.push(format!("{named} {args:?}"));
-                }
-                Ok(Vec::new())
-            });
-            host.insert(key, callback);
-        }
-        (host, calls)
-    }
-
-    fn call(
-        &self,
-        granted: &pw_host::Granted,
-        host: &BTreeMap<String, HostFn>,
-        tables: &pw_host::tables::Manifest,
-        args: &[Val],
-    ) -> Result<Vec<Val>, String> {
-        let [interface, function] = self.export();
-        pw_host::engine::call_with_tables(
-            &self.bytes,
-            &self.contract,
-            granted,
-            &pw_host::Limits::unbounded(),
-            host,
-            tables,
-            &[interface.as_str(), function.as_str()],
-            args,
-        )
-    }
-}
-
-/// `examples/tables`' program with `program`, compiled: tables.json and
-/// each of `ids`.
-fn compiled(
-    program: &str,
-    ids: &[&str],
-) -> (pw_core::tables::TablesJson, BTreeMap<String, Compiled>) {
-    let units = common::fixture_units(&["Lists.pw", "Items.pw", "ListData.pw", program]);
-    let build = pw_core::build::build(&units).assert_ok("the program builds");
-    assert!(build.refusals().is_empty(), "{:?}", build.refusals());
-    let contracts = pw_host::ComponentContract::from_json(
-        &serde_json::to_string(&build.contracts).assert_ok("contracts"),
-    )
-    .assert_ok("the host reads the contracts");
-    let mut out = BTreeMap::new();
-    for &id in ids {
-        let artifact = build
-            .components
-            .iter()
-            .find(|(component, _)| component == id)
-            .map(|(_, artifact)| artifact);
-        assert!(
-            matches!(
-                artifact,
-                Some(pw_core::backend::component::Built::Component { .. })
-            ),
-            "{id} did not compile: {artifact:?}"
-        );
-        let Some(pw_core::backend::component::Built::Component { compiled, .. }) = artifact else {
-            continue;
-        };
-        let bytes = compiled.component.bytes.clone();
-        let imports = pw_host::engine::imports_of(&bytes).assert_ok("its imports");
-        let contract = contracts
-            .iter()
-            .find(|c| c.component_id == id)
-            .cloned()
-            .assert_ok("its contract");
-        out.insert(
-            id.to_string(),
-            Compiled {
-                bytes,
-                contract,
-                imports,
-            },
-        );
-    }
-    (build.tables, out)
-}
-
 /// **One adapter, as the platform uses either**: a query's host functions,
 /// and a command run in a transaction of its own, committed where it
 /// answers and undone where it traps or answers a declared error.
@@ -430,7 +309,7 @@ impl Adapter for MemoryTables {
         granted: &pw_host::Granted,
         args: &[Val],
     ) -> (Result<Vec<Val>, String>, Vec<String>, String) {
-        let staged = self.begin().assert_ok("its turn");
+        let staged = self.begin(a_reader()).assert_ok("its turn");
         let mut host = staged
             .host_fns(&c.contract, granted)
             .assert_ok("the gate admits it");
@@ -462,7 +341,7 @@ impl Adapter for PgTables {
         granted: &pw_host::Granted,
         args: &[Val],
     ) -> (Result<Vec<Val>, String>, Vec<String>, String) {
-        let staged = self.begin().assert_ok("its turn");
+        let staged = self.begin(a_reader()).assert_ok("its turn");
         let mut host = staged
             .host_fns(&c.contract, granted)
             .assert_ok("the gate admits it");
@@ -695,7 +574,7 @@ fn an_ended_commands_functions_act_on_nothing_on_either_adapter() {
         host.get(import).map(|f| f(args).is_err()).unwrap_or(false)
     };
     let on_memory = {
-        let staged = memory.begin().assert_ok("a command");
+        let staged = memory.begin(a_reader()).assert_ok("a command");
         let host = staged
             .host_fns(&c.contract, &granted)
             .assert_ok("its functions");
@@ -707,7 +586,7 @@ fn an_ended_commands_functions_act_on_nothing_on_either_adapter() {
         (after_prepare, after_commit, read_after)
     };
     let on_postgres = {
-        let staged = postgres.begin().assert_ok("a command");
+        let staged = postgres.begin(a_reader()).assert_ok("a command");
         let host = staged
             .host_fns(&c.contract, &granted)
             .assert_ok("its functions");

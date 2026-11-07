@@ -9,6 +9,14 @@ use assert_result::*;
 use pw_table_memory::{Error, MemoryTables};
 use serde_json::{Value, json};
 
+/// The reader every command here is begun for (the owned-rows ADR): one
+/// request's, in a table no reader owns, where it changes any row.
+fn a_reader() -> pw_host::tables::Writer {
+    pw_host::tables::Writer::Reader(
+        pw_host::tables::Reader::new("session-1", None).expect("a reader"),
+    )
+}
+
 fn field(name: &str, stored: Stored) -> FieldSchema {
     FieldSchema {
         name: name.into(),
@@ -57,6 +65,7 @@ fn manifest() -> TablesJson {
             unique: true,
         }],
         references: Vec::new(),
+        owner: None,
     };
     let hash = Schema::of(vec![table.clone()]).hash;
     TablesJson {
@@ -97,7 +106,7 @@ fn manifest() -> TablesJson {
 
 fn seeded() -> MemoryTables {
     let db = MemoryTables::new(manifest()).assert_ok("valid domain result");
-    db.transaction(|tx| {
+    db.transaction(a_reader(), |tx| {
         tx.write(
             "pw:tables/likes#insert",
             &[json!({"from": "a", "to": "b", "rank": 3})],

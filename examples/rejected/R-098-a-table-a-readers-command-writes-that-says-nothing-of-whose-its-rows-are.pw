@@ -1,0 +1,37 @@
+// @corpus: rejected
+// @id: R-098
+// @category: a table a reader's command writes that says nothing of whose its rows are
+// @rule: PW0370
+// @invariant: who_may_change
+// @charter: §7.5
+// @milestone: 14
+// @expect-error: `Notes` is written by a command any reader's request runs, and says nothing of who may change its rows
+// @expect-error: declare `owner user` or `owner session`: the platform records the reader who inserts each row, and only that reader's requests change it
+//
+// `forget_note` says who may run it, a signed-in reader, and nothing of whose
+// note it forgets: any signed-in reader deletes anyone's, by sending its id.
+// Until 2026-11-07 this compiled. A table a reader's command writes says
+// whose its rows are: `owner user` or `owner session`, whom the platform
+// records with each row and holds every change to, or `owner anyone` (the
+// owned-rows ADR).
+
+module Notes
+
+opaque type NoteId = String
+
+type Note = Note { id: NoteId, text: String }
+
+// ERROR: whose is a note? Nothing says, so a request changes anyone's.
+table Notes
+    row Note
+    key id
+
+// Who may forget a note: the deployment's `SignedIn`.
+predicate SignedIn
+    says "Sign in to do this."
+
+command forget_note(note: NoteId) -> ()
+    requires SignedIn
+{
+    Notes.delete(note)
+}
