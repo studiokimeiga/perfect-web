@@ -1,0 +1,851 @@
+   Compiling pw-host v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-host)
+   Compiling pw-syntax v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/compiler/pw-syntax)
+   Compiling pw-core v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/compiler/pw-core)
+   Compiling pw-table-memory v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-table-memory)
+   Compiling pw-table-postgres v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-table-postgres)
+   Compiling pw-cli v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/compiler/pw-cli)
+    Finished `test` profile [unoptimized] target(s) in 13.13s
+     Running unittests src/main.rs (/home/haki/pw-targets/owned-rows/debug/deps/pw-2750fb811fa3739e)
+
+running 9 tests
+test tests::a_note_in_another_file_is_shown_in_it ... ok
+test tests::a_span_outside_its_file_is_a_note_and_no_panic ... ok
+test tests::check_renders_a_diagnostic_with_a_real_span ... ok
+test tests::explain_derives_placement_from_effects_alone ... ok
+test tests::explain_never_leaks_generated_paths ... ok
+test tests::explain_flags_a_session_value_in_a_shared_cache ... ok
+test tests::unannotated_and_empty_effect_rows_read_differently ... ok
+test tests::explain_shows_every_policy_the_compiler_knows_about ... ok
+test tests::the_committed_graph_matches_what_the_compiler_emits ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+     Running tests/check_build_corpus.rs (/home/haki/pw-targets/owned-rows/debug/deps/check_build_corpus-e5059ff524d33f57)
+
+running 3 tests
+test accepted_corpus_has_exactly_its_known_backend_refusals ... ok
+test reference_program_roots_stay_executable ... ok
+test every_rejected_corpus_program_has_the_same_check_and_build_codes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 34.95s
+
+     Running tests/check_is_build.rs (/home/haki/pw-targets/owned-rows/debug/deps/check_is_build-f72144e5390eb276)
+
+running 8 tests
+test wit_name_collisions_are_check_refusals ... ok
+test a_page_cannot_depend_on_an_unwritten_query ... ok
+test a_signal_in_a_title_is_refused_during_check ... ok
+test a_pure_computed_each_head_is_refused ... ok
+test syntax_refusals_keep_clean_siblings_errors_and_skip_backends ... ok
+test a_part_cannot_compute_from_a_signal_and_a_query ... ok
+test a_part_may_compute_from_two_signals ... ok
+test a_supported_neighbor_checks_and_builds ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/guide.rs (/home/haki/pw-targets/owned-rows/debug/deps/guide-cd8c202de81c2077)
+
+running 15 tests
+test a_fence_is_read_as_commonmark_reads_it ... ok
+test a_page_is_held_to_the_directory_it_names ... ok
+test a_gaps_build_output_belongs_to_the_gap_before_it ... ok
+test a_pages_file_blocks_are_its_program_in_order ... ok
+test a_page_with_no_example_or_a_block_unseen_is_reported ... ok
+test a_refused_examples_codes_are_read_from_its_output ... ok
+test a_program_differs_from_a_directory_by_a_file_or_a_byte ... ok
+test an_unclosed_or_indented_fence_is_refused ... ok
+test shown_output_belongs_to_the_refused_example_before_it ... ok
+test the_reference_is_held_to_the_registry ... ok
+test a_pages_program_is_the_directory_it_names ... ok
+test an_info_string_says_what_a_block_is ... ok
+test the_diagnostic_reference_lists_every_registered_code ... ok
+test every_example_in_the_guide_compiles_as_it_says ... ok
+test a_wrong_example_is_reported_and_a_right_one_is_not ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.99s
+
+     Running tests/related_files.rs (/home/haki/pw-targets/owned-rows/debug/deps/related_files-e59436da4767a86e)
+
+running 1 test
+test a_layouts_note_is_shown_in_the_layouts_file ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/same_name.rs (/home/haki/pw-targets/owned-rows/debug/deps/same_name-4419928c4bb89ea3)
+
+running 2 tests
+test each_file_keeps_its_own_answers_under_one_name ... ok
+test a_file_is_reported_though_another_has_its_name ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/tables.rs (/home/haki/pw-targets/owned-rows/debug/deps/tables-ece2bf2410df16c9)
+
+running 5 tests
+test an_invalid_or_missing_release_is_an_error ... ok
+test actual_compiler_manifest_executes_without_app_specific_rust ... ok
+test a_released_schema_does_not_skip_executable_support ... ok
+test migration_refusals_precede_unsupported_backend_diagnostics ... ok
+test check_and_build_hold_a_program_to_the_named_release ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.40s
+
+     Running unittests src/lib.rs (/home/haki/pw-targets/owned-rows/debug/deps/pw_host-c7c480cedcfc53ad)
+
+running 25 tests
+test engine::table_link::tests::a_composite_get_answers_its_own_key_or_none ... ok
+test engine::table_link::tests::values_hold_their_stored_type_and_bounds ... ok
+test engine::table_link::tests::index_and_all_answers_hold_their_values_and_bound ... ok
+test engine::table_link::tests::a_composite_get_many_answers_asked_keys_once_in_order ... ok
+test engine::table_link::tests::a_prefix_answers_its_own_prefix_once_by_the_tables_order ... ok
+test engine::table_link::tests::a_writes_refusal_is_the_row_that_holds_what_it_would_write ... ok
+test engine::table_read_host::tests::adapter_errors_and_unsupported_rows_are_refusals ... ok
+test engine::table_read_host::tests::get_many_preserves_adapter_order_and_empty_reads ... ok
+test engine::table_read_host::tests::get_passes_typed_selectors_and_returns_wit_some_or_none ... ok
+test engine::table_read_host::tests::malformed_or_mistyped_arguments_never_reach_the_adapter ... ok
+test engine::table_results::tests::a_row_with_more_or_fewer_fields_than_declared_is_refused ... ok
+test engine::table_results::tests::a_writes_answer_is_ok_the_refusing_row_or_nothing ... ok
+test engine::table_results::tests::get_many_preserves_bounded_adapter_order_and_empty_lists ... ok
+test engine::table_results::tests::rows_are_records_in_their_declared_order ... ok
+test engine::table_results::tests::get_preserves_present_and_missing_option_rows ... ok
+test engine::table_results::tests::unsupported_and_wrong_result_shapes_fail_closed ... ok
+test engine::table_selectors::tests::a_written_row_is_exactly_its_tables_or_refused ... ok
+test engine::table_selectors::tests::all_takes_nothing_and_a_prefix_its_fields ... ok
+test engine::table_selectors::tests::get_keeps_scalar_key_values_and_types ... ok
+test engine::table_selectors::tests::get_many_keeps_composite_records_by_the_keys_own_names ... ok
+test engine::table_selectors::tests::refuses_a_key_of_other_arity_or_field_names ... ok
+test engine::table_selectors::tests::refuses_keys_of_another_declared_type_or_out_of_bounds ... ok
+test engine::table_selectors::tests::refuses_unsupported_key_shapes_without_defaults_or_coercion ... ok
+test engine::table_write_host::tests::a_malformed_row_never_reaches_the_adapter ... ok
+test engine::table_write_host::tests::a_write_passes_its_row_and_answers_its_wit_type ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/admission.rs (/home/haki/pw-targets/owned-rows/debug/deps/admission-2d505732ae433292)
+
+running 22 tests
+test a_component_is_admitted_where_its_world_and_its_capabilities_are_both_present ... ok
+test a_component_dependency_is_not_authority ... ok
+test a_capabilitys_type_argument_is_part_of_what_is_granted ... ok
+test a_component_needing_nothing_is_admitted_and_granted_nothing ... ok
+test a_component_slot_cannot_be_filled_by_a_host_import_or_the_reverse ... ok
+test a_component_that_can_run_nowhere_is_refused_everywhere ... ok
+test a_component_granted_nothing_gets_an_empty_linker ... ok
+test a_contract_from_an_unknown_capability_mapping_is_refused ... ok
+test a_guest_receives_a_handle_and_never_the_value ... ok
+test a_refused_admission_yields_no_capabilities_at_all ... ok
+test a_runtime_import_can_never_be_authorised ... ok
+test a_handle_from_another_instance_does_not_work_here ... ok
+test an_admitted_instance_gets_exactly_its_contract_and_not_the_nodes_whole_set ... ok
+test an_artifact_importing_more_than_its_contract_allows_is_refused ... ok
+test an_import_is_classified_before_it_is_compared ... ok
+test an_unknown_node_is_refused_rather_than_defaulted ... ok
+test every_refusal_is_reported_not_only_the_first ... ok
+test importing_fewer_than_allowed_is_fine ... ok
+test placement_and_capability_are_two_checks_and_can_disagree_either_way ... ok
+test the_linker_is_built_from_the_admission_and_not_from_the_node ... ok
+test the_std_runtime_import_set_is_refused_wholesale ... ok
+test the_topology_is_data_the_host_owns ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/artifact.rs (/home/haki/pw-targets/owned-rows/debug/deps/artifact-f66a2aafdd770705)
+
+running 8 tests
+test a_granted_component_instantiates_and_an_ungranted_one_does_not ... ignored, reads the guests `just spike-wasmtime` builds; `just e8-host` runs it
+test a_granted_guest_calls_the_host_and_receives_its_answer ... ignored, reads the guests `just spike-wasmtime` builds; `just e8-host` runs it
+test a_memory_ceiling_denies_growth_rather_than_aborting ... ignored, reads the guests `just spike-wasmtime` builds; `just e8-host` runs it
+test a_refused_admission_yields_no_granted_to_link_from ... ignored, reads the guests `just spike-wasmtime` builds; `just e8-host` runs it
+test an_instance_runs_within_the_budget_its_deployment_declares ... ignored, reads the guests `just spike-wasmtime` builds; `just e8-host` runs it
+test the_declared_component_imports_exactly_what_its_world_says ... ignored, reads the guests `just spike-wasmtime` builds; `just e8-host` runs it
+test the_std_component_is_refused_for_authority_nobody_asked_for ... ignored, reads the guests `just spike-wasmtime` builds; `just e8-host` runs it
+test a_component_that_cannot_be_read_is_not_treated_as_importing_nothing ... ok
+
+test result: ok. 1 passed; 0 failed; 7 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/bench.rs (/home/haki/pw-targets/owned-rows/debug/deps/bench-f37f4fba806871e7)
+
+running 2 tests
+test a_hand_written_rust_guest_through_the_host ... ignored, a benchmark, and it reads the guest `just spike-wasmtime` builds
+test the_compiled_command_through_the_host ... ignored, a benchmark; `just e10-bench` runs it in release
+
+test result: ok. 0 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/bounded.rs (/home/haki/pw-targets/owned-rows/debug/deps/bounded-7fe0296cd5f79c7e)
+
+running 5 tests
+test a_case_the_path_does_not_name_holds_nothing_to_check ... ok
+test a_strings_length_is_held_at_both_ends_in_code_points ... ok
+test a_value_of_another_shape_than_the_contract_says_is_refused ... ok
+test an_argument_is_held_to_its_bounds_at_both_ends ... ok
+test each_item_of_a_list_and_each_field_is_reached ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/compiled_once.rs (/home/haki/pw-targets/owned-rows/debug/deps/compiled_once-9b1162f17e653245)
+
+running 1 test
+test a_components_bytes_are_compiled_once_a_process ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/contract_mirror.rs (/home/haki/pw-targets/owned-rows/debug/deps/contract_mirror-d5151ce9ad5e4d9b)
+
+running 6 tests
+test a_capability_survives_the_crossing_with_its_argument ... ok
+test the_compilers_contracts_deserialize_with_every_field_populated ... ok
+test the_real_contracts_drive_a_real_admission ... ok
+test the_store_page_depends_on_components_without_acquiring_their_authority ... ok
+test command_authorization_survives_the_compiler_host_boundary ... ok
+test the_store_page_does_not_inherit_its_handlers_authority ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/display.rs (/home/haki/pw-targets/owned-rows/debug/deps/display-8f78c55ae8987e17)
+
+running 3 tests
+test every_amount_is_exact_the_least_and_the_greatest_included ... ok
+test an_amount_owed_back_is_written_with_its_sign_first ... ok
+test a_price_is_written_as_en_us_writes_dollars ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/engine_proposals.rs (/home/haki/pw-targets/owned-rows/debug/deps/engine_proposals-6520ff30d7b98a75)
+
+running 5 tests
+test a_component_using_the_async_abi_is_refused ... ok
+test a_component_using_none_of_them_loads ... ok
+test a_component_using_gc_is_refused ... ok
+test the_import_audit_refuses_them_too ... ok
+test a_component_using_exceptions_is_refused ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/host_answers.rs (/home/haki/pw-targets/owned-rows/debug/deps/host_answers-c40868c3d8f057b3)
+
+running 7 tests
+test a_field_written_as_the_program_names_it_is_read ... ok
+test a_field_the_type_does_not_declare_is_not_passed_in ... ok
+test an_answer_as_the_type_declares_it_is_passed_as_it_is ... ok
+test a_field_in_another_order_is_read_by_its_name ... ok
+test a_field_under_neither_name_is_refused_by_both ... ok
+test a_field_the_type_declares_and_the_answer_lacks_is_refused ... ok
+test a_list_s_rows_and_a_declared_error_are_read_through_their_types ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/list_arguments.rs (/home/haki/pw-targets/owned-rows/debug/deps/list_arguments-7cb93ac629409d01)
+
+running 1 test
+test a_list_of_records_is_read_element_by_element_and_runs ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/planning.rs (/home/haki/pw-targets/owned-rows/debug/deps/planning-a8671fcd5b6a8960)
+
+running 11 tests
+test a_necessarily_remote_edge_that_owes_a_principal_is_not_a_finished_plan ... ok
+test an_undetermined_signature_does_not_refuse_a_deployment ... ok
+test an_edge_whose_ends_share_no_node_is_necessarily_remote ... ok
+test placement_and_transferability_are_independent_and_only_one_pair_fails ... ok
+test a_topology_that_grants_nothing_cannot_host_the_privileged_components ... ok
+test a_refused_component_carries_the_reason_from_every_node ... ok
+test can_be_local_is_disjointness_of_candidate_sets ... ok
+test an_import_naming_nothing_is_dangling_rather_than_silently_ignored ... ok
+test every_edge_in_the_store_program_can_be_bound ... ok
+test the_store_program_is_deployable_on_a_topology_that_serves_it ... ok
+test the_planner_agrees_with_admit_on_every_pair ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/pleris_component.rs (/home/haki/pw-targets/owned-rows/debug/deps/pleris_component-f0cb3e582fec1908)
+
+running 17 tests
+test a_world_level_export_is_found_by_its_declaration ... ok
+test a_node_without_the_write_capability_does_not_admit_it ... ok
+test a_quantity_that_is_no_positive_int_is_refused_as_the_arguments_are_decoded ... ok
+test arguments_for_an_export_the_component_does_not_have_are_refused ... ok
+test a_granted_operation_the_host_does_not_implement_is_refused ... ok
+test an_export_not_declared_by_the_contract_cannot_be_invoked ... ok
+test requires_cannot_be_bypassed_by_the_raw_call_api ... ok
+test an_ungranted_operation_is_refused_by_the_engine ... ok
+test json_arguments_are_typed_by_the_export_they_are_for ... ok
+test the_instance_runs_within_its_fuel ... ok
+test a_data_layer_failure_is_the_commands_failure ... ok
+test an_item_that_cannot_be_ordered_is_refused_before_anything_is_written ... ok
+test the_compiled_command_runs_through_the_host ... ok
+test a_data_layer_answer_that_breaks_an_invariant_is_the_commands_failure ... ok
+test an_argument_that_breaks_its_invariant_never_reaches_the_component ... ok
+test the_artifact_imports_exactly_what_its_contract_allows ... ok
+test sustained_calls_leave_memory_flat ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.04s
+
+     Running unittests src/lib.rs (/home/haki/pw-targets/owned-rows/debug/deps/pw_syntax-0efcc3694adb4241)
+
+running 99 tests
+test fmt::tests::a_comparison_in_an_expression_is_still_spaced ... ok
+test fmt::tests::a_bracket_closing_a_line_of_brackets_lines_up_with_that_line ... ok
+test fmt::tests::a_change_of_what_a_program_says_is_named ... ok
+test fmt::tests::a_policy_list_is_aligned_to_its_longest_name ... ok
+test fmt::tests::a_prefix_operator_hugs_an_operand_at_any_depth ... ok
+test fmt::tests::a_capability_clauses_type_argument_is_not_spaced_like_a_comparison ... ok
+test fmt::tests::a_prefix_operator_hugs_a_parenthesised_operand ... ok
+test fmt::tests::an_else_branch_lines_up_with_its_if_branch ... ok
+test fmt::tests::a_template_region_is_copied_verbatim ... ok
+test fmt::tests::a_tables_owner_is_aligned_as_its_other_clauses ... ok
+test fmt::tests::formatting_a_broken_file_still_produces_output ... ok
+test fmt::tests::formatting_preserves_every_comment ... ok
+test fmt::tests::calls_and_types_are_spaced_canonically ... ok
+test fmt::tests::formatting_is_idempotent ... ok
+test fmt::tests::formatting_preserves_every_significant_token ... ok
+test fmt::tests::indentation_is_four_spaces_and_braces_line_up ... ok
+test fmt::tests::runs_of_blank_lines_collapse_to_one ... ok
+test fmt::tests::trailing_whitespace_is_removed ... ok
+test fmt::tests::a_policys_value_continues_one_level_in ... ok
+test fmt::tests::the_comment_check_can_fail ... ok
+test grammar::tests::a_component_tag_keeps_its_qualified_name ... ok
+test grammar::tests::a_function_with_a_body_produces_expression_nodes ... ok
+test grammar::tests::a_discard_is_neither_mutable_nor_a_use ... ok
+test grammar::tests::a_block_left_open_ends_with_its_element ... ok
+test grammar::tests::a_lambda_inside_a_call_is_parsed_as_a_lambda ... ok
+test grammar::tests::a_lambdas_parameters_may_be_a_parenthesised_list ... ok
+test grammar::tests::a_multi_line_string_is_a_single_token ... ok
+test grammar::tests::a_let_may_discard_its_value ... ok
+test grammar::tests::a_user_declaration_after_one_with_no_body_is_its_own ... ok
+test grammar::tests::a_self_closing_element_has_no_children ... ok
+test grammar::tests::markup_nests_elements_rather_than_listing_them ... ok
+test fmt::tests::a_policys_value_keeps_its_gaps_as_written ... ok
+test grammar::tests::a_query_body_may_begin_with_an_operand ... ok
+test grammar::tests::a_nested_fn_is_a_declaration_not_a_lambda ... ok
+test grammar::tests::a_table_declaration_reads_each_clause ... ok
+test grammar::tests::a_statement_keyword_cannot_name_a_value ... ok
+test grammar::tests::a_value_with_no_comma_before_it_is_reported_and_read ... ok
+test grammar::tests::a_template_region_balances_over_block_markers ... ok
+test grammar::tests::an_arm_without_an_arrow_is_reported ... ok
+test grammar::tests::a_tables_words_are_still_names_in_a_policy_block ... ok
+test grammar::tests::a_slash_slash_in_markup_text_is_text ... ok
+test grammar::tests::a_visibility_keyword_belongs_to_the_declaration_it_precedes ... ok
+test grammar::tests::an_arrow_lambda_s_parameters_may_be_typed ... ok
+test grammar::tests::a_qualified_keyword_statement_owns_its_block ... ok
+test grammar::tests::an_event_s_modifiers_are_part_of_its_attribute ... ok
+test grammar::tests::an_each_head_is_its_list_its_name_and_its_key ... ok
+test grammar::tests::an_html_comment_in_markup_is_a_comment ... ok
+test grammar::tests::an_opaque_type_states_its_invariant_after_its_representation ... ok
+test grammar::tests::an_unclosed_element_still_produces_a_well_formed_tree ... ok
+test grammar::tests::an_optimistic_clause_without_its_arrow_reads_its_transition ... ok
+test grammar::tests::compound_comparisons_are_one_operator ... ok
+test grammar::tests::attributes_keep_their_names_and_values_apart ... ok
+test grammar::tests::an_optimistic_clause_has_an_arm_for_each_entry ... ok
+test grammar::tests::declarations_still_parse_as_they_did ... ok
+test grammar::tests::field_access_chains_left_to_right ... ok
+test grammar::tests::a_return_in_an_arm_keeps_the_value_on_its_line ... ok
+test grammar::tests::doubled_logical_operators_name_the_pleris_spelling ... ok
+test grammar::tests::malformed_input_never_panics_and_stays_lossless ... ok
+test grammar::tests::markup_on_the_next_line_is_not_a_comparison ... ok
+test grammar::tests::a_property_transition_is_a_named_field_holding_a_chain ... ok
+test grammar::tests::recovery_reports_more_than_one_error_and_keeps_later_declarations ... ok
+test grammar::tests::return_is_a_statement_not_an_operand ... ok
+test grammar::tests::the_grammar_can_accept_and_reject ... ok
+test grammar::tests::match_arms_and_patterns_are_structured ... ok
+test grammar::tests::an_unquoted_attribute_value_is_read_as_html_reads_it ... ok
+test grammar::tests::unclosed_brackets_are_reported_not_swallowed ... ok
+test grammar::tests::operator_precedence_is_real_not_approximated ... ok
+test grammar::tests::what_a_standalone_parse_leaves_is_one_error_over_it ... ok
+test kind::tests::the_table_covers_every_lexer_token_kind ... ok
+test kind::tests::tokens_and_nodes_occupy_separate_blocks ... ok
+test lexer::tests::doc_attrs_are_lexed_apart_from_ordinary_comments ... ok
+test lexer::tests::a_digit_separator_stands_between_two_digits ... ok
+test lexer::tests::durations_are_not_floats ... ok
+test lexer::tests::lex_covers_every_byte ... ok
+test kind::tests::an_unknown_tag_fails_loudly_rather_than_guessing - should panic ... ok
+test lexer::tests::multibyte_characters_do_not_split_spans ... ok
+test lexer::tests::round_trips_on_awkward_input ... ok
+test lexer::tests::the_pipeline_operator_is_one_token ... ok
+test lexer::tests::underscore_is_distinct_from_an_identifier ... ok
+test lexer::tests::unterminated_string_is_a_token_not_a_panic ... ok
+test strings::tests::an_escaped_brace_opens_no_hole ... ok
+test strings::tests::a_hole_is_its_source_and_where_it_starts ... ok
+test strings::tests::a_string_with_a_hole_has_no_single_value ... ok
+test strings::tests::a_triple_quoted_string_is_raw ... ok
+test strings::tests::an_escape_the_language_does_not_define_is_an_error ... ok
+test tree::tests::the_tree_and_the_token_stream_agree ... ok
+test tree::tests::token_ranges_match_the_source ... ok
+test strings::tests::each_escape_is_its_character ... ok
+test tree::tests::nesting_a_node_does_not_change_the_text ... ok
+test tree::tests::the_round_trip_property_can_fail ... ok
+test grammar::tests::markup_written_on_one_line_after_a_root_is_one_region ... ok
+test tree::tests::the_green_tree_round_trips_byte_for_byte ... ok
+test tree::tests::trivia_survives_into_the_tree ... ok
+test kind::tests::every_kind_round_trips_through_the_raw_tag ... ok
+test tree::tests::round_trips_on_the_same_awkward_input_the_lexer_handles ... ok
+test strings::tests::an_unmatched_brace_is_text_and_an_empty_hole_is_an_error ... ok
+test kind::tests::the_kind_table_has_no_duplicate_tags ... ok
+test grammar::tests::two_statements_on_one_line_are_separated ... ok
+test grammar::tests::or_and_and_mixed_without_parentheses_is_refused ... ok
+
+test result: ok. 99 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/corpus_fmt.rs (/home/haki/pw-targets/owned-rows/debug/deps/corpus_fmt-7dc35f985f65c0a6)
+
+running 6 tests
+test the_corpus_is_already_canonically_formatted ... ok
+test formatting_never_drops_a_comment ... ok
+test formatting_never_changes_the_program ... ok
+test formatted_output_still_parses ... ok
+test formatting_keeps_what_every_program_says ... ok
+test formatting_every_corpus_file_is_idempotent ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.57s
+
+     Running tests/corpus_grammar.rs (/home/haki/pw-targets/owned-rows/debug/deps/corpus_grammar-5b92edba9dcc8c76)
+
+running 6 tests
+test the_generic_callback_shape_parses_as_a_lambda_inside_the_call ... ok
+test the_corpus_grammar_check_can_fail ... ok
+test the_grammar_covers_most_of_the_corpus ... ok
+test the_grammar_parses_every_corpus_file ... ok
+test the_grammar_is_lossless_on_every_corpus_file ... ok
+test bodies_actually_become_expression_nodes ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/corpus_lossless.rs (/home/haki/pw-targets/owned-rows/debug/deps/corpus_lossless-cb3a600976d6da46)
+
+running 10 tests
+test a_character_with_no_rule_is_unknown_in_code_and_text_in_markup ... ok
+test the_property_can_fail ... ok
+test attribute_comments_survive_as_their_own_token_kind ... ok
+test every_corpus_file_has_gapless_contiguous_spans ... ok
+test every_corpus_file_round_trips_byte_for_byte ... ok
+test green_tree_token_ranges_index_the_real_source ... ok
+test attribute_comments_survive_into_the_green_tree ... ok
+test every_corpus_file_round_trips_through_the_green_tree ... ok
+test the_green_tree_and_the_token_stream_never_disagree ... ok
+test no_corpus_file_produces_unknown_tokens ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running unittests src/lib.rs (/home/haki/pw-targets/owned-rows/debug/deps/pw_table_memory-80af4dc56e8c9396)
+
+running 12 tests
+test failure_tests::a_prepared_command_dropped_unpublished_releases_its_turn_and_rows ... ok
+test failure_tests::a_wait_observer_may_read_and_replace_itself_without_lock_reentry ... ok
+test failure_tests::a_poisoned_published_lock_cannot_report_a_successful_commit ... ok
+test failure_tests::replacing_an_observer_drops_its_capture_outside_the_registration_lock ... ok
+test failure_tests::a_poisoned_working_lock_cannot_report_a_successful_commit ... ok
+test failure_tests::a_replaced_observer_capture_may_register_another_observer ... ok
+test failure_tests::an_observer_panic_does_not_poison_the_database ... ok
+test failure_tests::a_prepared_publish_refuses_each_poisoned_storage_lock ... ok
+test failure_tests::internal_working_poison_wakes_every_existing_waiter ... ok
+test failure_tests::an_outer_caller_panic_rolls_back_without_poisoning_storage ... ok
+test failure_tests::an_observer_can_end_the_owner_before_the_waiter_starts_waiting ... ok
+test failure_tests::a_terminal_failure_is_synchronized_with_the_check_to_wait_window ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running tests/compiled_app.rs (/home/haki/pw-targets/owned-rows/debug/deps/compiled_app-82f281d3b3da721f)
+
+running 10 tests
+test a_command_reads_its_own_writes_before_it_commits ... ok
+test a_command_that_stops_after_a_write_publishes_nothing ... ok
+test a_commands_index_read_sees_its_own_puts ... ok
+test a_commands_writes_are_invisible_until_it_commits ... ok
+test keep_item_puts_whole_rows_and_keeps_the_index ... ok
+test make_list_inserts_or_answers_the_row_that_holds_its_key_or_slug ... ok
+test every_query_reads_its_tables_through_the_gate_in_d1s_order ... ok
+test drop_item_and_clear_list_delete_by_key_and_by_prefix ... ok
+test a_write_that_invalidates_no_reader_of_its_table_does_not_build ... ok
+test a_command_not_committed_publishes_none_of_its_writes ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+     Running tests/compiled_gate.rs (/home/haki/pw-targets/owned-rows/debug/deps/compiled_gate-c326c88536ff2f5f)
+
+running 6 tests
+test a_write_answering_what_tables_json_says_it_does_not_is_refused ... ok
+test a_put_refusal_must_hold_a_unique_value_for_another_key ... ok
+test a_forged_or_ungranted_write_is_refused ... ok
+test a_write_links_only_into_a_command ... ok
+test a_writes_answer_that_is_not_its_own_is_refused ... ok
+test a_write_typed_otherwise_than_tables_json_is_refused_when_linking ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests/compiled_reader.rs (/home/haki/pw-targets/owned-rows/debug/deps/compiled_reader-db186533939cef97)
+
+running 10 tests
+test the_hosts_wit_names_are_the_compilers ... ok
+test a_forged_table_capability_is_refused_when_linking ... ok
+test compiled_get_reads_present_and_missing_rows_from_the_memory_adapter ... ok
+test compiled_get_many_answers_the_declared_order_once_per_present_key ... ok
+test a_manifest_that_is_not_whole_is_refused_where_it_is_read ... ok
+test an_adapters_answer_is_held_to_its_read_whoever_wrote_it ... ok
+test no_table_host_function_without_the_tables_read_grant ... ok
+test a_table_import_typed_otherwise_than_tables_json_is_refused_when_linking ... ok
+test no_other_call_or_instantiation_links_a_table_import ... ok
+test a_manifest_import_outside_its_tables_interface_is_refused ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/compiled_reader_abi.rs (/home/haki/pw-targets/owned-rows/debug/deps/compiled_reader_abi-19aec7a281c13ebc)
+
+running 12 tests
+test each_reader_imports_exactly_its_manifest_declared_read ... ok
+test a_node_without_the_read_grant_refuses_admission ... ok
+test a_siblings_import_is_undeclared_for_a_reader ... ok
+test admission_links_only_each_readers_own_read ... ok
+test a_get_answering_another_keys_row_is_refused ... ok
+test a_present_row_round_trips_typed ... ok
+test get_many_forwards_its_keys_and_answers_canonical_rows_once ... ok
+test a_mistyped_get_answer_is_refused_for_its_type_and_a_valid_one_still_works ... ok
+test a_get_many_answer_out_of_order_twice_or_unasked_is_refused ... ok
+test a_row_with_a_field_more_or_less_is_refused_not_projected ... ok
+test a_granted_get_with_no_callback_is_refused_not_stubbed ... ok
+test a_missing_key_answers_none_through_the_exact_callback ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests/compiled_reads.rs (/home/haki/pw-targets/owned-rows/debug/deps/compiled_reads-426de18719413e20)
+
+running 3 tests
+test a_manifest_is_whole_for_every_primitive ... ok
+test a_read_typed_otherwise_than_tables_json_is_refused_when_linking ... ok
+test an_answer_not_its_reads_is_refused ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+     Running tests/memory.rs (/home/haki/pw-targets/owned-rows/debug/deps/memory-b08ac4650c19d67a)
+
+running 11 tests
+test invalid_rows_and_schema_hash_fail_closed ... ok
+test foreign_keys_are_validated_at_commit ... ok
+test admitted_component_selects_only_manifest_declared_get_and_get_many ... ok
+test rejected_and_abandoned_writes_do_not_publish ... ok
+test unused_imports_and_wrong_selectors_are_rejected ... ok
+test compiler_manifest_drives_reads_without_app_specific_storage ... ok
+test set_queries_deduplicate_and_sort_not_by_input_order ... ok
+test table_host_refuses_ungranted_or_misclassified_read_and_manifest_mismatch ... ok
+test table_host_refuses_wrong_table_capability_even_when_admitted ... ok
+test table_host_refuses_unknown_writes_and_wildcard_imports ... ok
+test transactions_serialize_concurrent_writers ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/owned_rows.rs (/home/haki/pw-targets/owned-rows/debug/deps/owned_rows-350e4460652ab4da)
+
+running 15 tests
+test a_writers_scope_is_its_readers_id_of_the_tables_kind ... ok
+test a_writer_is_admitted_for_its_own_kind_of_command ... ok
+test a_readers_command_is_never_the_platforms ... ok
+test an_insert_is_refused_by_the_key_whoever_holds_it ... ok
+test the_platform_changes_any_row_and_owns_none ... ok
+test a_command_that_touched_only_anothers_rows_wrote_nothing ... ok
+test the_owner_is_in_no_field ... ok
+test a_prefixs_delete_takes_its_readers_rows_and_leaves_the_others ... ok
+test undone_and_published_rows_keep_their_owners ... ok
+test a_compiled_command_of_a_signed_out_reader_writes_no_users_row ... ok
+test a_compiled_command_changes_only_its_readers_rows ... ok
+test another_readers_rows_are_absent_to_every_write ... ok
+test a_signed_out_reader_writes_no_row_of_a_users_table ... ok
+test a_user_owns_across_sessions_and_a_session_alone ... ok
+test the_host_reads_each_tables_owner_and_refuses_a_kind_it_does_not_know ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s
+
+     Running tests/read_selector_types.rs (/home/haki/pw-targets/owned-rows/debug/deps/read_selector_types-74b1be4a7f3c7a39)
+
+running 2 tests
+test scalar_reads_refuse_wrong_types_and_schema_bounds_instead_of_missing ... ok
+test set_reads_refuse_one_bad_member_without_losing_valid_neighbors ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/staged.rs (/home/haki/pw-targets/owned-rows/debug/deps/staged-ccb84bcf6ef3b1e2)
+
+running 15 tests
+test a_command_that_writes_nothing_reports_no_table ... ok
+test a_commands_reads_see_its_writes_and_no_other_read_does ... ok
+test references_are_held_at_commit_both_ways ... ok
+test an_ended_command_writes_nothing ... ok
+test changing_only_a_floats_zero_sign_is_published_and_rolled_back_exactly ... ok
+test a_dropped_command_is_undone_whole_its_maps_too ... ok
+test staged_callbacks_require_one_explicit_command_export ... ok
+test a_unique_value_is_held_by_one_row_through_any_writes ... ok
+test a_refused_write_changes_nothing_and_the_command_goes_on ... ok
+test a_command_waits_its_turn ... ok
+test an_option_of_an_option_is_refused_where_the_adapter_is_made ... ok
+test a_growth_write_is_refused_at_the_bound_without_changing_staging ... ok
+test every_index_is_kept_on_every_write ... ok
+test integer_changes_above_float_precision_are_not_lost ... ok
+test an_option_of_unit_is_refused_before_some_and_none_can_merge ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/haki/pw-targets/owned-rows/debug/deps/pw_table_postgres-23688b4360bdfdc0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/commands.rs (/home/haki/pw-targets/owned-rows/debug/deps/commands-a3e21ce426e41b30)
+
+running 17 tests
+test a_command_touching_no_table_costs_the_database_nothing ... ok
+test a_reference_may_be_written_before_the_row_it_refers_to ... ok
+test a_command_dropped_or_refused_at_its_prepare_keeps_nothing ... ok
+test written_names_each_table_a_command_changed_and_no_other ... ok
+test a_commit_never_answered_is_not_taken_for_a_refusal ... ok
+test a_command_reads_its_own_writes_and_no_other_read_sees_them_before_it_commits ... ok
+test a_snapshot_reads_one_moment_whatever_commits_meanwhile ... ok
+test a_commit_keeps_every_outbox_row_it_was_given_or_nothing ... ok
+test a_commit_the_database_refuses_keeps_nothing ... ok
+test serializable_refuses_write_skew_between_two_hosts ... ok
+test a_transaction_runs_again_where_the_database_could_not_serialize_it ... ok
+test the_platforms_records_commit_with_the_writes ... ok
+test the_connections_default_read_committed_admits_write_skew ... ok
+test the_outbox_takes_its_ids_in_commit_order ... ok
+test provides_measures_what_a_command_is_given ... ok
+test one_command_of_a_host_writes_at_a_time ... ok
+test render_seats_are_bounded_and_every_one_given_back ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.28s
+
+     Running tests/durability.rs (/home/haki/pw-targets/owned-rows/debug/deps/durability-238e57a77a9fbe88)
+
+running 2 tests
+test the_first_host_commits_and_ends ... ok
+test a_commit_outlives_the_host_that_made_it ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+
+     Running tests/migrations.rs (/home/haki/pw-targets/owned-rows/debug/deps/migrations-a21c6cb62130cbfe)
+
+running 13 tests
+test a_name_two_objects_would_share_is_refused_at_open ... ok
+test hosts_racing_under_a_serializable_default_each_open_it_made_once ... ok
+test a_table_added_may_refer_to_a_table_held_and_to_one_added_with_it ... ok
+test a_database_holding_nothing_is_made_from_tables_json_and_recorded ... ok
+test a_schema_is_applied_once_whoever_opens_it_and_whenever ... ok
+test a_backfill_is_the_value_stated_whatever_the_servers_string_syntax ... ok
+test an_additive_change_is_made_and_keeps_every_row ... ok
+test a_key_field_retyped_is_refused_and_its_key_kept ... ok
+test a_change_that_loses_data_is_made_only_where_the_program_states_it ... ok
+test an_older_build_that_would_only_drop_an_index_is_refused ... ok
+test a_bound_no_row_released_holds_refuses_the_migration_whole ... ok
+test a_table_no_schema_recorded_or_a_record_edited_by_hand_refuses_the_start ... ok
+test a_catalog_changed_by_hand_refuses_the_start ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.41s
+
+     Running tests/owned_rows.rs (/home/haki/pw-targets/owned-rows/debug/deps/owned_rows-9be6a98b95551184)
+
+running 8 tests
+test refusals_are_the_rows_fields_and_another_readers_put_writes_nothing ... ok
+test a_signed_out_reader_writes_no_row_of_a_users_table ... ok
+test a_prefixs_delete_takes_its_readers_rows_alone ... ok
+test the_platform_changes_any_row_and_owns_none ... ok
+test a_user_owns_across_sessions_and_a_session_alone ... ok
+test another_readers_rows_are_absent_to_every_write ... ok
+test the_owner_is_a_column_of_the_adapters_and_in_no_field ... ok
+test a_table_comes_to_record_owners_and_gives_them_up_only_as_stated ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.85s
+
+     Running tests/parity.rs (/home/haki/pw-targets/owned-rows/debug/deps/parity-6a32940afe392bc5)
+
+running 4 tests
+test an_ended_commands_functions_act_on_nothing_on_either_adapter ... ok
+test the_compiled_writers_answer_alike_on_memory_and_postgresql ... ok
+test the_compiled_app_answers_alike_on_memory_and_postgresql ... ok
+test a_random_workload_answers_alike_on_memory_and_postgresql ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.09s
+
+     Running tests/primitives.rs (/home/haki/pw-targets/owned-rows/debug/deps/primitives-f6d6955b9d3d083f)
+
+running 14 tests
+test a_write_is_refused_by_the_row_holding_its_key_then_a_unique_value ... ok
+test a_bounded_table_grows_no_further_than_its_bound ... ok
+test reads_come_in_tables_json_order_strings_by_their_bytes ... ok
+test what_a_function_is_given_is_held_before_the_database_sees_it ... ok
+test a_delete_deletes_its_key_and_a_prefix_its_rows_alone ... ok
+test a_row_is_answered_exactly_as_it_was_written ... ok
+test a_row_another_writer_left_out_of_its_type_is_refused_not_answered ... ok
+test a_statement_is_prepared_once_on_a_connection_never_per_call ... ok
+test all_refuses_a_table_another_writer_grew_past_its_bound ... ok
+test the_compilers_functions_are_each_served ... ok
+test a_nested_float_is_answered_bit_for_bit ... ok
+test a_write_whose_answer_cannot_be_read_fails_its_command ... ok
+test a_refinement_is_held_by_its_check_whoever_writes ... ok
+test each_primitive_is_one_statement_at_two_sizes ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
+
+   Doc-tests pw_host
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests pw_syntax
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests pw_table_memory
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests pw_table_postgres
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling pw-core v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/compiler/pw-core)
+    Finished `test` profile [unoptimized] target(s) in 9.61s
+     Running tests/checking_source.rs (/home/haki/pw-targets/owned-rows/debug/deps/checking_source-9896f9848e9a206d)
+
+running 20 tests
+test a_fixtures_header_is_held_to_its_code_as_written ... ok
+test an_unmodelled_capability_family_never_manufactures_a_placement_error ... ok
+test constructor_arity_is_respected ... ok
+test a_match_whose_scrutinee_type_is_unknown_is_not_reported ... ok
+test a_nullary_constructor_is_not_read_as_a_binding ... ok
+test the_environment_spans_every_file_checked_together ... ok
+test the_unhandled_variant_case_is_caught_at_its_real_span ... ok
+test no_accepted_corpus_file_reports_a_body_level_error ... ok
+test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
+test the_committed_enforcement_table_is_what_the_corpus_checks_now ... ok
+test the_structured_concurrency_rules_run_on_real_bodies ... ok
+test semantic_coverage_of_the_rejected_corpus_does_not_regress ... ok
+test every_body_level_rejection_matches_its_declared_rule ... ok
+test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
+test corpus_enforcement_is_reported_as_three_numbers_not_one ... ok
+test no_diagnostic_restates_its_invariant_in_its_own_words ... ok
+test every_rejected_fixture_emits_only_its_own_defect ... ok
+test the_privacy_and_placement_rules_catch_their_corpus_cases ... ok
+test a_fixtures_declared_symbol_matches_the_symbol_it_is_caught_by ... ok
+test every_diagnostic_carries_what_charter_16_3_requires ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 41.77s
+
+     Running tests/clause_keys.rs (/home/haki/pw-targets/owned-rows/debug/deps/clause_keys-2bb5ecb050858571)
+
+running 6 tests
+test a_clause_is_read_where_it_is_written ... ok
+test the_program_is_clean ... ok
+test a_key_names_what_scope_binds ... ok
+test an_event_is_given_what_it_carries ... ok
+test a_clause_names_a_declaration_of_its_kind ... ok
+test a_resource_is_given_its_key ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/clause_places.rs (/home/haki/pw-targets/owned-rows/debug/deps/clause_places-46208f9b9ac2a5a3)
+
+running 6 tests
+test every_head_the_grammar_knows_has_a_place ... ok
+test a_clause_word_in_a_functions_body_is_a_name ... ok
+test a_materialization_depends ... ok
+test a_resource_listens ... ok
+test a_head_on_a_declaration_that_does_not_read_it_is_refused ... ok
+test a_command_emits_and_invalidates ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/clauses_read_once.rs (/home/haki/pw-targets/owned-rows/debug/deps/clauses_read_once-b26b94712cc87652)
+
+running 5 tests
+test an_interfaces_clause_is_parsed_with_its_terms ... ok
+test a_parenthesis_in_a_keys_string_ends_nothing ... ok
+test an_interfaces_keys_are_bound_and_typed ... ok
+test the_graph_reads_the_keys_lowering_made ... ok
+test an_interfaces_terms_are_checked_as_any_declarations ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+
+     Running tests/generality.rs (/home/haki/pw-targets/owned-rows/debug/deps/generality-29fbffbb867065d1)
+
+running 6 tests
+test every_headline_invariant_has_a_challenge_matrix ... ok
+test every_witness_names_a_registered_invariant ... ok
+test generality_is_reported_separately_from_conformance ... ok
+test a_witness_is_valid_except_for_the_invariant_it_is_about ... ok
+test every_witness_is_valid_evidence ... ok
+test a_general_witness_is_caught_and_a_narrow_one_is_not ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 57.91s
+
+     Running tests/handles.rs (/home/haki/pw-targets/owned-rows/debug/deps/handles-9ad5a1a55ab5398e)
+
+running 5 tests
+test a_local_callback_is_not_a_handle_constructor ... ok
+test a_data_layer_answers_ids_never_handles ... ok
+test a_program_constructs_no_handle ... ok
+test nothing_the_browser_supplies_holds_a_handle ... ok
+test a_tables_row_holds_no_handle ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.55s
+
+     Running tests/tables.rs (/home/haki/pw-targets/owned-rows/debug/deps/tables-c453f2b783434e8b)
+
+running 36 tests
+test a_three_field_key_gives_a_read_by_each_proper_prefix ... ok
+test every_keyed_read_has_its_set_form ... ok
+test a_table_gives_each_read_and_write_with_its_type_and_effect ... ok
+test a_bound_gives_all_and_no_bound_none ... ok
+test a_clause_on_another_declaration_is_no_tables ... ok
+test a_lock_changed_by_hand_is_no_release ... ok
+test pw0361_a_table_is_declared_in_the_module_of_its_name ... ok
+test the_control_checks_clean_and_reads_each_clause ... ok
+test pw0361_two_tables_cannot_emit_the_same_interface ... ok
+test pw0361_generated_composite_records_have_one_shape_each ... ok
+test pw0361_two_functions_cannot_emit_the_same_import ... ok
+test checking_with_no_release_is_checking ... ok
+test its_imports_are_the_platforms_and_its_program_builds ... ok
+test tables_json_states_each_table_its_functions_and_their_order ... ok
+test a_dropped_field_is_refused_without_its_migrate_and_planned_with_it ... ok
+test full_validation_preserves_native_migration_unit_span_and_reason ... ok
+test a_table_reference_uses_its_own_module_beside_a_namesake ... ok
+test pw0361_a_source_name_cannot_hide_another_database ... ok
+test source_ambiguity_is_not_an_alternate_copy_of_the_own_module ... ok
+test pw0361_its_row_is_a_record_declared_beside_it ... ok
+test the_corpus_fixtures_that_name_a_release_are_held_to_it ... ok
+test a_rename_is_refused_without_its_migrate_and_planned_with_it ... ok
+test a_program_with_no_table_has_no_tables_file ... ok
+test a_program_held_to_its_release_is_refused_where_it_is_checked_and_built ... ok
+test pw0364_all_reads_only_a_bounded_table ... ok
+test an_additive_change_is_planned ... ok
+test a_bound_is_a_count_and_each_clause_its_grammar ... ok
+test pw0361_a_reference_names_a_table_keyed_by_its_fields_type ... ok
+test generic_fields_project_their_arguments_recursively_and_a_change_is_destructive ... ok
+test pw0365_every_reference_across_sources_is_warned_and_builds ... ok
+test a_change_no_migrate_states_is_refused ... ok
+test pw0361_its_order_and_indexes_name_its_rows_fields ... ok
+test pw0362_its_rows_are_reached_only_through_its_functions ... ok
+test a_type_changed_or_a_field_added_with_no_value_is_refused_unless_backfilled ... ok
+test pw0361_its_key_names_its_rows_fields_of_types_every_adapter_keys ... ok
+test two_indexes_cannot_describe_one_ordered_field_list ... ok
+
+test result: ok. 36 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.79s
+
+     Running tests/who_may_change.rs (/home/haki/pw-targets/owned-rows/debug/deps/who_may_change-0fcb208f853318eb)
+
+running 9 tests
+test a_write_through_a_helper_is_the_commands ... ok
+test a_table_a_readers_command_writes_says_who_may_change_its_rows ... ok
+test one_refusal_a_table_beside_each_command ... ok
+test owner_is_a_tables_clause_of_three_words ... ok
+test a_table_only_the_platform_writes_needs_no_owner ... ok
+test owner_says_who ... ok
+test each_write_counts_and_a_read_does_not ... ok
+test the_schema_records_who_owns_each_row ... ok
+test a_change_of_owner_is_a_step_and_of_its_kind_refused ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.85s
+

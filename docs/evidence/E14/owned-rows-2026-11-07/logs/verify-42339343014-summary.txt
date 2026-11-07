@@ -1,0 +1,40 @@
+verify run 42339343014 (workflow_dispatch on feat/owned-rows-20261107 at 79eb2ce7), its summary job 128314644935
+https://github.com/studiokimeiga/perfect-web/actions/runs/42339343014
+
+| recipe | result | seconds | files |
+|---|---|---|---|
+| `e10-affine` | ok | 1144.0 | 1 |
+| `e10-any` | ok | 99.6 | 1 |
+| `e10-effects-through-values` | ok | 805.7 | 1 |
+| `e10-lexical` | ok | 196.6 | 1 |
+| `e10-match` | ok | 230.3 | 1 |
+| `e10-members` | ok | 106.0 | 1 |
+| `e14-address-fragment` | ok | 444.7 | 1 |
+| `e14-block-clauses` | ok | 591.6 | 1 |
+| `e14-bounded-reads` | ok | 1115.5 | 1 |
+| `e14-case-names` | FAILED | 43.1 | 1 |
+| `e14-condition-truth` | FAILED | 24.9 | 1 |
+| `e14-d2-writes` | ok | 1308.2 | 1 |
+| `e14-d3-postgres` | FAILED | 2233.9 | 0 |
+| `e14-data-sources` | ok | 173.4 | 1 |
+| `e14-device-store` | ok | 1383.4 | 1 |
+| `e14-events` | ok | 99.3 | 1 |
+| `e14-evidence-integrity-2` | ok | 1182.4 | 1 |
+| `e14-fmt-meaning` | ok | 164.0 | 1 |
+| `e14-generic-effects` | ok | 1455.3 | 1 |
+| `e14-guide` | ok | 815.7 | 1 |
+| `e14-handles` | ok | 68.6 | 1 |
+| `e14-invoked-by` | ok | 275.6 | 1 |
+| `e14-labels` | ok | 2648.8 | 1 |
+| `e14-layouts` | ok | 1186.0 | 1 |
+| `e14-page-policy` | FAILED | 15.2 | 1 |
+| `e14-refusal` | ok | 926.4 | 1 |
+| `e14-refusal-2` | ok | 457.9 | 1 |
+| `e14-registered-codes` | FAILED | 39.3 | 1 |
+| `e14-scheduled` | FAILED | 58.4 | 1 |
+| `e14-shared-cache` | ok | 1322.0 | 1 |
+| `e14-speculated-arms` | ok | 403.3 | 1 |
+| `e14-statements-separated` | ok | 3015.6 | 1 |
+| `e14-table-host` | ok | 421.4 | 1 |
+| `e14-tables` | ok | 867.3 | 1 |
+| `e9-values` | ok | 91.9 | 1 |

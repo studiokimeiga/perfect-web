@@ -1,0 +1,5 @@
+bounded_checker_mutations.py: 1 anchor(s) in changed code: `set` and `sets` head a clause wherever they are written
+d2_writes_mutations.py: 2 anchor(s) in changed code: an insert replaces its key's row; a prepared command writes on
+evidence_integrity_2_mutations.py: 1 anchor(s) in changed code: the committed table drifts from what the corpus checks
+tables_mutations.py: 1 anchor(s) in changed code: an unused migration is accepted
+who_may_change_mutations.py: 34 anchor(s) in changed code: a table a reader's command writes is not refused; a command the platform runs counts as a reader's; the call that writes is not named, only the command; a table that says who may change its rows is refused anyway

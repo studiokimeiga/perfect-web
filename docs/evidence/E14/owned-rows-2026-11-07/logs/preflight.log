@@ -1,0 +1,21 @@
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+    Checking pw-table-postgres v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-table-postgres)
+    Checking pw-dev-server v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/spikes/own-renderer/server)
+    Checking pw-fuzz v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/tools/fuzz)
+    Checking pw-resume v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-resume)
+    Checking pw-conformance v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/compiler/pw-conformance)
+    Checking pw-cli v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/compiler/pw-cli)
+    Checking pw-table-memory v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-table-memory)
+    Checking pw-core v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/compiler/pw-core)
+    Checking pw-resource v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-resource)
+    Finished `dev` profile [unoptimized] target(s) in 6.77s
+# `pw-host`'s engine feature is not exercised by `just test`, because a
+# Wasm engine is not needed to decide a capability question. But an
+# unbuilt cfg rots: a field added to `Import` broke `tests/artifact.rs`
+# and nothing noticed until `just e8-host` ran. Compiled here, run there.
+cargo clippy -p pw-host --features engine --all-targets -- -D warnings
+    Checking pw-host v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-host)
+    Finished `dev` profile [unoptimized] target(s) in 0.94s
+case-check: OK (4725 paths)
+mutation anchors: 5017 mutants in 326 scripts, each matching once
