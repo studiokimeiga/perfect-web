@@ -166,6 +166,7 @@ evidence-gates:
     # pleris.dev's build checks its own pages: every code, link and count
     # (train-14's review found no gate ran it).
     @node --test site/build.test.mjs
+    @node --test benchmarks/harness/test/agent-telemetry.test.mjs
 
 # ADR-0245: a verification run's evidence, fetched into docs/evidence/. The
 # run is a GitHub Actions run of `verify`, by its id; each file it fetches

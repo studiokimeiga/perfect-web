@@ -3286,6 +3286,8 @@ Session authority is checked at delivery and commit (proposed; reproduced curren
 
 **2026-10-27 — Benchmark merge dependency security repair.** [ADR-0390](DECISIONS/ADR-0390-benchmark-merge-security-fork.md) records the narrow temporary MIT fork, unchanged audit policy and offline sandbox requirement.
 
+**2026-11-02 — E14 agent usage measured apart from the grade (accepted, with the integrator's rulings).** [ADR-0391](DECISIONS/ADR-0391-benchmark-agent-usage.md) adds adapter-reported token/cost usage; a refused usage sidecar is a refused measurement and never changes a grade; a timeout scores 0, told apart; only infrastructure is ungraded. No comparative benchmark has run.
+
 [ADR-0392](DECISIONS/ADR-0392-head-to-head.md):
 The head-to-head: TodoMVC against TodoMVC's own React and Svelte apps and the store against Next.js and SvelteKit, measured by one instrument on one machine, Pleris's losses first (track `head-to-head`; independently reviewed and landed 2026-11-02).
 - `just e14-head-to-head` (`benchmarks/headtohead`; local only, ADR-0281's decision 5): production builds, Lighthouse's Slow 4G as Lighthouse applies it through DevTools, seven runs a page cell and five rounds of each server measurement, medians with quartiles, a difference only where the spreads are apart by what the instrument tells apart; behaviour in three engines, source, the twelve tasks' changes and their checkers, the museum's classes; 41 mutants and 4 integrity controls.
