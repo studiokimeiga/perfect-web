@@ -5,9 +5,9 @@
 // What the contract does NOT include, and why (ADR-0120):
 // - an optimistic count before the round trip, and its rollback;
 // - one add per interaction under a retried request.
-// The Pleris store DECLARES both (`optimistic`, `idempotent_by`) and its
-// running stack performs neither, so neither is part of the shared floor.
-// They are what tasks T01 and T08 ask for.
+// The Pleris store declares both (`optimistic`, `idempotent_by`) and, since
+// ADR-0121 and ADR-0122, performs both; the other two stacks perform neither,
+// so neither is part of the shared floor. They are what T01 and T08 ask for.
 
 import { test, expect } from "./fixtures.mjs";
 
