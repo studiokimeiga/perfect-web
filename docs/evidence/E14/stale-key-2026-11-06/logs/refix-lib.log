@@ -1,0 +1,12 @@
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/stale-key/compiler/pw-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.27s
+     Running unittests src/lib.rs (/home/haki/pw-targets/site/debug/deps/pw_core-3a0633ade2b1e77c)
+
+running 4 tests
+test diagnostics::tests::a_diagnostic_carries_the_charter_16_3_shape ... ok
+test diagnostics::tests::one_invariant_can_be_reported_by_two_detectors_under_one_code ... ok
+test diagnostics::tests::syntax_codes_and_semantic_codes_do_not_share_a_range ... ok
+test diagnostics::tests::no_comparison_translates_an_old_number ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 194 filtered out; finished in 0.12s
+

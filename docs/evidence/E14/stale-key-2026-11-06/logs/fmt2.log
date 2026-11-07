@@ -1,0 +1,13 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/corpus_fmt.rs (/home/haki/pw-targets/site/debug/deps/corpus_fmt-e3cf1977b8443375)
+
+running 6 tests
+test the_corpus_is_already_canonically_formatted ... ok
+test formatting_never_drops_a_comment ... ok
+test formatting_never_changes_the_program ... ok
+test formatted_output_still_parses ... ok
+test formatting_keeps_what_every_program_says ... ok
+test formatting_every_corpus_file_is_idempotent ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.89s
+

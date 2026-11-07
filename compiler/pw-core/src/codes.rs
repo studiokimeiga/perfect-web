@@ -346,8 +346,6 @@ codes! {
     MIGRATION_UNSTATED = "PW0366" / migration_unstated / 1, DeclarationRules,
         "a change from the schema released that loses or reinterprets data is stated by a `migrate`, and each `migrate` states one";
 
-    STALE_KEY_POLICY = "PW0325" / stale_key_policy / 1, DeclarationRules,
-        "a keyed query must say what happens when its key changes";
     // Renamed 2026-08-11 (ADR-0025). It required a written `rollback`; it now
     // refuses one, because the platform restores the value it held and a
     // hand-written inverse describes a different operation. Same code, same

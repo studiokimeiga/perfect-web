@@ -1,27 +1,59 @@
 // @corpus: rejected
 // @id: R-027
 // @category: query key changes without stale-work cancellation policy
-// @rule: PW0325
-// @invariant: stale_key_policy
+// @rule: PW5309
+// @invariant: signal_key_stale_work
 // @charter: §9.5, §15.6
 // @milestone: 4
-// @expect-error: `Store` declares no policy for superseded keys
-// @expect-error: declare `on_key_change cancel | supersede | keep`
+// @expect-error: `term` keys `found`, and `store.search.MenuSearch` declares no `on_key_change`
+// @expect-error: declare `on_key_change cancel | supersede | keep` on `store.search.MenuSearch`
 //
 // When the key changes, the old request must be cancelled or superseded.
-// Leaving it unspecified is how stale responses overwrite fresh ones.
+// Leaving it unspecified is how stale responses overwrite fresh ones. A key
+// changes while its read is in flight where a page's signal keys a query
+// (ADR-0152): here, as the reader types into the menu's search box.
+//
+// Until 2026-11-06 this fixture was the query alone, refused by `PW0325`
+// because it declared a `concurrency`. That rule asked for the policy of a
+// query no page keys, and not of one that declared no `concurrency`; the
+// stale-key ADR folds it into `PW5309`, which asks where the key changes.
 
-module store.queries
+module store.search
 
-import Stores
-import domain.{ StoreId, Store, StoreError }
+type Dish = Dish { id: String, name: String }
 
-public query Store(id: StoreId) -> Result<Store, StoreError>
+fn matching(term: String) -> List<Dish> !{ database.read<Dish> }
+    host "store:data/menu#search"
+
+public query MenuSearch(term: String) -> List<Dish>
     freshness   30.seconds
     consistency snapshot
     cache       shared
+    key         term
     concurrency one_per_key
-    // ERROR: no `on_key_change` policy declared.
+    timeout     2.seconds
 {
-    Stores.get(id)
+    matching(term)
+}
+
+page Search() {
+    route "/search"
+    cache private
+
+    signal term: String = ""
+
+    // ERROR: `term` keys `found`, and `MenuSearch` says nothing of its stale work.
+    let found = query MenuSearch(term)
+
+    view {
+        <title>Search the menu</title>
+        <main>
+            <input type="search" aria-label="Search the menu" bind:value={term} />
+            <ul>
+                {#each found as dish (dish.id)}
+                    <li>{dish.name}</li>
+                {/each}
+            </ul>
+        </main>
+    }
 }
