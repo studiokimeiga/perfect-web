@@ -877,9 +877,18 @@ impl Inner {
                     let old_held: bool = row.get(2 + n);
                     let (key, written) = written.ok_or(Error::StoragePoisoned)?;
                     // Another reader's row is absent to a put, which then
-                    // wrote nothing, and is answered as written.
+                    // wrote nothing, and is answered as written: the row at
+                    // its key in the statement's snapshot, or one inserted
+                    // since (under an isolation weaker than serializable),
+                    // which the update's guard left as it was: nothing
+                    // written, though there was room and no holder.
                     let others = owned && old_held && !row.get::<_, bool>(3 + 2 * n);
-                    if others {
+                    let since = owned
+                        && count == 0
+                        && holder.is_none()
+                        && !old_held
+                        && row.get::<_, bool>(4 + 2 * n);
+                    if others || since {
                         Ok(Ok(()))
                     } else if holder.is_some() {
                         Ok(Err(conflict(row)?))

@@ -352,18 +352,31 @@ fn statement(names: &Names, table: &TableShape, function: &FunctionShape) -> Str
                     aliased_row("o", table),
                 );
             }
-            // An owned table's (the owned-rows ADR): the row at the key, and
-            // whether its writer changes it. Another reader's row stops the
-            // put, which writes nothing; one written anew records its writer.
-            // The update leaves the owner as it is. Answered last, so every
-            // other column keeps its place.
+            // An owned table's (the owned-rows ADR): a row written anew
+            // records its writer, and the update changes the row at the key
+            // only where its writer changes it, judged on the row the
+            // conflict found, whatever the transaction's isolation (under
+            // read committed, a row another command inserted after this
+            // statement's snapshot). Another reader's row is then left as it
+            // was, and its owner too: no write. `old` answers whether the row
+            // was its writer's, last, so every other column keeps its place.
             let (me, any) = (table.columns.len() + 1, table.columns.len() + 2);
+            let guarded = if rest.is_empty() {
+                conflict
+            } else {
+                format!("{conflict} WHERE {}", mine("pw_t", me, any))
+            };
+            // Whether a row anew had room, last: a put that wrote nothing
+            // with room, no holder and no row at its key in the snapshot met
+            // a row inserted since, which the guard left as it was.
+            let had_room = self::room(names, table).unwrap_or_else(|| "true".to_string());
             format!(
                 "WITH holder AS ({}), \
                  old AS (SELECT {}, 1 AS pw_old, {} AS pw_mine FROM {t} t WHERE {}), \
-                 written AS (INSERT INTO {t} ({}, {}) SELECT {}, ${me}::text WHERE NOT EXISTS (SELECT 1 FROM holder) \
-                 AND NOT EXISTS (SELECT 1 FROM old WHERE NOT old.pw_mine){room} {conflict} RETURNING 1) \
-                 SELECT (SELECT count(*) FROM written), h.pw_rank, {}, o.pw_old IS NOT NULL, {}, COALESCE(o.pw_mine, false) \
+                 written AS (INSERT INTO {t} AS pw_t ({}, {}) SELECT {}, ${me}::text \
+                 WHERE NOT EXISTS (SELECT 1 FROM holder){room} {guarded} RETURNING 1) \
+                 SELECT (SELECT count(*) FROM written), h.pw_rank, {}, o.pw_old IS NOT NULL, {}, COALESCE(o.pw_mine, false), \
+                 {had_room} \
                  FROM (VALUES (1)) AS one LEFT JOIN holder h ON true LEFT JOIN old o ON true",
                 holder(names, table, false),
                 named_row_list("t", table),

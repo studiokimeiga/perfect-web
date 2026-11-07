@@ -198,9 +198,18 @@ ADRs).
 - **PostgreSQL**: an owned table has a column of the adapter's own,
   `"pw:owner"` (no field of a program's can be named so), null for a row no
   reader owns. The owned insert, put and delete statements take the writer
-  (`$me`, `$any`) and decide in the same statement: a put's `old` row says
-  whether its writer changes it, and another's stops the put, which answers
-  as written; a delete's `WHERE` holds its writer's rows alone. The
+  (`$me`, `$any`) and decide in the same statement: a put's update is
+  guarded on the row its conflict found (`ON CONFLICT .. DO UPDATE .. WHERE`
+  its writer changes it), and another's row is left as it was, the put
+  answered as written; a delete's `WHERE` holds its writer's rows alone.
+  **Found while building:** the first draft judged the put on the
+  statement's snapshot (`old`) alone. Under read committed, which a
+  deployment that leaves the isolation to its connections may run at
+  (`Isolation::ConnectionDefault`), a row another reader inserted after the
+  snapshot was then taken by the update. `a_row_inserted_while_a_put_runs_
+  is_left_as_it_was` makes that interleaving with two connections; it fails
+  with the guard removed (Bob's text in Alice's row) and passes with it. At
+  serializable, PostgreSQL refuses the same interleaving itself (40001). The
   migration adds the column where a table comes to record owners (each row
   then null), drops it only where the build's migration is from the schema
   recorded, and refuses an owner of another kind.

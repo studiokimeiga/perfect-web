@@ -25,7 +25,7 @@ use assert_result::*;
 use common::*;
 use pw_core::tables::Schema;
 use pw_host::tables::{Reader, Writer};
-use pw_table_postgres::{Error, PgTables};
+use pw_table_postgres::{Error, Isolation, Options, PgTables};
 use serde_json::{Value, json};
 
 fn writer(session: &str, user: Option<&str>) -> Writer {
@@ -291,6 +291,92 @@ fn the_platform_changes_any_row_and_owns_none() {
     assert_ne!(now(&tables, "salt"), Value::Null, "no reader's");
     write(&tables, Writer::Platform, CLEAR, &[json!("home")]).assert_ok("its clear");
     assert!(owners(&scratch).is_empty(), "{:?}", owners(&scratch));
+}
+
+/// **Alice's row, inserted while Bob's put of its key runs**: committed by a
+/// connection of her own while his statement waits on it, his command's
+/// one write not run again. What his write answers, and the tables after.
+fn race(scratch: &Scratch, isolation: Isolation, setting: &str) -> (Result<(), Error>, PgTables) {
+    let name = "owned_race_put";
+    let url = named(
+        &with_setting(&scratch.url, "default_transaction_isolation", setting),
+        name,
+    );
+    let options = Options {
+        isolation,
+        ..Options::default()
+    };
+    let tables = PgTables::open_with(
+        &url,
+        scratch.schema(),
+        notes("    owner session\n"),
+        options,
+    )
+    .assert_ok("the adapter opens");
+    let mut hers = postgres::Client::connect(&scratch.url, postgres::NoTls).expect("a connection");
+    hers.batch_execute(&format!("SET search_path TO \"{}\"; BEGIN", scratch.schema))
+        .expect("her transaction");
+    hers.execute(
+        "INSERT INTO \"Notes\" (shelf, id, slug, text, \"pw:owner\") VALUES ($1, $2, $3, $4, $5)",
+        &[
+            &b"home".to_vec(),
+            &b"milk".to_vec(),
+            &b"m".to_vec(),
+            &b"hers".to_vec(),
+            &"s-alice",
+        ],
+    )
+    .expect("her row, not yet committed");
+    let answered = std::thread::scope(|scope| {
+        let his = scope.spawn(|| {
+            let mut command = tables.begin(bob())?;
+            command.write(PUT, &[note("milk", "x", "his")])?;
+            command.commit().map(|_| ())
+        });
+        let waiting = until(|| {
+            scratch
+                .texts(&format!(
+                    "SELECT count(*)::text FROM pg_stat_activity \
+                     WHERE application_name = '{name}' AND wait_event_type = 'Lock'"
+                ))
+                .first()
+                .is_some_and(|n| n != "0")
+        });
+        hers.batch_execute("COMMIT").expect("her commit");
+        assert!(waiting, "Bob's put never waited on her row");
+        his.join().expect("Bob's put")
+    });
+    (answered, tables)
+}
+
+/// **A row inserted while a put runs is left as it was.** A deployment that
+/// leaves the isolation to its connections (`Isolation::ConnectionDefault`)
+/// may run at read committed, where a put's statement reads one snapshot and
+/// its conflict finds a row inserted after it. The update's own guard
+/// decides on that row, so Bob changes nothing, and is answered as for
+/// another reader's row (written, nothing changed); judged on the snapshot
+/// alone, the update would have taken her row. At serializable, the
+/// adapter's own, PostgreSQL refuses the interleaving itself, as one it
+/// could not serialize (a command run again then finds her row, absent to
+/// it).
+#[test]
+fn a_row_inserted_while_a_put_runs_is_left_as_it_was() {
+    let Some(scratch) = database_for("owned_race") else {
+        return;
+    };
+    let (answered, tables) = race(&scratch, Isolation::ConnectionDefault, "read committed");
+    assert_eq!(answered, Ok(()), "answered as for another reader's row");
+    assert_eq!(now(&tables, "milk"), note("milk", "m", "hers"));
+    assert_eq!(owners(&scratch), ["milk s-alice"]);
+    drop(tables);
+    let serializable = Scratch::new(&scratch.url, "owned_race_serializable");
+    let (answered, tables) = race(&serializable, Isolation::Serializable, "read committed");
+    assert!(
+        matches!(answered, Err(Error::Serialization(_))),
+        "{answered:?}"
+    );
+    assert_eq!(now(&tables, "milk"), note("milk", "m", "hers"));
+    assert_eq!(owners(&serializable), ["milk s-alice"]);
 }
 
 // --- the migration -------------------------------------------------------------

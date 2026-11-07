@@ -1867,6 +1867,10 @@ pub fn written_by_readers(
 ) -> BTreeMap<String, Vec<ReaderWrite>> {
     let tables: BTreeSet<String> = every(hirs).into_iter().map(|(_, t)| t.name).collect();
     let mut out: BTreeMap<String, Vec<ReaderWrite>> = BTreeMap::new();
+    // Most programs declare no table: nothing to infer for them.
+    if tables.is_empty() {
+        return out;
+    }
     for (unit, hir) in hirs.iter().enumerate() {
         for (id, decl) in hir.all_decls() {
             if decl.kind != DeclKind::Command || decl.policy("invoked_by").is_some() {

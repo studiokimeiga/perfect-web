@@ -149,8 +149,8 @@ MUTANTS = [
      "            (Writer::Platform, None) if false => Err(format!(\n"),
     # 7. PostgreSQL
     ("a put on PostgreSQL changes another reader's row", SQL,
-     "                 AND NOT EXISTS (SELECT 1 FROM old WHERE NOT old.pw_mine){room} {conflict} RETURNING 1) \\\n",
-     "                 AND true{room} {conflict} RETURNING 1) \\\n"),
+     '                format!("{conflict} WHERE {}", mine("pw_t", me, any))\n',
+     '                format!("{conflict} WHERE {} OR true", mine("pw_t", me, any))\n'),
     ("a delete on PostgreSQL removes another reader's row", SQL,
      '                "DELETE FROM {t} AS t WHERE {} AND {} RETURNING {rows}",\n',
      '                "DELETE FROM {t} AS t WHERE {} AND ({} OR true) RETURNING {rows}",\n'),
@@ -163,6 +163,9 @@ MUTANTS = [
     ("PostgreSQL answers another reader's put as its own", PG,
      "                    let others = owned && old_held && !row.get::<_, bool>(3 + 2 * n);\n",
      "                    let others = false && owned && old_held && !row.get::<_, bool>(3 + 2 * n);\n"),
+    ("a put that met a row inserted since is answered refused", PG,
+     "                    let since = owned\n",
+     "                    let since = false\n"),
     ("a table that comes to record owners gains no column", MIGRATE,
      "            (None, Some(_)) => columns_sql.push(sql::owner_column(names, table, true)),\n",
      "            (None, Some(_)) => {}\n"),
@@ -175,12 +178,14 @@ MUTANTS = [
 ]
 
 # Each test binary apart, the compiler's first: a mutant is killed by the
-# first that fails at an assertion, and the rest are not run for it.
+# first that fails at an assertion, and the rest are not run for it. The
+# parser's are its table tests (`a_table`): its library's whole inventory
+# holds a `should_panic` test, which the strict producer does not count.
 TESTS = [
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "who_may_change"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "handles"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "generality"],
-    ["cargo", "test", "--quiet", "--locked", "-p", "pw-syntax", "--lib"],
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-syntax", "--lib", "a_table"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-memory", "--test", "owned_rows"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-table-postgres", "--test", "owned_rows"],
 ]
