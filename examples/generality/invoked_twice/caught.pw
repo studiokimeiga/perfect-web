@@ -17,6 +17,7 @@ command settle(settled: Settled) -> Result<Int, String>
 }
 
 command begin(order: String) -> Result<Int, String>
+    requires      Anyone
     idempotent_by InteractionId
 {
     Ok(1)

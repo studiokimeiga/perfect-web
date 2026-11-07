@@ -20,6 +20,7 @@ signal draft: String = ""
 opaque type Press = String
 
 command publish(text: String) -> Result<String, String>
+    requires      Anyone
     idempotent_by Press
 {
     Ok(text)

@@ -1,0 +1,379 @@
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/requires/compiler/pw-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.92s
+     Running tests/checking_source.rs (/home/haki/pw-targets/requires/debug/deps/checking_source-5ede6e8c91896562)
+
+running 20 tests
+test a_fixtures_header_is_held_to_its_code_as_written ... ok
+test an_unmodelled_capability_family_never_manufactures_a_placement_error ... ok
+test a_match_whose_scrutinee_type_is_unknown_is_not_reported ... ok
+test constructor_arity_is_respected ... ok
+test the_environment_spans_every_file_checked_together ... ok
+test a_nullary_constructor_is_not_read_as_a_binding ... ok
+test the_unhandled_variant_case_is_caught_at_its_real_span ... ok
+test no_accepted_corpus_file_reports_a_body_level_error ... ok
+test every_body_level_rejection_matches_its_declared_rule ... ok
+test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
+test the_structured_concurrency_rules_run_on_real_bodies ... ok
+test the_committed_enforcement_table_is_what_the_corpus_checks_now ... ok
+test every_rejected_fixture_emits_only_its_own_defect ... ok
+test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
+test no_diagnostic_restates_its_invariant_in_its_own_words ... ok
+test semantic_coverage_of_the_rejected_corpus_does_not_regress ... ok
+test corpus_enforcement_is_reported_as_three_numbers_not_one ... ok
+test the_privacy_and_placement_rules_catch_their_corpus_cases ... ok
+test a_fixtures_declared_symbol_matches_the_symbol_it_is_caught_by ... ok
+test every_diagnostic_carries_what_charter_16_3_requires ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 58.17s
+
+     Running tests/clause_keys.rs (/home/haki/pw-targets/requires/debug/deps/clause_keys-83550562e1a1e3ff)
+
+running 6 tests
+test the_program_is_clean ... ok
+test a_clause_is_read_where_it_is_written ... ok
+test a_key_names_what_scope_binds ... ok
+test a_clause_names_a_declaration_of_its_kind ... ok
+test an_event_is_given_what_it_carries ... ok
+test a_resource_is_given_its_key ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/clause_places.rs (/home/haki/pw-targets/requires/debug/deps/clause_places-3ab97510fc259ed1)
+
+running 6 tests
+test every_head_the_grammar_knows_has_a_place ... ok
+test a_clause_word_in_a_functions_body_is_a_name ... ok
+test a_materialization_depends ... ok
+test a_resource_listens ... ok
+test a_head_on_a_declaration_that_does_not_read_it_is_refused ... ok
+test a_command_emits_and_invalidates ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/clauses_read_once.rs (/home/haki/pw-targets/requires/debug/deps/clauses_read_once-ed3341ef7f2f5142)
+
+running 5 tests
+test an_interfaces_clause_is_parsed_with_its_terms ... ok
+test a_parenthesis_in_a_keys_string_ends_nothing ... ok
+test an_interfaces_keys_are_bound_and_typed ... ok
+test the_graph_reads_the_keys_lowering_made ... ok
+test an_interfaces_terms_are_checked_as_any_declarations ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+
+     Running tests/component_contract.rs (/home/haki/pw-targets/requires/debug/deps/component_contract-03f8e0505ea8911b)
+
+running 30 tests
+test a_component_with_no_effects_needs_no_capabilities_and_may_import_nothing ... ok
+test an_import_names_the_capability_that_authorises_it ... ok
+test an_operation_whose_authority_is_not_held_is_refused ... ok
+test a_component_may_hold_authority_no_import_uses ... ok
+test an_unrecognisable_import_is_undeclared_rather_than_ignored ... ok
+test a_contract_carries_the_six_semantic_fields_and_no_others ... ok
+test actual_imports_may_never_be_a_superset ... ok
+test a_capabilitys_argument_is_resolved_against_the_programs_types ... ok
+test every_undeclared_import_is_reported_not_only_the_first ... ok
+test platform_operations_are_distinguished_from_application_ones ... ok
+test an_unresolvable_argument_does_not_remove_authority ... ok
+test an_operation_with_the_declared_name_and_a_different_abi_is_refused ... ok
+test an_operation_that_needs_no_authority_is_consistent_with_none ... ok
+test an_operations_authority_must_be_held_by_its_caller ... ok
+test a_new_sibling_adds_a_contract_and_perturbs_no_other ... ok
+test renaming_an_export_changes_that_contract ... ok
+test actual_imports_may_be_a_subset ... ok
+test requires_is_an_export_precondition_and_part_of_the_abi ... ok
+test the_contract_round_trips_through_json ... ok
+test two_declarations_sharing_a_name_do_not_share_authority ... ok
+test an_export_that_passes_a_handle_is_not_remotely_bindable ... ok
+test a_page_does_not_inherit_its_handlers_authority ... ok
+test idempotent_by_is_an_export_property_and_part_of_the_abi ... ok
+test the_operation_distinguishes_two_imports_of_one_family ... ok
+test the_schema_ignores_formatting_and_notices_authority ... ok
+test a_body_change_that_changes_neither_authority_nor_interface_keeps_the_schema ... ok
+test requires_anyone_is_no_precondition ... ok
+test required_capabilities_come_from_the_effect_row ... ok
+test placement_is_not_a_capability ... ok
+test allowed_placements_are_solved_rather_than_declared ... ok
+
+test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/controls_where_they_hold.rs (/home/haki/pw-targets/requires/debug/deps/controls_where_they_hold-153aa2ffbc5575a9)
+
+running 8 tests
+test a_handler_asks_no_predicate ... ok
+test a_predicates_answer_is_a_bool ... ok
+test a_page_served_to_everyone_asks_its_reader_nothing ... ok
+test a_refusable_control_is_shown_to_every_reader ... ok
+test the_plan_names_what_the_page_asks_and_a_host_computes_from_the_answer ... ok
+test a_name_that_holds_no_value_is_refused_where_a_template_reads_it ... ok
+test a_control_under_its_predicate_is_shown_where_it_holds ... ok
+test a_control_where_its_predicate_is_not_asked_is_refused ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
+
+     Running tests/corpus_history.rs (/home/haki/pw-targets/requires/debug/deps/corpus_history-424f860e0b6d436e)
+
+running 8 tests
+test the_history_is_not_edited_to_match_the_present ... ok
+test the_c10_texts_are_reported_where_their_defects_are ... ok
+test historical_event_annotation_is_blocked_not_a_nominal_mismatch ... ok
+test the_c16_texts_are_reported_where_their_defects_are ... ok
+test the_c9_texts_are_still_caught_for_their_invariant_and_refused_for_the_title ... ok
+test historical_unknown_captures_remain_refused_and_imported_controls_keep_their_rule ... ok
+test the_pre_change_text_of_every_repaired_fixture_still_fails ... ok
+test the_c8_text_of_every_repaired_rejected_fixture_is_still_caught ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.91s
+
+     Running tests/device_store.rs (/home/haki/pw-targets/requires/debug/deps/device_store-902b9e6a4b0d1fc3)
+
+running 15 tests
+test pw6805_privacy_other_than_the_devices_is_a_later_versions ... ok
+test pw6808_the_device_provides_it ... ok
+test pw6804_the_device_keeps_its_own ... ok
+test a_value_the_device_keeps_checks_and_its_page_holds_it ... ok
+test pw6802_no_query_is_keyed_by_what_the_device_keeps ... ok
+test the_browser_computes_from_several_values_and_a_list_in_its_block ... ok
+test a_value_computed_in_a_browser_rows_is_refused_by_name ... ok
+test pw6807_a_form_the_device_can_hold ... ok
+test a_value_computed_from_the_devices_inside_a_hosts_block_is_refused_by_name ... ok
+test pw6803_nothing_the_browser_sends_holds_it ... ok
+test generic_reverse_keeps_a_device_rows_type_and_privacy ... ok
+test pw6806_a_pure_step_for_each_earlier_version ... ok
+test pw6805_where_it_rests_whose_it_is_and_what_two_tabs_do ... ok
+test pw6801_no_command_is_given_what_the_device_keeps ... ok
+test a_value_a_host_holds_is_still_refused_where_decision_7_lifts_the_refusals ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.44s
+
+     Running tests/generality.rs (/home/haki/pw-targets/requires/debug/deps/generality-a5a162662df63e3d)
+
+running 6 tests
+test every_witness_names_a_registered_invariant ... ok
+test every_headline_invariant_has_a_challenge_matrix ... ok
+test generality_is_reported_separately_from_conformance ... ok
+test a_general_witness_is_caught_and_a_narrow_one_is_not has been running for over 60 seconds
+test a_witness_is_valid_except_for_the_invariant_it_is_about has been running for over 60 seconds
+test every_witness_is_valid_evidence has been running for over 60 seconds
+test every_witness_is_valid_evidence ... ok
+test a_witness_is_valid_except_for_the_invariant_it_is_about ... ok
+test a_general_witness_is_caught_and_a_narrow_one_is_not ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 84.81s
+
+     Running tests/generic_effects.rs (/home/haki/pw-targets/requires/debug/deps/generic_effects-db6d901eaa3fe01c)
+
+running 31 tests
+test solved_loop_binders_are_available_to_every_type_reader ... ok
+test a_querys_contract_requires_what_a_member_of_a_generic_result_reads ... ok
+test a_member_with_additional_parameters_is_a_function_value_not_its_result ... ok
+test member_invocations_have_one_typed_callee_and_their_actual_effects ... ok
+test a_member_read_through_a_generic_calls_result_in_a_view_is_refused ... ok
+test a_member_read_through_a_generic_calls_result_in_a_function_is_seen ... ok
+test a_computed_receiver_keeps_its_member_call_and_never_becomes_a_partial_path ... ok
+test a_member_read_on_a_rigid_type_parameter_is_refused ... ok
+test an_interfaces_term_roots_refuse_untyped_member_receivers ... ok
+test a_module_path_prefix_is_never_charged_as_a_function_value ... ok
+test a_function_receiver_keeps_its_capability_and_privacy ... ok
+test a_computed_receiver_is_never_resolved_by_its_members_spelling ... ok
+test a_local_receiver_never_borrows_a_type_qualified_constructor ... ok
+test a_function_named_as_a_member_receiver_performs_its_effects ... ok
+test a_draw_binder_has_the_platforms_declared_context_and_arguments ... ok
+test rooted_effect_inference_sees_member_reads_and_function_values ... ok
+test a_nested_function_instantiates_an_enclosing_generics_result ... ok
+test a_member_read_in_a_match_arm_over_a_generic_result_is_seen ... ok
+test an_interface_term_local_call_never_calls_a_namesake_global ... ok
+test a_generic_each_header_keeps_its_members_privacy_in_key_and_body ... ok
+test a_member_with_no_row_is_charged_what_its_body_performs ... ok
+test a_member_read_through_a_user_written_generic_function_is_seen ... ok
+test a_recursive_call_instantiates_its_own_generic_result ... ok
+test a_generic_each_header_types_members_in_both_its_key_and_body ... ok
+test a_member_read_on_any_receiver_is_seen ... ok
+test a_member_read_whose_receivers_type_nothing_states_is_refused ... ok
+test member_and_local_function_callees_keep_their_actual_result_type ... ok
+test a_member_read_on_a_loops_or_an_arms_binder_is_seen ... ok
+test a_secret_read_through_a_generic_result_is_refused_in_markup ... ok
+test a_member_read_through_a_nested_generic_is_seen ... ok
+test every_generic_function_of_the_standard_packages_passes_its_element_types_through ... ok
+
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.10s
+
+     Running tests/handles.rs (/home/haki/pw-targets/requires/debug/deps/handles-97973b489fc02f07)
+
+running 4 tests
+test a_local_callback_is_not_a_handle_constructor ... ok
+test a_data_layer_answers_ids_never_handles ... ok
+test a_program_constructs_no_handle ... ok
+test nothing_the_browser_supplies_holds_a_handle ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+
+     Running tests/invoked_by.rs (/home/haki/pw-targets/requires/debug/deps/invoked_by-92387edc39f3175a)
+
+running 8 tests
+test only_the_platforms_invokers_and_only_on_a_command ... ok
+test one_command_answers_a_payments_outcome ... ok
+test a_command_the_platform_invokes_is_idempotent ... ok
+test a_command_the_platform_invokes_holds_no_reader_to_a_predicate ... ok
+test a_payments_command_is_told_at_its_invoked_by_clause ... FAILED
+test no_page_presses_a_command_the_platform_invokes ... ok
+test a_command_the_platform_invokes_is_given_what_the_host_has ... ok
+test a_command_the_platform_invokes_says_so_in_its_contract ... ok
+
+failures:
+
+---- a_payments_command_is_told_at_its_invoked_by_clause stdout ----
+
+thread 'a_payments_command_is_told_at_its_invoked_by_clause' (503883) panicked at compiler/pw-core/tests/invoked_by.rs:289:5:
+["PW0367 `begin` runs for any reader's request, and says nothing of who may run it"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    a_payments_command_is_told_at_its_invoked_by_clause
+
+test result: FAILED. 7 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `-p pw-core --test invoked_by`
+     Running tests/policy_values.rs (/home/haki/pw-targets/requires/debug/deps/policy_values-b71ed3ba07a9f6cc)
+
+running 11 tests
+test a_key_separates_a_partition_by_naming_it ... ok
+test only_transport_only_is_transport_only ... ok
+test a_session_read_is_never_stale_however_it_is_written ... ok
+test a_session_query_in_a_shared_cache_is_refused_however_it_is_spelled ... ok
+test a_type_a_policy_names_is_visible ... ok
+test a_key_names_a_parameter_or_a_partition ... ok
+test a_word_is_one_its_domain_lists ... ok
+test a_world_is_one_a_platform_has ... ok
+test a_duration_is_a_count_and_a_unit ... ok
+test a_retried_command_is_idempotent_whatever_it_retries_on ... ok
+test an_operator_is_given_its_arguments ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+
+     Running tests/principal.rs (/home/haki/pw-targets/requires/debug/deps/principal-adaf46633ae6d1c9)
+
+running 3 tests
+test the_readers_user_is_the_hosts_operation ... ok
+test a_listeners_handle_binds_the_events_id ... ok
+test nothing_else_turns_an_id_into_a_handle_or_a_handle_into_an_id ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+
+     Running tests/qualified_device.rs (/home/haki/pw-targets/requires/debug/deps/qualified_device-0705e3be8dd68f52)
+
+running 5 tests
+test qualified_device_arguments_keep_their_declared_value_type ... ok
+test qualified_browser_only_read_still_refuses_unsupported_backend_lowering ... ok
+test a_captured_public_record_prefix_does_not_steal_the_device_origin ... ok
+test lexical_record_and_signal_names_do_not_read_a_module_device_value ... ok
+test qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
+
+     Running tests/scheduled.rs (/home/haki/pw-targets/requires/debug/deps/scheduled-5795311c5f6b037f)
+
+running 9 tests
+test a_programs_own_instant_is_not_the_clocks ... ok
+test a_schedule_is_a_commands_statement ... ok
+test a_command_the_clock_invokes_checks_clean_and_says_so_in_its_contract ... ok
+test a_schedule_performs_clock_schedule ... ok
+test a_schedule_relates_its_arguments_as_a_call ... ok
+test a_schedule_at_an_instant_or_after_a_duration_checks_clean ... ok
+test a_schedule_names_a_command_the_clock_invokes ... ok
+test a_command_the_clock_invokes_requires_nothing_and_is_idempotent ... ok
+test a_runs_time_is_an_instant_or_a_duration ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/scheduled_orders.rs (/home/haki/pw-targets/requires/debug/deps/scheduled_orders-e082d18f0da3fb67)
+
+running 2 tests
+test moving_and_ordering_instants_reads_no_clock ... ok
+test a_run_is_scheduled_at_an_instant_moved_along_the_clock ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+     Running tests/session_to_browser.rs (/home/haki/pw-targets/requires/debug/deps/session_to_browser-04ae653c0b05e4a4)
+
+running 3 tests
+test a_views_prop_holding_a_sessions_handle_is_refused_where_it_is_given ... ok
+test nothing_markup_prints_holds_a_sessions_handle ... ok
+test no_answer_holds_a_sessions_handle ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
+
+     Running tests/transition_values.rs (/home/haki/pw-targets/requires/debug/deps/transition_values-ccbc902b6bd42af1)
+
+running 4 tests
+test the_repair_names_the_binder_and_the_target_holds_the_value ... ok
+test a_target_is_a_resources_entry ... ok
+test a_call_is_reported_once ... ok
+test a_literal_is_a_value_of_its_type ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running tests/value_relations.rs (/home/haki/pw-targets/requires/debug/deps/value_relations-687709bcfd376608)
+
+running 42 tests
+test every_expression_kind_is_lowered_as_an_expression ... ok
+test a_callable_declares_type_parameters_and_function_types_parse ... ok
+test v2_one_type_parameter_is_one_type_across_arguments ... ok
+test v2_inside_a_generic_body_its_own_parameter_is_rigid ... ok
+test v1_an_annotated_binding_is_initialised_with_its_type ... ok
+test a_question_mark_is_a_node_the_hir_keeps ... ok
+test diagnostics_are_exactly_the_disagreements ... ok
+test v2_the_architects_discriminator_identity_of_a_store_is_a_store ... ok
+test v2_renaming_a_type_parameter_changes_nothing ... ok
+test a_type_declaration_keeps_its_parameters ... ok
+test v2_each_call_instantiates_afresh ... ok
+test v4_a_unit_body_discards_its_last_value ... ok
+test an_untyped_operand_is_undecided_not_refused ... ok
+test v4_a_question_mark_returns_its_error_and_the_error_types_must_agree ... ok
+test v1_a_literal_of_the_wrong_primitive_is_refused_and_the_right_one_is_not ... ok
+test v3_a_privacy_qualifier_is_not_the_type_it_qualifies ... ok
+test v1_a_piped_value_is_the_first_argument ... ok
+test v1_the_reopening_case_is_refused_a_record_where_another_is_declared ... ok
+test v4_each_match_arm_is_a_result ... ok
+test v1_a_member_call_checks_its_receiver_and_its_arguments ... ok
+test v3_an_opaque_type_is_not_its_representation_in_either_direction ... ok
+test v1_a_query_invocation_is_a_typed_call ... ok
+test v4_every_branch_and_every_return_is_a_result ... ok
+test v1_a_construction_checks_each_field_by_name_and_by_position ... ok
+test v3_an_ordinary_program_cannot_pass_one_modules_tag_where_anothers_is_required ... ok
+test v4_the_reopening_case_wrong_return_is_refused ... ok
+test v1_a_listeners_wildcard_is_decided_and_its_parameters_are_checked ... ok
+test v1_a_call_inside_a_policy_term_is_checked_with_its_binder_typed ... ok
+test v5_a_type_from_a_missing_import_is_the_imports_diagnostic_not_a_second_one ... ok
+test v4_the_success_value_of_a_question_mark_is_what_flows_on ... ok
+test v5_a_declared_constructor_is_applied_to_exactly_its_parameters ... ok
+test v5_a_written_type_that_names_nothing_is_reported_once ... ok
+test v5_no_relation_runs_on_an_unresolved_type ... ok
+test v6_a_phantom_parameter_distinguishes_values_with_one_layout ... ok
+test v6_two_opaque_types_with_one_representation_are_two_types ... ok
+test an_operator_takes_operands_of_the_types_it_takes ... ok
+test v2_list_map_infers_its_result_from_the_callback ... ok
+test v2_a_declared_function_is_a_value_of_its_function_type ... ok
+test v2_an_unannotated_binding_of_a_generic_call_is_instantiated ... ok
+test v2_a_callback_of_the_wrong_arity_is_a_different_function_type ... ok
+test the_accepted_corpus_disagrees_nowhere_and_decides_a_floor ... ok
+test the_store_program_is_decided_not_merely_silent ... ok
+
+test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+     Running tests/who_may_run.rs (/home/haki/pw-targets/requires/debug/deps/who_may_run-4f75fc509e1287b1)
+
+running 7 tests
+test a_command_the_platform_runs_says_invoked_by_instead ... ok
+test a_command_that_says_nothing_of_who_may_run_it_is_refused ... ok
+test a_press_that_sends_it_is_named_beside_it ... ok
+test anyone_is_the_platforms ... ok
+test anyone_stands_alone_and_takes_no_argument ... ok
+test a_control_anyone_may_press_needs_no_guard ... ok
+test requires_says_who_may ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+
+error: 1 target failed:
+    `-p pw-core --test invoked_by`

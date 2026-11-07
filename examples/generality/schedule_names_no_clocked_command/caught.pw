@@ -17,6 +17,7 @@ command settle(settled: Settled) -> Result<Int, String>
 }
 
 command forget(settled: Settled) -> Result<Int, String> !{ clock.schedule }
+    requires Anyone
 {
     unschedule settle(settled)
     Ok(1)
