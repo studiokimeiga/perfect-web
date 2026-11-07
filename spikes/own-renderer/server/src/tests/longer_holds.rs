@@ -11,13 +11,14 @@ use super::*;
 use std::time::{Duration, Instant};
 
 /// A document of session `session` served by `s`, and a connection whose
-/// browser end is `page` and whose host end is `held`.
-fn subscribed(s: &Server, session: &str) -> (u64, TcpStream, TcpStream) {
+/// browser end is `page` and whose host end is `held`, as the host holds a
+/// connection (ADR-0401's [`Conn`]).
+fn subscribed(s: &Server, session: &str) -> (u64, TcpStream, Conn) {
     let (_, document) = s.serve_document(session);
     let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
     let page = TcpStream::connect(listener.local_addr().expect("addr")).expect("connect");
     let (held, _) = listener.accept().expect("accept");
-    (document, page, held)
+    (document, page, Conn::of(held))
 }
 
 /// `doc`'s page last asked longer ago than [`LIVE`]: a test host's served
@@ -91,9 +92,9 @@ fn a_held_stream_keeps_its_page_live() {
 /// How long a hold of [`HOLD`] lasted when its page went away
 /// `after` it began, `hold` running it on the host's end of the connection.
 fn held_after_gone(
-    hold: impl FnOnce(TcpStream) + Send,
+    hold: impl FnOnce(Conn) + Send,
     page: TcpStream,
-    held: TcpStream,
+    held: Conn,
 ) -> Duration {
     std::thread::scope(|scope| {
         let begun = Instant::now();
