@@ -1,0 +1,9 @@
+commit: c30ef1f384b921a1ae120dfaef2ba193ee10977c
+base: 5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6
+branch: claude/kind-goldberg-c4d715
+rustc 1.97.1 (8bab26f4f 2026-07-14)
+cargo 1.97.1 (c980f4866 2026-06-30)
+node v22.21.1
+Python 3.10.12
+CARGO_TARGET_DIR: /home/haki/pw-targets/message-text
+CARGO_BUILD_JOBS: 8

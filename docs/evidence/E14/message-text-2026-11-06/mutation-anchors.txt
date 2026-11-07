@@ -1,0 +1,7 @@
+$ python3 scripts/mutation_anchors.py
+started: 2026-11-07T00:25:41.099658+00:00
+commit: c30ef1f384b921a1ae120dfaef2ba193ee10977c
+
+mutation anchors: 4974 mutants in 324 scripts, each matching once
+
+exit: 0

@@ -8334,16 +8334,25 @@ fn privacy_and_placement(
         declared_cache(hir, decl).filter(|(v, _)| v == "shared" && !held.safe_in_shared_cache())
     {
         let label = &held;
-        // The parameter, where one is the source: the related span is where
-        // it is declared, not the whole declaration.
+        // The parameter, where one is the source, and the label it states:
+        // the related span is where it is declared, not the whole
+        // declaration, and what is said of it is its own label, not all the
+        // declaration holds.
         let param = read_from
             .is_none()
             .then(|| reads.given_by(def))
             .flatten()
-            .and_then(|name| decl.params.iter().find(|p| p.name == name));
+            .and_then(|(name, own)| {
+                decl.params
+                    .iter()
+                    .find(|p| p.name == name)
+                    .map(|p| (p, own))
+            });
+        // The label of what the cause chain names as the source.
+        let source = param.map_or(label, |(_, own)| own);
         let read_from = read_from
             .map(|v| format!("`{v}`"))
-            .or_else(|| param.map(|p| format!("its parameter `{}`", p.name)))
+            .or_else(|| param.map(|(p, _)| format!("its parameter `{}`", p.name)))
             .or_else(|| {
                 layout
                     .filter(|_| !shown.is_public())
@@ -8367,10 +8376,10 @@ fn privacy_and_placement(
                 message: format!("`{}` is {label} and declares a shared cache", decl.name),
                 primary_span: cache.span.clone(),
                 related: vec![match param {
-                    Some(p) => Related::new(
+                    Some((p, own)) => Related::new(
                         p.span.clone(),
                         format!(
-                            "`{}` is {label}, so what `{}` makes from it is",
+                            "`{}` is {own}, so what `{}` makes from it is too",
                             p.name, decl.name
                         ),
                     ),
@@ -8382,7 +8391,7 @@ fn privacy_and_placement(
                 explanation: Some(format!(
                     "A shared cache may contain only `Public` values, because every \
                      user reads it. The cause chain: `{}` materializes {}, which is \
-                     labeled `{label}`, and `{label}` does not flow into `Public` — \
+                     labeled `{source}`, and `{source}` does not flow into `Public` — \
                      so one user's value would be served to another. A key naming \
                      the reader does not make it shareable: an entry only that \
                      reader can hit gains nothing from a shared cache, and puts \
@@ -8761,7 +8770,7 @@ pub(crate) struct Reads {
     /// Cart(session: Session<SessionId>)` holds a session's value whatever
     /// its keyword says. Until 2026-10-02 nothing read a declaration's own
     /// parameters, and that query passed `cache shared` (T12).
-    given: BTreeMap<crate::resolve::DefId, (Label, String)>,
+    given: BTreeMap<crate::resolve::DefId, Given>,
     /// **What each declaration reads** (ADR-0282): the declarations its body
     /// calls and the queries it names, and a materialization's `depends_on`.
     reading: BTreeMap<crate::resolve::DefId, Vec<crate::resolve::DefId>>,
@@ -8786,7 +8795,7 @@ impl Reads {
                 if let Some(sig) = sigs.by_def(def) {
                     me.results.insert(def, sig.label.clone());
                     if let Some(given) = given_label(sigs, sig) {
-                        me.returned.insert(def, given.0.clone());
+                        me.returned.insert(def, given.label.clone());
                         me.given.insert(def, given);
                     }
                 }
@@ -8897,9 +8906,13 @@ impl Reads {
         self.declared(def).join(&self.through(def))
     }
 
-    /// The parameter that makes `def` hold a reader's value, if one does.
-    pub(crate) fn given_by(&self, def: crate::resolve::DefId) -> Option<&str> {
-        self.given.get(&def).map(|(_, name)| name.as_str())
+    /// The parameter that makes `def` hold a reader's value, if one does,
+    /// and the label it states itself: one of what `def` is given, where
+    /// `def` is given more than one.
+    pub(crate) fn given_by(&self, def: crate::resolve::DefId) -> Option<(&str, &Label)> {
+        self.given
+            .get(&def)
+            .map(|g| (g.first.as_str(), &g.first_label))
     }
 
     /// Each declaration's `declared` label, where it is not public: what
@@ -9102,10 +9115,22 @@ pub(crate) fn summaries(
     }
 }
 
+/// **What a declaration's parameters give it** (ADR-0128): the labels they
+/// state, joined, and the first parameter stating one, with that label.
+struct Given {
+    label: Label,
+    first: String,
+    /// The first's own label. A query given a session and an organization
+    /// holds both, and its `session` states only the first: PW5001 said
+    /// "`session` is Session<SessionId> ⊔ Organization<OrganizationId>"
+    /// until 2026-11-06.
+    first_label: Label,
+}
+
 /// The labels a declaration's parameters state, a secret left out, with the
 /// first parameter stating one (ADR-0128). A secret a parameter states is a
 /// key the declaration uses, not a value it holds (ADR-0118 §5).
-fn given_label(sigs: &Signatures, sig: &crate::signatures::Signature) -> Option<(Label, String)> {
+fn given_label(sigs: &Signatures, sig: &crate::signatures::Signature) -> Option<Given> {
     let mut label = Label::public();
     let mut first = None;
     for (i, param) in sig.params.iter().enumerate() {
@@ -9125,10 +9150,15 @@ fn given_label(sigs: &Signatures, sig: &crate::signatures::Signature) -> Option<
         }
         label = label.join(&held);
         if first.is_none() {
-            first = Some(sig.names.get(i).cloned().unwrap_or_else(|| format!("#{i}")));
+            let name = sig.names.get(i).cloned().unwrap_or_else(|| format!("#{i}"));
+            first = Some((name, held));
         }
     }
-    first.map(|name| (label, name))
+    first.map(|(first, first_label)| Given {
+        label,
+        first,
+        first_label,
+    })
 }
 
 /// **The signature a call names, as the unit sees it** (ADR-0112).

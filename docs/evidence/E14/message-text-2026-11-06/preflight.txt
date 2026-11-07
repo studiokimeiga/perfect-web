@@ -1,0 +1,26 @@
+$ just preflight
+started: 2026-11-07T00:25:42.003232+00:00
+commit: c30ef1f384b921a1ae120dfaef2ba193ee10977c
+
+case-check: OK (4687 paths)
+mutation anchors: 4974 mutants in 324 scripts, each matching once
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+    Checking pw-core v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/kind-goldberg-c4d715/compiler/pw-core)
+    Checking pw-conformance v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/kind-goldberg-c4d715/compiler/pw-conformance)
+    Checking pw-table-memory v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/kind-goldberg-c4d715/runtime/pw-table-memory)
+    Checking pw-table-postgres v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/kind-goldberg-c4d715/runtime/pw-table-postgres)
+    Checking pw-resume v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/kind-goldberg-c4d715/runtime/pw-resume)
+    Checking pw-cli v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/kind-goldberg-c4d715/compiler/pw-cli)
+    Checking pw-fuzz v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/kind-goldberg-c4d715/tools/fuzz)
+    Checking pw-resource v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/kind-goldberg-c4d715/runtime/pw-resource)
+    Checking pw-dev-server v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/kind-goldberg-c4d715/spikes/own-renderer/server)
+    Finished `dev` profile [unoptimized] target(s) in 11.83s
+# `pw-host`'s engine feature is not exercised by `just test`, because a
+# Wasm engine is not needed to decide a capability question. But an
+# unbuilt cfg rots: a field added to `Import` broke `tests/artifact.rs`
+# and nothing noticed until `just e8-host` ran. Compiled here, run there.
+cargo clippy -p pw-host --features engine --all-targets -- -D warnings
+    Finished `dev` profile [unoptimized] target(s) in 0.15s
+
+exit: 0

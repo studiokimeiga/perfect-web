@@ -27,7 +27,7 @@ MUTANTS = [
         "a declaration's own parameters are not read",
         CHECK,
         "                    if let Some(given) = given_label(sigs, sig) {\n",
-        "                    if let Some(given) = None::<(Label, String)> {\n",
+        "                    if let Some(given) = None::<Given> {\n",
     ),
     (
         "a reader's value keyed by the reader is shareable",

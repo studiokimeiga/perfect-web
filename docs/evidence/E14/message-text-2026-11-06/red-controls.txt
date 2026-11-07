@@ -1,0 +1,78 @@
+Each fix undone in turn (base 5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6), and the tests that hold it run
+commit: c30ef1f384b921a1ae120dfaef2ba193ee10977c
+
+== PW5001's note as before the fix: it stops mid-sentence
+   edited: compiler/pw-core/src/check.rs as at 5d4d4d55
+   $ cargo test --locked -p pw-core --test shared_cache_holds_no_readers_value
+   exit 101; the_parameter_a_readers_value_comes_from_is_noted_in_a_whole_sentence, the_parameter_is_noted_with_its_own_label_where_more_are_given: FAIL as they must, and no other
+   test a_readers_value_in_a_tenants_cache_is_one_defect ... ok
+   test the_parameter_is_noted_with_its_own_label_where_more_are_given ... FAILED
+   test the_parameter_a_readers_value_comes_from_is_noted_in_a_whole_sentence ... FAILED
+   test a_shared_fragment_of_a_query_given_the_session_is_refused ... ok
+   test a_key_naming_the_reader_does_not_make_their_value_shareable ... ok
+   test a_tenants_value_may_be_shared_keyed_by_its_tenant ... ok
+   test a_query_given_the_session_holds_the_sessions_value_whatever_its_keyword ... ok
+   thread 'the_parameter_is_noted_with_its_own_label_where_more_are_given' (1082830) panicked at compiler/pw-core/tests/shared_cache_holds_no_readers_value.rs:290:5:
+   thread 'the_parameter_a_readers_value_comes_from_is_noted_in_a_whole_sentence' (1082829) panicked at compiler/pw-core/tests/shared_cache_holds_no_readers_value.rs:258:5:
+   test result: FAILED. 5 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.68s
+   |   left: ["`session` is Session<SessionId> ⊔ Organization<OrganizationId>, so what `Cart` makes from it is"]
+   |  right: ["`session` is Session<SessionId>, so what `Cart` makes from it is too"]
+   |   left: ["`session` is Session<SessionId>, so what `Cart` makes from it is"]
+   |  right: ["`session` is Session<SessionId>, so what `Cart` makes from it is too"]
+
+== PW5001's note and cause chain given all the declaration's parameters state, not the parameter's own
+   edited: compiler/pw-core/src/check.rs: `.map(|g| (g.first.as_str(), &g.first_label))` -> `.map(|g| (g.first.as_str(), &g.label))`
+   $ cargo test --locked -p pw-core --test shared_cache_holds_no_readers_value
+   exit 101; the_parameter_is_noted_with_its_own_label_where_more_are_given: FAIL as they must, and no other
+   test the_parameter_a_readers_value_comes_from_is_noted_in_a_whole_sentence ... ok
+   test a_readers_value_in_a_tenants_cache_is_one_defect ... ok
+   test the_parameter_is_noted_with_its_own_label_where_more_are_given ... FAILED
+   test a_shared_fragment_of_a_query_given_the_session_is_refused ... ok
+   test a_key_naming_the_reader_does_not_make_their_value_shareable ... ok
+   test a_tenants_value_may_be_shared_keyed_by_its_tenant ... ok
+   test a_query_given_the_session_holds_the_sessions_value_whatever_its_keyword ... ok
+   thread 'the_parameter_is_noted_with_its_own_label_where_more_are_given' (1093517) panicked at compiler/pw-core/tests/shared_cache_holds_no_readers_value.rs:290:5:
+   test result: FAILED. 6 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
+   |   left: ["`session` is Session<SessionId> ⊔ Organization<OrganizationId>, so what `Cart` makes from it is too"]
+   |  right: ["`session` is Session<SessionId>, so what `Cart` makes from it is too"]
+
+== PW5048's note tells the dated story, as before the fix
+   edited: compiler/pw-core/src/holds.rs as at 5d4d4d55
+   $ cargo test --locked -p pw-core --test controls_where_they_hold
+   exit 101; a_refused_controls_note_says_the_rule_and_why: FAIL as they must, and no other
+   test a_refused_controls_note_says_the_rule_and_why ... FAILED
+   test a_handler_asks_no_predicate ... ok
+   test a_page_served_to_everyone_asks_its_reader_nothing ... ok
+   test a_refusable_control_is_shown_to_every_reader ... ok
+   test a_predicates_answer_is_a_bool ... ok
+   test the_plan_names_what_the_page_asks_and_a_host_computes_from_the_answer ... ok
+   test a_name_that_holds_no_value_is_refused_where_a_template_reads_it ... ok
+   test a_control_under_its_predicate_is_shown_where_it_holds ... ok
+   test a_control_where_its_predicate_is_not_asked_is_refused ... ok
+   thread 'a_refused_controls_note_says_the_rule_and_why' (1096700) panicked at compiler/pw-core/tests/controls_where_they_hold.rs:196:5:
+   test result: FAILED. 8 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.30s
+   | the reason first: A press the server refuses was a dead control: the owner, signed out, pressed Post and the post went with no word (2026-10-08). A page asks a predicate of its reader by naming it, and the deployment answers it as it answers `requires`, so a control shown under it is refused only if the reader changed since the page was rendered, and then told where the press was (ADR-0302). `SignedIn` is the program's to declare (`predicate SignedIn says "…"`) where only the deployment knows it.
+
+== the guide shows PW5048's old note, which `pw check` no longer prints
+   edited: docs/guide/errors.md as at 5d4d4d55
+   $ cargo test --locked -p pw-cli --test guide
+   exit 101; every_example_in_the_guide_compiles_as_it_says: FAIL as they must, and no other
+   test a_fence_is_read_as_commonmark_reads_it ... ok
+   test a_gaps_build_output_belongs_to_the_gap_before_it ... ok
+   test a_page_is_held_to_the_directory_it_names ... ok
+   test a_page_with_no_example_or_a_block_unseen_is_reported ... ok
+   test a_pages_file_blocks_are_its_program_in_order ... ok
+   test a_program_differs_from_a_directory_by_a_file_or_a_byte ... ok
+   test a_refused_examples_codes_are_read_from_its_output ... ok
+   test an_info_string_says_what_a_block_is ... ok
+   test an_unclosed_or_indented_fence_is_refused ... ok
+   test shown_output_belongs_to_the_refused_example_before_it ... ok
+   test the_reference_is_held_to_the_registry ... ok
+   test a_pages_program_is_the_directory_it_names ... ok
+   test the_diagnostic_reference_lists_every_registered_code ... ok
+   test every_example_in_the_guide_compiles_as_it_says ... FAILED
+   test a_wrong_example_is_reported_and_a_right_one_is_not ... ok
+   thread 'every_example_in_the_guide_compiles_as_it_says' (1105310) panicked at compiler/pw-cli/tests/guide.rs:623:5:
+   test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.85s
+
+sources restored to HEAD: yes

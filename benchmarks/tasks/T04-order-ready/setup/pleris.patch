@@ -60,9 +60,9 @@ index bec40ea..de5f663 100644
  import Events.{ CartChanged }
  
 @@ -99,6 +100,19 @@ session query Cart(session: Session<SessionId>) -> Result<Cart, CartError>
- // The mutation. Idempotent by interaction id, so a double-tap is one add, and
- // optimistic with a declared rollback so the count moves before the round trip
- // and moves back if it fails.
+ // The mutation. Idempotent by interaction id: a request sent twice is one add,
+ // and two presses are two. Optimistic, with a declared rollback, so the count
+ // moves before the round trip and moves back if it fails.
 +// **The session's order**, as the kitchen last set it (E14, T04).
 +session query Order(session: Session<SessionId>) -> Result<Option<OrderStatus>, TrackingError>
 +    freshness     0.seconds
