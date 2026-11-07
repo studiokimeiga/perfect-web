@@ -19,6 +19,14 @@ use pw_host::engine::Val;
 use pw_table_memory::{Committed, Error, MemoryTables};
 use serde_json::{Value, json};
 
+/// The reader every command here is begun for (the owned-rows ADR): one
+/// request's, in a table no reader owns, where it changes any row.
+fn a_reader() -> pw_host::tables::Writer {
+    pw_host::tables::Writer::Reader(
+        pw_host::tables::Reader::new("session-1", None).expect("a reader"),
+    )
+}
+
 fn field(name: &str, stored: Stored) -> FieldSchema {
     FieldSchema {
         name: name.into(),
@@ -67,6 +75,7 @@ fn manifest(bound: u64) -> TablesJson {
             unique: true,
         }],
         references: vec![],
+        owner: None,
     };
     let posts = TableSchema {
         name: "Posts".into(),
@@ -94,6 +103,7 @@ fn manifest(bound: u64) -> TablesJson {
             field: "author".into(),
             table: "Users".into(),
         }],
+        owner: None,
     };
     let hash = Schema::of(vec![users.clone(), posts.clone()]).hash;
     let u = |name, primitive, by: &[&str], sorted: &[&str]| {
@@ -209,7 +219,7 @@ const BY_DRAFT_MANY: &str = "pw:tables/posts#by-draft-many";
 /// Two users; ann's three posts and bo's one, two of them drafts.
 fn seeded(bound: u64) -> MemoryTables {
     let db = MemoryTables::new(manifest(bound)).assert_ok("valid domain result");
-    db.transaction(|tx| {
+    db.transaction(a_reader(), |tx| {
         tx.write(USERS_INSERT, &[user("ann", "Ann")])?;
         tx.write(USERS_INSERT, &[user("bo", "Bo")])?;
         tx.write(POSTS_INSERT, &[post("ann", "a1", 3, false)])?;
@@ -237,7 +247,7 @@ fn state(read: impl Fn(&str, &[Value]) -> Result<Value, Error>) -> Vec<Value> {
 fn a_commands_reads_see_its_writes_and_no_other_read_does() {
     let db = seeded(10);
     let before = state(|i, a| db.read(i, a));
-    let mut command = db.begin().assert_ok("valid domain result");
+    let mut command = db.begin(a_reader()).assert_ok("valid domain result");
     command
         .write(POSTS_PUT, &[post("ann", "a1", 3, true)])
         .assert_ok("valid domain result");
@@ -291,7 +301,7 @@ fn a_commands_reads_see_its_writes_and_no_other_read_does() {
 #[test]
 fn a_refused_write_changes_nothing_and_the_command_goes_on() {
     let db = seeded(10);
-    let mut command = db.begin().assert_ok("valid domain result");
+    let mut command = db.begin(a_reader()).assert_ok("valid domain result");
     let inside = |c: &pw_table_memory::Command| state(|i, a| c.read(i, a));
     let before = inside(&command);
     for (import, row, holder) in [
@@ -345,7 +355,7 @@ fn a_refused_write_changes_nothing_and_the_command_goes_on() {
 fn a_dropped_command_is_undone_whole_its_maps_too() {
     let db = seeded(10);
     let before = state(|i, a| db.read(i, a));
-    let mut command = db.begin().assert_ok("valid domain result");
+    let mut command = db.begin(a_reader()).assert_ok("valid domain result");
     command
         .write(POSTS_PUT, &[post("ann", "a2", 7, false)])
         .assert_ok("valid domain result");
@@ -370,7 +380,7 @@ fn a_dropped_command_is_undone_whole_its_maps_too() {
     assert_ne!(state(|i, a| command.read(i, a)), before);
     drop(command);
     assert_eq!(state(|i, a| db.read(i, a)), before);
-    let next = db.begin().assert_ok("valid domain result");
+    let next = db.begin(a_reader()).assert_ok("valid domain result");
     assert_eq!(
         state(|i, a| next.read(i, a)),
         before,
@@ -390,7 +400,7 @@ fn a_dropped_command_is_undone_whole_its_maps_too() {
 #[test]
 fn every_index_is_kept_on_every_write() {
     let db = seeded(10);
-    let mut command = db.begin().assert_ok("valid domain result");
+    let mut command = db.begin(a_reader()).assert_ok("valid domain result");
     command
         .write(POSTS_PUT, &[post("ann", "a1", 3, true)])
         .assert_ok("valid domain result");
@@ -425,7 +435,7 @@ fn every_index_is_kept_on_every_write() {
             .assert_ok("valid domain result"),
         published
     );
-    db.transaction(|tx| tx.write(DELETE_OF_AUTHOR, &[json!("ann")]))
+    db.transaction(a_reader(), |tx| tx.write(DELETE_OF_AUTHOR, &[json!("ann")]))
         .assert_ok("valid domain result");
     assert_eq!(
         db.read(BY_DRAFT, &[json!(true)])
@@ -445,7 +455,7 @@ fn every_index_is_kept_on_every_write() {
 #[test]
 fn a_unique_value_is_held_by_one_row_through_any_writes() {
     let db = seeded(10);
-    db.transaction(|tx| {
+    db.transaction(a_reader(), |tx| {
         assert!(matches!(
             tx.write(USERS_PUT, &[user("ann", "Bo")]),
             Err(Error::Conflict { .. })
@@ -484,7 +494,7 @@ fn a_growth_write_is_refused_at_the_bound_without_changing_staging() {
     let posts_before = db
         .read(OF_AUTHOR, &[json!("ann")])
         .assert_ok("valid domain result");
-    let mut command = db.begin().assert_ok("valid domain result");
+    let mut command = db.begin(a_reader()).assert_ok("valid domain result");
     command
         .write(USERS_INSERT, &[user("cy", "Cy")])
         .assert_ok("valid domain result");
@@ -567,7 +577,7 @@ fn references_are_held_at_commit_both_ways() {
             (POSTS_DELETE, vec![json!("ann"), json!("a1")]),
         ],
     ] {
-        let mut command = db.begin().assert_ok("valid domain result");
+        let mut command = db.begin(a_reader()).assert_ok("valid domain result");
         for (import, args) in &writes {
             command.write(import, args).assert_ok("valid domain result");
         }
@@ -576,7 +586,7 @@ fn references_are_held_at_commit_both_ways() {
             "{writes:?}"
         );
     }
-    let mut command = db.begin().assert_ok("valid domain result");
+    let mut command = db.begin(a_reader()).assert_ok("valid domain result");
     command
         .write(POSTS_INSERT, &[post("cy", "c1", 1, false)])
         .assert_ok("valid domain result");
@@ -608,7 +618,7 @@ fn references_are_held_at_commit_both_ways() {
 #[test]
 fn a_command_waits_its_turn() {
     let db = Arc::new(seeded(10));
-    let mut first = db.begin().assert_ok("valid domain result");
+    let mut first = db.begin(a_reader()).assert_ok("valid domain result");
     first
         .write(USERS_INSERT, &[user("cy", "Cy")])
         .assert_ok("valid domain result");
@@ -618,7 +628,7 @@ fn a_command_waits_its_turn() {
     });
     let second = Arc::clone(&db);
     let waiting = std::thread::spawn(move || {
-        let command = second.begin().assert_ok("valid domain result");
+        let command = second.begin(a_reader()).assert_ok("valid domain result");
         command
             .read(BY_NAME, &[json!("Cy")])
             .assert_ok("valid domain result")
@@ -665,7 +675,7 @@ fn an_ended_command_writes_nothing() {
         ("id".into(), Val::String("cy".into())),
         ("name".into(), Val::String("Cy".into())),
     ]);
-    let command = db.begin().assert_ok("valid domain result");
+    let command = db.begin(a_reader()).assert_ok("valid domain result");
     let host = command
         .host_fns(&contract, &granted)
         .assert_ok("valid domain result");
@@ -688,7 +698,7 @@ fn an_ended_command_writes_nothing() {
         "prepared, it writes nothing more"
     );
     prepared.publish().assert_ok("valid domain result");
-    let next = db.begin().assert_ok("valid domain result");
+    let next = db.begin(a_reader()).assert_ok("valid domain result");
     let refused = insert(std::slice::from_ref(&cy)).assert_err("ended, it writes nothing");
     assert!(refused.contains("Ended"), "{refused}");
     drop(next);
@@ -703,7 +713,7 @@ fn an_ended_command_writes_nothing() {
 #[test]
 fn staged_callbacks_require_one_explicit_command_export() {
     let db = seeded(10);
-    let mut command = db.begin().assert_ok("valid domain result");
+    let mut command = db.begin(a_reader()).assert_ok("valid domain result");
     command
         .write(USERS_INSERT, &[user("cy", "Cy")])
         .assert_ok("valid domain result");
@@ -766,7 +776,7 @@ fn staged_callbacks_require_one_explicit_command_export() {
 #[test]
 fn a_command_that_writes_nothing_reports_no_table() {
     let db = seeded(10);
-    let mut command = db.begin().assert_ok("valid domain result");
+    let mut command = db.begin(a_reader()).assert_ok("valid domain result");
     command
         .write(USERS_DELETE, &[json!("nobody")])
         .assert_ok("valid domain result");
@@ -796,7 +806,7 @@ fn a_command_that_writes_nothing_reports_no_table() {
             .is_empty()
     );
     // The neighbour: a row changed is a table written.
-    let mut command = db.begin().assert_ok("valid domain result");
+    let mut command = db.begin(a_reader()).assert_ok("valid domain result");
     command
         .write(USERS_PUT, &[user("ann", "Anne")])
         .assert_ok("valid domain result");
@@ -836,13 +846,13 @@ fn changing_only_a_floats_zero_sign_is_published_and_rolled_back_exactly() {
     declared.migration.to = hash;
     let db = MemoryTables::new(declared).assert_ok("float field admitted");
     let row = |score: f64| json!({"author":"ann","id":"a1","rank":1,"draft":false,"score":score});
-    db.transaction(|tx| {
+    db.transaction(a_reader(), |tx| {
         tx.write(USERS_INSERT, &[user("ann", "Ann")])?;
         tx.write(POSTS_INSERT, &[row(0.0)])
     })
     .assert_ok("valid domain result");
     let bits = |value: Value| value[0]["score"].as_f64().assert_ok("a float").to_bits();
-    let mut command = db.begin().assert_ok("valid domain result");
+    let mut command = db.begin(a_reader()).assert_ok("valid domain result");
     command
         .write(POSTS_PUT, &[row(-0.0)])
         .assert_ok("valid domain result");
@@ -875,12 +885,12 @@ fn changing_only_a_floats_zero_sign_is_published_and_rolled_back_exactly() {
         (-0.0f64).to_bits(),
         "published bits match staged bits"
     );
-    let mut rolled_back = db.begin().assert_ok("valid domain result");
+    let mut rolled_back = db.begin(a_reader()).assert_ok("valid domain result");
     rolled_back
         .write(POSTS_PUT, &[row(0.0)])
         .assert_ok("valid domain result");
     drop(rolled_back);
-    let next = db.begin().assert_ok("valid domain result");
+    let next = db.begin(a_reader()).assert_ok("valid domain result");
     assert_eq!(
         bits(
             next.read(OF_AUTHOR, &[json!("ann")])
@@ -891,7 +901,7 @@ fn changing_only_a_floats_zero_sign_is_published_and_rolled_back_exactly() {
     );
     drop(next);
     for nan in [f64::NAN, f64::from_bits(0x7ff8_0000_0000_0042)] {
-        let mut command = db.begin().assert_ok("valid domain result");
+        let mut command = db.begin(a_reader()).assert_ok("valid domain result");
         assert!(
             command.write(POSTS_PUT, &[row(nan)]).is_err(),
             "nonfinite JSON value is refused"
@@ -912,7 +922,7 @@ fn integer_changes_above_float_precision_are_not_lost() {
     let db = seeded(10);
     let lower = 9_007_199_254_740_992i64;
     for rank in [lower, lower + 1] {
-        let mut command = db.begin().assert_ok("valid domain result");
+        let mut command = db.begin(a_reader()).assert_ok("valid domain result");
         command
             .write(POSTS_PUT, &[post("ann", "a1", rank, false)])
             .assert_ok("valid domain result");

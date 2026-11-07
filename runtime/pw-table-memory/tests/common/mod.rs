@@ -16,6 +16,11 @@ use pw_core::check::Unit;
 use pw_host::engine::{HostFn, Val};
 
 fn units(fixtures: &[&str]) -> Vec<Unit> {
+    units_edited(fixtures, |src| src.to_string())
+}
+
+/// [`units`], each fixture's source edited by `edit` first.
+fn units_edited(fixtures: &[&str], edit: impl Fn(&str) -> String) -> Vec<Unit> {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let mut paths = Vec::new();
     for directory in ["packages/pw-std", "packages/pw-platform-web"] {
@@ -27,13 +32,16 @@ fn units(fixtures: &[&str]) -> Vec<Unit> {
         );
     }
     paths.sort();
+    let platform = paths.len();
     for name in fixtures {
         paths.push(root.join("examples/tables").join(name));
     }
     paths
         .into_iter()
-        .map(|path| {
-            let src = std::fs::read_to_string(&path).expect("fixture source");
+        .enumerate()
+        .map(|(at, path)| {
+            let read = std::fs::read_to_string(&path).expect("fixture source");
+            let src = if at < platform { read } else { edit(&read) };
             let parsed = pw_syntax::parse_tree(&src);
             assert!(parsed.ok(), "{}: {:?}", path.display(), parsed.errors);
             let hir = pw_core::lower::lower_file(&src, &parsed.green);
@@ -216,12 +224,35 @@ pub fn build_edited(
     pw_core::program::build(&units)
 }
 
+/// **The app's program, its lists and items owned** (the owned-rows ADR):
+/// `examples/tables`, each table saying `owner <owner>` (`user` or
+/// `session`) where it says `owner anyone`.
+pub fn app_owned(owner: &str) -> Program {
+    program_edited(
+        &["app.pw"],
+        &[
+            EVERY_LIST, LIST_AT, ITEMS_OF, OPEN_ITEMS, EVERY_ITEM, MAKE_LIST, KEEP_ITEM, DROP_ITEM,
+            CLEAR_LIST,
+        ],
+        |src| {
+            src.replace("    owner   anyone\n", &format!("    owner   {owner}\n"))
+                .replace("    owner  anyone\n", &format!("    owner  {owner}\n"))
+        },
+    )
+}
+
 /// The tables' declarations and `program`, built by the compiler, and the
 /// components `ids` compiled.
 fn program_of(program: &[&str], ids: &[&str]) -> Program {
+    program_edited(program, ids, |src| src.to_string())
+}
+
+/// [`program_of`], each fixture's source edited by `edit` first.
+fn program_edited(program: &[&str], ids: &[&str], edit: impl Fn(&str) -> String) -> Program {
     let mut fixtures = vec!["Lists.pw", "Items.pw", "ListData.pw"];
     fixtures.extend(program);
-    let build = pw_core::build::build(&units(&fixtures)).assert_ok("the table program builds");
+    let build =
+        pw_core::build::build(&units_edited(&fixtures, edit)).assert_ok("the table program builds");
     assert!(build.refusals().is_empty(), "{:?}", build.refusals());
     let contracts = pw_host::ComponentContract::from_json(
         &serde_json::to_string(&build.contracts).expect("serialize compiled contracts"),

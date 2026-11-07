@@ -1,0 +1,33 @@
+// @status: GENERAL
+// @invariant: who_may_change
+// @dimension: indirect invalid — a put through a helper, from a command keyed and retried as a page's are, with no `owner`
+//
+// Structurally different from R-098: a put, not a delete, and the command
+// writes nothing itself: it calls a helper that does, and declares every
+// clause a command a page sends does. Its effects are inferred through the
+// call, and `requires Anyone` says who may run it, not whose shelf it
+// renames: a request that names another reader's shelf renames theirs.
+
+module Shelves
+
+opaque type InteractionId = String
+opaque type ShelfId = String
+
+type Shelf = Shelf { id: ShelfId, label: String, added: Int }
+
+table Shelves
+    row   Shelf
+    key   id
+    order added
+
+fn relabel(shelf: Shelf, label: String) -> () {
+    Shelves.put(Shelf { id: shelf.id, label: label, added: shelf.added })
+}
+
+command rename_shelf(shelf: Shelf, label: String) -> ()
+    requires      Anyone
+    idempotent_by InteractionId
+    transaction   serializable
+{
+    relabel(shelf, label)
+}

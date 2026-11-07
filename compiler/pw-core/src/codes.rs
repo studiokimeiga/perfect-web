@@ -26,6 +26,7 @@
 //! PW64xx   the payments track's (NEXT 6c): a command the platform invokes
 //! PW66xx   check-is-build: executable program support
 //! PW68xx   the device-store track's: a value the reader's device keeps
+//! PW69xx   the data-path track's: a program's declared tables, served
 //! ```
 //!
 //! A parallel track registers its codes in its own block, with its own
@@ -137,6 +138,11 @@ pub enum Owner {
     /// the integrator): a value the reader's device keeps, charter §9.1's
     /// fourth kind of state, and the `Device` label that keeps it there.
     DeviceStore,
+    /// The data-path track's codes, PW69xx (ADR-0338's D2, an app with no
+    /// Rust data layer; the next free block, the integrator's ruling 3 of
+    /// 2026-11-02 asking the track's own): a program's declared tables, as
+    /// the development server serves them.
+    DataPath,
 }
 
 impl fmt::Display for Code {
@@ -345,6 +351,13 @@ codes! {
         "a reference to a table another source holds is held by no database: the referred row may be missing, which `get` answers as `None`";
     MIGRATION_UNSTATED = "PW0366" / migration_unstated / 1, DeclarationRules,
         "a change from the schema released that loses or reinterprets data is stated by a `migrate`, and each `migrate` states one";
+    // The owned-rows ADR (phase 2 of the requires ADR's PW0367): a command a
+    // reader can run is a request away, and its arguments are the request's,
+    // so a table it writes says whose its rows are. Until 2026-11-07 any
+    // such command changed any row a request named by its key. PW0368 and
+    // PW0369 are track row-ownership's (`wip/row-ownership`, not landed).
+    WHO_MAY_CHANGE = "PW0370" / who_may_change / 1, DeclarationRules,
+        "a table a command a reader can run writes says who may change its rows: `owner user` or `owner session`, the reader who inserted each row, whom the platform records and holds every change to, or `owner anyone`";
 
     STALE_KEY_POLICY = "PW0325" / stale_key_policy / 1, DeclarationRules,
         "a keyed query must say what happens when its key changes";
@@ -989,6 +1002,13 @@ codes! {
         "a signal the device keeps is of a type the device can hold: data, no function, no type that contains itself, no opaque type with a `where`";
     DEVICE_SIGNAL_PROVIDED = "PW6808" / device_signal_provided / 1, DeviceStore,
         "a signal the device keeps is provided by the device: no `provide` gives it a value";
+
+    // --- the data-path track (PW69xx; ADR-0338's D2) ----------------------
+    //
+    // `type Held = Held { id: String, who: User<UserId> }` as a table's row:
+    // a handle stored where every reader of the table reads it.
+    ROW_HOLDS_HANDLE = "PW6901" / row_holds_handle / 1, DataPath,
+        "a table's row holds no session's, user's or organization's handle: every reader of the table reads its rows, and a handle is its own reader's alone; a row names someone by their id";
 }
 
 /// Codes that were registered, are no longer emitted, and whose numbers must
@@ -1085,6 +1105,7 @@ impl Owner {
             Owner::Schedules => "PW65",
             Owner::CheckIsBuild => "PW66",
             Owner::DeviceStore => "PW68",
+            Owner::DataPath => "PW69",
             Owner::Syntax | Owner::Resolution => "PW00",
             Owner::Placement | Owner::Privacy | Owner::Markup => "PW50",
             Owner::Types => "PW06",
@@ -1155,6 +1176,7 @@ mod tests {
                 (Owner::Schedules, "PW65"),
                 (Owner::CheckIsBuild, "PW66"),
                 (Owner::DeviceStore, "PW68"),
+                (Owner::DataPath, "PW69"),
             ] {
                 assert!(
                     !c.id.starts_with(block) || c.owner == owner,

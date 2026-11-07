@@ -282,6 +282,9 @@ pub(crate) fn check_inferred_prepared(
     // 4c: what keys each source read, and what loops over it, over every
     // unit, since a loop in one module calls a read in another.
     let bounded = crate::bounded::Reads::of(hirs, workspace, sigs, inference, &sources);
+    // The owned-rows ADR: each table a command a reader can run writes, over
+    // every unit, since a command in one module writes a table in another.
+    let reader_writes = crate::tables::written_by_readers(hirs, inference);
     let paths: Vec<&str> = units.iter().map(|u| u.path.as_str()).collect();
     let diagnostics = units
         .iter()
@@ -291,6 +294,9 @@ pub(crate) fn check_inferred_prepared(
             out.extend(sent_without_idempotency(&u.hir, i, &sent));
             // The requires ADR: a command a reader can run says who may.
             out.extend(who_may_run(&u.hir, i, &sent));
+            // The owned-rows ADR: and a table it writes says who may change
+            // its rows.
+            out.extend(crate::tables::who_may_change(hirs, i, &reader_writes));
             // ADR-0157: a command is one request a page's handler sends, and
             // what it answers is whether it committed.
             out.extend(called_outside_a_handler(&u.hir, i, sigs));
@@ -3117,8 +3123,9 @@ fn dependencies_stated_once(hir: &Hir) -> Vec<Diagnostic> {
 /// Int { p.value }` would call itself for ever.
 /// **The handle a type holds, if any** (ADR-0263): a session's, a user's or
 /// an organization's, wherever it sits: the type itself, an argument, a
-/// record's field, a case's payload, an opaque type's representation.
-fn handle_in(
+/// record's field, a case's payload, an opaque type's representation. A
+/// table's row holds none (PW6901, `tables::check`).
+pub(crate) fn handle_in(
     sigs: &Signatures,
     ty: &crate::resolved::ResolvedType,
     seen: &mut BTreeSet<crate::resolve::DefId>,

@@ -26,6 +26,17 @@
 //! then published whole ([`Prepared::publish`]). Internal storage failure
 //! refuses publication; this prototype is not yet the platform outbox transaction.
 //!
+//! **A command writes for one writer** (the owned-rows ADR): it is begun for
+//! a request's reader, or for the platform's own command
+//! (`pw_host::tables::Writer`). In a table whose rows record their owner
+//! (`owner user`, `owner session`), a reader's insert records the reader's id
+//! beside the row, in no field; its `put`, `delete` and `delete_of_<fields>`
+//! change only the rows recording it, and another reader's row is absent to
+//! them: nothing changes, and the answer is the one a missing row has. A
+//! reader with no id of the table's kind is refused every write to it. The
+//! platform's command changes any row, and a row it inserts records no owner.
+//! Reads are unchanged: a query's audience decides who sees a row.
+//!
 //! JSON is the internal adapter value representation, not the public WIT ABI.
 //! Unsupported storage variants fail closed rather than losing information.
 //! The development server's routing of a program's tables to this adapter,
@@ -37,12 +48,21 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 
 use pw_core::tables::{Primitive, Schema, Stored, TableJson, TablesJson};
+use pw_host::tables::{OwnerKind, Scope};
+/// Whose a command's writes are, as [`MemoryTables::begin`] takes it (the
+/// host's, `pw_host::tables`).
+pub use pw_host::tables::{Reader, Writer};
 use serde_json::{Map, Value};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Error {
     Schema(String),
     Input(String),
+    /// **A write to an owned table its writer can own no row of** (the
+    /// owned-rows ADR): a reader signed in as no one, writing a table whose
+    /// rows record their user. Refused whatever the row, so that the answer
+    /// says nothing of another reader's rows; nothing was written.
+    Unowned(String),
     /// A write refused by the row that holds its key or a unique value it
     /// would hold. Nothing was written.
     Conflict {
@@ -78,7 +98,27 @@ impl Atom {
 }
 
 type Key = Vec<Atom>;
-type Row = Arc<Map<String, Value>>;
+type Row = Arc<Held>;
+
+/// **A row as the adapter holds it** (the owned-rows ADR): its fields, which
+/// are all a read, a refusal or a commit ever answers, and beside them the
+/// reader who inserted it, where its table records one. The owner is in no
+/// field, so no program reads or writes it, and it moves with the row
+/// through every write, undo and publish.
+#[derive(Debug, Clone, PartialEq)]
+struct Held {
+    fields: Map<String, Value>,
+    /// The id of the reader who inserted it, in an owned table; none in a
+    /// table no reader owns, and for a row the platform inserted.
+    owner: Option<String>,
+}
+
+impl std::ops::Deref for Held {
+    type Target = Map<String, Value>;
+    fn deref(&self) -> &Map<String, Value> {
+        &self.fields
+    }
+}
 
 // --- what the manifest declares, read once --------------------------------
 
@@ -95,6 +135,8 @@ struct TableShape {
     indexes: Vec<IndexShape>,
     references: Vec<ReferenceShape>,
     bounded: Option<u64>,
+    /// The reader each row records as its owner (the owned-rows ADR).
+    owner: Option<OwnerKind>,
 }
 
 struct IndexShape {
@@ -296,6 +338,8 @@ struct Working {
 /// The open command.
 struct Open {
     id: u64,
+    /// Whose its writes are: what each write to an owned table is held to.
+    writer: Writer,
     /// Held to its commit's checks, and writing nothing more.
     prepared: bool,
     /// Each key it wrote, by its table, and the row it held before: what
@@ -331,7 +375,7 @@ impl MemoryTables {
         let text = serde_json::to_string(&manifest)
             .map_err(|error| Error::Schema(format!("tables.json: {error}")))?;
         let host = pw_host::tables::Manifest::from_json(&text).map_err(Error::Schema)?;
-        let shape = shape_of(&manifest)?;
+        let shape = shape_of(&manifest, &host)?;
         let tables: Vec<Data> = shape.tables.iter().map(Data::new).collect();
         Ok(Self {
             inner: Arc::new(Inner {
@@ -418,9 +462,11 @@ impl MemoryTables {
     }
 
     /// **A command's transaction** (ADR-0386): begun once the command before
-    /// it has ended, one at a time. Its writes are staged until it commits
-    /// ([`Command::commit`]), and undone whole where it is dropped instead.
-    pub fn begin(&self) -> Result<Command, Error> {
+    /// it has ended, one at a time, for `writer`, whom each of its writes to
+    /// an owned table is held to (the owned-rows ADR). Its writes are staged
+    /// until it commits ([`Command::commit`]), and undone whole where it is
+    /// dropped instead.
+    pub fn begin(&self, writer: Writer) -> Result<Command, Error> {
         let mut working = self.inner.lock_working()?;
         if working.open.is_some() {
             let tell = self
@@ -443,6 +489,7 @@ impl MemoryTables {
         working.next += 1;
         working.open = Some(Open {
             id,
+            writer,
             prepared: false,
             touched: BTreeMap::new(),
         });
@@ -472,13 +519,15 @@ impl MemoryTables {
         drop(old);
     }
 
-    /// A serializable transaction in this memory database. A failed command,
-    /// unique violation, missing reference or user error publishes nothing.
+    /// A serializable transaction in this memory database, for `writer`. A
+    /// failed command, unique violation, missing reference or user error
+    /// publishes nothing.
     pub fn transaction<T>(
         &self,
+        writer: Writer,
         action: impl FnOnce(&mut Command) -> Result<T, Error>,
     ) -> Result<T, Error> {
-        let mut command = self.begin()?;
+        let mut command = self.begin(writer)?;
         let answer = action(&mut command)?;
         command.commit()?;
         Ok(answer)
@@ -528,6 +577,13 @@ impl Command {
             return Err(Error::Input(
                 "staged table callbacks require one explicit command export".into(),
             ));
+        }
+        // Whose writes they are: a reader's for a command a request runs,
+        // the platform's for one it invokes (the owned-rows ADR).
+        {
+            let working = self.inner.working_of(self.id)?;
+            let open = working.open.as_ref().ok_or(Error::Ended)?;
+            open.writer.admits(contract).map_err(Error::Input)?;
         }
         let mut out = BTreeMap::new();
         let admitted = self
@@ -814,7 +870,14 @@ impl Inner {
         if open.prepared {
             return Err(Error::Ended);
         }
-        write(&self.shape, tables, &mut open.touched, import, args)
+        write(
+            &self.shape,
+            tables,
+            &mut open.touched,
+            &open.writer,
+            import,
+            args,
+        )
     }
 
     /// **What a commit keeps** (see [`Command::prepare`]), of each row it
@@ -938,7 +1001,7 @@ fn changed(
 /// snapshots holding different bits after a successful command.
 fn same_rows(left: &Option<Row>, right: &Option<Row>) -> bool {
     match (left, right) {
-        (Some(left), Some(right)) => same_fields(left, right),
+        (Some(left), Some(right)) => left.owner == right.owner && same_fields(left, right),
         (None, None) => true,
         _ => false,
     }
@@ -1010,7 +1073,10 @@ fn replay(shape: &Shape, tables: &mut impl Tables, rows: &[(usize, Key, Option<R
 
 // --- reading the manifest ----------------------------------------------------
 
-fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
+/// The tables `manifest` declares, as this adapter serves them; each table's
+/// owner as the host reads it (`host`, the same manifest), so that what the
+/// gate admits and what the adapter holds a write to are one reading.
+fn shape_of(manifest: &TablesJson, host: &pw_host::tables::Manifest) -> Result<Shape, Error> {
     let mut tables = Vec::new();
     let mut functions = BTreeMap::new();
     let place = |name: &str| manifest.tables.iter().position(|t| t.schema.name == name);
@@ -1153,6 +1219,7 @@ fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
                 .collect(),
             references,
             bounded: table.bounded,
+            owner: host.owner_of(name),
         });
     }
     Ok(Shape { tables, functions })
@@ -1222,7 +1289,7 @@ fn validates(value: &Value, ty: &Stored) -> bool {
     }
 }
 
-fn check_row(table: &TableShape, value: &Value) -> Result<(Key, Row), Error> {
+fn check_row(table: &TableShape, value: &Value) -> Result<(Key, Map<String, Value>), Error> {
     let row = value
         .as_object()
         .ok_or_else(|| Error::Input("row must be an object".into()))?;
@@ -1244,7 +1311,7 @@ fn check_row(table: &TableShape, value: &Value) -> Result<(Key, Row), Error> {
         }
     }
     let key = row_key(row, &table.key)?;
-    Ok((key, Arc::new(row.clone())))
+    Ok((key, row.clone()))
 }
 
 fn row_key(row: &Map<String, Value>, fields: &[String]) -> Result<Key, Error> {
@@ -1410,16 +1477,17 @@ fn read(
         }
         _ => return Err(Error::Input(format!("{import} is a write, not a read"))),
     }
+    // A row's fields alone: its owner is in none of them.
     if function.one {
         return Ok(found
             .first()
-            .map_or(Value::Null, |row| Value::Object((***row).clone())));
+            .map_or(Value::Null, |row| Value::Object(row.fields.clone())));
     }
     found.sort_by_cached_key(|row| place(row, &function.sorted_by, &table.key));
     Ok(Value::Array(
         found
             .into_iter()
-            .map(|row| Value::Object((**row).clone()))
+            .map(|row| Value::Object(row.fields.clone()))
             .collect(),
     ))
 }
@@ -1438,17 +1506,27 @@ fn write(
     shape: &Shape,
     tables: &mut [Data],
     touched: &mut BTreeMap<(usize, Key), Option<Row>>,
+    writer: &Writer,
     import: &str,
     args: &[Value],
 ) -> Result<(), Error> {
     let (at, function) = shape.function(import)?;
+    if !function.primitive.writes() {
+        return Err(Error::Input(format!("{import} is not a table write")));
+    }
     let table = &shape.tables[at];
+    // Whose rows it changes (the owned-rows ADR): any row, or only its
+    // reader's own. A reader who can own no row of the table is refused
+    // before anything is read or written.
+    let scope: Scope = writer
+        .scope(table.owner)
+        .map_err(|why| Error::Unowned(format!("{}: {why}", table.name)))?;
     let data = tables
         .get_mut(at)
         .ok_or_else(|| Error::Schema("missing table state".into()))?;
     let conflict = |held: &Row| Error::Conflict {
         table: table.name.clone(),
-        existing: Value::Object((**held).clone()),
+        existing: Value::Object(held.fields.clone()),
     };
     // Each key's row before this command first wrote it.
     let mut first = |key: &Key, prior: Option<Row>| {
@@ -1459,12 +1537,21 @@ fn write(
             let [value] = args else {
                 return Err(Error::Input("insert/put expects one row".into()));
             };
-            let (key, row) = check_row(table, value)?;
-            if function.primitive == Primitive::Insert
-                && let Some(existing) = data.rows.get(&key)
-            {
-                return Err(conflict(existing));
-            }
+            let (key, fields) = check_row(table, value)?;
+            let owner = match data.rows.get(&key) {
+                // An insert is refused by the row holding its key, whoever's.
+                Some(existing) if function.primitive == Primitive::Insert => {
+                    return Err(conflict(existing));
+                }
+                // Another reader's row is absent to a put, which then
+                // changes nothing, and is answered as written.
+                Some(existing) if !scope.changes(existing.owner.as_deref()) => return Ok(()),
+                // A row put again keeps the owner it records.
+                Some(existing) => existing.owner.clone(),
+                // A row inserted records its writer's id.
+                None => scope.owner().map(str::to_string),
+            };
+            let row = Arc::new(Held { fields, owner });
             match data.set(table, &key, Some(row))? {
                 Set::Held(held) => return Err(conflict(&held)),
                 Set::Done(prior) => first(&key, prior),
@@ -1472,7 +1559,11 @@ fn write(
         }
         Primitive::Delete => {
             let key = typed_selector(table, function, import, args)?;
-            if data.rows.contains_key(&key)
+            // Another reader's row is absent to a delete.
+            if data
+                .rows
+                .get(&key)
+                .is_some_and(|row| scope.changes(row.owner.as_deref()))
                 && let Set::Done(prior) = data.set(table, &key, None)?
             {
                 first(&key, prior);
@@ -1480,7 +1571,12 @@ fn write(
         }
         Primitive::DeletePrefix => {
             let prefix = typed_selector(table, function, import, args)?;
-            let keys: Vec<Key> = data.prefixed(&prefix).map(|(key, _)| key.clone()).collect();
+            // Its reader's rows of the prefix alone.
+            let keys: Vec<Key> = data
+                .prefixed(&prefix)
+                .filter(|(_, row)| scope.changes(row.owner.as_deref()))
+                .map(|(key, _)| key.clone())
+                .collect();
             for key in keys {
                 if let Set::Done(prior) = data.set(table, &key, None)? {
                     first(&key, prior);

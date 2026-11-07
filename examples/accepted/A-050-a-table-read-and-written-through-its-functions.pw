@@ -10,6 +10,10 @@
 // the functions its declaration gives this module. The control for R-100
 // (its key), R-101 (its index), R-102 (`all()` of a bounded table), R-103 (a
 // read it gives) and R-104 (no binding of the app's own).
+//
+// Its commands are any reader's to run, and any reader may change any chore,
+// as before rows had owners: `owner anyone` says so (the owned-rows ADR). A
+// chore is one household's, which `owner session` would make it.
 
 module Chores
 
@@ -24,6 +28,7 @@ table Chores
     order   added
     index   by_done on done
     bounded 200
+    owner   anyone
 
 source ChoreData
     holds        Chores

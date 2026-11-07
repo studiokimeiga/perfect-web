@@ -22,9 +22,17 @@ use pw_table_postgres::{
 };
 use serde_json::{Value, json};
 
+/// The reader every command here is begun for (the owned-rows ADR): one
+/// request's, in a table no reader owns, where it changes any row.
+fn a_reader() -> pw_host::tables::Writer {
+    pw_host::tables::Writer::Reader(
+        pw_host::tables::Reader::new("session-1", None).expect("a reader"),
+    )
+}
+
 fn seed_owners(tables: &PgTables, ids: &[&str]) {
     tables
-        .transaction(|tx| {
+        .transaction(a_reader(), |tx| {
             for id in ids {
                 tx.write(&owner("insert"), &[owner_row(id)])?;
             }
@@ -52,7 +60,7 @@ fn a_command_reads_its_own_writes_and_no_other_read_sees_them_before_it_commits(
     let scratch = Scratch::new(&url, "staged");
     let tables = open_things(&scratch);
     seed_owners(&tables, &["a"]);
-    let mut tx = tables.begin().assert_ok("a command");
+    let mut tx = tables.begin(a_reader()).assert_ok("a command");
     tx.write(&thing("insert"), &[thing_row("a", 1, 5, "one", true)])
         .assert_ok("written");
     assert_eq!(
@@ -82,7 +90,7 @@ fn a_command_dropped_or_refused_at_its_prepare_keeps_nothing() {
     let scratch = Scratch::new(&url, "undone");
     let tables = open_things(&scratch);
     seed_owners(&tables, &["a"]);
-    let mut tx = tables.begin().assert_ok("a command");
+    let mut tx = tables.begin(a_reader()).assert_ok("a command");
     tx.write(&owner("put"), &[json!({"id": "a", "name": "changed"})])
         .assert_ok("put");
     tx.write(&thing("insert"), &[thing_row("a", 1, 5, "one", true)])
@@ -98,7 +106,7 @@ fn a_command_dropped_or_refused_at_its_prepare_keeps_nothing() {
     );
     // A thing whose owner no row is: refused where it prepares, named as
     // the memory adapter names it, and nothing kept.
-    let mut tx = tables.begin().assert_ok("a command");
+    let mut tx = tables.begin(a_reader()).assert_ok("a command");
     tx.write(&owner("insert"), &[owner_row("b")])
         .assert_ok("an owner");
     tx.write(&thing("insert"), &[thing_row("zz", 1, 5, "one", true)])
@@ -110,9 +118,11 @@ fn a_command_dropped_or_refused_at_its_prepare_keeps_nothing() {
     assert_eq!(count_owners(&tables), 1);
     // An owner deleted while a thing refers to it: refused alike.
     tables
-        .transaction(|tx| tx.write(&thing("insert"), &[thing_row("a", 1, 5, "one", true)]))
+        .transaction(a_reader(), |tx| {
+            tx.write(&thing("insert"), &[thing_row("a", 1, 5, "one", true)])
+        })
         .assert_ok("a thing of a");
-    let mut tx = tables.begin().assert_ok("a command");
+    let mut tx = tables.begin(a_reader()).assert_ok("a command");
     tx.write(&owner("delete"), &[json!("a")])
         .assert_ok("deleted, for now");
     assert_eq!(
@@ -133,7 +143,7 @@ fn one_command_of_a_host_writes_at_a_time() {
     tables.tell_on_wait(move || {
         let _ = told.lock().map(|t| t.send(()));
     });
-    let mut first = tables.begin().assert_ok("the first command");
+    let mut first = tables.begin(a_reader()).assert_ok("the first command");
     first
         .write(&owner("put"), &[json!({"id": "a", "name": "first"})])
         .assert_ok("the first writes");
@@ -141,7 +151,7 @@ fn one_command_of_a_host_writes_at_a_time() {
     let second = {
         let tables = Arc::clone(&tables);
         std::thread::spawn(move || {
-            let mut tx = tables.begin()?;
+            let mut tx = tables.begin(a_reader())?;
             let _ = begun.send(());
             let seen = tx.read(&owner("get"), &[json!("a")])?;
             tx.write(&owner("put"), &[json!({"id": "a", "name": "second"})])?;
@@ -177,9 +187,11 @@ fn written_names_each_table_a_command_changed_and_no_other() {
     let tables = open_things(&scratch);
     seed_owners(&tables, &["a"]);
     tables
-        .transaction(|tx| tx.write(&thing("insert"), &[thing_row("a", 1, 5, "one", true)]))
+        .transaction(a_reader(), |tx| {
+            tx.write(&thing("insert"), &[thing_row("a", 1, 5, "one", true)])
+        })
         .assert_ok("a thing");
-    let mut tx = tables.begin().assert_ok("a command");
+    let mut tx = tables.begin(a_reader()).assert_ok("a command");
     tx.write(&thing("insert"), &[thing_row("a", 2, 5, "two", true)])
         .assert_ok("in");
     tx.write(&thing("delete"), &[json!("a"), json!(2)])
@@ -202,7 +214,7 @@ fn written_names_each_table_a_command_changed_and_no_other() {
     assert_eq!(names, ["Things"]);
     let committed = tx.commit().assert_ok("committed");
     assert_eq!(committed.written.keys().collect::<Vec<_>>(), ["Things"]);
-    let mut tx = tables.begin().assert_ok("a command");
+    let mut tx = tables.begin(a_reader()).assert_ok("a command");
     tx.write(&thing("put"), &[zero]).assert_ok("-0.0");
     assert_eq!(
         tx.written()
@@ -265,8 +277,8 @@ fn the_connections_default_read_committed_admits_write_skew() {
 /// Each host reads the owners, finds one, and adds one (two at most, it
 /// believes): the second commit's answer, and the owners kept.
 fn skew(one: &PgTables, two: &PgTables) -> (Result<(), Error>, usize) {
-    let mut first = one.begin().assert_ok("first");
-    let mut second = two.begin().assert_ok("second");
+    let mut first = one.begin(a_reader()).assert_ok("first");
+    let mut second = two.begin(a_reader()).assert_ok("second");
     let seen_first = first.read(&owner("all"), &[]).assert_ok("first reads");
     let seen_second = second.read(&owner("all"), &[]).assert_ok("second reads");
     assert_eq!(seen_first.as_array().map(Vec::len), Some(1));
@@ -294,13 +306,13 @@ fn a_transaction_runs_again_where_the_database_could_not_serialize_it() {
     let two = another_host(&scratch, Options::default());
     seed_owners(&one, &["a"]);
     let mut attempts = 0;
-    let answer = one.transaction(|tx| {
+    let answer = one.transaction(a_reader(), |tx| {
         attempts += 1;
         let seen = tx.read(&owner("all"), &[])?;
         if attempts == 1 {
             // Another host commits a row this read did not see, and reads
             // what this command is about to write.
-            let mut other = two.begin()?;
+            let mut other = two.begin(a_reader())?;
             other.read(&owner("get"), &[json!("b")])?;
             other.write(&owner("insert"), &[owner_row("c")])?;
             other.commit()?;
@@ -349,7 +361,7 @@ fn the_platforms_records_commit_with_the_writes() {
         },
         event("app.Second", vec![]),
     ];
-    let mut tx = one.begin().assert_ok("a command");
+    let mut tx = one.begin(a_reader()).assert_ok("a command");
     tx.write(&owner("insert"), &[owner_row("a")])
         .assert_ok("written");
     let committed = tx
@@ -382,7 +394,7 @@ fn the_platforms_records_commit_with_the_writes() {
     );
     // A second host meets the record by its key, and keeps nothing.
     let two = another_host(&scratch, Options::default());
-    let mut tx = two.begin().assert_ok("a command");
+    let mut tx = two.begin(a_reader()).assert_ok("a command");
     tx.write(&owner("insert"), &[owner_row("b")])
         .assert_ok("written");
     let again = tx.prepare().assert_ok("prepared").publish_with(Records {
@@ -395,7 +407,7 @@ fn the_platforms_records_commit_with_the_writes() {
     // A day and a minute later the key is a new interaction, and the
     // commit that records it forgets the old record.
     let later = 1_000_000_000 + 86_460_000;
-    let mut tx = two.begin().assert_ok("a command");
+    let mut tx = two.begin(a_reader()).assert_ok("a command");
     tx.write(&owner("insert"), &[owner_row("b")])
         .assert_ok("written");
     tx.prepare()
@@ -413,7 +425,7 @@ fn the_platforms_records_commit_with_the_writes() {
         Ok(Some("{\"later\":true}".to_string()))
     );
     // A value no entry is keyed by is refused before anything is sent.
-    let mut tx = one.begin().assert_ok("a command");
+    let mut tx = one.begin(a_reader()).assert_ok("a command");
     tx.write(&owner("insert"), &[owner_row("c")])
         .assert_ok("written");
     let refused = tx.prepare().assert_ok("prepared").publish_with(Records {
@@ -440,7 +452,7 @@ fn a_commit_the_database_refuses_keeps_nothing() {
              DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION refuse();",
         )
         .assert_ok("a trigger that refuses at the commit");
-    let mut tx = tables.begin().assert_ok("a command");
+    let mut tx = tables.begin(a_reader()).assert_ok("a command");
     tx.write(&owner("insert"), &[owner_row("a")])
         .assert_ok("written");
     let refused = tx.prepare().assert_ok("prepared").publish_with(Records {
@@ -473,7 +485,7 @@ fn a_commit_keeps_every_outbox_row_it_was_given_or_nothing() {
              CREATE TRIGGER lose BEFORE INSERT ON pw_outbox FOR EACH ROW EXECUTE FUNCTION lose();",
         )
         .assert_ok("a trigger that drops a row");
-    let mut tx = tables.begin().assert_ok("a command");
+    let mut tx = tables.begin(a_reader()).assert_ok("a command");
     tx.write(&owner("insert"), &[owner_row("a")])
         .assert_ok("written");
     let refused = tx.prepare().assert_ok("prepared").publish_with(Records {
@@ -491,21 +503,21 @@ fn a_command_touching_no_table_costs_the_database_nothing() {
     let scratch = Scratch::new(&url, "free");
     let tables = open_things(&scratch);
     let before = tables.statements();
-    let tx = tables.begin().assert_ok("a command");
+    let tx = tables.begin(a_reader()).assert_ok("a command");
     let committed = tx.commit().assert_ok("committed");
     assert!(committed.written.is_empty());
-    drop(tables.begin().assert_ok("another, dropped"));
+    drop(tables.begin(a_reader()).assert_ok("another, dropped"));
     assert_eq!(tables.statements(), before);
     // One that writes: its BEGIN, its write, its check of references, its
     // COMMIT; with records, one statement each more.
     let before = tables.statements();
-    let mut tx = tables.begin().assert_ok("a command");
+    let mut tx = tables.begin(a_reader()).assert_ok("a command");
     tx.write(&owner("insert"), &[owner_row("a")])
         .assert_ok("written");
     tx.commit().assert_ok("committed");
     assert_eq!(tables.statements() - before, 4);
     let before = tables.statements();
-    let mut tx = tables.begin().assert_ok("a command");
+    let mut tx = tables.begin(a_reader()).assert_ok("a command");
     tx.write(&owner("put"), &[owner_row("a")])
         .assert_ok("written");
     tx.prepare()
@@ -644,7 +656,7 @@ fn a_reference_may_be_written_before_the_row_it_refers_to() {
     let Some(url) = database() else { return };
     let scratch = Scratch::new(&url, "either");
     let tables = open_things(&scratch);
-    let committed = tables.transaction(|tx| {
+    let committed = tables.transaction(a_reader(), |tx| {
         tx.write(&thing("insert"), &[thing_row("q", 1, 5, "one", true)])?;
         tx.write(&owner("insert"), &[owner_row("q")])
     });
@@ -691,7 +703,7 @@ fn the_outbox_takes_its_ids_in_commit_order() {
     seed_owners(&one, &["a", "b"]);
     let publish = |tables: Arc<PgTables>, name: &'static str, of: &'static str| {
         std::thread::spawn(move || {
-            let mut tx = tables.begin()?;
+            let mut tx = tables.begin(a_reader())?;
             tx.write(&thing("insert"), &[thing_row(of, 1, 5, of, true)])?;
             tx.prepare()?.publish_with(Records {
                 interaction: None,
@@ -734,7 +746,7 @@ fn a_commit_never_answered_is_not_taken_for_a_refusal() {
     let joiner = if url.contains('?') { '&' } else { '?' };
     let named = format!("{url}{joiner}application_name={}", scratch.schema);
     let tables = PgTables::open(&named, scratch.schema(), things()).assert_ok("open");
-    let mut tx = tables.begin().assert_ok("a command");
+    let mut tx = tables.begin(a_reader()).assert_ok("a command");
     tx.write(&owner("insert"), &[owner_row("a")])
         .assert_ok("written");
     let prepared = tx.prepare().assert_ok("prepared");

@@ -434,6 +434,10 @@ pub fn domain_of(head: &str) -> Option<Domain> {
         "refers" => Domain::Reference,
         "bounded" => Domain::Count,
         "migrate" => Domain::Migration,
+        // The owned-rows ADR: who may change a table's rows. `user` and
+        // `session` are the request's reader, whom the platform records with
+        // each row it inserts; `anyone` says any reader may change any row.
+        "owner" => Domain::Word(OWNERS),
         // Track `device-store` (ADR-0366): the version of a value the device
         // keeps; each earlier one is its `migrate`'s.
         "version" => Domain::Count,
@@ -692,8 +696,11 @@ pub fn declared_by(head: &str) -> Option<(&'static [crate::hir::DeclKind], &'sta
         "holds" | "transactions" | "reads" | "changes" | "sets" => (&[K::Source], "a data source"),
         // A keyed read's set form (4c): a function's.
         "set" => (&[K::Fn], "a function"),
-        // A table's (track `tables`, ADR-0338).
-        "row" | "order" | "index" | "unique" | "refers" | "bounded" => (&[K::Table], "a table"),
+        // A table's (track `tables`, ADR-0338), and who may change its rows
+        // (the owned-rows ADR).
+        "row" | "order" | "index" | "unique" | "refers" | "bounded" | "owner" => {
+            (&[K::Table], "a table")
+        }
         // A table's change from its schema released, or a device's value's
         // from its version released (track `device-store`).
         "migrate" => (
@@ -821,6 +828,12 @@ pub fn duration(v: &str) -> Option<u64> {
 /// declares it, it takes no argument and stands alone, and nothing asks it:
 /// the contract carries no requirement for it, and a page needs no guard.
 pub const ANYONE: &str = "Anyone";
+
+/// **Who may change a table's rows** (the owned-rows ADR): `owner user` and
+/// `owner session`, the reader who inserted each row, whom the platform
+/// records; `owner anyone`, any reader. A table a command a reader can run
+/// writes says one (PW0370), as such a command says who may run it.
+pub const OWNERS: &[&str] = &["user", "session", "anyone"];
 
 /// One deployment authorization predicate written by a command.
 ///
@@ -1284,6 +1297,7 @@ mod tests {
         "refers",
         "bounded",
         "migrate",
+        "owner",
         "transactions",
         "reads",
         "changes",

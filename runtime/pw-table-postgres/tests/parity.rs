@@ -29,6 +29,14 @@ use pw_table_memory::MemoryTables;
 use pw_table_postgres::PgTables;
 use serde_json::{Value, json};
 
+/// The reader every command here is begun for (the owned-rows ADR): one
+/// request's, in a table no reader owns, where it changes any row.
+fn a_reader() -> pw_host::tables::Writer {
+    pw_host::tables::Writer::Reader(
+        pw_host::tables::Reader::new("session-1", None).expect("a reader"),
+    )
+}
+
 /// **An answer, as both adapters can give it**: a value, as its JSON text
 /// (a float's sign and kind kept), or an error by its kind and words.
 #[derive(Debug, Clone, PartialEq)]
@@ -219,8 +227,8 @@ fn a_random_workload_answers_alike_on_memory_and_postgresql() {
         _ => {}
     };
     for step in 0..160 {
-        let mut on_memory = memory.begin().assert_ok("a memory command");
-        let mut on_postgres = postgres.begin().assert_ok("a postgres command");
+        let mut on_memory = memory.begin(a_reader()).assert_ok("a memory command");
+        let mut on_postgres = postgres.begin(a_reader()).assert_ok("a postgres command");
         for _ in 0..=c.below(5) {
             let (import, args) = if c.below(4) == 0 {
                 let (import, args) = c.pick(&reads).clone();
@@ -430,7 +438,7 @@ impl Adapter for MemoryTables {
         granted: &pw_host::Granted,
         args: &[Val],
     ) -> (Result<Vec<Val>, String>, Vec<String>, String) {
-        let staged = self.begin().assert_ok("its turn");
+        let staged = self.begin(a_reader()).assert_ok("its turn");
         let mut host = staged
             .host_fns(&c.contract, granted)
             .assert_ok("the gate admits it");
@@ -462,7 +470,7 @@ impl Adapter for PgTables {
         granted: &pw_host::Granted,
         args: &[Val],
     ) -> (Result<Vec<Val>, String>, Vec<String>, String) {
-        let staged = self.begin().assert_ok("its turn");
+        let staged = self.begin(a_reader()).assert_ok("its turn");
         let mut host = staged
             .host_fns(&c.contract, granted)
             .assert_ok("the gate admits it");
@@ -695,7 +703,7 @@ fn an_ended_commands_functions_act_on_nothing_on_either_adapter() {
         host.get(import).map(|f| f(args).is_err()).unwrap_or(false)
     };
     let on_memory = {
-        let staged = memory.begin().assert_ok("a command");
+        let staged = memory.begin(a_reader()).assert_ok("a command");
         let host = staged
             .host_fns(&c.contract, &granted)
             .assert_ok("its functions");
@@ -707,7 +715,7 @@ fn an_ended_commands_functions_act_on_nothing_on_either_adapter() {
         (after_prepare, after_commit, read_after)
     };
     let on_postgres = {
-        let staged = postgres.begin().assert_ok("a command");
+        let staged = postgres.begin(a_reader()).assert_ok("a command");
         let host = staged
             .host_fns(&c.contract, &granted)
             .assert_ok("its functions");

@@ -71,8 +71,8 @@ MUTANTS = [
     (
         "`set` and `sets` head a clause wherever they are written",
         GRAMMAR,
-        '    "layout", "set", "sets", "row", "order", "index", "unique", "refers", "migrate",\n',
-        '    "layout", "row", "order", "index", "unique", "refers", "migrate",\n',
+        '    "layout", "set", "sets", "row", "order", "index", "unique", "refers", "migrate", "owner",\n',
+        '    "layout", "row", "order", "index", "unique", "refers", "migrate", "owner",\n',
     ),
     (
         "`sets` takes any value",

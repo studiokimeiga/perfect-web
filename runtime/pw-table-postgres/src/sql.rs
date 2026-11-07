@@ -20,6 +20,24 @@ pub(crate) fn ident(name: &str) -> String {
     format!("\"{}\"", name.replace('"', "\"\""))
 }
 
+/// **The adapter's own column for a row's owner** (the owned-rows ADR), in a
+/// table whose rows record one: the id of the reader who inserted the row,
+/// or null, a row no reader owns (the platform's, or one held before its
+/// table recorded owners). No field of a program's is named so (a field's
+/// name is a letter or `_`, then letters, digits and `_`), and no statement
+/// reads it into a row.
+pub(crate) const OWNER: &str = "pw:owner";
+
+/// **Does its writer change the row `alias`**: `$any` (the platform's
+/// command, which changes any row), or the row records `$me` as its owner.
+/// Never null: a row recording no owner is no reader's.
+fn mine(alias: &str, me: usize, any: usize) -> String {
+    format!(
+        "(${any}::boolean OR COALESCE({alias}.{} = ${me}::text, false))",
+        ident(OWNER)
+    )
+}
+
 /// FNV-1a, 64 bits: a long derived name's suffix.
 fn fnv1a(bytes: &[u8]) -> u64 {
     let mut h: u64 = 0xcbf2_9ce4_8422_2325;
@@ -276,14 +294,20 @@ fn statement(names: &Names, table: &TableShape, function: &FunctionShape) -> Str
             let room = room(names, table)
                 .map(|r| format!(" AND {r}"))
                 .unwrap_or_default();
+            // An owned row records its writer: the reader's id, or null.
+            let (columns, values) = match table.owner {
+                Some(_) => (
+                    format!("{}, {}", column_names(table), ident(OWNER)),
+                    format!("{}, ${}::text", row_params(table), table.columns.len() + 1),
+                ),
+                None => (column_names(table), row_params(table)),
+            };
             format!(
                 "WITH holder AS ({}), \
-                 written AS (INSERT INTO {t} ({}) SELECT {} WHERE NOT EXISTS (SELECT 1 FROM holder){room} RETURNING 1) \
+                 written AS (INSERT INTO {t} ({columns}) SELECT {values} WHERE NOT EXISTS (SELECT 1 FROM holder){room} RETURNING 1) \
                  SELECT (SELECT count(*) FROM written), h.pw_rank, {} \
                  FROM (VALUES (1)) AS one LEFT JOIN holder h ON true",
                 holder(names, table, true),
-                column_names(table),
-                row_params(table),
                 aliased_row("h", table),
             )
         }
@@ -312,25 +336,59 @@ fn statement(names: &Names, table: &TableShape, function: &FunctionShape) -> Str
                     rest.join(", ")
                 )
             };
+            if table.owner.is_none() {
+                return format!(
+                    "WITH holder AS ({}), \
+                     old AS (SELECT {}, 1 AS pw_old FROM {t} t WHERE {}), \
+                     written AS (INSERT INTO {t} ({}) SELECT {} WHERE NOT EXISTS (SELECT 1 FROM holder){room} {conflict} RETURNING 1) \
+                     SELECT (SELECT count(*) FROM written), h.pw_rank, {}, o.pw_old IS NOT NULL, {} \
+                     FROM (VALUES (1)) AS one LEFT JOIN holder h ON true LEFT JOIN old o ON true",
+                    holder(names, table, false),
+                    named_row_list("t", table),
+                    equal("t", table, &table.key, &row_places(&table.key)),
+                    column_names(table),
+                    row_params(table),
+                    aliased_row("h", table),
+                    aliased_row("o", table),
+                );
+            }
+            // An owned table's (the owned-rows ADR): the row at the key, and
+            // whether its writer changes it. Another reader's row stops the
+            // put, which writes nothing; one written anew records its writer.
+            // The update leaves the owner as it is. Answered last, so every
+            // other column keeps its place.
+            let (me, any) = (table.columns.len() + 1, table.columns.len() + 2);
             format!(
                 "WITH holder AS ({}), \
-                 old AS (SELECT {}, 1 AS pw_old FROM {t} t WHERE {}), \
-                 written AS (INSERT INTO {t} ({}) SELECT {} WHERE NOT EXISTS (SELECT 1 FROM holder){room} {conflict} RETURNING 1) \
-                 SELECT (SELECT count(*) FROM written), h.pw_rank, {}, o.pw_old IS NOT NULL, {} \
+                 old AS (SELECT {}, 1 AS pw_old, {} AS pw_mine FROM {t} t WHERE {}), \
+                 written AS (INSERT INTO {t} ({}, {}) SELECT {}, ${me}::text WHERE NOT EXISTS (SELECT 1 FROM holder) \
+                 AND NOT EXISTS (SELECT 1 FROM old WHERE NOT old.pw_mine){room} {conflict} RETURNING 1) \
+                 SELECT (SELECT count(*) FROM written), h.pw_rank, {}, o.pw_old IS NOT NULL, {}, COALESCE(o.pw_mine, false) \
                  FROM (VALUES (1)) AS one LEFT JOIN holder h ON true LEFT JOIN old o ON true",
                 holder(names, table, false),
                 named_row_list("t", table),
+                mine("t", me, any),
                 equal("t", table, &table.key, &row_places(&table.key)),
                 column_names(table),
+                ident(OWNER),
                 row_params(table),
                 aliased_row("h", table),
                 aliased_row("o", table),
             )
         }
-        Primitive::Delete | Primitive::DeletePrefix => format!(
-            "DELETE FROM {t} AS t WHERE {} RETURNING {rows}",
-            equal("t", table, &function.by, &by)
-        ),
+        // An owned table's delete removes its writer's rows alone: another
+        // reader's row is absent to it.
+        Primitive::Delete | Primitive::DeletePrefix => match table.owner {
+            None => format!(
+                "DELETE FROM {t} AS t WHERE {} RETURNING {rows}",
+                equal("t", table, &function.by, &by)
+            ),
+            Some(_) => format!(
+                "DELETE FROM {t} AS t WHERE {} AND {} RETURNING {rows}",
+                equal("t", table, &function.by, &by),
+                mine("t", by.len() + 1, by.len() + 2)
+            ),
+        },
     }
 }
 
@@ -374,6 +432,9 @@ pub(crate) fn create_table(names: &Names, table: &TableShape) -> String {
         .iter()
         .map(|&f| ident(&table.columns[f].name))
         .collect();
+    if table.owner.is_some() {
+        parts.push(format!("{} text", ident(OWNER)));
+    }
     parts.push(format!(
         "CONSTRAINT {} PRIMARY KEY ({})",
         ident(&object_name(&table.name, "pkey")),
@@ -409,6 +470,17 @@ pub(crate) fn add_column(
             ),
             format!("ALTER TABLE {t} ALTER COLUMN {c} DROP DEFAULT"),
         ],
+    }
+}
+
+/// **The owner column made, or given up** (the owned-rows ADR): a table that
+/// records its rows' owner from now on holds every row it held for no
+/// reader; one that no longer does gives the owners recorded up.
+pub(crate) fn owner_column(names: &Names, table: &str, recorded: bool) -> String {
+    let t = names.qualified(table);
+    match recorded {
+        true => format!("ALTER TABLE {t} ADD COLUMN {} text", ident(OWNER)),
+        false => format!("ALTER TABLE {t} DROP COLUMN {}", ident(OWNER)),
     }
 }
 

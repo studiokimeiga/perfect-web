@@ -222,10 +222,8 @@ MUTANTS = [
      "                if declared.unique\n",
      "                if false && declared.unique\n"),
     ("an insert replaces its key's row", MEMORY,
-     "            if function.primitive == Primitive::Insert\n"
-     "                && let Some(existing) = data.rows.get(&key)\n",
-     "            if false\n"
-     "                && let Some(existing) = data.rows.get(&key)\n"),
+     "                Some(existing) if function.primitive == Primitive::Insert => {\n",
+     "                Some(existing) if false => {\n"),
     ("a command not committed is published", MEMORY,
      "            let _ = self.inner.end(self.id, false);\n",
      "            let _ = self.inner.end(self.id, true);\n"),

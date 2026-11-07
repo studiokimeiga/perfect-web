@@ -121,6 +121,9 @@ pub(crate) struct TableShape {
     pub indexes: Vec<IndexShape>,
     pub references: Vec<ReferenceShape>,
     pub bounded: Option<u64>,
+    /// The reader each row records as its owner (the owned-rows ADR), held in
+    /// a column of the adapter's own (`sql::OWNER`), in no field.
+    pub owner: Option<pw_core::tables::OwnerKind>,
 }
 
 #[derive(Debug, Clone)]
@@ -398,6 +401,7 @@ pub(crate) fn shape_of(manifest: &TablesJson) -> Result<Shape, Error> {
                 .collect::<Result<_, Error>>()?,
             references,
             bounded: table.bounded,
+            owner: table.schema.owner,
             columns,
         };
         for function in &table.functions {

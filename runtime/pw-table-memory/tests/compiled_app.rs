@@ -24,6 +24,14 @@ use pw_host::engine::{HostFn, Val};
 use pw_table_memory::MemoryTables;
 use serde_json::json;
 
+/// The reader every command here is begun for (the owned-rows ADR): one
+/// request's, in a table no reader owns, where it changes any row.
+fn a_reader() -> pw_host::tables::Writer {
+    pw_host::tables::Writer::Reader(
+        pw_host::tables::Reader::new("session-1", None).expect("a reader"),
+    )
+}
+
 /// What the app's node grants: each table's reads and writes, and the outbox
 /// its commands hand their invalidations to.
 const NODE: &[&str] = &[
@@ -39,7 +47,7 @@ const NODE: &[&str] = &[
 fn seeded(program: &Program) -> MemoryTables {
     let tables = MemoryTables::new(program.tables.clone()).assert_ok("the adapter");
     tables
-        .transaction(|tx| {
+        .transaction(a_reader(), |tx| {
             tx.write(
                 "pw:tables/lists#insert",
                 &[list_json("groceries", "food", 20)],
@@ -99,7 +107,7 @@ fn command_with(
 ) -> Ran {
     let reader = program.reader(id);
     let granted = reader.admitted(&reader.contract, &grants(NODE));
-    let staged = tables.begin().assert_ok("its turn");
+    let staged = tables.begin(a_reader()).assert_ok("its turn");
     let mut host = staged
         .host_fns(&reader.contract, &granted)
         .assert_ok("the gate admits the command's reads and writes");
@@ -350,7 +358,7 @@ fn a_commands_writes_are_invisible_until_it_commits() {
     let tables = seeded(&program);
     let keeper = program.reader(KEEP_ITEM);
     let granted = keeper.admitted(&keeper.contract, &grants(NODE));
-    let staged = tables.begin().assert_ok("its turn");
+    let staged = tables.begin(a_reader()).assert_ok("its turn");
     let mut host = staged
         .host_fns(&keeper.contract, &granted)
         .assert_ok("keeper host functions");
@@ -392,7 +400,7 @@ fn a_commands_writes_are_invisible_until_it_commits() {
 fn a_command_not_committed_publishes_none_of_its_writes() {
     let program = app();
     let tables = seeded(&program);
-    let staged = tables.begin().assert_ok("its turn");
+    let staged = tables.begin(a_reader()).assert_ok("its turn");
     for (id, args) in [
         (KEEP_ITEM, vec![item("groceries", "milk", true, 3)]),
         (CLEAR_LIST, vec![text("chores")]),
@@ -476,7 +484,7 @@ fn a_commands_index_read_sees_its_own_puts() {
     let program = writer();
     let tables = MemoryTables::new(program.tables.clone()).assert_ok("valid domain result");
     tables
-        .transaction(|tx| {
+        .transaction(a_reader(), |tx| {
             tx.write(
                 "pw:tables/lists#insert",
                 &[list_json("groceries", "food", 1)],

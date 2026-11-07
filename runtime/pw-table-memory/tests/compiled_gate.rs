@@ -18,6 +18,14 @@ use pw_host::engine::{HostFn, Val};
 use pw_table_memory::{Error, MemoryTables};
 use serde_json::json;
 
+/// The reader every command here is begun for (the owned-rows ADR): one
+/// request's, in a table no reader owns, where it changes any row.
+fn a_reader() -> pw_host::tables::Writer {
+    pw_host::tables::Writer::Reader(
+        pw_host::tables::Reader::new("session-1", None).expect("a reader"),
+    )
+}
+
 const NODE: &[&str] = &[
     "database.read<Lists>",
     "database.read<Items>",
@@ -58,7 +66,7 @@ fn a_write_links_only_into_a_command() {
     let maker = program.reader(MAKE_LIST);
     let mut query = maker.contract.clone();
     query.exports[0].kind = "query".into();
-    let staged = tables.begin().assert_ok("valid domain result");
+    let staged = tables.begin(a_reader()).assert_ok("valid domain result");
     // A malicious host can still hand the engine callbacks constructed for
     // the real command; the engine independently refuses their query use.
     let (granted, host) = host_of(&program, &tables, &staged, MAKE_LIST, &maker.contract);
@@ -90,7 +98,7 @@ fn a_write_links_only_into_a_command() {
         Ok(serde_json::Value::Null)
     );
     // The neighbour: its own contract, a command.
-    let staged = tables.begin().assert_ok("valid domain result");
+    let staged = tables.begin(a_reader()).assert_ok("valid domain result");
     let (granted, host) = host_of(&program, &tables, &staged, MAKE_LIST, &maker.contract);
     assert_eq!(
         maker.call(
@@ -127,7 +135,7 @@ fn a_forged_or_ungranted_write_is_refused() {
         .assert_ok("valid domain result");
     required.argument = Some("Other".into());
     let granted = maker.admitted(&forged, &grants(&["database.write<Other>", "outbox.write"]));
-    let staged = tables.begin().assert_ok("valid domain result");
+    let staged = tables.begin(a_reader()).assert_ok("valid domain result");
     assert!(matches!(
         staged.host_fns(&forged, &granted),
         Err(Error::Input(why)) if why.contains("database.write<Other>")
@@ -246,14 +254,14 @@ fn a_write_typed_otherwise_than_tables_json_is_refused_when_linking() {
         // The neighbour: the compiler's own manifest, and the adapter.
         let tables = MemoryTables::new(program.tables.clone()).assert_ok("valid domain result");
         tables
-            .transaction(|tx| {
+            .transaction(a_reader(), |tx| {
                 tx.write(
                     "pw:tables/lists#insert",
                     &[list_json("groceries", "food", 1)],
                 )
             })
             .assert_ok("valid domain result");
-        let staged = tables.begin().assert_ok("valid domain result");
+        let staged = tables.begin(a_reader()).assert_ok("valid domain result");
         let mut host = staged
             .host_fns(&reader.contract, &granted)
             .assert_ok("valid domain result");
@@ -303,12 +311,12 @@ fn a_write_answering_what_tables_json_says_it_does_not_is_refused() {
     // The neighbour: the compiler's manifest, on the adapter.
     let tables = MemoryTables::new(program.tables.clone()).assert_ok("valid domain result");
     tables
-        .transaction(|tx| {
+        .transaction(a_reader(), |tx| {
             tx.write("pw:tables/lists#insert", &[list_json("todo", "work", 1)])?;
             tx.write("pw:tables/lists#insert", &[list_json("next", "play", 2)])
         })
         .assert_ok("valid domain result");
-    let staged = tables.begin().assert_ok("valid domain result");
+    let staged = tables.begin(a_reader()).assert_ok("valid domain result");
     let host = staged
         .host_fns(&renamer.contract, &granted)
         .assert_ok("valid domain result");

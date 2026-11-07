@@ -581,10 +581,12 @@ fn generality_is_reported_separately_from_conformance() {
     // train-12 merge: device-store adds two witnesses (ADR-0366, C28),
     // generic effects adds three (ADR-0351, C29). 66 / 66 on 2026-11-06:
     // the requires ADR's `who_may_run`, a command that says who may run it
-    // (C32). Measured below; update STATUS and NEXT with the integrated result.
+    // (C32). 67 / 67 on 2026-11-07: the owned-rows ADR's `who_may_change`, a
+    // table that says who may change its rows (C33). Measured below; update
+    // STATUS and NEXT with the integrated result.
     assert_eq!(
         (general.len(), narrow.len(), untested.len()),
-        (66, 0, 0),
+        (67, 0, 0),
         "the published figure moved. If that is intended, update
          docs/STATUS.md and docs/NEXT.md in the same commit — a number in a
          status report that no test holds is a number that drifts."

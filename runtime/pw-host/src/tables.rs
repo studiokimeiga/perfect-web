@@ -31,7 +31,15 @@
 //!   (`database.read<Other>` on `pw:tables/likes#get`) never decides;
 //! - **each function's description** ([`Read`], [`Write`]): what it is given,
 //!   its row's fields in their declared order, its key and order, which the
-//!   engine holds the import's type and each of its answers to.
+//!   engine holds the import's type and each of its answers to;
+//! - **who may change a table's rows** (the owned-rows ADR): each table's
+//!   [`OwnerKind`], `user` or `session` ([`Manifest::owner_of`], which an
+//!   adapter reads its tables' owners by). An adapter begins each command's
+//!   transaction for one
+//!   [`Writer`], a request's [`Reader`] or the platform, and holds every write
+//!   to the writer's [`Scope`]: a reader's insert records it as the row's
+//!   owner, and its `put`, `delete` and `delete_of_<fields>` change only the
+//!   rows recording it, another reader's row absent to them.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -59,7 +67,166 @@ struct Table {
     /// The most rows the table holds, where it is read whole.
     #[serde(default)]
     bounded: Option<u64>,
+    /// The reader each row records as its owner (the owned-rows ADR); none
+    /// where no reader owns its rows.
+    #[serde(default)]
+    owner: Option<OwnerKind>,
     functions: Vec<Function>,
+}
+
+/// **The reader a table's rows record as their owner** (the owned-rows ADR;
+/// `pw_core::tables::OwnerKind`, mirrored by name): `owner user` or `owner
+/// session`. A kind this host does not know refuses the manifest, rather
+/// than leaving its rows unowned.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OwnerKind {
+    User,
+    Session,
+}
+
+impl OwnerKind {
+    pub fn word(self) -> &'static str {
+        match self {
+            OwnerKind::User => "user",
+            OwnerKind::Session => "session",
+        }
+    }
+}
+
+/// **Whose a command's writes are** (the owned-rows ADR): a table's adapter
+/// begins each command's transaction for one, and holds every write of the
+/// command to it ([`Writer::scope`]).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Writer {
+    /// A request's reader, as its host knows it: a command a reader runs.
+    Reader(Reader),
+    /// A command the platform invokes (`invoked_by`), for no reader. It
+    /// changes any row, and a row it inserts is owned by no reader. Never
+    /// a request's: [`Writer::admits`] holds it to such a command.
+    Platform,
+}
+
+/// **A request's reader** (the owned-rows ADR): its session, and its user
+/// where it is signed in, each by an id its host makes. An adapter records
+/// the id with each row the reader inserts into an owned table, where whoever
+/// reads the database reads it, so an id is never a secret: never the
+/// session's cookie, which would let them act as the session.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Reader {
+    session: String,
+    user: Option<String>,
+}
+
+impl Reader {
+    /// A reader by its session's id, and its user's where it is signed in.
+    /// An empty id names no one, and is refused.
+    pub fn new(session: &str, user: Option<&str>) -> Result<Reader, String> {
+        if session.is_empty() || user.is_some_and(str::is_empty) {
+            return Err("a reader's session and user are each named by an id".to_string());
+        }
+        Ok(Reader {
+            session: session.to_string(),
+            user: user.map(str::to_string),
+        })
+    }
+
+    pub fn session(&self) -> &str {
+        &self.session
+    }
+
+    pub fn user(&self) -> Option<&str> {
+        self.user.as_deref()
+    }
+}
+
+/// **Which rows of a table a writer changes** ([`Writer::scope`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Scope<'a> {
+    /// Any row: a table no reader owns, or the platform's command. A row
+    /// it inserts records no owner.
+    Any,
+    /// Only the rows that record this owner: a reader's, in an owned table.
+    /// A row it inserts records it; another reader's row is absent to it.
+    Owned(&'a str),
+}
+
+impl Scope<'_> {
+    /// The owner a row it inserts records: none where it changes any row.
+    pub fn owner(&self) -> Option<&str> {
+        match self {
+            Scope::Any => None,
+            Scope::Owned(id) => Some(id),
+        }
+    }
+
+    /// May it change a row that records `owner`?
+    pub fn changes(&self, owner: Option<&str>) -> bool {
+        match self {
+            Scope::Any => true,
+            Scope::Owned(id) => owner == Some(*id),
+        }
+    }
+}
+
+impl Writer {
+    /// **The rows this writer changes in a table whose rows record `owner`**:
+    /// any row of a table no reader owns, and any row for the platform; a
+    /// reader's own, by its id of that kind, in an owned table. A reader
+    /// with no id of that kind (one signed out, for `owner user`) changes
+    /// no row and inserts none: refused, whatever the row, so that what it
+    /// is answered says nothing of another reader's rows.
+    pub fn scope(&self, owner: Option<OwnerKind>) -> Result<Scope<'_>, String> {
+        match (self, owner) {
+            (Writer::Platform, _) | (Writer::Reader(_), None) => Ok(Scope::Any),
+            (Writer::Reader(reader), Some(OwnerKind::Session)) => Ok(Scope::Owned(&reader.session)),
+            (Writer::Reader(reader), Some(OwnerKind::User)) => match &reader.user {
+                Some(user) => Ok(Scope::Owned(user)),
+                None => Err(
+                    "its rows record the user who inserted each, and this request's reader is \
+                     signed in as no one"
+                        .to_string(),
+                ),
+            },
+        }
+    }
+
+    /// **Is this the writer `contract`'s command runs for?** The platform
+    /// for a command `invoked_by` it; a reader for any other, which a request
+    /// runs. A host that ran a reader's command as the platform would change
+    /// every reader's rows from a request.
+    pub fn admits(&self, contract: &ComponentContract) -> Result<(), String> {
+        let invoked = contract
+            .exports
+            .iter()
+            .filter(|export| export.kind == "command")
+            .map(|export| {
+                export
+                    .component
+                    .as_ref()
+                    .and_then(|c| c.invoked_by.as_deref())
+            })
+            .collect::<Vec<_>>();
+        let [invoked_by] = invoked.as_slice() else {
+            return Err(format!(
+                "`{}` exports {} commands, and a command's writes are one command's",
+                contract.component_id,
+                invoked.len()
+            ));
+        };
+        match (self, invoked_by) {
+            (Writer::Platform, None) => Err(format!(
+                "`{}` is a command a reader runs, and its writes are its reader's, never the \
+                 platform's",
+                contract.component_id
+            )),
+            (Writer::Reader(_), Some(by)) => Err(format!(
+                "`{}` is invoked by {by}, for no reader, and its writes are the platform's",
+                contract.component_id
+            )),
+            _ => Ok(()),
+        }
+    }
 }
 
 /// An index a table declares: `index by_done on done`, `unique by_slug on
@@ -549,6 +716,15 @@ impl Manifest {
             }
         }
         Ok(())
+    }
+
+    /// **The reader `table`'s rows record as their owner** (the owned-rows
+    /// ADR), or none: a table no reader owns, or no table of this manifest.
+    pub fn owner_of(&self, table: &str) -> Option<OwnerKind> {
+        self.tables
+            .iter()
+            .find(|t| t.name == table)
+            .and_then(|t| t.owner)
     }
 
     /// The function tables.json declares at `import`, as the engine holds it,

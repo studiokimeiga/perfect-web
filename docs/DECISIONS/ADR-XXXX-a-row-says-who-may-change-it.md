@@ -3,8 +3,61 @@
 Status: proposed, 2026-11-07, on branch `feat/owned-rows-20261107`, stacked
 on the requires ADR's branch (#83). The owner asked for "phase 2" of
 mandatory `requires`: no command may change another reader's record by
-naming its id. Not landed; not numbered (PARALLEL.md: the integrator numbers
+naming its id. Built on that branch the same day (below, "How it is
+built"); not landed; not numbered (PARALLEL.md: the integrator numbers
 ADRs).
+
+## Findings first (2026-11-07, while building)
+
+1. **Another design of the same class is accepted, and partly built.**
+   ADR-0384 (accepted 2026-10-25 as the dating app's plan, docs only)
+   sketches `owner <field>`: an owner held in a `UserId` field, each read
+   that leads with it taking the reader's handle, each write checked against
+   it, with `shares` and `private`; its syntax is marked provisional. Track
+   row-ownership built its H1 and H2 as `owned by <field>` on
+   `wip/row-ownership` (`ff9ff2c6`, 2026-11-02; no pull request, "lands after
+   #72"). This ADR's survey read only master and did not see either. The
+   two can stand together (`owner user|session|anyone` takes only those
+   three words, and the track writes `owned by`), but they are two ways to
+   say that a user owns a row, one hidden and one a field: **the
+   integrator rules which governs**, or how one becomes the other's step.
+2. **Codes.** That track registers PW0367 (`owner_names_a_principal`),
+   PW0368 and PW0369. The requires ADR's PW0367 (#83) already collides with
+   it. This change takes **PW0370**, leaving PW0368 and PW0369 to the track
+   (`codes.rs` says so), so that one renumbering, not two, settles them.
+3. **The handle check is PR #72's PW6901.** Track data-path (#72, open)
+   refuses a row whose field's type holds a handle (`row_holds_handle`,
+   commit `28590090`), after its review found `pw check` taking `who:
+   User<UserId>` and a shared query serving the stored handle to every
+   session. Decision 5's test settles the same thing, so this branch carries
+   that commit's compiler half unchanged (its registry entry, the check in
+   `tables::shape`, `check::handle_in` made visible to it, its tests in
+   `tests/handles.rs`, the guide's row): whichever lands first carries it,
+   and the other merges the same lines.
+4. **A reference reaches across owners** (not decided here, below). With
+   `Lists` and `Items` both `owner session`, a reader's `keep_item` may put
+   an item into another reader's list by naming the list: the reference
+   only asks that the list exist. And an item of one reader's that refers to
+   another's list stops that list's delete at the commit. Whether a
+   reference means "part of" (an item of a list: the same owner's alone) or
+   "about" (a comment on a post: anyone's) is the program's to say, and no
+   clause says it yet.
+5. **A bound counts every reader's rows.** `bounded 100` on an owned table
+   is one quota for all readers: one reader can fill it, and every other's
+   insert is refused. Track row-ownership refused `bounded` on owned tables
+   for this; here it is unchanged, and listed with the tables a narrowing
+   would reach.
+6. **A program cannot ask whose a row is.** The owner is in no field, so
+   `add_item(list)` cannot check that the list is its reader's before
+   writing beside it (finding 4). ADR-0384's field-based owner can; this
+   design would need a read the platform answers (a row if it is the
+   reader's, or none).
+7. **No host serves a program's tables yet.** The development server's
+   routing of declared tables is #72's; until it lands, the reader reaches
+   a table only through the adapters' API (`begin(Writer)`), which every
+   caller must now give one. #72's seam, once merged, begins each request's
+   command for its reader, by an id its host makes: never the session's
+   cookie, which #72 already keeps out of everything the host stores.
 
 ## Context
 
@@ -100,6 +153,86 @@ ADRs).
 - The host's table operations take the request's reader (the tables host,
   `runtime/pw-host`), and the contract carries each table's owner kind.
 
+## How it is built (2026-11-07)
+
+- **The clause** (`pw-syntax`'s grammar, `policy.rs`, `tables.rs`): `owner`
+  heads a clause only where its word follows on its line, as a table's
+  other word heads do, so `owner` stays a name a body may begin with. It is
+  a table's alone (PW5105 elsewhere), of the words `user`, `session` and
+  `anyone` (PW0335 for another, told once: PW0370 is not told beside it).
+  `pw fmt` aligns it as each clause of its table.
+- **The rule, PW0370 `who_may_change`** (`tables::written_by_readers` and
+  `tables::who_may_change`, called beside PW0367): every command not
+  `invoked_by` the platform whose effects, inferred through every call it
+  makes, hold `database.write<T>` of a declared table `T`. A table with no
+  `owner` is refused at its name, once, each such command named beside it at
+  the call that writes (in its own unit where it is another's).
+- **What a database records.** `TableSchema.owner` is `user` or `session`;
+  `owner anyone` and a table that says nothing record none, so their schema,
+  and its hash, are what they were: no lock and no database changes for a
+  table that says `owner anyone`. tables.json carries it (flattened), the
+  host's manifest reads it, refusing a kind it does not know, and
+  `Manifest::owner_of` answers it.
+- **PW0366** (the schema released): an owner recorded from now on, or given
+  up, is a step (`Step::ChangeOwner`); rows released before are owned by no
+  reader, so no request changes them, and the platform's commands still
+  may. An owner of another kind (`user` to `session`, or back) is refused:
+  each recorded owner would be read as another kind of reader.
+- **The writer** (`pw_host::tables`): every command's transaction is begun
+  for a `Writer`, a request's `Reader` (its session's id, and its user's
+  where it is signed in, each an id its host makes, never a secret) or the
+  platform's own command, which changes any row and owns none it inserts.
+  `Writer::scope` is the rows a write may change: any, in a table no reader
+  owns or for the platform; else the reader's own, by its id of the table's
+  kind. A reader signed in as no one is refused every write to an `owner
+  user` table, whatever the row, so that the answer says nothing of
+  another's. `Writer::admits` holds the writer to the command's contract: a
+  reader's for a command a request runs, the platform's for one `invoked_by`
+  it, so that no host runs a reader's command as the platform.
+- **The memory adapter**: a row is held as its fields and, beside them, its
+  owner, so the owner moves with the row through every write, undo and
+  publish, and every answer (a read, a refusal) is the fields alone. An
+  insert records its writer; a put keeps the owner a row records; another
+  reader's row is absent to a put, a delete and a prefix's delete: nothing
+  changes, and the answer is the one a missing row has.
+- **PostgreSQL**: an owned table has a column of the adapter's own,
+  `"pw:owner"` (no field of a program's can be named so), null for a row no
+  reader owns. The owned insert, put and delete statements take the writer
+  (`$me`, `$any`) and decide in the same statement: a put's `old` row says
+  whether its writer changes it, and another's stops the put, which answers
+  as written; a delete's `WHERE` holds its writer's rows alone. The
+  migration adds the column where a table comes to record owners (each row
+  then null), drops it only where the build's migration is from the schema
+  recorded, and refuses an owner of another kind.
+- **An insert of a key another reader's row holds** is refused as any
+  insert of a held key is, answered with that row: reads are unchanged, so
+  the same command could read it, and the key is taken.
+
+## The tables this migration says `owner anyone` (for the owner)
+
+Each was written by commands any reader runs, and anyone could change any of
+its rows; each now says so. The first candidates for `owner session`, as
+decision 4 says, with what narrowing them would reach (findings 4 to 6):
+
+| Table | Written by | A candidate for | What narrowing reaches |
+|---|---|---|---|
+| `examples/tables`' `Lists` | `make_list`, `insert_then_get`, `rename`, `insert_then_divide` | `owner session`: a visitor's lists | its `bounded 100` is one quota for every visitor (finding 5) |
+| `examples/tables`' `Items` | `keep_item`, `drop_item`, `clear_list`, `put_then_open` | `owner session`: a visitor's items | an item may name another visitor's list (finding 4) |
+| A-050's `Chores` | `add_chore`, `finish_room` | `owner session`: a household's chores | its `bounded 200`, as above |
+
+No other program, fixture or test of the repository has a table a reader's
+command writes. A table only the platform's commands write needs none, and
+none exists yet.
+
+## Not decided here, found while building
+
+- A reference's meaning across owners (finding 4), and a bound per owner
+  (finding 5).
+- A read that answers a row only if it is the reader's (finding 6).
+- A platform command that inserts a row for a reader: its rows are no
+  reader's.
+
 ## Evidence
 
-`docs/evidence/E14/owned-rows-2026-11-07/` (to come).
+`docs/evidence/E14/owned-rows-2026-11-07/`, its `README.md` and the
+commands that made each file.

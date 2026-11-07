@@ -1245,3 +1245,35 @@ Generality at open:        66/66 invariants generality-tested
 The texts under `examples/history/` keep what they were. A command in one
 that says nothing of who may run it is now refused for that too, beside the
 invariant its history test asks about.
+
+## C33: a row says who may change it, 2026-11-07
+
+Opened because the specification changed, and a charter category was added
+under §7.5's "explicit mutation with authorization". A table that a command
+a reader can run writes declares `owner user`, `owner session` or `owner
+anyone` (PW0370); for the first two the platform records each row's owner
+with it and holds every change to it. The owned-rows ADR
+(`ADR-XXXX-a-row-says-who-may-change-it.md`, numbered when it lands) is the
+decision. It builds on C32, the requires ADR's (draft PR #83).
+
+```text
+Corpus version:            C33
+Accepted programs:         44
+Rejected programs:         97
+Charter categories:        44/44 accepted, 97/97 rejected
+Generality at open:        67/67 invariants generality-tested
+```
+
+| Fixture | Change | Kind |
+|---|---|---|
+| R-098 | a table, `Notes`, that `forget_note` deletes from with `requires SignedIn` and no `owner`, refused with PW0370 | new category |
+| A-050 | its `Chores`, written by commands any reader runs, gains `owner anyone`: any reader could change any chore, and it now says so | specification changed, meaning kept |
+| `who_may_change` | a GENERAL witness, a put through a helper from a command keyed and retried as a page's are, and a NEIGHBOUR one, the same table `owner session` | new invariant |
+
+The texts under `examples/history/` keep what they were: a table in one
+that a reader's command writes is now refused for that too.
+
+## C33: a row says who may change it, 2026-11-07
+
+Opened because the specification changed, and a charter category was added
+under §7.5s

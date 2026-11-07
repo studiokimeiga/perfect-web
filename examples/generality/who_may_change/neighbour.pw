@@ -1,0 +1,32 @@
+// @status: NEIGHBOUR
+// @invariant: who_may_change
+// @dimension: valid neighbour — the same helper and command, each shelf its session's
+//
+// The same write, through the same helper, from the same command; the table
+// says whose its rows are, so the platform records the session that inserts
+// each shelf, and a request renames its own shelves alone.
+
+module Shelves
+
+opaque type InteractionId = String
+opaque type ShelfId = String
+
+type Shelf = Shelf { id: ShelfId, label: String, added: Int }
+
+table Shelves
+    row   Shelf
+    key   id
+    order added
+    owner session
+
+fn relabel(shelf: Shelf, label: String) -> () {
+    Shelves.put(Shelf { id: shelf.id, label: label, added: shelf.added })
+}
+
+command rename_shelf(shelf: Shelf, label: String) -> ()
+    requires      Anyone
+    idempotent_by InteractionId
+    transaction   serializable
+{
+    relabel(shelf, label)
+}

@@ -13,6 +13,14 @@ use common::*;
 use pw_table_postgres::{Error, PgTables};
 use serde_json::{Value, json};
 
+/// The reader every command here is begun for (the owned-rows ADR): one
+/// request's, in a table no reader owns, where it changes any row.
+fn a_reader() -> pw_host::tables::Writer {
+    pw_host::tables::Writer::Reader(
+        pw_host::tables::Reader::new("session-1", None).expect("a reader"),
+    )
+}
+
 /// The `(owner, n)` of each row a read answered, in its order.
 fn keys(answer: &Value) -> Vec<(String, i64)> {
     answer
@@ -38,7 +46,7 @@ fn pairs(list: &[(&str, i64)]) -> Vec<(String, i64)> {
 /// one command of the adapter's own.
 fn seed(tables: &PgTables, ids: &[&str], things: &[(&str, i64, i64, &str, bool)]) {
     tables
-        .transaction(|tx| {
+        .transaction(a_reader(), |tx| {
             for id in ids {
                 tx.write(&owner("insert"), &[owner_row(id)])?;
             }
@@ -134,7 +142,7 @@ fn a_row_is_answered_exactly_as_it_was_written() {
         "nothing": null, "maybe": null, "count": null,
     });
     tables
-        .transaction(|tx| {
+        .transaction(a_reader(), |tx| {
             tx.write(&owner("insert"), &[json!({"id": "a\u{0}b", "name": ""})])?;
             tx.write(&thing("insert"), std::slice::from_ref(&row))?;
             tx.write(&thing("insert"), std::slice::from_ref(&other))
@@ -262,7 +270,7 @@ fn a_write_is_refused_by_the_row_holding_its_key_then_a_unique_value() {
         &["a", "b"],
         &[("a", 1, 5, "one", true), ("b", 1, 5, "two", true)],
     );
-    let mut tx = tables.begin().assert_ok("a command");
+    let mut tx = tables.begin(a_reader()).assert_ok("a command");
     // An insert of a held key: the key's row, though another holds its slug.
     let refused = tx.write(&thing("insert"), &[thing_row("a", 1, 9, "two", false)]);
     assert_eq!(
@@ -310,7 +318,7 @@ fn a_bounded_table_grows_no_further_than_its_bound() {
     let scratch = Scratch::new(&url, "bound");
     let tables = open_things(&scratch);
     seed(&tables, &["a", "b", "c", "d", "e"], &[]);
-    let mut tx = tables.begin().assert_ok("a command");
+    let mut tx = tables.begin(a_reader()).assert_ok("a command");
     let past = tx.write(&owner("insert"), &[owner_row("f")]);
     assert_eq!(
         past,
@@ -348,7 +356,7 @@ fn a_delete_deletes_its_key_and_a_prefix_its_rows_alone() {
         ],
     );
     tables
-        .transaction(|tx| {
+        .transaction(a_reader(), |tx| {
             tx.write(&thing("delete"), &[json!("b"), json!(1)])?;
             tx.write(&thing("delete"), &[json!("b"), json!(1)])?;
             tx.write(&thing("delete-of-owner"), &[json!("a")])
@@ -387,7 +395,7 @@ fn what_a_function_is_given_is_held_before_the_database_sees_it() {
             "{import} {args:?}: {answer:?}"
         );
     }
-    let mut tx = tables.begin().assert_ok("a command");
+    let mut tx = tables.begin(a_reader()).assert_ok("a command");
     let rows = [
         json!({"owner": "a"}),
         json!([]),
@@ -506,7 +514,7 @@ fn each_primitive_is_one_statement_at_two_sizes() {
             .map(|i| (owners[(i % 5) as usize].to_string(), i))
             .collect();
         tables
-            .transaction(|tx| {
+            .transaction(a_reader(), |tx| {
                 for id in owners {
                     tx.write(&owner("insert"), &[owner_row(id)])?;
                 }
@@ -552,7 +560,7 @@ fn each_primitive_is_one_statement_at_two_sizes() {
                 tables.statements() - before,
             ));
         }
-        let mut tx = tables.begin().assert_ok("a command");
+        let mut tx = tables.begin(a_reader()).assert_ok("a command");
         tx.read(&owner("get"), &[json!("a")])
             .assert_ok("the transaction begun");
         let writes: Vec<(String, Vec<Value>)> = vec![
@@ -680,7 +688,7 @@ fn a_nested_float_is_answered_bit_for_bit() {
         })
         .collect();
     tables
-        .transaction(|tx| {
+        .transaction(a_reader(), |tx| {
             tx.write(&owner("insert"), &[owner_row("a")])?;
             for row in &rows {
                 tx.write(&thing("insert"), std::slice::from_ref(row))?;
@@ -753,7 +761,7 @@ fn a_write_whose_answer_cannot_be_read_fails_its_command() {
             vec![json!("a")],
         ),
     ] {
-        let mut tx = tables.begin().assert_ok("a command");
+        let mut tx = tables.begin(a_reader()).assert_ok("a command");
         let wrote = tx.write(&import, &args);
         assert!(matches!(wrote, Err(Error::Schema(_))), "{what}: {wrote:?}");
         let committed = tx.commit();

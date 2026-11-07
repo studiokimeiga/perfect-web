@@ -14,7 +14,7 @@ code the compiler can emit, from its registry, `compiler/pw-core/src/codes.rs`.
 - **What the program must hold to**: the registry's own sentence.
 - **ADR**: the decisions its registry entry cites, where it cites one.
 
-221 codes are registered; 94 of them cite an ADR in the registry.
+223 codes are registered; 95 of them cite an ADR in the registry.
 A code whose entry cites none is marked `—`: search `docs/DECISIONS/` for its
 number or its symbol.
 
@@ -96,6 +96,7 @@ number or its symbol.
 | PW0364 | `all_unbounded` | a table is read whole, by `all()`, only where it states `bounded` | — |
 | PW0365 | `refers_across_sources` | a reference to a table another source holds is held by no database: the referred row may be missing, which `get` answers as `None` | — |
 | PW0366 | `migration_unstated` | a change from the schema released that loses or reinterprets data is stated by a `migrate`, and each `migrate` states one | — |
+| PW0370 | `who_may_change` | a table a command a reader can run writes says who may change its rows: `owner user` or `owner session`, the reader who inserted each row, whom the platform records and holds every change to, or `owner anyone` | — |
 | PW0325 | `stale_key_policy` | a keyed query must say what happens when its key changes | — |
 | PW0327 | `written_rollback` | an optimistic transition's reversal is derived, not written | [0025](../DECISIONS/ADR-0025-an-optimistic-clause-targets-a-resource-entry.md) |
 | PW0330 | `optimistic_not_pure` | an optimistic transition must be a pure function of the resource's value | — |
@@ -343,6 +344,12 @@ number or its symbol.
 | PW6806 | `device_signal_versions` | a signal the device keeps has a pure migration for each version before its own, each taking the one before it to the next | — |
 | PW6807 | `device_signal_form` | a signal the device keeps is of a type the device can hold: data, no function, no type that contains itself, no opaque type with a `where` | — |
 | PW6808 | `device_signal_provided` | a signal the device keeps is provided by the device: no `provide` gives it a value | — |
+
+## Declared tables, served
+
+| Code | Symbol | What the program must hold to | ADR |
+|---|---|---|---|
+| PW6901 | `row_holds_handle` | a table's row holds no session's, user's or organization's handle: every reader of the table reads its rows, and a handle is its own reader's alone; a row names someone by their id | [0338](../DECISIONS/ADR-0338-three-databases.md) |
 
 ## Retired codes
 

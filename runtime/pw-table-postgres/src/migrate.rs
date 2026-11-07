@@ -469,6 +469,30 @@ pub(crate) fn changes(
                 )),
             }
         }
+        // Who may change its rows (the owned-rows ADR): the owner column
+        // made, where its rows record one from now on, each row it holds
+        // owned by no reader; given up, losing the owners, only by a build
+        // whose migration is from the schema recorded; and never read as
+        // another kind of reader's.
+        match (was.owner, now.owner) {
+            (None, None) => {}
+            (Some(before), Some(after)) if before == after => {}
+            (None, Some(_)) => columns_sql.push(sql::owner_column(names, table, true)),
+            (Some(_), None) if stated_applies => {
+                columns_sql.push(sql::owner_column(names, table, false));
+            }
+            (Some(before), None) => refused.push(format!(
+                "`{table}`'s rows record their {} as owner, and this build records none: the \
+                 owners would be lost, and tables.json's migration is not from the schema recorded",
+                before.word()
+            )),
+            (Some(before), Some(after)) => refused.push(format!(
+                "`{table}`'s rows record their {} as owner, and this build declares `owner {}`: \
+                 each owner recorded would be read as another kind of reader",
+                before.word(),
+                after.word()
+            )),
+        }
         // What the catalog holds of it once its columns are changed.
         let mut kept = was.clone();
         for f in &mut kept.fields {

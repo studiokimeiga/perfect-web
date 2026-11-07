@@ -215,8 +215,69 @@ pub struct Table {
     pub references: Vec<Clause<Reference>>,
     pub bounded: Option<Clause<u64>>,
     pub migrations: Vec<Clause<Migration>>,
+    /// Who may change its rows (the owned-rows ADR); none where it says
+    /// nothing, or says a word no owner is (PW0335's).
+    pub owner: Option<Clause<Owner>>,
     /// Each clause whose value is not one its grammar reads, and why.
     pub unread: Vec<(Span, String)>,
+}
+
+/// **Who may change a table's rows** (the owned-rows ADR): `owner user`,
+/// `owner session` or `owner anyone`, as written.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Owner {
+    /// The signed-in user who inserted the row.
+    User,
+    /// The session that inserted the row.
+    Session,
+    /// Any reader may change any row, said outright.
+    Anyone,
+}
+
+impl Owner {
+    /// The word it is written with.
+    pub fn word(self) -> &'static str {
+        match self {
+            Owner::User => "user",
+            Owner::Session => "session",
+            Owner::Anyone => "anyone",
+        }
+    }
+
+    /// What the platform records with each row: the reader of the kind it
+    /// names, or nothing, for `anyone`, whose rows no reader owns.
+    pub fn recorded(self) -> Option<OwnerKind> {
+        match self {
+            Owner::User => Some(OwnerKind::User),
+            Owner::Session => Some(OwnerKind::Session),
+            Owner::Anyone => None,
+        }
+    }
+}
+
+/// **The reader the platform records with each row it inserts** (the
+/// owned-rows ADR): its user, or its session. What a database holds of a
+/// table's owner, in its schema, and what a host enforces: a `put`, a
+/// `delete` or a `delete_of_<fields>` from a request changes only the rows
+/// of its reader. No field holds it, so no program writes it and no
+/// browser sends it.
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum OwnerKind {
+    User,
+    Session,
+}
+
+impl OwnerKind {
+    /// The word `owner` is written with.
+    pub fn word(self) -> &'static str {
+        match self {
+            OwnerKind::User => "user",
+            OwnerKind::Session => "session",
+        }
+    }
 }
 
 /// Is `s` a name: a letter or `_`, then letters, digits and `_`?
@@ -358,6 +419,7 @@ fn read(id: DeclId, d: &Decl) -> Table {
         references: Vec::new(),
         bounded: None,
         migrations: Vec::new(),
+        owner: None,
         unread: Vec::new(),
     };
     for p in &d.policies {
@@ -432,6 +494,22 @@ fn read(id: DeclId, d: &Decl) -> Table {
                 }
                 Err(why) => Some(why),
             },
+            // A word of `policy::OWNERS`, or PW0335's (`Domain::Word`).
+            "owner" => {
+                let owner = match v {
+                    "user" => Some(Owner::User),
+                    "session" => Some(Owner::Session),
+                    "anyone" => Some(Owner::Anyone),
+                    _ => None,
+                };
+                if let Some(owner) = owner {
+                    t.owner = Some(Clause {
+                        value: owner,
+                        span: span.clone(),
+                    });
+                }
+                None
+            }
             _ => None,
         };
         if let Some(why) = fault {
@@ -1030,8 +1108,39 @@ fn malformed(message: String, span: Span, related: Vec<Related>, repair: String)
     )
 }
 
+/// **PW6901: a row holds a handle** (track `data-path`, the integrator's
+/// ruling 3 of 2026-11-02). A handle is its reader's alone (ADR-0263), and
+/// its value is a user's id, or a session's, whose id is its cookie's:
+/// stored, every reader of the table reads it, with no label to say whose it
+/// is. Found storing `current_user()` in a row read by a shared query, which
+/// served another session `u-` and a guest's session.
+fn holds_handle(t: &Table, row: &str, field: &str, whose: &str, span: Span) -> Diagnostic {
+    refusal(
+        codes::ROW_HOLDS_HANDLE,
+        "row_holds_handle",
+        Severity::Error,
+        format!(
+            "`{row}`'s field `{field}` holds {whose} handle, and `{}` stores it where every \
+             reader of the table reads it",
+            t.name
+        ),
+        span,
+        Vec::new(),
+        "A handle reads the data of the one it names, and only its own reader holds it: the \
+         platform makes it from the request it answers (`current_user()`). A table's rows are \
+         read by every reader whose reads reach the table, and a row keeps no label: a handle \
+         stored there would be handed to them all. A row names someone by an id, which grants \
+         nothing: the reader's own, from `context.account_of(current_user())`.",
+        format!(
+            "store an id in `{field}`: a `UserId`, such as the reader's account's \
+             (`account_of(current_user())`'s `id`)"
+        ),
+    )
+}
+
 /// **The tables `unit` declares, and the bindings it writes, held to the
-/// declaration** (ADR-0338, decision 4): PW0361, PW0362 and PW0365.
+/// declaration** (ADR-0338, decision 4): PW0361, PW0362, PW0365 and, the
+/// data-path track's, PW6901.
 pub fn check(hirs: &[&Hir], unit: usize, ws: &Workspace, sigs: &Signatures) -> Vec<Diagnostic> {
     let Some(hir) = hirs.get(unit) else {
         return Vec::new();
@@ -1172,6 +1281,18 @@ fn shape(
                 return out;
             }
         };
+    // PW6901 (track `data-path`): no field holds a handle, wherever its type
+    // holds it: a row is read by every reader of the table, and the table's
+    // boundary keeps no label (a handle's value is its user's id, or the
+    // session's own).
+    for (name, ty) in &fields {
+        if let Some(whose) = ty
+            .as_ref()
+            .and_then(|ty| crate::check::handle_in(sigs, ty, &mut BTreeSet::new()))
+        {
+            out.push(holds_handle(t, &row.value, name, whose, row.span.clone()));
+        }
+    }
     let field = |f: &str| fields.iter().find(|(n, _)| n == f);
     // Each field a clause names is the row's, of a type an adapter keys.
     let fields_of = |clause: &str, names: &[String], span: &Span, out: &mut Vec<Diagnostic>| {
@@ -1722,6 +1843,135 @@ pub fn every(hirs: &[&Hir]) -> Vec<(usize, Table)> {
         .collect()
 }
 
+// --- who may change a table's rows (the owned-rows ADR, PW0370) -------------
+
+/// **A command a reader can run, writing a table**: the command, and where it
+/// writes, in the unit it is declared in.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReaderWrite {
+    pub unit: usize,
+    pub command: String,
+    /// The call that writes, where its body makes one; else its name.
+    pub at: Span,
+}
+
+/// **Each declared table a command a reader can run writes**, by the table's
+/// name, with each such command. A command writes a table where its effects,
+/// inferred through every call it makes, hold `database.write<Table>`: its
+/// generated `insert`, `put`, `delete` or `delete_of_<fields>`, called in its
+/// body or in what it calls. A command `invoked_by` the platform is no
+/// reader's (PW6401), and writes for none.
+pub fn written_by_readers(
+    hirs: &[&Hir],
+    inference: &crate::effects::Inference,
+) -> BTreeMap<String, Vec<ReaderWrite>> {
+    let tables: BTreeSet<String> = every(hirs).into_iter().map(|(_, t)| t.name).collect();
+    let mut out: BTreeMap<String, Vec<ReaderWrite>> = BTreeMap::new();
+    for (unit, hir) in hirs.iter().enumerate() {
+        for (id, decl) in hir.all_decls() {
+            if decl.kind != DeclKind::Command || decl.policy("invoked_by").is_some() {
+                continue;
+            }
+            let written: BTreeSet<String> = inference
+                .effective_effects(unit, hir, id)
+                .iter()
+                .filter_map(|e| crate::effects::database_domain(e, "write"))
+                .filter(|domain| tables.contains(*domain))
+                .map(str::to_string)
+                .collect();
+            if written.is_empty() {
+                continue;
+            }
+            let sources = decl
+                .body
+                .map(|b| inference.infer_at(unit, hir.body(b)).sources)
+                .unwrap_or_default();
+            for table in written {
+                let at = sources
+                    .iter()
+                    .find(|s| crate::effects::database_domain(&s.effect, "write") == Some(&table))
+                    .map_or_else(|| decl.name_span.clone(), |s| s.span.clone());
+                out.entry(table).or_default().push(ReaderWrite {
+                    unit,
+                    command: decl.name.clone(),
+                    at,
+                });
+            }
+        }
+    }
+    out
+}
+
+const WHO_MAY_CHANGE_WHY: &str = "A command a reader can run is a request away, and its \
+     arguments are the request's: `drop_item(list, item)` deletes whichever item a request \
+     names, anyone's. So a table such a command writes says whose its rows are. With `owner \
+     user` or `owner session` the platform records the reader who inserts each row, in no field \
+     the program sees, and a `put`, a `delete` or a `delete_of_<fields>` from a request changes \
+     only its reader's rows: another reader's row is treated as absent. `owner anyone` says any \
+     reader may change any row, outright. A table only the platform's commands (`invoked_by`) \
+     write needs none.";
+
+/// **A table a reader's command writes says who may change its rows** (the
+/// owned-rows ADR, PW0370): refused at the table's name, beside each command
+/// that writes it. An `owner` whose word is no owner is PW0335's, told once.
+pub fn who_may_change(
+    hirs: &[&Hir],
+    unit: usize,
+    writes: &BTreeMap<String, Vec<ReaderWrite>>,
+) -> Vec<Diagnostic> {
+    let Some(hir) = hirs.get(unit) else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    for t in declared(hir) {
+        if t.owner.is_some() || hir.decl(t.decl).policy("owner").is_some() {
+            continue;
+        }
+        let Some(writers) = writes.get(&t.name).filter(|w| !w.is_empty()) else {
+            continue;
+        };
+        out.push(Diagnostic {
+            code: codes::WHO_MAY_CHANGE.id,
+            invariant: codes::WHO_MAY_CHANGE.invariant,
+            reason: "owner_unstated",
+            detector: Detector::DeclarationRule,
+            severity: Severity::Error,
+            message: format!(
+                "`{}` is written by a command any reader's request runs, and says nothing of \
+                 who may change its rows",
+                t.name
+            ),
+            primary_span: t.span.clone(),
+            related: writers
+                .iter()
+                .map(|w| {
+                    Related::in_unit(
+                        w.unit,
+                        w.at.clone(),
+                        format!(
+                            "`{}` writes it, and runs for any reader's request",
+                            w.command
+                        ),
+                    )
+                })
+                .collect(),
+            explanation: Some(WHO_MAY_CHANGE_WHY.to_string()),
+            repairs: [
+                "declare `owner user` or `owner session`: the platform records the reader who \
+                 inserts each row, and only that reader's requests change it",
+                "or `owner anyone`, if any reader may change any row",
+            ]
+            .into_iter()
+            .map(|description| Repair {
+                description: description.to_string(),
+                replacement: None,
+            })
+            .collect(),
+        });
+    }
+    out
+}
+
 /// The functions a table's declaration gave its module, in order.
 pub fn functions_of(hir: &Hir, table: DeclId) -> Vec<(DeclId, Primitive, Vec<String>)> {
     hir.generated
@@ -1995,6 +2245,12 @@ pub struct TableSchema {
     pub indexes: Vec<IndexSchema>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub references: Vec<ReferenceSchema>,
+    /// **The reader each row records as its owner** (the owned-rows ADR):
+    /// `owner user` or `owner session`. None for `owner anyone` and for a
+    /// table that says nothing, whose rows no reader owns: a database holds
+    /// nothing more for them, so their schema, and its hash, are as before.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<OwnerKind>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -2139,6 +2395,7 @@ pub fn schemas(
                     table: r.value.table.clone(),
                 })
                 .collect(),
+            owner: t.owner.as_ref().and_then(|o| o.value.recorded()),
         };
         out.push((unit, t, schema));
     }
@@ -2212,6 +2469,18 @@ pub enum Step {
         table: String,
         field: String,
         to: String,
+    },
+    /// The reader each row records as its owner (the owned-rows ADR), from
+    /// `from` to `to`; none is no reader. A row released before its table
+    /// recorded one is owned by no reader: no request changes it, and the
+    /// platform's commands still may. A table that gives it up gives up the
+    /// owners recorded.
+    ChangeOwner {
+        table: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        from: Option<OwnerKind>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        to: Option<OwnerKind>,
     },
 }
 
@@ -2541,6 +2810,35 @@ pub fn held_to(
                     to: r.table.clone(),
                 });
             }
+        }
+        // Who may change its rows (the owned-rows ADR). Recording an owner
+        // from now on, or giving the owners up, is a step; an owner of
+        // another kind would read each owner recorded as another reader.
+        match (old.owner, schema.owner) {
+            (was, is) if was == is => {}
+            (Some(was), Some(is)) => refused.push((
+                *unit,
+                refuse(
+                    "migration_refused",
+                    format!(
+                        "`{table}` was released `owner {}` and is `owner {}`: each row's \
+                         recorded owner would be read as another kind of reader",
+                        was.word(),
+                        is.word()
+                    ),
+                    t.owner.as_ref().map_or(t.span.clone(), |o| o.span.clone()),
+                    format!(
+                        "keep `owner {}`; rows owned by another kind of reader are a new \
+                         table, its rows moved by a program",
+                        was.word()
+                    ),
+                ),
+            )),
+            (from, to) => steps.push(Step::ChangeOwner {
+                table: table.clone(),
+                from,
+                to,
+            }),
         }
         // A statement the change does not use states nothing. One the row
         // itself refuses is PW0361's, told once (ADR-0112).

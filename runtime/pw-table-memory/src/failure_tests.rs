@@ -4,6 +4,14 @@ use serde_json::json;
 use std::sync::{Once, mpsc};
 use std::time::Duration;
 
+/// The reader every command here is begun for (the owned-rows ADR): one
+/// request's, in a table no reader owns, where it changes any row.
+fn a_reader() -> pw_host::tables::Writer {
+    pw_host::tables::Writer::Reader(
+        pw_host::tables::Reader::new("session-1", None).expect("a reader"),
+    )
+}
+
 const INSERT: &str = "pw:tables/users#insert";
 const GET: &str = "pw:tables/users#get";
 const FAULT: &str = "injected D2 storage/observer fault";
@@ -24,6 +32,7 @@ fn database() -> Arc<MemoryTables> {
         order: None,
         indexes: vec![],
         references: vec![],
+        owner: None,
     };
     let hash = Schema::of(vec![schema.clone()]).hash;
     let function = |name: &str, primitive: Primitive, by: Vec<String>| FunctionJson {
@@ -85,7 +94,7 @@ fn fault_thread(action: impl FnOnce() + Send + 'static) -> std::thread::JoinHand
 #[test]
 fn a_wait_observer_may_read_and_replace_itself_without_lock_reentry() {
     let db = database();
-    let mut first = Some(db.begin().unwrap());
+    let mut first = Some(db.begin(a_reader()).unwrap());
     first
         .as_mut()
         .unwrap()
@@ -102,7 +111,7 @@ fn a_wait_observer_may_read_and_replace_itself_without_lock_reentry() {
     let (done, finished) = mpsc::channel();
     let other = Arc::clone(&db);
     let worker = std::thread::spawn(move || {
-        let result = other.begin().map(drop);
+        let result = other.begin(a_reader()).map(drop);
         let _ = done.send(result);
     });
     let observed = heard.recv_timeout(Duration::from_secs(3));
@@ -126,13 +135,13 @@ fn a_wait_observer_may_read_and_replace_itself_without_lock_reentry() {
 #[test]
 fn an_observer_panic_does_not_poison_the_database() {
     let db = database();
-    let mut first = db.begin().unwrap();
+    let mut first = db.begin(a_reader()).unwrap();
     first.write(INSERT, &[json!({"id":1})]).unwrap();
     db.tell_on_wait(|| std::panic::panic_any(FAULT));
     let other = Arc::clone(&db);
     assert!(
         fault_thread(move || {
-            let _ = other.begin();
+            let _ = other.begin(a_reader());
         })
         .join()
         .is_err()
@@ -143,13 +152,13 @@ fn an_observer_panic_does_not_poison_the_database() {
     );
     first.commit().unwrap();
     assert_eq!(db.read(GET, &[json!(1)]), Ok(json!({"id":1})));
-    assert!(db.begin().is_ok());
+    assert!(db.begin(a_reader()).is_ok());
 }
 
 #[test]
 fn internal_working_poison_wakes_every_existing_waiter() {
     let db = database();
-    let first = db.begin().unwrap();
+    let first = db.begin(a_reader()).unwrap();
     let id = first.id;
     let (sent, heard) = mpsc::channel();
     db.tell_on_wait(move || {
@@ -161,7 +170,7 @@ fn internal_working_poison_wakes_every_existing_waiter() {
         let other = Arc::clone(&db);
         let done = done.clone();
         workers.push(std::thread::spawn(move || {
-            let _ = done.send(other.begin().map(drop));
+            let _ = done.send(other.begin(a_reader()).map(drop));
         }));
     }
     for _ in 0..2 {
@@ -196,7 +205,7 @@ fn internal_working_poison_wakes_every_existing_waiter() {
     for worker in workers {
         worker.join().unwrap();
     }
-    assert!(matches!(db.begin(), Err(Error::StoragePoisoned)));
+    assert!(matches!(db.begin(a_reader()), Err(Error::StoragePoisoned)));
     assert_eq!(db.read(GET, &[json!(1)]), Err(Error::StoragePoisoned));
     // Even clearing the raw poison marker in a test cannot resume this database.
     db.inner.working.clear_poison();
@@ -207,7 +216,7 @@ fn internal_working_poison_wakes_every_existing_waiter() {
 #[test]
 fn a_poisoned_working_lock_cannot_report_a_successful_commit() {
     let db = database();
-    let mut command = db.begin().unwrap();
+    let mut command = db.begin(a_reader()).unwrap();
     command.write(INSERT, &[json!({"id":1})]).unwrap();
     let id = command.id;
     let broken = Arc::clone(&db);
@@ -227,7 +236,7 @@ fn a_poisoned_working_lock_cannot_report_a_successful_commit() {
 #[test]
 fn a_poisoned_published_lock_cannot_report_a_successful_commit() {
     let db = database();
-    let mut command = db.begin().unwrap();
+    let mut command = db.begin(a_reader()).unwrap();
     command.write(INSERT, &[json!({"id":1})]).unwrap();
     let broken = Arc::clone(&db);
     assert!(
@@ -240,14 +249,14 @@ fn a_poisoned_published_lock_cannot_report_a_successful_commit() {
     );
     assert!(db.inner.published.is_poisoned());
     assert_eq!(command.commit(), Err(Error::StoragePoisoned));
-    assert!(matches!(db.begin(), Err(Error::StoragePoisoned)));
+    assert!(matches!(db.begin(a_reader()), Err(Error::StoragePoisoned)));
     assert_eq!(db.read(GET, &[json!(1)]), Err(Error::StoragePoisoned));
 }
 
 #[test]
 fn an_observer_can_end_the_owner_before_the_waiter_starts_waiting() {
     let db = database();
-    let mut first = db.begin().unwrap();
+    let mut first = db.begin(a_reader()).unwrap();
     first.write(INSERT, &[json!({"id":1})]).unwrap();
     let owner = Arc::new(Mutex::new(Some(first)));
     db.tell_on_wait(move || {
@@ -256,7 +265,7 @@ fn an_observer_can_end_the_owner_before_the_waiter_starts_waiting() {
     let other = Arc::clone(&db);
     let (sent, heard) = mpsc::channel();
     let worker = std::thread::spawn(move || {
-        let _ = sent.send(other.begin().map(drop));
+        let _ = sent.send(other.begin(a_reader()).map(drop));
     });
     assert_eq!(
         heard.recv_timeout(Duration::from_secs(3)),
@@ -271,7 +280,7 @@ fn an_observer_can_end_the_owner_before_the_waiter_starts_waiting() {
 fn a_prepared_publish_refuses_each_poisoned_storage_lock() {
     for working in [true, false] {
         let db = database();
-        let mut command = db.begin().unwrap();
+        let mut command = db.begin(a_reader()).unwrap();
         let id = command.id;
         command.write(INSERT, &[json!({"id":1})]).unwrap();
         let prepared = command.prepare().unwrap();
@@ -297,14 +306,14 @@ fn a_prepared_publish_refuses_each_poisoned_storage_lock() {
 #[test]
 fn a_prepared_command_dropped_unpublished_releases_its_turn_and_rows() {
     let db = database();
-    let mut command = db.begin().unwrap();
+    let mut command = db.begin(a_reader()).unwrap();
     let id = command.id;
     command.write(INSERT, &[json!({"id":1})]).unwrap();
     let prepared = command.prepare().unwrap();
     drop(prepared);
     assert!(matches!(db.inner.working_of(id), Err(Error::Ended)));
     assert_eq!(db.read(GET, &[json!(1)]), Ok(Value::Null));
-    let next = db.begin().unwrap();
+    let next = db.begin(a_reader()).unwrap();
     assert_eq!(next.read(GET, &[json!(1)]), Ok(Value::Null));
 }
 
@@ -336,7 +345,7 @@ fn replacing_an_observer_drops_its_capture_outside_the_registration_lock() {
         !db.inner.told.is_poisoned(),
         "observer capture is dropped outside registration lock"
     );
-    assert!(db.begin().is_ok());
+    assert!(db.begin(a_reader()).is_ok());
 }
 
 #[test]
@@ -366,7 +375,7 @@ fn a_replaced_observer_capture_may_register_another_observer() {
 #[test]
 fn a_terminal_failure_is_synchronized_with_the_check_to_wait_window() {
     let db = database();
-    let first = db.begin().unwrap();
+    let first = db.begin(a_reader()).unwrap();
     let id = first.id;
     let (held, ready) = mpsc::channel();
     let (go, proceed) = mpsc::channel();
@@ -437,12 +446,12 @@ fn an_outer_caller_panic_rolls_back_without_poisoning_storage() {
         let other = Arc::clone(&db);
         let joined = fault_thread(move || {
             if mode == 2 {
-                let _: Result<(), Error> = other.transaction(|command| {
+                let _: Result<(), Error> = other.transaction(a_reader(), |command| {
                     command.write(INSERT, &[json!({"id":1})])?;
                     std::panic::panic_any(FAULT);
                 });
             } else {
-                let mut command = other.begin().unwrap();
+                let mut command = other.begin(a_reader()).unwrap();
                 command.write(INSERT, &[json!({"id":1})]).unwrap();
                 if mode == 1 {
                     let _prepared = command.prepare().unwrap();
@@ -465,7 +474,7 @@ fn an_outer_caller_panic_rolls_back_without_poisoning_storage() {
             Ok(Value::Null),
             "rollback during outer unwind keeps healthy storage usable"
         );
-        let next = db.begin().unwrap();
+        let next = db.begin(a_reader()).unwrap();
         assert_eq!(next.read(GET, &[json!(1)]), Ok(Value::Null));
     }
 }

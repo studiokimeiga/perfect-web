@@ -27,11 +27,19 @@ use pw_host::engine::Val;
 use pw_table_memory::{Error, MemoryTables};
 use serde_json::json;
 
+/// The reader every command here is begun for (the owned-rows ADR): one
+/// request's, in a table no reader owns, where it changes any row.
+fn a_reader() -> pw_host::tables::Writer {
+    pw_host::tables::Writer::Reader(
+        pw_host::tables::Reader::new("session-1", None).expect("a reader"),
+    )
+}
+
 /// The program's tables.json in a memory adapter holding three lists.
 fn seeded(tables: &pw_core::tables::TablesJson) -> Arc<MemoryTables> {
     let adapter = Arc::new(MemoryTables::new(tables.clone()).assert_ok("the adapter"));
     adapter
-        .transaction(|tx| {
+        .transaction(a_reader(), |tx| {
             for (id, name, added) in [("list-b", "List B", 20), ("list-a", "List A", 10)] {
                 tx.write(
                     "pw:tables/lists#insert",
