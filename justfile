@@ -112,8 +112,15 @@ fmt-check:
 
 # Local pre-publication contract. Slower than CI's rustfmt-only first gate,
 # but catches Clippy and mutation-anchor problems before any PR is opened.
-preflight: fmt-check lint case-check mutation-anchors
+preflight: fmt-check lint case-check mutation-anchors corpus-categories
     @python3 -m compileall -q scripts research/failures/tools
+
+# Each corpus fixture names a category `corpus-check` lists. Two PRs added a
+# fixture whose category the list lacked (R-096, #82; R-097, #83) and passed
+# every check they ran, then stopped `ci`'s `test-compile` and every recipe
+# that checks the corpus. It runs in a second and builds one small binary.
+corpus-categories:
+    cargo run --quiet -p corpus-check -- examples
 
 lint:
     cargo clippy --workspace --all-targets -- -D warnings
