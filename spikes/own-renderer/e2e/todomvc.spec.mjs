@@ -941,10 +941,19 @@ async function drawnBy(context, ...sheets) {
 }
 
 /** The box the official sheet draws a checkbox in: 40 pixels square, at the
- * left of its label and halfway down it (`center left`). */
+ * left of its label and halfway down it (`center left`). Taken one pixel to
+ * each CSS pixel (`scale: "css"`), in every engine: WebKit's project is
+ * "Desktop Safari", whose device scale factor is 2, and at it the box is 80
+ * pixels square. Every bound below is of the 1,600 pixels of a box at one
+ * pixel a CSS pixel, and its regions are found on a 40-pixel grid; at 2 they
+ * counted 6,400 pixels against them, and misfiled each into its region
+ * (#81's first WebKit run: 122 over an eighth where the drawing is 65). */
 async function checkbox(page) {
   const label = await page.locator("label").boundingBox();
-  return page.screenshot({ clip: { x: label.x, y: label.y + (label.height - 40) / 2, width: 40, height: 40 } });
+  return page.screenshot({
+    clip: { x: label.x, y: label.y + (label.height - 40) / 2, width: 40, height: 40 },
+    scale: "css",
+  });
 }
 
 /** How far two screenshots of the checkbox's box differ, read in the

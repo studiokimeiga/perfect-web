@@ -113,3 +113,20 @@ or, by part:
 Not run here: WebKit, which cannot open a page on this PC; the recipes that
 need PostgreSQL; and `verify.yml`'s planned recipes, `e14-todomvc` among
 them, which CI runs on a PR into `master`.
+
+## 2026-11-07: WebKit measured at one pixel a CSS pixel
+
+#81's verify run 42315680977 failed the pixel test in WebKit only: checked,
+122 pixels over an eighth against a bound of 100. The drawing was not off.
+WebKit's project is "Desktop Safari", whose device scale factor is 2, so the
+test's screenshots of the 40-pixel box were 80 pixels square, counted
+against bounds of 1,600 pixels and filed on a 40-pixel grid.
+- `webkit-tick-scale.log` (`webkit-tick-scale.mjs.gz`): at 2x, screenshots
+  at device scale measure WebKit 2.10 and 122, as CI did, and Chromium 2.08
+  and 117; at CSS scale both measure 3.18–3.19 and 65, as at 1x.
+- `webkit-tick-placement.log` (`webkit-tick-placement.mjs.gz`): WebKit lays
+  the label out 58 px tall (Chromium and Firefox 58.8), so every placement
+  of the tick measures the same there.
+- `webkit-tm-webkit-fix.log`: with `checkbox()` at `scale: "css"`, the
+  TodoMVC spec in Chromium, Firefox and WebKit 26.0, 156 of 156 passed.
+  WebKit: unchecked 2.03 and 21, checked 3.18 and 65.

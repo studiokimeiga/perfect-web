@@ -34,3 +34,8 @@ b63be185a33de9b6ca6150ae9db6e122cc758799235e73d24bd70e009cd305d2  ./tm2-prefligh
 c08eb2226e0f39654b42ad093dbcdb289bc809abf8d69c9637d63335b7edd995  ./tm2-size.log
 b87dc70db626d5e6cf283377e7f6f6fb423f661505b144d2bcc25cdc47466d1a  ./tm2-specs.log.gz
 7c494f67cac62c8b76e48532e379908d8d0f975e2ef72a33aef72dde962a1cc9  ./tm2-verify.log
+bbae508fc032601a8f85aa4116afccb244165f1e9860ff41abc0bcdf4d49ba58  ./webkit-tick-placement.log
+772548117d85e9950842a5e56981e7e5668718030ffd023ef028bc7b413f65c7  ./webkit-tick-placement.mjs.gz
+e56faccd780d00d4076426746534cf3420588dbf2577adca0bf18ac442210329  ./webkit-tick-scale.log
+05bfea5e872d233252bd90acab27eae85531bcfd13c6c805b5d566f715aa0fdd  ./webkit-tick-scale.mjs.gz
+c1891d423f75daefff706fddb1600e432a143b957d04855efd80ff263d27f240  ./webkit-tm-webkit-fix.log
