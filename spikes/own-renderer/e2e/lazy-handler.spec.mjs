@@ -340,8 +340,8 @@ test("nothing is prefetched without a policy that says so", async ({ page }) => 
   const links = await page.evaluate(() =>
     [...document.querySelectorAll("link")].map((l) => `${l.rel}:${l.href}`),
   );
-  // What every page's runtime boots with is asked for by its head (the
-  // first press's ADR): the runtime, the decision's code and this build's
+  // What every page's runtime boots with is asked for by its head
+  // (ADR-0399): the runtime, the decision's code and this build's
   // handler table. Each is asked for by every boot, so none is speculative,
   // and none is a handler's code.
   const origin = new URL(page.url()).origin;

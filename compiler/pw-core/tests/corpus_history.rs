@@ -614,8 +614,8 @@ fn the_c8_text_of_every_repaired_rejected_fixture_is_still_caught() {
             continue;
         }
         // Declaration-header rules run inside `check_sources` since ADR-0090;
-        // R-014's and R-015's are such rules (R-027's was, until the
-        // stale-key ADR).
+        // R-014's and R-015's are such rules (R-027's was, until
+        // ADR-0403).
         if !symbols.contains(&declared.as_str()) {
             wrong.push(format!(
                 "{name}: its pre-C8 text is no longer caught for `{declared}` \

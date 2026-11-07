@@ -10770,8 +10770,8 @@ fn markup_rules(hir: &Hir, decl: &Decl, out: &mut Vec<Diagnostic>) {
                     out.push(image_without_alt(hir, decl, body, id));
                 }
 
-                // An image button with no text to name it (PW5053, the
-                // input-button ADR): its `alt` is its label, so HTML requires
+                // An image button with no text to name it (PW5053,
+                // ADR-0405): its `alt` is its label, so HTML requires
                 // one, and not empty.
                 if tag.eq_ignore_ascii_case("input")
                     && input_type(attrs).as_deref() == Some("image")
@@ -11066,8 +11066,8 @@ fn image_without_alt(hir: &Hir, decl: &Decl, body: &Body, id: hir::NodeId) -> Di
     }
 }
 
-/// **An image button with no text in its `alt`** (PW5053, the input-button
-/// ADR), reported at the element. HTML 4.10.5.1.19: the `alt` "must be
+/// **An image button with no text in its `alt`** (PW5053, ADR-0405),
+/// reported at the element. HTML 4.10.5.1.19: the `alt` "must be
 /// present, and must contain a non-empty string". Unlike an `<img>`'s, it is
 /// never empty: it is the button's label, and a button always does something
 /// a reader needs. A `title`, an `aria-label` or a `<label>` does not stand
@@ -11330,8 +11330,8 @@ fn unnamed_because(
             },
         );
     }
-    // A button whose label is its `value`, and gives none (the input-button
-    // ADR). Only a `button` input with no `value` has none to give.
+    // A button whose label is its `value`, and gives none (ADR-0405).
+    // Only a `button` input with no `value` has none to give.
     if tag.eq_ignore_ascii_case("input")
         && let Some(t) = input_type(attrs)
         && matches!(t.as_str(), "submit" | "reset" | "button")

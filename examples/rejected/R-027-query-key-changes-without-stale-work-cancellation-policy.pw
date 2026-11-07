@@ -15,8 +15,8 @@
 //
 // Until 2026-11-06 this fixture was the query alone, refused by `PW0325`
 // because it declared a `concurrency`. That rule asked for the policy of a
-// query no page keys, and not of one that declared no `concurrency`; the
-// stale-key ADR folds it into `PW5309`, which asks where the key changes.
+// query no page keys, and not of one that declared no `concurrency`;
+// ADR-0403 folds it into `PW5309`, which asks where the key changes.
 
 module store.search
 

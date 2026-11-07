@@ -7149,8 +7149,8 @@ impl Server {
             + &pw_render::head_canonical(template, &env, self.origin.get().map(String::as_str))
                 .map_err(|e| format!("`{path}`'s canonical address does not render: {e:?}"))?;
         Ok((
-            // As this build's delivery names its files (the first press's
-            // ADR): at its version, a production build's.
+            // As this build's delivery names its files (ADR-0399):
+            // at its version, a production build's.
             self.delivery.deliver(signal_document(
                 &body,
                 &title,
@@ -7774,8 +7774,8 @@ impl Server {
             frames: self.payments.get().map(|p| p.provider.clone()),
             forms: self.identity.sign_in_origin(),
         };
-        // The script as this build's delivery writes it (the first press's
-        // ADR): at its version, a production build's.
+        // The script as this build's delivery writes it (ADR-0399):
+        // at its version, a production build's.
         csp::document(
             &self.delivery.runtime_source(),
             self.data.style(),
@@ -10808,8 +10808,8 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             let module = module.split('?').next().unwrap_or(module);
             let path = server.artifacts.join("speculations").join(module);
             match std::fs::read(&path) {
-                // As its packaging wrote it, compressed where it was (the
-                // first press's ADR): the same for every reader.
+                // As its packaging wrote it, compressed where it was
+                // (ADR-0399): the same for every reader.
                 Ok(bytes) => respond_representation(
                     &mut stream,
                     &headers,
@@ -11544,8 +11544,8 @@ fn serve_bound(
                     }
                 })
                 .collect();
-            // As this build's delivery names its files (the first press's
-            // ADR): at its version, a production build's.
+            // As this build's delivery names its files (ADR-0399):
+            // at its version, a production build's.
             let html = server.delivery.deliver(document(
                 &rendered,
                 &title,
@@ -17692,8 +17692,8 @@ public query Store(",
         assert!(!says("warm"), "not JSON");
     }
 
-    /// **The browser is told on the handler table** (the first press's
-    /// ADR): `#warm|1` where the build warms and nothing where it does not,
+    /// **The browser is told on the handler table** (ADR-0399):
+    /// `#warm|1` where the build warms and nothing where it does not,
     /// a `#` line the decision does not read, with every handler line the
     /// same either way, so what may attach does not depend on it.
     #[test]

@@ -554,8 +554,8 @@ fn required(
         let Ok(predicates) = crate::policy::predicates(&requires.value) else {
             continue;
         };
-        // `Anyone` holds for every reader, so no page asks it (the requires
-        // ADR): a control whose command anyone may run needs no guard.
+        // `Anyone` holds for every reader, so no page asks it (ADR-0406):
+        // a control whose command anyone may run needs no guard.
         for p in predicates
             .into_iter()
             .filter(|p| p.arguments.is_empty() && p.name != crate::policy::ANYONE)

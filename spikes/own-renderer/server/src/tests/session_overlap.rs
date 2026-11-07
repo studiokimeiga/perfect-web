@@ -440,8 +440,8 @@ fn a_host_that_keeps_sessions_warms_and_its_warm_up_is_each_answered() {
 }
 
 /// **On PostgreSQL, a host that keeps sessions warms, and a warm-up's
-/// requests are each answered, beside a press made while it warms** (the
-/// first press's ADR, amended 2026-11-06): a warming page's five requests
+/// requests are each answered, beside a press made while it warms**
+/// (ADR-0399, amended 2026-11-06): a warming page's five requests
 /// and a post read the session at once, each read meeting the others after
 /// it reads (a test's step in `SessionsPg::session`).
 #[test]

@@ -386,8 +386,8 @@ let servedBuild = "";
 /** Whether its build warms (ADR-0399): the table's `#warm|1`. */
 let buildWarms = false;
 
-/** The delivery this runtime was asked for at (`?b=`, the first press's
- * ADR); none for a development build. */
+/** The delivery this runtime was asked for at (`?b=`, ADR-0399);
+ * none for a development build. */
 const DELIVERY = new URL(import.meta.url).searchParams.get("b");
 
 /** A file of the build at this delivery, as the head asked for it. */
@@ -2152,8 +2152,8 @@ function plainClick(e) {
   return !e.defaultPrevented && e.button === 0 && !MODIFIER_KEYS.some((key) => e[key]);
 }
 
-/** **A link to one of the fragment's forms, followed in its press** (the
- * first press's ADR), not a task later in `hashchange`: a primary,
+/** **A link to one of the fragment's forms, followed in its press**
+ * (ADR-0399), not a task later in `hashchange`: a primary,
  * unmodified, unclaimed click to this page at a form. Back and forward still
  * come as `hashchange`. */
 function followFragmentLinks(binding) {
@@ -3380,8 +3380,8 @@ async function attach() {
   window.__pw.signals = Object.fromEntries(signals);
   window.__pw.ready = true;
   document.documentElement.dataset.pwReady = "1";
-  // What its presses will need, where its build warms (the first press's
-  // ADR): after it is interactive, never before.
+  // What its presses will need, where its build warms (ADR-0399):
+  // after it is interactive, never before.
   warmWhenIdle();
 }
 
