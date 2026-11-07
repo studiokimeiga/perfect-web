@@ -1,0 +1,32 @@
+# bash docs/evidence/E14/owned-rows-2026-11-07/scripts/race_replaced_put.sh "READ COMMITTED", then "SERIALIZABLE" (2026-11-07T10:36:02Z)
+pg_sleep
+
+(1 row)
+ pg_sleep 
+----------
+ 
+(1 row)
+
+?column? count holder old_held pw_mine had_room
+answer: 0  t t t
+(1 row)
+after (READ COMMITTED):
+shelf id slug text pw:owner
+home milk m hers s-alice
+(1 row)
+NOTICE:  drop cascades to table pr91_replaced_PID.notes
+====
+pg_sleep
+
+(1 row)
+ pg_sleep 
+----------
+ 
+(1 row)
+
+ERROR:  could not serialize access due to concurrent update
+after (SERIALIZABLE):
+shelf id slug text pw:owner
+home milk m hers s-alice
+(1 row)
+NOTICE:  drop cascades to table pr91_replaced_PID.notes

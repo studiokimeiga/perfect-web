@@ -1,0 +1,8 @@
+# psql on the local test database (2026-11-07T10:36:18Z): RETURNING old/new of INSERT .. ON CONFLICT .. DO UPDATE, a temporary table
+version
+PostgreSQL 18.6 (Ubuntu 18.6-1.pgdg22.04+2) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0, 64-bit
+(1 row)
+k was now inserted
+a one two f
+b  new t
+(2 rows)

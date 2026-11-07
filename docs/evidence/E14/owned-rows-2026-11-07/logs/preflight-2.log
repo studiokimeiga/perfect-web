@@ -1,0 +1,35 @@
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+    Checking pw-host v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-host)
+    Checking pw-resume v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-resume)
+    Checking pw-protocol v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-protocol)
+    Checking pw-materialize v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-materialize)
+    Checking pw-outbound v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-outbound)
+    Checking pw-time v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-time)
+    Checking pw-outbound-testkit v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-outbound-testkit)
+    Checking pw-resume-wasm v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-resume-wasm)
+    Checking pw-fuzz v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/tools/fuzz)
+    Checking pw-render v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-render)
+    Checking pw-resource v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-resource)
+    Checking pw-render-wasm v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-render-wasm)
+    Checking pw-cli v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/compiler/pw-cli)
+    Checking pw-syntax v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/compiler/pw-syntax)
+    Checking pw-document v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-document)
+    Checking spike-compiler-diagnostic v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/spikes/compiler-diagnostic)
+    Checking pw-tasks v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-tasks)
+    Checking corpus-check v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/tools/corpus-check)
+    Checking pw-conformance v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/compiler/pw-conformance)
+    Checking pw-table-memory v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-table-memory)
+    Checking pw-table-postgres v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-table-postgres)
+    Checking kiokun-server v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/spikes/kiokun/server)
+    Checking pw-dev-server v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/spikes/own-renderer/server)
+    Finished `dev` profile [unoptimized] target(s) in 8.36s
+# `pw-host`'s engine feature is not exercised by `just test`, because a
+# Wasm engine is not needed to decide a capability question. But an
+# unbuilt cfg rots: a field added to `Import` broke `tests/artifact.rs`
+# and nothing noticed until `just e8-host` ran. Compiled here, run there.
+cargo clippy -p pw-host --features engine --all-targets -- -D warnings
+    Checking pw-host v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/owned-rows-0bd3a4/runtime/pw-host)
+    Finished `dev` profile [unoptimized] target(s) in 0.93s
+case-check: OK (4749 paths)
+mutation anchors: 5037 mutants in 326 scripts, each matching once
