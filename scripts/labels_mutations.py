@@ -46,8 +46,8 @@ MUTANTS = [
     (
         "a label with `for` is read as one that wraps",
         CHECK,
-        "    if attrs.iter().any(|a| a.name == \"for\") {\n        let target",
-        "    if attrs.iter().any(|a| a.name == \"for\") && false {\n        let target",
+        "    if attrs.iter().any(|a| a.name.eq_ignore_ascii_case(\"for\")) {\n        let target",
+        "    if attrs.iter().any(|a| a.name.eq_ignore_ascii_case(\"for\")) && false {\n        let target",
     ),
     (
         "a label that wraps its control names nothing",
@@ -84,8 +84,8 @@ MUTANTS = [
     (
         "a composed view holds no control",
         CHECK,
-        "        return None;\n    }\n    Some(match tag {\n",
-        "        return Some(false);\n    }\n    Some(match tag {\n",
+        "        return None;\n    }\n    Some(match tag.to_ascii_lowercase().as_str() {\n",
+        "        return Some(false);\n    }\n    Some(match tag.to_ascii_lowercase().as_str() {\n",
     ),
     (
         "a hidden input is labelable",
@@ -165,7 +165,8 @@ MUTANTS = [
     (
         "a `<select>`'s or a `<textarea>`'s `type` is read",
         CHECK,
-        "                    let typ = (tag.as_str() == \"input\")\n"
+        "                    let typ = tag\n"
+        "                        .eq_ignore_ascii_case(\"input\")\n"
         "                        .then(|| input_type(attrs))\n"
         "                        .flatten();\n",
         "                    let typ = input_type(attrs);\n",
@@ -173,8 +174,8 @@ MUTANTS = [
     (
         "a button names itself whatever element it is",
         CHECK,
-        "    let default = match (tag, input_type(attrs).as_deref()) {\n",
-        "    let default = match (\"input\", input_type(attrs).as_deref()) {\n",
+        "    let default = match (\n        tag.to_ascii_lowercase().as_str(),\n",
+        "    let default = match (\n        \"input\",\n",
     ),
     (
         "a `submit` or `reset` with no `value` has no label",
@@ -229,6 +230,25 @@ MUTANTS = [
         CHECK,
         "        && matches!(t.as_str(), \"submit\" | \"reset\" | \"button\")\n    {\n",
         "        && !t.is_empty()\n    {\n",
+    ),
+    # --- names whatever their case (train-14's review of #82) ---
+    (
+        "a control is read by its name case by case",
+        CHECK,
+        "                    .any(|t| tag.eq_ignore_ascii_case(t))\n",
+        "                    .any(|t| tag.as_str() == *t)\n",
+    ),
+    (
+        "a `<label>` is read by its name case by case",
+        CHECK,
+        "        if tag.eq_ignore_ascii_case(\"label\")\n",
+        "        if tag.as_str() == \"label\"\n",
+    ),
+    (
+        "a labelable element is read by its name case by case",
+        CHECK,
+        "    Some(match tag.to_ascii_lowercase().as_str() {\n        \"input\" =>",
+        "    Some(match tag {\n        \"input\" =>",
     ),
 ]
 

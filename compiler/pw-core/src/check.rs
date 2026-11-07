@@ -10766,14 +10766,14 @@ fn markup_rules(hir: &Hir, decl: &Decl, out: &mut Vec<Diagnostic>) {
                 }
 
                 // An image with nothing to stand for it (PW5053).
-                if tag.as_str() == "img" && !has_alt(attrs) {
+                if tag.eq_ignore_ascii_case("img") && !has_alt(attrs) {
                     out.push(image_without_alt(hir, decl, body, id));
                 }
 
                 // An image button with no text to name it (PW5053, the
                 // input-button ADR): its `alt` is its label, so HTML requires
                 // one, and not empty.
-                if tag.as_str() == "input"
+                if tag.eq_ignore_ascii_case("input")
                     && input_type(attrs).as_deref() == Some("image")
                     && names_with(attrs, "alt") != Some(true)
                 {
@@ -10781,9 +10781,13 @@ fn markup_rules(hir: &Hir, decl: &Decl, out: &mut Vec<Diagnostic>) {
                 }
 
                 // A form control with nothing naming it.
-                if matches!(tag.as_str(), "input" | "select" | "textarea") {
+                if ["input", "select", "textarea"]
+                    .iter()
+                    .any(|t| tag.eq_ignore_ascii_case(t))
+                {
                     // `type` is an `<input>`'s alone.
-                    let typ = (tag.as_str() == "input")
+                    let typ = tag
+                        .eq_ignore_ascii_case("input")
                         .then(|| input_type(attrs))
                         .flatten();
                     // A `hidden` input is no control. An image button is
@@ -10918,7 +10922,7 @@ fn named_controls(body: &Body, order: &[hir::NodeId]) -> BTreeSet<hir::NodeId> {
         let Node::Element { tag, attrs, .. } = body.node(n) else {
             continue;
         };
-        if tag == "label"
+        if tag.eq_ignore_ascii_case("label")
             && let Some(control) = labeled_control(body, n, &by_id)
             && has_text(body, n, control)
         {
@@ -10938,7 +10942,7 @@ fn named_controls(body: &Body, order: &[hir::NodeId]) -> BTreeSet<hir::NodeId> {
 /// (ADR-0143), and `Some(false)` when it is blank or written alone, which
 /// HTML reads as `""`.
 fn names_with(attrs: &[hir::Attr], name: &str) -> Option<bool> {
-    let a = attrs.iter().find(|a| a.name == name)?;
+    let a = attrs.iter().find(|a| a.name.eq_ignore_ascii_case(name))?;
     Some(match &a.value {
         AttrValue::Static(_) => non_blank(attrs, name),
         AttrValue::Expr(_) => true,
@@ -10961,7 +10965,10 @@ fn input_type(attrs: &[hir::Attr]) -> Option<String> {
 /// button shows nothing, and HTML-AAM gives the default only where `value` is
 /// not written. An image button is named by its `alt`, PW5053's to hold.
 fn names_itself(tag: &str, attrs: &[hir::Attr]) -> bool {
-    let default = match (tag, input_type(attrs).as_deref()) {
+    let default = match (
+        tag.to_ascii_lowercase().as_str(),
+        input_type(attrs).as_deref(),
+    ) {
         ("input", Some("submit" | "reset")) => true,
         ("input", Some("button")) => false,
         _ => return false,
@@ -11001,7 +11008,8 @@ fn labelled_but_for_its_id(
         _ => false,
     };
     let labelled = order.iter().any(|&n| {
-        matches!(body.node(n), Node::Element { tag, .. } if tag == "label") && has(n, "for")
+        matches!(body.node(n), Node::Element { tag, .. } if tag.eq_ignore_ascii_case("label"))
+            && has(n, "for")
     });
     let earlier = order
         .iter()
@@ -11015,9 +11023,11 @@ fn labelled_but_for_its_id(
 /// Whether an `<img>` has an `alt`, whatever it holds: text, `""` (or the
 /// attribute alone, which HTML reads as `""`), or a value's. A `title`, an
 /// `aria-label` and a `role` are not one: HTML requires `alt` of every
-/// `<img>`, and only `alt` is shown where the image does not load.
+/// `<img>`, and only `alt` is shown where the image does not load. Its
+/// name is read as HTML reads it, whatever its case (`ALT`), as is the
+/// element's (`<iMg>`, train-14's review).
 fn has_alt(attrs: &[hir::Attr]) -> bool {
-    attrs.iter().any(|a| a.name == "alt")
+    attrs.iter().any(|a| a.name.eq_ignore_ascii_case("alt"))
 }
 
 /// **An image with no `alt`** (PW5053), reported at the element.
@@ -11069,7 +11079,7 @@ fn image_button_without_alt(
     id: hir::NodeId,
     attrs: &[hir::Attr],
 ) -> Diagnostic {
-    let alt = attrs.iter().find(|a| a.name == "alt");
+    let alt = attrs.iter().find(|a| a.name.eq_ignore_ascii_case("alt"));
     let mut related = vec![Related::new(
         hir.decl_span(decl_id_of(hir, decl)),
         format!("`{}` renders this button", decl.name),
@@ -11109,11 +11119,13 @@ fn image_button_without_alt(
     }
 }
 
-/// An attribute's value when it is written as text, its quotes removed.
+/// An attribute's value when it is written as text, its quotes removed. The
+/// attribute is found by its name as HTML reads it, whatever its case:
+/// HTML's tokenizer lower-cases it (13.2.5.33), so `TYPE` is `type`.
 fn static_attr<'a>(attrs: &'a [hir::Attr], name: &str) -> Option<&'a str> {
     attrs
         .iter()
-        .find(|a| a.name == name)
+        .find(|a| a.name.eq_ignore_ascii_case(name))
         .and_then(|a| match &a.value {
             AttrValue::Static(v) => Some(v.trim_matches(|c| c == '"' || c == '\'')),
             _ => None,
@@ -11168,7 +11180,7 @@ fn labelable(tag: &str, attrs: &[hir::Attr]) -> Option<bool> {
     if tag.contains(['.', '-']) || tag.starts_with(|c: char| c.is_ascii_uppercase()) {
         return None;
     }
-    Some(match tag {
+    Some(match tag.to_ascii_lowercase().as_str() {
         "input" => !static_attr(attrs, "type").is_some_and(|t| t.eq_ignore_ascii_case("hidden")),
         "button" | "meter" | "output" | "progress" | "select" | "textarea" => true,
         _ => false,
@@ -11190,7 +11202,7 @@ fn labeled_control(
     else {
         return None;
     };
-    if attrs.iter().any(|a| a.name == "for") {
+    if attrs.iter().any(|a| a.name.eq_ignore_ascii_case("for")) {
         let target = *by_id.get(static_attr(attrs, "for")?)?;
         let Node::Element { tag, attrs, .. } = body.node(target) else {
             return None;
@@ -11253,7 +11265,7 @@ fn has_text(body: &Body, n: hir::NodeId, skip: hir::NodeId) -> bool {
                 Node::Text(t) => !t.trim().is_empty(),
                 Node::Interpolation(_) => true,
                 Node::Element { attrs, .. } => {
-                    let hidden = attrs.iter().any(|a| a.name == "hidden")
+                    let hidden = attrs.iter().any(|a| a.name.eq_ignore_ascii_case("hidden"))
                         || static_attr(attrs, "aria-hidden") == Some("true");
                     !hidden
                         && (non_blank(attrs, "aria-label")
@@ -11320,7 +11332,7 @@ fn unnamed_because(
     }
     // A button whose label is its `value`, and gives none (the input-button
     // ADR). Only a `button` input with no `value` has none to give.
-    if tag == "input"
+    if tag.eq_ignore_ascii_case("input")
         && let Some(t) = input_type(attrs)
         && matches!(t.as_str(), "submit" | "reset" | "button")
     {
@@ -11354,7 +11366,7 @@ fn unnamed_because(
         }
         let why = match labeled_control(body, l, &by_id) {
             Some(c) if c == control => "this `<label>` has no text",
-            Some(_) if label.iter().any(|a| a.name == "for") => {
+            Some(_) if label.iter().any(|a| a.name.eq_ignore_ascii_case("for")) => {
                 "this `<label>` has a `for`, so it names that element, not what it wraps"
             }
             Some(_) => "this `<label>` names the first control inside it, which is another",
@@ -11386,7 +11398,7 @@ fn unnamed_because(
     }
     let empty = order.iter().copied().find(|&l| {
         matches!(body.node(l), Node::Element { tag, attrs, .. }
-            if tag == "label" && static_attr(attrs, "for") == Some(id))
+            if tag.eq_ignore_ascii_case("label") && static_attr(attrs, "for") == Some(id))
     });
     match empty {
         Some(l) => Some(Related::new(

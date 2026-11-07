@@ -329,3 +329,33 @@ fn an_image_button_is_refused_with_its_own_repair() {
         "{d:#?}"
     );
 }
+
+// --- names whatever their case (train-14's review of #82) ----------------
+//
+// HTML's tokenizer lower-cases a tag's name and an attribute's (HTML
+// 13.2.5.8, 13.2.5.33): `<iMg>` is an `<img>`, and `ALT` is its `alt`. Until
+// train-14 PW5053 compared both exactly, so `<iMg src=...>` checked clean with
+// no `alt`, and `ALT="..."` was refused.
+
+#[test]
+fn an_image_and_its_alt_are_read_whatever_their_case() {
+    refused(r#"<iMg src="/shop.png" />"#);
+    clean(r#"<img src="/shop.png" ALT="The shop's front" />"#);
+    clean(r#"<iMG src="/divider.png" Alt="" />"#);
+}
+
+#[test]
+fn an_image_button_and_its_alt_are_read_whatever_their_case() {
+    assert_eq!(
+        in_form(r#"<iNPUT type="image" src="/search.png" />"#),
+        [NO_ALT]
+    );
+    assert_eq!(
+        in_form(r#"<input TYPE="image" src="/search.png" />"#),
+        [NO_ALT]
+    );
+    assert_eq!(
+        in_form(r#"<input type="image" src="/search.png" ALT="Search" />"#),
+        Vec::<String>::new()
+    );
+}

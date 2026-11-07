@@ -463,3 +463,16 @@ fn only_an_input_has_a_type() {
         );
     }
 }
+
+/// **A control and what names it are read whatever their case** (train-14's
+/// review of #82): HTML lower-cases a tag's name and an attribute's, so
+/// `<iNPUT>` is an `<input>`, `ARIA-LABEL` its `aria-label`, `TYPE="hidden"`
+/// makes no control, and `<lAbel>` names what it wraps.
+#[test]
+fn a_control_and_what_names_it_are_read_whatever_their_case() {
+    refused(r#"<iNPUT type="text" name="q" />"#, "");
+    refused(r#"<sElect name="s"><option>S</option></sElect>"#, "");
+    clean(r#"<input type="text" name="q" ARIA-LABEL="Query" />"#);
+    clean(r#"<input TYPE="hidden" name="q" />"#);
+    clean(r#"<lAbel>Query <iNPUT type="text" name="q" /></lAbel>"#);
+}

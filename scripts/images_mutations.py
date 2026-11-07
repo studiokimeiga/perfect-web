@@ -34,11 +34,11 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CHECK = ROOT / "compiler/pw-core/src/check.rs"
 
-HAS_ALT = "    attrs.iter().any(|a| a.name == \"alt\")\n"
-IMAGE = "                if tag.as_str() == \"img\" && !has_alt(attrs) {\n"
+HAS_ALT = "    attrs.iter().any(|a| a.name.eq_ignore_ascii_case(\"alt\"))\n"
+IMAGE = "                if tag.eq_ignore_ascii_case(\"img\") && !has_alt(attrs) {\n"
 # The image button (ADR-0405).
 IMAGE_BUTTON = (
-    "                if tag.as_str() == \"input\"\n"
+    "                if tag.eq_ignore_ascii_case(\"input\")\n"
     "                    && input_type(attrs).as_deref() == Some(\"image\")\n"
 )
 BUTTON_ALT = "                    && names_with(attrs, \"alt\") != Some(true)\n"
@@ -49,50 +49,50 @@ MUTANTS = [
         "an image with no `alt` is not refused",
         CHECK,
         IMAGE,
-        "                if false && tag.as_str() == \"img\" && !has_alt(attrs) {\n",
+        "                if false && tag.eq_ignore_ascii_case(\"img\") && !has_alt(attrs) {\n",
     ),
     (
         "an image a loop renders is not read",
         CHECK,
         IMAGE,
-        "                if tag.as_str() == \"img\" && !has_alt(attrs) && !inside_each(body, &order).contains(&id) {\n",
+        "                if tag.eq_ignore_ascii_case(\"img\") && !has_alt(attrs) && !inside_each(body, &order).contains(&id) {\n",
     ),
     (
         "a `<picture>`'s `<source>` is held to it",
         CHECK,
         IMAGE,
-        "                if matches!(tag.as_str(), \"img\" | \"source\") && !has_alt(attrs) {\n",
+        "                if (tag.eq_ignore_ascii_case(\"img\") || tag.eq_ignore_ascii_case(\"source\")) && !has_alt(attrs) {\n",
     ),
     (
         "a `title` stands for an image",
         CHECK,
         HAS_ALT,
-        "    attrs.iter().any(|a| matches!(a.name.as_str(), \"alt\" | \"title\"))\n",
+        "    attrs.iter().any(|a| a.name.eq_ignore_ascii_case(\"alt\") || a.name.eq_ignore_ascii_case(\"title\"))\n",
     ),
     (
         "an `aria-label` stands for an image",
         CHECK,
         HAS_ALT,
-        "    attrs.iter().any(|a| matches!(a.name.as_str(), \"alt\" | \"aria-label\"))\n",
+        "    attrs.iter().any(|a| a.name.eq_ignore_ascii_case(\"alt\") || a.name.eq_ignore_ascii_case(\"aria-label\"))\n",
     ),
     (
         "a `role` stands for an image",
         CHECK,
         HAS_ALT,
-        "    attrs.iter().any(|a| matches!(a.name.as_str(), \"alt\" | \"role\"))\n",
+        "    attrs.iter().any(|a| a.name.eq_ignore_ascii_case(\"alt\") || a.name.eq_ignore_ascii_case(\"role\"))\n",
     ),
     (
         "an empty `alt` is refused",
         CHECK,
         HAS_ALT,
-        "    attrs.iter().any(|a| a.name == \"alt\" && !matches!(a.value, AttrValue::None))\n"
+        "    attrs.iter().any(|a| a.name.eq_ignore_ascii_case(\"alt\") && !matches!(a.value, AttrValue::None))\n"
         "        && static_attr(attrs, \"alt\").is_none_or(|v| !v.is_empty())\n",
     ),
     (
         "an `alt` a value gives is refused",
         CHECK,
         HAS_ALT,
-        "    attrs.iter().any(|a| a.name == \"alt\" && !matches!(a.value, AttrValue::Expr(_)))\n",
+        "    attrs.iter().any(|a| a.name.eq_ignore_ascii_case(\"alt\") && !matches!(a.value, AttrValue::Expr(_)))\n",
     ),
     (
         "the image is reported at its declaration, not at the element",
@@ -124,7 +124,7 @@ MUTANTS = [
         "an image button's `type` is read case by case",
         CHECK,
         IMAGE_BUTTON,
-        "                if tag.as_str() == \"input\"\n"
+        "                if tag.eq_ignore_ascii_case(\"input\")\n"
         "                    && static_attr(attrs, \"type\") == Some(\"image\")\n",
     ),
     (
@@ -204,6 +204,32 @@ MUTANTS = [
         CHECK,
         '            description: "write `alt=\\"…\\"` saying what the button does".to_string(),\n',
         '            description: "write `alt=\\"…\\"` saying what the image shows".to_string(),\n',
+    ),
+    # --- names whatever their case (train-14's review of #82) ---
+    (
+        "an `<img>` is read by its name case by case",
+        CHECK,
+        IMAGE,
+        "                if tag.as_str() == \"img\" && !has_alt(attrs) {\n",
+    ),
+    (
+        "an `alt` is found by its name case by case",
+        CHECK,
+        HAS_ALT,
+        "    attrs.iter().any(|a| a.name == \"alt\")\n",
+    ),
+    (
+        "an image button is read by its name case by case",
+        CHECK,
+        IMAGE_BUTTON,
+        "                if tag.as_str() == \"input\"\n"
+        "                    && input_type(attrs).as_deref() == Some(\"image\")\n",
+    ),
+    (
+        "an attribute written as text is found by its name case by case",
+        CHECK,
+        "        .find(|a| a.name.eq_ignore_ascii_case(name))\n        .and_then(|a| match &a.value {\n",
+        "        .find(|a| a.name == name)\n        .and_then(|a| match &a.value {\n",
     ),
 ]
 
