@@ -1079,7 +1079,7 @@ struct Server {
     /// request's first read, [`REQUEST_READ_AT_MOST`] in every host; a test
     /// of it sets it.
     request_read: std::time::Duration,
-    /// **The connections open now** (the keep-alive ADR): past
+    /// **The connections open now** (ADR-0401): past
     /// [`KEPT_AT_MOST`], an answer closes its connection.
     open: Arc<std::sync::atomic::AtomicUsize>,
     /// **The kept connections waiting for their next request** (the
@@ -9609,7 +9609,7 @@ fn main() {
 }
 
 /// **How long a kept connection waits for its next request's first byte**
-/// (the keep-alive ADR): 75 s, nginx's `keepalive_timeout`. Past it the host
+/// (ADR-0401): 75 s, nginx's `keepalive_timeout`. Past it the host
 /// closes the connection; the browser opens another for its next request,
 /// as it does for a connection a host closed while it was idle. Until
 /// train-14's review it was Node's 5 s, under the 60 s a proxy keeps an
@@ -9664,7 +9664,7 @@ fn accept_backoff(failures: u32) -> std::time::Duration {
 }
 
 /// **A connection, and whether its answer keeps it for the next request**
-/// (the keep-alive ADR). Every answer is written to one. Its head says
+/// (ADR-0401). Every answer is written to one. Its head says
 /// `connection: keep-alive` only where its request allowed it, the request's
 /// body was read whole, and the host has no more than [`KEPT_AT_MOST`]
 /// connections open. HTTP/1.1 keeps a connection unless an answer says
@@ -9686,7 +9686,7 @@ struct Conn {
     keeping: Arc<Keeping>,
 }
 
-/// What a connection's twins share (the keep-alive ADR): whether the answer
+/// What a connection's twins share (ADR-0401): whether the answer
 /// being written keeps the connection, and whether an answer was written
 /// whole.
 #[derive(Default)]
@@ -9794,7 +9794,7 @@ impl std::ops::DerefMut for Conn {
     }
 }
 
-/// **A connection counted while it is open** (the keep-alive ADR).
+/// **A connection counted while it is open** (ADR-0401).
 struct Open<'a>(&'a std::sync::atomic::AtomicUsize);
 
 impl<'a> Open<'a> {
@@ -9812,7 +9812,7 @@ impl Drop for Open<'_> {
 
 /// **A connection's requests answered, one after another, and after each
 /// what its commit dropped told to every other session that reads it**
-/// (ADR-0219; the keep-alive ADR): after its answer is written whole, so the
+/// (ADR-0219; ADR-0401): after its answer is written whole, so the
 /// author is answered without waiting for every reader. The connection is
 /// kept while its answers say so, at most `server.keep_alive` idle between
 /// two requests; a request already sent behind the last (pipelined) is
@@ -9911,7 +9911,7 @@ fn session_changed(stream: &mut Conn, session: &str, fresh: bool) {
     );
 }
 
-/// **A request's body length, as its head frames it** (the keep-alive ADR;
+/// **A request's body length, as its head frames it** (ADR-0401;
 /// RFC 9112 §6.3): none, or one `content-length` of digits. Refused, and its
 /// connection closed, so that no request is ever read out of another's
 /// body: a `transfer-encoding` (this host reads no chunked body: 501), and
@@ -9958,7 +9958,7 @@ fn asks_to_close(headers: &str) -> bool {
         .any(|token| token.trim().eq_ignore_ascii_case("close"))
 }
 
-/// **What reading a request's head came to** (the keep-alive ADR, amended by
+/// **What reading a request's head came to** (ADR-0401, amended by
 /// train-14's review).
 enum Head {
     /// The request line and its headers, each line with its `\r\n`.
@@ -10063,7 +10063,7 @@ fn read_body(
     true
 }
 
-/// **One request of a connection, answered** (the keep-alive ADR): read from
+/// **One request of a connection, answered** (ADR-0401): read from
 /// `reader`, which holds what the connection sent past the request before
 /// it, and answered on `stream`, which it keeps for the next request only
 /// where the request allows it and its body is read whole.
@@ -10097,7 +10097,7 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
     let head_only = method == "HEAD";
     stream.head_only(head_only);
     let method = if head_only { "GET" } else { method };
-    // How its body is framed, before anything reads it (the keep-alive ADR).
+    // How its body is framed, before anything reads it (ADR-0401).
     let length = match framed_length(&headers) {
         Ok(length) => length,
         Err((code, why)) => {
@@ -10209,7 +10209,7 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
     if !read_body(&stream, reader, &mut body, deadline) {
         return;
     }
-    // Its body read whole, its connection may be kept (the keep-alive ADR);
+    // Its body read whole, its connection may be kept (ADR-0401);
     // and what answers it reads the connection unbounded, as before.
     stream.keep(persists);
     let _ = stream.set_read_timeout(None);
@@ -13451,7 +13451,7 @@ fn respond_build(stream: &mut Conn, code: u16, mime: &str, body: &[u8]) {
 /// origin's scripts (`'self'`): this is what makes that its JavaScript.
 const NOSNIFF: &str = "x-content-type-options: nosniff\r\n";
 
-/// **An answer of a known length** (the keep-alive ADR): its connection kept
+/// **An answer of a known length** (ADR-0401): its connection kept
 /// or closed after it as `stream` says.
 fn write_response(stream: &mut Conn, code: u16, mime: &str, headers: &str, body: &[u8]) {
     // A second answer to one request closes its connection, said in its head: the client reads
@@ -17673,7 +17673,7 @@ public query Store(",
     mod session_commands;
     #[cfg(feature = "session-postgres-tests")]
     mod session_commands_pg;
-    // The keep-alive ADR: a connection kept for its next request.
+    // ADR-0401: a connection kept for its next request.
     mod keep_alive;
     // ADR-0389, amended 2026-11-02: overlapping admissions of one session.
     mod session_overlap;

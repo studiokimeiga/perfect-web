@@ -1,10 +1,10 @@
-# Track `keep-alive`'s recipes (the keep-alive ADR). The root justfile imports
+# Track `keep-alive`'s recipes (ADR-0401). The root justfile imports
 # this file, and its settings and variables (`set shell`, `PATH`) apply here
 # as there. An evidence recipe is `e14-<name>:`, writes
 # `docs/evidence/E14/<name>.txt`, and is planned by the verification run like
 # any other (scripts/ci_plan.py reads this file too).
 
-# The keep-alive ADR: a host keeps a connection for its next request where
+# ADR-0401: a host keeps a connection for its next request where
 # HTTP/1.1 keeps it. It frames each request's body strictly, so that no
 # request is read out of another's body; closes a connection whose request
 # asks to close, whose body it has not read whole, past its cap, or after an
@@ -15,7 +15,7 @@
 e14-keep-alive:
     @cargo build --quiet --locked -p pw-dev-server
     @mkdir -p docs/evidence/E14
-    @{ echo "The keep-alive ADR - a host keeps a connection for its next request"; echo; \
+    @{ echo "ADR-0401 - a host keeps a connection for its next request"; echo; \
        echo "produced by: just e14-keep-alive"; \
        echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' ':(exclude)spikes/own-renderer/store-ir.json' || echo ' + uncommitted changes')"; \
        echo "rust: $(rustc --version)"; echo; \

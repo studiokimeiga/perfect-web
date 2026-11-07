@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The keep-alive ADR: a host keeps a connection for its next request where
+"""ADR-0401: a host keeps a connection for its next request where
 HTTP/1.1 keeps it, frames each request's body strictly, and tells each
 commit to its readers after its answer.
 
@@ -209,7 +209,7 @@ def main():
     args = parser.parse_args()
     files = sorted({path for _, path, _, _ in MUTANTS} | set(SOURCES))
     before = {str(path.relative_to(ROOT)): digest(path) for path in files}
-    report = {"scope": "a connection kept for its next request (the keep-alive ADR)",
+    report = {"scope": "a connection kept for its next request (ADR-0401)",
               "command": COMMAND, "producer_sha256": digest(Path(__file__)),
               "sources": before, "baseline": None, "controls": [], "restored": False,
               "valid": False}
