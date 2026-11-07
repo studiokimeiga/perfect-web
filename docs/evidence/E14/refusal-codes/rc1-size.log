@@ -1,0 +1,24 @@
+browser host map: 1 of 80 hosts for 4 selected tests
+
+Running 4 tests using 1 worker
+
+[1/4] [chromium] › e2e/runtime-size.spec.mjs:74:1 › gate 7a: the static route ships no browser runtime
+[chromium] › e2e/runtime-size.spec.mjs:74:1 › gate 7a: the static route ships no browser runtime
+EVIDENCE static-route-script-bytes=0 wasm-bytes=0
+
+[2/4] [chromium] › e2e/runtime-size.spec.mjs:89:1 › the decision's WebAssembly carries none of its trace's words
+[3/4] [chromium] › e2e/runtime-size.spec.mjs:103:1 › gate 7b: the interactive route's runtime is bounded as it is sent
+[chromium] › e2e/runtime-size.spec.mjs:103:1 › gate 7b: the interactive route's runtime is bounded as it is sent
+EVIDENCE interactive-script-bytes=168215 brotli=44395
+
+EVIDENCE interactive-wasm-bytes=52300 brotli=19552
+
+EVIDENCE  wasm 52300 gzip=22851 brotli=19552 http://127.0.0.1:13887/pw-resume.wasm
+
+EVIDENCE  script 168215 gzip=52778 brotli=44395 http://127.0.0.1:13887/pw-runtime.mjs
+
+[4/4] [chromium] › e2e/runtime-size.spec.mjs:119:1 › gate 7d: the renderer a page fetches to render a block again is bounded as it is sent
+[chromium] › e2e/runtime-size.spec.mjs:119:1 › gate 7d: the renderer a page fetches to render a block again is bounded as it is sent
+EVIDENCE renderer-wasm-bytes=267401 gzip=94092 brotli=77336
+
+  4 passed (9.4s)

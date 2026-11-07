@@ -101,7 +101,12 @@ fn assert_refused(d: &Decision, expected: Refusal, recovery: Recovery) {
         } => {
             assert_eq!(*why, expected, "refused for the wrong reason");
             assert_eq!(*got, recovery, "wrong recovery action");
-            assert!(!trace.is_empty(), "a refusal must carry a causal trace");
+            // In words where the decision keeps them: the `trace` feature,
+            // which the browser's build leaves out (the refusal codes' ADR).
+            assert!(
+                !cfg!(feature = "trace") || !trace.is_empty(),
+                "a refusal must carry a causal trace"
+            );
             assert!(!d.attaches(), "a refusal must not attach");
         }
         other => panic!("expected a refusal, got {other:?}"),

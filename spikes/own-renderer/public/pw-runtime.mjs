@@ -2955,10 +2955,19 @@ function decided(named, part) {
     decide && manifest ? decide(manifest) : { attach: false, recovery: "no-decision" };
   if (!verdict.attach) {
     // With its CODE: only the code tells an unknown handler from a widened
-    // privacy scope from a stale document schema.
+    // privacy scope from a stale document schema. The console says it to a
+    // developer, and where it is explained.
     log.push(`refused ${named}: code ${verdict.code} recovery ${verdict.recovery}`);
+    console.warn(`Pleris: handler ${named} not attached: ${explained(verdict.code)}, recovery ${verdict.recovery}`);
   }
   return verdict;
+}
+
+/** A refusal's code, `PWR04`, and its page at `pleris.dev`, as the compiler's
+ * `PW0606` has one (the refusal codes' ADR). The number is the decision's. */
+function explained(code) {
+  const name = `PWR${String(code).padStart(2, "0")}`;
+  return code ? `${name}, https://pleris.dev/e/${name}` : "no decision";
 }
 
 /** A part of a view's instance is named by its template, and the page's

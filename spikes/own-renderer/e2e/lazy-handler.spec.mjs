@@ -208,6 +208,8 @@ test("a handler this build did not compile is refused, whatever the document say
   // names a handler the build lacks, as one cached from another build would,
   // gets no listener and fetches no code, however consistently it names it.
   const fetched = watch(page);
+  const warned = [];
+  page.on("console", (m) => m.type() === "warning" && warned.push(m.text()));
   await page.route("**/StorePage.html", async (route) => {
     const response = await route.fetch();
     const body = await response.text();
@@ -230,6 +232,11 @@ test("a handler this build did not compile is refused, whatever the document say
 
   expect(log, "the build's handlers are known").toMatch(/knows \d+ handler\(s\)/);
   expect(log, "this one is not among them").toMatch(/refused \d+: code 4 /);
+  // The refusal codes' ADR: a developer is told in the console, by the code
+  // and the page that explains it.
+  expect(warned, "the console names the refusal and its page").toContainEqual(
+    expect.stringMatching(/^Pleris: handler \d+ not attached: PWR04, https:\/\/pleris\.dev\/e\/PWR04, recovery \S+$/),
+  );
   expect(fetched, "and nothing was fetched").toEqual([]);
   await expect(page.locator("#cart-count"), "the button is inert").toHaveText("0");
   await page.unrouteAll({ behavior: "ignoreErrors" }).catch(() => {});
