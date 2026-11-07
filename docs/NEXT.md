@@ -8,7 +8,7 @@
 
 ## After train-14, 2026-11-07
 
-Train-14 merges 22 PRs and the cache repair ([STATUS](STATUS.md)). What
+Train-14 merges 23 PRs and the cache repair ([STATUS](STATUS.md)). What
 stays open, in order:
 
 1. **Row ownership lands as ADR-0407 rules.** `owned by <field>` (the
@@ -36,18 +36,16 @@ stays open, in order:
      whole, and #86's connection cap is read against #87's holds.
 3. **PR #81:** its pixel test of the checkbox fails in WebKit ("checked: the
    bounds its drawing is past"); its session repairs the drawing.
-4. **PR #64:** `e14-pleris-controls` failed T11's positive control and
-   harness at `484437e2`; find the cause before it lands.
-5. **Two defects on master** (ADR-0407's decision 4), each its own PR: the
+4. **Two defects on master** (ADR-0407's decision 4), each its own PR: the
    development server's scheduler keys a run by its command and arguments
    alone (`schedules.rs`'s `key`), so one reader's schedule moves another's
    pending run; and D3's PostgreSQL `put` is answered from its statement's
    snapshot (`sql.rs`'s `old`), which a concurrent command can make wrong.
-6. **PR #74** names its decision ADR-0394, which the data path holds; it
+5. **PR #74** names its decision ADR-0394, which the data path holds; it
    takes the next free number when it lands. The dependency updates
    (#16-#26, #65) are checked and landed on their own.
 
-7. **What train-14's review found and left for its own work:**
+6. **What train-14's review found and left for its own work:**
    - **A query answers `POST /command/<id>`** (medium confidence, not run):
      `pw build` writes a component for each query too, the server loads every
      component, and the route never asks what kind an export is. A query no
@@ -68,6 +66,14 @@ stays open, in order:
    - The pleris.dev branch (`site/pleris-dev`, PR #77) still holds the two
      Wrangler cache files train-14 left out; whether to delete that branch
      after the merge is the owner's call.
+
+7. **CodeQL's 82 open alerts on master** (2026-11-07): 16
+   `rust/hard-coded-cryptographic-value` (critical, `accounts.rs`), 14
+   `rust/log-injection`, 7 `rust/cleartext-logging`, 24 unpinned actions, and
+   JavaScript's path-injection, file-system-race, shell-command and
+   sanitization findings. Each is fixed or dismissed with its reason. A large
+   PR's CodeQL check re-reports those in the files it changes: train-14's
+   eight (#60, #61, #82-#84, #92-#94) were all open on master before it.
 
 ## Current local continuation, 2026-11-02
 
