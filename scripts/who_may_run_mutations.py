@@ -74,8 +74,18 @@ MUTANTS = [
     (
         "the contract asks `Anyone` of a request",
         CONTRACT,
-        "            .filter(|predicate| predicate.name != crate::policy::ANYONE)\n",
+        "            .filter(|predicate| {\n"
+        "                !(predicate.name == crate::policy::ANYONE && predicate.arguments.is_empty())\n"
+        "            })\n",
         "",
+    ),
+    (
+        "an unchecked `Anyone(n)` asks nothing (train-14's review)",
+        CONTRACT,
+        "            .filter(|predicate| {\n"
+        "                !(predicate.name == crate::policy::ANYONE && predicate.arguments.is_empty())\n"
+        "            })\n",
+        "            .filter(|predicate| predicate.name != crate::policy::ANYONE)\n",
     ),
     (
         "a page is asked to guard a control anyone may press",

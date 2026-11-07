@@ -267,6 +267,23 @@ fn requires_anyone_is_no_precondition() {
     assert_eq!(c.abi_schema, without.abi_schema);
 }
 
+/// **An unchecked `requires Anyone(n)` asks what no reader holds** (ADR-0406;
+/// train-14's review). PW0367 refuses `Anyone` with arguments. A caller of
+/// this lower-level API that skipped `check` must not get from it the empty
+/// list that means "no precondition": malformed authorization fails closed.
+#[test]
+fn requires_anyone_with_arguments_fails_closed() {
+    let malformed = PROGRAM.replace("requires SignedIn", "requires Anyone(id)");
+    let c = one(&[&malformed], "shop.origin.Restock");
+    let export = c.exports[0].component.as_ref().expect("compiled export");
+    let asked: Vec<&str> = export
+        .authorization
+        .iter()
+        .map(|r| r.predicate.as_str())
+        .collect();
+    assert_eq!(asked, ["__invalid_requires__"]);
+}
+
 /// **`idempotent_by` reaches the host, and is part of the ABI** (ADR-0121).
 /// It was checked and read by nothing until 2026-10-02, so a retried request
 /// ran its command twice.
