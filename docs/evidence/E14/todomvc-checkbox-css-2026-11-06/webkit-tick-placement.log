@@ -1,0 +1,21 @@
+== chromium 145.0.7632.6: label {"x":365,"y":131,"width":550,"height":58.796875}
+as it is: in the item, rounded: mean 3.19, over 65
+in the item, not rounded: mean 4.80, over 101
+in the label, not rounded: mean 4.80, over 101
+in the label, rounded: mean 3.19, over 65
+in the item, floored: mean 3.19, over 65
+in the item, ceiled: mean 6.80, over 123
+== firefox 146.0.1: label {"x":365,"y":131,"width":550,"height":58.80000305175781}
+as it is: in the item, rounded: mean 1.64, over 19
+in the item, not rounded: mean 1.64, over 19
+in the label, not rounded: mean 1.64, over 19
+in the label, rounded: mean 1.64, over 19
+in the item, floored: mean 1.64, over 19
+in the item, ceiled: mean 5.24, over 77
+== webkit 26.0: label {"x":365,"y":131,"width":550,"height":58}
+as it is: in the item, rounded: mean 3.18, over 65
+in the item, not rounded: mean 3.18, over 65
+in the label, not rounded: mean 3.18, over 65
+in the label, rounded: mean 3.18, over 65
+in the item, floored: mean 3.18, over 65
+in the item, ceiled: mean 3.18, over 65

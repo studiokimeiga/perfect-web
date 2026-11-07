@@ -12449,7 +12449,8 @@ fn serve_file(server: &Server, stream: &mut Conn, path: &str, request_headers: &
         Some("json") => "application/json; charset=utf-8",
         Some("wasm") => "application/wasm",
         Some("css") => "text/css; charset=utf-8",
-        Some("svg") => "image/svg+xml",
+        // No build ships an image: TodoMVC's checkbox, the one that did, is
+        // drawn by its stylesheet since 2026-11-06 (ADR-0367's amendment).
         _ => "application/octet-stream",
     };
     let Ok(bytes) = std::fs::read(&path) else {

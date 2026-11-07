@@ -1,0 +1,14 @@
+## scale device
+== webkit 26.0 at 2x: label {"x":365,"y":131,"width":550,"height":58}
+as it is: mean 2.10, over 122
+== chromium 145.0.7632.6 at 2x: label {"x":365,"y":131,"width":550,"height":58.796875}
+as it is: mean 2.08, over 117
+== webkit 26.0 at 1x: label {"x":365,"y":131,"width":550,"height":58}
+as it is: mean 3.18, over 65
+## scale css
+== webkit 26.0 at 2x: label {"x":365,"y":131,"width":550,"height":58}
+as it is: mean 3.18, over 65
+== chromium 145.0.7632.6 at 2x: label {"x":365,"y":131,"width":550,"height":58.796875}
+as it is: mean 3.19, over 65
+== webkit 26.0 at 1x: label {"x":365,"y":131,"width":550,"height":58}
+as it is: mean 3.18, over 65

@@ -74,7 +74,7 @@ class Producers(unittest.TestCase):
             todo.INVENTORIES['browser'] = expected
         def native(command, **kwargs):
             env = kwargs['env']
-            ids = [f'case-{n}' for n in range(50)]
+            ids = [f'case-{n}' for n in range(todo.BROWSER_COUNT)]
             report = dict(schema=1, complete=True, nonce=env['PW_ASSERTION_NONCE'],
                           inventory=ids, tests=[[n, 'passed'] for n in ids])
             if patch:
@@ -90,17 +90,18 @@ class Producers(unittest.TestCase):
             return todo.browser_tests()
 
     def test_browser_requires_fresh_receipt_and_native_exit(self):
-        self.assertEqual(self.browser(), (True, 50, 0))
-        failing = [[f'case-{n}', 'failed' if n == 0 else 'passed'] for n in range(50)]
-        self.assertEqual(self.browser(1, {'tests': failing}), (True, 49, 1))
+        count = todo.BROWSER_COUNT
+        self.assertEqual(self.browser(), (True, count, 0))
+        failing = [[f'case-{n}', 'failed' if n == 0 else 'passed'] for n in range(count)]
+        self.assertEqual(self.browser(1, {'tests': failing}), (True, count - 1, 1))
         for status, patch, present in ((1, {}, False), (0, {'nonce': 'old'}, True),
                                        (0, {'tests': failing}, True), (None, {}, True)):
             self.assertFalse(self.browser(status, patch, present)[0])
 
-    def test_browser_requires_fifty_complete_frozen_ids(self):
+    def test_browser_requires_browser_count_complete_frozen_ids(self):
         self.assertFalse(self.browser(expected=('foreign',))[0])
         for patch in ({'tests': []}, {'complete': False},
-                      {'tests': [[f'case-{n}', 'skipped'] for n in range(50)]},
+                      {'tests': [[f'case-{n}', 'skipped'] for n in range(todo.BROWSER_COUNT)]},
                       {'inventory': ['one'], 'tests': [['one', 'passed']]}):
             todo.INVENTORIES.clear()
             self.assertFalse(self.browser(patch=patch)[0])

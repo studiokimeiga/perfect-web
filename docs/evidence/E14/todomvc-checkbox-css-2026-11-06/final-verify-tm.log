@@ -1,0 +1,165 @@
+== 2026-11-06T14:23:01-05:00 commit cefa613ce76a11712e60a92c5fcaeefdb1cd7df5; uncommitted code paths: 0
+== 2026-11-06T14:23:01-05:00 fallow audit (fallow 3.23.0, gate new-only, against 5d4d4d55, as CI runs it)
+exit fallow 0
+verdict pass {"gate": "new-only", "dead_code_introduced": 0, "dead_code_inherited": 2, "complexity_introduced": 0, "complexity_inherited": 0, "duplication_introduced": 0, "duplication_inherited": 0, "styling_introduced": 0, "styling_inherited": 0, "duplication_demoted": 0}
+== 2026-11-06T14:23:04-05:00 reached mutation scripts (reached.py 5d4d4d55 3)
+page_policy_mutations.py: 1 anchor(s) in changed code: a stylesheet the build ships is served as bytes
+todomvc_mutations.py: 4 anchor(s) in changed code: the tick takes a press made on it; the ring is drawn off its centre; a path's relative points are read as absolute; the checked ring keeps the unchecked colour
+todomvc_producer_mutations.py: 2 anchor(s) in changed code: short baseline browser inventory is accepted; invalid browser provenance earns credit
+== 2026-11-06T14:23:05-05:00 the whole pre-push check (TAG=tm2)
+exit tm2 0
+exit preflight 0
+exit evidence-gates 0
+Ran 1177 tests in 428.336s
+OK (skipped=5)
+exit cargo test 0
+test result: ok. 867 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 169.81s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+exit build 0
+exit run.sh 0
+exit todomvc.sh 0
+exit keyed-store.sh 0
+exit feed.sh 0
+exit guestbook.sh 0
+exit kiokun-site.sh 0
+exit specs 0
+Running 1044 tests using 16 workers
+  11 skipped
+  1033 passed (7.7m)
+exit runtime-size 0
+EVIDENCE interactive-script-bytes=157269 brotli=41656
+EVIDENCE interactive-wasm-bytes=57951 brotli=21284
+EVIDENCE renderer-wasm-bytes=406192 gzip=125186 brotli=99732
+  3 passed (10.1s)
+EVIDENCE checkbox unchecked: largest 42, mean 2.03, over an eighth 21 of 1600; ink apart: ring 0.0 points in colour, 13.6% in amount
+EVIDENCE checkbox checked: largest 66, mean 3.19, over an eighth 65 of 1600; ink apart: ring 0.8 points in colour, 13.8% in amount; tick 0.1 points in colour, -0.3% in amount
+EVIDENCE checkbox unchecked: largest 37, mean 1.02, over an eighth 2 of 1600; ink apart: ring 0.0 points in colour, 14.8% in amount
+EVIDENCE checkbox checked: largest 58, mean 1.64, over an eighth 19 of 1600; ink apart: ring 0.7 points in colour, 15.2% in amount; tick 0.0 points in colour, -0.3% in amount
+== 2026-11-06T14:41:57-05:00 mutation controls: page_policy
+exit page_policy 0
+baseline (core): 32 passed, 0 failed
+baseline (server): 17 passed, 0 failed
+baseline (browser): 1 passed, 0 failed
+a scheme is not another origin: KILLED (4 of 20 tests fail)
+a `//` names no host: KILLED (1 of 26 tests fail)
+a `\` is not a `/`: KILLED (1 of 32 tests fail)
+a tab inside an address is kept: KILLED (1 of 32 tests fail)
+an address's leading spaces are kept: KILLED (1 of 32 tests fail)
+a srcset's candidates after its first are not read: KILLED (1 of 32 tests fail)
+an image is no load: KILLED (4 of 20 tests fail)
+a link that is an item's property is taken as a load: KILLED (2 of 20 tests fail)
+a link's address a value chooses is allowed: KILLED (1 of 32 tests fail)
+an address built with a value is not read: KILLED (1 of 32 tests fail)
+an address built with a value is read only to its first value: KILLED (1 of 32 tests fail)
+a link's text before its value is taken as known wherever it starts: KILLED (1 of 32 tests fail)
+the script that starts the runtime is not hashed: KILLED (3 of 17 tests fail)
+the runtime's WebAssembly is refused: KILLED (2 of 17 tests fail)
+the data layer's style is not hashed: KILLED (2 of 17 tests fail)
+a `<style>` the build writes is not hashed: KILLED (1 of 17 tests fail)
+a text is hashed with its CRs: KILLED (1 of 17 tests fail)
+a style attribute a value gives is not found: KILLED (1 of 17 tests fail)
+markup a capability lets through is taken as holding no style attribute: KILLED (1 of 17 tests fail)
+a block's markup is not read: KILLED (2 of 17 tests fail)
+a comment's text is read as markup: KILLED (1 of 17 tests fail)
+a style attribute written is not found: KILLED (1 of 17 tests fail)
+a quoted value is read as attributes: KILLED (1 of 17 tests fail)
+a frame is not found: KILLED (2 of 17 tests fail)
+a `<style>`'s text is not read: KILLED (1 of 17 tests fail)
+a style attribute the build writes is refused: KILLED (1 of 17 tests fail)
+a build that frames nothing frames the provider: KILLED (1 of 17 tests fail)
+an address's origin keeps who it is from: KILLED (1 of 17 tests fail)
+the deployment's payment provider is not framed: KILLED (1 of 17 tests fail)
+a sign-in at another origin is refused: KILLED (1 of 17 tests fail)
+a document written whole is sent no policy: KILLED (1 of 17 tests fail)
+a streamed document is sent no policy: KILLED (4 of 17 tests fail)
+a document is sent the bare policy: KILLED (4 of 17 tests fail)
+an HTML answer that runs nothing is sent no policy: KILLED (1 of 17 tests fail)
+a page the build rendered is sent no policy: KILLED (1 of 17 tests fail)
+an answer that is not HTML is sent the bare policy: KILLED (1 of 17 tests fail)
+a page moved is sent no policy: KILLED (1 of 17 tests fail)
+the identity's page is sent no policy: KILLED (1 of 17 tests fail)
+an answer's type may be sniffed: KILLED (1 of 17 tests fail)
+a streamed document's type may be sniffed: KILLED (1 of 17 tests fail)
+the identity's answers may be sniffed: KILLED (1 of 17 tests fail)
+a stylesheet the build ships is served as bytes: KILLED (1 of 17 tests fail)
+the announcer is served styled: KILLED (1 of 17 tests fail)
+the announcer, served unstyled, is never hidden: KILLED (1 of 1 tests fail)
+44 of 44 mutants killed
+== 2026-11-06T15:42:24-05:00 mutation controls: todomvc
+exit todomvc 0
+baseline (server): 4 passed, 0 failed
+baseline (browser): 52 passed, 0 failed
+the todos are kept under another name than the spec's [program]: KILLED by the server's tests (1 of 4 tests fail)
+the todos say not whose they are [program]: KILLED by the checker (PW6805, the rule this mutant takes away)
+main is not hidden with no todos [program]: KILLED by the server's tests (1 of 4 tests fail)
+the footer is not hidden with no todos [program]: KILLED by the server's tests (1 of 4 tests fail)
+a title is not trimmed [program]: KILLED by the browser's tests (4 of 52 tests fail)
+the counter says `items left` of one [program]: KILLED by the browser's tests (3 of 52 tests fail)
+the counter counts the completed [program]: KILLED by the browser's tests (3 of 52 tests fail)
+the toggle-all completes only when every todo is active [program]: KILLED by the browser's tests (2 of 52 tests fail)
+the toggle-all is checked with no todos [program]: KILLED by the server's tests (1 of 4 tests fail)
+the toggle-all does what clearing the completed does [program]: KILLED by the browser's tests (5 of 52 tests fail)
+the active filter shows the completed [program]: KILLED by the browser's tests (5 of 52 tests fail)
+the completed filter shows the active [program]: KILLED by the browser's tests (6 of 52 tests fail)
+the default filter shows nothing [program]: KILLED by the browser's tests (47 of 52 tests fail)
+the model does not filter [program]: KILLED by the browser's tests (6 of 52 tests fail)
+the clear button counts what is left [program]: KILLED by the browser's tests (2 of 52 tests fail)
+no row is the one being edited [program]: KILLED by the browser's tests (15 of 52 tests fail)
+an edited todo that is completed is not shown completed [program]: KILLED by the browser's tests (1 of 52 tests fail)
+an edited todo has no editing class [program]: KILLED by the browser's tests (12 of 52 tests fail)
+a completed todo has no completed class [program]: KILLED by the browser's tests (17 of 52 tests fail)
+a toggle sets what the todo already is [program]: KILLED by the browser's tests (19 of 52 tests fail)
+an edit trimmed to nothing is kept, not destroyed [program]: KILLED by the browser's tests (2 of 52 tests fail)
+destroy keeps the todo [program]: KILLED by the browser's tests (5 of 52 tests fail)
+clear completed clears none [program]: KILLED by the browser's tests (3 of 52 tests fail)
+a todo is added at the top of the list [program]: KILLED by the browser's tests (19 of 52 tests fail)
+an id is one before it again [program]: KILLED by the browser's tests (37 of 52 tests fail)
+the active link goes to the completed [program]: KILLED by the server's tests (1 of 4 tests fail)
+an active address shows every todo [program]: KILLED by the browser's tests (4 of 52 tests fail)
+a completed address shows the active [program]: KILLED by the browser's tests (6 of 52 tests fail)
+the selected link is every other [program]: KILLED by the server's tests (1 of 4 tests fail)
+a double press does not begin an edit [program]: KILLED by the browser's tests (15 of 52 tests fail)
+beginning an edit forgets the title [program]: KILLED by the browser's tests (1 of 52 tests fail)
+the field starts empty [program]: KILLED by the browser's tests (5 of 52 tests fail)
+what is typed in the field is not kept [program]: KILLED by the browser's tests (8 of 52 tests fail)
+Escape does not leave editing [program]: KILLED by the browser's tests (1 of 52 tests fail)
+blur does not save [program]: KILLED by the browser's tests (5 of 52 tests fail)
+Enter does not save [program]: KILLED by the browser's tests (6 of 52 tests fail)
+the new-todo field is not cleared [program]: KILLED by the browser's tests (1 of 52 tests fail)
+a title of blanks clears the field [program]: KILLED by the browser's tests (1 of 52 tests fail)
+the new-todo field is not focused when the page loads [program]: KILLED by the server's tests (2 of 4 tests fail)
+the tick takes a press made on it [styles]: KILLED by the browser's tests (1 of 52 tests fail)
+the ring is drawn off its centre [styles]: KILLED by the browser's tests (1 of 52 tests fail)
+a path's relative points are read as absolute [styles]: KILLED by the browser's tests (1 of 52 tests fail)
+the checked ring keeps the unchecked colour [styles]: KILLED by the browser's tests (1 of 52 tests fail)
+a patch that removes `checked` leaves the box as a person left it [runtime]: KILLED by the browser's tests (2 of 52 tests fail)
+a patch that sets `checked` leaves the box as a person left it [runtime]: KILLED by the browser's tests (1 of 52 tests fail)
+an edit field inside the row a patch inserts is not given focus [runtime]: KILLED by the browser's tests (3 of 52 tests fail)
+restored (server): 4 passed, 0 failed
+restored (browser): 52 passed, 0 failed
+46 of 46 mutants killed; 0 refused; 0 survived
+== 2026-11-06T15:51:04-05:00 mutation controls: todomvc_producer
+exit todomvc_producer 0
+invalid native Cargo results earn credit: KILLED by test_todomvc_producers.Producers.test_server_refuses_timeout_build_error_and_native_disagreement (2 of 15 tests fail)
+foreign Cargo test identities are accepted: KILLED by test_todomvc_producers.Producers.test_server_requires_exact_four_ids_and_assertion_site (1 of 15 tests fail)
+a failed build launches the browser: KILLED by test_todomvc_producers.Producers.test_build_failure_or_timeout_cannot_launch_browser (1 of 15 tests fail)
+browser inventory changes after baseline: KILLED by test_todomvc_producers.Producers.test_browser_requires_browser_count_complete_frozen_ids (1 of 15 tests fail)
+short baseline browser inventory is accepted: KILLED by test_todomvc_producers.Producers.test_browser_requires_browser_count_complete_frozen_ids (1 of 15 tests fail)
+invalid browser provenance earns credit: KILLED by test_todomvc_producers.Producers.test_browser_requires_fresh_receipt_and_native_exit (2 of 15 tests fail)
+checker exit can be an infrastructure failure: KILLED by test_todomvc_producers.Producers.test_checker_accepts_only_complete_native_diagnostics (1 of 15 tests fail)
+checker summary need not account for diagnostics: KILLED by test_todomvc_producers.Producers.test_checker_accepts_only_complete_native_diagnostics (1 of 15 tests fail)
+a subset of named checker codes is enough: KILLED by test_todomvc_producers.Producers.test_checker_kill_requires_exact_named_codes (1 of 15 tests fail)
+an invalid producer earns a kill: KILLED by test_todomvc_producers.Producers.test_invalid_or_stopped_producer_never_earns_kill (2 of 15 tests fail)
+a stopped producer prints a kill before refusing: KILLED by test_todomvc_producers.Producers.test_invalid_or_stopped_producer_never_earns_kill (1 of 15 tests fail)
+an invalid result reaches another control: KILLED by test_todomvc_producers.Producers.test_invalid_result_stops_before_the_next_control (1 of 15 tests fail)
+failed restored source is ignored: KILLED by test_todomvc_producers.Producers.test_restored_source_result_is_required (1 of 15 tests fail)
+cancellation restores the planted source: KILLED by test_todomvc_producers.Producers.test_cancellation_restores_owned_source (5 of 15 tests fail)
+timeout claims a native test failure status: KILLED by test_todomvc_producers.Producers.test_timeout_uses_shared_owner_and_remains_invalid (1 of 15 tests fail)
+producer cancellation bypasses source restoration: KILLED by test_todomvc_producers.Producers.test_outer_sigterm_restores_real_owned_source (1 of 15 tests fail)
+producer restored suite is not required: KILLED by test_todomvc_producers.Producers.test_outer_requires_restored_full_suite (1 of 15 tests fail)
+17 of 17 mutants killed; 0 refused; 0 survived
+== 2026-11-06T15:51:11-05:00 restored
+mutation anchors: 4977 mutants in 324 scripts, each matching once
+exit anchors 0
+FINAL_VERIFY_TM_FINISHED
