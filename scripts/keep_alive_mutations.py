@@ -141,6 +141,7 @@ def digest(path):
 
 
 def main():
+    import mutation_baseline  # keeps what each command says, for a red baseline
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--report", type=Path)
     args = parser.parse_args()
@@ -156,6 +157,7 @@ def main():
         if (not baseline or not baseline.valid or baseline.failed
                 or baseline.passed != len(TEST_NAMES)):
             print("FAIL: the unmutated baseline is not green; no control can mean anything")
+            mutation_baseline.explain()
             return 1
         for name, path, anchor, replacement in MUTANTS:
             original = path.read_text()
