@@ -1,0 +1,7 @@
+$ python3 scripts/ci_plan.py --shards 1 --changed 5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6 HEAD
+started: 2026-11-07T00:25:40.551290+00:00
+commit: c30ef1f384b921a1ae120dfaef2ba193ee10977c
+
+shards=[{"index": 0, "recipes": ["e10-privacy-by-resolution", "e10-reads-through-calls", "e14-contract", "e14-diffs", "e14-handler-failures", "e14-held-labels", "e14-holds", "e14-ids", "e14-layouts", "e14-links", "e14-metadata", "e14-museum", "e14-pleris-controls", "e14-shared-cache", "e14-unsafe-table", "e14-value-labels"], "browsers": true, "build": true, "database": false}]
+
+exit: 0

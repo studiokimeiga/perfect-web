@@ -1,0 +1,15 @@
+{"step": "diff against the base", "command": ["git", "diff", "--stat", "5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6", "HEAD"], "exit": 0, "log": "diff-stat.txt"}
+{"step": "red: PW5001's note as before the fix: it stops mid-sentence", "command": ["cargo", "test", "--locked", "-p", "pw-core", "--test", "shared_cache_holds_no_readers_value"], "exit": 101, "edited": ["compiler/pw-core/src/check.rs"], "verdict": "FAIL as they must, and no other"}
+{"step": "red: PW5001's note and cause chain given all the declaration's parameters state, not the parameter's own", "command": ["cargo", "test", "--locked", "-p", "pw-core", "--test", "shared_cache_holds_no_readers_value"], "exit": 101, "edited": ["compiler/pw-core/src/check.rs"], "verdict": "FAIL as they must, and no other"}
+{"step": "red: PW5048's note tells the dated story, as before the fix", "command": ["cargo", "test", "--locked", "-p", "pw-core", "--test", "controls_where_they_hold"], "exit": 101, "edited": ["compiler/pw-core/src/holds.rs"], "verdict": "FAIL as they must, and no other"}
+{"step": "red: the guide shows PW5048's old note, which `pw check` no longer prints", "command": ["cargo", "test", "--locked", "-p", "pw-cli", "--test", "guide"], "exit": 101, "edited": ["docs/guide/errors.md"], "verdict": "FAIL as they must, and no other"}
+{"step": "pw-core, every test binary", "command": ["cargo", "test", "--locked", "--no-fail-fast", "-p", "pw-core"], "exit": 0, "log": "pw-core-tests.txt.gz"}
+{"step": "the guide", "command": ["cargo", "test", "--locked", "-p", "pw-cli", "--test", "guide"], "exit": 0, "log": "guide-test.txt"}
+{"step": "the corpus, formatted", "command": ["cargo", "test", "--locked", "-p", "pw-syntax", "--test", "corpus_fmt"], "exit": 0, "log": "corpus-fmt-test.txt"}
+{"step": "the guide's pw-check blocks, against the built pw", "command": ["python3", "/mnt/c/Users/haki/AppData/Local/Temp/claude/9ec86c53ff2959da/fb4eee7c-9811-4e12-9b3f-baa54667a1c6/scratchpad/regen_guide_blocks.py", ".", "/home/haki/pw-targets/message-text/debug/pw"], "exit": 0, "log": "guide-blocks.txt"}
+{"step": "benchmark patches", "command": ["collect.py", "bench"], "exit": 0}
+{"step": "the planner: what the change reaches", "command": ["python3", "scripts/ci_plan.py", "--shards", "1", "--changed", "5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6", "HEAD"], "exit": 0, "log": "ci-plan.txt"}
+{"step": "mutation anchors", "command": ["python3", "scripts/mutation_anchors.py"], "exit": 0, "log": "mutation-anchors.txt"}
+{"step": "just preflight", "command": ["just", "preflight"], "exit": 0, "log": "preflight.txt"}
+{"step": "just evidence-gates", "command": ["just", "evidence-gates"], "exit": 0, "log": "evidence-gates.txt.gz"}
+{"step": "benchmark stores, text", "command": ["collect.py", "stores"], "exit": 0}

@@ -1,0 +1,22 @@
+ADR-0112 - a call's privacy is the declaration it resolves to
+
+produced by: just e10-privacy-by-resolution
+commit: c30ef1f384b921a1ae120dfaef2ba193ee10977c
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+== privacy by resolution (compiler/pw-core/tests/privacy_by_resolution.rs)
+
+test a_session_read_is_one_however_it_is_imported ... ok
+test a_secret_is_one_however_it_is_imported ... ok
+test a_value_refused_a_shared_cache_is_reported_once ... ok
+test a_sink_is_one_however_it_is_imported ... ok
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+
+== mutation controls (scripts/privacy_resolution_mutations.py)
+
+baseline: 4 passed, 0 failed
+a callee is found by its spelling: KILLED (1 of 4 tests fail)
+a sink is read by spelling: KILLED (1 of 4 tests fail)
+PW5004 speaks where PW5001 does: KILLED (2 of 4 tests fail)
+3 of 3 mutants killed
+memory bound: no process was stopped

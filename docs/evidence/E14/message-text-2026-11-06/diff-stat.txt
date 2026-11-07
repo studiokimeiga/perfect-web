@@ -1,0 +1,20 @@
+$ git diff --stat 5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6 HEAD
+started: 2026-11-07T00:17:01.304867+00:00
+commit: c30ef1f384b921a1ae120dfaef2ba193ee10977c
+
+ benchmarks/baselines/pleris/store/app.pw           |  6 +-
+ .../tasks/T01-optimistic-cart/setup/pleris.patch   |  8 +--
+ .../T03-private-cart-lines/reference/pleris.patch  |  6 +-
+ .../T03-private-cart-lines/unsafe/pleris.patch     |  6 +-
+ .../tasks/T04-order-ready/setup/pleris.patch       |  6 +-
+ .../T08-duplicate-submissions/setup/pleris.patch   |  6 +-
+ .../tasks/T10-estimate-states/setup/pleris.patch   |  6 +-
+ compiler/pw-core/src/check.rs                      | 60 +++++++++++++-----
+ compiler/pw-core/src/holds.rs                      | 16 ++---
+ compiler/pw-core/tests/controls_where_they_hold.rs | 46 ++++++++++++++
+ .../tests/shared_cache_holds_no_readers_value.rs   | 74 ++++++++++++++++++++++
+ docs/guide/errors.md                               |  2 +-
+ scripts/shared_cache_mutations.py                  |  2 +-
+ 13 files changed, 197 insertions(+), 47 deletions(-)
+
+exit: 0
