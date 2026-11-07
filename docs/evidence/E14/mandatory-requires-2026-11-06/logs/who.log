@@ -1,0 +1,19 @@
+== 2026-11-06T21:48:29-05:00 commit 815ec2595136a87a0d879d8c8cbe78560818a5bf; uncommitted code paths: 0
+== 2026-11-06T21:48:29-05:00 mutation controls: who_may_run, whole
+exit who_may_run 0
+baseline: 43 passed, 0 failed
+a command that says nothing of who may run it is not refused: KILLED (4 of 43 tests fail)
+a command the platform runs is asked for `requires` too: KILLED (4 of 43 tests fail)
+`Anyone` beside another predicate is taken: KILLED (1 of 43 tests fail)
+`Anyone` with arguments is taken: KILLED (1 of 43 tests fail)
+a program's own `Anyone` is taken: KILLED (1 of 43 tests fail)
+the press that sends it is not named: KILLED (1 of 43 tests fail)
+it is reported at its declaration, not its name: KILLED (1 of 43 tests fail)
+the contract asks `Anyone` of a request: KILLED (1 of 43 tests fail)
+a page is asked to guard a control anyone may press: KILLED (4 of 43 tests fail)
+9 of 9 mutants killed
+memory bound: no process was stopped
+== 2026-11-06T22:02:41-05:00 restored
+mutation anchors: 4983 mutants in 325 scripts, each matching once
+exit anchors 0
+REQUIRES_WHO_FINISHED
