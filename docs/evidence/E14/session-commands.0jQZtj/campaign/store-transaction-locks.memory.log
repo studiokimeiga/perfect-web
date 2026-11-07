@@ -1,0 +1,22 @@
+
+running 17 tests
+test tests::session_commands::a_browser_order_helper_cannot_commit_as_a_revoked_admitted_reader ... ok
+test tests::session_commands::a_logged_out_cookie_cannot_recall_an_old_page_receipt ... ok
+test tests::session_commands::a_reopened_cookie_cannot_borrow_or_reexecute_an_old_generations_receipt ... ok
+test tests::session_commands::an_admitted_memory_command_holds_authority_until_publication ... ok
+test tests::session_commands::an_initial_page_uses_its_admitted_reader_after_a_later_cache_installation ... ok
+test tests::session_commands::an_old_document_cannot_authorize_a_fresh_interaction_after_same_cookie_reopen ... ok
+test tests::session_commands::an_unbound_legacy_receipt_refuses_without_returning_or_reexecuting_it ... ok
+test tests::session_commands::another_cookie_cannot_recall_a_page_owners_committed_receipt ... ok
+test tests::session_commands::automatic_delivery_polls_do_not_renew_client_idle_time ... ok
+test tests::session_commands::command_traces_disclose_only_bounded_outcome_metadata ... ok
+test tests::session_commands::invalid_interaction_metadata_is_a_known_refusal_before_any_execution ... ok
+test tests::session_commands::logout_after_commit_refuses_private_delivery_without_claiming_rollback ... ok
+test tests::session_commands::memory_expiry_during_evaluation_rolls_back_rows_events_and_receipt ... ok
+test tests::session_commands::memory_revocation_before_fence_refuses_the_captured_actor_and_all_writes ... ok
+test tests::session_commands::one_render_does_not_merge_principal_operations_between_actor_generations ... ok
+test tests::session_commands::same_cookie_reopening_does_not_inherit_prior_interaction_acknowledgements_or_basis ... ok
+test tests::session_commands::tracing_an_actual_store_command_never_discloses_private_state ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 850 filtered out; finished in 32.50s
+

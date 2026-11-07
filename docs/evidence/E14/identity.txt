@@ -1,8 +1,8 @@
 ADR-0258 - accounts and sign-in: Pleris the relying party, the provider the deployment's
 
 produced by: just e14-identity
-commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 9996d7f0f93f4795ba67aeb678d7b9131d2fd207
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/41447989240 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -13,41 +13,54 @@ postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 test accounts::tests::an_unverified_request_is_refused_at_the_provider ... ok
 test accounts::tests::an_account_is_checked_when_it_is_made ... ok
 test accounts::tests::the_development_provider_refuses_to_start_outside_development ... ok
+test identity::invocation_tests::a_panicking_read_restores_the_previous_invocation_binding ... ok
+test identity::invocation_tests::a_read_keeps_its_actor_while_live_inspection_observes_revocation ... ok
+test identity::invocation_tests::anonymous_and_nested_bindings_are_scoped_to_their_store_and_cookie ... ok
+test identity::invocation_tests::authority_source_failures_are_bounded_without_borrowing_cached_identity ... ok
+test identity::invocation_tests::debug_output_never_discloses_session_authority_or_principal_fields ... ok
 test identity::tests::a_cookie_is_http_only_and_secure_outside_this_machine ... ok
+test identity::tests::a_read_another_admission_overtook_never_installs_over_another_reader ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_a_revoked_principal ... ok
+test identity::tests::a_read_another_admission_overtook_never_reinstalls_over_a_failed_read ... ok
 test identity::tests::a_refusal_is_taken_once ... ok
 test identity::tests::a_token_is_held_to_its_issuer_audience_expiry_and_nonce ... ok
+test identity::tests::an_admission_overtaken_at_every_read_is_refused_after_its_bound ... ok
+test identity::tests::an_admission_whose_read_a_sign_out_overtook_reads_again ... ok
 test identity::tests::an_origin_is_a_scheme_a_host_and_a_port ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_a_revoked_session ... ok
+test identity::tests::an_unrelated_admission_does_not_suppress_an_authority_read_failure ... ok
 test identity::tests::an_unsafe_request_from_another_origin_is_refused ... ok
 test identity::tests::ids_are_random_and_forms_are_decoded ... ok
 test identity::tests::requires_starts_as_the_development_model ... ok
 test identity::tests::s256_is_rfc_7636s_worked_example ... ok
 test identity::tests::the_guest_model_runs_only_in_development_on_this_machine ... ok
+test identity::tests::two_overlapping_admissions_of_one_session_are_each_answered ... ok
 test tests::receiver_identity::a_local_receiver_getter_runs_instead_of_a_namesake_type_constructor ... ok
 test accounts::tests::a_password_is_kept_only_as_its_argon2id_hash ... ok
 test accounts::tests::a_code_is_exchanged_once_by_its_verifier ... ok
 test tests::sign_in::a_callback_another_browser_started_is_refused ... ok
-test accounts::tests::signing_in_takes_the_password_and_says_nothing_of_who_exists ... ok
-test tests::sign_in::a_command_from_another_origin_is_refused ... ok
 test tests::sign_in::a_control_is_shown_where_its_commands_predicate_holds ... ok
+test tests::sign_in::a_command_from_another_origin_is_refused ... ok
+test accounts::tests::signing_in_takes_the_password_and_says_nothing_of_who_exists ... ok
 test tests::sign_in::a_page_holds_its_announcer_from_the_first_byte ... ok
-test tests::sign_in::a_post_and_a_reply_are_their_signed_in_authors ... ok
-test tests::sign_in::a_fresh_sessions_cookie_is_http_only_and_unguessable ... ok
 test tests::sign_in::a_documents_answers_are_its_own_for_its_life ... ok
+test tests::sign_in::a_fresh_sessions_cookie_is_http_only_and_unguessable ... ok
+test tests::sign_in::a_post_and_a_reply_are_their_signed_in_authors ... ok
 test tests::sign_in::a_refusal_says_the_programs_words_for_its_predicate ... ok
-test tests::sign_in::a_refusal_the_program_gives_no_words_is_told_in_the_deployments ... ok
 test tests::sign_in::a_refused_press_sent_again_is_refused_again ... ok
-test tests::sign_in::a_session_is_no_one_until_a_provider_vouches_for_it ... ok
+test tests::sign_in::a_refusal_the_program_gives_no_words_is_told_in_the_deployments ... ok
 test tests::sign_in::a_predicate_the_deployment_cannot_evaluate_is_refused_at_start ... ok
+test tests::sign_in::a_session_is_no_one_until_a_provider_vouches_for_it ... ok
 test tests::sign_in::an_answer_is_read_by_the_compilers_name_for_it ... ok
 test tests::sign_in::a_sign_in_rotates_the_session_and_the_old_one_is_no_one ... ok
 test tests::sign_in::a_signed_out_reader_reads_and_cannot_post ... ok
 test tests::sign_in::only_its_author_deletes_a_post ... ok
-test tests::sign_in::on_postgres::a_delete_on_postgres_is_its_authors_alone ... ok
 test tests::sign_in::on_postgres::a_post_on_postgres_is_its_signed_in_authors ... ok
+test tests::sign_in::on_postgres::a_delete_on_postgres_is_its_authors_alone ... ok
 test tests::sign_in::signing_out_forgets_the_principal ... ok
 test tests::sign_in::the_guest_models_reader_is_its_sessions_guest ... ok
-test tests::sign_in::the_relying_party_answers_the_routes_the_compiler_knows ... ok
 test tests::sign_in::the_development_provider_signs_up_and_in_through_the_flow ... ok
+test tests::sign_in::the_relying_party_answers_the_routes_the_compiler_knows ... ok
 test tests::sign_in::a_token_not_this_sign_ins_is_refused ... ok
 test tests::sign_in::two_users_pages_never_share_private_parts ... ok
 test tests::store_accounts::a_join_past_a_bigint_is_refused_and_the_sign_in_completes ... ok
@@ -56,35 +69,35 @@ test tests::store_accounts::a_retry_of_a_press_that_committed_is_answered_from_w
 test tests::store_accounts::a_command_is_answered_for_the_reader_its_page_was_shown_to ... ok
 test tests::store_accounts::a_signed_in_sessions_cart_is_not_joined_to_the_next_user ... ok
 test tests::store_accounts::a_session_keyed_carts_change_reaches_no_other_session ... ok
-test tests::store_accounts::a_shared_entry_still_reaches_every_reader ... ok
 test tests::store_accounts::a_stale_press_is_refused_before_the_order_waits ... ok
+test tests::store_accounts::a_shared_entry_still_reaches_every_reader ... ok
 test tests::store_accounts::a_users_cart_reaches_each_of_their_sessions_and_no_one_elses ... ok
 test tests::store_accounts::an_order_is_no_other_users_to_read ... ok
 test tests::store_accounts::two_users_carts_never_share_a_line ... ok
-test result: ok. 51 passed; 0 failed; 0 ignored; 0 measured; 690 filtered out; finished in 41.65s
+test result: ok. 64 passed; 0 failed; 0 ignored; 0 measured; 803 filtered out; finished in 41.21s
 
 == the flows in three engines (e2e/identity.spec.mjs)
 
-  21 passed (40.7s)
+  21 passed (41.7s)
 
 == mutation controls (scripts/identity_mutations.py)
 
-baseline: 51 passed, 0 failed
-a command from another origin runs (no CSRF check): KILLED (1 of 51 tests fail)
-a sign-in keeps the session the browser came with (fixation): KILLED (7 of 51 tests fail)
-a sign-in leaves the session it replaced signed in: KILLED (1 of 51 tests fail)
-signing out leaves the session signed in: KILLED (2 of 51 tests fail)
-a callback is not bound to the browser that started it (login CSRF): KILLED (1 of 51 tests fail)
-an ID token's nonce is not checked: KILLED (2 of 51 tests fail)
-every session is SignedIn: KILLED (10 of 51 tests fail)
-the ownership predicate is inverted: KILLED (2 of 51 tests fail)
-a refusal is answered as a command that did not commit: KILLED (6 of 51 tests fail)
-the session cookie is readable by scripts: KILLED (3 of 51 tests fail)
-a fresh session's id is guessable: KILLED (15 of 51 tests fail)
-the guest model runs in production: KILLED (1 of 51 tests fail)
-the development provider starts in production: KILLED (1 of 51 tests fail)
-the development provider exchanges a code without its verifier: KILLED (1 of 51 tests fail)
-a password is stored as it was typed: KILLED (4 of 51 tests fail)
-a post is its session's guest's, not its signed-in author's: KILLED (3 of 51 tests fail)
+baseline: 64 passed, 0 failed
+a command from another origin runs (no CSRF check): KILLED (1 of 64 tests fail)
+a sign-in keeps the session the browser came with (fixation): KILLED (5 of 64 tests fail)
+a sign-in leaves the session it replaced signed in: KILLED (1 of 64 tests fail)
+signing out leaves the session signed in: KILLED (2 of 64 tests fail)
+a callback is not bound to the browser that started it (login CSRF): KILLED (1 of 64 tests fail)
+an ID token's nonce is not checked: KILLED (2 of 64 tests fail)
+every session is SignedIn: KILLED (10 of 64 tests fail)
+the ownership predicate is inverted: KILLED (2 of 64 tests fail)
+a refusal is answered as a command that did not commit: KILLED (6 of 64 tests fail)
+the session cookie is readable by scripts: KILLED (3 of 64 tests fail)
+a fresh session's id is guessable: KILLED (15 of 64 tests fail)
+the guest model runs in production: KILLED (1 of 64 tests fail)
+the development provider starts in production: KILLED (1 of 64 tests fail)
+the development provider exchanges a code without its verifier: KILLED (1 of 64 tests fail)
+a password is stored as it was typed: KILLED (4 of 64 tests fail)
+a post is its session's guest's, not its signed-in author's: KILLED (3 of 64 tests fail)
 16 of 16 mutants killed
 memory bound: no process was stopped
