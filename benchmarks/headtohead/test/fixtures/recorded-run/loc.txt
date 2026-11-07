@@ -1,0 +1,100 @@
+rule: a line counts when it holds anything but white space and comments (each language's own comments; Rust test modules left out); lockfiles, committed builds and readmes are listed and not counted, and so is a module no page of the app imports
+
+-- todomvc
+   stack       app lines files  languages (app)                                host  build/config
+   pleris            189     1  Pleris 189                                        0     76 in 2 file(s)
+   react             278    11  CSS 20, HTML 19, JavaScript 48, JavaScript (JSX) 191      0    145 in 5 file(s)
+   svelte            201     8  CSS 20, HTML 21, JavaScript 28, Svelte 132        0     44 in 2 file(s)
+     pleris      app     189  Pleris            examples/todomvc/app.pw
+     pleris      build    43  Bash              spikes/own-renderer/todomvc.sh
+     pleris      build    33  JavaScript        spikes/own-renderer/todomvc-styles.mjs
+     react       app      12  JavaScript        benchmarks/headtohead/todomvc/react/src/index.js
+     react       app      20  CSS               benchmarks/headtohead/todomvc/react/src/todo/app.css
+     react       app      16  JavaScript (JSX)  benchmarks/headtohead/todomvc/react/src/todo/app.jsx
+     react       app      33  JavaScript (JSX)  benchmarks/headtohead/todomvc/react/src/todo/components/footer.jsx
+     react       app      12  JavaScript (JSX)  benchmarks/headtohead/todomvc/react/src/todo/components/header.jsx
+     react       app      34  JavaScript (JSX)  benchmarks/headtohead/todomvc/react/src/todo/components/input.jsx
+     react       app      55  JavaScript (JSX)  benchmarks/headtohead/todomvc/react/src/todo/components/item.jsx
+     react       app      41  JavaScript (JSX)  benchmarks/headtohead/todomvc/react/src/todo/components/main.jsx
+     react       app       7  JavaScript        benchmarks/headtohead/todomvc/react/src/todo/constants.js
+     react       app      29  JavaScript        benchmarks/headtohead/todomvc/react/src/todo/reducer.js
+     react       app      19  HTML              benchmarks/headtohead/todomvc/react/public/index.html
+     react       build    40  JSON              benchmarks/headtohead/todomvc/react/package.json
+     react       build    42  JavaScript        benchmarks/headtohead/todomvc/react/webpack.common.js
+     react       build    17  JavaScript        benchmarks/headtohead/todomvc/react/webpack.dev.js
+     react       build    33  JavaScript        benchmarks/headtohead/todomvc/react/webpack.prod.js
+     react       build    13  JSON              benchmarks/headtohead/todomvc/react/.eslintrc
+     react       not counted  benchmarks/headtohead/todomvc/react/package-lock.json
+     react       not counted  benchmarks/headtohead/todomvc/react/dist/app.bundle.js
+     react       not counted  benchmarks/headtohead/todomvc/react/dist/app.bundle.js.LICENSE.txt
+     react       not counted  benchmarks/headtohead/todomvc/react/dist/app.css
+     react       not counted  benchmarks/headtohead/todomvc/react/dist/base.js
+     react       not counted  benchmarks/headtohead/todomvc/react/dist/index.html
+     react       not counted  benchmarks/headtohead/todomvc/react/readme.md
+     react       not counted  benchmarks/headtohead/todomvc/react/.gitignore
+     svelte      app      56  Svelte            benchmarks/headtohead/todomvc/svelte/src/App.svelte
+     svelte      app      17  Svelte            benchmarks/headtohead/todomvc/svelte/src/Footer.svelte
+     svelte      app      14  Svelte            benchmarks/headtohead/todomvc/svelte/src/Header.svelte
+     svelte      app      45  Svelte            benchmarks/headtohead/todomvc/svelte/src/Item.svelte
+     svelte      app      20  CSS               benchmarks/headtohead/todomvc/svelte/src/app.css
+     svelte      app       6  JavaScript        benchmarks/headtohead/todomvc/svelte/src/index.js
+     svelte      app      22  JavaScript        benchmarks/headtohead/todomvc/svelte/src/router.js
+     svelte      app      21  HTML              benchmarks/headtohead/todomvc/svelte/index.html
+     svelte      build    26  JSON              benchmarks/headtohead/todomvc/svelte/package.json
+     svelte      build    18  JavaScript        benchmarks/headtohead/todomvc/svelte/vite.config.js
+     svelte      not counted  benchmarks/headtohead/todomvc/svelte/package-lock.json
+     svelte      not counted  benchmarks/headtohead/todomvc/svelte/dist/assets/index-BxPr2-fK.js
+     svelte      not counted  benchmarks/headtohead/todomvc/svelte/dist/assets/index-bgjkvPzV.css
+     svelte      not counted  benchmarks/headtohead/todomvc/svelte/dist/base.js
+     svelte      not counted  benchmarks/headtohead/todomvc/svelte/dist/index.html
+     svelte      not counted  benchmarks/headtohead/todomvc/svelte/readme.md
+     svelte      not counted  benchmarks/headtohead/todomvc/svelte/.gitignore
+
+-- store
+   stack       app lines files  languages (app)                                host  build/config
+   pleris            294     7  Pleris 294                                     2110      9 in 1 file(s)
+   next-react        151     6  TypeScript 99, TypeScript (TSX) 52                0     65 in 3 file(s)
+   sveltekit         134     6  HTML 12, Svelte 27, TypeScript 95                 0     44 in 4 file(s)
+     pleris      app     105  Pleris            benchmarks/baselines/pleris/domain.pw
+     pleris      app      36  Pleris            benchmarks/baselines/pleris/lib/Carts.pw
+     pleris      app       8  Pleris            benchmarks/baselines/pleris/lib/Events.pw
+     pleris      app      16  Pleris            benchmarks/baselines/pleris/lib/Menus.pw
+     pleris      app      14  Pleris            benchmarks/baselines/pleris/lib/Stores.pw
+     pleris      app      99  Pleris            benchmarks/baselines/pleris/store/app.pw
+     pleris      app      16  Pleris            benchmarks/baselines/pleris/store/menu.pw
+     pleris      host   2110  Rust              spikes/own-renderer/server/src/store.rs
+     pleris      build     9  Bash              spikes/own-renderer/baseline-store.sh
+     pleris      not counted  benchmarks/baselines/pleris/lib/Analytics.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Database.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Estimates.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Legacy.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Maps.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Menu.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Payments.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Receipts.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Recommender.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Resources.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/StoreId.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Telemetry.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Tracking.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/VendorSdk.pw  (no page of the app imports it)
+     next-react  app       9  TypeScript (TSX)  benchmarks/baselines/next-react/app/layout.tsx
+     next-react  app      20  TypeScript        benchmarks/baselines/next-react/app/stores/[storeId]/actions.ts
+     next-react  app      43  TypeScript (TSX)  benchmarks/baselines/next-react/app/stores/[storeId]/page.tsx
+     next-react  app      14  TypeScript        benchmarks/baselines/next-react/lib/session.ts
+     next-react  app      50  TypeScript        benchmarks/baselines/next-react/lib/store.ts
+     next-react  app      15  TypeScript        benchmarks/baselines/next-react/proxy.ts
+     next-react  build    21  JSON              benchmarks/baselines/next-react/package.json
+     next-react  build     2  JavaScript        benchmarks/baselines/next-react/next.config.mjs
+     next-react  build    42  JSON              benchmarks/baselines/next-react/tsconfig.json
+     sveltekit   app      12  HTML              benchmarks/baselines/sveltekit/src/app.html
+     sveltekit   app       6  TypeScript        benchmarks/baselines/sveltekit/src/hooks.server.ts
+     sveltekit   app      13  TypeScript        benchmarks/baselines/sveltekit/src/lib/server/session.ts
+     sveltekit   app      50  TypeScript        benchmarks/baselines/sveltekit/src/lib/server/store.ts
+     sveltekit   app      26  TypeScript        benchmarks/baselines/sveltekit/src/routes/stores/[storeId]/+page.server.ts
+     sveltekit   app      27  Svelte            benchmarks/baselines/sveltekit/src/routes/stores/[storeId]/+page.svelte
+     sveltekit   build    28  JSON              benchmarks/baselines/sveltekit/package.json
+     sveltekit   build     5  JavaScript        benchmarks/baselines/sveltekit/svelte.config.js
+     sveltekit   build     3  TypeScript        benchmarks/baselines/sveltekit/vite.config.ts
+     sveltekit   build     8  JSON              benchmarks/baselines/sveltekit/tsconfig.json
+

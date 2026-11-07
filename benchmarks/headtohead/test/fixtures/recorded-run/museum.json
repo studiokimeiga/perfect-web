@@ -1,0 +1,59 @@
+{
+ "meta": {
+  "commit": "5a4378fe51fd38460239ffb295f9e4fea9bfcbac",
+  "ci": "https://github.com/studiokimeiga/perfect-web/actions/runs/39892771765",
+  "summary": "museum: 5 exhibits, 5 refused, 0 missed, 0 not as expected"
+ },
+ "exhibits": [
+  {
+   "id": "F01-markup-from-text",
+   "leaf": "F01",
+   "title": "Text another user wrote runs as script in a customer's page",
+   "source": "GHSA-9f4f-jv96-8766 (CVE-2025-46719); S21, S27 (a CVE, the advisory of the app that had it (Open WebUI, a SvelteKit app); security guidance; W3C specification)",
+   "stack": "sveltekit",
+   "shown": true,
+   "pleris": "refused (diagnostic PW5010)",
+   "refused": true
+  },
+  {
+   "id": "G01-retried-command-twice",
+   "leaf": "G01",
+   "title": "One press applied twice when its request is delivered twice",
+   "source": "S13, S14 (engineering article; provider contract)",
+   "stack": "next-react",
+   "shown": true,
+   "pleris": "refused (diagnostic PW0338; runtime, ADR-0121's interaction per press, applied once)",
+   "refused": true
+  },
+  {
+   "id": "H07-n-plus-one",
+   "leaf": "H07",
+   "title": "One round trip per row: a page whose work grows with its list",
+   "source": "Vercel Academy, Next.js Foundations; Prisma ORM's documentation; census H07 (model/spec), R1, S33 (framework documentation (the framework vendor's course); ORM documentation; model/spec)",
+   "stack": "next-react",
+   "shown": true,
+   "pleris": "refused (diagnostic PW0405)",
+   "refused": true
+  },
+  {
+   "id": "J01-stale-page-after-save",
+   "leaf": "J01",
+   "title": "A page shown after a save is the one read before it",
+   "source": "vercel/next.js#42991; ADR-0280 (the owner's own Next.js case); S17; on its repair, vercel/next.js#99028 (issue in the framework's tracker; the owner's report; framework documentation; standard)",
+   "stack": "next-react",
+   "shown": true,
+   "pleris": "refused (runtime, ADR-0280, navigate after the commit)",
+   "refused": true
+  },
+  {
+   "id": "J08-shared-server-state",
+   "leaf": "J08",
+   "title": "One customer's cart shown to another, from state the server shares",
+   "source": "S54 (framework documentation)",
+   "stack": "sveltekit",
+   "shown": true,
+   "pleris": "refused (diagnostic PW5001)",
+   "refused": true
+  }
+ ]
+}

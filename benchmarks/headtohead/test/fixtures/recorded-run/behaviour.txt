@@ -1,0 +1,37 @@
+-- TodoMVC's Cypress suite on pleris
+todomvc-cypress: 7 files are upstream's, byte for byte; cypress 15.21.1
+cypress: Cypress package version: 15.21.1 Cypress binary version: 15.21.1 Electron version: 37.6.0 Bundled Node version: 22.19.0 
+acceptance: 29 of 29 passed
+acceptance: the required test outcomes passed
+
+-- TodoMVC's Cypress suite on react
+todomvc-cypress: 7 files are upstream's, byte for byte; cypress 15.21.1
+cypress: 15.21.1 (binary 15.21.1), todomvc-cypress-compat-v1, framework=react
+react: 28 of 29 passed; 0 failed; 1 pending; 0 not run
+ 24  pending [Persistence] should persist its data
+             GAP: the app keeps no todos: TodoMVC's specification asks every app to persist them in localStorage
+react: as expected: every test passed but those the suite skips for it, each a gap above
+
+-- TodoMVC's Cypress suite on svelte
+todomvc-cypress: 7 files are upstream's, byte for byte; cypress 15.21.1
+cypress: 15.21.1 (binary 15.21.1), todomvc-cypress-compat-v1, framework=svelte
+svelte: 28 of 29 passed; 0 failed; 1 pending; 0 not run
+ 24  pending [Persistence] should persist its data
+             GAP: the app keeps no todos: TodoMVC's specification asks every app to persist them in localStorage
+svelte: as expected: every test passed but those the suite skips for it, each a gap above
+
+-- TodoMVC's specification in three engines (behaviour.spec.mjs)
+playwright exited 1 (the judge reads its report; expected gaps fail by design)
+TodoMVC's specification (app-spec.md), one test per behaviour, three engines (behaviour.spec.mjs):
+pleris: chromium 20/20; firefox 20/20; webkit 20/20 passed; 0 gap(s) against the specification
+react: chromium 17/20; firefox 17/20; webkit 17/20 passed; 3 gap(s) against the specification
+  GAP react: editing: Escape discards the edit: Escape does not leave the edit: the edit field handles Enter alone (react/src/todo/components/input.jsx, handleKeyDown: `if (e.key !== "Enter") return;`)
+  GAP react: counter: the number left in a <strong>, then 'item left' or 'items left': the counter reads "1 item left!" with no <strong> (react/src/todo/components/footer.jsx: `${activeTodos.length} ${...} left!`)
+  GAP react: persistence: the todos and their states survive a reload: the todos are kept in memory only: a reload empties the list (react/src/todo/app.jsx: `useReducer(todoReducer, [])`, no storage)
+svelte: chromium 16/20; firefox 16/20; webkit 16/20 passed; 4 gap(s) against the specification
+  GAP svelte: editing: Enter saves the edit, trimmed: an edit is saved untrimmed (svelte/src/Item.svelte, updateItem: `item.description = value`)
+  GAP svelte: editing: an edit left empty destroys the todo: an edit of spaces is saved, not destroyed: the emptiness check does not trim (svelte/src/Item.svelte, updateItem: `if (value.length)`)
+  GAP svelte: persistence: the todos and their states survive a reload: the todos are kept in memory only: a reload empties the list (svelte/src/App.svelte: `let items = $state([])`, no storage)
+  GAP svelte: routing: a page opened at #/completed shows that filter: the filter is read only when the fragment changes, not when the page opens (svelte/src/router.js: `init` adds a `hashchange` listener and reads nothing)
+
+behaviour: as expected: every test passed in every engine but each stack's gaps, each failing in all three

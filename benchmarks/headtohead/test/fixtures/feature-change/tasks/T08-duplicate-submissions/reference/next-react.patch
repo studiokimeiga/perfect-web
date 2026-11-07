@@ -1,0 +1,105 @@
+diff --git a/app/stores/[storeId]/AddForm.tsx b/app/stores/[storeId]/AddForm.tsx
+new file mode 100644
+index 0000000..646b5b7
+--- /dev/null
++++ b/app/stores/[storeId]/AddForm.tsx
+@@ -0,0 +1,20 @@
++"use client";
++
++import { addToCartAction } from "./actions";
++
++// One interaction per press, made when the press happens: a retried request
++// carries the same one, and the server applies it once.
++export function AddForm({ store, item }: { store: string; item: string }) {
++  return (
++    <form
++      action={async (formData) => {
++        formData.set("interaction", crypto.randomUUID());
++        await addToCartAction(formData);
++      }}
++    >
++      <input type="hidden" name="store" value={store} />
++      <input type="hidden" name="item" value={item} />
++      <button type="submit">Add</button>
++    </form>
++  );
++}
+diff --git a/app/stores/[storeId]/actions.ts b/app/stores/[storeId]/actions.ts
+index 5a42b2f..41d5775 100644
+--- a/app/stores/[storeId]/actions.ts
++++ b/app/stores/[storeId]/actions.ts
+@@ -1,7 +1,7 @@
+ "use server";
+ 
+ import { revalidatePath } from "next/cache";
+-import { addToCart, clearCart, isMenuItem } from "@/lib/store";
++import { addToCart, clearCart, firstTime, isMenuItem } from "@/lib/store";
+ import { ensureSession } from "@/lib/session";
+ 
+ export async function addToCartAction(formData: FormData): Promise<void> {
+@@ -11,7 +11,10 @@ export async function addToCartAction(formData: FormData): Promise<void> {
+     throw new Error(`no menu item ${item} in store ${store}`);
+   }
+   const session = await ensureSession();
+-  addToCart(session, item, 1);
++  const interaction = String(formData.get("interaction") ?? "");
++  if (!interaction || firstTime(session, interaction)) {
++    addToCart(session, item, 1);
++  }
+   revalidatePath(`/stores/${store}`);
+ }
+ 
+diff --git a/app/stores/[storeId]/page.tsx b/app/stores/[storeId]/page.tsx
+index 8d4f845..09572d9 100644
+--- a/app/stores/[storeId]/page.tsx
++++ b/app/stores/[storeId]/page.tsx
+@@ -1,7 +1,8 @@
+ import { notFound } from "next/navigation";
+ import { getCart, getMenu, getStore, lineCount } from "@/lib/store";
+ import { currentSession } from "@/lib/session";
+-import { addToCartAction, clearCartAction } from "./actions";
++import { clearCartAction } from "./actions";
++import { AddForm } from "./AddForm";
+ 
+ export default async function StorePage({
+   params,
+@@ -23,11 +24,7 @@ export default async function StorePage({
+           {menu.map((item) => (
+             <li key={item.id}>
+               <span>{item.name}</span>
+-              <form action={addToCartAction}>
+-                <input type="hidden" name="store" value={store.id} />
+-                <input type="hidden" name="item" value={item.id} />
+-                <button type="submit">Add</button>
+-              </form>
++              <AddForm store={store.id} item={item.id} />
+             </li>
+           ))}
+         </ul>
+diff --git a/lib/store.ts b/lib/store.ts
+index 7291a61..53d2f9a 100644
+--- a/lib/store.ts
++++ b/lib/store.ts
+@@ -62,6 +62,22 @@ export function addToCart(session: string, item: MenuItemId, quantity: number):
+   return getCart(session);
+ }
+ 
++// Each session's recent interactions, so a press whose request arrives twice
++// is applied once. Bounded: the last 64 per session.
++const seen: Map<string, string[]> =
++  ((globalThis as Record<string, unknown>).__pwBenchSeen as Map<string, string[]>) ?? new Map();
++(globalThis as Record<string, unknown>).__pwBenchSeen = seen;
++
++/** True the first time a session presents an interaction, false after. */
++export function firstTime(session: string, interaction: string): boolean {
++  const mine = seen.get(session) ?? [];
++  if (mine.includes(interaction)) return false;
++  mine.push(interaction);
++  if (mine.length > 64) mine.shift();
++  seen.set(session, mine);
++  return true;
++}
++
+ export function clearCart(session: string): Cart {
+   carts.delete(session);
+   return getCart(session);

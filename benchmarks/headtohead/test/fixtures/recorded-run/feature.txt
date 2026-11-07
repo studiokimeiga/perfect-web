@@ -1,0 +1,64 @@
+each task's change in each stack: the pull request (reference patch, after the task's setup) and what the stack's checker says of it and of its unsafe version
+  checkers: Pleris pw check; Next.js tsc --noEmit; SvelteKit svelte-check
+  stage that caught the unsafe version in the harness's controls (docs/evidence/E14/harness-T*.txt) is shown with that evidence's commit
+  T01 Optimistic cart update with rollback [loading and error states: an optimistic count that is not taken back when the add fails]
+    Pleris     +1   -0   1 file(s), Pleris; reference checks clean; unsafe refused: error: [PW0330] `add_to_cart`'s optimistic transition performs database.write<Carts>, session.read; harness caught it at check (0c608dc3)
+    Next.js    +52  -25  2 file(s) (1 new), TSX; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +16  -2   1 file(s), Svelte; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T02 Stop the kitchen's request storm [shared reads: concurrent asks of a slow source not shared]
+    Pleris     +1   -1   1 file(s), Pleris; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    Next.js    +15  -2   1 file(s), TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +15  -2   1 file(s), TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T03 A private resource: the cart's lines on the store page [authorization and privacy: one customer's cart lines kept where another's request reads them]
+    Pleris     +42  -1   1 file(s), Pleris; reference checks clean; unsafe refused: error: [PW5001] `CartLines` is Session<SessionId> and declares a shared cache; harness caught it at check (0c608dc3)
+    Next.js    +23  -2   2 file(s), TSX+TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +28  -1   3 file(s), Svelte+TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T04 An order-state variant: ready for pickup [types across the network boundary: a new order state the page does not handle]
+    Pleris     +2   -0   2 file(s), Pleris; reference checks clean; unsafe refused: error: [PW0305] `{#match status}` does not cover `Ready`; harness caught it at check (0c608dc3)
+    Next.js    +3   -2   2 file(s), TSX+TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +4   -2   2 file(s), Svelte+TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T05 Stream the store's recommendations [loading and error states: a slow section that holds up the page]
+    Pleris     +14  -0   1 file(s), Pleris; reference checks clean; unsafe refused: error: [PW5400] `Recommendations` is declared `delivery streamed`, so a page does not wait for it; read it in a `<stream query={Recommendations(..)}>`; harness caught it at check (0c608dc3)
+    Next.js    +25  -1   1 file(s), TSX; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +30  -1   2 file(s), Svelte+TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T06 An accessible form: request an item [accessibility: a form's error not tied to its field or announced]
+    Pleris     +33  -0   1 file(s), Pleris; reference checks clean; unsafe refused: error: [PW5014] `<input>` has no associated label; harness caught it at check (0c608dc3)
+    Next.js    +48  -0   2 file(s) (1 new), TSX; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +35  -0   1 file(s), Svelte; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T07 Stop reading a category the customer moved past [races and stale answers: an answer for a category the customer moved past is shown]
+    Pleris     +3   -3   1 file(s), Pleris; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    Next.js    +9   -2   1 file(s), TSX; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +8   -1   1 file(s), Svelte; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T08 Prevent duplicate submissions [retries: one press applied twice when its request is delivered twice]
+    Pleris     +2   -0   1 file(s), Pleris; reference checks clean; unsafe refused: error: [PW0338] `add_to_cart` is called by a page's handler, and declares no `idempotent_by`; harness caught it at check (4f75868b)
+    Next.js    +44  -8   4 file(s) (1 new), TSX+TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (4f75868b)
+    SvelteKit  +39  -4   3 file(s), Svelte+TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at contract (4f75868b)
+  T09 Keep the store's notice fresh [cache invalidation: a kept answer older than the freshness asked for]
+    Pleris     +1   -1   1 file(s), Pleris; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    Next.js    +1   -1   1 file(s), TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +1   -1   1 file(s), TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T10 A loading and an error state for the delivery estimate [loading and error states: a failing estimate that breaks or holds up the page]
+    Pleris     +6   -2   1 file(s), Pleris; reference checks clean; unsafe refused: error: [PW5401] a `<stream>` shows that its query failed, as every query can, its budget spent or its source down: it needs a `<failed>`; harness caught it at check (0c608dc3)
+    Next.js    +15  -2   1 file(s), TSX; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +14  -3   2 file(s), Svelte+TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T11 An accessible dialog: confirm before clearing the cart [accessibility: a confirmation that is not a modal dialog to keyboard and screen reader]
+    Pleris     +18  -5   1 file(s), Pleris; reference checks clean; unsafe refused: error: [PW5303] this `<dialog>` is shown while `confirming` renders it, and its closing is heard by nothing; harness caught it at check (0c608dc3)
+    Next.js    +30  -7   2 file(s) (1 new), TSX; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +19  -3   1 file(s), Svelte; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T12 Repair an unsafe cache [authorization and privacy: a cached cart served to another session]
+    Pleris     +2   -2   1 file(s), Pleris; reference checks clean; unsafe refused: error: [PW5001] `Cart` is Session<SessionId> and declares a shared cache; harness caught it at check (0c608dc3)
+    Next.js    +3   -3   1 file(s), TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at contract (0c608dc3)
+    SvelteKit  +3   -3   1 file(s), TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at contract (0c608dc3)
+  what a reviewer must verify by hand, by class of mistake (the tasks' unsafe versions):
+    loading and error states (T01, T05, T10): Pleris: checker proves T01 PW0330, T05 PW5400, T10 PW5401 | Next.js: checker proves none; reviewer: T01, T05, T10 | SvelteKit: checker proves none; reviewer: T01, T05, T10
+    shared reads (T02): Pleris: checker proves none; reviewer: T02 | Next.js: checker proves none; reviewer: T02 | SvelteKit: checker proves none; reviewer: T02
+    authorization and privacy (T03, T12): Pleris: checker proves T03 PW5001, T12 PW5001 | Next.js: checker proves none; reviewer: T03, T12 | SvelteKit: checker proves none; reviewer: T03, T12
+    types across the network boundary (T04): Pleris: checker proves T04 PW0305 | Next.js: checker proves none; reviewer: T04 | SvelteKit: checker proves none; reviewer: T04
+    accessibility (T06, T11): Pleris: checker proves T06 PW5014, T11 PW5303 | Next.js: checker proves none; reviewer: T06, T11 | SvelteKit: checker proves none; reviewer: T06, T11
+    races and stale answers (T07): Pleris: checker proves none; reviewer: T07 | Next.js: checker proves none; reviewer: T07 | SvelteKit: checker proves none; reviewer: T07
+    retries (T08): Pleris: checker proves T08 PW0338 | Next.js: checker proves none; reviewer: T08 | SvelteKit: checker proves none; reviewer: T08
+    cache invalidation (T09): Pleris: checker proves none; reviewer: T09 | Next.js: checker proves none; reviewer: T09 | SvelteKit: checker proves none; reviewer: T09
+  totals over the tasks:
+    Pleris     12 changes: +125 -15 lines, 13 file(s) touched, languages Pleris; references clean 12/12; unsafe versions refused by the checker 9/12, warned of 0/12, left to a reviewer 3/12
+    Next.js    12 changes: +268 -55 lines, 20 file(s) touched, languages TSX, TypeScript; references clean 12/12; unsafe versions refused by the checker 0/12, warned of 0/12, left to a reviewer 12/12
+    SvelteKit  12 changes: +212 -23 lines, 19 file(s) touched, languages Svelte, TypeScript; references clean 12/12; unsafe versions refused by the checker 0/12, warned of 0/12, left to a reviewer 12/12

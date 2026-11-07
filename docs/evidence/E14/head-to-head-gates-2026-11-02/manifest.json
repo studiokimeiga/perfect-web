@@ -1,0 +1,282 @@
+{
+  "scope": "Local diagnostics of the working tree at the code commit; the hosted gates at the final head decide",
+  "code_commit": "2065ef2c2bf10c861991f5185fa34d9b1b4334fd",
+  "artifacts": [
+    {
+      "path": "tests-before-how.log.gz",
+      "what": "how the tests were run before any change: a copy of 35f1943d's files (git archive), the checkout's node_modules linked",
+      "raw_bytes": 445,
+      "raw_sha256": "6452100b2c428f3e05ea7a5927e0f1a9399afd0acd7968cf4742d0236928d5cf",
+      "gzip_sha256": "328210d80c3c34a67d5f743579b37a19206876c936987d3578309351b6a78c06"
+    },
+    {
+      "path": "node-tests-before.tap.gz",
+      "what": "the 29 node tests the instrument had, at 35f1943d: 29 pass",
+      "raw_bytes": 7360,
+      "raw_sha256": "b929a64cd4a6c8f2fcb1b079da0e9b04bdd0754eb9e3ce7c846b871d4a19f5f7",
+      "gzip_sha256": "a8cf3befcd845ab1d3d3d35cb8d8516ec109f869d28e7efff378e7fff29ea6be"
+    },
+    {
+      "path": "python-tests-before.log.gz",
+      "what": "scripts/tests/test_head_to_head.py at 35f1943d: 18 pass",
+      "raw_bytes": 1607,
+      "raw_sha256": "03caf5ff036c5c3937883f92c71e6be149689f6c353195bafe4add138ae5213f",
+      "gzip_sha256": "411cafefdb3de3d9f405ffbff729590fed669d1b23d1b57b28532c8196a71eee"
+    },
+    {
+      "path": "fallow-35f1943d-red.json.gz",
+      "what": "Fallow 3.23.0's audit (the CI invocation) of the PR as it was at 35f1943d: verdict fail",
+      "raw_bytes": 147238,
+      "raw_sha256": "93385e458d56165a95a7d69b5576316198cff90db2437be14b07d110c6ef1764",
+      "gzip_sha256": "1599bea29e265917ebf019ce54305947a7d189ef1d816b09077abb77129cc94c"
+    },
+    {
+      "path": "node-tests-on-original-how.log.gz",
+      "what": "how the instrument as it was was made for the run below: 53b9954b's tree (35f1943d's sources with only exports and defaulted parameters added), its head-to-head.mjs diffed against 35f1943d's",
+      "raw_bytes": 649,
+      "raw_sha256": "f7ef3ef8e687ac424f10834707be893216683a2afbb30e33b695e23f7f740a0f",
+      "gzip_sha256": "614c873715fafb3006a2003f11aa80731dd950be6b3654da2b63268634fb3436"
+    },
+    {
+      "path": "node-tests-on-original.tap.gz",
+      "what": "the 517 node tests written before the functions were split (the 29 the instrument had, 488 characterization tests), run on the instrument as it was: 517 pass",
+      "raw_bytes": 140834,
+      "raw_sha256": "fc092d6dde6009b346a48d0e4035f14c40f610e7ff9a92d287182c16a08f05b8",
+      "gzip_sha256": "b8adfcc8a64f55c1a87b2dead12993de989262684c587be6695e775a695f938e"
+    },
+    {
+      "path": "node-tests-on-result.tap.gz",
+      "what": "the 523 node tests at the code commit: 523 pass (the 8 that are not in the run above test lib.mjs's shared helpers and roots; two of the 517 tested exports that are gone)",
+      "raw_bytes": 142223,
+      "raw_sha256": "469175800894560e649f48037aa4952ab126725f79ef7928daa1ebdd46f17b3b",
+      "gzip_sha256": "02277bcb814d758754663dbe105e2e32f6b510e626abe1ea9d03bbf5d755d955"
+    },
+    {
+      "path": "python-tests-on-result.log.gz",
+      "what": "scripts/tests/test_head_to_head.py at the code commit: 18 pass",
+      "raw_bytes": 1607,
+      "raw_sha256": "3016cb3d60f60f3d71f65a4f34f9d7fa85cbaa86714d6e1d6c164ed029787a39",
+      "gzip_sha256": "2526d8569ac057ec6f97398b3432db19a906eead008267efa49fd65355392a6f"
+    },
+    {
+      "path": "fallow-green.json.gz",
+      "what": "the same audit of a clean checkout of the code commit (no node_modules, as on CI): verdict pass",
+      "raw_bytes": 7870,
+      "raw_sha256": "a90ef85a48565dce1b2598761086e6b9d4073da5a2560d8616cb8d8be5478ce4",
+      "gzip_sha256": "8300b3759a4ead3e403f88799e5da359032a3ad9496f4e05525e313d90a164ab"
+    },
+    {
+      "path": "fallow-green.stderr.gz",
+      "what": "its warnings: no node_modules, no .svelte-kit/tsconfig.json (as on CI)",
+      "raw_bytes": 1813,
+      "raw_sha256": "cbf654d22114dc2052f19108d855fb87ce1bb2c3745c7ae7dbf325bb439cba14",
+      "gzip_sha256": "4fa65318d59ba98f758326733cb2d3b35cf25724f7bf721eedd11b5604ae62a0"
+    },
+    {
+      "path": "mutations-and-controls.log.gz",
+      "what": "scripts/head_to_head_mutations.py at the code commit: its 41 mutants and 4 integrity controls",
+      "raw_bytes": 5205,
+      "raw_sha256": "ec7cca53b81ccb18a77942942128d20619e56192646d2b9714853906fef02165",
+      "gzip_sha256": "b4b39e77320afb863ddb1d5ef7787d7ca62e080e00b337730a578022d68e866f"
+    },
+    {
+      "path": "flake-hunt-before-fix.log.gz",
+      "what": "the node tests of 53702e1a, 12 runs on two cores shared with six busy loops: two runs fail, in test/static-host.test.mjs ('generated asynchronous activity after the test ended': ENOENT on the host's log)",
+      "raw_bytes": 497,
+      "raw_sha256": "916dc5c7b6f9c29ec57dd4bc0ff466e84c6f76925b689af35cc7b4fa2804239a",
+      "gzip_sha256": "165c1a9bcfedc508ab50aff88154ad4ac628094eb4908f7330ca64428809109c"
+    },
+    {
+      "path": "flake-hunt-after-fix.log.gz",
+      "what": "the node tests of the code commit, 30 runs on two cores shared with ten busy loops: all 30 pass",
+      "raw_bytes": 1051,
+      "raw_sha256": "c03c4f38494c420352cd9ade4b99e87ec2598d87214687ceba7745e4671f077e",
+      "gzip_sha256": "8604716d77c9b8cc499a0a1896671006c54e9e156d2d0ec5a78404a4b5803fad"
+    },
+    {
+      "path": "live-run-before.txt.gz",
+      "what": "the instrument's report of a live run of the instrument as it was (35f1943d's modules), on a calm VM: both apps, three engines, cold and warm, Chromium shaped, 5 runs, servers measured; no run failed",
+      "raw_bytes": 42950,
+      "raw_sha256": "48a111990f405a9ee94eb550b16f05fcc0f53f8d79eb780151b601a954be8ca3",
+      "gzip_sha256": "6706d8c22fd3c8defcbd427fdd2b608961b8e956df8bf29bae1a4acd530dda0c"
+    },
+    {
+      "path": "live-run-after.txt.gz",
+      "what": "the same run, with the same flags, seed and ports, at the code commit; no run failed",
+      "raw_bytes": 42694,
+      "raw_sha256": "87d9ae50bbc657361668c34e6710a74629ac445f581daca1c7ceb1b014936498",
+      "gzip_sha256": "69e1643c616e3cd455087935db0dd9c0b80afaefab59b5a6eba078933c46b9b5"
+    },
+    {
+      "path": "live-run-comparison.log.gz",
+      "what": "the two live runs compared by shape, orders, requests, failures and problems (times, bytes received and server costs vary and are not compared), and the counts of the requests that differ",
+      "raw_bytes": 3764,
+      "raw_sha256": "cfdeb76c5277a5fafd73475dc770587a23abefbb39980c75173a6ce9561cd57f",
+      "gzip_sha256": "6fd055df009e4b8f33237b44fcf251b2e6864d438d705d65f213c2bf495d8f7b"
+    },
+    {
+      "path": "how/before-run.sh.gz",
+      "what": "what produced the outputs above, as it was run",
+      "raw_bytes": 1313,
+      "raw_sha256": "6677a89adae89a5a9995243a433eff01946df4b0ec86515db05a4797930ca371",
+      "gzip_sha256": "831230a49640d2862b5668b578f95466025c03b3e8987370c382765f02b1bedc"
+    },
+    {
+      "path": "how/pins-on-original-2.sh.gz",
+      "what": "what produced the outputs above, as it was run",
+      "raw_bytes": 1645,
+      "raw_sha256": "39a20da11de02fd8b27ac14be0353cb7ae6afa53e91de2fa740d2fea12e1a289",
+      "gzip_sha256": "150c1a51d38d769fd1fff5cdf8e1a5de6999a983455ca5aab7570b574c16173d"
+    },
+    {
+      "path": "how/clean-audit.sh.gz",
+      "what": "what produced the outputs above, as it was run",
+      "raw_bytes": 1093,
+      "raw_sha256": "782f28e05030c0019af060f3ddcaefeb8ba5d296ae8a0eb5fcdae09e51b80a56",
+      "gzip_sha256": "f8d9f6eb3f6e07ed2b24e84bd0c04eeb1bcb1f71ad9f7155b859dd1c6656585c"
+    },
+    {
+      "path": "how/flake-hunt.sh.gz",
+      "what": "what produced the outputs above, as it was run",
+      "raw_bytes": 789,
+      "raw_sha256": "33e6d92512dda99558893519cde9d5f68feee5f7c5401a6e8a20469dff7120e3",
+      "gzip_sha256": "47ff9820299851c916280a30c6c6ae75412347241b608a8d0cc108aed8a496be"
+    },
+    {
+      "path": "how/mutations-final.sh.gz",
+      "what": "what produced the outputs above, as it was run",
+      "raw_bytes": 698,
+      "raw_sha256": "d3b89e15e661608d316897f29cb31b81c99840f32b21461f466ed512ef447d4e",
+      "gzip_sha256": "af4fe1c1704b269afce0ffe0d4e0eb2bc1f1ce7f095c98b074e0755e9759548f"
+    },
+    {
+      "path": "how/smoke-before2.sh.gz",
+      "what": "what produced the outputs above, as it was run",
+      "raw_bytes": 1805,
+      "raw_sha256": "a2da03e335df743650b3b5728459f2cf90af2b98eb89b67facd534f27ee09854",
+      "gzip_sha256": "7d1efd46de8352546601503a9c00cf5b9c1ba97f75217cc9ba39b806e681b47e"
+    },
+    {
+      "path": "how/smoke-after3.sh.gz",
+      "what": "what produced the outputs above, as it was run",
+      "raw_bytes": 948,
+      "raw_sha256": "a231ec9f8a70a301aec1fa8be8db0822b8ac8a3b0b16886f775d41d2c3982ae8",
+      "gzip_sha256": "42ce8189b6d7c7c37042552fa75fe376561c1ed57f3b02409d9c7fe8bcb2a20c"
+    },
+    {
+      "path": "how/compare-smoke2.py.gz",
+      "what": "what produced the outputs above, as it was run",
+      "raw_bytes": 9137,
+      "raw_sha256": "64077a7329dee638c4469d5afe483fd02b45e04ecd5fb87252aafd9e5f6cbe5a",
+      "gzip_sha256": "dc5443c5f679816d1d0befe86ea05d6128327881e9a74ebaab79e262e28e6cc9"
+    },
+    {
+      "path": "how/probe-counts.py.gz",
+      "what": "what produced the outputs above, as it was run",
+      "raw_bytes": 1529,
+      "raw_sha256": "54ded660cc320df7a28feef841ef2e3f9c57fed35fe41c479b3172be73f4173a",
+      "gzip_sha256": "eea3326475949a0e0d522265e5b80c201d9fec4ddf8649dd1fda9a40c2bea952"
+    }
+  ],
+  "fallow": {
+    "version": "3.23.0",
+    "command": "npx -y fallow@3.23.0 audit --root . --quiet --format json --changed-since 45e0c1a6e9f6331bcce7fb3fb35528b169397934 --gate new-only",
+    "base": "45e0c1a6e9f6331bcce7fb3fb35528b169397934",
+    "red_head": "35f1943d",
+    "red_verdict": "fail",
+    "red_attribution": {
+      "gate": "new-only",
+      "dead_code_introduced": 141,
+      "dead_code_inherited": 2,
+      "complexity_introduced": 50,
+      "complexity_inherited": 0,
+      "duplication_introduced": 6,
+      "duplication_inherited": 0,
+      "styling_introduced": 5,
+      "styling_inherited": 0,
+      "duplication_demoted": 0
+    },
+    "green_head": "2065ef2c",
+    "green_verdict": "pass",
+    "green_attribution": {
+      "gate": "new-only",
+      "dead_code_introduced": 0,
+      "dead_code_inherited": 4,
+      "complexity_introduced": 0,
+      "complexity_inherited": 0,
+      "duplication_introduced": 0,
+      "duplication_inherited": 0,
+      "styling_introduced": 0,
+      "styling_inherited": 0,
+      "duplication_demoted": 0
+    }
+  },
+  "node": {
+    "before_35f1943d": {
+      "tests": 29,
+      "pass": 29,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    },
+    "original_with_exports_517": {
+      "tests": 517,
+      "pass": 517,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    },
+    "result": {
+      "tests": 523,
+      "pass": 523,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0
+    }
+  },
+  "python": {
+    "before_35f1943d": {
+      "tests": 18,
+      "ok": true
+    },
+    "result": {
+      "tests": 18,
+      "ok": true
+    }
+  },
+  "flake_hunt": {
+    "what": "the node tests on two cores shared with busy loops (taskset -c 0,1; how/flake-hunt.sh)",
+    "before_fix_53702e1a_6_busy_loops": {
+      "runs": 12,
+      "failed": 2,
+      "failing_tests": [
+        "test/static-host.test.mjs"
+      ]
+    },
+    "after_fix_10_busy_loops": {
+      "runs": 30,
+      "failed": 0,
+      "failing_tests": []
+    }
+  },
+  "live_run": {
+    "before": "the instrument's modules as at 35f1943d (smoke-before2.sh), on a calm VM",
+    "after": "the code commit (smoke-after3.sh), on a calm VM",
+    "failed_runs": {
+      "before": 0,
+      "after": 0
+    },
+    "cells_compared": 48,
+    "differences": 4,
+    "differences_are": "requests that race the end of an interaction (Next's server action POST, SvelteKit's invalidation GET); the instrument as it was differs from itself in the same cells between two runs"
+  },
+  "mutations": {
+    "command": "PORT=13441 python3 scripts/head_to_head_mutations.py",
+    "summary": [
+      "baseline (node): 523 passed, 0 failed",
+      "baseline (python): 18 passed, 0 failed",
+      "41 of 41 mutants killed; 0 refused; 0 survived",
+      "4 of 4 integrity controls caught; 0 missed"
+    ]
+  }
+}

@@ -132,6 +132,13 @@ LOCAL_ONLY = {
     # there at its first sandbox (verify 39054436657). Its Pleris stack runs
     # on CI as `e14-pleris-controls`.
     "e14-harness",
+    # The head-to-head (ADR-0392): times, bytes under shaping, servers under
+    # load, memory and idle visitors, each stack against the others on one
+    # machine, which its `host:` line names (ADR-0281's decision 5). A
+    # runner's two shared cores would measure their own contention, and its
+    # file would replace the development machine's the ADR reads. Its
+    # instrument's tests run in `just ci` (`test_head_to_head.py`).
+    "e14-head-to-head",
 }
 
 # Recipes run against a database (ADR-0246). Each is a shard of its own,

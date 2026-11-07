@@ -1,0 +1,28 @@
+E14-B - the offline harness, and T08's controls
+
+produced by: just e14-harness T08
+commit: 4f75868b3ec91d162fb6dd366e7d0abc7619c2f4
+node: v22.21.1  pnpm: 10.15.1  rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+== isolation (benchmarks/harness/test/isolation.test.mjs)
+
+ok 1 - a sandbox holding a hidden file's bytes is refused
+ok 2 - the same task without the leak makes a sandbox
+
+== the controls (node bench.mjs controls --task T08)
+
+T08 pleris: negative ok, positive ok, unsafe ok (caught at check), harness ok
+T08 next-react: negative ok, positive ok, unsafe ok (caught at hidden), harness ok
+T08 sveltekit: negative ok, positive ok, unsafe ok (caught at contract), harness ok
+
+== each run, from benchmarks/results/ (this recipe's runs)
+
+  next-react noop: score 0 (failed at hidden); contract 9/9, hidden 0/2; 0 line(s)
+  next-react replay:reference: score 1; contract 9/9, hidden 2/2; 32 line(s)
+  next-react replay:unsafe: score 0 (failed at hidden); contract 9/9, hidden 0/2; 3 line(s)
+  pleris noop: score 0 (failed at check); no tests run; 0 line(s)
+  pleris replay:reference: score 1; contract 9/9, hidden 2/2; 2 line(s)
+  pleris replay:unsafe: score 0 (failed at check); no tests run; 1 line(s)
+  sveltekit noop: score 0 (failed at hidden); contract 9/9, hidden 0/2; 0 line(s)
+  sveltekit replay:reference: score 1; contract 9/9, hidden 2/2; 43 line(s)
+  sveltekit replay:unsafe: score 0 (failed at contract); contract 8/9, hidden 0/2; 16 line(s)

@@ -1,0 +1,187 @@
+{
+  "source": "https://github.com/tastejs/todomvc",
+  "commit": "ff43b02e59dfa604386bb382034b2cd07c2bcd8a",
+  "fetched": "2026-10-25",
+  "licence": "MIT (license.md); todomvc-app-css CC-BY-4.0 inside both stylesheets",
+  "excluded": {
+    "react/dist/app.bundle.js.map": {
+      "blob": "a43e8d03149794811e95c19e21e6f3ba20cf561b",
+      "bytes": 1361509
+    },
+    "react/dist/app.css.map": {
+      "blob": "051cd5bf94db5ccb93c72447a99a364ccb2905f7",
+      "bytes": 14375
+    }
+  },
+  "files": {
+    "react/.eslintrc": {
+      "blob": "0ce034b427c21bea76786762e36423f7170f1069",
+      "bytes": 277
+    },
+    "react/.gitignore": {
+      "blob": "03e05e4c07174bdbd4a86a6206af4fa88b03f743",
+      "bytes": 24
+    },
+    "react/dist/app.bundle.js": {
+      "blob": "08741691a2f21c53f816811aa5750f7448b1f376",
+      "bytes": 236914
+    },
+    "react/dist/app.bundle.js.LICENSE.txt": {
+      "blob": "8176893c2c9fd488645d2fd92ca4119d0e49f693",
+      "bytes": 1332
+    },
+    "react/dist/app.css": {
+      "blob": "676204ebeac3d26572e969bdc229dbbce7237336",
+      "bytes": 7400
+    },
+    "react/dist/base.js": {
+      "blob": "013aacecb4f9f2e87b04552cd8b571d53cf55c0d",
+      "bytes": 3752
+    },
+    "react/dist/index.html": {
+      "blob": "82aa905b19394a7537790670445e3848d1d02c47",
+      "bytes": 645
+    },
+    "react/package-lock.json": {
+      "blob": "979346e947c1cedebb90a6acb1b00c120bae6c97",
+      "bytes": 367733
+    },
+    "react/package.json": {
+      "blob": "46c9ec6649f1d063d6512009c24f96f801d8e844",
+      "bytes": 1236
+    },
+    "react/public/index.html": {
+      "blob": "2bbfd1b8f22739ff97b7a8f2247dae6363d279c2",
+      "bytes": 682
+    },
+    "react/readme.md": {
+      "blob": "1f3ce1e48c8ae457d89e1642ba4791d7dea56bca",
+      "bytes": 1218
+    },
+    "react/src/index.js": {
+      "blob": "b157dc88316fa6a11c283ff7bb0320341d67c4c0",
+      "bytes": 389
+    },
+    "react/src/todo/app.css": {
+      "blob": "bfa6617eb55ab28c3a0790065b69921334ccf7cc",
+      "bytes": 477
+    },
+    "react/src/todo/app.jsx": {
+      "blob": "4ae2b60d3191b1c601fb17a7f5fb801d7e47ec93",
+      "bytes": 518
+    },
+    "react/src/todo/components/footer.jsx": {
+      "blob": "70b7ac516169d7e770c7ceb77711df1ed39eeb53",
+      "bytes": 1544
+    },
+    "react/src/todo/components/header.jsx": {
+      "blob": "866d2bf9c064e46124aace65e5febc1c51ac566c",
+      "bytes": 484
+    },
+    "react/src/todo/components/input.jsx": {
+      "blob": "bfaab32bce31b1513d355295a110238caecd1ac8",
+      "bytes": 1293
+    },
+    "react/src/todo/components/item.jsx": {
+      "blob": "e558306aa65306f155c83a9e2f455e034aac7cb9",
+      "bytes": 2279
+    },
+    "react/src/todo/components/main.jsx": {
+      "blob": "4cf1a8abe37655774e2a06fcb509fd236d5f9400",
+      "bytes": 1617
+    },
+    "react/src/todo/constants.js": {
+      "blob": "cb019df4c3f8310827d4e45bd7c14c069bb5fee0",
+      "bytes": 318
+    },
+    "react/src/todo/reducer.js": {
+      "blob": "b43c3583fd9346332726ad37984c5d79bd57770e",
+      "bytes": 3012
+    },
+    "react/webpack.common.js": {
+      "blob": "ed3adfe93beb7abaa4e475408d3b5932d3cc82be",
+      "bytes": 1182
+    },
+    "react/webpack.dev.js": {
+      "blob": "774d05584d682f907015761eecb8dcee0c1617df",
+      "bytes": 402
+    },
+    "react/webpack.prod.js": {
+      "blob": "ef4bbc0d13c2d070f68191c4bfb07ad1f63c1cbf",
+      "bytes": 975
+    },
+    "svelte/.gitignore": {
+      "blob": "4992926ba8b5dbf6165c7753b3af7e68540d1275",
+      "bytes": 134
+    },
+    "svelte/dist/assets/index-BxPr2-fK.js": {
+      "blob": "a909bfc0fb055d1dffda0b168e0536c7a87dc0c4",
+      "bytes": 42122
+    },
+    "svelte/dist/assets/index-bgjkvPzV.css": {
+      "blob": "59c89c15fbd58f5aadd1bd2a658e8ebaf30ff88a",
+      "bytes": 7129
+    },
+    "svelte/dist/base.js": {
+      "blob": "a56b5aaca980fb608faf3eb9624750c8740b0025",
+      "bytes": 7253
+    },
+    "svelte/dist/index.html": {
+      "blob": "8ea1fde690a0198d444efc10c1c3c4b7f747cc6a",
+      "bytes": 841
+    },
+    "svelte/index.html": {
+      "blob": "0c08783c616c9312008e3aaf464b3fd78d874963",
+      "bytes": 793
+    },
+    "svelte/package-lock.json": {
+      "blob": "1288f99320ef27fe303784c3629d57c73f241dfe",
+      "bytes": 55830
+    },
+    "svelte/package.json": {
+      "blob": "a2a7498d421c14dcc228ccfec7ef777761140342",
+      "bytes": 657
+    },
+    "svelte/readme.md": {
+      "blob": "0911855422748cc30448fefac96626c790744a8a",
+      "bytes": 1990
+    },
+    "svelte/src/App.svelte": {
+      "blob": "46c416d53f52077038b6cd83d83c56bdd1c8a2b2",
+      "bytes": 2137
+    },
+    "svelte/src/Footer.svelte": {
+      "blob": "b73039a2ecd26a52760a1160aa3285d51af15c6e",
+      "bytes": 738
+    },
+    "svelte/src/Header.svelte": {
+      "blob": "89e5aeab694af9601db7f9a5528b77486dfc05bd",
+      "bytes": 456
+    },
+    "svelte/src/Item.svelte": {
+      "blob": "6216339b7635b7b38815b09da37c62684e28ea24",
+      "bytes": 1407
+    },
+    "svelte/src/app.css": {
+      "blob": "bfa6617eb55ab28c3a0790065b69921334ccf7cc",
+      "bytes": 477
+    },
+    "svelte/src/index.js": {
+      "blob": "7c97217404dfc0e3b1300644c9c15e7ce8fcd01b",
+      "bytes": 163
+    },
+    "svelte/src/router.js": {
+      "blob": "65a9c65591f9aff265e801a677da8ef9c0d903bc",
+      "bytes": 528
+    },
+    "svelte/vite.config.js": {
+      "blob": "845174f2982d50c13bec7028a5e9cd2e28103f72",
+      "bytes": 497
+    },
+    "LICENSE-todomvc.md": {
+      "blob": "9275d4371020294b6a107e454a0d1819f8b71c31",
+      "bytes": 1166,
+      "upstream": "license.md"
+    }
+  }
+}

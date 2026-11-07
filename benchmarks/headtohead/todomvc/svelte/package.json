@@ -1,0 +1,26 @@
+{
+    "name": "todomvc-svelte",
+    "version": "1.0.0",
+    "description": "A TodoMVC app written with Svelte.",
+    "engines": {
+        "node": ">=20.19.0",
+        "npm": ">=10.0.0"
+    },
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite dev --host",
+        "serve": "npm run build && vite preview"
+    },
+    "dependencies": {
+        "todomvc-app-css": "^2.4.3",
+        "todomvc-common": "^1.0.5"
+    },
+    "devDependencies": {
+        "@sveltejs/vite-plugin-svelte": "^7.0.0",
+        "svelte": "^5.55.5",
+        "vite": "^8.0.10",
+        "vite-plugin-static-copy": "^4.1.0"
+    }
+}

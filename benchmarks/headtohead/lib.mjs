@@ -1,0 +1,364 @@
+// The head-to-head's small helpers (ADR-0392, "the head-to-head"): statistics,
+// sizes as a static host sends them, the machine, processes and their cost,
+// and servers started and stopped. Nothing here measures by itself.
+
+import { spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import fs from "node:fs";
+import net from "node:net";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+import { brotliCompressSync, constants, gzipSync } from "node:zlib";
+
+export const HERE = path.dirname(fileURLToPath(import.meta.url));
+const BENCH = path.resolve(HERE, "..");
+export const REPO = path.resolve(BENCH, "..");
+
+/** Waits `ms` milliseconds (on the global `setTimeout`, so that a test's clock moves it). */
+export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** A command run to its end: whether it succeeded, its exit status, and what
+ * it wrote to stdout and stderr, as one text. */
+export function sh(cmd, args, opts = {}) {
+  const { status, stdout, stderr } = spawnSync(cmd, args, { encoding: "utf8", maxBuffer: 64 << 20, ...opts });
+  return { ok: status === 0, status, out: `${stdout ?? ""}${stderr ?? ""}` };
+}
+
+/** Whether the module whose `import.meta.url` is given is the script this
+ * process was started with (not one imported by another). */
+export function isMain(metaUrl) {
+  return !!process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(metaUrl).pathname);
+}
+
+/** The path that follows `flag` in `argv`, made absolute, or null where the flag is absent. */
+export function pathAfter(argv, flag) {
+  return argv.includes(flag) ? path.resolve(argv[argv.indexOf(flag) + 1]) : null;
+}
+
+/** Playwright, 1.58.0, as this package pins it (`package.json`), the same
+ * the benchmark's harness and the own renderer pin. */
+export function playwright() {
+  return createRequire(path.join(HERE, "package.json"))("@playwright/test");
+}
+
+export function playwrightVersion() {
+  return createRequire(path.join(HERE, "package.json"))("@playwright/test/package.json").version;
+}
+
+// --- statistics ---------------------------------------------------------------
+
+/** The value at quantile q of sorted numbers, by linear interpolation
+ * (the "type 7" rule of R and NumPy's default). */
+export function quantile(sorted, q) {
+  if (!sorted.length) return null;
+  const at = (sorted.length - 1) * q;
+  const lo = Math.floor(at);
+  const hi = Math.ceil(at);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (at - lo);
+}
+
+/** Median, quartiles, extremes and count of the numbers given; nulls (a
+ * measurement an engine does not report) are left out and counted. */
+export function summary(values) {
+  const xs = values.filter((v) => typeof v === "number" && Number.isFinite(v)).sort((a, b) => a - b);
+  return {
+    n: xs.length,
+    missing: values.length - xs.length,
+    median: quantile(xs, 0.5),
+    q1: quantile(xs, 0.25),
+    q3: quantile(xs, 0.75),
+    min: xs.length ? xs[0] : null,
+    max: xs.length ? xs[xs.length - 1] : null,
+  };
+}
+
+// --- sizes ------------------------------------------------------------------------
+
+/** A body's bytes, and its bytes compressed as a static host compresses it:
+ * Brotli at quality 11 and gzip at level 9 (`static-host.mjs`). */
+export function sizes(body) {
+  return {
+    raw: body.length,
+    br: brotliCompressSync(body, {
+      params: {
+        [constants.BROTLI_PARAM_QUALITY]: 11,
+        [constants.BROTLI_PARAM_SIZE_HINT]: body.length,
+      },
+    }).length,
+    gzip: gzipSync(body, { level: 9 }).length,
+  };
+}
+
+/** Git's name for a file's content: `git hash-object`, without git. */
+export function gitBlob(body) {
+  return createHash("sha1").update(`blob ${body.length}\0`).update(body).digest("hex");
+}
+
+export function sha256(body) {
+  return createHash("sha256").update(body).digest("hex");
+}
+
+// --- minified or not --------------------------------------------------------------
+
+/** What "minified" means here, printed with every verdict. */
+export const MINIFIED_RULE =
+  "minified: esbuild 0.28.2's minifier (whitespace, syntax and identifiers) takes less than 10% more off it; under 1 KiB counts as minified";
+
+/**
+ * Whether a script or stylesheet is a minifier's output: what a minifier
+ * still finds to take off it. A file another minifier wrote (Terser, SWC,
+ * Rolldown's) loses a few percent more to esbuild's; a file no minifier
+ * touched loses its indentation, comments and long names, typically 30-70%.
+ * The minifier is esbuild, as the SvelteKit baseline pins it (this package's
+ * `package.json`); a file it cannot parse is reported unknown (`null`), not
+ * guessed at. Returns the share esbuild took off, and what it made of it.
+ */
+export function minifiedVerdict(text, type = "text/javascript") {
+  const bytes = Buffer.byteLength(text);
+  if (bytes < 1024) return { minified: true, rule: MINIFIED_RULE, share: null, minifiedBytes: bytes };
+  const esbuild = loadEsbuild();
+  if (!esbuild) return unknownVerdict("esbuild is not installed");
+  return transformVerdict(esbuild, text, type, bytes);
+}
+
+/** A verdict that could not be reached, and why. */
+const unknownVerdict = (error) => ({ minified: null, rule: MINIFIED_RULE, share: null, minifiedBytes: null, error });
+
+/** esbuild as this package pins it, or null where it is not installed. */
+function loadEsbuild() {
+  try {
+    return createRequire(path.join(HERE, "package.json"))("esbuild");
+  } catch {
+    return null;
+  }
+}
+
+const loaderFor = (type) => (/css/.test(type) ? "css" : "js");
+
+/** What esbuild's minifier makes of the text, and the share of its bytes it took off. */
+function transformVerdict(esbuild, text, type, bytes) {
+  try {
+    const out = esbuild.transformSync(text, { loader: loaderFor(type), minify: true, legalComments: "inline", logLevel: "silent" });
+    const after = Buffer.byteLength(out.code);
+    const share = 1 - after / bytes;
+    return { minified: share < 0.1, rule: MINIFIED_RULE, share: Number(share.toFixed(3)), minifiedBytes: after };
+  } catch (e) {
+    return unknownVerdict(String(e).split("\n")[0]);
+  }
+}
+
+// --- the machine --------------------------------------------------------------------
+
+export function machine() {
+  const cpus = os.cpus();
+  const osRelease = (() => {
+    try {
+      const t = fs.readFileSync("/etc/os-release", "utf8");
+      return /^PRETTY_NAME="?([^"\n]*)"?/m.exec(t)?.[1] ?? null;
+    } catch {
+      return null;
+    }
+  })();
+  return {
+    cpu: cpus[0]?.model?.trim() ?? "unknown",
+    logicalCpus: cpus.length,
+    memoryGiB: Number((os.totalmem() / 2 ** 30).toFixed(1)),
+    os: osRelease ?? `${os.type()} ${os.release()}`,
+    kernel: os.release(),
+    node: process.version,
+    loadAverage: os.loadavg().map((l) => Number(l.toFixed(2))),
+  };
+}
+
+// --- processes ------------------------------------------------------------------------
+
+/** /proc's CPU clock, a tick (10 ms at CLK_TCK 100), and its memory's page. */
+export const TICK_MS = 1000 / Number(spawnSync("getconf", ["CLK_TCK"], { encoding: "utf8" }).stdout.trim() || 100);
+export const PAGE_KIB = Number(spawnSync("getconf", ["PAGESIZE"], { encoding: "utf8" }).stdout.trim() || 4096) / 1024;
+
+/** The processes one thread of a process has started; none where it has gone. */
+function taskChildren(pid, task) {
+  try {
+    const c = fs.readFileSync(`/proc/${pid}/task/${task}/children`, "utf8").trim();
+    return c ? c.split(/\s+/).map(Number) : [];
+  } catch {
+    return [];
+  }
+}
+
+function children(pid) {
+  try {
+    return fs.readdirSync(`/proc/${pid}/task`).flatMap((t) => taskChildren(pid, t));
+  } catch {
+    return [];
+  }
+}
+
+/** A process and every descendant it has now. */
+export function processTree(pid) {
+  const seen = new Set();
+  const stack = [pid];
+  while (stack.length) {
+    const p = stack.pop();
+    if (seen.has(p)) continue;
+    seen.add(p);
+    stack.push(...children(p));
+  }
+  return [...seen];
+}
+
+/** CPU time (user + system, ms) and resident memory (KiB) of a process tree,
+ * from /proc. A process that has gone counts nothing. */
+export function treeCost(pid) {
+  let cpuMs = 0;
+  let rssKiB = 0;
+  const pids = processTree(pid);
+  for (const p of pids) {
+    try {
+      const stat = fs.readFileSync(`/proc/${p}/stat`, "utf8");
+      const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+      // utime and stime are fields 14 and 15 of stat(5); here, after the
+      // command's closing parenthesis, at 11 and 12.
+      cpuMs += (Number(fields[11]) + Number(fields[12])) * TICK_MS;
+      const statm = fs.readFileSync(`/proc/${p}/statm`, "utf8").split(" ");
+      rssKiB += Number(statm[1]) * PAGE_KIB;
+    } catch {
+      /* gone */
+    }
+  }
+  return { pids: pids.length, cpuMs, rssKiB };
+}
+
+// --- servers --------------------------------------------------------------------------
+
+/** Whether a port on the loopback is free: a server already there must never
+ * be taken for the one a run starts. */
+export function portFree(port) {
+  return new Promise((resolve) => {
+    const s = net.createServer();
+    s.once("error", () => resolve(false));
+    s.listen(port, "127.0.0.1", () => s.close(() => resolve(true)));
+  });
+}
+
+export async function waitForHttp(url, ms, alive = () => true) {
+  const until = Date.now() + ms;
+  while (Date.now() < until) {
+    if (!alive()) return false;
+    try {
+      const r = await fetch(url, { redirect: "manual" });
+      await r.arrayBuffer();
+      return true;
+    } catch {
+      await sleep(150);
+    }
+  }
+  return false;
+}
+
+/**
+ * The server running: started in a process group of its own, its output
+ * written to the log's descriptor. `exited` is null until it ends.
+ */
+function launch({ cmd, args, cwd, env }, out) {
+  const child = spawn(cmd, args, {
+    cwd,
+    env: { ...process.env, ...env },
+    stdio: ["ignore", out, out],
+    detached: true,
+  });
+  const run = { child, exited: null };
+  child.on("exit", (code, signal) => (run.exited = { code, signal }));
+  return run;
+}
+
+/** Sends a signal to the server's whole process group; false where it cannot (it has gone). */
+function signalGroup(run, signal) {
+  try {
+    process.kill(-run.child.pid, signal);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The last `lines` lines of the log, read from the descriptor it was opened
+ * for (read and write) and not by its name again, so that what is read is the
+ * file the server wrote to even if the name has since been taken by another.
+ * It reads from the start with a position of its own: the descriptor's
+ * offset is the server's, shared with the output it writes.
+ */
+function logTail(out, lines = 20) {
+  const size = fs.fstatSync(out).size;
+  const buffer = Buffer.alloc(size);
+  const read = fs.readSync(out, buffer, 0, size, 0);
+  return buffer.toString("utf8", 0, read).split("\n").slice(-lines).join("\n");
+}
+
+/** The error for a server that did not answer in time: it is killed, and says how it ended and what it last wrote. */
+function startFailure({ name, port }, run, out) {
+  signalGroup(run, "SIGKILL");
+  const tail = logTail(out);
+  fs.closeSync(out);
+  return new Error(`${name}: did not start on ${port}${run.exited ? ` (exited ${JSON.stringify(run.exited)})` : ""}\n${tail}`);
+}
+
+/** Waits up to `ms` for the server to end. The deadline is read once, the clock again at each poll. */
+async function waitForExit(run, ms) {
+  const until = Date.now() + ms;
+  while (run.exited === null && Date.now() < until) await sleep(50);
+}
+
+/** SIGTERM to the server's group, then SIGKILL if it has not ended in 5 s. */
+async function stopServer(run) {
+  if (run.exited) return;
+  if (!signalGroup(run, "SIGTERM")) return;
+  await waitForExit(run, 5000);
+  if (run.exited === null) signalGroup(run, "SIGKILL");
+}
+
+/**
+ * A server, started in its own process group so that it and everything it
+ * starts can be stopped together. `probe` is a path no route serves: the
+ * readiness check must not be the first read of what a page reads (ADR-0342,
+ * finding 8).
+ */
+export async function startServer({ name, cmd, args, cwd, env = {}, port, probe = "/__h2h-ready", log }) {
+  if (!(await portFree(port))) throw new Error(`${name}: port ${port} is already taken`);
+  const out = fs.openSync(log, "w+");
+  const run = launch({ cmd, args, cwd, env }, out);
+  const up = await waitForHttp(`http://127.0.0.1:${port}${probe}`, 90_000, () => run.exited === null);
+  if (!up) throw startFailure({ name, port }, run, out);
+  fs.closeSync(out);
+  return {
+    name,
+    pid: run.child.pid,
+    port,
+    base: `http://127.0.0.1:${port}`,
+    log,
+    alive: () => run.exited === null,
+    stop: () => stopServer(run),
+  };
+}
+
+/** Fisher-Yates, from a seeded generator, so that a run's order is printed
+ * and can be run again. */
+export function shuffled(list, seed) {
+  // Mulberry32: every seed, small ones too, mixed before its first draw.
+  let s = seed >>> 0;
+  const rand = () => {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 2 ** 32;
+  };
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
