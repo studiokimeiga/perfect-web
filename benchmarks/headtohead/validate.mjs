@@ -77,7 +77,10 @@ const judged = (q) => !!q.type && SCRIPT_OR_STYLE.test(q.type) && q.minified != 
 
 /** A judged script or style, not one of TodoMVC's common files, that is not
  * minified where the stack's build minifies. */
-const unminified = (q, expect, common) => judged(q) && !isCommon(q.url, common) && expect.minifies && !q.minified;
+const minifierOwes = (q, expect) =>
+  expect.minifies === true || (expect.minifies === "runtime" && new URL(q.url).pathname === "/pw-runtime.mjs");
+const unminified = (q, expect, common) =>
+  judged(q) && !isCommon(q.url, common) && minifierOwes(q, expect) && !q.minified;
 
 export function checkMinified(stackRuns, expect, common = []) {
   const loose = coldBodies(stackRuns).filter((q) => unminified(q, expect, common));
@@ -90,7 +93,10 @@ const small = (q) => (q.raw ?? 0) < 1024;
 const owesCompression = (q) => !!q.type && COMPRESSIBLE.test(q.type) && !small(q) && q.status === 200;
 
 /** A host that compresses only its static files owes its documents nothing. */
-const exempt = (q, expect) => expect.compresses === "static" && q.kind === "document";
+const rootAsset = (q) => /^\/[^/]+\.(?:js|mjs|css|wasm|svg)$/.test(new URL(q.url).pathname);
+const exempt = (q, expect) =>
+  (expect.compresses === "static" && q.kind === "document") ||
+  (expect.compresses === "root-assets" && !rootAsset(q));
 
 export function checkCompressed(stackRuns, expect) {
   if (!expect.compresses) return [];

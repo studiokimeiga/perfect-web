@@ -66,6 +66,20 @@ test("an unminified script from a stack whose build minifies is refused; Pleris'
   assert.deepEqual(checkMinified([run({ requests: [response()] })], { minifies: true }), []);
 });
 
+test("Pleris asset packaging checks the runtime without falsely claiming compiled modules are minified", () => {
+  const runtime = response({ url: "http://localhost:1/pw-runtime.mjs", minified: false });
+  const handler = response({ url: "http://localhost:1/handler/abc.mjs", minified: false });
+  assert.match(checkMinified([run({ requests: [runtime] })], { minifies: "runtime" }).join("\n"), /not minified/);
+  assert.deepEqual(checkMinified([run({ requests: [handler] })], { minifies: "runtime" }), []);
+});
+
+test("Pleris asset packaging requires compression of root assets but not generated modules", () => {
+  const runtime = response({ url: "http://localhost:1/pw-runtime.mjs", encoding: null });
+  const handler = response({ url: "http://localhost:1/handler/abc.mjs", encoding: null });
+  assert.match(checkCompressed([run({ requests: [runtime] })], { compresses: "root-assets" }).join("\n"), /uncompressed/);
+  assert.deepEqual(checkCompressed([run({ requests: [handler] })], { compresses: "root-assets" }), []);
+});
+
 test("TodoMVC's common files are not held to a stack's minifier", () => {
   const runs = [run({ requests: [response({ url: "http://127.0.0.1:1/svelte/dist/base.js", minified: false })] })];
   assert.deepEqual(checkMinified(runs, { minifies: true }, [/\/base\.js$/]), []);

@@ -5,6 +5,7 @@
   "//": "1.58.0 to match spikes/pw-to-marko and the browser builds actually installed on this host. tools/versions.lock pins npm_playwright = 1.62.1 as the version verified on the registry, which is not the same claim: a different minor needs a different browser build, and pinning one the host does not have makes every engine report 'browser not installed' — a harness failure that reads exactly like a renderer failure.",
   "devDependencies": {
     "@playwright/test": "1.58.0",
+    "esbuild": "0.28.2",
     "todomvc-app-css": "2.4.3",
     "todomvc-common": "1.0.5"
   }
