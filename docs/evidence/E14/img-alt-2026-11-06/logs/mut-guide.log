@@ -1,0 +1,18 @@
+Python frozen full IDs: ['test_guide_diagnostics.Current.test_every_registered_code_has_a_row', 'test_guide_diagnostics.Current.test_the_committed_page_is_what_the_registry_writes', 'test_guide_diagnostics.Reading.test_a_line_that_is_no_entry_is_refused_not_skipped', 'test_guide_diagnostics.Reading.test_a_pipe_in_a_cell_is_escaped', 'test_guide_diagnostics.Reading.test_a_retired_code_with_its_reason_continued_across_lines', 'test_guide_diagnostics.Reading.test_an_owner_without_a_title_is_written_from_its_name', 'test_guide_diagnostics.Reading.test_each_entry_with_its_invariant_and_the_adrs_its_comment_cites']; evidence /tmp/pw-guide-python-evidence-nmwogipw
+baseline: the guide's tests, 22 ran, 0 failed
+baseline: the guestbook in Chromium, 0 ran, 0 failed
+  run_suite: the suite's last lines:
+    undefined
+     ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command "playwright" not found
+  run_suite: exit 254
+
+Browser receipt refused: unexpected browser exit
+FAIL: the unmutated baseline is not green; no mutant can mean anything
+what failed, as its commands said it:
+  bash /home/haki/code/pw-wt/img-alt/scripts/run_suite.sh -C . -- pnpm exec playwright test e2e/guestbook.spec.mjs --project=chromium --retries=0 --reporter=li... (exit 254):
+    no test result; its output ended:
+        run_suite: the suite's last lines:
+          undefined
+           ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command "playwright" not found
+        run_suite: exit 254
+memory bound: no process was stopped

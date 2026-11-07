@@ -1,0 +1,18 @@
+// @status: GENERAL
+// @invariant: image_without_alt
+// @dimension: indirect invalid — a loop's images from values, each with a `title` alone
+//
+// Structurally different from R-096: a view rather than a page, its images
+// rendered by a loop from values, each with a `title`. A screen reader may
+// read the title; nothing shows it where the image does not load.
+module generality.gallery
+
+type Photo = Photo { id: String, src: String, caption: String }
+
+view Gallery(photos: List<Photo>) !{} {
+    <ul>
+        {#each photos as p (p.id)}
+            <li><img src={p.src} title={p.caption} width="320" height="240"></li>
+        {/each}
+    </ul>
+}

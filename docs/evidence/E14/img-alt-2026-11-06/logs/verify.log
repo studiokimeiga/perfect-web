@@ -1,0 +1,113 @@
+== 2026-11-06T13:48:10-05:00 commit 9c5e1cf4ff69885a3b288c0537453a279585c9fe; uncommitted code paths: 0
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14); node: v22.21.1
+== 2026-11-06T13:48:10-05:00 reached mutation scripts (reached.py against master, 3 lines)
+evidence_integrity_2_mutations.py: 1 anchor(s) in changed code: the committed table drifts from what the corpus checks
+images_mutations.py: 10 anchor(s) in changed code: an image with no `alt` is not refused; an image a loop renders is not read; a `<picture>`'s `<source>` is held to it; a `title` stands for an image
+labels_mutations.py: 1 anchor(s) in changed code: an input's `type` is read case by case
+== 2026-11-06T13:48:11-05:00 just preflight
+exit preflight 0
+    Checking pw-host v0.0.0 (/home/haki/code/pw-wt/img-alt/runtime/pw-host)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 24.06s
+case-check: OK (4693 paths)
+mutation anchors: 4984 mutants in 325 scripts, each matching once
+== 2026-11-06T13:49:46-05:00 pw-core, every test; pw-cli's guide; pw-syntax's corpus formatting
+exit pw-core 101
+pw-core: 1819 passed, 1 failed, 2 ignored
+test a_template_writes_no_inline_handler ... FAILED
+thread 'a_template_writes_no_inline_handler' (1919685) panicked at compiler/pw-core/tests/code_in_markup.rs:30:5:
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+exit guide 0
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.64s
+exit corpus_fmt 0
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.80s
+== 2026-11-06T14:02:59-05:00 just evidence-gates
+exit evidence-gates 1
+ERROR: test_final_poll_interval_never_restarts_an_early_callback (test_browser_assertion_proof.BrowserAssertions)
+ERROR: test_native_cause_is_preserved_under_proof (test_browser_assertion_proof.BrowserAssertions)
+ERROR: test_native_comparisons_messages_and_negation_produce_proof (test_browser_assertion_proof.BrowserAssertions)
+ERROR: test_pending_poll_callback_is_not_a_mismatch (test_browser_assertion_proof.BrowserAssertions)
+ERROR: test_poll_callback_errors_are_not_assertion_results (test_browser_assertion_proof.BrowserAssertions)
+ERROR: test_poll_preserves_object_is_and_completed_mismatches (test_browser_assertion_proof.BrowserAssertions)
+Ran 1177 tests in 446.461s
+FAILED (errors=6, skipped=5)
+== 2026-11-06T14:10:26-05:00 mutation controls: evidence_integrity_2
+exit evidence_integrity_2 0
+the helper exits 0 whatever the suite did [helper]: KILLED (9 failure reports in 16 tests run)
+the helper stops at the first failed run [helper]: KILLED (3 failure reports in 16 tests run)
+the helper passes a run that passed no test [helper]: KILLED (1 failure reports in 16 tests run)
+the helper keeps no failed count [helper]: KILLED (2 failure reports in 16 tests run)
+a recipe swallows its suite again, read by the gate [gate]: KILLED (1 failure reports in 6 tests run)
+a recipe swallows its suite again, run with stand-ins [recipes]: KILLED (1 failure reports in 2 tests run)
+the benchmark's controls are swallowed again [gate]: KILLED (1 failure reports in 6 tests run)
+the gate reads no `||` after a suite [gate]: KILLED (6 failure reports in 6 tests run)
+the gate reads no condition [gate]: KILLED (3 failure reports in 6 tests run)
+the gate reads no group or loop that holds a suite [gate]: KILLED (5 failure reports in 6 tests run)
+the gate reads no `set +e` [gate]: KILLED (1 failure reports in 6 tests run)
+the gate reads no `-` line [gate]: KILLED (1 failure reports in 6 tests run)
+the gate reads no shell without `-e` [gate]: KILLED (1 failure reports in 6 tests run)
+the gate lets a suite outside the helper be [gate]: KILLED (1 failure reports in 6 tests run)
+the gate reads no `bench.mjs` [gate]: KILLED (2 failure reports in 6 tests run)
+the gate has no floor [gate]: KILLED (2 failure reports in 6 tests run)
+the historical report is read as another failed suite [history]: KILLED (1 failure reports in 3 tests run)
+a zero run count with leading zeros passes [helper]: KILLED (2 failure reports in 16 tests run)
+a parameter's default stops a recipe's header again [plan]: KILLED (3 failure reports in 96 tests run)
+the benchmark's controls get no browsers [plan]: KILLED (1 failure reports in 96 tests run)
+a change to the configuration plans nothing by it [plan]: KILLED (2 failure reports in 96 tests run)
+a mutation script's suite does not count [plan]: KILLED (1 failure reports in 96 tests run)
+a changed e2e module reaches no spec [plan]: KILLED (1 failure reports in 96 tests run)
+a recipe that runs every spec is planned by none [plan]: KILLED (1 failure reports in 96 tests run)
+the programs are the old list again [programs]: KILLED (2 failure reports in 10 tests run)
+a mutant in no program is let be [programs]: KILLED (1 failure reports in 10 tests run)
+a library's mutant is checked only in its own program [programs]: KILLED (2 failure reports in 10 tests run)
+a fixture's directory is one program [programs]: KILLED (1 failure reports in 10 tests run)
+a tie between sources is resolved [programs]: KILLED (1 failure reports in 10 tests run)
+a fixture's own directory is a source of its imports [programs]: KILLED (1 failure reports in 10 tests run)
+a named mutant is wrong where any one program checks it [programs]: KILLED (1 failure reports in 10 tests run)
+a named mutant every program checks is let be [programs]: KILLED (2 failure reports in 10 tests run)
+the registry translates an old number again [core]: KILLED (1 failure reports in 198 tests run)
+the corpus's test translates an old number again [core]: KILLED (1 failure reports in 198 tests run)
+the committed table drifts from what the corpus checks [corpus]: KILLED (1 failure reports in 1 tests run)
+e9-latency names macbook.md wherever it runs [latency]: KILLED (1 failure reports in 1 tests run)
+e9-latency records no load [latency]: KILLED (1 failure reports in 1 tests run)
+37 of 37 mutants killed
+== 2026-11-06T14:18:54-05:00 mutation controls: guide
+exit guide 1
+     ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command "playwright" not found
+FAIL: the unmutated baseline is not green; no mutant can mean anything
+           ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL  Command "playwright" not found
+== 2026-11-06T14:19:40-05:00 mutation controls: images
+exit images 0
+an image with no `alt` is not refused: KILLED (6 of 13 tests fail)
+an image a loop renders is not read: KILLED (2 of 13 tests fail)
+a `<picture>`'s `<source>` is held to it: KILLED (1 of 13 tests fail)
+a `title` stands for an image: KILLED (2 of 13 tests fail)
+an `aria-label` stands for an image: KILLED (1 of 13 tests fail)
+a `role` stands for an image: KILLED (1 of 13 tests fail)
+an empty `alt` is refused: KILLED (3 of 13 tests fail)
+an `alt` a value gives is refused: KILLED (2 of 13 tests fail)
+the image is reported at its declaration, not at the element: KILLED (3 of 13 tests fail)
+the declaration that renders the image is not named: KILLED (5 of 13 tests fail)
+10 of 10 mutants killed
+== 2026-11-06T14:42:59-05:00 mutation controls: labels
+exit labels 0
+an `id` names a control again: KILLED (4 of 17 tests fail)
+a label with `for` is read as one that wraps: KILLED (7 of 17 tests fail)
+a label that wraps its control names nothing: KILLED (5 of 17 tests fail)
+a label with no text names its control: KILLED (2 of 17 tests fail)
+the last element with an `id` is the one a label names: KILLED (1 of 17 tests fail)
+an `id` inside `{#each}` names no row: KILLED (1 of 17 tests fail)
+a control inside a block is a label's first: KILLED (1 of 17 tests fail)
+a composed view holds no control: KILLED (1 of 17 tests fail)
+a hidden input is labelable: KILLED (1 of 17 tests fail)
+a control's own options are its label: KILLED (1 of 17 tests fail)
+hidden text names a control: KILLED (1 of 17 tests fail)
+a blank `aria-label` names a control: KILLED (1 of 17 tests fail)
+a computed `aria-label` is refused: KILLED (1 of 17 tests fail)
+`aria-labelledby` names a control whatever it reaches: KILLED (1 of 17 tests fail)
+an IDREF to an element with no text names a control: KILLED (1 of 17 tests fail)
+an input's `type` is read case by case: KILLED (1 of 17 tests fail)
+16 of 16 mutants killed
+== 2026-11-06T15:24:52-05:00 restored
+mutation anchors: 4984 mutants in 325 scripts, each matching once
+exit anchors 0
+IMG_VERIFY_FINISHED

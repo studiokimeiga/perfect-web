@@ -1,0 +1,48 @@
+baseline (helper): 16 passed, 0 failed
+baseline (history): 3 passed, 0 failed
+baseline (gate): 6 passed, 0 failed
+baseline (recipes): 2 passed, 0 failed
+baseline (plan): 96 passed, 0 failed
+baseline (programs): 10 passed, 0 failed
+baseline (core): 198 passed, 0 failed
+baseline (corpus): 1 passed, 0 failed
+baseline (latency): 1 passed, 0 failed
+the helper exits 0 whatever the suite did [helper]: KILLED (9 failure reports in 16 tests run)
+the helper stops at the first failed run [helper]: KILLED (3 failure reports in 16 tests run)
+the helper passes a run that passed no test [helper]: KILLED (1 failure reports in 16 tests run)
+the helper keeps no failed count [helper]: KILLED (2 failure reports in 16 tests run)
+a recipe swallows its suite again, read by the gate [gate]: KILLED (1 failure reports in 6 tests run)
+a recipe swallows its suite again, run with stand-ins [recipes]: KILLED (1 failure reports in 2 tests run)
+the benchmark's controls are swallowed again [gate]: KILLED (1 failure reports in 6 tests run)
+the gate reads no `||` after a suite [gate]: KILLED (6 failure reports in 6 tests run)
+the gate reads no condition [gate]: KILLED (3 failure reports in 6 tests run)
+the gate reads no group or loop that holds a suite [gate]: KILLED (5 failure reports in 6 tests run)
+the gate reads no `set +e` [gate]: KILLED (1 failure reports in 6 tests run)
+the gate reads no `-` line [gate]: KILLED (1 failure reports in 6 tests run)
+the gate reads no shell without `-e` [gate]: KILLED (1 failure reports in 6 tests run)
+the gate lets a suite outside the helper be [gate]: KILLED (1 failure reports in 6 tests run)
+the gate reads no `bench.mjs` [gate]: KILLED (2 failure reports in 6 tests run)
+the gate has no floor [gate]: KILLED (2 failure reports in 6 tests run)
+the historical report is read as another failed suite [history]: KILLED (1 failure reports in 3 tests run)
+a zero run count with leading zeros passes [helper]: KILLED (2 failure reports in 16 tests run)
+a parameter's default stops a recipe's header again [plan]: KILLED (3 failure reports in 96 tests run)
+the benchmark's controls get no browsers [plan]: KILLED (1 failure reports in 96 tests run)
+a change to the configuration plans nothing by it [plan]: KILLED (2 failure reports in 96 tests run)
+a mutation script's suite does not count [plan]: KILLED (1 failure reports in 96 tests run)
+a changed e2e module reaches no spec [plan]: KILLED (1 failure reports in 96 tests run)
+a recipe that runs every spec is planned by none [plan]: KILLED (1 failure reports in 96 tests run)
+the programs are the old list again [programs]: KILLED (2 failure reports in 10 tests run)
+a mutant in no program is let be [programs]: KILLED (1 failure reports in 10 tests run)
+a library's mutant is checked only in its own program [programs]: KILLED (2 failure reports in 10 tests run)
+a fixture's directory is one program [programs]: KILLED (1 failure reports in 10 tests run)
+a tie between sources is resolved [programs]: KILLED (1 failure reports in 10 tests run)
+a fixture's own directory is a source of its imports [programs]: KILLED (1 failure reports in 10 tests run)
+a named mutant is wrong where any one program checks it [programs]: KILLED (1 failure reports in 10 tests run)
+a named mutant every program checks is let be [programs]: KILLED (2 failure reports in 10 tests run)
+the registry translates an old number again [core]: KILLED (1 failure reports in 198 tests run)
+the corpus's test translates an old number again [core]: KILLED (1 failure reports in 198 tests run)
+the committed table drifts from what the corpus checks [corpus]: KILLED (1 failure reports in 1 tests run)
+e9-latency names macbook.md wherever it runs [latency]: KILLED (1 failure reports in 1 tests run)
+e9-latency records no load [latency]: KILLED (1 failure reports in 1 tests run)
+37 of 37 mutants killed
+memory bound: no process was stopped

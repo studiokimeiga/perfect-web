@@ -203,12 +203,16 @@ MUTANTS = [
         "        <title>Pressed {count}</title>\n        <button",
         "        <title>Pressed</title>\n        <button",
     ),
+    # Until the image ADR the guide's one `gap=check` was an `<img>` with no
+    # `alt`, and this mutant closed it by making that `<img>` an unlabelled
+    # `<input>`. PW5053 closed it for real; a page that calls a program the
+    # check refuses a check gap is the same verdict.
     (
         "a check gap is closed: the check refuses it",
         "guide",
         TOUR_PAGES,
-        '            <img src="/logo.png" width="64" height="64">\n',
-        '            <input type="text">\n',
+        '```pw fails=PW6601\nmodule shop.titled',
+        '```pw gap=check\nmodule shop.titled',
     ),
     (
         'the closed two-signal gap is claimed to be refused still',

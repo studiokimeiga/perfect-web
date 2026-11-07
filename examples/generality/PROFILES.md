@@ -87,7 +87,7 @@ A rule over one syntactic shape, where the failure mode is local. **Fixture,
 one structurally different challenge, one valid neighbour** — and a targeted
 generator only where malformed structure could crash a later phase.
 
-`unkeyed_list`, `invalid_nesting`, `handler_on_inert`,
+`unkeyed_list`, `invalid_nesting`, `handler_on_inert`, `image_without_alt`,
 `control_without_label`, `handler_signature_mismatch`, `unsafe_audit_incomplete`,
 `retry_not_idempotent`, `retry_unbounded`, `signal_key_stale_work`,
 `optimistic_no_rollback`.

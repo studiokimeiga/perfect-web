@@ -1,0 +1,14 @@
+// @status: NEIGHBOUR
+// @invariant: image_without_alt
+// @dimension: valid neighbour — the same loop, each image's `alt` a value
+module generality.gallery_ok
+
+type Photo = Photo { id: String, src: String, caption: String }
+
+view Gallery(photos: List<Photo>) !{} {
+    <ul>
+        {#each photos as p (p.id)}
+            <li><img src={p.src} alt={p.caption} width="320" height="240"></li>
+        {/each}
+    </ul>
+}
