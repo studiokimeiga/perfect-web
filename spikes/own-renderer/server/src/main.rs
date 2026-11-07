@@ -1063,6 +1063,10 @@ struct Server {
     /// **The connections open now** (the keep-alive ADR): past
     /// [`KEPT_AT_MOST`], an answer closes its connection.
     open: Arc<std::sync::atomic::AtomicUsize>,
+    /// **The kept connections waiting for their next request** (the
+    /// keep-alive ADR), by their peer's address: arming a dropped command
+    /// (`/bench/drop`) closes them ([`Idle`]).
+    idle: Mutex<BTreeMap<std::net::SocketAddr, TcpStream>>,
     /// **The longest a held subscription waits for a wake** ([`WAKE_AT_LEAST`]
     /// in every host; a test lengthens it to show that a push, not a slice,
     /// delivers its frames).
@@ -2072,6 +2076,7 @@ impl Server {
                 KEEP_ALIVE_IDLE
             },
             open: Arc::default(),
+            idle: Mutex::new(BTreeMap::new()),
             wake_at_least: WAKE_AT_LEAST,
             dist,
             artifacts,
@@ -9559,9 +9564,37 @@ fn handle(server: &Server, stream: TcpStream) {
         if !kept {
             let _ = conn.shutdown(std::net::Shutdown::Both);
         }
+        let _idle = kept.then(|| Idle::listed(server, &conn));
         server.tell_waiting();
         if !kept || !next_request(&conn, &mut reader, server.keep_alive) {
             return;
+        }
+    }
+}
+
+/// **A kept connection listed while it waits for its next request** (the
+/// keep-alive ADR), so that arming a dropped command can close it: unlisted
+/// when its next request begins, or when it closes.
+struct Idle<'a> {
+    server: &'a Server,
+    at: Option<std::net::SocketAddr>,
+}
+
+impl<'a> Idle<'a> {
+    fn listed(server: &'a Server, conn: &Conn) -> Idle<'a> {
+        let at = conn.peer_addr().ok().and_then(|at| {
+            let listed = conn.try_clone().ok()?;
+            server.idle.lock().expect("idle").insert(at, listed);
+            Some(at)
+        });
+        Idle { server, at }
+    }
+}
+
+impl Drop for Idle<'_> {
+    fn drop(&mut self) {
+        if let Some(at) = self.at {
+            self.server.idle.lock().expect("idle").remove(&at);
         }
     }
 }
@@ -10649,6 +10682,15 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
                     return;
                 }
             };
+            // Its next command goes on a connection of its own (the
+            // keep-alive ADR): a browser sends a request again by itself
+            // where a kept connection it reused closes before any answer, so
+            // the drop would never reach the page. Every kept connection
+            // waiting for its next request is closed; the browser opens
+            // another, as it does for one a host closed while idle.
+            for (_, idle) in std::mem::take(&mut *server.idle.lock().expect("idle")) {
+                let _ = idle.shutdown(std::net::Shutdown::Both);
+            }
             server
                 .connection_faults
                 .lock()

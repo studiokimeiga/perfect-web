@@ -372,6 +372,33 @@ fn a_request_answered_with_nothing_closes_its_connection() {
     assert!(ended, "closed with no answer");
 }
 
+/// **Arming a dropped command closes the kept connections waiting**
+/// (ADR-0175's one-shot network error): the session's next command then
+/// goes on a connection of its own, and its drop reaches the page. On a kept
+/// connection a browser would send the command again by itself, and the
+/// page would never see the drop.
+#[test]
+fn arming_a_drop_closes_the_kept_connections_waiting() {
+    let s = kept_feed();
+    let (armed, ended) = connected(&s, |client, answers| {
+        client
+            .write_all(get("/pw-handlers", "").as_bytes())
+            .expect("request");
+        let _ = answer(answers);
+        let armed = connected(&s, |arm, armed| {
+            arm.write_all(
+                b"POST /bench/drop?next=command&at=before HTTP/1.1\r\nHost: t\r\n\
+                  Cookie: pw-session=a\r\ncontent-length: 0\r\nConnection: close\r\n\r\n",
+            )
+            .expect("arm");
+            answer(armed).0
+        });
+        (armed, closed(answers))
+    });
+    assert!(armed.starts_with("HTTP/1.1 200"), "{armed}");
+    assert!(ended, "the kept connection closed when the drop was armed");
+}
+
 /// **A commit is told to the readers it reached after its answer, while its
 /// connection is kept** (ADR-0219): not when the connection closes, which a
 /// kept connection may not do for seconds.

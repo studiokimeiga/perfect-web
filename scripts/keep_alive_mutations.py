@@ -15,7 +15,10 @@ Each control undoes one rule of `framed_length`, `answer_connection`,
 - a kept connection waiting without end for its next request;
 - a connection kept after an answer not written whole by `write_response`,
   or after none (a stream, a subscription cut off);
-- a commit told only when its connection closes, not after its answer.
+- a commit told only when its connection closes, not after its answer;
+- arming a dropped command (ADR-0175) leaving the kept connections waiting,
+  so a browser sends the command again by itself and the page never sees
+  the drop.
 
 The tests: `tests::keep_alive::`, and the upload's own
 (`tests::uploads::an_uploads_connection_is_closed_after_its_answer`), in one
@@ -58,6 +61,7 @@ TEST_NAMES = [
     "tests::keep_alive::a_streams_connection_is_closed_with_it",
     "tests::keep_alive::an_answer_before_its_body_is_read_closes_the_connection",
     "tests::keep_alive::an_http_1_0_request_is_answered_and_closed",
+    "tests::keep_alive::arming_a_drop_closes_the_kept_connections_waiting",
     "tests::keep_alive::past_the_cap_an_answer_closes_its_connection",
     "tests::keep_alive::requests_sent_together_are_answered_in_turn",
     "tests::keep_alive::the_keep_alive_header_says_the_idle_wait",
@@ -110,6 +114,9 @@ MUTANTS = [
      "    }\n",
      "        self.keeps()\n"
      "    }\n"),
+    ("arming a dropped command leaves the kept connections waiting", MAIN,
+     '            for (_, idle) in std::mem::take(&mut *server.idle.lock().expect("idle")) {\n',
+     "            for (_, idle) in BTreeMap::<std::net::SocketAddr, TcpStream>::new() {\n"),
     ("a commit is told only when its connection closes", MAIN,
      "        server.tell_waiting();\n"
      "        if !kept || !next_request(&conn, &mut reader, server.keep_alive) {\n"
