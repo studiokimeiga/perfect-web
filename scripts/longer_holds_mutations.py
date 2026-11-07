@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The longer-holds ADR: a subscription is held until something happens, up
+"""ADR-0402: a subscription is held until something happens, up
 to `HOLD` (25 s), a stream's and a long poll's alike; held, its page is live;
 and a page gone ends its hold at the next pass.
 
@@ -105,7 +105,7 @@ def main():
     args = parser.parse_args()
     files = sorted({path for _, path, _, _ in MUTANTS} | set(SOURCES))
     before = {str(path.relative_to(ROOT)): digest(path) for path in files}
-    report = {"scope": "a subscription held until something happens (the longer-holds ADR)",
+    report = {"scope": "a subscription held until something happens (ADR-0402)",
               "command": COMMAND, "producer_sha256": digest(Path(__file__)),
               "sources": before, "baseline": None, "controls": [], "restored": False,
               "valid": False}

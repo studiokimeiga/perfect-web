@@ -102,7 +102,7 @@ for (const transport of ["poll", "stream"]) {
     page,
     browserName,
   }, testInfo) => {
-    // The first press's ADR (ADR-0392's finding 20): a browser shares six
+    // ADR-0399 (ADR-0392's finding 20): a browser shares six
     // connections to a host among all its pages over HTTP/1.1, and queues the
     // requests waiting for one by priority. A subscription holds one nearly
     // always; asked at low priority, it lets a press's command, at a fetch's

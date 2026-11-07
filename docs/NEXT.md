@@ -6,6 +6,28 @@
 
 # Next
 
+## After train-14, 2026-11-07
+
+Train-14 merges 24 PRs and the cache repair ([STATUS](STATUS.md)). What
+stays open, in order:
+
+1. **Row ownership: one design.** PR #91 (`owner user | session | anyone`,
+   PW0370) and the row-ownership track (`owned by <field>`, ADR-0384's
+   sketch, on the unpublished `fix/row-data-integration` with durable tables
+   and uploads) answer one question two ways. The integrator rules between
+   them in an ADR before either lands. The track's codes PW0367-PW0369
+   collide with ADR-0406's PW0367, which landed first: the track renumbers.
+2. **PR #81:** its pixel test of the checkbox fails in WebKit ("checked: the
+   bounds its drawing is past"); its session repairs the drawing.
+3. **PR #64:** `e14-pleris-controls` failed T11's positive control and
+   harness at `484437e2`; find the cause before it lands.
+4. **PR #91's two follow-ups**, once the ruling stands: key a scheduled run
+   by the writer whose command scheduled it; answer a PostgreSQL `put` from
+   the row its statement replaced, not a snapshot (unowned tables too).
+5. **PR #74** names its decision ADR-0394, which the data path holds; it
+   takes the next free number when it lands. The dependency updates
+   (#16-#26, #65) are checked and landed on their own.
+
 ## Current local continuation, 2026-11-02
 
 Fetched `origin/master` is `5d4d4d55`; D3 PostgreSQL, added-table references,

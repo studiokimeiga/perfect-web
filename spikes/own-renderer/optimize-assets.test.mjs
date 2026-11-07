@@ -41,7 +41,7 @@ test("the production build minifies and compresses only public client assets", a
 });
 
 test("a production build compresses its compiled modules beside themselves, unchanged", async () => {
-  // The first press's ADR: a production page warms its handlers, computed
+  // ADR-0399: a production page warms its handlers, computed
   // values and speculations, so each is sent with every first visit. Each
   // is compressed as it is: its bytes are its compiler's, its URL its
   // identity's, and nothing rewrites either.
@@ -88,7 +88,7 @@ test("a production build compresses its compiled modules beside themselves, unch
 });
 
 test("a production build says its pages warm what their presses need", async () => {
-  // The first press's ADR: the server reads this file beside the assets and
+  // ADR-0399: the server reads this file beside the assets and
   // tells the browser on its handler table. Written once, as JSON, and never
   // compressed or served as an asset itself.
   const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));

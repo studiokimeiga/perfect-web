@@ -1,10 +1,10 @@
-# Track `longer-holds`'s recipes (the longer-holds ADR). The root justfile
+# Track `longer-holds`'s recipes (ADR-0402). The root justfile
 # imports this file, and its settings and variables (`set shell`, `PATH`)
 # apply here as there. An evidence recipe is `e14-<name>:`, writes
 # `docs/evidence/E14/<name>.txt`, and is planned by the verification run like
 # any other (scripts/ci_plan.py reads this file too).
 
-# The longer-holds ADR: a subscription is held until something happens, up to
+# ADR-0402: a subscription is held until something happens, up to
 # 25 s, a stream's and a long poll's alike; held, its page is live, each pass
 # renewing its document's `seen` (ADR-0297's `LIVE`); and a page gone ends its
 # hold at the next pass. Its tests (`tests::longer_holds::`, and the idle
@@ -12,7 +12,7 @@
 e14-longer-holds:
     @cargo build --quiet --locked -p pw-dev-server
     @mkdir -p docs/evidence/E14
-    @{ echo "The longer-holds ADR - a subscription held until something happens"; echo; \
+    @{ echo "ADR-0402 - a subscription held until something happens"; echo; \
        echo "produced by: just e14-longer-holds"; \
        echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' ':(exclude)spikes/own-renderer/store-ir.json' || echo ' + uncommitted changes')"; \
        echo "rust: $(rustc --version)"; echo; \

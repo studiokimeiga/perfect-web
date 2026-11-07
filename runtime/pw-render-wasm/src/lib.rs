@@ -162,7 +162,7 @@ pub fn warm_up() -> u32 {
 ///
 /// The part and the templates are read by [`pw_render::decode`], which
 /// reads the IR as serde's derives do without their generic visitors, which
-/// were most of this module's bytes (the first press's ADR).
+/// were most of this module's bytes (ADR-0399).
 fn read(request: &[u8]) -> Result<Read, (u32, String)> {
     let request = serde_json::from_slice::<serde_json::Value>(request)
         .map_err(|_| (2, "the request is not JSON".to_string()))?;

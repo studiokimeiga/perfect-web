@@ -1,11 +1,11 @@
-# ADR-XXXX: a host keeps a connection for its next request
+# ADR-0401: a host keeps a connection for its next request
 
-Status: proposed, 2026-11-06, on branch `perf/keep-alive-20261106`, on top of
-the first press (PR #76) with master merged in (`ac3ea31c`). Proposed under
-the owner's standing order of 2026-10-25 (decide by best judgement, without
-asking) and the owner's approval on 2026-11-06 of "keep-alive in the host" as
-a follow-up of its own. Not landed; not numbered (the integrator numbers
-ADRs). Milestone: E14.
+Status: accepted 2026-11-07, landed with train-14 under the owner's delegation
+of 2026-10-02. Proposed 2026-11-06, on branch `perf/keep-alive-20261106`, on
+top of the first press (PR #76) with master merged in (`ac3ea31c`). Proposed
+under the owner's standing order of 2026-10-25 (decide by best judgement,
+without asking) and the owner's approval on 2026-11-06 of "keep-alive in the
+host" as a follow-up of its own. Milestone: E14.
 
 ## Context
 
@@ -14,7 +14,7 @@ and closed it: every answer said `connection: close`, and each connection
 had a thread of its own for that one request.
 
 - **Under load it lost to SvelteKit** in the head-to-head (ADR-0392's
-  measurements; the first press's ADR, "Next" 3). The harness's load
+  measurements; ADR-0399, "Next" 3). The harness's load
   generator (`benchmarks/headtohead/load.mjs`) keeps its connections, as a
   browser and Node's own `http.Agent` do. Against this host each of its
   requests paid for a new connection, while Node's servers keep connections
@@ -113,6 +113,5 @@ cannot share it.
   host had.
 - **The head-to-head's numbers under load** are not re-measured here.
 - **A subscription's poll** now reuses its page's connection, but it is
-  still asked every 2 s; holding it longer is its own decision (the
-  first press's ADR, "Next" 2).
+  still asked every 2 s; holding it longer is its own decision (ADR-0399, "Next" 2).
 - **HTTP/2 between a browser and a deployment**, through a front proxy.

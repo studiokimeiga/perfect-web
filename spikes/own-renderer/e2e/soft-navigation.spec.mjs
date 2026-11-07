@@ -185,7 +185,7 @@ test("a page of another build is loaded whole", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Your cart");
 });
 
-// The first press's ADR: a versioned build's runtime asks for the files a
+// ADR-0399: a versioned build's runtime asks for the files a
 // browser keeps a year at its own delivery. A host given new files of the
 // same build answers with another delivery (`pw-delivery`), whose runtime
 // must not meet this one's kept Wasm, so its page is loaded whole. This

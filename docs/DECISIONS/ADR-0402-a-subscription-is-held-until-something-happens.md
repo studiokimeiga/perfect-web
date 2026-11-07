@@ -1,11 +1,11 @@
-# ADR-XXXX: a subscription is held until something happens
+# ADR-0402: a subscription is held until something happens
 
-Status: proposed, 2026-11-06, on branch `perf/longer-holds-20261106`, on top
-of the first press (PR #76) with master merged in (`ac3ea31c`). Proposed
+Status: accepted 2026-11-07, landed with train-14 under the owner's delegation
+of 2026-10-02. Proposed 2026-11-06, on branch `perf/longer-holds-20261106`, on
+top of the first press (PR #76) with master merged in (`ac3ea31c`). Proposed
 under the owner's standing order of 2026-10-25 (decide by best judgement,
 without asking) and the owner's approval on 2026-11-06 of "longer-held
-subscriptions" as a follow-up with an ADR of its own. Not landed; not
-numbered (the integrator numbers ADRs). Milestone: E14.
+subscriptions" as a follow-up with an ADR of its own. Milestone: E14.
 
 ## Context
 
@@ -16,7 +16,7 @@ seconds and a long poll one, then answered with nothing, and the page asked
 again at once.
 
 - **An idle page cost the host about 30 requests a minute**, 60 by long
-  poll. The first press's ADR lists it among what Pleris still loses: the
+  poll. ADR-0399 lists it among what Pleris still loses: the
   store's live page asked 29.7 times a minute where a Next.js or SvelteKit
   page asks nothing (they have no live updates).
 - **The short holds no longer buy anything.** They were set when a held
@@ -87,5 +87,5 @@ again at once.
 ## Not claimed, and next
 
 - **The head-to-head's idle requests** are not re-measured here.
-- **With the keep-alive ADR (#86)** a long poll's connection is kept from
+- **With ADR-0401 (#86)** a long poll's connection is kept from
   one hold to the next. The two land apart, and either holds alone.

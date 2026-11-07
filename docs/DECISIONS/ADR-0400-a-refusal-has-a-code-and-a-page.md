@@ -1,11 +1,11 @@
-# ADR-XXXX: a refusal has a code and a page, and the browser's decision carries no words
+# ADR-0400: a refusal has a code and a page, and the browser's decision carries no words
 
-Status: proposed, 2026-11-06, on branch `feat/refusal-codes-20261106` (a
-draft PR), stacked on PR #76 (`perf/first-press-20261106`). Proposed under
-the owner's instruction of 2026-11-06, which asked whether Pleris should name
-an error by a code that a website explains, as React does, and to do
-whatever is best. Not landed; not numbered (PARALLEL.md: the integrator
-numbers ADRs). Milestone: E14.
+Status: accepted 2026-11-07, landed with train-14 under the owner's delegation
+of 2026-10-02. Proposed 2026-11-06, on branch `feat/refusal-codes-20261106` (a
+draft PR), stacked on PR #76 (`perf/first-press-20261106`). Proposed under the
+owner's instruction of 2026-11-06, which asked whether Pleris should name an
+error by a code that a website explains, as React does, and to do whatever is
+best. Milestone: E14.
 
 ## Context
 

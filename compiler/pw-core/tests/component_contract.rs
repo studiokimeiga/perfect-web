@@ -247,7 +247,7 @@ fn requires_is_an_export_precondition_and_part_of_the_abi() {
     assert_ne!(restock.abi_schema, without.abi_schema);
 }
 
-/// **`requires Anyone` asks nothing** (the requires ADR). `Anyone` is the
+/// **`requires Anyone` asks nothing** (ADR-0406). `Anyone` is the
 /// platform's predicate, which every reader holds: the export carries no
 /// requirement for it, and its ABI is the unrestricted one's, since a host
 /// runs the two alike.

@@ -99,7 +99,7 @@ test("a link to the form the page is at makes no entry of its own", async ({ pag
 });
 
 test("a link to a form is followed in its press's own task", async ({ page }) => {
-  // The first press's ADR: not in the `hashchange` a browser dispatches a
+  // ADR-0399: not in the `hashchange` a browser dispatches a
   // task later, before which it often paints a frame without the change.
   await ready(page);
   // What a change of the signal needs, loaded by a first one: this holds the

@@ -1,6 +1,8 @@
-# ADR-XXXX: package public browser assets; preserve the private response boundary
+# ADR-0398: package public browser assets; preserve the private response boundary
 
-Status: proposed, 2026-11-04. This is a measured-loss repair, not a declaration that Pleris has a production HTTP host.
+Status: accepted 2026-11-07, landed with train-14 under the owner's delegation
+of 2026-10-02. Proposed 2026-11-04. This is a measured-loss repair, not a
+declaration that Pleris has a production HTTP host.
 
 ## Context
 

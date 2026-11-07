@@ -157,7 +157,7 @@ MUTANTS = [
         "every response says OK",
         "server",
         SERVER,
-        # Re-anchored by the keep-alive ADR: the head says how its
+        # Re-anchored by ADR-0401: the head says how its
         # connection ends, after its length.
         "        reason(code),\n        body.len(),\n        stream.connection()\n",
         "        \"OK\",\n        body.len(),\n        stream.connection()\n",

@@ -815,7 +815,7 @@ pub fn duration(v: &str) -> Option<u64> {
     n.checked_mul(per)
 }
 
-/// **The platform's predicate, which every reader holds** (the requires ADR):
+/// **The platform's predicate, which every reader holds** (ADR-0406):
 /// `requires Anyone` says a command is anyone's to run. A command a reader can
 /// run says who may (PW0367), and this is how it says "anyone". No program
 /// declares it, it takes no argument and stands alone, and nothing asks it:

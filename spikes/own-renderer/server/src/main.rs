@@ -1074,7 +1074,7 @@ struct Server {
     /// waits [`TEST_KEEP_ALIVE_IDLE`], so that a client reading one answer to
     /// its end has its close at once; a test of keep-alive sets it.
     keep_alive: std::time::Duration,
-    /// **The connections open now** (the keep-alive ADR): past
+    /// **The connections open now** (ADR-0401): past
     /// [`KEPT_AT_MOST`], an answer closes its connection.
     open: Arc<std::sync::atomic::AtomicUsize>,
     /// **The kept connections waiting for their next request** (the
@@ -1419,7 +1419,7 @@ struct Turn<'a>(&'a Turns);
 /// for the table while it holds its seat; a document's last attempt
 /// (ADR-0151) holds the table while its render waits for one).
 ///
-/// **And woken as frames are pushed** (the first press's ADR, ADR-0392's
+/// **And woken as frames are pushed** (ADR-0399, ADR-0392's
 /// finding 21): a subscription waiting for its page's frames waits on the
 /// table's condition, which each push of frames, and each cut-off, wakes;
 /// it looks at its own subscriber again then. Until 2026-11-06 each held
@@ -2118,7 +2118,7 @@ impl Server {
         }
         // TRACK SEAM (second-host): its pages numbered in its instance.
         let first_page = hosts::first_page(data.instance());
-        // How its files are named on the wire (the first press's ADR).
+        // How its files are named on the wire (ADR-0399).
         let delivery = Delivery::of(&dist, &artifacts, &build_id);
         Server {
             cart_by_reader,
@@ -7853,7 +7853,7 @@ impl Server {
         // **The build that served it** (ADR-0300), which a page that keeps
         // its parts across a navigation holds the next document to.
         let build = format!("pw-build: {}\r\n", self.build_id);
-        // **The delivery it names its files at** (the first press's ADR): a
+        // **The delivery it names its files at** (ADR-0399): a
         // versioned build's only. A page that navigates in place holds the
         // next document to it as it does to the build, since its runtime
         // asks for files a browser keeps a year at its own.
@@ -9583,7 +9583,7 @@ fn main() {
 }
 
 /// **How long a kept connection waits for its next request's first byte**
-/// (the keep-alive ADR): Node's default `keepAliveTimeout`, 5 s. Past it the
+/// (ADR-0401): Node's default `keepAliveTimeout`, 5 s. Past it the
 /// host closes the connection; the browser opens another for its next
 /// request, as it does for a connection a host closed while it was idle.
 const KEEP_ALIVE_IDLE: std::time::Duration = std::time::Duration::from_secs(5);
@@ -9609,7 +9609,7 @@ const REQUEST_READ_AT_MOST: std::time::Duration = std::time::Duration::from_secs
 const KEPT_AT_MOST: usize = 512;
 
 /// **A connection, and whether its answer keeps it for the next request**
-/// (the keep-alive ADR). Every answer is written to one. Its head says
+/// (ADR-0401). Every answer is written to one. Its head says
 /// `connection: keep-alive` only where its request allowed it, the request's
 /// body was read whole, and the host has no more than [`KEPT_AT_MOST`]
 /// connections open. HTTP/1.1 keeps a connection unless an answer says
@@ -9631,7 +9631,7 @@ struct Conn {
     keeping: Arc<Keeping>,
 }
 
-/// What a connection's twins share (the keep-alive ADR): whether the answer
+/// What a connection's twins share (ADR-0401): whether the answer
 /// being written keeps the connection, and whether an answer was written
 /// whole.
 #[derive(Default)]
@@ -9715,7 +9715,7 @@ impl std::ops::DerefMut for Conn {
     }
 }
 
-/// **A connection counted while it is open** (the keep-alive ADR).
+/// **A connection counted while it is open** (ADR-0401).
 struct Open<'a>(&'a std::sync::atomic::AtomicUsize);
 
 impl<'a> Open<'a> {
@@ -9733,7 +9733,7 @@ impl Drop for Open<'_> {
 
 /// **A connection's requests answered, one after another, and after each
 /// what its commit dropped told to every other session that reads it**
-/// (ADR-0219; the keep-alive ADR): after its answer is written whole, so the
+/// (ADR-0219; ADR-0401): after its answer is written whole, so the
 /// author is answered without waiting for every reader. The connection is
 /// kept while its answers say so, at most `server.keep_alive` idle between
 /// two requests; a request already sent behind the last (pipelined) is
@@ -9821,7 +9821,7 @@ fn session_changed(stream: &mut Conn, session: &str, fresh: bool) {
     );
 }
 
-/// **A request's body length, as its head frames it** (the keep-alive ADR;
+/// **A request's body length, as its head frames it** (ADR-0401;
 /// RFC 9112 §6.3): none, or one `content-length` of digits. Refused, and its
 /// connection closed, so that no request is ever read out of another's
 /// body: a `transfer-encoding` (this host reads no chunked body: 501), and
@@ -9868,7 +9868,7 @@ fn asks_to_close(headers: &str) -> bool {
         .any(|token| token.trim().eq_ignore_ascii_case("close"))
 }
 
-/// **One request of a connection, answered** (the keep-alive ADR): read from
+/// **One request of a connection, answered** (ADR-0401): read from
 /// `reader`, which holds what the connection sent past the request before
 /// it, and answered on `stream`, which it keeps for the next request only
 /// where the request allows it and its body is read whole.
@@ -9892,7 +9892,7 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
         }
         headers.push_str(&line);
     }
-    // How its body is framed, before anything reads it (the keep-alive ADR).
+    // How its body is framed, before anything reads it (ADR-0401).
     let length = match framed_length(&headers) {
         Ok(length) => length,
         Err((code, why)) => {
@@ -10003,7 +10003,7 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
     if reader.read_exact(&mut body).is_err() {
         return;
     }
-    // Its body read whole, its connection may be kept (the keep-alive ADR);
+    // Its body read whole, its connection may be kept (ADR-0401);
     // and what answers it reads the connection unbounded, as before.
     stream.keep(persists);
     let _ = stream.set_read_timeout(None);
@@ -11131,7 +11131,7 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
                     &path,
                     bytes,
                     // Kept a year asked for at this build's delivery,
-                    // whose id digests it (the first press's ADR).
+                    // whose id digests it (ADR-0399).
                     server.delivery.cache_policy(query),
                 ),
                 Err(_) => respond_build(
@@ -11163,7 +11163,7 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
                     &path,
                     bytes,
                     // Kept a year asked for at this build's delivery,
-                    // whose id digests it (the first press's ADR).
+                    // whose id digests it (ADR-0399).
                     server.delivery.cache_policy(query),
                 ),
                 Err(_) => respond_build(
@@ -11203,7 +11203,7 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
                     &path,
                     module,
                     // Kept a year asked for at this build's delivery,
-                    // whose id digests it (the first press's ADR).
+                    // whose id digests it (ADR-0399).
                     server.delivery.cache_policy(query),
                 ),
                 Err(_) => respond_build(
@@ -11277,12 +11277,12 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
             // of that page to. `#` lines, as no handler's identity begins.
             let mut table = format!("#build|{}\n", server.build_id);
             // Whether the browser warms what this build's presses need
-            // (the first press's ADR): the build's word, as the rest of
+            // (ADR-0399): the build's word, as the rest of
             // this table is, and a `#` line the decision does not read.
             // A host that keeps sessions warms as any other: a warm-up asks
             // for its modules together, and overlapping admissions of one
             // session are each answered (ADR-0389's overlap repair;
-            // `tests::session_overlap::`, the first press's ADR, amended
+            // `tests::session_overlap::`, ADR-0399, amended
             // 2026-11-06).
             if server.warm {
                 table.push_str("#warm|1\n");
@@ -11299,7 +11299,7 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
             for (identity, capture) in server.handler_table() {
                 table.push_str(&format!("{identity}|{capture}\n"));
             }
-            // Asked for at this build's delivery (the first press's ADR),
+            // Asked for at this build's delivery (ADR-0399),
             // the table is the delivery's, and kept a year: the delivery's
             // id is a digest of the build's name and files, and a new build
             // is a new id. Asked otherwise, kept by no cache, as before.
@@ -11521,7 +11521,7 @@ fn stream_open(
     };
 
     // Bounded, like the long poll: a held connection is a held thread.
-    // [`HOLD`] in a host (the longer-holds ADR); a pass runs when the table
+    // [`HOLD`] in a host (ADR-0402); a pass runs when the table
     // is woken (a frame pushed, a cut-off) or a slice has passed, and ends
     // the hold where its page has gone.
     let opened = std::time::Instant::now();
@@ -11615,13 +11615,13 @@ fn stream_open(
 /// 60 s a proxy commonly allows a quiet connection.
 const HOLD: std::time::Duration = std::time::Duration::from_secs(25);
 
-/// **A test host's holds** (the longer-holds ADR): a stream's two seconds and
+/// **A test host's holds** (ADR-0402): a stream's two seconds and
 /// a long poll's one, as every host's were until then, so that a test that
 /// waits out a hold waits as it did.
 const TEST_STREAM_HOLD: std::time::Duration = std::time::Duration::from_secs(2);
 const TEST_POLL_HOLD: std::time::Duration = std::time::Duration::from_secs(1);
 
-/// **Whether a held subscription's page has gone** (the longer-holds ADR):
+/// **Whether a held subscription's page has gone** (ADR-0402):
 /// the browser closed the connection the subscription is held on, as a page
 /// leaving does (its runtime aborts the request). A browser sends nothing
 /// else on a connection while it waits for that connection's answer, so
@@ -11686,9 +11686,9 @@ fn stream_frames(server: &Server, stream: &mut Conn, session: &str, fresh: bool,
         return;
     }
 
-    // Held [`HOLD`] at most in a host (the longer-holds ADR); a pass runs
+    // Held [`HOLD`] at most in a host (ADR-0402); a pass runs
     // when the table is woken (a frame pushed, a cut-off) or a slice has
-    // passed (the first press's ADR), and ends the hold where its page has
+    // passed (ADR-0399), and ends the hold where its page has
     // gone, with no answer: no one is there to read one.
     let until = opened + server.poll_hold;
     loop {
@@ -12242,7 +12242,7 @@ fn accepts_asset_encoding(headers: &str, encoding: &str) -> bool {
     })
 }
 
-/// **Whether a build warms what its presses need** (the first press's ADR):
+/// **Whether a build warms what its presses need** (ADR-0399):
 /// its packaging's word, `{"warm": true}` in `delivery.json` beside its
 /// assets, which a production build's packaging writes
 /// (`optimize-assets.mjs`). A build without one, as every development build
@@ -12301,7 +12301,7 @@ fn serve_file(server: &Server, stream: &mut Conn, path: &str, request_headers: &
 }
 
 /// **A file of the build, as its packaging wrote it** (PR #75's delivery,
-/// and the first press's ADR for the compiled modules): the representation
+/// and ADR-0399 for the compiled modules): the representation
 /// the request accepts of those the packaging wrote beside it (`.br`, `.gz`),
 /// else the file as it is; a strong ETag for that representation, and a 304
 /// with no body for a request that holds it; `policy` its cache policy:
@@ -12846,7 +12846,7 @@ fn document(
 const RUNTIME: &str = "<script>import(\"/pw-runtime.mjs\")</script>";
 
 /// **What every document's runtime asks for before it can attach a handler,
-/// asked for by the document's head** (the first press's ADR): the runtime,
+/// asked for by the document's head** (ADR-0399): the runtime,
 /// the resume decision's code and this build's handler table. Without them
 /// each was a round trip after the one before it: the runtime was asked for
 /// once the parser reached `RUNTIME`, the decision once the runtime ran, and
@@ -13278,7 +13278,7 @@ fn respond_build(stream: &mut Conn, code: u16, mime: &str, body: &[u8]) {
 /// origin's scripts (`'self'`): this is what makes that its JavaScript.
 const NOSNIFF: &str = "x-content-type-options: nosniff\r\n";
 
-/// **An answer of a known length** (the keep-alive ADR): its connection kept
+/// **An answer of a known length** (ADR-0401): its connection kept
 /// or closed after it as `stream` says.
 fn write_response(stream: &mut Conn, code: u16, mime: &str, headers: &str, body: &[u8]) {
     let head = format!(
@@ -16289,7 +16289,7 @@ public query Store(",
     }
 
     /// **A held subscription with nothing for it waits on the table, and does
-    /// not ask it forty times a second** (the first press's ADR, ADR-0392's
+    /// not ask it forty times a second** (ADR-0399, ADR-0392's
     /// finding 21: twenty idle visitors cost the host 16.0 ms of CPU a
     /// second). It looks at its subscriber a slice at a time through its
     /// whole hold, and ends after it, as it did after eighty passes of 25 ms.
@@ -17451,11 +17451,11 @@ public query Store(",
     mod session_commands;
     #[cfg(feature = "session-postgres-tests")]
     mod session_commands_pg;
-    // The keep-alive ADR: a connection kept for its next request.
+    // ADR-0401: a connection kept for its next request.
     mod keep_alive;
     // ADR-0389, amended 2026-11-02: overlapping admissions of one session.
     mod session_overlap;
-    // The longer-holds ADR: a subscription held until something happens.
+    // ADR-0402: a subscription held until something happens.
     mod longer_holds;
     mod session_receipt_recovery;
     mod session_revocation;
@@ -17982,7 +17982,7 @@ public query Store(",
     }
 
     /// **A document asks for what its runtime boots with, from its head**
-    /// (the first press's ADR): the runtime as a module preload, and the
+    /// (ADR-0399): the runtime as a module preload, and the
     /// decision's code and this build's handler table as the CORS fetches
     /// the runtime makes, so that the runtime's own requests are answered by
     /// them; after its stylesheets; and no handler's code (E7-L). On a page
@@ -18032,7 +18032,7 @@ public query Store(",
     }
 
     /// **A build warms what its presses need only where its packaging says
-    /// so** (the first press's ADR): `{"warm": true}` in `delivery.json`
+    /// so** (ADR-0399): `{"warm": true}` in `delivery.json`
     /// beside the assets, which a production build's packaging writes; no
     /// file, another value or a file that is not JSON warms nothing, as no
     /// development build does (E7-L).
@@ -18093,7 +18093,7 @@ public query Store(",
     }
 
     /// **A production build names its files at one version, which a cache
-    /// keeps** (the first press's ADR): the head's boot links, the script
+    /// keeps** (ADR-0399): the head's boot links, the script
     /// that starts the runtime and each file the markup names, at the
     /// delivery id; a request at that id kept a year, at another or none
     /// asked again. Only markup's quoted addresses are named: a value's text,
@@ -21865,7 +21865,7 @@ public query Store(",
             COMMITTED_ARTIFACTS,
         );
         let (head, body) = page.split_once("</head>").expect("a head");
-        // And what its runtime boots with last (the first press's ADR),
+        // And what its runtime boots with last (ADR-0399),
         // after what it says of itself and the stylesheets a paint waits for.
         assert!(
             head.ends_with(&format!(

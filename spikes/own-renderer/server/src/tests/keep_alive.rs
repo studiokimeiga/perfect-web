@@ -1,4 +1,4 @@
-//! The keep-alive ADR: **a host keeps a connection for its next request**
+//! ADR-0401: **a host keeps a connection for its next request**
 //! where HTTP/1.1 keeps it, and closes it where the request asks, where the
 //! request's body was not read whole, where the answer's end is the
 //! connection's (a stream), and past the host's cap. It frames a request's

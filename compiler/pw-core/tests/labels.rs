@@ -298,7 +298,7 @@ fn a_hidden_input_is_no_control() {
     clean(r#"<input type="HIDDEN" name="t" value="1" />"#);
 }
 
-// --- what names an input button (the input-button ADR) ----------------------
+// --- what names an input button (ADR-0405) ----------------------
 //
 // HTML gives each button state its own label (4.10.5.1.18 to .21), and
 // HTML-AAM's name for it follows (4.1.2, 4.1.3). Until 2026-11-06 PW5014

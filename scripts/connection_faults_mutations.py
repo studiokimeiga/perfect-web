@@ -73,7 +73,7 @@ MUTANTS = [
         "an open long poll is not ended",
         "server",
         SERVER,
-        # Re-anchored by the first press's ADR (the poll waits on the table
+        # Re-anchored by ADR-0399 (the poll waits on the table
         # through its hold, rather than forty passes of 25 ms), and by its
         # review: one look for a cut a pass, under the table, as the stream's.
         "            // looked for once a pass under the table a cut's wake takes.\n"

@@ -1,5 +1,5 @@
 //! **`pw_render::decode` reads the template IR as serde's derives do**
-//! (the first press's ADR, "Next" 1). The browser's renderer reads its
+//! (ADR-0399, "Next" 1). The browser's renderer reads its
 //! requests with it, the server with the derives; the two must give one
 //! answer, or the browser renders what the server would not.
 //!

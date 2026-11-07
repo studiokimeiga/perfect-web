@@ -203,7 +203,7 @@ MUTANTS = [
         "        <title>Pressed {count}</title>\n        <button",
         "        <title>Pressed</title>\n        <button",
     ),
-    # Until the image ADR the guide's one `gap=check` was an `<img>` with no
+    # Until ADR-0404 the guide's one `gap=check` was an `<img>` with no
     # `alt`, and this mutant closed it by making that `<img>` an unlabelled
     # `<input>`. PW5053 closed it for real; a page that calls a program the
     # check refuses a check gap is the same verdict.

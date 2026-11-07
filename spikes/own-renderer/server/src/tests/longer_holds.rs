@@ -1,4 +1,4 @@
-//! The longer-holds ADR: **a subscription is held until something happens,
+//! ADR-0402: **a subscription is held until something happens,
 //! up to [`HOLD`]**, a stream's and a long poll's alike. Held, its page is
 //! live: each pass of the hold keeps its document within [`LIVE`], so a
 //! commit's telling derives it. A page gone ends its hold at the next pass,

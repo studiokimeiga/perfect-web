@@ -335,7 +335,7 @@ MUTANTS = [
         "an answer's type may be sniffed",
         SERVER_TESTS,
         SERVER,
-        # Re-anchored by the keep-alive ADR: the connection line is the
+        # Re-anchored by ADR-0401: the connection line is the
         # answer's own (`Conn::connection`).
         "content-length: {}\\r\\n{NOSNIFF}{headers}{}\\r\\n\",\n",
         "content-length: {}\\r\\n{headers}{}\\r\\n\",\n",

@@ -73,7 +73,7 @@ MUTANTS = [
     (
         "a connection tells no one",
         SERVER,
-        # Re-anchored by the keep-alive ADR: told after each request of a
+        # Re-anchored by ADR-0401: told after each request of a
         # kept connection, in `handle`'s loop.
         "        server.tell_waiting();\n"
         "        if !kept || !next_request(&conn, &mut reader, server.keep_alive) {\n",

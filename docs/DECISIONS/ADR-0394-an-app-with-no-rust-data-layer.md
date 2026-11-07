@@ -1,4 +1,4 @@
-# ADR-XXXX: an app with no Rust data layer: its declared tables served through the gate
+# ADR-0394: an app with no Rust data layer: its declared tables served through the gate
 
 Status: accepted under the owner's delegation of 2026-10-02 and the standing
 order of 2026-10-25 (decide by best judgement); the coordinator lands it

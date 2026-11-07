@@ -46,7 +46,7 @@ MUTANTS = [
         "                    \"`{name}` declares `retry {}` but is not idempotent\",",
         "                    \"`{name}` declares a retry policy{} but is not idempotent\",",
     ),
-    # Until the stale-key ADR this mutant removed PW0325's explanation; that
+    # Until ADR-0403 this mutant removed PW0325's explanation; that
     # rule is PW5309's now, outside `rules.rs`. R-014's rule is explained here.
     (
         "a retry without idempotency is not explained",

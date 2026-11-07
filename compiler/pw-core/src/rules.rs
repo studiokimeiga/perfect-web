@@ -410,7 +410,7 @@ fn check_resource(decl: &Decl, out: &mut Vec<Finding>) {
 
     // --- a key that changes: `signals.rs`'s PW5309, no longer here ----------
     //
-    // Until the stale-key ADR, PW0325 asked a keyed query alone for its
+    // Until ADR-0403, PW0325 asked a keyed query alone for its
     // `on_key_change`, and only where it declared a `concurrency`: so of a
     // query a URL keys, whose key no page changes, and not of the same query
     // without one. A key changes while its read is in flight only where a
