@@ -1,0 +1,50 @@
+What the change reaches (python3 scripts/ci_plan.py --changed BASE HEAD)
+
+commit: de690e45896f24ec23c47af7a5a3830263f7bd72
+base: 5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+41 recipes:
+  e10-any
+  e10-build
+  e10-callbacks
+  e10-component
+  e10-handlers
+  e10-i
+  e10-lexical
+  e10-members
+  e10-names
+  e14-bench-footprint
+  e14-bounded-reads
+  e14-check-is-build
+  e14-clause-heads
+  e14-command-retry
+  e14-contract
+  e14-data-sources
+  e14-descriptions
+  e14-device-store
+  e14-fmt-meaning
+  e14-guide
+  e14-guide-producer
+  e14-handler-failures
+  e14-holds
+  e14-ids
+  e14-links
+  e14-markup-comments
+  e14-menu-changed
+  e14-metadata
+  e14-museum
+  e14-nested-lists
+  e14-not-found
+  e14-patch-set
+  e14-pleris-controls
+  e14-reserved-words
+  e14-routes
+  e14-row-reads
+  e14-scheduled-orders
+  e14-slots
+  e8-contracts
+  e8-wit
+  e9-values
+
+Left to this branch's hosted verification (the PC runs no heavy recipes, 2026-11-07).

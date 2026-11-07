@@ -355,7 +355,7 @@ predicate SignedIn
     says "Sign in to place an order."
 
 // The mutation, as charter §15.4 asks. Idempotent by interaction id, so a
-// double-tap is one add. Transactional. Optimistic, so the count moves before
+// resend adds only once. Transactional. Optimistic, so the count moves before
 // the round trip, and moves back if the add is refused. And the item's
 // availability is read again inside it: an item sold out since the page was
 // rendered is refused by name, and the page is told which (ADR-0157).

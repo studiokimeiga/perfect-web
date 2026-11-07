@@ -1,0 +1,26 @@
+The canonical store, built at the base and at this commit
+
+commit: de690e45896f24ec23c47af7a5a3830263f7bd72
+base: 5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+$ pw build --out BASE-OUT <packages, domain, lib> <the store at the base>
+exit 0
+$ pw build --out THIS-OUT <packages, domain, lib> examples/store/*.pw
+exit 0
+
+== every file built, compared
+byte-identical: 105 files
+
+== templates.json against the committed spikes/own-renderer/store-ir.json
+identical
+
+== the store's source, byte and line counts
+examples/store/app.pw: base 67977 bytes, 1474 lines; this 67977 bytes, 1474 lines
+
+== pw fmt --check examples/store/*.pw
+pw fmt: 8 file(s) already formatted
+exit 0
+
+== pw check, the store with its library
+pw check: 57 file(s), no diagnostics
