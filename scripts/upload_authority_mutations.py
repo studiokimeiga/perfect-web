@@ -51,13 +51,13 @@ CONTROLS = [
                     &headers,
                     &session,
                     fresh,
-                    &mut reader,
+                    reader,
                     &mut stream,
                 )
             },
         );
 ''', '''        server.uploads.answer(
-            method, route, &headers, &session, fresh, &mut reader, &mut stream,
+            method, route, &headers, &session, fresh, reader, &mut stream,
         );
 ''')], [(HTTP_PREFIX + "upload_http_dispatch_keeps_admitted_reader_when_same_cookie_is_reopened",
          "HTTP upload dispatch must not recapture a replacement generation")]),
