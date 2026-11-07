@@ -66,6 +66,7 @@ query Newest() -> List<Note>
 }
 
 command keep(note: Note) -> Result<(), Note>
+    requires    Anyone
     transaction serializable
     invalidates Newest()
 {

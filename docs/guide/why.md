@@ -46,7 +46,7 @@ error: [PW5001] `MyCart` is Session<SessionId> and declares a shared cache
   --> cart.pw:13:5
    |
 10 | session query MyCart(session: Session<SessionId>) -> Cart
-   |                      --------------------------- `session` is Session<SessionId>, so what `MyCart` makes from it is
+   |                      --------------------------- `session` is Session<SessionId>, so what `MyCart` makes from it is too
 ...
 13 |     cache         shared
    |     ^^^^^^^^^^^^^^^^^^^^ `MyCart` is Session<SessionId> and declares a shared cache
