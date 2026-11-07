@@ -18,7 +18,7 @@
 
 mod common;
 
-#[path = "../../pw-table-memory/tests/support/assert_result.rs"]
+#[path = "support/assert_result.rs"]
 mod assert_result;
 use assert_result::*;
 

@@ -229,6 +229,9 @@ const REJECTED_CATEGORIES: &[&str] = &[
     "a rigid parameter declares no members",
     "a function value receiver keeps its effect",
     "a recursive generic invocation keeps its effect",
+    // The owned-rows ADR, corpus C33: PW0370, a table a reader's command
+    // writes says whose its rows are (R-098).
+    "a table a reader's command writes that says nothing of whose its rows are",
 ];
 
 /// Milestone 0 gate (charter §14 M0): ">= 10 accepted and 20 rejected".

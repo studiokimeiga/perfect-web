@@ -222,6 +222,7 @@ SOURCES = [
     *sorted((ROOT / "runtime/pw-table-memory/tests/support").glob("*.rs")),
     ROOT / "runtime/pw-table-postgres/tests/owned_rows.rs",
     *sorted((ROOT / "runtime/pw-table-postgres/tests/common").glob("*.rs")),
+    *sorted((ROOT / "runtime/pw-table-postgres/tests/support").glob("*.rs")),
 ]
 INVENTORY = {}
 
