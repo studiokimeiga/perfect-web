@@ -144,6 +144,17 @@ function clipOf(polygon) {
   return `polygon(${polygon.points.map(([x, y]) => `${px(x)} ${px(y)}`).join(", ")})`;
 }
 
+/** Whether the two drawings are TodoMVC's: a circle, and a circle with one
+ * tick (#81's review: a drawing with no circle fails the build). */
+function shapedAsTodoMVCs(circle, checked) {
+  return (
+    circle.circles.length === 1 &&
+    circle.polygons.length === 0 &&
+    checked.circles.length === 1 &&
+    checked.polygons.length === 1
+  );
+}
+
 /**
  * **This app's own sheet**: each drawing's circles as its label's
  * background, sized and placed where the official sheet places the image;
@@ -154,7 +165,7 @@ function clipOf(polygon) {
 export function sheetOf(official) {
   const circle = read(drawingIn(official, ".todo-list li .toggle + label"));
   const checked = read(drawingIn(official, ".todo-list li .toggle:checked + label"));
-  if (circle.polygons.length !== 0 || checked.polygons.length !== 1) {
+  if (!shapedAsTodoMVCs(circle, checked)) {
     throw new Error("the official checkbox is no longer a circle, and a circle with one tick");
   }
   const [tick] = checked.polygons;

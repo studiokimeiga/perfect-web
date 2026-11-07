@@ -130,3 +130,10 @@ against bounds of 1,600 pixels and filed on a 40-pixel grid.
 - `webkit-tm-webkit-fix.log`: with `checkbox()` at `scale: "css"`, the
   TodoMVC spec in Chromium, Firefox and WebKit 26.0, 156 of 156 passed.
   WebKit: unchecked 2.03 and 21, checked 3.18 and 65.
+
+## 2026-11-07: #81's review
+
+`review-2026-11-07.log`: with the review's three items folded in, Fallow's audit as CI runs it
+(failed once on `sheetOf` at cyclomatic 5, then passing with its shape check
+moved to `shapedAsTodoMVCs`), the TodoMVC spec in Chromium, Firefox and
+WebKit, 156 of 156, and the seven styles controls alone, 7 of 7 killed.

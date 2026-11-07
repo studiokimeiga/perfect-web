@@ -13,8 +13,10 @@ Each mutant undoes one thing the spec states:
   it, where a todo is added, and the field's focus and clearing;
 - the checkbox's drawings in this app's sheet (`todomvc-styles.mjs`, ADR-0367's
   amendment of 2026-11-06): the tick taking a press, the ring drawn off its
-  centre, a path's relative points read as absolute, and the checked ring in
-  the unchecked colour. Each rebuilds the app, which writes its sheet again;
+  centre, a path's relative points read as absolute, the checked ring in the
+  unchecked colour, and (#81's review) the unchecked ring not drawn, the
+  tick's box off a whole pixel, and a ring fading over less than a stroke's
+  width. Each rebuilds the app, which writes its sheet again;
 - the browser's runtime (`spikes/own-renderer/public/pw-runtime.mjs`), where
   a patch sets a checkbox's state as well as its attribute, and the edit
   field a patch inserts takes focus (the runtime's own `autofocus` is
@@ -375,6 +377,29 @@ MUTANTS = [
         STYLES_FILE,
         '    `\\tbackground-image: ${checked.circles.map(ringOf).join(", ")};`,\n',
         '    `\\tbackground-image: ${circle.circles.map(ringOf).join(", ")};`,\n',
+    ),
+    # From #81's review: a drawing that does not apply, a tick off the whole
+    # pixel a background is drawn on, and a ring laying less ink.
+    (
+        "the unchecked ring is not drawn",
+        STYLES,
+        STYLES_FILE,
+        '    `\\tbackground-image: ${circle.circles.map(ringOf).join(", ")};`,\n',
+        "",
+    ),
+    (
+        "the tick's box is not set on a whole pixel",
+        STYLES,
+        STYLES_FILE,
+        "    `\\ttop: round(nearest, calc(50% - ${px(checked.fit.height / 2)}), 1px);`,\n",
+        "",
+    ),
+    (
+        "the ring fades over less than a stroke's width",
+        STYLES,
+        STYLES_FILE,
+        "transparent ${px(c.r - c.width)}, ${c.colour} ${px(c.r)}, transparent ${px(c.r + c.width)}",
+        "transparent ${px(c.r - c.width * 0.7)}, ${c.colour} ${px(c.r)}, transparent ${px(c.r + c.width * 0.7)}",
     ),
     (
         "a patch that removes `checked` leaves the box as a person left it",

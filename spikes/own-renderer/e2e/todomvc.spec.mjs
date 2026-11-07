@@ -889,10 +889,13 @@ const BOUNDS = {
  *
  * The checked ring in the unchecked colour is 57 points apart in colour, the
  * tick in the ring's colour 16, and a ring half as dark 43% in amount. The
- * amount's bound is about half again the larger; the colour's is wider, as a
- * drawing in the right colours stays within a point.
+ * amount is bounded around what each region measures (#81's review, 3): the
+ * ring +5% to +25% (13.5% to 15.2% measured), the tick -5% to +5% (-0.3%), so
+ * that a ring laying a fifth less ink is past it, as it was not within ±23%.
+ * An inked region with no bound is past it. The colour's bound is wider than
+ * half again, as a drawing in the right colours stays within a point.
  */
-const INK = { colour: 5, amount: 23 };
+const INK = { colour: 5, amount: { ring: [5, 25], tick: [-5, 5] } };
 
 /** How far this app's ink in a region, `[official, ours]` per channel, is
  * from the official ink: in colour, in points, and in amount, in percent. */
@@ -917,24 +920,31 @@ const inked = (ink) =>
  * counting a kill. */
 function boundsPast(apart, bound) {
   return [
-    ["the mean difference", apart.mean, bound.mean],
-    ["the pixels apart by more than an eighth", apart.over, bound.over],
+    ["the mean difference", apart.mean, -Infinity, bound.mean],
+    ["the pixels apart by more than an eighth", apart.over, -Infinity, bound.over],
     ...inked(apart.ink).flatMap(([region, ink]) => [
-      [`the ${region}'s ink apart in colour, in points`, ink.colour, INK.colour],
-      [`the ${region}'s ink apart in amount, in percent either way`, Math.abs(ink.amount), INK.amount],
+      [`the ${region}'s ink apart in colour, in points`, ink.colour, -Infinity, INK.colour],
+      [`the ${region}'s ink apart in amount, in percent`, ink.amount, ...(INK.amount[region] ?? [NaN, NaN])],
     ]),
   ]
-    .filter(([, measured, under]) => !(measured < under))
-    .map(([what, measured, under]) => `${what}: ${Number(measured.toFixed(2))}, not under ${under}`);
+    .filter(([, measured, least, under]) => !(least <= measured && measured < under))
+    .map(([what, measured, least, under]) => `${what}: ${Number(measured.toFixed(2))}, not in [${least}, ${under})`);
 }
 
-/** A page with no policy, so that the official sheet's own `data:` drawings
- * show, holding one todo as TodoMVC's markup has it, under `sheets`. */
-async function drawnBy(context, ...sheets) {
+/** **A page refusing every image**, as an app's policy refuses the official
+ * sheet's `data:` drawings (`img-src 'self'`, ADR-0333): this app's drawing
+ * is compared there, so that where its rules fail to apply nothing shows
+ * through (#81's review, 1). The official drawing is compared in a page with
+ * no policy. */
+const REFUSES_IMAGES = `<meta http-equiv="Content-Security-Policy" content="img-src 'none'">`;
+
+/** A page holding one todo as TodoMVC's markup has it, under `head` and
+ * `sheets`. */
+async function drawnBy(context, head, ...sheets) {
   const page = await context.newPage();
   const style = sheets.map((s) => `<style>${s}</style>`).join("");
   await page.setContent(
-    `${style}<section class="todoapp"><section class="main"><ul class="todo-list"><li><div class="view">` +
+    `${head}${style}<section class="todoapp"><section class="main"><ul class="todo-list"><li><div class="view">` +
       `<input class="toggle" type="checkbox"><label>${ONE}</label></div></li></ul></section></section>`,
   );
   return page;
@@ -997,12 +1007,24 @@ test("a todo's checkbox is fetched as nothing, and the tick takes no press", asy
   page.on("request", (r) => r.resourceType() === "image" && images.push(r.url()));
   await open(page);
   await add(page, ONE);
+  const unchecked = await items(page)
+    .first()
+    .locator("label")
+    .evaluate((l) => getComputedStyle(l).backgroundImage.split("(")[0]);
+  expect(unchecked, "the unchecked circle is the sheet's").toBe("radial-gradient");
   await items(page).first().locator(".toggle").check();
   await expect(items(page).first()).toHaveClass(/completed/);
   const drawn = await items(page).first().locator("label").evaluate((l) => [
     getComputedStyle(l).backgroundImage,
     getComputedStyle(l, "::after").clipPath,
   ]);
+  // On a whole pixel, as a browser draws a background's image (#81's
+  // review, 2): Chromium and Firefox lay the label out 58.8 px tall.
+  const tickTop = await items(page)
+    .first()
+    .locator("label")
+    .evaluate((l) => Number.parseFloat(getComputedStyle(l, "::after").top) % 1);
+  expect(tickTop, "the tick's box sits on a whole pixel").toBe(0);
   // `toEqual`, not `toMatch`: only a matcher that names itself when it fails
   // gives a failure `assertion-expect.mjs` can prove, and
   // `scripts/todomvc_mutations.py` counts no other failure as a kill.
@@ -1022,8 +1044,8 @@ test("a todo's checkbox is fetched as nothing, and the tick takes no press", asy
 
 test("a todo's checkbox is the official drawing, pixel for pixel", async ({ page, request }) => {
   const ours = await (await request.get("/todomvc-pleris.css")).text();
-  const official = await drawnBy(page.context(), BASE, OFFICIAL);
-  const drawn = await drawnBy(page.context(), BASE, OFFICIAL, ours);
+  const official = await drawnBy(page.context(), "", BASE, OFFICIAL);
+  const drawn = await drawnBy(page.context(), REFUSES_IMAGES, BASE, OFFICIAL, ours);
   for (const state of ["unchecked", "checked"]) {
     if (state === "checked") {
       for (const p of [official, drawn]) await p.locator(".toggle").check();

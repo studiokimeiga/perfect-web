@@ -45,6 +45,15 @@ and checked. Measured on 2026-11-06:
 |---|---|---|
 | Chromium 145 | 2.03, 21 of 1,600 | 3.19, 65 |
 | Firefox 146 | 1.02, 2 | 1.64, 19 |
+| WebKit 26 (2026-11-07) | 2.03, 21 | 3.18, 65 |
+
+Each box is taken one pixel to each CSS pixel (`scale: "css"`). WebKit's
+project is "Desktop Safari", at device scale 2, and its first run on CI
+counted the 6,400 pixels of a box twice as fine against bounds of 1,600:
+122 over an eighth where the drawing is 65. Its page this app's drawing is
+compared in refuses every image (`img-src 'none'`), as an app's policy
+refuses the official sheet's, so where this app's rules fail to apply
+nothing shows through (#81's review).
 
 The bounds are about half again the larger: mean 3 and 35 pixels unchecked,
 4.75 and 100 checked. A gradient and a clip are anti-aliased otherwise than
@@ -65,28 +74,36 @@ compare it with the official ink:
 |---|---|---|
 | Chromium 145 | 0.8 at most, 13.6 to 13.8% | 0.1, −0.3% |
 | Firefox 146 | 0.7 at most, 14.8 to 15.2% | 0.0, −0.3% |
-| **Bound** | **5, 23%** | **5, 23%** |
+| WebKit 26 | 0.9 at most, 13.5 to 13.8% | 0.1, −0.3% |
+| **Bound** | **5; +5% to +25%** | **5; −5% to +5%** |
 | The checked ring grey | 57 | |
 | The tick in the ring's colour | | 16 |
 | The ring half as dark | 0, −43% | |
 
 The ring lays 14 to 15% more ink than the browsers lay for the official
 stroke. Its gradient covers the stroke's own area, and the browsers lay 12 to
-13% less than that for the stroke. The amount's bound is about half again the
-larger. The colour's is wider, as a drawing in the right colours stays within
+13% less than that for the stroke. The amount is bounded around what each
+region measures, so that a ring laying a fifth less ink is past it (#81's
+review: within ±23% it was not); an inked region with no bound is past it.
+The colour's bound is wider, as a drawing in the right colours stays within
 a point.
 
 **The cost.**
 - The drawing is CSS made to match the official one, held to it within those
   bounds, not the same image.
-- WebKit was not measured here, because it cannot open a page on this PC. It
-  is held to the same bounds, and CI runs it.
+- WebKit, unmeasured here at first, was measured on 2026-11-07 (above), on
+  this PC and on CI.
 
 **Its controls** (`scripts/todomvc_mutations.py`):
 - the tick taking a press made on it;
 - the ring drawn two pixels off its centre;
 - a path's relative points read as absolute;
-- the checked ring in the unchecked colour.
+- the checked ring in the unchecked colour;
+- (#81's review) the unchecked ring not drawn, which the app's own test sees
+  (a radial gradient in both states) and the page refusing images does; the
+  tick's box off the whole pixel a background image is drawn on, which a
+  test of its computed `top` sees in Chromium and Firefox; and a ring fading
+  over less than a stroke's width, which only the ink's amount sees.
 
 Each is caught by an assertion `assertion-expect.mjs` can prove: a matcher
 that names itself when it fails, as `toBe`, `toEqual` and the web-first
@@ -97,8 +114,8 @@ with `toEqual`. Run again, the four controls found the checked ring in the
 unchecked colour surviving the pixel bounds, and the ink bounds were added for
 it.
 
-The host's `.svg` mutant went with its seam. The script now holds 46 mutants:
-39 of the program, 4 of the styles and 3 of the runtime. The spec now holds 52
+The host's `.svg` mutant went with its seam. The script now holds 49 mutants:
+39 of the program, 7 of the styles and 3 of the runtime. The spec now holds 52
 tests in each engine, which was 50. The producers' own test
 (`scripts/tests/test_todomvc_producers.py`) takes that count from
 `BROWSER_COUNT`, where it repeated 50.
