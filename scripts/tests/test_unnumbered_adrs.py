@@ -48,6 +48,10 @@ class Unnumbered(unittest.TestCase):
                 # a path to the file outside evidence names the decision.
                 "docs/evidence/E14/y.txt": f"{X} - read docs/DECISIONS/{X}-a-track.md\n",
                 "scripts/c.py": f"# docs/DECISIONS/{X}-a-track.md says why\n",
+                # An elided diffstat path outside evidence names it too; and
+                # in evidence `...` alone, with no `/`, is no path.
+                "docs/d.md": f" .../{X}-a-track.md | 21 +++\n",
+                "docs/evidence/E14/z.txt": f"see ...{X}-a-track.md\n",
             }
         )
         self.assertEqual(
@@ -55,8 +59,10 @@ class Unnumbered(unittest.TestCase):
             [
                 ("compiler/tests/a.rs", 1, f"// the refusals (writing {X}'s refusals)"),
                 (f"docs/DECISIONS/{X}-a-track.md", 0, f"{X}-a-track.md"),
+                ("docs/d.md", 1, f".../{X}-a-track.md | 21 +++"),
                 ("docs/evidence/E14/x.txt", 1, f"{X} - a header recorded on a track"),
                 ("docs/evidence/E14/y.txt", 1, f"{X} - read docs/DECISIONS/{X}-a-track.md"),
+                ("docs/evidence/E14/z.txt", 1, f"see ...{X}-a-track.md"),
                 ("scripts/c.py", 1, f"# docs/DECISIONS/{X}-a-track.md says why"),
             ],
         )
@@ -79,6 +85,9 @@ class Unnumbered(unittest.TestCase):
                     f'    "docs/DECISIONS/{X}-wasi-0.2-not-0.3.md": "9c4db5de"\n'
                     "  }\n}\n"
                 ),
+                # A diffstat in a record, whose long path `git diff --stat`
+                # elides to `...` (train-14, the first press's record).
+                "docs/evidence/E14/first-add.log": f" .../{X}-a-track.md     |  21 +++\n",
             }
         )
         self.assertEqual(adrs.unnumbered(root), [])
