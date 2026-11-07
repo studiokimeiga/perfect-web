@@ -1,0 +1,128 @@
+ADR-0186 - a page states its description
+
+produced by: just e14-metadata
+commit: 2fd56c145310dc1d41f99cec67733a00e7479d06
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+node: v22.21.1
+playwright: Version 1.58.0
+
+== the rule, the template and the plan (compiler/pw-core/tests/metadata.rs)
+
+test a_page_s_metadata_is_a_part_of_its_head_after_its_title ... ok
+test an_item_s_property_is_written_where_it_is ... ok
+test a_page_s_metadata_reads_no_signal ... ok
+test a_page_s_metadata_is_the_page_s_at_the_top_of_its_view ... ok
+test a_page_s_metadata_may_read_what_a_press_speculates ... ok
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.67s
+
+== the renderer and its document (runtime/pw-render/tests/metadata.rs, titles.rs)
+
+test metadata_reads_what_the_page_is_given_or_is_refused ... ok
+test metadata_is_the_head_s_escaped_and_nothing_in_the_body ... ok
+test the_binary_writes_a_page_s_metadata_into_its_head ... ok
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test a_title_is_text_as_a_browser_reads_it ... ok
+test a_title_reads_what_the_page_is_given_or_is_refused ... ok
+test a_title_is_the_page_s_text_and_values_and_nothing_in_its_body ... ok
+test a_page_s_document_is_titled_as_the_page_states_and_a_view_s_by_its_name ... ok
+test a_static_page_that_states_its_title_ships_no_runtime ... ok
+test a_page_with_a_runtime_holds_the_announcer_from_its_first_byte ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+== the development server (pw-dev-server)
+
+test tests::a_signal_page_s_head_holds_its_title_and_metadata ... ok
+test tests::a_store_s_page_describes_itself_in_its_head ... ok
+test result: ok. 867 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 200.25s
+
+== each store's page, in three engines (e2e/stores.spec.mjs)
+
+  ✓   2 [chromium] › e2e/stores.spec.mjs:24:1 › each store is served at its route (2.6s)
+  ✓   4 [chromium] › e2e/stores.spec.mjs:33:1 › a store's menu is grouped by its category (960ms)
+  ✓   3 [webkit] › e2e/stores.spec.mjs:24:1 › each store is served at its route (3.8s)
+  ✓   1 [firefox] › e2e/stores.spec.mjs:24:1 › each store is served at its route (3.5s)
+  ✓   5 [chromium] › e2e/stores.spec.mjs:48:1 › each store's page describes itself, for what reads it unshown (964ms)
+  ✓   7 [firefox] › e2e/stores.spec.mjs:33:1 › a store's menu is grouped by its category (1.2s)
+  ✓   8 [chromium] › e2e/stores.spec.mjs:59:1 › a store that is not there is not found (515ms)
+  ✓  10 [chromium] › e2e/stores.spec.mjs:73:1 › each Add is named by its item, and a rename renames it (544ms)
+  ✓   6 [webkit] › e2e/stores.spec.mjs:33:1 › a store's menu is grouped by its category (2.0s)
+  ✓   9 [firefox] › e2e/stores.spec.mjs:48:1 › each store's page describes itself, for what reads it unshown (1.2s)
+  ✓  13 [firefox] › e2e/stores.spec.mjs:59:1 › a store that is not there is not found (686ms)
+  ✓  11 [chromium] › e2e/stores.spec.mjs:95:1 › each item shows its price, and an item inserted arrives with its own (1.9s)
+  ✓  14 [firefox] › e2e/stores.spec.mjs:73:1 › each Add is named by its item, and a rename renames it (759ms)
+  ✓  12 [webkit] › e2e/stores.spec.mjs:48:1 › each store's page describes itself, for what reads it unshown (2.0s)
+  ✓  15 [chromium] › e2e/stores.spec.mjs:123:1 › the second store's Add adds to the session's cart (665ms)
+  ✓  17 [webkit] › e2e/stores.spec.mjs:59:1 › a store that is not there is not found (1.6s)
+  ✓  16 [firefox] › e2e/stores.spec.mjs:95:1 › each item shows its price, and an item inserted arrives with its own (2.1s)
+  ✓  18 [chromium] › e2e/stores.spec.mjs:130:1 › a change to one store's menu reaches its page, and not another store's (test 11) (2.4s)
+  ✓  20 [firefox] › e2e/stores.spec.mjs:123:1 › the second store's Add adds to the session's cart (922ms)
+  ✓  19 [webkit] › e2e/stores.spec.mjs:73:1 › each Add is named by its item, and a rename renames it (1.6s)
+  ✓  21 [firefox] › e2e/stores.spec.mjs:130:1 › a change to one store's menu reaches its page, and not another store's (test 11) (2.7s)
+  ✓  22 [webkit] › e2e/stores.spec.mjs:95:1 › each item shows its price, and an item inserted arrives with its own (2.9s)
+  ✓  23 [webkit] › e2e/stores.spec.mjs:123:1 › the second store's Add adds to the session's cart (1.7s)
+  ✓  24 [webkit] › e2e/stores.spec.mjs:130:1 › a change to one store's menu reaches its page, and not another store's (test 11) (4.4s)
+  24 passed (39.3s)
+
+== the corpus at C11 (corpus-check, generality.rs, checking_source.rs)
+
+accepted: 44 files
+accepted: 44/44 charter §16 categories covered
+rejected: 95 files
+rejected: 95/95 charter §16 categories covered
+corpus-check: OK
+test every_rejected_fixture_emits_only_its_own_defect ... ok
+test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
+test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
+test every_diagnostic_carries_what_charter_16_3_requires ... ok
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 58.70s
+test generality_is_reported_separately_from_conformance ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 104.05s
+
+== every program the repository checks
+
+accepted corpus: 44 programs, 35 with no error, 9 refused exactly as listed (examples/accepted/build-refusals.json: 9 entries)
+pw check: 73 file(s), no diagnostics
+pw check: 27 file(s), no diagnostics
+pw check: 43 file(s), no diagnostics
+
+== mutation controls (scripts/metadata_mutations.py)
+
+baseline (core): 5 passed, 0 failed
+baseline (render): 9 passed, 0 failed
+baseline (server): 2 passed, 0 failed
+an item's property is taken as the page's metadata [core]: KILLED (2 of 5 tests fail)
+an item's property that names the page's metadata is let through [core]: KILLED (1 of 5 tests fail)
+metadata in a view is let through [core]: KILLED (1 of 5 tests fail)
+metadata inside an element or a block is let through [core]: KILLED (1 of 5 tests fail)
+the host's charset, http-equiv or viewport is let through [core]: KILLED (1 of 5 tests fail)
+the viewport is the host's only as written in lower case [core]: KILLED (1 of 5 tests fail)
+metadata that names nothing is let through [core]: KILLED (1 of 5 tests fail)
+metadata named by both name and property is let through [core]: KILLED (1 of 5 tests fail)
+metadata named by a computed value is let through [core]: KILLED (1 of 5 tests fail)
+an attribute the head does not write is let through [core]: KILLED (1 of 5 tests fail)
+metadata with no content is let through [core]: KILLED (1 of 5 tests fail)
+metadata with a blank content is let through [core]: KILLED (1 of 5 tests fail)
+content computed in place is let through [core]: KILLED (1 of 5 tests fail)
+a hole computed in place is read as a value [core]: KILLED (1 of 5 tests fail)
+a content computed in place is read as a value [core]: KILLED (1 of 5 tests fail)
+a name HTML allows once, stated twice, is let through [core]: KILLED (1 of 5 tests fail)
+a name HTML lets repeat is refused [core]: KILLED (1 of 5 tests fail)
+names are compared by their case [core]: KILLED (1 of 5 tests fail)
+a name HTML allows once is known only in lower case [core]: KILLED (1 of 5 tests fail)
+metadata is lowered with the rest of the view [core]: KILLED (3 of 5 tests fail)
+metadata is numbered before the title [core]: KILLED (1 of 5 tests fail)
+the text after metadata's last value is dropped [core]: KILLED (1 of 5 tests fail)
+an item's property at the top of a page is taken into its head [core]: KILLED (1 of 5 tests fail)
+an item's property inside an element is refused [core]: KILLED (1 of 5 tests fail)
+metadata may read a signal [core]: KILLED (1 of 5 tests fail)
+metadata that reads a speculated value is refused as a title is [core]: KILLED (1 of 5 tests fail)
+metadata is written into the body [render]: KILLED (2 of 3 tests fail)
+metadata is written unescaped [render]: KILLED (2 of 3 tests fail)
+metadata is written from a value that is HTML [render]: KILLED (1 of 3 tests fail)
+the binary's document is written without its metadata [render]: KILLED (1 of 3 tests fail)
+a static page that states its title ships the runtime [render]: KILLED (1 of 9 tests fail)
+the store's page is written without its metadata [server]: KILLED (1 of 2 tests fail)
+a signal page is written without its metadata [server]: KILLED (1 of 2 tests fail)
+the store's metadata is rendered from no values [server]: KILLED (1 of 2 tests fail)
+34 of 34 mutants killed
+memory bound: no process was stopped

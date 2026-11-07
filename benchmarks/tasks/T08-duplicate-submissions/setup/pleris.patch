@@ -6,9 +6,9 @@ index bec40ea..ad88859 100644
      Carts.current(session)
  }
  
--// The mutation. Idempotent by interaction id, so a double-tap is one add, and
--// optimistic with a declared rollback so the count moves before the round trip
--// and moves back if it fails.
+-// The mutation. Idempotent by interaction id: a request sent twice is one add,
+-// and two presses are two. Optimistic, with a declared rollback, so the count
+-// moves before the round trip and moves back if it fails.
 +// The mutation. Optimistic with a declared rollback so the count moves before
 +// the round trip and moves back if it fails.
  command add_to_cart(item: MenuItemId, quantity: PositiveInt)
