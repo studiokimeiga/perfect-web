@@ -494,18 +494,22 @@ command repeat_clock(item: MenuItemId) -> Result<Int, CartError>
     Ok(1)
 }
 command queue_pure() -> Result<Int, CartError>
+    requires      Anyone
     idempotent_by InteractionId
 { schedule pure_clock() after minutes(5)
   Ok(1) }
 command queue_notice() -> Result<Int, CartError>
+    requires      Anyone
     idempotent_by InteractionId
 { schedule notice_clock() after minutes(5)
   Ok(1) }
 command queue_failure(item: MenuItemId) -> Result<Int, CartError>
+    requires      Anyone
     idempotent_by InteractionId
 { schedule failing_clock(item) after minutes(5)
   Ok(1) }
 command queue_repeat(item: MenuItemId) -> Result<Int, CartError>
+    requires      Anyone
     idempotent_by InteractionId
 { schedule repeat_clock(item) after minutes(5)
   Ok(1) }

@@ -895,6 +895,7 @@ const SEND_IN_FIVE: &str = r#"
 // A test's: `send_to_store(order)` scheduled five minutes on.
 command send_in_five(order: String)
     -> Result<Int, CartError>
+    requires      Anyone
     idempotent_by InteractionId
 {
     schedule send_to_store(order) after minutes(5)
