@@ -1,0 +1,21 @@
+What the change reaches (python3 scripts/ci_plan.py --changed BASE HEAD)
+
+commit: 103db6dc9e04bd83cb16688ce897c38ab5368602
+base: 5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+12 recipes:
+  e10-clause-keys
+  e10-clause-places
+  e10-code-in-markup
+  e10-declared-once
+  e10-template-values
+  e10-view-elements
+  e14-block-clauses
+  e14-each-heads
+  e14-holds
+  e14-let-discard
+  e14-markup-comments
+  e14-materialization-chains
+
+Left to this branch's hosted verification (the PC runs no heavy recipes, 2026-11-07).
