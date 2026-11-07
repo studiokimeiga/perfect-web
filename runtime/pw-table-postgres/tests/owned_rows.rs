@@ -526,16 +526,19 @@ fn a_put_is_answered_by_what_it_wrote_not_by_its_snapshot() {
     for (name, isolation, transaction, held, wrote, at_milk, left) in races {
         let scratch = Scratch::new(&first.url, name);
         let (answered, tables) = race(&scratch, isolation, name, Some(held), transaction);
+        // Each assertion on a line of its own: the strict producer counts a
+        // failure only at an assertion's own line and column.
         match wrote {
-            Some(wrote) => assert_eq!(
-                answered,
-                Ok(wrote.iter().map(|t| t.to_string()).collect()),
-                "{name}"
-            ),
-            None => assert!(
-                matches!(answered, Err(Error::Serialization(_))),
-                "{name}: {answered:?}"
-            ),
+            Some(wrote) => {
+                let wrote: Vec<String> = wrote.iter().map(|t| t.to_string()).collect();
+                assert_eq!(answered, Ok(wrote), "{name}");
+            }
+            None => {
+                assert!(
+                    matches!(answered, Err(Error::Serialization(_))),
+                    "{name}: {answered:?}"
+                );
+            }
         }
         assert_eq!(now(&tables, "milk"), at_milk, "{name}");
         assert_eq!(owners(&scratch), left, "{name}");

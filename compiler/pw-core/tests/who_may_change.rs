@@ -202,7 +202,9 @@ fn each_write_counts_and_a_read_does_not() {
                 assert_eq!(found.len(), 1, "{body}: {found:#?}");
                 assert_eq!(found[0].3[0].1, at, "{body}");
             }
-            None => assert!(found.is_empty(), "{body}: {found:#?}"),
+            None => {
+                assert!(found.is_empty(), "{body}: {found:#?}");
+            }
         }
     }
 }
