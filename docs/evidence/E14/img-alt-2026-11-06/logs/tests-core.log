@@ -1,0 +1,132 @@
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/img-alt/compiler/pw-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.16s
+     Running tests/checking_source.rs (/home/haki/pw-targets/img-alt/debug/deps/checking_source-5ede6e8c91896562)
+
+running 20 tests
+test a_fixtures_header_is_held_to_its_code_as_written ... ok
+test an_unmodelled_capability_family_never_manufactures_a_placement_error ... ok
+test constructor_arity_is_respected ... ok
+test the_environment_spans_every_file_checked_together ... ok
+test a_match_whose_scrutinee_type_is_unknown_is_not_reported ... ok
+test a_nullary_constructor_is_not_read_as_a_binding ... ok
+test the_unhandled_variant_case_is_caught_at_its_real_span ... ok
+test no_accepted_corpus_file_reports_a_body_level_error ... ok
+test the_structured_concurrency_rules_run_on_real_bodies ... ok
+test semantic_coverage_of_the_rejected_corpus_does_not_regress ... ok
+test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
+test the_committed_enforcement_table_is_what_the_corpus_checks_now ...   96ok
+/96 rejected fixtures produce a compile error
+  96/96 emit their declared canonical code
+  96/96 fully enforce the complete declared invariant
+test corpus_enforcement_is_reported_as_three_numbers_not_one ... ok
+test no_diagnostic_restates_its_invariant_in_its_own_words ... ok
+test every_body_level_rejection_matches_its_declared_rule ... ok
+test the_privacy_and_placement_rules_catch_their_corpus_cases ... ok
+test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
+  single-defect isolation: 96/96
+test every_rejected_fixture_emits_only_its_own_defect ... ok
+test a_fixtures_declared_symbol_matches_the_symbol_it_is_caught_by ... ok
+test every_diagnostic_carries_what_charter_16_3_requires has been running for over 60 seconds
+test every_diagnostic_carries_what_charter_16_3_requires ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 78.23s
+
+     Running tests/corpus_history.rs (/home/haki/pw-targets/img-alt/debug/deps/corpus_history-424f860e0b6d436e)
+
+running 8 tests
+test the_history_is_not_edited_to_match_the_present ... ok
+test the_c10_texts_are_reported_where_their_defects_are ... ok
+test historical_event_annotation_is_blocked_not_a_nominal_mismatch ... ok
+test the_c16_texts_are_reported_where_their_defects_are ... ok
+test the_c9_texts_are_still_caught_for_their_invariant_and_refused_for_the_title ... ok
+test historical_unknown_captures_remain_refused_and_imported_controls_keep_their_rule ... ok
+  historical compatibility: 4/10 C0 texts still caught
+    R-022: FixtureDidNotExpressIt
+    R-030: FixtureDidNotExpressIt
+    R-010: FixtureDidNotExpressIt
+    R-001: FixtureDidNotExpressIt
+    R-004: FixtureDidNotExpressIt
+    R-024: FixtureDidNotExpressIt
+test the_pre_change_text_of_every_repaired_fixture_still_fails ... ok
+  historical compatibility: 23/25 C8 declared-invariant catches; 1 syntax refusal; 1 classified
+    R-035-layout-write-during-measure-phase.pw: FixtureDidNotExpressIt: C8's ElementRef receiver has no visible type. The original stays refused for its exact unresolved-receiver diagnostics; adding only its import restores wrong_frame_phase at the setter, and the current typed fixture retains that violation while its pure typed neighbour is clean.
+test the_c8_text_of_every_repaired_rejected_fixture_is_still_caught ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.64s
+
+     Running tests/generality.rs (/home/haki/pw-targets/img-alt/debug/deps/generality-a5a162662df63e3d)
+
+running 6 tests
+  headline invariants with a matrix: 9/9
+  corpus conformance:     44 / 44 (checking_source.rs)
+  generality-tested:      test every_headline_invariant_has_a_challenge_matrix ... 66 / ok
+66
+test every_witness_names_a_registered_invariant ...   known narrow witness:   0ok
+ — []
+  generality untested:    0 — []
+
+thread 'generality_is_reported_separately_from_conformance' (1442424) panicked at compiler/pw-core/tests/generality.rs:584:5:
+assertion `left == right` failed: the published figure moved. If that is intended, update
+         docs/STATUS.md and docs/NEXT.md in the same commit — a number in a
+         status report that no test holds is a number that drifts.
+  left: (66, 0, 0)
+ right: (65, 0, 0)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test generality_is_reported_separately_from_conformance ... FAILED
+test a_general_witness_is_caught_and_a_narrow_one_is_not has been running for over 60 seconds
+test a_witness_is_valid_except_for_the_invariant_it_is_about has been running for over 60 seconds
+test every_witness_is_valid_evidence has been running for over 60 seconds
+test every_witness_is_valid_evidence ... ok
+test a_general_witness_is_caught_and_a_narrow_one_is_not ... ok
+test a_witness_is_valid_except_for_the_invariant_it_is_about ... ok
+
+failures:
+
+failures:
+    generality_is_reported_separately_from_conformance
+
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 115.81s
+
+error: test failed, to rerun pass `-p pw-core --test generality`
+     Running tests/ids_and_aria.rs (/home/haki/pw-targets/img-alt/debug/deps/ids_and_aria-09749e221a93d228)
+
+running 4 tests
+test a_reference_to_nothing_is_reported_once ... ok
+test an_id_names_one_element_of_its_page ... ok
+test aria_is_what_wai_aria_defines ... ok
+test a_reference_names_an_element_shown_whenever_the_referrer_is ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/images.rs (/home/haki/pw-targets/img-alt/debug/deps/images-d25eb04df7e00709)
+
+running 7 tests
+test an_image_with_no_alt_is_refused ... ok
+test an_alt_says_what_the_image_shows_as_text_or_as_a_value ... ok
+test an_empty_alt_says_the_image_shows_nothing_a_reader_needs ... ok
+test only_an_img_is_held_to_it ... ok
+test an_image_a_loop_renders_is_read_once_where_it_is_written ... ok
+test each_image_is_reported_where_it_is ... ok
+test a_title_an_aria_label_or_a_role_is_not_an_alt ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+
+     Running tests/labels.rs (/home/haki/pw-targets/img-alt/debug/deps/labels-64ece85d196dde7e)
+
+running 11 tests
+test a_reference_to_an_id_every_row_has_is_its_ids_defect_alone ... ok
+test an_id_inside_each_names_no_one_row ... ok
+test a_wrapping_label_names_only_its_first_control ... ok
+test a_label_names_the_first_element_with_its_id ... ok
+test which_control_a_label_names_must_not_depend_on_what_renders ... ok
+test hidden_submit_and_button_inputs_need_no_label ... ok
+test a_blank_aria_label_names_nothing ... ok
+test an_id_names_nothing_by_itself ... ok
+test aria_labelledby_must_reach_an_element_with_text ... ok
+test a_label_names_its_control_only_when_it_has_text ... ok
+test a_label_that_wraps_its_control_names_it ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
+
+error: 1 target failed:
+    `-p pw-core --test generality`

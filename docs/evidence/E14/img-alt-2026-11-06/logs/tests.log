@@ -1,0 +1,50 @@
+== 2026-11-06T13:39:46-05:00 fmt
+exit fmt 0
+== 2026-11-06T13:39:48-05:00 the guide's list of codes, regenerated
+wrote docs/guide/diagnostics.md
+exit guide_diagnostics 0
+ docs/guide/diagnostics.md | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+docs/guide/diagnostics.md is current
+exit guide_diagnostics --check 0
+.......
+----------------------------------------------------------------------
+Ran 7 tests in 0.049s
+
+OK
+exit test_guide_diagnostics 0
+== 2026-11-06T13:39:49-05:00 just evidence-corpus
+running 1 test
+wrote docs/evidence/E2D/corpus-enforcement.txt
+.
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 19 filtered out; finished in 16.90s
+
+96/96 enforce their declared invariant
+exit evidence-corpus 0
+-95/95 enforce their declared invariant
++96/96 enforce their declared invariant
++R-096  enforced                  PW5053
++       an image with no text alternative
+== 2026-11-06T13:40:07-05:00 images, generality, checking_source, corpus_history, labels, ids_and_aria
+exit pw-core tests 101
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 78.23s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.64s
+  generality-tested:      test every_headline_invariant_has_a_challenge_matrix ... 66 / ok
+  generality untested:    0 — []
+thread 'generality_is_reported_separately_from_conformance' (1442424) panicked at compiler/pw-core/tests/generality.rs:584:5:
+test generality_is_reported_separately_from_conformance ... FAILED
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 115.81s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
+== 2026-11-06T13:43:33-05:00 pw-cli: the guide
+exit guide 0
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.26s
+== 2026-11-06T13:44:45-05:00 pw-syntax: the corpus as pw fmt writes it
+exit corpus_fmt 0
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.41s
+== 2026-11-06T13:44:48-05:00 mutation anchors
+guide_mutations.py: a check gap is closed: the check refuses it guide: 0 matches in docs/guide/tour-pages.md
+FAIL: 1 of 4984 mutants cannot run as written
+exit anchors 1
+IMG_TESTS_FINISHED

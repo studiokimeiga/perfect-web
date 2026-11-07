@@ -46,6 +46,8 @@ page StorePage(id: StoreId) {
   `String`, or an opaque type over one (PW0621).
 - Every link is matched against the program's routes (PW5009).
 - A page with a route has a `<title>`, first in its view (PW5029).
+- An `<img>` has an `alt`: what it shows, or `alt=""` if it shows nothing
+  a reader needs (PW5053, [errors](errors.md#an-image-with-no-alt)).
 
 **Query parameters** are declared in the route, after `?`, and are optional
 by type (ADR-0309):
@@ -429,25 +431,5 @@ view Menu() !{} {
             <li>{item.name}</li>
         {/each}
     </ul>
-}
-```
-
-
-And an `<img>` with no `alt` is not refused, though an `<input>` with no
-label is (PW5014):
-
-```pw gap=check
-module shop.logo
-
-page Home() {
-    route "/"
-
-    view {
-        <title>Shop</title>
-        <main>
-            <img src="/logo.png" width="64" height="64">
-            <h1>Shop</h1>
-        </main>
-    }
 }
 ```
