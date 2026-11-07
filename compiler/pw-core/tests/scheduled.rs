@@ -59,7 +59,7 @@ const EXPIRE: &str = "command expire(order: String) -> Result<Int, String>\n    
 /// A command a reader presses, which runs `statement`, its row `row`.
 fn scheduler(statement: &str, row: &str) -> String {
     format!(
-        "command place(order: String, when: Instant) -> Result<Int, String> {row}\n{{\n    \
+        "command place(order: String, when: Instant) -> Result<Int, String> {row}\n    requires Anyone\n{{\n    \
          {statement}\n    Ok(1)\n}}\n\n"
     )
 }

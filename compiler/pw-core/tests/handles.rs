@@ -118,7 +118,7 @@ fn nothing_the_browser_supplies_holds_a_handle() {
                 host \"app:data/carts#of\"\n\n";
     // A command's parameter: the browser writes it.
     let got = reported(&format!(
-        "{cart}command peek(s: Session<SessionId>) -> Cart {{\n    cart_of(s)\n}}\n"
+        "{cart}command peek(s: Session<SessionId>) -> Cart\n    requires Anyone\n{{\n    cart_of(s)\n}}\n"
     ));
     assert_eq!(
         got,
@@ -126,7 +126,7 @@ fn nothing_the_browser_supplies_holds_a_handle() {
     );
     assert_eq!(
         codes(&format!(
-            "{cart}command peek(u: Option<User<UserId>>) -> Cart {{\n    \
+            "{cart}command peek(u: Option<User<UserId>>) -> Cart\n    requires Anyone\n{{\n    \
              cart_of(current_session())\n}}\n"
         )),
         ["PW5039"]
@@ -153,7 +153,7 @@ fn nothing_the_browser_supplies_holds_a_handle() {
     // `current_session()`.
     assert!(
         codes(&format!(
-            "{cart}command mine(user: UserId) -> Cart {{\n    cart_of(current_session())\n}}\n"
+            "{cart}command mine(user: UserId) -> Cart\n    requires Anyone\n{{\n    cart_of(current_session())\n}}\n"
         ))
         .is_empty()
     );

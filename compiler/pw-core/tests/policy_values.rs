@@ -79,7 +79,7 @@ fn session_query(policies: &str) -> String {
 /// A command, idempotent or not.
 fn command(policies: &str) -> String {
     format!(
-        "module t\n\nopaque type Tag = String\n\ncommand act(n: Int) -> Int !{{}}\n    {}\n{{\n    n\n}}\n",
+        "module t\n\nopaque type Tag = String\n\ncommand act(n: Int) -> Int !{{}}\n    requires Anyone\n    {}\n{{\n    n\n}}\n",
         policies.replace('\n', "\n    ")
     )
 }

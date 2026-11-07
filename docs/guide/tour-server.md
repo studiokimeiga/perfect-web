@@ -220,7 +220,11 @@ fn pending(feed: List<Item>, text: PostText) -> List<Item> !{} {
 
 - `requires SignedIn`: a predicate the server checks before the body runs.
   A refusal is answered 403, and the page says the predicate's words where
-  the button was (ADR-0302).
+  the button was (ADR-0302). Every command a reader can run says who may,
+  since the server runs it for any request that names it, a page or none
+  (PW0367): `requires` and its predicates, or `requires Anyone`, alone, for
+  a command anyone may run. A command the platform runs says `invoked_by`
+  instead.
 - `idempotent_by InteractionId`: each press carries an interaction, and a
   second delivery of it is answered from the first, not run again
   (ADR-0121). Required for a command a page sends (PW0338).
@@ -266,6 +270,7 @@ public query Latest() -> List<Post>
 }
 
 command post(text: String) -> Result<Post, FeedError>
+    requires      Anyone
     idempotent_by InteractionId
 {
     publish(current_session(), text)
@@ -308,6 +313,7 @@ fn with_post(posts: List<Post>, text: String) -> List<Post> !{} {
 }
 
 command post(text: String) -> Result<Post, FeedError>
+    requires      Anyone
     idempotent_by InteractionId
     optimistic    Latest() as posts => with_post(posts, text)
 {
@@ -423,7 +429,9 @@ command remind(order: String) -> Result<Int, String>
     Ok(1)
 }
 
-command remind_later(order: String) -> Result<Int, String> !{ clock.schedule } {
+command remind_later(order: String) -> Result<Int, String> !{ clock.schedule }
+    requires Anyone
+{
     schedule remind(order) after minutes(30)
     Ok(1)
 }

@@ -17,6 +17,7 @@ signal notes: List<Note> = []
 opaque type Press = String
 
 command report(summary: String) -> Result<Int, String>
+    requires      Anyone
     idempotent_by Press
 {
     Ok(String.length(summary))

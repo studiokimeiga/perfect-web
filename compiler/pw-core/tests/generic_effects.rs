@@ -798,7 +798,7 @@ fn solved_loop_binders_are_available_to_every_type_reader() {
 #[test]
 fn an_interfaces_term_roots_refuse_untyped_member_receivers() {
     let src = reading(
-        "event Changed(id: Int)\n\nquery Number(id: Int) -> Int\n    invalidates_on Changed(id)\n{ id }\n\nfn consume<T>(f: T, n: Int) -> Int !{} { n }\n\ncommand Put(id: Int) -> Result<Int, String>\n    emits Changed(id)\n    optimistic Number(id) as n => consume((item) => item.name, n)\n",
+        "event Changed(id: Int)\n\nquery Number(id: Int) -> Int\n    invalidates_on Changed(id)\n{ id }\n\nfn consume<T>(f: T, n: Int) -> Int !{} { n }\n\ncommand Put(id: Int) -> Result<Int, String>\n    requires Anyone\n    emits Changed(id)\n    optimistic Number(id) as n => consume((item) => item.name, n)\n",
     );
     assert_eq!(reported(&src), one("PW0408", "item.name"));
     assert_eq!(
@@ -962,7 +962,7 @@ fn a_generic_each_header_keeps_its_members_privacy_in_key_and_body() {
 #[test]
 fn an_interface_term_local_call_never_calls_a_namesake_global() {
     let src = reading(
-        "fn stamp() -> String !{ database.read<Item> }\n    host \"shop:data/items#stamp\"\n\nevent Changed(id: Int)\n\nquery Number(id: Int) -> Int\n    invalidates_on Changed(id)\n{ id }\n\nfn consume<T>(f: T, n: Int) -> Int !{} { n }\n\ncommand Put(id: Int) -> Result<Int, String>\n    emits Changed(id)\n    optimistic Number(id) as n => consume((stamp: fn() -> String) => stamp(), n)\n",
+        "fn stamp() -> String !{ database.read<Item> }\n    host \"shop:data/items#stamp\"\n\nevent Changed(id: Int)\n\nquery Number(id: Int) -> Int\n    invalidates_on Changed(id)\n{ id }\n\nfn consume<T>(f: T, n: Int) -> Int !{} { n }\n\ncommand Put(id: Int) -> Result<Int, String>\n    requires Anyone\n    emits Changed(id)\n    optimistic Number(id) as n => consume((stamp: fn() -> String) => stamp(), n)\n",
     );
     assert_eq!(reported(&src), NOTHING, "{src}");
     assert_eq!(

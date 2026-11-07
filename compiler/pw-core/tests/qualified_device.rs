@@ -29,6 +29,7 @@ fn sources(import: &str, signals: &str, handler: &str, takes: &str) -> Vec<(Stri
 {import}
 type PublicPrefs = PublicPrefs {{ word: String }}
 command send(text: {takes}) -> Result<String, String>
+    requires Anyone
     idempotent_by Press
 {{ Ok("sent") }}
 opaque type Press = String

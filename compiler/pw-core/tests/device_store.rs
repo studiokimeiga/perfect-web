@@ -346,7 +346,7 @@ fn pw6808_the_device_provides_it() {
 
 // --- the label, and where it may not go --------------------------------------
 
-const SEND: &str = "command send(text: String) -> Result<String, String>\n    idempotent_by Press\n{\n    Ok(text)\n}\n\nopaque type Press = String";
+const SEND: &str = "command send(text: String) -> Result<String, String>\n    requires Anyone\n    idempotent_by Press\n{\n    Ok(text)\n}\n\nopaque type Press = String";
 
 fn first(notes: &str) -> String {
     format!(

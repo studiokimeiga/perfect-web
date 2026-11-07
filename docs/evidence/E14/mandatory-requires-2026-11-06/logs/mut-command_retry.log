@@ -1,0 +1,13 @@
+baseline (core): 40 passed, 0 failed
+baseline (browser): 5 passed, 0 failed
+`transport_only` retries a command that is not idempotent [core]: KILLED (1 of 40 tests fail)
+`retry none` is refused as a retry [core]: KILLED (1 of 40 tests fail)
+the clause is not read [core]: KILLED (1 of 8 tests fail)
+the policy is not passed where the command is sent [core]: KILLED (1 of 8 tests fail)
+the store's `add_to_cart` declares no retry [core]: KILLED (1 of 8 tests fail)
+nothing is sent again [browser]: KILLED (3 of 5 tests fail)
+an answer is sent again [browser]: KILLED (1 of 5 tests fail)
+there is no bound [browser]: KILLED (1 of 5 tests fail)
+a request is sent again under another interaction [browser]: KILLED (1 of 5 tests fail)
+9 of 9 mutants killed
+memory bound: no process was stopped

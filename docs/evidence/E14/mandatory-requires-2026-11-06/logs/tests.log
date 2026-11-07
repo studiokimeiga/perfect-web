@@ -1,0 +1,50 @@
+== 2026-11-06T14:57:36-05:00 pw-core, every test
+exit pw-core 101
+pw-core: 1775 passed, 39 failed
+test a_call_is_reported_once ... FAILED
+test a_captured_public_record_prefix_does_not_steal_the_device_origin ... FAILED
+test a_clause_is_read_where_it_is_written ... FAILED
+test a_clause_names_a_declaration_of_its_kind ... FAILED
+test a_command_emits_and_invalidates ... FAILED
+test a_head_on_a_declaration_that_does_not_read_it_is_refused ... FAILED
+test a_key_names_what_scope_binds ... FAILED
+test a_listeners_handle_binds_the_events_id ... FAILED
+test a_literal_is_a_value_of_its_type ... FAILED
+test a_materialization_depends ... FAILED
+test a_parenthesis_in_a_keys_string_ends_nothing ... FAILED
+test a_payments_command_is_told_at_its_invoked_by_clause ... FAILED
+test a_resource_is_given_its_key ... FAILED
+test a_resource_listens ... FAILED
+test a_retried_command_is_idempotent_whatever_it_retries_on ... FAILED
+test a_run_is_scheduled_at_an_instant_moved_along_the_clock ... FAILED
+test a_schedule_at_an_instant_or_after_a_duration_checks_clean ... FAILED
+test a_target_is_a_resources_entry ... FAILED
+test a_type_a_policy_names_is_visible ... FAILED
+test an_event_is_given_what_it_carries ... FAILED
+test an_interface_term_local_call_never_calls_a_namesake_global ... FAILED
+test an_interfaces_term_roots_refuse_untyped_member_receivers ... FAILED
+test an_interfaces_terms_are_checked_as_any_declarations ... FAILED
+test an_operator_is_given_its_arguments ... FAILED
+test generality_is_reported_separately_from_conformance ... FAILED
+test generic_reverse_keeps_a_device_rows_type_and_privacy ... FAILED
+test lexical_record_and_signal_names_do_not_read_a_module_device_value ... FAILED
+test no_answer_holds_a_sessions_handle ... FAILED
+test nothing_the_browser_supplies_holds_a_handle ... FAILED
+test only_transport_only_is_transport_only ... FAILED
+test pw6801_no_command_is_given_what_the_device_keeps ... FAILED
+test qualified_and_selectively_imported_device_arguments_are_refused_at_their_declaration ... FAILED
+test qualified_browser_only_read_still_refuses_unsupported_backend_lowering ... FAILED
+test the_committed_enforcement_table_is_what_the_corpus_checks_now ... FAILED
+test the_plan_names_what_the_page_asks_and_a_host_computes_from_the_answer ... FAILED
+test the_program_is_clean ... FAILED
+test the_repair_names_the_binder_and_the_target_holds_the_value ... FAILED
+test v1_a_call_inside_a_policy_term_is_checked_with_its_binder_typed ... FAILED
+test v1_a_listeners_wildcard_is_decided_and_its_parameters_are_checked ... FAILED
+== 2026-11-06T15:14:28-05:00 pw-cli: the guide; pw-syntax: corpus formatting
+exit guide 101
+test the_diagnostic_reference_lists_every_registered_code ... FAILED
+test every_example_in_the_guide_compiles_as_it_says ... FAILED
+test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.66s
+exit corpus_fmt 0
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.70s
+REQUIRES_TESTS_FINISHED
