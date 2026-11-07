@@ -1,0 +1,9 @@
+commit d94b6ecdf2ddc8e54ebf9d13b1e14930136ca3a8 + the working tree (the fix, before its commit)
+unmutated: 0 1012 bytes []
+the tick takes a press made on it: exit 0, DIFFERS; []
+the ring is drawn off its centre: exit 0, DIFFERS; []
+    	background-image: radial-gradient(circle at 24.963px 20.148px, transparent 13.926px, #949494 14.815px, transparent 15.704px);
+    	background-image: radial-gradient(circle at 24.963px 20.148px, transparent 13.926px, #59A193 14.815px, transparent 15.704px);
+a path's relative points are read as absolute: exit 0, DIFFERS; []
+    	clip-path: polygon(29.481px 12.741px, 20.593px 26.37px, 16.148px 21.926px, 6.963px 6.519px, 14.074px 11.259px, 18.222px -10.074px);
+the checked ring keeps the unchecked colour: exit 0, DIFFERS; []

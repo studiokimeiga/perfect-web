@@ -1,0 +1,16 @@
+== chromium 145.0.7632.6
+unchecked, as it is: mean 2.03, over 21, largest 42; ink apart % (r/g/b): ring 13.6/13.6/13.6, inside 0.0/0.0/0.0, outside 0/0/0 vs 0/0/0; official ink: ring 7815/7815/7815, inside 0/0/0
+unchecked, the ring lighter (#CACACA): mean 2.43, over 41, largest 56; ink apart % (r/g/b): ring -43.7/-43.7/-43.7, inside 0.0/0.0/0.0, outside 0/0/0 vs 0/0/0; official ink: ring 7815/7815/7815, inside 0/0/0
+unchecked, the ring off its centre by 2 px: mean 8.19, over 175, largest 106; ink apart % (r/g/b): ring 11.6/11.6/11.6, inside 37.0/37.0/37.0, outside 0/0/0 vs 56/56/56; official ink: ring 7815/7815/7815, inside 0/0/0
+checked, as it is: mean 3.19, over 65, largest 66; ink apart % (r/g/b): ring 13.8/14.2/13.4, inside -0.3/-0.3/-0.4, outside 0/0/0 vs 0/0/0; official ink: ring 12106/6829/7901, inside 8247/3926/4745
+checked, the checked ring in the unchecked colour (the surviving mutant): mean 3.76, over 94, largest 70; ink apart % (r/g/b): ring -26.7/30.0/12.3, inside -0.3/-0.3/-0.4, outside 0/0/0 vs 0/0/0; official ink: ring 12106/6829/7901, inside 8247/3926/4745
+checked, the tick in the ring's colour (#59A193): mean 3.89, over 65, largest 66; ink apart % (r/g/b): ring 13.8/14.2/13.4, inside -14.3/2.0/-3.1, outside 0/0/0 vs 0/0/0; official ink: ring 12106/6829/7901, inside 8247/3926/4745
+checked, the checked ring lighter (#ACD0C9): mean 3.76, over 77, largest 87; ink apart % (r/g/b): ring -43.1/-42.9/-43.3, inside -0.3/-0.3/-0.4, outside 0/0/0 vs 0/0/0; official ink: ring 12106/6829/7901, inside 8247/3926/4745
+== firefox 146.0.1
+unchecked, as it is: mean 1.02, over 2, largest 37; ink apart % (r/g/b): ring 14.8/14.8/14.8, inside 0.0/0.0/0.0, outside 0/0/0 vs 0/0/0; official ink: ring 7727/7727/7727, inside 0/0/0
+unchecked, the ring lighter (#CACACA): mean 2.17, over 33, largest 46; ink apart % (r/g/b): ring -43.1/-43.1/-43.1, inside 0.0/0.0/0.0, outside 0/0/0 vs 0/0/0; official ink: ring 7727/7727/7727, inside 0/0/0
+unchecked, the ring off its centre by 2 px: mean 8.20, over 170, largest 106; ink apart % (r/g/b): ring 12.8/12.8/12.8, inside 38.0/38.0/38.0, outside 0/0/0 vs 58/58/58; official ink: ring 7727/7727/7727, inside 0/0/0
+checked, as it is: mean 1.64, over 19, largest 58; ink apart % (r/g/b): ring 15.3/15.4/14.7, inside -0.3/-0.3/-0.3, outside 0/0/0 vs 0/0/0; official ink: ring 11935/6753/7807, inside 8248/3926/4743
+checked, the checked ring in the unchecked colour (the surviving mutant): mean 2.56, over 39, largest 48; ink apart % (r/g/b): ring -25.6/31.4/13.7, inside -0.3/-0.3/-0.3, outside 0/0/0 vs 0/0/0; official ink: ring 11935/6753/7807, inside 8248/3926/4743
+checked, the tick in the ring's colour (#59A193): mean 2.33, over 19, largest 58; ink apart % (r/g/b): ring 15.3/15.4/14.7, inside -14.3/2.0/-3.1, outside 0/0/0 vs 0/0/0; official ink: ring 11935/6753/7807, inside 8248/3926/4743
+checked, the checked ring lighter (#ACD0C9): mean 3.36, over 71, largest 70; ink apart % (r/g/b): ring -42.3/-42.3/-42.6, inside -0.3/-0.3/-0.3, outside 0/0/0 vs 0/0/0; official ink: ring 11935/6753/7807, inside 8248/3926/4743

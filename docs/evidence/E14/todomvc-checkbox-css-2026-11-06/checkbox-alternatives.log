@@ -1,0 +1,33 @@
+produced by: node checkbox-alternatives.mjs, in spikes/own-renderer at d94b6ecd, 2026-11-06T12:37:22-05:00
+== chromium 145.0.7632.6
+ring, unchecked: its colour at the radius, fading over a stroke's width either side (chosen): mean 2.03, over an eighth 21, largest 42
+ring, unchecked: the same, fading over 0.75 px: mean 2.09, over an eighth 21, largest 44
+ring, unchecked: the same, fading over 1.0 px: mean 2.17, over an eighth 29, largest 45
+ring, unchecked: the same, fading over 1.2 px: mean 2.82, over an eighth 52, largest 53
+ring, unchecked: a band a stroke wide, with 0.5 px ramps: mean 4.01, over an eighth 88, largest 93
+ring, unchecked: a band a stroke wide, hard-edged: mean 3.55, over an eighth 82, largest 90
+tick, checked: polygon, its box where it falls, moved -0.6 px: mean 3.82, over an eighth 73, largest 66
+tick, checked: polygon, its box where it falls, moved -0.4 px: mean 3.33, over an eighth 65, largest 66
+tick, checked: polygon, its box where it falls, moved -0.2 px: mean 3.85, over an eighth 75, largest 66
+tick, checked: polygon, its box where it falls, moved 0 px: mean 4.80, over an eighth 101, largest 83
+tick, checked: polygon, its box where it falls, moved 0.2 px: mean 5.56, over an eighth 114, largest 127
+tick, checked: polygon, its box where it falls, moved 0.4 px: mean 6.18, over an eighth 121, largest 166
+tick, checked: polygon, its box where it falls, moved 0.6 px: mean 6.67, over an eighth 122, largest 167
+tick, checked: polygon, its box rounded to the image's row (chosen): mean 3.19, over an eighth 65, largest 66
+tick, checked: path(), its box rounded to the image's row: mean 3.19, over an eighth 65, largest 66
+== firefox 146.0.1
+ring, unchecked: its colour at the radius, fading over a stroke's width either side (chosen): mean 1.02, over an eighth 2, largest 37
+ring, unchecked: the same, fading over 0.75 px: mean 1.09, over an eighth 1, largest 34
+ring, unchecked: the same, fading over 1.0 px: mean 1.42, over an eighth 3, largest 39
+ring, unchecked: the same, fading over 1.2 px: mean 2.66, over an eighth 13, largest 45
+ring, unchecked: a band a stroke wide, with 0.5 px ramps: mean 3.71, over an eighth 91, largest 68
+ring, unchecked: a band a stroke wide, hard-edged: mean 3.13, over an eighth 73, largest 68
+tick, checked: polygon, its box where it falls, moved -0.6 px: mean 1.64, over an eighth 19, largest 58
+tick, checked: polygon, its box where it falls, moved -0.4 px: mean 1.64, over an eighth 19, largest 58
+tick, checked: polygon, its box where it falls, moved -0.2 px: mean 1.64, over an eighth 19, largest 58
+tick, checked: polygon, its box where it falls, moved 0 px: mean 1.64, over an eighth 19, largest 58
+tick, checked: polygon, its box where it falls, moved 0.2 px: mean 5.24, over an eighth 77, largest 168
+tick, checked: polygon, its box where it falls, moved 0.4 px: mean 5.24, over an eighth 77, largest 168
+tick, checked: polygon, its box where it falls, moved 0.6 px: mean 5.24, over an eighth 77, largest 168
+tick, checked: polygon, its box rounded to the image's row (chosen): mean 1.64, over an eighth 19, largest 58
+tick, checked: path(), its box rounded to the image's row: mean 1.63, over an eighth 19, largest 58

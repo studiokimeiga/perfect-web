@@ -11,7 +11,10 @@ Each mutant undoes one thing the spec states:
   its field and what it holds, Enter, Escape and blur), the clear button, a
   todo's toggle, an edit trimmed to nothing, an id one more than any before
   it, where a todo is added, and the field's focus and clearing;
-- the host's media type for the checkbox's drawings;
+- the checkbox's drawings in this app's sheet (`todomvc-styles.mjs`, ADR-0367's
+  amendment of 2026-11-06): the tick taking a press, the ring drawn off its
+  centre, a path's relative points read as absolute, and the checked ring in
+  the unchecked colour. Each rebuilds the app, which writes its sheet again;
 - the browser's runtime (`spikes/own-renderer/public/pw-runtime.mjs`), where
   a patch sets a checkbox's state as well as its attribute, and the edit
   field a patch inserts takes focus (the runtime's own `autofocus` is
@@ -53,12 +56,13 @@ import producer_process
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 APP = ROOT / "examples/todomvc/app.pw"
-SERVER = ROOT / "spikes/own-renderer/server/src/main.rs"
 RUNTIME_FILE = ROOT / "spikes/own-renderer/public/pw-runtime.mjs"
+STYLES_FILE = ROOT / "spikes/own-renderer/todomvc-styles.mjs"
 
 PROGRAM = "program"
 HOST = "host"
 RUNTIME = "runtime"
+STYLES = "styles"
 
 # The program mutants the checker refuses, by the rule that is the protection
 # each takes away (`scripts/mutant_programs.py`): every other program mutant
@@ -345,11 +349,32 @@ MUTANTS = [
         '<input class="new-todo" placeholder="What needs to be done?" aria-label="New todo"\n',
     ),
     (
-        "the checkbox's drawings are served as any file",
-        HOST,
-        SERVER,
-        '        Some("svg") => "image/svg+xml",\n',
-        '        Some("svg") => "application/octet-stream",\n',
+        "the tick takes a press made on it",
+        STYLES,
+        STYLES_FILE,
+        '    "\\tpointer-events: none;",\n',
+        "",
+    ),
+    (
+        "the ring is drawn off its centre",
+        STYLES,
+        STYLES_FILE,
+        "circle at ${px(c.x)} ${px(c.y)}",
+        "circle at ${px(c.x + 2)} ${px(c.y)}",
+    ),
+    (
+        "a path's relative points are read as absolute",
+        STYLES,
+        STYLES_FILE,
+        "  return command === command.toLowerCase();\n",
+        "  return false;\n",
+    ),
+    (
+        "the checked ring keeps the unchecked colour",
+        STYLES,
+        STYLES_FILE,
+        '    `\\tbackground-image: ${checked.circles.map(ringOf).join(", ")};`,\n',
+        '    `\\tbackground-image: ${circle.circles.map(ringOf).join(", ")};`,\n',
     ),
     (
         "a patch that removes `checked` leaves the box as a person left it",
@@ -391,7 +416,7 @@ SERVER_NAMES = {
     "tests::todomvc::the_page_has_the_templates_markup",
 }
 SPEC = ["e2e/todomvc.spec.mjs", "--project=chromium"]
-BROWSER_COUNT = 50
+BROWSER_COUNT = 52
 INVENTORIES = {}
 
 # A stopped, incomplete or erroneous producer is invalid, never a test failure.
@@ -485,7 +510,7 @@ def build(pages=False):
 
 
 def browser_tests(_what=None, pages=False):
-    """Fresh complete assertion receipt, with the baseline's frozen fifty IDs."""
+    """Fresh complete assertion receipt, with the baseline's frozen IDs, `BROWSER_COUNT` of them."""
     if not build(pages):
         return False, 0, 0
     with tempfile.TemporaryDirectory(prefix="pw-todomvc-browser-") as directory:
@@ -506,7 +531,7 @@ def browser_tests(_what=None, pages=False):
         if not result.valid or result.failed:
             print(out, flush=True)
         if not result.valid or result.passed + result.failed != BROWSER_COUNT:
-            print(f"REFUSED browser producer: {result.reason or 'expected fifty tests'}", flush=True)
+            print(f"REFUSED browser producer: {result.reason or f'expected {BROWSER_COUNT} tests'}", flush=True)
             return False, 0, 0
         INVENTORIES.setdefault("browser", result.inventory)
         return True, result.passed, result.failed
@@ -522,6 +547,7 @@ RUNS = {
     PROGRAM: [("server", server_tests), ("browser", browser_tests)],
     HOST: [("browser", browser_tests)],
     RUNTIME: [("browser", runtime_browser_tests)],
+    STYLES: [("browser", browser_tests)],
 }
 
 

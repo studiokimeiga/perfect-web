@@ -1,0 +1,3 @@
+page_policy_mutations.py: 1 anchor(s) in changed code: a stylesheet the build ships is served as bytes
+todomvc_mutations.py: 4 anchor(s) in changed code: the tick takes a press made on it; the ring is drawn off its centre; a path's relative points are read as absolute; the checked ring keeps the unchecked colour
+todomvc_producer_mutations.py: 2 anchor(s) in changed code: short baseline browser inventory is accepted; invalid browser provenance earns credit
