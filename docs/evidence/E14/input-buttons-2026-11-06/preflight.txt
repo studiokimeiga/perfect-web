@@ -1,0 +1,29 @@
+just preflight
+
+produced by: just preflight (gates.sh, in /home/haki/code/perfect-web/.claude/worktrees/competent-dirac-a03323)
+commit: 5be06de4356383efbaeacce798e522028377467e
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+started: 2026-11-06T21:24:51Z
+
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+    Checking pw-core v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/competent-dirac-a03323/compiler/pw-core)
+    Checking pw-conformance v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/competent-dirac-a03323/compiler/pw-conformance)
+    Checking pw-table-memory v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/competent-dirac-a03323/runtime/pw-table-memory)
+    Checking pw-table-postgres v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/competent-dirac-a03323/runtime/pw-table-postgres)
+    Checking pw-cli v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/competent-dirac-a03323/compiler/pw-cli)
+    Checking pw-resume v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/competent-dirac-a03323/runtime/pw-resume)
+    Checking pw-resource v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/competent-dirac-a03323/runtime/pw-resource)
+    Checking pw-fuzz v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/competent-dirac-a03323/tools/fuzz)
+    Checking pw-dev-server v0.0.0 (/home/haki/code/perfect-web/.claude/worktrees/competent-dirac-a03323/spikes/own-renderer/server)
+    Finished `dev` profile [unoptimized] target(s) in 10.04s
+# `pw-host`'s engine feature is not exercised by `just test`, because a
+# Wasm engine is not needed to decide a capability question. But an
+# unbuilt cfg rots: a field added to `Import` broke `tests/artifact.rs`
+# and nothing noticed until `just e8-host` ran. Compiled here, run there.
+cargo clippy -p pw-host --features engine --all-targets -- -D warnings
+    Finished `dev` profile [unoptimized] target(s) in 0.08s
+case-check: OK (4698 paths)
+mutation anchors: 5013 mutants in 325 scripts, each matching once
+exit: 0
+finished: 2026-11-06T21:25:04Z

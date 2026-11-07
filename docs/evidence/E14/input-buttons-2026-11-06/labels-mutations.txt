@@ -1,0 +1,49 @@
+scripts/labels_mutations.py, run whole
+
+produced by: bash campaign.sh /home/haki/code/pw-wt/pw5014-mut-b /home/haki/pw-targets/pw5014-mut-b OUT labels
+commit: 5be06de4356383efbaeacce798e522028377467e
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+CARGO_BUILD_JOBS=8 PW_MUTANT_INCREMENTAL=1
+started: 2026-11-06T20:03:28Z
+
+baseline: 25 passed, 0 failed
+an `id` names a control again: KILLED (5 of 25 tests fail)
+a label with `for` is read as one that wraps: KILLED (8 of 25 tests fail)
+a label that wraps its control names nothing: KILLED (8 of 25 tests fail)
+a label with no text names its control: KILLED (2 of 25 tests fail)
+the last element with an `id` is the one a label names: KILLED (1 of 25 tests fail)
+an `id` inside `{#each}` names no row: KILLED (1 of 25 tests fail)
+a control inside a block is a label's first: KILLED (1 of 25 tests fail)
+a composed view holds no control: KILLED (1 of 25 tests fail)
+a hidden input is labelable: KILLED (1 of 25 tests fail)
+a control's own options are its label: KILLED (1 of 25 tests fail)
+hidden text names a control: KILLED (1 of 25 tests fail)
+a blank `aria-label` names a control: KILLED (2 of 25 tests fail)
+a name the program computes is refused: an `aria-label`'s, a `value`'s: KILLED (2 of 25 tests fail)
+an attribute written alone names: an `aria-label`, a `value`: KILLED (2 of 25 tests fail)
+a blank attribute names: an `aria-label`, a `value`: KILLED (5 of 25 tests fail)
+`aria-labelledby` names a control whatever it reaches: KILLED (1 of 25 tests fail)
+an IDREF to an element with no text names a control: KILLED (1 of 25 tests fail)
+an input's `type` is read case by case: KILLED (5 of 25 tests fail)
+an image button is PW5014's again, refused for having no `<label>`: KILLED (4 of 25 tests fail)
+a hidden input is a control: KILLED (2 of 25 tests fail)
+a `<select>`'s or a `<textarea>`'s `type` is read: KILLED (1 of 25 tests fail)
+a button names itself whatever element it is: KILLED (1 of 25 tests fail)
+a `submit` or `reset` with no `value` has no label: KILLED (2 of 25 tests fail)
+a `button` input with no `value` has a label: KILLED (3 of 25 tests fail)
+a button's `value` is not read: KILLED (3 of 25 tests fail)
+a blank `value` names a button: KILLED (2 of 25 tests fail)
+a button is refused with a field's message, reason and repair: KILLED (3 of 25 tests fail)
+a button is refused with a field's message: KILLED (3 of 25 tests fail)
+the note does not say a button's `value` is blank: KILLED (1 of 25 tests fail)
+the note does not say a `button` input has no `value`: KILLED (1 of 25 tests fail)
+a field is given a button's note: KILLED (7 of 25 tests fail)
+31 of 31 mutants killed
+memory bound: no process was stopped
+exit: 0
+finished: 2026-11-06T20:48:52Z
+
+== python3 scripts/mutation_anchors.py, after
+mutation anchors: 5013 mutants in 325 scripts, each matching once
+exit: 0
+source: as committed

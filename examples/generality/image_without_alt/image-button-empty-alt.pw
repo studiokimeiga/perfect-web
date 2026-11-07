@@ -1,0 +1,15 @@
+// @status: GENERAL
+// @invariant: image_without_alt
+// @dimension: indirect invalid — an image button with `alt=""` beside an `aria-label`
+//
+// An `<img>` may have `alt=""`; an image button may not, because its `alt`
+// is its label (the input-button ADR). The `aria-label` names it to a screen
+// reader, and nothing gives it a label where the image does not load.
+module generality.image_button_empty_alt
+
+view SearchForm() !{} {
+    <form>
+        <label>Find <input type="search" name="q" /></label>
+        <input type="image" src="/search.png" alt="" aria-label="Search" />
+    </form>
+}

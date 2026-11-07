@@ -1,0 +1,25 @@
+scripts/affine_mutations.py, run whole
+
+produced by: bash campaign.sh /home/haki/code/pw-wt/pw5014-mut-c /home/haki/pw-targets/pw5014-mut-c OUT affine
+commit: 5be06de4356383efbaeacce798e522028377467e
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+CARGO_BUILD_JOBS=8 PW_MUTANT_INCREMENTAL=1
+started: 2026-11-06T21:02:39Z
+
+baseline: 15 passed, 0 failed
+the end of a scope is not an exit: KILLED (1 of 15 tests fail)
+a failing `?` is not an exit: KILLED (1 of 15 tests fail)
+a second release is not counted: KILLED (1 of 15 tests fail)
+a release in a loop counts once: KILLED (1 of 15 tests fail)
+a parameter the declaration promises to release is not followed: KILLED (1 of 15 tests fail)
+the body's value does not move the resource to the caller: KILLED (1 of 15 tests fail)
+a use binding is held to explicit releases: KILLED (1 of 15 tests fail)
+7 of 7 mutants killed
+memory bound: no process was stopped
+exit: 0
+finished: 2026-11-06T21:16:39Z
+
+== python3 scripts/mutation_anchors.py, after
+mutation anchors: 5013 mutants in 325 scripts, each matching once
+exit: 0
+source: as committed

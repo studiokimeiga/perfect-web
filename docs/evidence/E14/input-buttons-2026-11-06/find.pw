@@ -1,0 +1,8 @@
+module find
+
+view Find() !{} {
+    <form method="get" action="/find">
+        <input type="image" src="/search.png" alt="Search" />
+        <input type="reset" />
+    </form>
+}

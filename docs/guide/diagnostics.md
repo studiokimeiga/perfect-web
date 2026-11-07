@@ -217,7 +217,7 @@ number or its symbol.
 | PW5012 | `invalid_nesting` | an element may only contain the children HTML permits | — |
 | PW5013 | `handler_on_inert` | interactive behaviour belongs on an element that can receive it | — |
 | PW5014 | `control_without_label` | a form control must have something that names it | — |
-| PW5053 | `image_without_alt` | an image says what it shows: an `<img>` has an `alt`, empty only where it shows nothing a reader needs | [0343](../DECISIONS/ADR-0343-a-guide-whose-examples-compile.md) |
+| PW5053 | `image_without_alt` | an image says what it shows: an `<img>` has an `alt`, empty only where it shows nothing a reader needs, and an image button an `alt` that says what it does | [0343](../DECISIONS/ADR-0343-a-guide-whose-examples-compile.md) |
 | PW5019 | `malformed_template_block` | a template block closes with its own name and holds only the markers it takes | [0042](../DECISIONS/ADR-0042-template-branches-and-attributes.md) |
 | PW5020 | `view_element` | an element named with a capital letter is a view the compiler composes | [0072](../DECISIONS/ADR-0072-an-element-named-with-a-capital-is-a-view.md) |
 | PW5021 | `loop_key` | a loop's key is its element, or a field read from it | [0073](../DECISIONS/ADR-0073-a-template-reads-each-value-by-path.md) |
