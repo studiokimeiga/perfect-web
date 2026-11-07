@@ -193,7 +193,13 @@ pub fn check(
                          command that declares no key would run again for each."
                     }
                 },
-                format!("declare `idempotent_by InteractionId` on `{}`", decl.name),
+                // Both steps, as PW0338's: PW0335 refuses the clause alone
+                // where the program declares no `InteractionId`.
+                format!(
+                    "declare `idempotent_by InteractionId` on `{}`, and `opaque type \
+                     InteractionId = String` if the program has none",
+                    decl.name
+                ),
             ));
         }
         let def = DefId { unit, decl: id.0 };

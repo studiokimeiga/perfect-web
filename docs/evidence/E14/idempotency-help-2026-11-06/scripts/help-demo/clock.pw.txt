@@ -1,0 +1,7 @@
+module generality.unkeyed_clock
+
+command remind(order: String) -> Result<Int, String>
+    invoked_by Clock
+{
+    Ok(1)
+}
