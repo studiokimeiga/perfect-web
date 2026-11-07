@@ -1,4 +1,4 @@
-//! The keep-alive ADR: **a host keeps a connection for its next request**
+//! ADR-0401: **a host keeps a connection for its next request**
 //! where HTTP/1.1 keeps it, and closes it where the request asks, where the
 //! request's body was not read whole, where the answer's end is the
 //! connection's (a stream), and past the host's cap. It frames a request's
@@ -636,4 +636,27 @@ fn a_second_answer_to_one_request_closes_its_connection() {
     let (second, _) = answer(&mut answers);
     assert!(first.contains("connection: keep-alive\r\n"), "{first}");
     assert!(second.contains("connection: close\r\n"), "{second}");
+}
+
+/// **A commit's answer waits on no reader** (ADR-0219): the readers its
+/// commit reached are told after its answer is written. Here another
+/// reader's page holds the feed, the telling takes two seconds, and the
+/// author's answer comes at once.
+#[test]
+fn a_commits_answer_waits_on_no_reader() {
+    let s = kept_feed();
+    s.serve_document_settled("b", "feed.app.Home~ui", &Params::new(), &[])
+        .expect("another reader's page");
+    *s.telling_delay.lock().expect("telling delay") = Duration::from_secs(2);
+    let body = r#"["To every reader"]"#;
+    let request = post(body, &format!("content-length: {}\r\n", body.len()));
+    let waited = connected(&s, |client, answers| {
+        let sent = Instant::now();
+        client.write_all(request.as_bytes()).expect("the post");
+        let (head, said) = answer(answers);
+        assert!(head.starts_with("HTTP/1.1 202"), "{head}");
+        assert!(said.contains("\"committed\":true"), "{said}");
+        sent.elapsed()
+    });
+    assert!(waited < Duration::from_millis(1500), "waited {waited:?}");
 }
