@@ -10,8 +10,8 @@ race), #72 with the closed-table cache repair (ADR-0394), the performance stack
 (ADR-0403 to ADR-0406). It lands only on its own green `ci` and `verify`.
 - Corpus C32: 44 accepted, 97 rejected programs, every charter category
   covered; generality 67 / 67 (`image_without_alt` and `who_may_run`).
-- Held, each with its reason in [NEXT](NEXT.md): #91 (row ownership: two
-  designs, one ruling), #64 (`e14-pleris-controls` T11 failed), #81 (its
+- Held, each with its reason in [NEXT](NEXT.md): #91 (not adopted:
+  ADR-0407 rules for `owned by`), #64 (`e14-pleris-controls` T11 failed), #81 (its
   checkbox test fails in WebKit), #74 (experimental; claims ADR-0394), and
   the dependency updates.
 

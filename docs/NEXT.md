@@ -11,19 +11,22 @@
 Train-14 merges 24 PRs and the cache repair ([STATUS](STATUS.md)). What
 stays open, in order:
 
-1. **Row ownership: one design.** PR #91 (`owner user | session | anyone`,
-   PW0370) and the row-ownership track (`owned by <field>`, ADR-0384's
-   sketch, on the unpublished `fix/row-data-integration` with durable tables
-   and uploads) answer one question two ways. The integrator rules between
-   them in an ADR before either lands. The track's codes PW0367-PW0369
-   collide with ADR-0406's PW0367, which landed first: the track renumbers.
+1. **Row ownership lands as ADR-0407 rules.** `owned by <field>` (the
+   row-ownership track, reserved ADR-0395) is master's model; PR #91 does
+   not merge. Split the row, data and durable slice from
+   `fix/row-data-integration` (uploads, the outbox and the feed and store
+   go in PRs of their own), merge master, renumber its codes (ADR-0406
+   holds PW0367), add `requires` to its fixtures, carry #91's findings
+   (ADR-0407's decision 3), and re-run its gates on GitHub.
 2. **PR #81:** its pixel test of the checkbox fails in WebKit ("checked: the
    bounds its drawing is past"); its session repairs the drawing.
 3. **PR #64:** `e14-pleris-controls` failed T11's positive control and
    harness at `484437e2`; find the cause before it lands.
-4. **PR #91's two follow-ups**, once the ruling stands: key a scheduled run
-   by the writer whose command scheduled it; answer a PostgreSQL `put` from
-   the row its statement replaced, not a snapshot (unowned tables too).
+4. **Two defects on master** (ADR-0407's decision 4), each its own PR: the
+   development server's scheduler keys a run by its command and arguments
+   alone (`schedules.rs`'s `key`), so one reader's schedule moves another's
+   pending run; and D3's PostgreSQL `put` is answered from its statement's
+   snapshot (`sql.rs`'s `old`), which a concurrent command can make wrong.
 5. **PR #74** names its decision ADR-0394, which the data path holds; it
    takes the next free number when it lands. The dependency updates
    (#16-#26, #65) are checked and landed on their own.

@@ -3328,3 +3328,6 @@ An input button names itself: PW5014 reads a `submit` or `reset` by its value or
 
 [ADR-0406](DECISIONS/ADR-0406-a-command-says-who-may-run-it.md):
 A command says who may run it: PW0367 refuses a command a reader can run that declares no `requires`; `requires Anyone` says anyone may, and is no precondition (PR #83, corpus C32).
+
+[ADR-0407](DECISIONS/ADR-0407-one-model-of-row-ownership.md):
+One model of row ownership: a row's owner is a field the platform checks against the writer, and its key leads with the owner (`owned by`, the row-ownership track). PR #91's hidden owner is not adopted: its keys are global, so a reader who first writes a key owns it and the rightful reader's writes are silently lost; what it found is carried into the track's landing.
