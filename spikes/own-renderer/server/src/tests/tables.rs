@@ -275,6 +275,7 @@ materialize Count() -> Int {
 }
 
 command make_list(list: TodoList) -> Result<(), TodoList>
+    requires Anyone
     transaction serializable
     emits Changed()
     invalidates EveryList()
@@ -758,6 +759,7 @@ fn seen(id: String, account: Option<Account>) -> Seen !{} {
 }
 
 command now(id: String) -> Result<Int, String>
+    requires      Anyone
     idempotent_by InteractionId
     invalidates   Who(id)
 {
@@ -775,6 +777,7 @@ command noted(id: String) -> Result<Int, String>
 }
 
 command later(id: String) -> Result<Int, String> !{ clock.schedule }
+    requires      Anyone
     idempotent_by InteractionId
 {
     schedule noted(id) after minutes(1)
