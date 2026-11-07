@@ -436,3 +436,204 @@ fn the_keep_alive_header_says_the_idle_wait() {
         "{KEEPS}"
     );
 }
+
+// --- a head read whole, or refused (train-14's review, 2026-11-07) ---------
+
+/// **A head cut short by a header that is no text is refused, and its
+/// connection closed.** Until 2026-11-07 a read that failed was taken for
+/// the head's end: a header value that is no UTF-8 ended the head where it
+/// stood, the headers after it were never read, and the rest was read as the
+/// next request on a kept connection. Behind a proxy that reuses its
+/// connections, that smuggles a request. Here the `content-length` after the
+/// bad header would have been lost, and the hidden request answered.
+#[test]
+fn a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed() {
+    let s = kept_feed();
+    let hidden = get("/pw-handlers", "");
+    let mut request = b"POST /command/feed.app.post HTTP/1.1\r\nHost: t\r\n\
+        Cookie: pw-session=a\r\npw-interaction: kept-x\r\nX-A: "
+        .to_vec();
+    request.push(0xff);
+    request.extend_from_slice(
+        format!("\r\ncontent-length: {}\r\n\r\n{hidden}", hidden.len()).as_bytes(),
+    );
+    let (said, ended) = connected(&s, |client, answers| {
+        client.write_all(&request).expect("request");
+        let said = answer(answers);
+        (said, closed(answers))
+    });
+    assert!(
+        said.0.starts_with("HTTP/1.1 400") && said.0.contains("connection: close\r\n"),
+        "{}",
+        said.0
+    );
+    assert!(ended, "the hidden request is never answered");
+}
+
+/// **A head is read within one deadline, not one wait a byte.** Until
+/// 2026-11-07 the host's ten seconds bounded each read alone, so a client
+/// sending a byte of its head every few seconds held a thread for ever, and
+/// a stall mid-head was answered as a complete head. Here the deadline is
+/// short, the head trickles past it, and the host answers 408 and closes:
+/// what was sent is never answered as a request.
+#[test]
+fn a_head_that_trickles_past_its_deadline_is_refused_and_closed() {
+    let mut s = kept_feed();
+    s.server.request_read = Duration::from_millis(400);
+    let began = Instant::now();
+    let (said, ended) = connected(&s, |client, answers| {
+        client
+            .write_all(b"GET /pw-handlers HTTP/1.1\r\nHost: t\r\nX-Slow: ")
+            .expect("the head begun");
+        for _ in 0..12 {
+            std::thread::sleep(Duration::from_millis(100));
+            if client.write_all(b"a").is_err() {
+                break;
+            }
+        }
+        let said = answer(answers);
+        (said, closed(answers))
+    });
+    assert!(
+        said.0.starts_with("HTTP/1.1 408") && said.0.contains("connection: close\r\n"),
+        "{}",
+        said.0
+    );
+    assert!(ended, "closed");
+    assert!(
+        began.elapsed() < Duration::from_secs(5),
+        "{:?}",
+        began.elapsed()
+    );
+}
+
+/// **A head past its size is refused, and its connection closed** (431):
+/// the head is read into memory, and a head with no end is an allocation
+/// anyone can ask for.
+#[test]
+fn a_head_past_its_size_is_refused_and_closed() {
+    let big = format!("X-Big: {}\r\n", "a".repeat(HEAD_AT_MOST));
+    let ((head, _), ended) = refused(&get("/pw-handlers", &big));
+    assert!(head.starts_with("HTTP/1.1 431"), "{head}");
+    assert!(ended, "closed");
+}
+
+/// **A HEAD is answered with a head and no body, and its connection closed.**
+/// Until 2026-11-07 a HEAD fell to the 405 below, which wrote a six-byte body
+/// on a kept connection: a client reads no body after a HEAD's answer (RFC
+/// 9112 §6.3), so it read `method` as its next answer's status line. Now a
+/// HEAD is answered as its GET would be, without the body, and the
+/// connection closes after it, so nothing a streamed route writes can follow.
+#[test]
+fn a_head_request_is_answered_with_no_body_and_closed() {
+    let s = kept_feed();
+    let (head, rest) = connected(&s, |client, answers| {
+        client
+            .write_all(b"HEAD /pw-handlers HTTP/1.1\r\nHost: t\r\nCookie: pw-session=a\r\n\r\n")
+            .expect("request");
+        let mut head = String::new();
+        loop {
+            let mut line = String::new();
+            if answers.read_line(&mut line).unwrap_or(0) == 0 {
+                break;
+            }
+            head.push_str(&line);
+            if line == "\r\n" {
+                break;
+            }
+        }
+        let mut rest = Vec::new();
+        let _ = answers.read_to_end(&mut rest);
+        (head, rest)
+    });
+    assert!(head.starts_with("HTTP/1.1 200"), "{head}");
+    assert!(head.contains("connection: close\r\n"), "{head}");
+    assert!(rest.is_empty(), "no body after a HEAD's answer: {rest:?}");
+}
+
+/// **A body is read within the request's deadline too.** A body sent a byte
+/// at a time past it is not read on: the host closes the connection with no
+/// answer, and the command never runs.
+#[test]
+fn a_body_that_trickles_past_its_deadline_is_not_read_on() {
+    let mut s = kept_feed();
+    s.server.request_read = Duration::from_millis(400);
+    let body = r#"["slow"]"#;
+    let head = post("", &format!("content-length: {}\r\n", body.len()));
+    let (said, ended) = connected(&s, |client, answers| {
+        client.write_all(head.as_bytes()).expect("the head");
+        for byte in body.as_bytes() {
+            std::thread::sleep(Duration::from_millis(150));
+            if client.write_all(&[*byte]).is_err() {
+                break;
+            }
+        }
+        let said = answer(answers);
+        (said, closed(answers))
+    });
+    assert!(said.0.is_empty(), "no answer: {}", said.0);
+    assert!(ended, "closed");
+}
+
+/// **The next request on a kept connection waits on no telling** (ADR-0219;
+/// train-14's review). A browser sends an author's next command on the
+/// connection it just used, and until 2026-11-07 that connection told every
+/// other reader before it read the command. Here the telling takes two
+/// seconds, and the next request is answered before it is done.
+#[test]
+fn the_next_request_waits_on_no_telling() {
+    let s = kept_feed();
+    *s.telling_delay.lock().expect("telling delay") = Duration::from_secs(2);
+    s.telling
+        .lock()
+        .expect("telling")
+        .push((String::new(), Vec::new()));
+    let waited = connected(&s, |client, answers| {
+        client
+            .write_all(get("/pw-handlers", "").as_bytes())
+            .expect("the first request");
+        let _ = answer(answers);
+        let sent = Instant::now();
+        client
+            .write_all(get("/pw-handlers", "").as_bytes())
+            .expect("the next request");
+        let (head, _) = answer(answers);
+        assert!(head.starts_with("HTTP/1.1 200"), "{head}");
+        sent.elapsed()
+    });
+    assert!(waited < Duration::from_millis(1500), "waited {waited:?}");
+}
+
+/// **The accept loop backs off after a failed `accept`**: 10 ms, doubling,
+/// a second at most, rather than asking again at once.
+#[test]
+fn the_accept_loop_backs_off_after_a_failure() {
+    let waits: Vec<u64> = (0..10)
+        .map(|n| accept_backoff(n).as_millis() as u64)
+        .collect();
+    assert_eq!(waits, [10, 20, 40, 80, 160, 320, 640, 1000, 1000, 1000]);
+}
+
+/// **A second answer to one request closes its connection**: a client
+/// reads one answer a request, so what follows the first is no answer it
+/// asked for, and the connection it came on is not kept (train-14's review).
+#[test]
+fn a_second_answer_to_one_request_closes_its_connection() {
+    let listener = TcpListener::bind(("127.0.0.1", 0)).expect("bind");
+    let at = listener.local_addr().expect("address");
+    let client = TcpStream::connect(at).expect("connect");
+    let (host, _) = listener.accept().expect("accept");
+    let mut conn = Conn::of(host);
+    conn.begin();
+    conn.keep(true);
+    write_response(&mut conn, 200, "text/plain", "", b"one");
+    assert!(conn.kept(), "kept after one answer");
+    write_response(&mut conn, 200, "text/plain", "", b"two");
+    assert!(!conn.kept(), "closed after a second");
+    drop(conn);
+    let mut answers = BufReader::new(client);
+    let (first, _) = answer(&mut answers);
+    let (second, _) = answer(&mut answers);
+    assert!(first.contains("connection: keep-alive\r\n"), "{first}");
+    assert!(second.contains("connection: close\r\n"), "{second}");
+}

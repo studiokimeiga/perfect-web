@@ -1060,6 +1060,11 @@ struct Server {
     /// waits [`TEST_KEEP_ALIVE_IDLE`], so that a client reading one answer to
     /// its end has its close at once; a test of keep-alive sets it.
     keep_alive: std::time::Duration,
+    /// **How long a request's head and body may take to arrive** (the
+    /// keep-alive ADR, amended by train-14's review): one deadline from the
+    /// request's first read, [`REQUEST_READ_AT_MOST`] in every host; a test
+    /// of it sets it.
+    request_read: std::time::Duration,
     /// **The connections open now** (the keep-alive ADR): past
     /// [`KEPT_AT_MOST`], an answer closes its connection.
     open: Arc<std::sync::atomic::AtomicUsize>,
@@ -1162,6 +1167,10 @@ struct Server {
     /// with the session that committed: told once the request that
     /// committed is answered (`tell_waiting`).
     telling: Mutex<Vec<(String, Vec<Reached>)>>,
+    /// **A test's telling made slow**: how long `tell_waiting` waits before
+    /// it tells, so a test can show what does not wait on it.
+    #[cfg(test)]
+    telling_delay: Mutex<std::time::Duration>,
     /// **The sessions being told, and whether a commit reached one again
     /// meanwhile** (ADR-0271): one telling of a session at a time, and one
     /// more after it for every commit that came while it ran.
@@ -2075,6 +2084,7 @@ impl Server {
             } else {
                 KEEP_ALIVE_IDLE
             },
+            request_read: REQUEST_READ_AT_MOST,
             open: Arc::default(),
             idle: Mutex::new(BTreeMap::new()),
             wake_at_least: WAKE_AT_LEAST,
@@ -2092,6 +2102,8 @@ impl Server {
             pages: Mutex::new(BTreeMap::new()),
             answers: Mutex::new(BTreeMap::new()),
             telling: Mutex::new(Vec::new()),
+            #[cfg(test)]
+            telling_delay: Mutex::new(std::time::Duration::ZERO),
             told: Mutex::new(BTreeMap::new()),
             words: BTreeMap::new(),
             speculated_versions: Mutex::new(BTreeMap::new()),
@@ -5003,6 +5015,10 @@ impl Server {
     /// and a reader's own read waited behind them.
     fn tell_waiting(&self) {
         let waiting = std::mem::take(&mut *self.telling.lock().expect("telling"));
+        #[cfg(test)]
+        if !waiting.is_empty() {
+            std::thread::sleep(*self.telling_delay.lock().expect("telling delay"));
+        }
         let others: std::collections::BTreeSet<String> = waiting
             .iter()
             .flat_map(|(session, reached)| self.others_reading(session, reached))
@@ -9382,8 +9398,14 @@ fn main() {
         None => println!("pw dev server hosts: one; its data layer shares no database"),
     }
 
+    let mut failures = 0u32;
     for stream in listener.incoming() {
-        let Ok(stream) = stream else { continue };
+        let Ok(stream) = stream else {
+            std::thread::sleep(accept_backoff(failures));
+            failures = failures.saturating_add(1);
+            continue;
+        };
+        failures = 0;
         let server = server.clone();
         // A thread per connection. The subscription blocks, and a
         // single-threaded loop would make the first subscriber the last.
@@ -9392,15 +9414,21 @@ fn main() {
 }
 
 /// **How long a kept connection waits for its next request's first byte**
-/// (the keep-alive ADR): Node's default `keepAliveTimeout`, 5 s. Past it the
-/// host closes the connection; the browser opens another for its next
-/// request, as it does for a connection a host closed while it was idle.
-const KEEP_ALIVE_IDLE: std::time::Duration = std::time::Duration::from_secs(5);
+/// (the keep-alive ADR): 75 s, nginx's `keepalive_timeout`. Past it the host
+/// closes the connection; the browser opens another for its next request,
+/// as it does for a connection a host closed while it was idle. Until
+/// train-14's review it was Node's 5 s, under the 60 s a proxy keeps an
+/// upstream connection idle (nginx's `keepalive_timeout` upstream, AWS's
+/// load balancers): such a proxy sends a request on a connection the host is
+/// closing, and its client is answered 502. Longer than every such proxy's,
+/// the host's close is never the one raced; and a browser's next press after
+/// a pause finds its connection open.
+const KEEP_ALIVE_IDLE: std::time::Duration = std::time::Duration::from_secs(75);
 
 /// The connection lines of an answer that keeps its connection: what HTTP/1.1
 /// assumes, said, and how long the host keeps it idle ([`KEEP_ALIVE_IDLE`]),
 /// so that a client sends no request on a connection about to close.
-const KEEPS: &str = "connection: keep-alive\r\nkeep-alive: timeout=5\r\n";
+const KEEPS: &str = "connection: keep-alive\r\nkeep-alive: timeout=75\r\n";
 
 /// **A test host's wait for a kept connection's next request** (the
 /// keep-alive ADR): a test's client reads one answer to its end.
@@ -9409,13 +9437,36 @@ const TEST_KEEP_ALIVE_IDLE: std::time::Duration = std::time::Duration::from_mill
 /// **How long a request's head and body may take once begun** (the
 /// keep-alive ADR): a client that has begun a request sends it at once. A
 /// connection that has said nothing in this long is closed, so a client
-/// that opens connections and sends nothing ties up no thread for long.
+/// that opens connections and sends nothing ties up no thread for long. One
+/// deadline for the whole request, not one wait for each read: until
+/// train-14's review a client sending a byte every few seconds held a thread
+/// for ever.
 const REQUEST_READ_AT_MOST: std::time::Duration = std::time::Duration::from_secs(10);
+
+/// **The most a request's head may hold**: its request line and headers,
+/// 32 KiB. A head past it is refused (431): it is read into memory, and a
+/// head with no end is an allocation anyone can ask for (train-14's review).
+const HEAD_AT_MOST: usize = 32 * 1024;
 
 /// **The most connections a host keeps open between requests** (the
 /// keep-alive ADR): each holds a thread. Past this many open at once, an
-/// answer closes its connection; the next request opens another.
-const KEPT_AT_MOST: usize = 512;
+/// answer closes its connection; the next request opens another. Each open
+/// connection holds three file handles (its socket, its reader's, and its
+/// request's or its idle listing's), so 256 hold 768 of the 1024 a process
+/// is usually allowed, leaving the rest for the listener, the database's
+/// connections and files (train-14's review: 512 held 1536, and past about
+/// 340 connections `accept` failed). A host given more by its service
+/// manager (systemd's `LimitNOFILE`) keeps no more: the cap is the host's.
+const KEPT_AT_MOST: usize = 256;
+
+/// **How long the accept loop waits after its `failures`-th failure in a
+/// row**: 10 ms, doubling, a second at most. An `accept` that fails, as it
+/// does when the process has no file handle left, fails again at once, and
+/// until train-14's review the loop asked again at once, spinning a core
+/// until idle connections closed.
+fn accept_backoff(failures: u32) -> std::time::Duration {
+    std::time::Duration::from_millis(10u64.saturating_mul(1 << failures.min(7)).min(1000))
+}
 
 /// **A connection, and whether its answer keeps it for the next request**
 /// (the keep-alive ADR). Every answer is written to one. Its head says
@@ -9447,6 +9498,8 @@ struct Conn {
 struct Keeping {
     keep: std::sync::atomic::AtomicBool,
     answered: std::sync::atomic::AtomicBool,
+    /// The request is a HEAD: its answer is written without its body.
+    head_only: std::sync::atomic::AtomicBool,
 }
 
 impl Conn {
@@ -9471,6 +9524,21 @@ impl Conn {
     fn begin(&self) {
         self.keep(false);
         self.answered(false);
+        self.head_only(false);
+    }
+
+    /// Whether this request is a HEAD, whose answer has no body (RFC 9110
+    /// §9.3.2).
+    fn head_only(&self, head: bool) {
+        self.keeping
+            .head_only
+            .store(head, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    fn is_head_only(&self) -> bool {
+        self.keeping
+            .head_only
+            .load(std::sync::atomic::Ordering::SeqCst)
     }
 
     /// Whether this answer keeps its connection.
@@ -9485,6 +9553,13 @@ impl Conn {
         self.keeping
             .answered
             .store(whole, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    /// Whether an answer was written whole for this request already.
+    fn was_answered(&self) -> bool {
+        self.keeping
+            .answered
+            .load(std::sync::atomic::Ordering::SeqCst)
     }
 
     /// Whether the connection is kept for a next request: an answer written
@@ -9555,21 +9630,32 @@ fn handle(server: &Server, stream: TcpStream) {
     };
     let mut reader = BufReader::new(read);
     let conn = Conn::of(stream);
-    loop {
-        let Ok(request) = conn.twin() else {
-            return;
-        };
-        answer_connection(server, request, &mut reader);
-        let kept = conn.kept();
-        if !kept {
-            let _ = conn.shutdown(std::net::Shutdown::Both);
+    // The telling of what each answer committed runs beside the
+    // connection's next request, not before it (ADR-0219: an author's answer
+    // waits on no reader). Until train-14's review a kept connection told
+    // first, so the author's next command, which a browser sends on the
+    // connection it just used, waited for every other reader to be told.
+    std::thread::scope(|scope| {
+        loop {
+            let Ok(request) = conn.twin() else {
+                return;
+            };
+            answer_connection(server, request, &mut reader);
+            let kept = conn.kept();
+            if !kept {
+                let _ = conn.shutdown(std::net::Shutdown::Both);
+                server.tell_waiting();
+                return;
+            }
+            let _idle = Idle::listed(server, &conn);
+            if !server.telling.lock().expect("telling").is_empty() {
+                scope.spawn(|| server.tell_waiting());
+            }
+            if !next_request(&conn, &mut reader, server.keep_alive) {
+                return;
+            }
         }
-        let _idle = kept.then(|| Idle::listed(server, &conn));
-        server.tell_waiting();
-        if !kept || !next_request(&conn, &mut reader, server.keep_alive) {
-            return;
-        }
-    }
+    })
 }
 
 /// **A kept connection listed while it waits for its next request** (the
@@ -9677,6 +9763,111 @@ fn asks_to_close(headers: &str) -> bool {
         .any(|token| token.trim().eq_ignore_ascii_case("close"))
 }
 
+/// **What reading a request's head came to** (the keep-alive ADR, amended by
+/// train-14's review).
+enum Head {
+    /// The request line and its headers, each line with its `\r\n`.
+    Read { request: String, headers: String },
+    /// Nothing to answer: the client sent nothing, or went mid-head.
+    Gone,
+    /// A head the host does not read on: answered with its code, and closed.
+    Refused(u16, &'static str),
+}
+
+/// **A request's head, read whole by its deadline, or refused.** Each line
+/// ends with `\n`, is text, and the head ends at its blank line; a read that
+/// failed is never taken for that end. Until train-14's review it was: a
+/// header that is no UTF-8, or a stall, ended the head where it stood, and
+/// what followed was read as the next request on a kept connection, which a
+/// proxy that reuses its connections can be made to smuggle a request
+/// through. Each read waits only what the deadline leaves, and the head
+/// holds at most [`HEAD_AT_MOST`].
+fn read_head(
+    stream: &Conn,
+    reader: &mut BufReader<TcpStream>,
+    deadline: std::time::Instant,
+) -> Head {
+    let mut lines: Vec<String> = Vec::new();
+    let mut size = 0usize;
+    loop {
+        let left = deadline.saturating_duration_since(std::time::Instant::now());
+        if left.is_zero() {
+            return late(&lines);
+        }
+        let _ = stream.set_read_timeout(Some(left));
+        let mut line = Vec::new();
+        let room = (HEAD_AT_MOST - size + 1) as u64;
+        match reader.by_ref().take(room).read_until(b'\n', &mut line) {
+            Ok(0) => return Head::Gone,
+            Ok(read) => size += read,
+            Err(e)
+                if matches!(
+                    e.kind(),
+                    std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+                ) =>
+            {
+                return late(&lines);
+            }
+            Err(_) => return Head::Gone,
+        }
+        if size > HEAD_AT_MOST {
+            return Head::Refused(431, "the request's head is too large");
+        }
+        if !line.ends_with(b"\n") {
+            // The connection ended mid-line.
+            return Head::Gone;
+        }
+        let Ok(text) = String::from_utf8(line) else {
+            return Head::Refused(400, "a header is not text");
+        };
+        if text == "\r\n" || text == "\n" {
+            // A blank line before the request line is passed over (RFC 9112
+            // §2.2); after it, it ends the head.
+            if lines.is_empty() {
+                continue;
+            }
+            let request = lines.remove(0);
+            return Head::Read {
+                request,
+                headers: lines.concat(),
+            };
+        }
+        lines.push(text);
+    }
+}
+
+/// A head the deadline passed: nothing to answer where nothing was sent,
+/// and 408 where a request was begun.
+fn late(lines: &[String]) -> Head {
+    if lines.is_empty() {
+        Head::Gone
+    } else {
+        Head::Refused(408, "the request was not sent in time")
+    }
+}
+
+/// **A request's body, read whole by the request's deadline**: each read
+/// waits only what the deadline leaves. False where it did not arrive.
+fn read_body(
+    stream: &Conn,
+    reader: &mut BufReader<TcpStream>,
+    body: &mut [u8],
+    deadline: std::time::Instant,
+) -> bool {
+    let mut filled = 0;
+    while filled < body.len() {
+        let left = deadline.saturating_duration_since(std::time::Instant::now());
+        if left.is_zero() || stream.set_read_timeout(Some(left)).is_err() {
+            return false;
+        }
+        match reader.read(&mut body[filled..]) {
+            Ok(0) | Err(_) => return false,
+            Ok(read) => filled += read,
+        }
+    }
+    true
+}
+
 /// **One request of a connection, answered** (the keep-alive ADR): read from
 /// `reader`, which holds what the connection sent past the request before
 /// it, and answered on `stream`, which it keeps for the next request only
@@ -9684,23 +9875,33 @@ fn asks_to_close(headers: &str) -> bool {
 fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<TcpStream>) {
     // Closed unless this request, read whole and answered, allows otherwise.
     stream.begin();
-    let _ = stream.set_read_timeout(Some(REQUEST_READ_AT_MOST));
-    let mut request = String::new();
-    if reader.read_line(&mut request).unwrap_or(0) == 0 {
-        return;
-    }
+    let deadline = std::time::Instant::now() + server.request_read;
+    let (request, headers) = match read_head(&stream, reader, deadline) {
+        Head::Read { request, headers } => (request, headers),
+        // The client went before its request began, or while it was sent:
+        // there is no one to answer.
+        Head::Gone => return,
+        Head::Refused(code, why) => {
+            respond(
+                &mut stream,
+                code,
+                "text/plain; charset=utf-8",
+                "",
+                false,
+                why.as_bytes(),
+            );
+            return;
+        }
+    };
     let mut parts = request.split_whitespace();
     let (method, path) = (parts.next().unwrap_or(""), parts.next().unwrap_or("/"));
     let version = parts.next().unwrap_or("");
-
-    let mut headers = String::new();
-    loop {
-        let mut line = String::new();
-        if reader.read_line(&mut line).unwrap_or(0) == 0 || line == "\r\n" {
-            break;
-        }
-        headers.push_str(&line);
-    }
+    // A HEAD is answered as its GET, with no body, and its connection closed
+    // after it, so that nothing a streamed answer writes can follow it on a
+    // kept connection (train-14's review).
+    let head_only = method == "HEAD";
+    stream.head_only(head_only);
+    let method = if head_only { "GET" } else { method };
     // How its body is framed, before anything reads it (the keep-alive ADR).
     let length = match framed_length(&headers) {
         Ok(length) => length,
@@ -9719,6 +9920,7 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
     // Kept for the next request where HTTP/1.1 keeps it, the request did not
     // ask to close, and the host has room; and only once its body is read.
     let persists = version == "HTTP/1.1"
+        && !head_only
         && !asks_to_close(&headers)
         && server.open.load(std::sync::atomic::Ordering::SeqCst) <= KEPT_AT_MOST;
     stream.keep(persists && length == 0);
@@ -9809,7 +10011,7 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
         return;
     }
     let mut body = vec![0; length];
-    if reader.read_exact(&mut body).is_err() {
+    if !read_body(&stream, reader, &mut body, deadline) {
         return;
     }
     // Its body read whole, its connection may be kept (the keep-alive ADR);
@@ -13052,12 +13254,21 @@ const NOSNIFF: &str = "x-content-type-options: nosniff\r\n";
 /// **An answer of a known length** (the keep-alive ADR): its connection kept
 /// or closed after it as `stream` says.
 fn write_response(stream: &mut Conn, code: u16, mime: &str, headers: &str, body: &[u8]) {
+    // A second answer to one request closes its connection, said in its head: the client reads
+    // one answer a request, so what follows the first is no answer it asked
+    // for (train-14's review).
+    if stream.was_answered() {
+        stream.keep(false);
+    }
     let head = format!(
         "HTTP/1.1 {code} {}\r\ncontent-type: {mime}\r\ncontent-length: {}\r\n{NOSNIFF}{headers}{}\r\n",
         reason(code),
         body.len(),
         stream.connection()
     );
+    // A HEAD's answer is its GET's, but for the body (RFC 9110 §9.3.2): its
+    // `content-length` says what the GET would send.
+    let body = if stream.is_head_only() { &[][..] } else { body };
     let whole = stream
         .write_all(head.as_bytes())
         .and_then(|()| stream.write_all(body))

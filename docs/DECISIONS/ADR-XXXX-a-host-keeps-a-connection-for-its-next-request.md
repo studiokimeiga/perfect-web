@@ -35,7 +35,7 @@ cannot share it.
    the request is HTTP/1.1, does not ask to close (`connection: close`),
    its body was read whole, and its answer was written whole with a known
    length. The answer says `connection: keep-alive` and `keep-alive:
-   timeout=5`. `handle` answers a connection's requests one after another,
+   timeout=75`. `handle` answers a connection's requests one after another,
    on one reader, so a request sent behind another (pipelined) is answered
    in its turn.
 2. **Only an answer of a known length keeps its connection.** Every answer a
@@ -56,10 +56,12 @@ cannot share it.
    whole (a body over a command's bound, 413; an admission refused) closes
    the connection, so what was sent of the body is never read as a request.
 4. **A kept connection holds its thread for a bounded time**: it waits at
-   most 5 s (`KEEP_ALIVE_IDLE`, Node's default) for its next request's first
-   byte, and a request's head and body may take at most 10 s once begun
-   (`REQUEST_READ_AT_MOST`), the first request's too. Past 512 connections
-   open at once (`KEPT_AT_MOST`), an answer closes its connection.
+   most 75 s (`KEEP_ALIVE_IDLE`, nginx's `keepalive_timeout`) for its next
+   request's first byte, and a request's head and body may take at most
+   10 s once begun (`REQUEST_READ_AT_MOST`, one deadline for the request),
+   the first request's too. Past 256 connections open at once
+   (`KEPT_AT_MOST`), an answer closes its connection. Amended by the review
+   below: it was 5 s, a wait for each read, and 512.
 5. **A commit is told after its answer**, not after its connection closes
    (ADR-0219): `handle` tells after each request, so a kept connection never
    holds back what its commit dropped for every other reader.
@@ -116,3 +118,58 @@ cannot share it.
   still asked every 2 s; holding it longer is its own decision (the
   first press's ADR, "Next" 2).
 - **HTTP/2 between a browser and a deployment**, through a front proxy.
+
+## Review, 2026-11-07, and its repairs
+
+An independent review held this decision back from train-14 (PR #93). What
+it found, and what is repaired, each with a test that fails without the
+repair and a mutation control in `keep_alive_mutations.py`:
+
+1. **Request smuggling (blocker).** The head was read line by line, and a
+   read that failed was taken for the head's end. A header that is no UTF-8,
+   or a stall, ended the head where it stood; its headers after it, the
+   `content-length` among them, were never read, and the rest was read as
+   the next request on a kept connection. Behind a proxy that reuses its
+   connections, a request could be smuggled through it. Now `read_head`
+   reads the head as bytes, line by line:
+   - a line that is no text is refused (400);
+   - a head past 32 KiB (`HEAD_AT_MOST`) is refused (431);
+   - a head not sent by its deadline is refused (408);
+   - each refusal closes the connection;
+   - a client gone mid-head is answered nothing.
+2. **One deadline, not a wait a read.** A client sending a byte every few
+   seconds held a thread for ever, and no test held the 10 s. Now the
+   request's head and body share one deadline, which a test can set
+   (`request_read`), and the body is read within it (`read_body`).
+3. **File handles.** Each open connection holds three: 512 held 1536, past
+   the 1024 a process is usually allowed, and past about 340 connections
+   `accept` failed and its loop asked again at once, spinning a core. Now
+   the cap is 256 (768 handles), and a failed `accept` waits 10 ms, doubling
+   to a second (`accept_backoff`). A host given more handles by its service
+   manager keeps no more connections; the cap is the host's.
+4. **The next request waited on the telling.** A kept connection told every
+   other reader before it read its next request, which a browser sends on
+   the connection it just used: an author's next command waited on readers,
+   which ADR-0219 rules out. Now the telling runs on a thread of the
+   connection's scope, beside its next request.
+5. **HEAD.** A HEAD fell to the 405, which wrote a six-byte body on a kept
+   connection, and a client reads no body after a HEAD's answer (RFC 9112
+   §6.3). Now a HEAD is answered as its GET, with no body (`write_response`
+   writes the head alone), and its connection closes after it, so nothing a
+   streamed answer writes can follow it.
+6. **Below a proxy's idle wait.** At 5 s the host closed a connection a
+   front proxy keeps for 60 s (nginx's upstream `keepalive_timeout`, AWS's
+   load balancers), and the proxy's next request on it is answered 502.
+   Now the host waits 75 s, past every such proxy's.
+7. **A second answer to one request** closes its connection, said in its
+   head; the first said it was kept. No route writes two; the rule makes one
+   that would harmless.
+
+The review's other finding stands as written in decision 6: `Conn`'s
+`DerefMut` lets the identity's and the uploads' routes write an answer
+directly. Each closes its connection, so none can leave a kept connection
+mid-answer.
+
+Held by the 26 tests of `tests::keep_alive::`, 8 of them new, and by
+`keep_alive_mutations.py` and `cross_session_mutations.py` run whole after
+the repairs (`docs/evidence/E14/keep-alive-review-2026-11-07/`).

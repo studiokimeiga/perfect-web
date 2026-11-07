@@ -73,11 +73,21 @@ MUTANTS = [
     (
         "a connection tells no one",
         SERVER,
-        # Re-anchored by the keep-alive ADR: told after each request of a
-        # kept connection, in `handle`'s loop.
-        "        server.tell_waiting();\n"
-        "        if !kept || !next_request(&conn, &mut reader, server.keep_alive) {\n",
-        "        if !kept || !next_request(&conn, &mut reader, server.keep_alive) {\n",
+        # Re-anchored by the keep-alive ADR, and by train-14's review: told
+        # after each request, a closing connection's at once and a kept
+        # one's beside its next request, in `handle`'s loop.
+        "                let _ = conn.shutdown(std::net::Shutdown::Both);\n"
+        "                server.tell_waiting();\n"
+        "                return;\n"
+        "            }\n"
+        "            let _idle = Idle::listed(server, &conn);\n"
+        "            if !server.telling.lock().expect(\"telling\").is_empty() {\n"
+        "                scope.spawn(|| server.tell_waiting());\n"
+        "            }\n",
+        "                let _ = conn.shutdown(std::net::Shutdown::Both);\n"
+        "                return;\n"
+        "            }\n"
+        "            let _idle = Idle::listed(server, &conn);\n",
     ),
 ]
 

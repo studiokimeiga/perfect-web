@@ -69,6 +69,15 @@ TEST_NAMES = [
     "tests::keep_alive::two_content_lengths_are_refused_and_closed",
     "tests::keep_alive::whitespace_before_a_headers_colon_is_refused_and_closed",
     "tests::uploads::an_uploads_connection_is_closed_after_its_answer",
+    # The head read whole or refused (train-14's review).
+    "tests::keep_alive::a_head_cut_short_by_a_header_that_is_no_text_is_refused_and_closed",
+    "tests::keep_alive::a_head_that_trickles_past_its_deadline_is_refused_and_closed",
+    "tests::keep_alive::a_head_past_its_size_is_refused_and_closed",
+    "tests::keep_alive::a_head_request_is_answered_with_no_body_and_closed",
+    "tests::keep_alive::a_body_that_trickles_past_its_deadline_is_not_read_on",
+    "tests::keep_alive::the_next_request_waits_on_no_telling",
+    "tests::keep_alive::the_accept_loop_backs_off_after_a_failure",
+    "tests::keep_alive::a_second_answer_to_one_request_closes_its_connection",
 ]
 COMMAND = ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server",
            "--", *TEST_NAMES, "--exact", "--test-threads=1", "--format=pretty"]
@@ -118,14 +127,60 @@ MUTANTS = [
      '            for (_, idle) in std::mem::take(&mut *server.idle.lock().expect("idle")) {\n',
      "            for (_, idle) in BTreeMap::<std::net::SocketAddr, TcpStream>::new() {\n"),
     ("a commit is told only when its connection closes", MAIN,
-     "        server.tell_waiting();\n"
-     "        if !kept || !next_request(&conn, &mut reader, server.keep_alive) {\n"
-     "            return;\n"
-     "        }\n",
-     "        if !kept || !next_request(&conn, &mut reader, server.keep_alive) {\n"
-     "            server.tell_waiting();\n"
-     "            return;\n"
-     "        }\n"),
+     "            if !server.telling.lock().expect(\"telling\").is_empty() {\n"
+     "                scope.spawn(|| server.tell_waiting());\n"
+     "            }\n"
+     "            if !next_request(&conn, &mut reader, server.keep_alive) {\n"
+     "                return;\n"
+     "            }\n",
+     "            if !next_request(&conn, &mut reader, server.keep_alive) {\n"
+     "                server.tell_waiting();\n"
+     "                return;\n"
+     "            }\n"),
+    # --- the head read whole or refused (train-14's review) ---
+    ("a header that is no text ends the head", MAIN,
+     '        let Ok(text) = String::from_utf8(line) else {\n'
+     '            return Head::Refused(400, "a header is not text");\n'
+     '        };\n',
+     '        let Ok(text) = String::from_utf8(line) else {\n'
+     '            let request = lines.first().cloned().unwrap_or_default();\n'
+     '            return Head::Read { request, headers: lines.iter().skip(1).cloned().collect() };\n'
+     '        };\n'),
+    ("a stall mid-head is read as the head's end", MAIN,
+     '        Head::Refused(408, "the request was not sent in time")\n',
+     '        Head::Read { request: lines[0].clone(), headers: lines[1..].concat() }\n'),
+    ("the deadline bounds each read of the head alone", MAIN,
+     '        let _ = stream.set_read_timeout(Some(left));\n'
+     '        let mut line = Vec::new();\n',
+     '        let _ = stream.set_read_timeout(Some(REQUEST_READ_AT_MOST));\n'
+     '        let mut line = Vec::new();\n'),
+    ("a head has no size", MAIN,
+     '        if size > HEAD_AT_MOST {\n'
+     '            return Head::Refused(431, "the request\'s head is too large");\n'
+     '        }\n',
+     ''),
+    ("a HEAD's answer carries its body", MAIN,
+     '    let body = if stream.is_head_only() { &[][..] } else { body };\n',
+     '    let body = body;\n'),
+    ("a HEAD keeps its connection", MAIN,
+     '        && !head_only\n',
+     ''),
+    ("the deadline bounds each read of the body alone", MAIN,
+     '        let left = deadline.saturating_duration_since(std::time::Instant::now());\n'
+     '        if left.is_zero() || stream.set_read_timeout(Some(left)).is_err() {\n'
+     '            return false;\n'
+     '        }\n',
+     '        let _ = stream.set_read_timeout(Some(REQUEST_READ_AT_MOST));\n'),
+    # --- the connections (train-14's review) ---
+    ("the telling runs before the next request", MAIN,
+     '                scope.spawn(|| server.tell_waiting());\n',
+     '                server.tell_waiting();\n'),
+    ("the accept loop asks again at once", MAIN,
+     '    std::time::Duration::from_millis(10u64.saturating_mul(1 << failures.min(7)).min(1000))\n',
+     '    std::time::Duration::from_millis(0 * failures as u64)\n'),
+    ("a second answer keeps its connection", MAIN,
+     '    if stream.was_answered() {\n        stream.keep(false);\n    }\n',
+     ''),
 ]
 
 # How long one run of the tests may take. Past it the run is invalid.
