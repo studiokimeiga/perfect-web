@@ -1,0 +1,66 @@
+What each engine names the input buttons in buttons.html
+
+produced by: gunzip -c ax-names.cjs.gz > ax-names.cjs && node ax-names.cjs $PWD/buttons.html
+  (run from /home/haki/pw-targets/pw5014-logs/ax, sha256 of the script: d9a0673cca4b1a48df8f1db7be1bc99bd4602442bbc59ed87362605984d828ef)
+commit: 5be06de4356383efbaeacce798e522028377467e (the observation reads no compiler output)
+node: v22.21.1
+
+playwright: 1.58.0
+
+== chromium 145.0.7632.6
+input                native (CDP)           playwright's computation
+reset                "Reset"                - button "Reset"
+reset-value          "Clear the search"     - button "Clear the search"
+reset-empty          ""                     - button "Reset"
+submit               "Submit"               - button "Submit"
+submit-empty         ""                     - button "Submit"
+submit-blank         "  "                   - button "Submit"
+submit-empty-aria    "Search"               - button "Search"
+button               ""                     - button
+button-value         "Send"                 - button "Send"
+button-empty         ""                     - button
+button-label         "Close "               - button
+image-alt            "Search"               - button "Search"
+image-noalt          "Submit"               - button "Submit"
+image-emptyalt       "Submit"               - button "Submit"
+image-aria           "Search"               - button "Search"
+image-upper          "Go"                   - button "Go"
+
+== firefox 146.0.1
+input                native (CDP)           playwright's computation
+reset                -                      - button "Reset"
+reset-value          -                      - button "Clear the search"
+reset-empty          -                      - button "Reset"
+submit               -                      - button "Submit"
+submit-empty         -                      - button "Submit"
+submit-blank         -                      - button "Submit"
+submit-empty-aria    -                      - button "Search"
+button               -                      - button
+button-value         -                      - button "Send"
+button-empty         -                      - button
+button-label         -                      - button
+image-alt            -                      - button "Search"
+image-noalt          -                      - button "Submit"
+image-emptyalt       -                      - button "Submit"
+image-aria           -                      - button "Search"
+image-upper          -                      - button "Go"
+
+== webkit 26.0
+input                native (CDP)           playwright's computation
+reset                -                      - button "Reset"
+reset-value          -                      - button "Clear the search"
+reset-empty          -                      - button "Reset"
+submit               -                      - button "Submit"
+submit-empty         -                      - button "Submit"
+submit-blank         -                      - button "Submit"
+submit-empty-aria    -                      - button "Search"
+button               -                      - button
+button-value         -                      - button "Send"
+button-empty         -                      - button
+button-label         -                      - button
+image-alt            -                      - button "Search"
+image-noalt          -                      - button "Submit"
+image-emptyalt       -                      - button "Submit"
+image-aria           -                      - button "Search"
+image-upper          -                      - button "Go"
+exit: 0

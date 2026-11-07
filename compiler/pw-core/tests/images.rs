@@ -150,3 +150,182 @@ fn each_image_is_reported_where_it_is() {
         [r#"<img src="/b.png">"#, r#"<img src="/c.png">"#]
     );
 }
+
+// --- an image button (the input-button ADR) ----------------------------------
+//
+// HTML 4.10.5.1.19: an `<input type="image">`'s `alt` "provides the textual
+// label for the button", and "must be present, and must contain a non-empty
+// string". Where the image is not shown, the element is a submit button whose
+// label is that `alt`. WCAG 2.2's F65 names it beside `img` and `area`.
+
+/// A view whose form holds `markup`, beside a field its label names.
+fn form(markup: &str) -> String {
+    format!(
+        "module t\n\nview V(caption: String) !{{}} {{\n    <form>\n        \
+         <label>Find <input type=\"search\" name=\"q\" /></label>\n        {markup}\n    </form>\n}}\n"
+    )
+}
+
+/// Each diagnostic a form holding `markup` gets, as `code message | each
+/// related note`, and the text its primary span covers.
+fn in_form_at(markup: &str) -> Vec<(String, String)> {
+    let src = form(markup);
+    let mut sources = library();
+    sources.push(("t.pw".to_string(), src.clone()));
+    check_sources(&sources)
+        .into_iter()
+        .filter(|(n, _)| n == "t.pw")
+        .flat_map(|(_, ds)| ds)
+        .map(|d| {
+            let notes: Vec<String> = d.related.iter().map(|r| r.label.clone()).collect();
+            (
+                format!("{} {} | {}", d.code, d.message, notes.join(" | ")),
+                src[d.primary_span.clone()].to_string(),
+            )
+        })
+        .collect()
+}
+
+fn in_form(markup: &str) -> Vec<String> {
+    in_form_at(markup).into_iter().map(|(d, _)| d).collect()
+}
+
+const NO_ALT: &str = "PW5053 `<input type=\"image\">` has no `alt` | `V` renders this button";
+const BLANK_ALT: &str = "PW5053 `<input type=\"image\">` has a blank `alt` | `V` renders this \
+                         button | this `alt` is the button's label, and it is blank";
+
+#[test]
+fn an_image_button_with_no_alt_is_refused() {
+    assert_eq!(
+        in_form(r#"<input type="image" src="/search.png" />"#),
+        [NO_ALT]
+    );
+    // HTML matches `type`'s keywords whatever their case.
+    assert_eq!(
+        in_form(r#"<input type="Image" src="/search.png" />"#),
+        [NO_ALT]
+    );
+}
+
+/// Unlike an `<img>`'s, which is empty where the image shows nothing a
+/// reader needs: a button always does something a reader needs. HTML-AAM
+/// reads an `alt` trimmed of white space, so a blank one names nothing.
+#[test]
+fn an_image_button_s_alt_is_its_label_and_never_blank() {
+    for markup in [
+        r#"<input type="image" src="/search.png" alt="" />"#,
+        r#"<input type="image" src="/search.png" alt />"#,
+        r#"<input type="image" src="/search.png" alt="   " />"#,
+    ] {
+        assert_eq!(in_form(markup), [BLANK_ALT], "{markup}");
+    }
+}
+
+#[test]
+fn an_image_button_s_alt_says_what_it_does_as_text_or_as_a_value() {
+    assert_eq!(
+        in_form(r#"<input type="image" src="/search.png" alt="Search" />"#),
+        Vec::<String>::new()
+    );
+    assert_eq!(
+        in_form(r#"<input type="image" src="/search.png" alt={caption} />"#),
+        Vec::<String>::new()
+    );
+}
+
+/// As for an `<img>`: HTML requires the `alt` beside each of them, and none
+/// is shown where the image does not load.
+#[test]
+fn an_aria_label_a_title_or_a_label_is_not_an_image_button_s_alt() {
+    for markup in [
+        r#"<input type="image" src="/search.png" aria-label="Search" />"#,
+        r#"<input type="image" src="/search.png" title="Search" />"#,
+        r#"<h2 id="h">Search</h2><input type="image" src="/search.png" aria-labelledby="h" />"#,
+        r#"<label>Search <input type="image" src="/search.png" /></label>"#,
+    ] {
+        assert_eq!(in_form(markup), [NO_ALT], "{markup}");
+    }
+    assert_eq!(
+        in_form(r#"<input type="image" src="/search.png" alt="" aria-label="Search" />"#),
+        [BLANK_ALT]
+    );
+}
+
+/// `type` is an `<input>`'s attribute: on another element it makes no image
+/// button, and no `alt` is asked of it.
+#[test]
+fn only_an_input_is_an_image_button() {
+    assert_eq!(
+        in_form(r#"<textarea type="image" name="n" aria-label="Note"></textarea>"#),
+        Vec::<String>::new()
+    );
+    assert_eq!(
+        in_form(r#"<select type="image" name="s" aria-label="Size"><option>S</option></select>"#),
+        Vec::<String>::new()
+    );
+}
+
+/// The image button state alone: an `alt` on another input is not read, and
+/// an `<img>` keeps its own rule.
+#[test]
+fn only_an_input_in_the_image_state_is_held_to_its_alt() {
+    assert_eq!(
+        in_form(r#"<input type="submit" src="/search.png" alt="" />"#),
+        Vec::<String>::new()
+    );
+    // Control: an `<img>` may have `alt=""`; an image button may not.
+    assert_eq!(
+        in_form(r#"<img src="/divider.png" alt="" />"#),
+        Vec::<String>::new()
+    );
+}
+
+#[test]
+fn each_image_button_is_reported_where_it_is() {
+    assert_eq!(
+        in_form_at(
+            r#"<input type="image" src="/a.png" alt="Go" /><input type="image" src="/b.png" />"#
+        ),
+        [(
+            NO_ALT.to_string(),
+            r#"<input type="image" src="/b.png" />"#.to_string()
+        )]
+    );
+}
+
+/// The refusal says what an image button's `alt` is, and the repair.
+#[test]
+fn an_image_button_is_refused_with_its_own_repair() {
+    let mut sources = library();
+    sources.push((
+        "t.pw".to_string(),
+        form(r#"<input type="image" src="/search.png" />"#),
+    ));
+    let d = check_sources(&sources)
+        .into_iter()
+        .filter(|(n, _)| n == "t.pw")
+        .flat_map(|(_, ds)| ds)
+        .next()
+        .expect("refused");
+    assert_eq!(
+        (d.code, d.reason, d.invariant),
+        (
+            "PW5053",
+            "image_button_without_alt",
+            pw_core::codes::IMAGE_WITHOUT_ALT.invariant
+        )
+    );
+    assert_eq!(
+        d.repairs
+            .iter()
+            .map(|r| r.description.as_str())
+            .collect::<Vec<_>>(),
+        ["write `alt=\"…\"` saying what the button does"]
+    );
+    assert!(
+        d.explanation
+            .as_deref()
+            .is_some_and(|e| e.contains("An image button's `alt` is its label")),
+        "{d:#?}"
+    );
+}

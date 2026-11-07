@@ -1,0 +1,23 @@
+scripts/shared_cache_mutations.py, run whole
+
+produced by: bash campaign.sh /home/haki/code/pw-wt/pw5014-mut-c /home/haki/pw-targets/pw5014-mut-c OUT shared_cache
+commit: 5be06de4356383efbaeacce798e522028377467e
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+CARGO_BUILD_JOBS=8 PW_MUTANT_INCREMENTAL=1
+started: 2026-11-06T20:40:14Z
+
+baseline: 11 passed, 0 failed
+a declaration's own parameters are not read: KILLED (4 of 11 tests fail)
+a reader's value keyed by the reader is shareable: KILLED (6 of 11 tests fail)
+PW5001 reads the declared label only: KILLED (4 of 11 tests fail)
+a key item naming a tenant parameter does not count: KILLED (1 of 11 tests fail)
+PW5004 does not read what the declaration observes: KILLED (2 of 11 tests fail)
+5 of 5 mutants killed
+memory bound: no process was stopped
+exit: 0
+finished: 2026-11-06T20:47:34Z
+
+== python3 scripts/mutation_anchors.py, after
+mutation anchors: 5013 mutants in 325 scripts, each matching once
+exit: 0
+source: as committed

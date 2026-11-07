@@ -10571,11 +10571,26 @@ fn markup_rules(hir: &Hir, decl: &Decl, out: &mut Vec<Diagnostic>) {
                     out.push(image_without_alt(hir, decl, body, id));
                 }
 
+                // An image button with no text to name it (PW5053, the
+                // input-button ADR): its `alt` is its label, so HTML requires
+                // one, and not empty.
+                if tag.as_str() == "input"
+                    && input_type(attrs).as_deref() == Some("image")
+                    && names_with(attrs, "alt") != Some(true)
+                {
+                    out.push(image_button_without_alt(hir, decl, body, id, attrs));
+                }
+
                 // A form control with nothing naming it.
                 if matches!(tag.as_str(), "input" | "select" | "textarea") {
-                    // `hidden` and `submit` inputs are not labelled controls.
-                    let typ = static_attr(attrs, "type").map(str::to_ascii_lowercase);
-                    if matches!(typ.as_deref(), Some("hidden" | "submit" | "button")) {
+                    // `type` is an `<input>`'s alone.
+                    let typ = (tag.as_str() == "input")
+                        .then(|| input_type(attrs))
+                        .flatten();
+                    // A `hidden` input is no control. An image button is
+                    // named by its `alt`, which PW5053 holds to text above:
+                    // the one defect is reported once (the input-button ADR).
+                    if matches!(typ.as_deref(), Some("hidden" | "image")) {
                         continue;
                     }
                     if named.contains(&id) {
@@ -10598,38 +10613,74 @@ fn markup_rules(hir: &Hir, decl: &Decl, out: &mut Vec<Diagnostic>) {
                         format!("`{}` renders this control", decl.name),
                     )];
                     related.extend(unnamed_because(body, &order, id, &decl.name));
+                    // A button's label is its `value`, and the repair is one
+                    // (the input-button ADR).
+                    let button = matches!(typ.as_deref(), Some("submit" | "reset" | "button"));
                     out.push(Diagnostic {
                         code: "PW5014",
                         invariant: "a form control must have something that names it",
-                        reason: "control_without_label",
+                        reason: if button {
+                            "button_without_label"
+                        } else {
+                            "control_without_label"
+                        },
                         detector: Detector::DeclarationRule,
                         severity: Severity::Error,
-                        message: format!("`<{tag}>` has no associated label"),
+                        message: match typ.as_deref() {
+                            // HTML's word for a button's text is its label.
+                            Some(t) if button => format!("`<input type=\"{t}\">` has no label"),
+                            _ => format!("`<{tag}>` has no associated label"),
+                        },
                         primary_span: body.node_span(id),
                         related,
                         explanation: Some(
-                            "A control with no accessible name is announced as \"edit text\" \
-                             and nothing else. `name` is submitted to the server; it is not \
-                             read to the user. An `id` names nothing by itself: a label \
-                             names the control when it is in the same declaration, has \
-                             text, and its `for` is the control's `id` or it wraps the \
-                             control. A placeholder is not a label: it disappears when \
-                             someone types."
-                                .to_string(),
+                            if button {
+                                "A button with no name is announced as \"button\" and nothing \
+                                 else. An `<input>` button's label is its `value`: the text it \
+                                 shows and what a screen reader reads. HTML gives a `submit` or \
+                                 a `reset` with no `value` a label of its own, \"Submit\" or \
+                                 \"Reset\", and an empty `value` takes its place, so the button \
+                                 shows nothing; a `button` input has no label but its `value`."
+                            } else {
+                                "A control with no accessible name is announced as \"edit \
+                                 text\" and nothing else. `name` is submitted to the server; it \
+                                 is not read to the user. An `id` names nothing by itself: a \
+                                 label names the control when it is in the same declaration, \
+                                 has text, and its `for` is the control's `id` or it wraps the \
+                                 control. A placeholder is not a label: it disappears when \
+                                 someone types."
+                            }
+                            .to_string(),
                         ),
-                        repairs: vec![
-                            Repair {
-                                description: "associate a `<label for=...>`, or supply \
-                                              `aria-label`/`aria-labelledby`"
-                                    .to_string(),
-                                replacement: None,
-                            },
-                            Repair {
-                                description: "or wrap the control in a `<label>` with text"
-                                    .to_string(),
-                                replacement: None,
-                            },
-                        ],
+                        repairs: if button {
+                            vec![
+                                Repair {
+                                    description: "write `value=\"…\"` saying what the button does"
+                                        .to_string(),
+                                    replacement: None,
+                                },
+                                Repair {
+                                    description: "or supply `aria-label`/`aria-labelledby`, or \
+                                                  wrap the button in a `<label>` with text"
+                                        .to_string(),
+                                    replacement: None,
+                                },
+                            ]
+                        } else {
+                            vec![
+                                Repair {
+                                    description: "associate a `<label for=...>`, or supply \
+                                                  `aria-label`/`aria-labelledby`"
+                                        .to_string(),
+                                    replacement: None,
+                                },
+                                Repair {
+                                    description: "or wrap the control in a `<label>` with text"
+                                        .to_string(),
+                                    replacement: None,
+                                },
+                            ]
+                        },
                     });
                 }
             }
@@ -10652,7 +10703,9 @@ fn markup_rules(hir: &Hir, decl: &Decl, out: &mut Vec<Diagnostic>) {
 /// - `aria-labelledby` names its element when one of its IDREFs is an element
 ///   here with text;
 /// - an `aria-label` names it unless it is blank. One the program computes is
-///   taken as a name: whether it is empty is known only when it runs.
+///   taken as a name: whether it is empty is known only when it runs;
+/// - an `<input>` button names itself, by its `value` or by the label HTML
+///   gives it (`names_itself`, the input-button ADR).
 ///
 /// An `id` names nothing by itself. Until ADR-0143 one counted as a name, on
 /// the assumption that a label pointed at it, and nothing checked that one
@@ -10672,19 +10725,49 @@ fn named_controls(body: &Body, order: &[hir::NodeId]) -> BTreeSet<hir::NodeId> {
         {
             named.insert(control);
         }
-        let labelled = match attrs.iter().find(|a| a.name == "aria-label") {
-            Some(a) => match &a.value {
-                AttrValue::Static(_) => non_blank(attrs, "aria-label"),
-                AttrValue::Expr(_) => true,
-                AttrValue::None => false,
-            },
-            None => false,
-        };
-        if labelled || labelled_by(body, n, &by_id).is_some() {
+        let labelled = names_with(attrs, "aria-label") == Some(true);
+        if labelled || labelled_by(body, n, &by_id).is_some() || names_itself(tag, attrs) {
             named.insert(n);
         }
     }
     named
+}
+
+/// What an attribute that names something gives (accname 1.2, step 2C;
+/// HTML's button states): `None` when it is not written, `Some(true)` when
+/// it has text or the program computes it, which is taken as a name
+/// (ADR-0143), and `Some(false)` when it is blank or written alone, which
+/// HTML reads as `""`.
+fn names_with(attrs: &[hir::Attr], name: &str) -> Option<bool> {
+    let a = attrs.iter().find(|a| a.name == name)?;
+    Some(match &a.value {
+        AttrValue::Static(_) => non_blank(attrs, name),
+        AttrValue::Expr(_) => true,
+        AttrValue::None => false,
+    })
+}
+
+/// An `<input>`'s `type` written as text, lower-cased: HTML matches its
+/// keywords whatever their case. `None` when it is computed, or not
+/// written, which makes a text field.
+fn input_type(attrs: &[hir::Attr]) -> Option<String> {
+    static_attr(attrs, "type").map(str::to_ascii_lowercase)
+}
+
+/// **Whether an `<input>` button names itself** (the input-button ADR; HTML
+/// 4.10.5.1.18, .20 and .21; HTML-AAM 4.1.2). Its label is its `value`, when
+/// that has text or the program computes it. With no `value`, a `submit` or a
+/// `reset` has the label HTML gives it, "Submit" or "Reset", and a `button`
+/// has the empty string. An empty `value` is the label all the same: the
+/// button shows nothing, and HTML-AAM gives the default only where `value` is
+/// not written. An image button is named by its `alt`, PW5053's to hold.
+fn names_itself(tag: &str, attrs: &[hir::Attr]) -> bool {
+    let default = match (tag, input_type(attrs).as_deref()) {
+        ("input", Some("submit" | "reset")) => true,
+        ("input", Some("button")) => false,
+        _ => return false,
+    };
+    names_with(attrs, "value").unwrap_or(default)
 }
 
 /// Whether a control's `aria-labelledby` names ids no element of the
@@ -10771,6 +10854,59 @@ fn image_without_alt(hir: &Hir, decl: &Decl, body: &Body, id: hir::NodeId) -> Di
                 replacement: None,
             },
         ],
+    }
+}
+
+/// **An image button with no text in its `alt`** (PW5053, the input-button
+/// ADR), reported at the element. HTML 4.10.5.1.19: the `alt` "must be
+/// present, and must contain a non-empty string". Unlike an `<img>`'s, it is
+/// never empty: it is the button's label, and a button always does something
+/// a reader needs. A `title`, an `aria-label` or a `<label>` does not stand
+/// in for it, as for an `<img>`.
+fn image_button_without_alt(
+    hir: &Hir,
+    decl: &Decl,
+    body: &Body,
+    id: hir::NodeId,
+    attrs: &[hir::Attr],
+) -> Diagnostic {
+    let alt = attrs.iter().find(|a| a.name == "alt");
+    let mut related = vec![Related::new(
+        hir.decl_span(decl_id_of(hir, decl)),
+        format!("`{}` renders this button", decl.name),
+    )];
+    related.extend(alt.map(|a| {
+        Related::new(
+            a.span.clone(),
+            "this `alt` is the button's label, and it is blank".to_string(),
+        )
+    }));
+    Diagnostic {
+        code: crate::codes::IMAGE_WITHOUT_ALT.id,
+        invariant: crate::codes::IMAGE_WITHOUT_ALT.invariant,
+        reason: "image_button_without_alt",
+        detector: Detector::DeclarationRule,
+        severity: Severity::Error,
+        message: match alt {
+            None => "`<input type=\"image\">` has no `alt`",
+            Some(_) => "`<input type=\"image\">` has a blank `alt`",
+        }
+        .to_string(),
+        primary_span: body.node_span(id),
+        related,
+        explanation: Some(
+            "An image button's `alt` is its label: what a screen reader announces, and the \
+             text the button shows where the image does not load. HTML requires one, and not \
+             empty, saying what the button does rather than what the image shows. An `<img>` \
+             may have `alt=\"\"` where it shows nothing a reader needs; a button always does \
+             something a reader needs. An `aria-label` or a `title` is not shown where the \
+             image fails to load."
+                .to_string(),
+        ),
+        repairs: vec![Repair {
+            description: "write `alt=\"…\"` saying what the button does".to_string(),
+            replacement: None,
+        }],
     }
 }
 
@@ -10964,7 +11100,7 @@ fn unnamed_because(
     control: hir::NodeId,
     decl: &str,
 ) -> Option<Related> {
-    let Node::Element { attrs, .. } = body.node(control) else {
+    let Node::Element { tag, attrs, .. } = body.node(control) else {
         return None;
     };
     let attr = |k: &str| attrs.iter().find(|a| a.name == k);
@@ -10982,6 +11118,25 @@ fn unnamed_because(
                 _ => "these ids are computed, so what they name is not known here".to_string(),
             },
         );
+    }
+    // A button whose label is its `value`, and gives none (the input-button
+    // ADR). Only a `button` input with no `value` has none to give.
+    if tag == "input"
+        && let Some(t) = input_type(attrs)
+        && matches!(t.as_str(), "submit" | "reset" | "button")
+    {
+        if let Some(a) = attr("value") {
+            return note(
+                a,
+                "this `value` is the button's label, and it is blank".to_string(),
+            );
+        }
+        if let Some(a) = attr("type") {
+            return note(
+                a,
+                format!("an `<input type=\"{t}\">` is named by its `value`, and this one has none"),
+            );
+        }
     }
     // A label that wraps the control and does not name it.
     let by_id = first_with_id(body, order);

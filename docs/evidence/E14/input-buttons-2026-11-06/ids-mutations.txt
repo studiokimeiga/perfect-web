@@ -1,0 +1,31 @@
+scripts/ids_mutations.py, run whole
+
+produced by: bash campaign.sh /home/haki/code/pw-wt/pw5014-mut-b /home/haki/pw-targets/pw5014-mut-b OUT ids
+commit: 5be06de4356383efbaeacce798e522028377467e
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+CARGO_BUILD_JOBS=8 PW_MUTANT_INCREMENTAL=1
+started: 2026-11-06T20:48:54Z
+
+baseline: 23 passed, 0 failed
+two elements may share an id: KILLED (1 of 4 tests fail)
+an id in a loop names one row: KILLED (2 of 4 tests fail)
+one id in two arms of a block is two elements: KILLED (2 of 4 tests fail)
+a reference may name nothing: KILLED (2 of 4 tests fail)
+a reference may name an element shown only some of the time: KILLED (1 of 4 tests fail)
+an id in every arm of a block is not always shown: KILLED (1 of 4 tests fail)
+an id the page computes is no id: KILLED (1 of 4 tests fail)
+an id written with holes may be anything: KILLED (1 of 4 tests fail)
+an unknown ARIA attribute is let through: KILLED (1 of 4 tests fail)
+a value its attribute does not take is let through: KILLED (1 of 4 tests fail)
+an unknown role is let through: KILLED (1 of 4 tests fail)
+a field named by a reference to nothing is reported twice: KILLED (1 of 4 tests fail)
+a field a label misses for an id two have is reported twice: KILLED (1 of 23 tests fail)
+13 of 13 mutants killed
+memory bound: no process was stopped
+exit: 0
+finished: 2026-11-06T20:49:44Z
+
+== python3 scripts/mutation_anchors.py, after
+mutation anchors: 5013 mutants in 325 scripts, each matching once
+exit: 0
+source: as committed
