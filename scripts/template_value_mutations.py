@@ -88,7 +88,7 @@ MUTANTS = [
         "a key keeps its last segment",
         IR,
         '                Some(segments.collect::<Vec<_>>().join("."))',
-        "                Some(k.rsplit('.').next().unwrap_or_default().to_string())",
+        "                Some(path.rsplit('.').next().unwrap_or_default().to_string())",
     ),
     (
         "a key's head is not read",

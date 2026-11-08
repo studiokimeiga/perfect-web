@@ -53,7 +53,7 @@ MUTANTS = [
         "the cart's count is read from every binding",
         SERVER,
         "        let bindings = self.binding(session, part[\"binding\"].as_str().unwrap_or_default())?;\n",
-        "        let bindings = self.bindings(session)?;\n",
+        "        let bindings = self.bindings_where(session, None, |_| true, &Keys::Shown)?;\n",
     ),
 ]
 
