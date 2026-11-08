@@ -231,6 +231,7 @@ fn transfer_encoding_is_refused_and_its_connection_closed() {
         "{}",
         said.0
     );
+    assert_eq!(said.1, "transfer-encoding is not supported");
     assert!(ended, "the hidden request is never answered");
 }
 
@@ -249,8 +250,9 @@ fn refused(request: &str) -> ((String, String), bool) {
 /// guess.
 #[test]
 fn two_content_lengths_are_refused_and_closed() {
-    let ((head, _), ended) = refused(&post("[]", "content-length: 2\r\ncontent-length: 3\r\n"));
+    let ((head, body), ended) = refused(&post("[]", "content-length: 2\r\ncontent-length: 3\r\n"));
     assert!(head.starts_with("HTTP/1.1 400"), "{head}");
+    assert_eq!(body, "more than one content-length");
     assert!(ended, "closed");
 }
 
@@ -258,8 +260,11 @@ fn two_content_lengths_are_refused_and_closed() {
 /// closed**.
 #[test]
 fn a_content_length_that_is_no_number_is_refused_and_closed() {
-    let ((head, _), ended) = refused(&post("[]", "content-length: +2\r\n"));
+    let ((head, body), ended) = refused(&post("[]", "content-length: +2\r\n"));
     assert!(head.starts_with("HTTP/1.1 400"), "{head}");
+    // Its own reason: a command read with no body is refused 400 too, and
+    // whether its connection then closes depends on when the body arrives.
+    assert_eq!(body, "content-length is not a number");
     assert!(ended, "closed");
 }
 
@@ -267,8 +272,9 @@ fn a_content_length_that_is_no_number_is_refused_and_closed() {
 /// closed** (RFC 9112 §5.2).
 #[test]
 fn a_folded_header_is_refused_and_closed() {
-    let ((head, _), ended) = refused(&get("/pw-handlers", "X-Note: a\r\n folded\r\n"));
+    let ((head, body), ended) = refused(&get("/pw-handlers", "X-Note: a\r\n folded\r\n"));
     assert!(head.starts_with("HTTP/1.1 400"), "{head}");
+    assert_eq!(body, "a header is folded");
     assert!(ended, "closed");
 }
 
@@ -277,8 +283,9 @@ fn a_folded_header_is_refused_and_closed() {
 /// length would leave the body to be read as the next request.
 #[test]
 fn whitespace_before_a_headers_colon_is_refused_and_closed() {
-    let ((head, _), ended) = refused(&post("[]", "content-length : 2\r\n"));
+    let ((head, body), ended) = refused(&post("[]", "content-length : 2\r\n"));
     assert!(head.starts_with("HTTP/1.1 400"), "{head}");
+    assert_eq!(body, "whitespace before a header's colon");
     assert!(ended, "closed");
 }
 
