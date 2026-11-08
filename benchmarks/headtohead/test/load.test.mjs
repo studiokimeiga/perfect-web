@@ -13,7 +13,7 @@ import net from "node:net";
 import test from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 import { PAGE_KIB, TICK_MS } from "../lib.mjs";
-import { idleCost, load, pressWithTabsOpen, sessions } from "../load.mjs";
+import { idleCost, latencies, load, pressWithTabsOpen, sessions } from "../load.mjs";
 
 const NEEDS_PROC = { skip: !fs.existsSync("/proc/self/stat") && "needs /proc" };
 
@@ -366,6 +366,17 @@ test("`load` sends the headers of a browser and each visitor's cookie in turn, t
   });
 });
 
+test("a request a timer sent before it was due is timed from when it was sent: no latency is less than its answer took", () => {
+  const results = [
+    // Sent 0.6 ms early, answered in 0.2: from when it was due it would be -0.4.
+    { due: 10, sent: 9.4, status: 200, end: 9.6 },
+    // Sent 0.5 ms late, answered in 0.5: counted from when it was due.
+    { due: 20, sent: 20.5, status: 200, end: 21 },
+    { due: 30, sent: 30, error: "socket hang up", end: 31 },
+  ];
+  assert.deepEqual(latencies(results).map((x) => Number(x.toFixed(6))), [0.2, 1]);
+});
+
 test("`load` queues behind its sockets and counts latency from when each request was due: one socket against a slow server builds a queue", async () => {
   await serving(slowly(50), async ({ url, stats }) => {
     const result = await load({ pid: FAKE, url, rate: 100, seconds: 0.08, warmup: 0, maxSockets: 1 });
@@ -395,7 +406,7 @@ test("`load` of a live process: its costs are whole ticks and pages, its rate at
     const rate = result.achievedRate;
     assert.deepEqual([rate >= 80 / 16, rate <= 80 * 1.2, Number(rate.toFixed(1)) === rate], [true, true, true], String(rate));
     // From when each was due, a quick server's answers take a millisecond or so, not the run's length.
-    assert.deepEqual([l.min <= l.q1, l.q1 <= l.median, l.median <= l.q3, l.q3 <= l.max, l.median < 20], [true, true, true, true, true], JSON.stringify(l));
+    assert.deepEqual([0 <= l.min, l.min <= l.q1, l.q1 <= l.median, l.median <= l.q3, l.q3 <= l.max, l.median < 20], [true, true, true, true, true, true], JSON.stringify(l));
     assert.equal(result.p99Ms, l.max);
     assert.equal(result.processes, 1);
     assert.deepEqual([r.before > 0, r.peak >= r.before, r.peak >= r.after], [true, true, true], JSON.stringify(r));

@@ -5,8 +5,9 @@
 // for `seconds`), whether or not earlier ones have been answered, and each
 // one's latency is counted from when it was due, not from when it was sent,
 // so a server that falls behind is not flattered by a client that waits for
-// it (coordinated omission). A fixed number of warm-up requests come first
-// and are not counted.
+// it (coordinated omission). A request a timer sent before it was due is
+// counted from when it was sent: a latency is never less than its answer
+// took. A fixed number of warm-up requests come first and are not counted.
 //
 // The server's cost is read from /proc for its whole process tree (`lib.mjs`):
 // CPU time (user and system) across the measured requests, divided by the
@@ -17,15 +18,16 @@
 import http from "node:http";
 import { PAGE_KIB, TICK_MS, sleep, summary, treeCost } from "./lib.mjs";
 
-/** One request: its status and when it ended, or its error. */
+/** One request: when it was sent, and its status and when it ended, or its error. */
 function request(agent, url, headers) {
   return new Promise((resolve) => {
+    const sent = performance.now();
     const req = http.request(url, { agent, headers }, (res) => {
       res.on("data", () => {});
-      res.on("end", () => resolve({ status: res.statusCode, end: performance.now() }));
-      res.on("error", (e) => resolve({ error: String(e), end: performance.now() }));
+      res.on("end", () => resolve({ status: res.statusCode, sent, end: performance.now() }));
+      res.on("error", (e) => resolve({ error: String(e), sent, end: performance.now() }));
     });
-    req.on("error", (e) => resolve({ error: String(e), end: performance.now() }));
+    req.on("error", (e) => resolve({ error: String(e), sent, end: performance.now() }));
     req.end();
   });
 }
@@ -87,8 +89,16 @@ function countStatuses(results) {
   return statuses;
 }
 
-/** Each answered request's latency, from when it was due. */
-const latencies = (results) => results.filter((r) => !r.error).map((r) => r.end - r.due);
+/**
+ * **Each answered request's latency, from when it was due**, or from when it
+ * was sent where a timer sent it before then. Node's timers keep the event
+ * loop's time in whole milliseconds, so a sleep can end up to a millisecond
+ * before its due time as `performance.now()` reads it, and a quick answer to
+ * a request sent that early came out negative: the static host's median
+ * latency was -0.06 ms, and every stack's was short by the early sends, a
+ * noise as large as the latencies compared (train-15).
+ */
+export const latencies = (results) => results.filter((r) => !r.error).map((r) => r.end - Math.min(r.due, r.sent));
 
 /** The 99th percentile of the latencies, or null where there are none. */
 function p99(xs) {

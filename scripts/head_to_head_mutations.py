@@ -143,6 +143,7 @@ MUTANTS = [
     ("the verdict pleris.dev reads is not the report's", REPORT, "        verdict: kind,\n", '        verdict: "win",\n'),
     ("a refused run's problems are left out of its verdicts", HEAD_TO_HEAD, "    problems: apps.flatMap((a) => a.problems),\n", "    problems: [],\n"),
     ("a run on a changed tree is written as clean", HEAD_TO_HEAD, "    dirty: meta.dirty,\n", "    dirty: null,\n"),
+    ("a request sent early is timed from before it was sent", LOAD, ".map((r) => r.end - Math.min(r.due, r.sent));", ".map((r) => r.end - r.due);"),
     ("a hunk's content is read as headers", FEATURE, "  if (s.oldLeft > 0 || s.newLeft > 0) hunkLine(s, line);", "  if (false) hunkLine(s, line);"),
     ("the museum's verdict is not read", MUSEUM, "  current.verdict = verdictOf(line) ?? current.verdict;\n", ""),
     ("a string's comment-like text is read as a comment", LOC, "        if c in quotes:\n            quote = c\n", ""),
@@ -252,6 +253,10 @@ WITNESSES = {
     "the verdict pleris.dev reads is not the report's": (NODE, VERDICTS),
     "a refused run's problems are left out of its verdicts": (NODE, VERDICTS_RUN),
     "a run on a changed tree is written as clean": (NODE, VERDICTS_RUN),
+    "a request sent early is timed from before it was sent": (
+        NODE,
+        "a request a timer sent before it was due is timed from when it was sent: no latency is less than its answer took",
+    ),
     "a hunk's content is read as headers": (NODE, "a patch's statistics read each hunk by its counts: a content line that begins like a header is content"),
     "the museum's verdict is not read": (NODE, "the museum's record is read per exhibit: where its bug was shown, its repair, and Pleris's verdict"),
     "a string's comment-like text is read as a comment": (PY, "test_comments_are_not_code_and_strings_are"),
