@@ -236,7 +236,7 @@ MUTANTS = [
         "server",
         SERVER_RS,
         "                    String::new(),\n                    reached\n",
-        "                    String::new(),\n                    Vec::<String>::new()\n",
+        "                    String::new(),\n                    Vec::<Reached>::new()\n",
     ),
     # --- the program ----------------------------------------------------------------
     (
