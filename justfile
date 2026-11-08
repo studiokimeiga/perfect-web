@@ -63,6 +63,7 @@ import 'just/producer-ownership.just'
 import 'just/guide-ownership.just'
 import 'just/second-host.just'
 import 'just/session-overlap.just'
+import 'just/keep-alive.just'
 import 'just/node-audit.just'
 import 'just/keyed-retry.just'
 import 'just/effect-convergence.just'
@@ -80,6 +81,7 @@ import 'just/images.just'
 import 'just/who-may-run.just'
 import 'just/command-route.just'
 import 'just/session-reader.just'
+import 'just/site.just'
 
 default:
     @just --list

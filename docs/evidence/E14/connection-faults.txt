@@ -1,8 +1,7 @@
 ADR-0175 - a network error and a forced reconnect, made by the server
 
 produced by: just e14-connection-faults
-commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: ef86878777c08eb895ee59543a8c1e73a6f5b70d
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -11,11 +10,11 @@ playwright: Version 1.58.0
 
 test tests::a_dropped_command_connection_is_answered_by_nothing ... ok
 test tests::a_forced_reconnect_ends_a_subscription_and_refuses_new_ones_for_its_window ... ok
-test result: ok. 732 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 502.09s
+test result: ok. 957 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 110.23s
 
 == the page, in three engines (e2e/connections.spec.mjs)
 
-  9 passed (26.5s)
+  9 passed (8.2s)
 
 == mutation controls (scripts/connection_faults_mutations.py)
 

@@ -288,43 +288,54 @@ fn statement(names: &Names, table: &TableShape, function: &FunctionShape) -> Str
             )
         }
         Primitive::Put => {
+            // A row its key already holds needs no room. The bound is read
+            // at the statement's start, as every bound is (at read committed
+            // two commands can both find room: the bound is serializable's).
             let room = room(names, table)
-                .map(|r| format!(" AND (EXISTS (SELECT 1 FROM old) OR {r})"))
+                .map(|r| {
+                    let key = equal("t", table, &table.key, &row_places(&table.key));
+                    format!(" AND (EXISTS (SELECT 1 FROM {t} t WHERE {key}) OR {r})")
+                })
                 .unwrap_or_default();
             let key_names: Vec<String> = table
                 .key
                 .iter()
                 .map(|&f| ident(&table.columns[f].name))
                 .collect();
-            let rest: Vec<String> = table
+            // **Every field set from the row put**, the key's where there is
+            // nothing else: a conflict that updates returns the row it
+            // replaced, where `DO NOTHING` returns none.
+            let set: Vec<String> = table
                 .columns
                 .iter()
                 .enumerate()
-                .filter(|(i, _)| !table.key.contains(i))
+                .filter(|(i, _)| !table.key.contains(i) || table.key.len() == table.columns.len())
                 .map(|(_, c)| format!("{0} = EXCLUDED.{0}", ident(&c.name)))
                 .collect();
-            let conflict = if rest.is_empty() {
-                format!("ON CONFLICT ({}) DO NOTHING", key_names.join(", "))
-            } else {
-                format!(
-                    "ON CONFLICT ({}) DO UPDATE SET {}",
-                    key_names.join(", "),
-                    rest.join(", ")
-                )
-            };
+            // **The row it replaced is the statement's own** (`RETURNING old`,
+            // PostgreSQL 18): what the conflict found when it took the row's
+            // lock, after any command it waited on had committed. A read of
+            // the statement's snapshot can be another row at read committed
+            // (train-15): a row committed while the put waited was never in
+            // it, so a put that wrote back the value it replaced took its row
+            // for unchanged, and one of a row its table came to hold was
+            // refused as past a bound.
             format!(
                 "WITH holder AS ({}), \
-                 old AS (SELECT {}, 1 AS pw_old FROM {t} t WHERE {}), \
-                 written AS (INSERT INTO {t} ({}) SELECT {} WHERE NOT EXISTS (SELECT 1 FROM holder){room} {conflict} RETURNING 1) \
-                 SELECT (SELECT count(*) FROM written), h.pw_rank, {}, o.pw_old IS NOT NULL, {} \
-                 FROM (VALUES (1)) AS one LEFT JOIN holder h ON true LEFT JOIN old o ON true",
+                 written AS (INSERT INTO {t} ({}) SELECT {} WHERE NOT EXISTS (SELECT 1 FROM holder){room} \
+                 ON CONFLICT ({}) DO UPDATE SET {} \
+                 RETURNING old.{} IS NOT NULL AS pw_old, {}) \
+                 SELECT (SELECT count(*) FROM written), h.pw_rank, {}, coalesce(w.pw_old, false), {} \
+                 FROM (VALUES (1)) AS one LEFT JOIN holder h ON true LEFT JOIN written w ON true",
                 holder(names, table, false),
-                named_row_list("t", table),
-                equal("t", table, &table.key, &row_places(&table.key)),
                 column_names(table),
                 row_params(table),
+                key_names.join(", "),
+                set.join(", "),
+                key_names[0],
+                named_row_list("old", table),
                 aliased_row("h", table),
-                aliased_row("o", table),
+                aliased_row("w", table),
             )
         }
         Primitive::Delete | Primitive::DeletePrefix => format!(

@@ -262,6 +262,160 @@ fn the_connections_default_read_committed_admits_write_skew() {
     assert_eq!(kept, 3, "both inserts kept: the bound of two broken");
 }
 
+/// A table whose row's fields are all its key: a put of a row it holds
+/// writes nothing new.
+const TAGS: &str = "module Tags
+
+opaque type Word = String where String.length(value) >= 1 & String.length(value) <= 12
+
+type Tag = Tag { owner: Word, word: Word }
+
+table Tags
+    row Tag
+    key owner, word
+";
+
+const TAG_DATA: &str = "module TagData
+
+import Tags
+
+source TagData
+    holds        Tags
+    transactions serializable
+    reads        strong
+    changes      none
+    sets         one_call
+";
+
+fn tags() -> pw_core::tables::TablesJson {
+    tables(&[("Tags.pw", TAGS), ("TagData.pw", TAG_DATA)])
+}
+
+fn tag(function: &str) -> String {
+    format!("pw:tables/tags#{function}")
+}
+
+/// Two hosts on one schema whose commands run at read committed (the
+/// `connection` isolation option, on a database that defaults to it); the
+/// first's connections are named `name`.
+fn read_committed_hosts(
+    scratch: &Scratch,
+    program: fn() -> pw_core::tables::TablesJson,
+    name: &str,
+) -> (PgTables, PgTables) {
+    let loose = Options {
+        isolation: Isolation::ConnectionDefault,
+        ..Default::default()
+    };
+    let read_committed = with_setting(
+        &scratch.url,
+        "default_transaction_isolation",
+        "read committed",
+    );
+    let first = PgTables::open_with(
+        &named(&read_committed, name),
+        scratch.schema(),
+        program(),
+        loose.clone(),
+    )
+    .assert_ok("a host at read committed");
+    let second = PgTables::open_with(&read_committed, scratch.schema(), program(), loose)
+        .assert_ok("another host at read committed");
+    (first, second)
+}
+
+/// How many of the connections named `name` wait on a row another
+/// transaction has written and not yet ended.
+fn waiting_on_a_row(scratch: &Scratch, name: &str) -> usize {
+    scratch
+        .texts(&format!(
+            "SELECT count(*)::text FROM pg_stat_activity \
+             WHERE application_name = '{name}' AND wait_event_type = 'Lock' \
+             AND wait_event IN ('transactionid', 'tuple')"
+        ))
+        .first()
+        .and_then(|n| n.parse().ok())
+        .unwrap_or(0)
+}
+
+/// **A put is answered from the row it replaced** (train-15). At read
+/// committed a put whose key another command has written, and not yet
+/// committed, waits for it, then replaces the row that command commits,
+/// which its statement's snapshot never saw. Answered from that snapshot, a
+/// put that wrote back the name the other command replaced took its row for
+/// unchanged, and its commit published no new version of the table: a cache
+/// kept the other's name, which the table no longer held.
+#[test]
+fn a_put_at_read_committed_is_answered_from_the_row_it_replaced() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "replaced");
+    let (waiting, other) = read_committed_hosts(&scratch, things, "pw_put_replaces");
+    seed_owners(&waiting, &["a"]);
+    let mut renaming = other.begin().assert_ok("the other's command");
+    renaming
+        .write(&owner("put"), &[json!({"id": "a", "name": "Renamed"})])
+        .assert_ok("the other renames a");
+    let put = std::thread::spawn(move || {
+        let mut tx = waiting.begin().assert_ok("the put's command");
+        let answer = tx.write(&owner("put"), &[owner_row("a")]);
+        (answer, tx.commit())
+    });
+    let waited = until(|| waiting_on_a_row(&scratch, "pw_put_replaces") == 1);
+    renaming.commit().assert_ok("the other commits");
+    let (answer, committed) = put.join().expect("the put's thread");
+    assert!(waited, "the put waited on the other's row");
+    assert!(answer.is_ok(), "{answer:?}");
+    let written: Vec<String> = committed
+        .map(|c| c.written.into_keys().collect())
+        .unwrap_or_default();
+    assert_eq!(
+        written,
+        ["Owners"],
+        "the put replaced the other's name: its table changed"
+    );
+    // A string is kept as its UTF-8 bytes.
+    assert_eq!(
+        scratch.texts("SELECT convert_from(name, 'UTF8') FROM \"Owners\""),
+        ["Owner a"]
+    );
+}
+
+/// **A put of a row its table came to hold while it waited is kept**
+/// (train-15). Every field of a tag is its key, and at read committed a put
+/// of a tag another command inserted, not yet committed, waits for it. Its
+/// statement's snapshot never saw the row the database then held, and the
+/// put was refused as a write past the table's bound, a table declared with
+/// none.
+#[test]
+fn a_put_at_read_committed_of_a_row_another_command_inserted_is_kept() {
+    let Some(url) = database() else { return };
+    let scratch = Scratch::new(&url, "all_key");
+    let (waiting, other) = read_committed_hosts(&scratch, tags, "pw_put_all_key");
+    let mut inserting = other.begin().assert_ok("the other's command");
+    inserting
+        .write(&tag("insert"), &[json!({"owner": "a", "word": "x"})])
+        .assert_ok("the other inserts a tag");
+    let put = std::thread::spawn(move || {
+        let mut tx = waiting.begin().assert_ok("the put's command");
+        let answer = tx.write(&tag("put"), &[json!({"owner": "a", "word": "x"})]);
+        (answer, tx.commit())
+    });
+    let waited = until(|| waiting_on_a_row(&scratch, "pw_put_all_key") == 1);
+    inserting.commit().assert_ok("the other commits");
+    let (answer, committed) = put.join().expect("the put's thread");
+    assert!(waited, "the put waited on the other's row");
+    assert!(
+        answer.is_ok(),
+        "a put of a tag the table holds is kept: {answer:?}"
+    );
+    let written: Option<Vec<String>> = committed.ok().map(|c| c.written.into_keys().collect());
+    assert_eq!(
+        written,
+        Some(vec![]),
+        "the tag it put is the tag the table held: nothing changed"
+    );
+}
+
 /// Each host reads the owners, finds one, and adds one (two at most, it
 /// believes): the second commit's answer, and the owners kept.
 fn skew(one: &PgTables, two: &PgTables) -> (Result<(), Error>, usize) {

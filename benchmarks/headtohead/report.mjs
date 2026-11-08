@@ -228,9 +228,28 @@ function classify(r) {
   const mine = plerisIn(r.values);
   const verdicts = r.values.filter(([l]) => l !== "Pleris").map((v) => verdictAgainst(r, mine, v));
   const beaten = verdicts.filter(([, v]) => v === "loses").map(([l]) => l);
-  if (beaten.length) return { kind: "loss", text: `${rowText(r)}  (better: ${beaten.join(", ")})` };
+  if (beaten.length) return { kind: "loss", better: beaten, text: `${rowText(r)}  (better: ${beaten.join(", ")})` };
   const best = verdicts.length > 0 && verdicts.every(([, v]) => v === "wins");
-  return best ? { kind: "win", text: rowText(r) } : { kind: "neither" };
+  return best ? { kind: "win", better: [], text: rowText(r) } : { kind: "neither", better: [] };
+}
+
+/** **Every row Pleris is in, with its verdict**, as the report judges it
+ * (`classify`): what pleris.dev reads, so the site shows the record's own
+ * numbers and verdicts, never a copy (train-15). */
+export function verdictRows(result, sections = {}) {
+  const rows = [...sectionRows(sections), ...result.apps.flatMap(appRows)];
+  return rows
+    .filter((r) => plerisIn(r.values))
+    .map((r) => {
+      const { kind, better } = classify(r);
+      return {
+        app: r.app.app ?? r.app,
+        what: r.what,
+        values: r.values.map(([label, value, shown]) => ({ label, value, shown: String(shown) })),
+        verdict: kind,
+        better,
+      };
+    });
 }
 
 const whenPresent = (data, make) => (data ? make(data) : []);

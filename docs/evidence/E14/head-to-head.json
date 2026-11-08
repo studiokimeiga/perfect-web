@@ -1,0 +1,6208 @@
+{
+ "commit": "58b0b2caa35e08d4b2b82af87265e183dd2c7f3e",
+ "dirty": null,
+ "started": "2026-11-08T02:02:30.332Z",
+ "finished": "2026-11-08T02:26:57.723Z",
+ "machine": "13th Gen Intel(R) Core(TM) i9-13900K",
+ "runs": 7,
+ "serverRuns": 5,
+ "network": "Lighthouse's Slow 4G as it applies it through DevTools: 562.5 ms a request, 1.6 Mbit/s x 0.9 down, 750 kbit/s x 0.9 up, CPU x4",
+ "problems": [],
+ "rows": [
+  {
+   "app": "todomvc",
+   "what": "TodoMVC's specification, tests passed in Chromium, Firefox and WebKit together (more is better)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 60,
+     "shown": "60/60"
+    },
+    {
+     "label": "React",
+     "value": 51,
+     "shown": "51/60"
+    },
+    {
+     "label": "Svelte",
+     "value": 48,
+     "shown": "48/60"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "TodoMVC's official Cypress suite, tests passed (more is better)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 29,
+     "shown": "29/29"
+    },
+    {
+     "label": "React",
+     "value": 28,
+     "shown": "28/29"
+    },
+    {
+     "label": "Svelte",
+     "value": 28,
+     "shown": "28/29"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "source the developer writes: app lines",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 189,
+     "shown": "189"
+    },
+    {
+     "label": "React",
+     "value": 278,
+     "shown": "278"
+    },
+    {
+     "label": "Svelte",
+     "value": 201,
+     "shown": "201"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "source the developer writes: app lines plus the code it needs in its server in another language",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 189,
+     "shown": "189"
+    },
+    {
+     "label": "React",
+     "value": 278,
+     "shown": "278"
+    },
+    {
+     "label": "Svelte",
+     "value": 201,
+     "shown": "201"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "source the developer writes: app files",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 1,
+     "shown": "1"
+    },
+    {
+     "label": "React",
+     "value": 11,
+     "shown": "11"
+    },
+    {
+     "label": "Svelte",
+     "value": 8,
+     "shown": "8"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "source the developer writes: languages (app, and server code it needs)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 1,
+     "shown": "1"
+    },
+    {
+     "label": "React",
+     "value": 4,
+     "shown": "4"
+    },
+    {
+     "label": "Svelte",
+     "value": 4,
+     "shown": "4"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "source the developer writes: build and configuration lines",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 184,
+     "shown": "184"
+    },
+    {
+     "label": "React",
+     "value": 145,
+     "shown": "145"
+    },
+    {
+     "label": "Svelte",
+     "value": 44,
+     "shown": "44"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "React",
+    "Svelte"
+   ]
+  },
+  {
+   "app": "store",
+   "what": "source the developer writes: app lines",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 294,
+     "shown": "294"
+    },
+    {
+     "label": "Next.js",
+     "value": 151,
+     "shown": "151"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 134,
+     "shown": "134"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "Next.js",
+    "SvelteKit"
+   ]
+  },
+  {
+   "app": "store",
+   "what": "source the developer writes: app lines plus the code it needs in its server in another language",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 2422,
+     "shown": "2422"
+    },
+    {
+     "label": "Next.js",
+     "value": 151,
+     "shown": "151"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 134,
+     "shown": "134"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "Next.js",
+    "SvelteKit"
+   ]
+  },
+  {
+   "app": "store",
+   "what": "source the developer writes: app files",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 7,
+     "shown": "7"
+    },
+    {
+     "label": "Next.js",
+     "value": 6,
+     "shown": "6"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 6,
+     "shown": "6"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "Next.js",
+    "SvelteKit"
+   ]
+  },
+  {
+   "app": "store",
+   "what": "source the developer writes: languages (app, and server code it needs)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 2,
+     "shown": "2"
+    },
+    {
+     "label": "Next.js",
+     "value": 2,
+     "shown": "2"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 3,
+     "shown": "3"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "source the developer writes: build and configuration lines",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 9,
+     "shown": "9"
+    },
+    {
+     "label": "Next.js",
+     "value": 65,
+     "shown": "65"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 44,
+     "shown": "44"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "the same change, T01 (Optimistic cart update with rollback): lines changed",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 1,
+     "shown": "+1/-0 in 1 file(s), Pleris"
+    },
+    {
+     "label": "Next.js",
+     "value": 77,
+     "shown": "+52/-25 in 2 file(s), TSX"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 18,
+     "shown": "+16/-2 in 1 file(s), Svelte"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "the same change, T02 (Stop the kitchen's request storm): lines changed",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 2,
+     "shown": "+1/-1 in 1 file(s), Pleris"
+    },
+    {
+     "label": "Next.js",
+     "value": 17,
+     "shown": "+15/-2 in 1 file(s), TypeScript"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 17,
+     "shown": "+15/-2 in 1 file(s), TypeScript"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "the same change, T03 (A private resource: the cart's lines on the store page): lines changed",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 43,
+     "shown": "+42/-1 in 1 file(s), Pleris"
+    },
+    {
+     "label": "Next.js",
+     "value": 25,
+     "shown": "+23/-2 in 2 file(s), TSX+TypeScript"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 29,
+     "shown": "+28/-1 in 3 file(s), Svelte+TypeScript"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "Next.js",
+    "SvelteKit"
+   ]
+  },
+  {
+   "app": "store",
+   "what": "the same change, T04 (An order-state variant: ready for pickup): lines changed",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 2,
+     "shown": "+2/-0 in 2 file(s), Pleris"
+    },
+    {
+     "label": "Next.js",
+     "value": 5,
+     "shown": "+3/-2 in 2 file(s), TSX+TypeScript"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 6,
+     "shown": "+4/-2 in 2 file(s), Svelte+TypeScript"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "the same change, T05 (Stream the store's recommendations): lines changed",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 14,
+     "shown": "+14/-0 in 1 file(s), Pleris"
+    },
+    {
+     "label": "Next.js",
+     "value": 26,
+     "shown": "+25/-1 in 1 file(s), TSX"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 31,
+     "shown": "+30/-1 in 2 file(s), Svelte+TypeScript"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "the same change, T06 (An accessible form: request an item): lines changed",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 33,
+     "shown": "+33/-0 in 1 file(s), Pleris"
+    },
+    {
+     "label": "Next.js",
+     "value": 48,
+     "shown": "+48/-0 in 2 file(s), TSX"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 35,
+     "shown": "+35/-0 in 1 file(s), Svelte"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "the same change, T07 (Stop reading a category the customer moved past): lines changed",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 6,
+     "shown": "+3/-3 in 1 file(s), Pleris"
+    },
+    {
+     "label": "Next.js",
+     "value": 11,
+     "shown": "+9/-2 in 1 file(s), TSX"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 9,
+     "shown": "+8/-1 in 1 file(s), Svelte"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "the same change, T08 (Prevent duplicate submissions): lines changed",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 2,
+     "shown": "+2/-0 in 1 file(s), Pleris"
+    },
+    {
+     "label": "Next.js",
+     "value": 52,
+     "shown": "+44/-8 in 4 file(s), TSX+TypeScript"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 43,
+     "shown": "+39/-4 in 3 file(s), Svelte+TypeScript"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "the same change, T09 (Keep the store's notice fresh): lines changed",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 2,
+     "shown": "+1/-1 in 1 file(s), Pleris"
+    },
+    {
+     "label": "Next.js",
+     "value": 2,
+     "shown": "+1/-1 in 1 file(s), TypeScript"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 2,
+     "shown": "+1/-1 in 1 file(s), TypeScript"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "the same change, T10 (A loading and an error state for the delivery estimate): lines changed",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 8,
+     "shown": "+6/-2 in 1 file(s), Pleris"
+    },
+    {
+     "label": "Next.js",
+     "value": 17,
+     "shown": "+15/-2 in 1 file(s), TSX"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 17,
+     "shown": "+14/-3 in 2 file(s), Svelte+TypeScript"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "the same change, T11 (An accessible dialog: confirm before clearing the cart): lines changed",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 23,
+     "shown": "+18/-5 in 1 file(s), Pleris"
+    },
+    {
+     "label": "Next.js",
+     "value": 37,
+     "shown": "+30/-7 in 2 file(s), TSX"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 22,
+     "shown": "+19/-3 in 1 file(s), Svelte"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "SvelteKit"
+   ]
+  },
+  {
+   "app": "store",
+   "what": "the same change, T12 (Repair an unsafe cache): lines changed",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 4,
+     "shown": "+2/-2 in 1 file(s), Pleris"
+    },
+    {
+     "label": "Next.js",
+     "value": 6,
+     "shown": "+3/-3 in 1 file(s), TypeScript"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 6,
+     "shown": "+3/-3 in 1 file(s), TypeScript"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "the twelve changes: lines changed in all",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 140,
+     "shown": "140"
+    },
+    {
+     "label": "Next.js",
+     "value": 323,
+     "shown": "323"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 235,
+     "shown": "235"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "the twelve changes: files touched in all",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 13,
+     "shown": "13"
+    },
+    {
+     "label": "Next.js",
+     "value": 20,
+     "shown": "20"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 19,
+     "shown": "19"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "the twelve changes: languages touched",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 1,
+     "shown": "1 (Pleris)"
+    },
+    {
+     "label": "Next.js",
+     "value": 2,
+     "shown": "2 (TSX+TypeScript)"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 2,
+     "shown": "2 (Svelte+TypeScript)"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "the twelve changes: unsafe versions the stack's own checker refuses or warns of (more is better)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 9,
+     "shown": "9/12"
+    },
+    {
+     "label": "Next.js",
+     "value": 0,
+     "shown": "0/12"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 0,
+     "shown": "0/12"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "the museum's bug classes the stack lets ship (fewer is better)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 0,
+     "shown": "0/5"
+    },
+    {
+     "label": "Next.js",
+     "value": 3,
+     "shown": "3/5 (shown in it)"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 2,
+     "shown": "2/5 (shown in it)"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "first load, bytes received as each host sent them (Chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 141362,
+     "shown": "141,362"
+    },
+    {
+     "label": "React",
+     "value": 70085,
+     "shown": "70,085"
+    },
+    {
+     "label": "Svelte",
+     "value": 20821,
+     "shown": "20,821"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "React",
+    "Svelte"
+   ]
+  },
+  {
+   "app": "todomvc",
+   "what": "first load, bytes decoded (Chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 415251,
+     "shown": "415,251"
+    },
+    {
+     "label": "React",
+     "value": 248720,
+     "shown": "248,720"
+    },
+    {
+     "label": "Svelte",
+     "value": 57354,
+     "shown": "57,354"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "React",
+    "Svelte"
+   ]
+  },
+  {
+   "app": "todomvc",
+   "what": "first load, bytes as a static host compresses them, Brotli 11, TodoMVC's common files aside (Chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 125723,
+     "shown": "125,723"
+    },
+    {
+     "label": "React",
+     "value": 67161,
+     "shown": "67,161"
+    },
+    {
+     "label": "Svelte",
+     "value": 16992,
+     "shown": "16,992"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "React",
+    "Svelte"
+   ]
+  },
+  {
+   "app": "todomvc",
+   "what": "first load, requests (Chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 19,
+     "shown": "19"
+    },
+    {
+     "label": "React",
+     "value": 5,
+     "shown": "5"
+    },
+    {
+     "label": "Svelte",
+     "value": 5,
+     "shown": "5"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "React",
+    "Svelte"
+   ]
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"add\", bytes received (Chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 0,
+     "shown": "0"
+    },
+    {
+     "label": "React",
+     "value": 0,
+     "shown": "0"
+    },
+    {
+     "label": "Svelte",
+     "value": 0,
+     "shown": "0"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"toggle\", bytes received (Chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 0,
+     "shown": "0"
+    },
+    {
+     "label": "React",
+     "value": 0,
+     "shown": "0"
+    },
+    {
+     "label": "Svelte",
+     "value": 0,
+     "shown": "0"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"filter\", bytes received (Chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 0,
+     "shown": "0"
+    },
+    {
+     "label": "React",
+     "value": 0,
+     "shown": "0"
+    },
+    {
+     "label": "Svelte",
+     "value": 0,
+     "shown": "0"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "first contentful paint, ms, median (chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 32,
+      "q1": 28,
+      "q3": 32,
+      "min": 28,
+      "max": 36
+     },
+     "shown": "32 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 32,
+      "q1": 32,
+      "q3": 36,
+      "min": 32,
+      "max": 40
+     },
+     "shown": "32 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 28,
+      "q1": 28,
+      "q3": 34,
+      "min": 28,
+      "max": 36
+     },
+     "shown": "28 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "largest contentful paint, ms, median (chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 32,
+      "q1": 28,
+      "q3": 32,
+      "min": 28,
+      "max": 36
+     },
+     "shown": "32 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 52,
+      "q1": 50,
+      "q3": 52,
+      "min": 44,
+      "max": 52
+     },
+     "shown": "52 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 28,
+      "q1": 28,
+      "q3": 34,
+      "min": 28,
+      "max": 36
+     },
+     "shown": "28 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interactive, ms, median (chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 26.099999994039536,
+      "q1": 25.549999997019768,
+      "q3": 26.900000005960464,
+      "min": 23.399999991059303,
+      "max": 27.700000002980232
+     },
+     "shown": "26 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 38.20000000298023,
+      "q1": 37.95000000298023,
+      "q3": 39.850000001490116,
+      "min": 35.79999999701977,
+      "max": 42.8999999910593
+     },
+     "shown": "38 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 15.200000002980232,
+      "q1": 14.850000008940697,
+      "q3": 15.650000005960464,
+      "min": 14.599999994039536,
+      "max": 24.099999994039536
+     },
+     "shown": "15 ms"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "Svelte"
+   ]
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"add\" to its frame, ms, median (chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 5.299999997019768,
+      "q1": 5.200000002980232,
+      "q3": 6.500000007450581,
+      "min": 5.0999999940395355,
+      "max": 9.300000011920929
+     },
+     "shown": "5.3 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 10.700000002980232,
+      "q1": 8.350000008940697,
+      "q3": 11.75,
+      "min": 6.5999999940395355,
+      "max": 14.200000002980232
+     },
+     "shown": "11 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 7,
+      "q1": 6.149999998509884,
+      "q3": 11.550000004470348,
+      "min": 5.700000002980232,
+      "max": 13
+     },
+     "shown": "7.0 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"toggle\" to its frame, ms, median (chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14.899999991059303,
+      "q1": 14.700000002980232,
+      "q3": 15.050000004470348,
+      "min": 14.400000005960464,
+      "max": 15.200000002980232
+     },
+     "shown": "15 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14.900000005960464,
+      "q1": 14.700000010430813,
+      "q3": 15.149999991059303,
+      "min": 14.199999988079071,
+      "max": 15.400000005960464
+     },
+     "shown": "15 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 15.099999994039536,
+      "q1": 14.800000004470348,
+      "q3": 15.150000005960464,
+      "min": 14.799999997019768,
+      "max": 15.200000002980232
+     },
+     "shown": "15 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"filter\" to its frame, ms, median (chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14.600000008940697,
+      "q1": 14.449999995529652,
+      "q3": 15.049999997019768,
+      "min": 14.099999994039536,
+      "max": 15.099999994039536
+     },
+     "shown": "15 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14.900000005960464,
+      "q1": 14.099999994039536,
+      "q3": 15.049999997019768,
+      "min": 13.399999991059303,
+      "max": 15.100000008940697
+     },
+     "shown": "15 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 30.900000005960464,
+      "q1": 30.80000000447035,
+      "q3": 31.100000001490116,
+      "min": 30.200000002980232,
+      "max": 31.5
+     },
+     "shown": "31 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "cumulative layout shift, median (chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.000"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0.0061096191406250005,
+      "q1": 0.0061096191406250005,
+      "q3": 0.0061096191406250005,
+      "min": 0.0061096191406250005,
+      "max": 0.0061096191406250005
+     },
+     "shown": "0.006"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0.0061096191406250005
+     },
+     "shown": "0.000"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "first contentful paint, ms, median (chromium, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 32,
+      "q1": 32,
+      "q3": 32,
+      "min": 32,
+      "max": 32
+     },
+     "shown": "32 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 32,
+      "q1": 32,
+      "q3": 32,
+      "min": 28,
+      "max": 32
+     },
+     "shown": "32 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 24,
+      "q1": 24,
+      "q3": 24,
+      "min": 24,
+      "max": 24
+     },
+     "shown": "24 ms"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "Svelte"
+   ]
+  },
+  {
+   "app": "todomvc",
+   "what": "largest contentful paint, ms, median (chromium, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 32,
+      "q1": 32,
+      "q3": 32,
+      "min": 32,
+      "max": 32
+     },
+     "shown": "32 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 32,
+      "q1": 32,
+      "q3": 32,
+      "min": 28,
+      "max": 32
+     },
+     "shown": "32 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 24,
+      "q1": 24,
+      "q3": 24,
+      "min": 24,
+      "max": 24
+     },
+     "shown": "24 ms"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "Svelte"
+   ]
+  },
+  {
+   "app": "todomvc",
+   "what": "interactive, ms, median (chromium, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 9.600000008940697,
+      "q1": 9.299999997019768,
+      "q3": 11.25,
+      "min": 8.900000005960464,
+      "max": 13.699999988079071
+     },
+     "shown": "9.6 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 9.900000005960464,
+      "q1": 9.74999999254942,
+      "q3": 10.25,
+      "min": 9.599999994039536,
+      "max": 11.5
+     },
+     "shown": "9.9 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 8,
+      "q1": 7.700000002980232,
+      "q3": 8.649999998509884,
+      "min": 7.300000011920929,
+      "max": 9.5
+     },
+     "shown": "8.0 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"add\" to its frame, ms, median (chromium, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 15.200000002980232,
+      "q1": 4.100000008940697,
+      "q3": 15.600000001490116,
+      "min": 2.4000000059604645,
+      "max": 16.799999997019768
+     },
+     "shown": "15 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 13.599999994039536,
+      "q1": 7.850000008940697,
+      "q3": 14.75,
+      "min": 2.2999999970197678,
+      "max": 15.200000002980232
+     },
+     "shown": "14 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 12.899999991059303,
+      "q1": 12.350000001490116,
+      "q3": 13.299999997019768,
+      "min": 11.200000002980232,
+      "max": 15.299999997019768
+     },
+     "shown": "13 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"toggle\" to its frame, ms, median (chromium, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 15.299999997019768,
+      "q1": 15.200000002980232,
+      "q3": 15.300000004470348,
+      "min": 15.199999988079071,
+      "max": 15.399999991059303
+     },
+     "shown": "15 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 15.200000002980232,
+      "q1": 15.099999994039536,
+      "q3": 15.5,
+      "min": 14.899999991059303,
+      "max": 15.5
+     },
+     "shown": "15 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 15.400000005960464,
+      "q1": 15.349999994039536,
+      "q3": 15.450000002980232,
+      "min": 15,
+      "max": 15.600000008940697
+     },
+     "shown": "15 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"filter\" to its frame, ms, median (chromium, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14.799999997019768,
+      "q1": 14.649999998509884,
+      "q3": 14.950000002980232,
+      "min": 14.599999994039536,
+      "max": 15.100000008940697
+     },
+     "shown": "15 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 15.200000002980232,
+      "q1": 14.899999998509884,
+      "q3": 15.300000004470348,
+      "min": 14.399999991059303,
+      "max": 15.5
+     },
+     "shown": "15 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 31.200000002980232,
+      "q1": 31,
+      "q3": 31.400000005960464,
+      "min": 30.799999997019768,
+      "max": 31.69999998807907
+     },
+     "shown": "31 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "cumulative layout shift, median (chromium, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.000"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.000"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0.0030548095703125003,
+      "min": 0,
+      "max": 0.0061096191406250005
+     },
+     "shown": "0.000"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "first contentful paint, ms, median (firefox, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 30,
+      "q1": 17,
+      "q3": 30.5,
+      "min": 16,
+      "max": 32
+     },
+     "shown": "30 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 49,
+      "q1": 48,
+      "q3": 50.5,
+      "min": 48,
+      "max": 113
+     },
+     "shown": "49 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 46,
+      "q1": 45.5,
+      "q3": 47,
+      "min": 45,
+      "max": 47
+     },
+     "shown": "46 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "largest contentful paint, ms, median (firefox, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 30,
+      "q1": 17,
+      "q3": 30.5,
+      "min": 16,
+      "max": 32
+     },
+     "shown": "30 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 49,
+      "q1": 48,
+      "q3": 50.5,
+      "min": 48,
+      "max": 129
+     },
+     "shown": "49 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 46,
+      "q1": 45.5,
+      "q3": 47,
+      "min": 45,
+      "max": 47
+     },
+     "shown": "46 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interactive, ms, median (firefox, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 44,
+      "q1": 41,
+      "q3": 45.5,
+      "min": 41,
+      "max": 52
+     },
+     "shown": "44 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 49,
+      "q1": 48,
+      "q3": 50.5,
+      "min": 47,
+      "max": 124
+     },
+     "shown": "49 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 38,
+      "q1": 37,
+      "q3": 38.5,
+      "min": 36,
+      "max": 39
+     },
+     "shown": "38 ms"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "Svelte"
+   ]
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"add\" to its frame, ms, median (firefox, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 7,
+      "q1": 6.5,
+      "q3": 13,
+      "min": 5,
+      "max": 17
+     },
+     "shown": "7.0 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 7,
+      "q1": 6.5,
+      "q3": 7,
+      "min": 6,
+      "max": 7
+     },
+     "shown": "7.0 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 6,
+      "q1": 5,
+      "q3": 6,
+      "min": 5,
+      "max": 6
+     },
+     "shown": "6.0 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"toggle\" to its frame, ms, median (firefox, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 6,
+      "q1": 5,
+      "q3": 6.5,
+      "min": 5,
+      "max": 9
+     },
+     "shown": "6.0 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 5,
+      "q1": 5,
+      "q3": 5,
+      "min": 4,
+      "max": 6
+     },
+     "shown": "5.0 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 17,
+      "q1": 16.5,
+      "q3": 17,
+      "min": 16,
+      "max": 17
+     },
+     "shown": "17 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"filter\" to its frame, ms, median (firefox, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 4,
+      "q1": 3.5,
+      "q3": 4,
+      "min": 3,
+      "max": 7
+     },
+     "shown": "4.0 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 16,
+      "q1": 16,
+      "q3": 16.5,
+      "min": 15,
+      "max": 18
+     },
+     "shown": "16 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 16,
+      "q1": 16,
+      "q3": 17,
+      "min": 15,
+      "max": 17
+     },
+     "shown": "16 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "cumulative layout shift, median (firefox, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "first contentful paint, ms, median (firefox, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 15,
+      "q1": 14.5,
+      "q3": 16,
+      "min": 14,
+      "max": 16
+     },
+     "shown": "15 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 38,
+      "q1": 36,
+      "q3": 39,
+      "min": 31,
+      "max": 40
+     },
+     "shown": "38 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 23,
+      "q1": 23,
+      "q3": 23.5,
+      "min": 22,
+      "max": 26
+     },
+     "shown": "23 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "largest contentful paint, ms, median (firefox, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 15,
+      "q1": 14.5,
+      "q3": 16,
+      "min": 14,
+      "max": 16
+     },
+     "shown": "15 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 55,
+      "q1": 50.5,
+      "q3": 55,
+      "min": 39,
+      "max": 56
+     },
+     "shown": "55 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 38,
+      "q1": 36,
+      "q3": 39,
+      "min": 26,
+      "max": 40
+     },
+     "shown": "38 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interactive, ms, median (firefox, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 31,
+      "q1": 30,
+      "q3": 32,
+      "min": 29,
+      "max": 33
+     },
+     "shown": "31 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 42,
+      "q1": 40.5,
+      "q3": 42,
+      "min": 39,
+      "max": 43
+     },
+     "shown": "42 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 28,
+      "q1": 27.5,
+      "q3": 28.5,
+      "min": 26,
+      "max": 31
+     },
+     "shown": "28 ms"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "Svelte"
+   ]
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"add\" to its frame, ms, median (firefox, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 4,
+      "q1": 3,
+      "q3": 4,
+      "min": 3,
+      "max": 4
+     },
+     "shown": "4.0 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 3,
+      "q1": 3,
+      "q3": 3,
+      "min": 3,
+      "max": 3
+     },
+     "shown": "3.0 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 2,
+      "q1": 2,
+      "q3": 2.5,
+      "min": 2,
+      "max": 3
+     },
+     "shown": "2.0 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"toggle\" to its frame, ms, median (firefox, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 4,
+      "q1": 4,
+      "q3": 5,
+      "min": 4,
+      "max": 6
+     },
+     "shown": "4.0 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 3,
+      "q1": 3,
+      "q3": 4,
+      "min": 2,
+      "max": 5
+     },
+     "shown": "3.0 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 17,
+      "q1": 17,
+      "q3": 17,
+      "min": 16,
+      "max": 17
+     },
+     "shown": "17 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"filter\" to its frame, ms, median (firefox, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 4,
+      "q1": 3.5,
+      "q3": 4,
+      "min": 3,
+      "max": 5
+     },
+     "shown": "4.0 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 15,
+      "q1": 15,
+      "q3": 16,
+      "min": 15,
+      "max": 16
+     },
+     "shown": "15 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 16,
+      "q1": 16,
+      "q3": 17,
+      "min": 15,
+      "max": 18
+     },
+     "shown": "16 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "cumulative layout shift, median (firefox, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "first contentful paint, ms, median (webkit, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 34,
+      "q1": 33,
+      "q3": 34,
+      "min": 33,
+      "max": 36.00000000000001
+     },
+     "shown": "34 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 23,
+      "q1": 17,
+      "q3": 27,
+      "min": 12,
+      "max": 29
+     },
+     "shown": "23 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 20,
+      "q1": 20,
+      "q3": 21,
+      "min": 19,
+      "max": 24
+     },
+     "shown": "20 ms"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "React",
+    "Svelte"
+   ]
+  },
+  {
+   "app": "todomvc",
+   "what": "largest contentful paint, ms, median (webkit, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 135,
+      "q1": 134.5,
+      "q3": 137.5,
+      "min": 133,
+      "max": 143.00000000000003
+     },
+     "shown": "135 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 150,
+      "q1": 148.5,
+      "q3": 154,
+      "min": 147,
+      "max": 154
+     },
+     "shown": "150 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 146,
+      "q1": 145,
+      "q3": 146.5,
+      "min": 144.00000000000003,
+      "max": 147
+     },
+     "shown": "146 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interactive, ms, median (webkit, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 50,
+      "q1": 49,
+      "q3": 53.5,
+      "min": 49,
+      "max": 64
+     },
+     "shown": "50 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 39,
+      "q1": 38,
+      "q3": 40.5,
+      "min": 38,
+      "max": 42
+     },
+     "shown": "39 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 29,
+      "q1": 28,
+      "q3": 30.5,
+      "min": 28,
+      "max": 33
+     },
+     "shown": "29 ms"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "React",
+    "Svelte"
+   ]
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"add\" to its frame, ms, median (webkit, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 16,
+      "q1": 16,
+      "q3": 16.5,
+      "min": 15.999999999999886,
+      "max": 17
+     },
+     "shown": "16 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 18,
+      "q1": 17,
+      "q3": 18,
+      "min": 16.999999999999943,
+      "max": 18.000000000000057
+     },
+     "shown": "18 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 17,
+      "q1": 16.99999999999997,
+      "q3": 17,
+      "min": 16,
+      "max": 17
+     },
+     "shown": "17 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"toggle\" to its frame, ms, median (webkit, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 13,
+      "q1": 12.499999999999943,
+      "q3": 13,
+      "min": 12,
+      "max": 14
+     },
+     "shown": "13 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14,
+      "q1": 14,
+      "q3": 14.5,
+      "min": 8,
+      "max": 15
+     },
+     "shown": "14 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14,
+      "q1": 14,
+      "q3": 14.5,
+      "min": 14,
+      "max": 15
+     },
+     "shown": "14 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"filter\" to its frame, ms, median (webkit, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 12.999999999999886,
+      "q1": 12,
+      "q3": 12.999999999999943,
+      "min": 11.999999999999886,
+      "max": 13
+     },
+     "shown": "13 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 13,
+      "q1": 13,
+      "q3": 35.99999999999994,
+      "min": 10,
+      "max": 59
+     },
+     "shown": "13 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 13,
+      "q1": 12.499999999999943,
+      "q3": 34.49999999999994,
+      "min": 11.999999999999886,
+      "max": 57.999999999999886
+     },
+     "shown": "13 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "cumulative layout shift, median (webkit, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "first contentful paint, ms, median (webkit, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14,
+      "q1": 8.5,
+      "q3": 17.5,
+      "min": 6,
+      "max": 19
+     },
+     "shown": "14 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 11,
+      "q1": 10.5,
+      "q3": 11.5,
+      "min": 7,
+      "max": 13.000000000000002
+     },
+     "shown": "11 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 15,
+      "q1": 11,
+      "q3": 15,
+      "min": 7,
+      "max": 15
+     },
+     "shown": "15 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "largest contentful paint, ms, median (webkit, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 24,
+      "q1": 19,
+      "q3": 26.5,
+      "min": 16,
+      "max": 46
+     },
+     "shown": "24 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 20,
+      "q1": 19.5,
+      "q3": 21,
+      "min": 18.000000000000004,
+      "max": 32
+     },
+     "shown": "20 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 23,
+      "q1": 19,
+      "q3": 23,
+      "min": 16,
+      "max": 30
+     },
+     "shown": "23 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interactive, ms, median (webkit, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 19,
+      "q1": 18.000000000000004,
+      "q3": 19,
+      "min": 17,
+      "max": 23
+     },
+     "shown": "19 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 11,
+      "q1": 10,
+      "q3": 11.5,
+      "min": 10,
+      "max": 13.000000000000002
+     },
+     "shown": "11 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 7,
+      "q1": 6.5,
+      "q3": 7,
+      "min": 6,
+      "max": 8
+     },
+     "shown": "7.0 ms"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "React",
+    "Svelte"
+   ]
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"add\" to its frame, ms, median (webkit, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 13.000000000000114,
+      "q1": 12.999999999999886,
+      "q3": 13.999999999999886,
+      "min": 12.999999999999886,
+      "max": 13.999999999999886
+     },
+     "shown": "13 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 13,
+      "q1": 13,
+      "q3": 14,
+      "min": 13,
+      "max": 14
+     },
+     "shown": "13 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14,
+      "q1": 14,
+      "q3": 14,
+      "min": 13.999999999999943,
+      "max": 14
+     },
+     "shown": "14 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"toggle\" to its frame, ms, median (webkit, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14,
+      "q1": 14,
+      "q3": 14,
+      "min": 13,
+      "max": 14
+     },
+     "shown": "14 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14,
+      "q1": 13.5,
+      "q3": 14.5,
+      "min": 13,
+      "max": 15
+     },
+     "shown": "14 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14,
+      "q1": 14,
+      "q3": 14.5,
+      "min": 13,
+      "max": 15
+     },
+     "shown": "14 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"filter\" to its frame, ms, median (webkit, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 13.999999999999886,
+      "q1": 12.999999999999886,
+      "q3": 13.999999999999886,
+      "min": 12.000000000000114,
+      "max": 35.999999999999886
+     },
+     "shown": "14 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 13.000000000000114,
+      "q1": 13.000000000000114,
+      "q3": 13.000000000000114,
+      "min": 13.000000000000114,
+      "max": 14.000000000000114
+     },
+     "shown": "13 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14,
+      "q1": 13.000000000000114,
+      "q3": 14.000000000000057,
+      "min": 13,
+      "max": 14.000000000000114
+     },
+     "shown": "14 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "cumulative layout shift, median (webkit, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "first contentful paint, ms, median (chromium, cold, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 1228,
+      "q1": 1226,
+      "q3": 1242,
+      "min": 1220,
+      "max": 1244
+     },
+     "shown": "1228 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 1196,
+      "q1": 1194,
+      "q3": 1200,
+      "min": 1188,
+      "max": 1200
+     },
+     "shown": "1196 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 1200,
+      "q1": 1198,
+      "q3": 1200,
+      "min": 1192,
+      "max": 1204
+     },
+     "shown": "1200 ms"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "React",
+    "Svelte"
+   ]
+  },
+  {
+   "app": "todomvc",
+   "what": "largest contentful paint, ms, median (chromium, cold, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 1228,
+      "q1": 1226,
+      "q3": 1242,
+      "min": 1220,
+      "max": 1244
+     },
+     "shown": "1228 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 1648,
+      "q1": 1646,
+      "q3": 1652,
+      "min": 1628,
+      "max": 1656
+     },
+     "shown": "1648 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 1304,
+      "q1": 1302,
+      "q3": 1304,
+      "min": 1296,
+      "max": 1308
+     },
+     "shown": "1304 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interactive, ms, median (chromium, cold, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 1402.5,
+      "q1": 1401.75,
+      "q3": 1403.0999999940395,
+      "min": 1400.7000000029802,
+      "max": 1409.5
+     },
+     "shown": "1403 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 1642,
+      "q1": 1638.7000000029802,
+      "q3": 1644.6000000014901,
+      "min": 1622.300000011921,
+      "max": 1647.7999999970198
+     },
+     "shown": "1642 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 1290.2999999970198,
+      "q1": 1286.7999999970198,
+      "q3": 1291.75,
+      "min": 1283.300000011921,
+      "max": 1294
+     },
+     "shown": "1290 ms"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "Svelte"
+   ]
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"add\" to its frame, ms, median (chromium, cold, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 21,
+      "q1": 20.75,
+      "q3": 21.5,
+      "min": 20.400000005960464,
+      "max": 23.5
+     },
+     "shown": "21 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 24.299999997019768,
+      "q1": 23.899999998509884,
+      "q3": 25.349999994039536,
+      "min": 23.100000008940697,
+      "max": 27.700000002980232
+     },
+     "shown": "24 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 23.80000001192093,
+      "q1": 23.19999999552965,
+      "q3": 25.55000000447035,
+      "min": 22.5,
+      "max": 27.200000002980232
+     },
+     "shown": "24 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"toggle\" to its frame, ms, median (chromium, cold, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14.300000011920929,
+      "q1": 14.149999998509884,
+      "q3": 15.25,
+      "min": 14,
+      "max": 15.700000002980232
+     },
+     "shown": "14 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 15.099999994039536,
+      "q1": 15,
+      "q3": 16.100000001490116,
+      "min": 14.799999997019768,
+      "max": 17.30000001192093
+     },
+     "shown": "15 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 13.900000005960464,
+      "q1": 13.199999995529652,
+      "q3": 14.450000002980232,
+      "min": 12.700000002980232,
+      "max": 15
+     },
+     "shown": "14 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"filter\" to its frame, ms, median (chromium, cold, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 12.200000002980232,
+      "q1": 9.74999999254942,
+      "q3": 13.350000001490116,
+      "min": 8.900000005960464,
+      "max": 15
+     },
+     "shown": "12 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 13.5,
+      "q1": 13.24999999254942,
+      "q3": 13.800000004470348,
+      "min": 10.199999988079071,
+      "max": 14.799999997019768
+     },
+     "shown": "14 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 30.099999994039536,
+      "q1": 29.700000002980232,
+      "q3": 30.55000000447035,
+      "min": 28.099999994039536,
+      "max": 31
+     },
+     "shown": "30 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "cumulative layout shift, median (chromium, cold, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.000"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0.0061096191406250005,
+      "q1": 0.0061096191406250005,
+      "q3": 0.0061096191406250005,
+      "min": 0.0061096191406250005,
+      "max": 0.0061096191406250005
+     },
+     "shown": "0.006"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0.0061096191406250005,
+      "q1": 0.0061096191406250005,
+      "q3": 0.0061096191406250005,
+      "min": 0.0061096191406250005,
+      "max": 0.0061096191406250005
+     },
+     "shown": "0.006"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "first contentful paint, ms, median (chromium, warm, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 600,
+      "q1": 596,
+      "q3": 604,
+      "min": 592,
+      "max": 608
+     },
+     "shown": "600 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 1164,
+      "q1": 1158,
+      "q3": 1164,
+      "min": 1152,
+      "max": 1172
+     },
+     "shown": "1164 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 596,
+      "q1": 592,
+      "q3": 596,
+      "min": 592,
+      "max": 600
+     },
+     "shown": "596 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "largest contentful paint, ms, median (chromium, warm, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 600,
+      "q1": 596,
+      "q3": 604,
+      "min": 592,
+      "max": 608
+     },
+     "shown": "600 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 1188,
+      "q1": 1188,
+      "q3": 1194,
+      "min": 1188,
+      "max": 1200
+     },
+     "shown": "1188 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 1172,
+      "q1": 1172,
+      "q3": 1176,
+      "min": 1160,
+      "max": 1176
+     },
+     "shown": "1172 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interactive, ms, median (chromium, warm, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 640.7999999970198,
+      "q1": 639.4000000059605,
+      "q3": 640.9000000059605,
+      "min": 635.5,
+      "max": 641.2999999970198
+     },
+     "shown": "641 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 1184.7000000029802,
+      "q1": 1184.0999999940395,
+      "q3": 1185.6000000014901,
+      "min": 1183.4000000059605,
+      "max": 1190.2999999970198
+     },
+     "shown": "1185 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 1164.2999999970198,
+      "q1": 1163.3500000014901,
+      "q3": 1165.1999999955297,
+      "min": 1156.199999988079,
+      "max": 1166.8999999910593
+     },
+     "shown": "1164 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"add\" to its frame, ms, median (chromium, warm, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 10.299999997019768,
+      "q1": 10.049999997019768,
+      "q3": 10.800000004470348,
+      "min": 9.700000002980232,
+      "max": 13.900000005960464
+     },
+     "shown": "10 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 10.399999991059303,
+      "q1": 10.199999995529652,
+      "q3": 12.25,
+      "min": 9.699999988079071,
+      "max": 14
+     },
+     "shown": "10 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 11.199999988079071,
+      "q1": 8.700000002980232,
+      "q3": 12.200000002980232,
+      "min": 7.5,
+      "max": 15.400000005960464
+     },
+     "shown": "11 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"toggle\" to its frame, ms, median (chromium, warm, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14.5,
+      "q1": 13.899999991059303,
+      "q3": 14.699999995529652,
+      "min": 13.5,
+      "max": 15.199999988079071
+     },
+     "shown": "15 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14.5,
+      "q1": 13.450000002980232,
+      "q3": 14.550000004470348,
+      "min": 9.600000008940697,
+      "max": 15.400000005960464
+     },
+     "shown": "15 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14.100000008940697,
+      "q1": 13.950000002980232,
+      "q3": 14.849999994039536,
+      "min": 13.900000005960464,
+      "max": 15.599999994039536
+     },
+     "shown": "14 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "interaction \"filter\" to its frame, ms, median (chromium, warm, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 13.900000005960464,
+      "q1": 13.600000001490116,
+      "q3": 14.100000001490116,
+      "min": 12.799999997019768,
+      "max": 14.799999997019768
+     },
+     "shown": "14 ms"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14,
+      "q1": 13.449999995529652,
+      "q3": 14.399999998509884,
+      "min": 13.199999988079071,
+      "max": 15
+     },
+     "shown": "14 ms"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 30.299999997019768,
+      "q1": 29.950000002980232,
+      "q3": 30.80000000447035,
+      "min": 29.30000001192093,
+      "max": 31.299999997019768
+     },
+     "shown": "30 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "cumulative layout shift, median (chromium, warm, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.000"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0.0061096191406250005,
+      "q1": 0.0061096191406250005,
+      "q3": 0.0061096191406250005,
+      "min": 0.0061096191406250005,
+      "max": 0.0061096191406250005
+     },
+     "shown": "0.006"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0.0061096191406250005,
+      "q1": 0.0061096191406250005,
+      "q3": 0.0061096191406250005,
+      "min": 0.0061096191406250005,
+      "max": 0.0061096191406250005
+     },
+     "shown": "0.006"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "server CPU per request, ms, median (React's and Svelte's server is the instrument's static host, standing in for any static host or CDN: a static file needs no application server, so Pleris's host doing better is no win)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0.38,
+      "q1": 0.38,
+      "q3": 0.41,
+      "min": 0.38,
+      "max": 0.41
+     },
+     "shown": "0.38"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0.18,
+      "q1": 0.13,
+      "q3": 0.18,
+      "min": 0.12,
+      "max": 0.2
+     },
+     "shown": "0.18"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0.18,
+      "q1": 0.13,
+      "q3": 0.19,
+      "min": 0.1,
+      "max": 0.2
+     },
+     "shown": "0.18"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "React",
+    "Svelte"
+   ]
+  },
+  {
+   "app": "todomvc",
+   "what": "server resident memory at its peak under load, MiB, median (React's and Svelte's server is the instrument's static host, standing in for any static host or CDN: a static file needs no application server, so Pleris's host doing better is no win)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 37.66015625,
+      "q1": 37.66015625,
+      "q3": 37.6640625,
+      "min": 37.66015625,
+      "max": 37.6640625
+     },
+     "shown": "37.7"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 71.47265625,
+      "q1": 69.265625,
+      "q3": 71.83203125,
+      "min": 68.1640625,
+      "max": 71.83984375
+     },
+     "shown": "71.5"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 71.00390625,
+      "q1": 69.140625,
+      "q3": 71.08203125,
+      "min": 68.07421875,
+      "max": 71.125
+     },
+     "shown": "71.0"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "latency under load, p50, ms, median (React's and Svelte's server is the instrument's static host, standing in for any static host or CDN: a static file needs no application server, so Pleris's host doing better is no win)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0.5859414999722503,
+      "q1": 0.5771975000097882,
+      "q3": 0.5963015000161249,
+      "min": 0.5223389999591745,
+      "max": 0.5993369999923743
+     },
+     "shown": "0.59"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0.2639379999891389,
+      "q1": 0.23271199999726377,
+      "q3": 0.2729279999912251,
+      "min": 0.21246249999967404,
+      "max": 0.28867449998506345
+     },
+     "shown": "0.26"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0.26902700003120117,
+      "q1": 0.25317250000080094,
+      "q3": 0.30287449999013916,
+      "min": 0.21248700001160614,
+      "max": 0.33058700000401586
+     },
+     "shown": "0.27"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "React",
+    "Svelte"
+   ]
+  },
+  {
+   "app": "todomvc",
+   "what": "latency under load, p99, ms, median (React's and Svelte's server is the instrument's static host, standing in for any static host or CDN: a static file needs no application server, so Pleris's host doing better is no win)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 1.4975919999997132,
+      "q1": 1.2512940000160597,
+      "q3": 1.569961000001058,
+      "min": 1.0867279999656603,
+      "max": 1.6797790000564419
+     },
+     "shown": "1.50"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0.7366950000287034,
+      "q1": 0.6300679999985732,
+      "q3": 0.774180999957025,
+      "min": 0.5673850000021048,
+      "max": 0.8803450000123121
+     },
+     "shown": "0.74"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0.7792200000258163,
+      "q1": 0.719307999999728,
+      "q3": 0.8813979999977164,
+      "min": 0.6833590000169352,
+      "max": 1.0408150000148453
+     },
+     "shown": "0.78"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "React",
+    "Svelte"
+   ]
+  },
+  {
+   "app": "todomvc",
+   "what": "requests an idle visitor's page makes a minute (20 visitors, a browser context each), median (React's and Svelte's server is the instrument's static host, standing in for any static host or CDN: a static file needs no application server, so Pleris's host doing better is no win)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.00"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.00"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.00"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "server CPU, ms a second, for 20 idle visitors, median (React's and Svelte's server is the instrument's static host, standing in for any static host or CDN: a static file needs no application server, so Pleris's host doing better is no win)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 1
+     },
+     "shown": "0.00"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 1,
+      "min": 0,
+      "max": 1
+     },
+     "shown": "0.00"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 1,
+      "q1": 0,
+      "q3": 1,
+      "min": 0,
+      "max": 1
+     },
+     "shown": "1.00"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "todomvc",
+   "what": "a press with 19 other tabs of the app open in one browser, ms to its change (Chromium), median",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 35.59624900005292,
+      "q1": 32.49598100001458,
+      "q3": 37.23501599999145,
+      "min": 32.18255700008012,
+      "max": 43.69437499996275
+     },
+     "shown": "35.6"
+    },
+    {
+     "label": "React",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 24.36813999991864,
+      "q1": 24.248008999973536,
+      "q3": 26.608803000068292,
+      "min": 23.341710999957286,
+      "max": 26.917897999985144
+     },
+     "shown": "24.4"
+    },
+    {
+     "label": "Svelte",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 23.702533000032417,
+      "q1": 23.519794999971054,
+      "q3": 24.74556599999778,
+      "min": 23.359880000003614,
+      "max": 25.46966699999757
+     },
+     "shown": "23.7"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "first load, bytes received as each host sent them (Chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 44540,
+     "shown": "44,540"
+    },
+    {
+     "label": "Next.js",
+     "value": 140216,
+     "shown": "140,216"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 35029,
+     "shown": "35,029"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "SvelteKit"
+   ]
+  },
+  {
+   "app": "store",
+   "what": "first load, bytes decoded (Chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 114349,
+     "shown": "114,349"
+    },
+    {
+     "label": "Next.js",
+     "value": 464836,
+     "shown": "464,836"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 86947,
+     "shown": "86,947"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "SvelteKit"
+   ]
+  },
+  {
+   "app": "store",
+   "what": "first load, bytes as a static host compresses them, Brotli 11 (Chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 39157,
+     "shown": "39,157"
+    },
+    {
+     "label": "Next.js",
+     "value": 117107,
+     "shown": "117,107"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 30465,
+     "shown": "30,465"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "SvelteKit"
+   ]
+  },
+  {
+   "app": "store",
+   "what": "first load, requests (Chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 7,
+     "shown": "7"
+    },
+    {
+     "label": "Next.js",
+     "value": 6,
+     "shown": "6"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 9,
+     "shown": "9"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "Next.js"
+   ]
+  },
+  {
+   "app": "store",
+   "what": "interaction \"add\", bytes received (Chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": 309,
+     "shown": "309"
+    },
+    {
+     "label": "Next.js",
+     "value": 2389,
+     "shown": "2,389"
+    },
+    {
+     "label": "SvelteKit",
+     "value": 388,
+     "shown": "388"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "first contentful paint, ms, median (chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 32,
+      "q1": 32,
+      "q3": 32,
+      "min": 28,
+      "max": 32
+     },
+     "shown": "32 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 44,
+      "q1": 40,
+      "q3": 44,
+      "min": 40,
+      "max": 80
+     },
+     "shown": "44 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 32,
+      "q1": 30,
+      "q3": 32,
+      "min": 28,
+      "max": 32
+     },
+     "shown": "32 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "largest contentful paint, ms, median (chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 32,
+      "q1": 32,
+      "q3": 32,
+      "min": 28,
+      "max": 32
+     },
+     "shown": "32 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 44,
+      "q1": 40,
+      "q3": 44,
+      "min": 40,
+      "max": 80
+     },
+     "shown": "44 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 32,
+      "q1": 30,
+      "q3": 32,
+      "min": 28,
+      "max": 32
+     },
+     "shown": "32 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "interactive, ms, median (chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 21.099999994039536,
+      "q1": 20.899999998509884,
+      "q3": 21.349999994039536,
+      "min": 20.099999994039536,
+      "max": 23.600000008940697
+     },
+     "shown": "21 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 50.80000001192093,
+      "q1": 49.79999999701977,
+      "q3": 53.29999999701977,
+      "min": 49.29999999701977,
+      "max": 106.90000000596046
+     },
+     "shown": "51 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 26.299999997019768,
+      "q1": 26.200000002980232,
+      "q3": 27.150000005960464,
+      "min": 26.100000008940697,
+      "max": 31.400000005960464
+     },
+     "shown": "26 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "interaction \"add\" to its frame, ms, median (chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 15.299999997019768,
+      "q1": 15.049999997019768,
+      "q3": 15.449999995529652,
+      "min": 11.400000005960464,
+      "max": 15.5
+     },
+     "shown": "15 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 31.400000005960464,
+      "q1": 31.200000002980232,
+      "q3": 31.55000000447035,
+      "min": 30.900000005960464,
+      "max": 31.799999997019768
+     },
+     "shown": "31 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 31.30000001192093,
+      "q1": 31.299999997019768,
+      "q3": 31.399999998509884,
+      "min": 30.799999997019768,
+      "max": 31.5
+     },
+     "shown": "31 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "cumulative layout shift, median (chromium, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.000"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.000"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.000"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "first contentful paint, ms, median (chromium, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 32,
+      "q1": 32,
+      "q3": 32,
+      "min": 32,
+      "max": 32
+     },
+     "shown": "32 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 28,
+      "q1": 28,
+      "q3": 28,
+      "min": 28,
+      "max": 32
+     },
+     "shown": "28 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 24,
+      "q1": 24,
+      "q3": 24,
+      "min": 24,
+      "max": 24
+     },
+     "shown": "24 ms"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "Next.js",
+    "SvelteKit"
+   ]
+  },
+  {
+   "app": "store",
+   "what": "largest contentful paint, ms, median (chromium, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 32,
+      "q1": 32,
+      "q3": 32,
+      "min": 32,
+      "max": 32
+     },
+     "shown": "32 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 28,
+      "q1": 28,
+      "q3": 28,
+      "min": 28,
+      "max": 32
+     },
+     "shown": "28 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 24,
+      "q1": 24,
+      "q3": 24,
+      "min": 24,
+      "max": 24
+     },
+     "shown": "24 ms"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "Next.js",
+    "SvelteKit"
+   ]
+  },
+  {
+   "app": "store",
+   "what": "interactive, ms, median (chromium, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 8.099999994039536,
+      "q1": 8,
+      "q3": 8.549999997019768,
+      "min": 7.9000000059604645,
+      "max": 8.699999988079071
+     },
+     "shown": "8.1 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 24.299999997019768,
+      "q1": 24.049999997019768,
+      "q3": 24.350000008940697,
+      "min": 23.69999998807907,
+      "max": 26.400000005960464
+     },
+     "shown": "24 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 13.099999994039536,
+      "q1": 10.350000001490116,
+      "q3": 13.549999997019768,
+      "min": 9.799999997019768,
+      "max": 15.599999994039536
+     },
+     "shown": "13 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "interaction \"add\" to its frame, ms, median (chromium, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 15.599999994039536,
+      "q1": 15.299999997019768,
+      "q3": 15.75,
+      "min": 15,
+      "max": 16
+     },
+     "shown": "16 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 31.80000001192093,
+      "q1": 31.799999997019768,
+      "q3": 32.100000001490116,
+      "min": 31.30000001192093,
+      "max": 32.20000000298023
+     },
+     "shown": "32 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 31.899999991059303,
+      "q1": 31.75,
+      "q3": 31.899999991059303,
+      "min": 31.5,
+      "max": 31.900000005960464
+     },
+     "shown": "32 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "cumulative layout shift, median (chromium, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.000"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.000"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.000"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "first contentful paint, ms, median (firefox, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 16,
+      "q1": 15.5,
+      "q3": 16,
+      "min": 15,
+      "max": 26
+     },
+     "shown": "16 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 34,
+      "q1": 31.5,
+      "q3": 34,
+      "min": 19,
+      "max": 133
+     },
+     "shown": "34 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 15,
+      "q1": 15,
+      "q3": 15,
+      "min": 15,
+      "max": 15
+     },
+     "shown": "15 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "largest contentful paint, ms, median (firefox, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 16,
+      "q1": 15.5,
+      "q3": 16,
+      "min": 15,
+      "max": 26
+     },
+     "shown": "16 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 34,
+      "q1": 31.5,
+      "q3": 34,
+      "min": 19,
+      "max": 133
+     },
+     "shown": "34 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 15,
+      "q1": 15,
+      "q3": 15,
+      "min": 15,
+      "max": 15
+     },
+     "shown": "15 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "interactive, ms, median (firefox, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 36,
+      "q1": 35,
+      "q3": 37.5,
+      "min": 33,
+      "max": 41
+     },
+     "shown": "36 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 55,
+      "q1": 54.5,
+      "q3": 55,
+      "min": 53,
+      "max": 176
+     },
+     "shown": "55 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 41,
+      "q1": 39.5,
+      "q3": 41,
+      "min": 38,
+      "max": 42
+     },
+     "shown": "41 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "interaction \"add\" to its frame, ms, median (firefox, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 7,
+      "q1": 6.5,
+      "q3": 7,
+      "min": 6,
+      "max": 8
+     },
+     "shown": "7.0 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 18,
+      "q1": 17.5,
+      "q3": 19,
+      "min": 17,
+      "max": 19
+     },
+     "shown": "18 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 16,
+      "q1": 16,
+      "q3": 17,
+      "min": 16,
+      "max": 17
+     },
+     "shown": "16 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "cumulative layout shift, median (firefox, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "first contentful paint, ms, median (firefox, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 11,
+      "q1": 10.5,
+      "q3": 17.5,
+      "min": 9,
+      "max": 26
+     },
+     "shown": "11 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 20,
+      "q1": 19.5,
+      "q3": 20,
+      "min": 18,
+      "max": 21
+     },
+     "shown": "20 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 27,
+      "q1": 26,
+      "q3": 27,
+      "min": 18,
+      "max": 30
+     },
+     "shown": "27 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "largest contentful paint, ms, median (firefox, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 11,
+      "q1": 10.5,
+      "q3": 17.5,
+      "min": 9,
+      "max": 26
+     },
+     "shown": "11 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 20,
+      "q1": 19.5,
+      "q3": 20,
+      "min": 18,
+      "max": 21
+     },
+     "shown": "20 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 27,
+      "q1": 26,
+      "q3": 27,
+      "min": 18,
+      "max": 30
+     },
+     "shown": "27 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "interactive, ms, median (firefox, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 32,
+      "q1": 31,
+      "q3": 33,
+      "min": 30,
+      "max": 34
+     },
+     "shown": "32 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 42,
+      "q1": 40.5,
+      "q3": 44.5,
+      "min": 40,
+      "max": 53
+     },
+     "shown": "42 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 36,
+      "q1": 36,
+      "q3": 37,
+      "min": 35,
+      "max": 38
+     },
+     "shown": "36 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "interaction \"add\" to its frame, ms, median (firefox, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 2,
+      "q1": 2,
+      "q3": 3,
+      "min": 2,
+      "max": 3
+     },
+     "shown": "2.0 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 16,
+      "q1": 16,
+      "q3": 17,
+      "min": 15,
+      "max": 18
+     },
+     "shown": "16 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 17,
+      "q1": 17,
+      "q3": 17,
+      "min": 16,
+      "max": 18
+     },
+     "shown": "17 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "cumulative layout shift, median (firefox, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "first contentful paint, ms, median (webkit, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 9.000000000000002,
+      "q1": 8.5,
+      "q3": 9.000000000000002,
+      "min": 8,
+      "max": 15
+     },
+     "shown": "9.0 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 13.000000000000002,
+      "q1": 12,
+      "q3": 13.5,
+      "min": 12,
+      "max": 14
+     },
+     "shown": "13 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 9.000000000000002,
+      "q1": 9.000000000000002,
+      "q3": 9.000000000000002,
+      "min": 9.000000000000002,
+      "max": 10
+     },
+     "shown": "9.0 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "largest contentful paint, ms, median (webkit, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 9.000000000000002,
+      "q1": 8.5,
+      "q3": 9.000000000000002,
+      "min": 8,
+      "max": 15
+     },
+     "shown": "9.0 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 13.000000000000002,
+      "q1": 12,
+      "q3": 13.5,
+      "min": 12,
+      "max": 14
+     },
+     "shown": "13 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 9.000000000000002,
+      "q1": 9.000000000000002,
+      "q3": 9.000000000000002,
+      "min": 9.000000000000002,
+      "max": 10
+     },
+     "shown": "9.0 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "interactive, ms, median (webkit, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 31,
+      "q1": 30.5,
+      "q3": 35.5,
+      "min": 29,
+      "max": 43
+     },
+     "shown": "31 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 56,
+      "q1": 54.5,
+      "q3": 56.5,
+      "min": 54,
+      "max": 57
+     },
+     "shown": "56 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 31,
+      "q1": 31,
+      "q3": 32.5,
+      "min": 31,
+      "max": 34
+     },
+     "shown": "31 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "interaction \"add\" to its frame, ms, median (webkit, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 13,
+      "q1": 13,
+      "q3": 14,
+      "min": 12,
+      "max": 14
+     },
+     "shown": "13 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 15,
+      "q1": 14.5,
+      "q3": 15.5,
+      "min": 14,
+      "max": 17
+     },
+     "shown": "15 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14.000000000000114,
+      "q1": 14,
+      "q3": 14.000000000000114,
+      "min": 14,
+      "max": 15
+     },
+     "shown": "14 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "cumulative layout shift, median (webkit, cold)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "first contentful paint, ms, median (webkit, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 5,
+      "q1": 5,
+      "q3": 6.5,
+      "min": 5,
+      "max": 9.000000000000002
+     },
+     "shown": "5.0 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 9.000000000000002,
+      "q1": 9.000000000000002,
+      "q3": 9.000000000000002,
+      "min": 9.000000000000002,
+      "max": 10
+     },
+     "shown": "9.0 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 7,
+      "q1": 6,
+      "q3": 7,
+      "min": 6,
+      "max": 8
+     },
+     "shown": "7.0 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "largest contentful paint, ms, median (webkit, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 5,
+      "q1": 5,
+      "q3": 6.5,
+      "min": 5,
+      "max": 9.000000000000002
+     },
+     "shown": "5.0 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 9.000000000000002,
+      "q1": 9.000000000000002,
+      "q3": 9.000000000000002,
+      "min": 9.000000000000002,
+      "max": 10
+     },
+     "shown": "9.0 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 7,
+      "q1": 6,
+      "q3": 7,
+      "min": 6,
+      "max": 8
+     },
+     "shown": "7.0 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "interactive, ms, median (webkit, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 20,
+      "q1": 18.000000000000004,
+      "q3": 23,
+      "min": 18.000000000000004,
+      "max": 41
+     },
+     "shown": "20 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 19,
+      "q1": 19,
+      "q3": 20,
+      "min": 18.000000000000004,
+      "max": 20
+     },
+     "shown": "19 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 15,
+      "q1": 14.5,
+      "q3": 17.5,
+      "min": 14,
+      "max": 19
+     },
+     "shown": "15 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "interaction \"add\" to its frame, ms, median (webkit, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14,
+      "q1": 13.5,
+      "q3": 14,
+      "min": 13,
+      "max": 14
+     },
+     "shown": "14 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 13,
+      "q1": 12,
+      "q3": 13,
+      "min": 12,
+      "max": 13
+     },
+     "shown": "13 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 13,
+      "q1": 12,
+      "q3": 13,
+      "min": 12,
+      "max": 13
+     },
+     "shown": "13 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "cumulative layout shift, median (webkit, warm)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 0,
+      "missing": 7,
+      "median": null,
+      "q1": null,
+      "q3": null,
+      "min": null,
+      "max": null
+     },
+     "shown": "-"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "first contentful paint, ms, median (chromium, cold, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 604,
+      "q1": 602,
+      "q3": 604,
+      "min": 600,
+      "max": 624
+     },
+     "shown": "604 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 608,
+      "q1": 608,
+      "q3": 618,
+      "min": 608,
+      "max": 628
+     },
+     "shown": "608 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 604,
+      "q1": 604,
+      "q3": 618,
+      "min": 604,
+      "max": 632
+     },
+     "shown": "604 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "largest contentful paint, ms, median (chromium, cold, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 604,
+      "q1": 602,
+      "q3": 604,
+      "min": 600,
+      "max": 624
+     },
+     "shown": "604 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 608,
+      "q1": 608,
+      "q3": 618,
+      "min": 608,
+      "max": 628
+     },
+     "shown": "608 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 604,
+      "q1": 604,
+      "q3": 618,
+      "min": 604,
+      "max": 632
+     },
+     "shown": "604 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "interactive, ms, median (chromium, cold, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 1368.3999999910593,
+      "q1": 1366.1999999955297,
+      "q3": 1369.1999999955297,
+      "min": 1364.6000000089407,
+      "max": 1372.5999999940395
+     },
+     "shown": "1368 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 2021.7000000029802,
+      "q1": 2018.5000000074506,
+      "q3": 2022.8500000014901,
+      "min": 2002.5,
+      "max": 2024.3999999910593
+     },
+     "shown": "2022 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 1742.7000000029802,
+      "q1": 1742.2000000029802,
+      "q3": 1742.8999999985099,
+      "min": 1741.8999999910593,
+      "max": 1743.7000000029802
+     },
+     "shown": "1743 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "interaction \"add\" to its frame, ms, median (chromium, cold, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 12.799999997019768,
+      "q1": 12.25,
+      "q3": 13.299999997019768,
+      "min": 11.299999997019768,
+      "max": 14
+     },
+     "shown": "13 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 620.5,
+      "q1": 615.7000000029802,
+      "q3": 627.0499999970198,
+      "min": 610.5999999940395,
+      "max": 630.6000000089407
+     },
+     "shown": "621 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 1173.5999999940395,
+      "q1": 1172.1000000089407,
+      "q3": 1177.6000000014901,
+      "min": 1170.2000000029802,
+      "max": 1182.300000011921
+     },
+     "shown": "1174 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "cumulative layout shift, median (chromium, cold, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.000"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.000"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.000"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "first contentful paint, ms, median (chromium, warm, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 592,
+      "q1": 592,
+      "q3": 596,
+      "min": 592,
+      "max": 600
+     },
+     "shown": "592 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 596,
+      "q1": 594,
+      "q3": 610,
+      "min": 592,
+      "max": 612
+     },
+     "shown": "596 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 596,
+      "q1": 596,
+      "q3": 602,
+      "min": 596,
+      "max": 608
+     },
+     "shown": "596 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "largest contentful paint, ms, median (chromium, warm, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 592,
+      "q1": 592,
+      "q3": 596,
+      "min": 592,
+      "max": 600
+     },
+     "shown": "592 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 596,
+      "q1": 594,
+      "q3": 610,
+      "min": 592,
+      "max": 612
+     },
+     "shown": "596 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 596,
+      "q1": 596,
+      "q3": 602,
+      "min": 596,
+      "max": 608
+     },
+     "shown": "596 ms"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "interactive, ms, median (chromium, warm, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 616.3000000119209,
+      "q1": 613.0500000044703,
+      "q3": 618.2000000029802,
+      "min": 610.5,
+      "max": 619.8000000119209
+     },
+     "shown": "616 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 656.7999999970198,
+      "q1": 654.6999999955297,
+      "q3": 657.1500000059605,
+      "min": 649.7999999970198,
+      "max": 657.8000000119209
+     },
+     "shown": "657 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 623.7000000029802,
+      "q1": 622.7000000029802,
+      "q3": 624.25,
+      "min": 621.2999999970198,
+      "max": 625.5
+     },
+     "shown": "624 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "interaction \"add\" to its frame, ms, median (chromium, warm, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 14.100000008940697,
+      "q1": 13.399999998509884,
+      "q3": 14.600000008940697,
+      "min": 13,
+      "max": 15.399999991059303
+     },
+     "shown": "14 ms"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 607.5,
+      "q1": 607,
+      "q3": 609.25,
+      "min": 606.6000000089407,
+      "max": 630.0999999940395
+     },
+     "shown": "608 ms"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 1172.0999999940395,
+      "q1": 1164.2999999970198,
+      "q3": 1172.7999999970198,
+      "min": 1149.2999999970198,
+      "max": 1175.300000011921
+     },
+     "shown": "1172 ms"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "cumulative layout shift, median (chromium, warm, slow-4g)",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.000"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.000"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 7,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.000"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "server CPU per request, ms, median",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0.48,
+      "q1": 0.46,
+      "q3": 0.5,
+      "min": 0.45,
+      "max": 0.51
+     },
+     "shown": "0.48"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 3.76,
+      "q1": 3.7,
+      "q3": 4.01,
+      "min": 3.49,
+      "max": 4.21
+     },
+     "shown": "3.76"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0.74,
+      "q1": 0.64,
+      "q3": 0.84,
+      "min": 0.57,
+      "max": 0.86
+     },
+     "shown": "0.74"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "server resident memory at its peak under load, MiB, median",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 45.8671875,
+      "q1": 40.9765625,
+      "q3": 50.71875,
+      "min": 36.08203125,
+      "max": 55.48046875
+     },
+     "shown": "45.9"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 140.375,
+      "q1": 140.01171875,
+      "q3": 144.1875,
+      "min": 137.859375,
+      "max": 144.9609375
+     },
+     "shown": "140"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 108.01953125,
+      "q1": 106.9609375,
+      "q3": 109.96875,
+      "min": 99.859375,
+      "max": 111.05078125
+     },
+     "shown": "108"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "latency under load, p50, ms, median",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0.6406399999978021,
+      "q1": 0.6017269999720156,
+      "q3": 0.6563764999154955,
+      "min": 0.573352999985218,
+      "max": 0.6808919999748468
+     },
+     "shown": "0.64"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 2.570475499960594,
+      "q1": 2.523628000053577,
+      "q3": 2.618411500006914,
+      "min": 2.348923500161618,
+      "max": 2.8931559999473393
+     },
+     "shown": "2.57"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0.5747485000174493,
+      "q1": 0.5561145000392571,
+      "q3": 0.6435269999783486,
+      "min": 0.5538549999473616,
+      "max": 0.7754030000651255
+     },
+     "shown": "0.57"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "latency under load, p99, ms, median",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 1.5299509998876601,
+      "q1": 1.3300590000580996,
+      "q3": 1.5811570000369102,
+      "min": 1.1478629999328405,
+      "max": 1.5964440000243485
+     },
+     "shown": "1.53"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 8.839775000000373,
+      "q1": 8.242948999861255,
+      "q3": 9.170073000015691,
+      "min": 7.252956000040285,
+      "max": 11.775339999934658
+     },
+     "shown": "8.84"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 1.8091799999820068,
+      "q1": 1.3853140000719577,
+      "q3": 2.339570000069216,
+      "min": 1.3349909998942167,
+      "max": 3.2595999999903142
+     },
+     "shown": "1.81"
+    }
+   ],
+   "verdict": "neither",
+   "better": []
+  },
+  {
+   "app": "store",
+   "what": "requests an idle visitor's page makes a minute (20 visitors, a browser context each), median",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 30,
+      "q1": 29.700000000000003,
+      "q3": 30,
+      "min": 29.700000000000003,
+      "max": 30
+     },
+     "shown": "30.0"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.00"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 0,
+      "min": 0,
+      "max": 0
+     },
+     "shown": "0.00"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "Next.js",
+    "SvelteKit"
+   ]
+  },
+  {
+   "app": "store",
+   "what": "server CPU, ms a second, for 20 idle visitors, median",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 3,
+      "q1": 2,
+      "q3": 3,
+      "min": 2,
+      "max": 4
+     },
+     "shown": "3.00"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 1,
+      "q1": 0,
+      "q3": 1,
+      "min": 0,
+      "max": 1
+     },
+     "shown": "1.00"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 0,
+      "q1": 0,
+      "q3": 1,
+      "min": 0,
+      "max": 2
+     },
+     "shown": "0.00"
+    }
+   ],
+   "verdict": "loss",
+   "better": [
+    "Next.js",
+    "SvelteKit"
+   ]
+  },
+  {
+   "app": "store",
+   "what": "a press with 19 other tabs of the app open in one browser, ms to its change (Chromium), median",
+   "values": [
+    {
+     "label": "Pleris",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 18.68600600003265,
+      "q1": 15.827079000184312,
+      "q3": 21.35209699999541,
+      "min": 11.281322000082582,
+      "max": 26.87502699997276
+     },
+     "shown": "18.7"
+    },
+    {
+     "label": "Next.js",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 37.82325699995272,
+      "q1": 35.3302529999055,
+      "q3": 38.323772999923676,
+      "min": 33.44062800006941,
+      "max": 45.91000399994664
+     },
+     "shown": "37.8"
+    },
+    {
+     "label": "SvelteKit",
+     "value": {
+      "n": 5,
+      "missing": 0,
+      "median": 35.20079999999143,
+      "q1": 34.929209999972954,
+      "q3": 41.24712700000964,
+      "min": 27.039827999891713,
+      "max": 42.32623100001365
+     },
+     "shown": "35.2"
+    }
+   ],
+   "verdict": "win",
+   "better": []
+  }
+ ]
+}

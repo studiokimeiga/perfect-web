@@ -62,7 +62,15 @@ MUTANTS = [
         "                .lock()\n"
         '                .expect("telling")\n'
         "                .push((session.to_string(), dropped));\n",
-        "            self.tell_others(session, &dropped);\n",
+        # Told before the author's answer is written: the commit itself waits
+        # for every reader. Until train-15 its replacement called a
+        # `tell_others` that no longer existed, so it was "killed" by not
+        # building, and controlled nothing.
+        "            self.telling\n"
+        "                .lock()\n"
+        '                .expect("telling")\n'
+        "                .push((session.to_string(), dropped));\n"
+        "            self.tell_waiting();\n",
     ),
     (
         "what waits is never told",
@@ -73,8 +81,21 @@ MUTANTS = [
     (
         "a connection tells no one",
         SERVER,
-        "    answer_connection(server, stream);\n    server.tell_waiting();\n",
-        "    answer_connection(server, stream);\n",
+        # Re-anchored by ADR-0401, and by train-14's review: told
+        # after each request, a closing connection's at once and a kept
+        # one's beside its next request, in `handle`'s loop.
+        "                let _ = conn.shutdown(std::net::Shutdown::Both);\n"
+        "                server.tell_waiting();\n"
+        "                return;\n"
+        "            }\n"
+        "            let _idle = Idle::listed(server, &conn);\n"
+        "            if !server.telling.lock().expect(\"telling\").is_empty() {\n"
+        "                scope.spawn(|| server.tell_waiting());\n"
+        "            }\n",
+        "                let _ = conn.shutdown(std::net::Shutdown::Both);\n"
+        "                return;\n"
+        "            }\n"
+        "            let _idle = Idle::listed(server, &conn);\n",
     ),
 ]
 
@@ -89,6 +110,8 @@ TESTS = [
         # told by principal; a session's own entry, the benchmark's cart.
         "a_session_keyed_carts_change_reaches_no_other_session",
         "the_feed_is_served_by_the_host_its_data_the_deployments",
+        # A commit's answer comes before its telling (train-15).
+        "a_commits_answer_waits_on_no_reader",
     ],
 ]
 

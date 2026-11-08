@@ -40,7 +40,7 @@ import { HERE, REPO, isMain, machine, playwright, playwrightVersion, shuffled, s
 import { SLOW_4G, measureOnce } from "./measure.mjs";
 import { APPS, PW_SERVER, target } from "./targets.mjs";
 import { MIN_RUNS, validate, validateServer } from "./validate.mjs";
-import { renderReport } from "./report.mjs";
+import { renderReport, verdictRows } from "./report.mjs";
 
 /** How often a press's change is looked for: what its time can tell apart. */
 const PRESS_POLL_MS = 10;
@@ -63,6 +63,7 @@ const OPTIONS = new Map([
   ["--settle", ["settleSeconds", Number]],
   ["--stacks", ["stacks", list]],
   ["--json", ["json", absolute]],
+  ["--verdicts", ["verdicts", absolute]],
   ["--render", ["render", absolute]],
   ["--sections", ["sections", absolute]],
 ]);
@@ -87,6 +88,7 @@ const defaultArgs = () => ({
   load: true,
   stacks: null,
   json: null,
+  verdicts: null,
 });
 
 export function parseArgs(argv) {
@@ -413,8 +415,36 @@ function finishMeta(meta) {
 }
 
 /** A kept run, reported again: no measurement. */
-function renderKept(file, sections) {
-  process.stdout.write(renderReport(JSON.parse(fs.readFileSync(file, "utf8")), sections));
+function renderKept(file, sections, verdicts) {
+  const result = JSON.parse(fs.readFileSync(file, "utf8"));
+  writeVerdicts(verdicts, result, sections);
+  process.stdout.write(renderReport(result, sections));
+}
+
+/** **The rows' verdicts, as JSON** (`--verdicts`): the measured commit and
+ * whether the tree was changed from it, the machine, the runs a cell holds,
+ * the problems that refuse the run (none, or nothing in it is a
+ * measurement), and each row Pleris is in with its values and verdict, as
+ * the report judges it. pleris.dev reads this file, and builds from no run
+ * that is refused or changed from its commit (train-15). */
+export function verdictsOf(result, sections) {
+  const { meta, apps } = result;
+  return {
+    commit: meta.commit,
+    dirty: meta.dirty,
+    started: meta.started,
+    finished: meta.finished,
+    machine: meta.machine.cpu,
+    runs: meta.args.runs,
+    serverRuns: meta.args.serverRuns,
+    network: meta.network?.describe ?? null,
+    problems: apps.flatMap((a) => a.problems),
+    rows: verdictRows(result, sections),
+  };
+}
+
+function writeVerdicts(file, result, sections) {
+  if (file) fs.writeFileSync(file, `${JSON.stringify(verdictsOf(result, sections), null, 1)}\n`);
 }
 
 /** The verdict after the report: every rule held, or the problems that refuse it (exit 1). */
@@ -432,7 +462,7 @@ function verdict(apps) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const sections = readSections(args.sections);
-  if (args.render) return renderKept(args.render, sections);
+  if (args.render) return renderKept(args.render, sections, args.verdicts);
   const log = (line) => process.stderr.write(`${line}\n`);
   // The recipe's builds and checks just before leave the machine busy: wait
   // for its one-minute load to fall below a quarter of its CPUs, at most
@@ -447,6 +477,7 @@ async function main() {
   finishMeta(meta);
   const result = { meta, apps };
   if (args.json) fs.writeFileSync(args.json, `${JSON.stringify(result, null, 1)}\n`);
+  writeVerdicts(args.verdicts, result, sections);
   process.stdout.write(renderReport(result, sections));
   verdict(apps);
 }

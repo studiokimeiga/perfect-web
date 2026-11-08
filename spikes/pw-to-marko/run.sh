@@ -11,6 +11,11 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# Where cargo writes its builds: CARGO_TARGET_DIR where it is set (a
+# worktree's own target), else the repository's `target/`. A relative one
+# is cargo's working directory's, which is this script's at its start.
+TARGET_DIR="${CARGO_TARGET_DIR:-$REPO_ROOT/target}"
+case "$TARGET_DIR" in /*) ;; *) TARGET_DIR="$PWD/$TARGET_DIR" ;; esac
 SPIKE="$REPO_ROOT/spikes/pw-to-marko"
 EVIDENCE="$REPO_ROOT/docs/evidence/E3"
 mkdir -p "$EVIDENCE"
@@ -41,7 +46,7 @@ OUT="$EVIDENCE/spike-pw-to-marko.txt"
     # SAME code the deployment matrix tests rather than a JavaScript port.
     cargo build --quiet -p pw-resume-wasm --target wasm32-unknown-unknown --release
     mkdir -p "$SPIKE/public"
-    cp "$REPO_ROOT/target/wasm32-unknown-unknown/release/pw_resume_wasm.wasm" \
+    cp "$TARGET_DIR/wasm32-unknown-unknown/release/pw_resume_wasm.wasm" \
        "$SPIKE/public/pw-resume.wasm"
     cargo run --quiet -p pw-cli -- emit-marko examples/hello-static/app.pw \
         --out "$SPIKE/src/routes/static"

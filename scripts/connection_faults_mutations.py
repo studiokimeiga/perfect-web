@@ -108,13 +108,13 @@ MUTANTS = [
         "`/bench/drop` arms nothing",
         "browser",
         SERVER,
+        "                .entry(session.clone())\n"
         "                .or_default()\n"
-        "                .drop_command = Some(at);\n"
-        "            respond_json(&mut stream, 200, &session, fresh, \"{}\");\n",
+        "                .drop_command = Some(at);\n",
+        "                .entry(session.clone())\n"
         "                .or_default()\n"
         "                .drop_command = None;\n"
-        "            let _ = at;\n"
-        "            respond_json(&mut stream, 200, &session, fresh, \"{}\");\n",
+        "            let _ = at;\n",
     ),
     (
         "`/bench/reconnect` cuts nothing",

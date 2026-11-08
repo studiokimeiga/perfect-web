@@ -513,10 +513,6 @@ ${oldRows}
 
 // --- the home page ----------------------------------------------------------
 
-/** The head-to-head's record (ADR-0392's instrument), from PR #76's evidence,
- * at the commit it was pushed at: a branch's link breaks when it is deleted. */
-const EVIDENCE = `${REPO}/blob/14a3a7f64f22165f0fc596f8c24e4cd9b0bf1de9/docs/evidence/E14/first-press-2026-11-06/README.md`;
-
 
 /**
  * **The same mistake, in each.** Its code in Next.js or React, which
@@ -569,53 +565,110 @@ const MISTAKES = [
 ];
 
 /**
- * **The head-to-head, by its own verdicts.** Each row is one the instrument
- * printed under `BEST` (Pleris ahead, `AHEAD`) or `LOSS` (the stacks it named
- * as better, by column), or under neither (`null`: the spreads overlap), in
- * the run named. Pleris's column is first.
+ * **The head-to-head's record** (ADR-0392's instrument, `just
+ * e14-head-to-head`): each row Pleris is in, its values, and the
+ * instrument's verdict on it. The home page's tables and `/measured` show
+ * its rows as it wrote them (ADR-0408). Until train-15 the home page held a
+ * copy, typed by hand from an exploratory run, which nothing held to the
+ * record.
+ */
+const RECORD = "docs/evidence/E14/head-to-head.json";
+
+/** The record, if the site may show it (`checked`), with links to it and to
+ * the commands that wrote it, at the commit that holds it. A record changed
+ * since that commit stops the build: its link would show other numbers. */
+function record() {
+  const rec = checked(JSON.parse(readFileSync(join(ROOT, RECORD), "utf8")));
+  const git = (...args) => execFileSync("git", args, { cwd: ROOT, encoding: "utf8" }).trim();
+  if (git("status", "--porcelain", "--", RECORD)) {
+    throw new Error(`${RECORD} is not as it was committed, and the pages link to the committed record: commit it first`);
+  }
+  const at = `${REPO}/blob/${git("log", "-1", "--format=%H", "--", RECORD)}`;
+  return { ...rec, link: `${at}/${RECORD}`, commands: `${at}/just/head-to-head.just` };
+}
+
+/** **A record the site may show.** The build stops on a run the instrument's
+ * rules refused, in which nothing is a measurement; on one measured on a tree
+ * changed from its commit; and on a verdict no page can show (`aheadIn`). */
+export function checked(rec) {
+  if (rec.problems.length) throw new Error(`${RECORD}: the instrument refused its run: ${rec.problems[0]}`);
+  if (rec.dirty) throw new Error(`${RECORD}: measured on a tree changed from ${rec.commit}`);
+  for (const r of rec.rows) aheadIn(r);
+  return rec;
+}
+
+/** A row of the record the site cannot show: the build stops, naming it. */
+function refuse(r, why) {
+  throw new Error(`${RECORD}: ${why}, on ${r.app}: ${r.what}`);
+}
+
+/** **Who the instrument found ahead in a row**, by its verdict: Pleris,
+ * ahead of every other stack; each stack ahead of Pleris; or none, when
+ * neither holds. A loss that names no stack stops the build. */
+const AHEAD = new Map([
+  ["win", () => ["Pleris"]],
+  ["loss", (r) => (r.better.length ? r.better : refuse(r, "a loss that names no stack ahead of Pleris"))],
+  ["neither", () => []],
+]);
+
+/** Who is ahead in a row; a verdict the site does not know stops the build. */
+function aheadIn(r) {
+  const ahead = AHEAD.get(r.verdict) ?? (() => refuse(r, `a verdict the site does not know, ${r.verdict}`));
+  return ahead(r);
+}
+
+/**
+ * **The home page's rows**: the record's, by app and by what the instrument
+ * calls each, under the page's own names. A row the record does not hold
+ * stops the build, so a row the instrument renames or drops is never shown
+ * from an old copy. `/measured` shows every row, these among them.
  *
  * The store's add is not here: Pleris's store shows an add before the server
  * answers, and ADR-0120's contract left that out of all three, so the Next.js
  * and SvelteKit stores wait for the server.
  */
-const AHEAD = "ahead";
-const SPEED = [
+export const SPEED = [
   {
+    app: "todomvc",
     title: "TodoMVC, against TodoMVC's own React and Svelte apps",
-    them: ["React", "Svelte"],
-    run: "runs/wp-slow4g.log",
     rows: [
-      ["Ready to use, first visit, ms (Slow 4G)", ["1,417", "1,671", "1,295"], [2]],
-      ["Ready to use, the next visit, ms (Slow 4G)", ["645", "1,189", "1,168"], AHEAD],
-      ["First paint, ms (Slow 4G)", ["1,260", "1,200", "1,196"], [1, 2]],
-      ["A todo added, ms to its frame (Slow 4G)", ["31", "33", "34"], null],
-      ["A todo toggled, ms to its frame (Slow 4G)", ["22", "24", "19"], [2]],
-      ["A filter, ms to its frame (Slow 4G)", ["15", "17", "29"], AHEAD],
-      ["Downloaded on a first visit, KB", ["142", "70", "21"], [1, 2]],
-      ["Requests on a first visit", ["19", "5", "5"], [1, 2]],
+      ["TodoMVC's specification: tests passed in Chromium, Firefox and WebKit", "TodoMVC's specification, tests passed in Chromium, Firefox and WebKit together (more is better)"],
+      ["TodoMVC's own Cypress suite: tests passed", "TodoMVC's official Cypress suite, tests passed (more is better)"],
+      ["Ready to use, first visit, Slow 4G", "interactive, ms, median (chromium, cold, slow-4g)"],
+      ["Ready to use, the next visit, Slow 4G", "interactive, ms, median (chromium, warm, slow-4g)"],
+      ["First paint, Slow 4G", "first contentful paint, ms, median (chromium, cold, slow-4g)"],
+      ["A todo added, to its frame, Slow 4G", 'interaction "add" to its frame, ms, median (chromium, cold, slow-4g)'],
+      ["A todo toggled, to its frame, Slow 4G", 'interaction "toggle" to its frame, ms, median (chromium, cold, slow-4g)'],
+      ["A filter, to its frame, Slow 4G", 'interaction "filter" to its frame, ms, median (chromium, cold, slow-4g)'],
+      ["Bytes downloaded on a first visit", "first load, bytes received as each host sent them (Chromium, cold)"],
+      ["Requests on a first visit", "first load, requests (Chromium, cold)"],
     ],
   },
   {
+    app: "store",
     title: "A store, against the same store in Next.js and SvelteKit",
-    them: ["Next.js", "SvelteKit"],
-    run: "runs/wp-store.log",
     rows: [
-      ["Ready to use, first visit, ms (Slow 4G)", ["1,381", "2,067", "1,749"], AHEAD],
-      ["Ready to use, the next visit, ms (Slow 4G)", ["626", "660", "638"], AHEAD],
-      ["Downloaded on a first visit, KB", ["46", "140", "35"], [2]],
-      ["Server CPU a request, under load, ms", ["0.20", "5.12", "1.17"], AHEAD],
-      ["Server memory at its peak, under load, MiB", ["45", "143", "105"], AHEAD],
-      ["Latency under load, median, ms", ["1.09", "3.57", "0.81"], [2]],
-      ["Requests a minute from an idle page", ["29.7", "0", "0"], [1, 2]],
-      ["Server CPU for 20 idle pages, ms a second", ["5.00", "2.00", "1.00"], [1, 2]],
+      ["Bug classes it lets ship, of five tested", "the museum's bug classes the stack lets ship (fewer is better)"],
+      ["Twelve changes, each written unsafely: how many its own checker catches", "the twelve changes: unsafe versions the stack's own checker refuses or warns of (more is better)"],
+      ["Twelve changes: lines changed in all", "the twelve changes: lines changed in all"],
+      ["Lines of the app, with the server code it needs in another language", "source the developer writes: app lines plus the code it needs in its server in another language"],
+      ["Ready to use, first visit, Slow 4G", "interactive, ms, median (chromium, cold, slow-4g)"],
+      ["Ready to use, the next visit, Slow 4G", "interactive, ms, median (chromium, warm, slow-4g)"],
+      ["Bytes downloaded on a first visit", "first load, bytes received as each host sent them (Chromium, cold)"],
+      ["Server CPU a request, under load, ms", "server CPU per request, ms, median"],
+      ["Server memory at its peak, under load, MiB", "server resident memory at its peak under load, MiB, median"],
+      ["Latency under load, median, ms", "latency under load, p50, ms, median"],
+      ["Requests a minute from an idle page", "requests an idle visitor's page makes a minute (20 visitors, a browser context each), median"],
+      ["Server CPU for 20 idle pages, ms a second", "server CPU, ms a second, for 20 idle visitors, median"],
     ],
   },
 ];
 
-/** How many rows Pleris leads, of how many shown. */
-function score() {
-  const rows = SPEED.flatMap((t) => t.rows);
-  return { ahead: rows.filter(([, , verdict]) => verdict === AHEAD).length, rows: rows.length };
+/** **Where Pleris stands**, over the whole record, not the rows a page
+ * chose: the rows it is ahead in, and those another stack is ahead in. */
+export function standing(rec) {
+  const count = (verdict) => rec.rows.filter((r) => r.verdict === verdict).length;
+  return `Of the ${rec.rows.length} rows its head-to-head measures, it is ahead in ${count("win")} and behind in ${count("loss")}: those ${count("loss")} rows are the work.`;
 }
 
 // **What `pw check` says, laid out to read in a narrow box.** The home page
@@ -661,20 +714,52 @@ function mistake(m) {
 </article>`;
 }
 
-/** A row's cells, the one the instrument found ahead marked: Pleris's, or
- * each that beat it. */
-function benchRow([what, values, verdict]) {
-  const better = verdict === AHEAD ? [0] : (verdict ?? []);
-  const cells = values.map((v, i) => `<td${better.includes(i) ? ' class="best"' : ""}>${v}</td>`).join("");
-  return `<tr><td>${escapeHtml(what)}</td>${cells}</tr>`;
+/** The record's row for an app and what the instrument calls it: exactly
+ * one, or the build stops. */
+function recordRow(rec, app, what) {
+  const found = rec.rows.filter((r) => r.app === app && r.what === what);
+  if (found.length !== 1) throw new Error(`${RECORD} holds ${found.length} rows for ${app}: ${what}`);
+  return found[0];
 }
 
-function benchTable(t) {
-  const head = ["Pleris", ...t.them].map((name) => `<th scope="col">${name}</th>`).join("");
-  return `<h3>${escapeHtml(t.title)}</h3>
-<div class="table" tabindex="0"><table class="bench"><thead><tr><th scope="col">Measured</th>${head}</tr></thead><tbody>
-${t.rows.map(benchRow).join("\n")}
+/** A row: its values, each stack the instrument found ahead marked, and who
+ * that is, in words, for a reader who sees no mark. */
+function verdictRow(label, r, stacks) {
+  const ahead = aheadIn(r);
+  const cells = stacks.map((s) => {
+    const v = r.values.find((x) => x.label === s);
+    return `<td${ahead.includes(s) ? ' class="best"' : ""}>${v ? escapeHtml(v.shown) : "–"}</td>`;
+  });
+  return `<tr><td>${escapeHtml(label)}</td>${cells.join("")}<td>${ahead.length ? escapeHtml(ahead.join(", ")) : "None"}</td></tr>`;
+}
+
+/** A table of the record's rows (`[label, row]`): a column for each stack,
+ * in the order the record names them, and a last one for who is ahead. */
+function verdictTable(rows) {
+  const stacks = [...new Set(rows.flatMap(([, r]) => r.values.map((v) => v.label)))];
+  const head = [...stacks, "Ahead"].map((name) => `<th scope="col">${escapeHtml(name)}</th>`).join("");
+  return `<div class="table" tabindex="0"><table class="bench"><thead><tr><th scope="col">Measured</th>${head}</tr></thead><tbody>
+${rows.map(([label, r]) => verdictRow(label, r, stacks)).join("\n")}
 </tbody></table></div>`;
+}
+
+function benchTable(t, rec) {
+  return `<h3>${escapeHtml(t.title)}</h3>
+${verdictTable(t.rows.map(([label, what]) => [label, recordRow(rec, t.app, what)]))}`;
+}
+
+/** Where a record's numbers come from: the commit measured, the day, the
+ * machine, and the record and its commands at the commit that holds them. */
+function provenance(rec) {
+  return `Measured at <a href="${REPO}/commit/${rec.commit}">${rec.commit.slice(0, 8)}</a> on ${rec.finished.slice(0, 10)}, on one PC (${escapeHtml(rec.machine)}): <a href="${rec.link}">the record</a>, and <a href="${rec.commands}">the commands that wrote it</a>.`;
+}
+
+/** **The home page's measured section**: what its tables are, the tables,
+ * and where their numbers come from. */
+export function speed(rec) {
+  return `<p class="sub">Two apps against their rivals, by the project's own instrument, on one PC. A time is Chromium's, the median of ${rec.runs} runs; a server's number is the median of ${rec.serverRuns}. Slow 4G is Lighthouse's slow-phone profile, which also slows the CPU four times. A marked number is the instrument's verdict, and the last column names it: Pleris, ahead of both; each framework ahead of Pleris; or none, when neither holds.</p>
+${SPEED.map((t) => benchTable(t, rec)).join("\n")}
+<p class="note">${provenance(rec)} Field performance is not claimed. An idle Pleris page asks for its live updates, which the other two stores do not have. The store's add is left out: Pleris's store shows it before the server answers, and the other two, as their shared contract wrote them, wait for the server. <a href="/measured">Every row the instrument measures</a>, in three browsers.</p>`;
 }
 
 /** **How the checks are checked**, counted when the site is built: the
@@ -700,14 +785,13 @@ ${out}`);
  * where Pleris stands on it: the bugs it refuses, and the rows it leads and
  * trails, by the instrument's own verdicts.
  */
-function home(catalog) {
+function home(catalog, rec) {
   const { mutants, scripts } = mutationCounts();
-  const { ahead, rows } = score();
   const body = `<section class="hero">
 <span class="pill">A research project · not released yet</span>
 <h1>Building the perfect web framework.</h1>
 <p class="lead">Pleris is a language for web apps: their pages, and the server code those pages call. You declare what a program means, such as whose data it holds and how fresh an answer must be, and the compiler refuses it until that holds.</p>
-<p class="lead">Perfect has a test: every bug a compiler can rule out is refused before it ships, and no other framework wins a measured row. Pleris refuses each bug below, and leads ${ahead} of the ${rows} rows measured further down. The rest is the work.</p>
+<p class="lead">Perfect has a test: every bug a compiler can rule out is refused before it ships, and no other framework wins a measured row. Pleris refuses each bug below. ${standing(rec)}</p>
 <div class="actions">
 <a class="button primary" href="#refused">What it refuses</a>
 <a class="button" href="/guide/">Read the guide</a>
@@ -724,9 +808,7 @@ ${MISTAKES.map(mistake).join("\n")}
 
 <section class="section" id="speed">
 <h2>Measured, losses included</h2>
-<p class="sub">Two apps against their rivals, by the project's own instrument: Chromium on one PC, medians of five runs. Slow 4G is Lighthouse's slow-phone profile, which also slows the CPU four times. A marked number is the instrument's verdict, Pleris ahead or each framework ahead of it; a row with no mark is within the noise.</p>
-${SPEED.map(benchTable).join("\n")}
-<p class="note">An exploratory run on PR #76's branch, before its review; field performance is not claimed. An idle Pleris page asks for its live updates, which the other two stores do not have. The store's add is left out: Pleris's store shows it before the server answers, and the other two, as their shared contract wrote them, wait for the server. <a href="${EVIDENCE}">Every row the instrument records, and its commands.</a></p>
+${speed(rec)}
 </section>
 
 <section class="section" id="checked">
@@ -752,6 +834,32 @@ ${SPEED.map(benchTable).join("\n")}
     description:
       "Pleris is a language for web apps whose compiler refuses whole classes of bugs before they ship: one reader's data served to another, a secret in the page, an old answer shown for a new question. Measured against Next.js, SvelteKit, React and Svelte, losses included.",
     body,
+  };
+}
+
+/** **Every row the head-to-head measures** (`/measured`): each app's rows
+ * in the instrument's own words, with its verdict on each. The home page's
+ * tables are chosen from these. A row of an app the site does not name
+ * stops the build. */
+export function measured(rec) {
+  const count = (verdict) => rec.rows.filter((r) => r.verdict === verdict).length;
+  const stray = rec.rows.find((r) => !SPEED.some((t) => t.app === r.app));
+  if (stray) throw new Error(`${RECORD}: a row of an app the site does not name, ${stray.app}`);
+  const tables = SPEED.map(
+    (t) => `<h2 id="${t.app}">${escapeHtml(t.title)}</h2>
+${verdictTable(rec.rows.filter((r) => r.app === t.app).map((r) => [r.what, r]))}`,
+  );
+  const shaped = rec.network ? ` The rows marked slow-4g are shaped as ${escapeHtml(rec.network)}.` : "";
+  return {
+    path: "/measured",
+    title: "Every row measured",
+    description: `Every row of Pleris's head-to-head against React, Svelte, Next.js and SvelteKit, with the instrument's verdict on each: ${count("win")} rows where Pleris is ahead, ${count("loss")} where another stack is.`,
+    body: `<article class="prose wide">
+<h1>Every row measured</h1>
+<p class="lead">Each row of the head-to-head that Pleris is in, in the instrument's words, with its verdict: Pleris ahead of every other stack in ${count("win")}, another stack ahead of Pleris in ${count("loss")}, and neither in ${count("neither")}.</p>
+<p>${provenance(rec)} A time is the median of ${rec.runs} runs, and a server's number the median of ${rec.serverRuns}.${shaped} A marked number is the instrument's verdict, and the last column names who is ahead. A row near the line between two verdicts can fall either side of it from one run to the next.</p>
+${tables.join("\n")}
+</article>`,
   };
 }
 
@@ -852,7 +960,8 @@ export function build(out = join(SITE, "dist")) {
   // The guide first: its pages keep the examples a code's page shows.
   const pages = GUIDE.map((entry, i) => guidePage(entry, i));
   const catalog = codes();
-  pages.push(...codePages(catalog), home(catalog), notFound(false), notFound(true));
+  const rec = record();
+  pages.push(...codePages(catalog), home(catalog, rec), measured(rec), notFound(false), notFound(true));
   const written = writePages(out, pages);
   writeFiles(out, pages, catalog);
   return { written, catalog };

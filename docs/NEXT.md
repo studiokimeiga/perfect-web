@@ -18,39 +18,26 @@ stays open, in order:
    go in PRs of their own), merge master, renumber its codes (ADR-0406
    holds PW0367), add `requires` to its fixtures, carry #91's findings
    (ADR-0407's decision 3), and re-run its gates on GitHub.
-2. **PRs #86 and #87, repaired before they land** (reserved ADR-0401 and
-   ADR-0402; an independent review on 2026-11-07):
-   - #86, keep-alive: a head read stops at a read error (a non-UTF-8 header
-     value, a stall) and is answered as complete on a kept connection, so a
-     proxy that reuses connections can be made to smuggle a request (any
-     error or end before the blank line is a 400 and a close; the head's
-     size is capped). Also: three file handles a connection against the
-     usual 1024, and an accept loop that spins when out of them; a next
-     request that waits for others' telling; a read bound per read rather
-     than a deadline, which no test holds; HEAD answered with a body.
-   - #87, longer holds: a failed regeneration (ADR-0176) is retried only by
-     the page's next subscription request, now up to 25 s away; frames pile
-     past `MAX_WAITING` on a held stream; and each tab holds one of
-     HTTP/1.1's six connections to an origin for 25 s.
-   - When both land, their mutation scripts and `session_overlap`'s run
-     whole, and #86's connection cap is read against #87's holds.
-3. **PR #81:** its pixel test of the checkbox fails in WebKit ("checked: the
-   bounds its drawing is past"); its session repairs the drawing.
-4. **Two defects on master** (ADR-0407's decision 4), each its own PR: the
-   development server's scheduler keys a run by its command and arguments
-   alone (`schedules.rs`'s `key`), so one reader's schedule moves another's
-   pending run; and D3's PostgreSQL `put` is answered from its statement's
-   snapshot (`sql.rs`'s `old`), which a concurrent command can make wrong.
+2. **PR #87, repaired before it lands** (reserved ADR-0402; #86 landed with
+   train-15 after its repairs): a failed regeneration (ADR-0176) is retried
+   only by the page's next subscription request, now up to 25 s away; frames
+   pile past `MAX_WAITING` on a held stream; and each tab holds one of
+   HTTP/1.1's six connections to an origin for 25 s (hold long only where the
+   page's connection is HTTP/2 or later, `nextHopProtocol`). When it lands,
+   its, keep-alive's and `session_overlap`'s mutation scripts run whole.
+3. **Done in train-15:** PR #81, its WebKit failure the test's own (device
+   pixels), with its review's three items.
+4. **Done in train-15:** D3's PostgreSQL `put` is answered from the row
+   its statement replaced (`RETURNING old.*`, ADR-0393 amended), not from
+   its snapshot: at read committed a put that waited on another command
+   published no new version of a table it changed, and a put of an
+   all-key row was refused as past a bound. Its twin defect, the
+   scheduler's key, is fixed in train-14 (ADR-0334 amended).
 5. **PR #74** names its decision ADR-0394, which the data path holds; it
    takes the next free number when it lands. The dependency updates
    (#16-#26, #65) are checked and landed on their own.
 
 6. **What train-14's review found and left for its own work:**
-   - **A query answers `POST /command/<id>`** (medium confidence, not run):
-     `pw build` writes a component for each query too, the server loads every
-     component, and the route never asks what kind an export is. A query no
-     page reads can be called with any arguments, and a query cannot declare
-     `requires`. A query's id posted as a command should answer 404.
    - **The older markup rules compare names exactly**, as PW5053 and PW5014
      did until train-14: PW5013's interactive elements, `role`, `tabindex`.
      HTML lower-cases both a tag's name and an attribute's; read them as it
@@ -67,13 +54,44 @@ stays open, in order:
      Wrangler cache files train-14 left out; whether to delete that branch
      after the merge is the owner's call.
 
-7. **CodeQL's 82 open alerts on master** (2026-11-07): 16
-   `rust/hard-coded-cryptographic-value` (critical, `accounts.rs`), 14
-   `rust/log-injection`, 7 `rust/cleartext-logging`, 24 unpinned actions, and
-   JavaScript's path-injection, file-system-race, shell-command and
-   sanitization findings. Each is fixed or dismissed with its reason. A large
-   PR's CodeQL check re-reports those in the files it changes: train-14's
-   eight (#60, #61, #82-#84, #92-#94) were all open on master before it.
+7. **CodeQL** (done 2026-11-07): of master's 82 open alerts, 49 in test code
+   and 6 in local tooling are dismissed with their reasons, and train-15 pins
+   every workflow action and scopes `verify`'s token (the other 27).
+
+8. **Mutants counted killed because they do not build** (found 2026-11-08):
+   13 lines in 11 evidence files besides cross-session's (repaired in
+   train-15). Each is either the type system refusing the fault, a real
+   protection to say so beside it, or a replacement gone stale, as
+   cross-session's called a method that no longer existed, which controls
+   nothing: rewrite it to build, and find the test that kills it.
+
+9. **The head-to-head's 31 losses** (`docs/evidence/E14/head-to-head.txt`
+   at `58b0b2ca`, every row on pleris.dev's `/measured`), the largest first:
+   - **The store's server code is Rust**: 2,422 lines with the app,
+     against Next.js's 151 and SvelteKit's 134. Its tables declared in
+     Pleris (ADR-0393's declared tables) would leave the app's lines.
+   - **The store's app lines**: 294 against 151 and 134, in 7 files against
+     6. Each query states seven clauses (freshness, consistency, cache,
+     key, concurrency, `on_key_change`, timeout); read which ones a default
+     could carry without hiding a decision the charter asks to be stated.
+   - **The first load**: TodoMVC's 141,362 bytes and 19 requests against
+     Svelte's 20,821 and 5, the store's 44,540 bytes against SvelteKit's
+     35,029; and with them TodoMVC's time to interactive in each engine
+     (Chromium cold, 26 ms against Svelte's 15; WebKit warm, 19 against 7).
+     The runtime and its WebAssembly load before the first press.
+   - **An idle page polls**: 30 requests a minute, and 3 ms a second of
+     server CPU for 20 idle pages, against none (#87, item 2, holds longer;
+     a held stream answers none).
+   - **The host serves a static page slower than a static host**: TodoMVC's
+     document at 0.59 ms at the median under load against 0.26, and 0.38 ms
+     of CPU a request against 0.18.
+   - **Two of the twelve changes take more lines in Pleris**: T03, a private
+     resource (+42 against +23 and +28), and T11, a dialog (+18/-5 against
+     SvelteKit's +19/-3).
+   - **A warm first paint in Chromium**: 32 ms against 24, in both apps.
+   - Rows at the line the spread rule draws move between runs (ADR-0408);
+     the latency repair moved the store's median latency from a loss to
+     neither and its 99th percentile from a win to neither.
 
 ## Current local continuation, 2026-11-02
 

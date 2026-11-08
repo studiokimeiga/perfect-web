@@ -1,0 +1,24 @@
+pleris.dev - its measured rows are the head-to-head's record
+
+produced by: just e14-site
+commit: 5fb0b302ea0292fb1419b2cc954cdefea98ebf00
+node: v22.21.1
+
+== the site's tests (site/build.test.mjs)
+
+# tests 14
+# pass 14
+# fail 0
+
+== mutation controls (scripts/site_mutations.py)
+
+baseline: 14 passed, 0 failed
+a run the instrument refused is shown: KILLED (by an assertion of its test; 2 of 14 tests fail)
+a run on a changed tree is shown: KILLED (by an assertion of its test; 2 of 14 tests fail)
+a loss that names no stack is shown: KILLED (by an assertion of its test; 2 of 14 tests fail)
+a cell shows another stack's value: KILLED (by an assertion of its test; 3 of 14 tests fail)
+a stack ahead of Pleris is not marked: KILLED (by an assertion of its test; 3 of 14 tests fail)
+the standing counts the ties as losses: KILLED (by an assertion of its test; 2 of 14 tests fail)
+/measured leaves out the ties: KILLED (by an assertion of its test; 2 of 14 tests fail)
+7 of 7 mutants killed; 0 refused; 0 survived
+memory bound: no process was stopped

@@ -80,7 +80,7 @@ e14-head-to-head:
        python3 scripts/head_to_head_loc.py > "$S/loc.txt"; \
        python3 scripts/head_to_head_loc.py --json > "$S/loc.json"; \
        node benchmarks/headtohead/museum-classes.mjs --json "$S/museum.json" > "$S/museum.txt"; \
-       PORT="${PORT:-3141}" node benchmarks/headtohead/head-to-head.mjs --sections "$S" --json "$S/runs.json"; \
+       PORT="${PORT:-3141}" node benchmarks/headtohead/head-to-head.mjs --sections "$S" --json "$S/runs.json" --verdicts docs/evidence/E14/head-to-head.json; \
        echo; echo "== mutation and integrity controls (scripts/head_to_head_mutations.py)"; echo; \
        PORT="${PORT:-3141}" python3 scripts/head_to_head_mutations.py; \
      } > docs/evidence/E14/head-to-head.txt

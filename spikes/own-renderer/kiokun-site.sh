@@ -9,6 +9,11 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# Where cargo writes its builds: CARGO_TARGET_DIR where it is set (a
+# worktree's own target), else the repository's `target/`. A relative one
+# is cargo's working directory's, which is this script's at its start.
+TARGET_DIR="${CARGO_TARGET_DIR:-$REPO_ROOT/target}"
+case "$TARGET_DIR" in /*) ;; *) TARGET_DIR="$PWD/$TARGET_DIR" ;; esac
 SPIKE="$REPO_ROOT/spikes/own-renderer"
 OUT="${PW_OUT:-$SPIKE/dist-kiokun}"
 
@@ -32,8 +37,8 @@ cp "$SPIKE/public/pw-runtime.mjs" "$OUT/"
 # The browser's WebAssembly, as `run.sh` builds it.
 cargo build --quiet --manifest-path "$REPO_ROOT/Cargo.toml" \
   -p pw-resume-wasm -p pw-render-wasm --target wasm32-unknown-unknown --profile browser
-cp "$REPO_ROOT/target/wasm32-unknown-unknown/browser/pw_resume_wasm.wasm" "$OUT/pw-resume.wasm"
-cp "$REPO_ROOT/target/wasm32-unknown-unknown/browser/pw_render_wasm.wasm" "$OUT/pw-render.wasm"
+cp "$TARGET_DIR/wasm32-unknown-unknown/browser/pw_resume_wasm.wasm" "$OUT/pw-resume.wasm"
+cp "$TARGET_DIR/wasm32-unknown-unknown/browser/pw_render_wasm.wasm" "$OUT/pw-render.wasm"
 
 # What it was built from, each source by its digest (ADR-0166): the browser
 # suite does not serve a build whose sources have changed since.
