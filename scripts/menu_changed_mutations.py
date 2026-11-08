@@ -44,14 +44,14 @@ MUTANTS = [
         EVENT,
         "            |_| {\n"
         "                self.queries.invalidate(\"store.page.Menu\");\n"
-        "                let reached: Vec<String> = Vec::new();\n",
+        "                let reached: Vec<Reached> = Vec::new();\n",
     ),
     (
         "a menu change drops nothing",
         SERVER,
         EVENT,
         "            |_| {\n"
-        "                let reached: Vec<String> = Vec::new();\n",
+        "                let reached: Vec<Reached> = Vec::new();\n",
     ),
     (
         "the event names no store",

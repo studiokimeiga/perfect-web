@@ -133,7 +133,7 @@ MUTANTS = [
         PLAN,
         "            live.push(Live {\n                part: entry.id.0,\n"
         "                signal: root.to_string(),\n                path: String::new(),\n",
-        "            let _ = Live {\n                part: entry.id.0,\n"
+        "            drop(Live {\n                part: entry.id.0,\n"
         "                signal: root.to_string(),\n                path: String::new(),\n",
     ),
     (
@@ -177,7 +177,7 @@ MUTANTS = [
         "cargo",
         RENDER,
         "            let token = env.domain.instance_token(&env.path, *id, path);\n",
-        "            let token = env.domain.instance_token(&Default::default(), *id, path);\n",
+        "            let token = env.domain.instance_token(&[], *id, path);\n",
     ),
     (
         "the markup around an instance fails first",

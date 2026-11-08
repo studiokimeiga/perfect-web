@@ -85,7 +85,7 @@ MUTANTS = [
         "the store's change is sent against the cart's entry",
         SERVER,
         "        self.send_documents(session, entry, version, false);\n",
-        "        self.send_documents(session, &cart_entry(session), version, false);\n",
+        "        self.send_documents(session, &self.cart_entry(session), version, false);\n",
     ),
     (
         "the store's change is sent at a version that does not advance",

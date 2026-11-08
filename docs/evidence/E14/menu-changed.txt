@@ -1,8 +1,7 @@
 ADR-0164 - a menu change drops what declares it, for its store
 
 produced by: just e14-menu-changed
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 42f842fbe0549db7d76ea3c6af30626babbf7d50
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the store's graph: what MenuChanged(id) invalidates
@@ -17,17 +16,17 @@ store.search.Search  --invalidated-by-->  Events.MenuChanged(_)
 
 == the development server (pw-dev-server)
 
-test tests::a_change_to_one_stores_menu_reaches_that_stores_pages_only ... ok
 test tests::a_menu_change_drops_the_menus_kept_values ... ok
+test tests::a_change_to_one_stores_menu_reaches_that_stores_pages_only ... ok
 test tests::a_menu_change_drops_that_stores_kept_menu_only ... ok
 test tests::a_menu_change_drops_that_stores_recommendations_only ... ok
-test result: ok. 704 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 390.05s
+test result: ok. 957 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 111.92s
 
 == mutation controls (scripts/menu_changed_mutations.py)
 
 baseline: 2 passed, 0 failed
-a menu change drops every store's menu, by the query's name: KILLED (does not build)
-a menu change drops nothing: KILLED (does not build)
+a menu change drops every store's menu, by the query's name: KILLED (2 of 2 tests fail)
+a menu change drops nothing: KILLED (2 of 2 tests fail)
 the event names no store: KILLED (2 of 2 tests fail)
 the event is another store's: KILLED (2 of 2 tests fail)
 the store's menu declares no invalidation: KILLED (2 of 2 tests fail)

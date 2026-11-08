@@ -61,7 +61,7 @@ MUTANTS = [
         "a commit commits without its events",
         LAYER,
         "        for (kind, name, values) in handed {\n",
-        "        for (kind, name, values) in handed.take(0) {\n",
+        "        for (kind, name, values) in handed.into_iter().take(0) {\n",
     ),
     (
         "a command's transaction is the connection's default",
