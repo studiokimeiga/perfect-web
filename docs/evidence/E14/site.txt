@@ -1,7 +1,7 @@
 pleris.dev - its measured rows are the head-to-head's record
 
 produced by: just e14-site
-commit: f6d508b80e6538ba77827990cb5bb170e38c8504
+commit: 6e927c3374c758b29428971005c0309704c1d4b1
 node: v22.21.1
 
 == the site's tests (site/build.test.mjs)
