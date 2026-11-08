@@ -1,56 +1,57 @@
 Track store-pg - the store's data on PostgreSQL, held to what its source states
 
 produced by: just e14-store-postgres
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 42f842fbe0549db7d76ea3c6af30626babbf7d50
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
-postgres: 18.6 (Debian 18.6-1.pgdg13+2)
+postgres: 18.6 (Ubuntu 18.6-1.pgdg22.04+2)
 
 == the store on PostgreSQL (spikes/own-renderer/server/src/tests/store_pg.rs)
 
+test tests::store_pg::on_postgres_the_database_provides_what_the_store_states ... ok
+test tests::store_pg::on_postgres_a_stated_change_feed_the_layer_cannot_deliver_is_refused ... ok
+test tests::store_pg::on_postgres_an_interactions_answer_outlives_its_host ... ok
 test tests::store_pg::on_postgres_a_cart_change_reaches_the_sessions_open_page ... ok
-test tests::store_pg::on_postgres_a_cart_change_commits_with_its_event_in_one_transaction ... ok
-test tests::store_pg::on_postgres_a_retried_interaction_runs_its_command_once ... ok
-test tests::store_pg::on_postgres_a_refused_commit_commits_neither_its_state_nor_its_event ... ok
-test tests::store_pg::on_postgres_a_routes_change_commits_with_its_event_in_one_transaction ... ok
-test tests::store_pg::on_postgres_a_run_is_written_by_its_commands_transaction ... ok
-test tests::store_pg::on_postgres_a_run_committed_and_not_removed_commits_once ... ok
+test tests::store_pg::on_postgres_an_interactions_record_answers_a_day ... ok
 test tests::store_pg::on_postgres_a_run_outlives_the_host_that_scheduled_it ... ok
 test tests::store_pg::on_postgres_a_second_hosts_commit_answers_what_the_first_committed ... ok
-test tests::store_pg::on_postgres_an_interactions_answer_outlives_its_host ... ok
-test tests::store_pg::on_postgres_a_stated_change_feed_the_layer_cannot_deliver_is_refused ... ok
-test tests::store_pg::on_postgres_an_interactions_record_answers_a_day ... ok
-test tests::store_pg::on_postgres_the_database_provides_what_the_store_states ... ok
-test tests::store_pg::on_postgres_an_order_keeps_its_lines_and_the_outboxes_hold_only_its_hosts_rows ... ok
-test tests::store_pg::on_postgres_eight_sessions_adding_five_times_each_commit_all_forty ... ok
-test tests::store_pg::on_postgres_the_stores_schema_is_its_own_beside_the_feeds ... ok
+test tests::store_pg::on_postgres_a_run_is_written_by_its_commands_transaction ... ok
+test tests::store_pg::on_postgres_a_retried_interaction_runs_its_command_once ... ok
+test tests::store_pg::on_postgres_a_routes_change_commits_with_its_event_in_one_transaction ... ok
+test tests::store_pg::on_postgres_a_cart_change_commits_with_its_event_in_one_transaction ... ok
 test tests::store_pg::on_postgres_two_hosts_commit_a_run_once ... ok
+test tests::store_pg::on_postgres_a_run_kept_under_the_old_key_is_its_schedulers_after_the_upgrade ... ok
+test tests::store_pg::on_postgres_an_order_keeps_its_lines_and_the_outboxes_hold_only_its_hosts_rows ... ok
+test tests::store_pg::on_postgres_a_run_committed_and_not_removed_commits_once ... ok
+test tests::store_pg::on_postgres_a_refused_commit_commits_neither_its_state_nor_its_event ... ok
+test tests::store_pg::on_postgres_the_stores_schema_is_its_own_beside_the_feeds ... ok
+test tests::store_pg::on_postgres_eight_sessions_adding_five_times_each_commit_all_forty ... ok
+test tests::store_pg::on_postgres_nothing_the_store_keeps_holds_a_session_cookie ... ok
 test tests::store_pg::on_postgres_serializable_against_a_read_committed_default_is_refused ... ok
 test tests::store_pg::on_postgres_the_two_layers_answer_alike ... ok
-test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 694 filtered out; finished in 30.15s
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 945 filtered out; finished in 9.89s
 
 == the server's whole suite, the store on PostgreSQL (PW_STORE_TEST_LAYER=postgres)
 
-test result: ok. 685 passed; 0 failed; 9 ignored; 0 measured; 19 filtered out; finished in 467.14s
+test result: ok. 936 passed; 0 failed; 9 ignored; 0 measured; 21 filtered out; finished in 131.68s
 
 == the server's whole suite, the store in memory
 
-test result: ok. 685 passed; 0 failed; 9 ignored; 0 measured; 19 filtered out; finished in 401.88s
+test result: ok. 936 passed; 0 failed; 9 ignored; 0 measured; 21 filtered out; finished in 110.58s
 
 == mutation controls (scripts/store_postgres_mutations.py)
 
-baseline: 29 passed, 0 failed
-an order is placed without its lines: KILLED (5 of 29 tests fail)
-on PostgreSQL, an order's lines are not written: KILLED (6 of 29 tests fail)
-a commit commits without its events: KILLED (does not build)
-a command's transaction is the connection's default: KILLED (23 of 29 tests fail)
-the isolation is answered, not measured: KILLED (1 of 29 tests fail)
-a refused commit is answered as committed: KILLED (1 of 29 tests fail)
-the outbox is not read back: KILLED (3 of 29 tests fail)
-a commit on PostgreSQL is not recorded in the materializer: KILLED (3 of 29 tests fail)
-a commit on PostgreSQL is recorded without its rows: KILLED (1 of 29 tests fail)
-the store's connections search more than its schema: KILLED (1 of 29 tests fail)
-a program may name one of the host's own operations: KILLED (2 of 29 tests fail)
-a command's delivered events stay in the materializer's outbox: KILLED (3 of 29 tests fail)
+baseline: 31 passed, 0 failed
+an order is placed without its lines: KILLED (5 of 31 tests fail)
+on PostgreSQL, an order's lines are not written: KILLED (6 of 31 tests fail)
+a commit commits without its events: KILLED (9 of 31 tests fail)
+a command's transaction is the connection's default: KILLED (25 of 31 tests fail)
+the isolation is answered, not measured: KILLED (1 of 31 tests fail)
+a refused commit is answered as committed: KILLED (1 of 31 tests fail)
+the outbox is not read back: KILLED (3 of 31 tests fail)
+a commit on PostgreSQL is not recorded in the materializer: KILLED (3 of 31 tests fail)
+a commit on PostgreSQL is recorded without its rows: KILLED (1 of 31 tests fail)
+the store's connections search more than its schema: KILLED (1 of 31 tests fail)
+a program may name one of the host's own operations: KILLED (2 of 31 tests fail)
+a command's delivered events stay in the materializer's outbox: KILLED (3 of 31 tests fail)
 12 of 12 mutants killed
 memory bound: no process was stopped

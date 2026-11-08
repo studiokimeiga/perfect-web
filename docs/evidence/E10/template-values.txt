@@ -1,18 +1,17 @@
 ADR-0073 - a template reads each value by path
 
 produced by: just e10-template-values
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 42f842fbe0549db7d76ea3c6af30626babbf7d50
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker, the template IR and the build (compiler/pw-core/tests/template_values.rs)
 
-test a_key_is_the_path_from_the_element ... ok
 test the_ir_blocks_a_computed_list_and_a_foreign_key ... ok
-test a_directive_other_than_on_does_not_build ... ok
+test a_key_is_the_path_from_the_element ... ok
 test a_loops_key_is_read_from_its_element ... ok
+test a_directive_other_than_on_does_not_build ... ok
 test a_computed_hole_checks_and_does_not_build ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.52s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.60s
 
 == the renderer's keys (runtime/pw-render/tests/keys.rs)
 
@@ -31,7 +30,7 @@ a directive is written as an attribute: KILLED (1 of 7 tests fail)
 an XML namespace is read as a directive: KILLED (1 of 7 tests fail)
 a computed list is read as a path: KILLED (2 of 7 tests fail)
 a key read from another name keys on the element: KILLED (1 of 7 tests fail)
-a key keeps its last segment: KILLED (does not build)
+a key keeps its last segment: KILLED (1 of 7 tests fail)
 a key's head is not read: KILLED (1 of 7 tests fail)
 the renderer reads a key as one field: KILLED (2 of 7 tests fail)
 11 of 11 mutants killed
