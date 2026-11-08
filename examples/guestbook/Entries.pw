@@ -1,0 +1,32 @@
+module Entries
+
+import String
+import capability.{ UserId }
+import Books
+
+opaque type Words = String where String.length(value) >= 1 & String.length(value) <= 280
+
+fn words(draft: String) -> Option<Words> !{} {
+    let text = String.trim(draft)
+    if String.length(text) >= 1 & String.length(text) <= 280 {
+        Some(Words(text))
+    } else {
+        None
+    }
+}
+
+fn text_of(words: Words) -> String !{} {
+    words.value
+}
+
+type Entry = Entry { book: String, number: Int, author: UserId, name: String, text: Words }
+
+table Entries
+    row     Entry
+    key     book, number
+    refers  book to Books
+    bounded 1000
+
+fn most() -> Int !{} {
+    1000
+}

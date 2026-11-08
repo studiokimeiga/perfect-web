@@ -79,6 +79,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "0013_session_epoch",
         include_str!("../migrations/feed/0013_session_epoch.sql"),
     ),
+    (
+        "0014_schedule_key_names_its_scheduler",
+        include_str!("../migrations/feed/0014_schedule_key_names_its_scheduler.sql"),
+    ),
 ];
 
 /// **How a command's transaction is opened.** The layer sets serializable on
@@ -712,24 +716,33 @@ type Read<'r> = &'r mut dyn FnMut(&mut Client) -> Result<Val, String>;
 /// transaction.
 type Run = Arc<dyn Fn(Read<'_>) -> Result<Val, String> + Send + Sync>;
 
-/// The reads, each through `run`, a session's user its principal's, a
-/// post's image served where `leases` says.
+/// The reads for the request `asked`, each through `run`, a session's user
+/// its principal's, a post's image served where `leases` says. A session is
+/// passed as the handle the program holds it by, and is the request's
+/// (track `data-path`).
 fn reads_through(
     run: Run,
     principals: Principals,
     leases: Option<crate::uploads::Leases>,
+    asked: crate::data::Requested,
 ) -> crate::data::Ops {
     let mut ops: crate::data::Ops = BTreeMap::new();
     // Track `uploads`: the image a session attached, waiting for its post.
     ops.insert(
         "feed:data/uploads#attached".to_string(),
-        crate::uploads::attached_op(leases.clone()),
+        crate::uploads::attached_op(leases.clone(), asked.clone()),
     );
-    let (r, p, l) = (run.clone(), principals.clone(), leases.clone());
+    let (r, p, l, a) = (
+        run.clone(),
+        principals.clone(),
+        leases.clone(),
+        asked.clone(),
+    );
     ops.insert(
         "feed:data/posts#timeline".to_string(),
         Arc::new(move |args: &[Val]| match args {
-            [Val::String(session), Val::S64(limit)] => {
+            [Val::String(handle), Val::S64(limit)] => {
+                let session = a.session("posts#timeline", handle)?;
                 let (limit, reader) = (*limit, p.user_of(session));
                 Ok(vec![r(&mut |c| {
                     timeline(c, limit, &reader, l.as_ref()).map_err(pg)
@@ -746,11 +759,12 @@ fn reads_through(
             other => Err(format!("posts#thread received {other:?}")),
         }),
     );
-    let (r, p, l) = (run.clone(), principals.clone(), leases);
+    let (r, p, l, a) = (run.clone(), principals.clone(), leases, asked.clone());
     ops.insert(
         "feed:data/posts#following".to_string(),
         Arc::new(move |args: &[Val]| match args {
-            [Val::String(session), Val::S64(limit)] => {
+            [Val::String(handle), Val::S64(limit)] => {
+                let session = a.session("posts#following", handle)?;
                 let (reader, limit) = (p.user_of(session), *limit);
                 Ok(vec![r(&mut |c| {
                     following(c, &reader, limit, l.as_ref()).map_err(pg)
@@ -851,29 +865,33 @@ fn reads_through(
             other => Err(format!("messages#may received {other:?}")),
         }),
     );
-    let (r, p) = (run, principals.clone());
+    let (r, p, a) = (run, principals.clone(), asked.clone());
     ops.insert(
         "feed:data/users#relation".to_string(),
         Arc::new(move |args: &[Val]| match args {
-            [Val::String(session), Val::String(user)] => {
-                let reader = p.user_of(session);
+            [Val::String(handle), Val::String(user)] => {
+                let reader = p.user_of(a.session("users#relation", handle)?);
                 Ok(vec![r(&mut |c| relation(c, &reader, user).map_err(pg))?])
             }
             other => Err(format!("users#relation received {other:?}")),
         }),
     );
-    let p = principals.clone();
+    let (p, a) = (principals.clone(), asked.clone());
     ops.insert(
         "feed:data/users#of-session".to_string(),
         Arc::new(move |args: &[Val]| match args {
-            [Val::String(session)] => Ok(vec![Val::String(p.user_of(session))]),
+            [Val::String(handle)] => Ok(vec![Val::String(
+                p.user_of(a.session("users#of-session", handle)?),
+            )]),
             other => Err(format!("users#of-session received {other:?}")),
         }),
     );
     ops.insert(
         "feed:data/users#viewer".to_string(),
         Arc::new(move |args: &[Val]| match args {
-            [Val::String(session)] => Ok(vec![viewer_val(principals.of(session))]),
+            [Val::String(handle)] => Ok(vec![viewer_val(
+                principals.of(asked.session("users#viewer", handle)?),
+            )]),
             other => Err(format!("users#viewer received {other:?}")),
         }),
     );
@@ -1459,12 +1477,13 @@ impl crate::schedules::Runs for FeedPg {
 }
 
 impl crate::data::DataLayer for FeedPg {
-    fn reads(&self, _session: &str, _stopped: Option<Stopped>) -> crate::data::Ops {
+    fn reads(&self, session: &str, _stopped: Option<Stopped>) -> crate::data::Ops {
         let pool = self.pool.clone();
         reads_through(
             Arc::new(move |f: Read<'_>| pool.with(|c| Ok(f(c))).and_then(|r| r)),
             self.principals(),
             self.uploaded.get().cloned(),
+            crate::data::Requested::by(session),
         )
     }
 
@@ -1491,6 +1510,7 @@ impl crate::data::DataLayer for FeedPg {
             Arc::new(move |f: Read<'_>| seat.read(|c| f(c))),
             self.principals(),
             self.uploaded.get().cloned(),
+            crate::data::Requested::by(session),
         )
     }
 
@@ -1542,7 +1562,7 @@ impl crate::data::DataLayer for FeedPg {
         *self.principals.write().expect("principals") = principals;
     }
 
-    fn begin<'a>(&'a self, _session: &str) -> Box<dyn crate::data::Staged + 'a> {
+    fn begin<'a>(&'a self, session: &str) -> Box<dyn crate::data::Staged + 'a> {
         let writes = self.writes.lock().unwrap_or_else(|e| e.into_inner());
         // The transaction, open before the command runs: what it reads, it
         // reads in it. A connection or a `BEGIN` that fails leaves none, and
@@ -1571,18 +1591,21 @@ impl crate::data::DataLayer for FeedPg {
         };
         let principals = self.principals();
         let leases = self.uploaded.get().cloned();
-        let mut ops = reads_through(run, principals.clone(), leases.clone());
+        // The request's session, which the program passes as its handle
+        // (track `data-path`).
+        let asked = crate::data::Requested::by(session);
+        let mut ops = reads_through(run, principals.clone(), leases.clone(), asked.clone());
         // Track `uploads`: a command claims its session's attached image,
         // commits it with a post, or discards it.
         let claims = crate::uploads::Claims::new(leases.clone());
         ops.insert(
             "feed:data/uploads#claim".to_string(),
-            crate::uploads::claim_op(claims.clone()),
+            crate::uploads::claim_op(claims.clone(), asked.clone()),
         );
         let discarded = wrote.clone();
         ops.insert(
             "feed:data/uploads#discard".to_string(),
-            crate::uploads::discard_op(claims.clone(), move || {
+            crate::uploads::discard_op(claims.clone(), asked.clone(), move || {
                 // A discard commits, so its lease ends with the transaction.
                 discarded.store(true, Ordering::SeqCst)
             }),
@@ -1603,12 +1626,12 @@ impl crate::data::DataLayer for FeedPg {
                 }),
             );
         };
-        let (p, l) = (principals.clone(), leases.clone());
+        let (p, l, a) = (principals.clone(), leases.clone(), asked.clone());
         write(
             "feed:data/posts#publish",
             Arc::new(move |c: &mut Client, args: &[Val]| match args {
-                [Val::String(session), Val::String(text)] => {
-                    let author = author(c, &p, session)?;
+                [Val::String(handle), Val::String(text)] => {
+                    let author = author(c, &p, a.session("posts#publish", handle)?)?;
                     let row = c
                         .query_one(
                             "INSERT INTO posts (author, text) VALUES ($1, $2) RETURNING id",
@@ -1628,16 +1651,22 @@ impl crate::data::DataLayer for FeedPg {
         // command's claim holds, written with the post in its transaction, by
         // the author `publish` writes as. A handle this command did not claim
         // is not found.
-        let (p, l, holding) = (principals.clone(), leases.clone(), claims.clone());
+        let (p, l, holding, a) = (
+            principals.clone(),
+            leases.clone(),
+            claims.clone(),
+            asked.clone(),
+        );
         write(
             "feed:data/posts#publish-image",
             Arc::new(move |c: &mut Client, args: &[Val]| match args {
                 [
-                    Val::String(session),
+                    Val::String(handle),
                     Val::String(text),
                     Val::String(alt),
                     Val::String(upload),
                 ] => {
+                    let session = a.session("posts#publish-image", handle)?;
                     let Some(image) = holding.lock().expect("claims").commit(session, upload, alt)
                     else {
                         return Ok((not_found(), false));
@@ -1670,11 +1699,12 @@ impl crate::data::DataLayer for FeedPg {
         );
         // **A reply** (ADR-0231): a post that replies to `to`. To a post that
         // is not there, none.
-        let (p, l) = (principals.clone(), leases.clone());
+        let (p, l, a) = (principals.clone(), leases.clone(), asked.clone());
         write(
             "feed:data/posts#reply",
             Arc::new(move |c: &mut Client, args: &[Val]| match args {
-                [Val::String(session), Val::String(to), Val::String(text)] => {
+                [Val::String(handle), Val::String(to), Val::String(text)] => {
+                    let session = a.session("posts#reply", handle)?;
                     let there = c
                         .query_opt("SELECT 1 FROM posts WHERE id = $1", &[to])
                         .map_err(pg)?
@@ -1706,12 +1736,12 @@ impl crate::data::DataLayer for FeedPg {
         // not know, or the follower itself, is not found, and nothing is
         // written. A follow again writes what is there, and commits, so its
         // event refreshes every page that shows it.
-        let p = principals.clone();
+        let (p, a) = (principals.clone(), asked.clone());
         write(
             "feed:data/users#follow",
             Arc::new(move |c: &mut Client, args: &[Val]| match args {
-                [Val::String(session), Val::String(user)] => {
-                    let follower = p.user_of(session);
+                [Val::String(handle), Val::String(user)] => {
+                    let follower = p.user_of(a.session("users#follow", handle)?);
                     let known: bool = c
                         .query_one(&format!("SELECT {KNOWN}"), &[user])
                         .map_err(pg)?
@@ -1737,11 +1767,12 @@ impl crate::data::DataLayer for FeedPg {
             }),
         );
         // **An unfollow** (ADR-0257): one not followed is no change.
-        let p = principals.clone();
+        let (p, a) = (principals.clone(), asked.clone());
         write(
             "feed:data/users#unfollow",
             Arc::new(move |c: &mut Client, args: &[Val]| match args {
-                [Val::String(session), Val::String(user)] => {
+                [Val::String(handle), Val::String(user)] => {
+                    let session = a.session("users#unfollow", handle)?;
                     let known: bool = c
                         .query_one(&format!("SELECT {KNOWN}"), &[user])
                         .map_err(pg)?
@@ -1779,9 +1810,13 @@ impl crate::data::DataLayer for FeedPg {
         write(
             "feed:data/posts#delete",
             Arc::new({
-                let released = released.clone();
+                let (released, a) = (released.clone(), asked.clone());
                 move |c: &mut Client, args: &[Val]| match args {
-                    [Val::String(_), Val::String(id)] => {
+                    [Val::String(handle), Val::String(id)] => {
+                        // The request's own session, as every operation a
+                        // session is passed (track `data-path`, the re-review
+                        // of 2026-11-02: it was passed and not read).
+                        a.session("posts#delete", handle)?;
                         // And the images of what it deletes (ADR-0261), each
                         // collected once the command commits.
                         let row = c
@@ -1816,12 +1851,12 @@ impl crate::data::DataLayer for FeedPg {
         // in the command's transaction. Who may is `requires
         // MayMessage(to)`'s, evaluated in this transaction before the command
         // runs.
-        let p = principals.clone();
+        let (p, a) = (principals.clone(), asked.clone());
         write(
             "feed:data/messages#send",
             Arc::new(move |c: &mut Client, args: &[Val]| match args {
-                [Val::String(session), Val::String(to), Val::String(text)] => {
-                    let from = author(c, &p, session)?;
+                [Val::String(handle), Val::String(to), Val::String(text)] => {
+                    let from = author(c, &p, a.session("messages#send", handle)?)?;
                     let sent = crate::messages::pg::send(c, &from, to, text).map_err(pg)?;
                     Ok((ok(sent), true))
                 }
@@ -1839,11 +1874,12 @@ impl crate::data::DataLayer for FeedPg {
                 other => Err(format!("messages#read received {other:?}")),
             }),
         );
-        let (p, l) = (principals, leases.clone());
+        let (p, l, a) = (principals, leases.clone(), asked);
         write(
             "feed:data/posts#like",
             Arc::new(move |c: &mut Client, args: &[Val]| match args {
-                [Val::String(session), Val::String(id)] => {
+                [Val::String(handle), Val::String(id)] => {
+                    let session = a.session("posts#like", handle)?;
                     let there = c
                         .query_opt("SELECT 1 FROM posts WHERE id = $1", &[id])
                         .map_err(pg)?

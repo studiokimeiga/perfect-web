@@ -42,6 +42,7 @@ command add_later(item: MenuItemId)
 // `refuse`, a declared error, which commits nothing.
 command add_in_five(item: MenuItemId, refuse: Bool)
     -> Result<Int, CartError>
+    requires      Anyone
     idempotent_by InteractionId
 {
     schedule add_later(item) after minutes(5)
@@ -54,6 +55,7 @@ command add_in_five(item: MenuItemId, refuse: Bool)
 // A test's: the store's sweep of `order`, scheduled five minutes on.
 command sweep_in_five(order: String)
     -> Result<Int, CartError>
+    requires      Anyone
     idempotent_by InteractionId
 {
     schedule expire_order(order) after minutes(5)
@@ -299,6 +301,61 @@ fn a_run_scheduled_again_moves() {
     assert!(pending[0].due_ms >= first + 60_000, "{pending:?}");
     assert!(in_five(&s, "cortado", false, "i-3").committed);
     assert_eq!(runs(&s).len(), 2, "{:?}", runs(&s));
+}
+
+/// **Another reader's scheduling moves no run of mine** (ADR-0334, amended
+/// 2026-11-07). A run is pending for each command, its arguments and the
+/// user whose command scheduled it. Until then the same arguments scheduled
+/// by another reader replaced the first reader's pending run, which then ran
+/// on the second's behalf: here `b`'s press would have taken `a`'s espresso
+/// from `a`'s cart and put it in `b`'s, a minute later. The control, in
+/// `a_run_scheduled_again_moves`: one reader's scheduling again moves its own.
+#[test]
+fn another_readers_scheduling_moves_no_run_of_mine() {
+    let s = scheduling();
+    assert!(in_five(&s, "espresso", false, "i-a").committed);
+    let mine = runs(&s);
+    assert_eq!(mine.len(), 1, "{mine:?}");
+    later(&s, 60_000);
+    let theirs = s
+        .command_answered(
+            IN_FIVE,
+            "b",
+            &[Val::String("espresso".into()), Val::Bool(false)],
+            Some("i-b"),
+        )
+        .expect("answered");
+    assert!(theirs.committed);
+    let (a, b) = (
+        s.identity.principals().user_of("a"),
+        s.identity.principals().user_of("b"),
+    );
+    assert_ne!(a, b, "two readers");
+    let pending = runs(&s);
+    let of = |user: &str| pending.iter().filter(|r| r.user == user).count();
+    assert_eq!(
+        (of(&a), of(&b)),
+        (1, 1),
+        "each reader's run is its own: {pending:?}"
+    );
+    let a_due = pending
+        .iter()
+        .find(|r| r.user == a)
+        .expect("a's run")
+        .due_ms;
+    assert_eq!(
+        a_due, mine[0].due_ms,
+        "`b`'s scheduling did not move `a`'s run"
+    );
+    // `a`'s time: `a`'s run, to `a`'s cart alone.
+    later(&s, FIVE_MINUTES - 60_000);
+    assert_eq!(s.run_due().0, 1);
+    assert_eq!(s.cart_lines("a"), vec![("espresso".to_string(), 1)]);
+    assert!(s.cart_lines("b").is_empty(), "{:?}", s.cart_lines("b"));
+    // A minute on, `b`'s.
+    later(&s, 60_000);
+    assert_eq!(s.run_due().0, 1);
+    assert_eq!(s.cart_lines("b"), vec![("espresso".to_string(), 1)]);
 }
 
 /// **A run refused runs again after 2 s, doubling, and after five runs

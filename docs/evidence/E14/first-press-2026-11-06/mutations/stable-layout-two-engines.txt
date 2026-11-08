@@ -1,0 +1,19 @@
+stable_layout_mutations.py's six mutants, run by
+stable_layout_two_engines.py (each mutant applied, `cargo build -p
+pw-dev-server`, `playwright test e2e/stable-layout.spec.mjs --project=chromium
+--project=firefox`, the source restored), 2026-11-06 at 1f021e1d.
+
+The script itself refused its baseline (14 passed, 8 failed): its spec runs
+in all three engines, and WebKit could not open a page on this PC (every
+WebKit test fails at browserContext.newPage, unchanged tests too; see the
+README). Chromium and Firefox alone:
+
+baseline (chromium, firefox): (14, 0)
+the first items of a list are contained: KILLED (10 of 14 tests fail)
+the first lists are contained: KILLED (10 of 14 tests fail)
+a list far down the menu is not contained: KILLED (4 of 14 tests fail)
+no item is contained: KILLED (6 of 14 tests fail)
+the placeholder is 42 px: KILLED (2 of 14 tests fail)
+the style is in the body: KILLED (8 of 14 tests fail)
+survivors: 0 of 6
+mutation anchors: 4992 mutants in 324 scripts, each matching once

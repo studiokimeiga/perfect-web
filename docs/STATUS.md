@@ -2,6 +2,45 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Train-14, 2026-11-07:** the owner asked that every open PR be merged. Train-14
+merges, onto `5d4d4d55`: PR #73 (24 verify shards), #71 (the scheduled-order
+race), #72 with the closed-table cache repair (ADR-0394), the performance stack
+#68, #75, #76, #78, #85 (ADR-0392, ADR-0398 to ADR-0400), pleris.dev
+#77, the compiler changes #79, #80, #82, #84, #83, #88, #89, #90
+(ADR-0403 to ADR-0406), and E14's agent telemetry #64 (ADR-0391). It lands only on its own green `ci` and `verify`.
+- Corpus C32: 44 accepted, 97 rejected programs, every charter category
+  covered; generality 67 / 67 (`image_without_alt` and `who_may_run`).
+- Held, each with its reason in [NEXT](NEXT.md): #86 and #87 (a review
+  found a request-smuggling hole and a 25 s recovery wait), #91 (not adopted:
+  ADR-0407 rules for `owned by`), #81 (its
+  checkbox test fails in WebKit), #74 (experimental; claims ADR-0394), and
+  the dependency updates.
+
+The paragraphs below are dated history: #72 and the cache repair are merged.
+
+**Local continuation, 2026-11-02:** freshly fetched `origin/master` is
+`5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6`. D3 (PR #66), the added-table
+reference repair (#69), session overlap (#67), and the disk-fixture repair
+(#70) are in that history. The dated train/D2 queues below are historical,
+not instructions to repeat completed tracks. PR #72's declared-data routing
+and guestbook are still unmerged at `687dd922`; its exact-head hosted CI and
+verify workflows report success, but this continuation has not independently
+audited every recipe artifact. Row-ownership's existing dirty work is preserved.
+
+The current local slice is a reproduced closed-table cache bypass, with a
+failing-first commit `069ffc6f` and repair on `fix/tables-cached-refusals` in
+the existing data-path checkout. See the [execution record](diagnostics/tables-cached-refusals-2026-11-02.md).
+This is local implementation evidence; no new landing or production claim.
+The paid E14 study remains deferred.
+
+**Local cache-fence result:** code/test source `b496bdc3` passed the whole
+`just e14-data-path` gate (60/60 controls; 15 browser checks across three
+engines) and `RUST_TEST_THREADS=8 just ci` (server 907 passed/9 ignored).
+Independent read-only final review has no outstanding findings. CI's only
+dirty input was the generated data-path receipt, retained by hash. The
+[execution record](diagnostics/tables-cached-refusals-2026-11-02.md) distinguishes
+local source evidence from the still-pending hosted landing gates.
+
 **Supply-chain follow-up, 2026-10-29:** published `88f577a2` is blocked by
 both actual CI Node audits: HIGH GHSA-3f7j-7jwc-fxfj in Cypress's
 `systeminformation` 5.33.15. Rust audits passed. ADR0371 records the verified
@@ -113,6 +152,11 @@ failed runs, corrections and their original scope.
 
 ## current milestone
 
+The 2026-11-02 continuation is **E14 app-layer correctness**: generic declared
+data, row authority and real application witnesses. The paid agent study is
+deferred. Current fetched-main and local-branch facts are above; the dated
+integration checkpoints below retain their original scope.
+
 **Integration checkpoint2026-10-26:** master `0035f923` contains PR54's
 image-privacy repair and PR59's unused Wasmtime disk-cache dependency removal,
 both landed by ordinary fast-forward to the exact tested heads after independent
@@ -195,6 +239,11 @@ stored media and private-media authorization/revocation remain outside this
 metadata-minimization claim.
 
 ## last passing commit
+
+Local continuation source `b496bdc34467269c2b436350ba1cfb2a52e268ed` has the
+data-path and local CI receipts recorded above, including the generated-input
+qualification. No master promotion is asserted. The master acceptance record
+below is historical as of 2026-10-21; the fetched-main checkpoint is at the top.
 
 **Latest verified master:** `e7664d2eb01aa8c6e91df594bd7270a84a8bf8de`
 (train-12), fast-forwarded from `track/train-12` without rewriting history.
@@ -413,6 +462,48 @@ exit or an existing evidence file is never a successful result.
 
 ## last benchmark summary
 
+**The head-to-head, 2026-11-02 ([ADR-0392](DECISIONS/ADR-0392-head-to-head.md)):**
+TodoMVC against TodoMVC's own React and Svelte apps, the store against
+Next.js and SvelteKit, `PORT=13441 just e14-head-to-head` at `dbd37a8c` on
+the PC (local only; [evidence](evidence/E14/head-to-head.txt)): every rule
+held, 41 of 41 mutants killed, 4 of 4 integrity controls caught, measured
+under a load of 10 from other sessions. Pleris loses 61 rows first: bytes
+(TodoMVC's first load 237,218 against 70,085 and 20,821; its first press
+fetches the 386 KB renderer, 3,889 ms under Slow 4G against 44 and 40),
+every interaction's time, Slow 4G, a press with 19 tabs open (10,084 ms
+against 54 and 46), idle visitors and the store's source. It is best in
+behaviour (60/60, 29/29), the twelve changes (140 lines, one language, 9
+of 12 unsafe versions refused, the frameworks' 0), the museum (0 of 5) and
+the store server's cost (0.32 ms a request; 7.28 and 1.68). NEXT's
+head-to-head section orders the fixes.
+
+**The head-to-head's code gates, 2026-11-02:** `35f1943d` failed Fallow
+(202 findings in changed files: 141 dead code, 50 complexity, 6
+duplication, 5 styling), CodeQL (`js/file-system-race`, `lib.mjs`'s log read
+by name after it was opened by name) and Ruff (E741). Configuration now
+states facts only (the instrument's scripts, specification and tests are
+entries; TodoMVC's two vendored apps are excluded as `pw-to-marko`'s routes
+are). Fallow has no coverage here, so a function's CRAP is CC(CC+1) and a
+cyclomatic complexity of 5 reaches its threshold: the instrument's 48 such
+functions are split into helpers, after their behaviour was pinned: 517
+node tests (the 29 it had and 488 characterization tests) pass on the
+instrument as it was, with only exports and defaulted parameters added, and
+523 pass on the result (the recorded run renders to the evidence's report
+line for line; `scripts/head_to_head_mutations.py`: 41 of 41 mutants, 4 of 4
+integrity controls). Two live runs, of the instrument as it was and as it
+is, agree in shape, order, requests and verdicts in 48 cells, but for two
+requests that race the end of an interaction, which the instrument as it was
+differs from itself in as well. One new test raced the host's log on a slow
+machine (2 failures in 12 runs on two loaded cores) and was fixed (30 such
+runs pass). The server's log is read through its descriptor. No ignore,
+threshold, waiver or workflow change; `head-to-head.txt` is not re-recorded.
+Reproduce:
+`npx -y fallow@3.23.0 audit --root . --quiet --format json --changed-since 45e0c1a6e9f6331bcce7fb3fb35528b169397934 --gate new-only`,
+`node --test benchmarks/headtohead/test/*.mjs`,
+`python3 scripts/head_to_head_mutations.py` (the raw outputs are in
+[`evidence/E14/head-to-head-gates-2026-11-02/`](evidence/E14/head-to-head-gates-2026-11-02/)).
+These are local diagnostics: the hosted gates at the final head decide.
+
 The E10 close benchmark retained here is 2026-10-02 at
 `bff437c6ae641529461ca56410b1f0337e06557a`, Apple M2 Pro arm64:
 [raw evidence](evidence/E10/close-bench.txt), `just e10-close-bench 8`.
@@ -427,6 +518,18 @@ not replace an application benchmark. ADR-0027's correction still applies
 to older frame attribution.
 
 ## next three concrete tasks
+
+Current continuation order (2026-11-02), superseding the dated queue below:
+
+1. Re-plan the cache-fence/data-path integration before publication, number
+   its ADR and finish the required published-head recipe/browser/CI gates.
+   The local repair, full data-path run, CI and independent review are recorded.
+2. Reconcile PR #72's actual recipe artifacts and the dirty row-ownership
+   branch before integration; retain the existing row work and its ownership.
+3. Validate durable declared tables and then protected feed/store migration
+   with row authority and two-user witnesses. No paid model study is needed.
+
+The following three items retain their historical scope:
 
 1. Land train-13 as the owner approved: exact-commit CI and the automatic
    track verification at its head, then `master` fast-forwarded to it.

@@ -68,11 +68,18 @@ import 'just/keyed-retry.just'
 import 'just/effect-convergence.just'
 import 'just/command-deadline.just'
 import 'just/press-modules.just'
+import 'just/refusal-codes.just'
 import 'just/e14-readiness.just'
 import 'just/table-host.just'
 import 'just/d2-writes.just'
 import 'just/d3-postgres.just'
 import 'just/outbound-https.just'
+import 'just/data-path.just'
+import 'just/head-to-head.just'
+import 'just/images.just'
+import 'just/who-may-run.just'
+import 'just/command-route.just'
+import 'just/session-reader.just'
 
 default:
     @just --list
@@ -107,8 +114,15 @@ fmt-check:
 
 # Local pre-publication contract. Slower than CI's rustfmt-only first gate,
 # but catches Clippy and mutation-anchor problems before any PR is opened.
-preflight: fmt-check lint case-check mutation-anchors
+preflight: fmt-check lint case-check mutation-anchors corpus-categories
     @python3 -m compileall -q scripts research/failures/tools
+
+# Each corpus fixture names a category `corpus-check` lists. Two PRs added a
+# fixture whose category the list lacked (R-096, #82; R-097, #83) and passed
+# every check they ran, then stopped `ci`'s `test-compile` and every recipe
+# that checks the corpus. It runs in a second and builds one small binary.
+corpus-categories:
+    cargo run --quiet -p corpus-check -- examples
 
 lint:
     cargo clippy --workspace --all-targets -- -D warnings
@@ -152,6 +166,11 @@ audit:
 evidence-gates:
     @python3 -m unittest discover -s scripts/tests -p 'test_*.py' -v
     @node --test benchmarks/baselines/sveltekit/vendor/deepmerge/test.cjs benchmarks/baselines/sveltekit/vendor/deepmerge/consumer-test.cjs
+    @node --test spikes/own-renderer/optimize-assets.test.mjs
+    # pleris.dev's build checks its own pages: every code, link and count
+    # (train-14's review found no gate ran it).
+    @node --test site/build.test.mjs
+    @node --test benchmarks/harness/test/agent-telemetry.test.mjs
 
 # ADR-0245: a verification run's evidence, fetched into docs/evidence/. The
 # run is a GitHub Actions run of `verify`, by its id; each file it fetches

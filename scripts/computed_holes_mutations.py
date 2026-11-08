@@ -178,7 +178,7 @@ MUTANTS = [
     (
         "the host does not run the lifted function",
         SERVER,
-        '                let out = self.run(derived, "", &BTreeMap::new(), &[value])?;\n',
+        '                let out = self.run(derived, "", &BTreeMap::new(), &no_tables, &[value])?;\n',
         '                let out: Vec<Val> = vec![value];\n',
     ),
     (

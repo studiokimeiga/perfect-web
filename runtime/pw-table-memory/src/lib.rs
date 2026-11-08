@@ -33,7 +33,7 @@
 //! databases remain later obligations; no production claim follows.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 
 use pw_core::tables::{Primitive, Schema, Stored, TableJson, TablesJson};
@@ -285,6 +285,11 @@ struct Inner {
     told: Mutex<Option<Arc<dyn Fn() + Send + Sync>>>,
     /// Internal failure is sticky: no reader or writer can use partial state.
     failed: AtomicBool,
+    /// **Each primitive executed**, a read's or a write's, as a database
+    /// counts its statements (track `data-path`): what a conformance suite
+    /// holds a read's cost to, at the adapter itself
+    /// ([`MemoryTables::statements`]).
+    statements: AtomicU64,
 }
 
 struct Working {
@@ -344,10 +349,46 @@ impl MemoryTables {
                 turn: Condvar::new(),
                 told: Mutex::new(None),
                 failed: AtomicBool::new(false),
+                statements: AtomicU64::new(0),
                 shape,
                 host,
             }),
         })
+    }
+
+    /// **How many primitives this database has executed**, reads and writes,
+    /// each one statement, as a database counts its own (track `data-path`):
+    /// what a conformance suite counts a read's cost by, below every layer
+    /// that calls it, so a layer that reads twice for one read is seen.
+    pub fn statements(&self) -> u64 {
+        self.inner.statements.load(Ordering::SeqCst)
+    }
+
+    /// **The database failed closed** (track `data-path`): every read and
+    /// write after it is refused (`StoragePoisoned`), and every command
+    /// waiting its turn is woken to be refused, as where its storage failed.
+    /// For a host whose own records of a commit this database has published
+    /// did not commit: no reader may go on reading a write whose records
+    /// were lost, and the commit cannot be taken back from readers who may
+    /// have read it.
+    pub fn fail_closed(&self) {
+        self.inner.fail();
+    }
+
+    /// Whether this adapter still permits reads, including answers a host
+    /// cached before it failed closed. Checking does not execute a primitive
+    /// or take a snapshot; a cached answer must not bypass storage failure.
+    pub fn check_health(&self) -> Result<(), Error> {
+        self.inner.healthy()
+    }
+
+    /// **The adapter for a build's `tables.json`, as `pw build` wrote it**
+    /// (track `data-path`): what a host serving the build is given, read
+    /// whole and held as [`MemoryTables::new`] holds it.
+    pub fn from_json(text: &str) -> Result<Self, Error> {
+        let manifest: TablesJson = serde_json::from_str(text)
+            .map_err(|error| Error::Schema(format!("tables.json: {error}")))?;
+        Self::new(manifest)
     }
 
     /// The manifest as the host reads it: what a call that reads or writes
@@ -361,7 +402,7 @@ impl MemoryTables {
     /// positional values; a set selector takes one array of scalars or
     /// named-field records; `all` takes none.
     pub fn read(&self, import: &str, args: &[Value]) -> Result<Value, Error> {
-        self.inner.read_published(import, args)
+        self.inner.read_counted(import, args)
     }
 
     /// Select the exact read imports this admitted component may bind as a
@@ -409,7 +450,64 @@ impl MemoryTables {
             let bound = import.clone();
             let data = Arc::new(move |args: &[Value]| {
                 inner
-                    .read_published(&bound, args)
+                    .read_counted(&bound, args)
+                    .map_err(|error| format!("`{bound}`: {error:?}"))
+            });
+            out.insert(import, host_fn(read, data));
+        }
+        Ok(out)
+    }
+
+    /// **The published tables as they are now** (track `data-path`;
+    /// ADR-0386's "a render's snapshot", offered): what every read of one
+    /// render reads, whatever commits meanwhile (NEXT 4c). Taking one copies
+    /// nothing; a commit after it copies a table only while a snapshot still
+    /// holds it, as for any reader (`Arc::make_mut`).
+    pub fn snapshot(&self) -> Result<Snapshot, Error> {
+        self.inner.healthy()?;
+        let tables = match self.inner.published.lock() {
+            Ok(published) => Arc::clone(&*published),
+            Err(poisoned) => {
+                drop(poisoned);
+                return Err(self.inner.fail());
+            }
+        };
+        Ok(Snapshot {
+            inner: Arc::clone(&self.inner),
+            tables,
+        })
+    }
+
+    /// **[`MemoryTables::read_host_fns`], each reading `snapshot`** (track
+    /// `data-path`): the reads the gate admits for the query, and nothing
+    /// else, answered from the tables as the snapshot holds them, so every
+    /// query of one render reads one state. A snapshot another adapter took
+    /// is refused: its tables are not this manifest's.
+    pub fn read_host_fns_at(
+        &self,
+        snapshot: &Snapshot,
+        contract: &pw_host::ComponentContract,
+        granted: &pw_host::Granted,
+    ) -> Result<BTreeMap<String, pw_host::engine::HostFn>, Error> {
+        use pw_host::engine::table_read_host::host_fn;
+        if !Arc::ptr_eq(&snapshot.inner, &self.inner) {
+            return Err(Error::Input(
+                "a snapshot another adapter took reads none of these tables".into(),
+            ));
+        }
+        let reads = self
+            .inner
+            .host
+            .admit_reads(contract, granted)
+            .map_err(Error::Input)?;
+        let mut out = BTreeMap::new();
+        for (import, read) in reads {
+            let inner = Arc::clone(&self.inner);
+            let tables = Arc::clone(&snapshot.tables);
+            let bound = import.clone();
+            let data = Arc::new(move |args: &[Value]| {
+                inner
+                    .read_snapshot(&tables, &bound, args)
                     .map_err(|error| format!("`{bound}`: {error:?}"))
             });
             out.insert(import, host_fn(read, data));
@@ -483,6 +581,13 @@ impl MemoryTables {
         command.commit()?;
         Ok(answer)
     }
+}
+
+/// **The published tables at one moment** ([`MemoryTables::snapshot`]): read
+/// by [`MemoryTables::read_host_fns_at`], and by nothing else.
+pub struct Snapshot {
+    inner: Arc<Inner>,
+    tables: Arc<Vec<Arc<Data>>>,
 }
 
 /// **One command's transaction** (ADR-0386): its reads see its own writes,
@@ -780,6 +885,18 @@ impl Inner {
         Ok(lease)
     }
 
+    /// One primitive executed, counted as a statement ([`Inner::statements`]).
+    fn counted(&self) {
+        self.statements.fetch_add(1, Ordering::SeqCst);
+    }
+
+    /// [`Inner::read_published`], counted: a read of the published tables,
+    /// as every caller outside the adapter makes one.
+    fn read_counted(&self, import: &str, args: &[Value]) -> Result<Value, Error> {
+        self.counted();
+        self.read_published(import, args)
+    }
+
     fn read_published(&self, import: &str, args: &[Value]) -> Result<Value, Error> {
         self.healthy()?;
         let tables = match self.published.lock() {
@@ -793,6 +910,19 @@ impl Inner {
         read(&self.shape, &tables, import, args)
     }
 
+    /// A read of a snapshot's tables: refused once the database has failed,
+    /// as every read is.
+    fn read_snapshot(
+        &self,
+        tables: &[Arc<Data>],
+        import: &str,
+        args: &[Value],
+    ) -> Result<Value, Error> {
+        self.counted();
+        self.healthy()?;
+        read(&self.shape, tables, import, args)
+    }
+
     /// The working copy, where `id` is the open command.
     fn working_of(&self, id: u64) -> Result<WorkingLease<'_>, Error> {
         let working = self.lock_working()?;
@@ -803,11 +933,13 @@ impl Inner {
     }
 
     fn command_read(&self, id: u64, import: &str, args: &[Value]) -> Result<Value, Error> {
+        self.counted();
         let working = self.working_of(id)?;
         read(&self.shape, &working.tables, import, args)
     }
 
     fn command_write(&self, id: u64, import: &str, args: &[Value]) -> Result<(), Error> {
+        self.counted();
         let mut working = self.working_of(id)?;
         let Working { tables, open, .. } = &mut *working;
         let open = open.as_mut().ok_or(Error::Ended)?;

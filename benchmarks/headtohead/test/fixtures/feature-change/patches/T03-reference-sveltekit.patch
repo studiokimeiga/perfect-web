@@ -1,0 +1,68 @@
+diff --git a/src/lib/server/store.ts b/src/lib/server/store.ts
+index 7291a61..e890b8d 100644
+--- a/src/lib/server/store.ts
++++ b/src/lib/server/store.ts
+@@ -46,6 +46,18 @@ export function getCart(session: string | undefined): Cart {
+   };
+ }
+ 
++export type CartEntry = { itemId: MenuItemId; name: string; quantity: number };
++
++/** The cart's lines, each with its item's name: what the cart section lists. */
++export function cartLines(store: StoreId, session: string | undefined): CartEntry[] {
++  const menu = MENUS[store] ?? [];
++  return getCart(session).lines.map((line) => ({
++    itemId: line.itemId,
++    name: menu.find((m) => m.id === line.itemId)?.name ?? line.itemId,
++    quantity: line.quantity,
++  }));
++}
++
+ /** How many items the cart holds: what the page shows. */
+ export function lineCount(cart: Cart): number {
+   return cart.lines.reduce((n, line) => n + line.quantity, 0);
+diff --git a/src/routes/stores/[storeId]/+page.server.ts b/src/routes/stores/[storeId]/+page.server.ts
+index 1cebba6..9b5bf1b 100644
+--- a/src/routes/stores/[storeId]/+page.server.ts
++++ b/src/routes/stores/[storeId]/+page.server.ts
+@@ -1,6 +1,15 @@
+ import { error, fail } from "@sveltejs/kit";
+ import type { Actions, PageServerLoad } from "./$types";
+-import { addToCart, clearCart, getCart, getMenu, getStore, isMenuItem, lineCount } from "$lib/server/store";
++import {
++  addToCart,
++  cartLines,
++  clearCart,
++  getCart,
++  getMenu,
++  getStore,
++  isMenuItem,
++  lineCount,
++} from "$lib/server/store";
+ import { currentSession, ensureSession } from "$lib/server/session";
+ 
+ export const load: PageServerLoad = ({ params, cookies }) => {
+@@ -11,6 +20,7 @@ export const load: PageServerLoad = ({ params, cookies }) => {
+     store,
+     menu,
+     cartCount: lineCount(getCart(currentSession(cookies))),
++    lines: cartLines(params.storeId, currentSession(cookies)),
+   };
+ };
+ 
+diff --git a/src/routes/stores/[storeId]/+page.svelte b/src/routes/stores/[storeId]/+page.svelte
+index 26deb29..126da8b 100644
+--- a/src/routes/stores/[storeId]/+page.svelte
++++ b/src/routes/stores/[storeId]/+page.svelte
+@@ -24,6 +24,11 @@
+ 
+   <section aria-label="Cart">
+     <p id="cart-count">{data.cartCount}</p>
++    <ul aria-label="In your cart">
++      {#each data.lines as line (line.itemId)}
++        <li>{line.name} × {line.quantity}</li>
++      {/each}
++    </ul>
+     <form method="POST" action="?/clear" use:enhance>
+       <button id="clear-cart" type="submit">Clear</button>
+     </form>

@@ -84,7 +84,7 @@ const SEND: &str = "command send(order: String) -> Result<Int, String>\n    \
 /// A command a reader presses, which schedules `send` `at`.
 fn placing(at: &str) -> String {
     format!(
-        "{SEND}command place(order: String, window: Instant) -> Result<Int, String>\n    \
+        "{SEND}command place(order: String, window: Instant) -> Result<Int, String>\n    requires Anyone\n    \
          idempotent_by InteractionId\n{{\n    schedule send(order) at {at}\n    Ok(1)\n}}\n"
     )
 }

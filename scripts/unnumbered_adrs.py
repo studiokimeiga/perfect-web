@@ -42,8 +42,13 @@ PLACEHOLDER = "ADR-" + "XXXX"
 MENTION = re.compile(re.escape(PLACEHOLDER))
 # An inline code span: what is between two backticks on one line.
 CODE_SPAN = re.compile(r"`[^`\n]*`")
-# A decision's file by the placeholder's name, as evidence recorded its path.
-RECORDED_PATH = re.compile(r"docs/DECISIONS/" + re.escape(PLACEHOLDER) + r"-[A-Za-z0-9._-]+\.md")
+# A decision's file by the placeholder's name, as evidence recorded its path:
+# whole, or as `git diff --stat` writes a long path, its leading directories
+# elided to `...` (train-14's merge of the first press, whose record holds
+# such a line).
+RECORDED_PATH = re.compile(
+    r"(?:docs/DECISIONS/|\.\.\./)" + re.escape(PLACEHOLDER) + r"-[A-Za-z0-9._-]+\.md"
+)
 
 
 def held(ref: str | None) -> bool:

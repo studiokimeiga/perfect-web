@@ -1,0 +1,70 @@
+ADR-0185 - ids, and the ARIA that names them, checked at build
+
+produced by: just e14-ids
+commit: c30ef1f384b921a1ae120dfaef2ba193ee10977c
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+== the rules (compiler/pw-core/tests/ids_and_aria.rs, labels.rs)
+
+test a_reference_to_nothing_is_reported_once ... ok
+test an_id_names_one_element_of_its_page ... ok
+test aria_is_what_wai_aria_defines ... ok
+test a_reference_names_an_element_shown_whenever_the_referrer_is ... ok
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test a_reference_to_an_id_every_row_has_is_its_ids_defect_alone ... ok
+test an_id_inside_each_names_no_one_row ... ok
+test a_wrapping_label_names_only_its_first_control ... ok
+test which_control_a_label_names_must_not_depend_on_what_renders ... ok
+test a_label_names_the_first_element_with_its_id ... ok
+test hidden_submit_and_button_inputs_need_no_label ... ok
+test a_blank_aria_label_names_nothing ... ok
+test an_id_names_nothing_by_itself ... ok
+test a_label_names_its_control_only_when_it_has_text ... ok
+test aria_labelledby_must_reach_an_element_with_text ... ok
+test a_label_that_wraps_its_control_names_it ... ok
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s
+
+== the corpus at C10 (corpus-check, corpus_history.rs, generality.rs, checking_source.rs)
+
+accepted: 44 files
+accepted: 44/44 charter §16 categories covered
+rejected: 95 files
+rejected: 95/95 charter §16 categories covered
+corpus-check: OK
+test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
+test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
+test every_rejected_fixture_emits_only_its_own_defect ... ok
+test every_diagnostic_carries_what_charter_16_3_requires ... ok
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 57.58s
+test the_c10_texts_are_reported_where_their_defects_are ... ok
+test the_c9_texts_are_still_caught_for_their_invariant_and_refused_for_the_title ... ok
+test the_pre_change_text_of_every_repaired_fixture_still_fails ... ok
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.52s
+test generality_is_reported_separately_from_conformance ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 113.90s
+
+== every program the repository checks
+
+accepted corpus: 44 programs, 35 with no error, 9 refused exactly as listed (examples/accepted/build-refusals.json: 9 entries)
+pw check: 73 file(s), no diagnostics
+pw check: 27 file(s), no diagnostics
+pw check: 43 file(s), no diagnostics
+
+== mutation controls (scripts/ids_mutations.py)
+
+baseline: 15 passed, 0 failed
+two elements may share an id: KILLED (1 of 4 tests fail)
+an id in a loop names one row: KILLED (2 of 4 tests fail)
+one id in two arms of a block is two elements: KILLED (2 of 4 tests fail)
+a reference may name nothing: KILLED (2 of 4 tests fail)
+a reference may name an element shown only some of the time: KILLED (1 of 4 tests fail)
+an id in every arm of a block is not always shown: KILLED (1 of 4 tests fail)
+an id the page computes is no id: KILLED (1 of 4 tests fail)
+an id written with holes may be anything: KILLED (1 of 4 tests fail)
+an unknown ARIA attribute is let through: KILLED (1 of 4 tests fail)
+a value its attribute does not take is let through: KILLED (1 of 4 tests fail)
+an unknown role is let through: KILLED (1 of 4 tests fail)
+a field named by a reference to nothing is reported twice: KILLED (1 of 4 tests fail)
+a field a label misses for an id two have is reported twice: KILLED (1 of 15 tests fail)
+13 of 13 mutants killed
+memory bound: no process was stopped

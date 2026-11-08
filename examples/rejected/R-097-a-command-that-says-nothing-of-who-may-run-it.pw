@@ -1,0 +1,33 @@
+// @corpus: rejected
+// @id: R-097
+// @category: a command that says nothing of who may run it
+// @rule: PW0367
+// @invariant: who_may_run
+// @charter: §7.5
+// @milestone: 14
+// @expect-error: `delete_post` runs for any reader's request, and says nothing of who may run it
+// @expect-error: declare `requires` with what a reader must hold, such as `requires SignedIn`
+//
+// No page sends `delete_post`, and that protects nothing: the server runs a
+// command for any request that names it, and a request is an address and a
+// body, which anyone can send. Until 2026-11-06 this compiled, and anyone
+// could delete any post. A command says who may run it: `requires` and the
+// predicates a request must hold, or `requires Anyone` (ADR-0406).
+
+module posts.admin
+
+opaque type PostId = String
+
+type Post = Post { id: PostId, text: String }
+
+type PostError =
+    | Missing
+
+fn remove(post: PostId) -> Result<(), PostError> !{ database.write<Post> }
+    host "blog:data/posts#remove"
+
+// ERROR: who may delete a post? Nothing says, so anyone may.
+command delete_post(post: PostId) -> Result<(), PostError>
+{
+    remove(post)
+}

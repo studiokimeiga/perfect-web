@@ -1,0 +1,191 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling anyhow v1.0.104
+   Compiling libm v0.2.16
+   Compiling memchr v2.8.3
+   Compiling version_check v0.9.5
+   Compiling wasmtime-internal-core v48.0.8
+   Compiling typenum v1.20.1
+   Compiling cranelift-srcgen v0.135.8
+   Compiling thiserror v2.0.19
+   Compiling heck v0.5.0
+   Compiling allocator-api2 v0.2.21
+   Compiling target-lexicon v0.13.5
+   Compiling cranelift-isle v0.135.8
+   Compiling hashbrown v0.16.1
+   Compiling fnv v1.0.7
+   Compiling hashbrown v0.17.1
+   Compiling crc32fast v1.5.0
+   Compiling cranelift-codegen-shared v0.135.8
+   Compiling cpufeatures v0.2.17
+   Compiling bitflags v2.13.1
+   Compiling semver v1.0.28
+   Compiling object v0.39.1
+   Compiling rustc-hash v2.1.3
+   Compiling cpp_demangle v0.5.1
+   Compiling serde_json v1.0.151
+   Compiling rustix v1.1.4
+   Compiling arbitrary v1.4.2
+   Compiling indexmap v2.14.0
+   Compiling crossbeam-utils v0.8.22
+   Compiling serde v1.0.229
+   Compiling crossbeam-epoch v0.9.20
+   Compiling termcolor v1.4.1
+   Compiling cranelift-assembler-x64-meta v0.135.8
+   Compiling linux-raw-sys v0.12.1
+   Compiling wasmtime-internal-component-util v48.0.8
+   Compiling crossbeam-deque v0.8.7
+   Compiling generic-array v0.14.7
+   Compiling bumpalo v3.20.3
+   Compiling rustc-demangle v0.1.28
+   Compiling ittapi-sys v0.4.0
+   Compiling wasm-encoder v0.255.0
+   Compiling futures-core v0.3.33
+   Compiling rayon-core v1.13.0
+   Compiling futures-sink v0.3.33
+   Compiling wasmtime-internal-unwinder v48.0.8
+   Compiling either v1.17.0
+   Compiling fixedbitset v0.4.2
+   Compiling futures-channel v0.3.33
+   Compiling wasmtime-internal-cranelift v48.0.8
+   Compiling futures-task v0.3.33
+   Compiling pin-project-lite v0.2.17
+   Compiling uuid v1.24.0
+   Compiling slab v0.4.12
+   Compiling futures-io v0.3.33
+   Compiling wasmtime-internal-component-macro v48.0.8
+   Compiling itertools v0.14.0
+   Compiling gimli v0.33.0
+   Compiling cranelift-control v0.135.8
+   Compiling futures-util v0.3.33
+   Compiling petgraph v0.6.5
+   Compiling once_cell v1.21.4
+   Compiling encoding_rs v0.8.35
+   Compiling debugid v0.8.0
+   Compiling syn v3.0.3
+   Compiling syn v2.0.119
+   Compiling wasmparser v0.254.2
+   Compiling ittapi v0.4.0
+   Compiling cranelift-assembler-x64 v0.135.8
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling wast v255.0.0
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling rayon v1.12.0
+   Compiling cranelift-bitset v0.135.8
+   Compiling futures v0.3.33
+   Compiling memfd v0.6.5
+   Compiling tempfile v3.27.0
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.19
+   Compiling async-trait v0.1.91
+   Compiling addr2line v0.26.1
+   Compiling pulley-macros v48.0.8
+   Compiling wasmtime-internal-versioned-export-macros v48.0.8
+   Compiling cobs v0.3.0
+   Compiling pulley-interpreter v48.0.8
+   Compiling wasmtime-internal-fiber v48.0.8
+   Compiling wasmtime-internal-jit-debug v48.0.8
+   Compiling wasmtime v48.0.8
+   Compiling cranelift-codegen-meta v0.135.8
+   Compiling smallvec v1.15.2
+   Compiling postcard v1.1.3
+   Compiling wasmparser v0.257.1
+   Compiling fxprof-processed-profile v0.8.1
+   Compiling regalloc2 v0.15.2
+   Compiling wat v1.255.0
+   Compiling wasmtime-internal-jit-icache-coherence v48.0.8
+   Compiling cranelift-entity v0.135.8
+   Compiling wasm-encoder v0.254.2
+   Compiling wit-parser v0.254.2
+   Compiling cranelift-bforest v0.135.8
+   Compiling cranelift-codegen v0.135.8
+   Compiling wasm-metadata v0.254.2
+   Compiling wit-component v0.254.2
+   Compiling wasmtime-internal-wit-bindgen v48.0.8
+   Compiling wasm-encoder v0.257.1
+   Compiling wit-parser v0.257.1
+   Compiling wasmprinter v0.254.2
+   Compiling wasm-metadata v0.257.1
+   Compiling wasmtime-environ v48.0.8
+   Compiling wasm-compose v0.254.2
+   Compiling wit-component v0.257.1
+   Compiling pw-core v0.0.0 (/home/haki/code/pw-wt/requires/compiler/pw-core)
+   Compiling cranelift-native v0.135.8
+   Compiling cranelift-frontend v0.135.8
+   Compiling pw-host v0.0.0 (/home/haki/code/pw-wt/requires/runtime/pw-host)
+   Compiling pw-cli v0.0.0 (/home/haki/code/pw-wt/requires/compiler/pw-cli)
+   Compiling pw-table-memory v0.0.0 (/home/haki/code/pw-wt/requires/runtime/pw-table-memory)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 49.89s
+     Running tests/guide.rs (/home/haki/pw-targets/requires/debug/deps/guide-4dd2ac40299f2bd7)
+
+running 15 tests
+test a_fence_is_read_as_commonmark_reads_it ... ok
+test a_gaps_build_output_belongs_to_the_gap_before_it ... ok
+test a_page_with_no_example_or_a_block_unseen_is_reported ... ok
+test a_page_is_held_to_the_directory_it_names ... ok
+test a_pages_file_blocks_are_its_program_in_order ... ok
+test a_program_differs_from_a_directory_by_a_file_or_a_byte ... ok
+test a_refused_examples_codes_are_read_from_its_output ... ok
+test an_info_string_says_what_a_block_is ... ok
+test an_unclosed_or_indented_fence_is_refused ... ok
+test shown_output_belongs_to_the_refused_example_before_it ... ok
+test the_reference_is_held_to_the_registry ... ok
+test a_pages_program_is_the_directory_it_names ... ok
+test the_diagnostic_reference_lists_every_registered_code ... FAILED
+test every_example_in_the_guide_compiles_as_it_says ... FAILED
+test a_wrong_example_is_reported_and_a_right_one_is_not ... ok
+
+failures:
+
+---- the_diagnostic_reference_lists_every_registered_code stdout ----
+
+thread 'the_diagnostic_reference_lists_every_registered_code' (3846820) panicked at compiler/pw-cli/tests/guide.rs:767:5:
+docs/guide/diagnostics.md is not the registry; run `python3 scripts/guide_diagnostics.py`:
+PW0367: no row
+258 rows, and the registry accounts for 259: a row for a code the compiler lacks
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- every_example_in_the_guide_compiles_as_it_says stdout ----
+
+thread 'every_example_in_the_guide_compiles_as_it_says' (3846817) panicked at compiler/pw-cli/tests/guide.rs:623:5:
+2 of the guide's examples are wrong:
+
+errors.md:103: the page shows output `pw check` no longer prints. It prints:
+error: [PW0620] `post` answers whether it committed, not its value: `p` is bound to nothing
+  --> answer.pw:31:16
+   |
+31 |             Ok(p) => last = "sent",
+   |                ^ `post` answers whether it committed, not its value: `p` is bound to nothing
+   |
+   = note: A command's caller is answered `Ok`, or an error the command declares (ADR-0157). The value it produced reaches the page from the query it invalidates, so the page has one source for what it shows: a value read from the answer would be a second, which the query's next change would contradict.
+   = help: write `Ok(_)`, and read the value from the page's query
+
+
+errors.md:159: the page shows output `pw check` no longer prints. It prints:
+error: [PW0338] `post` is called by a page's handler, and declares no `idempotent_by`
+  --> twice.pw:14:1
+   |
+14 | / command post(text: String) -> Result<Post, PostError>
+15 | |     requires Anyone
+16 | | {
+17 | |     publish(current_session(), text)
+18 | | }
+   | |_^ `post` is called by a page's handler, and declares no `idempotent_by`
+...
+27 |           <button type="button" on:press={() => match post("Hello") {
+   |                                                       ------------- a press sends it from here
+   |
+   = note: A browser's request can reach the server twice: a retrying proxy, a flaky network or a client's own retry sends it again after the first arrived (RFC 9110 lets a client retry only a request it knows to be idempotent). Each press carries an interaction, and `idempotent_by InteractionId` runs the command once for it (ADR-0121).
+   = help: declare `idempotent_by InteractionId`
+
+
+
+failures:
+    every_example_in_the_guide_compiles_as_it_says
+    the_diagnostic_reference_lists_every_registered_code
+
+test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.66s
+
+error: test failed, to rerun pass `-p pw-cli --test guide`

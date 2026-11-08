@@ -1,0 +1,31 @@
+== 2026-11-06T08:12:24-05:00 anchors
+page_policy_mutations.py: a document written whole is sent no policy server: 0 matches in spikes/own-renderer/server/src/main.rs
+page_policy_mutations.py: a streamed document is sent no policy server: 0 matches in spikes/own-renderer/server/src/main.rs
+FAIL: 2 of 4992 mutants cannot run as written
+exit anchors 1
+== 2026-11-06T08:12:25-05:00 native
+
+running 2 tests
+..
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 868 filtered out; finished in 1.34s
+
+exit native 0
+== 2026-11-06T08:12:39-05:00 build (the fix)
+exit build 0
+exit run.sh 0
+== 2026-11-06T08:12:49-05:00 soft-navigation.spec (the fix)
+exit green 0
+  30 passed (25.9s)
+== 2026-11-06T08:13:18-05:00 mutant: the delivery's check removed
+exit run.sh (mutant) 0
+exit red 1 (expected non-zero)
+  1) [chromium] › e2e/soft-navigation.spec.mjs:193:1 › a page of another delivery of the same build is loaded whole 
+  2) [firefox] › e2e/soft-navigation.spec.mjs:193:1 › a page of another delivery of the same build is loaded whole 
+  2 failed
+exit run.sh (restored) 0
+== 2026-11-06T08:13:39-05:00 restored
+ spikes/own-renderer/e2e/soft-navigation.spec.mjs | 25 ++++++++
+ spikes/own-renderer/public/pw-runtime.mjs        |  6 ++
+ spikes/own-renderer/server/src/main.rs           | 79 ++++++++++++++++++++----
+ 3 files changed, 97 insertions(+), 13 deletions(-)
+A2_VERIFY_FINISHED

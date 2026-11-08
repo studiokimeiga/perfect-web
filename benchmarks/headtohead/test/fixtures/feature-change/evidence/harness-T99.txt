@@ -1,0 +1,15 @@
+E14-B - the offline harness, and T99's controls
+
+produced by: just e14-harness T99
+commit: 7e3d9a15c2b84f06a1d5e8c93b7f4a62d0c1e5b8
+node: v22.21.1  pnpm: 10.15.1  rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+== isolation (benchmarks/harness/test/isolation.test.mjs)
+
+ok 1 - a sandbox holding a hidden file's bytes is refused
+ok 2 - the same task without the leak makes a sandbox
+
+== the controls (node bench.mjs controls --task T99)
+
+T99 pleris: negative ok, positive ok, unsafe ok (caught at check), harness ok
+T99 sveltekit: negative ok, positive ok, unsafe FAIL, harness FAIL

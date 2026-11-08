@@ -41,6 +41,20 @@ session query MyCart(session: Session<SessionId>) -> Cart
 }
 ```
 
+```text pw-check
+error: [PW5001] `MyCart` is Session<SessionId> and declares a shared cache
+  --> cart.pw:13:5
+   |
+10 | session query MyCart(session: Session<SessionId>) -> Cart
+   |                      --------------------------- `session` is Session<SessionId>, so what `MyCart` makes from it is too
+...
+13 |     cache         shared
+   |     ^^^^^^^^^^^^^^^^^^^^ `MyCart` is Session<SessionId> and declares a shared cache
+   |
+   = note: A shared cache may contain only `Public` values, because every user reads it. The cause chain: `MyCart` materializes its parameter `session`, which is labeled `Session<SessionId>`, and `Session<SessionId>` does not flow into `Public` — so one user's value would be served to another. A key naming the reader does not make it shareable: an entry only that reader can hit gains nothing from a shared cache, and puts their value where every reader's is held (ADR-0128).
+   = help: make the cache private, which stores per session
+```
+
 The label follows the value through calls, branches and returns (ADR-0128,
 ADR-0129, ADR-0252, ADR-0282).
 
@@ -163,27 +177,131 @@ page Search() {
 }
 ```
 
+### A secret rendered into the page
+
+A Next.js server component can hand any value to a client component, and
+React writes it into the page every visitor of it downloads. In Pleris a
+secret is labelled where it is made, and the label follows it to the page:
+
+```pw fails=PW5003
+module checkout
+
+import secrets
+import capability.{ Secret, Payments }
+
+page Checkout() {
+    route     "/checkout"
+    placement origin
+
+    let key: Secret<Payments> = secrets.payments()
+
+    view {
+        <title>Checkout</title>
+        <pay-button api_key={key} />
+    }
+}
+```
+
+```text pw-check
+error: [PW5003] `key` is Secret<Payments> and is rendered into markup
+  --> checkout.pw:14:30
+   |
+10 |     let key: Secret<Payments> = secrets.payments()
+   |     ---------------------------------------------- `key` becomes Secret<Payments> here
+...
+14 |         <pay-button api_key={key} />
+   |                              ^^^ `key` is Secret<Payments> and is rendered into markup
+   |
+   = note: Markup is sent to the browser. Secret<Payments> may exist only in the origin world, so rendering it moves it across a boundary it may not cross — the value is in the HTML whether or not anything reads it.
+   = help: perform the privileged operation on the origin and render only its result
+```
+
+### An old answer shown for a new question
+
+A search box that fetches as its reader types can show the answer to an
+earlier word, when that answer arrives last. In Pleris a page's signal
+can key a query, which the page reads again whenever the signal changes,
+and the query must say what happens to the read for the old key:
+
+```pw fails=PW5309
+module find
+
+type Item = Item { id: String, name: String }
+
+fn matching(term: String) -> List<Item> !{ database.read<Item> }
+    host "shop:data/items#search"
+
+public query Search(term: String) -> List<Item>
+    freshness   30.seconds
+    consistency snapshot
+    cache       shared
+    key         term
+    timeout     2.seconds
+{
+    matching(term)
+}
+
+page Find() {
+    route "/find"
+    cache private
+
+    signal term: String = ""
+
+    let found = query Search(term)
+
+    view {
+        <title>Find</title>
+        <main>
+            <input type="search" aria-label="Search" bind:value={term} />
+            <ul>
+                {#each found as item (item.id)}
+                    <li>{item.name}</li>
+                {/each}
+            </ul>
+        </main>
+    }
+}
+```
+
+```text pw-check
+error: [PW5309] `term` keys `found`, and `find.Search` declares no `on_key_change`
+  --> find.pw:24:30
+   |
+22 |     signal term: String = ""
+   |     ------------------------ `term` is declared a signal here
+23 |
+24 |     let found = query Search(term)
+   |                              ^^^^ `term` keys `found`, and `find.Search` declares no `on_key_change`
+   |
+   = note: When the signal changes while the old key's read is in flight, that read is stale work. The query says what it does: `cancel` stops it, `supersede` lets it finish and drops its answer, and `keep` lets it finish and asks for the new key after it. In none is an old key's answer shown for the new one (ADR-0152).
+   = help: declare `on_key_change cancel | supersede | keep` on `find.Search`
+```
+
+Whichever it declares, the server applies only a page's latest read, so
+an old key's answer is never shown for the new one (ADR-0152).
+
 ### And more, each with a code
 
 A button that sends a command its reader may not run (ADR-0307), a command
-a page can send twice without saying how a repeat is answered (ADR-0154), a
-query that keeps running for a key the page no longer shows, an unchecked
-cast of outside data, a secret serialized to the browser. The
-[diagnostic codes](diagnostics.md) list all of them, from the compiler's
-own registry.
+a page can send twice without saying how a repeat is answered (ADR-0154),
+both shown in [errors](errors.md); an unchecked cast of outside data; a
+failure left unhandled. The [diagnostic codes](diagnostics.md) list all of
+them, from the compiler's own registry.
 
 ## What it does not do yet
 
 Pleris is a research project, and these are true today (2026-10-15):
 
-- **Your app's storage is Rust.** A program reads and writes through *host
-  bindings*, functions whose body is an operation the server supplies
-  (`host "feed:data/posts#timeline"`, ADR-0218, ADR-0262). The development
-  server has three data layers, written in Rust for the reference apps: a
-  social feed's, a food-delivery store's and a dictionary's. A new app uses
-  one of them, as the [tutorial](tutorial.md)'s guestbook uses the feed's,
-  or someone writes a new one in Rust. A program cannot yet declare its own
-  storage.
+- **Your app's tables live in memory.** A program declares its data as
+  tables, and the development server serves every program's with one
+  generic adapter, as it serves the [tutorial](tutorial.md)'s guestbook
+  (ADR-0338): its rows are gone when the server stops, until a database
+  behind the same declarations (PostgreSQL first) is built. A table has no
+  owner yet: who may read or write a row is the program's own code (a
+  command comparing a row's author with its reader). The reference apps'
+  feed and store still read and write through data layers written in Rust
+  (`host "feed:data/posts#timeline"`, ADR-0218), until their data is
+  declared too.
 - **What a predicate means is the server's.** A command `requires SignedIn`
   or `OwnsPost(post)`, and the development server knows three predicates by
   name (ADR-0302).
@@ -197,10 +315,10 @@ Pleris is a research project, and these are true today (2026-10-15):
   refuses programs it passes (a `<title>` that reads a signal, a computed
   list in an `{#each}`), so build
   before you trust a green check. Effects in an `{#each}` head are now
-  checked, including its list and key (ADR-0345). An `<img>` without `alt`
-  is not refused. [The tour's last section](tour-pages.md#where-pw-check-stops)
-  shows the remaining gaps and the repaired effect refusal in programs
-  the guide's test compiles. The message for `&&` now names Pleris's `&`
+  checked, including its list and key (ADR-0345), and an `<img>` without
+  `alt` is refused (PW5053). [The tour's last section](tour-pages.md#where-pw-check-stops)
+  shows what the backends cannot run yet and the repaired effect refusal,
+  in programs the guide's test compiles. The message for `&&` now names Pleris's `&`
   spelling ([errors](errors.md)).
 - **Missing features**: offline and real-time collaboration, i18n,
   background jobs beyond a scheduled command (ADR-0334), and charts.

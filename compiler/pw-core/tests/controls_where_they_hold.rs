@@ -57,7 +57,7 @@ fn page(visibility: &str, markup: &str) -> String {
          predicate OwnsNote(note: Int)\n    says \"Only its author can do this.\"\n\n\
          command post_note(text: String) -> Result<Int, String>\n    \
          requires      SignedIn\n    idempotent_by InteractionId\n{{\n    Ok(1)\n}}\n\n\
-         command plain_note(text: String) -> Result<Int, String>\n    \
+         command plain_note(text: String) -> Result<Int, String>\n    requires Anyone\n    \
          idempotent_by InteractionId\n{{\n    Ok(1)\n}}\n\n\
          {visibility}page P() {{\n    route \"/p\"\n{cache}\n    view {{\n        <title>P</title>\n        \
          <main>\n            {markup}\n        </main>\n    }}\n}}\n",
@@ -162,6 +162,52 @@ fn a_refusable_control_is_shown_to_every_reader() {
     // The control: unmarked, it is held to the rule.
     let found = reported(&page("session ", POST));
     assert_eq!(codes(&found, "PW5048"), 1, "{found:#?}");
+}
+
+/// Whether `text` holds a date written `YYYY-MM-DD`.
+fn dated(text: &str) -> bool {
+    let shape = |w: &[u8]| {
+        w.iter().enumerate().all(|(i, b)| {
+            if i == 4 || i == 7 {
+                *b == b'-'
+            } else {
+                b.is_ascii_digit()
+            }
+        })
+    };
+    text.as_bytes().windows(10).any(shape)
+}
+
+/// **PW5048's note gives its reader the rule and its reason**, as `pw check`
+/// prints it and the guide shows it, and tells no story of the project's.
+/// Until 2026-11-06 it opened with one, dated: the owner, signed out,
+/// pressing Post (2026-10-08).
+#[test]
+fn a_refused_controls_note_says_the_rule_and_why() {
+    let notes: Vec<String> = check_sources(&program(&[("t.pw", &page("session ", POST))]))
+        .into_iter()
+        .filter(|(n, _)| n == "t.pw")
+        .flat_map(|(_, ds)| ds)
+        .filter(|d| d.code == "PW5048")
+        .filter_map(|d| d.explanation)
+        .collect();
+    assert_eq!(notes.len(), 1, "{notes:#?}");
+    let note = &notes[0];
+    assert!(
+        note.starts_with("A control the server refuses is a dead control"),
+        "the reason first: {note}"
+    );
+    assert!(note.contains("(ADR-0302)"), "{note}");
+    assert!(
+        note.contains("(`predicate SignedIn says \"…\"`)"),
+        "how the program declares what it asks: {note}"
+    );
+    assert!(
+        !dated(note) && !note.contains("the owner"),
+        "no story of the project's: {note}"
+    );
+    // The control: the shape `dated` reads.
+    assert!(dated("pressed Post (2026-10-08).") && !dated("ADR-0302"));
 }
 
 #[test]

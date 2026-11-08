@@ -1,0 +1,39 @@
+// @status: GENERAL
+// @invariant: who_may_run
+// @dimension: indirect invalid — a command a page's button sends, keyed and retried, with no `requires`
+//
+// Structurally different from R-097: a page shows its button, and the
+// command declares every other clause a sent command does. Its page is no
+// guard: the server runs it for any request that names it.
+module generality.unguarded_press
+
+opaque type InteractionId = String
+
+type Note = Note { id: String, text: String }
+
+type NoteError =
+    | Unavailable
+
+fn save(text: String) -> Result<Note, NoteError> !{ database.write<Note> }
+    host "notes:data/notes#save"
+
+command add_note(text: String) -> Result<Note, NoteError>
+    idempotent_by InteractionId
+    retry         transport_only(max = 2, jitter = true)
+{
+    save(text)
+}
+
+page Notes() {
+    route "/notes"
+
+    signal added: Int = 0
+
+    view {
+        <title>Notes</title>
+        <button type="button" on:press={() => match add_note("Milk") {
+            Ok(_) => added = added + 1,
+            Err(_) => (),
+        }}>Add</button>
+    }
+}

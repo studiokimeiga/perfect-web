@@ -1,0 +1,15 @@
+// @status: GENERAL
+// @invariant: control_without_label
+// @dimension: indirect invalid — a submit button whose `value` is empty, styled as an icon
+//
+// HTML makes an empty `value` the button's label, so it shows no text, and
+// HTML-AAM gives "Submit" only to one with no `value` at all
+// (ADR-0405). Until 2026-11-06 every `submit` input passed.
+module generality.label_blank_submit
+
+view SearchForm() !{} {
+    <form>
+        <label>Find <input type="search" name="q" /></label>
+        <input type="submit" value="" class="icon-search" />
+    </form>
+}

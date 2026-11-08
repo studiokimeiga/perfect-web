@@ -1,0 +1,19 @@
+$ cargo test --locked -p pw-syntax --test corpus_fmt
+started: 2026-11-07T00:25:24.808402+00:00
+commit: c30ef1f384b921a1ae120dfaef2ba193ee10977c
+
+
+running 6 tests
+test the_corpus_is_already_canonically_formatted ... ok
+test formatting_never_drops_a_comment ... ok
+test formatting_never_changes_the_program ... ok
+test formatted_output_still_parses ... ok
+test formatting_keeps_what_every_program_says ... ok
+test formatting_every_corpus_file_is_idempotent ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.21s
+
+    Finished `test` profile [unoptimized] target(s) in 0.05s
+     Running tests/corpus_fmt.rs (/home/haki/pw-targets/message-text/debug/deps/corpus_fmt-87a03fc4456f6a3a)
+
+exit: 0

@@ -188,7 +188,9 @@ fn violations(entry: &ResumeEntry, rt: &Runtime, c: Construct, d: &Decision) -> 
         recovery, trace, ..
     } = d
     {
-        if trace.is_empty() {
+        // In words where the decision keeps them: the `trace` feature, which
+        // the browser's build leaves out (ADR-0400).
+        if cfg!(feature = "trace") && trace.is_empty() {
             return Some("refused with no causal trace".into());
         }
         // Private state never falls back into a public recovery region.

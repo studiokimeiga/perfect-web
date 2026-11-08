@@ -14,7 +14,7 @@ code the compiler can emit, from its registry, `compiler/pw-core/src/codes.rs`.
 - **What the program must hold to**: the registry's own sentence.
 - **ADR**: the decisions its registry entry cites, where it cites one.
 
-220 codes are registered; 94 of them cite an ADR in the registry.
+222 codes are registered; 97 of them cite an ADR in the registry.
 A code whose entry cites none is marked `—`: search `docs/DECISIONS/` for its
 number or its symbol.
 
@@ -74,6 +74,7 @@ number or its symbol.
 | PW0102 | `session_state_is_fresh` | session-owned state may not be served stale | — |
 | PW0312 | `retry_not_idempotent` | a command that retries must be idempotent | — |
 | PW0338 | `sent_without_idempotency` | a command a page's handler calls declares `idempotent_by` | [0154](../DECISIONS/ADR-0154-a-command-a-page-sends-declares-idempotent-by.md) |
+| PW0367 | `who_may_run` | a command a reader can run says who may: `requires` and the predicates every request must hold, or `requires Anyone`, which stands alone and is the platform's | [0406](../DECISIONS/ADR-0406-a-command-says-who-may-run-it.md) |
 | PW0339 | `command_outside_a_handler` | a command is called only by a page's handler | [0157](../DECISIONS/ADR-0157-a-handler-is-answered-what-its-command-did.md) |
 | PW0340 | `route_names_its_parameters` | a route is `/` and segments, a word or a `{parameter}` each, and names each of its page's parameters once | [0160](../DECISIONS/ADR-0160-a-page-s-route.md) |
 | PW0341 | `route_declared_twice` | one route is one page's: an address names the page it is for | — |
@@ -95,7 +96,6 @@ number or its symbol.
 | PW0364 | `all_unbounded` | a table is read whole, by `all()`, only where it states `bounded` | — |
 | PW0365 | `refers_across_sources` | a reference to a table another source holds is held by no database: the referred row may be missing, which `get` answers as `None` | — |
 | PW0366 | `migration_unstated` | a change from the schema released that loses or reinterprets data is stated by a `migrate`, and each `migrate` states one | — |
-| PW0325 | `stale_key_policy` | a keyed query must say what happens when its key changes | — |
 | PW0327 | `written_rollback` | an optimistic transition's reversal is derived, not written | [0025](../DECISIONS/ADR-0025-an-optimistic-clause-targets-a-resource-entry.md) |
 | PW0330 | `optimistic_not_pure` | an optimistic transition must be a pure function of the resource's value | — |
 | PW0334 | `derived_not_pure` | a `derived` value, and a value a template computes, is computed from other values, and performs no effect | [0082](../DECISIONS/ADR-0082-a-derived-value-performs-no-effect.md), [0226](../DECISIONS/ADR-0226-a-value-the-template-computes-compiles.md) |
@@ -218,6 +218,7 @@ number or its symbol.
 | PW5012 | `invalid_nesting` | an element may only contain the children HTML permits | — |
 | PW5013 | `handler_on_inert` | interactive behaviour belongs on an element that can receive it | — |
 | PW5014 | `control_without_label` | a form control must have something that names it | — |
+| PW5053 | `image_without_alt` | an image says what it shows: an `<img>` has an `alt`, empty only where it shows nothing a reader needs, and an image button an `alt` that says what it does | [0404](../DECISIONS/ADR-0404-an-image-says-what-it-shows.md), [0343](../DECISIONS/ADR-0343-a-guide-whose-examples-compile.md), [0405](../DECISIONS/ADR-0405-an-input-button-names-itself.md) |
 | PW5019 | `malformed_template_block` | a template block closes with its own name and holds only the markers it takes | [0042](../DECISIONS/ADR-0042-template-branches-and-attributes.md) |
 | PW5020 | `view_element` | an element named with a capital letter is a view the compiler composes | [0072](../DECISIONS/ADR-0072-an-element-named-with-a-capital-is-a-view.md) |
 | PW5021 | `loop_key` | a loop's key is its element, or a field read from it | [0073](../DECISIONS/ADR-0073-a-template-reads-each-value-by-path.md) |
@@ -343,6 +344,12 @@ number or its symbol.
 | PW6807 | `device_signal_form` | a signal the device keeps is of a type the device can hold: data, no function, no type that contains itself, no opaque type with a `where` | — |
 | PW6808 | `device_signal_provided` | a signal the device keeps is provided by the device: no `provide` gives it a value | — |
 
+## Declared tables, served
+
+| Code | Symbol | What the program must hold to | ADR |
+|---|---|---|---|
+| PW6901 | `row_holds_handle` | a table's row holds no session's, user's or organization's handle: every reader of the table reads its rows, and a handle is its own reader's alone; a row names someone by their id | [0338](../DECISIONS/ADR-0338-three-databases.md) |
+
 ## Retired codes
 
 No longer emitted, and never reused.
@@ -353,8 +360,10 @@ No longer emitted, and never reused.
 
 ## Old numbers
 
-Numbers the corpus's fixtures wrote before one invariant got one code. The
-compiler never prints them; a fixture's `@rule` must name a current registered code.
+Numbers that named an invariant the code beside them names now: one invariant
+has one code. A diagnostic carries that code, never one of these, and a
+fixture's `@rule` must name a current registered code. An old number is never
+given to another invariant.
 
 | Old number | Now | Symbol |
 |---|---|---|
@@ -395,3 +404,4 @@ compiler never prints them; a fixture's `@rule` must name a current registered c
 | PW0329 | PW5010 | `unsafe_audit_incomplete` |
 | PW0322 | PW5010 | `unsafe_audit_incomplete` |
 | PW3010 | PW5010 | `unsafe_audit_incomplete` |
+| PW0325 | PW5309 | `signal_key_stale_work` |

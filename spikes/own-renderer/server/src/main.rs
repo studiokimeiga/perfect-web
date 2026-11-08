@@ -152,10 +152,10 @@ const TELLERS: usize = 8;
 /// **A session, as a record names it**: a hash of its id, which is its
 /// cookie and never written where another session can read it.
 fn masked(session: &str) -> String {
-    use std::hash::{Hash, Hasher};
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    session.hash(&mut hasher);
-    format!("s{:08x}", hasher.finish() as u32)
+    // The session's digest in its own domain, as every value the host logs
+    // of one is (track `data-path`, the integrator's ruling of 2026-11-02).
+    let digest = identity::session_field(identity::LOG_DOMAIN, session);
+    format!("s{}", &digest[..8])
 }
 
 /// **Milliseconds since this server started**, the clock its records read.
@@ -989,6 +989,20 @@ mod render_merge;
 // Track `second-host` (ADR-0369): hosts on one database hear each other's
 // commits.
 mod hosts;
+// TRACK SEAM (tables): a program's declared tables, served by the generic
+// memory adapter, through the gate alone (track `data-path`, ADR-0338 D2).
+mod tables;
+
+/// **The table functions a call links, by its component's contract and
+/// grant** (TRACK SEAM (tables), track `data-path`): a query's reads, a
+/// command's staged reads and writes, or none.
+type TableFns<'a> = dyn Fn(&ComponentContract, &Granted) -> Result<data::Ops, String> + 'a;
+
+/// **A call that links no table function**: a pure one (a member, a
+/// computed part), or a materialization's, which reads through its queries.
+fn no_tables(_: &ComponentContract, _: &Granted) -> Result<data::Ops, String> {
+    Ok(data::Ops::new())
+}
 
 struct Server {
     /// **The build this host serves, by its name** (ADR-0300): on each
@@ -1051,6 +1065,18 @@ struct Server {
     /// contracts: this server links no compiler. Compiled once, with the
     /// artifact's imports read once — both are properties of the bytes.
     components: BTreeMap<String, Loaded>,
+    /// **Whether this build warms what its pages' presses need** (the first
+    /// press's ADR), as its packaging says ([`warms`]): told to the browser
+    /// on the handler table's `#warm` line.
+    warm: bool,
+    /// **The longest a held subscription waits for a wake** ([`WAKE_AT_LEAST`]
+    /// in every host; a test lengthens it to show that a push, not a slice,
+    /// delivers its frames).
+    wake_at_least: std::time::Duration,
+    /// **How this build's files are named on the wire** ([`Delivery`]): at
+    /// a version a cache keeps, a production build's; as they are, a
+    /// development build's.
+    delivery: Delivery,
     /// The document's static assets.
     dist: std::path::PathBuf,
     /// **Where the compiler's browser artifacts are** (ADR-0123): the
@@ -1199,6 +1225,11 @@ struct Server {
     /// held in flight, its key's, while another render reads the key.
     #[cfg(test)]
     in_flight: Mutex<Option<KeyedFetched>>,
+    /// **The table functions each call's host map held** (track
+    /// `data-path`): by component, each `pw:tables/…` key the engine was
+    /// handed, which a test holds to the component's own.
+    #[cfg(test)]
+    table_maps: Mutex<Vec<(String, Vec<String>)>>,
     /// **What each session's connections meet** (charter §15.5's one-shot
     /// network error and forced reconnect, ADR-0175): whether its next
     /// command's connection is dropped, and when its subscriptions are cut
@@ -1283,6 +1314,16 @@ const INTERACTIONS_PER_SESSION: usize = 64;
 /// later than that is a new request.
 const INTERACTIONS_KEPT_MS: u64 = 24 * 60 * 60 * 1000;
 
+/// **A session's partition, as an entry names it** (track `data-path`, the
+/// integrator's ruling of 2026-11-02): the session's handle
+/// (`identity::session_handle`), never the cookie. An entry's storage key
+/// spells its partition out, and the materializer keeps it.
+fn session_partition(session: &str) -> Partition {
+    Partition::Session {
+        id: identity::session_handle(session),
+    }
+}
+
 /// The semantic identity of one session's cart.
 ///
 /// Built from the shape the compiler's bridge produces. The server does not
@@ -1293,14 +1334,7 @@ const INTERACTIONS_KEPT_MS: u64 = 24 * 60 * 60 * 1000;
 /// the reader's user where it reads a cart by the reader's handle, so that
 /// the program's event naming the user reaches it, or the session.
 fn cart_identity(owner: &str, session: &str) -> EntryIdentity {
-    EntryIdentity::new(
-        "store.page.Cart",
-        &[owner],
-        Partition::Session {
-            id: session.to_string(),
-        },
-    )
-    .generation(BUILD)
+    EntryIdentity::new("store.page.Cart", &[owner], session_partition(session)).generation(BUILD)
 }
 
 /// A store's menu's entry identity — PUBLIC, and carrying the same
@@ -1327,16 +1361,15 @@ fn cart_entry(owner: &str, session: &str) -> ResourceEntryId {
 fn speculated_entry(session: &str, page: &str, binding: &str, route: &[String]) -> ResourceEntryId {
     // **And the page's parameters its key reads** (ADR-0236): two threads
     // one session has open are two entries.
-    let key: Vec<&str> = std::iter::once(session)
+    let handle = identity::session_handle(session);
+    let key: Vec<&str> = std::iter::once(handle.as_str())
         .chain(route.iter().map(String::as_str))
         .collect();
     ResourceEntryId::derive(
         &EntryIdentity::new(
             &format!("pw.speculated.{page}#{binding}"),
             &key,
-            Partition::Session {
-                id: session.to_string(),
-            },
+            session_partition(session),
         )
         .generation(BUILD),
         &IDENTITY,
@@ -1367,8 +1400,26 @@ struct Turn<'a>(&'a Turns);
 /// (render-merge), NEXT 4c, the integrator's ruling 2: a render never waits
 /// for the table while it holds its seat; a document's last attempt
 /// (ADR-0151) holds the table while its render waits for one).
+///
+/// **And woken as frames are pushed** (ADR-0399, ADR-0392's
+/// finding 21): a subscription waiting for its page's frames waits on the
+/// table's condition, which each push of frames, and each cut-off, wakes;
+/// it looks at its own subscriber again then. Until 2026-11-06 each held
+/// subscription asked the table every 25 ms, idle or not: twenty idle
+/// visitors cost the host 16.0 ms of CPU a second, the Node servers' 2.00.
 #[derive(Default)]
-struct Table(Mutex<BTreeMap<Doc, Subscriber>>);
+struct Table(
+    Mutex<BTreeMap<Doc, Subscriber>>,
+    std::sync::Condvar,
+    /// How many subscriptions wait on the condition now: a test's to read.
+    std::sync::atomic::AtomicUsize,
+);
+
+/// **The longest a held subscription waits for a wake** before it looks at
+/// its subscriber again anyway: what it would otherwise only see at its next
+/// request, a subscriber forgotten while idle, is seen within it. A frame
+/// pushed for it, or a cut-off, wakes it at once.
+const WAKE_AT_LEAST: std::time::Duration = std::time::Duration::from_millis(250);
 
 impl Table {
     fn lock(&self) -> std::sync::LockResult<std::sync::MutexGuard<'_, BTreeMap<Doc, Subscriber>>> {
@@ -1378,6 +1429,39 @@ impl Table {
             "the subscriber table taken in a render (NEXT 4c)"
         );
         self.0.lock()
+    }
+
+    /// **Wake every subscription waiting on the table**: frames were pushed
+    /// for some page, or a session was cut off. Each looks at its own
+    /// subscriber; one with nothing new waits again.
+    fn wake(&self) {
+        self.1.notify_all();
+    }
+
+    /// **Wait for a wake, or `timeout`**, the table's guard released while
+    /// waiting and held again after. A panic elsewhere poisons nothing here:
+    /// the guard is taken back as it is.
+    fn wait<'a>(
+        &self,
+        guard: std::sync::MutexGuard<'a, BTreeMap<Doc, Subscriber>>,
+        timeout: std::time::Duration,
+    ) -> std::sync::MutexGuard<'a, BTreeMap<Doc, Subscriber>> {
+        use std::sync::atomic::Ordering;
+        // Counted while the table is still held, so a test that sees a
+        // waiter and then pushes takes the table only once it waits.
+        self.2.fetch_add(1, Ordering::SeqCst);
+        let guard = match self.1.wait_timeout(guard, timeout) {
+            Ok((guard, _)) => guard,
+            Err(poisoned) => poisoned.into_inner().0,
+        };
+        self.2.fetch_sub(1, Ordering::SeqCst);
+        guard
+    }
+
+    /// **A test's: how many subscriptions wait on the table now.**
+    #[cfg(test)]
+    fn waiters(&self) -> usize {
+        self.2.load(std::sync::atomic::Ordering::SeqCst)
     }
 
     #[cfg(test)]
@@ -1422,10 +1506,8 @@ fn session_documents(session: &str) -> ResourceEntryId {
     ResourceEntryId::derive(
         &EntryIdentity::new(
             "pw.session.documents",
-            &[session],
-            Partition::Session {
-                id: session.to_string(),
-            },
+            &[&identity::session_handle(session)],
+            session_partition(session),
         )
         .generation(BUILD),
         &IDENTITY,
@@ -1436,14 +1518,8 @@ fn session_documents(session: &str) -> ResourceEntryId {
 /// to it is sent against, as the cart's is.
 fn order_entry(owner: &str, session: &str) -> ResourceEntryId {
     ResourceEntryId::derive(
-        &EntryIdentity::new(
-            "store.page.Order",
-            &[owner],
-            Partition::Session {
-                id: session.to_string(),
-            },
-        )
-        .generation(BUILD),
+        &EntryIdentity::new("store.page.Order", &[owner], session_partition(session))
+            .generation(BUILD),
         &IDENTITY,
     )
 }
@@ -1678,6 +1754,33 @@ impl Server {
         feed: Option<Arc<dyn data::DataLayer>>,
         store: Option<Arc<dyn store::StoreLayer>>,
     ) -> Result<Server, String> {
+        Server::from_build_served(dist, build, feed, store, None)
+    }
+
+    /// TRACK SEAM (tables): **[`Server::from_build`], a program's declared
+    /// tables served by `layer`** (track `data-path`): the conformance
+    /// suite's layer under test, which it is handed, so that one suite runs
+    /// for every adapter (ADR-0338's ruling 7). The build is held to what
+    /// any layer may serve of it first (`tables::servable`).
+    #[cfg(test)]
+    fn from_build_tables(
+        dist: std::path::PathBuf,
+        build: std::path::PathBuf,
+        layer: Arc<dyn data::DataLayer>,
+    ) -> Result<Server, String> {
+        Server::from_build_served(dist, build, None, None, Some(layer))
+    }
+
+    /// [`Server::from_build_layers`], and a program's declared tables served
+    /// by `tables_layer` where one is given, by the memory adapter otherwise
+    /// (track `data-path`).
+    fn from_build_served(
+        dist: std::path::PathBuf,
+        build: std::path::PathBuf,
+        feed: Option<Arc<dyn data::DataLayer>>,
+        store: Option<Arc<dyn store::StoreLayer>>,
+        tables_layer: Option<Arc<dyn data::DataLayer>>,
+    ) -> Result<Server, String> {
         let read = |rel: &str| {
             std::fs::read_to_string(build.join(rel))
                 .map_err(|e| format!("{}: {e}", build.join(rel).display()))
@@ -1696,7 +1799,14 @@ impl Server {
             .map_err(|e| format!("graph.json: {e:?}"))?;
         let components = components_in(&build.join("components"))?;
         let mut plans = BTreeMap::new();
-        for entry in std::fs::read_dir(build.join("pages")).map_err(|e| format!("pages: {e}"))? {
+        // A program of queries and commands alone (`examples/tables`'s) has
+        // no page, and its build no `pages` directory (track `data-path`).
+        let pages = match std::fs::read_dir(build.join("pages")) {
+            Ok(pages) => pages.collect::<Vec<_>>(),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+            Err(e) => return Err(format!("pages: {e}")),
+        };
+        for entry in pages {
             let path = entry.map_err(|e| format!("pages: {e}"))?.path();
             let Some(page) = path.file_stem().and_then(|s| s.to_str()) else {
                 continue;
@@ -1714,36 +1824,50 @@ impl Server {
         // TRACK SEAM (uploads, ADR-0253): the uploads the program declares
         // (`uploads.json`), their blobs where the deployment keeps them.
         let uploads = uploads::Uploads::from_build(&build, &uploads::blob_root(&dist))?;
-        let (store, data): (Arc<dyn store::StoreLayer>, Arc<dyn data::DataLayer>) = if contracts
-            .iter()
-            .flat_map(|c| &c.imports)
-            .any(|i| i.interface.starts_with("feed:"))
-        {
-            (
-                Arc::new(store::StoreData::new()),
-                feed.unwrap_or_else(|| Arc::new(feed::FeedData::new())),
-            )
-        } else if contracts
-            .iter()
-            .flat_map(|c| &c.imports)
-            .any(|i| i.interface.starts_with("kiokun:"))
-        {
-            // TRACK SEAM (kiokun): kiokun's files, read-only, where the
-            // program imports `kiokun:data/…` (docs/PARALLEL.md, W6, Q2).
-            // Unit tests assert the committed sample's answers. A developer's
-            // deployment environment must not replace that test fixture.
-            #[cfg(test)]
-            let kiokun = kiokun::KiokunData::at(kiokun::sample(), None);
-            #[cfg(not(test))]
-            let kiokun = kiokun::KiokunData::new()?;
-            (Arc::new(store::StoreData::new()), Arc::new(kiokun))
-        } else {
-            #[cfg(test)]
-            let store = store.unwrap_or_else(store::layer_for_tests);
-            #[cfg(not(test))]
-            let store = store.unwrap_or_else(|| Arc::new(store::StoreData::new()));
-            (store.clone(), store)
-        };
+        let (store, data): (Arc<dyn store::StoreLayer>, Arc<dyn data::DataLayer>) =
+            if tables::imports_tables(&contracts) {
+                // TRACK SEAM (tables): **a program that declares its data**
+                // (track `data-path`): its build's tables.json, held to what
+                // any layer may serve of it, in the layer given or the
+                // generic memory adapter, and no hand-written layer beside it.
+                tables::servable(&build, &contracts)?;
+                let layer: Arc<dyn data::DataLayer> = match tables_layer {
+                    Some(layer) => layer,
+                    None => Arc::new(tables::TablesLayer::from_build(&build, &contracts)?),
+                };
+                (Arc::new(store::StoreData::new()), layer)
+            } else if tables_layer.is_some() {
+                return Err("a tables layer was given, and the program declares no tables".into());
+            } else if contracts
+                .iter()
+                .flat_map(|c| &c.imports)
+                .any(|i| i.interface.starts_with("feed:"))
+            {
+                (
+                    Arc::new(store::StoreData::new()),
+                    feed.unwrap_or_else(|| Arc::new(feed::FeedData::new())),
+                )
+            } else if contracts
+                .iter()
+                .flat_map(|c| &c.imports)
+                .any(|i| i.interface.starts_with("kiokun:"))
+            {
+                // TRACK SEAM (kiokun): kiokun's files, read-only, where the
+                // program imports `kiokun:data/…` (docs/PARALLEL.md, W6, Q2).
+                // Unit tests assert the committed sample's answers. A developer's
+                // deployment environment must not replace that test fixture.
+                #[cfg(test)]
+                let kiokun = kiokun::KiokunData::at(kiokun::sample(), None);
+                #[cfg(not(test))]
+                let kiokun = kiokun::KiokunData::new()?;
+                (Arc::new(store::StoreData::new()), Arc::new(kiokun))
+            } else {
+                #[cfg(test)]
+                let store = store.unwrap_or_else(store::layer_for_tests);
+                #[cfg(not(test))]
+                let store = store.unwrap_or_else(|| Arc::new(store::StoreData::new()));
+                (store.clone(), store)
+            };
         // TRACK SEAM (uploads, ADR-0253): the layer commits a post's image
         // from the uploads' leases, in the post's own transaction.
         if let Some(leases) = uploads.leases() {
@@ -1976,8 +2100,11 @@ impl Server {
         }
         // TRACK SEAM (second-host): its pages numbered in its instance.
         let first_page = hosts::first_page(data.instance());
+        // How its files are named on the wire (ADR-0399).
+        let delivery = Delivery::of(&dist, &artifacts, &build_id);
         Server {
             cart_by_reader,
+            delivery,
             build_id,
             needs,
             templates,
@@ -1991,6 +2118,8 @@ impl Server {
             applied: Mutex::new(BTreeMap::new()),
             sessions: Mutex::new(BTreeMap::new()),
             components,
+            warm: warms(&dist),
+            wake_at_least: WAKE_AT_LEAST,
             dist,
             artifacts,
             pending: Table::default(),
@@ -2031,6 +2160,8 @@ impl Server {
             while_reading: Mutex::new(None),
             #[cfg(test)]
             in_flight: Mutex::new(None),
+            #[cfg(test)]
+            table_maps: Mutex::new(Vec::new()),
             connection_faults: Mutex::new(BTreeMap::new()),
             materializer_faults: Mutex::new(std::collections::BTreeSet::new()),
             keyed: Mutex::new(BTreeMap::new()),
@@ -2069,6 +2200,19 @@ impl Server {
     /// word alone.
     fn invoked_by_platform(&self, component_id: &str) -> bool {
         payments::invoked_by_platform(&self.contracts, component_id)
+    }
+
+    /// **Whether `component_id`'s export is a command**, the only kind a
+    /// reader's request may run (train-14's review). `pw build` compiles a
+    /// query, a page, a derived value and a function to components too, and
+    /// the server hosts them all; none of them is a request's to run by its
+    /// id, and a query declares no `requires`.
+    fn is_command(&self, component_id: &str) -> bool {
+        self.contracts
+            .iter()
+            .find(|c| c.component_id == component_id)
+            .and_then(|c| c.exports.first())
+            .is_some_and(|e| e.kind == "command")
     }
 
     /// **A payment the provider's word settled, acted on** (NEXT 6c, step
@@ -2167,7 +2311,8 @@ impl Server {
     fn owner(&self, session: &str) -> String {
         match self.cart_by_reader {
             Some(true) => notifications::user_of(&self.identity.principals(), session),
-            _ => session.to_string(),
+            // The session as the program holds it (track `data-path`).
+            _ => identity::session_handle(session),
         }
     }
 
@@ -2212,7 +2357,7 @@ impl Server {
         let user = if by_reader {
             signed.principal.user.clone()
         } else {
-            signed.session.to_string()
+            identity::session_handle(signed.session)
         };
         let event = (
             self.cart_event().to_string(),
@@ -2442,7 +2587,6 @@ impl Server {
                         .expect("staged runs")
                         .scheduled
                         .push(schedules::Scheduling {
-                            key: schedules::key(&scheduling.command, &args),
                             command: scheduling.command.clone(),
                             args,
                             when,
@@ -2525,11 +2669,18 @@ impl Server {
     /// Authority first — `admit` against the artifact's real imports — then
     /// the component, with the deployment's implementation of each granted
     /// operation. The command's result is whatever the COMPONENT returns.
+    ///
+    /// TRACK SEAM (tables): `tables` gives the table functions the gate
+    /// admits for the component, by its contract and grant: a query's reads,
+    /// a command's staged reads and writes, or none. Where the program
+    /// declares its tables, every call goes through the gate with them, and
+    /// its host map is `host` and those functions, no other table's.
     fn run(
         &self,
         component_id: &str,
         session: &str,
         host: &BTreeMap<String, HostFn>,
+        tables: &TableFns<'_>,
         args: &[Val],
     ) -> Result<Vec<Val>, String> {
         let granted = self.authorise(component_id)?;
@@ -2547,33 +2698,68 @@ impl Server {
             .get(component_id)
             .ok_or_else(|| format!("no compiled component `{component_id}`"))?
             .prepared;
-        let results = prepared.call_authorized_within(
-            contract,
-            &granted,
-            &Limits {
-                fuel: Some(50_000_000),
-                memory_bytes: Some(16 * 1024 * 1024),
-                table_elements: Some(1_000),
-            },
-            host,
-            &[&export.interface, &export.function],
-            args,
-            // TRACK SEAM (identity, ADR-0253): what `requires` is told. The
-            // important property is that each predicate is evaluated, and an
-            // unknown one cannot run. A predicate over the command's
-            // parameters reads through the command's own operations.
-            |predicate, bound| self.identity.requires(predicate, bound, session, host),
-        )?;
+        let limits = Limits {
+            fuel: Some(50_000_000),
+            memory_bytes: Some(16 * 1024 * 1024),
+            table_elements: Some(1_000),
+        };
+        let path = [&export.interface[..], &export.function[..]];
+        let results = match self.data.tables() {
+            // TRACK SEAM (tables): **a program's tables link through the gate
+            // alone** (track `data-path`), each component's host map holding
+            // the platform's operations and its own admitted functions.
+            Some(manifest) => {
+                let mut linked = host.clone();
+                linked.extend(tables(contract, &granted)?);
+                #[cfg(test)]
+                self.table_maps.lock().expect("table maps").push((
+                    component_id.to_string(),
+                    linked
+                        .keys()
+                        .filter(|key| pw_host::tables::is_table_import(key))
+                        .cloned()
+                        .collect(),
+                ));
+                prepared.call_authorized_with_tables(
+                    contract,
+                    &granted,
+                    &limits,
+                    &linked,
+                    manifest,
+                    &path,
+                    args,
+                    |predicate, bound| self.identity.requires(predicate, bound, session, &linked),
+                )?
+            }
+            None => prepared.call_authorized_within(
+                contract,
+                &granted,
+                &limits,
+                host,
+                &path,
+                args,
+                // TRACK SEAM (identity, ADR-0253): what `requires` is told.
+                // The important property is that each predicate is
+                // evaluated, and an unknown one cannot run. A predicate over
+                // the command's parameters reads through the command's own
+                // operations.
+                |predicate, bound| self.identity.requires(predicate, bound, session, host),
+            )?,
+        };
         // A type that contains itself arrives as its nodes, and a page reads
         // it nested (ADR-0194).
-        prepared.untangled(&[&export.interface, &export.function], results)
+        prepared.untangled(&path, results)
     }
 
     /// The platform's session operation: the request's session, and nothing
-    /// else the component could ask it for.
+    /// else the component could ask it for. As its handle
+    /// (`identity::session_handle`), never the cookie (track `data-path`, the
+    /// integrator's ruling of 2026-11-02): what a program makes of its
+    /// session (a key, an event, an invalidation the outbox keeps, a row) is
+    /// made of the handle.
     fn session_operation(session: &str) -> HostFn {
-        let session = session.to_string();
-        Arc::new(move |_args: &[Val]| Ok(vec![Val::String(session.clone())]))
+        let handle = identity::session_handle(session);
+        Arc::new(move |_args: &[Val]| Ok(vec![Val::String(handle.clone())]))
     }
 
     /// The materializer's version for this entry.
@@ -2773,6 +2959,11 @@ impl Server {
                 notifications::PRINCIPAL_READ.to_string(),
                 notifications::principal_operation(&self.identity.principals(), session),
             );
+            // And the account they signed in to (track `data-path`).
+            host.insert(
+                notifications::PRINCIPAL_ACCOUNT.to_string(),
+                notifications::account_operation(&self.identity.principals(), session),
+            );
             // The platform's clock (ADR-0304), for the command's moment.
             host.extend(clock::operations(self.now(), &self.zones));
             // NEXT 6c: the deployment's payments, keyed by this interaction,
@@ -2796,7 +2987,12 @@ impl Server {
             // values itself and hands them to the platform's outbox, which
             // stages them here with its writes.
             let staged_events = self.outbox(component_id, &mut host)?;
-            let out = self.run(component_id, session, &host, args)?;
+            // TRACK SEAM (tables): its tables' reads and writes, staged in
+            // this command's transaction, as the gate admits them.
+            let tables = |contract: &ComponentContract, granted: &Granted| {
+                staging.table_ops(contract, granted)
+            };
+            let out = self.run(component_id, session, &host, &tables, args)?;
             let result = out.first().map(answer_json);
             if let [Val::Result(Err(_))] = out.as_slice() {
                 staging.revalidate()?;
@@ -3187,36 +3383,52 @@ impl Server {
                 // The state the data layer staged and the outbox's events, in
                 // one transaction (ADR-0019, ADR-0208); and the interaction's
                 // answer, where the command has one (ADR-0325).
-                let mut current = true;
-                let ids = self.materializer.command(|tx| {
-                    if let Some(completion) = completing {
-                        if !completion.belongs_to(self.materializer.queue_authority()) {
-                            return Err(
-                                "scheduled completion belongs to another queue adapter".to_string()
-                            );
+                let current = std::cell::Cell::new(true);
+                let layer = std::cell::RefCell::new(&mut *staging);
+                let ids = self.materializer.command_then(
+                    |tx| {
+                        if let Some(completion) = completing {
+                            if !completion.belongs_to(self.materializer.queue_authority()) {
+                                return Err(
+                                    "scheduled completion belongs to another queue adapter"
+                                        .to_string(),
+                                );
+                            }
+                            if !Materializer::consume_run(tx, completion.run, completion.now_ms)? {
+                                current.set(false);
+                                return Ok(Vec::new());
+                            }
                         }
-                        if !Materializer::consume_run(tx, completion.run, completion.now_ms)? {
-                            current = false;
-                            return Ok(Vec::new());
+                        layer.borrow_mut().prepare_materialized()?;
+                        for (key, value) in &rows {
+                            Materializer::set_state(tx, key, value);
                         }
-                    }
-                    staging.prepare_materialized()?;
-                    for (key, value) in &rows {
-                        Materializer::set_state(tx, key, value);
-                    }
-                    if let Some(r) = interaction {
-                        Materializer::prune_interactions(tx, r.forget_before_ms);
-                        Materializer::record_interaction(tx, r.key, r.sent, r.answer, r.at_ms)?;
-                    }
-                    // And the runs it scheduled, or cancelled (the
-                    // scheduled-commands track).
-                    schedules::write(tx, scheduled)?;
-                    if let Some(actor) = actor.filter(|actor| actor.is_local()) {
-                        actor.ensure_local_current()?;
-                    }
-                    Ok::<_, String>(events)
-                })?;
-                if !current {
+                        if let Some(r) = interaction {
+                            Materializer::prune_interactions(tx, r.forget_before_ms);
+                            Materializer::record_interaction(tx, r.key, r.sent, r.answer, r.at_ms)?;
+                        }
+                        // And the runs it scheduled, or cancelled (the
+                        // scheduled-commands track).
+                        schedules::write(tx, scheduled)?;
+                        if let Some(actor) = actor.filter(|actor| actor.is_local()) {
+                            actor.ensure_local_current()?;
+                        }
+                        Ok::<_, String>(events)
+                    },
+                    // TRACK SEAM (tables): **what the layer staged, the
+                    // transaction's last step before its COMMIT** (track
+                    // `data-path`): a program's tables published after every
+                    // record above and the outbox are written; refused, all
+                    // of it rolls back.
+                    || match current.get() {
+                        true => layer.borrow_mut().publish_within(),
+                        false => Ok(()),
+                    },
+                    // And a COMMIT that fails after it: the layer takes back,
+                    // or closes, what no record keeps.
+                    |why| layer.borrow_mut().unpublished(why),
+                )?;
+                if !current.get() {
                     return Ok(CommitOutcome::NotCurrent);
                 }
                 ((emitted.to_vec(), invalidated.to_vec()), ids)
@@ -3364,7 +3576,7 @@ impl Server {
             session,
             "store:host/estimates#set",
             &[
-                Val::String(session.to_string()),
+                Val::String(identity::session_handle(session)),
                 Val::S64(minutes),
                 Val::Option(max.map(|m| Box::new(Val::S64(m)))),
             ],
@@ -3622,13 +3834,16 @@ impl Server {
         args: &[serde_json::Value],
     ) -> (String, String, String) {
         let principals = self.identity.principals();
+        // TRACK SEAM (data-path): the session's digests, never the session
+        // (the integrator's ruling of 2026-11-02): the record keeps the key
+        // and what was sent a day, where a database reader reads them.
         let reader = if self.invoked_by_platform(component) {
-            serde_json::json!({"platform":component,"session":identity::hex(session.as_bytes()),"user":principals.user_of(session)})
+            serde_json::json!({"platform":component,"session":identity::session_field(identity::PARTITION_DOMAIN, session),"user":principals.user_of(session)})
         } else {
             principals.receipt_reader(session)
         };
         let digest = identity::hex(&identity::kept_hash(&reader.to_string()));
-        let key = format!("{session}\u{1f}{component}\u{1f}{id}");
+        let key = identity::interaction_key(session, component, id);
         let cache = format!("receipt-v1:{digest}\u{1f}{component}\u{1f}{id}");
         let sent = serde_json::json!({"v":1,"reader":reader,"args":args}).to_string();
         (key, cache, sent)
@@ -4168,7 +4383,7 @@ impl Server {
             return Err("scheduled target is not an idempotent Clock command".into());
         }
         let interaction = format!("schedule-{}", run.id);
-        let key = format!("{session}\u{1f}{}\u{1f}{interaction}", run.command);
+        let key = identity::interaction_key(session, &run.command, &interaction);
         let sent = serde_json::Value::Array(json).to_string();
         // One evaluator/commit core; no browser memoization/session history for Clock.
         let result = self.command_recorded_for(
@@ -4417,6 +4632,25 @@ impl Server {
         args: &[Val],
         key: &pw_resource::Key,
     ) -> Result<Val, String> {
+        self.read_checked(|| self.fetch_open_answer(session, binding, args, key))
+    }
+
+    /// A cache hit, a shared flight and a fallback are reads too. A layer
+    /// closed while the answer was being read must refuse its delivery.
+    fn read_checked(&self, read: impl FnOnce() -> Result<Val, String>) -> Result<Val, String> {
+        self.data.check_read()?;
+        let answer = read()?;
+        self.data.check_read()?;
+        Ok(answer)
+    }
+
+    fn fetch_open_answer(
+        &self,
+        session: &str,
+        binding: &serde_json::Value,
+        args: &[Val],
+        key: &pw_resource::Key,
+    ) -> Result<Val, String> {
         let resource = binding["resource"].as_str().unwrap_or_default();
         let manifest = runtime_manifest(resource, &binding["policy"]);
         let key = key.clone();
@@ -4576,6 +4810,9 @@ impl Server {
         // `store-accounts`, telling by principal): the user at the key
         // position a binding fills with `current_user()`, where the drop
         // names one. ADR-0270's superset told every reader of the query.
+        // A key holds the session as the program holds it, its handle
+        // (`identity::session_handle`, track `data-path`).
+        let handle = identity::session_handle(session);
         let drop_entries = |resource: &str, args: &[Option<Val>]| -> Option<Reached> {
             // No binding reads it, so nothing of it is kept.
             let binding = binding_of(resource)?;
@@ -4585,7 +4822,7 @@ impl Server {
             let positions = key_positions(&policy);
             let pinned = positions
                 .iter()
-                .any(|i| matches!(args.get(*i), Some(Some(Val::String(s))) if s == session));
+                .any(|i| matches!(args.get(*i), Some(Some(Val::String(s))) if *s == handle));
             if entry_is_private(&policy) && pinned {
                 return None;
             }
@@ -4670,6 +4907,10 @@ impl Server {
     /// asking at once; and where it could not be made, the last good one,
     /// where its `fallback` keeps it.
     fn materialized(&self, path: &str, args: &[Val]) -> Result<Val, String> {
+        self.read_checked(|| self.materialized_open(path, args))
+    }
+
+    fn materialized_open(&self, path: &str, args: &[Val]) -> Result<Val, String> {
         let key = Self::kept_key(path, args);
         if let pw_materialize::Read::Fresh(body) = self.materializer.read(&key) {
             return materializations::decode_text(&body);
@@ -4755,7 +4996,7 @@ impl Server {
                     }),
                 );
             }
-            match self.run(path, "", &host, args) {
+            match self.run(path, "", &host, &no_tables, args) {
                 Ok(out) => {
                     return out
                         .into_iter()
@@ -5096,6 +5337,16 @@ impl Server {
         args: &[Val],
         stopped: Option<Stopped>,
     ) -> Result<Val, String> {
+        self.read_checked(|| self.answer_open(component_id, session, args, stopped))
+    }
+
+    fn answer_open(
+        &self,
+        component_id: &str,
+        session: &str,
+        args: &[Val],
+        stopped: Option<Stopped>,
+    ) -> Result<Val, String> {
         // Each operation counted as it runs (`/metrics`).
         let counted = |name: &str, f: HostFn| -> HostFn {
             let (calls, name) = (self.calls.clone(), name.to_string());
@@ -5117,25 +5368,43 @@ impl Server {
             Some(render) => render.reads(&*self.data, session, stopped),
             None => self.data.reads(session, stopped),
         };
+        let merged = |name: &str, f: HostFn| -> HostFn {
+            let f = counted(name, f);
+            match &render {
+                Some(render) => render.once(
+                    &self
+                        .identity
+                        .principals()
+                        .receipt_reader(session)
+                        .to_string(),
+                    name,
+                    f,
+                ),
+                None => f,
+            }
+        };
         let mut host: BTreeMap<String, HostFn> = layer
             .into_iter()
             .map(|(name, f)| {
-                let f = counted(&name, f);
-                let f = match &render {
-                    Some(render) => render.once(
-                        &self
-                            .identity
-                            .principals()
-                            .receipt_reader(session)
-                            .to_string(),
-                        &name,
-                        f,
-                    ),
-                    None => f,
-                };
+                let f = merged(&name, f);
                 (name, f)
             })
             .collect();
+        // TRACK SEAM (tables): its tables' reads, as the gate admits them for
+        // this query, reading the render's snapshot where it reads one, each
+        // counted and merged as the layer's reads are (NEXT 4c).
+        let snapshot = render.as_ref().and_then(|render| render.snapshot());
+        let tables = |contract: &ComponentContract, granted: &Granted| {
+            Ok(self
+                .data
+                .table_reads(contract, granted, snapshot)?
+                .into_iter()
+                .map(|(name, f)| {
+                    let f = merged(&name, f);
+                    (name, f)
+                })
+                .collect())
+        };
         // And the platform's session, each read its own: never merged.
         let mut platform: BTreeMap<String, HostFn> = BTreeMap::new();
         platform.insert(
@@ -5147,6 +5416,11 @@ impl Server {
             notifications::PRINCIPAL_READ.to_string(),
             notifications::principal_operation(&self.identity.principals(), session),
         );
+        // And the account they signed in to (track `data-path`).
+        platform.insert(
+            notifications::PRINCIPAL_ACCOUNT.to_string(),
+            notifications::account_operation(&self.identity.principals(), session),
+        );
         // The platform's clock (ADR-0304): every comparison in one read
         // answers for one instant, and notes what the read holds until.
         platform.extend(clock::operations(self.now(), &self.zones));
@@ -5154,7 +5428,7 @@ impl Server {
             let f = counted(&name, f);
             (name, f)
         }));
-        let out = self.run(component_id, session, &host, args)?;
+        let out = self.run(component_id, session, &host, &tables, args)?;
         out.into_iter()
             .next()
             .ok_or_else(|| format!("{component_id} returned nothing"))
@@ -5328,7 +5602,9 @@ impl Server {
                         })
                         .ok_or_else(|| format!("the page's `{name}` is given no value here"))
                 }
-                Some("current_session()") => Ok(Val::String(session.into())),
+                // The program's handle on the session, never the cookie
+                // (track `data-path`).
+                Some("current_session()") => Ok(Val::String(identity::session_handle(session))),
                 // TRACK SEAM (notifications): the reader's user, from the
                 // session's principal: never a value the browser sends.
                 Some(arg) if notifications::is_current_user(arg) => Ok(Val::String(
@@ -5401,14 +5677,14 @@ impl Server {
                     other => return Err(format!("`.{field}` read from {other:?}")),
                 }
             } else if let Some(member) = step["member"].as_str() {
-                let out = self.run(member, "", &BTreeMap::new(), &[value])?;
+                let out = self.run(member, "", &BTreeMap::new(), &no_tables, &[value])?;
                 out.into_iter()
                     .next()
                     .ok_or_else(|| format!("{member} returned nothing"))?
             } else if let Some(derived) = step["derived"].as_str() {
                 // A computed part's function (ADR-0226), run as a member is:
                 // pure, with the value it reads.
-                let out = self.run(derived, "", &BTreeMap::new(), &[value])?;
+                let out = self.run(derived, "", &BTreeMap::new(), &no_tables, &[value])?;
                 out.into_iter()
                     .next()
                     .ok_or_else(|| format!("{derived} returned nothing"))?
@@ -5914,6 +6190,8 @@ impl Server {
                         applied: applied.clone(),
                     });
                 }
+                // Its subscription, waiting on the table, is woken for them.
+                self.pending.wake();
                 break;
             }
             });
@@ -5961,14 +6239,8 @@ impl Server {
     /// token in a patch is the token already in the page. Two derivations
     /// would agree until one of them changed.
     fn domain(&self, session: &str) -> IdentityDomain {
-        IdentityDomain::document(
-            "StorePage(47)",
-            Partition::Session {
-                id: session.to_string(),
-            },
-            BUILD,
-        )
-        .keyed("own-renderer-spike-key")
+        IdentityDomain::document("StorePage(47)", session_partition(session), BUILD)
+            .keyed("own-renderer-spike-key")
     }
 
     /// **The identity domain a session's document of `page` is rendered in**
@@ -5978,14 +6250,8 @@ impl Server {
         if page == self.store_page() {
             return self.domain(session);
         }
-        IdentityDomain::document(
-            page,
-            Partition::Session {
-                id: session.to_string(),
-            },
-            BUILD,
-        )
-        .keyed("own-renderer-spike-key")
+        IdentityDomain::document(page, session_partition(session), BUILD)
+            .keyed("own-renderer-spike-key")
     }
 
     /// The menu fragment's OWN identity domain — public, and the same for
@@ -6291,6 +6557,8 @@ impl Server {
                 }),
             });
         }
+        // The subscriptions waiting on the table, woken for them.
+        self.pending.wake();
         Ok(())
     }
 
@@ -6876,14 +7144,8 @@ impl Server {
         // What it computes from its signals, at their first values (ADR-0227).
         let env = self.with_computed_signals(env, plan, template)?;
         let env = with_signals(env, plan).in_domain(
-            IdentityDomain::document(
-                path,
-                Partition::Session {
-                    id: session.to_string(),
-                },
-                BUILD,
-            )
-            .keyed("own-renderer-spike-key"),
+            IdentityDomain::document(path, session_partition(session), BUILD)
+                .keyed("own-renderer-spike-key"),
         );
         let body = pw_render::render(template, &env, &self.templates)
             .map_err(|e| format!("`{path}` does not render: {e:?}"))?;
@@ -6899,7 +7161,9 @@ impl Server {
             + &pw_render::head_canonical(template, &env, self.origin.get().map(String::as_str))
                 .map_err(|e| format!("`{path}`'s canonical address does not render: {e:?}"))?;
         Ok((
-            signal_document(
+            // As this build's delivery names its files (ADR-0399):
+            // at its version, a production build's.
+            self.delivery.deliver(signal_document(
                 &body,
                 &title,
                 &metadata,
@@ -6907,7 +7171,7 @@ impl Server {
                 plan,
                 &self.templates,
                 &self.build_id,
-            ),
+            )),
             env,
             template,
         ))
@@ -7083,7 +7347,7 @@ impl Server {
             .and_then(|e| e.component.clone())
             .ok_or_else(|| format!("`{id}`'s contract does not locate its export"))?;
         let args = loaded.prepared.arguments_for(&export, inputs)?;
-        self.run(id, "", &BTreeMap::new(), &args)?
+        self.run(id, "", &BTreeMap::new(), &no_tables, &args)?
             .into_iter()
             .next()
             .ok_or_else(|| format!("{id} returned nothing"))
@@ -7446,6 +7710,8 @@ impl Server {
         for frame in speculated {
             waiting.push(frame);
         }
+        // Its subscription, waiting on the table, is woken for them.
+        self.pending.wake();
         Ok(KeyOutcome::Applied)
         })
     }
@@ -7497,6 +7763,7 @@ impl Server {
                 protocol: CURRENT,
                 recovery: Recovery::Reload,
             });
+            self.pending.wake();
         }
     }
 
@@ -7519,7 +7786,14 @@ impl Server {
             frames: self.payments.get().map(|p| p.provider.clone()),
             forms: self.identity.sign_in_origin(),
         };
-        csp::document(RUNTIME_SOURCE, self.data.style(), &self.needs, &deployment)
+        // The script as this build's delivery writes it (ADR-0399):
+        // at its version, a production build's.
+        csp::document(
+            &self.delivery.runtime_source(),
+            self.data.style(),
+            &self.needs,
+            &deployment,
+        )
     }
 
     /// **A document, and each streamed region's arm as its query settles**
@@ -7564,6 +7838,15 @@ impl Server {
         // **The build that served it** (ADR-0300), which a page that keeps
         // its parts across a navigation holds the next document to.
         let build = format!("pw-build: {}\r\n", self.build_id);
+        // **The delivery it names its files at** (ADR-0399): a
+        // versioned build's only. A page that navigates in place holds the
+        // next document to it as it does to the build, since its runtime
+        // asks for files a browser keeps a year at its own.
+        let delivery = self
+            .delivery
+            .version
+            .as_ref()
+            .map_or(String::new(), |v| format!("pw-delivery: {v}\r\n"));
         // What it may load and run (`csp`).
         let policy = format!("content-security-policy: {}\r\n", self.policy());
         if settling.waiting.is_empty() && settling.settled.is_empty() {
@@ -7571,14 +7854,14 @@ impl Server {
                 stream,
                 200,
                 "text/html; charset=utf-8",
-                &format!("{PRIVATE}{cookie}{build}{policy}"),
+                &format!("{PRIVATE}{cookie}{build}{delivery}{policy}"),
                 page.as_bytes(),
             );
             return;
         }
         let head = format!(
             "HTTP/1.1 200 OK\r\ncontent-type: text/html; charset=utf-8\r\n{NOSNIFF}{PRIVATE}{cookie}\
-             {build}{policy}connection: close\r\n\r\n"
+             {build}{delivery}{policy}connection: close\r\n\r\n"
         );
         let shell = page.strip_suffix(DOCUMENT_END).unwrap_or(page);
         if stream
@@ -8059,7 +8342,7 @@ fn stream_runs(
             .into_iter()
             .flatten()
             .map(|a| match a.as_str() {
-                Some("current_session()") => Ok(Val::String(session.into())),
+                Some("current_session()") => Ok(Val::String(identity::session_handle(session))),
                 Some(arg) if notifications::is_current_user(arg) => Ok(Val::String(user.into())),
                 Some(name) => param_val(plan, name, params).ok_or_else(|| {
                     format!("a stream's query is given `{name}`, which is not given")
@@ -8413,7 +8696,12 @@ fn entry_key(session: &str, policy: &serde_json::Value, args: &[Val]) -> Option<
 /// that field; cleanup recognizes all epochs of only the named cookie.
 fn private_entry_belongs_to(key: &str, session: &str) -> bool {
     let field = key.split('\u{1f}').next().unwrap_or_default();
-    let prefix = format!("session=v1:{}:", identity::hex(session.as_bytes()));
+    // The session's partition is its digest (`ReaderIdentity::partition`,
+    // version 2, track `data-path`), never its cookie.
+    let prefix = format!(
+        "session=v2:{}:",
+        identity::session_field(identity::PARTITION_DOMAIN, session)
+    );
     if let Some(reader) = field.strip_prefix(&prefix) {
         return matches!(reader, "g" | "n")
             || reader.strip_prefix("a:").is_some_and(|epoch| {
@@ -8422,7 +8710,9 @@ fn private_entry_belongs_to(key: &str, session: &str) -> bool {
     }
     // Older synthetic/guest keys remain cleanable, but a versioned field
     // can never be reinterpreted as an attacker-chosen legacy cookie.
-    !field.starts_with("session=v1:") && field == format!("session={session}")
+    !field.starts_with("session=v1:")
+        && !field.starts_with("session=v2:")
+        && field == format!("session={session}")
 }
 
 fn entry_is_private(policy: &serde_json::Value) -> bool {
@@ -8487,10 +8777,8 @@ fn keyed_entry(session: &str, binding: &str) -> ResourceEntryId {
     ResourceEntryId::derive(
         &EntryIdentity::new(
             &format!("store.page.{binding}#key"),
-            &[session],
-            Partition::Session {
-                id: session.to_string(),
-            },
+            &[&identity::session_handle(session)],
+            session_partition(session),
         )
         .generation(BUILD),
         &IDENTITY,
@@ -9500,10 +9788,14 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
         // the 404 below rather than to a default. A command the platform
         // invokes (NEXT 6c, `invoked_by Payments`) is not a reader's to press,
         // and falls through with them, as a Convex client's call of an
-        // internal function finds no public one.
+        // internal function finds no public one. Nor is any export but a
+        // command: a query, a page, a derived value or a function the build
+        // compiled falls through too (train-14's review: a query was run here).
         ("POST", route)
             if route.strip_prefix("/command/").is_some_and(|id| {
-                server.components.contains_key(id) && !server.invoked_by_platform(id)
+                server.components.contains_key(id)
+                    && server.is_command(id)
+                    && !server.invoked_by_platform(id)
             }) =>
         {
             let id = &route["/command/".len()..];
@@ -10352,6 +10644,12 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             mine.cut_from = Some(now);
             mine.cut_until = Some(now + std::time::Duration::from_millis(window));
             drop(faults);
+            // Its subscriptions waiting on the table end now, not at their
+            // next look: woken under the table, where each looks for a cut
+            // before it waits, so none misses it (the first press's review).
+            let table = server.pending.lock().expect("pending");
+            server.pending.wake();
+            drop(table);
             respond_json(&mut stream, 200, &session, fresh, "{}");
         }
         // **A materializer failure** (charter §15.5, ADR-0176): this
@@ -10473,6 +10771,7 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 }
             }
             drop(queue);
+            server.pending.wake();
             respond_json(&mut stream, 202, &session, fresh, "{}");
         }
         // What the materializer holds for the PUBLIC menu entry. Enough to
@@ -10523,10 +10822,20 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
         {
             let module = route.trim_start_matches("/speculation/");
             let module = module.split('?').next().unwrap_or(module);
-            match std::fs::read(server.artifacts.join("speculations").join(module)) {
-                Ok(bytes) => {
-                    respond_build(&mut stream, 200, "text/javascript; charset=utf-8", &bytes)
-                }
+            let path = server.artifacts.join("speculations").join(module);
+            match std::fs::read(&path) {
+                // As its packaging wrote it, compressed where it was
+                // (ADR-0399): the same for every reader.
+                Ok(bytes) => respond_representation(
+                    &mut stream,
+                    &headers,
+                    "text/javascript; charset=utf-8",
+                    &path,
+                    bytes,
+                    // Kept a year asked for at this build's delivery,
+                    // whose id digests it (ADR-0399).
+                    server.delivery.cache_policy(query),
+                ),
                 Err(_) => respond_build(
                     &mut stream,
                     404,
@@ -10547,10 +10856,18 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
         {
             let module = route.split('?').next().unwrap_or(route);
             let file = module.trim_start_matches("/computed/");
-            match std::fs::read(server.artifacts.join("computed").join(file)) {
-                Ok(bytes) => {
-                    respond_build(&mut stream, 200, "text/javascript; charset=utf-8", &bytes)
-                }
+            let path = server.artifacts.join("computed").join(file);
+            match std::fs::read(&path) {
+                Ok(bytes) => respond_representation(
+                    &mut stream,
+                    &headers,
+                    "text/javascript; charset=utf-8",
+                    &path,
+                    bytes,
+                    // Kept a year asked for at this build's delivery,
+                    // whose id digests it (ADR-0399).
+                    server.delivery.cache_policy(query),
+                ),
                 Err(_) => respond_build(
                     &mut stream,
                     404,
@@ -10579,10 +10896,18 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 );
                 return;
             }
-            match std::fs::read(server.handler_module(id)) {
-                Ok(module) => {
-                    respond_build(&mut stream, 200, "text/javascript; charset=utf-8", &module)
-                }
+            let path = server.handler_module(id);
+            match std::fs::read(&path) {
+                Ok(module) => respond_representation(
+                    &mut stream,
+                    &headers,
+                    "text/javascript; charset=utf-8",
+                    &path,
+                    module,
+                    // Kept a year asked for at this build's delivery,
+                    // whose id digests it (ADR-0399).
+                    server.delivery.cache_policy(query),
+                ),
                 Err(_) => respond_build(
                     &mut stream,
                     404,
@@ -10653,6 +10978,17 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             // scope (ADR-0300), which the browser's decision holds a document
             // of that page to. `#` lines, as no handler's identity begins.
             let mut table = format!("#build|{}\n", server.build_id);
+            // Whether the browser warms what this build's presses need
+            // (ADR-0399): the build's word, as the rest of
+            // this table is, and a `#` line the decision does not read.
+            // A host that keeps sessions warms as any other: a warm-up asks
+            // for its modules together, and overlapping admissions of one
+            // session are each answered (ADR-0389's overlap repair;
+            // `tests::session_overlap::`, ADR-0399, amended
+            // 2026-11-06).
+            if server.warm {
+                table.push_str("#warm|1\n");
+            }
             for (page, plan) in &server.plans {
                 if let Some(template) = server.templates.iter().find(|t| &t.path == page) {
                     table.push_str(&format!(
@@ -10665,11 +11001,20 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
             for (identity, capture) in server.handler_table() {
                 table.push_str(&format!("{identity}|{capture}\n"));
             }
+            // Asked for at this build's delivery (ADR-0399),
+            // the table is the delivery's, and kept a year: the delivery's
+            // id is a digest of the build's name and files, and a new build
+            // is a new id. Asked otherwise, kept by no cache, as before.
+            let kept = if server.delivery.current(query) {
+                "cache-control: public, max-age=31536000, immutable\r\n"
+            } else {
+                ""
+            };
             write_response(
                 &mut stream,
                 200,
                 "text/plain; charset=utf-8",
-                &format!("pw-build: {}\r\n", server.build_id),
+                &format!("pw-build: {}\r\n{kept}", server.build_id),
                 table.as_bytes(),
             );
         }
@@ -10796,7 +11141,7 @@ fn answer_connection(server: &Server, mut stream: TcpStream) {
                 request_reader.as_ref().expect("page admission"),
             )
         }
-        ("GET", _) => serve_file(server, &mut stream, route),
+        ("GET", _) => serve_file(server, &mut stream, path, &headers),
         _ => respond(&mut stream, 405, "text/plain", &session, fresh, b"method"),
     }
 }
@@ -10878,18 +11223,27 @@ fn stream_open(
     };
 
     // Bounded, like the long poll: a held connection is a held thread, and
-    // three engine families times six workers is eighteen of them.
+    // three engine families times six workers is eighteen of them. Two
+    // seconds, as eighty passes of 25 ms were; a pass now runs when the
+    // table is woken (a frame pushed, a cut-off) or a slice has passed.
     let opened = std::time::Instant::now();
-    for pass in 0..80 {
-        // Cut off since it opened (ADR-0175): it ends, with no more bytes.
-        if server.cut_off(session, opened) {
-            ended(format_args!("stream cut off at pass {pass}"));
-            return;
-        }
+    let until = opened + STREAM_HOLD;
+    let mut pass = 0u64;
+    loop {
         let batch = {
             let asked = std::time::Instant::now();
             let mut queue = server.pending.lock().expect("pending");
             let waited = asked.elapsed().as_millis();
+            // Cut off since it opened (ADR-0175): it ends, with no more
+            // bytes. Looked for once a pass, before anything is written,
+            // under the table a cut's wake takes, so that a cut made before
+            // the wait below is never missed (the first press's review).
+            if server.cut_off(session, opened) {
+                drop(queue);
+                ended(format_args!("stream cut off at pass {pass}"));
+                return;
+            }
+            pass += 1;
             let Some(waiting) = queue.get_mut(&doc) else {
                 // Forgotten while the stream was held: the next request
                 // is told to reload.
@@ -10900,19 +11254,28 @@ fn stream_open(
             }
             waiting.seen = std::time::Instant::now();
             let (cursor, frames) = waiting.after(written);
-            if frames.is_empty() {
-                None
-            } else {
+            let batch = (!frames.is_empty()).then(|| {
                 let body: Vec<serde_json::Value> = frames
                     .into_iter()
                     .map(|f| serde_json::to_value(f).expect("frame"))
                     .collect();
-                Some((
+                (
                     waiting.reader.clone(),
                     cursor,
                     serde_json::to_string(&body).expect("frames"),
-                ))
+                )
+            });
+            if batch.is_none() {
+                // Nothing new: wait for a wake, within the hold, the table
+                // released meanwhile.
+                let left = until.saturating_duration_since(std::time::Instant::now());
+                if left.is_zero() {
+                    break;
+                }
+                drop(server.pending.wait(queue, left.min(server.wake_at_least)));
+                continue;
             }
+            batch
         };
 
         if let Some((reader, cursor, frames)) = batch {
@@ -10933,13 +11296,20 @@ fn stream_open(
             ended(format_args!("wrote through {cursor}, {} bytes", line.len()));
             written = cursor;
         }
-        std::thread::sleep(std::time::Duration::from_millis(25));
     }
     ended(format_args!(
-        "stream ended after its passes, {} ms",
+        "stream ended after its passes ({pass}), {} ms",
         opened.elapsed().as_millis()
     ));
 }
+
+/// **How long a streamed subscription is held** before the page asks again:
+/// two seconds, as eighty passes of 25 ms were until 2026-11-06.
+const STREAM_HOLD: std::time::Duration = std::time::Duration::from_secs(2);
+
+/// **How long a long poll is held** before it answers an empty batch: one
+/// second, as forty passes of 25 ms were.
+const POLL_HOLD: std::time::Duration = std::time::Duration::from_secs(1);
 
 fn stream_frames(
     server: &Server,
@@ -10990,31 +11360,44 @@ fn stream_frames(
         return;
     }
 
-    for _ in 0..40 {
-        if server.cut_off(session, opened) {
-            return;
-        }
+    // Held a second at most, as forty passes of 25 ms were; a pass now runs
+    // when the table is woken (a frame pushed, a cut-off) or a slice has
+    // passed (ADR-0399).
+    let until = opened + POLL_HOLD;
+    loop {
         let batch = {
             let mut queue = server.pending.lock().expect("pending");
+            // As a held stream's: cut off, it is closed with no answer,
+            // looked for once a pass under the table a cut's wake takes.
+            if server.cut_off(session, opened) {
+                return;
+            }
             let waiting = queue
                 .entry(doc.clone())
                 .or_insert_with(|| Subscriber::at(document));
             waiting.seen = std::time::Instant::now();
             waiting.acknowledge(since);
             let (cursor, frames) = waiting.after(since);
-            if frames.is_empty() {
-                None
-            } else {
+            let batch = (!frames.is_empty()).then(|| {
                 let body: Vec<serde_json::Value> = frames
                     .into_iter()
                     .map(|frame| serde_json::to_value(frame).expect("frame"))
                     .collect();
-                Some((
+                (
                     waiting.reader.clone(),
                     cursor,
                     serde_json::to_string(&body).expect("frames"),
-                ))
+                )
+            });
+            if batch.is_none() {
+                let left = until.saturating_duration_since(std::time::Instant::now());
+                if left.is_zero() {
+                    break;
+                }
+                drop(server.pending.wait(queue, left.min(server.wake_at_least)));
+                continue;
             }
+            batch
         };
         if let Some((reader, cursor, frames)) = batch {
             if !server.delivery_allowed(&doc, reader.as_ref()) {
@@ -11026,7 +11409,6 @@ fn stream_frames(
             respond_json(stream, 200, session, fresh, &json);
             return;
         }
-        std::thread::sleep(std::time::Duration::from_millis(25));
     }
     respond_json(
         stream,
@@ -11178,7 +11560,9 @@ fn serve_bound(
                     }
                 })
                 .collect();
-            let html = document(
+            // As this build's delivery names its files (ADR-0399):
+            // at its version, a production build's.
+            let html = server.delivery.deliver(document(
                 &rendered,
                 &title,
                 &metadata,
@@ -11190,7 +11574,7 @@ fn serve_bound(
                 speculation,
                 &holds,
                 &server.build_id,
-            );
+            ));
             server.respond_streaming(
                 stream,
                 session,
@@ -11497,9 +11881,61 @@ fn path_decoded(v: &str) -> Option<String> {
     String::from_utf8(out).ok()
 }
 
-fn serve_file(server: &Server, stream: &mut TcpStream, route: &str) {
+/// A request header's value, without copying untrusted bytes into a response.
+fn build_request_header<'a>(headers: &'a str, name: &str) -> Option<&'a str> {
+    headers
+        .lines()
+        .filter_map(|line| line.split_once(':'))
+        .find_map(|(key, value)| key.eq_ignore_ascii_case(name).then_some(value.trim()))
+}
+
+/// Honor a client's explicit refusal of an encoding (including q=0), rather
+/// than accidentally serving a .br file to a browser that cannot decode it.
+fn accepts_asset_encoding(headers: &str, encoding: &str) -> bool {
+    let Some(value) = build_request_header(headers, "accept-encoding") else {
+        return false;
+    };
+    value.split(',').any(|offer| {
+        let mut fields = offer.split(';');
+        if !fields
+            .next()
+            .is_some_and(|name| name.trim().eq_ignore_ascii_case(encoding))
+        {
+            return false;
+        }
+        fields.all(|parameter| match parameter.trim().strip_prefix("q=") {
+            Some(q) => q
+                .parse::<f64>()
+                .is_ok_and(|weight| weight > 0.0 && weight <= 1.0),
+            None => true,
+        })
+    })
+}
+
+/// **Whether a build warms what its presses need** (ADR-0399):
+/// its packaging's word, `{"warm": true}` in `delivery.json` beside its
+/// assets, which a production build's packaging writes
+/// (`optimize-assets.mjs`). A build without one, as every development build
+/// is, warms nothing: a press fetches its code when it is pressed (E7-L).
+fn warms(dist: &std::path::Path) -> bool {
+    delivery_says(dist, "warm")
+}
+
+/// Whether a build's packaging says `key` of its delivery: `true` at `key`
+/// in `delivery.json` beside its assets, and nothing else.
+fn delivery_says(dist: &std::path::Path, key: &str) -> bool {
+    std::fs::read_to_string(dist.join("delivery.json"))
+        .ok()
+        .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
+        .is_some_and(|delivery| delivery[key] == serde_json::Value::Bool(true))
+}
+
+fn serve_file(server: &Server, stream: &mut TcpStream, path: &str, request_headers: &str) {
+    // The request's query names the delivery it asks at, if any (the first
+    // press's ADR); the file is the route's.
+    let (route, query) = path.split_once('?').unwrap_or((path, ""));
     let name = route.trim_start_matches('/');
-    // No traversal: a request names a file in `dist` and nothing above it.
+    // No traversal: a request names a file in dist and nothing above it.
     if name.contains("..") || name.contains('/') {
         respond_build(stream, 404, "text/plain", b"not found");
         return;
@@ -11510,18 +11946,126 @@ fn serve_file(server: &Server, stream: &mut TcpStream, route: &str) {
         Some("mjs") | Some("js") => "text/javascript; charset=utf-8",
         Some("json") => "application/json; charset=utf-8",
         Some("wasm") => "application/wasm",
-        // A stylesheet the build ships, which a page's policy allows from
-        // this origin, and which a browser applies only as `text/css`.
         Some("css") => "text/css; charset=utf-8",
-        // TRACK SEAM (todomvc): a drawing the build ships, which the page's
-        // stylesheet draws a checkbox with (`img-src 'self'`, ADR-0333): a
-        // browser draws an image only as `image/svg+xml`, under `nosniff`.
         Some("svg") => "image/svg+xml",
         _ => "application/octet-stream",
     };
-    match std::fs::read(&path) {
-        Ok(bytes) => respond_build(stream, 200, mime, &bytes),
-        Err(_) => respond_build(stream, 404, "text/plain", b"not found"),
+    let Ok(bytes) = std::fs::read(&path) else {
+        respond_build(stream, 404, "text/plain", b"not found");
+        return;
+    };
+    let compressible = matches!(
+        path.extension().and_then(|e| e.to_str()),
+        Some("mjs" | "js" | "wasm" | "css" | "svg")
+    );
+    // Only these build artifacts are provably session-independent. An HTML
+    // response (including a generated page) retains its old CSP behavior,
+    // without adding a public cache policy or conditional 304.
+    if !compressible {
+        respond_build(stream, 200, mime, &bytes);
+        return;
+    }
+    // Kept a year at this build's delivery, asked again otherwise.
+    let policy = server.delivery.cache_policy(query);
+    respond_representation(stream, request_headers, mime, &path, bytes, policy);
+}
+
+/// **A file of the build, as its packaging wrote it** (PR #75's delivery,
+/// and ADR-0399 for the compiled modules): the representation
+/// the request accepts of those the packaging wrote beside it (`.br`, `.gz`),
+/// else the file as it is; a strong ETag for that representation, and a 304
+/// with no body for a request that holds it; `policy` its cache policy:
+/// `public, no-cache`, so a cache keeps it and asks again before using it,
+/// or, asked at its build's delivery, kept a year ([`Delivery`]). The same
+/// for every reader: no session, no cookie. `bytes` are the file's own.
+fn respond_representation(
+    stream: &mut TcpStream,
+    request_headers: &str,
+    mime: &str,
+    path: &std::path::Path,
+    mut bytes: Vec<u8>,
+    policy: &str,
+) {
+    use sha2::Digest;
+
+    let mut encoding = None;
+    // The build pipeline writes both representations, without changing the
+    // uncompressed file or any user/session-specific HTML response.
+    for (algorithm, suffix) in [("br", "br"), ("gzip", "gz")] {
+        if !accepts_asset_encoding(request_headers, algorithm) {
+            continue;
+        }
+        let mut sibling = path.as_os_str().to_owned();
+        sibling.push(format!(".{suffix}"));
+        if let Ok(compressed) = std::fs::read(&sibling) {
+            bytes = compressed;
+            encoding = Some(algorithm);
+            break;
+        }
+    }
+
+    // A strong ETag describes this representation, not the differently
+    // encoded version, and 304 has no body. Weak tags conservatively miss.
+    let digest = sha2::Sha256::digest(&bytes);
+    let hex = digest
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    let tag = format!("\"{hex}\"");
+    let unchanged =
+        build_request_header(request_headers, "if-none-match").is_some_and(|candidates| {
+            candidates
+                .split(',')
+                .any(|candidate| candidate.trim() == tag)
+        });
+    let mut response_headers =
+        format!("cache-control: {policy}\r\netag: {tag}\r\nvary: accept-encoding\r\n");
+    if let Some(algorithm) = encoding {
+        response_headers.push_str(&format!("content-encoding: {algorithm}\r\n"));
+    }
+    write_response(
+        stream,
+        if unchanged { 304 } else { 200 },
+        mime,
+        &response_headers,
+        if unchanged { b"" } else { &bytes },
+    );
+}
+
+#[cfg(test)]
+mod asset_delivery_tests {
+    use super::{accepts_asset_encoding, build_request_header};
+
+    #[test]
+    fn asset_encoding_respects_explicit_refusal_and_header_case() {
+        assert!(accepts_asset_encoding(
+            "Accept-Encoding: br, gzip\r\n",
+            "br"
+        ));
+        assert!(accepts_asset_encoding(
+            "ACCEPT-ENCODING: gzip;q=0.5, br;q=0.8\r\n",
+            "br"
+        ));
+        assert!(!accepts_asset_encoding(
+            "Accept-Encoding: br;q=0, gzip\r\n",
+            "br"
+        ));
+        assert!(!accepts_asset_encoding(
+            "Accept-Encoding: br;q=nope\r\n",
+            "br"
+        ));
+        assert!(!accepts_asset_encoding("Accept-Encoding: gzip\r\n", "br"));
+        assert!(!accepts_asset_encoding("", "br"));
+    }
+
+    #[test]
+    fn validation_headers_are_distinguished_by_name() {
+        let h = "If-None-Match: \"deadbeef\"\r\nAccept-Encoding: br\r\n";
+        assert_eq!(
+            build_request_header(h, "if-none-match"),
+            Some("\"deadbeef\"")
+        );
+        assert_eq!(build_request_header(h, "cache-control"), None);
     }
 }
 
@@ -11702,7 +12246,7 @@ fn signal_document(
     format!(
         "<!doctype html>\n<html{root}>\n<head>\n<meta charset=\"utf-8\">\n\
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
-         <title>{}</title>\n{metadata}{device}</head>\n<body>\n{body}\n\
+         <title>{}</title>\n{metadata}{device}{BOOT}</head>\n<body>\n{body}\n\
          {announcer}\n<script type=\"application/json\" id=\"pw-parts\">{json}</script>\n\
          {RUNTIME}\n{DOCUMENT_END}",
         pw_render::escape::text(title)
@@ -11956,7 +12500,7 @@ fn document(
     format!(
         "<!doctype html>\n<html{root}>\n<head>\n<meta charset=\"utf-8\">\n\
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
-         <title>{title}</title>\n{metadata}{style}{device}</head>\n<body>\n{body}\n\
+         <title>{title}</title>\n{metadata}{style}{device}{BOOT}</head>\n<body>\n{body}\n\
          {announcer}\n<script type=\"application/json\" id=\"pw-parts\">{json}</script>\n\
          {RUNTIME}\n{DOCUMENT_END}",
         title = pw_render::escape::text(title)
@@ -11970,6 +12514,261 @@ fn document(
 /// only once the whole response has arrived, in every engine, and an `async`
 /// one does in WebKit.
 const RUNTIME: &str = "<script>import(\"/pw-runtime.mjs\")</script>";
+
+/// **What every document's runtime asks for before it can attach a handler,
+/// asked for by the document's head** (ADR-0399): the runtime,
+/// the resume decision's code and this build's handler table. Without them
+/// each was a round trip after the one before it: the runtime was asked for
+/// once the parser reached `RUNTIME`, the decision once the runtime ran, and
+/// the table once the decision had compiled. Under Slow 4G that was three
+/// requests of 562.5 ms each, one after another, before a page was
+/// interactive (ADR-0392, finding 18's "interactive last").
+///
+/// Each is fetched exactly as the runtime asks for it, so the browser uses
+/// what the head fetched rather than fetching it again: the module by its
+/// URL in the module map, and the two `fetch()`es as CORS requests with the
+/// same-origin credentials a `fetch` makes by default, which is what
+/// `crossorigin` (anonymous) asks for. Nothing speculative: every document
+/// that carries `RUNTIME` asks for all three as it boots, and none of them
+/// is a handler's code (E7-L's ruling holds: no handler is fetched here).
+/// Last in the head, after the page's own stylesheets, which a first paint
+/// waits for: measured under Slow 4G, the three cost the first paint about
+/// 20 ms of shared bandwidth and saved its interactivity 1.76 s.
+const BOOT: &str = "<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n\
+     <link rel=\"preload\" href=\"/pw-resume.wasm\" as=\"fetch\" crossorigin>\n\
+     <link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n";
+
+/// **How a production build's files are named on the wire** (the first
+/// press's ADR, ADR-0392's "Next" 2: names a cache may keep). Every file a
+/// document names, and every one its runtime asks for, is asked for at one
+/// version, so that a browser keeps each until the build changes and asks
+/// for none of them again on a visit after its first. Until 2026-11-06 a
+/// visit after the first asked again for each (`public, no-cache`), and
+/// under Slow 4G the store was interactive on such a visit at 1,183 ms, the
+/// frameworks' at 700 and 658.
+///
+/// One version for them all: the **delivery id**, a digest of the build's
+/// name and of every file beside the documents (`dist`), so a change to any
+/// of them is a new id. A file asked for at the id the host serves is sent
+/// `immutable`, for a year; at another id (a document of an earlier build,
+/// kept in the browser's history), the file the host has, revalidated before
+/// each use as before (`public, no-cache`). The runtime reads the id from its
+/// own address and asks for the decision's Wasm, the renderer's and the
+/// handler table at it. A soft navigation stays within one delivery
+/// (`pw-delivery`), and only tags are named at it, never a reader's text.
+///
+/// A development build has none: its documents name every file as they did
+/// (`BOOT`, `RUNTIME`), and the browser suites see the addresses they pin.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct Delivery {
+    /// The delivery id, a production build's only.
+    version: Option<String>,
+    /// The files beside the documents a document may name, each by its
+    /// address (`/todomvc-app.css`): only these are named at the version.
+    files: std::collections::BTreeSet<String>,
+}
+
+impl Delivery {
+    /// The delivery of the build in `dist`, named `build`, whose compiled
+    /// modules are in `artifacts`: versioned where its packaging says
+    /// (`{"versioned": true}` in `delivery.json`). The id digests the
+    /// compiled modules a page loads too (its handlers', computed values'
+    /// and speculations'), which are asked for at it.
+    fn of(dist: &std::path::Path, artifacts: &std::path::Path, build: &str) -> Delivery {
+        use sha2::Digest;
+        if !delivery_says(dist, "versioned") {
+            return Delivery::default();
+        }
+        let files_in = |dir: &std::path::Path| -> Vec<std::path::PathBuf> {
+            std::fs::read_dir(dir)
+                .into_iter()
+                .flatten()
+                .flatten()
+                .map(|e| e.path())
+                .filter(|p| p.is_file())
+                .collect()
+        };
+        let mut paths = files_in(dist);
+        paths.sort();
+        let mut modules: Vec<std::path::PathBuf> = ["handlers", "computed", "speculations"]
+            .iter()
+            .flat_map(|d| files_in(&artifacts.join(d)))
+            .collect();
+        modules.sort();
+        let mut digest = sha2::Sha256::new();
+        digest.update(build.as_bytes());
+        let mut files = std::collections::BTreeSet::new();
+        for path in paths {
+            let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+                continue;
+            };
+            let Ok(bytes) = std::fs::read(&path) else {
+                continue;
+            };
+            digest.update([0u8]);
+            digest.update(name.as_bytes());
+            digest.update([0u8]);
+            digest.update(sha2::Sha256::digest(&bytes));
+            let named = matches!(
+                path.extension().and_then(|e| e.to_str()),
+                Some("mjs" | "js" | "wasm" | "css" | "svg")
+            );
+            if named {
+                files.insert(format!("/{name}"));
+            }
+        }
+        for path in modules {
+            let Ok(bytes) = std::fs::read(&path) else {
+                continue;
+            };
+            // By its name in the build, not where the build is: two hosts of
+            // one build name it alike.
+            let name = path.strip_prefix(artifacts).unwrap_or(&path);
+            digest.update([1u8]);
+            digest.update(name.to_string_lossy().as_bytes());
+            digest.update([0u8]);
+            digest.update(sha2::Sha256::digest(&bytes));
+        }
+        let version = digest
+            .finalize()
+            .iter()
+            .take(8)
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>();
+        Delivery {
+            version: Some(version),
+            files,
+        }
+    }
+
+    /// A file's address as a document names it: at the version, where the
+    /// build has one.
+    fn named(&self, path: &str) -> String {
+        match &self.version {
+            Some(v) => format!("{path}?b={v}"),
+            None => path.to_string(),
+        }
+    }
+
+    /// What the head asks for as the runtime boots ([`BOOT`]), each at the
+    /// address the runtime asks for it at.
+    fn boot(&self) -> String {
+        match self.version {
+            None => BOOT.to_string(),
+            Some(_) => format!(
+                "<link rel=\"modulepreload\" href=\"{}\">\n\
+                 <link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>\n\
+                 <link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>\n",
+                self.named("/pw-runtime.mjs"),
+                self.named("/pw-resume.wasm"),
+                self.named("/pw-handlers"),
+            ),
+        }
+    }
+
+    /// The text of the script that starts the runtime ([`RUNTIME_SOURCE`]),
+    /// which a document's policy allows by its hash.
+    fn runtime_source(&self) -> String {
+        match self.version {
+            None => RUNTIME_SOURCE.to_string(),
+            Some(_) => format!("import(\"{}\")", self.named("/pw-runtime.mjs")),
+        }
+    }
+
+    /// The script that starts the runtime ([`RUNTIME`]).
+    fn runtime(&self) -> String {
+        match self.version {
+            None => RUNTIME.to_string(),
+            Some(_) => format!("<script>{}</script>", self.runtime_source()),
+        }
+    }
+
+    /// `document`, each file beside it that its markup names
+    /// (`href="/todomvc-app.css"`, `src="/logo.svg"`) named at the version,
+    /// **in its tags only**. A reader's text is sent as written: text escapes
+    /// `&`, `<` and `>`, never `"` (`escape::text`), so a post, a title or a
+    /// textarea's value may read `href="/app.css"`. Until 2026-11-06 a
+    /// versioned build named the file there too (the first press's review).
+    /// Text cannot open a tag, its `<` escaped, and within a tag an
+    /// attribute's value escapes `"` (`&quot;`): there only markup writes the
+    /// quoted address this replaces.
+    fn name_files(&self, document: String) -> String {
+        if self.version.is_none() || self.files.is_empty() {
+            return document;
+        }
+        let mut named = String::with_capacity(document.len() + 256);
+        let mut rest = document.as_str();
+        while let Some(open) = rest.find('<') {
+            let (text, from) = rest.split_at(open);
+            named.push_str(text);
+            let (tag, after) = from.split_at(from.find('>').map_or(from.len(), |at| at + 1));
+            self.name_in(tag, &mut named);
+            rest = after;
+        }
+        named.push_str(rest);
+        named
+    }
+
+    /// One tag, written into `named`, each file it names by `href` or `src`
+    /// at the version.
+    fn name_in(&self, tag: &str, named: &mut String) {
+        if !tag.contains("=\"/") {
+            named.push_str(tag);
+            return;
+        }
+        let mut tag = tag.to_string();
+        for file in &self.files {
+            for attribute in ["href", "src"] {
+                let plain = format!("{attribute}=\"{file}\"");
+                if tag.contains(&plain) {
+                    tag = tag.replace(&plain, &format!("{attribute}=\"{}\"", self.named(file)));
+                }
+            }
+        }
+        named.push_str(&tag);
+    }
+
+    /// **A document as this delivery sends it**: the head's boot links and
+    /// the script that starts the runtime, as [`signal_document`] and
+    /// [`document`] write them ([`BOOT`], [`RUNTIME`]), at the version, and
+    /// each file the markup names. A development build's, as written.
+    fn deliver(&self, document: String) -> String {
+        if self.version.is_none() {
+            return document;
+        }
+        let document = document.replacen(BOOT, &self.boot(), 1);
+        let document = match document.rfind(RUNTIME) {
+            Some(at) => format!(
+                "{}{}{}",
+                &document[..at],
+                self.runtime(),
+                &document[at + RUNTIME.len()..]
+            ),
+            None => document,
+        };
+        self.name_files(document)
+    }
+
+    /// Whether a request's query names this delivery: `b=` its id.
+    fn current(&self, query: &str) -> bool {
+        self.version.as_deref().is_some_and(|v| {
+            query
+                .split('&')
+                .any(|p| p.strip_prefix("b=").is_some_and(|b| b == v))
+        })
+    }
+
+    /// The cache policy of a file asked for with `query`: kept a year and
+    /// never asked again, at this delivery; kept and asked again before each
+    /// use, otherwise (PR #75's).
+    fn cache_policy(&self, query: &str) -> &'static str {
+        if self.current(query) {
+            "public, max-age=31536000, immutable"
+        } else {
+            "public, no-cache"
+        }
+    }
+}
 
 /// **Its text**, which a document's policy allows by its hash (`csp`).
 /// `RUNTIME`'s, as a test holds it.
@@ -12080,6 +12879,7 @@ fn hold_open(stream: &mut TcpStream) {
 /// every response said `OK`, a 404 and a 503 among them.
 fn reason(code: u16) -> &'static str {
     match code {
+        304 => "Not Modified",
         200 => "OK",
         307 => "Temporary Redirect",
         308 => "Permanent Redirect",
@@ -14709,6 +15509,49 @@ public query Store(",
         })
     }
 
+    /// **A query is not a command** (train-14's review). `pw build` writes a
+    /// component for each query as for each command, and the server hosts
+    /// them all. Until 2026-11-07 `POST /command/<id>` ran any of them, so a
+    /// query no page reads answered a request with any arguments, and a query
+    /// declares no `requires` (ADR-0406). Only an export of kind `command` is
+    /// a reader's to send; a query's id falls through to the 404, as an
+    /// `invoked_by` command's does.
+    #[test]
+    fn a_query_posted_as_a_command_is_not_found() {
+        let s = rendering_server();
+        // Every hosted export that is no command, by its contract's kind.
+        let others: Vec<(String, String)> = s
+            .contracts
+            .iter()
+            .filter_map(|c| {
+                let kind = &c.exports.first()?.kind;
+                (kind != "command" && s.components.contains_key(&c.component_id))
+                    .then(|| (c.component_id.clone(), kind.clone()))
+            })
+            .collect();
+        // The floor: the server hosts queries, so the route is asked of
+        // components it holds.
+        assert!(
+            others.iter().filter(|(_, kind)| kind == "query").count() >= 2,
+            "hosted exports that are no command: {others:?}"
+        );
+        for (id, kind) in &others {
+            let answer = posted(&s, &format!("/command/{id}"), "session-q", "press-q", "[]");
+            assert!(answer.starts_with("HTTP/1.1 404"), "{kind} {id}: {answer}");
+        }
+        // The control: a command is still a reader's to send.
+        let body = serde_json::json!([shown("cortado"), 1]).to_string();
+        let added = posted(
+            &s,
+            &format!("/command/{ADD}"),
+            "session-q",
+            "press-c",
+            &body,
+        );
+        // A command commits and answers 202, as the page reads it.
+        assert!(added.starts_with("HTTP/1.1 202"), "{added}");
+    }
+
     /// **A one-shot network error** (charter §15.5, ADR-0175): the session's
     /// next command connection is closed with no answer, before the command
     /// runs or after it has committed. Sent again with the same interaction,
@@ -15133,6 +15976,124 @@ public query Store(",
             .is_some_and(|waiting| waiting.trail.iter().any(|note| note.contains(what)))
     }
 
+    /// The number a held stream's trail gives for its passes, once it ended
+    /// after them.
+    fn passes_of(s: &Server, doc: &Doc) -> Option<u64> {
+        s.pending
+            .lock()
+            .expect("pending")
+            .get(doc)?
+            .trail
+            .iter()
+            .find_map(|note| {
+                note.split("stream ended after its passes (")
+                    .nth(1)?
+                    .split(')')
+                    .next()?
+                    .parse()
+                    .ok()
+            })
+    }
+
+    /// **A held subscription with nothing for it waits on the table, and does
+    /// not ask it forty times a second** (ADR-0399, ADR-0392's
+    /// finding 21: twenty idle visitors cost the host 16.0 ms of CPU a
+    /// second). It looks at its subscriber a slice at a time through its
+    /// whole hold, and ends after it, as it did after eighty passes of 25 ms.
+    #[test]
+    fn an_idle_subscription_waits_on_the_table_rather_than_asking_it() {
+        let s = rendering_server();
+        let session = "idle";
+        let (_, document) = s.serve_document(session);
+        let doc: Doc = (session.to_string(), document);
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+        let _page = TcpStream::connect(listener.local_addr().expect("addr")).expect("connect");
+        let (mut held, _) = listener.accept().expect("accept");
+        let begun = std::time::Instant::now();
+        stream_open(&s, &mut held, session, false, document, document);
+        let held_for = begun.elapsed();
+        assert!(held_for >= STREAM_HOLD, "held its whole hold: {held_for:?}");
+        let passes = passes_of(&s, &doc).expect("it ended after its passes");
+        // Two seconds in slices of 250 ms: nine looks, give or take a wake.
+        assert!(
+            passes <= 12,
+            "{passes} passes: {:?}",
+            s.pending.lock().expect("pending")[&doc].trail
+        );
+    }
+
+    /// **A frame pushed for a held subscription wakes it** (the first
+    /// press's ADR): written as it is pushed, not at the subscription's next
+    /// look. Its slice is lengthened past its hold, so only the push's wake
+    /// can deliver the frame before the hold ends; the push is made once the
+    /// subscription waits, as the table counts it.
+    #[test]
+    fn a_frame_pushed_for_a_held_subscription_wakes_it() {
+        let mut s = rendering_server();
+        s.wake_at_least = std::time::Duration::from_secs(60);
+        let session = "woken";
+        let (_, document) = s.serve_document(session);
+        let doc: Doc = (session.to_string(), document);
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+        let _page = TcpStream::connect(listener.local_addr().expect("addr")).expect("connect");
+        let (mut held, _) = listener.accept().expect("accept");
+        let s = &s;
+        std::thread::scope(|scope| {
+            let open =
+                scope.spawn(move || stream_open(s, &mut held, session, false, document, document));
+            until("the stream waiting on the table", || {
+                s.pending.waiters() == 1
+            });
+            let pushed = std::time::Instant::now();
+            // A frame pushed through the server's own path, which wakes.
+            let answer = posted(s, "/command/menu_ghost", session, "ghost-1", "");
+            assert!(answer.starts_with("HTTP/1.1 202"), "{answer}");
+            until("the frame written", || trail_says(s, &doc, "wrote through"));
+            let after = pushed.elapsed();
+            assert!(
+                after < std::time::Duration::from_secs(1),
+                "written {after:?} after its push, so by the wake, not the hold's end"
+            );
+            open.join().expect("ended");
+        });
+    }
+
+    /// **A cut wakes a held subscription at once** (the first press's
+    /// review): its slice lengthened past its hold, only the cut's wake can
+    /// end it within a second. Until then a deleted wake passed every test,
+    /// the stream ending at its next look as well.
+    #[test]
+    fn a_cut_wakes_a_held_subscription_at_once() {
+        let mut s = rendering_server();
+        s.wake_at_least = std::time::Duration::from_secs(60);
+        let session = "cut-woken";
+        let (_, document) = s.serve_document(session);
+        let doc: Doc = (session.to_string(), document);
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+        let _page = TcpStream::connect(listener.local_addr().expect("addr")).expect("connect");
+        let (mut held, _) = listener.accept().expect("accept");
+        let s = &s;
+        std::thread::scope(|scope| {
+            let open =
+                scope.spawn(move || stream_open(s, &mut held, session, false, document, document));
+            until("the stream waiting on the table", || {
+                s.pending.waiters() == 1
+            });
+            let cut = std::time::Instant::now();
+            let armed = posted(s, "/bench/reconnect?for=0", session, "cut-woken-1", "");
+            assert!(armed.starts_with("HTTP/1.1 200"), "{armed}");
+            until("the stream ended by its cut", || {
+                trail_says(s, &doc, "stream cut off at pass")
+            });
+            let after = cut.elapsed();
+            assert!(
+                after < std::time::Duration::from_secs(1),
+                "ended {after:?} after its cut, so by the wake, not the hold's end"
+            );
+            open.join().expect("ended");
+        });
+    }
+
     /// **A forced reconnect** (charter §15.5, ADR-0175): the session's open
     /// subscription ends at once; a new one is closed with no answer for the
     /// cut's window; and one after it is sent what was queued meanwhile.
@@ -15473,7 +16434,7 @@ public query Store(",
         let body =
             &server_code[start..start + server_code[start..].find("\n    }\n").expect("its end")];
         assert!(
-            body.contains("self.run(component_id, session, &host, args)"),
+            body.contains("self.run(component_id, session, &host, &tables, args)"),
             "every command runs its compiled component"
         );
         assert!(
@@ -16016,13 +16977,20 @@ public query Store(",
         let s = rendering_server();
         s.command(ADD, "session-6", &add_shown("espresso", 3), false)
             .expect("runs");
-        assert_eq!(s.materializer.state("cart:session-6").as_deref(), Some("3"));
+        assert_eq!(
+            s.materializer
+                .state(&store::cart_state_key("session-6"))
+                .as_deref(),
+            Some("3")
+        );
         s.command_json(CLEAR, "session-6", &[], Some("clear-1"))
             .expect("well-formed")
             .expect("and it committed");
         assert_eq!(s.cart_value("session-6"), 0);
         assert_eq!(
-            s.materializer.state("cart:session-6").as_deref(),
+            s.materializer
+                .state(&store::cart_state_key("session-6"))
+                .as_deref(),
             Some("0"),
             "the cleared cart's state, not the old total"
         );
@@ -16144,6 +17112,18 @@ public query Store(",
 
     // TRACK SEAM (todomvc): TodoMVC, built and served (docs/PARALLEL.md, W7).
     mod todomvc;
+
+    // TRACK SEAM (tables): a program's declared tables, served through the
+    // gate by the generic memory adapter (track `data-path`).
+    mod tables;
+
+    // TRACK SEAM (tables): the guide's guestbook, on the tables it declares,
+    // with no data layer of its own (track `data-path`).
+    mod guestbook;
+
+    // TRACK SEAM (tables): the conformance suite over the `DataLayer` seam,
+    // generated for every declared table (ADR-0338 5.5, track `data-path`).
+    mod conformance;
 
     // TRACK SEAM (device-store): a page that holds a value the device keeps,
     // served (ADR-0366).
@@ -16691,10 +17671,434 @@ public query Store(",
             page.contains(&format!("pw-build: {}\r\n", s.build_id)),
             "{page}"
         );
+        assert!(
+            !page.contains("pw-delivery:"),
+            "a development build names no delivery: {page}"
+        );
         let manifest = manifest_of(page.split_once("\r\n\r\n").map_or("", |(_, b)| b));
         assert_eq!(manifest["resume"]["build"], s.build_id.as_str());
         assert_eq!(manifest["resume"]["document"], home.schema.as_str());
         assert_eq!(manifest["resume"]["scope"], "session:");
+    }
+
+    /// **A document asks for what its runtime boots with, from its head**
+    /// (ADR-0399): the runtime as a module preload, and the
+    /// decision's code and this build's handler table as the CORS fetches
+    /// the runtime makes, so that the runtime's own requests are answered by
+    /// them; after its stylesheets; and no handler's code (E7-L). On a page
+    /// that reads queries, and on one of signals alone.
+    #[test]
+    fn a_document_preloads_what_its_runtime_boots_with() {
+        let s = served_feed();
+        let page = get_as(&s, "a", "/");
+        let template = Template {
+            path: "t.P".into(),
+            name: "P".into(),
+            params: vec![],
+            schema: "s".into(),
+            chunks: vec![],
+        };
+        let signals = signal_document(
+            "<main></main>",
+            "P",
+            "<link rel=\"stylesheet\" href=\"/p.css\">\n",
+            &template,
+            &serde_json::json!({}),
+            &[],
+            COMMITTED_ARTIFACTS,
+        );
+        for document in [page.as_str(), signals.as_str()] {
+            let head = document
+                .split_once("<head>")
+                .and_then(|(_, rest)| rest.split_once("</head>"))
+                .map(|(head, _)| head)
+                .expect("a head");
+            for link in [
+                "<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n",
+                "<link rel=\"preload\" href=\"/pw-resume.wasm\" as=\"fetch\" crossorigin>\n",
+                "<link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n",
+            ] {
+                assert!(head.ends_with(BOOT) && BOOT.contains(link), "{head}");
+            }
+            assert!(!head.contains("/handler/"), "no handler's code: {head}");
+            // The runtime it preloads is the one the document starts.
+            assert!(document.contains(RUNTIME), "{document}");
+        }
+        assert!(
+            signals
+                .contains("<link rel=\"stylesheet\" href=\"/p.css\">\n<link rel=\"modulepreload\""),
+            "after the page's stylesheets: {signals}"
+        );
+    }
+
+    /// **A build warms what its presses need only where its packaging says
+    /// so** (ADR-0399): `{"warm": true}` in `delivery.json`
+    /// beside the assets, which a production build's packaging writes; no
+    /// file, another value or a file that is not JSON warms nothing, as no
+    /// development build does (E7-L).
+    #[test]
+    fn a_build_warms_only_where_its_delivery_says_so() {
+        let dir = tempfile::tempdir().expect("a directory");
+        assert!(!warms(dir.path()), "no delivery file: a development build");
+        let says = |text: &str| {
+            std::fs::write(dir.path().join("delivery.json"), text).expect("written");
+            warms(dir.path())
+        };
+        assert!(says("{\"warm\": true}\n"));
+        assert!(!says("{\"warm\": false}\n"));
+        assert!(!says("{\"warm\": \"true\"}\n"), "only `true` warms");
+        assert!(!says("{}\n"));
+        assert!(!says("warm"), "not JSON");
+    }
+
+    /// **The browser is told on the handler table** (ADR-0399):
+    /// `#warm|1` where the build warms and nothing where it does not,
+    /// a `#` line the decision does not read, with every handler line the
+    /// same either way, so what may attach does not depend on it.
+    #[test]
+    fn the_handler_table_says_whether_its_build_warms() {
+        let mut s = served_feed();
+        let body = |t: &str| t.split_once("\r\n\r\n").map_or("", |(_, b)| b).to_string();
+        let lazy = body(&get_as(&s, "a", "/pw-handlers"));
+        assert!(!lazy.contains("#warm"), "{lazy}");
+        s.server.warm = true;
+        let warm = body(&get_as(&s, "a", "/pw-handlers"));
+        assert!(warm.contains("#warm|1\n"), "{warm}");
+        let handlers = |t: &str| {
+            t.lines()
+                .filter(|l| !l.starts_with('#'))
+                .map(str::to_string)
+                .collect::<Vec<_>>()
+        };
+        assert!(!handlers(&lazy).is_empty(), "{lazy}");
+        assert_eq!(handlers(&lazy), handlers(&warm));
+        assert_eq!(lazy.lines().count() + 1, warm.lines().count());
+    }
+
+    /// **A development build names its files as they are** (the first
+    /// press's ADR): no delivery id, so every document is written as it was,
+    /// byte for byte, and every file is asked again before each use.
+    #[test]
+    fn a_development_build_names_its_files_as_they_are() {
+        let dir = tempfile::tempdir().expect("a directory");
+        std::fs::write(dir.path().join("pw-runtime.mjs"), "export {};\n").expect("written");
+        let delivery = Delivery::of(dir.path(), &dir.path().join("build"), "b1");
+        assert_eq!(delivery, Delivery::default());
+        assert_eq!(delivery.boot(), BOOT);
+        assert_eq!(delivery.runtime(), RUNTIME);
+        assert_eq!(delivery.runtime_source(), RUNTIME_SOURCE);
+        let document = format!("<head>\n{BOOT}</head><body><link href=\"/a.css\">{RUNTIME}</body>");
+        assert_eq!(delivery.deliver(document.clone()), document);
+        assert_eq!(delivery.cache_policy("b=anything"), "public, no-cache");
+    }
+
+    /// **A production build names its files at one version, which a cache
+    /// keeps** (ADR-0399): the head's boot links, the script
+    /// that starts the runtime and each file the markup names, at the
+    /// delivery id; a request at that id kept a year, at another or none
+    /// asked again. Only markup's quoted addresses are named: a value's text,
+    /// escaped, is left as it is.
+    #[test]
+    fn a_production_build_names_its_files_at_one_version() {
+        let dir = tempfile::tempdir().expect("a directory");
+        for (file, bytes) in [
+            ("delivery.json", "{\"warm\": true, \"versioned\": true}\n"),
+            ("pw-runtime.mjs", "export {};\n"),
+            ("pw-resume.wasm", "\0asm"),
+            ("app.css", "p{}"),
+            ("notes.txt", "not served by name"),
+        ] {
+            std::fs::write(dir.path().join(file), bytes).expect("written");
+        }
+        let delivery = Delivery::of(dir.path(), &dir.path().join("build"), "b1");
+        let version = delivery.version.clone().expect("a delivery id");
+        assert_eq!(version.len(), 16, "{version}");
+        assert!(version.bytes().all(|b| b.is_ascii_hexdigit()), "{version}");
+        assert_eq!(
+            delivery
+                .files
+                .iter()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            vec!["/app.css", "/pw-resume.wasm", "/pw-runtime.mjs"]
+        );
+        // A reader's text that reads like an attribute is the reader's: text
+        // escapes `&`, `<` and `>`, never `"` (`escape::text`), so a post, a
+        // title or a textarea's value can hold `href="/app.css"` as written.
+        let document = format!(
+            "<head>\n<title>src=\"/pw-runtime.mjs\" said</title>\n{BOOT}</head><body>\
+             <link rel=\"stylesheet\" href=\"/app.css\">\
+             <p title=\"href=&quot;/app.css&quot;\">href=\"/app.css\" said</p>\
+             <textarea>&lt;img src=\"/app.css\"&gt;</textarea>\n{RUNTIME}\n</body>"
+        );
+        let delivered = delivery.deliver(document);
+        let at = |path: &str| format!("{path}?b={version}");
+        for link in [
+            format!(
+                "<link rel=\"modulepreload\" href=\"{}\">",
+                at("/pw-runtime.mjs")
+            ),
+            format!(
+                "<link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>",
+                at("/pw-resume.wasm")
+            ),
+            format!(
+                "<link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>",
+                at("/pw-handlers")
+            ),
+            format!("<link rel=\"stylesheet\" href=\"{}\">", at("/app.css")),
+            format!("<script>import(\"{}\")</script>", at("/pw-runtime.mjs")),
+        ] {
+            assert!(delivered.contains(&link), "{link} in {delivered}");
+        }
+        assert!(
+            !delivered.contains(BOOT) && !delivered.contains(RUNTIME),
+            "{delivered}"
+        );
+        assert!(
+            delivered.contains("title=\"href=&quot;/app.css&quot;\""),
+            "{delivered}"
+        );
+        for text in [
+            "<title>src=\"/pw-runtime.mjs\" said</title>",
+            "<p title=\"href=&quot;/app.css&quot;\">href=\"/app.css\" said</p>",
+            "<textarea>&lt;img src=\"/app.css\"&gt;</textarea>",
+        ] {
+            assert!(
+                delivered.contains(text),
+                "a reader's text, as written: {text} in {delivered}"
+            );
+        }
+        assert_eq!(
+            delivery.runtime_source(),
+            format!("import(\"{}\")", at("/pw-runtime.mjs"))
+        );
+        assert_eq!(
+            delivery.cache_policy(&format!("b={version}")),
+            "public, max-age=31536000, immutable"
+        );
+        assert_eq!(
+            delivery.cache_policy(&format!("document=2&b={version}")),
+            "public, max-age=31536000, immutable"
+        );
+        assert_eq!(
+            delivery.cache_policy("b=0000000000000000"),
+            "public, no-cache"
+        );
+        assert_eq!(delivery.cache_policy(""), "public, no-cache");
+    }
+
+    /// **The delivery id is the build's and its files'**: the same for the
+    /// same, and another for another build's name or any file's bytes.
+    #[test]
+    fn the_delivery_id_changes_with_the_build_and_with_any_file() {
+        let dir = tempfile::tempdir().expect("a directory");
+        std::fs::write(dir.path().join("delivery.json"), "{\"versioned\": true}").expect("written");
+        std::fs::write(dir.path().join("app.css"), "p{}").expect("written");
+        let id = |build: &str| {
+            Delivery::of(dir.path(), &dir.path().join("build"), build)
+                .version
+                .expect("an id")
+        };
+        let first = id("b1");
+        assert_eq!(id("b1"), first, "the same build and files");
+        assert_ne!(id("b2"), first, "another build");
+        std::fs::write(dir.path().join("app.css"), "p{color:red}").expect("written");
+        assert_ne!(id("b1"), first, "another file's bytes");
+        std::fs::write(dir.path().join("notes.txt"), "x").expect("written");
+        let with_notes = id("b1");
+        std::fs::write(dir.path().join("notes.txt"), "y").expect("written");
+        assert_ne!(id("b1"), with_notes, "any file beside the documents");
+        // And a compiled module a page loads, which is asked for at the id.
+        let handlers = dir.path().join("build/handlers");
+        std::fs::create_dir_all(&handlers).expect("a directory");
+        std::fs::write(handlers.join("0123456789abcdef.mjs"), "export const a = 1;")
+            .expect("written");
+        let with_handler = id("b1");
+        assert_ne!(with_handler, with_notes);
+        std::fs::write(handlers.join("0123456789abcdef.mjs"), "export const a = 2;")
+            .expect("written");
+        assert_ne!(id("b1"), with_handler, "a handler's module");
+    }
+
+    /// **A production build's page and table, as served**: the page names
+    /// the runtime at the delivery, and its policy allows that script, by
+    /// that script's hash; the table asked for at the delivery is kept a
+    /// year, and asked for otherwise is kept by no cache.
+    #[test]
+    fn a_production_build_serves_its_page_and_table_at_its_delivery() {
+        let (_dir, out) = built_feed_with(|app| app.to_string());
+        std::fs::write(
+            out.join("delivery.json"),
+            "{\"warm\": true, \"versioned\": true}\n",
+        )
+        .expect("written");
+        std::fs::write(out.join("app.css"), "p{}").expect("written");
+        let s = Server::from_build(out.clone(), out).expect("served");
+        let version = s.delivery.version.clone().expect("a delivery id");
+        // A file of the build and a compiled module, as their own routes
+        // serve them: kept a year at the delivery, revalidated at another
+        // (the first press's review: the policy was held only through
+        // `cache_policy` and the table's route).
+        let handler = s
+            .handler_identities()
+            .iter()
+            .next()
+            .cloned()
+            .expect("a handler");
+        for path in ["/app.css".to_string(), format!("/handler/{handler}.mjs")] {
+            let kept = get_as(&s, "a", &format!("{path}?b={version}"));
+            assert!(kept.starts_with("HTTP/1.1 200"), "{path}: {kept}");
+            assert!(
+                kept.contains("cache-control: public, max-age=31536000, immutable\r\n"),
+                "{path} at the delivery: {kept}"
+            );
+            let other = get_as(&s, "a", &format!("{path}?b=0000000000000000"));
+            assert!(other.starts_with("HTTP/1.1 200"), "{path}: {other}");
+            assert!(
+                other.contains("public, no-cache") && !other.contains("immutable"),
+                "{path} at another delivery: {other}"
+            );
+        }
+        let page = get_as(&s, "a", "/");
+        assert!(
+            page.contains(&format!("pw-delivery: {version}\r\n")),
+            "a page navigated to in place is held to its delivery: {page}"
+        );
+        let script = format!("import(\"/pw-runtime.mjs?b={version}\")");
+        assert!(
+            page.contains(&format!("<script>{script}</script>")),
+            "{page}"
+        );
+        assert!(
+            page.contains(&csp::sha256_source(&script)),
+            "the page's policy allows the script it runs: {page}"
+        );
+        assert!(
+            !page.contains(&csp::sha256_source(RUNTIME_SOURCE)),
+            "{page}"
+        );
+        let kept = get_as(&s, "a", &format!("/pw-handlers?b={version}"));
+        assert!(
+            kept.contains("cache-control: public, max-age=31536000, immutable\r\n"),
+            "{kept}"
+        );
+        for asked in ["/pw-handlers", "/pw-handlers?b=0000000000000000"] {
+            let table = get_as(&s, "a", asked);
+            assert!(table.starts_with("HTTP/1.1 200"), "{table}");
+            assert!(!table.contains("cache-control"), "{asked}: {table}");
+        }
+    }
+
+    /// One GET of `path` with `headers` added, through the server's own
+    /// handling: the answer's head, and its body's bytes as sent.
+    fn get_bytes(s: &Server, path: &str, headers: &str) -> (String, Vec<u8>) {
+        let listener = std::net::TcpListener::bind(("127.0.0.1", 0)).expect("bind");
+        let at = listener.local_addr().expect("address");
+        std::thread::scope(|scope| {
+            scope.spawn(|| {
+                let (stream, _) = listener.accept().expect("accept");
+                handle(s, stream);
+            });
+            let mut client = std::net::TcpStream::connect(at).expect("connect");
+            client
+                .write_all(
+                    format!(
+                        "GET {path} HTTP/1.1\r\nHost: t\r\nCookie: pw-session=a\r\n{headers}\r\n"
+                    )
+                    .as_bytes(),
+                )
+                .expect("request");
+            let mut answer = Vec::new();
+            let _ = std::io::Read::read_to_end(&mut client, &mut answer);
+            let split = answer
+                .windows(4)
+                .position(|w| w == b"\r\n\r\n")
+                .expect("a head");
+            (
+                String::from_utf8_lossy(&answer[..split]).to_string(),
+                answer[split + 4..].to_vec(),
+            )
+        })
+    }
+
+    /// **A compiled module is sent as its packaging wrote it** (the first
+    /// press's ADR): a handler's and a page's computed values', each in the
+    /// representation the request accepts of those its production packaging
+    /// wrote beside it, else as it is, which is all a development build
+    /// has; each with a validator for that representation, a 304 for a
+    /// request that holds it, a public cache policy and no session. What
+    /// this build does not name is refused as before.
+    #[test]
+    fn a_compiled_module_is_sent_as_its_packaging_wrote_it() {
+        let s = served_feed();
+        let id = s
+            .handler_identities()
+            .into_iter()
+            .next()
+            .expect("a handler");
+        let handler = (format!("/handler/{id}.mjs"), s.handler_module(&id));
+        let computed = (
+            "/computed/feed.app.Home~ui.mjs".to_string(),
+            s.artifacts.join("computed").join("feed.app.Home~ui.mjs"),
+        );
+        for (url, path) in [handler, computed] {
+            let plain = std::fs::read(&path).expect("the module");
+            // A development build's: no other representation, the module.
+            let (head, body) = get_bytes(&s, &url, "Accept-Encoding: br, gzip\r\n");
+            assert!(head.starts_with("HTTP/1.1 200"), "{head}");
+            assert_eq!(body, plain, "{url}");
+            assert!(!head.contains("content-encoding"), "{head}");
+            assert!(
+                head.contains("cache-control: public, no-cache\r\n"),
+                "{head}"
+            );
+            assert!(head.contains("vary: accept-encoding\r\n"), "{head}");
+            assert!(!head.to_ascii_lowercase().contains("set-cookie"), "{head}");
+            // A production build's: what the request accepts, Brotli first.
+            let sibling = |suffix: &str| {
+                let mut p = path.as_os_str().to_owned();
+                p.push(suffix);
+                std::path::PathBuf::from(p)
+            };
+            std::fs::write(sibling(".br"), b"brotli's bytes").expect("written");
+            std::fs::write(sibling(".gz"), b"gzip's bytes").expect("written");
+            let (head, body) = get_bytes(&s, &url, "Accept-Encoding: gzip, br\r\n");
+            assert!(head.contains("content-encoding: br\r\n"), "{head}");
+            assert_eq!(body, b"brotli's bytes");
+            let (head, body) = get_bytes(&s, &url, "Accept-Encoding: gzip, br;q=0\r\n");
+            assert!(head.contains("content-encoding: gzip\r\n"), "{head}");
+            assert_eq!(body, b"gzip's bytes");
+            let (plain_head, body) = get_bytes(&s, &url, "");
+            assert!(!plain_head.contains("content-encoding"), "{plain_head}");
+            assert_eq!(body, plain);
+            // One validator a representation, and a 304 for the one held.
+            let etag = |head: &str| {
+                head.lines()
+                    .find_map(|l| l.strip_prefix("etag: "))
+                    .expect("an etag")
+                    .to_string()
+            };
+            let plain_tag = etag(&plain_head);
+            let (head, body) = get_bytes(&s, &url, &format!("If-None-Match: {plain_tag}\r\n"));
+            assert!(head.starts_with("HTTP/1.1 304"), "{head}");
+            assert!(body.is_empty());
+            let (head, _) = get_bytes(
+                &s,
+                &url,
+                &format!("Accept-Encoding: br\r\nIf-None-Match: {plain_tag}\r\n"),
+            );
+            assert!(
+                head.starts_with("HTTP/1.1 200"),
+                "another representation: {head}"
+            );
+        }
+        let (head, _) = get_bytes(
+            &s,
+            "/handler/ffffffffffffffff.mjs",
+            "Accept-Encoding: br\r\n",
+        );
+        assert!(head.starts_with("HTTP/1.1 404"), "{head}");
     }
 
     /// **A build that names no build is not served** (ADR-0300): it was
@@ -16953,7 +18357,8 @@ public query Store(",
         .expect("runs");
         s.tell_waiting();
         let set = format!("{:?}", sets_of(&s, &theirs).pop().expect("a patch set"));
-        assert!(set.contains("Guest a"), "{set}");
+        let guest = crate::identity::Principal::guest("a").name;
+        assert!(set.contains(&guest), "{guest}: {set}");
         assert!(!set.contains("You"), "{set}");
     }
 
@@ -20160,10 +21565,12 @@ public query Store(",
             COMMITTED_ARTIFACTS,
         );
         let (head, body) = page.split_once("</head>").expect("a head");
+        // And what its runtime boots with last (ADR-0399),
+        // after what it says of itself and the stylesheets a paint waits for.
         assert!(
-            head.ends_with(
-                "<title>Panel &amp; co</title>\n<meta name=\"description\" content=\"A panel.\">\n"
-            ),
+            head.ends_with(&format!(
+                "<title>Panel &amp; co</title>\n<meta name=\"description\" content=\"A panel.\">\n{BOOT}"
+            )),
             "{head}"
         );
         assert!(

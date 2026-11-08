@@ -18,6 +18,7 @@ command remind(order: String) -> Result<Int, String>
 }
 
 command remind_on(order: String, day: LocalDate, time: LocalTime, zone: TimeZone) -> Result<Int, String> !{ clock.schedule, clock.zone }
+    requires Anyone
 {
     schedule remind(order) at at(day, time, zone)
     Ok(1)

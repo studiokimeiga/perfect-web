@@ -289,6 +289,8 @@ pub(crate) fn check_inferred_prepared(
         .map(|(i, u)| {
             let mut out = resolution.remove(&i).unwrap_or_default();
             out.extend(sent_without_idempotency(&u.hir, i, &sent));
+            // ADR-0406: a command a reader can run says who may.
+            out.extend(who_may_run(&u.hir, i, &sent));
             // ADR-0157: a command is one request a page's handler sends, and
             // what it answers is whether it committed.
             out.extend(called_outside_a_handler(&u.hir, i, sigs));
@@ -417,13 +419,167 @@ fn sent_without_idempotency(
                  InteractionId` runs the command once for it (ADR-0121)."
                     .to_string(),
             ),
+            // Both steps: `idempotent_by` names a type, and a program with no
+            // `InteractionId` that only adds the clause is refused next
+            // (PW0335, "names no type visible here").
             repairs: vec![Repair {
-                description: "declare `idempotent_by InteractionId`".to_string(),
+                description: "declare `idempotent_by InteractionId`, and `opaque type InteractionId = String` if the program has none".to_string(),
                 replacement: None,
             }],
         });
     }
     out
+}
+
+/// **A command says who may run it** (ADR-0406, PW0367).
+///
+/// The server runs a command for any request that names it, whether or not a
+/// page shows its button (`/command/<id>` admits every command it hosts but
+/// one the platform invokes), so who may run it belongs to the command. A
+/// command a reader can run declares `requires`: the predicates a request must
+/// hold, or `Anyone`, alone. One the platform runs says `invoked_by` instead,
+/// and PW6401 holds it to no `requires`. `Anyone` is the platform's: a program
+/// that declared its own would be read as everyone's.
+fn who_may_run(
+    hir: &Hir,
+    unit: usize,
+    sent: &BTreeMap<crate::resolve::DefId, Vec<(usize, hir::Span)>>,
+) -> Vec<Diagnostic> {
+    let mut out = Vec::new();
+    for (id, decl) in hir.all_decls() {
+        match decl.kind {
+            hir::DeclKind::Predicate if decl.name == crate::policy::ANYONE => {
+                out.push(anyone_declared(hir, id, decl));
+            }
+            hir::DeclKind::Command if decl.policy("invoked_by").is_none() => {
+                let presses = sent
+                    .get(&crate::resolve::DefId { unit, decl: id.0 })
+                    .map_or(&[][..], Vec::as_slice);
+                out.extend(runner_unstated(hir, id, decl, presses));
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
+/// What a request to a reader-run command must hold, unsaid: no `requires`,
+/// or `Anyone` with arguments or beside another predicate. A `requires` that
+/// does not parse is its clause's own refusal.
+fn runner_unstated(
+    hir: &Hir,
+    id: hir::DeclId,
+    decl: &hir::Decl,
+    presses: &[(usize, hir::Span)],
+) -> Option<Diagnostic> {
+    let (reason, message, at, repairs) = match decl.policy("requires") {
+        None => (
+            "runner_unstated",
+            format!(
+                "`{}` runs for any reader's request, and says nothing of who may run it",
+                decl.name
+            ),
+            decl.name_span.clone(),
+            vec![
+                "declare `requires` with what a reader must hold, such as `requires SignedIn`",
+                "or `requires Anyone`, if anyone may run it",
+            ],
+        ),
+        Some(requires) => {
+            let predicates = crate::policy::predicates(&requires.value).ok()?;
+            let anyone = predicates
+                .iter()
+                .find(|p| p.name == crate::policy::ANYONE)?;
+            let (reason, message) = if !anyone.arguments.is_empty() {
+                (
+                    "anyone_given_arguments",
+                    "gives `Anyone` arguments, and it takes none",
+                )
+            } else if predicates.len() > 1 {
+                (
+                    "anyone_beside_others",
+                    "requires `Anyone` beside another predicate",
+                )
+            } else {
+                return None;
+            };
+            (
+                reason,
+                format!("`{}` {message}", decl.name),
+                requires.span.clone(),
+                vec!["write `requires Anyone` alone, or name only what a reader must hold"],
+            )
+        }
+    };
+    let related = if presses.is_empty() {
+        vec![Related::new(
+            hir.decl_span(id),
+            format!(
+                "a request that names `{}` runs it, with or without a page",
+                decl.name
+            ),
+        )]
+    } else {
+        presses
+            .iter()
+            .map(|(unit, span)| {
+                Related::in_unit(
+                    *unit,
+                    span.clone(),
+                    "a press sends it from here".to_string(),
+                )
+            })
+            .collect()
+    };
+    Some(Diagnostic {
+        code: crate::codes::WHO_MAY_RUN.id,
+        invariant: crate::codes::WHO_MAY_RUN.invariant,
+        reason,
+        detector: Detector::DeclarationRule,
+        severity: Severity::Error,
+        message,
+        primary_span: at,
+        related,
+        explanation: Some(WHO_MAY_RUN_WHY.to_string()),
+        repairs: repairs
+            .into_iter()
+            .map(|description| Repair {
+                description: description.to_string(),
+                replacement: None,
+            })
+            .collect(),
+    })
+}
+
+const WHO_MAY_RUN_WHY: &str = "The server runs a command for any request that names it, whether \
+     or not a page shows its button: a request is an address and a body, and anyone can send \
+     one. So who may run a command is the command's to say. `requires` names what every request \
+     must hold, as `requires SignedIn, OwnsPost(post)`; `requires Anyone` says anyone may, and \
+     stands alone. A command the platform runs says `invoked_by` instead.";
+
+/// `predicate Anyone`, declared by a program: `Anyone` is the platform's, and
+/// nothing asks it, so a program's own would be read as everyone's.
+fn anyone_declared(hir: &Hir, id: hir::DeclId, decl: &hir::Decl) -> Diagnostic {
+    Diagnostic {
+        code: crate::codes::WHO_MAY_RUN.id,
+        invariant: crate::codes::WHO_MAY_RUN.invariant,
+        reason: "anyone_declared",
+        detector: Detector::DeclarationRule,
+        severity: Severity::Error,
+        message:
+            "`predicate Anyone` is declared, and `Anyone` is the platform's: every reader holds it"
+                .to_string(),
+        primary_span: decl.name_span.clone(),
+        related: vec![Related::new(
+            hir.decl_span(id),
+            "a `requires Anyone` would not ask this".to_string(),
+        )],
+        explanation: Some(WHO_MAY_RUN_WHY.to_string()),
+        repairs: vec![Repair {
+            description: "name the predicate otherwise".to_string(),
+            replacement: None,
+        }],
+    }
 }
 
 /// **A page says when its address names nothing** (ADR-0163, PW0342):
@@ -1536,11 +1692,13 @@ fn not_a_term(
             hir.decl_span(decl_id_of(hir, decl)),
             format!("called inside `{}`", decl.name),
         )],
+        // Until 2026-09-26 such a call checked: every analysis answered for
+        // it as it does for a call to nothing.
         explanation: Some(format!(
             "A call names a function, a data operation, or a type it builds. \
-             {how} Until 2026-09-26 such a call checked: every analysis \
-             answered for it as it does for a call to nothing, and the value \
-             it was said to produce had no type."
+             {how} Every analysis would answer for such a call as it does for a \
+             call to nothing, and the value it is said to produce would have no \
+             type."
         )),
         repairs: vec![Repair {
             description: format!("use `{path}` as {what} is used, or call a function"),
@@ -1742,15 +1900,17 @@ fn policy_value(
             hir.decl_span(id),
             format!("{of} `{}`", decl.name),
         )],
+        // Until 2026-09-26 such a value checked, and each reader of the clause
+        // decided alone what it meant.
         explanation: Some(
             "A policy's value is one its domain has: a word the policy lists, a \
              duration, a length, a world, a parameter of the declaration, a type, an \
              authorization predicate over command parameters, or an operator given \
              its arguments by name, wherever the policy is written. A value the \
-             compiler does not understand is not a policy nobody wrote. Until \
-             2026-09-26 such a value checked, and each reader of the clause decided \
-             alone what it meant: `cache Shared` was no shared cache to the privacy \
-             rule, and no cache to the manifest."
+             compiler does not understand is not a policy nobody wrote: each reader \
+             of the clause would decide alone what it meant, and `cache Shared` \
+             would be no shared cache to the privacy rule, and no cache to the \
+             manifest."
                 .to_string(),
         ),
         repairs: vec![Repair {
@@ -2964,8 +3124,9 @@ fn dependencies_stated_once(hir: &Hir) -> Vec<Diagnostic> {
 /// Int { p.value }` would call itself for ever.
 /// **The handle a type holds, if any** (ADR-0263): a session's, a user's or
 /// an organization's, wherever it sits: the type itself, an argument, a
-/// record's field, a case's payload, an opaque type's representation.
-fn handle_in(
+/// record's field, a case's payload, an opaque type's representation. A
+/// table's row holds none (PW6901, `tables::check`).
+pub(crate) fn handle_in(
     sigs: &Signatures,
     ty: &crate::resolved::ResolvedType,
     seen: &mut BTreeSet<crate::resolve::DefId>,
@@ -3631,11 +3792,12 @@ fn declared_once(hir: &Hir) -> Vec<Diagnostic> {
                     hir.decl_span(id),
                     format!("`{}` is declared here", decl.name),
                 )],
+                // Until 2026-09-26 each checked.
                 explanation: Some(
                     "A name written twice where it is declared says two things, and one of \
                      them is dropped: a body sees one of two parameters, a field access one of \
                      two fields, every reader of a policy its first writing, and HTML an \
-                     attribute's first value. Until 2026-09-26 each checked."
+                     attribute's first value."
                         .to_string(),
                 ),
                 repairs: vec![Repair {
@@ -5207,10 +5369,12 @@ fn comment_as_text(hir: &Hir) -> Vec<Diagnostic> {
                         hir.decl_span(decl_id),
                         format!("`{}` renders this", decl.name),
                     )],
+                    // Until 2026-10-03 such a line between two elements checked,
+                    // and the page showed it.
                     explanation: Some(
                         "In markup, `//` and `/*` begin no comment: what follows is the \
-                         page's text, as in HTML and JSX. Until 2026-10-03 such a line \
-                         between two elements checked, and the page showed it (ADR-0167)."
+                         page's text, as in HTML and JSX, and the page would show it \
+                         (ADR-0167)."
                             .to_string(),
                     ),
                     repairs: vec![
@@ -5321,13 +5485,13 @@ fn code_in_markup(hir: &Hir) -> Vec<Diagnostic> {
                         hir.decl_span(decl_id),
                         format!("`{}` renders this", decl.name),
                     )],
+                    // Until 2026-09-26 both checked and built.
                     explanation: Some(
                         "A view renders into a page that loads the platform's runtime after \
                          the view's markup, by a relative URL; a `<base>` element anywhere in \
                          the document moves it, and every link after it. An animation sets \
                          the attribute it names, so `<animate attributeName=\"href\">` gives a \
-                         link a URL that never passed the check a URL attribute gets. Until \
-                         2026-09-26 both checked and built."
+                         link a URL that never passed the check a URL attribute gets."
                             .to_string(),
                     ),
                     repairs: vec![Repair {
@@ -5409,12 +5573,13 @@ fn code_in_markup(hir: &Hir) -> Vec<Diagnostic> {
                         hir.decl_span(decl_id),
                         format!("`{}` renders this", decl.name),
                     )],
+                    // Until 2026-09-26 `<script>{msg}</script>` and `onclick={msg}`
+                    // checked and built, and ran `msg`.
                     explanation: Some(
                         "The renderer escapes a value by where it sits: text, an attribute, a \
                          URL, a style. A script, an inline handler, a `srcdoc` document and a \
                          stylesheet are none of those, and no escaping makes a value in them \
-                         inert. Until 2026-09-26 `<script>{msg}</script>` and \
-                         `onclick={msg}` checked and built, and ran `msg`."
+                         inert: `<script>{msg}</script>` and `onclick={msg}` would run `msg`."
                             .to_string(),
                     ),
                     repairs: vec![Repair {
@@ -5607,10 +5772,12 @@ fn view_elements(
                     hir.decl_span(decl_id),
                     format!("`{}` renders this", decl.name),
                 )],
+                // Until 2026-09-26 one built as an unknown HTML element, and the
+                // view's markup was never rendered.
                 explanation: Some(
                     "HTML lowercases every tag it parses, so an element named with a capital \
-                     letter is a view. Until 2026-09-26 one built as an unknown HTML element: \
-                     the view's markup was never rendered."
+                     letter is a view. Built as HTML, it would be an element no browser \
+                     knows, and the view's markup would never render."
                         .to_string(),
                 ),
                 repairs: vec![Repair {
@@ -6532,14 +6699,14 @@ fn unresolved_in_policy_term(
             hir.decl_span(decl_id_of(hir, decl)),
             format!("written in `{policy}` on `{}`", decl.name),
         )],
+        // This value was kept as unparsed text until 2026-08-10, so nothing
+        // had ever asked.
         explanation: Some(format!(
             "An `{policy}` value is executable code: it runs on the client, and \
              its names come from lexical scope like any other term's. `{name}` \
              is not a parameter, not a local, and not a declaration this file \
-             can see.\n\nThis value was kept as unparsed text until \
-             2026-08-10, so nothing had ever asked. Making it a term means it \
-             is checked like a term — no ambient binding is supplied because \
-             the policy is spelled `{policy}`."
+             can see.\n\nThe value is checked as any term is: no ambient binding \
+             is supplied because the policy is spelled `{policy}`."
         )),
         repairs: vec![Repair {
             description: format!(
@@ -8334,16 +8501,25 @@ fn privacy_and_placement(
         declared_cache(hir, decl).filter(|(v, _)| v == "shared" && !held.safe_in_shared_cache())
     {
         let label = &held;
-        // The parameter, where one is the source: the related span is where
-        // it is declared, not the whole declaration.
+        // The parameter, where one is the source, and the label it states:
+        // the related span is where it is declared, not the whole
+        // declaration, and what is said of it is its own label, not all the
+        // declaration holds.
         let param = read_from
             .is_none()
             .then(|| reads.given_by(def))
             .flatten()
-            .and_then(|name| decl.params.iter().find(|p| p.name == name));
+            .and_then(|(name, own)| {
+                decl.params
+                    .iter()
+                    .find(|p| p.name == name)
+                    .map(|p| (p, own))
+            });
+        // The label of what the cause chain names as the source.
+        let source = param.map_or(label, |(_, own)| own);
         let read_from = read_from
             .map(|v| format!("`{v}`"))
-            .or_else(|| param.map(|p| format!("its parameter `{}`", p.name)))
+            .or_else(|| param.map(|(p, _)| format!("its parameter `{}`", p.name)))
             .or_else(|| {
                 layout
                     .filter(|_| !shown.is_public())
@@ -8367,10 +8543,10 @@ fn privacy_and_placement(
                 message: format!("`{}` is {label} and declares a shared cache", decl.name),
                 primary_span: cache.span.clone(),
                 related: vec![match param {
-                    Some(p) => Related::new(
+                    Some((p, own)) => Related::new(
                         p.span.clone(),
                         format!(
-                            "`{}` is {label}, so what `{}` makes from it is",
+                            "`{}` is {own}, so what `{}` makes from it is too",
                             p.name, decl.name
                         ),
                     ),
@@ -8382,7 +8558,7 @@ fn privacy_and_placement(
                 explanation: Some(format!(
                     "A shared cache may contain only `Public` values, because every \
                      user reads it. The cause chain: `{}` materializes {}, which is \
-                     labeled `{label}`, and `{label}` does not flow into `Public` — \
+                     labeled `{source}`, and `{source}` does not flow into `Public` — \
                      so one user's value would be served to another. A key naming \
                      the reader does not make it shareable: an entry only that \
                      reader can hit gains nothing from a shared cache, and puts \
@@ -8761,7 +8937,7 @@ pub(crate) struct Reads {
     /// Cart(session: Session<SessionId>)` holds a session's value whatever
     /// its keyword says. Until 2026-10-02 nothing read a declaration's own
     /// parameters, and that query passed `cache shared` (T12).
-    given: BTreeMap<crate::resolve::DefId, (Label, String)>,
+    given: BTreeMap<crate::resolve::DefId, Given>,
     /// **What each declaration reads** (ADR-0282): the declarations its body
     /// calls and the queries it names, and a materialization's `depends_on`.
     reading: BTreeMap<crate::resolve::DefId, Vec<crate::resolve::DefId>>,
@@ -8786,7 +8962,7 @@ impl Reads {
                 if let Some(sig) = sigs.by_def(def) {
                     me.results.insert(def, sig.label.clone());
                     if let Some(given) = given_label(sigs, sig) {
-                        me.returned.insert(def, given.0.clone());
+                        me.returned.insert(def, given.label.clone());
                         me.given.insert(def, given);
                     }
                 }
@@ -8897,9 +9073,13 @@ impl Reads {
         self.declared(def).join(&self.through(def))
     }
 
-    /// The parameter that makes `def` hold a reader's value, if one does.
-    pub(crate) fn given_by(&self, def: crate::resolve::DefId) -> Option<&str> {
-        self.given.get(&def).map(|(_, name)| name.as_str())
+    /// The parameter that makes `def` hold a reader's value, if one does,
+    /// and the label it states itself: one of what `def` is given, where
+    /// `def` is given more than one.
+    pub(crate) fn given_by(&self, def: crate::resolve::DefId) -> Option<(&str, &Label)> {
+        self.given
+            .get(&def)
+            .map(|g| (g.first.as_str(), &g.first_label))
     }
 
     /// Each declaration's `declared` label, where it is not public: what
@@ -9102,10 +9282,22 @@ pub(crate) fn summaries(
     }
 }
 
+/// **What a declaration's parameters give it** (ADR-0128): the labels they
+/// state, joined, and the first parameter stating one, with that label.
+struct Given {
+    label: Label,
+    first: String,
+    /// The first's own label. A query given a session and an organization
+    /// holds both, and its `session` states only the first: PW5001 said
+    /// "`session` is Session<SessionId> ⊔ Organization<OrganizationId>"
+    /// until 2026-11-06.
+    first_label: Label,
+}
+
 /// The labels a declaration's parameters state, a secret left out, with the
 /// first parameter stating one (ADR-0128). A secret a parameter states is a
 /// key the declaration uses, not a value it holds (ADR-0118 §5).
-fn given_label(sigs: &Signatures, sig: &crate::signatures::Signature) -> Option<(Label, String)> {
+fn given_label(sigs: &Signatures, sig: &crate::signatures::Signature) -> Option<Given> {
     let mut label = Label::public();
     let mut first = None;
     for (i, param) in sig.params.iter().enumerate() {
@@ -9125,10 +9317,15 @@ fn given_label(sigs: &Signatures, sig: &crate::signatures::Signature) -> Option<
         }
         label = label.join(&held);
         if first.is_none() {
-            first = Some(sig.names.get(i).cloned().unwrap_or_else(|| format!("#{i}")));
+            let name = sig.names.get(i).cloned().unwrap_or_else(|| format!("#{i}"));
+            first = Some((name, held));
         }
     }
-    first.map(|name| (label, name))
+    first.map(|(first, first_label)| Given {
+        label,
+        first,
+        first_label,
+    })
 }
 
 /// **The signature a call names, as the unit sees it** (ADR-0112).
@@ -9771,10 +9968,10 @@ fn loop_keys(hir: &Hir, id: crate::hir::DeclId, decl: &Decl, out: &mut Vec<Diagn
                 hir.decl_span(id),
                 format!("`{}` renders this", decl.name),
             )],
+            // Until 2026-09-26 a key whose head was another name keyed on a field
+            // of the element, silently.
             explanation: Some(
-                "A key identifies each element of the list, so it is read from the element. \
-                 Until 2026-09-26 a key whose head was another name keyed on a field of the \
-                 element, silently."
+                "A key identifies each element of the list, so it is read from the element."
                     .to_string(),
             ),
             repairs: vec![Repair {
@@ -9951,10 +10148,12 @@ fn template_blocks(
         message,
         primary_span: span,
         related: related(),
+        // Until 2026-09-25 a dropped `{:else}` rendered both of an `if`'s
+        // branches at once.
         explanation: Some(
             "A block's markers decide what renders. A marker the block does not take \
-             is not ignored safely: until 2026-09-25 a dropped `{:else}` rendered both \
-             of an `if`'s branches at once."
+             is not ignored safely: an `if` whose `{:else}` were dropped would render \
+             both of its branches at once."
                 .to_string(),
         ),
         repairs: Vec::new(),
@@ -10566,11 +10765,35 @@ fn markup_rules(hir: &Hir, decl: &Decl, out: &mut Vec<Diagnostic>) {
                     }
                 }
 
+                // An image with nothing to stand for it (PW5053).
+                if tag.eq_ignore_ascii_case("img") && !has_alt(attrs) {
+                    out.push(image_without_alt(hir, decl, body, id));
+                }
+
+                // An image button with no text to name it (PW5053,
+                // ADR-0405): its `alt` is its label, so HTML requires
+                // one, and not empty.
+                if tag.eq_ignore_ascii_case("input")
+                    && input_type(attrs).as_deref() == Some("image")
+                    && names_with(attrs, "alt") != Some(true)
+                {
+                    out.push(image_button_without_alt(hir, decl, body, id, attrs));
+                }
+
                 // A form control with nothing naming it.
-                if matches!(tag.as_str(), "input" | "select" | "textarea") {
-                    // `hidden` and `submit` inputs are not labelled controls.
-                    let typ = static_attr(attrs, "type").map(str::to_ascii_lowercase);
-                    if matches!(typ.as_deref(), Some("hidden" | "submit" | "button")) {
+                if ["input", "select", "textarea"]
+                    .iter()
+                    .any(|t| tag.eq_ignore_ascii_case(t))
+                {
+                    // `type` is an `<input>`'s alone.
+                    let typ = tag
+                        .eq_ignore_ascii_case("input")
+                        .then(|| input_type(attrs))
+                        .flatten();
+                    // A `hidden` input is no control. An image button is
+                    // named by its `alt`, which PW5053 holds to text above:
+                    // the one defect is reported once (ADR-0405).
+                    if matches!(typ.as_deref(), Some("hidden" | "image")) {
                         continue;
                     }
                     if named.contains(&id) {
@@ -10593,38 +10816,74 @@ fn markup_rules(hir: &Hir, decl: &Decl, out: &mut Vec<Diagnostic>) {
                         format!("`{}` renders this control", decl.name),
                     )];
                     related.extend(unnamed_because(body, &order, id, &decl.name));
+                    // A button's label is its `value`, and the repair is one
+                    // (ADR-0405).
+                    let button = matches!(typ.as_deref(), Some("submit" | "reset" | "button"));
                     out.push(Diagnostic {
                         code: "PW5014",
                         invariant: "a form control must have something that names it",
-                        reason: "control_without_label",
+                        reason: if button {
+                            "button_without_label"
+                        } else {
+                            "control_without_label"
+                        },
                         detector: Detector::DeclarationRule,
                         severity: Severity::Error,
-                        message: format!("`<{tag}>` has no associated label"),
+                        message: match typ.as_deref() {
+                            // HTML's word for a button's text is its label.
+                            Some(t) if button => format!("`<input type=\"{t}\">` has no label"),
+                            _ => format!("`<{tag}>` has no associated label"),
+                        },
                         primary_span: body.node_span(id),
                         related,
                         explanation: Some(
-                            "A control with no accessible name is announced as \"edit text\" \
-                             and nothing else. `name` is submitted to the server; it is not \
-                             read to the user. An `id` names nothing by itself: a label \
-                             names the control when it is in the same declaration, has \
-                             text, and its `for` is the control's `id` or it wraps the \
-                             control. A placeholder is not a label: it disappears when \
-                             someone types."
-                                .to_string(),
+                            if button {
+                                "A button with no name is announced as \"button\" and nothing \
+                                 else. An `<input>` button's label is its `value`: the text it \
+                                 shows and what a screen reader reads. HTML gives a `submit` or \
+                                 a `reset` with no `value` a label of its own, \"Submit\" or \
+                                 \"Reset\", and an empty `value` takes its place, so the button \
+                                 shows nothing; a `button` input has no label but its `value`."
+                            } else {
+                                "A control with no accessible name is announced as \"edit \
+                                 text\" and nothing else. `name` is submitted to the server; it \
+                                 is not read to the user. An `id` names nothing by itself: a \
+                                 label names the control when it is in the same declaration, \
+                                 has text, and its `for` is the control's `id` or it wraps the \
+                                 control. A placeholder is not a label: it disappears when \
+                                 someone types."
+                            }
+                            .to_string(),
                         ),
-                        repairs: vec![
-                            Repair {
-                                description: "associate a `<label for=...>`, or supply \
-                                              `aria-label`/`aria-labelledby`"
-                                    .to_string(),
-                                replacement: None,
-                            },
-                            Repair {
-                                description: "or wrap the control in a `<label>` with text"
-                                    .to_string(),
-                                replacement: None,
-                            },
-                        ],
+                        repairs: if button {
+                            vec![
+                                Repair {
+                                    description: "write `value=\"…\"` saying what the button does"
+                                        .to_string(),
+                                    replacement: None,
+                                },
+                                Repair {
+                                    description: "or supply `aria-label`/`aria-labelledby`, or \
+                                                  wrap the button in a `<label>` with text"
+                                        .to_string(),
+                                    replacement: None,
+                                },
+                            ]
+                        } else {
+                            vec![
+                                Repair {
+                                    description: "associate a `<label for=...>`, or supply \
+                                                  `aria-label`/`aria-labelledby`"
+                                        .to_string(),
+                                    replacement: None,
+                                },
+                                Repair {
+                                    description: "or wrap the control in a `<label>` with text"
+                                        .to_string(),
+                                    replacement: None,
+                                },
+                            ]
+                        },
                     });
                 }
             }
@@ -10647,7 +10906,9 @@ fn markup_rules(hir: &Hir, decl: &Decl, out: &mut Vec<Diagnostic>) {
 /// - `aria-labelledby` names its element when one of its IDREFs is an element
 ///   here with text;
 /// - an `aria-label` names it unless it is blank. One the program computes is
-///   taken as a name: whether it is empty is known only when it runs.
+///   taken as a name: whether it is empty is known only when it runs;
+/// - an `<input>` button names itself, by its `value` or by the label HTML
+///   gives it (`names_itself`, ADR-0405).
 ///
 /// An `id` names nothing by itself. Until ADR-0143 one counted as a name, on
 /// the assumption that a label pointed at it, and nothing checked that one
@@ -10661,25 +10922,58 @@ fn named_controls(body: &Body, order: &[hir::NodeId]) -> BTreeSet<hir::NodeId> {
         let Node::Element { tag, attrs, .. } = body.node(n) else {
             continue;
         };
-        if tag == "label"
+        if tag.eq_ignore_ascii_case("label")
             && let Some(control) = labeled_control(body, n, &by_id)
             && has_text(body, n, control)
         {
             named.insert(control);
         }
-        let labelled = match attrs.iter().find(|a| a.name == "aria-label") {
-            Some(a) => match &a.value {
-                AttrValue::Static(_) => non_blank(attrs, "aria-label"),
-                AttrValue::Expr(_) => true,
-                AttrValue::None => false,
-            },
-            None => false,
-        };
-        if labelled || labelled_by(body, n, &by_id).is_some() {
+        let labelled = names_with(attrs, "aria-label") == Some(true);
+        if labelled || labelled_by(body, n, &by_id).is_some() || names_itself(tag, attrs) {
             named.insert(n);
         }
     }
     named
+}
+
+/// What an attribute that names something gives (accname 1.2, step 2C;
+/// HTML's button states): `None` when it is not written, `Some(true)` when
+/// it has text or the program computes it, which is taken as a name
+/// (ADR-0143), and `Some(false)` when it is blank or written alone, which
+/// HTML reads as `""`.
+fn names_with(attrs: &[hir::Attr], name: &str) -> Option<bool> {
+    let a = attrs.iter().find(|a| a.name.eq_ignore_ascii_case(name))?;
+    Some(match &a.value {
+        AttrValue::Static(_) => non_blank(attrs, name),
+        AttrValue::Expr(_) => true,
+        AttrValue::None => false,
+    })
+}
+
+/// An `<input>`'s `type` written as text, lower-cased: HTML matches its
+/// keywords whatever their case. `None` when it is computed, or not
+/// written, which makes a text field.
+fn input_type(attrs: &[hir::Attr]) -> Option<String> {
+    static_attr(attrs, "type").map(str::to_ascii_lowercase)
+}
+
+/// **Whether an `<input>` button names itself** (ADR-0405; HTML
+/// 4.10.5.1.18, .20 and .21; HTML-AAM 4.1.2). Its label is its `value`, when
+/// that has text or the program computes it. With no `value`, a `submit` or a
+/// `reset` has the label HTML gives it, "Submit" or "Reset", and a `button`
+/// has the empty string. An empty `value` is the label all the same: the
+/// button shows nothing, and HTML-AAM gives the default only where `value` is
+/// not written. An image button is named by its `alt`, PW5053's to hold.
+fn names_itself(tag: &str, attrs: &[hir::Attr]) -> bool {
+    let default = match (
+        tag.to_ascii_lowercase().as_str(),
+        input_type(attrs).as_deref(),
+    ) {
+        ("input", Some("submit" | "reset")) => true,
+        ("input", Some("button")) => false,
+        _ => return false,
+    };
+    names_with(attrs, "value").unwrap_or(default)
 }
 
 /// Whether a control's `aria-labelledby` names ids no element of the
@@ -10714,7 +11008,8 @@ fn labelled_but_for_its_id(
         _ => false,
     };
     let labelled = order.iter().any(|&n| {
-        matches!(body.node(n), Node::Element { tag, .. } if tag == "label") && has(n, "for")
+        matches!(body.node(n), Node::Element { tag, .. } if tag.eq_ignore_ascii_case("label"))
+            && has(n, "for")
     });
     let earlier = order
         .iter()
@@ -10723,11 +11018,114 @@ fn labelled_but_for_its_id(
     labelled && (earlier || inside_each(body, order).contains(&control))
 }
 
-/// An attribute's value when it is written as text, its quotes removed.
+// --- what stands for an image (ADR-0404) --------------------------------
+
+/// Whether an `<img>` has an `alt`, whatever it holds: text, `""` (or the
+/// attribute alone, which HTML reads as `""`), or a value's. A `title`, an
+/// `aria-label` and a `role` are not one: HTML requires `alt` of every
+/// `<img>`, and only `alt` is shown where the image does not load. Its
+/// name is read as HTML reads it, whatever its case (`ALT`), as is the
+/// element's (`<iMg>`, train-14's review).
+fn has_alt(attrs: &[hir::Attr]) -> bool {
+    attrs.iter().any(|a| a.name.eq_ignore_ascii_case("alt"))
+}
+
+/// **An image with no `alt`** (PW5053), reported at the element.
+fn image_without_alt(hir: &Hir, decl: &Decl, body: &Body, id: hir::NodeId) -> Diagnostic {
+    Diagnostic {
+        code: crate::codes::IMAGE_WITHOUT_ALT.id,
+        invariant: crate::codes::IMAGE_WITHOUT_ALT.invariant,
+        reason: "image_without_alt",
+        detector: Detector::DeclarationRule,
+        severity: Severity::Error,
+        message: "`<img>` has no `alt`".to_string(),
+        primary_span: body.node_span(id),
+        related: vec![Related::new(
+            hir.decl_span(decl_id_of(hir, decl)),
+            format!("`{}` renders this image", decl.name),
+        )],
+        explanation: Some(
+            "Nothing stands for an image with no `alt`: a screen reader announces it as an \
+             image, often by its file name, and where it does not load the page shows no \
+             text in its place. HTML requires `alt` of every `<img>`: what the image shows, \
+             or `\"\"` for one that shows nothing a reader needs, such as decoration or what \
+             the text beside it already says, which a screen reader then passes over. An \
+             `aria-label` or a `title` is not shown where the image fails to load."
+                .to_string(),
+        ),
+        repairs: vec![
+            Repair {
+                description: "write `alt=\"…\"` saying what the image shows".to_string(),
+                replacement: None,
+            },
+            Repair {
+                description: "or `alt=\"\"` if it shows nothing a reader needs".to_string(),
+                replacement: None,
+            },
+        ],
+    }
+}
+
+/// **An image button with no text in its `alt`** (PW5053, ADR-0405),
+/// reported at the element. HTML 4.10.5.1.19: the `alt` "must be
+/// present, and must contain a non-empty string". Unlike an `<img>`'s, it is
+/// never empty: it is the button's label, and a button always does something
+/// a reader needs. A `title`, an `aria-label` or a `<label>` does not stand
+/// in for it, as for an `<img>`.
+fn image_button_without_alt(
+    hir: &Hir,
+    decl: &Decl,
+    body: &Body,
+    id: hir::NodeId,
+    attrs: &[hir::Attr],
+) -> Diagnostic {
+    let alt = attrs.iter().find(|a| a.name.eq_ignore_ascii_case("alt"));
+    let mut related = vec![Related::new(
+        hir.decl_span(decl_id_of(hir, decl)),
+        format!("`{}` renders this button", decl.name),
+    )];
+    related.extend(alt.map(|a| {
+        Related::new(
+            a.span.clone(),
+            "this `alt` is the button's label, and it is blank".to_string(),
+        )
+    }));
+    Diagnostic {
+        code: crate::codes::IMAGE_WITHOUT_ALT.id,
+        invariant: crate::codes::IMAGE_WITHOUT_ALT.invariant,
+        reason: "image_button_without_alt",
+        detector: Detector::DeclarationRule,
+        severity: Severity::Error,
+        message: match alt {
+            None => "`<input type=\"image\">` has no `alt`",
+            Some(_) => "`<input type=\"image\">` has a blank `alt`",
+        }
+        .to_string(),
+        primary_span: body.node_span(id),
+        related,
+        explanation: Some(
+            "An image button's `alt` is its label: what a screen reader announces, and the \
+             text the button shows where the image does not load. HTML requires one, and not \
+             empty, saying what the button does rather than what the image shows. An `<img>` \
+             may have `alt=\"\"` where it shows nothing a reader needs; a button always does \
+             something a reader needs. An `aria-label` or a `title` is not shown where the \
+             image fails to load."
+                .to_string(),
+        ),
+        repairs: vec![Repair {
+            description: "write `alt=\"…\"` saying what the button does".to_string(),
+            replacement: None,
+        }],
+    }
+}
+
+/// An attribute's value when it is written as text, its quotes removed. The
+/// attribute is found by its name as HTML reads it, whatever its case:
+/// HTML's tokenizer lower-cases it (13.2.5.33), so `TYPE` is `type`.
 fn static_attr<'a>(attrs: &'a [hir::Attr], name: &str) -> Option<&'a str> {
     attrs
         .iter()
-        .find(|a| a.name == name)
+        .find(|a| a.name.eq_ignore_ascii_case(name))
         .and_then(|a| match &a.value {
             AttrValue::Static(v) => Some(v.trim_matches(|c| c == '"' || c == '\'')),
             _ => None,
@@ -10782,7 +11180,7 @@ fn labelable(tag: &str, attrs: &[hir::Attr]) -> Option<bool> {
     if tag.contains(['.', '-']) || tag.starts_with(|c: char| c.is_ascii_uppercase()) {
         return None;
     }
-    Some(match tag {
+    Some(match tag.to_ascii_lowercase().as_str() {
         "input" => !static_attr(attrs, "type").is_some_and(|t| t.eq_ignore_ascii_case("hidden")),
         "button" | "meter" | "output" | "progress" | "select" | "textarea" => true,
         _ => false,
@@ -10804,7 +11202,7 @@ fn labeled_control(
     else {
         return None;
     };
-    if attrs.iter().any(|a| a.name == "for") {
+    if attrs.iter().any(|a| a.name.eq_ignore_ascii_case("for")) {
         let target = *by_id.get(static_attr(attrs, "for")?)?;
         let Node::Element { tag, attrs, .. } = body.node(target) else {
             return None;
@@ -10867,7 +11265,7 @@ fn has_text(body: &Body, n: hir::NodeId, skip: hir::NodeId) -> bool {
                 Node::Text(t) => !t.trim().is_empty(),
                 Node::Interpolation(_) => true,
                 Node::Element { attrs, .. } => {
-                    let hidden = attrs.iter().any(|a| a.name == "hidden")
+                    let hidden = attrs.iter().any(|a| a.name.eq_ignore_ascii_case("hidden"))
                         || static_attr(attrs, "aria-hidden") == Some("true");
                     !hidden
                         && (non_blank(attrs, "aria-label")
@@ -10913,7 +11311,7 @@ fn unnamed_because(
     control: hir::NodeId,
     decl: &str,
 ) -> Option<Related> {
-    let Node::Element { attrs, .. } = body.node(control) else {
+    let Node::Element { tag, attrs, .. } = body.node(control) else {
         return None;
     };
     let attr = |k: &str| attrs.iter().find(|a| a.name == k);
@@ -10932,6 +11330,25 @@ fn unnamed_because(
             },
         );
     }
+    // A button whose label is its `value`, and gives none (ADR-0405).
+    // Only a `button` input with no `value` has none to give.
+    if tag.eq_ignore_ascii_case("input")
+        && let Some(t) = input_type(attrs)
+        && matches!(t.as_str(), "submit" | "reset" | "button")
+    {
+        if let Some(a) = attr("value") {
+            return note(
+                a,
+                "this `value` is the button's label, and it is blank".to_string(),
+            );
+        }
+        if let Some(a) = attr("type") {
+            return note(
+                a,
+                format!("an `<input type=\"{t}\">` is named by its `value`, and this one has none"),
+            );
+        }
+    }
     // A label that wraps the control and does not name it.
     let by_id = first_with_id(body, order);
     for &l in order {
@@ -10949,7 +11366,7 @@ fn unnamed_because(
         }
         let why = match labeled_control(body, l, &by_id) {
             Some(c) if c == control => "this `<label>` has no text",
-            Some(_) if label.iter().any(|a| a.name == "for") => {
+            Some(_) if label.iter().any(|a| a.name.eq_ignore_ascii_case("for")) => {
                 "this `<label>` has a `for`, so it names that element, not what it wraps"
             }
             Some(_) => "this `<label>` names the first control inside it, which is another",
@@ -10981,7 +11398,7 @@ fn unnamed_because(
     }
     let empty = order.iter().copied().find(|&l| {
         matches!(body.node(l), Node::Element { tag, attrs, .. }
-            if tag == "label" && static_attr(attrs, "for") == Some(id))
+            if tag.eq_ignore_ascii_case("label") && static_attr(attrs, "for") == Some(id))
     });
     match empty {
         Some(l) => Some(Related::new(

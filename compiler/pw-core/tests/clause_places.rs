@@ -32,7 +32,13 @@ const DECLS: &str = "module t\n\nevent Moved(to: Int)\n\nquery Box(id: Int) -> I
 
 /// A declaration written `head(params)`, with one clause, and a body.
 fn with(head: &str, clause: &str) -> String {
-    format!("{DECLS}{head} -> Int !{{}}\n    {clause}\n{{\n    0\n}}\n")
+    // A command says who may run it (ADR-0406).
+    let who = if head.starts_with("command ") {
+        "\n    requires Anyone"
+    } else {
+        ""
+    };
+    format!("{DECLS}{head} -> Int !{{}}{who}\n    {clause}\n{{\n    0\n}}\n")
 }
 
 #[test]

@@ -53,8 +53,9 @@ fn a_template_writes_no_inline_handler() {
         "<button onclick=\"go()\">go</button>",
         "PW5023 `onclick` is code",
     );
+    // `alt=""`: the image's text is PW5053's, and this case is the handler.
     one(
-        "<img onerror={msg} src=\"/a.png\" />",
+        "<img onerror={msg} src=\"/a.png\" alt=\"\" />",
         "PW5023 `onerror` is code",
     );
     // A value in an ordinary attribute is escaped as one, and a handler is

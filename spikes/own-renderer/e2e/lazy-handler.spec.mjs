@@ -208,6 +208,8 @@ test("a handler this build did not compile is refused, whatever the document say
   // names a handler the build lacks, as one cached from another build would,
   // gets no listener and fetches no code, however consistently it names it.
   const fetched = watch(page);
+  const warned = [];
+  page.on("console", (m) => m.type() === "warning" && warned.push(m.text()));
   await page.route("**/StorePage.html", async (route) => {
     const response = await route.fetch();
     const body = await response.text();
@@ -230,6 +232,11 @@ test("a handler this build did not compile is refused, whatever the document say
 
   expect(log, "the build's handlers are known").toMatch(/knows \d+ handler\(s\)/);
   expect(log, "this one is not among them").toMatch(/refused \d+: code 4 /);
+  // ADR-0400: a developer is told in the console, by the code
+  // and the page that explains it.
+  expect(warned, "the console names the refusal and its page").toContainEqual(
+    expect.stringMatching(/^Pleris: handler \d+ not attached: PWR04, https:\/\/pleris\.dev\/e\/PWR04, recovery \S+$/),
+  );
   expect(fetched, "and nothing was fetched").toEqual([]);
   await expect(page.locator("#cart-count"), "the button is inert").toHaveText("0");
   await page.unrouteAll({ behavior: "ignoreErrors" }).catch(() => {});
@@ -333,8 +340,22 @@ test("nothing is prefetched without a policy that says so", async ({ page }) => 
   const links = await page.evaluate(() =>
     [...document.querySelectorAll("link")].map((l) => `${l.rel}:${l.href}`),
   );
+  // What every page's runtime boots with is asked for by its head
+  // (ADR-0399): the runtime, the decision's code and this build's
+  // handler table. Each is asked for by every boot, so none is speculative,
+  // and none is a handler's code.
+  const origin = new URL(page.url()).origin;
+  const boot = [
+    `modulepreload:${origin}/pw-runtime.mjs`,
+    `preload:${origin}/pw-resume.wasm`,
+    `preload:${origin}/pw-handlers`,
+  ];
   expect(
-    links.filter((l) => /preload|prefetch|modulepreload/.test(l)),
-    "and the document asks for no speculative load",
+    links.filter((l) => /preload|prefetch|modulepreload/.test(l)).sort(),
+    "the document asks for what its runtime boots with",
+  ).toEqual([...boot].sort());
+  expect(
+    links.filter((l) => l.includes("/handler/")),
+    "and for no handler's code",
   ).toEqual([]);
 });

@@ -38,16 +38,16 @@ SCHEMA_PATTERN = re.compile(r"pw_session_(feed|store)_[0-9a-f]{16}")
 # control; MUTANTS below exposes every individual anchor to preflight's checker.
 CONTROLS = [
     ("render-actor-cache", "memory", "render operation cache ignores actor generation", [
-        (MAIN, '''                    Some(render) => render.once(
-                        &self
-                            .identity
-                            .principals()
-                            .receipt_reader(session)
-                            .to_string(),
-                        &name,
-                        f,
-                    ),
-''', '''                    Some(render) => render.once(session, &name, f),
+        (MAIN, '''                Some(render) => render.once(
+                    &self
+                        .identity
+                        .principals()
+                        .receipt_reader(session)
+                        .to_string(),
+                    name,
+                    f,
+                ),
+''', '''                Some(render) => render.once(session, name, f),
 ''')]),
     ("memory-held-authority", "memory", "memory command drops its authority hold before publication", [
         (MAIN, '                Some(gate.read().expect("session command authority"))\n',
@@ -56,14 +56,14 @@ CONTROLS = [
         (IDENTITY, '        if self.is_local() && self.principals.cached_reader(&self.session) == self.reader {\n',
          '        if true || (self.is_local() && self.principals.cached_reader(&self.session) == self.reader) {\n')]),
     ("memory-final-expiry", "memory", "materializer publication omits its final local expiry check", [
-        (MAIN, '''                    schedules::write(tx, scheduled)?;
-                    if let Some(actor) = actor.filter(|actor| actor.is_local()) {
-                        actor.ensure_local_current()?;
-                    }
-''', '''                    schedules::write(tx, scheduled)?;
-                    if let Some(actor) = actor.filter(|actor| actor.is_local()) {
-                        let _ = actor;
-                    }
+        (MAIN, '''                        schedules::write(tx, scheduled)?;
+                        if let Some(actor) = actor.filter(|actor| actor.is_local()) {
+                            actor.ensure_local_current()?;
+                        }
+''', '''                        schedules::write(tx, scheduled)?;
+                        if let Some(actor) = actor.filter(|actor| actor.is_local()) {
+                            let _ = actor;
+                        }
 ''')]),
     ("receipt-generation", "memory", "durable receipt metadata binds arguments but omits reader generation", [
         (MAIN, '        let sent = serde_json::json!({"v":1,"reader":reader,"args":args}).to_string();\n',

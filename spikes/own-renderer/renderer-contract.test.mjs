@@ -29,9 +29,15 @@ function speculationScenario(enabled) {
     exports: "speculations, renderBlock, speculate,",
   };
 }
-function loader(fetch, speculate = false, speculationUrl = null) {
+// `delivery` is the version a production build's documents asked for the
+// runtime at (`?b=`), which the runtime reads from its own address
+// (`DELIVERY`): a context has no address, so it is given here; none for a
+// development build. The runtime's own `delivered` and `attempted` name the
+// renderer's file and a module's specifier.
+function loader(fetch, speculate = false, speculationUrl = null, delivery = null) {
   const scenario = speculationScenario(speculate);
-  const code = source("let renderer = null;", "/** A path read from the signals") +
+  const code = source("function delivered(", "async function bootDecision(") +
+    source("let renderer = null;", "/** A path read from the signals") +
     source("function renderCall(", "/** A value as the renderer reads it:") +
     scenario.code;
   const module = { commands: {} };
@@ -42,7 +48,7 @@ function loader(fetch, speculate = false, speculationUrl = null) {
       speculationOwner = { renderer: owner, retired: false };
     },
     held: () => ({ wasm, rendererLoaded, speculationModule, speculationOwner }) })`, {
-    fetch, WebAssembly, log: [], wasm: null, speculationModule: null, speculationOwner: null,
+    fetch, WebAssembly, DELIVERY: delivery, log: [], wasm: null, speculationModule: null, speculationOwner: null,
     speculationLoaded: speculationUrl ? null : module,
     TextEncoder, TextDecoder, Uint8Array, withTemplates: (request) => request,
     parts: { speculation: speculationUrl ?? "unused-cached-js-module", regions: {}, blocks: { 1: {} } },
@@ -147,6 +153,18 @@ test("a trap from an older native owner cannot retire its healthy replacement", 
   assert.equal(requests, 2);
 });
 
+test("a runtime asks for its renderer at the delivery it was asked for at, a development one at its path", async () => {
+  for (const [delivery, address] of [
+    [null, "/pw-render.wasm"],
+    ["3f a&b", "/pw-render.wasm?b=3f%20a%26b"],
+  ]) {
+    const asked = [];
+    const actual = loader(async (url) => { asked.push(url); return response(); }, false, null, delivery);
+    await actual.renderModule();
+    assert.deepEqual(asked, [address]);
+  }
+});
+
 for (const caller of ["speculations", "speculate"]) {
 for (const outcome of ["resolve", "reject"]) {
 test(`a renderer retired by a signal fails ${caller} when its import will ${outcome}`, async () => {
@@ -220,7 +238,9 @@ test("a press resuming after renderer retirement creates no unsent transition", 
     source("class RetiredRenderer extends Error", "/** The page's speculation module,") +
     source("async function speculate(", "/** The command answered:") +
     "\n({ speculate })", {
-    speculations: async () => module, current: () => state, render: () => {}, log: [],
+    // A press waits for the speculation module within a deadline of its own
+    // (`speculationsWithin`, the first press's review): the seam's name.
+    speculationsWithin: async () => module, current: () => state, render: () => {}, log: [],
     parts: { regions: {} }, wasm: null, rendererLoaded: null, nextSpeculation: 0,
     restoreSpeculation: async () => {},
   });
@@ -237,7 +257,7 @@ function settlement() {
   const drawn = [];
   const actual = vm.runInNewContext(source("async function resolveSpeculation(", "/** An `entry_value` frame:") +
     "\n({ resolveSpeculation })", {
-    speculated: states, speculations: () => load.promise, log: [],
+    speculated: states, speculationsWithin: () => load.promise, log: [],
     render: (_module, binding) => drawn.push({ binding, state: structuredClone(states.get(binding)) }),
   });
   return { actual, load, states, drawn };

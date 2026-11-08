@@ -58,7 +58,9 @@ fn estimating(s: &Server, least: i64, most: i64) {
         "a",
         "store:host/estimates#set",
         &[
-            Val::String("a".into()),
+            // The session by its handle, as the host keys it (track
+            // `data-path`).
+            Val::String(crate::identity::session_handle("a")),
             Val::S64(least),
             Val::Option(Some(Box::new(Val::S64(most)))),
         ],
@@ -709,6 +711,28 @@ fn an_order_is_sent_to_its_stores_when_its_preparation_is_due() {
         assert_eq!(s.run_due().0, 1, "due");
         assert_eq!(order(s), Some(("placed".into(), None)));
         assert!(runs(s).is_empty(), "run once");
+        // The run's commit is told by whichever thread takes it from the
+        // queue (`tell_waiting`): this one at `run_due`'s end, or a
+        // connection's that was answered meanwhile (the provider's webhook,
+        // `handle`, ADR-0219), which then tells it a moment after `run_due`
+        // returns. Waited for, as the scheduling's telling is above (PR #67's
+        // verify, at 3fe00518, read it before the connection's thread had).
+        let placed = |s: &Server| {
+            sets_of(s, &doc)
+                .iter()
+                .map(written)
+                .filter(|set| set.contains("Placed: the store has your order."))
+                .count()
+        };
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while placed(s) == 0 {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "the open page was not told it was placed: {:?}",
+                sets_of(s, &doc)
+            );
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
         let told: Vec<String> = sets_of(s, &doc).iter().map(written).collect();
         assert_eq!(
             told.iter()
@@ -734,7 +758,7 @@ fn an_order_is_sent_its_estimates_most_and_five_minutes_before() {
         "a",
         "store:host/estimates#set",
         &[
-            Val::String("a".into()),
+            Val::String(crate::identity::session_handle("a")),
             Val::S64(20),
             Val::Option(Some(Box::new(Val::S64(50)))),
         ],
@@ -895,6 +919,7 @@ const SEND_IN_FIVE: &str = r#"
 // A test's: `send_to_store(order)` scheduled five minutes on.
 command send_in_five(order: String)
     -> Result<Int, CartError>
+    requires      Anyone
     idempotent_by InteractionId
 {
     schedule send_to_store(order) after minutes(5)

@@ -1,0 +1,33 @@
+ADR-0128 - a shared cache holds no one reader's value, whatever its declaration says
+
+produced by: just e14-shared-cache
+commit: c30ef1f384b921a1ae120dfaef2ba193ee10977c
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+== regression tests (compiler/pw-core/tests/shared_cache_holds_no_readers_value.rs)
+
+test the_parameter_is_noted_with_its_own_label_where_more_are_given ... ok
+test a_readers_value_in_a_tenants_cache_is_one_defect ... ok
+test the_parameter_a_readers_value_comes_from_is_noted_in_a_whole_sentence ... ok
+test a_key_naming_the_reader_does_not_make_their_value_shareable ... ok
+test a_shared_fragment_of_a_query_given_the_session_is_refused ... ok
+test a_tenants_value_may_be_shared_keyed_by_its_tenant ... ok
+test a_query_given_the_session_holds_the_sessions_value_whatever_its_keyword ... ok
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.84s
+
+== generality (just generality)
+
+  corpus conformance:     44 / 44 (checking_source.rs)
+  generality-tested:      65 / 65
+  generality untested:    0 — []
+
+== mutation controls (scripts/shared_cache_mutations.py)
+
+baseline: 13 passed, 0 failed
+a declaration's own parameters are not read: KILLED (6 of 13 tests fail)
+a reader's value keyed by the reader is shareable: KILLED (8 of 13 tests fail)
+PW5001 reads the declared label only: KILLED (6 of 13 tests fail)
+a key item naming a tenant parameter does not count: KILLED (1 of 13 tests fail)
+PW5004 does not read what the declaration observes: KILLED (2 of 13 tests fail)
+5 of 5 mutants killed
+memory bound: no process was stopped

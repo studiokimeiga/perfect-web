@@ -1,0 +1,15 @@
+// @status: NEIGHBOUR
+// @invariant: control_without_label
+// @dimension: valid neighbour — buttons HTML names: an image button by its `alt`, a reset button by its own label
+//
+// The form found on 2026-11-06. Until ADR-0405, PW5014 refused
+// both buttons for having no `<label>`.
+module generality.label_buttons
+
+view FindForm() !{} {
+    <form>
+        <label>Find <input type="search" name="q" /></label>
+        <input type="image" src="/search.png" alt="Search" />
+        <input type="reset" />
+    </form>
+}

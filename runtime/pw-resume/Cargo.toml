@@ -6,6 +6,12 @@ rust-version.workspace = true
 license.workspace = true
 publish = false
 
+[features]
+default = ["trace"]
+# The decision's causal trace, in words (`Trace`). The browser's build
+# (`pw-resume-wasm`) leaves it out: no page reads it.
+trace = []
+
 [dependencies]
 
 # Like `pw-resource`, the runtime does NOT depend on the compiler. The manifest

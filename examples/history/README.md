@@ -24,5 +24,7 @@ old link is dead relative to.
 
 `C8/` holds the texts before the value relations' first run, `C9/` the
 routed pages' before each stated its title (ADR-0183), and `C10/` two
-witnesses' before a reference to nothing was its own defect (ADR-0185). Each
-version is recorded in `docs/CORPUS.md`.
+witnesses' before a reference to nothing was its own defect (ADR-0185).
+`C30/` holds R-027's and a witness's before a key's stale-work policy was
+asked where the key changes (ADR-0403): both now check clean, which
+is the change. Each version is recorded in `docs/CORPUS.md`.

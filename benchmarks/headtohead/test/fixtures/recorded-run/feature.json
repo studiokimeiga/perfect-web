@@ -1,0 +1,1177 @@
+{
+ "checkers": {
+  "pleris": "pw check",
+  "next-react": "tsc --noEmit",
+  "sveltekit": "svelte-check"
+ },
+ "rows": [
+  {
+   "id": "T01",
+   "task": "T01-optimistic-cart",
+   "title": "Optimistic cart update with rollback",
+   "class": "loading and error states: an optimistic count that is not taken back when the add fails",
+   "stacks": {
+    "pleris": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 1,
+      "removed": 0,
+      "languages": [
+       "Pleris"
+      ],
+      "paths": [
+       "store/app.pw"
+      ]
+     },
+     "harness": {
+      "stage": "check",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": false,
+      "error": "error: [PW0330] `add_to_cart`'s optimistic transition performs database.write<Carts>, session.read",
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "next-react": {
+     "pr": {
+      "files": 2,
+      "created": 1,
+      "added": 52,
+      "removed": 25,
+      "languages": [
+       "TSX"
+      ],
+      "paths": [
+       "app/stores/[storeId]/StoreView.tsx",
+       "app/stores/[storeId]/page.tsx"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "sveltekit": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 16,
+      "removed": 2,
+      "languages": [
+       "Svelte"
+      ],
+      "paths": [
+       "src/routes/stores/[storeId]/+page.svelte"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    }
+   }
+  },
+  {
+   "id": "T02",
+   "task": "T02-request-storm",
+   "title": "Stop the kitchen's request storm",
+   "class": "shared reads: concurrent asks of a slow source not shared",
+   "stacks": {
+    "pleris": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 1,
+      "removed": 1,
+      "languages": [
+       "Pleris"
+      ],
+      "paths": [
+       "store/app.pw"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "next-react": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 15,
+      "removed": 2,
+      "languages": [
+       "TypeScript"
+      ],
+      "paths": [
+       "lib/store.ts"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "sveltekit": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 15,
+      "removed": 2,
+      "languages": [
+       "TypeScript"
+      ],
+      "paths": [
+       "src/lib/server/store.ts"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    }
+   }
+  },
+  {
+   "id": "T03",
+   "task": "T03-private-cart-lines",
+   "title": "A private resource: the cart's lines on the store page",
+   "class": "authorization and privacy: one customer's cart lines kept where another's request reads them",
+   "stacks": {
+    "pleris": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 42,
+      "removed": 1,
+      "languages": [
+       "Pleris"
+      ],
+      "paths": [
+       "store/app.pw"
+      ]
+     },
+     "harness": {
+      "stage": "check",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": false,
+      "error": "error: [PW5001] `CartLines` is Session<SessionId> and declares a shared cache",
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "next-react": {
+     "pr": {
+      "files": 2,
+      "created": 0,
+      "added": 23,
+      "removed": 2,
+      "languages": [
+       "TSX",
+       "TypeScript"
+      ],
+      "paths": [
+       "app/stores/[storeId]/page.tsx",
+       "lib/store.ts"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "sveltekit": {
+     "pr": {
+      "files": 3,
+      "created": 0,
+      "added": 28,
+      "removed": 1,
+      "languages": [
+       "Svelte",
+       "TypeScript"
+      ],
+      "paths": [
+       "src/lib/server/store.ts",
+       "src/routes/stores/[storeId]/+page.server.ts",
+       "src/routes/stores/[storeId]/+page.svelte"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    }
+   }
+  },
+  {
+   "id": "T04",
+   "task": "T04-order-ready",
+   "title": "An order-state variant: ready for pickup",
+   "class": "types across the network boundary: a new order state the page does not handle",
+   "stacks": {
+    "pleris": {
+     "pr": {
+      "files": 2,
+      "created": 0,
+      "added": 2,
+      "removed": 0,
+      "languages": [
+       "Pleris"
+      ],
+      "paths": [
+       "domain.pw",
+       "store/app.pw"
+      ]
+     },
+     "harness": {
+      "stage": "check",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": false,
+      "error": "error: [PW0305] `{#match status}` does not cover `Ready`",
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "next-react": {
+     "pr": {
+      "files": 2,
+      "created": 0,
+      "added": 3,
+      "removed": 2,
+      "languages": [
+       "TSX",
+       "TypeScript"
+      ],
+      "paths": [
+       "app/stores/[storeId]/page.tsx",
+       "lib/store.ts"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "sveltekit": {
+     "pr": {
+      "files": 2,
+      "created": 0,
+      "added": 4,
+      "removed": 2,
+      "languages": [
+       "Svelte",
+       "TypeScript"
+      ],
+      "paths": [
+       "src/lib/server/store.ts",
+       "src/routes/stores/[storeId]/+page.svelte"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    }
+   }
+  },
+  {
+   "id": "T05",
+   "task": "T05-stream-recommendations",
+   "title": "Stream the store's recommendations",
+   "class": "loading and error states: a slow section that holds up the page",
+   "stacks": {
+    "pleris": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 14,
+      "removed": 0,
+      "languages": [
+       "Pleris"
+      ],
+      "paths": [
+       "store/app.pw"
+      ]
+     },
+     "harness": {
+      "stage": "check",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": false,
+      "error": "error: [PW5400] `Recommendations` is declared `delivery streamed`, so a page does not wait for it; read it in a `<stream query={Recommendations(..)}>`",
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "next-react": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 25,
+      "removed": 1,
+      "languages": [
+       "TSX"
+      ],
+      "paths": [
+       "app/stores/[storeId]/page.tsx"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "sveltekit": {
+     "pr": {
+      "files": 2,
+      "created": 0,
+      "added": 30,
+      "removed": 1,
+      "languages": [
+       "Svelte",
+       "TypeScript"
+      ],
+      "paths": [
+       "src/routes/stores/[storeId]/+page.server.ts",
+       "src/routes/stores/[storeId]/+page.svelte"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    }
+   }
+  },
+  {
+   "id": "T06",
+   "task": "T06-accessible-form",
+   "title": "An accessible form: request an item",
+   "class": "accessibility: a form's error not tied to its field or announced",
+   "stacks": {
+    "pleris": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 33,
+      "removed": 0,
+      "languages": [
+       "Pleris"
+      ],
+      "paths": [
+       "store/app.pw"
+      ]
+     },
+     "harness": {
+      "stage": "check",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": false,
+      "error": "error: [PW5014] `<input>` has no associated label",
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "next-react": {
+     "pr": {
+      "files": 2,
+      "created": 1,
+      "added": 48,
+      "removed": 0,
+      "languages": [
+       "TSX"
+      ],
+      "paths": [
+       "app/stores/[storeId]/RequestForm.tsx",
+       "app/stores/[storeId]/page.tsx"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "sveltekit": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 35,
+      "removed": 0,
+      "languages": [
+       "Svelte"
+      ],
+      "paths": [
+       "src/routes/stores/[storeId]/+page.svelte"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    }
+   }
+  },
+  {
+   "id": "T07",
+   "task": "T07-stale-category",
+   "title": "Stop reading a category the customer moved past",
+   "class": "races and stale answers: an answer for a category the customer moved past is shown",
+   "stacks": {
+    "pleris": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 3,
+      "removed": 3,
+      "languages": [
+       "Pleris"
+      ],
+      "paths": [
+       "store/app.pw"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "next-react": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 9,
+      "removed": 2,
+      "languages": [
+       "TSX"
+      ],
+      "paths": [
+       "app/stores/[storeId]/Browse.tsx"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "sveltekit": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 8,
+      "removed": 1,
+      "languages": [
+       "Svelte"
+      ],
+      "paths": [
+       "src/routes/stores/[storeId]/+page.svelte"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": [
+       "WARNING \"src/routes/stores/[storeId]/+page.svelte\" 12:33 \"This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?\\nhttps://svelte.dev/e/state_referenced_locally\""
+      ]
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [
+       "WARNING \"src/routes/stores/[storeId]/+page.svelte\" 12:33 \"This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?\\nhttps://svelte.dev/e/state_referenced_locally\""
+      ],
+      "newWarnings": []
+     }
+    }
+   }
+  },
+  {
+   "id": "T08",
+   "task": "T08-duplicate-submissions",
+   "title": "Prevent duplicate submissions",
+   "class": "retries: one press applied twice when its request is delivered twice",
+   "stacks": {
+    "pleris": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 2,
+      "removed": 0,
+      "languages": [
+       "Pleris"
+      ],
+      "paths": [
+       "store/app.pw"
+      ]
+     },
+     "harness": {
+      "stage": "check",
+      "commit": "4f75868b"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": false,
+      "error": "error: [PW0338] `add_to_cart` is called by a page's handler, and declares no `idempotent_by`",
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "next-react": {
+     "pr": {
+      "files": 4,
+      "created": 1,
+      "added": 44,
+      "removed": 8,
+      "languages": [
+       "TSX",
+       "TypeScript"
+      ],
+      "paths": [
+       "app/stores/[storeId]/AddForm.tsx",
+       "app/stores/[storeId]/actions.ts",
+       "app/stores/[storeId]/page.tsx",
+       "lib/store.ts"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "4f75868b"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "sveltekit": {
+     "pr": {
+      "files": 3,
+      "created": 0,
+      "added": 39,
+      "removed": 4,
+      "languages": [
+       "Svelte",
+       "TypeScript"
+      ],
+      "paths": [
+       "src/lib/server/store.ts",
+       "src/routes/stores/[storeId]/+page.server.ts",
+       "src/routes/stores/[storeId]/+page.svelte"
+      ]
+     },
+     "harness": {
+      "stage": "contract",
+      "commit": "4f75868b"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    }
+   }
+  },
+  {
+   "id": "T09",
+   "task": "T09-notice-freshness",
+   "title": "Keep the store's notice fresh",
+   "class": "cache invalidation: a kept answer older than the freshness asked for",
+   "stacks": {
+    "pleris": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 1,
+      "removed": 1,
+      "languages": [
+       "Pleris"
+      ],
+      "paths": [
+       "store/app.pw"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "next-react": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 1,
+      "removed": 1,
+      "languages": [
+       "TypeScript"
+      ],
+      "paths": [
+       "lib/store.ts"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "sveltekit": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 1,
+      "removed": 1,
+      "languages": [
+       "TypeScript"
+      ],
+      "paths": [
+       "src/lib/server/store.ts"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    }
+   }
+  },
+  {
+   "id": "T10",
+   "task": "T10-estimate-states",
+   "title": "A loading and an error state for the delivery estimate",
+   "class": "loading and error states: a failing estimate that breaks or holds up the page",
+   "stacks": {
+    "pleris": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 6,
+      "removed": 2,
+      "languages": [
+       "Pleris"
+      ],
+      "paths": [
+       "store/app.pw"
+      ]
+     },
+     "harness": {
+      "stage": "check",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": false,
+      "error": "error: [PW5401] a `<stream>` shows that its query failed, as every query can, its budget spent or its source down: it needs a `<failed>`",
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "next-react": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 15,
+      "removed": 2,
+      "languages": [
+       "TSX"
+      ],
+      "paths": [
+       "app/stores/[storeId]/page.tsx"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "sveltekit": {
+     "pr": {
+      "files": 2,
+      "created": 0,
+      "added": 14,
+      "removed": 3,
+      "languages": [
+       "Svelte",
+       "TypeScript"
+      ],
+      "paths": [
+       "src/routes/stores/[storeId]/+page.server.ts",
+       "src/routes/stores/[storeId]/+page.svelte"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    }
+   }
+  },
+  {
+   "id": "T11",
+   "task": "T11-confirm-clear",
+   "title": "An accessible dialog: confirm before clearing the cart",
+   "class": "accessibility: a confirmation that is not a modal dialog to keyboard and screen reader",
+   "stacks": {
+    "pleris": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 18,
+      "removed": 5,
+      "languages": [
+       "Pleris"
+      ],
+      "paths": [
+       "store/app.pw"
+      ]
+     },
+     "harness": {
+      "stage": "check",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": false,
+      "error": "error: [PW5303] this `<dialog>` is shown while `confirming` renders it, and its closing is heard by nothing",
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "next-react": {
+     "pr": {
+      "files": 2,
+      "created": 1,
+      "added": 30,
+      "removed": 7,
+      "languages": [
+       "TSX"
+      ],
+      "paths": [
+       "app/stores/[storeId]/ClearCart.tsx",
+       "app/stores/[storeId]/page.tsx"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "sveltekit": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 19,
+      "removed": 3,
+      "languages": [
+       "Svelte"
+      ],
+      "paths": [
+       "src/routes/stores/[storeId]/+page.svelte"
+      ]
+     },
+     "harness": {
+      "stage": "hidden",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    }
+   }
+  },
+  {
+   "id": "T12",
+   "task": "T12-repair-cart-cache",
+   "title": "Repair an unsafe cache",
+   "class": "authorization and privacy: a cached cart served to another session",
+   "stacks": {
+    "pleris": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 2,
+      "removed": 2,
+      "languages": [
+       "Pleris"
+      ],
+      "paths": [
+       "store/app.pw"
+      ]
+     },
+     "harness": {
+      "stage": "check",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": false,
+      "error": "error: [PW5001] `Cart` is Session<SessionId> and declares a shared cache",
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "next-react": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 3,
+      "removed": 3,
+      "languages": [
+       "TypeScript"
+      ],
+      "paths": [
+       "lib/store.ts"
+      ]
+     },
+     "harness": {
+      "stage": "contract",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    },
+    "sveltekit": {
+     "pr": {
+      "files": 1,
+      "created": 0,
+      "added": 3,
+      "removed": 3,
+      "languages": [
+       "TypeScript"
+      ],
+      "paths": [
+       "src/lib/server/store.ts"
+      ]
+     },
+     "harness": {
+      "stage": "contract",
+      "commit": "0c608dc3"
+     },
+     "reference": {
+      "clean": true,
+      "error": null,
+      "warnings": []
+     },
+     "unsafe": {
+      "clean": true,
+      "error": null,
+      "warnings": [],
+      "newWarnings": []
+     }
+    }
+   }
+  }
+ ]
+}

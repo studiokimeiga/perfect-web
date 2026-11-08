@@ -59,6 +59,7 @@ TITLES = {
     "StoreSearch": "The store's search",
     "Payments": "Payments",
     "Schedules": "Scheduled commands",
+    "DataPath": "Declared tables, served",
 }
 
 
@@ -216,8 +217,10 @@ def page():
         "",
         "## Old numbers",
         "",
-        "Numbers the corpus's fixtures wrote before one invariant got one code. The",
-        "compiler never prints them; a fixture's `@rule` must name a current registered code.",
+        "Numbers that named an invariant the code beside them names now: one invariant",
+        "has one code. A diagnostic carries that code, never one of these, and a",
+        "fixture's `@rule` must name a current registered code. An old number is never",
+        "given to another invariant.",
         "",
         "| Old number | Now | Symbol |",
         "|---|---|---|",

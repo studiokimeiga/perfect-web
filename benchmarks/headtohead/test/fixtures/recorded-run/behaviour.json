@@ -1,0 +1,49 @@
+{
+ "spec": {
+  "engines": [
+   "chromium",
+   "firefox",
+   "webkit"
+  ],
+  "stacks": {
+   "pleris": {
+    "passed": 60,
+    "total": 60,
+    "gaps": []
+   },
+   "react": {
+    "passed": 51,
+    "total": 60,
+    "gaps": [
+     "counter: the number left in a <strong>, then 'item left' or 'items left'",
+     "editing: Escape discards the edit",
+     "persistence: the todos and their states survive a reload"
+    ]
+   },
+   "svelte": {
+    "passed": 48,
+    "total": 60,
+    "gaps": [
+     "editing: Enter saves the edit, trimmed",
+     "editing: an edit left empty destroys the todo",
+     "persistence: the todos and their states survive a reload",
+     "routing: a page opened at #/completed shows that filter"
+    ]
+   }
+  }
+ },
+ "cypress": {
+  "pleris": {
+   "passed": 29,
+   "total": 29
+  },
+  "react": {
+   "passed": 28,
+   "total": 29
+  },
+  "svelte": {
+   "passed": 28,
+   "total": 29
+  }
+ }
+}

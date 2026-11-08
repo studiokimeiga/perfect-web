@@ -1,0 +1,42 @@
+scripts/images_mutations.py, run whole
+
+produced by: bash campaign.sh /home/haki/code/pw-wt/pw5014-mut-c /home/haki/pw-targets/pw5014-mut-c OUT images
+commit: 5be06de4356383efbaeacce798e522028377467e
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+CARGO_BUILD_JOBS=8 PW_MUTANT_INCREMENTAL=1
+started: 2026-11-06T20:03:31Z
+
+baseline: 21 passed, 0 failed
+an image with no `alt` is not refused: KILLED (6 of 21 tests fail)
+an image a loop renders is not read: KILLED (2 of 21 tests fail)
+a `<picture>`'s `<source>` is held to it: KILLED (1 of 21 tests fail)
+a `title` stands for an image: KILLED (2 of 21 tests fail)
+an `aria-label` stands for an image: KILLED (1 of 21 tests fail)
+a `role` stands for an image: KILLED (1 of 21 tests fail)
+an empty `alt` is refused: KILLED (4 of 21 tests fail)
+an `alt` a value gives is refused: KILLED (2 of 21 tests fail)
+the image is reported at its declaration, not at the element: KILLED (3 of 21 tests fail)
+the declaration that renders the image is not named: KILLED (5 of 21 tests fail)
+an image button with no text in its `alt` is not refused: KILLED (6 of 21 tests fail)
+an image button's `type` is read case by case: KILLED (1 of 21 tests fail)
+`type="image"` makes an image button of any element: KILLED (1 of 21 tests fail)
+an image button may have an empty `alt`, as an `<img>` may: KILLED (3 of 21 tests fail)
+an `alt` a value gives does not name an image button: KILLED (1 of 21 tests fail)
+an `aria-label` stands for an image button's `alt`: KILLED (2 of 21 tests fail)
+a `title` stands for an image button's `alt`: KILLED (1 of 21 tests fail)
+an image button that something names as a control needs no `alt`: KILLED (2 of 21 tests fail)
+the image button is reported at its declaration, not at the element: KILLED (1 of 21 tests fail)
+the declaration that renders the image button is not named: KILLED (4 of 21 tests fail)
+an empty `alt` on an image button is not pointed at: KILLED (2 of 21 tests fail)
+an image button's blank `alt` is reported as a missing one: KILLED (2 of 21 tests fail)
+an image button is refused for an image's reason: KILLED (1 of 21 tests fail)
+an image button is given an image's repair: KILLED (1 of 21 tests fail)
+24 of 24 mutants killed
+memory bound: no process was stopped
+exit: 0
+finished: 2026-11-06T20:40:13Z
+
+== python3 scripts/mutation_anchors.py, after
+mutation anchors: 5013 mutants in 325 scripts, each matching once
+exit: 0
+source: as committed

@@ -1,0 +1,106 @@
+== 2026-11-06T11:01:41-05:00 commit d962441bf57ecdd5263ce24c2c1bf6af7c15f318; uncommitted code paths: 0
+== 2026-11-06T11:01:41-05:00 fallow audit (fallow 3.23.0, gate new-only, against 5c53870d, as CI runs it)
+exit fallow 0
+verdict pass {"gate": "new-only", "dead_code_introduced": 0, "dead_code_inherited": 2, "complexity_introduced": 0, "complexity_inherited": 71, "duplication_introduced": 0, "duplication_inherited": 1, "styling_introduced": 0, "styling_inherited": 0, "duplication_demoted": 0}
+== 2026-11-06T11:01:42-05:00 reached mutation scripts (reached.py ad788543 3)
+address_fragment_mutations.py: 1 anchor(s) in changed code: the fragment is not followed on a change
+navigate_mutations.py: 1 anchor(s) in changed code: a press never finishes
+press_modules_mutations.py: 3 anchor(s) in changed code: the speculation module is waited for without a deadline; a speculation load a press gave up waiting for is asked for again under the same specifier; a renderer load a press gave up on is kept
+runtime_recovery_mutations.py: 1 anchor(s) in changed code: a press on a refused handler does nothing
+== 2026-11-06T11:01:42-05:00 the whole pre-push check (TAG=prepush5)
+exit prepush5 0
+exit preflight 0
+exit evidence-gates 0
+Ran 1187 tests in 450.497s
+OK (skipped=5)
+exit cargo test 0
+test result: ok. 863 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 126.54s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+exit build 0
+exit run.sh 0
+exit todomvc.sh 0
+exit keyed-store.sh 0
+exit feed.sh 0
+exit guestbook.sh 0
+exit kiokun-site.sh 0
+exit specs 0
+Running 1074 tests using 16 workers
+  13 skipped
+  1061 passed (5.6m)
+exit runtime-size 0
+EVIDENCE interactive-script-bytes=167713 brotli=44223
+EVIDENCE interactive-wasm-bytes=57951 brotli=21284
+EVIDENCE renderer-wasm-bytes=267401 gzip=94092 brotli=77336
+  3 passed (9.7s)
+== 2026-11-06T11:17:53-05:00 mutation controls: press_modules
+exit press_modules 0
+a handler's module is waited for without a deadline: KILLED (2 of 8 tests fail)
+the speculation module is waited for without a deadline: KILLED (2 of 8 tests fail)
+a failed speculation load is kept: KILLED (2 of 8 tests fail)
+a failed speculation load is asked for again under the same specifier: KILLED (1 of 8 tests fail)
+a speculation load a press gave up waiting for is asked for again under the same specifier: KILLED (1 of 8 tests fail)
+a failed renderer load is kept: KILLED (1 of 8 tests fail)
+a renderer load a press gave up on is kept: KILLED (1 of 8 tests fail)
+a module's load is timed by a send's deadline: KILLED (4 of 8 tests fail)
+a failed computed values load is kept: KILLED (1 of 8 tests fail)
+a failed computed values load is asked for again under the same specifier: KILLED (1 of 8 tests fail)
+a press whose speculation cannot load fails: KILLED (4 of 8 tests fail)
+11 of 11 mutants killed; 0 refused; 0 survived
+== 2026-11-06T11:22:33-05:00 mutation controls: runtime_recovery
+exit runtime_recovery 0
+a failed subscription request ends the subscription: KILLED (1 of 3 tests fail)
+a press on a refused handler does nothing: KILLED (2 of 4 tests fail)
+the recovery codes are read one place off: KILLED (1 of 4 tests fail)
+3 of 3 mutants killed
+== 2026-11-06T11:24:36-05:00 mutation controls: address_fragment
+exit address_fragment 0
+a clause naming a signal the page does not declare is accepted [core]: KILLED (1 of 8 tests fail)
+a signal that is no String is accepted [core]: KILLED (1 of 8 tests fail)
+a form with a character a fragment does not hold is accepted [core]: KILLED (1 of 8 tests fail)
+a form with a percent sign is accepted [core]: KILLED (1 of 8 tests fail)
+a form with an escape is accepted [core]: KILLED (1 of 8 tests fail)
+a form written twice is accepted [core]: KILLED (1 of 8 tests fail)
+a comma that ends the forms is accepted [core]: KILLED (1 of 8 tests fail)
+a form with no arrow is accepted [core]: KILLED (1 of 8 tests fail)
+a first value no form gives is accepted [core]: KILLED (1 of 8 tests fail)
+a handler's assignment of the bound signal is accepted [core]: KILLED (1 of 8 tests fail)
+an assignment of any signal is refused [core]: KILLED (1 of 8 tests fail)
+a link to a fragment no form names is accepted [core]: KILLED (1 of 8 tests fail)
+a link to a form is refused [core]: KILLED (1 of 8 tests fail)
+a page binds nothing in its plan [core]: KILLED (1 of 8 tests fail)
+a page of signals alone does not say its binding [host]: KILLED (1 of 3 tests fail)
+a page that reads queries does not say its binding [host]: KILLED (1 of 3 tests fail)
+the fragment is not read at start [browser]: KILLED (1 of 12 tests fail)
+the fragment is not followed on a change [browser]: KILLED (8 of 12 tests fail)
+a fragment that is no form leaves the signal as it was [browser]: KILLED (4 of 12 tests fail)
+the signal is set again to the value it holds [browser]: KILLED (1 of 12 tests fail)
+a form is compared with its hash sign [browser]: KILLED (9 of 12 tests fail)
+a form is compared without its case [browser]: KILLED (1 of 12 tests fail)
+a page that binds nothing follows the fragment [browser]: KILLED (1 of 12 tests fail)
+23 of 23 mutants killed
+== 2026-11-06T11:28:45-05:00 mutation controls: navigate
+exit navigate 0
+a navigation names whatever it names [compiler]: KILLED (1 of 6 tests fail)
+its arguments are related to nothing [compiler]: KILLED (1 of 6 tests fail)
+its page is looked for among the terms [compiler]: KILLED (1 of 6 tests fail)
+a refusal's arm navigates [compiler]: KILLED (1 of 6 tests fail)
+what follows a navigation runs [compiler]: KILLED (1 of 6 tests fail)
+a handler navigates with no answer [compiler]: KILLED (1 of 6 tests fail)
+an answer a `let` binds is no answer [compiler]: KILLED (1 of 6 tests fail)
+a value is given by no name [compiler]: KILLED (1 of 6 tests fail)
+an answer is assumed before it comes [browser]: KILLED (6 of 10 tests fail)
+an `Ok` that did not commit is a commit [browser]: KILLED (1 of 10 tests fail)
+a press made while the page leaves is taken [browser]: KILLED (1 of 10 tests fail)
+a second navigation is taken [browser]: KILLED (1 of 10 tests fail)
+a navigation goes before the presses made before it [browser]: KILLED (1 of 10 tests fail)
+a press is not counted while it runs [browser]: KILLED (1 of 10 tests fail)
+a press never finishes [browser]: KILLED (2 of 10 tests fail)
+a stopped navigation leaves the page leaving [browser]: KILLED (1 of 10 tests fail)
+a page shown again stays leaving [browser]: KILLED (1 of 10 tests fail)
+an address carries a value as written [browser]: KILLED (1 of 10 tests fail)
+an address carries what no segment can [browser]: KILLED (1 of 10 tests fail)
+19 of 19 mutants killed
+== 2026-11-06T11:33:19-05:00 restored
+mutation anchors: 4993 mutants in 324 scripts, each matching once
+exit anchors 0
+FINAL_VERIFY3_FINISHED

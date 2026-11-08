@@ -1,0 +1,3 @@
+evidence_integrity_2_mutations.py: 1 anchor(s) in changed code: the committed table drifts from what the corpus checks
+images_mutations.py: 10 anchor(s) in changed code: an image with no `alt` is not refused; an image a loop renders is not read; a `<picture>`'s `<source>` is held to it; a `title` stands for an image
+labels_mutations.py: 1 anchor(s) in changed code: an input's `type` is read case by case

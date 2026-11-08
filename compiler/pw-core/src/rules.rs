@@ -348,7 +348,11 @@ fn check_resource(decl: &Decl, out: &mut Vec<Finding>) {
                 "retrying a non-idempotent mutation can apply it more than once: a request \
                  that failed in transit may have arrived, and its sender cannot tell",
             )
-            .repair("add `idempotent_by InteractionId`"),
+            // Both steps, as PW0338's: the clause names a type the program
+            // may not have yet (PW0335 refuses the clause alone).
+            .repair(
+                "add `idempotent_by InteractionId`, and `opaque type InteractionId = String` if the program has none",
+            ),
         );
     }
 
@@ -404,32 +408,15 @@ fn check_resource(decl: &Decl, out: &mut Vec<Finding>) {
         );
     }
 
-    // --- PW0306: a keyed query with no stale-work policy --------------------
-    if noun == "query"
-        && !decl.params.is_empty()
-        && policy(policies, "on_key_change").is_none()
-        && policy(policies, "concurrency").is_some()
-    {
-        let span = policy(policies, "concurrency").unwrap().span.clone();
-        out.push(
-            err(
-                "PW0325",
-                "a keyed query must declare a stale-work policy",
-                format!("`{name}` declares no policy for superseded keys"),
-                span,
-            )
-            .related(
-                name_span.clone(),
-                "this query is keyed, so its key can change",
-            )
-            .explain(
-                "when a keyed read's key changes while it runs, the work for the old key is \
-                 stale; a policy says whether it is cancelled or kept, and without one the old \
-                 answer can arrive after the new key and be shown for it",
-            )
-            .repair("declare `on_key_change cancel | supersede | keep`"),
-        );
-    }
+    // --- a key that changes: `signals.rs`'s PW5309, no longer here ----------
+    //
+    // Until ADR-0403, PW0325 asked a keyed query alone for its
+    // `on_key_change`, and only where it declared a `concurrency`: so of a
+    // query a URL keys, whose key no page changes, and not of the same query
+    // without one. A key changes while its read is in flight only where a
+    // page's signal keys the query (ADR-0152), and there PW5309 asks for the
+    // policy whatever else the query declares. PW0325 is an old number for
+    // PW5309 now, which `diagnostics.rs` lists.
 
     // --- PW0307: a subscription escaping its component ----------------------
     if let Some(s) = policy(policies, "scope")
@@ -773,9 +760,9 @@ mod tests {
         // The inversion of the rule this code used to carry, and it is a real
         // inversion rather than a deletion: `optimistic` alone was the error
         // and is now correct; `rollback` was required and is now refused.
-        let bad = "module c\ncommand add(i: ItemId) -> Cart\n    optimistic Cart() as c => c.add(i)\n    rollback c => c.remove(i)\n{\n    0\n}\n";
+        let bad = "module c\ncommand add(i: ItemId) -> Cart\n    requires Anyone\n    optimistic Cart() as c => c.add(i)\n    rollback c => c.remove(i)\n{\n    0\n}\n";
         assert!(codes(bad).contains(&"PW0327"));
-        let good = "module c\ncommand add(i: ItemId) -> Cart\n    optimistic Cart() as c => c.add(i)\n{\n    0\n}\n";
+        let good = "module c\ncommand add(i: ItemId) -> Cart\n    requires Anyone\n    optimistic Cart() as c => c.add(i)\n{\n    0\n}\n";
         assert!(!codes(good).contains(&"PW0327"));
     }
 

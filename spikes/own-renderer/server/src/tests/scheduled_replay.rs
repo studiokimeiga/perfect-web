@@ -494,18 +494,22 @@ command repeat_clock(item: MenuItemId) -> Result<Int, CartError>
     Ok(1)
 }
 command queue_pure() -> Result<Int, CartError>
+    requires      Anyone
     idempotent_by InteractionId
 { schedule pure_clock() after minutes(5)
   Ok(1) }
 command queue_notice() -> Result<Int, CartError>
+    requires      Anyone
     idempotent_by InteractionId
 { schedule notice_clock() after minutes(5)
   Ok(1) }
 command queue_failure(item: MenuItemId) -> Result<Int, CartError>
+    requires      Anyone
     idempotent_by InteractionId
 { schedule failing_clock(item) after minutes(5)
   Ok(1) }
 command queue_repeat(item: MenuItemId) -> Result<Int, CartError>
+    requires      Anyone
     idempotent_by InteractionId
 { schedule repeat_clock(item) after minutes(5)
   Ok(1) }
@@ -1048,7 +1052,11 @@ fn a_receipt_without_atomic_queue_consumption_cannot_confirm_clock_completion() 
     let a = lab.host();
     assert!(super::store_scheduled::in_five(&a, "espresso", false, "receipt-only").committed);
     let id = lab.count("SELECT id FROM schedules");
-    let key = format!("on-behalf:schedule-{id}\u{1f}store.page.add_later\u{1f}schedule-{id}");
+    let key = crate::identity::interaction_key(
+        &format!("on-behalf:schedule-{id}"),
+        "store.page.add_later",
+        &format!("schedule-{id}"),
+    );
     lab.layer.sql().execute("INSERT INTO interactions(key,sent,answer,at_ms) VALUES($1,$2,$3,$4)",&[&key,&r#"["espresso"]"#,&r#"{"committed":true,"why":null,"refused":null,"result":{"untrusted_receipt":true}}"#,&i64::MAX]).expect("isolated inconsistent receipt injected");
     a.query_clock.0.advance(FIVE);
     let dispatch_at = a.now();

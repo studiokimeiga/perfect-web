@@ -132,6 +132,13 @@ LOCAL_ONLY = {
     # there at its first sandbox (verify 39054436657). Its Pleris stack runs
     # on CI as `e14-pleris-controls`.
     "e14-harness",
+    # The head-to-head (ADR-0392): times, bytes under shaping, servers under
+    # load, memory and idle visitors, each stack against the others on one
+    # machine, which its `host:` line names (ADR-0281's decision 5). A
+    # runner's two shared cores would measure their own contention, and its
+    # file would replace the development machine's the ADR reads. Its
+    # instrument's tests run in `just ci` (`test_head_to_head.py`).
+    "e14-head-to-head",
 }
 
 # Recipes run against a database (ADR-0246). Each is a shard of its own,
@@ -175,6 +182,10 @@ NEEDS_DATABASE = {
     "e14-session-overlap",
     # Track `d3-postgres` (ADR-0338's D3): declared tables on PostgreSQL.
     "e14-d3-postgres",
+    # Track `data-path`: its feed-on-PostgreSQL test holds that no row,
+    # record or page keeps the session's cookie; with no database named it
+    # would pass by saying so (the integrator, 2026-11-02).
+    "e14-data-path",
 }
 
 EVIDENCE_RECIPE = re.compile(r"^e[0-9]+-[a-z0-9-]+$")

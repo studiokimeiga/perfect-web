@@ -1,0 +1,34 @@
+== 2026-11-06T08:33:28-05:00 build (the fixes)
+exit run.sh 0
+== 2026-11-06T08:33:33-05:00 green: fragment, warm, soft-navigation, the load specs, runtime size
+exit green 1
+  1) [chromium] › e2e/fragment.spec.mjs:101:1 › a link to a form on a page that is leaving leaves its load alone 
+  2) [firefox] › e2e/fragment.spec.mjs:101:1 › a link to a form on a page that is leaving leaves its load alone 
+  2 failed
+  1 skipped
+  147 passed (50.2s)
+exit runtime-size 0
+EVIDENCE interactive-script-bytes=167235 brotli=43969
+EVIDENCE interactive-wasm-bytes=57951 brotli=21284
+EVIDENCE renderer-wasm-bytes=267401 gzip=94092 brotli=77336
+  3 passed (8.0s)
+== 2026-11-06T08:34:35-05:00 red 1: the committed runtime (no leaving guard)
+exit run.sh (red 1) 0
+exit red 1 1
+  1) [chromium] › e2e/fragment.spec.mjs:101:1 › a link to a form on a page that is leaving leaves its load alone 
+  2) [firefox] › e2e/fragment.spec.mjs:101:1 › a link to a form on a page that is leaving leaves its load alone 
+  2 failed
+== 2026-11-06T08:35:16-05:00 red 2: a link to the address it is at pushes an entry
+exit run.sh (red 2) 0
+exit red 2 1
+  1) [chromium] › e2e/fragment.spec.mjs:89:1 › a link to the form the page is at makes no entry of its own 
+  2) [firefox] › e2e/fragment.spec.mjs:89:1 › a link to the form the page is at makes no entry of its own 
+  2 failed
+== 2026-11-06T08:35:33-05:00 restored
+exit run.sh (restored) 0
+runtime: the fixes, restored
+ scripts/soft_navigation_mutations.py      |   8 +-
+ spikes/own-renderer/e2e/fragment.spec.mjs |  34 ++++++-
+ spikes/own-renderer/public/pw-runtime.mjs | 151 +++++++++++++-----------------
+ 3 files changed, 103 insertions(+), 90 deletions(-)
+MINORS_VERIFY_FINISHED

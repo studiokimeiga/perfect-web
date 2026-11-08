@@ -1,0 +1,13 @@
+$ python3 /mnt/c/Users/haki/AppData/Local/Temp/claude/9ec86c53ff2959da/fb4eee7c-9811-4e12-9b3f-baa54667a1c6/scratchpad/regen_guide_blocks.py . /home/haki/pw-targets/message-text/debug/pw
+started: 2026-11-07T00:25:27.110978+00:00
+commit: c30ef1f384b921a1ae120dfaef2ba193ee10977c
+
+same     docs/guide/errors.md:19
+same     docs/guide/errors.md:57
+same     docs/guide/errors.md:82
+same     docs/guide/errors.md:140
+same     docs/guide/errors.md:191
+same     docs/guide/errors.md:256
+0 block(s) changed
+
+exit: 0

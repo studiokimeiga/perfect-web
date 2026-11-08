@@ -97,6 +97,36 @@ for (const transport of ["poll", "stream"]) {
   });
 }
 
+for (const transport of ["poll", "stream"]) {
+  test(`${transport}: a subscription asks at low priority, a command at its fetch's own`, async ({
+    page,
+    browserName,
+  }, testInfo) => {
+    // ADR-0399 (ADR-0392's finding 20): a browser shares six
+    // connections to a host among all its pages over HTTP/1.1, and queues the
+    // requests waiting for one by priority. A subscription holds one nearly
+    // always; asked at low priority, it lets a press's command, at a fetch's
+    // default, take the next one free, ahead of every other page's
+    // subscription. The priority each request was asked at is Chromium's to
+    // report (its DevTools protocol's `initialPriority`).
+    test.skip(browserName !== "chromium", `${testInfo.project.name}: Chromium reports a request's priority`);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Network.enable");
+    const asked = [];
+    cdp.on("Network.requestWillBeSent", (e) => {
+      const path = new URL(e.request.url).pathname;
+      if (path === "/stream" || path.startsWith("/command/")) asked.push([path, e.request.initialPriority]);
+    });
+    await ready(page, transport);
+    await page.locator("#menu button").first().click();
+    await expect(page.locator("#cart-count")).not.toHaveText("0");
+    await expect.poll(() => asked.filter(([p]) => p === "/stream").length).toBeGreaterThan(0);
+    const priorities = (path) => [...new Set(asked.filter(([p]) => p === path || (path === "/command/" && p.startsWith(path))).map(([, q]) => q))];
+    expect(priorities("/stream"), "every subscription's request").toEqual(["Low"]);
+    expect(priorities("/command/"), "the press's command").toEqual(["High"]);
+  });
+}
+
 test("both adapters deliver the same frames", async ({ browser }) => {
   // The comparison the whole file exists for. Two pages, two adapters, one
   // sequence of commands, and the applied frames must match.

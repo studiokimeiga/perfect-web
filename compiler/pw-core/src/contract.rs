@@ -1852,18 +1852,33 @@ fn authorization_of(decl: &crate::hir::Decl) -> Vec<AuthorizationRequirement> {
     match crate::policy::predicates(&policy.value) {
         Ok(predicates) => predicates
             .into_iter()
-            .map(|predicate| AuthorizationRequirement {
-                predicate: predicate.name,
-                arguments: predicate
-                    .arguments
-                    .into_iter()
-                    .map(|name| {
-                        decl.params
-                            .iter()
-                            .position(|parameter| parameter.name == name)
-                            .unwrap_or(usize::MAX)
-                    })
-                    .collect(),
+            // `Anyone` holds for every reader: nothing to ask (ADR-0406).
+            // PW0367 refuses it beside another predicate, and with
+            // arguments: unchecked, `Anyone(n)` is no `Anyone`, and asks
+            // what no reader holds rather than nothing (train-14's review).
+            .filter(|predicate| {
+                !(predicate.name == crate::policy::ANYONE && predicate.arguments.is_empty())
+            })
+            .map(|predicate| {
+                if predicate.name == crate::policy::ANYONE {
+                    return AuthorizationRequirement {
+                        predicate: "__invalid_requires__".to_string(),
+                        arguments: vec![usize::MAX],
+                    };
+                }
+                AuthorizationRequirement {
+                    predicate: predicate.name,
+                    arguments: predicate
+                        .arguments
+                        .into_iter()
+                        .map(|name| {
+                            decl.params
+                                .iter()
+                                .position(|parameter| parameter.name == name)
+                                .unwrap_or(usize::MAX)
+                        })
+                        .collect(),
+                }
             })
             .collect(),
         Err(_) => vec![AuthorizationRequirement {

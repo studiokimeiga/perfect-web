@@ -44,7 +44,7 @@ MUTANTS = [
     ("browser metadata may change its intended title", "GuideProducers.test_browser_refuses_missing_and_disagreeing_metadata", GUIDE,
      "        if _BROWSER_TITLES is not None and titles != _BROWSER_TITLES:\n", "        if False:\n"),
     ("browser metadata need not match authenticated IDs", "GuideProducers.test_browser_refuses_missing_and_disagreeing_metadata", GUIDE,
-     "    if set(titles) != set(inventory) or len(titles) != 4:\n", "    if False:\n"),
+     "    if set(titles) != set(inventory) or len(titles) != 5:\n", "    if False:\n"),
     ("browser duplicate metadata identity is accepted", "GuideProducers.test_browser_refuses_missing_and_disagreeing_metadata", GUIDE,
      "or not identity or identity in titles", "or not identity"),
     ("browser title map can freeze after a failed baseline", "GuideProducers.test_browser_freezes_mapping_only_from_green_complete_baseline", GUIDE,

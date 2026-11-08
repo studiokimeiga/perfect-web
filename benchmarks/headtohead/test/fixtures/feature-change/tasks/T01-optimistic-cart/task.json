@@ -1,0 +1,6 @@
+{
+  "id": "T01",
+  "title": "Optimistic cart update with rollback",
+  "stacks": ["pleris", "next-react", "sveltekit"],
+  "hidden": "hidden/T01.spec.mjs"
+}

@@ -310,16 +310,19 @@ MUTANTS = [
         "server",
         SERVER,
         # Re-anchored by ADR-0220: the style is the data layer's; and by
-        # track `device-store`: what the device decides hidden after it.
-        "         <title>{title}</title>\\n{metadata}{style}{device}</head>",
-        "         <title>{title}</title>\\n{style}{device}</head>",
+        # track `device-store`: what the device decides hidden after it; and
+        # by ADR-0399: what the runtime boots with, last.
+        "         <title>{title}</title>\\n{metadata}{style}{device}{BOOT}</head>",
+        "         <title>{title}</title>\\n{style}{device}{BOOT}</head>",
     ),
     (
         "a signal page is written without its metadata",
         "server",
         SERVER,
-        "         <title>{}</title>\\n{metadata}{device}</head>",
-        "         <title>{}</title>\\n{device}</head>",
+        # Re-anchored by ADR-0399: what the runtime boots with,
+        # last in the head.
+        "         <title>{}</title>\\n{metadata}{device}{BOOT}</head>",
+        "         <title>{}</title>\\n{device}{BOOT}</head>",
     ),
     (
         "the store's metadata is rendered from no values",

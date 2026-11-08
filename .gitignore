@@ -63,3 +63,7 @@ spikes/browser-resumption/.chrome-profile/
 
 # Python bytecode from the scripts/ test suites.
 __pycache__/
+
+# Wrangler's local cache records the Cloudflare account it deployed with
+# (pleris.dev, 2026-11-06): never in the repository.
+.wrangler/

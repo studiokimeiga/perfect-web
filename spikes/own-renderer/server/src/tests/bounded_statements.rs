@@ -104,6 +104,8 @@ fn arguments(op: &str, stores: &Val) -> Option<Vec<Val>> {
         promo: None,
     });
     let op = op.strip_prefix("store:")?;
+    // Session `s`, as a program passes it: its handle (track `data-path`).
+    let session = crate::identity::session_handle("s");
     Some(match op {
         "data/stores#get"
         | "data/menus#for-store"
@@ -121,7 +123,7 @@ fn arguments(op: &str, stores: &Val) -> Option<Vec<Val>> {
         | "data/orders#placed"
         | "data/estimates#current"
         | "data/carts#clear"
-        | "data/orders#place" => vec![s("s")],
+        | "data/orders#place" => vec![s(&session)],
         "data/user-carts#current"
         | "data/user-orders#current"
         | "data/user-orders#placed"
@@ -140,9 +142,9 @@ fn arguments(op: &str, stores: &Val) -> Option<Vec<Val>> {
         "data/promos#find" => vec![s(ADA), s("WELCOME10")],
         "data/search#find" => vec![s("coffee")],
         "data/search#find-for" => vec![s("coffee"), s(ADA)],
-        "data/carts#add" => vec![s("s"), s("espresso"), Val::S64(1)],
+        "data/carts#add" => vec![s(&session), s("espresso"), Val::S64(1)],
         "data/carts#increase" | "data/carts#decrease" | "data/carts#remove" => {
-            vec![s("s"), s("espresso")]
+            vec![s(&session), s("espresso")]
         }
         "data/user-carts#add" => vec![s(ADA), s("espresso"), Val::S64(1)],
         "data/user-carts#increase" | "data/user-carts#decrease" | "data/user-carts#remove" => {
@@ -173,7 +175,7 @@ fn arguments(op: &str, stores: &Val) -> Option<Vec<Val>> {
             vec![s(ADA), s("ref-1"), Val::Variant("succeeded".into(), None)]
         }
         "host/carts#join" => vec![s("guest-1"), s(ADA)],
-        "host/estimates#set" => vec![s("s"), Val::S64(20), Val::Option(None)],
+        "host/estimates#set" => vec![s(&session), Val::S64(20), Val::Option(None)],
         "host/kitchen#set-prep" => vec![s("47"), Val::S64(15)],
         "host/menus#change" => vec![s("47"), s("remove"), s("cortado")],
         "host/menus#replace" => vec![s("47"), Val::S64(3)],
@@ -1322,7 +1324,7 @@ where
     T: crate::data::DataLayer + crate::schedules::Runs,
 {
     let scheduled = |due| crate::schedules::Scheduled {
-        key: crate::schedules::key("test.expire", "[]"),
+        key: crate::schedules::key("private-test-reader", "test.expire", "[]"),
         command: "test.expire".to_string(),
         args: "[]".to_string(),
         user: "private-test-reader".to_string(),

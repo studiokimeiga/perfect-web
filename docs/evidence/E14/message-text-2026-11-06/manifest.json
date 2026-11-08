@@ -1,0 +1,513 @@
+{
+ "kind": "LOCAL_WORKER_EVIDENCE",
+ "track": "message-text",
+ "at_utc": "2026-11-07T02:51:42.087436+00:00",
+ "commit": "c30ef1f384b921a1ae120dfaef2ba193ee10977c",
+ "base": "5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6",
+ "steps": [
+  {
+   "step": "diff against the base",
+   "command": [
+    "git",
+    "diff",
+    "--stat",
+    "5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6",
+    "HEAD"
+   ],
+   "exit": 0,
+   "log": "diff-stat.txt"
+  },
+  {
+   "step": "red: PW5001's note as before the fix: it stops mid-sentence",
+   "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "pw-core",
+    "--test",
+    "shared_cache_holds_no_readers_value"
+   ],
+   "exit": 101,
+   "edited": [
+    "compiler/pw-core/src/check.rs"
+   ],
+   "verdict": "FAIL as they must, and no other"
+  },
+  {
+   "step": "red: PW5001's note and cause chain given all the declaration's parameters state, not the parameter's own",
+   "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "pw-core",
+    "--test",
+    "shared_cache_holds_no_readers_value"
+   ],
+   "exit": 101,
+   "edited": [
+    "compiler/pw-core/src/check.rs"
+   ],
+   "verdict": "FAIL as they must, and no other"
+  },
+  {
+   "step": "red: PW5048's note tells the dated story, as before the fix",
+   "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "pw-core",
+    "--test",
+    "controls_where_they_hold"
+   ],
+   "exit": 101,
+   "edited": [
+    "compiler/pw-core/src/holds.rs"
+   ],
+   "verdict": "FAIL as they must, and no other"
+  },
+  {
+   "step": "red: the guide shows PW5048's old note, which `pw check` no longer prints",
+   "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "pw-cli",
+    "--test",
+    "guide"
+   ],
+   "exit": 101,
+   "edited": [
+    "docs/guide/errors.md"
+   ],
+   "verdict": "FAIL as they must, and no other"
+  },
+  {
+   "step": "pw-core, every test binary",
+   "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "--no-fail-fast",
+    "-p",
+    "pw-core"
+   ],
+   "exit": 0,
+   "log": "pw-core-tests.txt.gz"
+  },
+  {
+   "step": "the guide",
+   "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "pw-cli",
+    "--test",
+    "guide"
+   ],
+   "exit": 0,
+   "log": "guide-test.txt"
+  },
+  {
+   "step": "the corpus, formatted",
+   "command": [
+    "cargo",
+    "test",
+    "--locked",
+    "-p",
+    "pw-syntax",
+    "--test",
+    "corpus_fmt"
+   ],
+   "exit": 0,
+   "log": "corpus-fmt-test.txt"
+  },
+  {
+   "step": "the guide's pw-check blocks, against the built pw",
+   "command": [
+    "python3",
+    "/mnt/c/Users/haki/AppData/Local/Temp/claude/9ec86c53ff2959da/fb4eee7c-9811-4e12-9b3f-baa54667a1c6/scratchpad/regen_guide_blocks.py",
+    ".",
+    "/home/haki/pw-targets/message-text/debug/pw"
+   ],
+   "exit": 0,
+   "log": "guide-blocks.txt"
+  },
+  {
+   "step": "benchmark patches",
+   "command": [
+    "collect.py",
+    "bench"
+   ],
+   "exit": 0
+  },
+  {
+   "step": "the planner: what the change reaches",
+   "command": [
+    "python3",
+    "scripts/ci_plan.py",
+    "--shards",
+    "1",
+    "--changed",
+    "5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6",
+    "HEAD"
+   ],
+   "exit": 0,
+   "log": "ci-plan.txt"
+  },
+  {
+   "step": "mutation anchors",
+   "command": [
+    "python3",
+    "scripts/mutation_anchors.py"
+   ],
+   "exit": 0,
+   "log": "mutation-anchors.txt"
+  },
+  {
+   "step": "just preflight",
+   "command": [
+    "just",
+    "preflight"
+   ],
+   "exit": 0,
+   "log": "preflight.txt"
+  },
+  {
+   "step": "just evidence-gates",
+   "command": [
+    "just",
+    "evidence-gates"
+   ],
+   "exit": 0,
+   "log": "evidence-gates.txt.gz"
+  },
+  {
+   "step": "benchmark stores, text",
+   "command": [
+    "collect.py",
+    "stores"
+   ],
+   "exit": 0
+  }
+ ],
+ "files": [
+  {
+   "path": "README.md",
+   "bytes": 7230,
+   "sha256": "35532b8afce7e95ce9419b4ee339abde587ee060d238d392961eefc4124ae41f"
+  },
+  {
+   "path": "benchmark-patches.txt",
+   "bytes": 4364,
+   "sha256": "d76ca91833f3fe7acd5b83a6fefff9c6814fecbd8d10d9d534e818ad77d243cf"
+  },
+  {
+   "path": "benchmark-stores-text.txt",
+   "bytes": 2631,
+   "sha256": "db2b9d2713c51b51637d1e5b9194f13d8319c67dc81ec2ac5855692c0d6c2c01"
+  },
+  {
+   "path": "ci-plan.txt",
+   "bytes": 577,
+   "sha256": "7a5157b6681de571756bfbb27c33f7e15db589298b9dc0236d8b8e7ee84f2cb3"
+  },
+  {
+   "path": "corpus-fmt-test.txt",
+   "bytes": 737,
+   "sha256": "a9062980ef84588c74226d937b447fe53b631da5e34bf9b4708b50648f177b33"
+  },
+  {
+   "path": "diff-stat.txt",
+   "bytes": 1051,
+   "sha256": "f5246a78e672212f73c99fa3f1d7194bd6952726c3a70880dc3f7486142d04c4"
+  },
+  {
+   "path": "environment.txt",
+   "bytes": 306,
+   "sha256": "f5f46f39e1f0e96fa32452db8d315244152ed59ceb2a8fda86073d3f793c1200"
+  },
+  {
+   "path": "evidence-gates.txt.gz",
+   "bytes": 23951,
+   "sha256": "48fec559421118eabf6b75992a44d1202246dcfc42ac19f40694976e95e4bce3",
+   "decoded_bytes": 123760,
+   "decoded_sha256": "3398c455a333c62b0ae570dfedc79de4144aae5c9def1dd073cfffd443bcad85"
+  },
+  {
+   "path": "guide-blocks.txt",
+   "bytes": 508,
+   "sha256": "5cfa6e18575ff78be5704710b7204b86ad2ef99ffd8a401e520bdc161c01cd50"
+  },
+  {
+   "path": "guide-test.txt",
+   "bytes": 1295,
+   "sha256": "048f7902a060eb5d1a777b75b9f6740434c1dfd1a41a262c3db354a5efea2dd4"
+  },
+  {
+   "path": "mutation-anchors.txt",
+   "bytes": 205,
+   "sha256": "eb0549d8af790f06de3073b02927a7180daf681c6524cb399df2e061c334f3e9"
+  },
+  {
+   "path": "preflight.txt",
+   "bytes": 1863,
+   "sha256": "6627813eee99ff964604268dbcd2bde33f7989125961da735d6ec772b2005856"
+  },
+  {
+   "path": "pw-core-tests.txt.gz",
+   "bytes": 37683,
+   "sha256": "c22679705543cf456b59096906baa959b799c0b136a1f5e3dbc1c93a748319b7",
+   "decoded_bytes": 171069,
+   "decoded_sha256": "de435f7fb8f88913d3963a14b6f3f484037c06c91e5b14c983c445a69bb6e903"
+  },
+  {
+   "path": "recipes/at-2fd56c14/contract.txt",
+   "bytes": 9873,
+   "sha256": "3ec3d9a26162ac7c49a83bd150b3e770799c4ad0b2051b4e5560b6727b0fade8"
+  },
+  {
+   "path": "recipes/at-2fd56c14/holds.txt",
+   "bytes": 4959,
+   "sha256": "5951d242d9eb6c4235effbeffac0c82706b444ef7f6dbb7d26ffb877dc6bad0c"
+  },
+  {
+   "path": "recipes/at-2fd56c14/logs/e14-contract.log.gz",
+   "bytes": 1611,
+   "sha256": "5df92221c79e751cde6d8852d4a9e27b242b065e043c2806ea935562f1e14283",
+   "decoded_bytes": 10097,
+   "decoded_sha256": "6fd7dd50b057f69ccb5aa7fffb4fe6351d100e476e3891ea8cbce8b30a95f172"
+  },
+  {
+   "path": "recipes/at-2fd56c14/logs/e14-holds.log.gz",
+   "bytes": 271,
+   "sha256": "9e75e990631f8d0867a6d2d24de122dd22fcf13681796585fe97883a633b90bc",
+   "decoded_bytes": 652,
+   "decoded_sha256": "c769f5d252e6d454723cf8a54b2275316a1591d9eb75623f7cab2d20c0b51835"
+  },
+  {
+   "path": "recipes/at-2fd56c14/logs/e14-metadata.log.gz",
+   "bytes": 336,
+   "sha256": "83b4ac29041f71813a44725a47d880a5f6f983ea01289927738158566b68c3b0",
+   "decoded_bytes": 1145,
+   "decoded_sha256": "091abba842dcaf445f97db614c4cb82f8434d11ea5a3e485c98b75386b0851ac"
+  },
+  {
+   "path": "recipes/at-2fd56c14/logs/e14-pleris-controls.log.gz",
+   "bytes": 309,
+   "sha256": "804a2beaea7323a712214be5f1574b971205901307e356e2380672900ffdcb22",
+   "decoded_bytes": 1152,
+   "decoded_sha256": "40912fccd5e1594984431f7d0b2865698cf1779fae2f9eee28af48d752476dd1"
+  },
+  {
+   "path": "recipes/at-2fd56c14/metadata.txt",
+   "bytes": 8725,
+   "sha256": "9840a3e5ef49218ca44414462370c9ccc7adc9948254a777c24032d2ed4efc16"
+  },
+  {
+   "path": "recipes/at-2fd56c14/pleris-controls.txt",
+   "bytes": 1152,
+   "sha256": "40912fccd5e1594984431f7d0b2865698cf1779fae2f9eee28af48d752476dd1"
+  },
+  {
+   "path": "recipes/at-2fd56c14/summary.txt",
+   "bytes": 664,
+   "sha256": "beecfa3f84d2b35df5889657c16ea36edf8bd12686561e3477b10d386297bf0d"
+  },
+  {
+   "path": "recipes/handler-failures.txt",
+   "bytes": 3394,
+   "sha256": "b0b172fd29fcb17e87d165c90c1b32878f7887b0c179f25e6cb3840c1520f8c9"
+  },
+  {
+   "path": "recipes/held-labels.txt",
+   "bytes": 3292,
+   "sha256": "7a5ea3d4cc6552ae256c0ef2c79cd003aec4574372302bd1a81319ce9ceb4123"
+  },
+  {
+   "path": "recipes/ids.txt",
+   "bytes": 3699,
+   "sha256": "64d5b79b1dc51ce870f44ec50f90d1811d11a607a307ffeef22b459a58f1915d"
+  },
+  {
+   "path": "recipes/layouts.txt",
+   "bytes": 3562,
+   "sha256": "a8119ee7b6d2e208310d7c3168b0fc6854dc3ad3c9d8fb4ebafdff4567476ea2"
+  },
+  {
+   "path": "recipes/links.txt",
+   "bytes": 2297,
+   "sha256": "682b33194ad9ca4539525210e07ad4d763655e062ce62a608f9879c5eea650c8"
+  },
+  {
+   "path": "recipes/logs/e10-privacy-by-resolution.log.gz",
+   "bytes": 137,
+   "sha256": "d11aae970413afc3f4c3afcaeb1da1ca2d6bb204e7a31c1d09b7bb7e5b90bb3b",
+   "decoded_bytes": 116,
+   "decoded_sha256": "60247ec169b6f81028f03168cb6648f8d1a310b04204210b2a24523c139a0e58"
+  },
+  {
+   "path": "recipes/logs/e10-reads-through-calls.log.gz",
+   "bytes": 134,
+   "sha256": "f562cb424c1c4989d42cb0bc9b3efae7eb3c515251bf5d6ec15cfcf438c197b5",
+   "decoded_bytes": 116,
+   "decoded_sha256": "59ccd01dfab6730066fd953b43d8d62c983178c165f9afcc77684510e31c65ba"
+  },
+  {
+   "path": "recipes/logs/e14-diffs.log.gz",
+   "bytes": 121,
+   "sha256": "df6c2a65127923095b13781afb29e6ded6a648af05ffecdd9d0405d24085b3e5",
+   "decoded_bytes": 116,
+   "decoded_sha256": "e5186b01965a813f6fa954a549a1763b20cc980140ab247012d45c2e2a00856b"
+  },
+  {
+   "path": "recipes/logs/e14-handler-failures.log.gz",
+   "bytes": 188,
+   "sha256": "96f82d771a406b61f001de4f31f11145484ed3a4c55d636b6cfc4b2095d858de",
+   "decoded_bytes": 344,
+   "decoded_sha256": "1bc723a8eedd38b2bec4edc1835e0aba97d026f47d90334b5b1359a86ef8e2dd"
+  },
+  {
+   "path": "recipes/logs/e14-held-labels.log.gz",
+   "bytes": 151,
+   "sha256": "d4d66c6458bd67249dff7eba3f96c3d9102860ae47219d5dd78d008104540d86",
+   "decoded_bytes": 306,
+   "decoded_sha256": "b2092d8dd6a4c039f2b1549ee8656e48680bcc54b738a5696bb939e4c286d739"
+  },
+  {
+   "path": "recipes/logs/e14-ids.log.gz",
+   "bytes": 196,
+   "sha256": "ee27d4b544afeaa90b14e32a95e4aa30c6d2b62b48f0372afa3ae45335dca303",
+   "decoded_bytes": 610,
+   "decoded_sha256": "ee6ee474b45cc4f5e9e9218ad47099d81a75242bdad1089b9aabe2187a38703b"
+  },
+  {
+   "path": "recipes/logs/e14-layouts.log.gz",
+   "bytes": 264,
+   "sha256": "e3020ca07768b1c55ad49a9b296175b611dbfc2baf48ecd24a58cf9033fc2a73",
+   "decoded_bytes": 615,
+   "decoded_sha256": "0048def04f313f3058052c7e6320c389cdfe9cb93b7b7d79e1b38c2dec0fe6fa"
+  },
+  {
+   "path": "recipes/logs/e14-links.log.gz",
+   "bytes": 183,
+   "sha256": "138567ddb3981aabd0438c819ea55d5939973a24f99ad231f21277bb16545755",
+   "decoded_bytes": 419,
+   "decoded_sha256": "e53677122ca926dddda71cbf823ffbeb009bb6d870e53f0f620c5ac655c86c7a"
+  },
+  {
+   "path": "recipes/logs/e14-museum.log.gz",
+   "bytes": 106,
+   "sha256": "36c9b00b7e5bc54dd8b076c32de8734d32d8d1cebe01ebd50419ad34e6e1472f",
+   "decoded_bytes": 81,
+   "decoded_sha256": "d8ac1cde2239673c377709877b04dd249a73ee9df646e3f849efc0de53b64f0c"
+  },
+  {
+   "path": "recipes/logs/e14-shared-cache.log.gz",
+   "bytes": 185,
+   "sha256": "06d43c5eaa2f0389490c5c0216eb4890676c30c28116093b6fc9aad5e9f33fdd",
+   "decoded_bytes": 217,
+   "decoded_sha256": "ede84d6a27309510523482df8d0e8953cdb5a9fb05af37f316a345066c89a252"
+  },
+  {
+   "path": "recipes/logs/e14-unsafe-table.log.gz",
+   "bytes": 147,
+   "sha256": "07ffc6fbcb7b9cf2b9a3997cd11b0888cf4422a9a417ba38a46b58e7158f08cf",
+   "decoded_bytes": 207,
+   "decoded_sha256": "3ef9947218f265ad6d2a4eff851789667b7bf5a7cd9723828a16159a845bce89"
+  },
+  {
+   "path": "recipes/logs/e14-value-labels.log.gz",
+   "bytes": 130,
+   "sha256": "79be7c8299bd4e84743c0f7399120d5c0c5f960ebf4d9e571e383215392170dd",
+   "decoded_bytes": 118,
+   "decoded_sha256": "8876c999fdb8f37a588d20bfc41aeaaab9604f245eaf11c432b0aa3f5d97f38b"
+  },
+  {
+   "path": "recipes/museum.txt",
+   "bytes": 8271,
+   "sha256": "6ebf44fb97a094ba0b5371737b64ca99d4842574b6b695858d394721fefbdbf3"
+  },
+  {
+   "path": "recipes/privacy-by-resolution.txt",
+   "bytes": 916,
+   "sha256": "4b16c8f8bc109ab650cd3e16b9db257b39779164ab5f5555a607a146785987e9"
+  },
+  {
+   "path": "recipes/reads-through-calls.txt",
+   "bytes": 1154,
+   "sha256": "7f82cd7879ab3564b9081b4c5c084aa5f39d27cbfca15055da6432f1e97f2106"
+  },
+  {
+   "path": "recipes/semantic-diffs.txt",
+   "bytes": 11875,
+   "sha256": "8d477e0ea9f61a8257d4cf474064ef7865191104d3e721d72c7638148213c220"
+  },
+  {
+   "path": "recipes/shared-cache.txt",
+   "bytes": 1583,
+   "sha256": "625ac5141fe7fe973365097a8d02b9bf1b3f459185121b6b11ba12c1c05fe912"
+  },
+  {
+   "path": "recipes/summary.txt",
+   "bytes": 2013,
+   "sha256": "60b5c0ec99ad2a428a5a43c75eac715a869dafb56afa0f4ec7e1cfbb6349cf16"
+  },
+  {
+   "path": "recipes/unsafe-table.txt",
+   "bytes": 2518,
+   "sha256": "62a43d8312ecf3a41af191168b4c1512466171c5b52a85e588009cdda760bfdc"
+  },
+  {
+   "path": "recipes/value-labels.txt",
+   "bytes": 1678,
+   "sha256": "e8d5d828c775abbe03299528ab2ac3a07c040fabb012fab635fbd15082d8f0ba"
+  },
+  {
+   "path": "red-controls.txt",
+   "bytes": 6338,
+   "sha256": "bef24611d6f8c452558f80238f1da9d80db43cf13a3ca640ec704647a9ed154b"
+  },
+  {
+   "path": "steps.jsonl",
+   "bytes": 2772,
+   "sha256": "3afa87ce67ff25b1dad90226169326c284cae484460507913a731efca69a58cc"
+  },
+  {
+   "path": "superseded/evidence-gates-under-leaked-git-env.txt.gz",
+   "bytes": 28139,
+   "sha256": "e4509a0393c451f0a278af968f7bea0bf78500e68bdddc781b65d10ee608d6ec",
+   "decoded_bytes": 223253,
+   "decoded_sha256": "003139b74a1690deb03864ae4631c055eb24204fa40863933ec2151f7a03b587"
+  },
+  {
+   "path": "tools/collect.py.gz",
+   "bytes": 6031,
+   "sha256": "df8b599b8fd0137d345c8b2e997451084dd00fc5d5ede6e851ae8bdebf068c93",
+   "decoded_bytes": 18481,
+   "decoded_sha256": "53dfb2ea8ef3c26be9fef26dbb1c6342b30262a5835bcdd1286832f943af614b"
+  },
+  {
+   "path": "tools/regen_guide_blocks.py.gz",
+   "bytes": 1632,
+   "sha256": "a1e84c5e3ab1e96c15e697349b137245061f16b6e790397d3db8578b5cb29279",
+   "decoded_bytes": 4027,
+   "decoded_sha256": "43f0f401c3e9ece3ababce8ec360e9d09fc39471f0dfd0053d6ad7b43e4c0453"
+  },
+  {
+   "path": "tools/run_recipes.sh.gz",
+   "bytes": 680,
+   "sha256": "08ac53cc58978df57ce77e68a2349fab4678560a9c7f00ec664b64ac0835277f",
+   "decoded_bytes": 1251,
+   "decoded_sha256": "bcf0ec1858c2efccfdd5baf9a95ba2f36d3049f5761811e6ab02b5594c25b24a"
+  }
+ ],
+ "qualifications": [
+  "Recorded locally in WSL Ubuntu 22.04; hosted CI has not run this commit.",
+  "Nothing was pushed."
+ ]
+}

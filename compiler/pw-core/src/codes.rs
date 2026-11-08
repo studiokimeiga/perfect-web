@@ -26,6 +26,7 @@
 //! PW64xx   the payments track's (NEXT 6c): a command the platform invokes
 //! PW66xx   check-is-build: executable program support
 //! PW68xx   the device-store track's: a value the reader's device keeps
+//! PW69xx   the data-path track's: a program's declared tables, served
 //! ```
 //!
 //! A parallel track registers its codes in its own block, with its own
@@ -137,6 +138,11 @@ pub enum Owner {
     /// the integrator): a value the reader's device keeps, charter §9.1's
     /// fourth kind of state, and the `Device` label that keeps it there.
     DeviceStore,
+    /// The data-path track's codes, PW69xx (ADR-0338's D2, an app with no
+    /// Rust data layer; the next free block, the integrator's ruling 3 of
+    /// 2026-11-02 asking the track's own): a program's declared tables, as
+    /// the development server serves them.
+    DataPath,
 }
 
 impl fmt::Display for Code {
@@ -276,6 +282,12 @@ codes! {
     // command a page's handler calls says how a second delivery is answered.
     SENT_WITHOUT_IDEMPOTENCY = "PW0338" / sent_without_idempotency / 1, DeclarationRules,
         "a command a page's handler calls declares `idempotent_by`";
+    // ADR-0406: the server runs a command for any request that names
+    // it, so a command no page sends is a request away as well. Until
+    // 2026-11-06 a command that said nothing of who may run it compiled, and
+    // anyone could.
+    WHO_MAY_RUN = "PW0367" / who_may_run / 1, DeclarationRules,
+        "a command a reader can run says who may: `requires` and the predicates every request must hold, or `requires Anyone`, which stands alone and is the platform's";
     // ADR-0157: a command is one request, and its caller is answered whether
     // it committed. Called from a declaration, its body ran without its
     // policies, and the checker and the backend typed the call differently.
@@ -340,8 +352,6 @@ codes! {
     MIGRATION_UNSTATED = "PW0366" / migration_unstated / 1, DeclarationRules,
         "a change from the schema released that loses or reinterprets data is stated by a `migrate`, and each `migrate` states one";
 
-    STALE_KEY_POLICY = "PW0325" / stale_key_policy / 1, DeclarationRules,
-        "a keyed query must say what happens when its key changes";
     // Renamed 2026-08-11 (ADR-0025). It required a written `rollback`; it now
     // refuses one, because the platform restores the value it held and a
     // hand-written inverse describes a different operation. Same code, same
@@ -657,6 +667,12 @@ codes! {
         "interactive behaviour belongs on an element that can receive it";
     CONTROL_WITHOUT_LABEL = "PW5014" / control_without_label / 1, Markup,
         "a form control must have something that names it";
+    // ADR-0404: until 2026-11-06 an `<img>` with no `alt` checked
+    // clean, and the guide showed it as a gap in the checks (ADR-0343).
+    // ADR-0405 holds an image button's `alt` here too: it is
+    // the button's label, so HTML lets it be neither missing nor empty.
+    IMAGE_WITHOUT_ALT = "PW5053" / image_without_alt / 1, Markup,
+        "an image says what it shows: an `<img>` has an `alt`, empty only where it shows nothing a reader needs, and an image button an `alt` that says what it does";
     // ADR-0042. Until 2026-09-25 nothing read a block's markers: `{:else}`
     // was dropped and both of an `if`'s branches rendered together.
     MALFORMED_TEMPLATE_BLOCK = "PW5019" / malformed_template_block / 1, Markup,
@@ -983,6 +999,13 @@ codes! {
         "a signal the device keeps is of a type the device can hold: data, no function, no type that contains itself, no opaque type with a `where`";
     DEVICE_SIGNAL_PROVIDED = "PW6808" / device_signal_provided / 1, DeviceStore,
         "a signal the device keeps is provided by the device: no `provide` gives it a value";
+
+    // --- the data-path track (PW69xx; ADR-0338's D2) ----------------------
+    //
+    // `type Held = Held { id: String, who: User<UserId> }` as a table's row:
+    // a handle stored where every reader of the table reads it.
+    ROW_HOLDS_HANDLE = "PW6901" / row_holds_handle / 1, DataPath,
+        "a table's row holds no session's, user's or organization's handle: every reader of the table reads its rows, and a handle is its own reader's alone; a row names someone by their id";
 }
 
 /// Codes that were registered, are no longer emitted, and whose numbers must
@@ -1079,6 +1102,7 @@ impl Owner {
             Owner::Schedules => "PW65",
             Owner::CheckIsBuild => "PW66",
             Owner::DeviceStore => "PW68",
+            Owner::DataPath => "PW69",
             Owner::Syntax | Owner::Resolution => "PW00",
             Owner::Placement | Owner::Privacy | Owner::Markup => "PW50",
             Owner::Types => "PW06",
@@ -1149,6 +1173,7 @@ mod tests {
                 (Owner::Schedules, "PW65"),
                 (Owner::CheckIsBuild, "PW66"),
                 (Owner::DeviceStore, "PW68"),
+                (Owner::DataPath, "PW69"),
             ] {
                 assert!(
                     !c.id.starts_with(block) || c.owner == owner,

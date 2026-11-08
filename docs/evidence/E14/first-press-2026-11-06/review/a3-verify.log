@@ -1,0 +1,19 @@
+== 2026-11-06T08:26:44-05:00 fmt
+exit fmt 0
+ spikes/own-renderer/server/src/identity.rs |  8 ++++
+ spikes/own-renderer/server/src/main.rs     | 73 +++++++++++++++++++++++++++++-
+ 2 files changed, 79 insertions(+), 2 deletions(-)
+== 2026-11-06T08:26:45-05:00 green
+
+running 3 tests
+...
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 868 filtered out; finished in 1.23s
+
+exit green 0
+== 2026-11-06T08:26:56-05:00 red: the guard removed
+thread 'tests::a_host_that_admits_from_a_kept_source_does_not_warm' (588074) panicked at spikes/own-renderer/server/src/main.rs:17514:9:
+admitted from a kept source: HTTP/1.1 200 OK
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 870 filtered out; finished in 1.79s
+== 2026-11-06T08:27:04-05:00 restored
+main.rs restored
+A3_VERIFY_FINISHED

@@ -1,0 +1,13 @@
+== 2026-11-06T10:33:04-05:00 commit 21863b22fa07ec55a402bb1f6f2152569a54c30a
+== 2026-11-06T10:33:04-05:00 A1 red: name_files as it was at 1f021e1d (a replace over the whole document)
+a reader's text, as written: <title>src="/pw-runtime.mjs" said</title> in <head>
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 871 filtered out; finished in 0.00s
+== 2026-11-06T10:33:13-05:00 A6 red: the route after `let path = server.handler_module(id);` ignores the query
+/handler/060d9ca5e0da84eb.mjs at the delivery: HTTP/1.1 200 OK
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 871 filtered out; finished in 1.34s
+== 2026-11-06T10:33:23-05:00 A6 red: the route after `fn serve_file(` ignores the query
+/app.css at the delivery: HTTP/1.1 200 OK
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 871 filtered out; finished in 1.35s
+== 2026-11-06T10:33:30-05:00 restored
+main.rs restored
+INLINE_REDS_FINISHED

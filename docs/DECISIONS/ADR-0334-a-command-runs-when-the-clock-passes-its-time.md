@@ -166,3 +166,35 @@ checks its arguments as a call's).
 - mutation controls (`scripts/scheduled_mutations.py`, 37): the language's
   12, the host's 20 in memory and 5 on PostgreSQL, each run by the suite
   that must kill it.
+
+## Amendment, 2026-11-07: a run is its scheduler's
+
+Decision 3 kept one pending run "for each command and its arguments", and
+decision 1 runs each "on behalf of the user (or the session) whose command
+scheduled it". Together they let one reader reach another's run: the same
+arguments scheduled by a second reader replaced the first reader's pending
+run, which then ran on the second's behalf, and the second's `unschedule`
+cancelled it. An independent comparison of two row-ownership designs found
+this on 2026-11-07 (ADR-0407's decision 4), and a test reproduced it: the
+first reader's espresso went to the second reader's cart.
+
+Decision 3 now reads: **one pending run for each command, its arguments and
+the user whose command scheduled it.** That user scheduling it again moves
+it, and its `unschedule cmd(args)` cancels it; another user's scheduling is
+another run. Oban's jobs are unique by their arguments, and those arguments
+say whose job it is; a Pleris command's need not, since the platform knows
+its scheduler.
+
+- The key is the user's, the command's and the arguments', each after
+  U+001F (`schedules::key`), computed when the command commits.
+- Migrations `store/0022` and `feed/0014` give each kept key its user, so a
+  run kept under the old key is still its scheduler's, and moves.
+- Tests:
+  - `another_readers_scheduling_moves_no_run_of_mine`, in memory and on
+    PostgreSQL: red with the old key, where only the second reader's run
+    is left;
+  - `a_runs_key_names_the_user_whose_command_scheduled_it`;
+  - `on_postgres_a_run_kept_under_the_old_key_is_its_schedulers_after_the_upgrade`.
+- Mutation controls: `scheduled_mutations.py`'s key mutant is re-anchored on
+  `schedules::key`, and a new one leaves the user out of it. Both are
+  killed.

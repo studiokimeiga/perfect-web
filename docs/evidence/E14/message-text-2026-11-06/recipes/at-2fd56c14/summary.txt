@@ -1,0 +1,4 @@
+e14-holds started=2026-11-06T19:56:40Z ended=2026-11-06T20:07:15Z exit=0 restored=yes anchors=[mutation anchors: 4974 mutants in 324 scripts, each matching once]
+e14-metadata started=2026-11-06T20:07:15Z ended=2026-11-06T20:19:16Z exit=0 restored=yes anchors=[mutation anchors: 4974 mutants in 324 scripts, each matching once]
+e14-contract started=2026-11-06T20:19:16Z ended=2026-11-06T20:21:48Z exit=0 restored=yes anchors=[mutation anchors: 4974 mutants in 324 scripts, each matching once]
+e14-pleris-controls started=2026-11-06T20:21:48Z ended=2026-11-06T20:28:01Z exit=0 restored=yes anchors=[mutation anchors: 4974 mutants in 324 scripts, each matching once]

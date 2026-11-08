@@ -179,9 +179,16 @@ MUTANTS = [
     (
         "every run of a command is one run, whatever its arguments",
         MEMORY,
-        SERVER,
-        "                            key: schedules::key(&scheduling.command, &args),\n",
-        '                            key: schedules::key(&scheduling.command, ""),\n',
+        SCHEDULES,
+        '    format!("{user}\\u{1f}{command}\\u{1f}{args}")\n',
+        '    format!("{user}\\u{1f}{command}\\u{1f}")\n',
+    ),
+    (
+        "a run is any reader's, whoever scheduled it (ADR-0334, amended 2026-11-07)",
+        MEMORY,
+        SCHEDULES,
+        '    format!("{user}\\u{1f}{command}\\u{1f}{args}")\n',
+        '    format!("\\u{1f}{command}\\u{1f}{args}")\n',
     ),
     ("a scheduling that writes nothing else commits nothing", MEMORY, SERVER, '            None if !scheduled.is_empty() || completing.is_some() => Vec::new(),\n', '            None if completing.is_some() => Vec::new(),\n'),
     (

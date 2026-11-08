@@ -1,0 +1,24 @@
+diff --git a/domain.pw b/domain.pw
+index 4ed1d9f..33972d2 100644
+--- a/domain.pw
++++ b/domain.pw
+@@ -125,6 +125,7 @@ type CartError =
+ type OrderStatus =
+     | Placed
+     | Preparing
++    | Ready
+     | Delivered
+ 
+ type OrderDraft = OrderDraft {
+diff --git a/store/app.pw b/store/app.pw
+index de5f663..7c06e78 100644
+--- a/store/app.pw
++++ b/store/app.pw
+@@ -186,6 +186,7 @@ page StorePage(id: StoreId) {
+                     {#match status}
+                     {:Placed}<p>Your order is placed.</p>
+                     {:Preparing}<p>Your order is being prepared.</p>
++                    {:Ready}<p>Your order is ready for pickup.</p>
+                     {:Delivered}<p>Your order was delivered.</p>
+                     {/match}
+                 {:None}

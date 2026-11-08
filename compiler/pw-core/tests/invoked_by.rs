@@ -285,6 +285,7 @@ fn a_payments_command_is_told_at_its_invoked_by_clause() {
         "{:?}",
         reported(&unkeyed)
     );
-    let pressed = command("begin", "n: Int", "");
+    // A command a reader presses says who may (ADR-0406).
+    let pressed = command("begin", "n: Int", "    requires Anyone\n");
     assert!(reported(&pressed).is_empty(), "{:?}", reported(&pressed));
 }

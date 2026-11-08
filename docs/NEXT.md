@@ -6,6 +6,142 @@
 
 # Next
 
+## After train-14, 2026-11-07
+
+Train-14 merges 23 PRs and the cache repair ([STATUS](STATUS.md)). What
+stays open, in order:
+
+1. **Row ownership lands as ADR-0407 rules.** `owned by <field>` (the
+   row-ownership track, reserved ADR-0395) is master's model; PR #91 does
+   not merge. Split the row, data and durable slice from
+   `fix/row-data-integration` (uploads, the outbox and the feed and store
+   go in PRs of their own), merge master, renumber its codes (ADR-0406
+   holds PW0367), add `requires` to its fixtures, carry #91's findings
+   (ADR-0407's decision 3), and re-run its gates on GitHub.
+2. **PRs #86 and #87, repaired before they land** (reserved ADR-0401 and
+   ADR-0402; an independent review on 2026-11-07):
+   - #86, keep-alive: a head read stops at a read error (a non-UTF-8 header
+     value, a stall) and is answered as complete on a kept connection, so a
+     proxy that reuses connections can be made to smuggle a request (any
+     error or end before the blank line is a 400 and a close; the head's
+     size is capped). Also: three file handles a connection against the
+     usual 1024, and an accept loop that spins when out of them; a next
+     request that waits for others' telling; a read bound per read rather
+     than a deadline, which no test holds; HEAD answered with a body.
+   - #87, longer holds: a failed regeneration (ADR-0176) is retried only by
+     the page's next subscription request, now up to 25 s away; frames pile
+     past `MAX_WAITING` on a held stream; and each tab holds one of
+     HTTP/1.1's six connections to an origin for 25 s.
+   - When both land, their mutation scripts and `session_overlap`'s run
+     whole, and #86's connection cap is read against #87's holds.
+3. **PR #81:** its pixel test of the checkbox fails in WebKit ("checked: the
+   bounds its drawing is past"); its session repairs the drawing.
+4. **Two defects on master** (ADR-0407's decision 4), each its own PR: the
+   development server's scheduler keys a run by its command and arguments
+   alone (`schedules.rs`'s `key`), so one reader's schedule moves another's
+   pending run; and D3's PostgreSQL `put` is answered from its statement's
+   snapshot (`sql.rs`'s `old`), which a concurrent command can make wrong.
+5. **PR #74** names its decision ADR-0394, which the data path holds; it
+   takes the next free number when it lands. The dependency updates
+   (#16-#26, #65) are checked and landed on their own.
+
+6. **What train-14's review found and left for its own work:**
+   - **A query answers `POST /command/<id>`** (medium confidence, not run):
+     `pw build` writes a component for each query too, the server loads every
+     component, and the route never asks what kind an export is. A query no
+     page reads can be called with any arguments, and a query cannot declare
+     `requires`. A query's id posted as a command should answer 404.
+   - **The older markup rules compare names exactly**, as PW5053 and PW5014
+     did until train-14: PW5013's interactive elements, `role`, `tabindex`.
+     HTML lower-cases both a tag's name and an attribute's; read them as it
+     does, or refuse a name HTML would rewrite, beside SVG's own.
+   - **The InteractionId help** (PW0338, PW0312, PW6405) prints even where
+     the program declares the type, and says "declare" where the type is
+     declared in another module and only needs importing.
+   - **The refusal codes' guide** lists PWR10, which `decide_manifest` never
+     returns, and PWR07's row leaves out `CaptureSchemaMismatch`.
+   - #71's test waits on its condition by polling every 10 ms; the table's
+     condition variable would make it an event. #73 pins no test to its 24
+     shards, and its plan can still grow to 40.
+   - The pleris.dev branch (`site/pleris-dev`, PR #77) still holds the two
+     Wrangler cache files train-14 left out; whether to delete that branch
+     after the merge is the owner's call.
+
+7. **CodeQL's 82 open alerts on master** (2026-11-07): 16
+   `rust/hard-coded-cryptographic-value` (critical, `accounts.rs`), 14
+   `rust/log-injection`, 7 `rust/cleartext-logging`, 24 unpinned actions, and
+   JavaScript's path-injection, file-system-race, shell-command and
+   sanitization findings. Each is fixed or dismissed with its reason. A large
+   PR's CodeQL check re-reports those in the files it changes: train-14's
+   eight (#60, #61, #82-#84, #92-#94) were all open on master before it.
+
+## Current local continuation, 2026-11-02
+
+Fetched `origin/master` is `5d4d4d55`; D3 PostgreSQL, added-table references,
+session overlap and preverify's disk-fixture repair are already merged.
+The older queues below remain dated history.
+
+1. Prepare integration of the local closed-table cache fence on
+   `fix/tables-cached-refusals`. Source `b496bdc3` has four native regressions,
+   a complete 60/60 data-path campaign, 15 browser checks, passing local CI
+   and independent final review. Re-plan, number and complete the required
+   published-head gates before landing. See its
+   [execution record](diagnostics/tables-cached-refusals-2026-11-02.md).
+2. Audit PR #72's exact-head recipe evidence, then reconcile row ownership
+   without overwriting `/home/haki/code/pw-wt/row-ownership`'s dirty files.
+3. Validate durable declared tables and row-authorized feed/store migration,
+   using real two-user `.pw` witnesses. The paid E14 study stays deferred.
+
+Remote publication and deployment require current authorization. Local tests
+and implementation continue within that boundary.
+
+
+## The head-to-head's findings, 2026-11-02 (ADR-0392)
+
+Measured by `just e14-head-to-head` (local only: record it on the PC in a
+quiet window) at `dbd37a8c`; each item is done when that recipe's next
+record moves its rows out of "where Pleris loses". In the order the losses
+cost a user:
+
+1. **The first press downloads the renderer** (TodoMVC: 395,444 bytes,
+   `pw-render.wasm` 386,022 of them, uncompressed; the first add under Slow
+   4G 3,889 ms against React's 44 and Svelte's 40): preload it once the
+   page is interactive, serve it compressed, or render a keyed row without
+   it.
+2. **A production host**: precompressed Brotli and gzip, content-hashed
+   immutable names or `ETag`s answered `304`, keep-alive (the host sends
+   `connection: close` and no validator or `Cache-Control`). Done when
+   TodoMVC's first load receives about its Brotli figure (67,828 of
+   237,218 bytes) and a warm load kilobytes (it receives 237,127; React
+   1,338), and Slow 4G's interactive (4,101 ms; 1,711 and 1,307) moves.
+3. **Minify the runtime in the build**: `pw-runtime.mjs` 157,269 bytes,
+   56,873 by esbuild 0.28.2 (in the workspace).
+4. **Live updates per origin, not per tab**: one subscription an origin's
+   tabs share (a `BroadcastChannel` or `SharedWorker` leader) or HTTP/2, and
+   held streams woken by writes, not a 25 ms timer (`stream_open`). Done
+   when a press with 19 other store tabs open (10,084 ms; 54 and 46) is in
+   the tens of milliseconds and twenty idle visitors (30 requests a page a
+   minute, 16.0 ms of host CPU a second) cost about what the Node servers'
+   timers do.
+5. **Where each interaction's time goes**: TodoMVC's add takes 32 ms in
+   Chromium (React 11, Svelte 9.9) and 113 in WebKit (25, 22), and its
+   toggle and filter land a frame behind React's, on the loopback too.
+   Trace one add in each engine (a handler module fetched at first use, the
+   renderer's compilation) before choosing a repair.
+6. **The store's data layer is Rust** (`store.rs`, 2,110 lines, beside 294
+   lines of Pleris; Next.js's whole store is 151): serve D2's declared
+   tables to pages, read and written; then add T13, "favorite stores", to
+   `benchmarks/tasks` and so to the head-to-head.
+7. **Checker rules for the three unsafe changes it passes**: shared reads
+   (T02), stale answers (T07), freshness bounds (T09).
+8. **Prerender device-only pages** (TodoMVC in Pleris needs an application
+   server; a plain static host answers React's and Svelte's faster) and
+   **one stylesheet per page** (7 requests against 5).
+9. **The instrument**: accessibility (Playwright's snapshot and roles now;
+   axe-core waits on the owner's download decision, ADR-0342); Event
+   Timing beside its own interaction times; ADR-0120's contract in three
+   engines; the feed as a third app; a quiet machine for its record (this
+   one measured under a load of 10).
 
 ## Local session continuation, 2026-10-26
 

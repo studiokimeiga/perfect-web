@@ -200,6 +200,14 @@ pub fn writer() -> Program {
     )
 }
 
+/// `examples/tables/guarded.pw`'s command, which `requires SignedIn`.
+pub const MAKE_SIGNED: &str = "tables.guarded.make_signed";
+
+/// The guarded program: the lists, their items, their source, `guarded.pw`.
+pub fn guarded() -> Program {
+    program_of(&["guarded.pw"], &[MAKE_SIGNED])
+}
+
 /// **The tables' declarations and `program`, its source edited by `edit`,
 /// as `pw build` checks and builds them**: the build, or why the program does
 /// not check.

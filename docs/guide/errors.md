@@ -117,6 +117,7 @@ fn publish(s: Session<SessionId>, text: String) -> Result<Post, PostError> !{ da
     host "blog:data/posts#publish"
 
 command post(text: String) -> Result<Post, PostError>
+    requires      Anyone
     idempotent_by InteractionId
 {
     publish(current_session(), text)
@@ -139,9 +140,9 @@ page Write() {
 
 ```text pw-check
 error: [PW0620] `post` answers whether it committed, not its value: `p` is bound to nothing
-  --> answer.pw:30:16
+  --> answer.pw:31:16
    |
-30 |             Ok(p) => last = "sent",
+31 |             Ok(p) => last = "sent",
    |                ^ `post` answers whether it committed, not its value: `p` is bound to nothing
    |
    = note: A command's caller is answered `Ok`, or an error the command declares (ADR-0157). The value it produced reaches the page from the query it invalidates, so the page has one source for what it shows: a value read from the answer would be a second, which the query's next change would contradict.
@@ -161,6 +162,8 @@ module twice
 import context.{ current_session }
 import capability.{ Session, SessionId }
 
+opaque type InteractionId = String
+
 type Post = Post { id: String, text: String }
 
 type PostError =
@@ -169,7 +172,9 @@ type PostError =
 fn publish(s: Session<SessionId>, text: String) -> Result<Post, PostError> !{ database.write<Post> }
     host "blog:data/posts#publish"
 
-command post(text: String) -> Result<Post, PostError> {
+command post(text: String) -> Result<Post, PostError>
+    requires Anyone
+{
     publish(current_session(), text)
 }
 
@@ -190,22 +195,25 @@ page Write() {
 
 ```text pw-check
 error: [PW0338] `post` is called by a page's handler, and declares no `idempotent_by`
-  --> twice.pw:14:1
+  --> twice.pw:16:1
    |
-14 | / command post(text: String) -> Result<Post, PostError> {
-15 | |     publish(current_session(), text)
-16 | | }
+16 | / command post(text: String) -> Result<Post, PostError>
+17 | |     requires Anyone
+18 | | {
+19 | |     publish(current_session(), text)
+20 | | }
    | |_^ `post` is called by a page's handler, and declares no `idempotent_by`
 ...
-25 |           <button type="button" on:press={() => match post("Hello") {
+29 |           <button type="button" on:press={() => match post("Hello") {
    |                                                       ------------- a press sends it from here
    |
    = note: A browser's request can reach the server twice: a retrying proxy, a flaky network or a client's own retry sends it again after the first arrived (RFC 9110 lets a client retry only a request it knows to be idempotent). Each press carries an interaction, and `idempotent_by InteractionId` runs the command once for it (ADR-0121).
-   = help: declare `idempotent_by InteractionId`
+   = help: declare `idempotent_by InteractionId`, and `opaque type InteractionId = String` if the program has none
 ```
 
-`InteractionId` is a type your program declares:
-`opaque type InteractionId = String`.
+`InteractionId` is a type the program declares, as this one does at its
+top: `opaque type InteractionId = String`. Each press carries one, and
+the command runs once for it.
 
 ### A button its reader may not press
 
@@ -271,13 +279,97 @@ error: [PW5048] this control sends `post`, which `requires SignedIn`, and is sho
 38 | |  }
    | |__- `Write`
    |
-   = note: A press the server refuses was a dead control: the owner, signed out, pressed Post and the post went with no word (2026-10-08). A page asks a predicate of its reader by naming it, and the deployment answers it as it answers `requires`, so a control shown under it is refused only if the reader changed since the page was rendered, and then told where the press was (ADR-0302). `SignedIn` is the program's to declare (`predicate SignedIn says "…"`) where only the deployment knows it.
+   = note: A control the server refuses is a dead control: shown to a reader for whom `SignedIn` does not hold, it offers a press that can only be refused. A page asks a predicate of its reader by naming it, and the deployment answers it as it answers `requires`, so a control shown under it is refused only if the reader changed since the page was rendered, and then told where the press was (ADR-0302). `SignedIn` is the program's to declare (`predicate SignedIn says "…"`) where only the deployment knows it.
    = help: show it where `SignedIn` holds: `{#if SignedIn}` around it, or `hidden={!SignedIn}` on it; where no reader's answer can decide it, as in a part served to everyone, mark its event `|refusable`
 ```
 
 Wrapping the button in `{#if SignedIn} .. {/if}` repairs it, and the page
 must then be a `session page`: a page that asks something of its reader is
 not the same for every reader.
+
+### An image with no `alt`
+
+An `<img>` says what it shows, to a reader who cannot see it and to every
+reader when it does not load:
+
+```pw fails=PW5053
+module front
+
+page Front() {
+    route "/"
+
+    view {
+        <title>Blue Bottle</title>
+        <main>
+            <h1>Blue Bottle</h1>
+            <img src="/front.jpg" width="640" height="480">
+        </main>
+    }
+}
+```
+
+```text pw-check
+error: [PW5053] `<img>` has no `alt`
+  --> front.pw:10:13
+   |
+ 3 | / page Front() {
+ 4 | |     route "/"
+ 5 | |
+ 6 | |     view {
+...  |
+10 | |             <img src="/front.jpg" width="640" height="480">
+   | |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `<img>` has no `alt`
+...  |
+13 | | }
+   | |_- `Front` renders this image
+   |
+   = note: Nothing stands for an image with no `alt`: a screen reader announces it as an image, often by its file name, and where it does not load the page shows no text in its place. HTML requires `alt` of every `<img>`: what the image shows, or `""` for one that shows nothing a reader needs, such as decoration or what the text beside it already says, which a screen reader then passes over. An `aria-label` or a `title` is not shown where the image fails to load.
+   = help: write `alt="…"` saying what the image shows
+   = help: or `alt=""` if it shows nothing a reader needs
+```
+
+### A command anyone can run, by saying nothing
+
+No page sends `delete_post`, and that protects nothing: the server runs a
+command for any request that names it. So every command says who may:
+
+```pw fails=PW0367
+module admin
+
+opaque type PostId = String
+
+type Post = Post { id: PostId, text: String }
+
+type PostError =
+    | Missing
+
+fn remove(post: PostId) -> Result<(), PostError> !{ database.write<Post> }
+    host "blog:data/posts#remove"
+
+command delete_post(post: PostId) -> Result<(), PostError> {
+    remove(post)
+}
+```
+
+```text pw-check
+error: [PW0367] `delete_post` runs for any reader's request, and says nothing of who may run it
+  --> admin.pw:13:9
+   |
+13 |   command delete_post(post: PostId) -> Result<(), PostError> {
+   |   -       ^^^^^^^^^^^ `delete_post` runs for any reader's request, and says nothing of who may run it
+   |  _|
+   | |
+14 | |     remove(post)
+15 | | }
+   | |_- a request that names `delete_post` runs it, with or without a page
+   |
+   = note: The server runs a command for any request that names it, whether or not a page shows its button: a request is an address and a body, and anyone can send one. So who may run a command is the command's to say. `requires` names what every request must hold, as `requires SignedIn, OwnsPost(post)`; `requires Anyone` says anyone may, and stands alone. A command the platform runs says `invoked_by` instead.
+   = help: declare `requires` with what a reader must hold, such as `requires SignedIn`
+   = help: or `requires Anyone`, if anyone may run it
+```
+
+`requires Anyone` is how a command says anyone may run it, where a reviewer
+reads it.
 
 ## When the build refuses what the check passed
 
@@ -286,6 +378,43 @@ not the same for every reader.
 there, so build before you trust a green check. The last section of
 [part 3](tour-pages.md#where-pw-check-stops) shows what `pw check` passes
 and `pw build` refuses, in programs the guide's test compiles.
+
+## When the browser refuses a handler
+
+A page's browser asks one question before it attaches a handler: may this
+build's code read what this document captured? The decision answers it in
+the browser, against the build that served the page, and a handler it
+refuses is never downloaded. The usual cause is a document from another
+build, which a cache kept or a redeploy outdated.
+
+A refused button recovers when it is pressed:
+- it reads the page again, never replaying the press;
+- it asks first, where what the reader typed would be lost;
+- where nothing safe is possible, it says the page is out of date.
+
+The browser's console names the refusal by a code, and the code's page says
+what it means:
+
+```text
+Pleris: handler 5 not attached: PWR04, https://pleris.dev/e/PWR04, recovery reload
+```
+
+| Code | Refusal | What it means |
+|---|---|---|
+| PWR02 | Hash scheme | The document's identities came from a hash scheme this build does not implement, so they cannot be compared at all. |
+| PWR03 | Runtime ABI | The document was written for a runtime ABI this build does not support. |
+| PWR04 | Unknown handler | This build has no code with the handler's identity. The page came from another build, or the handler changed since. |
+| PWR05 | Privacy widened | The document's captures are scoped more narrowly than this page: a session's may not be resumed into a public page, nor one reader's into another's. |
+| PWR06 | Document schema | The part of the document the handler belongs to has another shape in this build. |
+| PWR07 | No migration | The handler reads another capture schema than the document holds, and the program declares no migration between them. |
+| PWR08 | Migration failed | The declared migration between the two capture schemas failed on these captures. |
+| PWR09 | Malformed | The document declares captures for the handler and carries none. |
+| PWR10 | Mixed build | A streamed patch came from another build than the document. |
+
+A document that carries no resume manifest gives the decision nothing to
+read. The console then says `no decision` instead of a code, and the handler
+stays unattached. That is the closed side: a page that does nothing, never
+one that attaches anyway.
 
 ## Every code
 

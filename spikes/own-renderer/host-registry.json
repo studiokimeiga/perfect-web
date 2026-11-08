@@ -668,6 +668,11 @@
       "roles": [
         "base"
       ]
+    },
+    "warm.spec.mjs": {
+      "roles": [
+        "base"
+      ]
     }
   }
 }

@@ -1,0 +1,10 @@
+exit fmt 0
+mutation anchors: 4993 mutants in 324 scripts, each matching once
+== 2026-11-06T08:42:51-05:00 green: the reconnect and wake tests
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 861 filtered out; finished in 4.53s
+== 2026-11-06T08:43:05-05:00 red: the cut's wake deleted
+thread 'tests::a_cut_wakes_a_held_subscription_at_once' (695867) panicked at spikes/own-renderer/server/src/main.rs:15840:13:
+ended 1.9993466s after its cut, so by the wake, not the hold's end
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 871 filtered out; finished in 2.88s
+main.rs restored
+A5_VERIFY_FINISHED

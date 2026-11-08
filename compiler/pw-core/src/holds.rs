@@ -261,13 +261,15 @@ pub fn check(hirs: &[&Hir], ws: &Workspace, sigs: &Signatures, unit: usize) -> V
                 message,
                 primary_span: span.clone(),
                 related: related.clone(),
+                // Until 2026-10-10 such a name built, and the page failed where it
+                // was served.
                 explanation: Some(
                     "What a template reads is rendered from a value: a binding, a parameter, \
-                     a signal or a constant. A name that holds none built, and the page \
-                     failed where it was served (\"no value for `SignedIn`\", until \
-                     2026-10-10). A predicate with no parameters is the one exception: the \
-                     page asks it of its reader, and the deployment answers it as it \
-                     answers `requires` (ADR-0307)."
+                     a signal or a constant. A name that holds none would build, and the \
+                     page would fail where it is served (\"no value for `SignedIn`\"). A \
+                     predicate with no parameters is the one exception: the page asks it of \
+                     its reader, and the deployment answers it as it answers `requires` \
+                     (ADR-0307)."
                         .to_string(),
                 ),
                 repairs: vec![Repair {
@@ -321,14 +323,14 @@ pub fn check(hirs: &[&Hir], ws: &Workspace, sigs: &Signatures, unit: usize) -> V
                     primary_span: body.node_span(control),
                     related: related.clone(),
                     explanation: Some(format!(
-                        "A press the server refuses was a dead control: the owner, signed out, \
-                         pressed Post and the post went with no word (2026-10-08). A page asks \
-                         a predicate of its reader by naming it, and the deployment answers it \
-                         as it answers `requires`, so a control shown under it is refused only \
-                         if the reader changed since the page was rendered, and then told \
-                         where the press was (ADR-0302). `{predicate}` is the program's to \
-                         declare (`predicate {predicate} says \"…\"`) where only the deployment \
-                         knows it."
+                        "A control the server refuses is a dead control: shown to a reader \
+                         for whom `{predicate}` does not hold, it offers a press that can only \
+                         be refused. A page asks a predicate of its reader by naming it, and \
+                         the deployment answers it as it answers `requires`, so a control \
+                         shown under it is refused only if the reader changed since the page \
+                         was rendered, and then told where the press was (ADR-0302). \
+                         `{predicate}` is the program's to declare (`predicate {predicate} \
+                         says \"…\"`) where only the deployment knows it."
                     )),
                     repairs: vec![Repair {
                         description: format!(
@@ -552,7 +554,12 @@ fn required(
         let Ok(predicates) = crate::policy::predicates(&requires.value) else {
             continue;
         };
-        for p in predicates.into_iter().filter(|p| p.arguments.is_empty()) {
+        // `Anyone` holds for every reader, so no page asks it (ADR-0406):
+        // a control whose command anyone may run needs no guard.
+        for p in predicates
+            .into_iter()
+            .filter(|p| p.arguments.is_empty() && p.name != crate::policy::ANYONE)
+        {
             if !out.iter().any(|(c, q)| c == &command.name && q == &p.name) {
                 out.push((command.name.clone(), p.name));
             }

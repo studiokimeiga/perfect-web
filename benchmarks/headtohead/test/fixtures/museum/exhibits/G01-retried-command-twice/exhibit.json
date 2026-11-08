@@ -1,0 +1,39 @@
+{
+  "id": "G01-retried-command-twice",
+  "leaf": "G01",
+  "also": [
+    "M04"
+  ],
+  "title": "One press applied twice when its request is delivered twice",
+  "source": {
+    "ref": "S13, S14",
+    "kind": "engineering article; provider contract",
+    "url": "https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/ ; https://docs.stripe.com/api/idempotent_requests",
+    "date": "2026-09-10, as read for the census",
+    "says": "the census's reading: caller intent identifiers differ from hashes of equal arguments, and idempotency needs a defined scope and atomic recording (S13); Stripe's API keys every POST by an idempotency key (S14). ADR-0154 adds RFC 9110 §9.2.2: a client must not retry a non-idempotent request automatically unless it knows the request is idempotent"
+  },
+  "claim": "ADR-0154 (a command a page's handler calls declares `idempotent_by`, PW0338); ADR-0121 (every press has an interaction)",
+  "related": [
+    "examples/rejected/R-014-retry-of-non-idempotent-command.pw",
+    "benchmarks/tasks/T08-duplicate-submissions"
+  ],
+  "repro": {
+    "stack": "next-react",
+    "bug": null,
+    "fixed": "benchmarks/tasks/T08-duplicate-submissions/reference/next-react.patch",
+    "how": "no change at all: ADR-0120's store, whose Add is a Server Action in a `<form action>` as Next.js's docs write one, adds once per delivery of its request. The repair is T08's reference: an interaction id made per press, carried by the request, and applied once by the server"
+  },
+  "pleris": {
+    "kind": "diagnostic",
+    "code": "PW0338",
+    "patch": "benchmarks/tasks/T08-duplicate-submissions/setup/pleris.patch",
+    "faithful": "The same store, its Add's command without `idempotent_by`, as the Next.js action has no key: refused. Its neighbour is the store as it is, `idempotent_by InteractionId`, and the runtime test shows that neighbour adding once when its request is delivered twice.",
+    "mechanism": "ADR-0121's interaction per press, applied once",
+    "test": {
+      "name": "T08's hidden test on the Pleris store with `idempotent_by` (bench.mjs, replay:reference)",
+      "command": "node benchmarks/harness/bench.mjs run --task T08 --stack pleris --agent replay:reference",
+      "expect": "T08 pleris replay:reference: score 1"
+    }
+  },
+  "expect": "refused"
+}

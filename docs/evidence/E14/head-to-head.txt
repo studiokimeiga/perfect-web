@@ -1,0 +1,825 @@
+ADR-0392 - the head-to-head: the same apps in Pleris and in the mainstream stacks, Pleris's losses first
+
+produced by: just e14-head-to-head
+commit: dbd37a8c7f571c010f347e1203c43b31a830b333
+host: x86_64, 13th Gen Intel(R) Core(TM) i9-13900K, 32 CPUs; docs/environment/pc-wsl.md
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+node: v22.21.1  pnpm: 10.15.1
+playwright: Version 1.58.0
+cypress: Cypress package version: 15.21.1 Cypress binary version: 15.21.1 Electron version: 37.6.0 Bundled Node version: 22.19.0 
+  @sveltejs/kit      2.70.3  (benchmarks/baselines/sveltekit)
+  esbuild            0.28.2  (benchmarks/baselines/sveltekit)
+  esbuild            0.28.2  (benchmarks/headtohead)
+  next               16.4.1  (benchmarks/baselines/next-react)
+  react              19.3.0  (benchmarks/baselines/next-react)
+  svelte             5.57.1  (benchmarks/baselines/sveltekit)
+  typescript         6.0.3  (benchmarks/baselines/next-react)
+  typescript         6.0.3  (benchmarks/baselines/sveltekit)
+  vite               8.3.3  (benchmarks/baselines/sveltekit)
+sections and the raw runs kept in /tmp/h2h-sections.WD11cA
+
+machine: 13th Gen Intel(R) Core(TM) i9-13900K, 32 logical CPUs, 31.2 GiB; Ubuntu 22.04.3 LTS; kernel 6.18.54.1-microsoft-standard-WSL2; node v22.21.1
+load average: 10.2 8.78 6.63 at the start, 10.46 12.96 14.56 at the end
+settled before measuring: one-minute load 21.2 -> 10.2 in 120 s (waits at most 120 s for under 8)
+playwright: 1.58.0; browsers: chromium 145.0.7632.6, firefox 146.0.1, webkit 26.0
+runs: 7 per cell (at least 5); conditions cold, warm; engines chromium, firefox, webkit; Chromium also shaped: Lighthouse's Slow 4G as it applies it through DevTools: 562.5 ms a request, 1.6 Mbit/s x 0.9 down, 750 kbit/s x 0.9 up, CPU x4 (latency 562.5 ms, 188743 B/s down, 86400 B/s up, as sent); servers: 5 runs a stack; seed 20261025
+commit: dbd37a8c7f571c010f347e1203c43b31a830b333; 2026-11-02T06:05:42.162Z to 2026-11-02T06:45:17.448Z
+
+== where Pleris loses: 61 row(s) of the tables below in which another stack does better
+  LOSS todomvc: source the developer writes: build and configuration lines: Pleris 76 | React 145 | Svelte 44  (better: Svelte)
+  LOSS store: source the developer writes: app lines: Pleris 294 | Next.js 151 | SvelteKit 134  (better: Next.js, SvelteKit)
+  LOSS store: source the developer writes: app lines plus the code it needs in its server in another language: Pleris 2404 | Next.js 151 | SvelteKit 134  (better: Next.js, SvelteKit)
+  LOSS store: source the developer writes: app files: Pleris 7 | Next.js 6 | SvelteKit 6  (better: Next.js, SvelteKit)
+  LOSS store: the same change, T03 (A private resource: the cart's lines on the store page): lines changed: Pleris +42/-1 in 1 file(s), Pleris | Next.js +23/-2 in 2 file(s), TSX+TypeScript | SvelteKit +28/-1 in 3 file(s), Svelte+TypeScript  (better: Next.js, SvelteKit)
+  LOSS store: the same change, T11 (An accessible dialog: confirm before clearing the cart): lines changed: Pleris +18/-5 in 1 file(s), Pleris | Next.js +30/-7 in 2 file(s), TSX | SvelteKit +19/-3 in 1 file(s), Svelte  (better: SvelteKit)
+  LOSS todomvc: first load, bytes received as each host sent them (Chromium, cold): Pleris 237,218 | React 70,085 | Svelte 20,821  (better: React, Svelte)
+  LOSS todomvc: first load, bytes decoded (Chromium, cold): Pleris 235,692 | React 248,720 | Svelte 57,354  (better: Svelte)
+  LOSS todomvc: first load, bytes as a static host compresses them, Brotli 11, TodoMVC's common files aside (Chromium, cold): Pleris 67,828 | React 67,161 | Svelte 16,992  (better: React, Svelte)
+  LOSS todomvc: first load, requests (Chromium, cold): Pleris 7 | React 5 | Svelte 5  (better: React, Svelte)
+  LOSS todomvc: interaction "add", bytes received (Chromium, cold): Pleris 395,444 | React 0 | Svelte 0  (better: React, Svelte)
+  LOSS todomvc: interaction "toggle", bytes received (Chromium, cold): Pleris 1,723 | React 0 | Svelte 0  (better: React, Svelte)
+  LOSS todomvc: interactive, ms, median (chromium, cold): Pleris 40 ms | React 49 ms | Svelte 23 ms  (better: Svelte)
+  LOSS todomvc: interaction "add" to its frame, ms, median (chromium, cold): Pleris 32 ms | React 11 ms | Svelte 9.9 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "toggle" to its frame, ms, median (chromium, cold): Pleris 31 ms | React 14 ms | Svelte 14 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "filter" to its frame, ms, median (chromium, cold): Pleris 30 ms | React 14 ms | Svelte 30 ms  (better: React)
+  LOSS todomvc: interactive, ms, median (chromium, warm): Pleris 23 ms | React 13 ms | Svelte 10 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "add" to its frame, ms, median (chromium, warm): Pleris 27 ms | React 8.4 ms | Svelte 6.1 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "toggle" to its frame, ms, median (chromium, warm): Pleris 32 ms | React 14 ms | Svelte 15 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "filter" to its frame, ms, median (chromium, warm): Pleris 31 ms | React 14 ms | Svelte 31 ms  (better: React)
+  LOSS todomvc: interactive, ms, median (firefox, cold): Pleris 71 ms | React 69 ms | Svelte 53 ms  (better: Svelte)
+  LOSS todomvc: interaction "add" to its frame, ms, median (firefox, cold): Pleris 31 ms | React 9.0 ms | Svelte 8.0 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "toggle" to its frame, ms, median (firefox, cold): Pleris 16 ms | React 6.0 ms | Svelte 16 ms  (better: React)
+  LOSS todomvc: interactive, ms, median (firefox, warm): Pleris 74 ms | React 66 ms | Svelte 45 ms  (better: Svelte)
+  LOSS todomvc: interaction "add" to its frame, ms, median (firefox, warm): Pleris 29 ms | React 5.0 ms | Svelte 4.0 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "toggle" to its frame, ms, median (firefox, warm): Pleris 17 ms | React 6.0 ms | Svelte 17 ms  (better: React)
+  LOSS todomvc: interactive, ms, median (webkit, cold): Pleris 68 ms | React 56 ms | Svelte 38 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "add" to its frame, ms, median (webkit, cold): Pleris 113 ms | React 25 ms | Svelte 22 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "toggle" to its frame, ms, median (webkit, cold): Pleris 23 ms | React 13 ms | Svelte 13 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "filter" to its frame, ms, median (webkit, cold): Pleris 14 ms | React 9.0 ms | Svelte 12 ms  (better: React, Svelte)
+  LOSS todomvc: interactive, ms, median (webkit, warm): Pleris 32 ms | React 18 ms | Svelte 10 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "add" to its frame, ms, median (webkit, warm): Pleris 82 ms | React 12 ms | Svelte 13 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "toggle" to its frame, ms, median (webkit, warm): Pleris 17 ms | React 12 ms | Svelte 13 ms  (better: React, Svelte)
+  LOSS todomvc: first contentful paint, ms, median (chromium, cold, slow-4g): Pleris 1248 ms | React 1204 ms | Svelte 1204 ms  (better: React, Svelte)
+  LOSS todomvc: interactive, ms, median (chromium, cold, slow-4g): Pleris 4101 ms | React 1711 ms | Svelte 1307 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "add" to its frame, ms, median (chromium, cold, slow-4g): Pleris 3889 ms | React 44 ms | Svelte 40 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "toggle" to its frame, ms, median (chromium, cold, slow-4g): Pleris 611 ms | React 28 ms | Svelte 26 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "filter" to its frame, ms, median (chromium, cold, slow-4g): Pleris 29 ms | React 19 ms | Svelte 27 ms  (better: React)
+  LOSS todomvc: first contentful paint, ms, median (chromium, warm, slow-4g): Pleris 1240 ms | React 1172 ms | Svelte 604 ms  (better: React, Svelte)
+  LOSS todomvc: largest contentful paint, ms, median (chromium, warm, slow-4g): Pleris 1240 ms | React 1212 ms | Svelte 1180 ms  (better: React, Svelte)
+  LOSS todomvc: interactive, ms, median (chromium, warm, slow-4g): Pleris 4081 ms | React 1204 ms | Svelte 1169 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "add" to its frame, ms, median (chromium, warm, slow-4g): Pleris 3834 ms | React 17 ms | Svelte 16 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "toggle" to its frame, ms, median (chromium, warm, slow-4g): Pleris 600 ms | React 19 ms | Svelte 16 ms  (better: React, Svelte)
+  LOSS todomvc: interaction "filter" to its frame, ms, median (chromium, warm, slow-4g): Pleris 30 ms | React 15 ms | Svelte 28 ms  (better: React)
+  LOSS todomvc: latency under load, p50, ms, median (React's and Svelte's server is the instrument's static host, standing in for any static host or CDN: a static file needs no application server, so Pleris's host doing better is no win): Pleris 1.18 | React 0.42 | Svelte 0.40  (better: React, Svelte)
+  LOSS todomvc: latency under load, p99, ms, median (React's and Svelte's server is the instrument's static host, standing in for any static host or CDN: a static file needs no application server, so Pleris's host doing better is no win): Pleris 2.87 | React 1.97 | Svelte 1.81  (better: React, Svelte)
+  LOSS todomvc: a press with 19 other tabs of the app open in one browser, ms to its change (Chromium), median: Pleris 75.0 | React 33.7 | Svelte 31.5  (better: React, Svelte)
+  LOSS store: first load, bytes received as each host sent them (Chromium, cold): Pleris 219,870 | Next.js 140,211 | SvelteKit 35,020  (better: Next.js, SvelteKit)
+  LOSS store: first load, bytes decoded (Chromium, cold): Pleris 218,740 | Next.js 464,836 | SvelteKit 86,952  (better: SvelteKit)
+  LOSS store: first load, bytes as a static host compresses them, Brotli 11 (Chromium, cold): Pleris 63,981 | Next.js 117,109 | SvelteKit 30,454  (better: SvelteKit)
+  LOSS store: interaction "add", bytes received (Chromium, cold): Pleris 4,314 | Next.js 2,390 | SvelteKit 701  (better: Next.js, SvelteKit)
+  LOSS store: interactive, ms, median (chromium, warm): Pleris 30 ms | Next.js 49 ms | SvelteKit 23 ms  (better: SvelteKit)
+  LOSS store: interactive, ms, median (webkit, warm): Pleris 41 ms | Next.js 34 ms | SvelteKit 34 ms  (better: SvelteKit)
+  LOSS store: interactive, ms, median (chromium, cold, slow-4g): Pleris 3501 ms | Next.js 2096 ms | SvelteKit 1752 ms  (better: Next.js, SvelteKit)
+  LOSS store: interaction "add" to its frame, ms, median (chromium, cold, slow-4g): Pleris 1168 ms | Next.js 643 ms | SvelteKit 1200 ms  (better: Next.js)
+  LOSS store: interactive, ms, median (chromium, warm, slow-4g): Pleris 3462 ms | Next.js 723 ms | SvelteKit 671 ms  (better: Next.js, SvelteKit)
+  LOSS store: interaction "add" to its frame, ms, median (chromium, warm, slow-4g): Pleris 1167 ms | Next.js 620 ms | SvelteKit 1184 ms  (better: Next.js)
+  LOSS store: latency under load, p50, ms, median: Pleris 1.56 | Next.js 5.40 | SvelteKit 1.43  (better: SvelteKit)
+  LOSS store: requests an idle visitor's page makes a minute (20 visitors, a browser context each), median: Pleris 30.0 | Next.js 0.00 | SvelteKit 0.00  (better: Next.js, SvelteKit)
+  LOSS store: server CPU, ms a second, for 20 idle visitors, median: Pleris 16.0 | Next.js 2.00 | SvelteKit 2.00  (better: Next.js, SvelteKit)
+  LOSS store: a press with 19 other tabs of the app open in one browser, ms to its change (Chromium), median: Pleris 10,084 | Next.js 53.7 | SvelteKit 45.9  (better: Next.js, SvelteKit)
+
+== where Pleris is best: 32 row(s); 58 more where it is neither (spreads overlap, or it is between the others)
+  BEST todomvc: TodoMVC's specification, tests passed in Chromium, Firefox and WebKit together (more is better): Pleris 60/60 | React 51/60 | Svelte 48/60
+  BEST todomvc: TodoMVC's official Cypress suite, tests passed (more is better): Pleris 29/29 | React 28/29 | Svelte 28/29
+  BEST todomvc: source the developer writes: app lines: Pleris 189 | React 278 | Svelte 201
+  BEST todomvc: source the developer writes: app lines plus the code it needs in its server in another language: Pleris 189 | React 278 | Svelte 201
+  BEST todomvc: source the developer writes: app files: Pleris 1 | React 11 | Svelte 8
+  BEST todomvc: source the developer writes: languages (app, and server code it needs): Pleris 1 | React 4 | Svelte 4
+  BEST store: source the developer writes: build and configuration lines: Pleris 9 | Next.js 65 | SvelteKit 44
+  BEST store: the same change, T01 (Optimistic cart update with rollback): lines changed: Pleris +1/-0 in 1 file(s), Pleris | Next.js +52/-25 in 2 file(s), TSX | SvelteKit +16/-2 in 1 file(s), Svelte
+  BEST store: the same change, T02 (Stop the kitchen's request storm): lines changed: Pleris +1/-1 in 1 file(s), Pleris | Next.js +15/-2 in 1 file(s), TypeScript | SvelteKit +15/-2 in 1 file(s), TypeScript
+  BEST store: the same change, T04 (An order-state variant: ready for pickup): lines changed: Pleris +2/-0 in 2 file(s), Pleris | Next.js +3/-2 in 2 file(s), TSX+TypeScript | SvelteKit +4/-2 in 2 file(s), Svelte+TypeScript
+  BEST store: the same change, T05 (Stream the store's recommendations): lines changed: Pleris +14/-0 in 1 file(s), Pleris | Next.js +25/-1 in 1 file(s), TSX | SvelteKit +30/-1 in 2 file(s), Svelte+TypeScript
+  BEST store: the same change, T06 (An accessible form: request an item): lines changed: Pleris +33/-0 in 1 file(s), Pleris | Next.js +48/-0 in 2 file(s), TSX | SvelteKit +35/-0 in 1 file(s), Svelte
+  BEST store: the same change, T07 (Stop reading a category the customer moved past): lines changed: Pleris +3/-3 in 1 file(s), Pleris | Next.js +9/-2 in 1 file(s), TSX | SvelteKit +8/-1 in 1 file(s), Svelte
+  BEST store: the same change, T08 (Prevent duplicate submissions): lines changed: Pleris +2/-0 in 1 file(s), Pleris | Next.js +44/-8 in 4 file(s), TSX+TypeScript | SvelteKit +39/-4 in 3 file(s), Svelte+TypeScript
+  BEST store: the same change, T10 (A loading and an error state for the delivery estimate): lines changed: Pleris +6/-2 in 1 file(s), Pleris | Next.js +15/-2 in 1 file(s), TSX | SvelteKit +14/-3 in 2 file(s), Svelte+TypeScript
+  BEST store: the same change, T12 (Repair an unsafe cache): lines changed: Pleris +2/-2 in 1 file(s), Pleris | Next.js +3/-3 in 1 file(s), TypeScript | SvelteKit +3/-3 in 1 file(s), TypeScript
+  BEST store: the twelve changes: lines changed in all: Pleris 140 | Next.js 323 | SvelteKit 235
+  BEST store: the twelve changes: files touched in all: Pleris 13 | Next.js 20 | SvelteKit 19
+  BEST store: the twelve changes: languages touched: Pleris 1 (Pleris) | Next.js 2 (TSX+TypeScript) | SvelteKit 2 (Svelte+TypeScript)
+  BEST store: the twelve changes: unsafe versions the stack's own checker refuses or warns of (more is better): Pleris 9/12 | Next.js 0/12 | SvelteKit 0/12
+  BEST store: the museum's bug classes the stack lets ship (fewer is better): Pleris 0/5 | Next.js 3/5 (shown in it) | SvelteKit 2/5 (shown in it)
+  BEST todomvc: first contentful paint, ms, median (firefox, cold): Pleris 27 ms | React 56 ms | Svelte 64 ms
+  BEST todomvc: largest contentful paint, ms, median (firefox, cold): Pleris 27 ms | React 73 ms | Svelte 64 ms
+  BEST todomvc: first contentful paint, ms, median (firefox, warm): Pleris 25 ms | React 55 ms | Svelte 35 ms
+  BEST todomvc: largest contentful paint, ms, median (firefox, warm): Pleris 25 ms | React 70 ms | Svelte 47 ms
+  BEST todomvc: largest contentful paint, ms, median (webkit, cold): Pleris 171 ms | React 223 ms | Svelte 211 ms
+  BEST todomvc: largest contentful paint, ms, median (chromium, cold, slow-4g): Pleris 1248 ms | React 1720 ms | Svelte 1324 ms
+  BEST store: first load, requests (Chromium, cold): Pleris 4 | Next.js 6 | SvelteKit 9
+  BEST store: first contentful paint, ms, median (chromium, cold): Pleris 32 ms | Next.js 52 ms | SvelteKit 36 ms
+  BEST store: largest contentful paint, ms, median (chromium, cold): Pleris 32 ms | Next.js 52 ms | SvelteKit 36 ms
+  BEST store: server CPU per request, ms, median: Pleris 0.32 | Next.js 7.28 | SvelteKit 1.68
+  BEST store: server resident memory at its peak under load, MiB, median: Pleris 45.2 | Next.js 148 | SvelteKit 107
+
+== TodoMVC's behaviour on every stack (Cypress, and the specification in three engines)
+-- TodoMVC's Cypress suite on pleris
+todomvc-cypress: 7 files are upstream's, byte for byte; cypress 15.21.1
+cypress: Cypress package version: 15.21.1 Cypress binary version: 15.21.1 Electron version: 37.6.0 Bundled Node version: 22.19.0 
+acceptance: 29 of 29 passed
+acceptance: the required test outcomes passed
+
+-- TodoMVC's Cypress suite on react
+todomvc-cypress: 7 files are upstream's, byte for byte; cypress 15.21.1
+cypress: 15.21.1 (binary 15.21.1), todomvc-cypress-compat-v1, framework=react
+react: 28 of 29 passed; 0 failed; 1 pending; 0 not run
+ 24  pending [Persistence] should persist its data
+             GAP: the app keeps no todos: TodoMVC's specification asks every app to persist them in localStorage
+react: as expected: every test passed but those the suite skips for it, each a gap above
+
+-- TodoMVC's Cypress suite on svelte
+todomvc-cypress: 7 files are upstream's, byte for byte; cypress 15.21.1
+cypress: 15.21.1 (binary 15.21.1), todomvc-cypress-compat-v1, framework=svelte
+svelte: 28 of 29 passed; 0 failed; 1 pending; 0 not run
+ 24  pending [Persistence] should persist its data
+             GAP: the app keeps no todos: TodoMVC's specification asks every app to persist them in localStorage
+svelte: as expected: every test passed but those the suite skips for it, each a gap above
+
+-- TodoMVC's specification in three engines (behaviour.spec.mjs)
+playwright exited 1 (the judge reads its report; expected gaps fail by design)
+TodoMVC's specification (app-spec.md), one test per behaviour, three engines (behaviour.spec.mjs):
+pleris: chromium 20/20; firefox 20/20; webkit 20/20 passed; 0 gap(s) against the specification
+react: chromium 17/20; firefox 17/20; webkit 17/20 passed; 3 gap(s) against the specification
+  GAP react: editing: Escape discards the edit: Escape does not leave the edit: the edit field handles Enter alone (react/src/todo/components/input.jsx, handleKeyDown: `if (e.key !== "Enter") return;`)
+  GAP react: counter: the number left in a <strong>, then 'item left' or 'items left': the counter reads "1 item left!" with no <strong> (react/src/todo/components/footer.jsx: `${activeTodos.length} ${...} left!`)
+  GAP react: persistence: the todos and their states survive a reload: the todos are kept in memory only: a reload empties the list (react/src/todo/app.jsx: `useReducer(todoReducer, [])`, no storage)
+svelte: chromium 16/20; firefox 16/20; webkit 16/20 passed; 4 gap(s) against the specification
+  GAP svelte: editing: Enter saves the edit, trimmed: an edit is saved untrimmed (svelte/src/Item.svelte, updateItem: `item.description = value`)
+  GAP svelte: editing: an edit left empty destroys the todo: an edit of spaces is saved, not destroyed: the emptiness check does not trim (svelte/src/Item.svelte, updateItem: `if (value.length)`)
+  GAP svelte: persistence: the todos and their states survive a reload: the todos are kept in memory only: a reload empties the list (svelte/src/App.svelte: `let items = $state([])`, no storage)
+  GAP svelte: routing: a page opened at #/completed shows that filter: the filter is read only when the fragment changes, not when the page opens (svelte/src/router.js: `init` adds a `hashchange` listener and reads nothing)
+
+behaviour: as expected: every test passed in every engine but each stack's gaps, each failing in all three
+
+== the source each stack's developer writes (scripts/head_to_head_loc.py)
+rule: a line counts when it holds anything but white space and comments (each language's own comments; Rust test modules left out); lockfiles, committed builds and readmes are listed and not counted, and so is a module no page of the app imports
+
+-- todomvc
+   stack       app lines files  languages (app)                                host  build/config
+   pleris            189     1  Pleris 189                                        0     76 in 2 file(s)
+   react             278    11  CSS 20, HTML 19, JavaScript 48, JavaScript (JSX) 191      0    145 in 5 file(s)
+   svelte            201     8  CSS 20, HTML 21, JavaScript 28, Svelte 132        0     44 in 2 file(s)
+     pleris      app     189  Pleris            examples/todomvc/app.pw
+     pleris      build    43  Bash              spikes/own-renderer/todomvc.sh
+     pleris      build    33  JavaScript        spikes/own-renderer/todomvc-styles.mjs
+     react       app      12  JavaScript        benchmarks/headtohead/todomvc/react/src/index.js
+     react       app      20  CSS               benchmarks/headtohead/todomvc/react/src/todo/app.css
+     react       app      16  JavaScript (JSX)  benchmarks/headtohead/todomvc/react/src/todo/app.jsx
+     react       app      33  JavaScript (JSX)  benchmarks/headtohead/todomvc/react/src/todo/components/footer.jsx
+     react       app      12  JavaScript (JSX)  benchmarks/headtohead/todomvc/react/src/todo/components/header.jsx
+     react       app      34  JavaScript (JSX)  benchmarks/headtohead/todomvc/react/src/todo/components/input.jsx
+     react       app      55  JavaScript (JSX)  benchmarks/headtohead/todomvc/react/src/todo/components/item.jsx
+     react       app      41  JavaScript (JSX)  benchmarks/headtohead/todomvc/react/src/todo/components/main.jsx
+     react       app       7  JavaScript        benchmarks/headtohead/todomvc/react/src/todo/constants.js
+     react       app      29  JavaScript        benchmarks/headtohead/todomvc/react/src/todo/reducer.js
+     react       app      19  HTML              benchmarks/headtohead/todomvc/react/public/index.html
+     react       build    40  JSON              benchmarks/headtohead/todomvc/react/package.json
+     react       build    42  JavaScript        benchmarks/headtohead/todomvc/react/webpack.common.js
+     react       build    17  JavaScript        benchmarks/headtohead/todomvc/react/webpack.dev.js
+     react       build    33  JavaScript        benchmarks/headtohead/todomvc/react/webpack.prod.js
+     react       build    13  JSON              benchmarks/headtohead/todomvc/react/.eslintrc
+     react       not counted  benchmarks/headtohead/todomvc/react/package-lock.json
+     react       not counted  benchmarks/headtohead/todomvc/react/dist/app.bundle.js
+     react       not counted  benchmarks/headtohead/todomvc/react/dist/app.bundle.js.LICENSE.txt
+     react       not counted  benchmarks/headtohead/todomvc/react/dist/app.css
+     react       not counted  benchmarks/headtohead/todomvc/react/dist/base.js
+     react       not counted  benchmarks/headtohead/todomvc/react/dist/index.html
+     react       not counted  benchmarks/headtohead/todomvc/react/readme.md
+     react       not counted  benchmarks/headtohead/todomvc/react/.gitignore
+     svelte      app      56  Svelte            benchmarks/headtohead/todomvc/svelte/src/App.svelte
+     svelte      app      17  Svelte            benchmarks/headtohead/todomvc/svelte/src/Footer.svelte
+     svelte      app      14  Svelte            benchmarks/headtohead/todomvc/svelte/src/Header.svelte
+     svelte      app      45  Svelte            benchmarks/headtohead/todomvc/svelte/src/Item.svelte
+     svelte      app      20  CSS               benchmarks/headtohead/todomvc/svelte/src/app.css
+     svelte      app       6  JavaScript        benchmarks/headtohead/todomvc/svelte/src/index.js
+     svelte      app      22  JavaScript        benchmarks/headtohead/todomvc/svelte/src/router.js
+     svelte      app      21  HTML              benchmarks/headtohead/todomvc/svelte/index.html
+     svelte      build    26  JSON              benchmarks/headtohead/todomvc/svelte/package.json
+     svelte      build    18  JavaScript        benchmarks/headtohead/todomvc/svelte/vite.config.js
+     svelte      not counted  benchmarks/headtohead/todomvc/svelte/package-lock.json
+     svelte      not counted  benchmarks/headtohead/todomvc/svelte/dist/assets/index-BxPr2-fK.js
+     svelte      not counted  benchmarks/headtohead/todomvc/svelte/dist/assets/index-bgjkvPzV.css
+     svelte      not counted  benchmarks/headtohead/todomvc/svelte/dist/base.js
+     svelte      not counted  benchmarks/headtohead/todomvc/svelte/dist/index.html
+     svelte      not counted  benchmarks/headtohead/todomvc/svelte/readme.md
+     svelte      not counted  benchmarks/headtohead/todomvc/svelte/.gitignore
+
+-- store
+   stack       app lines files  languages (app)                                host  build/config
+   pleris            294     7  Pleris 294                                     2110      9 in 1 file(s)
+   next-react        151     6  TypeScript 99, TypeScript (TSX) 52                0     65 in 3 file(s)
+   sveltekit         134     6  HTML 12, Svelte 27, TypeScript 95                 0     44 in 4 file(s)
+     pleris      app     105  Pleris            benchmarks/baselines/pleris/domain.pw
+     pleris      app      36  Pleris            benchmarks/baselines/pleris/lib/Carts.pw
+     pleris      app       8  Pleris            benchmarks/baselines/pleris/lib/Events.pw
+     pleris      app      16  Pleris            benchmarks/baselines/pleris/lib/Menus.pw
+     pleris      app      14  Pleris            benchmarks/baselines/pleris/lib/Stores.pw
+     pleris      app      99  Pleris            benchmarks/baselines/pleris/store/app.pw
+     pleris      app      16  Pleris            benchmarks/baselines/pleris/store/menu.pw
+     pleris      host   2110  Rust              spikes/own-renderer/server/src/store.rs
+     pleris      build     9  Bash              spikes/own-renderer/baseline-store.sh
+     pleris      not counted  benchmarks/baselines/pleris/lib/Analytics.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Database.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Estimates.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Legacy.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Maps.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Menu.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Payments.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Receipts.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Recommender.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Resources.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/StoreId.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Telemetry.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/Tracking.pw  (no page of the app imports it)
+     pleris      not counted  benchmarks/baselines/pleris/lib/VendorSdk.pw  (no page of the app imports it)
+     next-react  app       9  TypeScript (TSX)  benchmarks/baselines/next-react/app/layout.tsx
+     next-react  app      20  TypeScript        benchmarks/baselines/next-react/app/stores/[storeId]/actions.ts
+     next-react  app      43  TypeScript (TSX)  benchmarks/baselines/next-react/app/stores/[storeId]/page.tsx
+     next-react  app      14  TypeScript        benchmarks/baselines/next-react/lib/session.ts
+     next-react  app      50  TypeScript        benchmarks/baselines/next-react/lib/store.ts
+     next-react  app      15  TypeScript        benchmarks/baselines/next-react/proxy.ts
+     next-react  build    21  JSON              benchmarks/baselines/next-react/package.json
+     next-react  build     2  JavaScript        benchmarks/baselines/next-react/next.config.mjs
+     next-react  build    42  JSON              benchmarks/baselines/next-react/tsconfig.json
+     sveltekit   app      12  HTML              benchmarks/baselines/sveltekit/src/app.html
+     sveltekit   app       6  TypeScript        benchmarks/baselines/sveltekit/src/hooks.server.ts
+     sveltekit   app      13  TypeScript        benchmarks/baselines/sveltekit/src/lib/server/session.ts
+     sveltekit   app      50  TypeScript        benchmarks/baselines/sveltekit/src/lib/server/store.ts
+     sveltekit   app      26  TypeScript        benchmarks/baselines/sveltekit/src/routes/stores/[storeId]/+page.server.ts
+     sveltekit   app      27  Svelte            benchmarks/baselines/sveltekit/src/routes/stores/[storeId]/+page.svelte
+     sveltekit   build    28  JSON              benchmarks/baselines/sveltekit/package.json
+     sveltekit   build     5  JavaScript        benchmarks/baselines/sveltekit/svelte.config.js
+     sveltekit   build     3  TypeScript        benchmarks/baselines/sveltekit/vite.config.ts
+     sveltekit   build     8  JSON              benchmarks/baselines/sveltekit/tsconfig.json
+
+== the same feature change in each stack (feature-change.mjs)
+each task's change in each stack: the pull request (reference patch, after the task's setup) and what the stack's checker says of it and of its unsafe version
+  checkers: Pleris pw check; Next.js tsc --noEmit; SvelteKit svelte-check
+  stage that caught the unsafe version in the harness's controls (docs/evidence/E14/harness-T*.txt) is shown with that evidence's commit
+  T01 Optimistic cart update with rollback [loading and error states: an optimistic count that is not taken back when the add fails]
+    Pleris     +1   -0   1 file(s), Pleris; reference checks clean; unsafe refused: error: [PW0330] `add_to_cart`'s optimistic transition performs database.write<Carts>, session.read; harness caught it at check (0c608dc3)
+    Next.js    +52  -25  2 file(s) (1 new), TSX; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +16  -2   1 file(s), Svelte; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T02 Stop the kitchen's request storm [shared reads: concurrent asks of a slow source not shared]
+    Pleris     +1   -1   1 file(s), Pleris; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    Next.js    +15  -2   1 file(s), TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +15  -2   1 file(s), TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T03 A private resource: the cart's lines on the store page [authorization and privacy: one customer's cart lines kept where another's request reads them]
+    Pleris     +42  -1   1 file(s), Pleris; reference checks clean; unsafe refused: error: [PW5001] `CartLines` is Session<SessionId> and declares a shared cache; harness caught it at check (0c608dc3)
+    Next.js    +23  -2   2 file(s), TSX+TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +28  -1   3 file(s), Svelte+TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T04 An order-state variant: ready for pickup [types across the network boundary: a new order state the page does not handle]
+    Pleris     +2   -0   2 file(s), Pleris; reference checks clean; unsafe refused: error: [PW0305] `{#match status}` does not cover `Ready`; harness caught it at check (0c608dc3)
+    Next.js    +3   -2   2 file(s), TSX+TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +4   -2   2 file(s), Svelte+TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T05 Stream the store's recommendations [loading and error states: a slow section that holds up the page]
+    Pleris     +14  -0   1 file(s), Pleris; reference checks clean; unsafe refused: error: [PW5400] `Recommendations` is declared `delivery streamed`, so a page does not wait for it; read it in a `<stream query={Recommendations(..)}>`; harness caught it at check (0c608dc3)
+    Next.js    +25  -1   1 file(s), TSX; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +30  -1   2 file(s), Svelte+TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T06 An accessible form: request an item [accessibility: a form's error not tied to its field or announced]
+    Pleris     +33  -0   1 file(s), Pleris; reference checks clean; unsafe refused: error: [PW5014] `<input>` has no associated label; harness caught it at check (0c608dc3)
+    Next.js    +48  -0   2 file(s) (1 new), TSX; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +35  -0   1 file(s), Svelte; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T07 Stop reading a category the customer moved past [races and stale answers: an answer for a category the customer moved past is shown]
+    Pleris     +3   -3   1 file(s), Pleris; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    Next.js    +9   -2   1 file(s), TSX; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +8   -1   1 file(s), Svelte; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T08 Prevent duplicate submissions [retries: one press applied twice when its request is delivered twice]
+    Pleris     +2   -0   1 file(s), Pleris; reference checks clean; unsafe refused: error: [PW0338] `add_to_cart` is called by a page's handler, and declares no `idempotent_by`; harness caught it at check (4f75868b)
+    Next.js    +44  -8   4 file(s) (1 new), TSX+TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (4f75868b)
+    SvelteKit  +39  -4   3 file(s), Svelte+TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at contract (4f75868b)
+  T09 Keep the store's notice fresh [cache invalidation: a kept answer older than the freshness asked for]
+    Pleris     +1   -1   1 file(s), Pleris; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    Next.js    +1   -1   1 file(s), TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +1   -1   1 file(s), TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T10 A loading and an error state for the delivery estimate [loading and error states: a failing estimate that breaks or holds up the page]
+    Pleris     +6   -2   1 file(s), Pleris; reference checks clean; unsafe refused: error: [PW5401] a `<stream>` shows that its query failed, as every query can, its budget spent or its source down: it needs a `<failed>`; harness caught it at check (0c608dc3)
+    Next.js    +15  -2   1 file(s), TSX; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +14  -3   2 file(s), Svelte+TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T11 An accessible dialog: confirm before clearing the cart [accessibility: a confirmation that is not a modal dialog to keyboard and screen reader]
+    Pleris     +18  -5   1 file(s), Pleris; reference checks clean; unsafe refused: error: [PW5303] this `<dialog>` is shown while `confirming` renders it, and its closing is heard by nothing; harness caught it at check (0c608dc3)
+    Next.js    +30  -7   2 file(s) (1 new), TSX; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+    SvelteKit  +19  -3   1 file(s), Svelte; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at hidden (0c608dc3)
+  T12 Repair an unsafe cache [authorization and privacy: a cached cart served to another session]
+    Pleris     +2   -2   1 file(s), Pleris; reference checks clean; unsafe refused: error: [PW5001] `Cart` is Session<SessionId> and declares a shared cache; harness caught it at check (0c608dc3)
+    Next.js    +3   -3   1 file(s), TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at contract (0c608dc3)
+    SvelteKit  +3   -3   1 file(s), TypeScript; reference checks clean; unsafe ACCEPTED, with no warning its reference lacks: a reviewer must find it; harness caught it at contract (0c608dc3)
+  what a reviewer must verify by hand, by class of mistake (the tasks' unsafe versions):
+    loading and error states (T01, T05, T10): Pleris: checker proves T01 PW0330, T05 PW5400, T10 PW5401 | Next.js: checker proves none; reviewer: T01, T05, T10 | SvelteKit: checker proves none; reviewer: T01, T05, T10
+    shared reads (T02): Pleris: checker proves none; reviewer: T02 | Next.js: checker proves none; reviewer: T02 | SvelteKit: checker proves none; reviewer: T02
+    authorization and privacy (T03, T12): Pleris: checker proves T03 PW5001, T12 PW5001 | Next.js: checker proves none; reviewer: T03, T12 | SvelteKit: checker proves none; reviewer: T03, T12
+    types across the network boundary (T04): Pleris: checker proves T04 PW0305 | Next.js: checker proves none; reviewer: T04 | SvelteKit: checker proves none; reviewer: T04
+    accessibility (T06, T11): Pleris: checker proves T06 PW5014, T11 PW5303 | Next.js: checker proves none; reviewer: T06, T11 | SvelteKit: checker proves none; reviewer: T06, T11
+    races and stale answers (T07): Pleris: checker proves none; reviewer: T07 | Next.js: checker proves none; reviewer: T07 | SvelteKit: checker proves none; reviewer: T07
+    retries (T08): Pleris: checker proves T08 PW0338 | Next.js: checker proves none; reviewer: T08 | SvelteKit: checker proves none; reviewer: T08
+    cache invalidation (T09): Pleris: checker proves none; reviewer: T09 | Next.js: checker proves none; reviewer: T09 | SvelteKit: checker proves none; reviewer: T09
+  totals over the tasks:
+    Pleris     12 changes: +125 -15 lines, 13 file(s) touched, languages Pleris; references clean 12/12; unsafe versions refused by the checker 9/12, warned of 0/12, left to a reviewer 3/12
+    Next.js    12 changes: +268 -55 lines, 20 file(s) touched, languages TSX, TypeScript; references clean 12/12; unsafe versions refused by the checker 0/12, warned of 0/12, left to a reviewer 12/12
+    SvelteKit  12 changes: +212 -23 lines, 19 file(s) touched, languages Svelte, TypeScript; references clean 12/12; unsafe versions refused by the checker 0/12, warned of 0/12, left to a reviewer 12/12
+
+== the museum's bug classes each stack lets ship (museum-classes.mjs)
+the museum's exhibits (ADR-0342), as just e14-museum recorded them: commit 5a4378fe51fd38460239ffb295f9e4fea9bfcbac, https://github.com/studiokimeiga/perfect-web/actions/runs/39892771765; museum: 5 exhibits, 5 refused, 0 missed, 0 not as expected
+  Next.js    lets ship 3 of the 5, each shown happening on its built store, its checker accepting it: G01-retried-command-twice (One press applied twice when its request is delivered twice); H07-n-plus-one (One round trip per row: a page whose work grows with its list); J01-stale-page-after-save (A page shown after a save is the one read before it)
+  SvelteKit  lets ship 2 of the 5, each shown happening on its built store, its checker accepting it: F01-markup-from-text (Text another user wrote runs as script in a customer's page); J08-shared-server-state (One customer's cart shown to another, from state the server shares)
+  (an exhibit shown in one framework is not reproduced in the other: neither claimed to let it ship nor to refuse it)
+  Pleris     refuses 5 of the 5: F01-markup-from-text: refused (diagnostic PW5010); G01-retried-command-twice: refused (diagnostic PW0338; runtime, ADR-0121's interaction per press, applied once); H07-n-plus-one: refused (diagnostic PW0405); J01-stale-page-after-save: refused (runtime, ADR-0280, navigate after the commit); J08-shared-server-state: refused (diagnostic PW5001)
+  not claimed: that five exhibits sample the census (ADR-0342); each exhibit's source and its kind: F01 GHSA-9f4f-jv96-8766 (CVE-2025-46719); S21, S27 (a CVE, the advisory of the app that had it (Open WebUI, a SvelteKit app); security guidance; W3C specification); G01 S13, S14 (engineering article; provider contract); H07 Vercel Academy, Next.js Foundations; Prisma ORM's documentation; census H07 (model/spec), R1, S33 (framework documentation (the framework vendor's course); ORM documentation; model/spec); J01 vercel/next.js#42991; ADR-0280 (the owner's own Next.js case); S17; on its repair, vercel/next.js#99028 (issue in the framework's tracker; the owner's report; framework documentation; standard); J08 S54 (framework documentation)
+
+== TodoMVC
+  Pleris     own renderer, this commit; written by this project (examples/todomvc, track todomvc); served by target/release/pw-dev-server dist-todomvc; interactive when the runtime sets data-pw-ready; build minifies: NO; host compresses: NO; host lets a cache keep its files: NO
+  React      React 19.2.5, react-router-dom 7.14.2, webpack 5.106.2; written by TodoMVC's maintainers (tastejs/todomvc@ff43b02e, examples/react); served by node benchmarks/headtohead/static-host.mjs --port 13662 --mount /react/dist=benchmarks/headtohead/todomvc/react/dist; interactive when its field is in the document (rendered by the client, handlers attached as it renders); build minifies: yes; host compresses: all; host lets a cache keep its files: yes
+  Svelte     Svelte 5.55.5, Vite 8.0.10; written by TodoMVC's maintainers (tastejs/todomvc@ff43b02e, examples/svelte); served by node benchmarks/headtohead/static-host.mjs --port 13663 --mount /svelte/dist=benchmarks/headtohead/todomvc/svelte/dist; interactive when its field is in the document (rendered by the client, handlers attached as it renders); build minifies: yes; host compresses: all; host lets a cache keep its files: yes
+
+bytes of the first load, cold, Chromium (every cold run of a stack received the same, or its range is shown):
+  decoded: the responses' bodies; Brotli 11, gzip 9: those bodies as a static host compresses them, for every stack alike;
+  received: what the browser received as each host sent it (headers included); app br: Brotli 11 without TodoMVC's common files (base.js, learn.json)
+  stack      requests   decoded Brotli 11   gzip 9  received  as sent          app br  by kind (decoded/br)
+  Pleris            7   235,692    67,828   80,185   237,218  none             67,828  style 3: 9,528/2,650; document 1: 10,660/2,043; script 1: 157,269/41,656; wasm 1: 57,951/21,284; other 1: 284/195
+  React             5   248,720    68,624   79,766    70,085  br               67,161  document 1: 645/234; style 1: 7,400/2,008; script 2: 240,666/66,369; other 1: 9/13
+  Svelte            5    57,354    19,306   21,898    20,821  br               16,992  document 1: 841/280; style 1: 7,129/1,910; script 2: 49,375/17,103; other 1: 9/13
+  scripts and styles a minifier still shrinks by 10% or more (esbuild 0.28.2's, lib.mjs's rule), as served:
+    Pleris     /todomvc-base.css 1,818 -> 1,441; /todomvc-app.css 7,277 -> 5,613; /pw-runtime.mjs 157,269 -> 56,873; /handler/f80d574d379ee9e9.mjs 3,414 -> 1,392; /computed/todomvc.app.Todos~ui.mjs 4,839 -> 1,851; /handler/8412388d5acb6c91.mjs 1,226 -> 575
+    React      none
+    Svelte     /svelte/dist/base.js 7,253 -> 3,770 (TodoMVC's common file)
+  interaction "add" (cold, Chromium): requests / decoded / Brotli 11 / received
+    Pleris       5   394,780    94,141   395,444  /handler/2070bd5321ef2f86.mjs 331, /handler/f80d574d379ee9e9.mjs 3,414, /computed/todomvc.app.Todos~ui.mjs 4,839, /pw-render.wasm 386,022, /todomvc-circle.svg 174
+    React        0         0         0         0  
+    Svelte       0         0         0         0  
+  interaction "toggle" (cold, Chromium): requests / decoded / Brotli 11 / received
+    Pleris       2     1,463       663     1,723  /todomvc-checked.svg 237, /handler/8412388d5acb6c91.mjs 1,226
+    React        0         0         0         0  
+    Svelte       0         0         0         0  
+  interaction "filter" (cold, Chromium): requests / decoded / Brotli 11 / received
+    Pleris       0         0         0         0  
+    React        0         0         0         0  
+    Svelte       0         0         0         0  
+  warm (the same context after one whole visit; Chromium): requests / answered 304 / received
+    Pleris       7   0   237,127
+    React        5   3     1,338
+    Svelte       5   1       759
+
+times, ms from navigation start: median [first-third quartile] (min-max, n); interactions from the input event to the frame after the change; layout shift a score
+  chromium, cold, unshaped (loopback):
+    Pleris     first contentful paint 36 [32-42] (32-68, n=7)
+               largest contentful p. 36 [32-42] (32-68, n=7)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=7)
+               interactive            40 [37-48] (35-91, n=7)
+               "add"                  32 [27-34] (25-40, n=7)
+               "toggle"               31 [30-31] (30-32, n=7)
+               "filter"               30 [30-30] (29-31, n=7)
+    React      first contentful paint 40 [32-42] (28-44, n=7)
+               largest contentful p. 68 [60-74] (60-88, n=7)
+               layout shift           0.006 [0.006-0.006] (0.006-0.006, n=7)
+               interactive            49 [47-62] (46-79, n=7)
+               "add"                  11 [9.4-11] (7.7-19, n=7)
+               "toggle"               14 [13-14] (9.5-15, n=7)
+               "filter"               14 [14-14] (10-15, n=7)
+    Svelte     first contentful paint 36 [34-38] (28-40, n=7)
+               largest contentful p. 36 [36-40] (32-60, n=7)
+               layout shift           0.000 [0.000-0.003] (0.000-0.006, n=7)
+               interactive            23 [21-30] (18-51, n=7)
+               "add"                  9.9 [8.5-11] (6.7-13, n=7)
+               "toggle"               14 [13-14] (12-15, n=7)
+               "filter"               30 [30-31] (29-31, n=7)
+  chromium, warm, unshaped (loopback):
+    Pleris     first contentful paint 24 [24-32] (20-40, n=7)
+               largest contentful p. 24 [24-32] (20-40, n=7)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=7)
+               interactive            23 [19-27] (18-33, n=7)
+               "add"                  27 [27-30] (23-32, n=7)
+               "toggle"               32 [31-32] (30-32, n=7)
+               "filter"               31 [30-31] (30-31, n=7)
+    React      first contentful paint 28 [28-30] (28-36, n=7)
+               largest contentful p. 28 [28-30] (28-36, n=7)
+               layout shift           0.000 [0.000-0.000] (0.000-0.006, n=7)
+               interactive            13 [13-14] (13-15, n=7)
+               "add"                  8.4 [5.3-12] (4.2-13, n=7)
+               "toggle"               14 [14-14] (14-15, n=7)
+               "filter"               14 [14-15] (14-15, n=7)
+    Svelte     first contentful paint 36 [30-36] (24-36, n=7)
+               largest contentful p. 36 [30-36] (24-36, n=7)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=7)
+               interactive            10 [9.9-12] (9.2-14, n=7)
+               "add"                  6.1 [4.2-12] (2.4-14, n=7)
+               "toggle"               15 [14-15] (10-15, n=7)
+               "filter"               31 [31-31] (28-31, n=7)
+  firefox, cold, unshaped (loopback):
+    Pleris     first contentful paint 27 [25-35] (20-38, n=7)
+               largest contentful p. 27 [25-35] (20-38, n=7)
+               layout shift           not reported (7 runs)
+               interactive            71 [69-78] (61-86, n=7)
+               "add"                  31 [30-38] (28-46, n=7)
+               "toggle"               16 [16-17] (15-21, n=7)
+               "filter"               16 [16-16] (15-17, n=7)
+    React      first contentful paint 56 [50-73] (47-210, n=7)
+               largest contentful p. 73 [68-94] (63-227, n=7)
+               layout shift           not reported (7 runs)
+               interactive            69 [63-91] (58-224, n=7)
+               "add"                  9.0 [8.5-10] (8.0-13, n=7)
+               "toggle"               6.0 [6.0-8.5] (5.0-10, n=7)
+               "filter"               16 [15-16] (15-16, n=7)
+    Svelte     first contentful paint 64 [58-65] (53-66, n=7)
+               largest contentful p. 64 [58-65] (53-66, n=7)
+               layout shift           not reported (7 runs)
+               interactive            53 [50-57] (44-62, n=7)
+               "add"                  8.0 [7.0-9.5] (7.0-15, n=7)
+               "toggle"               16 [16-16] (16-16, n=7)
+               "filter"               16 [16-17] (16-17, n=7)
+  firefox, warm, unshaped (loopback):
+    Pleris     first contentful paint 25 [23-31] (20-36, n=7)
+               largest contentful p. 25 [23-31] (20-36, n=7)
+               layout shift           not reported (7 runs)
+               interactive            74 [68-78] (67-79, n=7)
+               "add"                  29 [27-33] (26-39, n=7)
+               "toggle"               17 [16-17] (16-18, n=7)
+               "filter"               16 [15-17] (15-19, n=7)
+    React      first contentful paint 55 [50-65] (47-70, n=7)
+               largest contentful p. 70 [66-73] (64-83, n=7)
+               layout shift           not reported (7 runs)
+               interactive            66 [63-69] (57-77, n=7)
+               "add"                  5.0 [4.5-6.5] (4.0-9.0, n=7)
+               "toggle"               6.0 [6.0-6.0] (5.0-7.0, n=7)
+               "filter"               15 [15-15] (13-16, n=7)
+    Svelte     first contentful paint 35 [33-35] (22-37, n=7)
+               largest contentful p. 47 [44-56] (41-58, n=7)
+               layout shift           not reported (7 runs)
+               interactive            45 [43-46] (41-47, n=7)
+               "add"                  4.0 [3.5-4.0] (2.0-4.0, n=7)
+               "toggle"               17 [17-17] (17-18, n=7)
+               "filter"               15 [15-16] (15-16, n=7)
+  webkit, cold, unshaped (loopback):
+    Pleris     first contentful paint 35 [30-39] (27-40, n=7)
+               largest contentful p. 171 [163-175] (159-213, n=7)
+               layout shift           not reported (7 runs)
+               interactive            68 [64-73] (63-86, n=7)
+               "add"                  113 [108-129] (99-140, n=7)
+               "toggle"               23 [22-25] (20-30, n=7)
+               "filter"               14 [14-15] (14-15, n=7)
+    React      first contentful paint 36 [34-41] (28-43, n=7)
+               largest contentful p. 223 [218-235] (190-245, n=7)
+               layout shift           not reported (7 runs)
+               interactive            56 [51-59] (46-62, n=7)
+               "add"                  25 [22-26] (21-29, n=7)
+               "toggle"               13 [13-15] (13-18, n=7)
+               "filter"               9.0 [7.5-10] (6.0-15, n=7)
+    Svelte     first contentful paint 28 [25-31] (17-33, n=7)
+               largest contentful p. 211 [202-222] (182-232, n=7)
+               layout shift           not reported (7 runs)
+               interactive            38 [35-43] (33-45, n=7)
+               "add"                  22 [21-23] (19-26, n=7)
+               "toggle"               13 [12-14] (11-15, n=7)
+               "filter"               12 [11-13] (7.0-82, n=7)
+  webkit, warm, unshaped (loopback):
+    Pleris     first contentful paint 10 [9.5-11] (9.0-15, n=7)
+               largest contentful p. 21 [19-22] (16-29, n=7)
+               layout shift           not reported (7 runs)
+               interactive            32 [29-35] (28-41, n=7)
+               "add"                  82 [81-94] (77-94, n=7)
+               "toggle"               17 [16-19] (15-25, n=7)
+               "filter"               14 [13-14] (12-14, n=7)
+    React      first contentful paint 10 [10-11] (8.0-12, n=7)
+               largest contentful p. 32 [29-35] (27-39, n=7)
+               layout shift           not reported (7 runs)
+               interactive            18 [15-19] (13-21, n=7)
+               "add"                  12 [12-13] (9.0-13, n=7)
+               "toggle"               12 [11-13] (10-14, n=7)
+               "filter"               12 [11-12] (9.0-14, n=7)
+    Svelte     first contentful paint 12 [12-15] (10-15, n=7)
+               largest contentful p. 22 [21-23] (19-25, n=7)
+               layout shift           not reported (7 runs)
+               interactive            10 [9.0-12] (8.0-12, n=7)
+               "add"                  13 [13-14] (12-14, n=7)
+               "toggle"               13 [12-13] (11-13, n=7)
+               "filter"               12 [11-13] (10-19, n=7)
+  chromium, cold, slow-4g (Lighthouse's Slow 4G as it applies it through DevTools: 562.5 ms a request, 1.6 Mbit/s x 0.9 down, 750 kbit/s x 0.9 up, CPU x4):
+    Pleris     first contentful paint 1248 [1246-1254] (1236-1276, n=7)
+               largest contentful p. 1248 [1246-1254] (1236-1276, n=7)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=7)
+               interactive            4101 [4099-4112] (4080-4152, n=7)
+               "add"                  3889 [3875-3905] (3855-4009, n=7)
+               "toggle"               611 [603-625] (597-726, n=7)
+               "filter"               29 [28-34] (25-38, n=7)
+    React      first contentful paint 1204 [1204-1224] (1200-1300, n=7)
+               largest contentful p. 1720 [1700-1760] (1684-1864, n=7)
+               layout shift           0.006 [0.006-0.006] (0.006-0.006, n=7)
+               interactive            1711 [1689-1748] (1676-1847, n=7)
+               "add"                  44 [36-53] (29-100, n=7)
+               "toggle"               28 [22-34] (19-140, n=7)
+               "filter"               19 [13-26] (13-35, n=7)
+    Svelte     first contentful paint 1204 [1202-1210] (1192-1256, n=7)
+               largest contentful p. 1324 [1314-1326] (1304-1388, n=7)
+               layout shift           0.006 [0.006-0.006] (0.006-0.006, n=7)
+               interactive            1307 [1302-1313] (1292-1365, n=7)
+               "add"                  40 [38-42] (30-59, n=7)
+               "toggle"               26 [21-29] (20-32, n=7)
+               "filter"               27 [26-27] (25-29, n=7)
+  chromium, warm, slow-4g (Lighthouse's Slow 4G as it applies it through DevTools: 562.5 ms a request, 1.6 Mbit/s x 0.9 down, 750 kbit/s x 0.9 up, CPU x4):
+    Pleris     first contentful paint 1240 [1236-1254] (1228-1260, n=7)
+               largest contentful p. 1240 [1236-1254] (1228-1260, n=7)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=7)
+               interactive            4081 [4070-4085] (4066-4090, n=7)
+               "add"                  3834 [3829-3841] (3825-3844, n=7)
+               "toggle"               600 [596-606] (590-625, n=7)
+               "filter"               30 [26-30] (25-31, n=7)
+    React      first contentful paint 1172 [1172-1172] (1168-1176, n=7)
+               largest contentful p. 1212 [1210-1226] (1208-1240, n=7)
+               layout shift           0.006 [0.006-0.006] (0.006-0.006, n=7)
+               interactive            1204 [1203-1216] (1196-1230, n=7)
+               "add"                  17 [16-20] (16-25, n=7)
+               "toggle"               19 [15-20] (13-21, n=7)
+               "filter"               15 [14-17] (12-20, n=7)
+    Svelte     first contentful paint 604 [602-604] (600-640, n=7)
+               largest contentful p. 1180 [1176-1182] (1172-1188, n=7)
+               layout shift           0.006 [0.006-0.006] (0.006-0.006, n=7)
+               interactive            1169 [1169-1172] (1168-1181, n=7)
+               "add"                  16 [13-19] (11-27, n=7)
+               "toggle"               16 [15-18] (13-20, n=7)
+               "filter"               28 [27-29] (26-30, n=7)
+
+server under a fixed open load: 100 requests/s for 10 s, each of the page's document (after 50 warm-up requests), 5 runs a stack, every stack once a round in a shuffled order: median [first-third quartile] (min-max, n)
+  Pleris     answered 5000/5000 {"200":5000}; processes 1
+             CPU per request, ms         0.19 [0.17-0.19] (0.17-0.23, n=5)
+             latency p50, ms             1.18 [1.13-1.34] (0.85-1.52, n=5)
+             latency p99, ms             2.87 [2.49-3.01] (2.27-3.02, n=5)
+             resident memory at peak, MiB 30.5 [30.5-30.5] (30.5-30.5, n=5)
+  React      answered 5000/5000 {"200":5000}; processes 1
+             CPU per request, ms         0.39 [0.37-0.45] (0.32-0.46, n=5)
+             latency p50, ms             0.42 [0.41-0.49] (0.15-0.52, n=5)
+             latency p99, ms             1.97 [1.57-2.24] (1.39-3.87, n=5)
+             resident memory at peak, MiB 70.9 [69.3-71.3] (68.9-71.3, n=5)
+  Svelte     answered 5000/5000 {"200":5000}; processes 1
+             CPU per request, ms         0.38 [0.38-0.46] (0.34-0.49, n=5)
+             latency p50, ms             0.40 [0.37-0.48] (0.35-0.64, n=5)
+             latency p99, ms             1.81 [1.51-1.82] (1.33-2.31, n=5)
+             resident memory at peak, MiB 70.7 [69.2-70.9] (68.3-70.9, n=5)
+
+idle visitors: 20 pages of the app in Chromium, each in a browser context of its own (as separate people's browsers), loaded and left alone for 10 s; 5 runs a stack: median [first-third quartile] (min-max, n)
+  Pleris     requests a page a minute    0.00 [0.00-0.00] (0.00-0.00, n=5)
+             server CPU, ms a second     0.00 [0.00-1.00] (0.00-1.00, n=5)
+             server resident memory, MiB 30.8 [30.5-30.9] (30.5-30.9, n=5)
+  React      requests a page a minute    0.00 [0.00-0.00] (0.00-0.00, n=5)
+             server CPU, ms a second     1.00 [1.00-1.00] (1.00-1.00, n=5)
+             server resident memory, MiB 71.3 [71.3-71.3] (71.3-71.3, n=5)
+  Svelte     requests a page a minute    0.00 [0.00-0.00] (0.00-0.00, n=5)
+             server CPU, ms a second     1.00 [0.00-1.00] (0.00-1.00, n=5)
+             server resident memory, MiB 70.9 [70.9-70.9] (70.9-70.9, n=5)
+
+a press with other tabs open: 20 tabs of the app in ONE browser context (one person's browser, whose six connections to a host over HTTP/1.1 they share), left 4 s, then the app's first interaction in the last tab, ms to its change; 5 runs a stack: median [first-third quartile] (min-max, n)
+  Pleris     75 [67-76] (64-82, n=5)
+  React      34 [33-42] (32-58, n=5)
+  Svelte     32 [30-47] (29-47, n=5)
+
+== the store (ADR-0120's three stores, one contract)
+  Pleris     own renderer, this commit; written by this project (benchmarks/baselines/pleris, ADR-0156); served by target/release/pw-dev-server dist-baseline; interactive when the runtime sets data-pw-ready; build minifies: NO; host compresses: NO; host lets a cache keep its files: NO
+  Next.js    Next.js 16.4.1, React 19.3.0; written by this project (benchmarks/baselines/next-react, ADR-0120); served by node benchmarks/baselines/next-react/node_modules/next/dist/bin/next start --port 13665 --hostname 127.0.0.1; interactive when the hydrated App Router writes its state to history.state; build minifies: yes; host compresses: all; host lets a cache keep its files: yes
+  SvelteKit  SvelteKit 2.70.3, Svelte 5.57.1, adapter-node 5.5.7; written by this project (benchmarks/baselines/sveltekit, ADR-0120); served by node build; interactive when SvelteKit's router starts after hydrating (history.scrollRestoration set); build minifies: yes; host compresses: static; host lets a cache keep its files: yes
+
+bytes of the first load, cold, Chromium (every cold run of a stack received the same, or its range is shown):
+  decoded: the responses' bodies; Brotli 11, gzip 9: those bodies as a static host compresses them, for every stack alike;
+  received: what the browser received as each host sent it (headers included); app br: Brotli 11 without TodoMVC's common files (base.js, learn.json)
+  stack      requests   decoded Brotli 11   gzip 9  received  as sent          app br  by kind (decoded/br)
+  Pleris            4  218,741*    63,981   75,495 219,871~219,870  none             63,981  document 1: 3,396/936; script 1: 157,269/41,656; wasm 1: 57,951/21,284; other 1: 124/105
+  Next.js           6   464,836   117,109  137,127   140,211  gzip            117,109  document 1: 8,707/1,890; script 5: 456,129/115,219
+  SvelteKit         9    86,952    30,454   33,745    35,020  br               30,454  document 1: 1,810/631; script 8: 85,142/29,823
+  scripts and styles a minifier still shrinks by 10% or more (esbuild 0.28.2's, lib.mjs's rule), as served:
+    Pleris     /pw-runtime.mjs 157,269 -> 56,873; /handler/caf313daa7fe21a1.mjs 1,242 -> 763; /speculation/store.page.StorePage~ui.mjs 2,514 -> 1,000
+    Next.js    none
+    SvelteKit  none
+  interaction "add" (cold, Chromium): requests / decoded / Brotli 11 / received
+    Pleris       3     3,865     1,396     4,314  /handler/caf313daa7fe21a1.mjs 1,242, /speculation/store.page.StorePage~ui.mjs 2,514, POST /command/store.page.add_to_cart 109
+    Next.js      1     5,104     1,316     2,390  POST /stores/blue-bottle 5,104
+    SvelteKit    2       356       228       701  POST /stores/blue-bottle 43, /stores/blue-bottle/__data.json 313
+  warm (the same context after one whole visit; Chromium): requests / answered 304 / received
+    Pleris       4   0 219,833~219,832
+    Next.js      6   0     2,898
+    SvelteKit    9   0     2,499
+
+times, ms from navigation start: median [first-third quartile] (min-max, n); interactions from the input event to the frame after the change; layout shift a score
+  chromium, cold, unshaped (loopback):
+    Pleris     first contentful paint 32 [28-32] (28-40, n=7)
+               largest contentful p. 32 [28-32] (28-40, n=7)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=7)
+               interactive            45 [42-54] (38-64, n=7)
+               "add"                  28 [28-29] (28-30, n=7)
+    Next.js    first contentful paint 52 [38-54] (28-152, n=7)
+               largest contentful p. 52 [38-54] (28-152, n=7)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=7)
+               interactive            95 [84-104] (80-195, n=7)
+               "add"                  29 [28-30] (28-60, n=7)
+    SvelteKit  first contentful paint 36 [34-38] (32-44, n=7)
+               largest contentful p. 36 [34-38] (32-44, n=7)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=7)
+               interactive            46 [43-47] (39-69, n=7)
+               "add"                  30 [28-30] (27-30, n=7)
+  chromium, warm, unshaped (loopback):
+    Pleris     first contentful paint 28 [26-30] (20-36, n=7)
+               largest contentful p. 28 [26-30] (20-36, n=7)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=7)
+               interactive            30 [29-31] (25-40, n=7)
+               "add"                  29 [29-30] (29-30, n=7)
+    Next.js    first contentful paint 40 [32-46] (28-52, n=7)
+               largest contentful p. 40 [32-46] (28-52, n=7)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=7)
+               interactive            49 [36-57] (34-69, n=7)
+               "add"                  30 [30-30] (29-31, n=7)
+    SvelteKit  first contentful paint 28 [24-36] (20-40, n=7)
+               largest contentful p. 28 [24-36] (20-40, n=7)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=7)
+               interactive            23 [19-27] (14-47, n=7)
+               "add"                  29 [28-30] (25-31, n=7)
+  firefox, cold, unshaped (loopback):
+    Pleris     first contentful paint 35 [31-42] (28-84, n=7)
+               largest contentful p. 35 [31-42] (28-84, n=7)
+               layout shift           not reported (7 runs)
+               interactive            82 [76-101] (67-187, n=7)
+               "add"                  34 [33-41] (31-48, n=7)
+    Next.js    first contentful paint 51 [43-60] (36-293, n=7)
+               largest contentful p. 51 [43-60] (36-293, n=7)
+               layout shift           not reported (7 runs)
+               interactive            126 [115-169] (92-389, n=7)
+               "add"                  34 [33-40] (31-73, n=7)
+    SvelteKit  first contentful paint 38 [33-44] (26-68, n=7)
+               largest contentful p. 38 [33-44] (26-68, n=7)
+               layout shift           not reported (7 runs)
+               interactive            115 [87-128] (75-164, n=7)
+               "add"                  33 [33-35] (33-41, n=7)
+  firefox, warm, unshaped (loopback):
+    Pleris     first contentful paint 27 [22-37] (14-53, n=7)
+               largest contentful p. 27 [22-37] (14-53, n=7)
+               layout shift           not reported (7 runs)
+               interactive            64 [57-71] (52-88, n=7)
+               "add"                  32 [18-33] (16-36, n=7)
+    Next.js    first contentful paint 40 [34-46] (25-62, n=7)
+               largest contentful p. 40 [34-46] (25-62, n=7)
+               layout shift           not reported (7 runs)
+               interactive            87 [82-125] (69-136, n=7)
+               "add"                  33 [33-34] (18-35, n=7)
+    SvelteKit  first contentful paint 30 [28-33] (21-46, n=7)
+               largest contentful p. 30 [28-33] (21-46, n=7)
+               layout shift           not reported (7 runs)
+               interactive            84 [68-94] (57-104, n=7)
+               "add"                  33 [17-33] (17-33, n=7)
+  webkit, cold, unshaped (loopback):
+    Pleris     first contentful paint 17 [14-18] (11-20, n=7)
+               largest contentful p. 17 [14-18] (11-20, n=7)
+               layout shift           not reported (7 runs)
+               interactive            55 [50-64] (42-68, n=7)
+               "add"                  23 [18-47] (11-51, n=7)
+    Next.js    first contentful paint 22 [21-29] (18-42, n=7)
+               largest contentful p. 22 [21-29] (18-42, n=7)
+               layout shift           not reported (7 runs)
+               interactive            108 [84-116] (79-143, n=7)
+               "add"                  28 [27-41] (26-41, n=7)
+    SvelteKit  first contentful paint 17 [15-23] (12-26, n=7)
+               largest contentful p. 17 [15-23] (12-26, n=7)
+               layout shift           not reported (7 runs)
+               interactive            60 [46-68] (41-76, n=7)
+               "add"                  28 [26-28] (16-28, n=7)
+  webkit, warm, unshaped (loopback):
+    Pleris     first contentful paint 9.0 [8.5-11] (7.0-15, n=7)
+               largest contentful p. 9.0 [8.5-11] (7.0-15, n=7)
+               layout shift           not reported (7 runs)
+               interactive            41 [39-47] (34-54, n=7)
+               "add"                  12 [11-20] (9.0-55, n=7)
+    Next.js    first contentful paint 15 [15-19] (13-20, n=7)
+               largest contentful p. 15 [15-19] (13-20, n=7)
+               layout shift           not reported (7 runs)
+               interactive            34 [31-39] (27-48, n=7)
+               "add"                  28 [27-28] (26-40, n=7)
+    SvelteKit  first contentful paint 13 [12-14] (11-21, n=7)
+               largest contentful p. 13 [12-14] (11-21, n=7)
+               layout shift           not reported (7 runs)
+               interactive            34 [32-35] (28-46, n=7)
+               "add"                  23 [17-24] (9.0-25, n=7)
+  chromium, cold, slow-4g (Lighthouse's Slow 4G as it applies it through DevTools: 562.5 ms a request, 1.6 Mbit/s x 0.9 down, 750 kbit/s x 0.9 up, CPU x4):
+    Pleris     first contentful paint 616 [612-618] (608-656, n=7)
+               largest contentful p. 616 [612-618] (608-656, n=7)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=7)
+               interactive            3501 [3471-3505] (3459-3560, n=7)
+               "add"                  1168 [1167-1180] (1166-1199, n=7)
+    Next.js    first contentful paint 624 [624-630] (620-656, n=7)
+               largest contentful p. 624 [624-630] (620-656, n=7)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=7)
+               interactive            2096 [2090-2201] (2071-2237, n=7)
+               "add"                  643 [635-651] (633-662, n=7)
+    SvelteKit  first contentful paint 620 [616-628] (608-644, n=7)
+               largest contentful p. 620 [616-628] (608-644, n=7)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=7)
+               interactive            1752 [1749-1759] (1744-1767, n=7)
+               "add"                  1200 [1186-1207] (1181-1221, n=7)
+  chromium, warm, slow-4g (Lighthouse's Slow 4G as it applies it through DevTools: 562.5 ms a request, 1.6 Mbit/s x 0.9 down, 750 kbit/s x 0.9 up, CPU x4):
+    Pleris     first contentful paint 612 [602-616] (596-616, n=7)
+               largest contentful p. 612 [602-616] (596-616, n=7)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=7)
+               interactive            3462 [3459-3469] (3453-3472, n=7)
+               "add"                  1167 [1166-1173] (1164-1186, n=7)
+    Next.js    first contentful paint 616 [606-616] (600-624, n=7)
+               largest contentful p. 616 [606-616] (600-624, n=7)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=7)
+               interactive            723 [700-747] (683-780, n=7)
+               "add"                  620 [619-623] (611-630, n=7)
+    SvelteKit  first contentful paint 612 [610-620] (604-636, n=7)
+               largest contentful p. 612 [610-620] (604-636, n=7)
+               layout shift           0.000 [0.000-0.000] (0.000-0.000, n=7)
+               interactive            671 [657-687] (650-720, n=7)
+               "add"                  1184 [1178-1185] (1165-1188, n=7)
+
+server under a fixed open load: 100 requests/s for 10 s, each of the page's document (after 50 warm-up requests), 5 runs a stack, every stack once a round in a shuffled order: median [first-third quartile] (min-max, n)
+  Pleris     answered 5000/5000 {"200":5000}; processes 1
+             CPU per request, ms         0.32 [0.26-0.41] (0.22-0.47, n=5)
+             latency p50, ms             1.56 [1.48-1.79] (1.43-1.80, n=5)
+             latency p99, ms             3.31 [3.29-3.50] (3.25-7.52, n=5)
+             resident memory at peak, MiB 45.2 [40.4-49.9] (35.7-54.1, n=5)
+  Next.js    answered 5000/5000 {"200":5000}; processes 1
+             CPU per request, ms         7.28 [7.16-7.99] (6.80-8.62, n=5)
+             latency p50, ms             5.40 [4.87-5.95] (4.72-6.06, n=5)
+             latency p99, ms             25.8 [25.7-27.6] (17.4-68.7, n=5)
+             resident memory at peak, MiB 148 [148-151] (139-151, n=5)
+  SvelteKit  answered 5000/5000 {"200":5000}; processes 1
+             CPU per request, ms         1.68 [1.58-1.94] (1.50-2.02, n=5)
+             latency p50, ms             1.43 [1.35-1.46] (1.35-1.56, n=5)
+             latency p99, ms             3.26 [3.21-3.54] (3.18-3.89, n=5)
+             resident memory at peak, MiB 107 [107-109] (99.9-111, n=5)
+
+idle visitors: 20 pages of the app in Chromium, each in a browser context of its own (as separate people's browsers), loaded and left alone for 10 s; 5 runs a stack: median [first-third quartile] (min-max, n)
+  Pleris     requests a page a minute    30.0 [29.7-30.0] (29.7-30.0, n=5)
+             server CPU, ms a second     16.0 [15.0-20.0] (12.0-22.0, n=5)
+             server resident memory, MiB 60.4 [60.0-60.8] (58.3-61.1, n=5)
+  Next.js    requests a page a minute    0.00 [0.00-0.00] (0.00-0.00, n=5)
+             server CPU, ms a second     2.00 [2.00-3.00] (2.00-3.00, n=5)
+             server resident memory, MiB 146 [146-147] (146-147, n=5)
+  SvelteKit  requests a page a minute    0.00 [0.00-0.00] (0.00-0.00, n=5)
+             server CPU, ms a second     2.00 [2.00-2.00] (1.00-2.00, n=5)
+             server resident memory, MiB 102 [102-103] (102-103, n=5)
+
+a press with other tabs open: 20 tabs of the app in ONE browser context (one person's browser, whose six connections to a host over HTTP/1.1 they share), left 4 s, then the app's first interaction in the last tab, ms to its change; 5 runs a stack: median [first-third quartile] (min-max, n)
+  Pleris     10084 [10034-10258] (10026-12066, n=5)
+  Next.js    54 [51-56] (46-119, n=5)
+  SvelteKit  46 [45-47] (45-53, n=5)
+
+
+head-to-head: every rule held (validate.mjs)
+
+== mutation and integrity controls (scripts/head_to_head_mutations.py)
+
+baseline (node): 29 passed, 0 failed
+baseline (python): 18 passed, 0 failed
+a cell of one run is accepted: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+cells of different run counts are accepted: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+a stack measured unminified is accepted: KILLED (by an assertion of its test; 2 of 29 node tests fail)
+TodoMVC's common files are held to a stack's minifier: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+an uncompressed answer from a compressing host is accepted: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+a metric computed on the wrong build is accepted: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+a Pleris build of changed sources is accepted: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+a framework build older than its sources is accepted: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+shaping on one side only is accepted: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+an interaction in a new document counts: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+a warm run that downloaded again is accepted: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+the static host compresses nothing: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+the static host answers no validator: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+the static host keeps every file a year: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+the minified verdict passes an unminified file: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+a measurement an engine does not report is counted as zero: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+the stacks are visited in one order: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+an overlap of spreads is a loss: KILLED (by an assertion of its test; 2 of 29 node tests fail)
+a difference under the timer's resolution counts: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+an aborted request is counted as a response: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+a row Pleris loses is not reported a loss: KILLED (by an assertion of its test; 2 of 29 node tests fail)
+a hunk's content is read as headers: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+the museum's verdict is not read: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+a string's comment-like text is read as a comment: KILLED (by an assertion of its test; 1 of 18 python tests fail)
+Rust's test modules are counted: KILLED (by an assertion of its test; 1 of 18 python tests fail)
+Pleris's markup comments are counted: KILLED (by an assertion of its test; 1 of 18 python tests fail)
+a gap the suite skips that passes is accepted: KILLED (by an assertion of its test; 1 of 18 python tests fail)
+a Cypress test that fails is accepted: KILLED (by an assertion of its test; 1 of 18 python tests fail)
+a known gap that passes in an engine is accepted: KILLED (by an assertion of its test; 1 of 18 python tests fail)
+an engine that ran nothing is accepted: KILLED (by an assertion of its test; 1 of 18 python tests fail)
+the shaping sends Lighthouse's packet-level round trip as a request's latency: KILLED (by an assertion of its test; 2 of 29 node tests fail)
+the report prints a profile it did not apply: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+a server measurement of one run is accepted: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+a server's row is judged by its first run: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+a server's difference under its instrument's resolution counts: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+a win over the instrument's stand-in host counts: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+twenty idle visitors share one browser context: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+an unsafe change's new warning is not read: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+a layout shift under a hundredth counts: KILLED (by an assertion of its test; 1 of 29 node tests fail)
+a module no page imports is counted: KILLED (by an assertion of its test; 1 of 18 python tests fail)
+the head-to-head is fetched from a runner: KILLED (by an assertion of its test; 1 of 18 python tests fail)
+41 of 41 mutants killed; 0 refused; 0 survived
+a run count of one: CAUGHT (refused: fewer than 5)
+React measured on an unminified print of its build: CAUGHT (refused: is not minified)
+Svelte measured on a build that is not upstream's: CAUGHT (refused: is not upstream's)
+Pleris measured on a build older than its source: CAUGHT (refused: changed since it was built)
+4 of 4 integrity controls caught; 0 missed
+memory bound: no process was stopped

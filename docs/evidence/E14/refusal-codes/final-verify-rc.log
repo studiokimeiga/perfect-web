@@ -1,0 +1,53 @@
+== 2026-11-06T12:16:27-05:00 commit 0415583549e85d07efdd6a766c0be9b4635690ea; uncommitted code paths: 0
+== 2026-11-06T12:16:27-05:00 fallow audit (fallow 3.23.0, gate new-only, against 14a3a7f6, as CI runs it)
+exit fallow 0
+verdict pass {"gate": "new-only", "dead_code_introduced": 0, "dead_code_inherited": 2, "complexity_introduced": 0, "complexity_inherited": 71, "duplication_introduced": 0, "duplication_inherited": 1, "styling_introduced": 0, "styling_inherited": 0, "duplication_demoted": 0}
+== 2026-11-06T12:16:28-05:00 reached mutation scripts (reached.py 14a3a7f6 3)
+refusal_codes_mutations.py: 4 anchor(s) in changed code: the decision's WebAssembly keeps its trace's words; a refusal is not told in the console; a refusal is told without its page; a refusal is told by a code its page does not have
+== 2026-11-06T12:16:28-05:00 the whole pre-push check (TAG=rc1)
+exit rc1 0
+exit preflight 0
+exit evidence-gates 0
+Ran 1187 tests in 497.484s
+OK (skipped=5)
+exit cargo test 0
+test result: ok. 863 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 146.04s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+exit build 0
+exit run.sh 0
+exit todomvc.sh 0
+exit keyed-store.sh 0
+exit feed.sh 0
+exit guestbook.sh 0
+exit kiokun-site.sh 0
+exit specs 0
+Running 1076 tests using 16 workers
+  14 skipped
+  1062 passed (5.9m)
+exit runtime-size 0
+EVIDENCE interactive-script-bytes=168215 brotli=44395
+EVIDENCE interactive-wasm-bytes=52300 brotli=19552
+EVIDENCE renderer-wasm-bytes=267401 gzip=94092 brotli=77336
+  4 passed (9.4s)
+== 2026-11-06T12:33:45-05:00 just e14-refusal-codes (its evidence and its mutation controls)
+exit recipe 0
+pw-render: 2 file(s) written to /home/haki/code/pw-wt/refusal-codes/spikes/own-renderer/dist
+pw-render: 8 file(s) written to /home/haki/code/pw-wt/refusal-codes/spikes/own-renderer/dist
+pw-render: 2 file(s) written to /home/haki/code/pw-wt/refusal-codes/spikes/own-renderer/dist.again
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+  17 passed (13.0s)
+baseline size: 1 passed, 0 failed
+baseline refused: 1 passed, 0 failed
+4 of 4 mutants killed
+== 2026-11-06T12:35:12-05:00 restored
+mutation anchors: 4997 mutants in 325 scripts, each matching once
+exit anchors 0
+FINAL_VERIFY_RC_FINISHED

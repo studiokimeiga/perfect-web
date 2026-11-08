@@ -1,0 +1,40 @@
+The 33 patched stores, the base's against this commit's: what differs
+commit: c30ef1f384b921a1ae120dfaef2ba193ee10977c
+base: 5d4d4d55a36f52ea556aa8f2af3e70b1150ffcf6
+
+   applied: base 33 (refused 0), this 33 (refused 0)
+   T01-optimistic-cart-reference: 2 line(s) differ, every one a // comment
+   T01-optimistic-cart-setup: 2 line(s) differ, every one a // comment
+   T01-optimistic-cart-unsafe: 2 line(s) differ, every one a // comment
+   T02-request-storm-reference: 6 line(s) differ, every one a // comment
+   T02-request-storm-setup: 6 line(s) differ, every one a // comment
+   T02-request-storm-unsafe: 6 line(s) differ, every one a // comment
+   T03-private-cart-lines-reference: 6 line(s) differ, every one a // comment
+   T03-private-cart-lines-unsafe: 6 line(s) differ, every one a // comment
+   T04-order-ready-reference: 6 line(s) differ, every one a // comment
+   T04-order-ready-setup: 6 line(s) differ, every one a // comment
+   T04-order-ready-unsafe: 6 line(s) differ, every one a // comment
+   T05-stream-recommendations-reference: 6 line(s) differ, every one a // comment
+   T05-stream-recommendations-setup: 6 line(s) differ, every one a // comment
+   T05-stream-recommendations-unsafe: 6 line(s) differ, every one a // comment
+   T06-accessible-form-reference: 6 line(s) differ, every one a // comment
+   T06-accessible-form-unsafe: 6 line(s) differ, every one a // comment
+   T07-stale-category-reference: 6 line(s) differ, every one a // comment
+   T07-stale-category-setup: 6 line(s) differ, every one a // comment
+   T07-stale-category-unsafe: 6 line(s) differ, every one a // comment
+   T08-duplicate-submissions-reference: identical
+   T08-duplicate-submissions-setup: identical
+   T08-duplicate-submissions-unsafe: identical
+   T09-notice-freshness-reference: 6 line(s) differ, every one a // comment
+   T09-notice-freshness-setup: 6 line(s) differ, every one a // comment
+   T09-notice-freshness-unsafe: 6 line(s) differ, every one a // comment
+   T10-estimate-states-reference: 6 line(s) differ, every one a // comment
+   T10-estimate-states-setup: 6 line(s) differ, every one a // comment
+   T10-estimate-states-unsafe: 6 line(s) differ, every one a // comment
+   T11-confirm-clear-reference: 6 line(s) differ, every one a // comment
+   T11-confirm-clear-unsafe: 6 line(s) differ, every one a // comment
+   T12-repair-cart-cache-reference: 6 line(s) differ, every one a // comment
+   T12-repair-cart-cache-setup: 6 line(s) differ, every one a // comment
+   T12-repair-cart-cache-unsafe: 6 line(s) differ, every one a // comment
+
+33 of 33 are identical or differ only in // comment lines; 0 otherwise

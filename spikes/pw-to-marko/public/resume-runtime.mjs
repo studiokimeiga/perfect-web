@@ -65,15 +65,12 @@ export function decide(manifest) {
   if (code === 0) return { attached: true, kind: "resume" };
   if (code === 1) return { attached: true, kind: "migrate" };
 
-  const tracePtr = w.last_trace_ptr();
-  const traceLen = w.last_trace_len();
-  const trace = new TextDecoder().decode(
-    new Uint8Array(w.memory.buffer, tracePtr, traceLen),
-  );
+  // The decision keeps no trace in the browser (ADR-0400): a refusal is
+  // named by its code, `PWR04`, which pleris.dev explains.
   return {
     attached: false,
     why: REFUSAL[code] ?? `refusal ${code}`,
     recovery: RECOVERY[w.last_recovery()] ?? "unknown",
-    trace,
+    code: `PWR${String(code).padStart(2, "0")}`,
   };
 }

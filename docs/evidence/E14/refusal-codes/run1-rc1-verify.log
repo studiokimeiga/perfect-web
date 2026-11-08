@@ -1,0 +1,16 @@
+== 2026-11-06T12:03:15-05:00 commit 6edb530a0fdafe8cdfdb510f58c6fef10a81dcec; uncommitted paths: 0
+just: /home/haki/.local/bin/just just 1.58.0
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14); node: v22.21.1
+dev servers already running: 0
+== 2026-11-06T12:03:15-05:00 just preflight
+exit preflight 0
+    Checking wasmtime v48.0.8
+    Checking pw-host v0.0.0 (/home/haki/code/pw-wt/refusal-codes/runtime/pw-host)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 18.32s
+case-check: OK (4712 paths)
+mutation anchors: 4997 mutants in 325 scripts, each matching once
+== 2026-11-06T12:04:19-05:00 just evidence-gates
+exit evidence-gates 1
+Ran 1187 tests in 496.607s
+FAILED (failures=1, skipped=5)
+== 2026-11-06T12:12:35-05:00 cargo test: pw-render, pw-render-wasm, pw-dev-server

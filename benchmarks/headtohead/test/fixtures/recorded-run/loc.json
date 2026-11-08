@@ -1,0 +1,494 @@
+{
+  "rule": "a line counts when it holds anything but white space and comments (each language's own comments; Rust test modules left out); lockfiles, committed builds and readmes are listed and not counted, and so is a module no page of the app imports",
+  "counts": {
+    "todomvc": {
+      "pleris": {
+        "app": {
+          "files": [
+            {
+              "path": "examples/todomvc/app.pw",
+              "language": "Pleris",
+              "lines": 189
+            }
+          ],
+          "lines": 189,
+          "languages": {
+            "Pleris": 189
+          }
+        },
+        "host": {
+          "files": [],
+          "lines": 0,
+          "languages": {}
+        },
+        "build": {
+          "files": [
+            {
+              "path": "spikes/own-renderer/todomvc.sh",
+              "language": "Bash",
+              "lines": 43
+            },
+            {
+              "path": "spikes/own-renderer/todomvc-styles.mjs",
+              "language": "JavaScript",
+              "lines": 33
+            }
+          ],
+          "lines": 76,
+          "languages": {
+            "Bash": 43,
+            "JavaScript": 33
+          }
+        },
+        "excluded": [],
+        "unimported": []
+      },
+      "react": {
+        "app": {
+          "files": [
+            {
+              "path": "benchmarks/headtohead/todomvc/react/src/index.js",
+              "language": "JavaScript",
+              "lines": 12
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/react/src/todo/app.css",
+              "language": "CSS",
+              "lines": 20
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/react/src/todo/app.jsx",
+              "language": "JavaScript (JSX)",
+              "lines": 16
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/react/src/todo/components/footer.jsx",
+              "language": "JavaScript (JSX)",
+              "lines": 33
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/react/src/todo/components/header.jsx",
+              "language": "JavaScript (JSX)",
+              "lines": 12
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/react/src/todo/components/input.jsx",
+              "language": "JavaScript (JSX)",
+              "lines": 34
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/react/src/todo/components/item.jsx",
+              "language": "JavaScript (JSX)",
+              "lines": 55
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/react/src/todo/components/main.jsx",
+              "language": "JavaScript (JSX)",
+              "lines": 41
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/react/src/todo/constants.js",
+              "language": "JavaScript",
+              "lines": 7
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/react/src/todo/reducer.js",
+              "language": "JavaScript",
+              "lines": 29
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/react/public/index.html",
+              "language": "HTML",
+              "lines": 19
+            }
+          ],
+          "lines": 278,
+          "languages": {
+            "JavaScript": 48,
+            "CSS": 20,
+            "JavaScript (JSX)": 191,
+            "HTML": 19
+          }
+        },
+        "host": {
+          "files": [],
+          "lines": 0,
+          "languages": {}
+        },
+        "build": {
+          "files": [
+            {
+              "path": "benchmarks/headtohead/todomvc/react/package.json",
+              "language": "JSON",
+              "lines": 40
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/react/webpack.common.js",
+              "language": "JavaScript",
+              "lines": 42
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/react/webpack.dev.js",
+              "language": "JavaScript",
+              "lines": 17
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/react/webpack.prod.js",
+              "language": "JavaScript",
+              "lines": 33
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/react/.eslintrc",
+              "language": "JSON",
+              "lines": 13
+            }
+          ],
+          "lines": 145,
+          "languages": {
+            "JSON": 53,
+            "JavaScript": 92
+          }
+        },
+        "excluded": [
+          "benchmarks/headtohead/todomvc/react/package-lock.json",
+          "benchmarks/headtohead/todomvc/react/dist/app.bundle.js",
+          "benchmarks/headtohead/todomvc/react/dist/app.bundle.js.LICENSE.txt",
+          "benchmarks/headtohead/todomvc/react/dist/app.css",
+          "benchmarks/headtohead/todomvc/react/dist/base.js",
+          "benchmarks/headtohead/todomvc/react/dist/index.html",
+          "benchmarks/headtohead/todomvc/react/readme.md",
+          "benchmarks/headtohead/todomvc/react/.gitignore"
+        ],
+        "unimported": []
+      },
+      "svelte": {
+        "app": {
+          "files": [
+            {
+              "path": "benchmarks/headtohead/todomvc/svelte/src/App.svelte",
+              "language": "Svelte",
+              "lines": 56
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/svelte/src/Footer.svelte",
+              "language": "Svelte",
+              "lines": 17
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/svelte/src/Header.svelte",
+              "language": "Svelte",
+              "lines": 14
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/svelte/src/Item.svelte",
+              "language": "Svelte",
+              "lines": 45
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/svelte/src/app.css",
+              "language": "CSS",
+              "lines": 20
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/svelte/src/index.js",
+              "language": "JavaScript",
+              "lines": 6
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/svelte/src/router.js",
+              "language": "JavaScript",
+              "lines": 22
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/svelte/index.html",
+              "language": "HTML",
+              "lines": 21
+            }
+          ],
+          "lines": 201,
+          "languages": {
+            "Svelte": 132,
+            "CSS": 20,
+            "JavaScript": 28,
+            "HTML": 21
+          }
+        },
+        "host": {
+          "files": [],
+          "lines": 0,
+          "languages": {}
+        },
+        "build": {
+          "files": [
+            {
+              "path": "benchmarks/headtohead/todomvc/svelte/package.json",
+              "language": "JSON",
+              "lines": 26
+            },
+            {
+              "path": "benchmarks/headtohead/todomvc/svelte/vite.config.js",
+              "language": "JavaScript",
+              "lines": 18
+            }
+          ],
+          "lines": 44,
+          "languages": {
+            "JSON": 26,
+            "JavaScript": 18
+          }
+        },
+        "excluded": [
+          "benchmarks/headtohead/todomvc/svelte/package-lock.json",
+          "benchmarks/headtohead/todomvc/svelte/dist/assets/index-BxPr2-fK.js",
+          "benchmarks/headtohead/todomvc/svelte/dist/assets/index-bgjkvPzV.css",
+          "benchmarks/headtohead/todomvc/svelte/dist/base.js",
+          "benchmarks/headtohead/todomvc/svelte/dist/index.html",
+          "benchmarks/headtohead/todomvc/svelte/readme.md",
+          "benchmarks/headtohead/todomvc/svelte/.gitignore"
+        ],
+        "unimported": []
+      }
+    },
+    "store": {
+      "pleris": {
+        "app": {
+          "files": [
+            {
+              "path": "benchmarks/baselines/pleris/domain.pw",
+              "language": "Pleris",
+              "lines": 105
+            },
+            {
+              "path": "benchmarks/baselines/pleris/lib/Carts.pw",
+              "language": "Pleris",
+              "lines": 36
+            },
+            {
+              "path": "benchmarks/baselines/pleris/lib/Events.pw",
+              "language": "Pleris",
+              "lines": 8
+            },
+            {
+              "path": "benchmarks/baselines/pleris/lib/Menus.pw",
+              "language": "Pleris",
+              "lines": 16
+            },
+            {
+              "path": "benchmarks/baselines/pleris/lib/Stores.pw",
+              "language": "Pleris",
+              "lines": 14
+            },
+            {
+              "path": "benchmarks/baselines/pleris/store/app.pw",
+              "language": "Pleris",
+              "lines": 99
+            },
+            {
+              "path": "benchmarks/baselines/pleris/store/menu.pw",
+              "language": "Pleris",
+              "lines": 16
+            }
+          ],
+          "lines": 294,
+          "languages": {
+            "Pleris": 294
+          }
+        },
+        "host": {
+          "files": [
+            {
+              "path": "spikes/own-renderer/server/src/store.rs",
+              "language": "Rust",
+              "lines": 2110
+            }
+          ],
+          "lines": 2110,
+          "languages": {
+            "Rust": 2110
+          }
+        },
+        "build": {
+          "files": [
+            {
+              "path": "spikes/own-renderer/baseline-store.sh",
+              "language": "Bash",
+              "lines": 9
+            }
+          ],
+          "lines": 9,
+          "languages": {
+            "Bash": 9
+          }
+        },
+        "excluded": [],
+        "unimported": [
+          "benchmarks/baselines/pleris/lib/Analytics.pw",
+          "benchmarks/baselines/pleris/lib/Database.pw",
+          "benchmarks/baselines/pleris/lib/Estimates.pw",
+          "benchmarks/baselines/pleris/lib/Legacy.pw",
+          "benchmarks/baselines/pleris/lib/Maps.pw",
+          "benchmarks/baselines/pleris/lib/Menu.pw",
+          "benchmarks/baselines/pleris/lib/Payments.pw",
+          "benchmarks/baselines/pleris/lib/Receipts.pw",
+          "benchmarks/baselines/pleris/lib/Recommender.pw",
+          "benchmarks/baselines/pleris/lib/Resources.pw",
+          "benchmarks/baselines/pleris/lib/StoreId.pw",
+          "benchmarks/baselines/pleris/lib/Telemetry.pw",
+          "benchmarks/baselines/pleris/lib/Tracking.pw",
+          "benchmarks/baselines/pleris/lib/VendorSdk.pw"
+        ]
+      },
+      "next-react": {
+        "app": {
+          "files": [
+            {
+              "path": "benchmarks/baselines/next-react/app/layout.tsx",
+              "language": "TypeScript (TSX)",
+              "lines": 9
+            },
+            {
+              "path": "benchmarks/baselines/next-react/app/stores/[storeId]/actions.ts",
+              "language": "TypeScript",
+              "lines": 20
+            },
+            {
+              "path": "benchmarks/baselines/next-react/app/stores/[storeId]/page.tsx",
+              "language": "TypeScript (TSX)",
+              "lines": 43
+            },
+            {
+              "path": "benchmarks/baselines/next-react/lib/session.ts",
+              "language": "TypeScript",
+              "lines": 14
+            },
+            {
+              "path": "benchmarks/baselines/next-react/lib/store.ts",
+              "language": "TypeScript",
+              "lines": 50
+            },
+            {
+              "path": "benchmarks/baselines/next-react/proxy.ts",
+              "language": "TypeScript",
+              "lines": 15
+            }
+          ],
+          "lines": 151,
+          "languages": {
+            "TypeScript (TSX)": 52,
+            "TypeScript": 99
+          }
+        },
+        "host": {
+          "files": [],
+          "lines": 0,
+          "languages": {}
+        },
+        "build": {
+          "files": [
+            {
+              "path": "benchmarks/baselines/next-react/package.json",
+              "language": "JSON",
+              "lines": 21
+            },
+            {
+              "path": "benchmarks/baselines/next-react/next.config.mjs",
+              "language": "JavaScript",
+              "lines": 2
+            },
+            {
+              "path": "benchmarks/baselines/next-react/tsconfig.json",
+              "language": "JSON",
+              "lines": 42
+            }
+          ],
+          "lines": 65,
+          "languages": {
+            "JSON": 63,
+            "JavaScript": 2
+          }
+        },
+        "excluded": [],
+        "unimported": []
+      },
+      "sveltekit": {
+        "app": {
+          "files": [
+            {
+              "path": "benchmarks/baselines/sveltekit/src/app.html",
+              "language": "HTML",
+              "lines": 12
+            },
+            {
+              "path": "benchmarks/baselines/sveltekit/src/hooks.server.ts",
+              "language": "TypeScript",
+              "lines": 6
+            },
+            {
+              "path": "benchmarks/baselines/sveltekit/src/lib/server/session.ts",
+              "language": "TypeScript",
+              "lines": 13
+            },
+            {
+              "path": "benchmarks/baselines/sveltekit/src/lib/server/store.ts",
+              "language": "TypeScript",
+              "lines": 50
+            },
+            {
+              "path": "benchmarks/baselines/sveltekit/src/routes/stores/[storeId]/+page.server.ts",
+              "language": "TypeScript",
+              "lines": 26
+            },
+            {
+              "path": "benchmarks/baselines/sveltekit/src/routes/stores/[storeId]/+page.svelte",
+              "language": "Svelte",
+              "lines": 27
+            }
+          ],
+          "lines": 134,
+          "languages": {
+            "HTML": 12,
+            "TypeScript": 95,
+            "Svelte": 27
+          }
+        },
+        "host": {
+          "files": [],
+          "lines": 0,
+          "languages": {}
+        },
+        "build": {
+          "files": [
+            {
+              "path": "benchmarks/baselines/sveltekit/package.json",
+              "language": "JSON",
+              "lines": 28
+            },
+            {
+              "path": "benchmarks/baselines/sveltekit/svelte.config.js",
+              "language": "JavaScript",
+              "lines": 5
+            },
+            {
+              "path": "benchmarks/baselines/sveltekit/vite.config.ts",
+              "language": "TypeScript",
+              "lines": 3
+            },
+            {
+              "path": "benchmarks/baselines/sveltekit/tsconfig.json",
+              "language": "JSON",
+              "lines": 8
+            }
+          ],
+          "lines": 44,
+          "languages": {
+            "JSON": 36,
+            "JavaScript": 5,
+            "TypeScript": 3
+          }
+        },
+        "excluded": [],
+        "unimported": []
+      }
+    }
+  }
+}

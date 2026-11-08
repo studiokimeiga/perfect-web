@@ -18,6 +18,7 @@ command remind(order: String) -> Result<Int, String>
 }
 
 command maybe_remind(order: String, wanted: Bool) -> Result<Int, String> !{ clock.schedule }
+    requires Anyone
 {
     if wanted {
         schedule remind(order) after minutes(10)

@@ -35,7 +35,7 @@ fn clean(src: &str) {
 const PROGRAM: &str = "module t\n\n\
     event Moved(to: Int)\n\n\
     query Box(id: Int) -> Int !{} { id }\n\n\
-    command shift(by: Int, note: String) -> Int !{}\n    \
+    command shift(by: Int, note: String) -> Int !{}\n    requires Anyone\n    \
         invalidates INVALIDATES\n    \
         emits       EMITS\n{\n    by\n}\n\n\
     materialize Panel(id: Int) {\n    \
@@ -143,7 +143,7 @@ fn a_clause_names_a_declaration_of_its_kind() {
 fn a_clause_is_read_where_it_is_written() {
     let src = "module t\n\n\
         query Box(id: Int) -> Int !{} { id }\n\n\
-        command shift(by: Int) -> Int !{}\n    \
+        command shift(by: Int) -> Int !{}\n    requires Anyone\n    \
             optimistic  Box(by)   as   n   =>   n + byy\n    \
             invalidates    Box(byy)\n{\n    by\n}\n";
     let spans: Vec<(String, String)> = check_sources(&[("t.pw".to_string(), src.to_string())])

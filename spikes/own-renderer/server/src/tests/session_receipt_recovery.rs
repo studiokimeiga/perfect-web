@@ -45,11 +45,13 @@ fn home(s: &Server) -> u64 {
 }
 
 fn posts(s: &Server, text: &str) -> usize {
+    // The session as the program passes it, its handle (track `data-path`).
+    let other = crate::identity::session_handle("other");
     let timeline = s
         .query(
             "feed.app.Timeline",
             "other",
-            &[Val::String("other".into()), Val::S64(100)],
+            &[Val::String(other), Val::S64(100)],
         )
         .expect("actual compiled timeline");
     val_to_json(&timeline)
@@ -462,7 +464,10 @@ fn a_stale_same_reader_recalls_a_known_refusal_without_a_durable_receipt() {
         .query(
             "feed.app.Timeline",
             "other",
-            &[Val::String("other".into()), Val::S64(100)],
+            &[
+                Val::String(crate::identity::session_handle("other")),
+                Val::S64(100),
+            ],
         )
         .expect("actual compiled timeline");
     let json = val_to_json(&timeline);

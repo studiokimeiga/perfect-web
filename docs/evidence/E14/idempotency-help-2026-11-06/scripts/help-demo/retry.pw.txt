@@ -1,0 +1,18 @@
+module retried
+
+import context.{ current_session }
+import capability.{ Session, SessionId }
+
+type Post = Post { id: String, text: String }
+
+type PostError =
+    | Unavailable
+
+fn publish(s: Session<SessionId>, text: String) -> Result<Post, PostError> !{ database.write<Post> }
+    host "blog:data/posts#publish"
+
+command post(text: String) -> Result<Post, PostError>
+    retry bounded_exponential(max = 3, jitter = true)
+{
+    publish(current_session(), text)
+}

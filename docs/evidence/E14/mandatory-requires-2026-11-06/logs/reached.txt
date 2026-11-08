@@ -1,0 +1,3 @@
+command_retry_mutations.py: 1 anchor(s) in changed code: the store's `add_to_cart` declares no retry
+evidence_integrity_2_mutations.py: 1 anchor(s) in changed code: the committed table drifts from what the corpus checks
+who_may_run_mutations.py: 9 anchor(s) in changed code: a command that says nothing of who may run it is not refused; a command the platform runs is asked for `requires` too; `Anyone` beside another predicate is taken; `Anyone` with arguments is taken

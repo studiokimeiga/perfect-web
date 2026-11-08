@@ -1,0 +1,238 @@
+D2 - an app with no Rust data layer: declared tables served through the gate, the guestbook on them, the conformance suite
+
+produced by: just e14-data-path
+commit: b496bdc34467269c2b436350ba1cfb2a52e268ed
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+node: v22.21.1
+playwright: Version 1.58.0
+postgres: 18.6 (Ubuntu 18.6-1.pgdg22.04+2)
+
+== the server: routing, the guestbook, the conformance suite, the reader's account, a guest's identity, the session's cookie kept nowhere
+   Compiling pw-dev-server v0.0.0 (/home/haki/code/pw-wt/data-path/spikes/own-renderer/server)
+    Finished `test` profile [unoptimized] target(s) in 2.61s
+     Running unittests src/main.rs (target/debug/deps/pw_dev_server-845fe51a4eb2d895)
+
+running 45 tests
+test notifications::tests::a_plans_argument_is_the_reader_by_its_call_alone ... ok
+test notifications::tests::ones_own_act_notifies_no_one ... ok
+test notifications::tests::a_users_notifications_are_theirs_alone_newest_first ... ok
+test notifications::tests::a_guests_id_handle_and_name_are_its_sessions_digest_never_its_session ... ok
+test notifications::tests::a_stand_in_answers_its_readers_account_and_never_one_of_its_own ... ok
+test notifications::tests::the_principal_operation_answers_the_sessions_user_and_a_guests_where_none_signed_in ... ok
+test tables::tests::a_handle_is_named_wherever_a_fields_type_holds_it ... ok
+test notifications::tests::the_account_operation_answers_the_readers_account_for_their_handle_alone ... ok
+conformance: the lists app's tables, 328 reads checked, refusals {"Items": 1, "Lists": 2}, 7 writes measured, 1 reference to a staged row
+test tests::conformance::the_suite_holds_for_the_lists_apps_tables ... ok
+pw dev server: a commit's records did not commit after its tables were published: the tables are closed, and every read and write of them is refused: the transaction did not commit after its last step: FOREIGN KEY constraint failed
+test tests::conformance::each_idempotent_command_sent_again_is_answered_once ... ok
+test tests::guestbook::a_removed_entrys_number_is_never_given_again ... ok
+test tests::guestbook::a_commit_failing_after_its_rows_are_published_closes_the_tables ... ok
+test tests::guestbook::a_signing_reaches_every_other_open_page_of_the_entries ... ok
+test tests::guestbook::each_digest_of_a_session_is_its_own_domains ... ok
+test tests::guestbook::a_render_reads_one_state_of_the_tables ... ok
+conformance: the guestbook's tables, 226 reads checked, refusals {"Books": 1, "Entries": 2}, 7 writes measured, 1 reference to a staged row
+test tests::conformance::the_suite_holds_for_the_guestbooks_tables ... ok
+test tests::guestbook::a_signing_sent_twice_is_one_entry ... ok
+test tests::guestbook::an_entry_is_its_authors_alone_to_remove ... ok
+test tests::conformance::each_query_reads_its_tables_a_fixed_number_of_times_at_two_sizes ... ok
+test tests::guestbook::an_outbox_that_refuses_a_signings_event_publishes_none_of_its_rows ... ok
+test tests::guestbook::the_composer_is_a_reader_with_an_accounts_alone ... ok
+test tests::guestbook::nothing_the_host_keeps_or_logs_holds_a_session_cookie ... ok
+test tests::guestbook::the_guestbook_is_served_from_the_tables_it_declares ... ok
+the guestbook at its bound of 1000 entries: its page rendered in 24.526564ms, `Latest` read whole in 18.638949ms
+test tests::tables::a_build_whose_row_names_a_handle_is_refused_where_it_is_served ... ok
+test tests::guestbook::the_guestbook_keeps_its_bound_and_its_page_is_measured_at_it ... ok
+test tests::store_accounts::nothing_a_session_keyed_store_keeps_holds_a_session_cookie ... ok
+test tests::tables::a_guarded_command_writes_its_tables_once_its_predicate_holds ... ok
+test tests::tables::a_commits_rows_and_records_are_kept_together_or_not_at_all ... ok
+test tests::tables::a_command_that_does_not_commit_keeps_nothing ... ok
+test tests::tables::a_program_mixing_its_tables_with_a_hand_written_layer_is_refused ... ok
+test tests::tables::a_program_of_tables_declaring_an_upload_is_refused_where_it_is_served ... ok
+test tests::tables::a_program_that_declares_its_tables_is_served_by_the_generic_adapter ... ok
+test tests::tables::a_run_on_a_readers_behalf_is_answered_their_account_and_never_their_session ... ok
+test tests::tables::a_staged_write_is_invisible_until_its_commit ... ok
+pw dev server: a commit's records did not commit after its tables were published: the tables are closed, and every read and write of them is refused: closed inside an existing render
+test tests::tables::closed_tables_refuse_a_renders_remembered_operations ... ok
+pw dev server: a commit's records did not commit after its tables were published: the tables are closed, and every read and write of them is refused: closed after the query read
+test tests::tables::closed_tables_refuse_an_answer_closed_while_its_query_was_in_flight ... ok
+pw dev server: a commit's records did not commit after its tables were published: the tables are closed, and every read and write of them is refused: the transaction did not commit after its last step: FOREIGN KEY constraint failed
+test tests::tables::closed_tables_refuse_cached_answers_outside_the_failed_commands_invalidations ... ok
+test uploads::tests::a_claim_no_transaction_commits_is_given_back ... ok
+pw dev server: a commit's records did not commit after its tables were published: the tables are closed, and every read and write of them is refused: closed after a materialization was kept
+test tests::tables::closed_tables_refuse_fresh_and_last_known_good_materializations ... ok
+test tests::tables::each_components_host_map_holds_its_own_table_functions_alone ... ok
+test tests::sign_in::each_feed_operation_answers_its_requests_session_alone ... ok
+test tests::sign_in::nothing_the_feed_keeps_holds_a_session_cookie ... ok
+test tests::sign_in::on_postgres::each_feed_operation_answers_its_requests_session_alone_on_postgres ... ok
+test tests::sign_in::on_postgres::nothing_kept_on_postgres_holds_a_session_cookie ... ok
+test tests::store_pg::on_postgres_nothing_the_store_keeps_holds_a_session_cookie ... ok
+
+test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 871 filtered out; finished in 5.80s
+
+
+== the engine: a guarded command through the gate; the adapter's snapshot
+    Finished `test` profile [unoptimized] target(s) in 0.07s
+     Running tests/compiled_guarded.rs (target/debug/deps/compiled_guarded-e27f3da13002c33e)
+
+running 3 tests
+test a_refused_predicate_runs_nothing_and_writes_nothing ... ok
+test a_guarded_tables_command_runs_only_answered_and_through_the_gate ... ok
+test a_guarded_command_writes_through_the_gate_once_its_predicate_holds ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/compiled_snapshot.rs (target/debug/deps/compiled_snapshot-2f85b7a132416846)
+
+running 2 tests
+test a_snapshot_another_adapter_took_reads_none_of_these_tables ... ok
+test a_snapshot_reads_the_tables_as_it_found_them_though_a_commit_follows ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+
+== the platform's transaction: a command's last step after its records, before its COMMIT
+    Finished `test` profile [unoptimized] target(s) in 0.04s
+     Running unittests src/lib.rs (target/debug/deps/pw_materialize-f98c33e02a5368c6)
+
+running 1 test
+test tests::a_commands_last_step_runs_after_its_records_and_a_commit_failing_after_it_is_told ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+
+== the compiler: no row holds a handle (PW6901); the reader's account, labelled the reader's; the block's owner
+    Finished `test` profile [unoptimized] target(s) in 0.04s
+     Running tests/handles.rs (target/debug/deps/handles-6d31e105f076ed47)
+
+running 6 tests
+test a_local_callback_is_not_a_handle_constructor ... ok
+test the_readers_account_is_the_readers ... ok
+test a_data_layer_answers_ids_never_handles ... ok
+test nothing_the_browser_supplies_holds_a_handle ... ok
+test a_program_constructs_no_handle ... ok
+test a_tables_row_holds_no_handle ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s
+
+     Running tests/platform_contracts.rs (target/debug/deps/platform_contracts-c940805fc2d80137)
+
+running 4 tests
+test the_trusted_platform_contract_is_hashed ... ok
+test the_signatures_the_checkers_depend_on_are_exercised ... ok
+test every_platform_signature_is_internally_consistent ... ok
+test the_platform_library_parses_resolves_and_checks_clean ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+
+    Finished `test` profile [unoptimized] target(s) in 0.05s
+     Running unittests src/lib.rs (target/debug/deps/pw_core-8efd964006d9e075)
+
+running 12 tests
+test codes::tests::a_tracks_block_holds_only_its_tracks_codes ... ok
+test codes::tests::a_retired_code_is_never_reused ... ok
+test codes::tests::an_invariant_reads_as_a_sentence_about_the_program ... ok
+test codes::tests::every_code_sits_in_its_owner_range ... ok
+test codes::tests::every_alias_resolves_to_a_registered_code ... ok
+test codes::tests::an_old_number_is_no_registered_rule ... ok
+test codes::tests::every_code_is_unique ... ok
+test codes::tests::every_retired_code_says_why_and_what_replaced_it ... ok
+test codes::tests::every_known_gap_names_an_owner_and_the_missing_analysis ... ok
+test codes::tests::every_corpus_rule_is_registered_or_an_owned_known_gap ... ok
+test codes::tests::every_code_a_checker_writes_is_registered ... ok
+test codes::tests::every_registered_code_is_one_a_checker_can_emit ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 186 filtered out; finished in 1.71s
+
+
+== the tutorial is the app (compiler/pw-cli/tests/guide.rs); the reference of codes
+    Finished `test` profile [unoptimized] target(s) in 0.07s
+     Running tests/guide.rs (target/debug/deps/guide-efc474ec038d5fbb)
+
+running 15 tests
+test a_fence_is_read_as_commonmark_reads_it ... ok
+test a_gaps_build_output_belongs_to_the_gap_before_it ... ok
+test a_page_with_no_example_or_a_block_unseen_is_reported ... ok
+test a_pages_file_blocks_are_its_program_in_order ... ok
+test a_page_is_held_to_the_directory_it_names ... ok
+test a_program_differs_from_a_directory_by_a_file_or_a_byte ... ok
+test a_refused_examples_codes_are_read_from_its_output ... ok
+test an_info_string_says_what_a_block_is ... ok
+test an_unclosed_or_indented_fence_is_refused ... ok
+test shown_output_belongs_to_the_refused_example_before_it ... ok
+test the_reference_is_held_to_the_registry ... ok
+test a_pages_program_is_the_directory_it_names ... ok
+test the_diagnostic_reference_lists_every_registered_code ... ok
+test every_example_in_the_guide_compiles_as_it_says ... ok
+test a_wrong_example_is_reported_and_a_right_one_is_not ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.16s
+
+docs/guide/diagnostics.md is current
+
+== the guestbook, examples/guestbook/*.pw, in three engines (e2e/guestbook.spec.mjs)
+  15 passed (12.9s)
+
+== mutation controls (scripts/data_path_mutations.py)
+baseline: 62 passed, 0 failed
+a render reuses closed tables' remembered operations: KILLED (1 of 62 tests fail)
+a cached query bypasses closed tables: KILLED (2 of 62 tests fail)
+a materialization bypasses closed tables: KILLED (1 of 62 tests fail)
+an answer closes in flight but is delivered: KILLED (1 of 62 tests fail)
+closed tables report healthy to cached reads: KILLED (4 of 62 tests fail)
+a tables program's calls go around the gate: KILLED (24 of 62 tests fail)
+a command links the published reads, not its staging: KILLED (23 of 62 tests fail)
+a component's host map holds another component's table functions: KILLED (23 of 62 tests fail)
+a query's reads ignore its render's snapshot: KILLED (1 of 62 tests fail)
+a build with no page is refused: KILLED (16 of 62 tests fail)
+a command's rows are published before its outbox is written: KILLED (2 of 62 tests fail)
+a publication that fails keeps the command's records: KILLED (1 of 62 tests fail)
+a COMMIT that fails after the publication is told no one: KILLED (3 of 62 tests fail)
+tables whose COMMIT failed after their publication stay open: KILLED (5 of 62 tests fail)
+a command that wrote reports no rows, and commits nothing: KILLED (22 of 62 tests fail)
+the layer grants no table's write: KILLED (23 of 62 tests fail)
+a program mixing its tables with a hand-written layer is served: KILLED (1 of 62 tests fail)
+a row of a handle's type in tables.json is served: KILLED (1 of 62 tests fail)
+a handle's type written bare is not named: KILLED (2 of 62 tests fail)
+a program of tables declaring an upload is served: KILLED (1 of 62 tests fail)
+a guarded tables command runs unanswered: KILLED (4 of 62 tests fail)
+a guarded tables command links its tables without their manifest: KILLED (26 of 62 tests fail)
+a snapshot reads the tables as last committed: KILLED (5 of 62 tests fail)
+a snapshot another adapter took is read: KILLED (1 of 62 tests fail)
+a read answers its rows in no order (a set read in its keys'): KILLED (2 of 62 tests fail)
+a prefix read answers past its prefix: KILLED (4 of 62 tests fail)
+a primitive answers another table's rows: KILLED (22 of 62 tests fail)
+an index is not kept on a write: KILLED (4 of 62 tests fail)
+a staged write is visible before its commit: KILLED (4 of 62 tests fail)
+a read is made three times: KILLED (3 of 62 tests fail)
+the adapter counts no statement: KILLED (3 of 62 tests fail)
+a render's reads are made three times: KILLED (3 of 62 tests fail)
+a command's table calls are made twice: KILLED (24 of 62 tests fail)
+a reference to a row its command staged is refused: KILLED (14 of 62 tests fail)
+the account operation answers another user's handle: KILLED (1 of 62 tests fail)
+a guest is an account: KILLED (3 of 62 tests fail)
+a stand-in is an account of its own: KILLED (2 of 62 tests fail)
+a run on a reader's behalf is answered no account: KILLED (2 of 62 tests fail)
+a sign-in records no account: KILLED (2 of 62 tests fail)
+a guest's id is its session: KILLED (3 of 62 tests fail)
+a guest's digest is the one its session is kept by: KILLED (2 of 62 tests fail)
+a guest is named for its session: KILLED (1 of 62 tests fail)
+a signed-out reader acts as its session: KILLED (3 of 62 tests fail)
+a row may hold a handle: KILLED (1 of 62 tests fail)
+an interaction's record is keyed by its session: KILLED (5 of 62 tests fail)
+a reader's partition holds its session in hex: KILLED (6 of 62 tests fail)
+a session is kept by its digest in no domain: KILLED (3 of 62 tests fail)
+a log names a session by its cookie: KILLED (4 of 62 tests fail)
+a cart's state is keyed by its session: KILLED (2 of 62 tests fail)
+a program holds its session's cookie: KILLED (8 of 62 tests fail)
+an entry's partition is the session's cookie: KILLED (1 of 62 tests fail)
+an operation answers for a session it is not passed: KILLED (3 of 62 tests fail)
+the feed's delete answers for a session it is not passed: KILLED (1 of 62 tests fail)
+the PostgreSQL feed's delete answers for a session it is not passed: KILLED (1 of 62 tests fail)
+a removed entry's number is given again: KILLED (2 of 62 tests fail)
+anyone removes an entry but its author: KILLED (5 of 62 tests fail)
+the newest entries are not first: KILLED (3 of 62 tests fail)
+every entry is the reader's: KILLED (2 of 62 tests fail)
+a full guestbook is not refused `Full`: KILLED (1 of 62 tests fail)
+the composer is shown to a reader with no account: KILLED (1 of 62 tests fail)
+60 of 60 mutants killed
+memory bound: no process was stopped

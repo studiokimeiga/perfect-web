@@ -1,0 +1,17 @@
+Python frozen full IDs: ['test_guide_diagnostics.Current.test_every_registered_code_has_a_row', 'test_guide_diagnostics.Current.test_the_committed_page_is_what_the_registry_writes', 'test_guide_diagnostics.Reading.test_a_line_that_is_no_entry_is_refused_not_skipped', 'test_guide_diagnostics.Reading.test_a_pipe_in_a_cell_is_escaped', 'test_guide_diagnostics.Reading.test_a_retired_code_with_its_reason_continued_across_lines', 'test_guide_diagnostics.Reading.test_an_owner_without_a_title_is_written_from_its_name', 'test_guide_diagnostics.Reading.test_each_entry_with_its_invariant_and_the_adrs_its_comment_cites']; evidence /tmp/pw-guide-python-evidence-3v3pt2zs
+baseline: the guide's tests, 22 ran, 0 failed
+baseline: the guestbook in Chromium, 0 ran, 0 failed
+Error: Process from config.webServer was not able to start. Exit code: 127
+  run_suite: kept 1 of 1 entries of its output (45 B) in kept-traces/local/20261107T000840Z-786763/run-1
+  run_suite: exit 1
+
+Browser receipt refused: missing complete browser receipt
+FAIL: the unmutated baseline is not green; no mutant can mean anything
+what failed, as its commands said it:
+  bash /home/haki/code/pw-wt/img-alt/scripts/run_suite.sh -C . -- pnpm exec playwright test e2e/guestbook.spec.mjs --project=chromium --retries=0 --reporter=li... (exit 1):
+    no test result; its output ended:
+      Error: Process from config.webServer was not able to start. Exit code: 127
+        run_suite: kept 1 of 1 entries of its output (45 B) in kept-traces/local/20261107T000840Z-786763/run-1
+        run_suite: exit 1
+  its browser run's output: kept 1 of 1 entries of its output (45 B) in /home/haki/code/pw-wt/img-alt/spikes/own-renderer/kept-traces/local/20261107T000841Z/guide_mutations-baseline
+memory bound: no process was stopped

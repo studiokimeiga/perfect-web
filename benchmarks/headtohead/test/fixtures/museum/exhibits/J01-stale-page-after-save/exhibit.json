@@ -1,0 +1,38 @@
+{
+  "id": "J01-stale-page-after-save",
+  "leaf": "J01",
+  "also": [
+    "B06"
+  ],
+  "title": "A page shown after a save is the one read before it",
+  "source": {
+    "ref": "vercel/next.js#42991; ADR-0280 (the owner's own Next.js case); S17; on its repair, vercel/next.js#99028",
+    "kind": "issue in the framework's tracker; the owner's report; framework documentation; standard",
+    "url": "https://github.com/vercel/next.js/issues/42991 ; https://nextjs.org/docs/app/api-reference/config/next-config-js/staleTimes ; https://nextjs.org/docs/app/guides/redirecting ; https://www.rfc-editor.org/rfc/rfc9111.html ; https://github.com/vercel/next.js/issues/99028",
+    "date": "#42991 opened 2022-11-16, closed 2023-08-16; #99028 opened 2026-09-22, open; both read 2026-10-15. Next.js's guides read 2026-10-08 for ADR-0280; RFC 9111 2026-09-10, as read for the census",
+    "says": "#42991 (297 comments): a dynamic page reached again through `next/link` is not asked of the server again; its update for next@13.4.0: \"dynamic pages are now cached in the client with a timer of `30 seconds`\". ADR-0280's reading of the guides: a `router.push` from an event handler goes through the client's Router Cache, whose `static` stale time keeps a static or fully prefetched page for five minutes; so a page pushed to after a save can be the one read before it, and the usual fixes are `router.refresh()`, a cache-busting parameter or a hard reload. S17: correct reuse depends on every response-varying input, not merely the URL. #99028 (open), on the repair itself: `router.refresh()` after a mutation fetches nothing on a streamed page in production builds of 16.1.7, 16.3.5 and a 16.4 canary, and the page \"shows pre-mutation data indefinitely\"; the pinned 16.3.8 is not in its matrix, and this exhibit's cart page does not stream",
+    "checked": "the installed next@16.3.8's own defaults, dist/server/config-shared.js: staleTimes { dynamic: 0, static: 300 } (seconds), read 2026-10-14"
+  },
+  "claim": "ADR-0280: a handler navigates after its command commits, and the page navigated to is read after the commit, by order alone (the server serves it after the session's turn, as `no-store`)",
+  "related": [
+    "docs/DECISIONS/ADR-0280-a-handler-navigates-after-its-command-commits.md",
+    "spikes/own-renderer/e2e/navigate.spec.mjs"
+  ],
+  "repro": {
+    "stack": "next-react",
+    "bug": "next-react.patch",
+    "fixed": "fixed.next-react.patch",
+    "how": "a cart page, linked from the store page with `<Link prefetch={true}>`; a client button that saves through a Route Handler and then `router.push`es to the cart's page. The repair is ADR-0280's first usual fix, `router.refresh()` before the push"
+  },
+  "pleris": {
+    "kind": "runtime",
+    "mechanism": "ADR-0280, navigate after the commit",
+    "faithful": "The canonical store's 'Place order': a command, then `navigate OrderPage()` in its `Ok` arm, the save made to reach the server late. The test asserts the order's page as served says the order is placed, at its own address with no parameter, by a soft navigation. Pleris has no client cache of pages that a save could leave stale, so there is no program to refuse: this is a runtime guarantee, not a diagnostic.",
+    "test": {
+      "name": "e2e/navigate.spec.mjs: an order placed goes to its page, read after the commit (Chromium)",
+      "command": "BUILD_ONLY=1 bash spikes/own-renderer/run.sh > /dev/null 2>&1 && cargo build --quiet --locked -p pw-dev-server -p kiokun-server && cd spikes/own-renderer && FORCE_COLOR=0 pnpm exec playwright test e2e/navigate.spec.mjs -g 'an order placed goes to its page, read after the commit' --project=chromium --reporter=line 2>&1",
+      "expect": "^\\s*1 passed"
+    }
+  },
+  "expect": "refused"
+}

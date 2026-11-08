@@ -353,8 +353,8 @@ pub fn domain_of(head: &str) -> Option<Domain> {
         "key" | "dedupe_by" => Domain::ParamRef,
         // `parallel` is the manifest's second mode (ADR-0089).
         "concurrency" => Domain::Word(&["one_per_key", "parallel"]),
-        // The three PW0325's repair names and R-027 expects; the charter's
-        // "cancels or supersedes stale work" (ADR-0089).
+        // The three PW5309's repair names and R-027 expects; the charter's
+        // "cancels or supersedes stale work" (ADR-0089, ADR-0152).
         "on_key_change" => Domain::Word(&["cancel", "supersede", "keep"]),
         "idempotent_by" => Domain::TypeRef,
 
@@ -814,6 +814,13 @@ pub fn duration(v: &str) -> Option<u64> {
     };
     n.checked_mul(per)
 }
+
+/// **The platform's predicate, which every reader holds** (ADR-0406):
+/// `requires Anyone` says a command is anyone's to run. A command a reader can
+/// run says who may (PW0367), and this is how it says "anyone". No program
+/// declares it, it takes no argument and stands alone, and nothing asks it:
+/// the contract carries no requirement for it, and a page needs no guard.
+pub const ANYONE: &str = "Anyone";
 
 /// One deployment authorization predicate written by a command.
 ///

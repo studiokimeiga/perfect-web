@@ -32,6 +32,7 @@
 //! that looks correct and is missing something, and no test of the page finds
 //! it.
 
+pub mod decode;
 pub mod escape;
 pub mod identity;
 pub mod ir;
