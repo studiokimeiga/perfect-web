@@ -58,12 +58,16 @@ stays open, in order:
    and 6 in local tooling are dismissed with their reasons, and train-15 pins
    every workflow action and scopes `verify`'s token (the other 27).
 
-8. **Mutants counted killed because they do not build** (found 2026-11-08):
-   13 lines in 11 evidence files besides cross-session's (repaired in
-   train-15). Each is either the type system refusing the fault, a real
-   protection to say so beside it, or a replacement gone stale, as
-   cross-session's called a method that no longer existed, which controls
-   nothing: rewrite it to build, and find the test that kills it.
+8. **Done (2026-11-08): no mutant is counted killed because it does not
+   build.** Of the thirteen records' lines that counted one so: one is
+   Pleris's checker refusing the fault, as its script declares
+   (accessibility's, `CHECKED`, PW5032); two are records kept from before a
+   repair; and ten were replacements gone stale, written against code that
+   had since changed, which controlled nothing (cross-session's, repaired in
+   train-15; template-values, document-reads, menu-changed twice, orders,
+   store-postgres, store-search and view-instances twice). Each is rewritten
+   to build, and a test kills each. `scripts/tests/test_kills_that_build.py`
+   refuses any record that counts one again.
 
 9. **The head-to-head's 31 losses** (`docs/evidence/E14/head-to-head.txt`
    at `58b0b2ca`, every row on pleris.dev's `/measured`), the largest first:
