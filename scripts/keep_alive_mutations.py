@@ -78,6 +78,7 @@ TEST_NAMES = [
     "tests::keep_alive::the_next_request_waits_on_no_telling",
     "tests::keep_alive::the_accept_loop_backs_off_after_a_failure",
     "tests::keep_alive::a_second_answer_to_one_request_closes_its_connection",
+    "tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement",
 ]
 COMMAND = ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server",
            "--", *TEST_NAMES, "--exact", "--test-threads=1", "--format=pretty"]
@@ -180,6 +181,9 @@ MUTANTS = [
      '    std::time::Duration::from_millis(0 * failures as u64)\n'),
     ("a second answer keeps its connection", MAIN,
      '    if stream.was_answered() {\n        stream.keep(false);\n    }\n',
+     ''),
+    ("a kept connection's answers wait on the client's acknowledgement", MAIN,
+     '    let _ = stream.set_nodelay(true);\n',
      ''),
 ]
 

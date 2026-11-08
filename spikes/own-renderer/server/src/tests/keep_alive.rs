@@ -660,3 +660,30 @@ fn a_commits_answer_waits_on_no_reader() {
     });
     assert!(waited < Duration::from_millis(1500), "waited {waited:?}");
 }
+
+/// **A kept connection's answers wait on no acknowledgement** (ADR-0401;
+/// train-15). An answer is written in two parts, its head then its body,
+/// and with Nagle's algorithm the second waited for the client's delayed
+/// acknowledgement, up to 40 ms on Linux, on every answer of a kept
+/// connection: the head-to-head measured the store's host 28 times slower
+/// under load. Here twenty requests are answered one after another on one
+/// connection, well within what twenty such waits would take.
+#[test]
+fn a_kept_connections_answers_wait_on_no_acknowledgement() {
+    let s = kept_feed();
+    let took = connected(&s, |client, answers| {
+        let began = Instant::now();
+        for _ in 0..20 {
+            client
+                .write_all(get("/pw-handlers", "").as_bytes())
+                .expect("request");
+            let (head, _) = answer(answers);
+            assert!(head.starts_with("HTTP/1.1 200"), "{head}");
+        }
+        began.elapsed()
+    });
+    assert!(
+        took < Duration::from_millis(400),
+        "twenty answers took {took:?}"
+    );
+}

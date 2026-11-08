@@ -9820,6 +9820,15 @@ impl Drop for Open<'_> {
 /// as one that held one request was, so a stream ends at once.
 fn handle(server: &Server, stream: TcpStream) {
     let _open = Open::counted(&server.open);
+    // **Each answer leaves at once** (ADR-0401). Nagle's algorithm holds a
+    // small write back until what was sent before it is acknowledged, and a
+    // client acknowledges late (Linux's delayed ACK, up to 40 ms). An answer
+    // written in two parts, its head then its body, then waits that long on a
+    // kept connection, which no close flushes: the head-to-head measured the
+    // store's host at 43.7 ms a request under load, from 1.56 before
+    // keep-alive (train-15). Every HTTP server that keeps connections sets
+    // `TCP_NODELAY` (nginx's `tcp_nodelay`, Node's default).
+    let _ = stream.set_nodelay(true);
     let Ok(read) = stream.try_clone() else {
         return;
     };
