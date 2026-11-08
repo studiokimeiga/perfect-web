@@ -16,7 +16,7 @@ import { gitBlob, minifiedVerdict, quantile, shuffled, sizes, summary } from "..
 import { parseEvidence } from "../museum-classes.mjs";
 import { idleCost } from "../load.mjs";
 import { SLOW_4G } from "../measure.mjs";
-import { CLS_RESOLUTION, bytesOf, compareSpread, lossesFirst, renderReport } from "../report.mjs";
+import { CLS_RESOLUTION, bytesOf, compareSpread, lossesFirst, renderReport, verdictRows } from "../report.mjs";
 import { cacheControl, chooseEncoding, createHost } from "../static-host.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -165,6 +165,37 @@ test("a row in which another stack does better is a loss, and one in which Pleri
   const { losses, wins } = lossesFirst(result, sections);
   assert.ok(losses.some((l) => /app lines: Pleris 500 \| Next.js 150/.test(l)), losses.join("\n"));
   assert.ok(wins.some((w) => /build and configuration lines: Pleris 9 \| Next.js 60/.test(w)), wins.join("\n"));
+});
+
+test("the verdicts pleris.dev reads are the report's: each row Pleris is in, its verdict, and the stacks ahead of it", () => {
+  const sections = {
+    loc: {
+      counts: {
+        store: {
+          pleris: { app: { lines: 500, files: [1, 2], languages: { Pleris: 500 } }, host: { lines: 2000, languages: { Rust: 2000 } }, build: { lines: 9 } },
+          "next-react": { app: { lines: 150, files: [1], languages: { TypeScript: 150 } }, host: { lines: 10, languages: { JavaScript: 10 } }, build: { lines: 60 } },
+        },
+      },
+    },
+  };
+  const rows = verdictRows({ apps: [] }, sections);
+  const { losses, wins, unclear } = lossesFirst({ apps: [] }, sections);
+  const counted = (verdict) => rows.filter((r) => r.verdict === verdict).length;
+  // Three losses, a win and a tie (two languages each): the report's count of each.
+  assert.deepEqual([counted("loss"), counted("win"), counted("neither")], [3, 1, 1]);
+  assert.deepEqual([counted("loss"), counted("win"), counted("neither")], [losses.length, wins.length, unclear]);
+  assert.deepEqual(rows[0], {
+    app: "store",
+    what: "source the developer writes: app lines",
+    values: [
+      { label: "Pleris", value: 500, shown: "500" },
+      { label: "Next.js", value: 150, shown: "150" },
+    ],
+    verdict: "loss",
+    better: ["Next.js"],
+  });
+  const build = rows.find((r) => r.what === "source the developer writes: build and configuration lines");
+  assert.deepEqual([build.verdict, build.better], ["win", []]);
 });
 
 test("a patch's statistics read each hunk by its counts: a content line that begins like a header is content", () => {

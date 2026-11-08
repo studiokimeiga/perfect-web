@@ -8,7 +8,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { describe, parseArgs, readSections, settle } from "../head-to-head.mjs";
+import { describe, parseArgs, readSections, settle, verdictsOf } from "../head-to-head.mjs";
 import { REPO } from "../lib.mjs";
 
 const DEFAULTS = {
@@ -25,6 +25,7 @@ const DEFAULTS = {
   load: true,
   stacks: null,
   json: null,
+  verdicts: null,
 };
 
 const parsed = (...argv) => parseArgs(argv);
@@ -241,4 +242,21 @@ test("a target's host that is not node is shown by its path from the repository'
 
 test("a description holds nothing else of the target: not its build, its steps or its working directory", () => {
   assert.deepEqual(Object.keys(describe(target())), ["stack", "label", "who", "version", "url", "ready", "expect", "standIn", "common", "server"]);
+});
+
+test("the verdicts pleris.dev reads carry the run's problems, and whether its tree was changed from its commit", () => {
+  const meta = {
+    commit: "c0ffee",
+    dirty: "uncommitted changes",
+    started: "2026-11-08T00:00:00.000Z",
+    finished: "2026-11-08T00:30:00.000Z",
+    machine: { cpu: "a CPU" },
+    args: { runs: 7, serverRuns: 5 },
+    network: null,
+  };
+  const app = { app: "todomvc", title: "TodoMVC", targets: [], runs: [], loads: [], idle: [], presses: [], browsers: {}, problems: ["a cell of one run"] };
+  const out = verdictsOf({ meta, apps: [app] }, {});
+  assert.deepEqual(out.problems, ["a cell of one run"]);
+  assert.equal(out.dirty, "uncommitted changes");
+  assert.deepEqual([out.commit, out.machine, out.runs, out.serverRuns, out.network, out.rows], ["c0ffee", "a CPU", 7, 5, null, []]);
 });

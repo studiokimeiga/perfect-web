@@ -43,6 +43,7 @@ LIB = H2H / "lib.mjs"
 REPORT = H2H / "report.mjs"
 MEASURE = H2H / "measure.mjs"
 LOAD = H2H / "load.mjs"
+HEAD_TO_HEAD = H2H / "head-to-head.mjs"
 CI_PLAN = ROOT / "scripts/ci_plan.py"
 FEATURE = H2H / "feature-change.mjs"
 MUSEUM = H2H / "museum-classes.mjs"
@@ -138,6 +139,10 @@ MUTANTS = [
         "    addResponse(out, q, fromPlaywright);\n",
     ),
     ("a row Pleris loses is not reported a loss", REPORT, '  if (beaten.length) return { kind: "loss",', '  if (false) return { kind: "loss",'),
+    ("a loss names no stack ahead of Pleris", REPORT, '{ kind: "loss", better: beaten,', '{ kind: "loss", better: [],'),
+    ("the verdict pleris.dev reads is not the report's", REPORT, "        verdict: kind,\n", '        verdict: "win",\n'),
+    ("a refused run's problems are left out of its verdicts", HEAD_TO_HEAD, "    problems: apps.flatMap((a) => a.problems),\n", "    problems: [],\n"),
+    ("a run on a changed tree is written as clean", HEAD_TO_HEAD, "    dirty: meta.dirty,\n", "    dirty: null,\n"),
     ("a hunk's content is read as headers", FEATURE, "  if (s.oldLeft > 0 || s.newLeft > 0) hunkLine(s, line);", "  if (false) hunkLine(s, line);"),
     ("the museum's verdict is not read", MUSEUM, "  current.verdict = verdictOf(line) ?? current.verdict;\n", ""),
     ("a string's comment-like text is read as a comment", LOC, "        if c in quotes:\n            quote = c\n", ""),
@@ -217,6 +222,8 @@ MUTANTS = [
 ]
 
 NODE = "node"
+VERDICTS = "the verdicts pleris.dev reads are the report's: each row Pleris is in, its verdict, and the stacks ahead of it"
+VERDICTS_RUN = "the verdicts pleris.dev reads carry the run's problems, and whether its tree was changed from its commit"
 PY = "python"
 # The test each mutant must fail, by an assertion: (suite, test name).
 WITNESSES = {
@@ -241,6 +248,10 @@ WITNESSES = {
     "a difference under the timer's resolution counts": (NODE, "times differ only where their spreads do not overlap"),
     "an aborted request is counted as a response": (NODE, "a phase's bytes count its responses, an aborted request apart, and Chromium's bytes where they arrived"),
     "a row Pleris loses is not reported a loss": (NODE, "a row in which another stack does better is a loss, and one in which Pleris is best of all is a win"),
+    "a loss names no stack ahead of Pleris": (NODE, VERDICTS),
+    "the verdict pleris.dev reads is not the report's": (NODE, VERDICTS),
+    "a refused run's problems are left out of its verdicts": (NODE, VERDICTS_RUN),
+    "a run on a changed tree is written as clean": (NODE, VERDICTS_RUN),
     "a hunk's content is read as headers": (NODE, "a patch's statistics read each hunk by its counts: a content line that begins like a header is content"),
     "the museum's verdict is not read": (NODE, "the museum's record is read per exhibit: where its bug was shown, its repair, and Pleris's verdict"),
     "a string's comment-like text is read as a comment": (PY, "test_comments_are_not_code_and_strings_are"),
