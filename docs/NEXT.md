@@ -64,25 +64,33 @@ stays open, in order:
    cross-session's called a method that no longer existed, which controls
    nothing: rewrite it to build, and find the test that kills it.
 
-9. **The head-to-head's 36 losses** (`docs/evidence/E14/head-to-head.txt`
-   at `d10fd577`, every row on pleris.dev's `/measured`), the largest first:
+9. **The head-to-head's 31 losses** (`docs/evidence/E14/head-to-head.txt`
+   at `58b0b2ca`, every row on pleris.dev's `/measured`), the largest first:
    - **The store's server code is Rust**: 2,422 lines with the app,
      against Next.js's 151 and SvelteKit's 134. Its tables declared in
      Pleris (ADR-0393's declared tables) would leave the app's lines.
-   - **The store's app lines**: 294 against 151 and 134. Each query states
-     seven clauses (freshness, consistency, cache, key, concurrency,
-     `on_key_change`, timeout); read which ones a default could carry
-     without hiding a decision the charter asks to be stated.
-   - **TodoMVC's first load**: 141,362 bytes and 19 requests against
-     Svelte's 20,821 and 5, and its interactive time in WebKit and in
-     Chromium cold. The runtime and its WebAssembly load before the first
-     press.
-   - **An idle page polls**: 29.7 requests a minute and 3 ms a second of
+   - **The store's app lines**: 294 against 151 and 134, in 7 files against
+     6. Each query states seven clauses (freshness, consistency, cache,
+     key, concurrency, `on_key_change`, timeout); read which ones a default
+     could carry without hiding a decision the charter asks to be stated.
+   - **The first load**: TodoMVC's 141,362 bytes and 19 requests against
+     Svelte's 20,821 and 5, the store's 44,540 bytes against SvelteKit's
+     35,029; and with them TodoMVC's time to interactive in each engine
+     (Chromium cold, 26 ms against Svelte's 15; WebKit warm, 19 against 7).
+     The runtime and its WebAssembly load before the first press.
+   - **An idle page polls**: 30 requests a minute, and 3 ms a second of
      server CPU for 20 idle pages, against none (#87, item 2, holds longer;
      a held stream answers none).
-   - **A press beside 19 other tabs** of TodoMVC: 39 ms against 25 and 23.
-   - The rest are a few milliseconds each, several at the line the spread
-     rule draws (ADR-0408: two runs differ in ten rows).
+   - **The host serves a static page slower than a static host**: TodoMVC's
+     document at 0.59 ms at the median under load against 0.26, and 0.38 ms
+     of CPU a request against 0.18.
+   - **Two of the twelve changes take more lines in Pleris**: T03, a private
+     resource (+42 against +23 and +28), and T11, a dialog (+18/-5 against
+     SvelteKit's +19/-3).
+   - **A warm first paint in Chromium**: 32 ms against 24, in both apps.
+   - Rows at the line the spread rule draws move between runs (ADR-0408);
+     the latency repair moved the store's median latency from a loss to
+     neither and its 99th percentile from a win to neither.
 
 ## Current local continuation, 2026-11-02
 

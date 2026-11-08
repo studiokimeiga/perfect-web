@@ -8,10 +8,12 @@ amended; its WebKit failure was the test measuring device pixels), and every
 workflow action pinned to a commit with `verify`'s token scoped to reading.
 The host sets `TCP_NODELAY` on each connection: keep-alive had made each
 answer wait on Nagle's algorithm, and the store's median latency under load
-was 43.7 ms at `3355a8f2`; it is 0.27 ms. pleris.dev shows the head-to-head's record (ADR-0408):
-its tables, its standing (of 151 rows, Pleris is ahead in 55 and behind in
-36, at `d10fd577`) and a page of every row, `/measured`, read the record's
-JSON when the site is built. Longer holds (#87, ADR-0402 reserved) stay
+was 43.7 ms at `3355a8f2`. The head-to-head's load generator no longer
+times a request from before it was sent (a static host's median latency
+read -0.06 ms). pleris.dev shows the head-to-head's record (ADR-0408): its
+tables, its standing (of 151 rows, Pleris is ahead in 51 and behind in 31,
+at `58b0b2ca`) and a page of every row, `/measured`, read the record's JSON
+when the site is built. Longer holds (#87, ADR-0402 reserved) stay
 held.
 
 **Train-14, 2026-11-07:** the owner asked that every open PR be merged. Train-14
