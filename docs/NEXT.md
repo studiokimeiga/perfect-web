@@ -27,11 +27,12 @@ stays open, in order:
    its, keep-alive's and `session_overlap`'s mutation scripts run whole.
 3. **Done in train-15:** PR #81, its WebKit failure the test's own (device
    pixels), with its review's three items.
-4. **D3's PostgreSQL `put` is answered from its statement's snapshot**
-   (`sql.rs`'s `old`), which a concurrent command at read committed (the
-   `connection` isolation option) can make wrong: answer it from the row the
-   statement replaced (`RETURNING old.*`, PostgreSQL 18). Its twin defect,
-   the scheduler's key, is fixed in train-14 (ADR-0334 amended).
+4. **Done in train-15:** D3's PostgreSQL `put` is answered from the row
+   its statement replaced (`RETURNING old.*`, ADR-0393 amended), not from
+   its snapshot: at read committed a put that waited on another command
+   published no new version of a table it changed, and a put of an
+   all-key row was refused as past a bound. Its twin defect, the
+   scheduler's key, is fixed in train-14 (ADR-0334 amended).
 5. **PR #74** names its decision ADR-0394, which the data path holds; it
    takes the next free number when it lands. The dependency updates
    (#16-#26, #65) are checked and landed on their own.

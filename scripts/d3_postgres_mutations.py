@@ -16,7 +16,9 @@ each test binary's complete named inventory, every failure an assertion's):
    points, nested values kept as `jsonb` (a negative zero's sign lost);
 3. the primitives: rows in another order, the key's holder answered after a
    unique value's, a refused insert answered as written, a put refused by
-   its own row, a unique value refused by the database (the transaction
+   its own row, a put answered from the row it wrote or with no row where
+   its fields are all its key (train-15), a unique value refused by the
+   database (the transaction
    aborted), a growth write past the bound, `all` past its bound, a selector,
    a written row or a stored row unchecked, a statement prepared every call;
 4. the commands: two at once, writes outside a transaction, reads outside
@@ -136,6 +138,12 @@ MUTANTS = [
     ("a put is refused by its own row's unique value", SQL,
      '        condition = format!("{condition} AND NOT ({key})");\n',
      '        condition = format!("{condition} AND true");\n'),
+    ("a put is answered from the row it wrote, not the row it replaced", SQL,
+     '                named_row_list("old", table),\n',
+     '                named_row_list("new", table),\n'),
+    ("a put of a row whose fields are all its key does nothing, and returns no row", SQL,
+     "                .filter(|(i, _)| !table.key.contains(i) || table.key.len() == table.columns.len())\n",
+     "                .filter(|(i, _)| !table.key.contains(i))\n"),
     ("a unique value is left to the database, which aborts the transaction", SQL,
      "    for index in table.indexes.iter().filter(|i| i.unique) {\n",
      "    for index in table.indexes.iter().filter(|i| i.unique && false) {\n"),

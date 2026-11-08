@@ -829,11 +829,13 @@ impl Inner {
                     let row = rows.first().ok_or(Error::StoragePoisoned)?;
                     let count: i64 = row.get(0);
                     let holder: Option<i32> = row.get(1);
+                    // Whether the statement replaced a row, and which: its
+                    // own answer (`RETURNING old`), never a read beside it.
                     let old_held: bool = row.get(2 + n);
                     let (key, written) = written.ok_or(Error::StoragePoisoned)?;
                     if holder.is_some() {
                         Ok(Err(conflict(row)?))
-                    } else if count == 1 || old_held {
+                    } else if count == 1 {
                         let before = if old_held {
                             Some(decode(table, row, 3 + n)?)
                         } else {

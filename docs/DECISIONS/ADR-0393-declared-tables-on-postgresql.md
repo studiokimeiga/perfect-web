@@ -385,6 +385,40 @@ of 41 at `89deaf86`, the author's record, which the landing's replaces).
    - **scheduled runs** (ADR-0334) in the adapter's transaction, and **the
      second host's reader of the outbox** (ADR-0369).
 
+## Amended (train-15, 2026-11-08): a put is answered from the row it replaced
+
+A put's statement read the row its key held from the statement's snapshot
+(a CTE, `old`), and `INSERT ... ON CONFLICT` then replaced the row the
+database held when it took the row's lock. At serializable the two are one
+row, or the commit is refused. At read committed (the `connection`
+isolation option) a put whose key another command had written, and not yet
+committed, waited for it and then replaced the row that command committed,
+which the snapshot never held:
+
+- a put that wrote back the value the other command replaced took its row
+  for unchanged, so its commit published no new version of the table
+  (`Committed::written` left it out) and a cache kept the other's value,
+  which the table no longer held;
+- a put of a row whose fields are all its key (`DO NOTHING`) wrote nothing,
+  found no row in its snapshot, and was refused as a write past the
+  table's bound, a table declared with none.
+
+**The repair**: the statement answers from the row it replaced, its own
+answer (`RETURNING old.*`, PostgreSQL 18, the version CI and the
+development PC run): whether it replaced one, and which. A conflict always
+updates, every field from the row put (the key's where there is nothing
+else), so that it returns the row it replaced. The bound is still read at
+the statement's start, as every bound is: at read committed two commands
+can both find room (the conformance suite's negative control).
+
+Held by two tests in `tests/commands.rs`, each failing before the repair
+(`a_put_at_read_committed_is_answered_from_the_row_it_replaced`: written
+`[]`, not `["Owners"]`; `..._of_a_row_another_command_inserted_is_kept`:
+"Tags cannot grow past its declared bound of 0"), and two mutants in
+`d3_postgres_mutations.py` (the put answered from the row it wrote; a row
+whose fields are all its key left to `DO NOTHING`), each killed at a
+native assertion.
+
 ## Next
 
 - The rulings' follow-ups, in their order: the server's `DataLayer` over

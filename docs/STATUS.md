@@ -13,8 +13,10 @@ times a request from before it was sent (a static host's median latency
 read -0.06 ms). pleris.dev shows the head-to-head's record (ADR-0408): its
 tables, its standing (of 151 rows, Pleris is ahead in 51 and behind in 31,
 at `58b0b2ca`) and a page of every row, `/measured`, read the record's JSON
-when the site is built. Longer holds (#87, ADR-0402 reserved) stay
-held.
+when the site is built. A put on PostgreSQL is answered from the row its
+statement replaced (ADR-0393 amended): at read committed one that waited
+on another command could publish no new version of a table it changed.
+Longer holds (#87, ADR-0402 reserved) stay held.
 
 **Train-14, 2026-11-07:** the owner asked that every open PR be merged. Train-14
 merges, onto `5d4d4d55`: PR #73 (24 verify shards), #71 (the scheduled-order
