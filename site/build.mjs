@@ -597,15 +597,24 @@ export function checked(rec) {
   return rec;
 }
 
-/** **Who the instrument found ahead in a row**: Pleris, ahead of every other
- * stack; each stack ahead of Pleris; or none, when neither holds. A verdict
- * the site does not know, and a loss that names no stack, stop the build. */
+/** A row of the record the site cannot show: the build stops, naming it. */
+function refuse(r, why) {
+  throw new Error(`${RECORD}: ${why}, on ${r.app}: ${r.what}`);
+}
+
+/** **Who the instrument found ahead in a row**, by its verdict: Pleris,
+ * ahead of every other stack; each stack ahead of Pleris; or none, when
+ * neither holds. A loss that names no stack stops the build. */
+const AHEAD = new Map([
+  ["win", () => ["Pleris"]],
+  ["loss", (r) => (r.better.length ? r.better : refuse(r, "a loss that names no stack ahead of Pleris"))],
+  ["neither", () => []],
+]);
+
+/** Who is ahead in a row; a verdict the site does not know stops the build. */
 function aheadIn(r) {
-  if (r.verdict === "win") return ["Pleris"];
-  if (r.verdict === "neither") return [];
-  if (r.verdict !== "loss") throw new Error(`${RECORD}: a verdict the site does not know, ${r.verdict}, on ${r.app}: ${r.what}`);
-  if (!r.better.length) throw new Error(`${RECORD}: a loss that names no stack ahead of Pleris, on ${r.app}: ${r.what}`);
-  return r.better;
+  const ahead = AHEAD.get(r.verdict) ?? (() => refuse(r, `a verdict the site does not know, ${r.verdict}`));
+  return ahead(r);
 }
 
 /**

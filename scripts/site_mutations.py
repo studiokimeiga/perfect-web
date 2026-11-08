@@ -40,14 +40,24 @@ NAMED = {STANDING, HOME, EVERY, CHECKED}
 MUTANTS = [
     ("a run the instrument refused is shown", BUILD, "  if (rec.problems.length) throw", "  if (false) throw"),
     ("a run on a changed tree is shown", BUILD, "  if (rec.dirty) throw", "  if (false) throw"),
-    ("a loss that names no stack is shown", BUILD, "  if (!r.better.length) throw", "  if (false) throw"),
+    (
+        "a loss that names no stack is shown",
+        BUILD,
+        '(r.better.length ? r.better : refuse(',
+        '(true ? r.better : refuse(',
+    ),
     (
         "a cell shows another stack's value",
         BUILD,
         "    const v = r.values.find((x) => x.label === s);\n",
         "    const v = r.values[0];\n",
     ),
-    ("a stack ahead of Pleris is not marked", BUILD, "  return r.better;\n", "  return [];\n"),
+    (
+        "a stack ahead of Pleris is not marked",
+        BUILD,
+        '["loss", (r) => (r.better.length ? r.better :',
+        '["loss", (r) => (r.better.length ? [] :',
+    ),
     (
         "the standing counts the ties as losses",
         BUILD,
