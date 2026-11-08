@@ -3895,6 +3895,22 @@ impl Server {
         }
     }
 
+    /// **Whether a dropped command is armed** (ADR-0175, ADR-0401), for any
+    /// session. A browser sends a request again by itself where a connection
+    /// it reused closes before any answer, so a drop on a kept connection
+    /// never reaches the page. Arming closes the kept connections waiting;
+    /// and until the drop is taken no answer keeps its connection, so one
+    /// busy when it was armed (a held subscription) is not reused either:
+    /// the command goes on a connection the browser never used. Only a test
+    /// arms one (`/bench/drop`).
+    fn dropping_a_command(&self) -> bool {
+        self.connection_faults
+            .lock()
+            .expect("connection faults")
+            .values()
+            .any(|f| f.drop_command.is_some())
+    }
+
     /// **Whether the session's next command connection is dropped, and
     /// where** (ADR-0175): taken, so it is dropped once.
     fn take_command_drop(&self, session: &str) -> Option<DropAt> {
@@ -10122,11 +10138,13 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
         }
     };
     // Kept for the next request where HTTP/1.1 keeps it, the request did not
-    // ask to close, and the host has room; and only once its body is read.
+    // ask to close, the host has room, and no dropped command is armed; and
+    // only once its body is read.
     let persists = version == "HTTP/1.1"
         && !head_only
         && !asks_to_close(&headers)
-        && server.open.load(std::sync::atomic::Ordering::SeqCst) <= KEPT_AT_MOST;
+        && server.open.load(std::sync::atomic::Ordering::SeqCst) <= KEPT_AT_MOST
+        && !server.dropping_a_command();
     stream.keep(persists && length == 0);
     let (session, fresh) = session_of(&headers);
     // TRACK SEAM (second-host): the session as the hosts keep it, read once

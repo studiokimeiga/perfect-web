@@ -79,6 +79,7 @@ TEST_NAMES = [
     "tests::keep_alive::the_accept_loop_backs_off_after_a_failure",
     "tests::keep_alive::a_second_answer_to_one_request_closes_its_connection",
     "tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement",
+    "tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_connection",
 ]
 COMMAND = ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server",
            "--", *TEST_NAMES, "--exact", "--test-threads=1", "--format=pretty"]
@@ -110,8 +111,8 @@ MUTANTS = [
      "    stream.keep(persists && length == 0);\n",
      "    stream.keep(persists);\n"),
     ("the host's cap on connections is not held", MAIN,
-     "        && server.open.load(std::sync::atomic::Ordering::SeqCst) <= KEPT_AT_MOST;\n",
-     "        && true;\n"),
+     "        && server.open.load(std::sync::atomic::Ordering::SeqCst) <= KEPT_AT_MOST\n",
+     "        && true\n"),
     ("a kept connection waits without end for its next request", MAIN,
      "    conn.set_read_timeout(Some(idle)).is_ok()\n",
      "    conn.set_read_timeout(None).is_ok()\n"),
@@ -185,6 +186,9 @@ MUTANTS = [
     ("a kept connection's answers wait on the client's acknowledgement", MAIN,
      '    let _ = stream.set_nodelay(true);\n',
      ''),
+    ("an answer keeps its connection while a dropped command is armed", MAIN,
+     '        && !server.dropping_a_command();\n',
+     '        && (!server.dropping_a_command() || true);\n'),
 ]
 
 # How long one run of the tests may take. Past it the run is invalid.

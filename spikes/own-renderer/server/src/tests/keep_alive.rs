@@ -399,6 +399,44 @@ fn arming_a_drop_closes_the_kept_connections_waiting() {
     assert!(ended, "the kept connection closed when the drop was armed");
 }
 
+/// **While a dropped command is armed, no answer keeps its connection**
+/// (ADR-0175, PR #94's browser suites). A connection busy when the drop was
+/// armed (a held subscription) is not closed with the ones waiting, and,
+/// kept, a browser reused it for the command, whose drop it then hid by
+/// sending the command again itself: the page's own resend never ran. Its
+/// answer says the connection closes, and it does; once the drop is taken,
+/// answers keep their connections again.
+#[test]
+fn while_a_dropped_command_is_armed_no_answer_keeps_its_connection() {
+    let s = kept_feed();
+    s.connection_faults
+        .lock()
+        .expect("connection faults")
+        .entry("b".into())
+        .or_default()
+        .drop_command = Some(DropAt::Before);
+    let (armed, ended) = connected(&s, |client, answers| {
+        client
+            .write_all(get("/pw-handlers", "").as_bytes())
+            .expect("request");
+        let armed = answer(answers).0;
+        (armed, closed(answers))
+    });
+    assert!(armed.contains("connection: close\r\n"), "{armed}");
+    assert!(ended, "the connection closed after its answer");
+    s.connection_faults
+        .lock()
+        .expect("connection faults")
+        .clear();
+    let kept = connected(&s, |client, answers| {
+        client
+            .write_all(get("/pw-handlers", "").as_bytes())
+            .expect("request");
+        answer(answers).0
+    });
+    assert!(kept.contains("connection: keep-alive\r\n"), "{kept}");
+}
+
 /// **A commit is told to the readers it reached after its answer, while its
 /// connection is kept** (ADR-0219): not when the connection closes, which a
 /// kept connection may not do for seconds.
