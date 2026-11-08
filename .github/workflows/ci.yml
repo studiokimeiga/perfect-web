@@ -42,6 +42,7 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # stable
         with:
+          toolchain: stable
           components: rustfmt
       - name: Rust format
         run: cargo fmt --all -- --check
@@ -79,6 +80,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # stable
         with:
+          toolchain: stable
           components: rustfmt, clippy
 
       - name: Configure ARM64 verified LLD
@@ -320,10 +322,14 @@ jobs:
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # stable
+        with:
+          toolchain: stable
       - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
         with:
           just-version: '1.58.0'
       - uses: taiki-e/install-action@faedfc82a08b7a1fdaf8cb7434a981276b02039e # cargo-deny
+        with:
+          tool: cargo-deny
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
