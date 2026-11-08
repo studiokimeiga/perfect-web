@@ -64,6 +64,26 @@ stays open, in order:
    cross-session's called a method that no longer existed, which controls
    nothing: rewrite it to build, and find the test that kills it.
 
+9. **The head-to-head's 36 losses** (`docs/evidence/E14/head-to-head.txt`
+   at `d10fd577`, every row on pleris.dev's `/measured`), the largest first:
+   - **The store's server code is Rust**: 2,422 lines with the app,
+     against Next.js's 151 and SvelteKit's 134. Its tables declared in
+     Pleris (ADR-0393's declared tables) would leave the app's lines.
+   - **The store's app lines**: 294 against 151 and 134. Each query states
+     seven clauses (freshness, consistency, cache, key, concurrency,
+     `on_key_change`, timeout); read which ones a default could carry
+     without hiding a decision the charter asks to be stated.
+   - **TodoMVC's first load**: 141,362 bytes and 19 requests against
+     Svelte's 20,821 and 5, and its interactive time in WebKit and in
+     Chromium cold. The runtime and its WebAssembly load before the first
+     press.
+   - **An idle page polls**: 29.7 requests a minute and 3 ms a second of
+     server CPU for 20 idle pages, against none (#87, item 2, holds longer;
+     a held stream answers none).
+   - **A press beside 19 other tabs** of TodoMVC: 39 ms against 25 and 23.
+   - The rest are a few milliseconds each, several at the line the spread
+     rule draws (ADR-0408: two runs differ in ten rows).
+
 ## Current local continuation, 2026-11-02
 
 Fetched `origin/master` is `5d4d4d55`; D3 PostgreSQL, added-table references,

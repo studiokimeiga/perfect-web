@@ -6,7 +6,13 @@
 with its review's repairs, TodoMVC's checkbox drawn in CSS (PR #81, ADR-0367
 amended; its WebKit failure was the test measuring device pixels), and every
 workflow action pinned to a commit with `verify`'s token scoped to reading.
-Longer holds (#87, ADR-0402 reserved) stay held.
+The host sets `TCP_NODELAY` on each connection: keep-alive had made each
+answer wait on Nagle's algorithm, and the store's median latency under load
+was 43.7 ms at `3355a8f2`; it is 0.27 ms. pleris.dev shows the head-to-head's record (ADR-0408):
+its tables, its standing (of 151 rows, Pleris is ahead in 55 and behind in
+36, at `d10fd577`) and a page of every row, `/measured`, read the record's
+JSON when the site is built. Longer holds (#87, ADR-0402 reserved) stay
+held.
 
 **Train-14, 2026-11-07:** the owner asked that every open PR be merged. Train-14
 merges, onto `5d4d4d55`: PR #73 (24 verify shards), #71 (the scheduled-order

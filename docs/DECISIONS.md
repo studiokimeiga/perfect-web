@@ -3330,7 +3330,10 @@ A command says who may run it: PW0367 refuses a command a reader can run that de
 [ADR-0407](DECISIONS/ADR-0407-one-model-of-row-ownership.md):
 One model of row ownership: a row's owner is a field the platform checks against the writer, and its key leads with the owner (`owned by`, the row-ownership track). PR #91's hidden owner is not adopted: its keys are global, so a reader who first writes a key owns it and the rightful reader's writes are silently lost; what it found is carried into the track's landing.
 
-**2026-11-08 — Train-15.** Keep-alive lands after its review's repairs, with TodoMVC's checkbox drawn in CSS (#81, ADR-0367 amended) and the workflows pinned.
+**2026-11-08 — Train-15.** Keep-alive lands after its review's repairs, with TodoMVC's checkbox drawn in CSS (#81, ADR-0367 amended) and the workflows pinned; pleris.dev shows the head-to-head's record.
 
 [ADR-0401](DECISIONS/ADR-0401-a-host-keeps-a-connection-for-its-next-request.md):
 A host keeps a connection for its next request, where HTTP/1.1 keeps it and its answer has a known length (PR #86). Its review's repairs: a request's head read whole or refused (400, 431, 408, each closing), one deadline for head and body, HEAD with no body, 256 connections and an accept loop that backs off, the telling beside the next request, a 75 s idle wait past a front proxy's.
+
+[ADR-0408](DECISIONS/ADR-0408-the-site-shows-the-record.md):
+pleris.dev shows the head-to-head's record, never a copy. The instrument writes its verdicts as JSON (`--verdicts`, `docs/evidence/E14/head-to-head.json`); the home page's tables, its standing over the whole record (ahead in 55 of 151 rows, behind in 36) and a page of every row (`/measured`) read it when the site is built, each row's winner named in words; a refused run, a changed tree, or a record changed since its commit stops the build (`just e14-site`).

@@ -10,8 +10,15 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { STYLE_HASH, build, summaryOf } from "./build.mjs";
-import { highlightPw, inline, renderMarkdown } from "./markdown.mjs";
+import { SPEED, STYLE_HASH, build, checked, measured, speed, standing, summaryOf } from "./build.mjs";
+import { escapeHtml, highlightPw, inline, renderMarkdown } from "./markdown.mjs";
+
+/** The head-to-head's record, as the site reads it. The tests of what the
+ * pages show from it take it as the build does (`checked`), with links of
+ * their own, so they need no git. */
+const RECORD = JSON.parse(readFileSync(new URL("../docs/evidence/E14/head-to-head.json", import.meta.url), "utf8"));
+const shown = () => ({ ...checked(structuredClone(RECORD)), link: "https://example.test/record", commands: "https://example.test/commands" });
+const counted = (verdict) => RECORD.rows.filter((r) => r.verdict === verdict).length;
 
 test("a heading takes GitHub's id, and a repeated one is numbered", () => {
   const { html, headings } = renderMarkdown("# Where `pw check` stops\n\n## A *case*\n\n## A case");
@@ -110,19 +117,84 @@ test("the whole site: every page and code, no script, one hashed style, no link 
     assert.match(homePage, new RegExp(`error: \\[${code}\\]`), code);
   }
   assert.equal((homePage.match(/= help: /g) ?? []).length, 3, "one help line a refusal");
-  // The hero's score is the tables' own: the rows whose Pleris cell is
-  // marked ahead, of every row the page shows.
-  const rows = [...homePage.matchAll(/<tr><td>[^<]*<\/td>(<td[^>]*>)/g)];
-  const led = rows.filter(([, first]) => first.includes('class="best"')).length;
-  assert.ok(rows.length > 0, "the home page measures nothing");
-  assert.match(homePage, new RegExp(`leads ${led} of the ${rows.length} rows`));
+  // The hero states where Pleris stands over the whole record, and the
+  // record's every row is on /measured (the tests below hold both to it).
+  assert.ok(homePage.includes(standing(shown())), "the home page states no standing, or another");
+  assert.ok(written.get("/measured").includes("<h1>Every row measured</h1>"));
   // A code's page shows the guide's example the compiler refuses with it.
   assert.match(written.get("/e/PW5001"), /Refused: <a href="\/e\/PW5001">PW5001<\/a>/);
 });
 
+// --- what the pages show from the head-to-head's record --------------------
+//
+// These read the record and the pages' HTML, and judge each row's marks
+// themselves: a page that shows a row otherwise than the instrument judged
+// it fails them. None builds the whole site.
+
+test("the standing the home page states is the whole record's: rows ahead, and rows behind", () => {
+  assert.equal(
+    standing(shown()),
+    `Of the ${RECORD.rows.length} rows its head-to-head measures, it is ahead in ${counted("win")} and behind in ${counted("loss")}: those ${counted("loss")} rows are the work.`,
+  );
+});
+
+test("the home page's tables are the record's rows, under the page's names, each marked as the instrument judged it", () => {
+  const tables = tablesOf(speed(shown()));
+  assert.equal(tables.length, SPEED.length);
+  SPEED.forEach((t, i) => {
+    const chosen = t.rows.map(([label, what]) => [label, RECORD.rows.find((r) => r.app === t.app && r.what === what)]);
+    for (const [label, r] of chosen) assert.ok(r, `${t.app}: ${label}: no such row in the record`);
+    assertTable(tables[i], chosen);
+  });
+});
+
+test("/measured shows every row of the record, in the instrument's words, each marked as it judged it", () => {
+  const tables = tablesOf(measured(shown()).body);
+  const apps = SPEED.map((t) => t.app);
+  assert.deepEqual([...new Set(RECORD.rows.map((r) => r.app))].sort(), [...apps].sort());
+  assert.equal(tables.length, apps.length);
+  apps.forEach((app, i) => assertTable(tables[i], RECORD.rows.filter((r) => r.app === app).map((r) => [r.what, r])));
+  assert.equal(tables.reduce((n, table) => n + table.rows.length, 0), RECORD.rows.length);
+});
+
+test("a record the instrument refused, one measured on a changed tree, or a loss that names no stack, is shown on no page", () => {
+  assert.doesNotThrow(() => checked(structuredClone(RECORD)));
+  assert.throws(() => checked({ ...structuredClone(RECORD), problems: ["a cell of one run"] }), /refused its run: a cell of one run/);
+  assert.throws(() => checked({ ...structuredClone(RECORD), dirty: "uncommitted changes" }), /measured on a tree changed from/);
+  const loss = { ...structuredClone(RECORD.rows[0]), verdict: "loss", better: [] };
+  assert.throws(() => checked({ ...structuredClone(RECORD), rows: [loss] }), /a loss that names no stack/);
+});
+
+/** A page's tables: each one's head, and its rows' cells, each cell's text
+ * and whether it is marked. */
+function tablesOf(html) {
+  const tables = html.matchAll(/<table class="bench"><thead><tr>(.*?)<\/tr><\/thead><tbody>\n([\s\S]*?)\n<\/tbody>/g);
+  return [...tables].map(([, head, body]) => ({
+    head: [...head.matchAll(/<th scope="col">(.*?)<\/th>/g)].map(([, h]) => h),
+    rows: body.split("\n").map((tr) => [...tr.matchAll(/<td( class="best")?>(.*?)<\/td>/g)].map(([, best, text]) => ({ text, marked: Boolean(best) }))),
+  }));
+}
+
+/** A table holds these rows of the record (`[label, row]`): a column for each
+ * stack they name, in order, then who is ahead; each value as the record
+ * shows it, marked where the instrument found its stack ahead. */
+function assertTable(table, rows) {
+  const stacks = [...new Set(rows.flatMap(([, r]) => r.values.map((v) => v.label)))];
+  assert.deepEqual(table.head, ["Measured", ...stacks, "Ahead"]);
+  const expected = rows.map(([label, r]) => {
+    const ahead = r.verdict === "win" ? ["Pleris"] : r.verdict === "loss" ? r.better : [];
+    return [
+      { text: escapeHtml(label), marked: false },
+      ...stacks.map((s) => ({ text: escapeHtml(r.values.find((v) => v.label === s)?.shown ?? "–"), marked: ahead.includes(s) })),
+      { text: ahead.length ? escapeHtml(ahead.join(", ")) : "None", marked: false },
+    ];
+  });
+  assert.deepEqual(table.rows, expected);
+}
+
 /** Each page of the guide, the site's own, and one for every code. */
 function assertEveryPage(written, catalog) {
-  const pages = ["/", "/404", "/e/", "/e/404", "/guide/", "/guide/why", "/guide/tour", "/guide/tour-server"];
+  const pages = ["/", "/404", "/measured", "/e/", "/e/404", "/guide/", "/guide/why", "/guide/tour", "/guide/tour-server"];
   for (const p of [...pages, "/guide/tour-pages", "/guide/errors", "/guide/tutorial", "/guide/diagnostics"]) {
     assert.ok(written.has(p), `no page at ${p}`);
   }

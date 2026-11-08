@@ -3,7 +3,9 @@
 The project's site. `build.mjs` builds it into static HTML from the
 repository:
 
-- the home page;
+- the home page, whose measured tables are the head-to-head's record
+  (`docs/evidence/E14/head-to-head.json`, ADR-0408), and `/measured`,
+  every row of it;
 - the guide (`docs/guide/*.md`);
 - a page for every diagnostic code, from `docs/guide/diagnostics.md`, which
   `scripts/guide_diagnostics.py` writes from the compiler's registry.
@@ -25,12 +27,24 @@ writes. The tests hold three things:
 - the whole built site:
   - every guide page and every code has a page;
   - no page has a script, or a style the policy did not hash;
-  - no internal link or anchor lands nowhere.
+  - no internal link or anchor lands nowhere;
+- what the pages show from the head-to-head's record: every value the
+  record's, each row's winner as the instrument judged it, the standing
+  over the whole record, every row on `/measured`, and no record the
+  instrument refused, measured on a changed tree, or changed since its
+  commit. `just e14-site` runs these tests and the mutation controls on
+  them (`scripts/site_mutations.py`).
+
+The build reads the record at the commit that last changed it, and links
+to it there: commit a new record before building from it, and deploy from
+a pushed commit.
 
 ## What it serves
 
 - **Pages:**
   - `/`, the home page;
+  - `/measured`, every row of the head-to-head that Pleris is in, with
+    the instrument's verdict on each;
   - `/guide/…`, the guide, in its reading order;
   - `/e/<code>`, a page for each code, retired codes and old numbers
     included. Where the guide has an example the compiler refuses with

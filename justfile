@@ -81,6 +81,7 @@ import 'just/images.just'
 import 'just/who-may-run.just'
 import 'just/command-route.just'
 import 'just/session-reader.just'
+import 'just/site.just'
 
 default:
     @just --list
