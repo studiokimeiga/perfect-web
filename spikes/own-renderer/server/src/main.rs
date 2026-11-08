@@ -1185,6 +1185,11 @@ struct Server {
     /// it tells, so a test can show what does not wait on it.
     #[cfg(test)]
     telling_delay: Mutex<std::time::Duration>,
+    /// **A test's listing made slow**: how long a kept connection waits,
+    /// after its answer, before it is listed idle, so a test can arm a drop
+    /// in between.
+    #[cfg(test)]
+    listing_delay: Mutex<std::time::Duration>,
     /// **The sessions being told, and whether a commit reached one again
     /// meanwhile** (ADR-0271): one telling of a session at a time, and one
     /// more after it for every commit that came while it ran.
@@ -2165,6 +2170,8 @@ impl Server {
             telling: Mutex::new(Vec::new()),
             #[cfg(test)]
             telling_delay: Mutex::new(std::time::Duration::ZERO),
+            #[cfg(test)]
+            listing_delay: Mutex::new(std::time::Duration::ZERO),
             told: Mutex::new(BTreeMap::new()),
             words: BTreeMap::new(),
             speculated_versions: Mutex::new(BTreeMap::new()),
@@ -9871,6 +9878,14 @@ fn handle(server: &Server, stream: TcpStream) {
             if !server.telling.lock().expect("telling").is_empty() {
                 scope.spawn(|| server.tell_waiting());
             }
+            // **A drop armed between this answer and its listing** (ADR-0175,
+            // PR #94's verify): the arming closed only the connections listed
+            // before it. It is armed before it closes them, so one listed
+            // since finds it armed here, and closes as they did.
+            if server.dropping_a_command() {
+                let _ = conn.shutdown(std::net::Shutdown::Both);
+                return;
+            }
             if !next_request(&conn, &mut reader, server.keep_alive) {
                 return;
             }
@@ -9888,6 +9903,8 @@ struct Idle<'a> {
 
 impl<'a> Idle<'a> {
     fn listed(server: &'a Server, conn: &Conn) -> Idle<'a> {
+        #[cfg(test)]
+        std::thread::sleep(*server.listing_delay.lock().expect("listing delay"));
         let at = conn.peer_addr().ok().and_then(|at| {
             let listed = conn.try_clone().ok()?;
             server.idle.lock().expect("idle").insert(at, listed);
@@ -11110,15 +11127,6 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
                     return;
                 }
             };
-            // Its next command goes on a connection of its own (the
-            // keep-alive ADR): a browser sends a request again by itself
-            // where a kept connection it reused closes before any answer, so
-            // the drop would never reach the page. Every kept connection
-            // waiting for its next request is closed; the browser opens
-            // another, as it does for one a host closed while idle.
-            for (_, idle) in std::mem::take(&mut *server.idle.lock().expect("idle")) {
-                let _ = idle.shutdown(std::net::Shutdown::Both);
-            }
             server
                 .connection_faults
                 .lock()
@@ -11126,6 +11134,16 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
                 .entry(session.clone())
                 .or_default()
                 .drop_command = Some(at);
+            // Its next command goes on a connection of its own (the
+            // keep-alive ADR): a browser sends a request again by itself
+            // where a kept connection it reused closes before any answer, so
+            // the drop would never reach the page. Every kept connection
+            // waiting for its next request is closed, after the fault is
+            // armed: one listed since finds it armed (`handle`). The browser
+            // opens another, as it does for one a host closed while idle.
+            for (_, idle) in std::mem::take(&mut *server.idle.lock().expect("idle")) {
+                let _ = idle.shutdown(std::net::Shutdown::Both);
+            }
             respond_json(&mut stream, 200, &session, fresh, "{}");
         }
         // **A connection that neither answers nor fails** (ADR-0381): this

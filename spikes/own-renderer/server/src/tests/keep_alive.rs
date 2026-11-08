@@ -406,6 +406,38 @@ fn arming_a_drop_closes_the_kept_connections_waiting() {
     assert!(ended, "the kept connection closed when the drop was armed");
 }
 
+/// **A drop armed between a kept connection's answer and its listing closes
+/// it too** (PR #94's verify, under its whole suite's load). The arming
+/// closed the connections listed; one that had answered and was not listed
+/// yet was kept, and the command could reuse it. The listing is held for a
+/// second, and the drop armed inside it.
+#[test]
+fn a_drop_armed_between_an_answer_and_its_listing_closes_it() {
+    let s = kept_feed();
+    *s.listing_delay.lock().expect("listing delay") = Duration::from_secs(1);
+    let (armed, ended, waited) = connected(&s, |client, answers| {
+        client
+            .write_all(get("/pw-handlers", "").as_bytes())
+            .expect("request");
+        let _ = answer(answers);
+        let armed = connected(&s, |arm, armed| {
+            arm.write_all(
+                b"POST /bench/drop?next=command&at=before HTTP/1.1\r\nHost: t\r\n\
+                  Cookie: pw-session=a\r\ncontent-length: 0\r\nConnection: close\r\n\r\n",
+            )
+            .expect("arm");
+            answer(armed).0
+        });
+        let from = Instant::now();
+        (armed, closed(answers), from.elapsed())
+    });
+    assert!(armed.starts_with("HTTP/1.1 200"), "{armed}");
+    assert!(
+        ended && waited < Duration::from_secs(5),
+        "closed once listed: {ended}, after {waited:?}"
+    );
+}
+
 /// **While a dropped command is armed, no answer keeps its connection**
 /// (ADR-0175, PR #94's browser suites). A connection busy when the drop was
 /// armed (a held subscription) is not closed with the ones waiting, and,

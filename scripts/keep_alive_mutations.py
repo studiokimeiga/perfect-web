@@ -80,6 +80,7 @@ TEST_NAMES = [
     "tests::keep_alive::a_second_answer_to_one_request_closes_its_connection",
     "tests::keep_alive::a_kept_connections_answers_wait_on_no_acknowledgement",
     "tests::keep_alive::while_a_dropped_command_is_armed_no_answer_keeps_its_connection",
+    "tests::keep_alive::a_drop_armed_between_an_answer_and_its_listing_closes_it",
 ]
 COMMAND = ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server",
            "--", *TEST_NAMES, "--exact", "--test-threads=1", "--format=pretty"]
@@ -132,9 +133,21 @@ MUTANTS = [
      "            if !server.telling.lock().expect(\"telling\").is_empty() {\n"
      "                scope.spawn(|| server.tell_waiting());\n"
      "            }\n"
+     "            // **A drop armed between this answer and its listing** (ADR-0175,\n"
+     "            // PR #94's verify): the arming closed only the connections listed\n"
+     "            // before it. It is armed before it closes them, so one listed\n"
+     "            // since finds it armed here, and closes as they did.\n"
+     "            if server.dropping_a_command() {\n"
+     "                let _ = conn.shutdown(std::net::Shutdown::Both);\n"
+     "                return;\n"
+     "            }\n"
      "            if !next_request(&conn, &mut reader, server.keep_alive) {\n"
      "                return;\n"
      "            }\n",
+     "            if server.dropping_a_command() {\n"
+     "                let _ = conn.shutdown(std::net::Shutdown::Both);\n"
+     "                return;\n"
+     "            }\n"
      "            if !next_request(&conn, &mut reader, server.keep_alive) {\n"
      "                server.tell_waiting();\n"
      "                return;\n"
@@ -189,6 +202,9 @@ MUTANTS = [
     ("an answer keeps its connection while a dropped command is armed", MAIN,
      '        && !server.dropping_a_command();\n',
      '        && (!server.dropping_a_command() || true);\n'),
+    ("a connection listed after a drop was armed is kept", MAIN,
+     '            if server.dropping_a_command() {\n',
+     '            if false && server.dropping_a_command() {\n'),
 ]
 
 # How long one run of the tests may take. Past it the run is invalid.
