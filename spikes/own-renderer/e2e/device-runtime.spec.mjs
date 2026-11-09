@@ -66,6 +66,30 @@ test("its stylesheets are part of its document: it asks for none, and they apply
   expect(await page.evaluate(() => window.__refused)).toEqual([]);
 });
 
+test("a press that changes one row parses that row alone", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__parsed = [];
+    const set = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML").set;
+    Object.defineProperty(HTMLTemplateElement.prototype, "innerHTML", {
+      set(html) {
+        window.__parsed.push(html);
+        set.call(this, html);
+      },
+    });
+  });
+  await open(page);
+  for (const title of ["first of three", "second of three", "third of three"]) await add(page, title);
+  await expect(items(page)).toHaveCount(3);
+  await page.evaluate(() => (window.__parsed = []));
+  await items(page).nth(1).locator(".toggle").check();
+  await expect(items(page).nth(1)).toHaveClass(/completed/);
+  await expect(items(page).nth(0)).not.toHaveClass(/completed/);
+  const parsed = await page.evaluate(() => window.__parsed.join(""));
+  expect(parsed.includes("second of three")).toBe(true);
+  expect(parsed.includes("first of three")).toBe(false);
+  expect(parsed.includes("third of three")).toBe(false);
+});
+
 test("a handler its table names runs, on the decision the page made", async ({ page }) => {
   await open(page);
   expect((await logged(page)).filter((line) => line.startsWith("refused"))).toEqual([]);

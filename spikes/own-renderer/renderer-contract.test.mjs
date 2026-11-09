@@ -104,3 +104,41 @@ test("a failed rollback load leaves neither owned ID pending", async () => {
   assert.deepEqual(states.get("second").pending, [{ id: 13 }]);
   assert.equal(drawn.length, 0);
 });
+
+function rowsChanged() {
+  return vm.runInNewContext(`${source("function rowsOfText(html) {", "// --- end of which rows changed")}\nrowsChanged`);
+}
+
+const row = (key, inner) => `<!--pw:s${key}-->${inner}<!--pw:e${key}-->`;
+
+test("two renders of a block differ by the rows that changed", () => {
+  const changed = rowsChanged();
+  const before = `<ul>${row("7@b0", "a")}${row("7@b1", "b")}${row("7@b2", "c")}</ul>`;
+  const now = `<ul>${row("7@b0", "a")}${row("7@b1", "B")}${row("7@b2", "c")}</ul>`;
+  assert.deepEqual([...changed(before, now)].map((r) => [...r]), [["7@b1", row("7@b1", "B")]]);
+  assert.equal(changed(before, before).length, 0);
+});
+
+test("a row added, gone or moved, or a change around them, is no change of rows", () => {
+  const changed = rowsChanged();
+  const before = `<ul>${row("7@b0", "a")}${row("7@b1", "b")}</ul>`;
+  assert.equal(changed(before, `<ul>${row("7@b0", "a")}</ul>`), null, "gone");
+  assert.equal(changed(before, `<ul>${row("7@b0", "a")}${row("7@b1", "b")}${row("7@b2", "c")}</ul>`), null, "added");
+  assert.equal(changed(before, `<ul>${row("7@b1", "b")}${row("7@b0", "a")}</ul>`), null, "moved");
+  assert.equal(changed(before, `<ol>${row("7@b0", "a")}${row("7@b1", "b")}</ol>`), null, "around them");
+  assert.equal(changed(`<ul>${row("7@b0", "a")}</ul>X`, `<ul>${row("7@b0", "a")}</ul>Y`), null, "after them");
+});
+
+test("an anchor that is not closed is no row", () => {
+  const changed = rowsChanged();
+  assert.equal(changed("<!--pw:s7@b0-->a", "<!--pw:s7@b0-->b"), null);
+  assert.equal(changed(row("7@b0", "a"), "<!--pw:s7@b0-->b"), null);
+});
+
+test("a row within a row is the outer row's", () => {
+  const changed = rowsChanged();
+  const before = row("7@b0", `x${row("9@b5", "p")}`);
+  const now = row("7@b0", `x${row("9@b5", "q")}`);
+  assert.deepEqual([...changed(before, now)].map((r) => r[0]), ["7@b0"]);
+});
+

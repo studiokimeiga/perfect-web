@@ -144,6 +144,21 @@ MUTANTS = [
     ("a device page's decision is another page's", "browser", RUNTIME,
      "  decide = decider(lines, PAGE);\n",
      '  decide = decider(lines, "another");\n'),
+    # -- which rows changed
+    ("every render morphs the whole block", "browser", RUNTIME,
+     "    if (rows && morphRows(r, rows, inserted)) return inserted;\n", ""),
+    ("a block that did not change is morphed again", "contract", RUNTIME,
+     "    if (a[1][i][1] !== b[1][i][1]) changed.push(b[1][i]);\n", "    changed.push(b[1][i]);\n"),
+    ("a row moved is read as one changed", "contract", RUNTIME,
+     "    if (a[1][i][0] !== b[1][i][0]) return null;\n", ""),
+    ("a change around the rows is passed over", "contract", RUNTIME,
+     "  if (a[0].some((gap, i) => gap !== b[0][i])) return null;\n", ""),
+    ("a row added or gone is read as one changed", "contract", RUNTIME,
+     "  if (!a || !b || a[1].length !== b[1].length) return null;\n", "  if (!a || !b) return null;\n"),
+    ("an anchor that is not closed is a row", "contract", RUNTIME,
+     "    if (end < 0) return null;\n", ""),
+    ("a row's inner row is its own", "contract", RUNTIME,
+     "    start.lastIndex = at;\n", ""),
     # -- what keeps a server's code out
     ("the source's flag is off", "packaging", RUNTIME, "const PW_SERVER = true;", "const PW_SERVER = false;"),
     ("a read is asked for", "packaging", RUNTIME,
@@ -251,6 +266,10 @@ def node_tests(*files):
     return passed + failed > 0, passed, failed
 
 
+def contract():
+    return node_tests("spikes/own-renderer/renderer-contract.test.mjs")
+
+
 def decision():
     return node_tests("spikes/own-renderer/decision-agreement.test.mjs")
 
@@ -287,7 +306,7 @@ def browser():
     return passed + failed > 0, passed, failed
 
 
-SUITES = {"decision": decision, "packaging": packaging, "host": host, "browser": browser}
+SUITES = {"decision": decision, "contract": contract, "packaging": packaging, "host": host, "browser": browser}
 
 
 def main():

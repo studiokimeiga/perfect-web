@@ -2672,8 +2672,78 @@ function morphBlock(id, html) {
   if (!r?.start) return [];
   const parent = r.start.parentNode;
   const inserted = [];
+  if (!PW_SERVER) {
+    const before = lastRendered.get(id);
+    lastRendered.set(id, html);
+    const rows = before === undefined ? null : rowsChanged(before, html);
+    if (rows && morphRows(r, rows, inserted)) return inserted;
+  }
   morphChildren(parent, between(r.start, r.end), parseInstance(html), r.end.nextSibling, inserted);
   return inserted;
+}
+
+/** What each block last rendered, on a page that talks to no server: nothing
+ * but its own renders writes what it holds, so this is what it shows. */
+const lastRendered = new Map();
+
+// --- which rows changed ---
+
+/** The keyed rows of `html` and the text around them: `[gaps, rows]`, each row
+ * `[its key, its text, anchors included]`. `null` where an anchor is not closed. */
+function rowsOfText(html) {
+  const gaps = [];
+  const rows = [];
+  const start = /<!--pw:s(\d+@[^>]*?)-->/g;
+  let at = 0;
+  for (let m = start.exec(html); m; m = start.exec(html)) {
+    const close = `<!--pw:e${m[1]}-->`;
+    const end = html.indexOf(close, m.index);
+    if (end < 0) return null;
+    gaps.push(html.slice(at, m.index));
+    at = end + close.length;
+    rows.push([m[1], html.slice(m.index, at)]);
+    start.lastIndex = at;
+  }
+  gaps.push(html.slice(at));
+  return [gaps, rows];
+}
+
+/** Each row that differs between two renders of a block, where nothing else
+ * does: a row added, gone or moved, or a change around them, is `null`. */
+function rowsChanged(before, now) {
+  const a = rowsOfText(before);
+  const b = rowsOfText(now);
+  if (!a || !b || a[1].length !== b[1].length) return null;
+  if (a[0].some((gap, i) => gap !== b[0][i])) return null;
+  const changed = [];
+  for (let i = 0; i < a[1].length; i++) {
+    if (a[1][i][0] !== b[1][i][0]) return null;
+    if (a[1][i][1] !== b[1][i][1]) changed.push(b[1][i]);
+  }
+  return changed;
+}
+// --- end of which rows changed
+
+/** `rows`, each `[key, text]`, morphed where they are in `block`. False, with
+ * nothing touched, where the document does not hold one of them. */
+function morphRows(block, rows, inserted) {
+  const wanted = new Map(rows);
+  const found = [];
+  const comments = document.createTreeWalker(block.start.parentNode, NodeFilter.SHOW_COMMENT);
+  comments.currentNode = block.start;
+  for (let n = comments.nextNode(); n && n !== block.end; n = comments.nextNode()) {
+    if (!n.data.startsWith("pw:s")) continue;
+    const key = n.data.slice("pw:s".length);
+    if (!wanted.has(key)) continue;
+    let end = n.nextSibling;
+    while (end && !(end.nodeType === Node.COMMENT_NODE && end.data === `pw:e${key}`)) end = end.nextSibling;
+    if (end) found.push([n, end, wanted.get(key)]);
+  }
+  if (found.length !== rows.length) return false;
+  for (const [start, end, text] of found) {
+    morphChildren(start.parentNode, between(start, end), parseInstance(text), end.nextSibling, inserted);
+  }
+  return true;
 }
 
 /** The range at `key` replaced by `html`, or `null` where the document has
