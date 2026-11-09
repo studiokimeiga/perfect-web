@@ -24,7 +24,7 @@ e14-prerender:
        echo "== which pages the build marks (compiler/pw-core/tests/prerender.rs)"; echo; \
        cargo test --locked -p pw-core --test prerender 2>&1 | grep -E '^(test |test result)|panicked at'; \
        echo; echo "== what the host sends for one (tests::prerender::, TodoMVC's)"; echo; \
-       cargo test --locked -p pw-dev-server --bin pw-dev-server -- tests::prerender:: tests::todomvc::todomvc_is_one_document 2>&1 | grep -E '^(test |test result)|panicked at'; \
+       cargo test --locked -p pw-dev-server --bin pw-dev-server -- tests::prerender:: 2>&1 | grep -E '^(test |test result)|panicked at'; \
        echo; echo "== TodoMVC through it in three engines (e2e/todomvc.spec.mjs)"; echo; \
        bash scripts/run_suite.sh -- pnpm exec playwright test e2e/todomvc.spec.mjs --reporter=line; \
        echo; echo "== mutation controls (scripts/prerender_mutations.py)"; echo; \
