@@ -276,6 +276,7 @@ const SERVER_ONLY = {
   "a read": "/pw-read",
   "a speculation": "speculation",
   "a navigation that keeps a layout": "popstate",
+  "a handler's navigation": "navigating to",
   "its scroll": "scrollRestoration",
   "the frame hook": "__pwTestApply",
   "the batch hook": "__pwTestBatch",

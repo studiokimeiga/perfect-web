@@ -259,4 +259,30 @@ fn a_production_build_of_the_page_starts_the_devices_runtime() {
         .find(|l| l.starts_with("content-security-policy:"))
         .unwrap_or_else(|| panic!("a policy in {html}"));
     assert!(policy.contains(&csp::sha256_source(&device)), "{policy}");
+    assert!(!html.contains("/bundle/"), "{html}");
+}
+
+#[test]
+fn a_production_build_of_the_page_fetches_its_code_beside_its_runtime() {
+    const PAGE: &str = "todomvc.app.Todos~ui";
+    let (_dir, out) = built_todomvc();
+    std::fs::write(
+        out.join("delivery.json"),
+        "{\"versioned\": true, \"device\": true, \"bundled\": true}\n",
+    )
+    .expect("written");
+    for file in ["pw-runtime.mjs", "pw-runtime-device.mjs"] {
+        std::fs::write(out.join(file), "export {};\n").expect("written");
+    }
+    let bundles = out.join("bundles");
+    std::fs::create_dir_all(&bundles).expect("a directory");
+    std::fs::write(bundles.join(format!("{PAGE}.mjs")), "export const a = 1;\n").expect("written");
+    let s = Server::from_build(out.clone(), out).expect("served");
+    s.prerender().expect("prerendered");
+    let html = page(&s, "a");
+    let module = s.delivery.named(&format!("/bundle/{PAGE}.mjs"));
+    assert!(
+        html.contains(&format!("<link rel=\"modulepreload\" href=\"{module}\">")),
+        "{html}"
+    );
 }

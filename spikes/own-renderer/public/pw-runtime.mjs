@@ -3630,7 +3630,7 @@ async function navigate(route, args, mine) {
   const url = pageAddress(route, args);
   // A page shown in a layout keeps it (the soft navigation's ADR), held to
   // the same two rules, by the same two functions.
-  if (PW_SERVER && parts.layout) return softNavigate(url, "push", mine);
+  if (parts.layout) return softNavigate(url, "push", mine);
   if (!taken(url)) return;
   navigating = true;
   await pressedBefore(mine);
