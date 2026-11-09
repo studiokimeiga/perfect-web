@@ -636,6 +636,52 @@ test("a second tab on the same device shows the same list, and each change reach
   await expect(items(second).nth(0)).toHaveClass(/completed/);
 });
 
+// A frozen page hears no `storage` event, so a tab that writes while this one
+// is in the back-forward cache is heard by nobody. What the browser does to
+// bring it back is `pageshow`, `persisted`: here, after the same write, which
+// the tab that makes it hears nothing of either.
+test("a page brought back from the back-forward cache shows what was written while it was away", async ({
+  page,
+}) => {
+  await open(page);
+  await add(page, ONE);
+  await page.evaluate(
+    (list) => localStorage.setItem("todos-pleris", JSON.stringify(list)),
+    [
+      { id: 1, title: ONE, completed: false },
+      { id: 2, title: TWO, completed: false },
+    ],
+  );
+  await page.evaluate(() =>
+    window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })),
+  );
+  await expect(items(page)).toHaveText([ONE, TWO]);
+});
+
+// --- One document for everyone (the prerender's ADR) -------------------------
+
+test("the page is one document, kept and asked for again, and names no session", async ({
+  playwright,
+  baseURL,
+}) => {
+  const client = await playwright.request.newContext({ baseURL });
+  try {
+    const headers = { "accept-encoding": "br" };
+    const first = await client.get("/", { headers });
+    expect(first.status()).toBe(200);
+    expect(first.headers()["cache-control"]).toBe("public, no-cache");
+    expect(first.headers()["content-encoding"]).toBe("br");
+    expect(first.headers()["set-cookie"]).toBeUndefined();
+    const again = await client.get("/", {
+      headers: { ...headers, "if-none-match": first.headers()["etag"] },
+    });
+    expect(again.status()).toBe(304);
+    expect((await again.body()).length).toBe(0);
+  } finally {
+    await client.dispose();
+  }
+});
+
 // --- Routing ----------------------------------------------------------------
 
 test("all is the default route, its link selected", async ({ page }) => {

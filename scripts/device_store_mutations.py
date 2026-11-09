@@ -409,6 +409,13 @@ MUTANTS = [
         "  void heardKept;\n",
     ),
     (
+        "a page the back-forward cache brings back reads nothing",
+        "browser",
+        RUNTIME,
+        "    void heardKept({ key: null, storageArea: deviceStore() });\n",
+        "    void heardKept;\n",
+    ),
+    (
         "another tab's write is written back",
         "browser",
         RUNTIME,

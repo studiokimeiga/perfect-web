@@ -2761,6 +2761,10 @@ addEventListener(
   (e) => {
     if (!e.persisted) return;
     navigating = false;
+    // A frozen page hears no `storage` event, so another tab's writes while
+    // it was kept went unheard: everything the device keeps is read again,
+    // as after a `clear()` (the prerender's ADR).
+    void heardKept({ key: null, storageArea: deviceStore() });
     if (leaving && parts.listens !== false) {
       leaving = false;
       subscribe();
