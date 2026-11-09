@@ -45,6 +45,7 @@ test("a speculation module that does not load sends the press unspeculated, and 
     {
       parts: { speculation: url }, log, speculationLoaded: null, nextSpeculation: 0,
       attempted: (specifier, attempts) => (attempts === 0 ? specifier : `${specifier}${attempts}`),
+      pageCode: (_piece, url) => import(url),
       within: (promise) => promise, restoreSpeculation: async () => {}, current: () => null, render: () => {},
     },
     { importModuleDynamically: vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER },
