@@ -97,7 +97,7 @@ test("a production build says its pages warm what their presses need", async () 
     const files = await optimizeAssets(dir);
     assert.deepEqual(files, ["pw-runtime.mjs"]);
     const delivery = JSON.parse((await readFile(path.join(dir, "delivery.json"))).toString());
-    assert.deepEqual(delivery, { warm: true, versioned: true, bundled: true });
+    assert.deepEqual(delivery, { warm: true, versioned: true, bundled: true, device: true });
     await assert.rejects(readFile(path.join(dir, "delivery.json.br")), { code: "ENOENT" });
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -215,6 +215,32 @@ test("a build with no pages bundles nothing", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
   try {
     assert.deepEqual(await bundlePages(dir), []);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("a production build writes a runtime for a page that talks to no server", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+  try {
+    const runtime = `const PW_SERVER = true;
+function subscribe() { return "/stream"; }
+function kept() { return "signals"; }
+if (PW_SERVER) subscribe();
+kept();
+export {};
+`;
+    await writeFile(path.join(dir, "pw-runtime.mjs"), runtime);
+    await optimizeAssets(dir);
+    const device = await readFile(path.join(dir, "pw-runtime-device.mjs"));
+    const full = await readFile(path.join(dir, "pw-runtime.mjs"));
+    assert.match(device.toString(), /signals/, "what a device page uses is kept");
+    assert.doesNotMatch(device.toString(), /\/stream/, "what only a server's page uses falls away");
+    assert.match(full.toString(), /\/stream/, "the full runtime is as it was");
+    assert.deepEqual(brotliDecompressSync(await readFile(path.join(dir, "pw-runtime-device.mjs.br"))), device);
+    assert.deepEqual(gunzipSync(await readFile(path.join(dir, "pw-runtime-device.mjs.gz"))), device);
+    const delivery = JSON.parse((await readFile(path.join(dir, "delivery.json"))).toString());
+    assert.equal(delivery.device, true);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

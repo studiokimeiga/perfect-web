@@ -15,10 +15,34 @@ const BR = {
 };
 const ASSET = /\.(?:mjs|js|wasm|css|svg)$/;
 
+/**
+ * **The runtime of a page that talks to no server** (the device runtime's
+ * ADR): the runtime with `PW_SERVER` false, and what only a server's page
+ * uses dropped with it. Its one source is the runtime's, so the two cannot
+ * drift, and a page's document names which it runs.
+ */
+async function packDeviceRuntime(directory, source) {
+  if (!source.includes("const PW_SERVER = true;")) return;
+  const { code } = await transform(source.replace("const PW_SERVER = true;", "").replaceAll("PW_SERVER", "false"), {
+    loader: "js",
+    format: "esm",
+    target: "es2022",
+    minify: true,
+    treeShaking: true,
+    legalComments: "inline",
+    charset: "utf8",
+  });
+  const file = path.join(directory, "pw-runtime-device.mjs");
+  await writeFile(file, code);
+  await writeFile(file + ".br", brotliCompressSync(Buffer.from(code), BR));
+  await writeFile(file + ".gz", gzipSync(Buffer.from(code), { level: 9, mtime: 0 }));
+}
+
 async function packAsset(directory, entry) {
   const file = path.join(directory, entry.name);
   let body = await readFile(file);
   if (entry.name === "pw-runtime.mjs") {
+    await packDeviceRuntime(directory, body.toString("utf8"));
     const result = await transform(body.toString("utf8"), {
       loader: "js",
       format: "esm",
@@ -44,7 +68,7 @@ async function packAsset(directory, entry) {
  * reads this file beside the assets. A development build has none: it warms
  * nothing (E7-L), and names each file as it is.
  */
-export const DELIVERY = { warm: true, versioned: true, bundled: true };
+export const DELIVERY = { warm: true, versioned: true, bundled: true, device: true };
 
 /**
  * **The compiled modules a page loads** (ADR-0399): its
