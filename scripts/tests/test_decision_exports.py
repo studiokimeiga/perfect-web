@@ -49,7 +49,7 @@ class DecisionExports(unittest.TestCase):
     def test_a_name_destructured_beside_the_decision_is_read_and_another_is_not(self):
         script = (
             "const { memory, alloc: take, decide_manifest, gone = null } = e.exports;\n"
-            "const { out_ptr, out_len } = renderer.exports;\n"
+            "const { out_ptr, out_len } = other.exports;\n"
         )
         self.assertEqual(de.asked(script), {"memory", "alloc", "decide_manifest", "gone"})
 

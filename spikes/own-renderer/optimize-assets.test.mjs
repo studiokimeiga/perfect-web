@@ -14,12 +14,12 @@ test("the production build minifies and compresses only public client assets", a
     const binary = Buffer.from([0x00, 0x61, 0x73, 0x6d, 0x01, 0, 0, 0]);
     const privatePage = "<html>session-specific</html>";
     await writeFile(path.join(dir, "pw-runtime.mjs"), javascript);
-    await writeFile(path.join(dir, "pw-render.wasm"), binary);
+    await writeFile(path.join(dir, "pw-resume.wasm"), binary);
     await writeFile(path.join(dir, "Page.html"), privatePage);
     await writeFile(path.join(dir, "sources.json"), "{}");
     await writeFile(path.join(dir, "license.txt"), "licence");
     const files = await optimizeAssets(dir);
-    assert.deepEqual(files, ["pw-render.wasm", "pw-runtime.mjs"].sort());
+    assert.deepEqual(files, ["pw-resume.wasm", "pw-runtime.mjs"].sort());
     const minified = await readFile(path.join(dir, "pw-runtime.mjs"));
     assert.ok(minified.length < Buffer.byteLength(javascript));
     assert.match(minified.toString(), /42/);

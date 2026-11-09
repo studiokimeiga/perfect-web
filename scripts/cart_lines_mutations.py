@@ -31,7 +31,7 @@ Each mutant undoes one piece:
 A mutant must fail the suite it is listed with: `pw-core`'s four test targets
 that see the core mutants, or the development server's tests that see the
 server's (each measured, below); `pw-conformance`'s tests, `pw-render`'s,
-`pw-render-wasm`'s, or `pw-host`'s with the engine, each run whole; or
+`pw-render-oracle`'s, or `pw-host`'s with the engine, each run whole; or
 `e2e/cart.spec.mjs` in Chromium.
 
 Run from the repository root; `just e14-cart-lines` records the output.
@@ -54,7 +54,7 @@ DOMAIN = ROOT / "examples/domain.pw"
 # and its subtotal are UserCarts'.
 USER_CARTS = ROOT / "examples/lib/UserCarts.pw"
 RENDER = ROOT / "runtime/pw-render/src/lib.rs"
-RENDER_WASM = ROOT / "runtime/pw-render-wasm/src/lib.rs"
+RENDER_WASM = ROOT / "runtime/pw-render-oracle/src/lib.rs"
 HOST = ROOT / "runtime/pw-host/src/lib.rs"
 SERVER = ROOT / "spikes/own-renderer/server/src/main.rs"
 STORE_DATA = ROOT / "spikes/own-renderer/server/src/store.rs"
@@ -419,7 +419,7 @@ CARGO = {
     ],
     "conformance": ["cargo", "test", "--quiet", "--locked", "-p", "pw-conformance"],
     "render": ["cargo", "test", "--quiet", "--locked", "-p", "pw-render"],
-    "render-wasm": ["cargo", "test", "--quiet", "--locked", "-p", "pw-render-wasm"],
+    "render-wasm": ["cargo", "test", "--quiet", "--locked", "-p", "pw-render-oracle"],
     "host": ["cargo", "test", "--quiet", "--locked", "-p", "pw-host", "--features", "engine"],
     # The development server's tests that see its mutants' rules (W6's ruling
     # of 2026-10-09: a mutant that takes long is given the tests that can see

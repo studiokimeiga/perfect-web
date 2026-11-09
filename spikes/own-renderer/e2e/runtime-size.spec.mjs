@@ -116,16 +116,15 @@ test("gate 7b: the interactive route's runtime is bounded as it is sent", async 
   expect(bytes.urls.filter((u) => u.includes("/handler/")), "no handler bytes").toEqual([]);
 });
 
-test("gate 7d: the renderer a page fetches to render a block again is bounded as it is sent", async ({
-  request,
-}) => {
-  // Fetched the first time a block a signal decides is rendered again
-  // (ADR-0137), not as a page activates.
-  const body = await (await request.get("/pw-render.wasm")).body();
-  console.log(
-    `EVIDENCE renderer-wasm-bytes=${body.length} gzip=${gzipSync(body, { level: 9 }).length} ` +
-      `brotli=${brotli(body)}`,
-  );
-  expect(body.length, "the renderer is served").toBeGreaterThan(0);
-  expect(brotli(body), "the renderer, as sent").toBeLessThan(128 * 1024);
+test("gate 7d: a block a signal decides is rendered with what the page already holds", async ({ page }) => {
+  // The browser's renderer is the runtime's (the browser renderer's ADR): it
+  // was a file of its own, fetched the first time a block was rendered again.
+  await page.goto("/page/demo.panel.PanelPage~ui");
+  await page.waitForFunction(() => document.documentElement.dataset.pwReady === "1");
+  const during = await transferred(page, async () => {
+    await page.locator("#open-cart").click();
+    await expect(page.locator("#cart-panel")).toBeVisible();
+  });
+  expect(during.urls.filter((u) => /wasm|render/.test(u)), "no renderer is fetched").toEqual([]);
+  expect((await page.request.get("/pw-render.wasm")).status(), "and none is served").toBe(404);
 });

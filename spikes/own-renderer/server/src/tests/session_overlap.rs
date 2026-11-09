@@ -44,7 +44,6 @@ fn with_runtime_files(s: &Server) {
     for (file, body) in [
         ("pw-runtime.mjs", "export {};"),
         ("pw-resume.wasm", "resume"),
-        ("pw-render.wasm", "render"),
     ] {
         std::fs::write(s.dist.join(file), body).expect("runtime file written");
     }
@@ -76,7 +75,6 @@ impl Ask {
             "/pw-runtime.mjs",
             "/pw-runtime.mjs?document=1",
             "/pw-resume.wasm",
-            "/pw-render.wasm",
         ]
         .into_iter()
         .map(|path| Ask::Get(path.to_string()))
@@ -350,7 +348,6 @@ fn warm_up(s: &Server) -> Vec<Ask> {
         "/pw-runtime.mjs".to_string(),
         "/pw-resume.wasm".into(),
         "/pw-handlers".into(),
-        "/pw-render.wasm".into(),
         format!("/handler/{handler}.mjs"),
     ]
     .into_iter()
@@ -717,7 +714,7 @@ fn on_postgres_admissions_under_a_commands_lock_delay_no_other_readers_page() {
     with_runtime_files(&a);
     let ada = signed_in(&a, &provider, "s-came-ada", "ada");
     let bob = signed_in(&a, &provider, "s-came-bob", "bob");
-    let files: Vec<String> = ["/pw-runtime.mjs", "/pw-resume.wasm", "/pw-render.wasm"]
+    let files: Vec<String> = ["/pw-runtime.mjs", "/pw-resume.wasm"]
         .into_iter()
         .map(String::from)
         .chain((1..).map(|n| format!("/pw-runtime.mjs?document={n}")))

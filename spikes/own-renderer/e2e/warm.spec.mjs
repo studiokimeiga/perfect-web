@@ -256,10 +256,10 @@ test("a press made during a warm speculation load waits for it within a deadline
   await page.unrouteAll({ behavior: "ignoreErrors" }).catch(() => {});
 });
 
-test("the renderer and the speculation module are warmed with the handlers", async ({ page }) => {
+test("the speculation module is warmed with the handlers", async ({ page }) => {
   // The store page speculates (ADR-0122) and renders its cart's rows in the
-  // browser (ADR-0172): its first Add needs the speculation module and the
-  // renderer, and a build that warms has both before it.
+  // browser (ADR-0172): its first Add needs the speculation module, and a
+  // build that warms has it before.
   const asked = [];
   page.on("request", (r) => asked.push(new URL(r.url()).pathname));
   await warming(page);
@@ -267,21 +267,18 @@ test("the renderer and the speculation module are warmed with the handlers", asy
   const speculation = await page.evaluate(() => window.__pw.parts.speculation ?? null);
   expect(speculation, "the store page speculates").not.toBeNull();
   await warmed(page);
-  await expect.poll(() => asked.filter((p) => p === "/pw-render.wasm").length).toBe(1);
   await expect.poll(() => asked.filter((p) => p === speculation).length).toBe(1);
   await settled(page, Object.values(await identities(page)));
-  await page.waitForFunction(() => performance.getEntriesByName(new URL("/pw-render.wasm", location.href).href).length > 0);
 
   const before = asked.length;
   await page.locator("#menu button").first().click();
   await expect(page.locator("#cart-count")).toHaveText("1");
   const during = asked.slice(before);
-  expect(during.filter((p) => p === "/pw-render.wasm" || p === speculation || p.startsWith("/handler/"))).toEqual([]);
+  expect(during.filter((p) => p === speculation || p.startsWith("/handler/"))).toEqual([]);
 });
 
 test("a build that warms runs a block's paths on a copy, and the page is as it was", async ({ page }) => {
-  // ADR-0399: the renderer runs each of its requests on its
-  // own sample, and each block is rendered at the values it shows and
+  // ADR-0399: a block is rendered at the values it shows and
   // morphed into a copy in an inert document. Nothing the page shows
   // changes and nothing takes focus; the first press renders as before.
   // The demo panel's `{#match}` block is one the browser renders.
@@ -328,7 +325,6 @@ test("a build that warms runs a block's paths on a copy, and the page is as it w
   expect(blocks.length, "the page has a block the browser renders").toBeGreaterThan(0);
   // Its first, and only one: one block calls what any block's change does.
   expect(log.filter((l) => l.startsWith("warmed the paths"))).toEqual([`warmed the paths of block ${blocks[0]}`]);
-  expect(log).not.toContain("the renderer refused its warm-up");
   expect(await page.evaluate(() => window.__changes), "no change to the document").toEqual([]);
   expect(await shown()).toEqual(before);
   expect(before[1]).toBe("body");

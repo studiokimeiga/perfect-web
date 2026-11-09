@@ -111,9 +111,8 @@ echo "== 3d. the browser's WebAssembly =="
 # The browser's WebAssembly, built for size (`[profile.browser]`): the resume
 # decision, and the renderer a signal's block is rendered again by (ADR-0130).
 cargo build --quiet --manifest-path "$REPO_ROOT/Cargo.toml" \
-  -p pw-resume-wasm -p pw-render-wasm --target wasm32-unknown-unknown --profile browser
+  -p pw-resume-wasm --target wasm32-unknown-unknown --profile browser
 cp "$TARGET_DIR/wasm32-unknown-unknown/browser/pw_resume_wasm.wasm" "$OUT/pw-resume.wasm"
-cp "$TARGET_DIR/wasm32-unknown-unknown/browser/pw_render_wasm.wasm" "$OUT/pw-render.wasm"
 echo "   $(ls "$OUT" | tr '\n' ' ')"
 
 echo

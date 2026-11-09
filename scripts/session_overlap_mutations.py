@@ -173,7 +173,7 @@ MUTANTS = [
      '    if method == "GET"\n'
      "        && matches!(\n"
      "            route,\n"
-     '            "/pw-runtime.mjs" | "/pw-resume.wasm" | "/pw-render.wasm"\n'
+     '            "/pw-runtime.mjs" | "/pw-resume.wasm"\n'
      "        )\n"
      "    {\n"
      # The first press's `serve_file`: the request's whole path, whose query

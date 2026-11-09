@@ -1,173 +1,27 @@
-//! **The renderer, compiled for the browser** (ADR-0130).
+//! **The requests the browser's renderer is held to** (the browser renderer's
+//! ADR).
 //!
-//! A part a signal decides is rendered again in the browser when the signal
-//! changes. This is `runtime/pw-render`, the server's renderer, built for
-//! `wasm32-unknown-unknown`, so the browser and the server render a part with
-//! one implementation: the same escaping in each of the five contexts, the
-//! same anchors, the same refusals. `pw-resume-wasm` exists for the same
-//! reason: a second implementation of a security-relevant function is two
-//! things that can disagree, and the disagreement is silent.
-//!
-//! # The ABI
-//!
-//! ```text
-//! alloc(len)                  -> ptr   the caller writes a request here
-//! render_part(ptr, len)       -> code  0 done, 1 refused, 2 malformed
-//! render_instance(ptr, len)   -> code  one instance of a loop (ADR-0172)
-//! instance_changes(ptr, len)  -> code  what changed in one (ADR-0172)
-//! attribute_value(ptr, len)   -> code  an attribute as written (ADR-0172)
-//! warm()                      -> code  each of these run once on a sample
-//! out_ptr() / out_len()                the answer, or why it was refused
-//! ```
+//! The browser renders a part with a page of JavaScript
+//! (`spikes/own-renderer/public/pw-runtime.mjs`), and a second implementation
+//! of a function that escapes is two things that can disagree. These are what
+//! it is asked, answered by `runtime/pw-render`, the server's renderer, and
+//! `src/bin/oracle.rs` answers them to `renderer-agreement.test.mjs`.
 //!
 //! A request is JSON: `{ "part": <a template part>, "values": { name: value } }`,
 //! each value in the wire form a page's signals are held in, and
 //! `"templates"`, each view's template an instance in the part is rendered
-//! with (ADR-0203). An instance's
-//! request names its row as `item`; an instance's changes, its row before and
-//! after as `was` and `now`.
-//!
-//! A speculation's parts are rendered here too (ADR-0172): its rows, their
-//! changes and its attributes, from the speculated value, with the server's
-//! own escaping and anchors.
-
-use std::sync::Mutex;
-
-static OUT: Mutex<String> = Mutex::new(String::new());
-
-/// Bytes the caller may write a request into. Leaked deliberately, as
-/// `pw-resume-wasm` leaks its manifests: a page renders a handful of parts
-/// per press, and a free() across the ABI is more ways to be wrong.
-#[unsafe(no_mangle)]
-pub extern "C" fn alloc(len: usize) -> *mut u8 {
-    let mut buf = vec![0u8; len];
-    let ptr = buf.as_mut_ptr();
-    std::mem::forget(buf);
-    ptr
-}
-
-/// **Render one part** with the values given.
-///
-/// # Safety
-///
-/// `ptr` must point at `len` bytes the caller obtained from [`alloc`].
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn render_part(ptr: *const u8, len: usize) -> u32 {
-    let bytes = unsafe { std::slice::from_raw_parts(ptr, len) };
-    let (code, out) = render(bytes);
-    *OUT.lock().unwrap() = out;
-    code
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn out_ptr() -> *const u8 {
-    OUT.lock().unwrap().as_ptr()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn out_len() -> usize {
-    OUT.lock().unwrap().len()
-}
-
-/// **Render one instance of a loop** (ADR-0172).
-///
-/// # Safety
-///
-/// As [`render_part`].
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn render_instance(ptr: *const u8, len: usize) -> u32 {
-    let bytes = unsafe { std::slice::from_raw_parts(ptr, len) };
-    let (code, out) = instance(bytes);
-    *OUT.lock().unwrap() = out;
-    code
-}
-
-/// **What changed in one instance of a loop** (ADR-0172).
-///
-/// # Safety
-///
-/// As [`render_part`].
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn instance_changes(ptr: *const u8, len: usize) -> u32 {
-    let bytes = unsafe { std::slice::from_raw_parts(ptr, len) };
-    let (code, out) = changes(bytes);
-    *OUT.lock().unwrap() = out;
-    code
-}
-
-/// **An attribute's value, as the document writes it** (ADR-0172).
-///
-/// # Safety
-///
-/// As [`render_part`].
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn attribute_value(ptr: *const u8, len: usize) -> u32 {
-    let bytes = unsafe { std::slice::from_raw_parts(ptr, len) };
-    let (code, out) = attribute(bytes);
-    *OUT.lock().unwrap() = out;
-    code
-}
-
-/// **What an element's handlers capture, as the document writes it**
-/// (ADR-0217).
-///
-/// # Safety
-///
-/// As [`render_part`].
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn captures_value(ptr: *const u8, len: usize) -> u32 {
-    let bytes = unsafe { std::slice::from_raw_parts(ptr, len) };
-    let (code, out) = captures(bytes);
-    *OUT.lock().unwrap() = out;
-    code
-}
-
-/// **Each request run once, on a sample, and thrown away** (the first
-/// press's ADR). A browser compiles a WebAssembly function the first time
-/// it is called (V8 compiles lazily: TodoMVC's first add compiled 521 of
-/// this module's functions, 24 ms of it at 4x CPU), so a page's first change
-/// paid for compiling the paths it renders by. The runtime calls this when
-/// the page is idle. The sample holds every part a block can hold, in each
-/// context, at values of each wire form (`warm.json`). `0`, or the first
-/// code that was not; the answer is left as it was.
-#[unsafe(no_mangle)]
-pub extern "C" fn warm() -> u32 {
-    warm_up()
-}
-
-/// The sample [`warm`] runs: one request each export reads its own fields
-/// of, and an attribute's, whose part is its own. Each is read as any
-/// request is, so the warm-up adds no reader of its own to the module.
-const WARM: &str = include_str!("warm.json");
-const WARM_ATTRIBUTE: &str = r#"{"part":{"part":"attribute","id":1,"owner":1,"name":"aria-label","value":"flag","context":"attribute"},"values":{"flag":"on"}}"#;
-
-/// [`warm`], each request in turn.
-pub fn warm_up() -> u32 {
-    let sample = WARM.as_bytes();
-    [
-        render(sample).0,
-        instance(sample).0,
-        changes(sample).0,
-        captures(sample).0,
-        attribute(WARM_ATTRIBUTE.as_bytes()).0,
-    ]
-    .into_iter()
-    .find(|&code| code != 0)
-    .unwrap_or(0)
-}
+//! with (ADR-0203). An instance's request names its row as `item`; an
+//! instance's changes, its row before and after as `was` and `now`.
 
 /// A request read: its JSON, its part, the values it gives, set into a
 /// rendering environment, and the templates of the views it renders an
 /// instance of (ADR-0203). `Err((2, why))` for a request that is not one.
 ///
-/// The part and the templates are read by [`pw_render::decode`], which
-/// reads the IR as serde's derives do without their generic visitors, which
-/// were most of this module's bytes (ADR-0399).
 fn read(request: &[u8]) -> Result<Read, (u32, String)> {
     let request = serde_json::from_slice::<serde_json::Value>(request)
         .map_err(|_| (2, "the request is not JSON".to_string()))?;
-    let part =
-        pw_render::decode::part(&request["part"]).map_err(|e| (2, format!("the part: {e}")))?;
+    let part = serde_json::from_value::<pw_render::ir::Part>(request["part"].clone())
+        .map_err(|e| (2, format!("the part: {e}")))?;
     let mut env = pw_render::Env::new();
     if let Some(values) = request["values"].as_object() {
         for (name, value) in values {
@@ -176,9 +30,8 @@ fn read(request: &[u8]) -> Result<Read, (u32, String)> {
     }
     let templates = match request.get("templates") {
         None => Vec::new(),
-        Some(t) => {
-            pw_render::decode::templates(t).map_err(|e| (2, format!("the templates: {e}")))?
-        }
+        Some(t) => serde_json::from_value::<Vec<pw_render::Template>>(t.clone())
+            .map_err(|e| (2, format!("the templates: {e}")))?,
     };
     Ok((request, part, env, templates))
 }
@@ -307,7 +160,7 @@ pub fn captures(request: &[u8]) -> (u32, String) {
         Ok(r) => r,
         Err(_) => return (2, "the request is not JSON".to_string()),
     };
-    let parts = match pw_render::decode::parts(&request["parts"]) {
+    let parts = match serde_json::from_value::<Vec<pw_render::ir::Part>>(request["parts"].clone()) {
         Ok(p) => p,
         Err(e) => return (2, format!("the parts: {e}")),
     };
@@ -564,138 +417,5 @@ mod tests {
         assert_eq!(shown, "<b>&lt;i&gt;Menu&lt;/i&gt;</b>");
         assert!(html.contains("<!--pw:s2@"), "{html}");
         assert_eq!(render(request("").as_bytes()).0, 1);
-    }
-
-    /// **The warm-up's sample is rendered, by every request** (the first
-    /// press's ADR): one the renderer refused would warm only the way to the
-    /// refusal. Each row renders, its view's instance and its streamed
-    /// placeholder too, and an unsafe address is made safe.
-    #[test]
-    fn the_warm_up_renders_its_sample_in_every_request() {
-        assert_eq!(super::warm_up(), 0);
-        let (code, html) = render(super::WARM.as_bytes());
-        assert_eq!(code, 0, "{html}");
-        for shown in [
-            "&amp; &lt;eggs&gt;",
-            "<em>",
-            "<s>done</s>",
-            "-->z<!--",
-            "-->p<!--",
-            "<p>…</p>",
-        ] {
-            assert!(html.contains(shown), "{shown} in {html}");
-        }
-        assert!(html.contains("href=\"about:blank\""), "{html}");
-        assert!(!html.contains("JavaScript:"), "{html}");
-        let (code, out) = super::changes(super::WARM.as_bytes());
-        assert_eq!(code, 0, "{out}");
-        assert_ne!(out, "null", "a row's own changes, not the row again");
-    }
-
-    /// **The sample holds every part a block can hold, and each context**:
-    /// a kind it lacks is a path a first change still compiles. Exhaustive,
-    /// so a kind the IR gains fails here until the sample has it or says why
-    /// not.
-    #[test]
-    fn the_warm_up_s_sample_holds_every_part_a_block_can() {
-        use pw_render::ir::{Chunk, Context, Part};
-        use std::collections::BTreeSet;
-        fn walk(chunks: &[Chunk], seen: &mut BTreeSet<String>) {
-            for chunk in chunks {
-                if let Chunk::Dynamic(p) = chunk {
-                    part(p, seen);
-                }
-            }
-        }
-        fn part(p: &Part, seen: &mut BTreeSet<String>) {
-            let kind = match p {
-                Part::Text { context, .. } | Part::Attribute { context, .. } => {
-                    seen.insert(format!("{context:?}"));
-                    if matches!(p, Part::Text { .. }) {
-                        "text"
-                    } else {
-                        "attribute"
-                    }
-                }
-                Part::BooleanAttribute { .. } => "boolean_attribute",
-                Part::Event { .. } => "event",
-                Part::Conditional {
-                    then, otherwise, ..
-                } => {
-                    walk(then, seen);
-                    walk(otherwise, seen);
-                    "conditional"
-                }
-                Part::Each { body, .. } => {
-                    walk(body, seen);
-                    "each"
-                }
-                Part::Match { arms, .. } => {
-                    arms.iter().for_each(|a| walk(&a.body, seen));
-                    "match"
-                }
-                Part::Stream {
-                    placeholder,
-                    ready,
-                    failed,
-                    ..
-                } => {
-                    walk(placeholder, seen);
-                    walk(&ready.body, seen);
-                    walk(&failed.body, seen);
-                    "stream"
-                }
-                Part::InterpolatedAttribute { context, .. } => {
-                    seen.insert(format!("{context:?}"));
-                    "interpolated_attribute"
-                }
-                Part::Instance { .. } => "instance",
-                // Written into the head by its host, and no block's: a raw
-                // value, which the browser's renderer is granted no
-                // capability for (`read`), and a construct refused.
-                Part::Title { .. }
-                | Part::Meta { .. }
-                | Part::Canonical { .. }
-                | Part::RawHtml { .. }
-                | Part::Blocked { .. } => "none a block renders",
-            };
-            seen.insert(kind.to_string());
-        }
-        let sample: serde_json::Value = serde_json::from_str(super::WARM).unwrap();
-        let mut seen = BTreeSet::new();
-        part(
-            &pw_render::decode::part(&sample["part"]).unwrap(),
-            &mut seen,
-        );
-        for t in pw_render::decode::templates(&sample["templates"]).unwrap() {
-            walk(&t.chunks, &mut seen);
-        }
-        let contexts = [
-            Context::Text,
-            Context::Attribute,
-            Context::Url,
-            Context::Style,
-            Context::Content,
-        ];
-        let kinds = [
-            "text",
-            "attribute",
-            "boolean_attribute",
-            "event",
-            "conditional",
-            "each",
-            "match",
-            "stream",
-            "interpolated_attribute",
-            "instance",
-        ];
-        for want in kinds
-            .map(String::from)
-            .into_iter()
-            .chain(contexts.map(|c| format!("{c:?}")))
-        {
-            assert!(seen.contains(&want), "the sample holds no {want}: {seen:?}");
-        }
-        assert!(!seen.contains("none a block renders"), "{seen:?}");
     }
 }

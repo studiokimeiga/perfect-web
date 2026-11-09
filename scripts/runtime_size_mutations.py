@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """Negative controls for ADR-0188: a page's runtime is bounded as it is sent.
 
-Each control grows what a page downloads by bytes that do not compress:
-- the runtime's script, by a comment of 48 KB of random text, which gate
-  item 7b must refuse;
-- the renderer's WebAssembly, by 64 KB of random bytes it exports, which gate
-  item 7d must refuse.
+The control grows what a page downloads by bytes that do not compress: the
+runtime's script, by a comment of 48 KB of random text, which gate item 7b must
+refuse. And a page that fetches a renderer again must fail gate item 7d.
 
 A bound that a grown file passes bounds nothing. Every control must fail
 `e2e/runtime-size.spec.mjs`, against a build of the grown source.
@@ -26,13 +24,8 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 RUNTIME = ROOT / "spikes/own-renderer/public/pw-runtime.mjs"
-RENDERER = ROOT / "runtime/pw-render-wasm/src/lib.rs"
-# Outside the source tree, and the same every run.
-PAD = ROOT / "target/runtime-size-control.bin"
-
 # Seeded, so a run is the same run.
 NOISE = random.Random(188)
-PAD_BYTES = NOISE.randbytes(65536)
 SCRIPT_NOISE = base64.b64encode(NOISE.randbytes(36 * 1024)).decode()
 
 # (what, file, anchor, replacement)
@@ -44,12 +37,11 @@ MUTANTS = [
         f"// E7-R — the browser runtime.\n// {SCRIPT_NOISE}\n",
     ),
     (
-        "the renderer grows by 64 KB that do not compress",
-        RENDERER,
-        "use std::sync::Mutex;\n",
-        "use std::sync::Mutex;\n\n"
-        "#[unsafe(no_mangle)]\n"
-        f"pub static PW_SIZE_CONTROL: [u8; 65536] = *include_bytes!(\"{PAD}\");\n",
+        "a block fetches a file to be rendered with",
+        RUNTIME,
+        "async function renderBlock(id) {\n",
+        "async function renderBlock(id) {\n"
+        '  await fetch("/pw-render.wasm");\n',
     ),
 ]
 
@@ -103,8 +95,6 @@ def main():
     # Stopped from outside, the source is still restored: SIGTERM raises
     # here, and the `finally` below runs.
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(1))
-    PAD.parent.mkdir(parents=True, exist_ok=True)
-    PAD.write_bytes(PAD_BYTES)
     built, passed, failed = run_spec()
     print(f"baseline: {passed} passed, {failed} failed", flush=True)
     if not built or failed or not passed:

@@ -147,7 +147,10 @@ fn decode_entities(s: &str) -> String {
     while let Some(i) = rest.find('&') {
         out.push_str(&rest[..i]);
         rest = &rest[i..];
-        let Some(end) = rest[..rest.len().min(12)].find(';') else {
+        // By bytes: the twelfth may be inside a character, and a `;` is one
+        // byte wherever it is.
+        let window = &rest.as_bytes()[..rest.len().min(12)];
+        let Some(end) = window.iter().position(|b| *b == b';') else {
             out.push('&');
             rest = &rest[1..];
             continue;
@@ -211,6 +214,20 @@ pub fn json_in_script(json: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    /// **A reference's window is twelve bytes, and may end inside a
+    /// character.** Until 2026-11-09 it was cut with a string slice, so an
+    /// address of `&`, a few letters and a wide character panicked the
+    /// renderer: a server's worker on a value a user wrote.
+    #[test]
+    fn a_wide_character_where_a_references_window_ends_is_only_text() {
+        for pad in 8..=13 {
+            for wide in ["é", "日", "😀"] {
+                let value = format!("&{}{wide};javascript:x", "a".repeat(pad));
+                assert_eq!(url(&value), attribute(&value), "{value}");
+            }
+        }
+    }
+
     use super::*;
 
     #[test]

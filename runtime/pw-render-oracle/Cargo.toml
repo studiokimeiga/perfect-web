@@ -1,13 +1,10 @@
 [package]
-name = "pw-render-wasm"
+name = "pw-render-oracle"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 publish = false
-
-[lib]
-crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 pw-render = { path = "../pw-render" }

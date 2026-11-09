@@ -1388,7 +1388,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pw-render-wasm"
+name = "pw-render-oracle"
 version = "0.0.0"
 dependencies = [
  "pw-render",

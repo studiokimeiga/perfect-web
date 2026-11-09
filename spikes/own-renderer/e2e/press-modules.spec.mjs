@@ -1,7 +1,7 @@
 // ADR-0382: the modules a press needs are loaded within the deadline, and a
-// load that failed is not kept. A handler's module, the page's speculation
-// module and the renderer it renders regions with each load when a press
-// first needs them (E7-L). Until 2026-10-21 one failed load of the
+// load that failed is not kept. A handler's module and the page's speculation
+// module each load when a press first needs them (E7-L). Until 2026-10-21 one
+// failed load of the
 // speculation module was kept: every later press that speculates failed the
 // same way until the page was reloaded, and the network was not asked again.
 // And no load had a deadline: one that never answered held its press and, as
@@ -34,16 +34,7 @@ const logged = (page, prefix) =>
 /** No answer, and no failure either: the request is held open. */
 const neverAnswered = () => new Promise(() => {});
 
-/** The store's page holds one region a speculation renders, so its
- * speculation loads the renderer too: a precondition, asserted. */
-async function speculatesRegions(page) {
-  expect(await page.evaluate(() => Object.keys(window.__pw.parts.regions ?? {}).length > 0)).toBe(true);
-}
-
-for (const [what, pattern] of [
-  ["speculation module", "**/speculation/**"],
-  ["renderer", "**/pw-render.wasm"],
-]) {
+for (const [what, pattern] of [["speculation module", "**/speculation/**"]]) {
   for (const [how, fault] of [
     ["failed to load", (route) => route.abort("failed")],
     ["never loaded", neverAnswered],
@@ -52,7 +43,6 @@ for (const [what, pattern] of [
       page,
     }) => {
       await ready(page, `/stores/47?load-deadline=${DEADLINE}`);
-      await speculatesRegions(page);
       let calls = 0;
       await page.route(pattern, (route) => (++calls === 1 ? fault(route) : route.continue()));
       try {
@@ -75,26 +65,6 @@ for (const [what, pattern] of [
     });
   }
 }
-
-test("a renderer that failed to load is loaded again for the next block a signal renders", async ({
-  page,
-}) => {
-  // `demo.panel`'s panels are blocks its signals decide, which the browser's
-  // renderer renders again (ADR-0130), not on a press's path.
-  await ready(page, "/page/demo.panel.PanelPage~ui");
-  let calls = 0;
-  await page.route("**/pw-render.wasm", (route) => (++calls === 1 ? route.abort("failed") : route.continue()));
-  try {
-    await page.locator("#open-cart").click();
-    await expect.poll(() => logged(page, "renderer not loaded"), { timeout: 8_000 }).toBe(1);
-    // The next block asks the network again, and is rendered.
-    await page.locator("#open-help").click();
-    await expect(page.locator("#help-panel")).toBeVisible();
-    expect(calls).toBe(2);
-  } finally {
-    await page.unrouteAll({ behavior: "ignoreErrors" });
-  }
-});
 
 test("a press whose handler's module never loads fails at the deadline, and the next press loads it again", async ({
   page,
