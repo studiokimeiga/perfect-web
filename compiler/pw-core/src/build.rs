@@ -174,7 +174,7 @@ impl Build {
                     format!("{text}\n").as_bytes(),
                 )?;
                 lines.push(format!(
-                    "  page       {}  {} binding(s), {} part(s){}",
+                    "  page       {}  {} binding(s), {} part(s){}{}",
                     plan.page,
                     plan.bindings.len(),
                     plan.parts.len(),
@@ -182,7 +182,9 @@ impl Build {
                     match plan.streams.len() {
                         0 => String::new(),
                         n => format!(", {n} stream(s)"),
-                    }
+                    },
+                    // And whether a host renders it once (the prerender's ADR).
+                    if plan.prerender { ", prerendered" } else { "" }
                 ));
             }
         }
@@ -535,6 +537,9 @@ pub(crate) fn prepare(
             (Ok(_), Err(_)) => {}
         }
     }
+    // Which pages no reader decides, now that what each handler sends is
+    // known (the prerender's ADR).
+    crate::prerender::mark(&mut pages, &templates, &handlers);
     let build = Build {
         templates,
         handlers,

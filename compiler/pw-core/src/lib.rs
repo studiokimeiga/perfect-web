@@ -60,6 +60,7 @@ pub mod page_values;
 pub mod placement;
 pub mod policy;
 pub mod predicates;
+pub(crate) mod prerender;
 pub mod privacy;
 pub mod program;
 pub mod provenance;
