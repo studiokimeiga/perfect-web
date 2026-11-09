@@ -402,11 +402,25 @@ MUTANTS = [
         "    deviceState[held.signal] = \"read\";\n",
     ),
     (
+        "another tab's write is shown as it said, not as it is held",
+        "browser",
+        RUNTIME,
+        "heardValue(held, store.getItem(e.key));\n",
+        "heardValue(held, e.newValue);\n",
+    ),
+    (
+        "a burst of writes is heard once each",
+        "browser",
+        RUNTIME,
+        "  heardWaiting.set(e.key, e);\n",
+        "  heardWaiting.set(heardWaiting.size + 1, e);\n",
+    ),
+    (
         "another tab's write is not heard",
         "browser",
         RUNTIME,
-        '  addEventListener("storage", (e) => void heardKept(e), { signal: life.signal });\n',
-        "  void heardKept;\n",
+        '  addEventListener("storage", heardLater, { signal: life.signal });\n',
+        "  void heardLater;\n",
     ),
     (
         "a page the back-forward cache brings back reads nothing",

@@ -3230,9 +3230,9 @@ function keep(held, value, source) {
 }
 
 /** What another tab's write of `held` says, decoded as a read is. */
-function heardValue(held, e) {
-  if (e.newValue === null) return { state: "default" };
-  const got = decodeKept(e.newValue, held.schemas[held.version - 1]);
+function heardValue(held, text) {
+  if (text === null) return { state: "default" };
+  const got = decodeKept(text, held.schemas[held.version - 1]);
   return got.error ? { state: "unreadable", why: got.error } : { state: "read", value: got.value };
 }
 
@@ -3243,7 +3243,9 @@ async function heardKept(e) {
   if (!store || e.storageArea !== store) return;
   for (const held of deviceHeld.values()) {
     if (e.key === null || e.key === deviceKey(held, held.version)) {
-      const got = e.key === null ? await readKept(store, held) : heardValue(held, e);
+      // What the device holds now, which may be later than what the event
+      // said: it waited for this tab to be idle.
+      const got = e.key === null ? await readKept(store, held) : heardValue(held, store.getItem(e.key));
       deviceState[held.signal] = got.state;
       if (got.state === "unreadable") log.push(`device: ${held.name} unreadable: ${got.why}`);
       log.push(`device: ${held.name} heard from another tab`);
@@ -3290,7 +3292,29 @@ async function readDevice() {
     document.documentElement.dataset.pwDevice = "read";
     window.__pw.device = { state: { ...deviceState }, writes: deviceWrites };
   }
-  addEventListener("storage", (e) => void heardKept(e), { signal: life.signal });
+  addEventListener("storage", heardLater, { signal: life.signal });
+}
+
+/** Each key another tab has written since this tab last had a moment. */
+const heardWaiting = new Map();
+
+/** How long another tab's write waits before this tab shows it, in ms: a
+ * frame or three, too little to see in a tab no one is pressing in. */
+const HEARD_AFTER = 50;
+
+/** **Another tab's write waits its turn.** A press in the tab someone is using
+ * has a frame to make, and with many tabs of the app open each of them drawing
+ * what it heard at once delayed that frame by a third. A short wait lets that
+ * frame go first, and shows a burst of writes once. */
+function heardLater(e) {
+  if (heardWaiting.size === 0) {
+    setTimeout(() => {
+      const events = [...heardWaiting.values()];
+      heardWaiting.clear();
+      for (const event of events) void heardKept(event);
+    }, HEARD_AFTER);
+  }
+  heardWaiting.set(e.key, e);
 }
 
 // --- ADR-0152: a key a page changes ---------------------------------------

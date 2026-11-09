@@ -209,6 +209,33 @@ test("two tabs agree: each shows the other's writes and writes nothing back", as
   await expect(one.locator("#notes li")).toHaveText(["from the first tab", "from the second tab"]);
 });
 
+test("a burst of writes from another tab is heard once, and what is held then is shown", async ({ browser }) => {
+  const context = await browser.newContext();
+  const one = await context.newPage();
+  const two = await context.newPage();
+  await ready(one);
+  await ready(two);
+  await note(one, "first");
+  await expect(two.locator("#notes li")).toHaveText(["first"]);
+  const key = "demo-notes@2";
+  const heard = () => two.evaluate(() => window.__pw.log.filter((l) => l.includes("heard from another tab")).length);
+  const before = await heard();
+  // Three writes in one task, and an event that says what is no longer held:
+  // the last write is shown, and shown once.
+  await one.evaluate((k) => {
+    const list = (...texts) => JSON.stringify(texts.map((text) => ({ id: text, text, pinned: false })));
+    for (const value of [list("a"), list("a", "b"), list("a", "b", "c")]) localStorage.setItem(k, value);
+  }, key);
+  await expect(two.locator("#notes li")).toHaveText(["a", "b", "c"]);
+  expect((await heard()) - before).toBe(1);
+  await two.evaluate((k) => {
+    window.dispatchEvent(new StorageEvent("storage", { key: k, newValue: '[{"id":"old","text":"old","pinned":false}]', storageArea: localStorage }));
+  }, key);
+  await two.waitForFunction((n) => window.__pw.log.filter((l) => l.includes("heard from another tab")).length > n, before + 1);
+  await expect(two.locator("#notes li")).toHaveText(["a", "b", "c"]);
+  await context.close();
+});
+
 test("version 1's notes are taken to version 2, and the old key goes", async ({ page }) => {
   await page.addInitScript(() => {
     if (!sessionStorage.getItem("seeded")) {
