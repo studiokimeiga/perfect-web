@@ -404,7 +404,23 @@ def nested():
     return passed + failed > 0, passed, failed
 
 
-SUITES = {"decision": decision, "contract": contract, "packaging": packaging, "host": host, "browser": browser, "nested": nested}
+def rows():
+    """The large list, on a production build."""
+    env = {**os.environ, "PW_PRODUCTION_ASSETS": "1"}
+    _, code = bounded(["bash", "spikes/own-renderer/rows.sh"], cwd=ROOT, env=env)
+    if code != 0:
+        return False, 0, 0
+    out, code = bounded(["pnpm", "exec", "playwright", "test", "e2e/rows.spec.mjs", "--project=chromium", "--reporter=line"],
+                        cwd=ROOT / "spikes/own-renderer", env=env)
+    if code is None:
+        return True, 0, 1
+    out = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", out)
+    passed = sum(int(n) for n in re.findall(r"(\d+) passed", out))
+    failed = sum(int(n) for n in re.findall(r"(\d+) failed", out))
+    return passed + failed > 0, passed, failed
+
+
+SUITES = {"decision": decision, "contract": contract, "packaging": packaging, "host": host, "browser": browser, "nested": nested, "rows": rows}
 
 
 def main():

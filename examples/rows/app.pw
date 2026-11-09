@@ -1,0 +1,147 @@
+// @corpus: fixture
+// @id: ROWS-app
+// @category: application — a table of a thousand rows, each changed by its key
+// @charter: §8, §9.1
+// @milestone: E14
+//
+// The head-to-head's large list: create, replace, update, select, swap and
+// remove rows of a table, the operations every framework's benchmark asks of
+// its keyed lists. Its rows are the page's own, so a production build runs it
+// on the device's runtime.
+
+module rows.app
+
+import List
+import String
+
+type Row = Row { id: Int, label: String }
+
+type Shown = Shown { id: Int, label: String, class: String }
+
+fn adjectives() -> List<String> !{} {
+    ["pretty", "large", "big", "small", "tall", "short", "long", "handsome", "plain", "quaint", "clean", "elegant", "easy", "angry", "crazy", "helpful", "mushy", "odd", "unsightly", "adorable", "important", "inexpensive", "cheap", "expensive", "fancy"]
+}
+
+fn colours() -> List<String> !{} {
+    ["red", "yellow", "blue", "green", "pink", "brown", "purple", "brown", "white", "black", "orange"]
+}
+
+fn nouns() -> List<String> !{} {
+    ["table", "chair", "house", "bbq", "desk", "car", "pony", "cookie", "sandwich", "burger", "pizza", "mouse", "keyboard"]
+}
+
+fn word(words: List<String>, at: Int) -> String !{} {
+    match List.get(words, at % List.length(words)) {
+        Some(w) => w,
+        None => "",
+    }
+}
+
+// The whole numbers from `from`, `n` of them, halved so a list's length is no
+// depth of calls.
+fn ints(from: Int, n: Int) -> List<Int> !{} {
+    if n <= 0 {
+        []
+    } else if n == 1 {
+        [from]
+    } else {
+        List.concat(ints(from, n / 2), ints(from + n / 2, n - n / 2))
+    }
+}
+
+// A label, from the row's id: every stack's is this one.
+fn label_of(id: Int) -> String !{} {
+    let a = (id * 16807) % 2147483647
+    let b = (a * 16807) % 2147483647
+    let c = (b * 16807) % 2147483647
+    String.join([word(adjectives(), a), word(colours(), b), word(nouns(), c)], " ")
+}
+
+fn made(from: Int, n: Int) -> List<Row> !{} {
+    List.map(ints(from, n), (id) => Row { id: id, label: label_of(id) })
+}
+
+fn updated(rows: List<Row>) -> List<Row> !{} {
+    List.map(rows, (r) => if (r.id % 10) == 1 {
+        Row { id: r.id, label: String.join([r.label, "!!!"], " ") }
+    } else {
+        r
+    })
+}
+
+fn swapped(rows: List<Row>) -> List<Row> !{} {
+    if List.length(rows) < 999 {
+        rows
+    } else {
+        match List.get(rows, 1) {
+            Some(a) => match List.get(rows, 998) {
+                Some(b) => List.concat(
+                    List.concat(List.take(rows, 1), [b]),
+                    List.concat(List.slice(rows, 2, 998), List.concat([a], List.drop(rows, 999)))
+                ),
+                None => rows,
+            },
+            None => rows,
+        }
+    }
+}
+
+fn removed(rows: List<Row>, id: Int) -> List<Row> !{} {
+    List.filter(rows, (r) => r.id != id)
+}
+
+fn shown(rows: List<Row>, selected: Int) -> List<Shown> !{} {
+    List.map(rows, (r) => Shown {
+        id: r.id,
+        label: r.label,
+        class: if r.id == selected {
+            "danger"
+        } else {
+            ""
+        },
+    })
+}
+
+page Rows() {
+    route     "/"
+    placement origin
+
+    signal rows: List<Row> = []
+    signal selected: Int = 0
+    signal next_id: Int = 1
+
+    view {
+        <title>Rows</title>
+        <main>
+            <button id="run" type="button" on:press={() => {
+                rows = made(next_id, 1000)
+                next_id = next_id + 1000
+            }}>Create 1,000 rows</button>
+            <button id="runlots" type="button" on:press={() => {
+                rows = made(next_id, 10000)
+                next_id = next_id + 10000
+            }}>Create 10,000 rows</button>
+            <button id="add" type="button" on:press={() => {
+                rows = List.concat(rows, made(next_id, 1000))
+                next_id = next_id + 1000
+            }}>Append 1,000 rows</button>
+            <button id="update" type="button" on:press={() => rows = updated(rows)}>Update every 10th row</button>
+            <button id="clear" type="button" on:press={() => rows = []}>Clear</button>
+            <button id="swaprows" type="button" on:press={() => rows = swapped(rows)}>Swap rows</button>
+            <table>
+                <tbody id="tbody">
+                    {#if List.length(rows) > 0}
+                        {#each shown(rows, selected) as row (row.id)}
+                            <tr class={row.class}>
+                                <td class="id">{row.id}</td>
+                                <td class="label"><button type="button" class="select" on:press={resumable(captures = { row }) => selected = row.id}>{row.label}</button></td>
+                                <td class="rm"><button type="button" class="remove" aria-label="Remove" on:press={resumable(captures = { row }) => rows = removed(rows, row.id)}>x</button></td>
+                                <td class="pad"></td>
+                            </tr>
+                        {/each}
+                    {/if}
+                </tbody>
+            </table>
+        </main>
+    }
+}

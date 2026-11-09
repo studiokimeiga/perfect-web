@@ -3,7 +3,7 @@
 // interactions a run makes, and what each stack's build is held to.
 //
 // Ports: the brief's `PORT` (13441 for track `head-to-head`) plus 220-249, a
-// gap the own renderer's hosts leave (their offsets run to 212 of a stride of
+// gap the own renderer's hosts leave (their offsets run to 215 of a stride of
 // 256, `spikes/own-renderer/host-registry.json`), so that the head-to-head
 // can run beside them.
 

@@ -1,0 +1,57 @@
+// @corpus: fixture
+// @id: ROWS-events
+// @category: UI state — a press heard at the document, and a row that reads the page
+// @charter: §9.1
+// @milestone: E14
+//
+// What the device's runtime has to get right where a press is heard at the
+// document and a row's text is kept: a handler that stops its event, one on an
+// element inside another, an event that stays on its target, and a row whose
+// text reads a signal of the page.
+
+module rows.events
+
+import List
+
+type Item = Item { id: Int, name: String }
+
+fn renamed(items: List<Item>, id: Int) -> List<Item> !{} {
+    List.map(items, (i) => if i.id == id {
+        Item { id: i.id, name: "renamed" }
+    } else {
+        i
+    })
+}
+
+page Events() {
+    route     "/events"
+    placement origin
+
+    signal outer: Int = 0
+    signal inner: Int = 0
+    signal left: Int = 0
+    signal typed: Int = 0
+    signal note: String = "first"
+    signal items: List<Item> = [Item { id: 1, name: "one" }, Item { id: 2, name: "two" }]
+
+    view {
+        <title>Events</title>
+        <main>
+            <div id="outer" role="button" tabindex="0" on:press={() => outer = outer + 1} on:keydown={() => outer = outer + 1}>
+                <button id="bubbles" type="button" on:press={() => inner = inner + 1}>Bubbles</button>
+                <button id="stops" type="button" on:press|stop={() => inner = inner + 1}>Stops</button>
+            </div>
+            <input id="field" aria-label="Field" on:blur={() => left = left + 1} on:keydown={() => typed = typed + 1} />
+            <button id="note" type="button" on:press={() => note = "second"}>Note</button>
+            <button id="rename" type="button" on:press={() => items = renamed(items, 2)}>Rename</button>
+            <p id="counts">{outer} {inner} {left} {typed}</p>
+            <ul id="items">
+                {#if List.length(items) > 0}
+                    {#each items as item (item.id)}
+                        <li><span class="name">{item.name}</span> <span class="note">{note}</span></li>
+                    {/each}
+                {/if}
+            </ul>
+        </main>
+    }
+}

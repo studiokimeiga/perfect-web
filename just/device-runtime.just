@@ -29,7 +29,8 @@ e14-device-runtime:
        cargo test --locked -p pw-dev-server --bin pw-dev-server tests::todomvc::a_production_build_of_the_page 2>&1 | grep -E '^(test |test result)|panicked at'; \
        echo; echo "== a production build, in three engines (e2e/todomvc.spec.mjs, e2e/device-runtime.spec.mjs)"; echo; \
        PW_PRODUCTION_ASSETS=1 BUILD_ONLY=1 bash spikes/own-renderer/run.sh > /dev/null; \
-       PW_PRODUCTION_ASSETS=1 bash scripts/run_suite.sh -- pnpm exec playwright test e2e/todomvc.spec.mjs e2e/device-runtime.spec.mjs e2e/nested-blocks.spec.mjs --reporter=line; \
+       PW_PRODUCTION_ASSETS=1 bash spikes/own-renderer/rows.sh > /dev/null; \
+       PW_PRODUCTION_ASSETS=1 bash scripts/run_suite.sh -- pnpm exec playwright test e2e/todomvc.spec.mjs e2e/device-runtime.spec.mjs e2e/nested-blocks.spec.mjs e2e/rows.spec.mjs --reporter=line; \
        echo; echo "== mutation controls (scripts/device_runtime_mutations.py)"; echo; \
        CARGO_INCREMENTAL=0 python3 scripts/device_runtime_mutations.py; \
      } > docs/evidence/E14/device-runtime.txt
