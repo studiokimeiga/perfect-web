@@ -445,26 +445,59 @@ function attempted(path, attempt) {
   return attempt === 0 ? at : `${at}${at.includes("?") ? "&" : "?"}attempt=${attempt}`;
 }
 
-/** **The decision of a page that talks to no server** (the device runtime's
- * ADR): each handler's identity is one this build compiled, with the captures
- * it reads, on a document of this page's schema and scope, from this build.
- * The rest of `pw-resume`'s decision is about a reader's data, and such a page
- * has none. Fails closed as that does: a table that cannot be read knows no
- * handler, and each is refused. */
-function deviceDecision(table) {
+/** What this build's table says of its build and this page, which either
+ * decision reads: its lines, for the decision to read the rest of. */
+function heardTable(table) {
   const lines = table.split("\n");
   servedBuild = lines.find((l) => l.startsWith("#build|"))?.slice("#build|".length) ?? "";
+  // Whether the build warms: the table's word, never the document's.
   buildWarms = lines.includes("#warm|1");
+  // Where this page's code is one module: the table's word, as a build's is.
   pageBundleAt = lines.find((l) => l.startsWith(`#bundle|${PAGE}|`))?.split("|")[2] ?? null;
-  const [, , schema, scope] = lines.find((l) => l.startsWith(`#page|${PAGE}|`))?.split("|") ?? [];
-  const known = new Map(lines.filter((l) => l && !l.startsWith("#")).map((l) => l.split("|")));
-  decide = (manifest) => {
-    const [, , build, handler, capture, document, itsScope] = manifest.split("|");
-    const attach =
-      build === servedBuild && known.get(handler) === capture && document === schema && itsScope === scope;
-    return { attach, recovery: "reload", code: attach ? 0 : 4 };
-  };
+  return lines;
 }
+
+/** **The decision of a page that talks to no server** (the device runtime's
+ * ADR): the answers of `pw-resume.wasm`, which such a page does not fetch, from
+ * the same table and the same manifest. What the module hashes, a handler's
+ * name and what it captures, is compared here as the text it was hashed from,
+ * so a handler is known exactly when the module knows it, and
+ * `device-decision.test.mjs` holds the two to one answer. Fails closed as the
+ * module does: a table that cannot be read knows no handler, and each is
+ * refused. */
+const deviceDecider = (lines, page) => {
+  const known = new Set(lines.filter((l) => l && l[0] !== "#").map((l) => (l.includes("|") ? l : `${l}|`)));
+  // Told nothing of this page, a document's schema and scope are not compared,
+  // as no build has spoken for them.
+  const told = lines.find((l) => l.startsWith(`#page|${page}|`))?.split("|");
+  return (manifest) => {
+    const [scheme, abi, , handler, capture = "", schema = "", scope = "", captures, construct] = manifest.split("|");
+    const code = !captures && capture
+      ? 9
+      : !/^\+?0*2$/.test(scheme)
+        ? 2
+        : !/^\+?0*1$/.test(abi)
+          ? 3
+          : !known.has(`${handler ?? ""}|${capture}`)
+            ? 4
+            : told && scope !== "public" && scope !== told[3]
+              ? 5
+              : told && schema !== told[2]
+                ? 6
+                : 0;
+    const recovery = construct === "private"
+      ? "rerender-private-slot"
+      : construct === "command"
+        ? "retry-interaction"
+        : construct === "resource"
+          ? "reject-irrecoverable"
+          : scope === "public"
+            ? "refetch-region"
+            : "rerender-private-slot";
+    return { attach: code === 0, recovery, code };
+  };
+};
+// --- end of the device's decision
 
 async function bootDecision() {
   // The decision and the table together, each answered by the head's
@@ -473,7 +506,7 @@ async function bootDecision() {
   // A failed decision fails the boot; the table's rejection is not unheard.
   tableText.catch(() => {});
   if (!PW_SERVER) {
-    deviceDecision(await tableText);
+    decide = deviceDecider(heardTable(await tableText), PAGE);
     return;
   }
   const { instance } = await WebAssembly.instantiateStreaming(fetch(delivered("/pw-resume.wasm")), {});
@@ -496,12 +529,7 @@ async function bootDecision() {
   // **What this build says of this page's documents** (ADR-0300): its name,
   // and this page's document schema and scope, from the same table and never
   // from the document; the decision holds each handler's document to them.
-  const lines = table.split("\n");
-  servedBuild = lines.find((l) => l.startsWith("#build|"))?.slice("#build|".length) ?? "";
-  // Whether the build warms: the table's word, never the document's.
-  buildWarms = lines.includes("#warm|1");
-  // Where this page's code is one module: the table's word, as a build's is.
-  pageBundleAt = lines.find((l) => l.startsWith(`#bundle|${PAGE}|`))?.split("|")[2] ?? null;
+  const lines = heardTable(table);
   const page = lines.find((l) => l.startsWith(`#page|${PAGE}|`));
   if (page && know_document) {
     const [, , schema, scope] = page.split("|");
