@@ -97,7 +97,7 @@ fn device_delivery() -> (tempfile::TempDir, Delivery) {
         "{\"versioned\": true, \"device\": true}\n",
     )
     .expect("written");
-    for file in ["pw-runtime.mjs", "pw-runtime-device.mjs", "pw-resume.wasm"] {
+    for file in ["pw-runtime.mjs", "pw-runtime-device.mjs"] {
         std::fs::write(dir.path().join(file), "export {};\n").expect("written");
     }
     let delivery = Delivery::of(dir.path(), dir.path(), "b1");
@@ -120,8 +120,7 @@ fn a_page_that_talks_to_no_server_starts_the_devices_runtime() {
         !on_device.contains(&delivery.runtime_source()),
         "{on_device}"
     );
-    assert!(!on_device.contains("pw-resume.wasm"), "{on_device}");
-    assert!(document.contains("pw-resume.wasm"), "{document}");
+    assert!(document.contains("/pw-runtime.mjs"), "{document}");
 }
 
 #[test]

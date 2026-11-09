@@ -207,12 +207,10 @@ pub(crate) fn document_with(
     styles.extend(needs.styles.iter().map(|s| sha256_source(s)));
     let mut directives = vec![
         "default-src 'none'".to_string(),
-        // The runtime and its modules from this origin, and its WebAssembly,
-        // which a policy without `'wasm-unsafe-eval'` refuses to compile or
-        // instantiate (CSP Level 3, §6.1.10; Chrome 97, Firefox 102, Safari
-        // 16, by MDN's compatibility data).
+        // The runtime and its modules from this origin, and nothing compiled
+        // on the page: there is no WebAssembly to allow.
         format!(
-            "script-src 'self' 'wasm-unsafe-eval' {}",
+            "script-src 'self' {}",
             scripts
                 .iter()
                 .map(|s| sha256_source(s))
@@ -376,7 +374,7 @@ mod tests {
         assert_eq!(
             none,
             format!(
-                "default-src 'none'; script-src 'self' 'wasm-unsafe-eval' {}; style-src 'self'; \
+                "default-src 'none'; script-src 'self' {}; style-src 'self'; \
                  img-src 'self'; connect-src 'self'; form-action 'self'; \
                  frame-ancestors 'none'; base-uri 'none'",
                 sha256_source("go()")

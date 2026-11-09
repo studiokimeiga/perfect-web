@@ -115,7 +115,8 @@ fn a_document_allows_each_inline_script_and_style_it_holds_by_its_hash() {
         ] {
             assert_eq!(directive(&policy, name), Some(sources), "{path}: {policy}");
         }
-        assert_eq!(scripts[..2], ["'self'", "'wasm-unsafe-eval'"], "{policy}");
+        assert_eq!(scripts[..1], ["'self'"], "{policy}");
+        assert!(!policy.contains("'wasm-unsafe-eval'"), "{policy}");
         for absent in ["frame-src", "style-src-attr"] {
             assert_eq!(directive(&policy, absent), None, "{path}: {policy}");
         }

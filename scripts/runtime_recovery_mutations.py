@@ -5,7 +5,7 @@ recovers a refused handler.
 Each mutant undoes one piece of the browser runtime:
 - a failed subscription request ends the subscription, as it did;
 - a press on a refused handler does nothing, as it did;
-- the recovery codes are read one place off, as they were.
+- a region of private state is told to refetch, as it was.
 
 The browser tests that drop a connection and press a stale handler must
 then fail, in Chromium.
@@ -38,10 +38,10 @@ MUTANTS = [
         "    void recoverOnPress;\n",
     ),
     (
-        "the recovery codes are read one place off",
+        "a region of private state is told to refetch",
         RUNTIME,
-        "  const RECOVERY = [\n    \"refetch-region\",\n",
-        "  const RECOVERY = [\n    \"none\",\n    \"refetch-region\",\n",
+        "          : scope === \"public\"\n            ? \"refetch-region\"\n            : \"rerender-private-slot\";\n",
+        "          : \"refetch-region\";\n",
     ),
 ]
 

@@ -13259,7 +13259,6 @@ const RUNTIME: &str = "<script>import(\"/pw-runtime.mjs\")</script>";
 /// waits for: measured under Slow 4G, the three cost the first paint about
 /// 20 ms of shared bandwidth and saved its interactivity 1.76 s.
 const BOOT: &str = "<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n\
-     <link rel=\"preload\" href=\"/pw-resume.wasm\" as=\"fetch\" crossorigin>\n\
      <link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n";
 
 /// **How a production build's files are named on the wire** (the first
@@ -13393,10 +13392,8 @@ impl Delivery {
             None => BOOT.to_string(),
             Some(_) => format!(
                 "<link rel=\"modulepreload\" href=\"{}\">\n\
-                 <link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>\n\
                  <link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>\n",
                 self.named("/pw-runtime.mjs"),
-                self.named("/pw-resume.wasm"),
                 self.named("/pw-handlers"),
             ),
         }
@@ -13418,8 +13415,7 @@ impl Delivery {
             .then(|| format!("import(\"{}\")", self.named("/pw-runtime-device.mjs")))
     }
 
-    /// `document`, delivered, starting the device's runtime: it asks for no
-    /// decision module, and its head fetches none.
+    /// `document`, delivered, starting the device's runtime.
     fn on_device(&self, document: String) -> String {
         let (Some(device), full) = (self.device_source(), self.runtime_source()) else {
             return document;
@@ -13435,14 +13431,6 @@ impl Delivery {
                     "<link rel=\"modulepreload\" href=\"{}\">",
                     self.named("/pw-runtime-device.mjs")
                 ),
-                1,
-            )
-            .replacen(
-                &format!(
-                    "<link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>\n",
-                    self.named("/pw-resume.wasm")
-                ),
-                "",
                 1,
             )
     }
@@ -18474,10 +18462,10 @@ public query Store(",
     }
 
     /// **A document asks for what its runtime boots with, from its head**
-    /// (ADR-0399): the runtime as a module preload, and the
-    /// decision's code and this build's handler table as the CORS fetches
-    /// the runtime makes, so that the runtime's own requests are answered by
-    /// them; after its stylesheets; and no handler's code (E7-L). On a page
+    /// (ADR-0399): the runtime as a module preload, and this build's handler
+    /// table as the CORS fetch the runtime makes, so that the runtime's own
+    /// request is answered by it; after its stylesheets; and no handler's
+    /// code (E7-L). On a page
     /// that reads queries, and on one of signals alone.
     #[test]
     fn a_document_preloads_what_its_runtime_boots_with() {
@@ -18507,12 +18495,13 @@ public query Store(",
                 .expect("a head");
             for link in [
                 "<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n",
-                "<link rel=\"preload\" href=\"/pw-resume.wasm\" as=\"fetch\" crossorigin>\n",
                 "<link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n",
             ] {
                 assert!(head.ends_with(BOOT) && BOOT.contains(link), "{head}");
             }
             assert!(!head.contains("/handler/"), "no handler's code: {head}");
+            // A build holds no WebAssembly for it to ask for.
+            assert!(!head.contains(".wasm"), "{head}");
             // The runtime it preloads is the one the document starts.
             assert!(document.contains(RUNTIME), "{document}");
         }
@@ -18596,7 +18585,6 @@ public query Store(",
         for (file, bytes) in [
             ("delivery.json", "{\"warm\": true, \"versioned\": true}\n"),
             ("pw-runtime.mjs", "export {};\n"),
-            ("pw-resume.wasm", "\0asm"),
             ("app.css", "p{}"),
             ("notes.txt", "not served by name"),
         ] {
@@ -18612,7 +18600,7 @@ public query Store(",
                 .iter()
                 .map(String::as_str)
                 .collect::<Vec<_>>(),
-            vec!["/app.css", "/pw-resume.wasm", "/pw-runtime.mjs"]
+            vec!["/app.css", "/pw-runtime.mjs"]
         );
         // A reader's text that reads like an attribute is the reader's: text
         // escapes `&`, `<` and `>`, never `"` (`escape::text`), so a post, a
@@ -18629,10 +18617,6 @@ public query Store(",
             format!(
                 "<link rel=\"modulepreload\" href=\"{}\">",
                 at("/pw-runtime.mjs")
-            ),
-            format!(
-                "<link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>",
-                at("/pw-resume.wasm")
             ),
             format!(
                 "<link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>",

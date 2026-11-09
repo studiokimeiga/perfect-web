@@ -121,8 +121,8 @@ MUTANTS = [
         "the decision is told nothing of the page's documents",
         "browser",
         RUNTIME,
-        "    know_document(...write(`${schema}|${scope}`));\n",
-        "",
+        "  const told = lines.find((l) => l.startsWith(`#page|${page}|`))?.split(\"|\");\n",
+        "  const told = null;\n",
     ),
 ]
 

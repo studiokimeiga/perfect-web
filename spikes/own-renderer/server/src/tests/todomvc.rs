@@ -230,8 +230,7 @@ fn the_page_has_the_templates_markup() {
 
 /// **In a production build, the page runs on the device's runtime** (the device
 /// runtime's ADR): no reader decides it and it has no layout, so its one
-/// document starts the small runtime, its policy allows that, and its head
-/// fetches no decision module.
+/// document starts the small runtime, and its policy allows that.
 #[test]
 fn a_production_build_of_the_page_starts_the_devices_runtime() {
     let (_dir, out) = built_todomvc();
@@ -240,7 +239,7 @@ fn a_production_build_of_the_page_starts_the_devices_runtime() {
         "{\"versioned\": true, \"device\": true}\n",
     )
     .expect("written");
-    for file in ["pw-runtime.mjs", "pw-runtime-device.mjs", "pw-resume.wasm"] {
+    for file in ["pw-runtime.mjs", "pw-runtime-device.mjs"] {
         std::fs::write(out.join(file), "export {};\n").expect("written");
     }
     let s = Server::from_build(out.clone(), out).expect("served");
@@ -255,7 +254,6 @@ fn a_production_build_of_the_page_starts_the_devices_runtime() {
         !html.contains(&format!("<script>{}</script>", s.delivery.runtime_source())),
         "{html}"
     );
-    assert!(!html.contains("pw-resume.wasm"), "{html}");
     let policy = html
         .lines()
         .find(|l| l.starts_with("content-security-policy:"))

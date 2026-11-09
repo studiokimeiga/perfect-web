@@ -341,13 +341,12 @@ test("nothing is prefetched without a policy that says so", async ({ page }) => 
     [...document.querySelectorAll("link")].map((l) => `${l.rel}:${l.href}`),
   );
   // What every page's runtime boots with is asked for by its head
-  // (ADR-0399): the runtime, the decision's code and this build's
-  // handler table. Each is asked for by every boot, so none is speculative,
-  // and none is a handler's code.
+  // (ADR-0399): the runtime and this build's handler table. Each is asked
+  // for by every boot, so neither is speculative, and neither is a handler's
+  // code.
   const origin = new URL(page.url()).origin;
   const boot = [
     `modulepreload:${origin}/pw-runtime.mjs`,
-    `preload:${origin}/pw-resume.wasm`,
     `preload:${origin}/pw-handlers`,
   ];
   expect(

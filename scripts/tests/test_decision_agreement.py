@@ -1,8 +1,7 @@
-"""A page that talks to no server decides as `pw-resume.wasm` decides, in
-ordinary CI.
+"""The browser decides as `pw-resume` decides, in ordinary CI.
 
-`spikes/own-renderer/device-decision.test.mjs` asks both the same questions:
-the real module, built here for the browser, and the runtime's own lines.
+`spikes/own-renderer/decision-agreement.test.mjs` asks both the same questions:
+the crate, built here as WebAssembly, and the runtime's own lines.
 """
 import os
 import pathlib
@@ -13,7 +12,7 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
-class DeviceDecision(unittest.TestCase):
+class DecisionAgreement(unittest.TestCase):
     def test_the_two_decisions_give_one_answer(self) -> None:
         node = shutil.which("node")
         self.assertIsNotNone(node, "the decisions' agreement requires Node")
@@ -26,7 +25,7 @@ class DeviceDecision(unittest.TestCase):
         )
         self.assertEqual(built.returncode, 0, built.stderr)
         result = subprocess.run(
-            [node, "--test", "--test-reporter=spec", "spikes/own-renderer/device-decision.test.mjs"],
+            [node, "--test", "--test-reporter=spec", "spikes/own-renderer/decision-agreement.test.mjs"],
             cwd=ROOT, capture_output=True, text=True, timeout=600, env=os.environ,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

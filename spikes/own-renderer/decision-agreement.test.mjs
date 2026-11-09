@@ -1,11 +1,11 @@
-// **A page that talks to no server decides as every other page does** (the
-// device runtime's ADR).
+// **The browser decides as `pw-resume` decides** (the decision's ADR).
 //
-// Such a page has no `pw-resume.wasm`: a few lines of its runtime answer the
-// same questions from the same table. Two implementations of a decision can
-// disagree, and a disagreement shows nothing on the page until a handler this
-// build never compiled attaches. So they are held to each other here, in every
-// run of the suite: the real module and the runtime's own lines, the same
+// A page answers the decision in a few lines of its runtime, from the build's
+// table, and `pw-resume` is the Rust crate that specifies it. Two
+// implementations of a decision can disagree, and a disagreement shows nothing
+// on the page until a handler this build never compiled attaches. So they are
+// held to each other here, in every run of the suite: the crate, built as the
+// WebAssembly module pages once fetched, and the runtime's own lines, the same
 // tables and the same manifests, and every field of every answer compared.
 //
 // The manifests are a real one changed: each field alone to each of the values
@@ -22,16 +22,16 @@ import vm from "node:vm";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, "../..");
 const runtime = readFileSync(path.join(here, "public/pw-runtime.mjs"), "utf8");
-const BEGIN = "const deviceDecider = (lines, page) => {";
-const END = "// --- end of the device's decision";
+const BEGIN = "const decider = (lines, page) => {";
+const END = "// --- end of the decision";
 
 function loadDecider() {
   const start = runtime.indexOf(BEGIN);
   const end = runtime.indexOf(END);
-  assert.ok(start >= 0 && end > start, "the runtime holds the device's decision between its markers");
-  return vm.runInNewContext(`${runtime.slice(start, end)}\ndeviceDecider`);
+  assert.ok(start >= 0 && end > start, "the runtime holds the decision between its markers");
+  return vm.runInNewContext(`${runtime.slice(start, end)}\ndecider`);
 }
-const deviceDecider = loadDecider();
+const decider = loadDecider();
 
 const wasmFile = path.join(
   process.env.CARGO_TARGET_DIR ?? path.join(root, "target"),
@@ -39,10 +39,16 @@ const wasmFile = path.join(
 );
 const wasm = readFileSync(wasmFile);
 
-// The recoveries as the runtime reads them, in the module's order.
-const RECOVERY = vm.runInNewContext(
-  /const RECOVERY = (\[[^\]]*\]);/.exec(runtime)?.[1] ?? "assert the runtime names its recoveries",
-);
+// The module's recoveries, in its order: `last_recovery` returns an index into
+// this list, and `RefetchRegion` is 0 (ADR-0155).
+const RECOVERY = [
+  "refetch-region",
+  "rerender-private-slot",
+  "reload",
+  "retry-interaction",
+  "require-user-confirmation",
+  "reject-irrecoverable",
+];
 
 const PAGE = "todo.app.Todos~ui";
 
@@ -122,7 +128,7 @@ async function compare(manifests) {
   let asked = 0;
   for (const table of TABLES) {
     const real = await theModule(table);
-    const device = deviceDecider(table.split("\n"), PAGE);
+    const device = decider(table.split("\n"), PAGE);
     for (const manifest of manifests) {
       const a = real(manifest);
       const b = device(manifest);
@@ -217,7 +223,7 @@ test("the manifests reach each answer this decision has", async () => {
 test("each recovery a refusal can name is one the module names", async () => {
   const seen = new Set();
   for (const table of TABLES) {
-    const device = deviceDecider(table.split("\n"), PAGE);
+    const device = decider(table.split("\n"), PAGE);
     for (const manifest of singles()) {
       const verdict = device(manifest);
       if (!verdict.attach) seen.add(verdict.recovery);
@@ -230,7 +236,7 @@ test("each recovery a refusal can name is one the module names", async () => {
 });
 
 test("a handler's identity is not read as anything but the table's own lines", () => {
-  const device = deviceDecider(`#page|${PAGE}|doc|public\n#build|h1\nh1|a\n`.split("\n"), PAGE);
+  const device = decider(`#page|${PAGE}|doc|public\n#build|h1\nh1|a\n`.split("\n"), PAGE);
   assert.equal(device("2|1|B|#build|h1|doc|public|x|region").code, 4);
   assert.equal(device("2|1|B|#page|x|doc|public|x|region").code, 4);
   assert.equal(device("2|1|B|h1|a|doc|public|x|region").code, 0);

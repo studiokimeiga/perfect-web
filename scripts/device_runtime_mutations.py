@@ -12,7 +12,7 @@ Each mutant undoes one piece:
   its policy allows, what a build must say and hold;
 - the suite: what makes a production build one of this runtime.
 
-A mutant of the decision must fail `device-decision.test.mjs`, of the packaging
+A mutant of the decision must fail `decision-agreement.test.mjs`, of the packaging
 or a guard `optimize-assets.test.mjs` (or `host-plan.test.mjs`), of the host
 `tests::page_bundle::` or the production document's test, and of the page's use
 `e2e/device-runtime.spec.mjs` in Chromium against a production build.
@@ -71,9 +71,9 @@ def reordered(*order):
 MUTANTS = [
     # -- the decision
     ("a `#` line of the table is a handler", "decision", RUNTIME,
-     'lines.filter((l) => l && l[0] !== "#")', "lines.filter((l) => l)"),
+     'const known = new Set(lines.filter((l) => l && l[0] !== "#")', "const known = new Set(lines.filter((l) => l)"),
     ("an empty line of the table is a handler", "decision", RUNTIME,
-     'lines.filter((l) => l && l[0] !== "#")', 'lines.filter((l) => l[0] !== "#")'),
+     'const known = new Set(lines.filter((l) => l && l[0] !== "#")', 'const known = new Set(lines.filter((l) => l[0] !== "#")'),
     ("a handler that captures nothing is not known", "decision", RUNTIME,
      '.map((l) => (l.includes("|") ? l : `${l}|`)));', ".map((l) => l));"),
     ("a line that begins as this page's is this page's", "decision", RUNTIME,
@@ -136,14 +136,14 @@ MUTANTS = [
      '          : "refetch-region";\n'),
     # -- the page's use of it
     ("a device page decides nothing", "browser", RUNTIME,
-     "    decide = deviceDecider(heardTable(await tableText), PAGE);\n",
-     '    heardTable(await tableText);\n    decide = () => ({ attach: true, recovery: "reload", code: 0 });\n'),
+     "  decide = decider(lines, PAGE);\n",
+     '  decide = () => ({ attach: true, recovery: "reload", code: 0 });\n'),
     ("a device page's table is not heard", "browser", RUNTIME,
-     "    decide = deviceDecider(heardTable(await tableText), PAGE);\n",
-     '    decide = deviceDecider((await tableText).split("\\n"), PAGE);\n'),
+     '  const lines = heardTable(await fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : "")));\n',
+     '  const lines = (await fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : ""))).split("\\n");\n'),
     ("a device page's decision is another page's", "browser", RUNTIME,
-     "    decide = deviceDecider(heardTable(await tableText), PAGE);\n",
-     '    decide = deviceDecider(heardTable(await tableText), "another");\n'),
+     "  decide = decider(lines, PAGE);\n",
+     '  decide = decider(lines, "another");\n'),
     # -- what keeps a server's code out
     ("the source's flag is off", "packaging", RUNTIME, "const PW_SERVER = true;", "const PW_SERVER = false;"),
     ("a read is asked for", "packaging", RUNTIME,
@@ -172,8 +172,6 @@ MUTANTS = [
      "if (PW_SERVER) window.__pwTestApply = applyFrame;\n", "window.__pwTestApply = applyFrame;\n"),
     ("the batch hook holds the batches", "packaging", RUNTIME,
      "if (PW_SERVER) window.__pwTestBatch = applyBatch;\n", "window.__pwTestBatch = applyBatch;\n"),
-    ("a device page fetches the decision module", "packaging", RUNTIME,
-     "  if (!PW_SERVER) {\n    decide = deviceDecider(heardTable(await tableText), PAGE);\n    return;\n  }\n", ""),
     # -- the packaging
     ("the flag is not replaced", "packaging", PACKAGING,
      '.replaceAll("PW_SERVER", "false")', '.replaceAll("PW_SERVER", "true")'),
@@ -223,9 +221,6 @@ MUTANTS = [
     ("the head preloads the whole runtime", "host", SERVER,
      '                    self.named("/pw-runtime-device.mjs")\n                ),\n                1,\n',
      '                    self.named("/pw-runtime.mjs")\n                ),\n                1,\n'),
-    ("the head still fetches the decision", "host", SERVER,
-     '                    self.named("/pw-resume.wasm")\n                ),\n                "",\n                1,\n',
-     '                    self.named("/pw-resume.wasm")\n                ),\n                "<link>",\n                0,\n'),
     ("the policy allows the whole runtime alone", "host", SERVER,
      "        scripts.extend(device.as_deref());\n", ""),
     ("the policy allows the first of several", "host", CSP,
@@ -257,7 +252,7 @@ def node_tests(*files):
 
 
 def decision():
-    return node_tests("spikes/own-renderer/device-decision.test.mjs")
+    return node_tests("spikes/own-renderer/decision-agreement.test.mjs")
 
 
 def packaging():

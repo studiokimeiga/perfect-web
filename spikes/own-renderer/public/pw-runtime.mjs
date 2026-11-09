@@ -374,9 +374,10 @@ function applyList(key, scope, op) {
 
 // --- the compatibility decision -----------------------------------------
 //
-// The same wasm E7V compiled, and the same rule: the gate FAILS CLOSED. A
-// handler that attached because the decision had not loaded would be the bypass
-// this design exists to prevent.
+// E7V's decision, and its rule: the gate FAILS CLOSED. A handler that attached
+// because the decision had not been made would be the bypass this design
+// exists to prevent. `pw-resume`, the Rust crate, is its specification, and
+// `decision-agreement.test.mjs` holds these lines to that crate's own build.
 
 let decide = null;
 
@@ -457,15 +458,13 @@ function heardTable(table) {
   return lines;
 }
 
-/** **The decision of a page that talks to no server** (the device runtime's
- * ADR): the answers of `pw-resume.wasm`, which such a page does not fetch, from
- * the same table and the same manifest. What the module hashes, a handler's
- * name and what it captures, is compared here as the text it was hashed from,
- * so a handler is known exactly when the module knows it, and
- * `device-decision.test.mjs` holds the two to one answer. Fails closed as the
- * module does: a table that cannot be read knows no handler, and each is
- * refused. */
-const deviceDecider = (lines, page) => {
+/** **Whether a handler a document names may attach** (E7V; the decision's ADR):
+ * `pw-resume`'s answers, from the build's table and the document's manifest.
+ * What that crate hashes, a handler's name and what it captures, is compared
+ * here as the text it was hashed from, so a handler is known exactly when the
+ * crate knows it. Fails closed as that does: a table that cannot be read knows
+ * no handler, and each is refused. */
+const decider = (lines, page) => {
   const known = new Set(lines.filter((l) => l && l[0] !== "#").map((l) => (l.includes("|") ? l : `${l}|`)));
   // Told nothing of this page, a document's schema and scope are not compared,
   // as no build has spoken for them.
@@ -497,78 +496,22 @@ const deviceDecider = (lines, page) => {
     return { attach: code === 0, recovery, code };
   };
 };
-// --- end of the device's decision
+// --- end of the decision
 
 async function bootDecision() {
-  // The decision and the table together, each answered by the head's
-  // preload (ADR-0399).
-  const tableText = fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : ""));
-  // A failed decision fails the boot; the table's rejection is not unheard.
-  tableText.catch(() => {});
-  if (!PW_SERVER) {
-    decide = deviceDecider(heardTable(await tableText), PAGE);
-    return;
-  }
-  const { instance } = await WebAssembly.instantiateStreaming(fetch(delivered("/pw-resume.wasm")), {});
-  const { memory, alloc, decide_manifest, last_recovery, know, know_document } =
-    instance.exports;
-
-  const write = (s) => {
-    const bytes = new TextEncoder().encode(s);
-    const ptr = alloc(bytes.length);
-    new Uint8Array(memory.buffer, ptr, bytes.length).set(bytes);
-    return [ptr, bytes.length];
-  };
   // What this build compiled (ADR-0132), from the server that served this
-  // runtime and never from the document: a document cached from another
-  // build names handlers this one may not have. If the table cannot be read,
-  // nothing is known and every handler is refused, which is the closed side.
-  const table = await tableText;
-  const known = know(...write(table));
-  log.push(`knows ${known} handler(s)`);
-  // **What this build says of this page's documents** (ADR-0300): its name,
-  // and this page's document schema and scope, from the same table and never
-  // from the document; the decision holds each handler's document to them.
-  const lines = heardTable(table);
-  const page = lines.find((l) => l.startsWith(`#page|${PAGE}|`));
-  if (page && know_document) {
-    const [, , schema, scope] = page.split("|");
-    know_document(...write(`${schema}|${scope}`));
-    log.push(`knows ${PAGE}'s documents: ${schema} ${scope}`);
-  }
-  // `last_recovery` returns an INDEX into this list, not a pointer. A first
-  // version read it as one and every decision threw `Start offset -1 is
-  // outside the bounds of the buffer`, which the page reported as "boot
-  // failed" — so no handler attached and the button was inert.
-  //
-  // Worth recording: fail-closed did its job. A bug in the code that READS the
-  // decision produced a page that does nothing, not a page that attaches
-  // anyway. That is the difference the design was for.
-  //
-  // In `pw-resume-wasm`'s order, from 0: `RefetchRegion` is 0 there. Until
-  // 2026-10-03 this list began with a "none" the ABI does not have, so every
-  // recovery was read one place off. A region to refetch read as "none", a
-  // document to reload as "rerender-private-slot". Nothing acted on a
-  // recovery then, so only the log was wrong (ADR-0155).
-  const RECOVERY = [
-    "refetch-region",
-    "rerender-private-slot",
-    "reload",
-    "retry-interaction",
-    "require-user-confirmation",
-    "reject-irrecoverable",
-  ];
-
-  decide = (manifest) => {
-    const [ptr, len] = write(manifest);
-    // 0 resume, 1 migrate; anything else is a refusal.
-    const code = decide_manifest(ptr, len);
-    return {
-      attach: code === 0 || code === 1,
-      recovery: RECOVERY[last_recovery()] ?? "unknown",
-      code,
-    };
-  };
+  // runtime and never from the document: a document cached from another build
+  // names handlers this one may not have. Answered by the head's preload
+  // (ADR-0399). If the table cannot be read, nothing is known and every
+  // handler is refused, which is the closed side.
+  const lines = heardTable(await fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : "")));
+  decide = decider(lines, PAGE);
+  if (!PW_SERVER) return;
+  log.push(`knows ${lines.filter((l) => l && l[0] !== "#").length} handler(s)`);
+  // What this build says of this page's documents (ADR-0300), from the same
+  // table and never from the document.
+  const [, , schema, scope] = lines.find((l) => l.startsWith(`#page|${PAGE}|`))?.split("|") ?? [];
+  if (schema !== undefined) log.push(`knows ${PAGE}'s documents: ${schema} ${scope}`);
 }
 
 // --- attaching -----------------------------------------------------------
@@ -603,7 +546,7 @@ window.__pw = {
   settled: [],
 };
 
-// The manifest a handler presents, in the ABI `pw-resume-wasm` reads:
+// The manifest a handler presents, in the fields `pw-resume` reads:
 //
 //   scheme|abi|build|handler|capture|document|scope|captures|construct
 //

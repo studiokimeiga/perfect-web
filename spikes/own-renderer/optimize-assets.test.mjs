@@ -267,9 +267,6 @@ test("a build with no runtime says nothing of one", async () => {
 
 // What only a page with a server reaches, by a word each leaves in a build.
 const SERVER_ONLY = {
-  "the decision module": "decide_manifest",
-  "its address": "/pw-resume.wasm",
-  "its instantiation": "instantiateStreaming",
   "a command": "/command/",
   "a subscription": "/stream?doc",
   "a stream's reading": "getReader",

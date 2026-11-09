@@ -39,7 +39,7 @@ holds as text.
    trusted that was refused before: a document cached from another build still
    names handlers this one does not have, and that is what this refuses.
 4. **The two are held to each other in every run of the suite.**
-   `device-decision.test.mjs` asks the real `pw-resume.wasm` and those lines the
+   `decision-agreement.test.mjs` asks the real `pw-resume.wasm` and those lines the
    same questions, over twelve tables and every single and pairwise change to
    nine fields, and a seeded walk, and fails on any difference. The first
    version was wrong: it ignored the scheme and the ABI and compared a build the

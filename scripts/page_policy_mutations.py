@@ -157,11 +157,11 @@ MUTANTS = [
         "                .map(|_| sha256_source(\"\"))\n",
     ),
     (
-        "the runtime's WebAssembly is refused",
+        "the policy allows WebAssembly no page compiles",
         SERVER_TESTS,
         CSP,
-        "            \"script-src 'self' 'wasm-unsafe-eval' {}\",\n",
         "            \"script-src 'self' {}\",\n",
+        "            \"script-src 'self' 'wasm-unsafe-eval' {}\",\n",
     ),
     (
         "the data layer's style is not hashed",
