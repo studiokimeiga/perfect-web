@@ -274,6 +274,7 @@ const SERVER_ONLY = {
   "a subscription": "/stream?doc",
   "a stream's reading": "getReader",
   "a stream's marks": "pw-slot",
+  "a stream's settling": 'by:"browser"',
   "a read": "/pw-read",
   "a speculation": "speculation",
   "a navigation that keeps a layout": "popstate",

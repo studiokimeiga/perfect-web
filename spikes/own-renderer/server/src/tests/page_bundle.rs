@@ -167,6 +167,15 @@ fn the_policy_allows_each_runtime_a_build_starts() {
 }
 
 #[test]
+fn a_file_its_delivery_does_not_name_is_no_device_runtime() {
+    let dir = tempfile::tempdir().expect("a directory");
+    std::fs::write(dir.path().join("delivery.json"), "{\"versioned\": true}\n").expect("written");
+    std::fs::write(dir.path().join("pw-runtime-device.mjs"), "export {};\n").expect("written");
+    let delivery = Delivery::of(dir.path(), dir.path(), "b1");
+    assert_eq!(delivery.device_source(), None);
+}
+
+#[test]
 fn a_delivery_that_says_so_with_no_file_has_no_device_runtime() {
     let dir = tempfile::tempdir().expect("a directory");
     std::fs::write(
