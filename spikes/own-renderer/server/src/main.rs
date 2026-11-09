@@ -13310,10 +13310,11 @@ impl Delivery {
         };
         let mut paths = files_in(dist);
         paths.sort();
-        let mut modules: Vec<std::path::PathBuf> = ["handlers", "computed", "speculations", "bundles"]
-            .iter()
-            .flat_map(|d| files_in(&artifacts.join(d)))
-            .collect();
+        let mut modules: Vec<std::path::PathBuf> =
+            ["handlers", "computed", "speculations", "bundles"]
+                .iter()
+                .flat_map(|d| files_in(&artifacts.join(d)))
+                .collect();
         modules.sort();
         let mut digest = sha2::Sha256::new();
         digest.update(build.as_bytes());
