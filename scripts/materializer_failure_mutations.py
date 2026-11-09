@@ -7,7 +7,8 @@ Each mutant undoes one piece:
   not move; a stale entry not tried again; a regeneration tried again that
   sends nothing;
 - the answer: the commit names the version that did not move;
-- the subscription: a page's request does not drain its session;
+- the subscription: a page's request does not drain its session, seen by a
+  test of its own, since a hold tries it again too;
 - the control: `/bench/materializer` arms nothing.
 
 A drain, answer or control mutant must fail the development server's test
@@ -63,7 +64,7 @@ MUTANTS = [
     ),
     (
         "a page's request does not drain its session",
-        "browser",
+        "request",
         SERVER,
         "    server.drain(session);\n",
         "",
@@ -86,6 +87,12 @@ CARGO = {
     "server": [
         "cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--", "--exact",
         "tests::a_regeneration_that_fails_sends_nothing_and_is_tried_again",
+    ],
+    # A hold tries a failed regeneration too (the longer-holds ADR), so what a
+    # request does alone is seen where no hold tries it.
+    "request": [
+        "cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--", "--exact",
+        "tests::longer_holds::a_pages_next_request_tries_a_failed_regeneration_again",
     ],
 }
 BROWSER = ["e2e/materializer.spec.mjs", "--project=chromium"]
@@ -151,7 +158,7 @@ def browser_tests(_suite="browser"):
     return passed + failed > 0, passed, failed
 
 
-SUITES = {"server": cargo_tests, "browser": browser_tests}
+SUITES = {"server": cargo_tests, "request": cargo_tests, "browser": browser_tests}
 
 
 def main():

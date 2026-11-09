@@ -149,6 +149,48 @@ fn a_stream_that_asks_is_held_long() {
     assert!(held_for >= s.long_hold, "held its whole hold: {held_for:?}");
 }
 
+/// **A page's next request tries a failed regeneration again** (ADR-0176), and
+/// asks nothing of a hold: here no hold tries it, so only the request can.
+#[test]
+fn a_pages_next_request_tries_a_failed_regeneration_again() {
+    let mut s = speculating_server();
+    s.poll_hold = Duration::from_millis(20);
+    s.retried_every = Duration::from_secs(3600);
+    let session = "failing";
+    s.serve_document_with_entries(session).expect("served");
+    let armed = posted(&s, "/bench/materializer?fail=next", session, "arm", "");
+    assert!(armed.starts_with("HTTP/1.1 200"), "{armed}");
+    s.command_json(
+        ADD,
+        session,
+        &[shown("espresso"), serde_json::json!(1)],
+        Some("press"),
+    )
+    .expect("well-formed")
+    .expect("committed");
+    let stale = |s: &Server| {
+        s.materializer
+            .entry(&s.cart_key(session))
+            .is_some_and(|entry| entry.stale)
+    };
+    assert!(stale(&s), "its regeneration failed");
+    let document = {
+        let queue = s.pending.lock().expect("pending");
+        latest(&queue, session).1
+    };
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+    let _page = TcpStream::connect(listener.local_addr().expect("addr")).expect("connect");
+    let mut held = Conn::of(listener.accept().expect("accept").0);
+    stream_frames(
+        &s,
+        &mut held,
+        session,
+        false,
+        &format!("doc={document}&since={document}"),
+    );
+    assert!(!stale(&s), "the page's request tried it again");
+}
+
 /// **A regeneration that failed is tried again within a long hold** (ADR-0176):
 /// the failure its page would have waited out until its next request is 25 s
 /// away, and the page sees the change within the hold.
