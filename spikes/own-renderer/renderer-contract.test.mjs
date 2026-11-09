@@ -52,7 +52,7 @@ test("a speculation module that does not load sends the press unspeculated, and 
   const press = actual.speculate("reply", [], "press-a");
   try {
     imported.reject(new Error("test-only ordinary import failure"));
-    assert.deepEqual(await press, []);
+    assert.equal((await press).length, 0);
     assert.equal(log.length, 1);
     assert.match(log[0], /^reply sent unspeculated: test-only/);
   } finally {
