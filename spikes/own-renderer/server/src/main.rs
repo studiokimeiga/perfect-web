@@ -1096,6 +1096,12 @@ struct Server {
     /// in every host; a test lengthens it to show that a push, not a slice,
     /// delivers its frames).
     wake_at_least: std::time::Duration,
+    /// **How long a held subscription waits when nothing happens** (the
+    /// longer-holds ADR): [`HOLD`] in every host, a stream's and a long
+    /// poll's alike; a test's host waits [`TEST_STREAM_HOLD`] and
+    /// [`TEST_POLL_HOLD`], and a test of the hold sets its own.
+    stream_hold: std::time::Duration,
+    poll_hold: std::time::Duration,
     /// **How this build's files are named on the wire** ([`Delivery`]): at
     /// a version a cache keeps, a production build's; as they are, a
     /// development build's.
@@ -2164,6 +2170,8 @@ impl Server {
             open: Arc::default(),
             idle: Mutex::new(BTreeMap::new()),
             wake_at_least: WAKE_AT_LEAST,
+            stream_hold: if cfg!(test) { TEST_STREAM_HOLD } else { HOLD },
+            poll_hold: if cfg!(test) { TEST_POLL_HOLD } else { HOLD },
             dist,
             artifacts,
             pending: Table::default(),
@@ -11887,14 +11895,18 @@ fn stream_open(
         }
     };
 
-    // Bounded, like the long poll: a held connection is a held thread, and
-    // three engine families times six workers is eighteen of them. Two
-    // seconds, as eighty passes of 25 ms were; a pass now runs when the
-    // table is woken (a frame pushed, a cut-off) or a slice has passed.
+    // Bounded, like the long poll: a held connection is a held thread.
+    // [`HOLD`] in a host (the longer-holds ADR); a pass runs when the table
+    // is woken (a frame pushed, a cut-off) or a slice has passed, and ends
+    // the hold where its page has gone.
     let opened = std::time::Instant::now();
-    let until = opened + STREAM_HOLD;
+    let until = opened + server.stream_hold;
     let mut pass = 0u64;
     loop {
+        if gone(stream) {
+            ended(format_args!("stream's page gone at pass {pass}"));
+            return;
+        }
         let batch = {
             let asked = std::time::Instant::now();
             let mut queue = server.pending.lock().expect("pending");
@@ -11968,13 +11980,43 @@ fn stream_open(
     ));
 }
 
-/// **How long a streamed subscription is held** before the page asks again:
-/// two seconds, as eighty passes of 25 ms were until 2026-11-06.
-const STREAM_HOLD: std::time::Duration = std::time::Duration::from_secs(2);
+/// **How long a subscription is held when nothing happens** (the
+/// longer-holds ADR), a stream's and a long poll's alike, before the page
+/// asks again: 25 s. A push answers a held subscription at once, and each
+/// pass keeps its document live ([`LIVE`]), so the hold costs no change its
+/// speed. It costs an open page about 2.4 requests a minute, where a stream
+/// held two seconds cost 30 and a long poll held one cost 60. Under the 30 s
+/// a hosting router allows before an answer's first byte (Heroku's) and the
+/// 60 s a proxy commonly allows a quiet connection.
+const HOLD: std::time::Duration = std::time::Duration::from_secs(25);
 
-/// **How long a long poll is held** before it answers an empty batch: one
-/// second, as forty passes of 25 ms were.
-const POLL_HOLD: std::time::Duration = std::time::Duration::from_secs(1);
+/// **A test host's holds** (the longer-holds ADR): a stream's two seconds and
+/// a long poll's one, as every host's were until then, so that a test that
+/// waits out a hold waits as it did.
+const TEST_STREAM_HOLD: std::time::Duration = std::time::Duration::from_secs(2);
+const TEST_POLL_HOLD: std::time::Duration = std::time::Duration::from_secs(1);
+
+/// **Whether a held subscription's page has gone** (the longer-holds ADR):
+/// the browser closed the connection the subscription is held on, as a page
+/// leaving does (its runtime aborts the request). A browser sends nothing
+/// else on a connection while it waits for that connection's answer, so
+/// what there is to read is its close. Looked at without waiting, once a
+/// pass, so that a page gone holds no thread for the rest of a hold.
+fn gone(stream: &TcpStream) -> bool {
+    if stream.set_nonblocking(true).is_err() {
+        return false;
+    }
+    let mut byte = [0u8; 1];
+    let read = stream.peek(&mut byte);
+    let _ = stream.set_nonblocking(false);
+    match read {
+        Ok(read) => read == 0,
+        Err(e) => !matches!(
+            e.kind(),
+            std::io::ErrorKind::WouldBlock | std::io::ErrorKind::Interrupted
+        ),
+    }
+}
 
 fn stream_frames(server: &Server, stream: &mut Conn, session: &str, fresh: bool, _query: &str) {
     // A bounded hold, deliberately short. Each waiting subscriber occupies a
@@ -12019,11 +12061,15 @@ fn stream_frames(server: &Server, stream: &mut Conn, session: &str, fresh: bool,
         return;
     }
 
-    // Held a second at most, as forty passes of 25 ms were; a pass now runs
+    // Held [`HOLD`] at most in a host (the longer-holds ADR); a pass runs
     // when the table is woken (a frame pushed, a cut-off) or a slice has
-    // passed (ADR-0399).
-    let until = opened + POLL_HOLD;
+    // passed (ADR-0399), and ends the hold where its page has gone, with no
+    // answer: no one is there to read one.
+    let until = opened + server.poll_hold;
     loop {
+        if gone(stream) {
+            return;
+        }
         let batch = {
             let mut queue = server.pending.lock().expect("pending");
             // As a held stream's: cut off, it is closed with no answer,
@@ -16787,7 +16833,10 @@ public query Store(",
         let begun = std::time::Instant::now();
         stream_open(&s, &mut held, session, false, document, document);
         let held_for = begun.elapsed();
-        assert!(held_for >= STREAM_HOLD, "held its whole hold: {held_for:?}");
+        assert!(
+            held_for >= s.stream_hold,
+            "held its whole hold: {held_for:?}"
+        );
         let passes = passes_of(&s, &doc).expect("it ended after its passes");
         // Two seconds in slices of 250 ms: nine looks, give or take a wake.
         assert!(
@@ -17937,6 +17986,8 @@ public query Store(",
     mod prerender;
     // ADR-0389, amended 2026-11-02: overlapping admissions of one session.
     mod session_overlap;
+    // The longer-holds ADR: a subscription held until something happens.
+    mod longer_holds;
     mod session_receipt_recovery;
     mod session_revocation;
     mod session_upload_authority;
