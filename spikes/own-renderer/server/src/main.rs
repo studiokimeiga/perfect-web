@@ -7321,8 +7321,10 @@ impl Server {
                 .map_err(|why| format!("`{page}` cannot be prerendered: {why}"))?;
             let document = if runs_on_device(plan) {
                 let bundle = format!("/bundle/{page}.mjs");
-                self.delivery
-                    .on_device(document, self.bundles.contains(page).then_some(bundle.as_str()))
+                self.delivery.on_device(
+                    document,
+                    self.bundles.contains(page).then_some(bundle.as_str()),
+                )
             } else {
                 document
             };
@@ -13684,12 +13686,8 @@ impl Delivery {
         let (Some(device), full) = (self.device_source(), self.runtime_source()) else {
             return document;
         };
-        let preload = |path: &str| {
-            format!(
-                "<link rel=\"modulepreload\" href=\"{}\">",
-                self.named(path)
-            )
-        };
+        let preload =
+            |path: &str| format!("<link rel=\"modulepreload\" href=\"{}\">", self.named(path));
         let mut head = preload("/pw-runtime-device.mjs");
         if let Some(bundle) = bundle {
             head.push('\n');

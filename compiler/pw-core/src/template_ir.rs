@@ -2279,14 +2279,18 @@ fn as_shown<'t>(text: &'t str, parents: &[String]) -> std::borrow::Cow<'t, str> 
     use std::borrow::Cow;
     const IS_CONTENT: [&str; 4] = ["pre", "textarea", "script", "style"];
     const SHOWS_NO_TEXT: [&str; 11] = [
-        "table", "thead", "tbody", "tfoot", "tr", "colgroup", "select", "optgroup", "datalist", "head",
-        "html",
+        "table", "thead", "tbody", "tfoot", "tr", "colgroup", "select", "optgroup", "datalist",
+        "head", "html",
     ];
     let space = |c: char| matches!(c, ' ' | '\t' | '\n' | '\r' | '\u{c}');
     if parents.iter().any(|p| IS_CONTENT.contains(&p.as_str())) || !text.contains('\n') {
         return Cow::Borrowed(text);
     }
-    if text.chars().all(space) && parents.last().is_some_and(|p| SHOWS_NO_TEXT.contains(&p.as_str())) {
+    if text.chars().all(space)
+        && parents
+            .last()
+            .is_some_and(|p| SHOWS_NO_TEXT.contains(&p.as_str()))
+    {
         return Cow::Borrowed("");
     }
     let mut out = String::with_capacity(text.len());

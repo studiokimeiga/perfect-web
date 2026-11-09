@@ -10,7 +10,9 @@ use pw_core::template_ir::Chunk;
 
 /// What the page writes inside its `<main>`, its static text joined.
 fn inside_main(markup: &str) -> String {
-    let src = format!("module t\n\npage P() {{\n    cache private\n\n    view {{\n        <main>{markup}</main>\n    }}\n}}\n");
+    let src = format!(
+        "module t\n\npage P() {{\n    cache private\n\n    view {{\n        <main>{markup}</main>\n    }}\n}}\n"
+    );
     let parsed = pw_syntax::parse_tree(&src);
     assert!(parsed.ok(), "{:?}", parsed.errors);
     let hir = pw_core::lower::lower_file(&src, &parsed.green);
@@ -38,7 +40,10 @@ fn inside_main(markup: &str) -> String {
 
 #[test]
 fn a_line_break_and_its_indentation_is_one_space() {
-    assert_eq!(inside_main("<b>a</b>\n        <i>b</i>"), "<b>a</b> <i>b</i>");
+    assert_eq!(
+        inside_main("<b>a</b>\n        <i>b</i>"),
+        "<b>a</b> <i>b</i>"
+    );
     assert_eq!(inside_main("<p>one\n        two</p>"), "<p>one two</p>");
     assert_eq!(inside_main("<p>one\r\n\t  two</p>"), "<p>one two</p>");
 }
@@ -62,14 +67,22 @@ fn a_run_with_a_line_break_beside_one_without_is_only_itself_made_one() {
 #[test]
 fn what_preformatted_elements_hold_is_content() {
     assert_eq!(inside_main("<pre>a\n   b</pre>"), "<pre>a\n   b</pre>");
-    assert_eq!(inside_main("<pre><code>a\n   b</code></pre>"), "<pre><code>a\n   b</code></pre>");
-    assert_eq!(inside_main("<textarea>a\n   b</textarea>"), "<textarea>a\n   b</textarea>");
+    assert_eq!(
+        inside_main("<pre><code>a\n   b</code></pre>"),
+        "<pre><code>a\n   b</code></pre>"
+    );
+    assert_eq!(
+        inside_main("<textarea>a\n   b</textarea>"),
+        "<textarea>a\n   b</textarea>"
+    );
 }
 
 #[test]
 fn where_text_is_never_shown_the_layout_is_nothing() {
     assert_eq!(
-        inside_main("<table>\n  <thead>\n    <tr>\n      <th>h</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <td>d</td>\n    </tr>\n  </tbody>\n</table>"),
+        inside_main(
+            "<table>\n  <thead>\n    <tr>\n      <th>h</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <td>d</td>\n    </tr>\n  </tbody>\n</table>"
+        ),
         "<table><thead><tr><th>h</th></tr></thead><tbody><tr><td>d</td></tr></tbody></table>"
     );
     assert_eq!(
@@ -88,12 +101,18 @@ fn where_a_cell_can_show_text_the_layout_is_one_space() {
 
 #[test]
 fn a_list_keeps_a_space_a_style_could_show() {
-    assert_eq!(inside_main("<ul>\n  <li>a</li>\n  <li>b</li>\n</ul>"), "<ul> <li>a</li> <li>b</li> </ul>");
+    assert_eq!(
+        inside_main("<ul>\n  <li>a</li>\n  <li>b</li>\n</ul>"),
+        "<ul> <li>a</li> <li>b</li> </ul>"
+    );
 }
 
 #[test]
 fn where_text_is_never_shown_words_are_still_words() {
-    assert_eq!(inside_main("<table>a\n  b<tr><td>x</td></tr></table>"), "<table>a b<tr><td>x</td></tr></table>");
+    assert_eq!(
+        inside_main("<table>a\n  b<tr><td>x</td></tr></table>"),
+        "<table>a b<tr><td>x</td></tr></table>"
+    );
 }
 
 #[test]

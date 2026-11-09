@@ -400,7 +400,12 @@ fn a_long_hold_left_alone_looks_once_a_second() {
         &format!("mode=stream&doc={document}&since={document}&hold=long"),
     );
     let queue = s.pending.lock().expect("pending");
-    let trail = queue[&doc].trail.iter().cloned().collect::<Vec<_>>().join("\n");
+    let trail = queue[&doc]
+        .trail
+        .iter()
+        .cloned()
+        .collect::<Vec<_>>()
+        .join("\n");
     let passes: u64 = trail
         .split("after its passes (")
         .nth(1)
@@ -409,4 +414,3 @@ fn a_long_hold_left_alone_looks_once_a_second() {
         .unwrap_or_else(|| panic!("its passes in {trail}"));
     assert!((2..=5).contains(&passes), "{passes} passes: {trail}");
 }
-
