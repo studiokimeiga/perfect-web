@@ -16,6 +16,7 @@ const port = (k) => PORT + OFFSET + k;
 
 const SPIKE = path.join(REPO, "spikes/own-renderer");
 const VENDORED = path.join(REPO, "benchmarks/headtohead/todomvc");
+const ROWS = path.join(REPO, "benchmarks/headtohead/rows");
 // The Pleris host as a production build: `cargo build --release`, as the
 // frameworks' servers are their production builds (`next start`, `node
 // build`). Its development build, `target/debug`, is the one the test suites
@@ -52,6 +53,30 @@ const STORE_STEPS = [
     before: async (page) => String(Number((await page.textContent("#cart-count")).trim()) + 1),
     run: (page) => page.click("#menu li:first-child button"),
   },
+];
+
+/** The large list's: what every framework's keyed-list benchmark asks. */
+const ROWS_STEPS = [
+  { name: "create 1,000 rows", cond: "rows", arg: 1000, run: (page) => page.click("#run") },
+  { name: "update every 10th row", cond: "updated", arg: null, run: (page) => page.click("#update") },
+  { name: "select a row", cond: "selected", arg: 4, run: (page) => page.click("#tbody tr:nth-child(5) .select") },
+  {
+    name: "swap two rows",
+    cond: "secondRow",
+    arg: null,
+    before: (page) => page.textContent("#tbody tr:nth-child(999) .id"),
+    run: (page) => page.click("#swaprows"),
+  },
+  { name: "remove a row", cond: "rows", arg: 999, run: (page) => page.click("#tbody tr:nth-child(5) .remove") },
+  { name: "append 1,000 rows", cond: "rows", arg: 1999, run: (page) => page.click("#add") },
+  {
+    name: "replace all rows",
+    cond: "firstRow",
+    arg: null,
+    before: async (page) => String(Number(await page.textContent("#tbody tr:last-child .id")) + 1),
+    run: (page) => page.click("#run"),
+  },
+  { name: "clear all rows", cond: "rows", arg: 0, run: (page) => page.click("#clear") },
 ];
 
 /**
@@ -132,6 +157,71 @@ export const APPS = {
         // Its server is the instrument's static host, standing in for any
         // static host or CDN: what that host costs is not this stack's, so
         // Pleris's host doing better than it is no win (`report.mjs`).
+        standIn: true,
+      },
+    },
+  },
+  rows: {
+    title: "a table of a thousand rows",
+    appSelector: "#run",
+    steps: ROWS_STEPS,
+    common: [],
+    stacks: {
+      pleris: {
+        label: "Pleris",
+        who: "this project (examples/rows)",
+        version: "own renderer, this commit",
+        server: () => ({
+          name: "pleris-rows",
+          cmd: PW_SERVER,
+          args: ["dist-rows"],
+          cwd: SPIKE,
+          env: { PORT: String(port(20)), PW_FEED_DATABASE_URL: "", PW_STORE_DATABASE_URL: "" },
+          port: port(20),
+        }),
+        path: "/",
+        ready: "pw",
+        minifies: "runtime",
+        compresses: "all",
+        caches: true,
+        build: { kind: "pleris", dist: path.join(SPIKE, "dist-rows"), sources: path.join(SPIKE, "dist-rows/sources.json") },
+      },
+      react: {
+        label: "React",
+        who: "this project (benchmarks/headtohead/rows/react)",
+        version: "React from the Next.js baseline, esbuild",
+        server: () => ({
+          name: "static-rows-react",
+          cmd: process.execPath,
+          args: [STATIC_HOST, "--port", String(port(21)), "--mount", `/react/dist=${path.join(ROWS, "react/dist")}`],
+          cwd: REPO,
+          port: port(21),
+        }),
+        path: "/react/dist/",
+        ready: "dom",
+        minifies: true,
+        compresses: "all",
+        caches: true,
+        build: { kind: "vendored", root: ROWS, prefix: "/react/dist/", dir: "react/dist" },
+        standIn: true,
+      },
+      svelte: {
+        label: "Svelte",
+        who: "this project (benchmarks/headtohead/rows/svelte)",
+        version: "Svelte and Vite from the SvelteKit baseline",
+        server: () => ({
+          name: "static-rows-svelte",
+          cmd: process.execPath,
+          args: [STATIC_HOST, "--port", String(port(22)), "--mount", `/svelte/dist=${path.join(ROWS, "svelte/dist")}`],
+          cwd: REPO,
+          port: port(22),
+        }),
+        path: "/svelte/dist/",
+        ready: "dom",
+        minifies: true,
+        compresses: "all",
+        caches: true,
+        build: { kind: "vendored", root: ROWS, prefix: "/svelte/dist/", dir: "svelte/dist" },
         standIn: true,
       },
     },

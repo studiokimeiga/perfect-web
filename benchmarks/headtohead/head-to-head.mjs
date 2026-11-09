@@ -2,7 +2,7 @@
 // The head-to-head (ADR-0392): the same apps in Pleris and in the mainstream
 // stacks, measured by one instrument, Pleris's losses first.
 //
-//   node benchmarks/headtohead/head-to-head.mjs [--apps todomvc,store]
+//   node benchmarks/headtohead/head-to-head.mjs [--apps todomvc,rows,store]
 //        [--engines chromium,firefox,webkit] [--runs 7] [--conditions cold,warm]
 //        [--no-shaped] [--seed 20261025] [--load-rate 100] [--load-seconds 10]
 //        [--server-runs 5]
@@ -75,7 +75,7 @@ const SWITCHES = new Map([
 ]);
 
 const defaultArgs = () => ({
-  apps: ["todomvc", "store"],
+  apps: ["todomvc", "rows", "store"],
   engines: ["chromium", "firefox", "webkit"],
   runs: 7,
   conditions: ["cold", "warm"],

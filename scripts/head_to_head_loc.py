@@ -67,11 +67,32 @@ LANGUAGES = {
 }
 
 TODOMVC = "benchmarks/headtohead/todomvc"
+ROWS = "benchmarks/headtohead/rows"
 NEXT = "benchmarks/baselines/next-react"
 SVELTEKIT = "benchmarks/baselines/sveltekit"
 
 # What each stack's developer writes, by app. Globs are relative to the root.
 SETS = {
+    "rows": {
+        "pleris": {
+            "app": ["examples/rows/app.pw"],
+            "host": [],
+            "build": ["spikes/own-renderer/rows.sh"],
+            "excluded": [],
+        },
+        "react": {
+            "app": [f"{ROWS}/react/src/**", f"{ROWS}/react/index.html"],
+            "host": [],
+            "build": [f"{ROWS}/build.sh"],
+            "excluded": [f"{ROWS}/react/dist/**"],
+        },
+        "svelte": {
+            "app": [f"{ROWS}/svelte/src/**", f"{ROWS}/svelte/index.html"],
+            "host": [],
+            "build": [f"{ROWS}/svelte/vite.config.mjs", f"{ROWS}/build.sh"],
+            "excluded": [f"{ROWS}/svelte/dist/**"],
+        },
+    },
     "todomvc": {
         "pleris": {
             "app": ["examples/todomvc/app.pw"],

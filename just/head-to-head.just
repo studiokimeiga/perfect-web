@@ -44,6 +44,7 @@ e14-head-to-head:
     @cargo build --quiet --locked --release -p pw-dev-server
     @PW_PRODUCTION_ASSETS=1 BUILD_ONLY=1 bash spikes/own-renderer/run.sh > /dev/null
     @PW_PRODUCTION_ASSETS=1 bash spikes/own-renderer/todomvc.sh > /dev/null
+    @PW_PRODUCTION_ASSETS=1 bash spikes/own-renderer/rows.sh > /dev/null
     @PW_PRODUCTION_ASSETS=1 bash spikes/own-renderer/baseline-store.sh > /dev/null
     @cd spikes/own-renderer && pnpm exec node --test optimize-assets.test.mjs
     @cd spikes/todomvc-cypress && pnpm exec cypress install > /dev/null

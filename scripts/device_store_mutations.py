@@ -497,8 +497,8 @@ MUTANTS = [
         "a block rendered again is replaced, not morphed",
         "todomvc",
         RUNTIME,
-        "      inserted.push(...morphBlock(live.part, await renderBlock(live.part)));\n",
-        "      inserted.push(...replaceBlock(live.part, await renderBlock(live.part)));\n",
+        "      inserted.push(...morphBlock(live.part, block));\n",
+        "      inserted.push(...replaceBlock(live.part, block));\n",
     ),
     (
         "rows are matched by their place, not their key",

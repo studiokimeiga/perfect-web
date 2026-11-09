@@ -1282,11 +1282,19 @@ const renderer = (() => {
     return shown(v) ?? "";
   }
 
-  /** **An instance's address in this page**: its key, in the characters an
-   * anchor may hold, so that two keys are never one token and nothing is kept
-   * for a key the page has stopped showing. The server's are a keyed hash,
-   * under a key a page does not hold. */
-  const tokenOf = (key) => `k${key.replace(/[^A-Za-z0-9-]/g, (c) => `_${c.charCodeAt(0).toString(16)}_`)}`;
+  /** **An instance's address in this page.** One per instance and key, for
+   * as long as the page is open, and so never the same for two; the server's
+   * are a keyed hash, under a key a page does not hold. A row of a list with
+   * no list around it is addressed by its list and key, in the characters an
+   * anchor may hold, so nothing is kept for a row the page has let go. */
+  const tokens = new Map();
+  function tokenOf(e, id, key) {
+    if (e.frames.length === 0) return `k${id}_${key.replace(/[^A-Za-z0-9-]/g, (c) => `_${c.charCodeAt(0).toString(16)}_`)}`;
+    const said = `${e.frames.map((f) => `${f.scope}@${f.instance}`).join("/")}|${id}|${key}`;
+    let token = tokens.get(said);
+    if (token === undefined) tokens.set(said, (token = `b${tokens.size}`));
+    return token;
+  }
 
   // --- each context's escaping (`runtime/pw-render/src/escape.rs`) ---------
 
@@ -1554,7 +1562,7 @@ const renderer = (() => {
         continue;
       }
       const key = rowKey(item, p, seen);
-      const token = tokenOf(key);
+      const token = tokenOf(e, p.id, key);
       html.push(`<!--pw:s${p.id}@${token}-->`);
       emit(p.body, within(scoped, p.id, token), others, out);
       html.push(`<!--pw:e${p.id}@${token}-->`);
@@ -1573,6 +1581,9 @@ const renderer = (() => {
 
   /** Whether nothing asks for what is inside a row, as `DELEGATED` says. */
   const DELEGATED_ROWS = !PW_SERVER && !PW_VIEWS;
+
+  /** How many rows' text the last block's render wrote. */
+  let rowsWritten = 0;
 
   /** What each keyed list at the top of a block last wrote, by its key: each
    * row's value, what it read of the page, and its text. */
@@ -1603,8 +1614,9 @@ const renderer = (() => {
   }
 
   function rowOf(p, e, others, item, key) {
+    rowsWritten += 1;
     const reads = new Map();
-    const token = tokenOf(key);
+    const token = tokenOf(e, p.id, key);
     const at = `${p.id}@${token}`;
     const text = rendered(others, (out) => {
       out.bare = !PW_SERVER && DELEGATED_ROWS;
@@ -1623,7 +1635,7 @@ const renderer = (() => {
     if (!t) throw new Blocked("UnknownInstance", p.path);
     const root = e.elements + (p.elements ?? 0);
     if (root + (p.deepest ?? 0) > NESTED_ELEMENTS) throw new Blocked("TooDeep", p.path);
-    const token = tokenOf(p.path);
+    const token = tokenOf(e, p.id, p.path);
     let child = { page: new Map(), names: null, frames: [...e.frames, { scope: p.id, instance: token }], elements: root };
     for (const [param, source] of p.args) child = named(child, param, need(e, source));
     out.html.push(`<!--pw:s${p.id}@${token}-->`);
@@ -1802,6 +1814,7 @@ const renderer = (() => {
 
   const asked = {
     env,
+    letGo: () => tokens.clear(),
     /** One part, its anchors included. */
     part: (p, e, others) => rendered(others, (out) => emit([{ chunk: "dynamic", value: p }], e, others, out)),
     /** A block as a page that talks to no server keeps it: what is around
@@ -1811,6 +1824,7 @@ const renderer = (() => {
       : (p, e, others) => {
           const strs = [""];
           const lists = [];
+          rowsWritten = 0;
           const write = (out) => emit([{ chunk: "dynamic", value: p }], e, others, out);
           for (const piece of written_(others, write, true)) {
             if (typeof piece === "string") strs[strs.length - 1] += piece;
@@ -1819,7 +1833,7 @@ const renderer = (() => {
               strs.push("");
             }
           }
-          return { strs, lists };
+          return { strs, lists, written: rowsWritten };
         },
     same,
     captures,
@@ -1859,7 +1873,7 @@ const renderer = (() => {
 
     /** What changed in one row, part by part; `null` where it is rendered again. */
     function rowChanges(p, was, now, e, others) {
-      const scoped = (item) => within(named(e, p.binding, item), p.id, tokenOf(keyOf(item, p.key)));
+      const scoped = (item) => within(named(e, p.binding, item), p.id, tokenOf(e, p.id, keyOf(item, p.key)));
       const before = scoped(was);
       const after = scoped(now);
       const handlers = new Map();
@@ -1944,7 +1958,7 @@ const renderer = (() => {
         if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);
         seen.add(key);
       }
-      const token = (v) => tokenOf(keyOf(opened(v), p.key));
+      const token = (v) => tokenOf(e, p.id, keyOf(opened(v), p.key));
       const wanted = now.map(token);
       const current = [];
       let changed = false;
@@ -1979,7 +1993,7 @@ const renderer = (() => {
       if (p.key === null || p.key === undefined) throw unrepresented("an unkeyed loop has no addressable instance");
       const key = keyOf(item, p.key);
       if (key === "") throw new Blocked("MissingLoopKey", p.key);
-      const token = tokenOf(key);
+      const token = tokenOf(e, p.id, key);
       const scoped = within(named(e, p.binding, item), p.id, token);
       return rendered(others, (out) => {
         out.html.push(`<!--pw:s${p.id}@${token}-->`);
@@ -3207,9 +3221,11 @@ async function flushSignals() {
       }
       // Morphed, so what it held is kept where it is rendered again (track
       // `device-store`): a row by its key.
-      inserted.push(...morphBlock(live.part, await renderBlock(live.part)));
+      const block = await renderBlock(live.part);
+      inserted.push(...morphBlock(live.part, block));
       rendered = true;
       log.push(`signal ${[...changed].join(",")} -> block ${live.part}`);
+      if (!PW_SERVER) log.push(`block ${live.part} wrote ${block.written} of ${block.lists.reduce((n, l) => n + l.rows.length, 0)} rows`);
     }
   }
   if (rendered) {
@@ -3222,6 +3238,7 @@ async function flushSignals() {
   }
   if (PW_SERVER) readAgain(changed);
   window.__pw.signals = Object.fromEntries(signals);
+  if (!PW_SERVER) log.push(`${index.size} indexed`);
   // What the tests and a developer read, as far back as is any use: a page
   // left open keeps nothing without end.
   if (log.length > 4000) log.splice(0, 2000);
@@ -4135,12 +4152,13 @@ function pressHeard(e) {
  * is rendered again (ADR-0130), what it made: its old elements are gone with
  * their listeners, and the elements still standing keep theirs.
  */
-function bindEvents() {
-  if (DELEGATED) return heardAtTheDocument();
-  for (const [template, list] of manifests) {
-    for (const part of list) bindEvent(template, part);
-  }
-}
+const bindEvents = DELEGATED
+  ? () => heardAtTheDocument()
+  : () => {
+      for (const [template, list] of manifests) {
+        for (const part of list) bindEvent(template, part);
+      }
+    };
 
 /**
  * **The decision for one handler part**, asked once and kept, by the name
@@ -5305,6 +5323,9 @@ function handOver() {
   delete document.documentElement.dataset.pwNavigating;
   document.documentElement.dataset.pwReady = "0";
   life.abort();
+  // What its renderer holds let go: this module stays in the module map
+  // (the first press's review), and nothing here renders again.
+  renderer.letGo();
   // At this runtime's delivery, where it has one (ADR-0399).
   const next = delivered("/pw-runtime.mjs");
   import(`${next}${next.includes("?") ? "&" : "?"}document=${window.__pwSoftNavigations}`).catch((e) => {

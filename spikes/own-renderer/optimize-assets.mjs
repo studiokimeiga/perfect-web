@@ -25,6 +25,9 @@ const ASSET = /\.(?:mjs|js|wasm|css|svg)$/;
 async function packDeviceRuntime(directory, source) {
   const uses = await deviceFeatures(directory);
   let device = source.replace("const PW_SERVER = true;", "").replaceAll("PW_SERVER", "false");
+  // Whether a press is heard at the document, as the views say: a literal, so
+  // what only a listener on each element needs falls away with it.
+  device = device.replace("const DELEGATED = !false && !PW_VIEWS;", "").replaceAll("DELEGATED", String(!uses.PW_VIEWS));
   for (const [flag, used] of Object.entries(uses)) {
     device = device.replace(`const ${flag} = true;`, "").replaceAll(flag, String(used));
   }

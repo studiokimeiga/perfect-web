@@ -31,6 +31,7 @@ page Events() {
     signal inner: Int = 0
     signal left: Int = 0
     signal typed: Int = 0
+    signal wrapped: Int = 0
     signal note: String = "first"
     signal items: List<Item> = [Item { id: 1, name: "one" }, Item { id: 2, name: "two" }]
 
@@ -44,7 +45,12 @@ page Events() {
             <input id="field" aria-label="Field" on:blur={() => left = left + 1} on:keydown={() => typed = typed + 1} />
             <button id="note" type="button" on:press={() => note = "second"}>Note</button>
             <button id="rename" type="button" on:press={() => items = renamed(items, 2)}>Rename</button>
+            <button id="reverse-rename" type="button" on:press={() => items = List.reverse(renamed(items, 1))}>Reverse and rename</button>
+            <button id="prepend" type="button" on:press={() => items = List.concat([Item { id: 10, name: "ten" }, Item { id: 11, name: "eleven" }], items)}>Prepend</button>
+            <button id="both-ends" type="button" on:press={() => items = List.concat([Item { id: 20, name: "twenty" }], List.concat(items, [Item { id: 21, name: "twenty-one" }]))}>Both ends</button>
+            <div id="wrap" role="button" tabindex="0" on:blur={() => wrapped = wrapped + 1} on:keydown={() => wrapped = wrapped + 0}><input id="inside" aria-label="Inside" /></div>
             <p id="counts">{outer} {inner} {left} {typed}</p>
+            <p id="wrapped">{wrapped}</p>
             <ul id="items">
                 {#if List.length(items) > 0}
                     {#each items as item (item.id)}

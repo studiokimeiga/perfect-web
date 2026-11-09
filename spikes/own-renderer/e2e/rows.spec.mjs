@@ -180,6 +180,58 @@ test("a row that reads the page is written again when the page changes", async (
   await expect(page.locator("#items .note").nth(1)).toHaveText("second");
 });
 
+/** The names and order of the event page's list. */
+const names = (page) => page.locator("#items .name").allTextContents();
+
+/** The event page, its list rendered once: what comes next is made by key. */
+async function listRendered(page) {
+  await open(page, "/events");
+  await page.click("#note");
+  await expect(page.locator("#items .note").nth(0)).toHaveText("second");
+}
+
+test("a row changed and moved shows its new text where it now is", async ({ page }) => {
+  await listRendered(page);
+  await page.click("#reverse-rename");
+  await expect(page.locator("#items .name").nth(1)).toHaveText("renamed");
+  expect(await names(page)).toEqual(["two", "renamed"]);
+});
+
+test("new rows before the others go before them", async ({ page }) => {
+  await listRendered(page);
+  await page.click("#prepend");
+  await expect(page.locator("#items .name")).toHaveCount(4);
+  expect(await names(page)).toEqual(["ten", "eleven", "one", "two"]);
+});
+
+test("new rows either side of the others go where their place is", async ({ page }) => {
+  await listRendered(page);
+  await page.click("#both-ends");
+  await expect(page.locator("#items .name")).toHaveCount(4);
+  expect(await names(page)).toEqual(["twenty", "one", "two", "twenty-one"]);
+});
+
+test("an event that stays on its element does not reach a handler around it", async ({ page }) => {
+  await open(page, "/events");
+  await page.locator("#inside").focus();
+  await page.locator("#note").focus();
+  await expect(page.locator("#counts")).toHaveText("0 0 0 0");
+  await expect(page.locator("#wrapped")).toHaveText("0");
+});
+
+test("a press writes the text of the rows it changed and indexes nothing inside them", async ({ page }) => {
+  await open(page);
+  await created(page);
+  const before = await page.evaluate(() => window.__pw.log.length);
+  await page.locator("#tbody tr").nth(4).locator(".select").click();
+  await expect(page.locator("#tbody tr").nth(4)).toHaveClass("danger");
+  await page.waitForFunction((n) => window.__pw.log.slice(n).some((l) => l.endsWith("indexed")), before);
+  const lines = await page.evaluate((n) => window.__pw.log.slice(n), before);
+  expect(lines.some((l) => /wrote 1 of 1000 rows$/.test(l))).toBe(true);
+  const indexed = Number(lines.find((l) => l.endsWith("indexed")).split(" ")[0]);
+  expect(indexed < 100).toBe(true);
+});
+
 test("a row whose value changed is written again", async ({ page }) => {
   await open(page, "/events");
   await page.click("#rename");

@@ -90,6 +90,7 @@ import 'just/device-runtime.just'
 import 'just/decision-in-js.just'
 import 'just/inline-styles.just'
 import 'just/style-images.just'
+import 'just/rows.just'
 
 default:
     @just --list
