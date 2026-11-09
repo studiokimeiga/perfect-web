@@ -30,7 +30,7 @@ SERVER = ROOT / "spikes/own-renderer/server/src/main.rs"
 # How long one command may run; past it, the run counts as failing.
 BOUND = 900
 
-SPECS = ["e2e/lazy-handler.spec.mjs", "e2e/recovery.spec.mjs", "e2e/runtime-size.spec.mjs"]
+SPECS = ["e2e/lazy-handler.spec.mjs", "e2e/recovery.spec.mjs", "e2e/runtime-size.spec.mjs", "e2e/warm.spec.mjs"]
 
 # (what, suite, file, anchor, replacement)
 MUTANTS = [
