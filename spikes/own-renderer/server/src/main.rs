@@ -944,6 +944,8 @@ mod store;
 // TRACK SEAM (store-accounts): where a delivery goes, and whether a store
 // reaches it.
 mod places;
+// The prerender's ADR: a page no reader decides, as one document.
+mod prerender;
 // Track `store-pg`: the store's data in PostgreSQL.
 mod store_pg;
 mod uploads;
@@ -1324,6 +1326,9 @@ struct Server {
     /// Set once, as the server starts; a page that states its canonical
     /// address cannot be served without it.
     origin: std::sync::OnceLock<String>,
+    /// **Each page no reader decides, as one document** (the prerender's
+    /// ADR), by its template path: filled once, before the host listens.
+    prerendered: std::sync::OnceLock<BTreeMap<String, prerender::Prerendered>>,
     /// NEXT 6c: **the deployment's payments**, as its configuration states
     /// them (`PW_PAYMENTS`), set once as the server starts; none where it
     /// names none.
@@ -2160,6 +2165,7 @@ impl Server {
             slow: Mutex::new(std::collections::VecDeque::new()),
             tellings: Mutex::new(std::collections::VecDeque::new()),
             origin: std::sync::OnceLock::new(),
+            prerendered: std::sync::OnceLock::new(),
             payments: std::sync::OnceLock::new(),
             shown: Mutex::new(BTreeMap::new()),
             documents: std::sync::atomic::AtomicU64::new(first_page),
@@ -7169,6 +7175,18 @@ impl Server {
         session: &str,
         settled: &[(u32, Settled)],
     ) -> Result<(String, Env, &Template), String> {
+        self.render_page_in(path, params, session_partition(session), settled)
+    }
+
+    /// [`Self::render_page`], its identities in `partition`: a session's, or
+    /// the public one where the page is every reader's (the prerender's ADR).
+    fn render_page_in(
+        &self,
+        path: &str,
+        params: &BTreeMap<String, String>,
+        partition: Partition,
+        settled: &[(u32, Settled)],
+    ) -> Result<(String, Env, &Template), String> {
         let plan = self
             .plans
             .get(path)
@@ -7202,8 +7220,7 @@ impl Server {
         // What it computes from its signals, at their first values (ADR-0227).
         let env = self.with_computed_signals(env, plan, template)?;
         let env = with_signals(env, plan).in_domain(
-            IdentityDomain::document(path, session_partition(session), BUILD)
-                .keyed("own-renderer-spike-key"),
+            IdentityDomain::document(path, partition, BUILD).keyed("own-renderer-spike-key"),
         );
         let body = pw_render::render(template, &env, &self.templates)
             .map_err(|e| format!("`{path}` does not render: {e:?}"))?;
@@ -7233,6 +7250,35 @@ impl Server {
             env,
             template,
         ))
+    }
+
+    /// **Each page no reader decides, rendered once** (the prerender's ADR),
+    /// in the public partition, once the deployment's origin and policy are
+    /// settled. A page that does not render is said here, before the host
+    /// listens, as a handler that was not compiled is: a build that cannot
+    /// show a page did not finish.
+    fn prerender(&self) -> Result<(), String> {
+        let mut documents = BTreeMap::new();
+        for (page, plan) in &self.plans {
+            if plan["prerender"] != true {
+                continue;
+            }
+            let (document, _, _) = self
+                .render_page_in(page, &BTreeMap::new(), Partition::Public, &[])
+                .map_err(|why| format!("`{page}` cannot be prerendered: {why}"))?;
+            let (build, delivery, policy) = self.document_says();
+            let document =
+                prerender::Prerendered::of(document, format!("{build}{delivery}{policy}"))
+                    .map_err(|why| format!("`{page}` cannot be prerendered: {why}"))?;
+            documents.insert(page.clone(), document);
+        }
+        let _ = self.prerendered.set(documents);
+        Ok(())
+    }
+
+    /// **The page `page`'s one document**, where the host rendered one.
+    fn prerendered(&self, page: &str) -> Option<&prerender::Prerendered> {
+        self.prerendered.get()?.get(page)
     }
 
     /// Where `pw emit-handlers` wrote the module for a handler identity.
@@ -7854,6 +7900,26 @@ impl Server {
         )
     }
 
+    /// **What every document says of itself**, each a header's line: the
+    /// build, the delivery and the policy.
+    fn document_says(&self) -> (String, String, String) {
+        // **The build that served it** (ADR-0300), which a page that keeps
+        // its parts across a navigation holds the next document to.
+        let build = format!("pw-build: {}\r\n", self.build_id);
+        // **The delivery it names its files at** (ADR-0399): a
+        // versioned build's only. A page that navigates in place holds the
+        // next document to it as it does to the build, since its runtime
+        // asks for files a browser keeps a year at its own.
+        let delivery = self
+            .delivery
+            .version
+            .as_ref()
+            .map_or(String::new(), |v| format!("pw-delivery: {v}\r\n"));
+        // What it may load and run (`csp`).
+        let policy = format!("content-security-policy: {}\r\n", self.policy());
+        (build, delivery, policy)
+    }
+
     /// **A document, and each streamed region's arm as its query settles**
     /// (ADR-0148). With nothing left to settle it is one response of known
     /// length, as every document was. Otherwise all but the document's end is
@@ -7893,20 +7959,7 @@ impl Server {
         } else {
             String::new()
         };
-        // **The build that served it** (ADR-0300), which a page that keeps
-        // its parts across a navigation holds the next document to.
-        let build = format!("pw-build: {}\r\n", self.build_id);
-        // **The delivery it names its files at** (ADR-0399): a
-        // versioned build's only. A page that navigates in place holds the
-        // next document to it as it does to the build, since its runtime
-        // asks for files a browser keeps a year at its own.
-        let delivery = self
-            .delivery
-            .version
-            .as_ref()
-            .map_or(String::new(), |v| format!("pw-delivery: {v}\r\n"));
-        // What it may load and run (`csp`).
-        let policy = format!("content-security-policy: {}\r\n", self.policy());
+        let (build, delivery, policy) = self.document_says();
         if settling.waiting.is_empty() && settling.settled.is_empty() {
             write_response(
                 stream,
@@ -9575,6 +9628,13 @@ fn main() {
             std::process::exit(1);
         }
     }
+    // **Each page no reader decides, rendered once** (the prerender's ADR),
+    // with the origin and the deployment's policy now settled, or the server
+    // does not start.
+    if let Err(e) = server.prerender() {
+        eprintln!("pw dev server: {e}");
+        std::process::exit(1);
+    }
     let listener = TcpListener::bind(("127.0.0.1", port)).expect("bind");
     println!("pw dev server on {port}");
     // TRACK SEAM (identity): which identity model runs.
@@ -10321,6 +10381,11 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
         Some(Ok(matched)) => Some(matched),
         None => None,
     };
+
+    // The one document of the page it names, where it has one.
+    let prerendered = routed
+        .as_ref()
+        .and_then(|(page, _)| server.prerendered(page));
 
     match (method, route) {
         // **A command the compiler built, by its component id**: what a
@@ -11662,6 +11727,11 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
             fresh,
             b"no such command",
         ),
+        // **A page no reader decides, at its route** (the prerender's ADR):
+        // after every route of the host's own, so that none loses its place.
+        ("GET", _) if prerendered.is_some() => {
+            respond_prerendered(&mut stream, &headers, prerendered.expect("matched"));
+        }
         // **A page at its route** (ADR-0162): the store at `/stores/{id}`,
         // its parameters as the address gives them, and any other page that
         // declares one; one that binds a query as the store's is (ADR-0190).
@@ -12534,8 +12604,6 @@ fn respond_representation(
     mut bytes: Vec<u8>,
     policy: &str,
 ) {
-    use sha2::Digest;
-
     let mut encoding = None;
     // The build pipeline writes both representations, without changing the
     // uncompressed file or any user/session-specific HTML response.
@@ -12553,31 +12621,70 @@ fn respond_representation(
     }
 
     // A strong ETag describes this representation, not the differently
-    // encoded version, and 304 has no body. Weak tags conservatively miss.
-    let digest = sha2::Sha256::digest(&bytes);
-    let hex = digest
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect::<String>();
-    let tag = format!("\"{hex}\"");
-    let unchanged =
-        build_request_header(request_headers, "if-none-match").is_some_and(|candidates| {
-            candidates
-                .split(',')
-                .any(|candidate| candidate.trim() == tag)
-        });
+    // encoded version.
+    let tag = prerender::strong_tag(&bytes);
+    if holds_representation(request_headers, &tag) {
+        write_not_modified(stream, policy, &tag);
+        return;
+    }
     let mut response_headers =
         format!("cache-control: {policy}\r\netag: {tag}\r\nvary: accept-encoding\r\n");
     if let Some(algorithm) = encoding {
         response_headers.push_str(&format!("content-encoding: {algorithm}\r\n"));
     }
+    write_response(stream, 200, mime, &response_headers, &bytes);
+}
+
+/// **A page no reader decides, as this request accepts it** (the prerender's
+/// ADR): the same for everyone, so any cache may keep it and asks before each
+/// use. It names no session.
+fn respond_prerendered(
+    stream: &mut Conn,
+    request_headers: &str,
+    document: &prerender::Prerendered,
+) {
+    const POLICY: &str = "public, no-cache";
+    let chosen = document.accepted(|encoding| accepts_asset_encoding(request_headers, encoding));
+    if holds_representation(request_headers, &chosen.tag) {
+        write_not_modified(stream, POLICY, &chosen.tag);
+        return;
+    }
+    let encoding = chosen
+        .encoding
+        .map_or(String::new(), |e| format!("content-encoding: {e}\r\n"));
     write_response(
         stream,
-        if unchanged { 304 } else { 200 },
-        mime,
-        &response_headers,
-        if unchanged { b"" } else { &bytes },
+        200,
+        "text/html; charset=utf-8",
+        &format!(
+            "cache-control: {POLICY}\r\netag: {}\r\nvary: accept-encoding\r\n{encoding}{}",
+            chosen.tag, document.headers
+        ),
+        &chosen.bytes,
     );
+}
+
+/// **Whether a request already holds the representation `tag` names**: its
+/// `if-none-match` lists it exactly. A weak tag conservatively misses.
+fn holds_representation(request_headers: &str, tag: &str) -> bool {
+    build_request_header(request_headers, "if-none-match")
+        .is_some_and(|candidates| candidates.split(',').any(|held| held.trim() == tag))
+}
+
+/// **A 304** (RFC 9110 §15.4.5): what a cache needs to go on using what it
+/// holds, and nothing else. No `content-length`: the field could only say
+/// what a 200 would have sent (§8.6), and a 304 has no content.
+fn write_not_modified(stream: &mut Conn, policy: &str, tag: &str) {
+    let head = format!(
+        "HTTP/1.1 304 {}\r\ncache-control: {policy}\r\netag: {tag}\r\nvary: accept-encoding\r\n{NOSNIFF}{}\r\n",
+        reason(304),
+        stream.connection()
+    );
+    let whole = stream
+        .write_all(head.as_bytes())
+        .and_then(|()| stream.flush())
+        .is_ok();
+    stream.answered(whole);
 }
 
 #[cfg(test)]
@@ -17720,6 +17827,8 @@ public query Store(",
     mod session_commands_pg;
     // ADR-0401: a connection kept for its next request.
     mod keep_alive;
+    // The prerender's ADR: a page no reader decides is one document.
+    mod prerender;
     // ADR-0389, amended 2026-11-02: overlapping admissions of one session.
     mod session_overlap;
     mod session_receipt_recovery;

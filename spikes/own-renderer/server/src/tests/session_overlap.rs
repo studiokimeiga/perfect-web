@@ -820,7 +820,7 @@ fn on_postgres_an_admission_waits_on_a_locked_table_no_longer_than_the_lock_time
 }
 
 /// A source of sessions that fails every read.
-struct Unavailable;
+pub(super) struct Unavailable;
 
 impl identity::Kept for Unavailable {
     fn session(

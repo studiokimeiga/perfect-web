@@ -185,6 +185,24 @@ fn no_host_holds_a_todo() {
     assert_eq!(body(&a), body(&b));
 }
 
+/// **TodoMVC is one document** (the prerender's ADR): nothing on it is
+/// anyone's and nothing on it asks a server anything, so the build marks it.
+#[test]
+fn todomvc_is_one_document() {
+    let s = served_todomvc();
+    let done = s.prerender();
+    assert!(done.is_ok(), "{done:?}");
+    let answer: String = fetched_as(&s, "/", None)
+        .into_iter()
+        .map(|(_, c)| c)
+        .collect();
+    assert!(
+        answer.contains("cache-control: public, no-cache\r\n"),
+        "{answer}"
+    );
+    assert!(!answer.contains("set-cookie"), "{answer}");
+}
+
 #[test]
 fn the_page_has_the_templates_markup() {
     let s = served_todomvc();

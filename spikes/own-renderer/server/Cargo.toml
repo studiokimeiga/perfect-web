@@ -60,6 +60,11 @@ serde_json.workspace = true
 # Cargo.lock: 0.9.1, MIT OR Zlib OR Apache-2.0, checked on crates.io
 # 2026-09-25.
 miniz_oxide = "0.9.1"
+# The prerender's ADR: a page no reader decides, compressed once as a static
+# host compresses it (its gzip is miniz_oxide above, 21% larger on TodoMVC's
+# document). 9.1.1, BSD-3-Clause AND MIT, checked on crates.io 2026-11-09;
+# dropbox/rust-brotli, pure Rust; for this host alone.
+brotli = "=9.1.1"
 # Track `kiokun` (W6): kiokun.com's search is an FTS5 table, which the
 # workspace's bundled SQLite builds with (libsqlite3-sys's
 # `-DSQLITE_ENABLE_FTS5`). The workspace's crate, already in Cargo.lock
