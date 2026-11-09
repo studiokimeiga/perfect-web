@@ -200,6 +200,27 @@ test("an unauthorised handler is never fetched", async ({ page }) => {
   await page.unrouteAll({ behavior: "ignoreErrors" }).catch(() => {});
 });
 
+test("a table answered with an error is no table, whatever it says", async ({ page }) => {
+  // The closed side is the answer's status, not its body: an error page can
+  // say anything, and a build's table is what a build's server sends.
+  const fetched = watch(page);
+  await page.route("**/pw-handlers*", async (route) => {
+    const response = await route.fetch();
+    await route.fulfill({ status: 500, body: await response.text() });
+  });
+  await page.goto("/StorePage.html");
+  await page.waitForFunction(() => document.documentElement.dataset.pwReady);
+  await page.locator("#menu button").first().click();
+  const log = await (
+    await page.waitForFunction(() => {
+      const lines = window.__pw?.log ?? [];
+      return lines.some((line) => /refused \d+: code 4 /.test(line)) && lines.join("\n");
+    })
+  ).jsonValue();
+  expect(log, "it knows no handler").toMatch(/knows 0 handler\(s\)/);
+  expect(fetched, "and nothing was fetched").toEqual([]);
+});
+
 test("a handler this build did not compile is refused, whatever the document says", async ({
   page,
 }) => {

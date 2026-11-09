@@ -28,7 +28,7 @@ e14-decision-in-js:
        cargo test --locked -p pw-dev-server --bin pw-dev-server a_document_preloads_what_its_runtime_boots_with 2>&1 | grep -E '^(test |test result)|panicked at'; \
        cargo test --locked -p pw-dev-server --bin pw-dev-server tests::page_policy:: 2>&1 | grep -E '^(test result)|panicked at'; \
        echo; echo "== the pages that decide, in three engines"; echo; \
-       bash scripts/run_suite.sh -- pnpm exec playwright test e2e/lazy-handler.spec.mjs e2e/recovery.spec.mjs e2e/page-policy.spec.mjs e2e/runtime-size.spec.mjs --reporter=line; \
+       bash scripts/run_suite.sh -- pnpm exec playwright test e2e/lazy-handler.spec.mjs e2e/recovery.spec.mjs e2e/page-policy.spec.mjs e2e/runtime-size.spec.mjs e2e/warm.spec.mjs --reporter=line; \
        echo; echo "== mutation controls (scripts/decision_in_js_mutations.py)"; echo; \
        CARGO_INCREMENTAL=0 python3 scripts/decision_in_js_mutations.py; \
      } > docs/evidence/E14/decision-in-js.txt
