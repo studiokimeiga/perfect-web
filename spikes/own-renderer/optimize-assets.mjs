@@ -54,6 +54,11 @@ async function packAsset(directory, entry) {
     body = Buffer.from(result.code);
     await writeFile(file, body);
   }
+  if (entry.name.endsWith(".css")) {
+    const result = await transform(body.toString("utf8"), { loader: "css", minify: true, legalComments: "inline", charset: "utf8" });
+    body = Buffer.from(result.code);
+    await writeFile(file, body);
+  }
   await writeFile(file + ".br", brotliCompressSync(body, BR));
   await writeFile(file + ".gz", gzipSync(body, { level: 9, mtime: 0 }));
 }

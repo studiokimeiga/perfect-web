@@ -100,6 +100,8 @@ MUTANTS = [
      "                        sent: sent.len() as usize,\n", "                        sent: 0,\n"),
     ("the policy is not told", "host", SERVER,
      "        needs.styles.extend(style);\n", "        let _ = style;\n"),
+    ("a stylesheet is not minified", "packaging", PACKAGING,
+     '  if (entry.name.endsWith(".css")) {\n', '  if (entry.name.endsWith(".nothing")) {\n'),
     ("the packaging does not say so", "packaging", PACKAGING,
      "bundled: true, device: true, inline: true }", "bundled: true, device: true }"),
     ("the page does not ask for less", "browser", SERVER,

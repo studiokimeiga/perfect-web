@@ -298,3 +298,25 @@ test("the runtime of a page that talks to no server holds none of a server's cod
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test("a production build minifies its stylesheets, and keeps what they draw", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+  try {
+    const css = `/* a note */
+.a {
+  color: red;
+  background-image: url('data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22x%22%2F%3E');
+}
+`;
+    await writeFile(path.join(dir, "a.css"), css);
+    await optimizeAssets(dir);
+    const minified = await readFile(path.join(dir, "a.css"));
+    assert.ok(minified.length < Buffer.byteLength(css), minified.toString());
+    assert.doesNotMatch(minified.toString(), /a note/);
+    assert.match(minified.toString(), /%3Csvg%20xmlns%3D%22x%22%2F%3E/);
+    assert.deepEqual(brotliDecompressSync(await readFile(path.join(dir, "a.css.br"))), minified);
+    assert.deepEqual(gunzipSync(await readFile(path.join(dir, "a.css.gz"))), minified);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
