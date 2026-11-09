@@ -100,6 +100,32 @@ test("the decision's WebAssembly carries none of its trace's words", async ({ re
   expect(exports, "and the decision is whole").toEqual(expect.arrayContaining(["decide_manifest", "last_recovery"]));
 });
 
+test("the decision's WebAssembly is bounded as it is sent, and a decision keeps nothing", async ({
+  request,
+}) => {
+  // Every interactive page downloads this before a handler can attach. Built
+  // on `std` it was 19.5 KB as sent, most of it an allocator, sort code for
+  // lists of one, and panic formatting nothing read.
+  const wasm = await (await request.get("/pw-resume.wasm")).body();
+  console.log(`EVIDENCE decision-wasm-bytes=${wasm.length} brotli=${brotli(wasm)}`);
+  expect(brotli(wasm), "the decision, as sent").toBeLessThan(7 * 1024);
+  const { instance } = await WebAssembly.instantiate(wasm, {});
+  const x = instance.exports;
+  const written = (text) => {
+    const bytes = new TextEncoder().encode(text);
+    const at = x.alloc(bytes.length);
+    new Uint8Array(x.memory.buffer, at, bytes.length).set(bytes);
+    return [at, bytes.length];
+  };
+  x.know(...written("5e53c6a9aaee307a|\n"));
+  const manifest = written("2|1|B1|5e53c6a9aaee307a||cart-doc|public||region");
+  expect(x.decide_manifest(...manifest), "it resumes").toBe(0);
+  // Its heap only grows, so a decision that kept anything would show here.
+  const before = x.memory.buffer.byteLength;
+  for (let i = 0; i < 20000; i++) x.decide_manifest(...manifest);
+  expect(x.memory.buffer.byteLength, "twenty thousand decisions later").toBe(before);
+});
+
 test("gate 7b: the interactive route's runtime is bounded as it is sent", async ({ page }) => {
   const bytes = await transferred(page, () => ready(page));
   console.log(`EVIDENCE interactive-script-bytes=${bytes.script} brotli=${bytes.sent.script}`);

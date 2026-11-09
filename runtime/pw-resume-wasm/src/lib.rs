@@ -30,6 +30,19 @@
 //! its code, which `pleris.dev/e/PWR<code>` explains, and by its recovery
 //! (ADR-0400).
 
+#![cfg_attr(target_arch = "wasm32", no_std)]
+
+extern crate alloc;
+
+use alloc::string::{String, ToString};
+use alloc::vec;
+use alloc::vec::Vec;
+
+#[cfg(target_arch = "wasm32")]
+mod browser;
+#[cfg(target_arch = "wasm32")]
+use browser::Mutex;
+#[cfg(not(target_arch = "wasm32"))]
 use std::sync::Mutex;
 
 use pw_resume::*;
@@ -55,8 +68,8 @@ static KNOWN: Mutex<Vec<(String, String)>> = Mutex::new(Vec::new());
 /// `ptr` must point at `len` bytes the caller obtained from [`alloc`].
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn know(ptr: *const u8, len: usize) -> u32 {
-    let bytes = unsafe { std::slice::from_raw_parts(ptr, len) };
-    let text = String::from_utf8_lossy(bytes);
+    let bytes = unsafe { core::slice::from_raw_parts(ptr, len) };
+    let text = text_of(bytes);
     let mut known = KNOWN.lock().unwrap();
     known.clear();
     // A `#` line is the table's word on the build and its pages
@@ -88,11 +101,17 @@ static DOCUMENT: Mutex<Option<(String, String)>> = Mutex::new(None);
 /// `ptr` must point at `len` bytes the caller obtained from [`alloc`].
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn know_document(ptr: *const u8, len: usize) -> u32 {
-    let bytes = unsafe { std::slice::from_raw_parts(ptr, len) };
-    let text = String::from_utf8_lossy(bytes);
-    let (schema, scope) = text.split_once('|').unwrap_or((&text, "public"));
+    let bytes = unsafe { core::slice::from_raw_parts(ptr, len) };
+    let text = text_of(bytes);
+    let (schema, scope) = text.split_once('|').unwrap_or((text, "public"));
     *DOCUMENT.lock().unwrap() = Some((schema.to_string(), scope.trim().to_string()));
     1
+}
+
+/// What the page wrote, which `TextEncoder` makes UTF-8. Anything else is no
+/// manifest and no table, and is read as nothing, which the decision refuses.
+fn text_of(bytes: &[u8]) -> &str {
+    core::str::from_utf8(bytes).unwrap_or("")
 }
 
 /// A scope as a manifest or the table writes it: `public`, `session:<id>`,
@@ -113,7 +132,7 @@ fn scope_of(s: &str) -> PrivacyScope {
 pub extern "C" fn alloc(len: usize) -> *mut u8 {
     let mut buf = vec![0u8; len];
     let ptr = buf.as_mut_ptr();
-    std::mem::forget(buf);
+    core::mem::forget(buf);
     ptr
 }
 
@@ -128,9 +147,11 @@ pub extern "C" fn alloc(len: usize) -> *mut u8 {
 /// which the decision refuses rather than trusts.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn decide_manifest(ptr: *const u8, len: usize) -> u32 {
-    let bytes = unsafe { std::slice::from_raw_parts(ptr, len) };
-    let text = String::from_utf8_lossy(bytes).to_string();
-    let (entry, rt, construct) = parse(&text);
+    // Everything below is this decision's, and goes when it is answered.
+    #[cfg(target_arch = "wasm32")]
+    let _decision = browser::scope();
+    let bytes = unsafe { core::slice::from_raw_parts(ptr, len) };
+    let (entry, rt, construct) = parse(text_of(bytes));
 
     let d = decide(&entry, &rt, construct);
 
@@ -241,7 +262,14 @@ fn parse(text: &str) -> (ResumeEntry, Runtime, Construct) {
             .unwrap()
             .iter()
             .map(|(identity, capture)| known(identity, capture))
-            .collect(),
+            // Inserted one at a time: `collect` brings a whole stable sort.
+            .fold(
+                Default::default(),
+                |mut all: alloc::collections::BTreeMap<_, _>, (id, s)| {
+                    all.insert(id, s);
+                    all
+                },
+            ),
         // What the build says of this page's documents (ADR-0300), and
         // nothing where it has said nothing. Until ADR-0300 the constants
         // `cart-doc` and `Public`, which every manifest also said.

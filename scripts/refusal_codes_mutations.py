@@ -40,6 +40,20 @@ MUTANTS = [
         'pw-resume = { path = "../pw-resume" }\n',
     ),
     (
+        "a decision keeps what it allocated",
+        "decision",
+        ROOT / "runtime/pw-resume-wasm/src/browser.rs",
+        "            HEAP.next.set(self.0);\n",
+        "            let _ = self.0;\n",
+    ),
+    (
+        "the decision's WebAssembly carries a sort for its dependencies",
+        "decision",
+        ROOT / "runtime/pw-resume/src/lib.rs",
+        '''        DependencySet(Hash::of(&canonical.join("\\u{2}")))\n''',
+        '''        canonical.sort();\n        DependencySet(Hash::of(&canonical.join("\\u{2}")))\n''',
+    ),
+    (
         "a refusal is not told in the console",
         "refused",
         RUNTIME,
@@ -64,6 +78,7 @@ MUTANTS = [
 
 SUITES = {
     "size": ["e2e/runtime-size.spec.mjs", "-g", "none of its trace", "--project=chromium", "--workers=1"],
+    "decision": ["e2e/runtime-size.spec.mjs", "-g", "keeps nothing", "--project=chromium", "--workers=1"],
     "refused": ["e2e/lazy-handler.spec.mjs", "-g", "did not compile is refused", "--project=chromium"],
 }
 
