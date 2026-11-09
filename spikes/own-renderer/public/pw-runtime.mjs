@@ -21,6 +21,13 @@
 
 const parts = JSON.parse(document.getElementById("pw-parts")?.textContent ?? "{}");
 
+/** **Whether this runtime talks to a server** (the device runtime's ADR). The
+ * packaging builds a second runtime with this false, for a page no reader
+ * decides and with no layout, and what only a server's page uses falls away
+ * with it: the subscription, commands, speculation, streams, a navigation
+ * that keeps the layout. */
+const PW_SERVER = true;
+
 /**
  * **This document's life** (the soft navigation's ADR). Every listener the
  * runtime adds is added with its signal, and its subscription asks under it:
@@ -3489,7 +3496,7 @@ addEventListener(
     // it was kept went unheard: everything the device keeps is read again,
     // as after a `clear()` (the prerender's ADR).
     void heardKept({ key: null, storageArea: deviceStore() });
-    if (leaving && parts.listens !== false) {
+    if (PW_SERVER && leaving && parts.listens !== false) {
       leaving = false;
       subscribe();
     }
@@ -3511,7 +3518,7 @@ async function navigate(route, args, mine) {
   const url = pageAddress(route, args);
   // A page shown in a layout keeps it (the soft navigation's ADR), held to
   // the same two rules, by the same two functions.
-  if (parts.layout) return softNavigate(url, "push", mine);
+  if (PW_SERVER && parts.layout) return softNavigate(url, "push", mine);
   if (!taken(url)) return;
   navigating = true;
   await pressedBefore(mine);
@@ -3842,7 +3849,7 @@ function bindEvent(template, part) {
           set: (name, value) => setSignal(instance(name), value, { el, event }),
           // Each command speculates before its request (ADR-0122), and its
           // speculation is resolved by the answer, whatever it is.
-          command: async (component, args, how = {}) => {
+          command: !PW_SERVER ? null : async (component, args, how = {}) => {
             const interaction = `${press}-${calls++}`;
             const ids = await speculate(component, args, interaction);
             let answer;
@@ -3939,7 +3946,7 @@ function warmComputed() {
 }
 
 function warmSpeculation() {
-  if (parts.speculation && !speculationModule && !speculationLoaded) {
+  if (PW_SERVER && parts.speculation && !speculationModule && !speculationLoaded) {
     quietly(speculations(), parts.speculation);
   }
 }
@@ -4058,8 +4065,10 @@ async function attach() {
   // (ADR-0302): a live region added with its words is not reliably said.
   announcerOf();
   log.push(`indexed ${indexed} address(es)`);
-  for (const p of parts.parts ?? []) {
-    if (p.kind === "stream" && streamPending(String(p.id))) pendingAtIndex.add(String(p.id));
+  if (PW_SERVER) {
+    for (const p of parts.parts ?? []) {
+      if (p.kind === "stream" && streamPending(String(p.id))) pendingAtIndex.add(String(p.id));
+    }
   }
 
   await bootDecision();
@@ -4082,11 +4091,11 @@ async function attach() {
   performance.measure("pw:activate", "pw:activate:start", "pw:activate:end");
 
   // The regions still pending, filled as the response goes on (ADR-0148).
-  watchStreams();
+  if (PW_SERVER) watchStreams();
 
   // A page whose values are its signals alone listens for nothing
   // (ADR-0130): no resource of its changes on the server.
-  if (parts.listens !== false) subscribe();
+  if (PW_SERVER && parts.listens !== false) subscribe();
   // The signal a page binds to its address's fragment follows it from here.
   if (parts.fragment) bindFragment(parts.fragment);
   // What a block shows from here on, with `autofocus`, takes focus.
@@ -4798,7 +4807,7 @@ function handOver() {
 }
 
 // The page's scroll is the navigation's to keep, for each entry it makes.
-if (parts.layout && "scrollRestoration" in history) history.scrollRestoration = "manual";
+if (PW_SERVER && parts.layout && "scrollRestoration" in history) history.scrollRestoration = "manual";
 
 // **The browser's own navigation wins.** Once it begins one, an address
 // typed, a link it follows itself, a test's `goto`, a soft navigation in
@@ -4820,7 +4829,7 @@ addEventListener("beforeunload", () => pending?.abort(), { signal: life.signal }
 // elsewhere, marked external or marked `data-pw-reload` (the consensus of
 // Turbo, Astro and SvelteKit, read 2026-10-09). A page with no layout keeps
 // nothing, and leaves every link to the browser.
-document.addEventListener(
+if (PW_SERVER) document.addEventListener(
   "click",
   (e) => {
     const a = parts.layout ? linkOf(e) : null;
@@ -4838,7 +4847,7 @@ document.addEventListener(
 
 // **Back and forward**, between entries a navigation made: read again, as
 // any navigation is, never a page kept from before (ADR-0280's rule).
-addEventListener(
+if (PW_SERVER) addEventListener(
   "popstate",
   (e) => {
     if (!e.state?.pw || !parts.layout) return;
