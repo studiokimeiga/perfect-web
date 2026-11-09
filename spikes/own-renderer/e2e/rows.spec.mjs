@@ -135,7 +135,7 @@ test("a press on a row reaches the handler of that row", async ({ page }) => {
   expect(said.some(([id]) => id === 999)).toBe(false);
 });
 
-test("a row's text is written again only for the rows that changed", async ({ page }) => {
+test("a press that changes a row parses no row: its plan sets what changed", async ({ page }) => {
   await page.addInitScript(() => {
     window.__parsed = [];
     const set = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML").set;
@@ -147,12 +147,37 @@ test("a row's text is written again only for the rows that changed", async ({ pa
     });
   });
   await open(page);
+  await page.evaluate(() => (window.__parsed = []));
   await created(page);
+  expect(await page.evaluate(() => window.__parsed.join("").includes("<tr"))).toBe(false);
   await page.evaluate(() => (window.__parsed = []));
   await page.locator("#tbody tr").nth(4).locator(".select").click();
   await expect(page.locator("#tbody tr").nth(4)).toHaveClass("danger");
   const parsed = await page.evaluate(() => window.__parsed.join(""));
-  expect((parsed.match(/<tr/g) ?? []).length).toBe(1);
+  expect((parsed.match(/<tr/g) ?? []).length).toBe(0);
+  // And what it set is what parsing the row would have made.
+  await expect(page.locator("#tbody tr").nth(4)).toHaveClass("danger");
+  await page.locator("#tbody tr").nth(9).locator(".select").click();
+  await expect(page.locator("#tbody tr").nth(4)).toHaveClass("");
+  await expect(page.locator("#tbody tr").nth(9)).toHaveClass("danger");
+});
+
+test("a row a plan made shows what parsing it shows, whatever its text holds", async ({ page }) => {
+  await open(page, "/events");
+  await page.click("#note");
+  await expect(page.locator("#items .note").nth(0)).toHaveText("second");
+  for (const name of ['a<b>&c"d\'e`f', "x\r\ny", "tab\there", "\u{1F600} wide", "&amp; written", "nul\u0000here"]) {
+    await page.locator("#name").fill(name);
+    await page.click("#rename-to");
+    await expect(page.locator("#items .name").nth(1)).toHaveText(name.replace(/\r\n?/g, "\n").replaceAll("\0", ""));
+    const html = await page.locator("#items li").nth(1).evaluate((li) => li.innerHTML);
+    const parsed = await page.locator("#items li").nth(1).evaluate((li, html) => {
+      const t = document.createElement("template");
+      t.innerHTML = `<ul><li>${html}</li></ul>`;
+      return t.content.querySelector("li").innerHTML;
+    }, html);
+    expect(parsed).toBe(html);
+  }
 });
 
 test("a handler that stops its event is the last to hear it", async ({ page }) => {

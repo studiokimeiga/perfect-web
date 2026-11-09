@@ -1463,9 +1463,12 @@ const renderer = (() => {
         }
         i += run.length;
         out.html.push(capturesAttribute(run, e));
+        if (!PW_SERVER && out.holes) out.holes.push(out.html[out.html.length - 1]);
         continue;
       } else {
+        const mark = out.html.length;
         emitPart(c.value, e, others, out);
+        if (!PW_SERVER && out.holes) out.holes.push(out.html.slice(mark).join(""));
       }
       i += 1;
     }
@@ -1608,7 +1611,7 @@ const renderer = (() => {
       return row;
     });
     kept.set(p.id, now);
-    return { part: p.id, rows };
+    return { part: p.id, rows, of: planned(p) ? p : null };
   }
 
   function holdsStill(row, item, e) {
@@ -1626,13 +1629,33 @@ const renderer = (() => {
     const reads = new Map();
     const token = tokenOf(e, p.id, key);
     const at = `${p.id}@${token}`;
+    let holes;
     const text = rendered(others, (out) => {
       out.bare = !PW_SERVER && DELEGATED_ROWS;
+      if (planned(p)) out.holes = holes = [];
       out.html.push(`<!--pw:s${at}-->`);
       emit(p.body, within(named({ ...e, reads }, p.binding, item), p.id, token), others, out);
       out.html.push(`<!--pw:e${at}-->`);
     });
-    return { key: at, text, item, reads, names: e.names };
+    return { key: at, text, item, reads, names: e.names, holes };
+  }
+
+  /** Each list part whose rows a plan can make, as `planned` found it. */
+  const plannable = new WeakMap();
+
+  /** **Whether a list's rows can be made from one parsed row** (`planOf`):
+   * nothing inside a row changes its shape, and no anchor inside it is read. */
+  function planned(p) {
+    if (!plannable.has(p)) {
+      const hole = (v) =>
+        (v.part === "text" && v.context === "text") ||
+        (v.part === "attribute" && v.context !== "content") ||
+        v.part === "interpolated_attribute" ||
+        v.part === "boolean_attribute" ||
+        v.part === "event";
+      plannable.set(p, DELEGATED_ROWS && p.body.every((c) => c.chunk === "static" || hole(c.value)));
+    }
+    return plannable.get(p);
   }
 
   /** The most elements a page may nest (`NESTED_ELEMENTS`, ADR-0203). */
@@ -2456,12 +2479,13 @@ async function renderBlock(id) {
   return PW_SERVER ? renderer.part(parts.blocks[id], values, TEMPLATES) : renderer.block(parts.blocks[id], values, TEMPLATES);
 }
 
-/** A block as the text of the document. */
-function textOfBlock(block) {
+/** A block as the text of the document, the rows of each list of `without`
+ * left out. */
+function textOfBlock(block, without = []) {
   if (PW_SERVER) return block;
   let text = block.strs[0];
   block.lists.forEach((list, i) => {
-    text += list.rows.map((row) => row.text).join("") + block.strs[i + 1];
+    text += (without.includes(list) ? "" : list.rows.map((row) => row.text).join("")) + block.strs[i + 1];
   });
   return text;
 }
@@ -2862,9 +2886,33 @@ function morphBlock(id, html) {
     lastRendered.set(r.start, html);
     if (before && rowsMade(r, before, html, inserted)) return inserted;
     rewritten = true;
+    // A list the block did not hold before is put in by its plan, once the
+    // block around it is: no row of it is parsed.
+    const later = html.lists.filter((list) => list.rows.length > 0 && list.of && planOf(list.of) && !before?.lists.some((b) => b.part === list.part));
+    morphChildren(parent, between(r.start, r.end), parseInstance(textOfBlock(html, later)), r.end.nextSibling, inserted);
+    for (const list of later) {
+      const range = rangeOf(r, list.part);
+      if (!range || !listMade({ part: list.part, rows: [], nodes: new Map() }, list, inserted, range)) {
+        morphChildren(parent, between(r.start, r.end), parseInstance(textOfBlock(html)), r.end.nextSibling, inserted);
+        return inserted;
+      }
+    }
+    return inserted;
   }
   morphChildren(parent, between(r.start, r.end), parseInstance(textOfBlock(html)), r.end.nextSibling, inserted);
   return inserted;
+}
+
+/** The anchors of list `part` inside block `r`, as the document holds them. */
+function rangeOf(r, part) {
+  const walker = document.createTreeWalker(r.start.parentNode, NodeFilter.SHOW_COMMENT);
+  walker.currentNode = r.start;
+  let start = null;
+  for (let n = walker.nextNode(); n && n !== r.end; n = walker.nextNode()) {
+    if (n.data === `pw:s${part}`) start = n;
+    else if (start && n.data === `pw:e${part}` && n.parentNode === start.parentNode) return { start, end: n };
+  }
+  return null;
 }
 
 /** What each block last rendered, on a page that talks to no server, by the
@@ -2991,12 +3039,152 @@ function rowPut(parent, [start, end], anchor) {
   }
 }
 
+// --- rows a plan makes ---
+
+/** What each list part's plan is, once made; `null` where none holds. */
+const plans = new WeakMap();
+
+/** **One row's plan**: its markup parsed once, an empty text where each text
+ * hole is and a mark on the element each attribute hole is on, so a new row is
+ * a clone given its values, and a changed one is given the values that
+ * changed: no row is parsed. `null` where the parse does not hold each hole
+ * once (a hole inside a `<textarea>`'s text is text, and no comment). */
+function planOf(p) {
+  if (plans.has(p)) return plans.get(p);
+  let html = "";
+  const kinds = [];
+  for (let i = 0; i < p.body.length; i++) {
+    const c = p.body[i];
+    if (c.chunk === "static") {
+      html += c.value;
+      continue;
+    }
+    // An element's handlers write one attribute, as `emit` writes them.
+    while (c.value.part === "event" && p.body[i + 1]?.value?.part === "event" && p.body[i + 1].value.owner === c.value.owner) i++;
+    html += c.value.part === "text" ? `<!--pwh${kinds.length}-->` : ` data-pwh${kinds.length}=""`;
+    kinds.push(c.value.part === "text" ? "text" : "attribute");
+  }
+  const template = document.createElement("template");
+  template.innerHTML = html;
+  const found = new Array(kinds.length).fill(null);
+  const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_COMMENT);
+  const comments = [];
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (n.nodeType === Node.COMMENT_NODE) {
+      const m = /^pwh(\d+)$/.exec(n.data);
+      if (m) comments.push([Number(m[1]), n]);
+      continue;
+    }
+    for (const name of n.getAttributeNames()) {
+      const m = /^data-pwh(\d+)$/.exec(name);
+      if (!m) continue;
+      n.removeAttribute(name);
+      found[Number(m[1])] = found[Number(m[1])] ? false : n;
+    }
+  }
+  for (const [at, comment] of comments) {
+    const text = document.createTextNode("");
+    comment.replaceWith(text);
+    found[at] = found[at] ? false : text;
+  }
+  const pathOf = (node) => {
+    const path = [];
+    for (let n = node; n.parentNode; n = n.parentNode) path.unshift([...n.parentNode.childNodes].indexOf(n));
+    return path;
+  };
+  const plan = found.every(Boolean) ? { proto: template.content, kinds, paths: found.map(pathOf) } : null;
+  plans.set(p, plan);
+  return plan;
+}
+
+const ESCAPED = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'", "&#96;": "`" };
+
+/** **What the renderer escaped, as the parser reads it back**: its escapes
+ * undone, line breaks as the parser makes them, and a NUL as `nul`. `null`
+ * for any escape the renderer does not write. */
+function unescaped(text, nul) {
+  if (/&(?!(?:amp|lt|gt|quot|#39|#96);)/.test(text)) return null;
+  return text.replace(/&(?:amp|lt|gt|quot|#39|#96);/g, (m) => ESCAPED[m]).replace(/\r\n?/g, "\n").replaceAll("\0", nul);
+}
+
+/** An attribute the renderer wrote, `name="value"` or `name`: `[name, value]`,
+ * `null` for none, `undefined` for what it does not write. */
+function attributeOfPiece(piece) {
+  const written = piece.trim();
+  if (written === "") return null;
+  const m = /^([^\s="'<>`/]+)(?:="([^"]*)")?$/.exec(written);
+  if (!m) return undefined;
+  const value = m[2] === undefined ? "" : unescaped(m[2], "\ufffd");
+  return value === null ? undefined : [m[1], value];
+}
+
+/** One hole given what the renderer wrote for it, where it was `was` (`null`
+ * for a new row). False, with the hole perhaps half set, for what a plan does
+ * not take: the row is then morphed. */
+function holeSet(kind, node, piece, was) {
+  if (kind === "text") {
+    const text = unescaped(piece, "");
+    if (text === null) return false;
+    node.data = text;
+    return true;
+  }
+  const now = attributeOfPiece(piece);
+  const then = was === null ? null : attributeOfPiece(was);
+  if (now === undefined || then === undefined) return false;
+  if (then && then[0] !== now?.[0]) node.removeAttribute(then[0]);
+  if (now) node.setAttribute(now[0], now[1]);
+  if (was === null) return true;
+  // A control's state follows the rendering where it changed it, as a
+  // morph's does.
+  const named = (name) => (now?.[0] === name ? now[1] : null);
+  if ((then?.[0] === "checked" || now?.[0] === "checked") && typeof node.checked === "boolean") {
+    node.checked = named("checked") !== null;
+  }
+  if ((then?.[0] === "value" || now?.[0] === "value") && "value" in node && node.tagName !== "TEXTAREA") {
+    node.value = named("value") ?? "";
+  }
+  return true;
+}
+
+/** New rows, each a clone of its plan given its values, noted in `shown` with
+ * the node of each hole. `null`, with nothing put in, where one row's values
+ * are not a plan's. */
+function rowsPlanned(rows, plan, shown, inserted) {
+  const content = document.createDocumentFragment();
+  for (const row of rows) {
+    const clone = plan.proto.cloneNode(true);
+    const holes = plan.paths.map((path) => path.reduce((n, i) => n.childNodes[i], clone));
+    for (let h = 0; h < holes.length; h++) if (!holeSet(plan.kinds[h], holes[h], row.holes[h], null)) return null;
+    const start = document.createComment(`pw:s${row.key}`);
+    const end = document.createComment(`pw:e${row.key}`);
+    content.append(start, clone, end);
+    shown.set(row.key, [start, end, holes]);
+  }
+  if (PW_DIALOGS) inserted.push(...content.childNodes);
+  return content;
+}
+
+/** Rows changed in place, each `[its nodes, its row, its row before]`: by the
+ * plan where the row was made by one and the plan takes what changed, and
+ * morphed otherwise, which leaves it no holes to be set by. */
+function rowsChanged(changed, plan, inserted) {
+  const morphed = changed.filter(([nodes, row, old]) => {
+    if (!plan || !nodes[2] || !row.holes || !old.holes) return true;
+    for (let h = 0; h < row.holes.length; h++) {
+      if (row.holes[h] !== old.holes[h] && !holeSet(plan.kinds[h], nodes[2][h], row.holes[h], old.holes[h])) return true;
+    }
+    return false;
+  });
+  for (const [nodes] of morphed) nodes.length = 2;
+  rowsMorphed(morphed, inserted);
+}
+
 /** **The rows of one list made what `now` says**, from what `was` shows: only
  * those it changed parsed, only those out of place moved. False, with nothing
  * touched, where the document does not hold what `was` says. */
-function listMade(was, now, inserted) {
-  const range = index.get(addressOf([], now.part));
+function listMade(was, now, inserted, range = index.get(addressOf([], now.part))) {
   if (!range?.end?.isConnected) return false;
+  const plan = now.of ? planOf(now.of) : null;
   let shown = was.nodes;
   if (!shown) {
     shown = rowsShown(now.part, range);
@@ -3010,9 +3198,9 @@ function listMade(was, now, inserted) {
   if (inPlace) {
     const changed = [];
     for (let i = 0; i < b.length; i++) {
-      if (a[i] !== b[i] && a[i].text !== b[i].text) changed.push([shown.get(b[i].key), b[i]]);
+      if (a[i] !== b[i] && a[i].text !== b[i].text) changed.push([shown.get(b[i].key), b[i], a[i]]);
     }
-    rowsMorphed(changed, inserted);
+    rowsChanged(changed, plan, inserted);
     return true;
   }
   const places = placesOf(a, b);
@@ -3030,12 +3218,15 @@ function listMade(was, now, inserted) {
   const changed = [];
   b.forEach((row, i) => {
     const old = places[i] < 0 ? null : a[places[i]];
-    if (old && old !== row && old.text !== row.text) changed.push([shown.get(row.key), row]);
+    if (old && old !== row && old.text !== row.text) changed.push([shown.get(row.key), row, old]);
   });
-  rowsMorphed(changed, inserted);
+  rowsChanged(changed, plan, inserted);
   const parent = range.end.parentNode;
   const fresh = b.filter((_, i) => places[i] < 0);
-  const content = fresh.length > 0 ? rowsParsed(fresh, shown, inserted) : null;
+  const content =
+    fresh.length === 0
+      ? null
+      : (plan && fresh.every((row) => row.holes) && rowsPlanned(fresh, plan, shown, inserted)) || rowsParsed(fresh, shown, inserted);
   // The new rows side by side go in together, as one parsed fragment.
   const first = places.indexOf(-1);
   const together = fresh.length > 0 && places.lastIndexOf(-1) - first + 1 === fresh.length;

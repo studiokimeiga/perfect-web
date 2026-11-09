@@ -20,7 +20,7 @@ test.use({
 const SPIKE = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 /** What the device's runtime measured when this was written, as sent, and a
  * little over: it may not grow by accident. */
-const AT_MOST = 14_600;
+const AT_MOST = 15_500;
 
 /** Each path the page asks for. */
 function watch(page) {
