@@ -66,6 +66,19 @@ test("its stylesheets are part of its document: it asks for none, and they apply
   expect(await page.evaluate(() => window.__refused)).toEqual([]);
 });
 
+test("its head fetches its code beside its runtime, and asks for it once", async ({ page }) => {
+  const asked = [];
+  page.on("request", (r) => asked.push(new URL(r.url()).pathname));
+  await open(page);
+  const preloaded = await page.evaluate(() =>
+    [...document.querySelectorAll('link[rel="modulepreload"]')].map((l) => new URL(l.href).pathname),
+  );
+  expect(preloaded).toEqual(["/pw-runtime-device.mjs", "/bundle/todomvc.app.Todos~ui.mjs"]);
+  await add(page, "one fetch");
+  await expect(items(page)).toHaveCount(1);
+  expect(asked.filter((p) => p.startsWith("/bundle/")).length).toBe(1);
+});
+
 test("a press that changes one row parses that row alone", async ({ page }) => {
   await page.addInitScript(() => {
     window.__parsed = [];

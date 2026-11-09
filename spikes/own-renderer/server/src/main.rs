@@ -7320,7 +7320,9 @@ impl Server {
                 .render_page_in(page, &BTreeMap::new(), Partition::Public, &[])
                 .map_err(|why| format!("`{page}` cannot be prerendered: {why}"))?;
             let document = if runs_on_device(plan) {
-                self.delivery.on_device(document)
+                let bundle = format!("/bundle/{page}.mjs");
+                self.delivery
+                    .on_device(document, self.bundles.contains(page).then_some(bundle.as_str()))
             } else {
                 document
             };
@@ -13675,22 +13677,27 @@ impl Delivery {
             .then(|| format!("import(\"{}\")", self.named("/pw-runtime-device.mjs")))
     }
 
-    /// `document`, delivered, starting the device's runtime.
-    fn on_device(&self, document: String) -> String {
+    /// `document`, delivered, starting the device's runtime, and fetching
+    /// the page's code (`bundle`, where it has one) beside it: what the device
+    /// holds is rendered as the page starts, and that takes the page's code.
+    fn on_device(&self, document: String, bundle: Option<&str>) -> String {
         let (Some(device), full) = (self.device_source(), self.runtime_source()) else {
             return document;
         };
-        document.replacen(&full, &device, 1).replacen(
-            &format!(
+        let preload = |path: &str| {
+            format!(
                 "<link rel=\"modulepreload\" href=\"{}\">",
-                self.named("/pw-runtime.mjs")
-            ),
-            &format!(
-                "<link rel=\"modulepreload\" href=\"{}\">",
-                self.named("/pw-runtime-device.mjs")
-            ),
-            1,
-        )
+                self.named(path)
+            )
+        };
+        let mut head = preload("/pw-runtime-device.mjs");
+        if let Some(bundle) = bundle {
+            head.push('\n');
+            head.push_str(&preload(bundle));
+        }
+        document
+            .replacen(&full, &device, 1)
+            .replacen(&preload("/pw-runtime.mjs"), &head, 1)
     }
 
     /// The script that starts the runtime ([`RUNTIME`]).

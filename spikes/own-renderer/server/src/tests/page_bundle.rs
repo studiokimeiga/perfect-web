@@ -108,7 +108,7 @@ fn device_delivery() -> (tempfile::TempDir, Delivery) {
 fn a_page_that_talks_to_no_server_starts_the_devices_runtime() {
     let (_dir, delivery) = device_delivery();
     let document = delivery.deliver(format!("<head>{BOOT}</head><body>{RUNTIME}</body>"));
-    let on_device = delivery.on_device(document.clone());
+    let on_device = delivery.on_device(document.clone(), None);
     let device = delivery.device_source().expect("a device runtime");
     assert!(
         on_device.contains(&format!("<script>{device}</script>")),
@@ -124,13 +124,31 @@ fn a_page_that_talks_to_no_server_starts_the_devices_runtime() {
 }
 
 #[test]
+fn a_page_that_talks_to_no_server_fetches_its_code_beside_its_runtime() {
+    let (_dir, delivery) = device_delivery();
+    let document = delivery.deliver(format!("<head>{BOOT}</head><body>{RUNTIME}</body>"));
+    let at = |path: &str| delivery.named(path);
+    let bundled = delivery.on_device(document.clone(), Some("/bundle/p.mjs"));
+    assert!(
+        bundled.contains(&format!(
+            "<link rel=\"modulepreload\" href=\"{}\">\n<link rel=\"modulepreload\" href=\"{}\">",
+            at("/pw-runtime-device.mjs"),
+            at("/bundle/p.mjs")
+        )),
+        "{bundled}"
+    );
+    let alone = delivery.on_device(document, None);
+    assert!(!alone.contains("/bundle/"), "{alone}");
+}
+
+#[test]
 fn a_build_with_no_device_runtime_leaves_a_document_as_it_was() {
     let dir = tempfile::tempdir().expect("a directory");
     std::fs::write(dir.path().join("delivery.json"), "{\"versioned\": true}\n").expect("written");
     let delivery = Delivery::of(dir.path(), dir.path(), "b1");
     assert_eq!(delivery.device_source(), None);
     let document = delivery.deliver(format!("<head>{BOOT}</head><body>{RUNTIME}</body>"));
-    assert_eq!(delivery.on_device(document.clone()), document);
+    assert_eq!(delivery.on_device(document.clone(), None), document);
 }
 
 #[test]
