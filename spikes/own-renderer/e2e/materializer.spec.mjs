@@ -5,8 +5,12 @@
 // The fault is the session's own, so the suite shares its host.
 import { expect, test } from "@playwright/test";
 
-/** The store, ready, counting each time the page is read again. */
+/** The store, ready, counting each time the page is read again. Its page is
+ * held briefly: a page held long has its failed regeneration tried again
+ * within the hold (the longer-holds ADR), and it is the next request's trying
+ * that this holds to. */
 async function ready(page) {
+  await page.addInitScript(() => Object.defineProperty(navigator, "locks", { value: undefined }));
   const loads = { count: 0 };
   page.on("framenavigated", (frame) => {
     if (frame === page.mainFrame()) loads.count += 1;

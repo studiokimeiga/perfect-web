@@ -212,3 +212,36 @@ fn a_page_with_a_layout_starts_the_whole_runtime() {
     );
     assert!(!answer.contains("pw-runtime-device.mjs"), "{answer}");
 }
+
+/// **In a production build, the page runs on the device's runtime** (the device
+/// runtime's ADR): no reader decides it and it has no layout, so its one
+/// document starts the small runtime, and its policy allows that.
+#[test]
+fn a_production_build_of_the_page_starts_the_devices_runtime() {
+    let (_dir, out) = super::todomvc::built_todomvc();
+    std::fs::write(
+        out.join("delivery.json"),
+        "{\"versioned\": true, \"device\": true}\n",
+    )
+    .expect("written");
+    for file in ["pw-runtime.mjs", "pw-runtime-device.mjs"] {
+        std::fs::write(out.join(file), "export {};\n").expect("written");
+    }
+    let s = Server::from_build(out.clone(), out).expect("served");
+    s.prerender().expect("prerendered");
+    let html = super::todomvc::page(&s, "a");
+    let device = s.delivery.device_source().expect("a device runtime");
+    assert!(
+        html.contains(&format!("<script>{device}</script>")),
+        "{html}"
+    );
+    assert!(
+        !html.contains(&format!("<script>{}</script>", s.delivery.runtime_source())),
+        "{html}"
+    );
+    let policy = html
+        .lines()
+        .find(|l| l.starts_with("content-security-policy:"))
+        .unwrap_or_else(|| panic!("a policy in {html}"));
+    assert!(policy.contains(&csp::sha256_source(&device)), "{policy}");
+}

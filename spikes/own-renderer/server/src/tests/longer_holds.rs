@@ -96,7 +96,8 @@ fn a_poll_past_the_limit_is_held_as_any_page_is() {
     s.poll_hold = Duration::from_millis(100);
     s.long_hold = Duration::from_secs(20);
     s.long_hold_limit = 1;
-    let first = s.hold_long().expect("the first place");
+    let first = s.hold_long();
+    assert!(first.is_some(), "the first place");
     assert!(s.hold_long().is_none(), "no second place");
     let (document, _page, mut held) = subscribed(&s, "past");
     let begun = Instant::now();

@@ -261,7 +261,7 @@ def packaging():
 
 def host():
     total = (0, 0)
-    for name in ("tests::page_bundle::", "tests::todomvc::a_production_build_of_the_page"):
+    for name in ("tests::page_bundle::",):
         out, code = bounded(["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server", name], cwd=ROOT)
         if code is None:
             return True, 0, 1

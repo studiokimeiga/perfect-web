@@ -24,9 +24,8 @@ e14-device-runtime:
        node --test --test-reporter=spec spikes/own-renderer/decision-agreement.test.mjs; \
        echo; echo "== what the packaging writes (optimize-assets.test.mjs)"; echo; \
        node --test --test-reporter=spec spikes/own-renderer/optimize-assets.test.mjs; \
-       echo; echo "== what the host starts (tests::page_bundle::, tests::todomvc::)"; echo; \
+       echo; echo "== what the host starts (tests::page_bundle::)"; echo; \
        cargo test --locked -p pw-dev-server --bin pw-dev-server tests::page_bundle:: 2>&1 | grep -E '^(test |test result)|panicked at'; \
-       cargo test --locked -p pw-dev-server --bin pw-dev-server tests::todomvc::a_production_build_of_the_page 2>&1 | grep -E '^(test |test result)|panicked at'; \
        echo; echo "== a production build, in three engines (e2e/todomvc.spec.mjs, e2e/device-runtime.spec.mjs)"; echo; \
        PW_PRODUCTION_ASSETS=1 bash scripts/run_suite.sh -- pnpm exec playwright test e2e/todomvc.spec.mjs e2e/device-runtime.spec.mjs --reporter=line; \
        echo; echo "== mutation controls (scripts/device_runtime_mutations.py)"; echo; \
