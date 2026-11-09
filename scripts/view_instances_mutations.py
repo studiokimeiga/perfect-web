@@ -226,8 +226,8 @@ MUTANTS = [
         "a request to the in-browser renderer carries no view",
         "runtime",
         RUNTIME,
-        "const TEMPLATES_JSON = TEMPLATES.length ? JSON.stringify(TEMPLATES) : \"\";\n",
-        "const TEMPLATES_JSON = \"\";\n",
+        "const TEMPLATES = Object.values(parts.templates ?? {}).map((t) => t.template);\n",
+        "const TEMPLATES = [];\n",
     ),
     (
         "a page is sent without the views its instances reach",

@@ -842,11 +842,12 @@ function speculations() {
   // No deadline: each press waits within its own (`speculationsWithin`).
   const loading = (speculationLoaded ? Promise.resolve(speculationLoaded) : import(url)).then(
     (module) => {
-      speculationLoaded = module;
+      // What a load given up brings late is not used (ADR-0382).
+      if (speculationModule === loading) speculationLoaded = module;
       return module;
     },
     (error) => {
-      if (speculationModule === loading) forgetSpeculation(loading);
+      forgetSpeculation(loading);
       throw error;
     },
   );
@@ -1076,11 +1077,10 @@ const renderer = (() => {
   function built(list) {
     if (!isList(list) || list.length === 0) throw malformed("a $graph that is not a list of nodes");
     const nodes = new Array(list.length).fill(NONE);
-    let at = 0;
     const take = (k) => {
       if (!(typeof k === "bigint" || Number.isInteger(k)) || k < 0) throw malformed("a $node that is not an index");
       const i = Number(k);
-      if (i <= at || i >= nodes.length || nodes[i] === NONE) throw malformed("a $node that is no later node");
+      if (i >= nodes.length || nodes[i] === NONE) throw malformed("a $node that is no later node");
       const node = nodes[i];
       nodes[i] = NONE;
       return node;
@@ -1093,7 +1093,7 @@ const renderer = (() => {
       if (keys.length === 1 && keys[0] === "$node") return take(j.$node);
       return Object.fromEntries(keys.map((k) => [k, read(j[k])]));
     };
-    for (at = list.length - 1; at >= 0; at--) nodes[at] = read(list[at]);
+    for (let at = list.length - 1; at >= 0; at--) nodes[at] = read(list[at]);
     if (nodes.slice(1).some((n) => n !== NONE)) throw malformed("a node no other holds");
     return nodes[0];
   }
@@ -1273,17 +1273,6 @@ const renderer = (() => {
     return out;
   }
 
-  /** Where a reference ends, within its first twelve UTF-8 bytes, or -1. */
-  function referenceEnd(s) {
-    let bytes = 0;
-    for (let i = 0; i < s.length && bytes < 12; i++) {
-      const c = s.charCodeAt(i);
-      if (c === 59) return i;
-      bytes += c < 0x80 ? 1 : c < 0x800 ? 2 : c < 0xd800 || c > 0xdfff ? 3 : c < 0xdc00 ? 4 : 0;
-    }
-    return -1;
-  }
-
   function digits(text, radix, shape) {
     if (!shape.test(text)) return null;
     let n = 0;
@@ -1312,7 +1301,10 @@ const renderer = (() => {
     for (let i = rest.indexOf("&"); i >= 0; i = rest.indexOf("&")) {
       out += rest.slice(0, i);
       rest = rest.slice(i);
-      const end = referenceEnd(rest);
+      // Within twelve characters, as the server's is within twelve bytes:
+      // a body holding a wide character is no number, and leaves an `&` at
+      // the front of what is compared, wherever its window ends.
+      const end = rest.slice(0, 12).indexOf(";");
       if (end < 0) {
         out += "&";
         rest = rest.slice(1);
@@ -1781,6 +1773,13 @@ const renderer = (() => {
   /** Whether the keyed loop `p` goes from `old` to `now` by any operation,
    * refusing as the server's derivation of them does (`each_changes`). */
   function listChanged(p, old, now, e, others) {
+    const seen = new Set();
+    for (const raw of now) {
+      const key = keyOf(opened(raw), p.key);
+      if (key === "") throw new Blocked("MissingLoopKey", p.key);
+      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);
+      seen.add(key);
+    }
     const token = (v) => tokenOf(e, p.id, keyOf(opened(v), p.key));
     const wanted = now.map(token);
     const current = [];
@@ -2184,7 +2183,7 @@ function refocus(focused) {
 /** **Each list shown as the page holds it, before a batch's patches apply**
  * (ADR-0172), and read from the document again after them. */
 function revertLists() {
-  if (!speculationLoaded) return;
+  if (!speculationLoaded || shownLists.size === 0) return;
   for (const [binding] of speculated) {
     const state = current(speculationLoaded, binding);
     if (!state || state.value === undefined) continue;

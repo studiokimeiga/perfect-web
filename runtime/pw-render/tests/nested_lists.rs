@@ -171,6 +171,26 @@ fn an_item_inserted_moved_or_removed_inside_a_section_is_its_lists_own_operation
     );
 }
 
+/// **A key repeated in a list's new items is refused**, as a render refuses
+/// it. Until 2026-11-09 the walk that puts each item in its place panicked
+/// on it, where it is run on the thread of the command that made two keys
+/// equal.
+#[test]
+fn a_new_list_that_repeats_a_key_is_refused() {
+    let a = |id: &str| section(id, id, vec![]);
+    for (old, new) in [
+        (vec![a("a")], vec![a("a"), a("a")]),
+        (vec![a("p"), a("q")], vec![a("z"), a("z")]),
+        (vec![], vec![a("a"), a("a")]),
+    ] {
+        let refused = list_changes(&sections(), PartId(0), &old, &new, &Env::new(), &[]);
+        assert!(
+            matches!(refused, Err(pw_render::Blocked::DuplicateLoopKey { .. })),
+            "{refused:?}"
+        );
+    }
+}
+
 #[test]
 fn a_section_and_an_item_across_sections_are_the_outer_and_inner_lists_operations() {
     // An item that moves to another section leaves one list and enters the

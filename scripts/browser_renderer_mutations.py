@@ -44,8 +44,7 @@ MUTANTS = [
     ("a vbscript: address is let through", RUNTIME, """const DANGEROUS = ["javascript:", "vbscript:", "data:"];""", """const DANGEROUS = ["javascript:", "data:"];"""),
     ("an address's references are not read", RUNTIME, "const decoded = decodeEntities(lowerAscii(v.replace(UNSEEN, \"\")));", "const decoded = lowerAscii(v.replace(UNSEEN, \"\"));"),
     ("an address's case is kept", RUNTIME, "const decoded = decodeEntities(lowerAscii(v.replace(UNSEEN, \"\")));", "const decoded = decodeEntities(v.replace(UNSEEN, \"\"));"),
-    ("a reference's window is a byte longer", RUNTIME, "for (let i = 0; i < s.length && bytes < 12; i++) {", "for (let i = 0; i < s.length && bytes < 13; i++) {"),
-    ("a reference's window counts characters, not bytes", RUNTIME, "      bytes += c < 0x80 ? 1 : c < 0x800 ? 2 : c < 0xd800 || c > 0xdfff ? 3 : c < 0xdc00 ? 4 : 0;\n", "      bytes += 1;\n"),
+    ("a reference's window is a byte longer", RUNTIME, """      const end = rest.slice(0, 12).indexOf(";");\n""", """      const end = rest.slice(0, 13).indexOf(";");\n"""),
     ("a reference past a code point is read", RUNTIME, "    if (code === null || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return null;\n", "    if (code === null) return null;\n    if (code > 0x10ffff) return \"\";\n"),
     ("a reference to what a parser drops is kept", RUNTIME, "    return c.replace(UNSEEN, \"\");\n", "    return c;\n"),
     ("a reference's plus sign is refused", RUNTIME, """if (body.startsWith("#x")) code = digits(body.slice(2), 16, /^\\+?[0-9a-f]+$/);""", """if (body.startsWith("#x")) code = digits(body.slice(2), 16, /^[0-9a-f]+$/);"""),
@@ -66,7 +65,6 @@ MUTANTS = [
     # --- graphs ---------------------------------------------------------------
     ("a node may be held twice", RUNTIME, "      const node = nodes[i];\n      nodes[i] = NONE;\n      return node;\n", "      return nodes[i];\n"),
     ("a node no other holds is kept", RUNTIME, """    if (nodes.slice(1).some((n) => n !== NONE)) throw malformed("a node no other holds");\n""", ""),
-    ("a node may be an earlier one", RUNTIME, "      if (i <= at || i >= nodes.length || nodes[i] === NONE)", "      if (i >= nodes.length || nodes[i] === NONE)"),
     ("a $node outside a graph is a record", RUNTIME, """    if ("$node" in v && Object.keys(v).length === 1) throw malformed("a $node outside any $graph");\n""", ""),
     # --- writing --------------------------------------------------------------
     ("a text part writes no anchors", RUNTIME, "        html.push(start, escaped(needText(e, p.value), p.context), end);\n", "        html.push(escaped(needText(e, p.value), p.context));\n"),
@@ -78,8 +76,8 @@ MUTANTS = [
     ("a region with no answer shows its placeholder", RUNTIME, "        if (!p.streamed) throw missing(`the answer of stream ${p.id}`);\n", ""),
     ("raw HTML is written", RUNTIME, """        throw new Blocked("UnauthorisedRawHtml", p.capability);\n""", """        html.push(needText(e, p.value));\n        return;\n"""),
     ("a blocked part writes nothing", RUNTIME, """      case "blocked":\n        throw unrepresented(p.reason);\n""", """      case "blocked":\n        return;\n"""),
-    ("a loop's missing key is rendered", RUNTIME, """      if (key === "") throw new Blocked("MissingLoopKey", p.key);\n      if (seen.has(key))""", """      if (seen.has(key))"""),
-    ("a loop's duplicate key is rendered", RUNTIME, """      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n""", ""),
+    ("a loop's missing key is rendered", RUNTIME, """      if (key === "") throw new Blocked("MissingLoopKey", p.key);\n      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n      seen.add(key);\n      const token = tokenOf(e, p.id, key);\n""", """      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n      seen.add(key);\n      const token = tokenOf(e, p.id, key);\n"""),
+    ("a loop's duplicate key is rendered", RUNTIME, """      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n      seen.add(key);\n      const token = tokenOf(e, p.id, key);\n""", """      seen.add(key);\n      const token = tokenOf(e, p.id, key);\n"""),
     ("a loop that is no list renders nothing", RUNTIME, "    if (!isList(items)) throw missing(p.collection);\n", "    if (!isList(items)) return;\n"),
     ("a nested instance may pass what a browser nests", RUNTIME, "  const NESTED_ELEMENTS = 500;\n", "  const NESTED_ELEMENTS = 501;\n"),
     ("an instance counts no elements around it", RUNTIME, "    const root = e.elements + (p.elements ?? 0);\n", "    const root = e.elements;\n"),
@@ -104,11 +102,21 @@ MUTANTS = [
     ("a changed list in a row is not told", RUNTIME, "            if (!same(x, y) && listChanged(p, x, y, after, others)) out.push([p.id, { list: true }]);\n", ""),
     ("a list's change is told as the row's, set in place", RUNTIME, "      return found && found.some(([, change]) => change.list) ? null : found;\n", "      return found;\n"),
     ("two values of another type are one", RUNTIME, """  const scalar = (v) => (typeof v === "boolean" ? "b" : isInt(v) ? "i" : "t") + shown(v);\n""", """  const scalar = (v) => shown(v);\n"""),
+    # --- a list inside a row ---------------------------------------------------
+    ("a new list's missing key is taken", RUNTIME, """      if (key === "") throw new Blocked("MissingLoopKey", p.key);\n      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n      seen.add(key);\n    }\n""", """      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n      seen.add(key);\n    }\n"""),
+    ("a new list's repeated key is taken", RUNTIME, """      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);\n      seen.add(key);\n    }\n""", """      seen.add(key);\n    }\n"""),
+    ("an item gone from a list is no change", RUNTIME, """      if (wanted.includes(t)) current.push([t, v]);\n      else changed = true;\n""", """      if (wanted.includes(t)) current.push([t, v]);\n"""),
+    ("an item new to a list is no change", RUNTIME, """        current.splice(i, 0, [wanted[i], item]);\n        changed = true;\n""", """        current.splice(i, 0, [wanted[i], item]);\n"""),
+    ("an item new to a list is not rendered", RUNTIME, """        eachInstance(p, item, e, others);\n        current.splice(i, 0, [wanted[i], item]);\n""", """        current.splice(i, 0, [wanted[i], item]);\n"""),
+    ("an item moved in a list is no change", RUNTIME, """        current.splice(i, 0, current.splice(found, 1)[0]);\n        changed = true;\n""", """        current.splice(i, 0, current.splice(found, 1)[0]);\n"""),
+    ("an item of a list that changed is no change", RUNTIME, """        current[i][1] = item;\n        changed = true;\n""", """        current[i][1] = item;\n"""),
+    ("an item of a list rendered again is not rendered", RUNTIME, """        if (rowChanges(p, opened(current[i][1]), item, e, others) === null) eachInstance(p, item, e, others);\n""", """        rowChanges(p, opened(current[i][1]), item, e, others);\n"""),
     # --- and the server's own, so a drift there is as loud ---------------------
     ("the server's text does not escape >", ESCAPE, """            '<' => out.push_str("&lt;"),\n            '>' => out.push_str("&gt;"),\n            _ => out.push(c),\n        }\n    }\n    out\n}\n\n/// **A form control's value""", """            '<' => out.push_str("&lt;"),\n            _ => out.push(c),\n        }\n    }\n    out\n}\n\n/// **A form control's value"""),
     ("the server's attribute does not escape a backtick", ESCAPE, """            '`' => out.push_str("&#96;"),\n""", ""),
     ("the server lets a data: address through", ESCAPE, """const DANGEROUS_SCHEMES: &[&str] = &["javascript:", "vbscript:", "data:"];""", """const DANGEROUS_SCHEMES: &[&str] = &["javascript:", "vbscript:"];"""),
     ("the server's false boolean attribute leaves its space", SERVER, """            } else if out.ends_with(' ') {\n""", """            } else if false {\n"""),
+    ("the server takes a new list's repeated key", SERVER, """        if !seen.insert(raw.clone()) {\n""", """        if !seen.insert(raw.clone()) && false {\n"""),
     ("the server's duplicate key is rendered", SERVER, """                        if seen.insert(raw.clone(), raw.clone()).is_some() {\n""", """                        if false && seen.insert(raw.clone(), raw.clone()).is_some() {\n"""),
 ]
 

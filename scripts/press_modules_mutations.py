@@ -61,38 +61,20 @@ MUTANTS = [
     (
         "a failed speculation load is kept",
         RUNTIME,
-        "      if (speculationModule !== loading) throw error;\n"
-        "      speculationModule = null;\n",
-        "      if (speculationModule !== loading) throw error;\n",
+        "      forgetSpeculation(loading);\n      throw error;\n",
+        "      throw error;\n",
     ),
     (
-        "a failed speculation load is asked for again under the same specifier",
+        "a speculation load a press gave up waiting for is kept",
         RUNTIME,
-        "      speculationAttempts += 1;\n"
-        "      // A renderer still loading is forgotten with it: the next press asks\n",
-        "      // A renderer still loading is forgotten with it: the next press asks\n",
-    ),
-    (
-        "a speculation load a press gave up waiting for is asked for again under the same specifier",
-        RUNTIME,
-        "  speculationAttempts += 1;\n"
-        "  forgetRenderer(rendering);\n",
-        "  forgetRenderer(rendering);\n",
-    ),
-    (
-        "a failed renderer load is kept",
-        RUNTIME,
-        "        if (renderer === loading) renderer = null;\n",
+        "    if (error?.givenUp) forgetSpeculation(loading);\n",
         "",
     ),
     (
-        "a renderer load a press gave up on is kept",
+        "a speculation load forgotten is asked for again under the same specifier",
         RUNTIME,
-        "  speculationAttempts += 1;\n"
-        "  forgetRenderer(rendering);\n"
-        "}\n",
-        "  speculationAttempts += 1;\n"
-        "}\n",
+        "  speculationModule = null;\n  speculationAttempts += 1;\n",
+        "  speculationModule = null;\n",
     ),
     (
         "a module's load is timed by a send's deadline",
@@ -121,7 +103,6 @@ MUTANTS = [
         "  try {\n"
         "    module = await speculationsWithin();\n"
         "  } catch (error) {\n"
-        "    if (error instanceof RetiredRenderer) throw error;\n"
         "    log.push(`${component} sent unspeculated: ${error.message ?? error}`);\n"
         "    return [];\n"
         "  }\n",

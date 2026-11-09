@@ -53,16 +53,22 @@ rendered. A loop's new row serialized all the page's values again.
    - every Unicode scalar value through each escaping, and every code point up
      to U+2FFF inside and around a scheme, in two spellings of each reference;
    - each mutation in `scripts/browser_renderer_mutations.py` is killed by it.
-3. **What the two may differ in is written down.** A token: the server's is a
-   keyed hash, under a key a page does not hold, and already differed. The
-   browser's is a counter for each instance and key, so two are never one by
-   chance, and it is compared by which tokens are the same. And a number that is
-   no integer, which is kept as JavaScript writes it: the language shows none
-   (`compiler/pw-core/tests/template_text.rs` refuses a `Float` in a text hole,
-   an attribute and a condition), so one only passes through what a handler
-   captures. A value holding an unpaired surrogate, which a Rust string cannot
-   hold, is rendered as the browser holds it, where the module refused the
-   block.
+3. **What the two may differ in is written down**, and the test holds them to
+   everything else:
+   - A token: the server's is a keyed hash, under a key a page does not hold,
+     and already differed. The browser's is a counter for each instance and
+     key, so two are never one by chance, and it is compared by which tokens
+     are the same.
+   - A number that is no integer, or an integer-valued number outside what an
+     `Int` holds, is written as JavaScript writes it. The language shows no
+     such number (`compiler/pw-core/tests/template_text.rs` refuses a `Float`
+     in a text hole, an attribute and a condition), and `Int` is checked into
+     64 bits, so one only passes through what a handler captures.
+   - A value holding an unpaired surrogate, which a Rust string cannot hold, is
+     rendered as the browser holds it, where the module refused the block.
+   - A `$graph` that is no tree is refused where it is read. The server's
+     reader refuses the whole request, so a malformed one nobody reads differs.
+     It takes a server bug to write one, and it cannot change an escaping.
 4. **What existed only because the renderer was a download goes.** A page could
    fail to load it, load it late, or have it trap, so the runtime held an owner
    for it, retired it, and raced a press against its load. There is no such
@@ -75,12 +81,37 @@ rendered. A loop's new row serialized all the page's values again.
 
 ## Found on the way
 
-**The server's renderer panicked on an address.** `escape::decode_entities`
-cut a twelve-byte window with a string slice, and panicked where the twelfth
-byte fell inside a character: `&aaaaaaaaaaé;` in any URL-valued attribute, on
-the server's worker, from a value a user wrote. The new agreement test reached
-it on its first run. It is fixed here, with its own test, and the window is now
-searched as bytes.
+Two ways to crash the server, both found by holding the two renderers to each
+other, and both fixed here with tests of their own:
+
+- **An address panicked the renderer.** `escape::decode_entities` cut a
+  twelve-byte window with a string slice, and panicked where the twelfth byte
+  fell inside a character: `&aaaaaaaaaaé;` in any URL-valued attribute, on a
+  server's worker, from a value a user wrote. The window is searched as bytes
+  now. The agreement test reached it on its first run.
+- **A list that came to repeat a key panicked its diff.** `each_changes` walks
+  the new items into place, and a key held twice asked it to insert past the
+  end. A render refuses a repeated key and the diff did not, so a commit that
+  made two keys equal on an open page panicked its thread, while
+  `refresh_menu` held a lock that 106 sites expect not to be poisoned. It is
+  refused now, as a render refuses it. The review of this work found it, and
+  623 of 4,000 random list changes reached it.
+
+The browser's window is counted in characters, not bytes: a body holding a wide
+character is no number, and what is no number leaves an `&` at the front of what
+is compared, so where its window ends decides nothing.
+
+## Review
+
+An independent review traced the renderer against the Rust and against what the
+runtime passes it. No input was found for which the JavaScript writes what the
+Rust would have refused or escaped, through replacement patterns, regular
+expressions' state, prototype keys, sort order, or integer forms. It found the
+list's panic above, that the generator never changed a nested list's keys (it
+does now, and `listChanged` has controls), ten mutation anchors the change had
+moved, and two small regressions: `revertLists` decoded every pending value on a
+page with no list to revert, and a speculation module that arrived after its
+press had given up was published. All are repaired.
 
 ## Why not the other ways
 

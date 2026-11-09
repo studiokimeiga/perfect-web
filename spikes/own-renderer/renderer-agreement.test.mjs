@@ -319,7 +319,15 @@ function readPath(values, at) {
 function perturbed(r, v, depth = 3) {
   // A graph is whole: a node changed here would be a graph that is no tree.
   if (typeof v === "object" && v !== null && "$graph" in v) return r.chance(0.5) ? v : r.pick(SCALARS);
-  if (Array.isArray(v)) return v.map((x) => (r.chance(0.3) ? perturbed(r, x, depth - 1) : x));
+  if (Array.isArray(v)) {
+    const out = v.map((x) => (r.chance(0.3) ? perturbed(r, x, depth - 1) : x));
+    // An item gone, one more, moved, or written twice.
+    if (r.chance(0.25) && out.length) out.splice(r.int(out.length), 1);
+    if (r.chance(0.25)) out.splice(r.int(out.length + 1), 0, { id: r.int(9), name: r.pick(NASTY) });
+    if (r.chance(0.25) && out.length > 1) out.reverse();
+    if (r.chance(0.2) && out.length) out.push(out[0]);
+    return out;
+  }
   if (typeof v === "object" && v !== null && depth > 0) {
     return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, k !== "$case" && k !== "id" && r.chance(0.5) ? perturbed(r, x, depth - 1) : x]));
   }
@@ -603,6 +611,112 @@ test("a graph that is no tree is refused where it is read", () => {
     { $graph: [{ a: { $node: "x" } }] },
     { $node: 1 },
   ].map((v) => ["render_part", { part, values: { v } }]);
+  assert.equal(agree(requests).refused, requests.length);
+});
+
+test("what has been an exploit agrees in every context", () => {
+  const spellings = [];
+  for (const scheme of ["javascript:x", "vbscript:x", "data:x", "JAVASCRIPT:x", "VbScript:x", "DaTa:x"]) {
+    for (const lead of ["", " ", "\t", "\u0001", "&#9;", "&#x20;", "&#133;", "&#1114112;", "&#xD83D;", "&#xD;&#xA;", "&;", "&amp;"]) {
+      spellings.push(lead + scheme);
+    }
+    spellings.push(scheme.replace(":", "&colon;"), scheme.replace(":", "&#58;"), scheme.replace(":", "&#x3a;"));
+    for (let zeros = 0; zeros < 11; zeros++) {
+      // A reference on either side of where its window ends.
+      spellings.push(`&#${"0".repeat(zeros)}${scheme.charCodeAt(0)};${scheme.slice(1)}`);
+    }
+  }
+  const requests = [];
+  for (const v of [...NASTY, ...spellings]) {
+    for (const part of PARTS) requests.push(["render_part", { part, values: { v } }]);
+    for (const context of ["url", "style", "attribute"]) {
+      requests.push(["attribute_value", { part: { part: "attribute", id: 1, owner: 0, name: "x", value: "v", context }, values: { v } }]);
+    }
+  }
+  assert.equal(agree(requests).refused, 0);
+});
+
+const text = (value, id = 1) => ({ chunk: "dynamic", value: { part: "text", id, value, context: "text" } });
+const event = (owner, name, id) => ({ chunk: "dynamic", value: { part: "event", id, owner, event: "press", handler: "h", captures: [name] } });
+
+test("a path reads a record's fields and nothing else's", () => {
+  const each = (key) => ({ part: "each", id: 1, collection: "list", binding: "row", key, body: [text("row.x", 2)] });
+  const variant = { $case: "Some", value: { x: 1 } };
+  const requests = [
+    ["render_part", { part: text("v.value").value, values: { v: variant } }],
+    ["render_part", { part: text("v.$case").value, values: { v: variant } }],
+    ["render_part", { part: text("v.value.x").value, values: { v: variant } }],
+    ["render_part", { part: text("v.length").value, values: { v: [1, 2] } }],
+    ["render_part", { part: text("v.length").value, values: { v: "text" } }],
+    ["render_part", { part: text("v.toString").value, values: { v: { a: 1 } } }],
+    ["render_part", { part: each("value"), values: { list: [variant] } }],
+    ["render_part", { part: each("$case"), values: { list: [variant, { $case: "None" }] } }],
+    ["render_part", { part: each("length"), values: { list: [[1], [2, 3]] } }],
+    ["render_part", { part: each(""), values: { list: ["a", "b"] } }],
+    ["render_part", { part: each(""), values: { list: [{ x: 1 }] } }],
+    ["render_part", { part: text("v.a").value, values: { v: { a: 1 } } }],
+    ["render_part", { part: each("id"), values: { list: [{ id: 1, x: "a" }] } }],
+  ];
+  const { answered, refused } = agree(requests);
+  assert.ok(refused > 0 && refused < answered, `${refused} of ${answered} refused`);
+});
+
+test("each element's handlers write one attribute of their own", () => {
+  const values = { a: 1, b: "two" };
+  const part = { part: "conditional", id: 9, value: "t", then: [event(1, "a", 1), event(1, "b", 2), event(2, "a", 3), { chunk: "static", value: ">" }, event(3, "b", 4)], otherwise: [] };
+  const requests = [["render_part", { part, values: { ...values, t: true } }]];
+  assert.equal(agree(requests).refused, 0);
+});
+
+test("an instance reads its parameters and none of the page's values", () => {
+  const view = (read) => ({ path: "t.V", name: "V", params: ["p"], schema: "s", chunks: [text(read)] });
+  const part = { part: "instance", id: 9, path: "t.V", args: [["p", "given"]] };
+  const values = { given: "yes", outer: "no" };
+  assert.equal(agree([["render_part", { part, values, templates: [view("p")] }]]).refused, 0);
+  assert.equal(agree([["render_part", { part, values, templates: [view("outer")] }]]).refused, 1);
+});
+
+test("what changed in a row agrees on a block, a case and a list inside it", () => {
+  const match = { chunk: "dynamic", value: { part: "match", id: 3, value: "row.state", arms: [
+    { case: "Some", binding: "x", body: [text("x", 4)] },
+    { case: "None", body: [{ chunk: "static", value: "<i>none</i>" }] },
+  ] } };
+  const list = { chunk: "dynamic", value: { part: "each", id: 5, collection: "row.items", binding: "it", key: "id", body: [text("it.v", 6)] } };
+  const each = { part: "each", id: 0, collection: "rows", binding: "row", key: "id", body: [match, list] };
+  const row = (state, items) => ({ id: "a", state, items });
+  const some = (x) => ({ $case: "Some", value: x });
+  const none = { $case: "None" };
+  const requests = [
+    // The arm it showed, a value inside it changed: set in place.
+    [some("one"), [], some("two"), []],
+    // Another arm: rendered again.
+    [some("one"), [], none, []],
+    [none, [], none, []],
+    // A list inside: the same, a value of another type, one more, one fewer, moved.
+    [none, [{ id: 1, v: "1" }], none, [{ id: 1, v: "1" }]],
+    [none, [{ id: 1, v: "1" }], none, [{ id: 1, v: 1 }]],
+    [none, [{ id: 1, v: 1 }], none, [{ id: 1, v: 1n }]],
+    [none, [{ id: 1, v: true }], none, [{ id: 1, v: "true" }]],
+    [none, [{ id: 1, v: null }], none, [{ id: 1, v: "" }]],
+    [none, [{ id: 1, v: "a" }], none, [{ id: 1, v: "a" }, { id: 2, v: "b" }]],
+    [none, [{ id: 1, v: "a" }, { id: 2, v: "b" }], none, [{ id: 2, v: "b" }]],
+    [none, [{ id: 1, v: "a" }, { id: 2, v: "b" }], none, [{ id: 2, v: "b" }, { id: 1, v: "a" }]],
+  ].map(([a, x, b, y]) => ["instance_changes", { part: each, was: row(a, x), now: row(b, y), values: {} }]);
+  assert.equal(agree(requests).refused, 0);
+});
+
+test("a list inside a row is refused, not walked, when its keys repeat or are missing", () => {
+  const list = { chunk: "dynamic", value: { part: "each", id: 5, collection: "row.items", binding: "it", key: "k", body: [text("it.k", 6)] } };
+  const each = { part: "each", id: 0, collection: "rows", binding: "row", key: "id", body: [list] };
+  const row = (items) => ({ id: "a", items });
+  const k = (name) => ({ k: name });
+  const requests = [
+    [[k("a")], [k("a"), k("a")]],
+    [[k("p"), k("q")], [k("z"), k("z")]],
+    [[], [k("a"), k("a")]],
+    [[k("a")], [k("a"), {}]],
+    [[k("a")], [{}]],
+  ].map(([was, now]) => ["instance_changes", { part: each, was: row(was), now: row(now), values: {} }]);
   assert.equal(agree(requests).refused, requests.length);
 });
 
