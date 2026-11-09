@@ -321,3 +321,93 @@ test("a production build minifies its stylesheets, and keeps what they draw", as
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+/** The real runtime, packed for a build of one device page holding `chunks`. */
+async function deviceRuntimeOf(chunks, plan = { prerender: true }) {
+  const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+  try {
+    await copyFile(new URL("./public/pw-runtime.mjs", import.meta.url), path.join(dir, "pw-runtime.mjs"));
+    await mkdir(path.join(dir, "build/pages"), { recursive: true });
+    await writeFile(path.join(dir, "build/pages/p.json"), JSON.stringify(plan));
+    await writeFile(path.join(dir, "build/templates.json"), JSON.stringify([{ path: "p", chunks }]));
+    await optimizeAssets(dir);
+    return (await readFile(path.join(dir, "pw-runtime-device.mjs"))).toString();
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+const dynamic = (value) => ({ chunk: "dynamic", value });
+const WORDS = {
+  PW_LINKS: "vbscript:",
+  PW_MATCH: "takes an Option or a Result apart",
+  PW_VIEWS: "UnknownInstance",
+  PW_DIALOGS: "showModal",
+};
+const USING = {
+  PW_LINKS: [dynamic({ part: "attribute", context: "url", name: "href", value: "v" })],
+  PW_MATCH: [dynamic({ part: "match", value: "v", arms: [] })],
+  PW_VIEWS: [dynamic({ part: "instance", path: "q", args: [] })],
+  PW_DIALOGS: [{ chunk: "static", value: "<dialog id=d>" }],
+};
+
+test("the device's runtime holds what its pages use, and none of what they do not", async () => {
+  const none = await deviceRuntimeOf([{ chunk: "static", value: "<p>a</p>" }]);
+  for (const [flag, word] of Object.entries(WORDS)) assert.ok(!none.includes(word), `${flag} is gone: ${word}`);
+  for (const [flag, chunks] of Object.entries(USING)) {
+    const runtime = await deviceRuntimeOf(chunks);
+    assert.ok(runtime.includes(WORDS[flag]), `${flag} is kept`);
+    for (const [other, word] of Object.entries(WORDS)) {
+      if (other !== flag) assert.ok(!runtime.includes(word), `${flag} alone keeps no ${other}`);
+    }
+  }
+});
+
+test("what a block or a conditional's arm holds counts", async () => {
+  const within = (inner) => [dynamic({ part: "conditional", value: "v", then: inner, otherwise: [] })];
+  assert.ok((await deviceRuntimeOf(within(USING.PW_MATCH))).includes(WORDS.PW_MATCH));
+  const looped = [dynamic({ part: "each", collection: "c", binding: "b", key: null, body: USING.PW_DIALOGS })];
+  assert.ok((await deviceRuntimeOf(looped)).includes(WORDS.PW_DIALOGS));
+  const armed = [dynamic({ part: "match", value: "v", arms: [{ case: "Some", body: USING.PW_LINKS }] })];
+  assert.ok((await deviceRuntimeOf(armed)).includes(WORDS.PW_LINKS));
+});
+
+test("a page a reader decides, or one with a layout, keeps out of what is read", async () => {
+  const dialog = USING.PW_DIALOGS;
+  assert.ok(!(await deviceRuntimeOf(dialog, { prerender: false })).includes(WORDS.PW_DIALOGS));
+  assert.ok(!(await deviceRuntimeOf(dialog, { prerender: true, layout: { path: "x" } })).includes(WORDS.PW_DIALOGS));
+  assert.ok((await deviceRuntimeOf(dialog, { prerender: true, layout: null })).includes(WORDS.PW_DIALOGS));
+});
+
+test("a view a page uses is read for what it uses", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+  try {
+    await copyFile(new URL("./public/pw-runtime.mjs", import.meta.url), path.join(dir, "pw-runtime.mjs"));
+    await mkdir(path.join(dir, "build/pages"), { recursive: true });
+    await writeFile(path.join(dir, "build/pages/p.json"), JSON.stringify({ prerender: true }));
+    await writeFile(
+      path.join(dir, "build/templates.json"),
+      JSON.stringify([
+        { path: "p", chunks: USING.PW_VIEWS },
+        { path: "q", chunks: USING.PW_DIALOGS },
+      ]),
+    );
+    await optimizeAssets(dir);
+    assert.ok((await readFile(path.join(dir, "pw-runtime-device.mjs"))).toString().includes(WORDS.PW_DIALOGS));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("a build whose pages cannot be read keeps everything", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+  try {
+    await copyFile(new URL("./public/pw-runtime.mjs", import.meta.url), path.join(dir, "pw-runtime.mjs"));
+    await optimizeAssets(dir);
+    const device = (await readFile(path.join(dir, "pw-runtime-device.mjs"))).toString();
+    for (const [flag, word] of Object.entries(WORDS)) assert.ok(device.includes(word), `${flag} is kept`);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+

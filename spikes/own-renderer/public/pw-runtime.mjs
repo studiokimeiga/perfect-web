@@ -28,6 +28,15 @@ const parts = JSON.parse(document.getElementById("pw-parts")?.textContent ?? "{}
  * that keeps the layout. */
 const PW_SERVER = true;
 
+/** **What a build's pages that talk to no server use** (the device runtime's
+ * ADR), which the packaging reads from their templates, and what none of them
+ * uses falls away with these: a value in a URL or a style, a `{#match}`, a view
+ * used inside another, a `<dialog>`. */
+const PW_LINKS = true;
+const PW_MATCH = true;
+const PW_VIEWS = true;
+const PW_DIALOGS = true;
+
 /**
  * **This document's life** (the soft navigation's ADR). Every listener the
  * runtime adds is added with its signal, and its subscription asks under it:
@@ -529,7 +538,7 @@ window.__pw = {
   address: (path, part) => addressOf(path, part),
   /** A page's address from its route and its parameters' values, as a
    * navigation goes to it (ADR-0280). */
-  pageAddress: (route, args) => pageAddress(route, args),
+  pageAddress: !PW_SERVER ? null : (route, args) => pageAddress(route, args),
   /** The build that served this runtime (ADR-0300). */
   build: () => servedBuild,
   indexSize: () => index.size,
@@ -1277,78 +1286,82 @@ const renderer = (() => {
   const escText = (v) => v.replace(/[&<>]/g, entity);
   const escAttribute = (v) => v.replace(/[&"'<>`]/g, entity);
   const escContent = (v) => (/^[\n\r]/.test(v) ? "\n" : "") + escText(v);
-  const lowerAscii = (s) => s.replace(/[A-Z]+/g, (m) => m.toLowerCase());
-  const UNSEEN = /[\p{White_Space}\p{Cc}]/gu;
-  const DANGEROUS = ["javascript:", "vbscript:", "data:"];
-  const utf8 = new TextEncoder();
+  // The escaping of a value in a URL or a style: only a page with one needs it.
+  const { escUrlComponent, escUrl, escStyle } = !PW_LINKS ? {} : (() => {
+    const lowerAscii = (s) => s.replace(/[A-Z]+/g, (m) => m.toLowerCase());
+    const UNSEEN = /[\p{White_Space}\p{Cc}]/gu;
+    const DANGEROUS = ["javascript:", "vbscript:", "data:"];
+    const utf8 = new TextEncoder();
 
-  /** A value inside a URL whose text the author wrote around it: one
-   * component, every UTF-8 byte but RFC 3986's unreserved encoded. */
-  function escUrlComponent(v) {
-    let out = "";
-    for (const b of utf8.encode(v)) {
-      const plain = (b > 47 && b < 58) || (b > 64 && b < 91) || (b > 96 && b < 123) || b === 45 || b === 46 || b === 95 || b === 126;
-      out += plain ? String.fromCharCode(b) : `%${b.toString(16).toUpperCase().padStart(2, "0")}`;
-    }
-    return out;
-  }
-
-  function digits(text, radix, shape) {
-    if (!shape.test(text)) return null;
-    let n = 0;
-    for (const d of text.replace("+", "")) {
-      n = n * radix + parseInt(d, radix);
-      if (n > 0xffffffff) return null;
-    }
-    return n;
-  }
-
-  /** What a reference's body says, `""` for what a parser drops, `null` for
-   * what this does not read. The text is lowercased already. */
-  function referenced(body) {
-    let code;
-    if (body.startsWith("#x")) code = digits(body.slice(2), 16, /^\+?[0-9a-f]+$/);
-    else if (body[0] === "#") code = digits(body.slice(1), 10, /^\+?[0-9]+$/);
-    else return body === "colon" ? ":" : body === "amp" ? "&" : null;
-    if (code === null || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return null;
-    const c = String.fromCodePoint(code);
-    return c.replace(UNSEEN, "");
-  }
-
-  function decodeEntities(s) {
-    let out = "";
-    let rest = s;
-    for (let i = rest.indexOf("&"); i >= 0; i = rest.indexOf("&")) {
-      out += rest.slice(0, i);
-      rest = rest.slice(i);
-      // Within twelve characters, as the server's is within twelve bytes:
-      // a body holding a wide character is no number, and leaves an `&` at
-      // the front of what is compared, wherever its window ends.
-      const end = rest.slice(0, 12).indexOf(";");
-      if (end < 0) {
-        out += "&";
-        rest = rest.slice(1);
-        continue;
+    /** A value inside a URL whose text the author wrote around it: one
+     * component, every UTF-8 byte but RFC 3986's unreserved encoded. */
+    function escUrlComponent(v) {
+      let out = "";
+      for (const b of utf8.encode(v)) {
+        const plain = (b > 47 && b < 58) || (b > 64 && b < 91) || (b > 96 && b < 123) || b === 45 || b === 46 || b === 95 || b === 126;
+        out += plain ? String.fromCharCode(b) : `%${b.toString(16).toUpperCase().padStart(2, "0")}`;
       }
-      out += referenced(rest.slice(1, end)) ?? rest.slice(0, end + 1);
-      rest = rest.slice(end + 1);
+      return out;
     }
-    return out + rest;
-  }
 
-  /** A URL-valued attribute: a scheme that executes is replaced, whatever
-   * spelling reaches the parser, and then the attribute's rules. */
-  function escUrl(v) {
-    const decoded = decodeEntities(lowerAscii(v.replace(UNSEEN, "")));
-    return DANGEROUS.some((s) => decoded.startsWith(s)) ? "about:blank" : escAttribute(v);
-  }
+    function digits(text, radix, shape) {
+      if (!shape.test(text)) return null;
+      let n = 0;
+      for (const d of text.replace("+", "")) {
+        n = n * radix + parseInt(d, radix);
+        if (n > 0xffffffff) return null;
+      }
+      return n;
+    }
 
-  function escStyle(v) {
-    const lower = lowerAscii(v);
-    const suspicious =
-      lower.includes("expression(") || DANGEROUS.some((s) => lower.includes(`url(${s}`) || lower.includes(`url('${s}`));
-    return suspicious ? "" : escAttribute(v);
-  }
+    /** What a reference's body says, `""` for what a parser drops, `null` for
+     * what this does not read. The text is lowercased already. */
+    function referenced(body) {
+      let code;
+      if (body.startsWith("#x")) code = digits(body.slice(2), 16, /^\+?[0-9a-f]+$/);
+      else if (body[0] === "#") code = digits(body.slice(1), 10, /^\+?[0-9]+$/);
+      else return body === "colon" ? ":" : body === "amp" ? "&" : null;
+      if (code === null || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return null;
+      const c = String.fromCodePoint(code);
+      return c.replace(UNSEEN, "");
+    }
+
+    function decodeEntities(s) {
+      let out = "";
+      let rest = s;
+      for (let i = rest.indexOf("&"); i >= 0; i = rest.indexOf("&")) {
+        out += rest.slice(0, i);
+        rest = rest.slice(i);
+        // Within twelve characters, as the server's is within twelve bytes:
+        // a body holding a wide character is no number, and leaves an `&` at
+        // the front of what is compared, wherever its window ends.
+        const end = rest.slice(0, 12).indexOf(";");
+        if (end < 0) {
+          out += "&";
+          rest = rest.slice(1);
+          continue;
+        }
+        out += referenced(rest.slice(1, end)) ?? rest.slice(0, end + 1);
+        rest = rest.slice(end + 1);
+      }
+      return out + rest;
+    }
+
+    /** A URL-valued attribute: a scheme that executes is replaced, whatever
+     * spelling reaches the parser, and then the attribute's rules. */
+    function escUrl(v) {
+      const decoded = decodeEntities(lowerAscii(v.replace(UNSEEN, "")));
+      return DANGEROUS.some((s) => decoded.startsWith(s)) ? "about:blank" : escAttribute(v);
+    }
+
+    function escStyle(v) {
+      const lower = lowerAscii(v);
+      const suspicious =
+        lower.includes("expression(") || DANGEROUS.some((s) => lower.includes(`url(${s}`) || lower.includes(`url('${s}`));
+      return suspicious ? "" : escAttribute(v);
+    }
+    return { escUrlComponent, escUrl, escStyle };
+  })();
 
   /** The one place a context becomes an escaping function. */
   function escaped(v, context) {
@@ -1534,7 +1547,7 @@ const renderer = (() => {
   /** The most elements a page may nest (`NESTED_ELEMENTS`, ADR-0203). */
   const NESTED_ELEMENTS = 500;
 
-  function emitInstance(p, e, others, out) {
+  const emitInstance = !PW_VIEWS ? null : function emitInstance(p, e, others, out) {
     const t = others.find((o) => o.path === p.path);
     if (!t) throw new Blocked("UnknownInstance", p.path);
     const root = e.elements + (p.elements ?? 0);
@@ -1545,10 +1558,10 @@ const renderer = (() => {
     out.html.push(`<!--pw:s${p.id}@${token}-->`);
     out.later.push({ at: out.html.length, chunks: t.chunks, env: child });
     out.html.push(`<!--pw:e${p.id}@${token}-->`);
-  }
+  };
 
   /** The arm a `{#match}` shows, and what its body is rendered in. */
-  function armShown(arms, path, e) {
+  const armShown = !PW_MATCH ? null : function armShown(arms, path, e) {
     const v = need(e, path);
     if (!isVariant(v)) throw unrepresented("a {#match} takes an Option or a Result apart");
     const arm = arms.find((a) => a.case === v.$case);
@@ -1567,7 +1580,7 @@ const renderer = (() => {
       fields.forEach((name, i) => (scoped = named(scoped, name, parts[i])));
     }
     return [arm, scoped];
-  }
+  };
 
   /** An attribute part's name and its value as the document writes it,
    * `null` for a boolean attribute that is absent; `null` for no attribute. */
@@ -2644,7 +2657,7 @@ function morphChildren(parent, olds, freshes, before, inserted) {
   for (const o of old) {
     if (used.has(o)) continue;
     for (const n of o.nodes ?? [o.node]) {
-      if (n.nodeType === Node.ELEMENT_NODE) {
+      if (PW_DIALOGS && n.nodeType === Node.ELEMENT_NODE) {
         for (const d of dialogsIn([n], true)) {
           d.close();
           giveFocusBack(d);
@@ -2906,7 +2919,7 @@ async function flushSignals() {
     buildIndex();
     bindEvents();
     // Shown once what is in it can be pressed (ADR-0141).
-    showDialogs(inserted);
+    if (PW_DIALOGS) showDialogs(inserted);
   }
   if (PW_SERVER) readAgain(changed);
   window.__pw.signals = Object.fromEntries(signals);
@@ -3976,7 +3989,8 @@ function bindEvent(template, part) {
             return answer.result;
           },
           // Goes to a page once the command it follows commits (ADR-0280).
-          navigate: (route, args) => navigate(route, args, done),
+          // After a command's answer alone, and such a page sends none.
+          navigate: !PW_SERVER ? null : (route, args) => navigate(route, args, done),
         }, { signal: life.signal });
       } catch (error) {
         // A load or a refused command is VISIBLE and leaves the button
@@ -4111,7 +4125,7 @@ function blockOf(live) {
 }
 
 function warmsOn({ nodes }) {
-  if (!nodes || dialogsIn(nodes, true).length || dialogsIn(nodes, false).length) return false;
+  if (!nodes || (PW_DIALOGS && (dialogsIn(nodes, true).length || dialogsIn(nodes, false).length))) return false;
   const elements = nodes.reduce((n, node) => n + (node.nodeType === 1 ? 1 + node.getElementsByTagName("*").length : 0), 0);
   return elements <= WARM_ELEMENTS;
 }
@@ -4183,7 +4197,7 @@ async function attach() {
   for (const live of parts.live ?? []) {
     if (live.kind !== "conditional" && live.kind !== "match") continue;
     const r = index.get(addressOf([], live.part));
-    if (r?.start) showDialogs(between(r.start, r.end));
+    if (PW_DIALOGS && r?.start) showDialogs(between(r.start, r.end));
   }
 
   performance.mark("pw:activate:end");

@@ -23,7 +23,12 @@ const ASSET = /\.(?:mjs|js|wasm|css|svg)$/;
  * drift, and a page's document names which it runs.
  */
 async function packDeviceRuntime(directory, source) {
-  const { code } = await transform(source.replace("const PW_SERVER = true;", "").replaceAll("PW_SERVER", "false"), {
+  const uses = await deviceFeatures(directory);
+  let device = source.replace("const PW_SERVER = true;", "").replaceAll("PW_SERVER", "false");
+  for (const [flag, used] of Object.entries(uses)) {
+    device = device.replace(`const ${flag} = true;`, "").replaceAll(flag, String(used));
+  }
+  const { code } = await transform(device, {
     loader: "js",
     format: "esm",
     target: "es2022",
@@ -36,6 +41,55 @@ async function packDeviceRuntime(directory, source) {
   await writeFile(file, code);
   await writeFile(file + ".br", brotliCompressSync(Buffer.from(code), BR));
   await writeFile(file + ".gz", gzipSync(Buffer.from(code), { level: 9, mtime: 0 }));
+}
+
+/** What a template's parts need of the runtime. */
+function featuresIn(chunks, templates, out, seen) {
+  for (const chunk of chunks) {
+    if (chunk.chunk === "static") {
+      if (/<dialog[\s>]/i.test(chunk.value)) out.PW_DIALOGS = true;
+      continue;
+    }
+    const part = chunk.value;
+    if (part.part === "match") out.PW_MATCH = true;
+    if (part.context === "url" || part.context === "style") out.PW_LINKS = true;
+    if (part.part === "instance") {
+      out.PW_VIEWS = true;
+      if (!seen.has(part.path)) {
+        seen.add(part.path);
+        const view = templates.find((t) => t.path === part.path);
+        if (view) featuresIn(view.chunks, templates, out, seen);
+      }
+    }
+    for (const inner of [part.then, part.otherwise, part.body, part.placeholder, part.ready?.body, part.failed?.body, ...(part.arms ?? []).map((a) => a.body)]) {
+      if (inner) featuresIn(inner, templates, out, seen);
+    }
+  }
+  return out;
+}
+
+/**
+ * **What this build's pages that talk to no server use** (the device runtime's
+ * ADR): the host starts the device's runtime for a page no reader decides and
+ * with no layout, and each of these is true where one of them needs it. A build
+ * that cannot be read keeps everything.
+ */
+async function deviceFeatures(directory) {
+  const everything = { PW_LINKS: true, PW_MATCH: true, PW_VIEWS: true, PW_DIALOGS: true };
+  const base = path.join(directory, "build");
+  const text = await readIfThere(path.join(base, "templates.json"));
+  if (text === null) return everything;
+  const templates = JSON.parse(text);
+  const out = { PW_LINKS: false, PW_MATCH: false, PW_VIEWS: false, PW_DIALOGS: false };
+  for (const name of await readdir(path.join(base, "pages")).catch(() => [])) {
+    if (!name.endsWith(".json")) continue;
+    const plan = JSON.parse(await readFile(path.join(base, "pages", name), "utf8"));
+    if (plan.prerender !== true || (plan.layout !== undefined && plan.layout !== null)) continue;
+    const template = templates.find((t) => t.path === name.slice(0, -".json".length));
+    if (!template) return everything;
+    featuresIn(template.chunks, templates, out, new Set());
+  }
+  return out;
 }
 
 async function packAsset(directory, entry) {

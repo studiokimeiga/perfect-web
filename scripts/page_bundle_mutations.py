@@ -46,8 +46,8 @@ MUTANTS = [
         "a handler inside a block is left out",
         "packaging",
         PACKAGING,
-        "    for (const inner of [part.then, part.otherwise, part.body, part.placeholder, part.ready?.body, part.failed?.body, ...(part.arms ?? []).map((a) => a.body)]) {\n",
-        "    for (const inner of []) {\n",
+        "    for (const inner of [part.then, part.otherwise, part.body, part.placeholder, part.ready?.body, part.failed?.body, ...(part.arms ?? []).map((a) => a.body)]) {\n      if (inner) handlersIn(inner, templates, out, seen);\n",
+        "    for (const inner of []) {\n      if (inner) handlersIn(inner, templates, out, seen);\n",
     ),
     (
         "a view's handlers are left out",
