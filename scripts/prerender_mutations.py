@@ -38,6 +38,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RULE = ROOT / "compiler/pw-core/src/prerender.rs"
 BUILD = ROOT / "compiler/pw-core/src/build.rs"
 PLAN = ROOT / "compiler/pw-core/src/page_values.rs"
+TEMPLATE = ROOT / "compiler/pw-core/src/template_ir.rs"
 SERVER = ROOT / "spikes/own-renderer/server/src"
 MAIN = SERVER / "main.rs"
 HOST = SERVER / "prerender.rs"
@@ -50,6 +51,7 @@ RULE_NAMES = [
     "a_handler_that_stays_in_the_browser_leaves_a_page_marked",
     "a_layout_is_read_for_its_handlers",
     "a_layout_that_binds_a_query_keeps_a_page_unmarked",
+    "a_layout_with_a_stream_keeps_a_page_unmarked",
     "a_page_its_address_gives_a_value_is_not_marked",
     "a_page_marked_is_said_so_in_its_plan",
     "a_page_of_signals_at_an_address_is_marked",
@@ -57,6 +59,7 @@ RULE_NAMES = [
     "a_page_that_is_someones_is_not_marked",
     "a_page_with_a_stream_is_not_marked",
     "a_page_with_no_address_is_not_marked",
+    "a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked",
     "a_value_the_device_keeps_leaves_a_page_marked",
     "a_view_that_contains_itself_is_read_for_its_handlers",
 ]
@@ -73,10 +76,12 @@ HOST_NAMES = [
     "tests::prerender::a_versioned_build_says_its_delivery_and_names_its_files_at_it",
     "tests::prerender::each_representation_holds_the_document",
     "tests::prerender::every_reader_is_sent_the_same_document_and_named_nothing",
+    "tests::prerender::it_is_rendered_in_the_public_partition",
     "tests::prerender::it_is_the_document_a_request_would_have_been_rendered",
     "tests::prerender::it_says_what_a_document_says_of_itself",
     "tests::prerender::nothing_is_one_document_until_it_is_rendered",
     "tests::prerender::the_address_that_still_renders_is_as_it_was",
+    "tests::prerender::what_it_says_of_itself_is_part_of_its_validator",
     "tests::todomvc::todomvc_is_one_document",
 ]
 SUITES = {
@@ -109,8 +114,14 @@ MUTANTS = [
      '        && plan.bindings.is_empty()\n        && plan.streams.is_empty()\n',
      '        && plan.streams.is_empty()\n'),
     ("a page with a stream is marked", RULE,
-     '        && plan.streams.is_empty()\n        && plan.scope == "public"\n',
+     '        && plan.streams.is_empty()\n        && plan.predicates.is_empty()\n',
+     '        && plan.predicates.is_empty()\n'),
+    ("a page that asks its reader a predicate is marked", RULE,
+     '        && plan.predicates.is_empty()\n        && plan.scope == "public"\n',
      '        && plan.scope == "public"\n'),
+    ("a view's predicate is a name no document holds", TEMPLATE,
+     '    let mut names = asked_predicates(ctx.hirs, ctx.ws, ctx.sigs, def.unit);\n',
+     '    let mut names = BTreeMap::new();\n'),
     ("a page that is someone's is marked", RULE,
      '        && plan.scope == "public"\n',
      '\n'),
@@ -133,6 +144,9 @@ MUTANTS = [
     ("a page not marked is rendered once too", MAIN,
      '            if plan["prerender"] != true {\n                continue;\n            }\n',
      ''),
+    ("it is rendered in a session's partition", MAIN,
+     '                .render_page_in(page, &BTreeMap::new(), Partition::Public, &[])\n',
+     '                .render_page_in(page, &BTreeMap::new(), session_partition("once"), &[])\n'),
     ("a page that does not render is passed over", MAIN,
      '            let (document, _, _) = self\n'
      '                .render_page_in(page, &BTreeMap::new(), Partition::Public, &[])\n'
@@ -176,14 +190,15 @@ MUTANTS = [
     ("a request that holds it is sent it again", MAIN,
      '    if holds_representation(request_headers, &chosen.tag) {\n',
      '    if false && holds_representation(request_headers, &chosen.tag) {\n'),
-    ("a weak tag holds it", MAIN,
-     '        .is_some_and(|candidates| candidates.split(\',\').any(|held| held.trim() == tag))\n',
-     '        .is_some_and(|candidates| {\n'
-     '            candidates.split(\',\').any(|held| held.trim().trim_start_matches("W/") == tag)\n'
-     '        })\n'),
+    ("a weak tag does not hold it", MAIN,
+     '            one.strip_prefix("W/").unwrap_or(one) == tag\n',
+     '            one == tag\n'),
+    ("`*` holds nothing", MAIN,
+     '        held.trim() == "*"\n            || held.split(\',\').any(|one| {\n',
+     '        held.split(\',\').any(|one| {\n'),
     ("only the first tag listed is read", MAIN,
-     '        .is_some_and(|candidates| candidates.split(\',\').any(|held| held.trim() == tag))\n',
-     '        .is_some_and(|candidates| candidates.split(\',\').next().is_some_and(|held| held.trim() == tag))\n'),
+     '            || held.split(\',\').any(|one| {\n',
+     '            || held.split(\',\').take(1).any(|one| {\n'),
     ("a 304 states a length", MAIN,
      '        "HTTP/1.1 304 {}\\r\\ncache-control:',
      '        "HTTP/1.1 304 {}\\r\\ncontent-length: 0\\r\\ncache-control:'),
@@ -200,8 +215,11 @@ MUTANTS = [
      '                prerender::Prerendered::of(document, format!("{build}{delivery}{policy}"))\n',
      '                prerender::Prerendered::of(document, format!("{build}{policy}"))\n'),
     ("every representation has one validator", HOST,
-     '        let tag = strong_tag(&bytes);\n',
-     '        let tag = strong_tag(b"");\n'),
+     '        let tag = strong_tag(&[bytes.as_slice(), says.as_bytes()].concat());\n',
+     '        let tag = strong_tag(says.as_bytes());\n'),
+    ("a validator does not name what the document says of itself", HOST,
+     '        let tag = strong_tag(&[bytes.as_slice(), says.as_bytes()].concat());\n',
+     '        let tag = strong_tag(&bytes);\n'),
     ("Brotli is not offered", HOST,
      '        if accepts("br") {\n',
      '        if false && accepts("br") {\n'),
@@ -218,7 +236,7 @@ MUTANTS = [
 
 
 def suite_of(path):
-    return "rule" if path in (RULE, BUILD, PLAN) else "host"
+    return "rule" if path in (RULE, BUILD, PLAN, TEMPLATE) else "host"
 
 
 # How long one run of the tests may take. Past it the run is invalid.
@@ -260,8 +278,8 @@ def main():
             report["baseline"][name] = baseline._asdict() if baseline else None
             if (not baseline or not baseline.valid or baseline.failed
                     or baseline.passed != len(suite["names"])):
-                print(f"FAIL: the unmutated baseline of {name} is not green; "
-                      "no control can mean anything")
+                print(f"the {name} suite's baseline:")
+                print("FAIL: the unmutated baseline is not green; no control can mean anything")
                 mutation_baseline.explain()
                 return 1
         for name, path, anchor, replacement in MUTANTS:

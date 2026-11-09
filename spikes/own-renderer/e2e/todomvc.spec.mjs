@@ -660,6 +660,12 @@ test("a page brought back from the back-forward cache shows what was written whi
 
 // --- One document for everyone (the prerender's ADR) -------------------------
 
+test("a visit leaves no cookie: only what the device keeps", async ({ page }) => {
+  await open(page);
+  await add(page, ONE);
+  expect(await page.context().cookies()).toEqual([]);
+});
+
 test("the page is one document, kept and asked for again, and names no session", async ({
   playwright,
   baseURL,

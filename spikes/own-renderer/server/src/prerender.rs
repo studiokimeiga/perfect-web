@@ -17,8 +17,11 @@ pub(crate) struct Representation {
 }
 
 impl Representation {
-    fn of(encoding: Option<&'static str>, bytes: Vec<u8>) -> Representation {
-        let tag = strong_tag(&bytes);
+    /// Its validator names `says`, what the document says of itself, too: a
+    /// browser told it holds a document keeps the headers it holds with it,
+    /// so a policy that changed, the page's bytes the same, is a new document.
+    fn of(encoding: Option<&'static str>, bytes: Vec<u8>, says: &str) -> Representation {
+        let tag = strong_tag(&[bytes.as_slice(), says.as_bytes()].concat());
         Representation {
             encoding,
             bytes,
@@ -40,9 +43,9 @@ impl Prerendered {
     pub(crate) fn of(document: String, headers: String) -> Result<Prerendered, String> {
         let text = document.into_bytes();
         Ok(Prerendered {
-            br: Representation::of(Some("br"), brotli_of(&text)?),
-            gzip: Representation::of(Some("gzip"), gzip_of(&text)),
-            identity: Representation::of(None, text),
+            br: Representation::of(Some("br"), brotli_of(&text)?, &headers),
+            gzip: Representation::of(Some("gzip"), gzip_of(&text), &headers),
+            identity: Representation::of(None, text, &headers),
             headers,
         })
     }

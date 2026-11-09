@@ -85,8 +85,9 @@ fn status(head: &str) -> &str {
 #[test]
 fn every_reader_is_sent_the_same_document_and_named_nothing() {
     let s = home();
+    s.identity.signed_in_for_test("reader", "ada", "Ada");
     let (first, fresh) = get(&s, "/", "");
-    let (second, returning) = get(&s, "/", "Cookie: pw-session=someone\r\n");
+    let (second, returning) = get(&s, "/", "Cookie: pw-session=reader\r\n");
     assert_eq!(status(&first), "200", "{first}");
     assert_eq!(status(&second), "200", "{second}");
     assert_eq!(fresh, returning);
@@ -260,8 +261,20 @@ fn a_browser_that_holds_a_representation_is_told_so() {
     );
     assert_eq!(status(&head), "304", "{head}");
 
-    // Another representation's tag, a weak one, and a stranger's.
-    for held in [plain.clone(), format!("W/{br}"), "\"other\"".to_string()] {
+    // RFC 9110 §13.1.2: a recipient compares weakly, so a tag an
+    // intermediary weakened still holds it; and `*` holds any.
+    for held in [format!("W/{br}"), "*".to_string()] {
+        let (head, body) = get(
+            &s,
+            "/",
+            &format!("Accept-Encoding: br\r\nIf-None-Match: {held}\r\n"),
+        );
+        assert_eq!(status(&head), "304", "{held}: {head}");
+        assert!(body.is_empty(), "{held}: {body:?}");
+    }
+
+    // Another representation's tag, and a stranger's.
+    for held in [plain.clone(), "\"other\"".to_string()] {
         let (head, body) = get(
             &s,
             "/",
@@ -270,6 +283,35 @@ fn a_browser_that_holds_a_representation_is_told_so() {
         assert_eq!(status(&head), "200", "{held}: {head}");
         assert!(!body.is_empty(), "{held}");
     }
+}
+
+/// A validator names what a document says of itself too: a deployment that
+/// changes its policy, the page's bytes the same, is a document a browser
+/// must be sent again, not told it holds (the independent review's third).
+#[test]
+fn what_it_says_of_itself_is_part_of_its_validator() {
+    let tag = |policy: &str| {
+        let document = crate::prerender::Prerendered::of(
+            "<p>the same</p>".to_string(),
+            format!("content-security-policy: {policy}\r\n"),
+        );
+        assert!(document.is_ok(), "it compresses");
+        document.unwrap().accepted(|_| false).tag.clone()
+    };
+    assert_ne!(tag("default-src 'none'"), tag("default-src 'self'"));
+}
+
+/// Its rows' tokens are the public partition's: it is every reader's.
+#[test]
+fn it_is_rendered_in_the_public_partition() {
+    let s = home();
+    let (_, sent) = get(&s, "/", "");
+    let public = s.render_page_in(HOME, &BTreeMap::new(), Partition::Public, &[]);
+    assert!(public.is_ok(), "it renders");
+    assert_eq!(
+        String::from_utf8_lossy(&sent),
+        public.map(|(document, _, _)| document).unwrap_or_default()
+    );
 }
 
 /// What every document says of itself, said once for all of them.

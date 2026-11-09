@@ -12,8 +12,9 @@
 # engines, a page the back-forward cache brings back among them; and the
 # mutation controls.
 e14-prerender:
+    @BUILD_ONLY=1 bash spikes/own-renderer/run.sh > /dev/null
     @bash spikes/own-renderer/todomvc.sh > /dev/null
-    @cargo build --quiet --locked -p pw-dev-server
+    @cargo build --quiet --locked -p pw-dev-server -p kiokun-server
     @mkdir -p docs/evidence/E14
     @{ echo "a page no reader decides is one document"; echo; \
        echo "produced by: just e14-prerender"; \

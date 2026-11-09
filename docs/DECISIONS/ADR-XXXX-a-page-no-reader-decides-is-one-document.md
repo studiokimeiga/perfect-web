@@ -35,7 +35,9 @@ were one person's.
 1. **The compiler says which pages no reader decides.** It is derived, and
    nothing declares it: a page's plan says `"prerender": true` where
    - it has a `route` (an address of its own), and no parameter, path or query;
-   - it binds no query, has no stream, and asks no predicate of its reader;
+   - it binds no query, has no stream, and asks no predicate of its reader,
+     whether the page asks it or a layout or view it shows does (PW5049 reads
+     only the page's own body);
    - its scope is `public`;
    - and **no handler on it sends a command**: in its markup, its layout's, its
      blocks' and any view it reaches.
@@ -58,8 +60,12 @@ were one person's.
    same document for everyone:
    - `cache-control: public, no-cache`: any cache may keep it, and asks before
      each use;
-   - a strong `etag` for each representation, `vary: accept-encoding`, and a 304
-     with no body for a request that holds it;
+   - a strong `etag` for each representation, which names what the document
+     says of itself too, so a policy that changed is a new document;
+     `vary: accept-encoding`; and a 304 with no body for a request that holds
+     it, compared weakly as RFC 9110 §13.1.2 requires, `*` included. That
+     comparison is shared with a build's files, and amends ADR-0398, whose
+     browser test held a weak tag to a 200;
    - Brotli at quality 11 and gzip at level 9, made once at start, identity
      where a request accepts neither;
    - its `content-security-policy`, `pw-build` and `pw-delivery`, as every
@@ -115,6 +121,28 @@ against 2,140).
 - A public page that binds a query is not prerendered: its document changes
   with its data.
 
+## An independent review, 2026-11-09
+
+A separate agent read the diff and these findings were reproduced before they
+were repaired. Each has a test that failed first and a mutation control.
+
+- **A page whose layout or view asks a predicate was marked.** The rule left
+  predicates to PW5049, which reads only the page's own body. The first version
+  of this ADR assumed otherwise, and all 32 controls then in place passed. A
+  layout's predicate was in the plan, and the rule now reads it. A view's was
+  not: it was lowered as a plain name no document holds, so its page was named
+  no question and failed where it was served (ADR-0307's case for a page, left
+  open for a view). It is now read as a layout's is, so its page's plan says
+  what it asks.
+- **`If-None-Match` compared strictly.** RFC 9110 §13.1.2 says a recipient must
+  compare weakly.
+- **A validator named only the page's bytes**, so a changed policy would have
+  been answered 304 and the old one kept.
+
+What it raised and this does not change: a page brought back from the
+back-forward cache may be of an older build, as a tab left open is; and one read
+as `stale` or `unavailable` goes back to its first value, as a reload does.
+
 ## Result
 
 To be recorded from `just e14-head-to-head` before this is accepted.
@@ -144,11 +172,14 @@ To be recorded from `just e14-head-to-head` before this is accepted.
   - A `HEAD`; a page not marked as it was; a host route keeping its place; a
     request with a session admitted and refused as every request is; a page
     that does not render stopping the host.
-- **In three engines**: `e2e/todomvc.spec.mjs` runs through this path, and two
-  tests name it: the one document, kept and asked for again, and a page brought
-  back from the back-forward cache reading what was written while it was away.
-  Playwright cannot freeze a page, so the second gives the page what a frozen
-  one is given: the write and no event, then `pageshow` with `persisted`.
+- **In three engines**: all of `e2e/todomvc.spec.mjs` runs through this path,
+  and two of its tests name what the browser does: a visit leaves no cookie,
+  and a page brought back from the back-forward cache reads what was written
+  while it was away. Playwright cannot freeze a page, so the second gives the
+  page what a frozen one is given: the write and no event, then `pageshow` with
+  `persisted`. A third, `the page is one document`, is the HTTP exchange through
+  Playwright's request client; what a real browser's cache does with it is the
+  head-to-head's repeat visit.
 - **The controls**: `scripts/prerender_mutations.py` (the mark and the host,
   strict, every kill at an assertion) and one in
   `scripts/device_store_mutations.py` (a page brought back reads nothing).

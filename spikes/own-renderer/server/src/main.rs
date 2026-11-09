@@ -12665,10 +12665,17 @@ fn respond_prerendered(
 }
 
 /// **Whether a request already holds the representation `tag` names**: its
-/// `if-none-match` lists it exactly. A weak tag conservatively misses.
+/// `if-none-match` lists it, compared weakly as RFC 9110 §13.1.2 requires (an
+/// intermediary that weakens a tag has not changed what it names), or says
+/// `*`.
 fn holds_representation(request_headers: &str, tag: &str) -> bool {
-    build_request_header(request_headers, "if-none-match")
-        .is_some_and(|candidates| candidates.split(',').any(|held| held.trim() == tag))
+    build_request_header(request_headers, "if-none-match").is_some_and(|held| {
+        held.trim() == "*"
+            || held.split(',').any(|one| {
+                let one = one.trim();
+                one.strip_prefix("W/").unwrap_or(one) == tag
+            })
+    })
 }
 
 /// **A 304** (RFC 9110 §15.4.5): what a cache needs to go on using what it
