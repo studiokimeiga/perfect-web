@@ -34,14 +34,16 @@ pub(crate) fn mark(pages: &mut [Planned], templates: &[Template], handlers: &[Co
 }
 
 /// **Whether the plan's document is the same for every reader**: it has an
-/// address of its own that gives it no value, no query or stream fills it,
-/// and it is no one's. A page that asks a predicate of its reader is held to
-/// a scope that is someone's by PW5049, so `scope` says that too.
+/// address of its own that gives it no value, no query or stream fills it, it
+/// asks its reader nothing, and it is no one's. `predicates` is read here and
+/// not left to PW5049, which reads what the page's own body asks: a layout or
+/// a view it shows asks in the same document.
 fn no_reader_decides(plan: &PageValues) -> bool {
     plan.route.is_some()
         && plan.params.is_empty()
         && plan.bindings.is_empty()
         && plan.streams.is_empty()
+        && plan.predicates.is_empty()
         && plan.scope == "public"
 }
 

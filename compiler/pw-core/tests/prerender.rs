@@ -254,6 +254,48 @@ fn a_layout_that_binds_a_query_keeps_a_page_unmarked() {
     assert!(!marked(&src), "{src}");
 }
 
+/// A stream in a layout fills the page's document as the page's own would.
+#[test]
+fn a_layout_with_a_stream_keeps_a_page_unmarked() {
+    let layout = "public query Slow() -> Result<String, String> !{}\n    \
+        delivery streamed\n    timeout  3.seconds\n{\n    Ok(\"a\")\n}\n\n\
+        layout Shell {\n    view {\n        <stream query={Slow()}>\n\
+        <placeholder><p>wait</p></placeholder>\n<ready as={said}><p>{said}</p></ready>\n\
+        <failed><p>no</p></failed>\n</stream>\n        <main><slot /></main>\n    }\n}\n\n";
+    let clauses = "    route  \"/p\"\n    layout Shell\n";
+    let src = program(layout, "page P()", clauses, "", LOCAL);
+    assert!(!marked(&src), "{src}");
+}
+
+/// What a layout or a view asks of its reader is in the page's document,
+/// though the page itself names no predicate and so says nothing of whose
+/// it is (the independent review's first finding).
+#[test]
+fn a_predicate_asked_by_a_layout_or_a_view_keeps_a_page_unmarked() {
+    // Last before the page: a predicate's clauses run on to its next word.
+    let predicate = "predicate SignedIn\n    says \"Sign in.\"\n\n";
+    let layout = format!(
+        "layout Shell {{\n    view {{\n        {{#if SignedIn}}<p>in</p>{{/if}}\n        \
+         <main><slot /></main>\n    }}\n}}\n\n{predicate}"
+    );
+    let clauses = "    route  \"/p\"\n    layout Shell\n";
+    let src = program(&layout, "page P()", clauses, "", LOCAL);
+    assert!(!marked(&src), "{src}");
+    let view =
+        format!("view Asks() !{{}} {{\n    {{#if SignedIn}}<p>in</p>{{/if}}\n}}\n\n{predicate}");
+    let src = program(&view, "page P()", ROUTE, "", "<Asks />");
+    assert!(!marked(&src), "{src}");
+    // And the plan says what it asks, so a host can answer it.
+    let build = built(&src);
+    let plan = build.pages.iter().find(|p| p.page == "t.P~ui");
+    assert_eq!(
+        plan.and_then(|p| p.plan.as_ref().ok())
+            .map(|p| p.predicates.clone()),
+        Some(vec!["SignedIn".to_string()]),
+        "{src}"
+    );
+}
+
 /// **What a host reads**: the plan's JSON says so of a page that is marked,
 /// and nothing of one that is not.
 #[test]

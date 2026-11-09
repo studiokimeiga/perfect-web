@@ -2854,7 +2854,10 @@ fn compose(
         out.push(blocked(format!("`{tag}` takes no prop `{}`", a.name)));
         return;
     }
-    let mut names = BTreeMap::new();
+    // A predicate it asks of its reader is read by the name a host answers,
+    // as a page's and a layout's is (ADR-0307): as written, no document held
+    // a value for it, and its page's plan named nothing it asked.
+    let mut names = asked_predicates(ctx.hirs, ctx.ws, ctx.sigs, def.unit);
     for p in &decl.params {
         let given = attrs
             .iter()
