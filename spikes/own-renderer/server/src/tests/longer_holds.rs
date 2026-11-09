@@ -88,6 +88,47 @@ fn a_stream_that_does_not_ask_is_not_held_long() {
     assert!(begun.elapsed() < Duration::from_secs(5));
 }
 
+/// **A host holds so many long, and any more as briefly as any page**: each
+/// is a thread, and the asking is a request's word.
+#[test]
+fn a_poll_past_the_limit_is_held_as_any_page_is() {
+    let mut s = rendering_server();
+    s.poll_hold = Duration::from_millis(100);
+    s.long_hold = Duration::from_secs(20);
+    s.long_hold_limit = 1;
+    let first = s.hold_long().expect("the first place");
+    assert!(s.hold_long().is_none(), "no second place");
+    let (document, _page, mut held) = subscribed(&s, "past");
+    let begun = Instant::now();
+    stream_frames(
+        &s,
+        &mut held,
+        "past",
+        false,
+        &format!("doc={document}&since={document}&hold=long"),
+    );
+    assert!(begun.elapsed() < Duration::from_secs(5));
+    drop(first);
+    assert!(s.hold_long().is_some(), "given back, its place is free");
+}
+
+/// **A hold gives its place back when it ends.**
+#[test]
+fn a_long_hold_gives_its_place_back() {
+    let mut s = rendering_server();
+    s.long_hold = Duration::from_millis(50);
+    s.long_hold_limit = 1;
+    let (document, _page, mut held) = subscribed(&s, "back");
+    stream_frames(
+        &s,
+        &mut held,
+        "back",
+        false,
+        &format!("doc={document}&since={document}&hold=long"),
+    );
+    assert!(s.hold_long().is_some(), "its place is free");
+}
+
 /// **A stream that asks is held long.**
 #[test]
 fn a_stream_that_asks_is_held_long() {

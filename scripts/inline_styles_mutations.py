@@ -46,17 +46,43 @@ MUTANTS = [
      "            let (document, style) = self.delivery.styles_inline(document);\n",
      "            let (document, style) = (document, None::<String>);\n"),
     ("any amount is inlined", "host", SERVER,
-     'if texts.is_empty() || sent > INLINE_AT_MOST || kept.contains("rel=\\"stylesheet\\"") {',
-     'if texts.is_empty() || kept.contains("rel=\\"stylesheet\\"") {'),
+     'if sent > INLINE_AT_MOST || kept.contains("rel=\\"stylesheet\\"") {',
+     'if kept.contains("rel=\\"stylesheet\\"") {'),
     ("the bound itself is too much", "host", SERVER,
-     'if texts.is_empty() || sent > INLINE_AT_MOST || kept.contains("rel=\\"stylesheet\\"") {',
-     'if texts.is_empty() || sent >= INLINE_AT_MOST || kept.contains("rel=\\"stylesheet\\"") {'),
+     'if sent > INLINE_AT_MOST || kept.contains("rel=\\"stylesheet\\"") {',
+     'if sent >= INLINE_AT_MOST || kept.contains("rel=\\"stylesheet\\"") {'),
     ("a page with no stylesheet is given an empty one", "host", SERVER,
-     'if texts.is_empty() || sent > INLINE_AT_MOST || kept.contains("rel=\\"stylesheet\\"") {',
-     'if sent > INLINE_AT_MOST || kept.contains("rel=\\"stylesheet\\"") {'),
+     """        let Some(first) = first else {
+            return (document, None);
+        };
+""",
+     """        let first = first.unwrap_or(0);
+"""),
     ("a link the walk did not read stays beside them", "host", SERVER,
-     'if texts.is_empty() || sent > INLINE_AT_MOST || kept.contains("rel=\\"stylesheet\\"") {',
-     "if texts.is_empty() || sent > INLINE_AT_MOST {"),
+     'if sent > INLINE_AT_MOST || kept.contains("rel=\\"stylesheet\\"") {',
+     "if sent > INLINE_AT_MOST {"),
+    ("a style between them is passed", "host", SERVER,
+     """        let passes = document[first..last_ends].contains("<style")
+            || (first > head_ends && document[head_ends..first].contains("<style"));
+""",
+     """        let passes = first > head_ends && document[head_ends..first].contains("<style");
+"""),
+    ("a head's link goes to the head's end", "host", SERVER,
+     """        let at = if first < head_ends {
+            first
+        } else {
+            kept.find("</head>").expect("the head, as above")
+        };
+""",
+     """        let at = kept.find("</head>").expect("the head, as above");
+"""),
+    ("every style in the body keeps them where they are", "host", SERVER,
+     """        let passes = document[first..last_ends].contains("<style")
+            || (first > head_ends && document[head_ends..first].contains("<style"));
+""",
+     """        let passes = document[first..last_ends].contains("<style")
+            || (first > head_ends && document[head_ends..].contains("<style"));
+"""),
     ("a stylesheet the build does not hold is lost", "host", SERVER,
      "            let Some(style) = self.styles.get(href.split('?').next().unwrap_or(href)) else {\n"
      "                return (document, None);\n"
@@ -69,14 +95,24 @@ MUTANTS = [
      "self.styles.get(href.split('?').next().unwrap_or(href))", "self.styles.get(href)"),
     ("a link that says more is read as if it did not", "host", SERVER,
      "            if !after[closes..].starts_with(END) {\n                return (document, None);\n            }\n", ""),
-    ("a style of the page's own is passed over", "host", SERVER,
-     '        if document[head_ends..].contains("<style") {\n            return (document, None);\n        }\n', ""),
+    ("a style of the page's own before them is passed over", "host", SERVER,
+     """        let passes = document[first..last_ends].contains("<style")
+            || (first > head_ends && document[head_ends..first].contains("<style"));
+""",
+     """        let passes = document[first..last_ends].contains("<style");
+"""),
     ("the order is not kept", "host", SERVER,
      '        let style = texts.join("\\n");\n',
      '        texts.reverse();\n        let style = texts.join("\\n");\n'),
     ("they stay where the links were", "host", SERVER,
-     'let inlined = kept.replacen("</head>", &format!("<style>{style}</style>\\n</head>"), 1);',
-     'let inlined = kept.replacen("<body>", &format!("<body><style>{style}</style>\\n"), 1);'),
+     """        let at = if first < head_ends {
+            first
+        } else {
+            kept.find("</head>").expect("the head, as above")
+        };
+""",
+     """        let at = first;
+"""),
     ("an import moves", "host", SERVER,
      '    !["</style", "@import", "@namespace"]\n', '    !["</style", "@namespace"]\n'),
     ("a namespace moves", "host", SERVER,

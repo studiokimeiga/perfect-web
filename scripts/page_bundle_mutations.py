@@ -36,6 +36,13 @@ BOUND = 900
 # (what, suite, file, anchor, replacement)
 MUTANTS = [
     (
+        "a bundle without a handler leaves it undefined",
+        "browser",
+        RUNTIME,
+        "    (all) => all[piece] ?? import(url),\n",
+        "    (all) => all[piece],\n",
+    ),
+    (
         "a handler inside a block is left out",
         "packaging",
         PACKAGING,
@@ -165,8 +172,8 @@ MUTANTS = [
         "a bundle that fails fails the press",
         "browser",
         RUNTIME,
-        "    (all) => all[piece],\n    () => import(url),\n",
-        "    (all) => all[piece],\n",
+        "    (all) => all[piece] ?? import(url),\n    () => import(url),\n",
+        "    (all) => all[piece] ?? import(url),\n",
     ),
     (
         "a bundle that failed is asked for again",

@@ -58,6 +58,18 @@ async function ready(page, url = "/StorePage.html") {
   await page.waitForFunction(() => document.documentElement.dataset.pwReady === "1");
 }
 
+test("a bundle that does not hold a page's handler loads that handler on its own", async ({ page }) => {
+  // A document from another build can be authorised a handler this page's
+  // bundle does not hold: the press still runs, from the handler's own module.
+  const asked = watch(page);
+  await tableNamesTheBundle(page);
+  await serves(page, "export const nothing = 1;\n");
+  await ready(page);
+  await page.locator("#menu button").first().click();
+  await expect(page.locator("#cart-count")).toHaveText("1");
+  expect(asked.filter((p) => p.startsWith("/handler/")).length > 0).toBe(true);
+});
+
 test("a page whose build bundles its code asks for one module, and its first press runs from it", async ({ page }) => {
   const asked = watch(page);
   await tableNamesTheBundle(page);

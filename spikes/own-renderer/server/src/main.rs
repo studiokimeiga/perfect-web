@@ -1102,6 +1102,9 @@ struct Server {
     stream_hold: std::time::Duration,
     poll_hold: std::time::Duration,
     long_hold: std::time::Duration,
+    /// How many subscriptions may be held long at once, and how many are.
+    long_hold_limit: usize,
+    long_holds: std::sync::atomic::AtomicUsize,
     /// How often a held subscription tries again a regeneration that failed
     /// (ADR-0176), as a page's next request would have.
     retried_every: std::time::Duration,
@@ -2177,6 +2180,8 @@ impl Server {
             stream_hold: STREAM_HOLD,
             poll_hold: POLL_HOLD,
             long_hold: HOLD,
+            long_hold_limit: LONG_HOLDS,
+            long_holds: std::sync::atomic::AtomicUsize::new(0),
             retried_every: STREAM_HOLD,
             dist,
             artifacts,
@@ -5924,6 +5929,16 @@ impl Server {
         if failed {
             self.drain(session);
         }
+    }
+
+    /// A place among the subscriptions held long, while there is one.
+    fn hold_long(&self) -> Option<HeldLong<'_>> {
+        use std::sync::atomic::Ordering::SeqCst;
+        if self.long_holds.fetch_add(1, SeqCst) >= self.long_hold_limit {
+            self.long_holds.fetch_sub(1, SeqCst);
+            return None;
+        }
+        Some(HeldLong(&self.long_holds))
     }
 
     /// [`Server::drain`], by a caller that holds the session's lock.
@@ -12056,6 +12071,20 @@ fn stream_held(
 /// quiet connection.
 const HOLD: std::time::Duration = std::time::Duration::from_secs(25);
 
+/// **How many subscriptions a host holds long at once** (the longer-holds
+/// ADR). Each is a thread, and a request asks for it by what it says: past
+/// this, a page is held as briefly as one that did not ask.
+const LONG_HOLDS: usize = 2048;
+
+/// One subscription held long, given back when it ends.
+struct HeldLong<'a>(&'a std::sync::atomic::AtomicUsize);
+
+impl Drop for HeldLong<'_> {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+
 /// **How long a subscription is held otherwise**: a stream two seconds, a
 /// long poll one. A browser opens six connections to an HTTP/1.1 origin, so a
 /// page that has not been given the long hold keeps a connection only
@@ -12117,7 +12146,12 @@ fn stream_frames(server: &Server, stream: &mut Conn, session: &str, fresh: bool,
 
     // One route, two adapters. The frames are the same either way — see
     // `e2e/transport.spec.mjs`, which runs the whole subscription twice.
-    let long = _query.split('&').any(|p| p == "hold=long");
+    let held_long = _query
+        .split('&')
+        .any(|p| p == "hold=long")
+        .then(|| server.hold_long())
+        .flatten();
+    let long = held_long.is_some();
     if _query.split('&').any(|p| p == "mode=stream") {
         let hold = if long { server.long_hold } else { server.stream_hold };
         stream_held(server, stream, session, fresh, document, since, hold);
@@ -13706,15 +13740,13 @@ impl Delivery {
         let Some(head_ends) = document.find("</head>") else {
             return (document, None);
         };
-        // They move to the head: a style of the page's own after it would
-        // change places with them.
-        if document[head_ends..].contains("<style") {
-            return (document, None);
-        }
         let mut rest = document.as_str();
         let mut kept = String::with_capacity(document.len());
         let mut texts = Vec::new();
         let mut sent = 0;
+        // Where the first of them was, and where the last of them ended.
+        let mut first = None;
+        let mut last_ends = 0;
         while let Some(at) = rest.find(START) {
             let after = &rest[at + START.len()..];
             let Some(closes) = after.find('"') else {
@@ -13729,17 +13761,38 @@ impl Delivery {
             };
             texts.push(style.text.as_str());
             sent += style.sent;
+            first.get_or_insert(document.len() - rest.len() + at);
             kept.push_str(&rest[..at]);
             rest = &after[closes + END.len()..];
+            last_ends = document.len() - rest.len();
         }
         kept.push_str(rest);
+        let Some(first) = first else {
+            return (document, None);
+        };
         // A link the walk above did not read says more than its address.
-        if texts.is_empty() || sent > INLINE_AT_MOST || kept.contains("rel=\"stylesheet\"") {
+        if sent > INLINE_AT_MOST || kept.contains("rel=\"stylesheet\"") {
+            return (document, None);
+        }
+        // Where they go must not pass a style of the page's own: one between
+        // them, or, where they are in the body and go up to the head, one in
+        // the body before them.
+        let passes = document[first..last_ends].contains("<style")
+            || (first > head_ends && document[head_ends..first].contains("<style"));
+        if passes {
             return (document, None);
         }
         let style = texts.join("\n");
-        let inlined = kept.replacen("</head>", &format!("<style>{style}</style>\n</head>"), 1);
-        (inlined, Some(style))
+        let element = format!("<style>{style}</style>\n");
+        // A head's link keeps its place among the head's styles. A style
+        // element is metadata, so one from the body goes to the head's end.
+        let at = if first < head_ends {
+            first
+        } else {
+            kept.find("</head>").expect("the head, as above")
+        };
+        kept.insert_str(at, &element);
+        (kept, Some(style))
     }
 
     /// Whether a request's query names this delivery: `b=` its id.

@@ -152,6 +152,41 @@ fn a_link_that_says_more_than_its_address_keeps_them_all() {
 }
 
 #[test]
+fn a_link_in_the_head_keeps_its_place_among_the_heads_styles() {
+    let (_dir, delivery) = delivery(true, &[("a.css", "a{}", 100)]);
+    let document = at_version(
+        &delivery,
+        &format!("<head>\n<title>t</title>\n{LINK_A}<style>own{{}}</style>\n</head>\n<body></body>"),
+    );
+    let (inlined, style) = delivery.styles_inline(document);
+    assert_eq!(style.as_deref(), Some("a{}"));
+    assert!(
+        inlined.contains("<style>a{}</style>\n<style>own{}</style>\n</head>"),
+        "{inlined}"
+    );
+}
+
+#[test]
+fn a_style_between_two_links_keeps_them_all() {
+    let (_dir, delivery) = delivery(true, &[("a.css", "a{}", 100), ("b.css", "b{}", 100)]);
+    let document = at_version(
+        &delivery,
+        &format!("<head>\n{LINK_A}<style>own{{}}</style>{LINK_B}\n</head>\n<body></body>"),
+    );
+    assert_eq!(delivery.styles_inline(document.clone()), (document, None));
+}
+
+#[test]
+fn a_style_of_the_pages_own_after_them_keeps_its_place() {
+    let (_dir, delivery) = delivery(true, &[("a.css", "a{}", 100)]);
+    let own = "<style>p{}</style>";
+    let document = at_version(&delivery, &page(&format!("{LINK_A}{own}")));
+    let (inlined, style) = delivery.styles_inline(document);
+    assert_eq!(style.as_deref(), Some("a{}"));
+    assert!(inlined.contains(&format!("<style>a{{}}</style>\n</head>\n<body>\n{own}")), "{inlined}");
+}
+
+#[test]
 fn a_link_written_another_way_keeps_them_all() {
     let (_dir, delivery) = delivery(true, &[("a.css", "a{}", 100)]);
     let other = "<link href=\"/a.css?b=V\" rel=\"stylesheet\">";

@@ -473,6 +473,10 @@ test("Load more shows the next page, and a post after it is shown over it", asyn
   browser,
   page,
 }, testInfo) => {
+  // Playwright's WebKit holds a response back until it ends once a test
+  // routes anything, so a subscription held long shows nothing for 25 s:
+  // this page, which routes a command below, is held as briefly as any.
+  await page.addInitScript(() => Object.defineProperty(navigator, "locks", { value: undefined }));
   // Twenty-five posts by another session, through the command route as a
   // page sends them.
   const other = await browser.newContext();

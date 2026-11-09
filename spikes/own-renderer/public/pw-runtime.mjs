@@ -425,7 +425,9 @@ function pageBundle() {
 function pageCode(piece, url, attempt) {
   if (attempt > 0 || !usesBundle()) return import(url);
   return pageBundle().then(
-    (all) => all[piece],
+    // A page's bundle is of the build that answered. A document from another
+    // build can be authorised a handler this page's bundle does not hold.
+    (all) => all[piece] ?? import(url),
     () => import(url),
   );
 }
