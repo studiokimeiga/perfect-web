@@ -124,6 +124,8 @@ fn an_address_that_means_the_same_from_the_document_can_move() {
         "a{background:url(\"https://x/i.png\")}",
         "a{background:url(http://x/i.png)}",
         "a{background:url(/i.png)}",
+        "a{background:url( /i.png)}",
+        "a{background:url( 'https://x/i.png' )}",
         "a{background:url(//x/i.png)}",
         "a{fill:url(#g)}",
     ] {
@@ -146,6 +148,14 @@ fn a_link_that_says_more_than_its_address_keeps_them_all() {
     let (_dir, delivery) = delivery(true, &[("a.css", "a{}", 100)]);
     let print = "<link rel=\"stylesheet\" href=\"/a.css?b=V\" media=\"print\">";
     let document = at_version(&delivery, &page(&format!("{LINK_A}{print}")));
+    assert_eq!(delivery.styles_inline(document.clone()), (document, None));
+}
+
+#[test]
+fn a_link_written_another_way_keeps_them_all() {
+    let (_dir, delivery) = delivery(true, &[("a.css", "a{}", 100)]);
+    let other = "<link href=\"/a.css?b=V\" rel=\"stylesheet\">";
+    let document = at_version(&delivery, &page(&format!("{LINK_A}{other}")));
     assert_eq!(delivery.styles_inline(document.clone()), (document, None));
 }
 
