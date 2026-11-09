@@ -11876,6 +11876,27 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
     }
 }
 
+/// [`stream_held`], as long as a page that has not asked to be held long.
+#[cfg(test)]
+fn stream_open(
+    server: &Server,
+    stream: &mut Conn,
+    session: &str,
+    fresh: bool,
+    document: u64,
+    since: u64,
+) {
+    stream_held(
+        server,
+        stream,
+        session,
+        fresh,
+        document,
+        since,
+        server.stream_hold,
+    );
+}
+
 /// Long-poll: hand over whatever frames are waiting, or wait briefly for one.
 ///
 /// The transport, and only the transport. `pw-protocol` names none of this, so
@@ -11899,26 +11920,8 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
 /// oldest streaming mechanism HTTP has and needs no chunked framing to be
 /// written by hand — which matters here, because a bug in hand-rolled chunked
 /// encoding would look exactly like a transport that drops frames.
-fn stream_open(
-    server: &Server,
-    stream: &mut Conn,
-    session: &str,
-    fresh: bool,
-    document: u64,
-    since: u64,
-) {
-    stream_held(
-        server,
-        stream,
-        session,
-        fresh,
-        document,
-        since,
-        server.stream_hold,
-    );
-}
-
-/// [`stream_open`], held `hold` when nothing happens.
+///
+/// Held `hold` when nothing happens.
 fn stream_held(
     server: &Server,
     stream: &mut Conn,
