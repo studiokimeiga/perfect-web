@@ -126,7 +126,27 @@ press had given up was published. All are repaired.
 
 ## Result
 
-To be recorded from `just e14-head-to-head` before this is accepted.
+`just e14-head-to-head` at `7f328c3d`, on the PC, which holds the prerender and
+the decision's shrinking as well (`docs/evidence/E14/head-to-head.txt`), against
+the record at `58b0b2ca`. First load, bytes received in Chromium, cold:
+
+| | `58b0b2ca` | now | the others |
+| --- | --- | --- | --- |
+| TodoMVC | 141,362 | **45,913** | React 70,085, Svelte 20,821 |
+| the store | 44,540 | **35,592** | Next.js 140,209, SvelteKit 34,998 |
+
+TodoMVC is smaller than React's, where it was twice the size, and the store is
+within 600 bytes of SvelteKit's, its Brotli size now below it. The renderer's
+part of that, in bytes: 77,240 as sent, against 4,087 added to the runtime.
+
+Time to interactive, TodoMVC, median ms, against the run before this change:
+
+| | Chromium | Firefox | WebKit |
+| --- | --- | --- | --- |
+| cold | 32 to **25** | 55 to **43** | 52 to **45** |
+| warm | 14 to **9** | 39 to **34** | 24 to **15** |
+
+A page has no module to fetch, compile and instantiate before it can render.
 
 ## Consequences
 
