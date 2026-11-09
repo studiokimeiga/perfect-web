@@ -56,6 +56,7 @@ page Events() {
             <button id="rename" type="button" on:press={() => items = renamed(items, 2)}>Rename</button>
             <input id="name" aria-label="Name" bind:value={typed_name} />
             <button id="rename-to" type="button" on:press={() => items = named(items, 2, typed_name)}>Rename to</button>
+            <button id="rename-cr" type="button" on:press={() => items = named(items, 2, "x\r\ny\rz")}>Rename with returns</button>
             <button id="reverse-rename" type="button" on:press={() => items = List.reverse(renamed(items, 1))}>Reverse and rename</button>
             <button id="prepend" type="button" on:press={() => items = List.concat([Item { id: 10, name: "ten" }, Item { id: 11, name: "eleven" }], items)}>Prepend</button>
             <button id="both-ends" type="button" on:press={() => items = List.concat([Item { id: 20, name: "twenty" }], List.concat(items, [Item { id: 21, name: "twenty-one" }]))}>Both ends</button>
@@ -65,7 +66,7 @@ page Events() {
             <ul id="items">
                 {#if List.length(items) > 0}
                     {#each items as item (item.id)}
-                        <li><span class="name">{item.name}</span> <span class="note">{note}</span></li>
+                        <li><span class="name">{item.name}</span> <span class="note">{note}</span> <input class="field" aria-label="Field" value={item.name} /></li>
                     {/each}
                 {/if}
             </ul>

@@ -32,7 +32,7 @@ const PW_SERVER = true;
  * ADR), which the packaging reads from their templates, and what none of them
  * uses falls away with these: a value in a URL or a style, a `{#match}`, a view
  * used inside another, a `<dialog>`, a value the device keeps, a signal bound to
- * the address's fragment, an `autofocus`. */
+ * the address's fragment, an `autofocus`, a list whose rows a plan can make. */
 const PW_LINKS = true;
 const PW_MATCH = true;
 const PW_VIEWS = true;
@@ -40,6 +40,7 @@ const PW_DIALOGS = true;
 const PW_KEPT = true;
 const PW_FRAGMENT = true;
 const PW_AUTOFOCUS = true;
+const PW_PLANS = true;
 
 /**
  * **This document's life** (the soft navigation's ADR). Every listener the
@@ -1653,7 +1654,7 @@ const renderer = (() => {
         v.part === "interpolated_attribute" ||
         v.part === "boolean_attribute" ||
         v.part === "event";
-      plannable.set(p, DELEGATED_ROWS && p.body.every((c) => c.chunk === "static" || hole(c.value)));
+      plannable.set(p, PW_PLANS && DELEGATED_ROWS && p.body.every((c) => c.chunk === "static" || hole(c.value)));
     }
     return plannable.get(p);
   }
@@ -2888,7 +2889,7 @@ function morphBlock(id, html) {
     rewritten = true;
     // A list the block did not hold before is put in by its plan, once the
     // block around it is: no row of it is parsed.
-    const later = html.lists.filter((list) => list.rows.length > 0 && list.of && planOf(list.of) && !before?.lists.some((b) => b.part === list.part));
+    const later = !PW_PLANS ? [] : html.lists.filter((list) => list.rows.length > 0 && list.of && planOf(list.of) && !before?.lists.some((b) => b.part === list.part));
     morphChildren(parent, between(r.start, r.end), parseInstance(textOfBlock(html, later)), r.end.nextSibling, inserted);
     for (const list of later) {
       const range = rangeOf(r, list.part);
@@ -3134,14 +3135,10 @@ function holeSet(kind, node, piece, was) {
   if (then && then[0] !== now?.[0]) node.removeAttribute(then[0]);
   if (now) node.setAttribute(now[0], now[1]);
   if (was === null) return true;
-  // A control's state follows the rendering where it changed it, as a
-  // morph's does.
-  const named = (name) => (now?.[0] === name ? now[1] : null);
-  if ((then?.[0] === "checked" || now?.[0] === "checked") && typeof node.checked === "boolean") {
-    node.checked = named("checked") !== null;
-  }
+  // A field's value follows the rendering where it changed it, as a morph's
+  // does. A box's is the block's own pass over its boxes (`rowsMade`).
   if ((then?.[0] === "value" || now?.[0] === "value") && "value" in node && node.tagName !== "TEXTAREA") {
-    node.value = named("value") ?? "";
+    node.value = now?.[0] === "value" ? now[1] : "";
   }
   return true;
 }
@@ -3184,7 +3181,7 @@ function rowsChanged(changed, plan, inserted) {
  * touched, where the document does not hold what `was` says. */
 function listMade(was, now, inserted, range = index.get(addressOf([], now.part))) {
   if (!range?.end?.isConnected) return false;
-  const plan = now.of ? planOf(now.of) : null;
+  const plan = PW_PLANS && now.of ? planOf(now.of) : null;
   let shown = was.nodes;
   if (!shown) {
     shown = rowsShown(now.part, range);
@@ -3200,7 +3197,8 @@ function listMade(was, now, inserted, range = index.get(addressOf([], now.part))
     for (let i = 0; i < b.length; i++) {
       if (a[i] !== b[i] && a[i].text !== b[i].text) changed.push([shown.get(b[i].key), b[i], a[i]]);
     }
-    rowsChanged(changed, plan, inserted);
+    if (PW_PLANS) rowsChanged(changed, plan, inserted);
+    else rowsMorphed(changed, inserted);
     return true;
   }
   const places = placesOf(a, b);
@@ -3220,13 +3218,14 @@ function listMade(was, now, inserted, range = index.get(addressOf([], now.part))
     const old = places[i] < 0 ? null : a[places[i]];
     if (old && old !== row && old.text !== row.text) changed.push([shown.get(row.key), row, old]);
   });
-  rowsChanged(changed, plan, inserted);
+  if (PW_PLANS) rowsChanged(changed, plan, inserted);
+  else rowsMorphed(changed, inserted);
   const parent = range.end.parentNode;
   const fresh = b.filter((_, i) => places[i] < 0);
   const content =
     fresh.length === 0
       ? null
-      : (plan && fresh.every((row) => row.holes) && rowsPlanned(fresh, plan, shown, inserted)) || rowsParsed(fresh, shown, inserted);
+      : (PW_PLANS && plan && fresh.every((row) => row.holes) && rowsPlanned(fresh, plan, shown, inserted)) || rowsParsed(fresh, shown, inserted);
   // The new rows side by side go in together, as one parsed fragment.
   const first = places.indexOf(-1);
   const together = fresh.length > 0 && places.lastIndexOf(-1) - first + 1 === fresh.length;

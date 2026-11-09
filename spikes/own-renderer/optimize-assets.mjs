@@ -46,6 +46,14 @@ async function packDeviceRuntime(directory, source) {
   await writeFile(file + ".gz", gzipSync(Buffer.from(code), { level: 9, mtime: 0 }));
 }
 
+/** A part a row's plan sets in place, as the runtime's `planned` reads it. */
+const HOLES = (v) =>
+  (v.part === "text" && v.context === "text") ||
+  (v.part === "attribute" && v.context !== "content") ||
+  v.part === "interpolated_attribute" ||
+  v.part === "boolean_attribute" ||
+  v.part === "event";
+
 /** What a template's parts need of the runtime. */
 function featuresIn(chunks, templates, out, seen) {
   for (const chunk of chunks) {
@@ -58,6 +66,7 @@ function featuresIn(chunks, templates, out, seen) {
     if (part.part === "match") out.PW_MATCH = true;
     if (part.context === "url" || part.context === "style") out.PW_LINKS = true;
     if (part.name === "autofocus") out.PW_AUTOFOCUS = true;
+    if (part.part === "each" && part.key != null && part.body.every((c) => c.chunk === "static" || HOLES(c.value))) out.PW_PLANS = true;
     if (part.part === "instance") {
       out.PW_VIEWS = true;
       if (!seen.has(part.path)) {
@@ -80,12 +89,12 @@ function featuresIn(chunks, templates, out, seen) {
  * that cannot be read keeps everything.
  */
 async function deviceFeatures(directory) {
-  const everything = { PW_LINKS: true, PW_MATCH: true, PW_VIEWS: true, PW_DIALOGS: true, PW_KEPT: true, PW_FRAGMENT: true, PW_AUTOFOCUS: true };
+  const everything = { PW_LINKS: true, PW_MATCH: true, PW_VIEWS: true, PW_DIALOGS: true, PW_KEPT: true, PW_FRAGMENT: true, PW_AUTOFOCUS: true, PW_PLANS: true };
   const base = path.join(directory, "build");
   const text = await readIfThere(path.join(base, "templates.json"));
   if (text === null) return everything;
   const templates = JSON.parse(text);
-  const out = { PW_LINKS: false, PW_MATCH: false, PW_VIEWS: false, PW_DIALOGS: false, PW_KEPT: false, PW_FRAGMENT: false, PW_AUTOFOCUS: false };
+  const out = { PW_LINKS: false, PW_MATCH: false, PW_VIEWS: false, PW_DIALOGS: false, PW_KEPT: false, PW_FRAGMENT: false, PW_AUTOFOCUS: false, PW_PLANS: false };
   for (const name of await readdir(path.join(base, "pages")).catch(() => [])) {
     if (!name.endsWith(".json")) continue;
     const plan = JSON.parse(await readFile(path.join(base, "pages", name), "utf8"));

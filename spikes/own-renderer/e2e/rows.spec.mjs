@@ -258,6 +258,27 @@ test("a press writes the text of the rows it changed and indexes nothing inside 
   expect(indexed < 100).toBe(true);
 });
 
+test("a row a plan made reads a return as a line, as the parser would", async ({ page }) => {
+  await listRendered(page);
+  await page.click("#rename-cr");
+  await expect(page.locator("#items .name").nth(1)).toHaveText("x\ny\nz");
+  const html = await page.locator("#items li").nth(1).evaluate((li) => li.innerHTML);
+  const parsed = await page.evaluate((html) => {
+    const t = document.createElement("template");
+    t.innerHTML = `<ul><li>${html}</li></ul>`;
+    return t.content.querySelector("li").innerHTML;
+  }, html);
+  expect(parsed).toBe(html);
+});
+
+test("a field a person typed in shows its row's value when that changes", async ({ page }) => {
+  await listRendered(page);
+  await page.locator("#items .field").nth(1).fill("typed");
+  await page.click("#rename");
+  await expect(page.locator("#items .name").nth(1)).toHaveText("renamed");
+  await expect(page.locator("#items .field").nth(1)).toHaveValue("renamed");
+});
+
 test("a row whose value changed is written again", async ({ page }) => {
   await open(page, "/events");
   await page.click("#rename");

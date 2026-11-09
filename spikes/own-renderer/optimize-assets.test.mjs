@@ -347,6 +347,7 @@ const WORDS = {
   PW_KEPT: "localStorage",
   PW_FRAGMENT: "hashchange",
   PW_AUTOFOCUS: "[autofocus]",
+  PW_PLANS: "data-pwh",
 };
 const USING = {
   PW_LINKS: [dynamic({ part: "attribute", context: "url", name: "href", value: "v" })],
@@ -354,6 +355,7 @@ const USING = {
   PW_VIEWS: [dynamic({ part: "instance", path: "q", args: [] })],
   PW_DIALOGS: [{ chunk: "static", value: "<dialog id=d>" }],
   PW_AUTOFOCUS: [{ chunk: "static", value: "<input autofocus>" }],
+  PW_PLANS: [dynamic({ part: "each", collection: "c", binding: "b", key: "id", body: [{ chunk: "static", value: "<li>" }, dynamic({ part: "text", context: "text", value: "b.name" })] })],
 };
 /** What a page's plan says of what it needs, as its template does not. */
 const PLANS = {
@@ -375,6 +377,13 @@ test("the device's runtime holds what its pages use, and none of what they do no
       if (other !== flag) assert.ok(!runtime.includes(word), `${flag} alone keeps no ${other}`);
     }
   }
+});
+
+test("a list whose rows change shape has no plan", async () => {
+  const shaped = [dynamic({ part: "each", collection: "c", binding: "b", key: "id", body: [dynamic({ part: "conditional", value: "b.on", then: [], otherwise: [] })] })];
+  assert.ok(!(await deviceRuntimeOf(shaped)).includes(WORDS.PW_PLANS));
+  const unkeyed = [dynamic({ part: "each", collection: "c", binding: "b", key: null, body: [{ chunk: "static", value: "<li>" }] })];
+  assert.ok(!(await deviceRuntimeOf(unkeyed)).includes(WORDS.PW_PLANS));
 });
 
 test("an autofocus a value decides counts", async () => {
