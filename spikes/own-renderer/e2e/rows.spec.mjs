@@ -149,7 +149,8 @@ test("a press that changes a row parses no row: its plan sets what changed", asy
   await open(page);
   await page.evaluate(() => (window.__parsed = []));
   await created(page);
-  expect(await page.evaluate(() => window.__parsed.join("").includes("<tr"))).toBe(false);
+  // A thousand rows, and one parsed: the plan's.
+  expect(await page.evaluate(() => (window.__parsed.join("").match(/<tr/g) ?? []).length)).toBe(1);
   await page.evaluate(() => (window.__parsed = []));
   await page.locator("#tbody tr").nth(4).locator(".select").click();
   await expect(page.locator("#tbody tr").nth(4)).toHaveClass("danger");
