@@ -58,6 +58,17 @@ test("the second tab of an origin on HTTP/1.1 is not, until the first closes", a
   await handed;
 });
 
+test("a tab that leaves for the back-forward cache lets the next one hold long", async ({ page, context }) => {
+  const held = page.waitForRequest(asksLong);
+  await ready(page);
+  await held;
+  const second = await context.newPage();
+  await ready(second);
+  const handed = second.waitForRequest(asksLong);
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: true })));
+  await handed;
+});
+
 test("on HTTP/2 every tab is held long", async ({ page, context }) => {
   await context.addInitScript(() => {
     const real = performance.getEntriesByType.bind(performance);

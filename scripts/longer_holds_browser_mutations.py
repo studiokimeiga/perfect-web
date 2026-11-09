@@ -26,7 +26,7 @@ BOUND = 900
 
 ASK = "  askToHoldLong();\n"
 PROTOCOL = "  if (/^h[23]/.test(protocol)) {\n"
-REQUEST = '    ?.request("pw-subscription", { signal: life.signal }, () => {\n'
+REQUEST = '    .request("pw-subscription", { signal: asked.signal }, () => {\n'
 
 # (what, file, anchor, replacement)
 MUTANTS = [
@@ -35,7 +35,9 @@ MUTANTS = [
     ("no tab is held long", RUNTIME, ASK, ""),
     ("HTTP/2 is not recognised", RUNTIME, PROTOCOL, "  if (false) {\n"),
     ("the long hold is not handed on", RUNTIME, REQUEST,
-     '    ?.request("pw-subscription", { ifAvailable: true }, (lock) => {\n      if (!lock) return;\n'),
+     '    .request("pw-subscription", { ifAvailable: true }, (lock) => {\n      if (!lock) return;\n'),
+    ("a tab that leaves keeps the long hold", RUNTIME,
+     '  addEventListener("pagehide", letHoldGo, { once: true, signal: life.signal });\n', ""),
     ("a stream does not say so", RUNTIME,
      "&since=${cursor}&mode=stream${holdLong}`", "&since=${cursor}&mode=stream`"),
     ("a long poll does not say so", RUNTIME,

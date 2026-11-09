@@ -4474,21 +4474,35 @@ addEventListener(
  * happens (the longer-holds ADR); empty otherwise. */
 let holdLong = "";
 
+/** Lets the long hold go, where this page holds it or is waiting for it. */
+let letHoldGo = null;
+
 /** **Whether a page's subscription may be held long.** A browser opens six
  * connections to an HTTP/1.1 origin, so a page that held one until something
  * happened would, with six tabs open, leave a press none. On HTTP/2 or later
  * every request shares one connection, and each page may; on HTTP/1.1 one tab
- * of the origin may, and the next takes over when it closes. */
+ * of the origin may, and the next takes over when it closes or leaves. A page
+ * kept in the back-forward cache holds nothing while it is gone, and asks again
+ * when it is shown. */
 function askToHoldLong() {
   const protocol = performance.getEntriesByType("navigation")[0]?.nextHopProtocol ?? "";
   if (/^h[23]/.test(protocol)) {
     holdLong = "&hold=long";
     return;
   }
+  if (letHoldGo || !navigator.locks) return;
+  const asked = new AbortController();
+  letHoldGo = () => {
+    asked.abort();
+    letHoldGo = null;
+    holdLong = "";
+  };
+  addEventListener("pagehide", letHoldGo, { once: true, signal: life.signal });
+  life.signal.addEventListener("abort", letHoldGo, { once: true });
   navigator.locks
-    ?.request("pw-subscription", { signal: life.signal }, () => {
+    .request("pw-subscription", { signal: asked.signal }, () => {
       holdLong = "&hold=long";
-      return new Promise((resolve) => life.signal.addEventListener("abort", resolve, { once: true }));
+      return new Promise((resolve) => asked.signal.addEventListener("abort", resolve, { once: true }));
     })
     .catch(() => {});
 }
