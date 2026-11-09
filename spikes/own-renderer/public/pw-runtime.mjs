@@ -445,12 +445,37 @@ function attempted(path, attempt) {
   return attempt === 0 ? at : `${at}${at.includes("?") ? "&" : "?"}attempt=${attempt}`;
 }
 
+/** **The decision of a page that talks to no server** (the device runtime's
+ * ADR): each handler's identity is one this build compiled, with the captures
+ * it reads, on a document of this page's schema and scope, from this build.
+ * The rest of `pw-resume`'s decision is about a reader's data, and such a page
+ * has none. Fails closed as that does: a table that cannot be read knows no
+ * handler, and each is refused. */
+function deviceDecision(table) {
+  const lines = table.split("\n");
+  servedBuild = lines.find((l) => l.startsWith("#build|"))?.slice("#build|".length) ?? "";
+  buildWarms = lines.includes("#warm|1");
+  pageBundleAt = lines.find((l) => l.startsWith(`#bundle|${PAGE}|`))?.split("|")[2] ?? null;
+  const [, , schema, scope] = lines.find((l) => l.startsWith(`#page|${PAGE}|`))?.split("|") ?? [];
+  const known = new Map(lines.filter((l) => l && !l.startsWith("#")).map((l) => l.split("|")));
+  decide = (manifest) => {
+    const [, , build, handler, capture, document, itsScope] = manifest.split("|");
+    const attach =
+      build === servedBuild && known.get(handler) === capture && document === schema && itsScope === scope;
+    return { attach, recovery: "reload", code: attach ? 0 : 4 };
+  };
+}
+
 async function bootDecision() {
   // The decision and the table together, each answered by the head's
   // preload (ADR-0399).
   const tableText = fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : ""));
   // A failed decision fails the boot; the table's rejection is not unheard.
   tableText.catch(() => {});
+  if (!PW_SERVER) {
+    deviceDecision(await tableText);
+    return;
+  }
   const { instance } = await WebAssembly.instantiateStreaming(fetch(delivered("/pw-resume.wasm")), {});
   const { memory, alloc, decide_manifest, last_recovery, know, know_document } =
     instance.exports;
