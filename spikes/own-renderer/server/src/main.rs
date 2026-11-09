@@ -5913,9 +5913,9 @@ impl Server {
     }
 
     /// **A regeneration that failed, tried again within a held subscription**
-    /// (ADR-0176, the longer-holds ADR), as often as a page that is not held
-    /// long would have asked. Until that hold was long, a page's next request
-    /// was at most two seconds away.
+    /// (ADR-0176, the longer-holds ADR), about as often as a page that is not
+    /// held long would have asked: at the first look two seconds after the
+    /// last, and a subscription held long looks once a second.
     fn try_again_within(&self, session: &str, tried: &mut std::time::Instant) {
         if tried.elapsed() < self.retried_every {
             return;

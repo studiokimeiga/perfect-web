@@ -1,0 +1,34 @@
+// @corpus: fixture
+// @id: DEMO-nested
+// @category: UI state — a block a signal decides, inside another
+// @charter: §9.1
+// @milestone: E14
+//
+// A block a signal decides renders itself: when `flag` changes, the block
+// around it does not render. So what the inner block last rendered can be
+// older than what it shows, once the outer block has taken it away and shown
+// it again. A page no reader decides, so a production build runs it on the
+// device's runtime.
+
+module demo.nested
+
+page NestedPage() {
+    route     "/nested"
+    placement origin
+
+    signal outer: Bool = true
+    signal flag: Bool = true
+
+    view {
+        <title>Nested blocks</title>
+        <main>
+            <button id="outer" type="button" on:press={() => outer = !outer}>Outer</button>
+            <button id="flag" type="button" on:press={() => flag = !flag}>Flag</button>
+            <button id="both" type="button" on:press={() => {
+                outer = !outer
+                flag = !flag
+            }}>Both</button>
+            <p id="shown">{#if outer}{#if flag}<b>on</b>{:else}<i>off</i>{/if}{/if}</p>
+        </main>
+    }
+}

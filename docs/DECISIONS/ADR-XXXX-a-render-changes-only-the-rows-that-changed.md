@@ -16,14 +16,18 @@ not: a press on a list of a hundred rows parsed a hundred rows to change one.
 
 Svelte's compiled code writes the one row's class. Pleris's page already knows
 more than a morph uses: the row keys are in the text, and on a page that talks
-to no server, nothing writes a block but its own renders.
+to no server, nothing writes a block but its own renders and the blocks around
+it.
 
 ## Decision
 
-1. **What each block last rendered is kept** on such a page. Before anything is
-   parsed the new text is compared with it, row by row, by the anchors each row
-   already has. `rowsChanged` says which rows differ, or `null` where anything
-   else does: a row added, gone or moved, or a change between the rows.
+1. **What each block last rendered is kept** on such a page, by the anchor that
+   opens the block. Before anything is parsed the new text is compared with it,
+   row by row, by the anchors each row already has. `rowsChanged` says which
+   rows differ, or `null` where anything else does: a row added, gone or moved,
+   or a change between the rows. A block taken away and shown again by the block
+   around it has a new anchor, and so nothing kept, whatever its signals did
+   while it was gone: its next render morphs the whole of it.
 2. **Only those rows are parsed and morphed** (`morphRows`), where the document
    holds each of them. Otherwise the whole block is morphed, as before, and so
    is the first render of a block, whose text no render has kept.
@@ -52,14 +56,19 @@ render, so what it last rendered says nothing about what it shows.
 Locally on TodoMVC with 4x CPU throttling, the work a toggle does falls from
 5.75 ms to 3.79 ms. `e2e/device-runtime.spec.mjs` holds that a press parses the
 one row it changed, and the mutation controls in
-`scripts/device_runtime_mutations.py` remove each piece. The head-to-head's
-figures go here when it has run at this branch's commit.
+`scripts/device_runtime_mutations.py` remove each piece. An independent review
+of this branch found what is kept could outlive what it described: a block
+inside another, its signal changed while the outer block had taken it away,
+then rendered the old text, matched what was kept and was never updated.
+`e2e/nested-blocks.spec.mjs` holds that. The head-to-head's figures go here when
+it has run at this branch's commit.
 
 ## Consequences
 
 - A device page keeps one string per block, the size of what the block shows.
 - `rowsOfText` reads anchors out of text the renderer wrote. Those anchors are
   held to the server's renderer by `renderer-agreement.test.mjs`.
-- Nothing else can write a block on such a page. A feature that does has to
-  clear what is kept for it, or this comparison answers for a page it no longer
-  describes.
+- While its anchor stands, nothing but a block's own renders changes what it
+  shows; a block around it renders it the same. A feature that writes a block
+  any other way has to clear what is kept for it, or this comparison answers
+  for a page it no longer describes.

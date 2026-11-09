@@ -2682,12 +2682,13 @@ function morphChildren(parent, olds, freshes, before, inserted) {
  * where the new rendering has it, and the nodes it inserted. */
 function morphBlock(id, html) {
   const r = index.get(addressOf([], id));
-  if (!r?.start) return [];
+  // Not shown, or taken away by a block around it earlier in this same pass.
+  if (!r?.start?.isConnected) return [];
   const parent = r.start.parentNode;
   const inserted = [];
   if (!PW_SERVER) {
-    const before = lastRendered.get(id);
-    lastRendered.set(id, html);
+    const before = lastRendered.get(r.start);
+    lastRendered.set(r.start, html);
     const rows = before === undefined ? null : rowsChanged(before, html);
     if (rows && morphRows(r, rows, inserted)) return inserted;
   }
@@ -2695,9 +2696,12 @@ function morphBlock(id, html) {
   return inserted;
 }
 
-/** What each block last rendered, on a page that talks to no server: nothing
- * but its own renders writes what it holds, so this is what it shows. */
-const lastRendered = new Map();
+/** What each block last rendered, on a page that talks to no server, by the
+ * anchor that opens it. While that anchor stands, only the block's own renders
+ * change what it shows: a block around it renders it the same. One that block
+ * took away and showed again has a new anchor, so nothing is kept for it,
+ * whatever its signals did while it was gone. */
+const lastRendered = new WeakMap();
 
 // --- which rows changed ---
 

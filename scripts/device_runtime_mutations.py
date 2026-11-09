@@ -15,7 +15,9 @@ Each mutant undoes one piece:
 A mutant of the decision must fail `decision-agreement.test.mjs`, of the packaging
 or a guard `optimize-assets.test.mjs` (or `host-plan.test.mjs`), of the host
 `tests::page_bundle::` or the production document's test, and of the page's use
-`e2e/device-runtime.spec.mjs` in Chromium against a production build.
+`e2e/device-runtime.spec.mjs` in Chromium against a production build, and of
+what a block keeps `e2e/nested-blocks.spec.mjs` against a production build of
+the demos.
 
 Run from the repository root; `just e14-device-runtime` records the output.
 The source is restored after every mutant, whatever happens.
@@ -147,6 +149,11 @@ MUTANTS = [
     # -- which rows changed
     ("every render morphs the whole block", "browser", RUNTIME,
      "    if (rows && morphRows(r, rows, inserted)) return inserted;\n", ""),
+    ("what a block rendered outlives its anchor", "nested", RUNTIME,
+     "    const before = lastRendered.get(r.start);\n    lastRendered.set(r.start, html);\n",
+     "    const before = (globalThis.kept ??= new Map()).get(id);\n    globalThis.kept.set(id, html);\n"),
+    ("a block taken away this pass is rendered", "nested", RUNTIME,
+     "  if (!r?.start?.isConnected) return [];\n", "  if (!r?.start) return [];\n"),
     ("a box in a row left alone is left", "browser", RUNTIME,
      '    if (after && before && box.checked !== box.hasAttribute("checked")) box.checked = !box.checked;\n', ""),
     ("a box the page ticked is not looked for", "browser", RUNTIME,
@@ -353,7 +360,24 @@ def browser():
     return passed + failed > 0, passed, failed
 
 
-SUITES = {"decision": decision, "contract": contract, "packaging": packaging, "host": host, "browser": browser}
+def nested():
+    """The nested blocks' page, on a production build of the demos."""
+    env = {**os.environ, "PW_PRODUCTION_ASSETS": "1", "BUILD_ONLY": "1"}
+    _, code = bounded(["bash", "spikes/own-renderer/run.sh"], cwd=ROOT, env=env)
+    if code != 0:
+        return False, 0, 0
+    env = {**os.environ, "PW_PRODUCTION_ASSETS": "1"}
+    out, code = bounded(["pnpm", "exec", "playwright", "test", "e2e/nested-blocks.spec.mjs", "--project=chromium", "--reporter=line"],
+                        cwd=ROOT / "spikes/own-renderer", env=env)
+    if code is None:
+        return True, 0, 1
+    out = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", out)
+    passed = sum(int(n) for n in re.findall(r"(\d+) passed", out))
+    failed = sum(int(n) for n in re.findall(r"(\d+) failed", out))
+    return passed + failed > 0, passed, failed
+
+
+SUITES = {"decision": decision, "contract": contract, "packaging": packaging, "host": host, "browser": browser, "nested": nested}
 
 
 def main():

@@ -486,6 +486,11 @@
         "base"
       ]
     },
+    "nested-blocks.spec.mjs": {
+      "roles": [
+        "base"
+      ]
+    },
     "no-replay.spec.mjs": {
       "roles": [
         "base"
