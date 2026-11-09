@@ -1184,35 +1184,6 @@ const renderer = (() => {
     }
   }
 
-  const scalar = (v) => (typeof v === "boolean" ? "b" : isInt(v) ? "i" : "t") + shown(v);
-
-  /** Whether two values are one value, as the server's `==` has it. */
-  function same(a, b) {
-    const pairs = [[a, b]];
-    while (pairs.length) {
-      const [p, q] = pairs.pop();
-      const x = opened(p);
-      const y = opened(q);
-      if (isList(x) || isList(y)) {
-        if (!isList(x) || !isList(y) || x.length !== y.length) return false;
-        x.forEach((v, i) => pairs.push([v, y[i]]));
-      } else if (!isObject(x) || !isObject(y)) {
-        if (isObject(x) || isObject(y) || scalar(x) !== scalar(y)) return false;
-      } else if (isVariant(x) || isVariant(y)) {
-        if (x.$case !== y.$case || Object.hasOwn(x, "value") !== Object.hasOwn(y, "value")) return false;
-        if (Object.hasOwn(x, "value")) pairs.push([x.value, y.value]);
-      } else {
-        const keys = Object.keys(x);
-        if (keys.length !== Object.keys(y).length) return false;
-        for (const k of keys) {
-          if (!Object.hasOwn(y, k)) return false;
-          pairs.push([x[k], y[k]]);
-        }
-      }
-    }
-    return true;
-  }
-
   // --- what a render has -----------------------------------------------------
 
   /** The values a render has, by path. A name bound inside it goes in front
@@ -1713,195 +1684,231 @@ const renderer = (() => {
     return value === null ? "" : ` data-pw-captures="${value}"`;
   }
 
-  // --- what changed --------------------------------------------------------
-
-  function nested(p) {
-    switch (p.part) {
-      case "conditional":
-        return [p.then, p.otherwise];
-      case "each":
-        return [p.body];
-      case "match":
-        return p.arms.map((a) => a.body);
-      case "stream":
-        return [p.placeholder, p.ready.body, p.failed.body];
-      default:
-        return [];
-    }
-  }
-
-  function handlersWithin(chunks, out) {
-    for (const c of chunks) {
-      if (c.chunk !== "dynamic") continue;
-      const p = c.value;
-      if (p.part === "event") {
-        if (!out.has(p.owner)) out.set(p.owner, []);
-        out.get(p.owner).push(p);
-      }
-      for (const inner of nested(p)) handlersWithin(inner, out);
-    }
-  }
-
-  /** What changed in one row, part by part; `null` where it is rendered again. */
-  function rowChanges(p, was, now, e, others) {
-    const scoped = (item) => within(named(e, p.binding, item), p.id, tokenOf(e, p.id, keyOf(item, p.key)));
-    const before = scoped(was);
-    const after = scoped(now);
-    const handlers = new Map();
-    handlersWithin(p.body, handlers);
-    const out = [];
-    return changesWithin(p.body, before, after, handlers, others, out) ? out : null;
-  }
-
-  function changesWithin(chunks, before, after, handlers, others, out) {
-    for (const c of chunks) {
-      if (c.chunk !== "dynamic") continue;
-      const p = c.value;
-      const differs = () => {
-        const one = [c];
-        return rendered(others, (o) => emit(one, before, others, o)) !== rendered(others, (o) => emit(one, after, others, o));
-      };
-      switch (p.part) {
-        case "text": {
-          const x = shown(need(before, p.value));
-          const y = shown(need(after, p.value));
-          if (x === null || y === null) {
-            if (differs()) return false;
-          } else if (x !== y) {
-            out.push([p.id, { text: y }]);
-          }
-          break;
-        }
-        case "attribute":
-        case "boolean_attribute":
-        case "interpolated_attribute": {
-          const x = attributeOf(p, before);
-          const y = attributeOf(p, after);
-          if (x[0] !== y[0] || x[1] !== y[1]) out.push([p.id, { attribute: y[0], value: y[1] }]);
-          break;
-        }
-        case "event": {
-          const run = handlers.get(p.owner) ?? [];
-          if (run[0]?.id !== p.id) break;
-          const x = captures(run, before);
-          const y = captures(run, after);
-          if (x !== y) out.push([p.id, { attribute: "data-pw-captures", value: y }]);
-          break;
-        }
-        case "conditional": {
-          const x = holds(need(before, p.value));
-          const y = holds(need(after, p.value));
-          if (x !== y || !changesWithin(x ? p.then : p.otherwise, before, after, handlers, others, out)) return false;
-          break;
-        }
-        case "match": {
-          const [x, was] = armShown(p.arms, p.value, before);
-          const [y, now] = armShown(p.arms, p.value, after);
-          if (x.case !== y.case || !changesWithin(y.body, was, now, handlers, others, out)) return false;
-          break;
-        }
-        case "each": {
-          const x = p.key === null || p.key === undefined ? NONE : read(before, p.collection);
-          const y = p.key === null || p.key === undefined ? NONE : read(after, p.collection);
-          if (isList(x) && isList(y)) {
-            // A list inside a row: its row is rendered again in the browser,
-            // and whether it changed is what is asked here.
-            if (!same(x, y) && listChanged(p, x, y, after, others)) out.push([p.id, { list: true }]);
-          } else if (differs()) {
-            return false;
-          }
-          break;
-        }
-        default:
-          if (differs()) return false;
-      }
-    }
-    return true;
-  }
-
-  /** Whether the keyed loop `p` goes from `old` to `now` by any operation,
-   * refusing as the server's derivation of them does (`each_changes`). */
-  function listChanged(p, old, now, e, others) {
-    const seen = new Set();
-    for (const raw of now) {
-      const key = keyOf(opened(raw), p.key);
-      if (key === "") throw new Blocked("MissingLoopKey", p.key);
-      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);
-      seen.add(key);
-    }
-    const token = (v) => tokenOf(e, p.id, keyOf(opened(v), p.key));
-    const wanted = now.map(token);
-    const current = [];
-    let changed = false;
-    for (const v of old) {
-      const t = token(v);
-      if (wanted.includes(t)) current.push([t, v]);
-      else changed = true;
-    }
-    now.forEach((raw, i) => {
-      const item = opened(raw);
-      const found = current.findIndex(([t]) => t === wanted[i]);
-      if (found < 0) {
-        eachInstance(p, item, e, others);
-        current.splice(i, 0, [wanted[i], item]);
-        changed = true;
-        return;
-      }
-      if (found !== i) {
-        current.splice(i, 0, current.splice(found, 1)[0]);
-        changed = true;
-      }
-      if (!same(current[i][1], item)) {
-        if (rowChanges(p, opened(current[i][1]), item, e, others) === null) eachInstance(p, item, e, others);
-        current[i][1] = item;
-        changed = true;
-      }
-    });
-    return changed;
-  }
-
-  function eachInstance(p, item, e, others) {
-    if (p.key === null || p.key === undefined) throw unrepresented("an unkeyed loop has no addressable instance");
-    const key = keyOf(item, p.key);
-    if (key === "") throw new Blocked("MissingLoopKey", p.key);
-    const token = tokenOf(e, p.id, key);
-    const scoped = within(named(e, p.binding, item), p.id, token);
-    return rendered(others, (out) => {
-      out.html.push(`<!--pw:s${p.id}@${token}-->`);
-      emit(p.body, scoped, others, out);
-      out.html.push(`<!--pw:e${p.id}@${token}-->`);
-    });
-  }
-
   // --- what the page asks ---------------------------------------------------
 
-  return {
+  const asked = {
     env,
-    same,
     letGo: () => tokens.clear(),
     /** One part, its anchors included. */
     part: (p, e, others) => rendered(others, (out) => emit([{ chunk: "dynamic", value: p }], e, others, out)),
+    captures,
+  };
+
+  // Only a page with a server is sent a list's changes to compare with what
+  // it holds, so the runtime of a page that talks to none has none of this.
+  if (PW_SERVER) {
+    const scalar = (v) => (typeof v === "boolean" ? "b" : isInt(v) ? "i" : "t") + shown(v);
+
+    /** Whether two values are one value, as the server's `==` has it. */
+    function same(a, b) {
+      const pairs = [[a, b]];
+      while (pairs.length) {
+        const [p, q] = pairs.pop();
+        const x = opened(p);
+        const y = opened(q);
+        if (isList(x) || isList(y)) {
+          if (!isList(x) || !isList(y) || x.length !== y.length) return false;
+          x.forEach((v, i) => pairs.push([v, y[i]]));
+        } else if (!isObject(x) || !isObject(y)) {
+          if (isObject(x) || isObject(y) || scalar(x) !== scalar(y)) return false;
+        } else if (isVariant(x) || isVariant(y)) {
+          if (x.$case !== y.$case || Object.hasOwn(x, "value") !== Object.hasOwn(y, "value")) return false;
+          if (Object.hasOwn(x, "value")) pairs.push([x.value, y.value]);
+        } else {
+          const keys = Object.keys(x);
+          if (keys.length !== Object.keys(y).length) return false;
+          for (const k of keys) {
+            if (!Object.hasOwn(y, k)) return false;
+            pairs.push([x[k], y[k]]);
+          }
+        }
+      }
+      return true;
+    }
+
+    // --- what changed --------------------------------------------------------
+
+    function nested(p) {
+      switch (p.part) {
+        case "conditional":
+          return [p.then, p.otherwise];
+        case "each":
+          return [p.body];
+        case "match":
+          return p.arms.map((a) => a.body);
+        case "stream":
+          return [p.placeholder, p.ready.body, p.failed.body];
+        default:
+          return [];
+      }
+    }
+
+    function handlersWithin(chunks, out) {
+      for (const c of chunks) {
+        if (c.chunk !== "dynamic") continue;
+        const p = c.value;
+        if (p.part === "event") {
+          if (!out.has(p.owner)) out.set(p.owner, []);
+          out.get(p.owner).push(p);
+        }
+        for (const inner of nested(p)) handlersWithin(inner, out);
+      }
+    }
+
+    /** What changed in one row, part by part; `null` where it is rendered again. */
+    function rowChanges(p, was, now, e, others) {
+      const scoped = (item) => within(named(e, p.binding, item), p.id, tokenOf(e, p.id, keyOf(item, p.key)));
+      const before = scoped(was);
+      const after = scoped(now);
+      const handlers = new Map();
+      handlersWithin(p.body, handlers);
+      const out = [];
+      return changesWithin(p.body, before, after, handlers, others, out) ? out : null;
+    }
+
+    function changesWithin(chunks, before, after, handlers, others, out) {
+      for (const c of chunks) {
+        if (c.chunk !== "dynamic") continue;
+        const p = c.value;
+        const differs = () => {
+          const one = [c];
+          return rendered(others, (o) => emit(one, before, others, o)) !== rendered(others, (o) => emit(one, after, others, o));
+        };
+        switch (p.part) {
+          case "text": {
+            const x = shown(need(before, p.value));
+            const y = shown(need(after, p.value));
+            if (x === null || y === null) {
+              if (differs()) return false;
+            } else if (x !== y) {
+              out.push([p.id, { text: y }]);
+            }
+            break;
+          }
+          case "attribute":
+          case "boolean_attribute":
+          case "interpolated_attribute": {
+            const x = attributeOf(p, before);
+            const y = attributeOf(p, after);
+            if (x[0] !== y[0] || x[1] !== y[1]) out.push([p.id, { attribute: y[0], value: y[1] }]);
+            break;
+          }
+          case "event": {
+            const run = handlers.get(p.owner) ?? [];
+            if (run[0]?.id !== p.id) break;
+            const x = captures(run, before);
+            const y = captures(run, after);
+            if (x !== y) out.push([p.id, { attribute: "data-pw-captures", value: y }]);
+            break;
+          }
+          case "conditional": {
+            const x = holds(need(before, p.value));
+            const y = holds(need(after, p.value));
+            if (x !== y || !changesWithin(x ? p.then : p.otherwise, before, after, handlers, others, out)) return false;
+            break;
+          }
+          case "match": {
+            const [x, was] = armShown(p.arms, p.value, before);
+            const [y, now] = armShown(p.arms, p.value, after);
+            if (x.case !== y.case || !changesWithin(y.body, was, now, handlers, others, out)) return false;
+            break;
+          }
+          case "each": {
+            const x = p.key === null || p.key === undefined ? NONE : read(before, p.collection);
+            const y = p.key === null || p.key === undefined ? NONE : read(after, p.collection);
+            if (isList(x) && isList(y)) {
+              // A list inside a row: its row is rendered again in the browser,
+              // and whether it changed is what is asked here.
+              if (!same(x, y) && listChanged(p, x, y, after, others)) out.push([p.id, { list: true }]);
+            } else if (differs()) {
+              return false;
+            }
+            break;
+          }
+          default:
+            if (differs()) return false;
+        }
+      }
+      return true;
+    }
+
+    /** Whether the keyed loop `p` goes from `old` to `now` by any operation,
+     * refusing as the server's derivation of them does (`each_changes`). */
+    function listChanged(p, old, now, e, others) {
+      const seen = new Set();
+      for (const raw of now) {
+        const key = keyOf(opened(raw), p.key);
+        if (key === "") throw new Blocked("MissingLoopKey", p.key);
+        if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);
+        seen.add(key);
+      }
+      const token = (v) => tokenOf(e, p.id, keyOf(opened(v), p.key));
+      const wanted = now.map(token);
+      const current = [];
+      let changed = false;
+      for (const v of old) {
+        const t = token(v);
+        if (wanted.includes(t)) current.push([t, v]);
+        else changed = true;
+      }
+      now.forEach((raw, i) => {
+        const item = opened(raw);
+        const found = current.findIndex(([t]) => t === wanted[i]);
+        if (found < 0) {
+          eachInstance(p, item, e, others);
+          current.splice(i, 0, [wanted[i], item]);
+          changed = true;
+          return;
+        }
+        if (found !== i) {
+          current.splice(i, 0, current.splice(found, 1)[0]);
+          changed = true;
+        }
+        if (!same(current[i][1], item)) {
+          if (rowChanges(p, opened(current[i][1]), item, e, others) === null) eachInstance(p, item, e, others);
+          current[i][1] = item;
+          changed = true;
+        }
+      });
+      return changed;
+    }
+
+    function eachInstance(p, item, e, others) {
+      if (p.key === null || p.key === undefined) throw unrepresented("an unkeyed loop has no addressable instance");
+      const key = keyOf(item, p.key);
+      if (key === "") throw new Blocked("MissingLoopKey", p.key);
+      const token = tokenOf(e, p.id, key);
+      const scoped = within(named(e, p.binding, item), p.id, token);
+      return rendered(others, (out) => {
+        out.html.push(`<!--pw:s${p.id}@${token}-->`);
+        emit(p.body, scoped, others, out);
+        out.html.push(`<!--pw:e${p.id}@${token}-->`);
+      });
+    }
+
     /** One instance of a keyed loop, for its item. */
-    instance(p, item, e, others) {
+    asked.instance = (p, item, e, others) => {
       if (p.part === "blocked") throw malformed("the part is no loop");
       if (p.part !== "each") throw unrepresented("the part is not a keyed loop");
       return eachInstance(p, opened(item), e, others);
-    },
+    };
     /** What changed in one instance, `null` where it is rendered again. */
-    changes(p, was, now, e, others) {
+    asked.changes = (p, was, now, e, others) => {
       if (p.part === "blocked") throw malformed("the part is no loop");
       if (p.part !== "each" || p.key === null || p.key === undefined) throw unrepresented("the part is not a keyed loop");
       const found = rowChanges(p, opened(was), opened(now), e, others);
       return found && found.some(([, change]) => change.list) ? null : found;
-    },
+    };
     /** An attribute's name, and its value as the document writes it. */
-    attribute(p, e) {
+    asked.attribute = (p, e) => {
       const found = attributeOf(p, e);
       if (found === null) throw malformed("the part is no attribute");
       return found;
-    },
-    captures,
-  };
+    };
+    asked.same = same;
+  }
+
+  return asked;
 })();
 // --- end of the browser's renderer
 

@@ -279,6 +279,7 @@ const SERVER_ONLY = {
   "its scroll": "scrollRestoration",
   "the frame hook": "__pwTestApply",
   "the batch hook": "__pwTestBatch",
+  "a list's comparison": "is not a keyed loop",
   "a server's build name": "pw-build",
 };
 

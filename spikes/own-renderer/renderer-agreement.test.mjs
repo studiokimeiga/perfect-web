@@ -29,7 +29,7 @@ function loadRenderer() {
   const start = runtime.indexOf(BEGIN);
   const end = runtime.indexOf(END);
   assert.ok(start >= 0 && end > start, "the runtime holds the renderer between its markers");
-  return vm.runInNewContext(`${runtime.slice(start, end)}\nrenderer`, { TextEncoder });
+  return vm.runInNewContext(`${runtime.slice(start, end)}\nrenderer`, { TextEncoder, PW_SERVER: true });
 }
 const renderer = loadRenderer();
 

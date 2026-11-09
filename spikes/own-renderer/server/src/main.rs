@@ -11982,6 +11982,7 @@ fn stream_held(
     // the hold where its page has gone.
     let opened = std::time::Instant::now();
     let until = opened + hold;
+    let look = looks_for(server, hold >= server.long_hold);
     let mut tried = opened;
     let mut pass = 0u64;
     loop {
@@ -12034,7 +12035,7 @@ fn stream_held(
                 if left.is_zero() {
                     break;
                 }
-                drop(server.pending.wait(queue, left.min(server.wake_at_least)));
+                drop(server.pending.wait(queue, left.min(look)));
                 continue;
             }
             batch
@@ -12081,6 +12082,21 @@ fn stream_held(
 /// answer's first byte (Heroku's) and the 60 s a proxy commonly allows a
 /// quiet connection.
 const HOLD: std::time::Duration = std::time::Duration::from_secs(25);
+
+/// **How often a subscription held long looks at its table when nothing wakes
+/// it**: often enough to keep its page live ([`LIVE`]) and to see its page gone
+/// soon, and four times less than one held briefly, which adds up across every
+/// idle page.
+const LONG_LOOK: std::time::Duration = std::time::Duration::from_secs(1);
+
+/// How long a pass of a held subscription waits for a wake.
+fn looks_for(server: &Server, long: bool) -> std::time::Duration {
+    if long {
+        server.wake_at_least.max(LONG_LOOK)
+    } else {
+        server.wake_at_least
+    }
+}
 
 /// **How many subscriptions a host holds long at once** (the longer-holds
 /// ADR). Each is a thread, and a request asks for it by what it says: past
@@ -12189,6 +12205,7 @@ fn stream_frames(server: &Server, stream: &mut Conn, session: &str, fresh: bool,
         } else {
             server.poll_hold
         };
+    let look = looks_for(server, long);
     let mut tried = opened;
     loop {
         if gone(stream) {
@@ -12224,7 +12241,7 @@ fn stream_frames(server: &Server, stream: &mut Conn, session: &str, fresh: bool,
                 if left.is_zero() {
                     break;
                 }
-                drop(server.pending.wait(queue, left.min(server.wake_at_least)));
+                drop(server.pending.wait(queue, left.min(look)));
                 continue;
             }
             batch
