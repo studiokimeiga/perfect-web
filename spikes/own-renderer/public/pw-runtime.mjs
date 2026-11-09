@@ -1609,6 +1609,10 @@ const renderer = (() => {
 
   function holdsStill(row, item, e) {
     if (!same(row.item, item)) return false;
+    // What a `{#match}` around the list bound, which a row can read.
+    for (let a = row.names, b = e.names; a || b; a = a.up, b = b.up) {
+      if (!a || !b || a.name !== b.name || !same(a.value, b.value)) return false;
+    }
     for (const [name, value] of row.reads) if (e.page.get(name) !== value) return false;
     return true;
   }
@@ -1624,7 +1628,7 @@ const renderer = (() => {
       emit(p.body, within(named({ ...e, reads }, p.binding, item), p.id, token), others, out);
       out.html.push(`<!--pw:e${at}-->`);
     });
-    return { key: at, text, item, reads };
+    return { key: at, text, item, reads, names: e.names };
   }
 
   /** The most elements a page may nest (`NESTED_ELEMENTS`, ADR-0203). */

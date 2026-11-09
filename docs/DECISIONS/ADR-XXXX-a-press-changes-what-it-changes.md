@@ -64,7 +64,9 @@ On a page that talks to no server, and for what is said below on every page:
 7. **A template's layout is not the page.** A run of white space with a line
    break in it is one space, and nothing at all where text can never be shown:
    between a table's structural elements, in a `<select>`, or in the head. Inside
-   `<pre>`, `<textarea>`, `<script>` and `<style>` every character is content.
+   `<pre>`, `<textarea>`, `<script>` and `<style>` every character is content, and
+   so is a value: text meant to keep its line breaks under a style such as
+   `white-space: pre-line` is written as one, `{"first\\nsecond"}`, or in a `<pre>`.
 
 An independent review of this branch's first version found what is kept could
 outlive what it described: a block inside another, its signal changed while the
@@ -109,7 +111,10 @@ has run at this branch's commit.
 - A feature that writes inside a row on such a page has to clear what is kept for
   it, or the comparison answers for a page it no longer describes.
 - A page's whitespace changes for every app, so the committed builds in
-  `docs/evidence/E10` are regenerated with this.
+  `docs/evidence/E10` are regenerated with this. It is a change a page can see:
+  static text laid out over several lines under `white-space: pre-line` or
+  `pre-wrap` now shows as one line, and has to be written as a value. No app in
+  this repository does that; the guide says so.
 - `{#each}` of a signal's list has to sit in a block a signal decides (ADR-0137),
   which the large list writes as `{#if List.length(rows) > 0}`. That is a limit
   of its own, and it is on the list.

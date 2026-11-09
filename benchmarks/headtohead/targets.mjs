@@ -202,7 +202,7 @@ export const APPS = {
         minifies: true,
         compresses: "all",
         caches: true,
-        build: { kind: "vendored", root: ROWS, prefix: "/react/dist/", dir: "react/dist" },
+        build: { kind: "committed", root: ROWS, prefix: "/react/dist/", dir: "react/dist" },
         standIn: true,
       },
       svelte: {
@@ -221,7 +221,7 @@ export const APPS = {
         minifies: true,
         compresses: "all",
         caches: true,
-        build: { kind: "vendored", root: ROWS, prefix: "/svelte/dist/", dir: "svelte/dist" },
+        build: { kind: "committed", root: ROWS, prefix: "/svelte/dist/", dir: "svelte/dist" },
         standIn: true,
       },
     },

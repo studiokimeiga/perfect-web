@@ -586,6 +586,31 @@ test("a row is written again when what it reads changes, and not otherwise", () 
   assert.match(noted[1].text, /b:<!--pw:s5-->m|b<!--pw:e4-->:<!--pw:s5-->m/);
 });
 
+test("a row is written again when what a block around it bound changes", () => {
+  const device = loadRenderer(false);
+  const part = {
+    part: "match", id: 2, value: "o", arms: [
+      {
+        case: "Some", binding: "f", fields: [], body: [{ chunk: "dynamic", value: {
+          part: "each", id: 3, collection: "items", binding: "item", key: "id", body: [
+            { chunk: "dynamic", value: { part: "text", id: 5, value: "f", context: "text" } },
+          ],
+        } }],
+      },
+      { case: "None", binding: null, fields: [], body: [] },
+    ],
+  };
+  const items = [{ id: 1 }];
+  const render = (f) => device.block(part, device.env(Object.entries({ items, o: { $case: "Some", value: f } })), []);
+  const first = render("a");
+  assert.match(textOfKept(first), />a<|-->a<!--/);
+  const again = render("a");
+  assert.equal(again.lists[0].rows[0], first.lists[0].rows[0], "what it read is the same");
+  const second = render("b");
+  assert.notEqual(second.lists[0].rows[0], first.lists[0].rows[0], "what it read changed");
+  assert.match(textOfKept(second), />b<|-->b<!--/);
+});
+
 test("the two renderers agree over the compiler's own templates", () => {
   const { answered, refused } = agree(compiledRequests());
   assert.ok(answered > 1_000, `asked ${answered}`);
@@ -830,5 +855,6 @@ test("the renderer is small", async () => {
   const end = runtime.indexOf(END);
   const { code } = await transform(runtime.slice(start, end), { minify: true, format: "esm" });
   const sent = brotliCompressSync(Buffer.from(code), { params: { [constants.BROTLI_PARAM_QUALITY]: 11 } }).length;
-  assert.ok(sent < 5.5 * 1024, `the renderer is ${sent} bytes as sent, and was 77 KB as WebAssembly`);
+  // With what a list keeps of its rows ("a press changes what it changes").
+  assert.ok(sent < 6 * 1024, `the renderer is ${sent} bytes as sent, and was 77 KB as WebAssembly`);
 });

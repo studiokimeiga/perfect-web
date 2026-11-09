@@ -92,6 +92,18 @@ fn a_list_keeps_a_space_a_style_could_show() {
 }
 
 #[test]
+fn where_text_is_never_shown_words_are_still_words() {
+    assert_eq!(inside_main("<table>a\n  b<tr><td>x</td></tr></table>"), "<table>a b<tr><td>x</td></tr></table>");
+}
+
+#[test]
+fn a_value_is_content_however_it_is_written() {
+    // A line that is to stay a line under `white-space: pre-line` is written
+    // as a value: only the template's layout is folded.
+    assert_eq!(inside_main("<p>{\"a\\n   b\"}</p>"), "<p>{..}</p>");
+}
+
+#[test]
 fn a_blank_text_outside_any_element_of_those_is_one_space() {
     assert_eq!(inside_main("\n    <p>a</p>\n"), " <p>a</p> ");
 }
