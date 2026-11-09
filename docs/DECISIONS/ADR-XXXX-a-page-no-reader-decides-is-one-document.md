@@ -145,7 +145,21 @@ as `stale` or `unavailable` goes back to its first value, as a reload does.
 
 ## Result
 
-To be recorded from `just e14-head-to-head` before this is accepted.
+`just e14-head-to-head` at `4b72c6c6`, against the record at `58b0b2ca`, both on
+the PC (`docs/evidence/E14/head-to-head.txt`). TodoMVC:
+
+| | before | after | React | Svelte |
+| --- | --- | --- | --- | --- |
+| a repeat visit, bytes received | 11,645 | **240** | 1,338 | 759 |
+| first load, bytes received | 141,362 | 132,498 | 70,085 | 20,821 |
+| the document, CPU a request, ms | 0.38 | **0.09** | 0.33 | 0.34 |
+| the document, latency p50, ms | 0.59 | **0.43** | 0.56 | 0.52 |
+| the document, latency p99, ms | 1.50 | **1.07** | 1.08 | 1.28 |
+
+React's and Svelte's are the instrument's static host. A page that nothing about
+its reader decides now costs less to serve than that host costs, and a repeat
+visit costs less than either. The first load is 6% smaller: what remains of its
+gap is WebAssembly, and it is the next work.
 
 ## Held by
 
