@@ -112,6 +112,13 @@ here before it lands. The hold above is now what a page asks for.
    could pass `MAX_WAITING` and tell a page that was keeping up to reload. A
    stream that has half that waiting ends, and its page asks again at once.
 
+A subscription held long also **looks at its table once a second**
+(`LONG_LOOK`) when nothing wakes it, where one held briefly looks every
+`WAKE_AT_LEAST`, 250 ms. That still renews its page's `LIVE`, 3 s, sees its page
+gone soon, and is four times fewer looks for every idle page: twenty idle
+visitors cost the store's host 3.00 ms of CPU a second at `3b0e7c4f`, against
+SvelteKit's 1.00.
+
 ## Result
 
 `just e14-head-to-head` at `3b0e7c4f`, with the rest of the size train. The store's twenty idle visitors made 0.00 requests a page a minute in the instrument's ten seconds, from 29.7 at `7f328c3d`; ten seconds is shorter than a hold, and by the hold's length the rate is about 2.4 a minute. The host's CPU for them is 3.00 ms a second, from 4.00 (SvelteKit 1.00, Next.js 0.00).

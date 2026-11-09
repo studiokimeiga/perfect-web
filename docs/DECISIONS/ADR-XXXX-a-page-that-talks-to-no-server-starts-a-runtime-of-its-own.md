@@ -61,7 +61,9 @@ A development build has no second runtime, and its pages are as they were.
   would ask for one more file before its first press, and most pages have one.
 - **A runtime per app, from what its pages use.** A build would have as many
   runtimes as it has combinations, each cached alone. Two cover what a page can
-  be: it talks to a server, or it does not.
+  be: it talks to a server, or it does not. *Corrected by "a device's runtime
+  holds what its build's pages use": a build has one set of pages, so one such
+  runtime. This reason holds against a runtime per page, not per build.*
 
 ## Result
 
