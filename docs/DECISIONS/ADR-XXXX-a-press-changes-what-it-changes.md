@@ -3,9 +3,8 @@
 Status: proposed 2026-11-09, on branch `perf/rows-20261109`, under the owner's
 delegation of 2026-10-02 and order of 2026-10-25 ("deciding by best judgement
 without asking"), and the order of 2026-11-09 to work the gaps with Svelte
-largest first. Milestone: E14. Builds on the device runtime's ADR and on "a
-render changes only the rows that changed", which this replaces for what it
-covered.
+largest first. Milestone: E14. Builds on the browser renderer's ADR and the device
+runtime's.
 
 ## Context
 
@@ -35,14 +34,20 @@ On a page that talks to no server, and for what is said below on every page:
 1. **A row's text is kept**, with the value it was written from and what it read
    of the page. A render writes the text of a row whose value or reads changed,
    and reuses the rest. A kept row's text carries no anchors around its text
-   parts, which only an address would read.
+   parts, which only an address would read. A block's last render is kept by the
+   anchor that opens it: a block taken away and shown again by the block around
+   it has a new anchor, and so nothing kept, whatever its signals did while it
+   was gone.
 2. **A list's rows are made by their keys.** `listMade` works from the rows the
    last render wrote and the rows this one does, and the document is changed by
    the difference: rows gone are removed, rows changed are morphed where they
    are, new rows are parsed together and put in at once, and only the rows out of
    place move, the fewest that can, by a longest increasing run of their places
    (`staying`). Anything else about the block having changed, it is morphed
-   whole, as before.
+   whole, as before. What a render shows is what morphing the whole block shows:
+   a morph sets a box's live state from what was rendered, so each box in the
+   block whose state differs from its attribute is set from it, found with
+   `:default`, and a box outside the block is not one of them.
 3. **A press is heard at the document** (`pressHeard`), on a page with no view
    inside itself: an element's `data-pw` says which of the page's handlers it
    has, so a row needs no listener and nothing need be bound after a render. A
@@ -60,6 +65,12 @@ On a page that talks to no server, and for what is said below on every page:
    break in it is one space, and nothing at all where text can never be shown:
    between a table's structural elements, in a `<select>`, or in the head. Inside
    `<pre>`, `<textarea>`, `<script>` and `<style>` every character is content.
+
+An independent review of this branch's first version found what is kept could
+outlive what it described: a block inside another, its signal changed while the
+outer block had taken it away, then rendered the old text, matched what was kept
+and was never updated. Keeping it by the opening anchor is the repair, and
+`e2e/nested-blocks.spec.mjs` holds it.
 
 The new app, `examples/rows`, is in the head-to-head beside the same app in
 Svelte and in React, and its operations are rows of the record. `e2e/rows.spec.mjs`
