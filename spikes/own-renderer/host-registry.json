@@ -529,6 +529,11 @@
         "mutable:performance"
       ]
     },
+    "page-bundle.spec.mjs": {
+      "roles": [
+        "base"
+      ]
+    },
     "press-modules.spec.mjs": {
       "roles": [
         "base"

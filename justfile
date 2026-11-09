@@ -84,6 +84,7 @@ import 'just/command-route.just'
 import 'just/session-reader.just'
 import 'just/site.just'
 import 'just/browser-renderer.just'
+import 'just/page-bundle.just'
 
 default:
     @just --list

@@ -1,11 +1,11 @@
 // Production-only packaging for the Pleris browser assets.
 // The compiler/runtime sources stay readable; generated copies are minified
 // and compressed deterministically. HTML and personalized responses are untouched.
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { brotliCompressSync, constants, gzipSync } from "node:zlib";
-import { transform } from "esbuild";
+import { build, transform } from "esbuild";
 
 const BR = {
   params: {
@@ -44,7 +44,7 @@ async function packAsset(directory, entry) {
  * reads this file beside the assets. A development build has none: it warms
  * nothing (E7-L), and names each file as it is.
  */
-export const DELIVERY = { warm: true, versioned: true };
+export const DELIVERY = { warm: true, versioned: true, bundled: true };
 
 /**
  * **The compiled modules a page loads** (ADR-0399): its
@@ -91,6 +91,95 @@ async function modulesIn(directory) {
     .sort((a, b) => a.localeCompare(b, "en"));
 }
 
+/** The handlers `chunks` names, and each template its instances reach,
+ * through every block, each once. */
+function handlersIn(chunks, templates, out, seen) {
+  for (const chunk of chunks) {
+    if (chunk.chunk !== "dynamic") continue;
+    const part = chunk.value;
+    if (part.part === "event") out.add(part.handler);
+    if (part.part === "instance" && !seen.has(part.path)) {
+      seen.add(part.path);
+      const view = templates.find((t) => t.path === part.path);
+      if (view) handlersIn(view.chunks, templates, out, seen);
+    }
+    for (const inner of [part.then, part.otherwise, part.body, part.placeholder, part.ready?.body, part.failed?.body, ...(part.arms ?? []).map((a) => a.body)]) {
+      if (inner) handlersIn(inner, templates, out, seen);
+    }
+  }
+  return out;
+}
+
+async function readIfThere(file) {
+  try {
+    return await readFile(file, "utf8");
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+/**
+ * **Each page's code in one module** (the page bundle's ADR): its handlers,
+ * its computed values and its speculations, which a production page warms
+ * and each of which was a request of its own, and each a compression of its
+ * own. A module's identity, and so each module beside this, is unchanged: a
+ * page falls back on them, and a refused handler is never fetched. Returns
+ * the pages bundled, sorted.
+ */
+export async function bundlePages(directory) {
+  const base = path.join(directory, "build");
+  const templatesText = await readIfThere(path.join(base, "templates.json"));
+  if (templatesText === null) return [];
+  const templates = JSON.parse(templatesText);
+  let pages;
+  try {
+    pages = (await readdir(path.join(base, "pages"))).filter((n) => n.endsWith(".json")).map((n) => n.slice(0, -5));
+  } catch (error) {
+    if (error.code === "ENOENT") return [];
+    throw error;
+  }
+  const done = [];
+  await mkdir(path.join(base, "bundles"), { recursive: true });
+  for (const page of pages.sort((a, b) => a.localeCompare(b, "en"))) {
+    const template = templates.find((t) => t.path === page);
+    if (!template) continue;
+    const handlers = [...handlersIn(template.chunks, templates, new Set(), new Set())].sort();
+    const lines = [];
+    for (const id of handlers) {
+      if ((await readIfThere(path.join(base, "handlers", `${id}.mjs`))) === null) {
+        throw new Error(`${page} names handler ${id}, and no module was compiled for it`);
+      }
+      lines.push(`export * as h_${id} from "./handlers/${id}.mjs";`);
+    }
+    if ((await readIfThere(path.join(base, "computed", `${page}.mjs`))) !== null) {
+      lines.push(`export * as computed from "./computed/${page}.mjs";`);
+    }
+    if ((await readIfThere(path.join(base, "speculations", `${page}.mjs`))) !== null) {
+      lines.push(`export * as speculation from "./speculations/${page}.mjs";`);
+    }
+    if (lines.length === 0) continue;
+    const result = await build({
+      stdin: { contents: lines.join("\n"), resolveDir: base, loader: "js", sourcefile: `${page}.entry.mjs` },
+      bundle: true,
+      format: "esm",
+      target: "es2022",
+      minify: true,
+      charset: "utf8",
+      legalComments: "none",
+      write: false,
+      logLevel: "silent",
+    });
+    const body = result.outputFiles[0].contents;
+    const file = path.join(base, "bundles", `${page}.mjs`);
+    await writeFile(file, body);
+    await writeFile(file + ".br", brotliCompressSync(body, BR));
+    await writeFile(file + ".gz", gzipSync(body, { level: 9, mtime: 0 }));
+    done.push(page);
+  }
+  return done;
+}
+
 export async function optimizeAssets(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   // Deterministic order and only root-level shared assets. Compiled handler
@@ -100,6 +189,7 @@ export async function optimizeAssets(directory) {
   assets.sort((a, b) => a.name.localeCompare(b.name, "en"));
   for (const asset of assets) await packAsset(directory, asset);
   await compressModules(directory);
+  await bundlePages(directory);
   await writeFile(path.join(directory, "delivery.json"), `${JSON.stringify(DELIVERY)}\n`);
   return assets.map((asset) => asset.name);
 }

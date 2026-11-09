@@ -1071,6 +1071,10 @@ struct Server {
     /// press's ADR), as its packaging says ([`warms`]): told to the browser
     /// on the handler table's `#warm` line.
     warm: bool,
+    /// **The pages whose code is one module** (the page bundle's ADR), as
+    /// its packaging wrote them: told to the browser on the handler table,
+    /// and the only ones `/bundle/` serves.
+    bundles: std::collections::BTreeSet<String>,
     /// **How long a kept connection waits for its next request** (the
     /// keep-alive ADR): [`KEEP_ALIVE_IDLE`] in every host. A test's host
     /// waits [`TEST_KEEP_ALIVE_IDLE`], so that a client reading one answer to
@@ -2149,6 +2153,7 @@ impl Server {
             applied: Mutex::new(BTreeMap::new()),
             sessions: Mutex::new(BTreeMap::new()),
             components,
+            bundles: bundles_of(&dist, &artifacts),
             warm: warms(&dist),
             keep_alive: if cfg!(test) {
                 TEST_KEEP_ALIVE_IDLE
@@ -11494,6 +11499,35 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
                 ),
             }
         }
+        // A page's code in one module (the page bundle's ADR): only a page
+        // whose packaging wrote one.
+        ("GET", route)
+            if route
+                .strip_prefix("/bundle/")
+                .and_then(|m| m.split('?').next())
+                .and_then(|m| m.strip_suffix(".mjs"))
+                .is_some_and(|page| server.bundles.contains(page)) =>
+        {
+            let module = route.trim_start_matches("/bundle/");
+            let module = module.split('?').next().unwrap_or(module);
+            let path = server.artifacts.join("bundles").join(module);
+            match std::fs::read(&path) {
+                Ok(bytes) => respond_representation(
+                    &mut stream,
+                    &headers,
+                    "text/javascript; charset=utf-8",
+                    &path,
+                    bytes,
+                    server.delivery.cache_policy(query),
+                ),
+                Err(_) => respond_build(
+                    &mut stream,
+                    404,
+                    "text/plain; charset=utf-8",
+                    b"this module was not bundled",
+                ),
+            }
+        }
         ("GET", route) if route.starts_with("/handler/") => {
             let id = route
                 .trim_start_matches("/handler/")
@@ -11606,6 +11640,10 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
             // 2026-11-06).
             if server.warm {
                 table.push_str("#warm|1\n");
+            }
+            // Each page whose code is one module (the page bundle's ADR).
+            for page in &server.bundles {
+                table.push_str(&format!("#bundle|{page}|/bundle/{page}.mjs\n"));
             }
             for (page, plan) in &server.plans {
                 if let Some(template) = server.templates.iter().find(|t| &t.path == page) {
@@ -12540,6 +12578,26 @@ fn warms(dist: &std::path::Path) -> bool {
 
 /// Whether a build's packaging says `key` of its delivery: `true` at `key`
 /// in `delivery.json` beside its assets, and nothing else.
+/// The pages whose module the packaging of the build in `dist` wrote, where
+/// it says it did: none in a development build.
+fn bundles_of(
+    dist: &std::path::Path,
+    artifacts: &std::path::Path,
+) -> std::collections::BTreeSet<String> {
+    if !delivery_says(dist, "bundled") {
+        return Default::default();
+    }
+    std::fs::read_dir(artifacts.join("bundles"))
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter_map(|e| {
+            let name = e.file_name();
+            name.to_str()?.strip_suffix(".mjs").map(str::to_string)
+        })
+        .collect()
+}
+
 fn delivery_says(dist: &std::path::Path, key: &str) -> bool {
     std::fs::read_to_string(dist.join("delivery.json"))
         .ok()
@@ -13252,7 +13310,7 @@ impl Delivery {
         };
         let mut paths = files_in(dist);
         paths.sort();
-        let mut modules: Vec<std::path::PathBuf> = ["handlers", "computed", "speculations"]
+        let mut modules: Vec<std::path::PathBuf> = ["handlers", "computed", "speculations", "bundles"]
             .iter()
             .flat_map(|d| files_in(&artifacts.join(d)))
             .collect();
@@ -17805,6 +17863,7 @@ public query Store(",
     // TRACK SEAM (device-store): a page that holds a value the device keeps,
     // served (ADR-0366).
     mod device_store;
+    mod page_bundle;
 
     // TRACK SEAM (store-search): the store's search page, served (W9).
     mod store_search;

@@ -380,6 +380,48 @@ let servedBuild = "";
 /** Whether its build warms (ADR-0399): the table's `#warm|1`. */
 let buildWarms = false;
 
+/** **Where this page's code is one module** (the page bundle's ADR), `null`
+ * where each piece of it is a module of its own. */
+let pageBundleAt = null;
+let pageBundleLoading = null;
+
+/** Whether this page's code comes from its one module: only where the
+ * decision authorised every handler on it, as a refused handler is never
+ * fetched (E7-L's order). Asked after the decision, and answered once. */
+let bundleUsable = null;
+function usesBundle() {
+  if (bundleUsable === null) {
+    bundleUsable =
+      pageBundleAt !== null &&
+      [...manifests].every(([template, list]) =>
+        list.every((p) => p.kind !== "event" || !p.value || verdictOf(nameOf(template, p), p).attach),
+      );
+  }
+  return bundleUsable && pageBundleAt !== null;
+}
+
+/** This page's one module, loaded with the first need of anything in it. A
+ * load that fails is not asked for again: each piece is asked for alone, as
+ * in a build with no bundle. */
+function pageBundle() {
+  pageBundleLoading ??= import(delivered(pageBundleAt)).catch((error) => {
+    pageBundleAt = null;
+    log.push(`the page's module was not loaded: ${error.message ?? error}`);
+    throw error;
+  });
+  return pageBundleLoading;
+}
+
+/** A piece of this page's code: from its one module where there is one and
+ * this is the piece's first try; else, or where that module fails, alone. */
+function pageCode(piece, url, attempt) {
+  if (attempt > 0 || !usesBundle()) return import(url);
+  return pageBundle().then(
+    (all) => all[piece],
+    () => import(url),
+  );
+}
+
 /** The delivery this runtime was asked for at (`?b=`, ADR-0399);
  * none for a development build. */
 const DELIVERY = new URL(import.meta.url).searchParams.get("b");
@@ -426,6 +468,8 @@ async function bootDecision() {
   servedBuild = lines.find((l) => l.startsWith("#build|"))?.slice("#build|".length) ?? "";
   // Whether the build warms: the table's word, never the document's.
   buildWarms = lines.includes("#warm|1");
+  // Where this page's code is one module: the table's word, as a build's is.
+  pageBundleAt = lines.find((l) => l.startsWith(`#bundle|${PAGE}|`))?.split("|")[2] ?? null;
   const page = lines.find((l) => l.startsWith(`#page|${PAGE}|`));
   if (page && know_document) {
     const [, , schema, scope] = page.split("|");
@@ -577,7 +621,7 @@ function loadHandler(identity) {
   const url = attempted(`/handler/${identity}.mjs`, attempt);
   // No deadline: the load is shared, and each press waits within its own
   // (ADR-0382; the first press's review).
-  const pending = import(url).then((module) => {
+  const pending = pageCode(`h_${identity}`, url, attempt).then((module) => {
     // What a load given up brings late is not used (ADR-0382).
     if (loaded.get(identity) === pending) {
       loaded.set(identity, module);
@@ -840,7 +884,7 @@ function speculations() {
   if (speculationModule) return speculationModule;
   const url = attempted(parts.speculation, speculationAttempts);
   // No deadline: each press waits within its own (`speculationsWithin`).
-  const loading = (speculationLoaded ? Promise.resolve(speculationLoaded) : import(url)).then(
+  const loading = (speculationLoaded ? Promise.resolve(speculationLoaded) : pageCode("speculation", url, speculationAttempts)).then(
     (module) => {
       // What a load given up brings late is not used (ADR-0382).
       if (speculationModule === loading) speculationLoaded = module;
@@ -2693,7 +2737,7 @@ function computedValues() {
   // wait for it, and a page's boot does, where a value the device keeps is
   // migrated by it; a slow load there is better waited for than failed.
   const url = attempted(parts.computed, computedAttempts);
-  computedModule = import(url).then(
+  computedModule = pageCode("computed", url, computedAttempts).then(
     (module) => {
       log.push(`loaded ${parts.computed}`);
       return module;
