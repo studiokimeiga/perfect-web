@@ -24,6 +24,7 @@ const repo = (...parts) => path.join(REPO, ...parts);
 const HOST_BINARY = path.join(process.env.CARGO_TARGET_DIR ?? repo("target"), "release/pw-dev-server");
 const SPIKE = repo("spikes/own-renderer");
 const VENDORED = repo("benchmarks/headtohead/todomvc");
+const ROWS = repo("benchmarks/headtohead/rows");
 const NEXT = repo("benchmarks/baselines/next-react");
 const SVELTEKIT = repo("benchmarks/baselines/sveltekit");
 const PLERIS_ENV = (k) => ({ PORT: String(slot(k)), PW_FEED_DATABASE_URL: "", PW_STORE_DATABASE_URL: "" });
@@ -42,6 +43,16 @@ const TODOMVC_STEPS = [
   { name: "filter", cond: "filter", arg: "Completed", run: "function" },
 ];
 const STORE_STEPS = [{ name: "add", cond: "count", arg: null, before: "function", run: "function" }];
+const ROWS_STEPS = [
+  { name: "create 1,000 rows", cond: "rows", arg: 1000, run: "function" },
+  { name: "update every 10th row", cond: "updated", arg: null, run: "function" },
+  { name: "select a row", cond: "selected", arg: 4, run: "function" },
+  { name: "swap two rows", cond: "secondRow", arg: null, before: "function", run: "function" },
+  { name: "remove a row", cond: "rows", arg: 999, run: "function" },
+  { name: "append 1,000 rows", cond: "rows", arg: 1999, run: "function" },
+  { name: "replace all rows", cond: "firstRow", arg: null, before: "function", run: "function" },
+  { name: "clear all rows", cond: "rows", arg: 0, run: "function" },
+];
 
 /** Each stack of each app as `APPS` holds it, but for its `server`, a function. */
 const STACKS = {
@@ -78,6 +89,41 @@ const STACKS = {
     compresses: "all",
     caches: true,
     build: { kind: "vendored", root: VENDORED, prefix: "/svelte/dist/", dir: "svelte/dist" },
+    standIn: true,
+  },
+  "rows/pleris": {
+    label: "Pleris",
+    who: "this project (examples/rows)",
+    version: "own renderer, this commit",
+    path: "/",
+    ready: "pw",
+    minifies: "runtime",
+    compresses: "all",
+    caches: true,
+    build: { kind: "pleris", dist: path.join(SPIKE, "dist-rows"), sources: path.join(SPIKE, "dist-rows/sources.json") },
+  },
+  "rows/react": {
+    label: "React",
+    who: "this project (benchmarks/headtohead/rows/react)",
+    version: "React from the Next.js baseline, esbuild",
+    path: "/react/dist/",
+    ready: "dom",
+    minifies: true,
+    compresses: "all",
+    caches: true,
+    build: { kind: "committed", root: ROWS, prefix: "/react/dist/", dir: "react/dist" },
+    standIn: true,
+  },
+  "rows/svelte": {
+    label: "Svelte",
+    who: "this project (benchmarks/headtohead/rows/svelte)",
+    version: "Svelte and Vite from the SvelteKit baseline",
+    path: "/svelte/dist/",
+    ready: "dom",
+    minifies: true,
+    compresses: "all",
+    caches: true,
+    build: { kind: "committed", root: ROWS, prefix: "/svelte/dist/", dir: "svelte/dist" },
     standIn: true,
   },
   "store/pleris": {
@@ -132,6 +178,21 @@ const SERVERS = {
     cwd: REPO,
     port: slot(2),
   },
+  "rows/pleris": { name: "pleris-rows", cmd: HOST_BINARY, args: ["dist-rows"], cwd: SPIKE, env: PLERIS_ENV(6), port: slot(6) },
+  "rows/react": {
+    name: "static-rows-react",
+    cmd: process.execPath,
+    args: [repo("benchmarks/headtohead/static-host.mjs"), "--port", String(slot(7)), "--mount", `/react/dist=${ROWS}/react/dist`],
+    cwd: REPO,
+    port: slot(7),
+  },
+  "rows/svelte": {
+    name: "static-rows-svelte",
+    cmd: process.execPath,
+    args: [repo("benchmarks/headtohead/static-host.mjs"), "--port", String(slot(8)), "--mount", `/svelte/dist=${ROWS}/svelte/dist`],
+    cwd: REPO,
+    port: slot(8),
+  },
   "store/pleris": { name: "pleris-store", cmd: HOST_BINARY, args: ["dist-baseline"], cwd: SPIKE, env: PLERIS_ENV(3), port: slot(3) },
   "store/next-react": {
     name: "next-store",
@@ -153,6 +214,7 @@ const SERVERS = {
 
 const APP_FACTS = {
   todomvc: { title: "TodoMVC", appSelector: ".new-todo", common: [/\/base\.js$/, /\/learn\.json$/], steps: TODOMVC_STEPS },
+  rows: { title: "a table of a thousand rows", appSelector: "#run", common: [], server: false, steps: ROWS_STEPS },
   store: { title: "the store (ADR-0120's three stores, one contract)", appSelector: "#menu", common: [], steps: STORE_STEPS },
 };
 
@@ -191,15 +253,17 @@ const described = (run) => ({ ...run, interactions: run.interactions.map(plain) 
 
 // --- APPS and target ---------------------------------------------------------------------
 
-test("the head-to-head measures TodoMVC on Pleris, React and Svelte, and the store on Pleris, Next.js and SvelteKit, in that order", () => {
-  assert.deepEqual(Object.keys(APPS), ["todomvc", "store"]);
+test("the head-to-head measures TodoMVC and the large list on Pleris, React and Svelte, and the store on Pleris, Next.js and SvelteKit, in that order", () => {
+  assert.deepEqual(Object.keys(APPS), ["todomvc", "rows", "store"]);
   assert.deepEqual(Object.keys(APPS.todomvc.stacks), ["pleris", "react", "svelte"]);
+  assert.deepEqual(Object.keys(APPS.rows.stacks), ["pleris", "react", "svelte"]);
   assert.deepEqual(Object.keys(APPS.store.stacks), ["pleris", "next-react", "sveltekit"]);
 });
 
 test("each app is held to its title, its page's selector, its common files, its interactions and its stacks' facts, exactly", () => {
   const expected = {
     todomvc: { ...APP_FACTS.todomvc, stacks: stacksOf("todomvc") },
+    rows: { ...APP_FACTS.rows, stacks: stacksOf("rows") },
     store: { ...APP_FACTS.store, stacks: stacksOf("store") },
   };
   assert.deepEqual(plainApps(APPS), expected);
@@ -229,6 +293,9 @@ test("target gives every page at localhost on the stack's own port, and every st
     `http://localhost:${slot(0)}/`,
     `http://localhost:${slot(1)}/react/dist/`,
     `http://localhost:${slot(2)}/svelte/dist/`,
+    `http://localhost:${slot(6)}/`,
+    `http://localhost:${slot(7)}/react/dist/`,
+    `http://localhost:${slot(8)}/svelte/dist/`,
     `http://localhost:${slot(3)}/StorePage.html`,
     `http://localhost:${slot(4)}/stores/blue-bottle`,
     `http://localhost:${slot(5)}/stores/blue-bottle`,
@@ -247,7 +314,7 @@ test("target refuses a stack the app does not run on, and an app it does not kno
 test("the ports are the PORT of the environment plus 220 and the stack's slot", () => {
   assert.deepEqual(
     Object.keys(SERVERS).map((key) => target(...key.split("/")).server.port),
-    [0, 1, 2, 3, 4, 5].map((k) => BASE + 220 + k),
+    [0, 1, 2, 6, 7, 8, 3, 4, 5].map((k) => BASE + 220 + k),
   );
 });
 
@@ -276,6 +343,9 @@ const urlsFrom = (base) => [
   `http://localhost:${base + 220}/`,
   `http://localhost:${base + 221}/react/dist/`,
   `http://localhost:${base + 222}/svelte/dist/`,
+  `http://localhost:${base + 226}/`,
+  `http://localhost:${base + 227}/react/dist/`,
+  `http://localhost:${base + 228}/svelte/dist/`,
   `http://localhost:${base + 223}/StorePage.html`,
   `http://localhost:${base + 224}/stores/blue-bottle`,
   `http://localhost:${base + 225}/stores/blue-bottle`,

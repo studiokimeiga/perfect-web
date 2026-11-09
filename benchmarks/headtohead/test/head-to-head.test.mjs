@@ -12,7 +12,7 @@ import { describe, parseArgs, readSections, settle, verdictsOf } from "../head-t
 import { REPO } from "../lib.mjs";
 
 const DEFAULTS = {
-  apps: ["todomvc", "store"],
+  apps: ["todomvc", "rows", "store"],
   engines: ["chromium", "firefox", "webkit"],
   runs: 7,
   conditions: ["cold", "warm"],

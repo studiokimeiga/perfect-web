@@ -70,11 +70,13 @@ def suite():
 
 
 def main():
+    import mutation_baseline  # keeps what each command says, for a red baseline
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(1))
     built, passed, failed = suite()
     print(f"baseline: {passed} passed, {failed} failed", flush=True)
     if not built or failed or not passed:
         print("FAIL: the unmutated baseline is not green; no mutant can mean anything")
+        mutation_baseline.explain()
         return 1
     survivors = 0
     for what, path, anchor, replacement in MUTANTS:

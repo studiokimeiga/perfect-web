@@ -16,9 +16,9 @@ class RendererContract(unittest.TestCase):
             cwd=ROOT, capture_output=True, text=True, timeout=60,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertRegex(result.stdout, r"(?m)^ℹ pass 4$")
+        self.assertRegex(result.stdout, r"(?m)^ℹ pass 7$")
         self.assertRegex(result.stdout, r"(?m)^ℹ fail 0$")
-        for label, count in (("tests", 4), ("cancelled", 0), ("skipped", 0), ("todo", 0)):
+        for label, count in (("tests", 7), ("cancelled", 0), ("skipped", 0), ("todo", 0)):
             self.assertRegex(result.stdout, rf"(?m)^ℹ {label} {count}$")
 
 

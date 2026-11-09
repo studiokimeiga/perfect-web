@@ -85,6 +85,7 @@ BUILD_SCRIPTS = (
     "baseline-store.sh",
     "guestbook.sh",
     "todomvc.sh",
+    "rows.sh",
 )
 SUITE = re.compile(r"playwright test")
 
