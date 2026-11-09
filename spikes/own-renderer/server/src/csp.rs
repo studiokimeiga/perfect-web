@@ -53,6 +53,8 @@ pub(crate) struct Needs {
     pub(crate) styles: BTreeSet<String>,
     /// An `<iframe>`: the page frames the deployment's payment provider.
     pub(crate) frames: bool,
+    /// A `data:` image in one of the build's own stylesheets.
+    pub(crate) data_images: bool,
 }
 
 impl Needs {
@@ -224,7 +226,14 @@ pub(crate) fn document_with(
     if needs.style_attributes {
         directives.push("style-src-attr 'unsafe-inline'".to_string());
     }
-    directives.push("img-src 'self'".to_string());
+    directives.push(
+        if needs.data_images {
+            "img-src 'self' data:"
+        } else {
+            "img-src 'self'"
+        }
+        .to_string(),
+    );
     directives.push("connect-src 'self'".to_string());
     if let (true, Some(provider)) = (needs.frames, &deployment.frames) {
         directives.push(format!("frame-src {provider}"));
@@ -383,6 +392,7 @@ mod tests {
         let needs = Needs {
             style_attributes: true,
             styles: ["@import \"/a.css\";".to_string()].into(),
+            data_images: false,
             frames: true,
         };
         let deployment = Deployment {

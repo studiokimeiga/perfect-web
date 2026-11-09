@@ -88,6 +88,7 @@ import 'just/page-bundle.just'
 import 'just/device-runtime.just'
 import 'just/decision-in-js.just'
 import 'just/inline-styles.just'
+import 'just/style-images.just'
 
 default:
     @just --list

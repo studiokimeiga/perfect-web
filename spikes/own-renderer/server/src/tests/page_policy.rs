@@ -296,3 +296,43 @@ fn the_host_writes_no_style_attribute() {
     }]);
     assert!(!needs.style_attributes, "{body}");
 }
+
+/// **A build's stylesheets may draw with their own `data:` images** (the
+/// stylesheets' images' ADR): what the build's files ask, and nothing a build
+/// that asks nothing is given.
+#[test]
+fn a_build_whose_stylesheets_draw_with_data_allows_those_images() {
+    for (css, allowed) in [
+        ("a{background:url(data:image/png;base64,AA)}", true),
+        ("a{background:url('data:image/svg+xml;utf8,<svg/>')}", true),
+        ("a{background:url( \"DATA:IMAGE/png;base64,AA\" )}", true),
+        ("a{background:url(i.png)}", false),
+        ("a{content:\"data:image/png\"}", false),
+        ("a{color:red}", false),
+    ] {
+        let dir = tempfile::tempdir().expect("a directory");
+        std::fs::write(dir.path().join("a.css"), css).expect("written");
+        assert_eq!(crate::stylesheets_draw_with_data(dir.path()), allowed, "{css}");
+    }
+    let dir = tempfile::tempdir().expect("a directory");
+    std::fs::write(dir.path().join("notes.txt"), "url(data:image/png)").expect("written");
+    assert!(!crate::stylesheets_draw_with_data(dir.path()));
+}
+
+#[test]
+fn a_policy_allows_data_images_only_where_a_build_needs_them() {
+    let policy = |data_images| {
+        csp::document(
+            "go()",
+            "",
+            &csp::Needs {
+                data_images,
+                ..csp::Needs::default()
+            },
+            &csp::Deployment::default(),
+        )
+    };
+    assert!(policy(true).contains("img-src 'self' data:;"), "{}", policy(true));
+    assert!(policy(false).contains("img-src 'self';"), "{}", policy(false));
+}
+

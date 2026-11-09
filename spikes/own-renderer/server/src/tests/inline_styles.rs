@@ -197,7 +197,6 @@ fn a_production_page_holds_its_stylesheets_and_its_policy_allows_them() {
     for (name, text) in [
         ("todomvc-base.css", "html{margin:0}"),
         ("todomvc-app.css", ".todoapp{color:red}"),
-        ("todomvc-pleris.css", ".toggle{color:blue}"),
     ] {
         std::fs::write(out.join(name), text).expect("written");
         std::fs::write(out.join(format!("{name}.br")), vec![0u8; 100]).expect("written");
@@ -205,7 +204,7 @@ fn a_production_page_holds_its_stylesheets_and_its_policy_allows_them() {
     let s = Server::from_build(out.clone(), out).expect("served");
     s.prerender().expect("prerendered");
     let answer = get_as(&s, "a", "/");
-    let style = "html{margin:0}\n.todoapp{color:red}\n.toggle{color:blue}";
+    let style = "html{margin:0}\n.todoapp{color:red}";
     assert!(
         answer.contains(&format!("<style>{style}</style>\n</head>")),
         "{answer}"

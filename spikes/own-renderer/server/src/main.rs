@@ -2133,6 +2133,7 @@ impl Server {
             needs.styles.insert(device::READING.to_string());
             needs.styles.insert(device::UNSCRIPTED.to_string());
         }
+        needs.data_images = stylesheets_draw_with_data(&dist);
         // TRACK SEAM (second-host): its pages numbered in its instance.
         let first_page = hosts::first_page(data.instance());
         // How its files are named on the wire (ADR-0399).
@@ -13338,6 +13339,30 @@ fn can_be_inlined(text: &str) -> bool {
                 .iter()
                 .any(|from| address.starts_with(from))
         })
+}
+
+/// **Whether a build's own stylesheets draw with `data:` images** (the
+/// stylesheets' images' ADR): a policy generated from the build allows what
+/// the build's files ask for, and `data:` has no address to fetch.
+fn stylesheets_draw_with_data(dist: &std::path::Path) -> bool {
+    std::fs::read_dir(dist)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|path| path.extension().is_some_and(|x| x == "css"))
+        .filter_map(|path| std::fs::read_to_string(path).ok())
+        .any(|css| draws_with_data(&css))
+}
+
+fn draws_with_data(css: &str) -> bool {
+    let css = css.to_ascii_lowercase();
+    css.match_indices("url(").any(|(at, _)| {
+        css[at + "url(".len()..]
+            .trim_start()
+            .trim_start_matches(['"', '\''])
+            .starts_with("data:image/")
+    })
 }
 
 /// How much of a page's stylesheets may be part of its document, as Brotli
