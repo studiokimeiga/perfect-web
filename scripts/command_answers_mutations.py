@@ -171,8 +171,8 @@ MUTANTS = [
         "the handler is given the whole answer",
         "browser",
         RUNTIME,
-        "            return answer.result;\n",
-        "            return answer;\n",
+        "        return answer.result;\n",
+        "        return answer;\n",
     ),
 ]
 

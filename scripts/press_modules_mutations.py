@@ -49,8 +49,8 @@ MUTANTS = [
     (
         "a handler's module is waited for without a deadline",
         RUNTIME,
-        "          module = await within(loadHandler(part.value), `the handler ${part.value}`);\n",
-        "          module = await loadHandler(part.value);\n",
+        "      module = await within(loadHandler(part.value), `the handler ${part.value}`);\n",
+        "      module = await loadHandler(part.value);\n",
     ),
     (
         "the speculation module is waited for without a deadline",

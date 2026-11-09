@@ -39,7 +39,7 @@ MUTANTS = [
     (
         "a handler's navigation after its commit loads its page whole",
         RUNTIME,
-        '  if (PW_SERVER && parts.layout) return softNavigate(url, "push", mine);\n',
+        '  if (parts.layout) return softNavigate(url, "push", mine);\n',
         "",
     ),
     (
@@ -75,10 +75,8 @@ MUTANTS = [
     (
         "the old runtime goes on after handing the page over",
         RUNTIME,
-        # Re-anchored by ADR-0399 and its review: what the old runtime's
-        # renderer holds is let go after it.
-        "  life.abort();\n  // What its renderer holds let go: this module stays in the module map\n",
-        "  // What its renderer holds let go: this module stays in the module map\n",
+        "  life.abort();\n  // At this runtime's delivery, where it has one (ADR-0399).\n",
+        "  // At this runtime's delivery, where it has one (ADR-0399).\n",
     ),
     (
         "what a leaving page is told is applied",

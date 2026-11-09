@@ -245,8 +245,8 @@ MUTANTS = [
         "the browser reads and sets a handler's signal by its own name",
         "browser",
         RUNTIME,
-        "      const instance = (name) => instances[name] ?? name;\n",
-        "      const instance = (name) => name;\n",
+        "  const instance = (name) => instances[name] ?? name;\n",
+        "  const instance = (name) => name;\n",
     ),
     (
         "a block's instances go on when it shows another arm",

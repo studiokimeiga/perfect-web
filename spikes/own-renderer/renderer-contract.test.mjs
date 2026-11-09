@@ -105,42 +105,55 @@ test("a failed rollback load leaves neither owned ID pending", async () => {
   assert.equal(drawn.length, 0);
 });
 
-function rowsChanged() {
-  return vm.runInNewContext(`${source("function rowsOfText(html) {", "// --- end of which rows changed")}\nrowsChanged`);
+/** The two pure questions a list's rows are put in order by. */
+function rowOrder() {
+  return vm.runInNewContext(`${source("function placesOf(a, b) {", "// --- end of which rows changed")}\n({ placesOf, staying })`);
 }
 
-const row = (key, inner) => `<!--pw:s${key}-->${inner}<!--pw:e${key}-->`;
+const keyed = (keys) => keys.map((key) => ({ key }));
 
-test("two renders of a block differ by the rows that changed", () => {
-  const changed = rowsChanged();
-  const before = `<ul>${row("7@b0", "a")}${row("7@b1", "b")}${row("7@b2", "c")}</ul>`;
-  const now = `<ul>${row("7@b0", "a")}${row("7@b1", "B")}${row("7@b2", "c")}</ul>`;
-  assert.deepEqual([...changed(before, now)].map((r) => [...r]), [["7@b1", row("7@b1", "B")]]);
-  assert.equal(changed(before, before).length, 0);
+test("each row of a render is at its place in the last, or new", () => {
+  const { placesOf } = rowOrder();
+  assert.deepEqual([...placesOf(keyed(["a", "b", "c"]), keyed(["c", "x", "a"]))], [2, -1, 0]);
+  assert.deepEqual([...placesOf([], keyed(["a"]))], [-1]);
 });
 
-test("a row added, gone or moved, or a change around them, is no change of rows", () => {
-  const changed = rowsChanged();
-  const before = `<ul>${row("7@b0", "a")}${row("7@b1", "b")}</ul>`;
-  assert.equal(changed(before, `<ul>${row("7@b0", "a")}</ul>`), null, "gone");
-  assert.equal(changed(before, `<ul>${row("7@b0", "a")}${row("7@b1", "b")}${row("7@b2", "c")}</ul>`), null, "added");
-  assert.equal(changed(before, `<ul>${row("7@b1", "b")}${row("7@b0", "a")}</ul>`), null, "moved");
-  assert.equal(changed(before, `<ol>${row("7@b0", "a")}${row("7@b1", "b")}</ol>`), null, "around them");
-  assert.equal(changed(`<ul>${row("7@b0", "a")}</ul>X`, `<ul>${row("7@b0", "a")}</ul>Y`), null, "after them");
-  assert.equal(changed(row("7@b0", "a"), row("7@b0", "a") + row("7@b1", "b")), null, "added, with nothing around them");
+/** The longest run of `places` that increases, by trying them all. */
+function longestRun(places) {
+  const best = places.map(() => 1);
+  let most = 0;
+  places.forEach((v, i) => {
+    if (v < 0) return;
+    for (let j = 0; j < i; j++) if (places[j] >= 0 && places[j] < v) best[i] = Math.max(best[i], best[j] + 1);
+    most = Math.max(most, best[i]);
+  });
+  return most;
+}
+
+test("as many rows as can stay stay, and those that stay are in order", () => {
+  const { staying } = rowOrder();
+  // A seeded walk: each list a shuffle of the last's places, some rows new.
+  let seed = 7;
+  const next = (n) => (seed = (seed * 16807) % 2147483647) % n;
+  for (let round = 0; round < 500; round++) {
+    const size = 1 + next(40);
+    const places = Array.from({ length: size }, (_, i) => i);
+    for (let i = size - 1; i > 0; i--) {
+      const j = next(i + 1);
+      [places[i], places[j]] = [places[j], places[i]];
+    }
+    for (let i = 0; i < size; i++) if (next(5) === 0) places[i] = -1;
+    const still = [...staying(places)].sort((a, b) => a - b);
+    assert.equal(still.length, longestRun(places), JSON.stringify(places));
+    for (const i of still) assert.ok(places[i] >= 0, "a new row does not stay");
+    for (let k = 1; k < still.length; k++) assert.ok(places[still[k - 1]] < places[still[k]], JSON.stringify(places));
+  }
 });
 
-test("an anchor that is not closed is no row", () => {
-  const changed = rowsChanged();
-  assert.equal(changed("<!--pw:s7@b0-->a", "<!--pw:s7@b0-->b"), null);
-  assert.equal(changed(row("7@b0", "a"), "<!--pw:s7@b0-->b"), null);
-  assert.equal(changed("<!--pw:s7@b0-->a", "<!--pw:s7@b0-->a"), null, "however alike");
-});
-
-test("a row within a row is the outer row's", () => {
-  const changed = rowsChanged();
-  const before = row("7@b0", `x${row("9@b5", "p")}`);
-  const now = row("7@b0", `x${row("9@b5", "q")}`);
-  assert.deepEqual([...changed(before, now)].map((r) => r[0]), ["7@b0"]);
+test("a list with nothing in common has nothing that stays", () => {
+  const { staying } = rowOrder();
+  assert.equal(staying([-1, -1, -1]).size, 0);
+  assert.equal(staying([]).size, 0);
+  assert.deepEqual([...staying([0, 1, 2])].sort(), [0, 1, 2]);
 });
 
