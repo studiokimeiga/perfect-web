@@ -312,7 +312,11 @@ fn a_build_whose_stylesheets_draw_with_data_allows_those_images() {
     ] {
         let dir = tempfile::tempdir().expect("a directory");
         std::fs::write(dir.path().join("a.css"), css).expect("written");
-        assert_eq!(crate::stylesheets_draw_with_data(dir.path()), allowed, "{css}");
+        assert_eq!(
+            crate::stylesheets_draw_with_data(dir.path()),
+            allowed,
+            "{css}"
+        );
     }
     let dir = tempfile::tempdir().expect("a directory");
     std::fs::write(dir.path().join("notes.txt"), "url(data:image/png)").expect("written");
@@ -332,7 +336,14 @@ fn a_policy_allows_data_images_only_where_a_build_needs_them() {
             &csp::Deployment::default(),
         )
     };
-    assert!(policy(true).contains("img-src 'self' data:;"), "{}", policy(true));
-    assert!(policy(false).contains("img-src 'self';"), "{}", policy(false));
+    assert!(
+        policy(true).contains("img-src 'self' data:;"),
+        "{}",
+        policy(true)
+    );
+    assert!(
+        policy(false).contains("img-src 'self';"),
+        "{}",
+        policy(false)
+    );
 }
-

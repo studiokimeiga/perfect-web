@@ -40,7 +40,10 @@ fn at_version(delivery: &Delivery, document: &str) -> String {
 fn a_pages_stylesheets_small_together_are_in_its_head_in_their_order() {
     let (_dir, delivery) = delivery(
         true,
-        &[("a.css", "a{color:red}", 100), ("b.css", "b{color:blue}", 100)],
+        &[
+            ("a.css", "a{color:red}", 100),
+            ("b.css", "b{color:blue}", 100),
+        ],
     );
     let document = at_version(&delivery, &page(&format!("{LINK_A}{LINK_B}<main></main>")));
     let (inlined, style) = delivery.styles_inline(document);
@@ -97,17 +100,17 @@ fn a_build_that_does_not_say_so_keeps_its_links() {
 fn one_stylesheet_that_cannot_move_keeps_them_all() {
     for (why, text) in [
         ("an import", "@import \"x.css\";a{}"),
-        ("an import, as the sheet might write it", "@IMPORT url(x.css);a{}"),
+        (
+            "an import, as the sheet might write it",
+            "@IMPORT url(x.css);a{}",
+        ),
         ("a namespace", "@namespace svg url(http://x);a{}"),
         ("a relative image", "a{background:url(i.png)}"),
         ("a quoted relative image", "a{background:url( 'i.png' )}"),
         ("the end of a style element", "a{content:\"</style>\"}"),
         ("that end, as HTML also reads it", "a{content:\"</STYLE \"}"),
     ] {
-        let (_dir, delivery) = delivery(
-            true,
-            &[("a.css", text, 100), ("b.css", "b{}", 100)],
-        );
+        let (_dir, delivery) = delivery(true, &[("a.css", text, 100), ("b.css", "b{}", 100)]);
         let document = at_version(&delivery, &page(&format!("{LINK_A}{LINK_B}")));
         assert_eq!(
             delivery.styles_inline(document.clone()),
@@ -156,7 +159,9 @@ fn a_link_in_the_head_keeps_its_place_among_the_heads_styles() {
     let (_dir, delivery) = delivery(true, &[("a.css", "a{}", 100)]);
     let document = at_version(
         &delivery,
-        &format!("<head>\n<title>t</title>\n{LINK_A}<style>own{{}}</style>\n</head>\n<body></body>"),
+        &format!(
+            "<head>\n<title>t</title>\n{LINK_A}<style>own{{}}</style>\n</head>\n<body></body>"
+        ),
     );
     let (inlined, style) = delivery.styles_inline(document);
     assert_eq!(style.as_deref(), Some("a{}"));
@@ -183,7 +188,10 @@ fn a_style_of_the_pages_own_after_them_keeps_its_place() {
     let document = at_version(&delivery, &page(&format!("{LINK_A}{own}")));
     let (inlined, style) = delivery.styles_inline(document);
     assert_eq!(style.as_deref(), Some("a{}"));
-    assert!(inlined.contains(&format!("<style>a{{}}</style>\n</head>\n<body>\n{own}")), "{inlined}");
+    assert!(
+        inlined.contains(&format!("<style>a{{}}</style>\n</head>\n<body>\n{own}")),
+        "{inlined}"
+    );
 }
 
 #[test]

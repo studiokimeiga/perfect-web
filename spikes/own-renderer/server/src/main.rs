@@ -11907,7 +11907,15 @@ fn stream_open(
     document: u64,
     since: u64,
 ) {
-    stream_held(server, stream, session, fresh, document, since, server.stream_hold);
+    stream_held(
+        server,
+        stream,
+        session,
+        fresh,
+        document,
+        since,
+        server.stream_hold,
+    );
 }
 
 /// [`stream_open`], held `hold` when nothing happens.
@@ -12153,7 +12161,11 @@ fn stream_frames(server: &Server, stream: &mut Conn, session: &str, fresh: bool,
         .flatten();
     let long = held_long.is_some();
     if _query.split('&').any(|p| p == "mode=stream") {
-        let hold = if long { server.long_hold } else { server.stream_hold };
+        let hold = if long {
+            server.long_hold
+        } else {
+            server.stream_hold
+        };
         stream_held(server, stream, session, fresh, document, since, hold);
         return;
     }
@@ -12168,7 +12180,12 @@ fn stream_frames(server: &Server, stream: &mut Conn, session: &str, fresh: bool,
     // when the table is woken (a frame pushed, a cut-off) or a slice has
     // passed (ADR-0399), and ends the hold where its page has gone, with no
     // answer: no one is there to read one.
-    let until = opened + if long { server.long_hold } else { server.poll_hold };
+    let until = opened
+        + if long {
+            server.long_hold
+        } else {
+            server.poll_hold
+        };
     let mut tried = opened;
     loop {
         if gone(stream) {
@@ -13643,19 +13660,17 @@ impl Delivery {
         let (Some(device), full) = (self.device_source(), self.runtime_source()) else {
             return document;
         };
-        document
-            .replacen(&full, &device, 1)
-            .replacen(
-                &format!(
-                    "<link rel=\"modulepreload\" href=\"{}\">",
-                    self.named("/pw-runtime.mjs")
-                ),
-                &format!(
-                    "<link rel=\"modulepreload\" href=\"{}\">",
-                    self.named("/pw-runtime-device.mjs")
-                ),
-                1,
-            )
+        document.replacen(&full, &device, 1).replacen(
+            &format!(
+                "<link rel=\"modulepreload\" href=\"{}\">",
+                self.named("/pw-runtime.mjs")
+            ),
+            &format!(
+                "<link rel=\"modulepreload\" href=\"{}\">",
+                self.named("/pw-runtime-device.mjs")
+            ),
+            1,
+        )
     }
 
     /// The script that starts the runtime ([`RUNTIME`]).

@@ -278,7 +278,11 @@ fn a_stream_held_long_ends_before_its_queue_fills() {
         s.pending.wake();
         let _ = holding.join();
     });
-    assert!(begun.elapsed() < Duration::from_secs(5), "{:?}", begun.elapsed());
+    assert!(
+        begun.elapsed() < Duration::from_secs(5),
+        "{:?}",
+        begun.elapsed()
+    );
     let queue = s.pending.lock().expect("pending");
     assert!(!queue[&doc].behind, "not told to reload");
 }
@@ -323,11 +327,7 @@ fn a_held_stream_keeps_its_page_live() {
 
 /// How long a hold of [`HOLD`] lasted when its page went away
 /// `after` it began, `hold` running it on the host's end of the connection.
-fn held_after_gone(
-    hold: impl FnOnce(Conn) + Send,
-    page: TcpStream,
-    held: Conn,
-) -> Duration {
+fn held_after_gone(hold: impl FnOnce(Conn) + Send, page: TcpStream, held: Conn) -> Duration {
     std::thread::scope(|scope| {
         let begun = Instant::now();
         let holding = scope.spawn(move || hold(held));
