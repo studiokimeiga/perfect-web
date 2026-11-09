@@ -52,7 +52,7 @@ const STACKS = {
     path: "/",
     ready: "pw",
     minifies: "runtime",
-    compresses: "root-assets",
+    compresses: "all",
     caches: true,
     build: { kind: "pleris", dist: path.join(SPIKE, "dist-todomvc"), sources: path.join(SPIKE, "dist-todomvc/sources.json") },
   },
