@@ -2756,6 +2756,13 @@ function morphRows(block, rows, inserted) {
   for (const [start, end, text] of found) {
     morphChildren(start.parentNode, between(start, end), parseInstance(text), end.nextSibling, inserted);
   }
+  // A box in a row left alone shows what its rendering says, as morphing the
+  // whole block makes it. Only a box that differs from its attribute matches.
+  for (const box of block.start.parentNode.querySelectorAll("input:checked:not(:default),input:not(:checked):default")) {
+    const after = block.start.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING;
+    const before = block.end.compareDocumentPosition(box) & Node.DOCUMENT_POSITION_PRECEDING;
+    if (after && before && box.checked !== box.hasAttribute("checked")) box.checked = !box.checked;
+  }
   return true;
 }
 

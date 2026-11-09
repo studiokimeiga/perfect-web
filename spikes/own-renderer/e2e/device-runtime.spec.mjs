@@ -103,6 +103,45 @@ test("a press that changes one row parses that row alone", async ({ page }) => {
   expect(parsed.includes("third of three")).toBe(false);
 });
 
+test("a box in a row a render left alone shows what its row says", async ({ page }) => {
+  await open(page);
+  for (const title of ["first", "second", "third"]) await add(page, title);
+  await expect(items(page)).toHaveCount(3);
+  await items(page).nth(1).locator(".toggle").check();
+  await expect(items(page).nth(1)).toHaveClass(/completed/);
+  // What nothing the page rendered says, as a press whose handler changed
+  // nothing would leave it.
+  await items(page).nth(0).locator(".toggle").evaluate((box) => (box.checked = true));
+  await items(page).nth(1).locator(".toggle").evaluate((box) => (box.checked = false));
+  await items(page).nth(2).locator(".toggle").check();
+  await expect(items(page).nth(2)).toHaveClass(/completed/);
+  await expect(items(page).nth(0).locator(".toggle")).not.toBeChecked();
+  await expect(items(page).nth(1).locator(".toggle")).toBeChecked();
+});
+
+test("a box outside the block a render morphed keeps what it was given", async ({ page }) => {
+  await open(page);
+  await add(page, "one row");
+  await expect(items(page)).toHaveCount(1);
+  // Either side of the block, in its parent: no render of the block writes them.
+  await page.evaluate(() => {
+    const list = document.querySelector(".todo-list");
+    for (const [id, place] of [["before", "prepend"], ["beside", "append"]]) {
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.id = id;
+      list[place](box);
+      box.checked = true;
+    }
+  });
+  await add(page, "another row");
+  await expect(items(page)).toHaveCount(2);
+  await items(page).nth(0).locator(".toggle").check();
+  await expect(items(page).nth(0)).toHaveClass(/completed/);
+  await expect(page.locator("#before")).toBeChecked();
+  await expect(page.locator("#beside")).toBeChecked();
+});
+
 test("a handler its table names runs, on the decision the page made", async ({ page }) => {
   await open(page);
   expect((await logged(page)).filter((line) => line.startsWith("refused"))).toEqual([]);
