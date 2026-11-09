@@ -294,6 +294,11 @@ an unfinished callback becomes an observed mismatch: KILLED by scripts.tests.tes
             ],
         )
 
+    def test_a_verdict_that_says_only_killed_is_read(self):
+        # A producer's script says `KILLED` and no more (the session reader's).
+        said = AGREES.replace("[server]: KILLED (1 of 4 tests fail)", "[server]: KILLED")
+        self.assertEqual(self.found(said), {})
+
     def test_its_killed_are_the_verdicts_that_say_killed(self):
         evidence = AGREES.replace("[server]: KILLED (1 of 4 tests fail)", "[server]: SURVIVED")
         self.assertEqual(

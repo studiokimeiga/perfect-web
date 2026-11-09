@@ -47,9 +47,10 @@ COUNT = re.compile(r"^(\d+) of (\d+) mutants killed")
 # verdicts the scripts print). A kill may say what killed it, as the guide's
 # script says (`KILLED by the checker (PW5048)`, ADR-0343): until train-10's
 # landing such a verdict was read as none, and the guide's evidence, once
-# current, named none of its 74 mutants.
+# current, named none of its 74 mutants. A producer's script says `KILLED` and
+# no more, as the session reader's does.
 VERDICT = re.compile(
-    r"^(.*): (KILLED(?: by [^()]+)? \(.*\)|SURVIVED|DID NOT BUILD.*|ANCHOR NOT FOUND EXACTLY ONCE in .+)$"
+    r"^(.*): (KILLED(?: by [^()]+ \(.*\)| \(.*\))?|SURVIVED|DID NOT BUILD.*|ANCHOR NOT FOUND EXACTLY ONCE in .+)$"
 )
 # A suite's tag beside a mutant's description: `[core]`, `[server]`.
 TAG = re.compile(r"\[[\w./ -]*\]")
