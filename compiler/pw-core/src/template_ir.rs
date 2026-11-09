@@ -621,6 +621,9 @@ struct Indexer {
     layout: Option<(usize, DeclId)>,
     /// Where its `<slot />` was written: the page's markup goes there.
     slot: Option<Slot>,
+    /// The tag of each element around the node being lowered, outermost
+    /// first: what its text is taken to be ([`as_shown`]).
+    parents: Vec<String>,
 }
 
 /// **Where a layout's `<slot />` is** (ADR-0303): the index in the
@@ -2266,9 +2269,52 @@ fn inputs_of(body: &Body, e: ExprId, ctx: &Lowering<'_>) -> Vec<(String, String)
     out
 }
 
+/// **A template's text as a page holds it**: the way its source is laid out is
+/// not part of the page. A run of white space that holds a line break is one
+/// space, as a browser shows it; and where nothing between two tags can ever
+/// be shown, in a table's structure, a `<select>` or the head, it is nothing.
+/// Inside `<pre>`, `<textarea>`, `<script>` and `<style>` every character is
+/// content, and is left as it is written.
+fn as_shown<'t>(text: &'t str, parents: &[String]) -> std::borrow::Cow<'t, str> {
+    use std::borrow::Cow;
+    const IS_CONTENT: [&str; 4] = ["pre", "textarea", "script", "style"];
+    const SHOWS_NO_TEXT: [&str; 11] = [
+        "table", "thead", "tbody", "tfoot", "tr", "colgroup", "select", "optgroup", "datalist", "head",
+        "html",
+    ];
+    let space = |c: char| matches!(c, ' ' | '\t' | '\n' | '\r' | '\u{c}');
+    if parents.iter().any(|p| IS_CONTENT.contains(&p.as_str())) || !text.contains('\n') {
+        return Cow::Borrowed(text);
+    }
+    if text.chars().all(space) && parents.last().is_some_and(|p| SHOWS_NO_TEXT.contains(&p.as_str())) {
+        return Cow::Borrowed("");
+    }
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(start) = rest.find(space) {
+        out.push_str(&rest[..start]);
+        let after = &rest[start..];
+        let end = after.find(|c: char| !space(c)).unwrap_or(after.len());
+        let run = &after[..end];
+        if run.contains('\n') {
+            out.push(' ');
+        } else {
+            out.push_str(run);
+        }
+        rest = &after[end..];
+    }
+    out.push_str(rest);
+    Cow::Owned(out)
+}
+
 fn lower_node(body: &Body, id: NodeId, ctx: &Lowering<'_>, ix: &mut Indexer, out: &mut Vec<Chunk>) {
     match body.node(id) {
-        Node::Text(t) => out.push(Chunk::Static(escape_static_text(t))),
+        Node::Text(t) => {
+            let text = as_shown(t, &ix.parents);
+            if !text.is_empty() {
+                out.push(Chunk::Static(escape_static_text(&text)));
+            }
+        }
         Node::Interpolation(e) => out.push(Chunk::Dynamic(match ctx.path(body, *e) {
             Some(value) => {
                 let value = ctx.read(value);
@@ -2798,9 +2844,11 @@ fn lower_element(
         }
     }
     ix.elements += 1;
+    ix.parents.push(tag.to_string());
     for c in children {
         lower_node(body, *c, ctx, ix, out);
     }
+    ix.parents.pop();
     ix.elements -= 1;
     // A closing tag for everything that is not void, whether or not the source
     // wrote `/>`. A first version branched on `self_closing` and produced the
