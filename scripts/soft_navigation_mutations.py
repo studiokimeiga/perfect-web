@@ -39,7 +39,7 @@ MUTANTS = [
     (
         "a handler's navigation after its commit loads its page whole",
         RUNTIME,
-        '  if (parts.layout) return softNavigate(url, "push", mine);\n',
+        '  if (PW_SERVER && parts.layout) return softNavigate(url, "push", mine);\n',
         "",
     ),
     (

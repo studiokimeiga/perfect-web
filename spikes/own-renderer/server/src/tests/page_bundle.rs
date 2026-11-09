@@ -165,3 +165,42 @@ fn the_policy_allows_each_runtime_a_build_starts() {
     assert_eq!(one.matches("sha256-").count(), 1, "{one}");
     assert_eq!(two.matches("sha256-").count(), 2, "{two}");
 }
+
+#[test]
+fn a_delivery_that_says_so_with_no_file_has_no_device_runtime() {
+    let dir = tempfile::tempdir().expect("a directory");
+    std::fs::write(
+        dir.path().join("delivery.json"),
+        "{\"versioned\": true, \"device\": true}\n",
+    )
+    .expect("written");
+    let delivery = Delivery::of(dir.path(), dir.path(), "b1");
+    assert_eq!(delivery.device_source(), None);
+}
+
+/// A page that a layout holds, and that no reader decides.
+const WITH_LAYOUT: &str = "module t\n\n\
+opaque type InteractionId = String\n\n\
+command send(text: String) -> Result<Int, String>\n    requires Anyone\n    \
+idempotent_by InteractionId\n{\n    Ok(1)\n}\n\n\
+layout Shell {\n    view {\n        <p>a</p>\n        <main><slot /></main>\n    }\n}\n\n\
+page P() {\n    route \"/p\"\n    layout Shell\n\n    signal count: Int = 0\n\n    \
+view {\n        <title>P</title>\n        \
+<button type=\"button\" on:press={() => count = count + 1}>{count}</button>\n    }\n}\n";
+
+/// **A page with a layout keeps the whole runtime**: it navigates within the
+/// layout, and its navigation is what the device's runtime does not have.
+#[test]
+fn a_page_with_a_layout_starts_the_whole_runtime() {
+    let mut s = super::device_store::served(WITH_LAYOUT);
+    let (_dir, delivery) = device_delivery();
+    s.server.delivery = delivery;
+    s.prerender().expect("prerendered");
+    let answer = get_as(&s, "a", "/p");
+    assert!(answer.starts_with("HTTP/1.1 200"), "{answer}");
+    assert!(
+        answer.contains(&format!("<script>{}</script>", s.delivery.runtime_source())),
+        "{answer}"
+    );
+    assert!(!answer.contains("pw-runtime-device.mjs"), "{answer}");
+}

@@ -478,7 +478,7 @@ const deviceDecider = (lines, page) => {
         ? 2
         : !/^\+?0*1$/.test(abi)
           ? 3
-          : !known.has(`${handler ?? ""}|${capture}`)
+          : !known.has(`${handler}|${capture}`)
             ? 4
             : told && scope !== "public" && scope !== told[3]
               ? 5

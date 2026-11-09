@@ -85,6 +85,7 @@ import 'just/session-reader.just'
 import 'just/site.just'
 import 'just/browser-renderer.just'
 import 'just/page-bundle.just'
+import 'just/device-runtime.just'
 
 default:
     @just --list

@@ -102,8 +102,8 @@ MUTANTS = [
         "a build does not say it is bundled",
         "packaging",
         PACKAGING,
-        "export const DELIVERY = { warm: true, versioned: true, bundled: true };\n",
-        "export const DELIVERY = { warm: true, versioned: true };\n",
+        "export const DELIVERY = { warm: true, versioned: true, bundled: true, device: true };\n",
+        "export const DELIVERY = { warm: true, versioned: true, device: true };\n",
     ),
     (
         "a packaging run bundles nothing",

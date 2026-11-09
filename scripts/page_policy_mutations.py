@@ -153,8 +153,8 @@ MUTANTS = [
         "the script that starts the runtime is not hashed",
         SERVER_TESTS,
         CSP,
-        "            \"script-src 'self' 'wasm-unsafe-eval' {}\",\n            sha256_source(script)\n",
-        "            \"script-src 'self' 'wasm-unsafe-eval' {}\",\n            sha256_source(\"\")\n",
+        "                .map(|s| sha256_source(s))\n",
+        "                .map(|_| sha256_source(\"\"))\n",
     ),
     (
         "the runtime's WebAssembly is refused",
