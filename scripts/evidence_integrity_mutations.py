@@ -210,11 +210,18 @@ MUTANTS = [
         "            for s in []:\n                if s not in counted:\n",
     ),
     (
+        "a verdict that says only KILLED is read as none",
+        "plan",
+        COUNTS,
+        r'    r"^(.*): (KILLED(?: by [^()]+ \(.*\)| \(.*\))?|SURVIVED' + "|",
+        r'    r"^(.*): (KILLED(?: by [^()]+ \(.*\)| \(.*\))|SURVIVED' + "|",
+    ),
+    (
         "a verdict that says what killed its mutant is read as none",
         "plan",
         COUNTS,
-        r'    r"^(.*): (KILLED(?: by [^()]+)? \(.*\)|SURVIVED' + "|",
-        r'    r"^(.*): (KILLED \(.*\)|SURVIVED' + "|",
+        r'    r"^(.*): (KILLED(?: by [^()]+ \(.*\)| \(.*\))?|SURVIVED' + "|",
+        r'    r"^(.*): (KILLED(?: \(.*\))?|SURVIVED' + "|",
     ),
     (
         "a suite's tag is taken as part of a mutant's name",
