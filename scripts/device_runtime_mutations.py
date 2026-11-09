@@ -182,7 +182,7 @@ MUTANTS = [
     ("the device's runtime is not gzipped", "packaging", PACKAGING,
      '  await writeFile(file + ".gz", gzipSync(Buffer.from(code), { level: 9, mtime: 0 }));\n', ""),
     ("a build does not say it has one", "packaging", PACKAGING,
-     "bundled: true, device: true }", "bundled: true, device: false }"),
+     "bundled: true, device: true, inline: true }", "bundled: true, device: false, inline: true }"),
     ("a build says the runtime it packed, not what from", "packaging", PACKAGING,
      '  const runtime = await readFile(path.join(directory, "pw-runtime.mjs")).catch(() => null);\n'
      "  for (const asset of assets) await packAsset(directory, asset);\n",

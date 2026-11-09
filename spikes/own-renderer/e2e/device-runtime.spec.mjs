@@ -53,6 +53,19 @@ test("a page that talks to no server asks for the device's runtime, its code and
   expect(code).toEqual(["/", "/bundle/todomvc.app.Todos~ui.mjs", "/pw-handlers", "/pw-runtime-device.mjs"]);
 });
 
+test("its stylesheets are part of its document: it asks for none, and they apply under its policy", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__refused = [];
+    document.addEventListener("securitypolicyviolation", (e) => window.__refused.push(e.violatedDirective));
+  });
+  const asked = watch(page);
+  await open(page);
+  expect([...asked].filter((p) => p.endsWith(".css"))).toEqual([]);
+  const background = await page.evaluate(() => getComputedStyle(document.querySelector(".todoapp")).backgroundColor);
+  expect(background).toBe("rgb(255, 255, 255)");
+  expect(await page.evaluate(() => window.__refused)).toEqual([]);
+});
+
 test("a handler its table names runs, on the decision the page made", async ({ page }) => {
   await open(page);
   expect((await logged(page)).filter((line) => line.startsWith("refused"))).toEqual([]);

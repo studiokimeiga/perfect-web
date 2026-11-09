@@ -68,7 +68,7 @@ async function packAsset(directory, entry) {
  * reads this file beside the assets. A development build has none: it warms
  * nothing (E7-L), and names each file as it is.
  */
-export const DELIVERY = { warm: true, versioned: true, bundled: true, device: true };
+export const DELIVERY = { warm: true, versioned: true, bundled: true, device: true, inline: true };
 
 /**
  * **The compiled modules a page loads** (ADR-0399): its

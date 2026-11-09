@@ -103,6 +103,7 @@ test("a production build says its pages warm what their presses need", async () 
       versioned: true,
       bundled: true,
       device: true,
+      inline: true,
       runtime: createHash("sha256").update("export const a = 1;\n").digest("hex"),
     });
     await assert.rejects(readFile(path.join(dir, "delivery.json.br")), { code: "ENOENT" });

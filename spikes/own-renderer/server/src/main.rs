@@ -7276,7 +7276,12 @@ impl Server {
             } else {
                 document
             };
-            let (build, delivery, policy) = self.document_says();
+            let (document, style) = self.delivery.styles_inline(document);
+            let (build, delivery, _) = self.document_says();
+            let policy = format!(
+                "content-security-policy: {}\r\n",
+                self.policy_allowing(style)
+            );
             let document =
                 prerender::Prerendered::of(document, format!("{build}{delivery}{policy}"))
                     .map_err(|why| format!("`{page}` cannot be prerendered: {why}"))?;
@@ -7896,6 +7901,18 @@ impl Server {
     /// provider and identity provider, where it has them at origins of
     /// their own.
     fn policy(&self) -> String {
+        self.policy_for(&self.needs)
+    }
+
+    /// The policy of a document holding `style` as well (the inline styles'
+    /// ADR).
+    fn policy_allowing(&self, style: Option<String>) -> String {
+        let mut needs = self.needs.clone();
+        needs.styles.extend(style);
+        self.policy_for(&needs)
+    }
+
+    fn policy_for(&self, needs: &csp::Needs) -> String {
         let deployment = csp::Deployment {
             frames: self.payments.get().map(|p| p.provider.clone()),
             forms: self.identity.sign_in_origin(),
@@ -7906,7 +7923,7 @@ impl Server {
         let device = self.delivery.device_source();
         let mut scripts = vec![runtime.as_str()];
         scripts.extend(device.as_deref());
-        csp::document_with(&scripts, self.data.style(), &self.needs, &deployment)
+        csp::document_with(&scripts, self.data.style(), needs, &deployment)
     }
 
     /// **What every document says of itself**, each a header's line: the
@@ -13292,7 +13309,40 @@ struct Delivery {
     /// Whether this build has a runtime for a page that talks to no server
     /// (the device runtime's ADR).
     device: bool,
+    /// Each stylesheet this build could make part of a document, by its
+    /// address (the inline styles' ADR).
+    styles: BTreeMap<String, InlineStyle>,
 }
+
+/// A stylesheet of a build that means the same inside a document.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct InlineStyle {
+    text: String,
+    /// Its bytes as Brotli sends them.
+    sent: usize,
+}
+
+/// **Whether a stylesheet means the same inside a document**: nothing in it
+/// has to come first in a sheet of its own, each address in it reads the same
+/// from any page, and nothing in it ends the element that holds it.
+fn can_be_inlined(text: &str) -> bool {
+    let text = text.to_ascii_lowercase();
+    !["</style", "@import", "@namespace"]
+        .iter()
+        .any(|word| text.contains(word))
+        && text.match_indices("url(").all(|(at, _)| {
+            let address = text[at + "url(".len()..]
+                .trim_start()
+                .trim_start_matches(['"', '\'']);
+            ["data:", "https:", "http:", "/", "#"]
+                .iter()
+                .any(|from| address.starts_with(from))
+        })
+}
+
+/// How much of a page's stylesheets may be part of its document, as Brotli
+/// sends them (the inline styles' ADR).
+const INLINE_AT_MOST: usize = 4 * 1024;
 
 /// **Whether a page runs on the device alone** (the device runtime's ADR): one
 /// document for everyone, whose handlers send nothing, and no layout to keep
@@ -13332,6 +13382,8 @@ impl Delivery {
         let mut digest = sha2::Sha256::new();
         digest.update(build.as_bytes());
         let mut files = std::collections::BTreeSet::new();
+        let inline = delivery_says(dist, "inline");
+        let mut styles = BTreeMap::new();
         for path in paths {
             let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
                 continue;
@@ -13349,6 +13401,18 @@ impl Delivery {
             );
             if named {
                 files.insert(format!("/{name}"));
+            }
+            if inline && name.ends_with(".css") {
+                let sent = std::fs::metadata(path.with_extension("css.br"));
+                if let (Ok(text), Ok(sent)) = (std::str::from_utf8(&bytes), sent)
+                    && can_be_inlined(text)
+                {
+                    let style = InlineStyle {
+                        text: text.to_string(),
+                        sent: sent.len() as usize,
+                    };
+                    styles.insert(format!("/{name}"), style);
+                }
             }
         }
         for path in modules {
@@ -13371,6 +13435,7 @@ impl Delivery {
             .collect::<String>();
         Delivery {
             device: delivery_says(dist, "device") && dist.join("pw-runtime-device.mjs").is_file(),
+            styles,
             version: Some(version),
             files,
         }
@@ -13507,6 +13572,50 @@ impl Delivery {
             None => document,
         };
         self.name_files(document)
+    }
+
+    /// `document`, its stylesheets in it where they can be (the inline
+    /// styles' ADR), and the text of the `<style>` that now holds them.
+    fn styles_inline(&self, document: String) -> (String, Option<String>) {
+        const START: &str = "<link rel=\"stylesheet\" href=\"";
+        const END: &str = "\">";
+        let Some(head_ends) = document.find("</head>") else {
+            return (document, None);
+        };
+        // They move to the head: a style of the page's own after it would
+        // change places with them.
+        if document[head_ends..].contains("<style") {
+            return (document, None);
+        }
+        let mut rest = document.as_str();
+        let mut kept = String::with_capacity(document.len());
+        let mut texts = Vec::new();
+        let mut sent = 0;
+        while let Some(at) = rest.find(START) {
+            let after = &rest[at + START.len()..];
+            let Some(closes) = after.find('"') else {
+                return (document, None);
+            };
+            if !after[closes..].starts_with(END) {
+                return (document, None);
+            }
+            let href = &after[..closes];
+            let Some(style) = self.styles.get(href.split('?').next().unwrap_or(href)) else {
+                return (document, None);
+            };
+            texts.push(style.text.as_str());
+            sent += style.sent;
+            kept.push_str(&rest[..at]);
+            rest = &after[closes + END.len()..];
+        }
+        kept.push_str(rest);
+        // A link the walk above did not read says more than its address.
+        if texts.is_empty() || sent > INLINE_AT_MOST || kept.contains("rel=\"stylesheet\"") {
+            return (document, None);
+        }
+        let style = texts.join("\n");
+        let inlined = kept.replacen("</head>", &format!("<style>{style}</style>\n</head>"), 1);
+        (inlined, Some(style))
     }
 
     /// Whether a request's query names this delivery: `b=` its id.
@@ -17903,6 +18012,7 @@ public query Store(",
     // TRACK SEAM (device-store): a page that holds a value the device keeps,
     // served (ADR-0366).
     mod device_store;
+    mod inline_styles;
     mod page_bundle;
 
     // TRACK SEAM (store-search): the store's search page, served (W9).

@@ -18,7 +18,7 @@ pub(super) fn served_todomvc() -> Served {
 }
 
 /// The program, built, and where.
-fn built_todomvc() -> (tempfile::TempDir, std::path::PathBuf) {
+pub(super) fn built_todomvc() -> (tempfile::TempDir, std::path::PathBuf) {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
     let dir = tempfile::TempDir::with_prefix("pw-todomvc-").expect("a temporary directory");
     let mut units = Vec::new();

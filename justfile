@@ -87,6 +87,7 @@ import 'just/browser-renderer.just'
 import 'just/page-bundle.just'
 import 'just/device-runtime.just'
 import 'just/decision-in-js.just'
+import 'just/inline-styles.just'
 
 default:
     @just --list
