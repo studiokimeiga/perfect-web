@@ -9,7 +9,7 @@ use super::*;
 const PAGE: &str = "todomvc.app.Todos~ui";
 
 /// The program, built as `pw build` builds it, and served.
-fn served_todomvc() -> Served {
+pub(super) fn served_todomvc() -> Served {
     let (dir, out) = built_todomvc();
     Served {
         server: Server::from_build(out.clone(), out).expect("served"),
@@ -189,24 +189,6 @@ fn no_host_holds_a_todo() {
     let (a, b) = (page(&s, "a"), page(&s, "b"));
     let body = |h: &str| h.split("<script").next().unwrap_or_default().to_string();
     assert_eq!(body(&a), body(&b));
-}
-
-/// **TodoMVC is one document** (the prerender's ADR): nothing on it is
-/// anyone's and nothing on it asks a server anything, so the build marks it.
-#[test]
-fn todomvc_is_one_document() {
-    let s = served_todomvc();
-    let done = s.prerender();
-    assert!(done.is_ok(), "{done:?}");
-    let answer: String = fetched_as(&s, "/", None)
-        .into_iter()
-        .map(|(_, c)| c)
-        .collect();
-    assert!(
-        answer.contains("cache-control: public, no-cache\r\n"),
-        "{answer}"
-    );
-    assert!(!answer.contains("set-cookie"), "{answer}");
 }
 
 #[test]

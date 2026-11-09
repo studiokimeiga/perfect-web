@@ -420,6 +420,11 @@ fn a_host_route_keeps_its_place() {
 #[test]
 fn a_request_with_a_session_is_admitted_as_every_request_is() {
     let s = home();
+    // Sessions a database keeps are handed over once, as the host is built, so
+    // the outage below is one only where they are kept in memory.
+    if s.identity.principals().kept().is_some() {
+        return;
+    }
     s.identity.signed_in_for_test("reader", "ada", "Ada");
     s.identity
         .principals()
@@ -454,4 +459,22 @@ fn nothing_is_one_document_until_it_is_rendered() {
         Some("private, no-store"),
         "{head}"
     );
+}
+
+/// **TodoMVC is one document** (the prerender's ADR): nothing on it is
+/// anyone's and nothing on it asks a server anything, so the build marks it.
+#[test]
+fn todomvc_is_one_document() {
+    let s = super::todomvc::served_todomvc();
+    let done = s.prerender();
+    assert!(done.is_ok(), "{done:?}");
+    let answer: String = fetched_as(&s, "/", None)
+        .into_iter()
+        .map(|(_, c)| c)
+        .collect();
+    assert!(
+        answer.contains("cache-control: public, no-cache\r\n"),
+        "{answer}"
+    );
+    assert!(!answer.contains("set-cookie"), "{answer}");
 }

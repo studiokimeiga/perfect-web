@@ -716,8 +716,26 @@ test("a list inside a row is refused, not walked, when its keys repeat or are mi
     [[], [k("a"), k("a")]],
     [[k("a")], [k("a"), {}]],
     [[k("a")], [{}]],
+    [[{}], [{}, k("b")]],
   ].map(([was, now]) => ["instance_changes", { part: each, was: row(was), now: row(now), values: {} }]);
   assert.equal(agree(requests).refused, requests.length);
+});
+
+test("an item of a list inside a row is refused as rendering it would be", () => {
+  const listOf = (body) => ({ part: "each", id: 0, collection: "rows", binding: "row", key: "id", body: [
+    { chunk: "dynamic", value: { part: "each", id: 5, collection: "row.items", binding: "it", key: "id", body } },
+  ] });
+  const row = (items) => ({ id: "a", items });
+  const asks = (body, was, now) => ["instance_changes", { part: listOf(body), was: row(was), now: row(now), values: {} }];
+  const reads = [text("it.v", 6)];
+  const flips = [{ chunk: "dynamic", value: { part: "conditional", id: 7, value: "it.flag", then: [text("it.absent", 8)], otherwise: [] } }];
+  // New to the list, and rendering it finds nothing to show.
+  assert.equal(agree([asks(reads, [{ id: 1, v: "x" }], [{ id: 1, v: "x" }, { id: 2 }])]).refused, 1);
+  // Kept in the list, set in place, and refused by what it must render again.
+  assert.equal(agree([asks(flips, [{ id: 1, flag: false }], [{ id: 1, flag: true }])]).refused, 1);
+  // And each of those, with what it needs, is no refusal.
+  assert.equal(agree([asks(reads, [{ id: 1, v: "x" }], [{ id: 1, v: "x" }, { id: 2, v: "y" }])]).refused, 0);
+  assert.equal(agree([asks(flips, [{ id: 1, flag: false }], [{ id: 1, flag: true, absent: "here" }])]).refused, 0);
 });
 
 test("a change in a row is what the server says it is", () => {

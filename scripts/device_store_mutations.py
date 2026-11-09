@@ -410,7 +410,7 @@ MUTANTS = [
     ),
     (
         "a page the back-forward cache brings back reads nothing",
-        "browser",
+        "todomvc",
         RUNTIME,
         "    void heardKept({ key: null, storageArea: deviceStore() });\n",
         "    void heardKept;\n",
