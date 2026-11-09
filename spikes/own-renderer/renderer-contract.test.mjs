@@ -127,12 +127,14 @@ test("a row added, gone or moved, or a change around them, is no change of rows"
   assert.equal(changed(before, `<ul>${row("7@b1", "b")}${row("7@b0", "a")}</ul>`), null, "moved");
   assert.equal(changed(before, `<ol>${row("7@b0", "a")}${row("7@b1", "b")}</ol>`), null, "around them");
   assert.equal(changed(`<ul>${row("7@b0", "a")}</ul>X`, `<ul>${row("7@b0", "a")}</ul>Y`), null, "after them");
+  assert.equal(changed(row("7@b0", "a"), row("7@b0", "a") + row("7@b1", "b")), null, "added, with nothing around them");
 });
 
 test("an anchor that is not closed is no row", () => {
   const changed = rowsChanged();
   assert.equal(changed("<!--pw:s7@b0-->a", "<!--pw:s7@b0-->b"), null);
   assert.equal(changed(row("7@b0", "a"), "<!--pw:s7@b0-->b"), null);
+  assert.equal(changed("<!--pw:s7@b0-->a", "<!--pw:s7@b0-->a"), null, "however alike");
 });
 
 test("a row within a row is the outer row's", () => {
