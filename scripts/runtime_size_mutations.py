@@ -130,7 +130,6 @@ def main():
         # The page, its runtime and the server as the source says, whatever a
         # control left built.
         build()
-        PAD.unlink(missing_ok=True)
 
     print(f"{len(MUTANTS) - survivors} of {len(MUTANTS)} mutants killed")
     return 1 if survivors else 0
