@@ -49,8 +49,15 @@
 //! compile error. The compiler's half of E7V is artifact agreement **within one
 //! build**, which is a different question and lives in `pw-core`.
 
-use std::collections::BTreeMap;
-use std::fmt;
+#![no_std]
+
+extern crate alloc;
+
+use alloc::collections::BTreeMap;
+use alloc::format;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use core::fmt;
 
 // --- identity ----------------------------------------------------------------
 
@@ -69,7 +76,29 @@ impl Hash {
             h ^= *b as u64;
             h = h.wrapping_mul(0x0000_0100_0000_01b3);
         }
-        Hash(format!("{h:016x}"))
+        Hash(hex(h))
+    }
+}
+
+/// `h` as sixteen hexadecimal digits, lower-case: the browser's build of this
+/// crate carries no formatting, and this is all of it a hash needs.
+fn hex(h: u64) -> String {
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    (0..16)
+        .rev()
+        .map(|nibble| char::from(DIGITS[((h >> (nibble * 4)) & 0xf) as usize]))
+        .collect()
+}
+
+/// `n` in decimal, appended to `out`.
+fn push_decimal(out: &mut String, mut n: u32) {
+    let at = out.len();
+    loop {
+        out.insert(at, char::from(b'0' + (n % 10) as u8));
+        n /= 10;
+        if n == 0 {
+            return;
+        }
     }
 }
 
@@ -111,9 +140,15 @@ impl DependencySet {
     /// Each reference given as its canonical tuple:
     /// `(package, module, namespace, declaration, revision)`.
     pub fn of(references: &[[&str; 5]]) -> DependencySet {
-        let mut canonical: Vec<String> = references.iter().map(|r| r.join("\u{3}")).collect();
-        canonical.sort_unstable();
-        canonical.dedup();
+        // Sorted and without repeats as each is added: a handler's references
+        // are few, and a sort is a great deal of code to carry for them.
+        let mut canonical: Vec<String> = Vec::new();
+        for reference in references {
+            let reference = reference.join("\u{3}");
+            if let Err(at) = canonical.binary_search(&reference) {
+                canonical.insert(at, reference);
+            }
+        }
         DependencySet(Hash::of(&canonical.join("\u{2}")))
     }
 }
@@ -196,10 +231,17 @@ impl HandlerId {
         capture_schema: &SchemaHash,
         abi: &PlatformAbi,
     ) -> HandlerId {
-        HandlerId(Hash::of(&format!(
-            "{}:{}\u{1}{}\u{1}{}\u{1}{}",
-            implementation.scheme.0, implementation.digest, dependencies.0, capture_schema.0, abi.0
-        )))
+        let mut text = String::new();
+        push_decimal(&mut text, u32::from(implementation.scheme.0));
+        text.push(':');
+        text.push_str(&implementation.digest.0);
+        text.push('\u{1}');
+        text.push_str(&dependencies.0.0);
+        text.push('\u{1}');
+        text.push_str(&capture_schema.0.0);
+        text.push('\u{1}');
+        push_decimal(&mut text, abi.0);
+        HandlerId(Hash::of(&text))
     }
 }
 
@@ -210,8 +252,16 @@ pub struct SchemaHash(pub Hash);
 impl SchemaHash {
     /// From the field names and type names, in declaration order.
     pub fn of_fields(fields: &[(&str, &str)]) -> SchemaHash {
-        let text: Vec<String> = fields.iter().map(|(n, t)| format!("{n}:{t}")).collect();
-        SchemaHash(Hash::of(&text.join(",")))
+        let mut text = String::new();
+        for (i, (name, ty)) in fields.iter().enumerate() {
+            if i > 0 {
+                text.push(',');
+            }
+            text.push_str(name);
+            text.push(':');
+            text.push_str(ty);
+        }
+        SchemaHash(Hash::of(&text))
     }
 }
 
