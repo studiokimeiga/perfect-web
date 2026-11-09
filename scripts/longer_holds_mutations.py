@@ -46,6 +46,12 @@ TEST_NAMES = [
     "tests::longer_holds::a_polls_page_gone_ends_its_hold",
     "tests::longer_holds::a_streams_page_gone_ends_its_hold",
     "tests::longer_holds::an_idle_poll_is_held_its_whole_hold",
+    "tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long",
+    "tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long",
+    "tests::longer_holds::a_stream_that_asks_is_held_long",
+    "tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold",
+    "tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream",
+    "tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills",
 ]
 COMMAND = ["cargo", "test", "--quiet", "--locked", "-p", "pw-dev-server", "--bin", "pw-dev-server",
            "--", *TEST_NAMES, "--exact", "--test-threads=1", "--format=pretty"]
@@ -72,11 +78,50 @@ MUTANTS = [
      "            waiting.acknowledge(since);\n"),
     ("a held stream keeps its page live no longer", MAIN,
      "            waiting.seen = std::time::Instant::now();\n"
-     "            let (cursor, frames) = waiting.after(written);\n",
-     "            let (cursor, frames) = waiting.after(written);\n"),
+     "            let filling = waiting.frames.len() >= MAX_WAITING / 2;\n",
+     "            let filling = waiting.frames.len() >= MAX_WAITING / 2;\n"),
     ("the hold is two seconds again", MAIN,
      "const HOLD: std::time::Duration = std::time::Duration::from_secs(25);\n",
      "const HOLD: std::time::Duration = std::time::Duration::from_secs(2);\n"),
+    ("a poll is held long whether it asks or not", MAIN,
+     "    let until = opened + if long { server.long_hold } else { server.poll_hold };\n",
+     "    let until = opened + server.long_hold;\n"),
+    ("a poll is never held long", MAIN,
+     "    let until = opened + if long { server.long_hold } else { server.poll_hold };\n",
+     "    let until = opened + server.poll_hold;\n"),
+    ("a stream is held long whether it asks or not", MAIN,
+     "        let hold = if long { server.long_hold } else { server.stream_hold };\n",
+     "        let hold = server.long_hold;\n"),
+    ("a stream is never held long", MAIN,
+     "        let hold = if long { server.long_hold } else { server.stream_hold };\n",
+     "        let hold = server.stream_hold;\n"),
+    ("a held long poll does not try again", MAIN,
+     "        if gone(stream) {\n"
+     "            return;\n"
+     "        }\n"
+     "        server.try_again_within(session, &mut tried);\n",
+     "        if gone(stream) {\n"
+     "            return;\n"
+     "        }\n"),
+    ("a held stream does not try again", MAIN,
+     "            ended(format_args!(\"stream's page gone at pass {pass}\"));\n"
+     "            return;\n"
+     "        }\n"
+     "        server.try_again_within(session, &mut tried);\n",
+     "            ended(format_args!(\"stream's page gone at pass {pass}\"));\n"
+     "            return;\n"
+     "        }\n"),
+    ("a hold never tries again", MAIN,
+     "        if tried.elapsed() < self.retried_every {\n            return;\n        }\n",
+     "        if true {\n            return;\n        }\n"),
+    ("a hold tries again whatever is current", MAIN,
+     "                .is_some_and(|entry| entry.stale);\n",
+     "                .is_some_and(|_| false);\n"),
+    ("a stream's queue fills", MAIN,
+     "            if filling {\n                break;\n            }\n", ""),
+    ("a stream's queue is full before it ends", MAIN,
+     "            let filling = waiting.frames.len() >= MAX_WAITING / 2;\n",
+     "            let filling = waiting.frames.len() >= MAX_WAITING;\n"),
 ]
 
 # How long one run of the tests may take. Past it the run is invalid.

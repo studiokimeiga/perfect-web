@@ -1097,11 +1097,14 @@ struct Server {
     /// delivers its frames).
     wake_at_least: std::time::Duration,
     /// **How long a held subscription waits when nothing happens** (the
-    /// longer-holds ADR): [`HOLD`] in every host, a stream's and a long
-    /// poll's alike; a test's host waits [`TEST_STREAM_HOLD`] and
-    /// [`TEST_POLL_HOLD`], and a test of the hold sets its own.
+    /// longer-holds ADR): a stream's and a long poll's, where its page has
+    /// not asked to be held long, and how long where it has (`hold=long`).
     stream_hold: std::time::Duration,
     poll_hold: std::time::Duration,
+    long_hold: std::time::Duration,
+    /// How often a held subscription tries again a regeneration that failed
+    /// (ADR-0176), as a page's next request would have.
+    retried_every: std::time::Duration,
     /// **How this build's files are named on the wire** ([`Delivery`]): at
     /// a version a cache keeps, a production build's; as they are, a
     /// development build's.
@@ -2170,8 +2173,10 @@ impl Server {
             open: Arc::default(),
             idle: Mutex::new(BTreeMap::new()),
             wake_at_least: WAKE_AT_LEAST,
-            stream_hold: if cfg!(test) { TEST_STREAM_HOLD } else { HOLD },
-            poll_hold: if cfg!(test) { TEST_POLL_HOLD } else { HOLD },
+            stream_hold: STREAM_HOLD,
+            poll_hold: POLL_HOLD,
+            long_hold: HOLD,
+            retried_every: STREAM_HOLD,
             dist,
             artifacts,
             pending: Table::default(),
@@ -5899,6 +5904,25 @@ impl Server {
             .lock()
             .expect("one change of a session at a time");
         self.drain_held(session);
+    }
+
+    /// **A regeneration that failed, tried again within a held subscription**
+    /// (ADR-0176, the longer-holds ADR), as often as a page that is not held
+    /// long would have asked. Until that hold was long, a page's next request
+    /// was at most two seconds away.
+    fn try_again_within(&self, session: &str, tried: &mut std::time::Instant) {
+        if tried.elapsed() < self.retried_every {
+            return;
+        }
+        *tried = std::time::Instant::now();
+        let failed = self.data.session_entry()
+            && self
+                .materializer
+                .entry(&self.cart_key(session))
+                .is_some_and(|entry| entry.stale);
+        if failed {
+            self.drain(session);
+        }
     }
 
     /// [`Server::drain`], by a caller that holds the session's lock.
@@ -11850,6 +11874,19 @@ fn stream_open(
     document: u64,
     since: u64,
 ) {
+    stream_held(server, stream, session, fresh, document, since, server.stream_hold);
+}
+
+/// [`stream_open`], held `hold` when nothing happens.
+fn stream_held(
+    server: &Server,
+    stream: &mut Conn,
+    session: &str,
+    fresh: bool,
+    document: u64,
+    since: u64,
+    hold: std::time::Duration,
+) {
     let doc: Doc = (session.to_string(), document);
     let cookie = if fresh {
         // TRACK SEAM (identity): the session cookie, HttpOnly and Secure
@@ -11896,17 +11933,19 @@ fn stream_open(
     };
 
     // Bounded, like the long poll: a held connection is a held thread.
-    // [`HOLD`] in a host (the longer-holds ADR); a pass runs when the table
+    // As long as its page asked (the longer-holds ADR); a pass runs when the table
     // is woken (a frame pushed, a cut-off) or a slice has passed, and ends
     // the hold where its page has gone.
     let opened = std::time::Instant::now();
-    let until = opened + server.stream_hold;
+    let until = opened + hold;
+    let mut tried = opened;
     let mut pass = 0u64;
     loop {
         if gone(stream) {
             ended(format_args!("stream's page gone at pass {pass}"));
             return;
         }
+        server.try_again_within(session, &mut tried);
         let batch = {
             let asked = std::time::Instant::now();
             let mut queue = server.pending.lock().expect("pending");
@@ -11930,6 +11969,7 @@ fn stream_open(
                 waiting.note(format_args!("pass {pass} waited {waited} ms for the table"));
             }
             waiting.seen = std::time::Instant::now();
+            let filling = waiting.frames.len() >= MAX_WAITING / 2;
             let (cursor, frames) = waiting.after(written);
             let batch = (!frames.is_empty()).then(|| {
                 let body: Vec<serde_json::Value> = frames
@@ -11940,6 +11980,7 @@ fn stream_open(
                     waiting.reader.clone(),
                     cursor,
                     serde_json::to_string(&body).expect("frames"),
+                    filling,
                 )
             });
             if batch.is_none() {
@@ -11955,7 +11996,7 @@ fn stream_open(
             batch
         };
 
-        if let Some((reader, cursor, frames)) = batch {
+        if let Some((reader, cursor, frames, filling)) = batch {
             if !server.delivery_allowed(&doc, reader.as_ref()) {
                 server.revoke_document(&doc);
                 let _ = stream.write_all(format!("{}\n", reload_batch(written)).as_bytes());
@@ -11972,6 +12013,12 @@ fn stream_open(
             }
             ended(format_args!("wrote through {cursor}, {} bytes", line.len()));
             written = cursor;
+            // Forgotten only when the page says it has them, which is its
+            // next request: a long hold ends before what it wrote would make
+            // the queue overflow, and the page be told to reload.
+            if filling {
+                break;
+            }
         }
     }
     ended(format_args!(
@@ -11980,21 +12027,23 @@ fn stream_open(
     ));
 }
 
-/// **How long a subscription is held when nothing happens** (the
-/// longer-holds ADR), a stream's and a long poll's alike, before the page
-/// asks again: 25 s. A push answers a held subscription at once, and each
-/// pass keeps its document live ([`LIVE`]), so the hold costs no change its
-/// speed. It costs an open page about 2.4 requests a minute, where a stream
-/// held two seconds cost 30 and a long poll held one cost 60. Under the 30 s
-/// a hosting router allows before an answer's first byte (Heroku's) and the
-/// 60 s a proxy commonly allows a quiet connection.
+/// **How long a subscription is held when nothing happens and its page asked
+/// to be held long** (the longer-holds ADR), a stream's and a long poll's
+/// alike, before the page asks again: 25 s. A push answers a held
+/// subscription at once, and each pass keeps its document live ([`LIVE`]), so
+/// the hold costs no change its speed. It costs an open page about 2.4
+/// requests a minute, where a stream held two seconds cost 30 and a long poll
+/// held one cost 60. Under the 30 s a hosting router allows before an
+/// answer's first byte (Heroku's) and the 60 s a proxy commonly allows a
+/// quiet connection.
 const HOLD: std::time::Duration = std::time::Duration::from_secs(25);
 
-/// **A test host's holds** (the longer-holds ADR): a stream's two seconds and
-/// a long poll's one, as every host's were until then, so that a test that
-/// waits out a hold waits as it did.
-const TEST_STREAM_HOLD: std::time::Duration = std::time::Duration::from_secs(2);
-const TEST_POLL_HOLD: std::time::Duration = std::time::Duration::from_secs(1);
+/// **How long a subscription is held otherwise**: a stream two seconds, a
+/// long poll one. A browser opens six connections to an HTTP/1.1 origin, so a
+/// page that has not been given the long hold keeps a connection only
+/// briefly, for a press in any tab to find one.
+const STREAM_HOLD: std::time::Duration = std::time::Duration::from_secs(2);
+const POLL_HOLD: std::time::Duration = std::time::Duration::from_secs(1);
 
 /// **Whether a held subscription's page has gone** (the longer-holds ADR):
 /// the browser closed the connection the subscription is held on, as a page
@@ -12050,8 +12099,10 @@ fn stream_frames(server: &Server, stream: &mut Conn, session: &str, fresh: bool,
 
     // One route, two adapters. The frames are the same either way — see
     // `e2e/transport.spec.mjs`, which runs the whole subscription twice.
+    let long = _query.split('&').any(|p| p == "hold=long");
     if _query.split('&').any(|p| p == "mode=stream") {
-        stream_open(server, stream, session, fresh, document, since);
+        let hold = if long { server.long_hold } else { server.stream_hold };
+        stream_held(server, stream, session, fresh, document, since, hold);
         return;
     }
 
@@ -12061,15 +12112,17 @@ fn stream_frames(server: &Server, stream: &mut Conn, session: &str, fresh: bool,
         return;
     }
 
-    // Held [`HOLD`] at most in a host (the longer-holds ADR); a pass runs
+    // As long as its page asked (the longer-holds ADR); a pass runs
     // when the table is woken (a frame pushed, a cut-off) or a slice has
     // passed (ADR-0399), and ends the hold where its page has gone, with no
     // answer: no one is there to read one.
-    let until = opened + server.poll_hold;
+    let until = opened + if long { server.long_hold } else { server.poll_hold };
+    let mut tried = opened;
     loop {
         if gone(stream) {
             return;
         }
+        server.try_again_within(session, &mut tried);
         let batch = {
             let mut queue = server.pending.lock().expect("pending");
             // As a held stream's: cut off, it is closed with no answer,

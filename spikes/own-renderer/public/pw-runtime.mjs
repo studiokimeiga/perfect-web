@@ -4394,7 +4394,7 @@ function applyBatch(batch) {
  */
 async function pollOnce() {
   // Which document this page is (ADR-0161): each is its own subscriber.
-  const response = await fetch(`/stream?doc=${documentCursor}&since=${cursor}`, {
+  const response = await fetch(`/stream?doc=${documentCursor}&since=${cursor}${holdLong}`, {
     signal: life.signal,
     priority: SUBSCRIPTION_PRIORITY,
   });
@@ -4414,7 +4414,7 @@ const SUBSCRIPTION_PRIORITY = "low";
  * not an error, and parsing half of one would apply half a change.
  */
 async function streamOnce() {
-  const response = await fetch(`/stream?doc=${documentCursor}&since=${cursor}&mode=stream`, {
+  const response = await fetch(`/stream?doc=${documentCursor}&since=${cursor}&mode=stream${holdLong}`, {
     signal: life.signal,
     priority: SUBSCRIPTION_PRIORITY,
   });
@@ -4470,7 +4470,31 @@ addEventListener(
  * `chosenTransport()` answering differently, which it never does, and the page
  * stopped hearing changes without a word.
  */
+/** `&hold=long`, where this page's subscription may be held until something
+ * happens (the longer-holds ADR); empty otherwise. */
+let holdLong = "";
+
+/** **Whether a page's subscription may be held long.** A browser opens six
+ * connections to an HTTP/1.1 origin, so a page that held one until something
+ * happened would, with six tabs open, leave a press none. On HTTP/2 or later
+ * every request shares one connection, and each page may; on HTTP/1.1 one tab
+ * of the origin may, and the next takes over when it closes. */
+function askToHoldLong() {
+  const protocol = performance.getEntriesByType("navigation")[0]?.nextHopProtocol ?? "";
+  if (/^h[23]/.test(protocol)) {
+    holdLong = "&hold=long";
+    return;
+  }
+  navigator.locks
+    ?.request("pw-subscription", { signal: life.signal }, () => {
+      holdLong = "&hold=long";
+      return new Promise((resolve) => life.signal.addEventListener("abort", resolve, { once: true }));
+    })
+    .catch(() => {});
+}
+
 async function subscribe() {
+  askToHoldLong();
   let transport = chosenTransport();
   const pinned = new URLSearchParams(location.search).has("transport");
   window.__pw.transport = transport;

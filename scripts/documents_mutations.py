@@ -80,15 +80,15 @@ MUTANTS = [
         "the page's long poll names no document",
         "browser",
         RUNTIME,
-        "  const response = await fetch(`/stream?doc=${documentCursor}&since=${cursor}`, {\n",
-        "  const response = await fetch(`/stream?since=${cursor}`, {\n",
+        "  const response = await fetch(`/stream?doc=${documentCursor}&since=${cursor}${holdLong}`, {\n",
+        "  const response = await fetch(`/stream?since=${cursor}${holdLong}`, {\n",
     ),
     (
         "the page's stream names no document",
         "browser",
         RUNTIME,
-        "  const response = await fetch(`/stream?doc=${documentCursor}&since=${cursor}&mode=stream`, {\n",
-        "  const response = await fetch(`/stream?since=${cursor}&mode=stream`, {\n",
+        "  const response = await fetch(`/stream?doc=${documentCursor}&since=${cursor}&mode=stream${holdLong}`, {\n",
+        "  const response = await fetch(`/stream?since=${cursor}&mode=stream${holdLong}`, {\n",
     ),
 ]
 

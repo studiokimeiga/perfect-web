@@ -89,3 +89,25 @@ again at once.
 - **The head-to-head's idle requests** are not re-measured here.
 - **With the keep-alive ADR (#86)** a long poll's connection is kept from
   one hold to the next. The two land apart, and either holds alone.
+
+## Repairs, 2026-11-09
+
+An independent review of this ADR's first version (`docs/NEXT.md`, after
+train-14) found three defects, each of the 25 s hold's own, and each repaired
+here before it lands. The hold above is now what a page asks for.
+
+1. **A page is held long only where that costs no other request a connection.**
+   A browser opens six connections to an HTTP/1.1 origin; six tabs each holding
+   one for 25 s would leave a press none. The runtime asks (`hold=long`) where
+   the page's connection is HTTP/2 or later, which shares one connection, and on
+   HTTP/1.1 one tab of the origin at a time, by a Web Lock its next tab takes when
+   it closes. Otherwise a page is held as every page was, two seconds a stream
+   and one a poll, and its idle cost is as it was.
+2. **A regeneration that failed is tried again within the hold** (ADR-0176). Its
+   only retry was the page's next request, which a long hold puts up to 25 s
+   away. A held subscription now tries as often as a page held briefly would
+   have asked.
+3. **A held stream ends before its queue fills.** A frame is forgotten when its
+   page acknowledges it, which is its next request; 25 s of a busy page's frames
+   could pass `MAX_WAITING` and tell a page that was keeping up to reload. A
+   stream that has half that waiting ends, and its page asks again at once.
