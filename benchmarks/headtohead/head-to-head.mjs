@@ -295,7 +295,7 @@ function problemsOf(ctx) {
   const manifest = JSON.parse(fs.readFileSync(path.join(HERE, "todomvc/upstream.json"), "utf8"));
   const network = args.shaped ? SLOW_4G : null;
   const problems = validate({ runs: ctx.runs, targets: ctx.targets, network, minRuns: MIN_RUNS, manifest, sources: sourcesOf(ctx.targets) });
-  if (args.load) {
+  if (args.load && ctx.app.server !== false) {
     const { loads, idle, presses } = ctx;
     problems.push(...validateServer({ app: ctx.appName, stacks: ctx.stackNames, loads, idle, presses, minRuns: MIN_RUNS }));
   }
@@ -307,7 +307,7 @@ async function measureApp(appName, args, log) {
   try {
     await startServers(ctx);
     await measurePages(ctx);
-    if (args.load) {
+    if (args.load && ctx.app.server !== false) {
       await loadRounds(ctx);
       await pressRounds(ctx);
     }

@@ -166,6 +166,9 @@ export const APPS = {
     appSelector: "#run",
     steps: ROWS_STEPS,
     common: [],
+    // Its rows are the page's own: no server has anything to do under load, and
+    // a press has no other tab to be heard in.
+    server: false,
     stacks: {
       pleris: {
         label: "Pleris",
