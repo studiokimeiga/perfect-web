@@ -31,11 +31,15 @@ const PW_SERVER = true;
 /** **What a build's pages that talk to no server use** (the device runtime's
  * ADR), which the packaging reads from their templates, and what none of them
  * uses falls away with these: a value in a URL or a style, a `{#match}`, a view
- * used inside another, a `<dialog>`. */
+ * used inside another, a `<dialog>`, a value the device keeps, a signal bound to
+ * the address's fragment, an `autofocus`. */
 const PW_LINKS = true;
 const PW_MATCH = true;
 const PW_VIEWS = true;
 const PW_DIALOGS = true;
+const PW_KEPT = true;
+const PW_FRAGMENT = true;
+const PW_AUTOFOCUS = true;
 
 /**
  * **This document's life** (the soft navigation's ADR). Every listener the
@@ -3179,7 +3183,7 @@ function setSignal(name, value, source, kept = true) {
   // A value the device keeps is written as it changes (track
   // `device-store`), unless the change is the device's own: read at start,
   // or another tab's.
-  if (kept && deviceHeld.has(name)) keep(deviceHeld.get(name), value, source);
+  if (PW_KEPT && kept && deviceHeld.has(name)) keep(deviceHeld.get(name), value, source);
   flushing ??= Promise.resolve().then(flushSignals);
 }
 
@@ -3622,7 +3626,7 @@ async function readDevice() {
     for (const [held, got] of read) {
       if ("value" in got) setSignal(held.signal, got.value, null, false);
     }
-    if (parts.fragment) followFragment(parts.fragment);
+    if (PW_FRAGMENT && parts.fragment) followFragment(parts.fragment);
     if (flushing) await flushing;
   } finally {
     document.documentElement.dataset.pwDevice = "read";
@@ -3932,7 +3936,7 @@ addEventListener(
     // A frozen page hears no `storage` event, so another tab's writes while
     // it was kept went unheard: everything the device keeps is read again,
     // as after a `clear()` (the prerender's ADR).
-    void heardKept({ key: null, storageArea: deviceStore() });
+    if (PW_KEPT) void heardKept({ key: null, storageArea: deviceStore() });
     if (PW_SERVER && leaving && parts.listens !== false) {
       leaving = false;
       subscribe();
@@ -4569,7 +4573,7 @@ async function attach() {
 
   // What the device keeps, read, and what it decides shown, before any
   // handler binds (track `device-store`).
-  await readDevice();
+  if (PW_KEPT) await readDevice();
 
   bindEvents();
   booted = true;
@@ -4591,9 +4595,9 @@ async function attach() {
   // (ADR-0130): no resource of its changes on the server.
   if (PW_SERVER && parts.listens !== false) subscribe();
   // The signal a page binds to its address's fragment follows it from here.
-  if (parts.fragment) bindFragment(parts.fragment);
+  if (PW_FRAGMENT && parts.fragment) bindFragment(parts.fragment);
   // What a block shows from here on, with `autofocus`, takes focus.
-  followAutofocus();
+  if (PW_AUTOFOCUS) followAutofocus();
   window.__pw.signals = Object.fromEntries(signals);
   window.__pw.ready = true;
   document.documentElement.dataset.pwReady = "1";

@@ -426,7 +426,7 @@ MUTANTS = [
         "a page the back-forward cache brings back reads nothing",
         "todomvc",
         RUNTIME,
-        "    void heardKept({ key: null, storageArea: deviceStore() });\n",
+        "    if (PW_KEPT) void heardKept({ key: null, storageArea: deviceStore() });\n",
         "    void heardKept;\n",
     ),
     (

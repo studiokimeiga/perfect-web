@@ -344,24 +344,42 @@ const WORDS = {
   PW_MATCH: "takes an Option or a Result apart",
   PW_VIEWS: "UnknownInstance",
   PW_DIALOGS: "showModal",
+  PW_KEPT: "localStorage",
+  PW_FRAGMENT: "hashchange",
+  PW_AUTOFOCUS: "[autofocus]",
 };
 const USING = {
   PW_LINKS: [dynamic({ part: "attribute", context: "url", name: "href", value: "v" })],
   PW_MATCH: [dynamic({ part: "match", value: "v", arms: [] })],
   PW_VIEWS: [dynamic({ part: "instance", path: "q", args: [] })],
   PW_DIALOGS: [{ chunk: "static", value: "<dialog id=d>" }],
+  PW_AUTOFOCUS: [{ chunk: "static", value: "<input autofocus>" }],
+};
+/** What a page's plan says of what it needs, as its template does not. */
+const PLANS = {
+  PW_KEPT: { prerender: true, device: [{ signal: "s" }] },
+  PW_FRAGMENT: { prerender: true, fragment: { signal: "f", forms: [] } },
 };
 
 test("the device's runtime holds what its pages use, and none of what they do not", async () => {
   const none = await deviceRuntimeOf([{ chunk: "static", value: "<p>a</p>" }]);
   for (const [flag, word] of Object.entries(WORDS)) assert.ok(!none.includes(word), `${flag} is gone: ${word}`);
-  for (const [flag, chunks] of Object.entries(USING)) {
-    const runtime = await deviceRuntimeOf(chunks);
+  const asked = [
+    ...Object.entries(USING).map(([flag, chunks]) => [flag, chunks, undefined]),
+    ...Object.entries(PLANS).map(([flag, plan]) => [flag, [], plan]),
+  ];
+  for (const [flag, chunks, plan] of asked) {
+    const runtime = await deviceRuntimeOf(chunks, plan);
     assert.ok(runtime.includes(WORDS[flag]), `${flag} is kept`);
     for (const [other, word] of Object.entries(WORDS)) {
       if (other !== flag) assert.ok(!runtime.includes(word), `${flag} alone keeps no ${other}`);
     }
   }
+});
+
+test("an autofocus a value decides counts", async () => {
+  const dynamicAutofocus = [dynamic({ part: "boolean_attribute", name: "autofocus", value: "v" })];
+  assert.ok((await deviceRuntimeOf(dynamicAutofocus)).includes(WORDS.PW_AUTOFOCUS));
 });
 
 test("what a block or a conditional's arm holds counts", async () => {

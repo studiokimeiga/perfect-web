@@ -51,11 +51,13 @@ function featuresIn(chunks, templates, out, seen) {
   for (const chunk of chunks) {
     if (chunk.chunk === "static") {
       if (/<dialog[\s>]/i.test(chunk.value)) out.PW_DIALOGS = true;
+      if (/\sautofocus[\s=>/]/i.test(chunk.value)) out.PW_AUTOFOCUS = true;
       continue;
     }
     const part = chunk.value;
     if (part.part === "match") out.PW_MATCH = true;
     if (part.context === "url" || part.context === "style") out.PW_LINKS = true;
+    if (part.name === "autofocus") out.PW_AUTOFOCUS = true;
     if (part.part === "instance") {
       out.PW_VIEWS = true;
       if (!seen.has(part.path)) {
@@ -78,16 +80,18 @@ function featuresIn(chunks, templates, out, seen) {
  * that cannot be read keeps everything.
  */
 async function deviceFeatures(directory) {
-  const everything = { PW_LINKS: true, PW_MATCH: true, PW_VIEWS: true, PW_DIALOGS: true };
+  const everything = { PW_LINKS: true, PW_MATCH: true, PW_VIEWS: true, PW_DIALOGS: true, PW_KEPT: true, PW_FRAGMENT: true, PW_AUTOFOCUS: true };
   const base = path.join(directory, "build");
   const text = await readIfThere(path.join(base, "templates.json"));
   if (text === null) return everything;
   const templates = JSON.parse(text);
-  const out = { PW_LINKS: false, PW_MATCH: false, PW_VIEWS: false, PW_DIALOGS: false };
+  const out = { PW_LINKS: false, PW_MATCH: false, PW_VIEWS: false, PW_DIALOGS: false, PW_KEPT: false, PW_FRAGMENT: false, PW_AUTOFOCUS: false };
   for (const name of await readdir(path.join(base, "pages")).catch(() => [])) {
     if (!name.endsWith(".json")) continue;
     const plan = JSON.parse(await readFile(path.join(base, "pages", name), "utf8"));
     if (plan.prerender !== true || (plan.layout !== undefined && plan.layout !== null)) continue;
+    if ((plan.device ?? []).length > 0) out.PW_KEPT = true;
+    if (plan.fragment) out.PW_FRAGMENT = true;
     const template = templates.find((t) => t.path === name.slice(0, -".json".length));
     if (!template) return everything;
     featuresIn(template.chunks, templates, out, new Set());

@@ -39,7 +39,7 @@ MUTANTS = [
         "what is put into the page is not looked at",
         "browser",
         RUNTIME,
-        "  // What a block shows from here on, with `autofocus`, takes focus.\n  followAutofocus();\n",
+        "  // What a block shows from here on, with `autofocus`, takes focus.\n  if (PW_AUTOFOCUS) followAutofocus();\n",
         "",
     ),
     (
