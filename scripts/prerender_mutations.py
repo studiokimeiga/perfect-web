@@ -82,7 +82,7 @@ HOST_NAMES = [
     "tests::prerender::nothing_is_one_document_until_it_is_rendered",
     "tests::prerender::the_address_that_still_renders_is_as_it_was",
     "tests::prerender::what_it_says_of_itself_is_part_of_its_validator",
-    "tests::todomvc::todomvc_is_one_document",
+    "tests::prerender::todomvc_is_one_document",
 ]
 SUITES = {
     "rule": {
