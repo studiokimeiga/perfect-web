@@ -99,6 +99,9 @@ def main():
         if args.report:
             args.report.write_text(json.dumps(report, indent=2) + "\n")
         print(f"controls: {len(report['controls'])}/{len(MUTANTS)}, valid={report['valid']}, restored={report['restored']}", flush=True)
+        # The line `evidence_counts.py` holds a record to, as every script's.
+        killed = sum(1 for control in report["controls"] if control["killed"])
+        print(f"{killed} of {len(MUTANTS)} mutants killed", flush=True)
     return 0 if report["valid"] else 1
 
 

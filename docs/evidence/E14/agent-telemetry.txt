@@ -1,0 +1,837 @@
+ADR-0391 - an agent's usage is measured apart from its grade
+
+produced by: just e14-agent-telemetry
+commit: 19bdc0f8fca6439f5e4b20fff2b06126cd869fbd
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42589108123 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+node: v22.21.1
+
+== the harness's tests (benchmarks/harness/test/agent-telemetry.test.mjs)
+
+ok 1 - provider usage is kept without converting missing counters to zeros
+ok 2 - usage is optional when an adapter has not supplied a measurement
+ok 3 - invalid measurements are refused instead of becoming benchmark evidence
+ok 4 - usage symlinks are refused even if they point to a valid record
+ok 5 - a real stub adapter writes usage outside the graded app
+ok 6 - a refused sidecar is a refused measurement, never a changed grade
+ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+ok 8 - an agent that outlives its budget is scored 0 as a timeout
+ok 9 - successful agent work needs real, passing grading stages
+# tests 9
+# pass 9
+# fail 0
+
+== mutation controls (scripts/agent_telemetry_mutations.py)
+
+baseline: 9 passed, 0 failed
+TAP version 13
+# Subtest: provider usage is kept without converting missing counters to zeros
+ok 1 - provider usage is kept without converting missing counters to zeros
+  ---
+  duration_ms: 2.183136
+  type: 'test'
+  ...
+# Subtest: usage is optional when an adapter has not supplied a measurement
+ok 2 - usage is optional when an adapter has not supplied a measurement
+  ---
+  duration_ms: 5.128257
+  type: 'test'
+  ...
+# Subtest: invalid measurements are refused instead of becoming benchmark evidence
+ok 3 - invalid measurements are refused instead of becoming benchmark evidence
+  ---
+  duration_ms: 2.081857
+  type: 'test'
+  ...
+# Subtest: usage symlinks are refused even if they point to a valid record
+ok 4 - usage symlinks are refused even if they point to a valid record
+  ---
+  duration_ms: 0.42885
+  type: 'test'
+  ...
+# Subtest: a real stub adapter writes usage outside the graded app
+ok 5 - a real stub adapter writes usage outside the graded app
+  ---
+  duration_ms: 21.980796
+  type: 'test'
+  ...
+# Subtest: a refused sidecar is a refused measurement, never a changed grade
+not ok 6 - a refused sidecar is a refused measurement, never a changed grade
+  ---
+  duration_ms: 3.978159
+  type: 'test'
+  location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:72:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:74:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+  ---
+  duration_ms: 6.052572
+  type: 'test'
+  ...
+# Subtest: an agent that outlives its budget is scored 0 as a timeout
+ok 8 - an agent that outlives its budget is scored 0 as a timeout
+  ---
+  duration_ms: 1001.471396
+  type: 'test'
+  ...
+# Subtest: successful agent work needs real, passing grading stages
+ok 9 - successful agent work needs real, passing grading stages
+  ---
+  duration_ms: 0.429001
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 8
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1116.432369
+
+a refused sidecar makes the run ungraded: KILLED (by an assertion of its test; 1 of 9 tests fail)
+TAP version 13
+# Subtest: provider usage is kept without converting missing counters to zeros
+ok 1 - provider usage is kept without converting missing counters to zeros
+  ---
+  duration_ms: 2.108688
+  type: 'test'
+  ...
+# Subtest: usage is optional when an adapter has not supplied a measurement
+ok 2 - usage is optional when an adapter has not supplied a measurement
+  ---
+  duration_ms: 5.075868
+  type: 'test'
+  ...
+# Subtest: invalid measurements are refused instead of becoming benchmark evidence
+ok 3 - invalid measurements are refused instead of becoming benchmark evidence
+  ---
+  duration_ms: 2.1314
+  type: 'test'
+  ...
+# Subtest: usage symlinks are refused even if they point to a valid record
+ok 4 - usage symlinks are refused even if they point to a valid record
+  ---
+  duration_ms: 0.38011
+  type: 'test'
+  ...
+# Subtest: a real stub adapter writes usage outside the graded app
+ok 5 - a real stub adapter writes usage outside the graded app
+  ---
+  duration_ms: 22.267842
+  type: 'test'
+  ...
+# Subtest: a refused sidecar is a refused measurement, never a changed grade
+ok 6 - a refused sidecar is a refused measurement, never a changed grade
+  ---
+  duration_ms: 6.588183
+  type: 'test'
+  ...
+# Subtest: an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+not ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+  ---
+  duration_ms: 0.998435
+  type: 'test'
+  location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:86:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    'infra' !== 'timeout'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'timeout'
+  actual: 'infra'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:90:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: an agent that outlives its budget is scored 0 as a timeout
+not ok 8 - an agent that outlives its budget is scored 0 as a timeout
+  ---
+  duration_ms: 1002.542077
+  type: 'test'
+  location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:99:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    'infra' !== 'timeout'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'timeout'
+  actual: 'infra'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:107:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: successful agent work needs real, passing grading stages
+ok 9 - successful agent work needs real, passing grading stages
+  ---
+  duration_ms: 0.43924
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 7
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1109.4647
+
+a timeout is ungraded infrastructure: KILLED (by an assertion of its test; 2 of 9 tests fail)
+TAP version 13
+# Subtest: provider usage is kept without converting missing counters to zeros
+ok 1 - provider usage is kept without converting missing counters to zeros
+  ---
+  duration_ms: 2.105512
+  type: 'test'
+  ...
+# Subtest: usage is optional when an adapter has not supplied a measurement
+ok 2 - usage is optional when an adapter has not supplied a measurement
+  ---
+  duration_ms: 4.948691
+  type: 'test'
+  ...
+# Subtest: invalid measurements are refused instead of becoming benchmark evidence
+ok 3 - invalid measurements are refused instead of becoming benchmark evidence
+  ---
+  duration_ms: 2.138774
+  type: 'test'
+  ...
+# Subtest: usage symlinks are refused even if they point to a valid record
+ok 4 - usage symlinks are refused even if they point to a valid record
+  ---
+  duration_ms: 0.380762
+  type: 'test'
+  ...
+# Subtest: a real stub adapter writes usage outside the graded app
+ok 5 - a real stub adapter writes usage outside the graded app
+  ---
+  duration_ms: 22.721269
+  type: 'test'
+  ...
+# Subtest: a refused sidecar is a refused measurement, never a changed grade
+ok 6 - a refused sidecar is a refused measurement, never a changed grade
+  ---
+  duration_ms: 6.945871
+  type: 'test'
+  ...
+# Subtest: an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+  ---
+  duration_ms: 5.589938
+  type: 'test'
+  ...
+# Subtest: an agent that outlives its budget is scored 0 as a timeout
+not ok 8 - an agent that outlives its budget is scored 0 as a timeout
+  ---
+  duration_ms: 1003.644917
+  type: 'test'
+  location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:99:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+    +   failedAt: 'agent',
+    -   failedAt: 'timeout',
+        score: 0
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    score: 0
+    failedAt: 'timeout'
+  actual:
+    score: 0
+    failedAt: 'agent'
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:108:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: successful agent work needs real, passing grading stages
+ok 9 - successful agent work needs real, passing grading stages
+  ---
+  duration_ms: 0.427729
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 8
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1114.51986
+
+a timeout is told as the agent's ordinary failure: KILLED (by an assertion of its test; 1 of 9 tests fail)
+TAP version 13
+# Subtest: provider usage is kept without converting missing counters to zeros
+ok 1 - provider usage is kept without converting missing counters to zeros
+  ---
+  duration_ms: 2.155465
+  type: 'test'
+  ...
+# Subtest: usage is optional when an adapter has not supplied a measurement
+ok 2 - usage is optional when an adapter has not supplied a measurement
+  ---
+  duration_ms: 5.168411
+  type: 'test'
+  ...
+# Subtest: invalid measurements are refused instead of becoming benchmark evidence
+ok 3 - invalid measurements are refused instead of becoming benchmark evidence
+  ---
+  duration_ms: 2.110341
+  type: 'test'
+  ...
+# Subtest: usage symlinks are refused even if they point to a valid record
+ok 4 - usage symlinks are refused even if they point to a valid record
+  ---
+  duration_ms: 0.410416
+  type: 'test'
+  ...
+# Subtest: a real stub adapter writes usage outside the graded app
+ok 5 - a real stub adapter writes usage outside the graded app
+  ---
+  duration_ms: 21.74183
+  type: 'test'
+  ...
+# Subtest: a refused sidecar is a refused measurement, never a changed grade
+ok 6 - a refused sidecar is a refused measurement, never a changed grade
+  ---
+  duration_ms: 6.347753
+  type: 'test'
+  ...
+# Subtest: an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+not ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+  ---
+  duration_ms: 1.023601
+  type: 'test'
+  location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:86:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    'agent' !== 'infra'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'infra'
+  actual: 'agent'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:88:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: an agent that outlives its budget is scored 0 as a timeout
+ok 8 - an agent that outlives its budget is scored 0 as a timeout
+  ---
+  duration_ms: 1001.979698
+  type: 'test'
+  ...
+# Subtest: successful agent work needs real, passing grading stages
+ok 9 - successful agent work needs real, passing grading stages
+  ---
+  duration_ms: 0.456993
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 8
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1108.061189
+
+an adapter's temporary failure is scored as the agent's: KILLED (by an assertion of its test; 1 of 9 tests fail)
+TAP version 13
+# Subtest: provider usage is kept without converting missing counters to zeros
+ok 1 - provider usage is kept without converting missing counters to zeros
+  ---
+  duration_ms: 2.100501
+  type: 'test'
+  ...
+# Subtest: usage is optional when an adapter has not supplied a measurement
+not ok 2 - usage is optional when an adapter has not supplied a measurement
+  ---
+  duration_ms: 1.363385
+  type: 'test'
+  location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:39:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + {
+    +   input_tokens: 0,
+    +   output_tokens: 0
+    + }
+    - null
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: ~
+  actual:
+    input_tokens: 0
+    output_tokens: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:41:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: invalid measurements are refused instead of becoming benchmark evidence
+ok 3 - invalid measurements are refused instead of becoming benchmark evidence
+  ---
+  duration_ms: 2.155804
+  type: 'test'
+  ...
+# Subtest: usage symlinks are refused even if they point to a valid record
+ok 4 - usage symlinks are refused even if they point to a valid record
+  ---
+  duration_ms: 1.069617
+  type: 'test'
+  ...
+# Subtest: a real stub adapter writes usage outside the graded app
+ok 5 - a real stub adapter writes usage outside the graded app
+  ---
+  duration_ms: 22.998285
+  type: 'test'
+  ...
+# Subtest: a refused sidecar is a refused measurement, never a changed grade
+ok 6 - a refused sidecar is a refused measurement, never a changed grade
+  ---
+  duration_ms: 6.696334
+  type: 'test'
+  ...
+# Subtest: an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+  ---
+  duration_ms: 5.593843
+  type: 'test'
+  ...
+# Subtest: an agent that outlives its budget is scored 0 as a timeout
+ok 8 - an agent that outlives its budget is scored 0 as a timeout
+  ---
+  duration_ms: 1001.535196
+  type: 'test'
+  ...
+# Subtest: successful agent work needs real, passing grading stages
+ok 9 - successful agent work needs real, passing grading stages
+  ---
+  duration_ms: 0.463285
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 8
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1111.122656
+
+an unwritten sidecar is a fabricated zero: KILLED (by an assertion of its test; 1 of 9 tests fail)
+TAP version 13
+# Subtest: provider usage is kept without converting missing counters to zeros
+ok 1 - provider usage is kept without converting missing counters to zeros
+  ---
+  duration_ms: 2.126209
+  type: 'test'
+  ...
+# Subtest: usage is optional when an adapter has not supplied a measurement
+ok 2 - usage is optional when an adapter has not supplied a measurement
+  ---
+  duration_ms: 5.02462
+  type: 'test'
+  ...
+# Subtest: invalid measurements are refused instead of becoming benchmark evidence
+ok 3 - invalid measurements are refused instead of becoming benchmark evidence
+  ---
+  duration_ms: 2.134224
+  type: 'test'
+  ...
+# Subtest: usage symlinks are refused even if they point to a valid record
+not ok 4 - usage symlinks are refused even if they point to a valid record
+  ---
+  duration_ms: 0.795746
+  type: 'test'
+  location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:54:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected exception.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:58:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a real stub adapter writes usage outside the graded app
+ok 5 - a real stub adapter writes usage outside the graded app
+  ---
+  duration_ms: 22.367928
+  type: 'test'
+  ...
+# Subtest: a refused sidecar is a refused measurement, never a changed grade
+ok 6 - a refused sidecar is a refused measurement, never a changed grade
+  ---
+  duration_ms: 6.529338
+  type: 'test'
+  ...
+# Subtest: an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+  ---
+  duration_ms: 5.44772
+  type: 'test'
+  ...
+# Subtest: an agent that outlives its budget is scored 0 as a timeout
+ok 8 - an agent that outlives its budget is scored 0 as a timeout
+  ---
+  duration_ms: 1002.825689
+  type: 'test'
+  ...
+# Subtest: successful agent work needs real, passing grading stages
+ok 9 - successful agent work needs real, passing grading stages
+  ---
+  duration_ms: 0.545418
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 8
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1115.285816
+
+a linked sidecar is followed: KILLED (by an assertion of its test; 1 of 9 tests fail)
+TAP version 13
+# Subtest: provider usage is kept without converting missing counters to zeros
+ok 1 - provider usage is kept without converting missing counters to zeros
+  ---
+  duration_ms: 2.124226
+  type: 'test'
+  ...
+# Subtest: usage is optional when an adapter has not supplied a measurement
+ok 2 - usage is optional when an adapter has not supplied a measurement
+  ---
+  duration_ms: 5.044958
+  type: 'test'
+  ...
+# Subtest: invalid measurements are refused instead of becoming benchmark evidence
+not ok 3 - invalid measurements are refused instead of becoming benchmark evidence
+  ---
+  duration_ms: 1.476937
+  type: 'test'
+  location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:47:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected exception.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:49:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: usage symlinks are refused even if they point to a valid record
+ok 4 - usage symlinks are refused even if they point to a valid record
+  ---
+  duration_ms: 0.354612
+  type: 'test'
+  ...
+# Subtest: a real stub adapter writes usage outside the graded app
+ok 5 - a real stub adapter writes usage outside the graded app
+  ---
+  duration_ms: 21.349707
+  type: 'test'
+  ...
+# Subtest: a refused sidecar is a refused measurement, never a changed grade
+ok 6 - a refused sidecar is a refused measurement, never a changed grade
+  ---
+  duration_ms: 6.005461
+  type: 'test'
+  ...
+# Subtest: an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+  ---
+  duration_ms: 6.317023
+  type: 'test'
+  ...
+# Subtest: an agent that outlives its budget is scored 0 as a timeout
+ok 8 - an agent that outlives its budget is scored 0 as a timeout
+  ---
+  duration_ms: 1001.463034
+  type: 'test'
+  ...
+# Subtest: successful agent work needs real, passing grading stages
+ok 9 - successful agent work needs real, passing grading stages
+  ---
+  duration_ms: 0.444881
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 8
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1110.960231
+
+a sidecar without its token counts is taken: KILLED (by an assertion of its test; 1 of 9 tests fail)
+TAP version 13
+# Subtest: provider usage is kept without converting missing counters to zeros
+ok 1 - provider usage is kept without converting missing counters to zeros
+  ---
+  duration_ms: 2.121891
+  type: 'test'
+  ...
+# Subtest: usage is optional when an adapter has not supplied a measurement
+ok 2 - usage is optional when an adapter has not supplied a measurement
+  ---
+  duration_ms: 5.10982
+  type: 'test'
+  ...
+# Subtest: invalid measurements are refused instead of becoming benchmark evidence
+ok 3 - invalid measurements are refused instead of becoming benchmark evidence
+  ---
+  duration_ms: 2.129685
+  type: 'test'
+  ...
+# Subtest: usage symlinks are refused even if they point to a valid record
+ok 4 - usage symlinks are refused even if they point to a valid record
+  ---
+  duration_ms: 0.37529
+  type: 'test'
+  ...
+# Subtest: a real stub adapter writes usage outside the graded app
+not ok 5 - a real stub adapter writes usage outside the graded app
+  ---
+  duration_ms: 26.242972
+  type: 'test'
+  location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:61:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(fs.existsSync(path.join(box.root, "AGENT_USAGE.json")))
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:67:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a refused sidecar is a refused measurement, never a changed grade
+ok 6 - a refused sidecar is a refused measurement, never a changed grade
+  ---
+  duration_ms: 7.217041
+  type: 'test'
+  ...
+# Subtest: an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+  ---
+  duration_ms: 5.500228
+  type: 'test'
+  ...
+# Subtest: an agent that outlives its budget is scored 0 as a timeout
+ok 8 - an agent that outlives its budget is scored 0 as a timeout
+  ---
+  duration_ms: 1002.108531
+  type: 'test'
+  ...
+# Subtest: successful agent work needs real, passing grading stages
+ok 9 - successful agent work needs real, passing grading stages
+  ---
+  duration_ms: 0.431987
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 8
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1122.756761
+
+the sidecar is written inside the graded app: KILLED (by an assertion of its test; 1 of 9 tests fail)
+TAP version 13
+# Subtest: provider usage is kept without converting missing counters to zeros
+ok 1 - provider usage is kept without converting missing counters to zeros
+  ---
+  duration_ms: 2.156355
+  type: 'test'
+  ...
+# Subtest: usage is optional when an adapter has not supplied a measurement
+ok 2 - usage is optional when an adapter has not supplied a measurement
+  ---
+  duration_ms: 5.192233
+  type: 'test'
+  ...
+# Subtest: invalid measurements are refused instead of becoming benchmark evidence
+ok 3 - invalid measurements are refused instead of becoming benchmark evidence
+  ---
+  duration_ms: 2.163199
+  type: 'test'
+  ...
+# Subtest: usage symlinks are refused even if they point to a valid record
+ok 4 - usage symlinks are refused even if they point to a valid record
+  ---
+  duration_ms: 0.451934
+  type: 'test'
+  ...
+# Subtest: a real stub adapter writes usage outside the graded app
+ok 5 - a real stub adapter writes usage outside the graded app
+  ---
+  duration_ms: 22.146253
+  type: 'test'
+  ...
+# Subtest: a refused sidecar is a refused measurement, never a changed grade
+ok 6 - a refused sidecar is a refused measurement, never a changed grade
+  ---
+  duration_ms: 6.539788
+  type: 'test'
+  ...
+# Subtest: an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+ok 7 - an ordinary failure and a timeout score 0, and only infrastructure is ungraded
+  ---
+  duration_ms: 5.413865
+  type: 'test'
+  ...
+# Subtest: an agent that outlives its budget is scored 0 as a timeout
+ok 8 - an agent that outlives its budget is scored 0 as a timeout
+  ---
+  duration_ms: 1002.444236
+  type: 'test'
+  ...
+# Subtest: successful agent work needs real, passing grading stages
+not ok 9 - successful agent work needs real, passing grading stages
+  ---
+  duration_ms: 1.60204
+  type: 'test'
+  location: '/home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:115:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly deep-equal:
+    + actual - expected
+    
+      {
+    +   failedAt: null,
+    +   score: 1
+    -   failedAt: 'infra',
+    -   score: null
+      }
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    score: ~
+    failedAt: 'infra'
+  actual:
+    score: 1
+    failedAt: ~
+  operator: 'deepStrictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/perfect-web/perfect-web/benchmarks/harness/test/agent-telemetry.test.mjs:118:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 8
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1140.264477
+
+a run with no grading stages is scored: KILLED (by an assertion of its test; 1 of 9 tests fail)
+9 of 9 mutants killed; 0 refused; 0 survived
+memory bound: no process was stopped
