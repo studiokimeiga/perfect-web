@@ -88,3 +88,79 @@ fn a_bundle_is_one_of_what_a_delivery_digests() {
     };
     assert_ne!(id("export const a = 1;"), id("export const a = 2;"));
 }
+
+/// A build whose packaging wrote the device's runtime.
+fn device_delivery() -> (tempfile::TempDir, Delivery) {
+    let dir = tempfile::tempdir().expect("a directory");
+    std::fs::write(
+        dir.path().join("delivery.json"),
+        "{\"versioned\": true, \"device\": true}\n",
+    )
+    .expect("written");
+    for file in ["pw-runtime.mjs", "pw-runtime-device.mjs", "pw-resume.wasm"] {
+        std::fs::write(dir.path().join(file), "export {};\n").expect("written");
+    }
+    let delivery = Delivery::of(dir.path(), dir.path(), "b1");
+    (dir, delivery)
+}
+
+#[test]
+fn a_page_that_talks_to_no_server_starts_the_devices_runtime() {
+    let (_dir, delivery) = device_delivery();
+    let document = delivery.deliver(format!("<head>{BOOT}</head><body>{RUNTIME}</body>"));
+    let on_device = delivery.on_device(document.clone());
+    let device = delivery.device_source().expect("a device runtime");
+    assert!(
+        on_device.contains(&format!("<script>{device}</script>")),
+        "{on_device}"
+    );
+    assert!(on_device.contains("pw-runtime-device.mjs"), "{on_device}");
+    assert!(
+        !on_device.contains(&delivery.runtime_source()),
+        "{on_device}"
+    );
+    assert!(!on_device.contains("pw-resume.wasm"), "{on_device}");
+    assert!(document.contains("pw-resume.wasm"), "{document}");
+}
+
+#[test]
+fn a_build_with_no_device_runtime_leaves_a_document_as_it_was() {
+    let dir = tempfile::tempdir().expect("a directory");
+    std::fs::write(dir.path().join("delivery.json"), "{\"versioned\": true}\n").expect("written");
+    let delivery = Delivery::of(dir.path(), dir.path(), "b1");
+    assert_eq!(delivery.device_source(), None);
+    let document = delivery.deliver(format!("<head>{BOOT}</head><body>{RUNTIME}</body>"));
+    assert_eq!(delivery.on_device(document.clone()), document);
+}
+
+#[test]
+fn only_a_page_no_reader_decides_and_with_no_layout_runs_on_the_device() {
+    let plan = |text: &str| serde_json::from_str::<serde_json::Value>(text).expect("JSON");
+    assert!(runs_on_device(&plan("{\"prerender\": true}")));
+    assert!(runs_on_device(&plan(
+        "{\"prerender\": true, \"layout\": null}"
+    )));
+    assert!(!runs_on_device(&plan("{\"prerender\": false}")));
+    assert!(!runs_on_device(&plan("{}")));
+    assert!(!runs_on_device(&plan(
+        "{\"prerender\": true, \"layout\": {\"path\": \"x\"}}"
+    )));
+}
+
+#[test]
+fn the_policy_allows_each_runtime_a_build_starts() {
+    let one = csp::document_with(
+        &["a()"],
+        "",
+        &csp::Needs::default(),
+        &csp::Deployment::default(),
+    );
+    let two = csp::document_with(
+        &["a()", "b()"],
+        "",
+        &csp::Needs::default(),
+        &csp::Deployment::default(),
+    );
+    assert_eq!(one.matches("sha256-").count(), 1, "{one}");
+    assert_eq!(two.matches("sha256-").count(), 2, "{two}");
+}

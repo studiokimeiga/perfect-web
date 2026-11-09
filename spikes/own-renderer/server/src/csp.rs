@@ -188,6 +188,17 @@ pub(crate) fn document(
     needs: &Needs,
     deployment: &Deployment,
 ) -> String {
+    document_with(&[script], style, needs, deployment)
+}
+
+/// [`document`], allowing each of `scripts`: a build whose pages start one of
+/// two runtimes (the device runtime's ADR).
+pub(crate) fn document_with(
+    scripts: &[&str],
+    style: &str,
+    needs: &Needs,
+    deployment: &Deployment,
+) -> String {
     let mut styles = vec!["'self'".to_string()];
     if !style.is_empty() {
         styles.push(sha256_source(style));
@@ -201,7 +212,11 @@ pub(crate) fn document(
         // 16, by MDN's compatibility data).
         format!(
             "script-src 'self' 'wasm-unsafe-eval' {}",
-            sha256_source(script)
+            scripts
+                .iter()
+                .map(|s| sha256_source(s))
+                .collect::<Vec<_>>()
+                .join(" ")
         ),
         format!("style-src {}", styles.join(" ")),
     ];

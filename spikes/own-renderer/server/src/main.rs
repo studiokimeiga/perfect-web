@@ -7271,6 +7271,11 @@ impl Server {
             let (document, _, _) = self
                 .render_page_in(page, &BTreeMap::new(), Partition::Public, &[])
                 .map_err(|why| format!("`{page}` cannot be prerendered: {why}"))?;
+            let document = if runs_on_device(plan) {
+                self.delivery.on_device(document)
+            } else {
+                document
+            };
             let (build, delivery, policy) = self.document_says();
             let document =
                 prerender::Prerendered::of(document, format!("{build}{delivery}{policy}"))
@@ -7897,12 +7902,11 @@ impl Server {
         };
         // The script as this build's delivery writes it (ADR-0399):
         // at its version, a production build's.
-        csp::document(
-            &self.delivery.runtime_source(),
-            self.data.style(),
-            &self.needs,
-            &deployment,
-        )
+        let runtime = self.delivery.runtime_source();
+        let device = self.delivery.device_source();
+        let mut scripts = vec![runtime.as_str()];
+        scripts.extend(device.as_deref());
+        csp::document_with(&scripts, self.data.style(), &self.needs, &deployment)
     }
 
     /// **What every document says of itself**, each a header's line: the
@@ -13286,6 +13290,16 @@ struct Delivery {
     /// The files beside the documents a document may name, each by its
     /// address (`/todomvc-app.css`): only these are named at the version.
     files: std::collections::BTreeSet<String>,
+    /// Whether this build has a runtime for a page that talks to no server
+    /// (the device runtime's ADR).
+    device: bool,
+}
+
+/// **Whether a page runs on the device alone** (the device runtime's ADR): one
+/// document for everyone, whose handlers send nothing, and no layout to keep
+/// across a navigation.
+fn runs_on_device(plan: &serde_json::Value) -> bool {
+    plan["prerender"] == true && plan.get("layout").is_none_or(|l| l.is_null())
 }
 
 impl Delivery {
@@ -13357,6 +13371,7 @@ impl Delivery {
             .map(|b| format!("{b:02x}"))
             .collect::<String>();
         Delivery {
+            device: delivery_says(dist, "device") && dist.join("pw-runtime-device.mjs").is_file(),
             version: Some(version),
             files,
         }
@@ -13394,6 +13409,42 @@ impl Delivery {
             None => RUNTIME_SOURCE.to_string(),
             Some(_) => format!("import(\"{}\")", self.named("/pw-runtime.mjs")),
         }
+    }
+
+    /// The script that starts the runtime of a page that talks to no server,
+    /// where this build has one.
+    fn device_source(&self) -> Option<String> {
+        self.device
+            .then(|| format!("import(\"{}\")", self.named("/pw-runtime-device.mjs")))
+    }
+
+    /// `document`, delivered, starting the device's runtime: it asks for no
+    /// decision module, and its head fetches none.
+    fn on_device(&self, document: String) -> String {
+        let (Some(device), full) = (self.device_source(), self.runtime_source()) else {
+            return document;
+        };
+        document
+            .replacen(&full, &device, 1)
+            .replacen(
+                &format!(
+                    "<link rel=\"modulepreload\" href=\"{}\">",
+                    self.named("/pw-runtime.mjs")
+                ),
+                &format!(
+                    "<link rel=\"modulepreload\" href=\"{}\">",
+                    self.named("/pw-runtime-device.mjs")
+                ),
+                1,
+            )
+            .replacen(
+                &format!(
+                    "<link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>\n",
+                    self.named("/pw-resume.wasm")
+                ),
+                "",
+                1,
+            )
     }
 
     /// The script that starts the runtime ([`RUNTIME`]).
