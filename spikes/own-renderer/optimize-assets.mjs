@@ -1,6 +1,7 @@
 // Production-only packaging for the Pleris browser assets.
 // The compiler/runtime sources stay readable; generated copies are minified
 // and compressed deterministically. HTML and personalized responses are untouched.
+import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,7 +23,6 @@ const ASSET = /\.(?:mjs|js|wasm|css|svg)$/;
  * drift, and a page's document names which it runs.
  */
 async function packDeviceRuntime(directory, source) {
-  if (!source.includes("const PW_SERVER = true;")) return;
   const { code } = await transform(source.replace("const PW_SERVER = true;", "").replaceAll("PW_SERVER", "false"), {
     loader: "js",
     format: "esm",
@@ -211,10 +211,14 @@ export async function optimizeAssets(directory) {
   // beside themselves (`compressModules`) and never rewritten.
   const assets = entries.filter((entry) => entry.isFile() && ASSET.test(entry.name));
   assets.sort((a, b) => a.name.localeCompare(b.name, "en"));
+  const runtime = await readFile(path.join(directory, "pw-runtime.mjs")).catch(() => null);
   for (const asset of assets) await packAsset(directory, asset);
   await compressModules(directory);
   await bundlePages(directory);
-  await writeFile(path.join(directory, "delivery.json"), `${JSON.stringify(DELIVERY)}\n`);
+  // What the runtime was before it was packed: the browser suite's word on
+  // whether this build is of the runtime it is testing (`host-metadata.mjs`).
+  const built = { ...DELIVERY, ...(runtime && { runtime: createHash("sha256").update(runtime).digest("hex") }) };
+  await writeFile(path.join(directory, "delivery.json"), `${JSON.stringify(built)}\n`);
   return assets.map((asset) => asset.name);
 }
 

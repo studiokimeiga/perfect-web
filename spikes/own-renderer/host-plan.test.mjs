@@ -230,6 +230,17 @@ test("build checks preserve whole-build runtime and source freshness with concre
     writeFileSync(join(root, "public/pw-runtime.mjs"), "runtime");
     writeFileSync(join(root, "dist-feed/pw-runtime.mjs"), "runtime");
     assert.equal(buildProblem("feed", root), null);
+    // A production build's runtime is packed, and its delivery says what from.
+    writeFileSync(join(root, "dist-feed/pw-runtime.mjs"), "packed");
+    assert.match(buildProblem("feed", root), /another pw-runtime/);
+    writeFileSync(join(root, "dist-feed/delivery.json"), '{');
+    assert.match(buildProblem("feed", root), /another pw-runtime/);
+    writeFileSync(join(root, "dist-feed/delivery.json"), JSON.stringify({ runtime: createHash("sha256").update("older").digest("hex") }));
+    assert.match(buildProblem("feed", root), /another pw-runtime/);
+    writeFileSync(join(root, "dist-feed/delivery.json"), JSON.stringify({ runtime: createHash("sha256").update("runtime").digest("hex") }));
+    assert.equal(buildProblem("feed", root), null);
+    rmSync(join(root, "dist-feed/delivery.json"));
+    writeFileSync(join(root, "dist-feed/pw-runtime.mjs"), "runtime");
     writeFileSync(join(root, "source.pw"), "before");
     const sha256 = createHash("sha256").update("before").digest("hex");
     writeFileSync(join(root, "dist-feed/sources.json"), JSON.stringify({ files: [{ path: "source.pw", sha256 }] }));
@@ -297,8 +308,8 @@ test("specs of an optional build that cannot be served are left out, each said w
     const optional = (root) => Object.fromEntries(unservedSpecs(root).map(({ file, warning }) => [file, warning]));
     const feed = ["computed-modules.spec.mjs", "feed.spec.mjs", "identity.spec.mjs", "messages.spec.mjs", "notifications.spec.mjs", "upload-metadata.spec.mjs", "uploads.spec.mjs"];
     const unbuilt = optional(root);
-    assert.deepEqual(Object.keys(unbuilt).sort(), [...feed, "guestbook.spec.mjs", "keyed.spec.mjs", "kiokun-site.spec.mjs", "todomvc.spec.mjs"].sort());
-    const lacking = { "guestbook.spec.mjs": ["dist-guestbook", "guestbook.sh"], "keyed.spec.mjs": ["dist-keyed", "keyed-store.sh"], "kiokun-site.spec.mjs": ["dist-kiokun", "kiokun-site.sh"], "todomvc.spec.mjs": ["dist-todomvc", "todomvc.sh"] };
+    assert.deepEqual(Object.keys(unbuilt).sort(), [...feed, "guestbook.spec.mjs", "keyed.spec.mjs", "kiokun-site.spec.mjs", "device-runtime.spec.mjs", "todomvc.spec.mjs"].sort());
+    const lacking = { "guestbook.spec.mjs": ["dist-guestbook", "guestbook.sh"], "keyed.spec.mjs": ["dist-keyed", "keyed-store.sh"], "kiokun-site.spec.mjs": ["dist-kiokun", "kiokun-site.sh"], "device-runtime.spec.mjs": ["dist-todomvc", "todomvc.sh"], "todomvc.spec.mjs": ["dist-todomvc", "todomvc.sh"] };
     for (const file of feed) lacking[file] = ["dist-feed", "feed.sh"];
     for (const [file, [dist, prerequisite]] of Object.entries(lacking)) {
       assert.equal(unbuilt[file], `e2e/${file} is not run: ${dist} is not built: run ${prerequisite}`);

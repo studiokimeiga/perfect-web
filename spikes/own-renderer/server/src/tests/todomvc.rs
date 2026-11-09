@@ -10,6 +10,15 @@ const PAGE: &str = "todomvc.app.Todos~ui";
 
 /// The program, built as `pw build` builds it, and served.
 fn served_todomvc() -> Served {
+    let (dir, out) = built_todomvc();
+    Served {
+        server: Server::from_build(out.clone(), out).expect("served"),
+        _dir: dir,
+    }
+}
+
+/// The program, built, and where.
+fn built_todomvc() -> (tempfile::TempDir, std::path::PathBuf) {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
     let dir = tempfile::TempDir::with_prefix("pw-todomvc-").expect("a temporary directory");
     let mut units = Vec::new();
@@ -43,10 +52,7 @@ fn served_todomvc() -> Served {
     assert!(build.refusals().is_empty(), "{:?}", build.refusals());
     let out = dir.path().join("build");
     build.write(&out).expect("the build is written");
-    Served {
-        server: Server::from_build(out.clone(), out).expect("served"),
-        _dir: dir,
-    }
+    (dir, out)
 }
 
 /// The page `session` is served, as a browser is answered: the document
@@ -238,4 +244,39 @@ fn the_page_has_the_templates_markup() {
     );
     // And TodoMVC's own stylesheets, which this host serves.
     assert!(html.contains("/todomvc-app.css"), "{html}");
+}
+
+/// **In a production build, the page runs on the device's runtime** (the device
+/// runtime's ADR): no reader decides it and it has no layout, so its one
+/// document starts the small runtime, its policy allows that, and its head
+/// fetches no decision module.
+#[test]
+fn a_production_build_of_the_page_starts_the_devices_runtime() {
+    let (_dir, out) = built_todomvc();
+    std::fs::write(
+        out.join("delivery.json"),
+        "{\"versioned\": true, \"device\": true}\n",
+    )
+    .expect("written");
+    for file in ["pw-runtime.mjs", "pw-runtime-device.mjs", "pw-resume.wasm"] {
+        std::fs::write(out.join(file), "export {};\n").expect("written");
+    }
+    let s = Server::from_build(out.clone(), out).expect("served");
+    s.prerender().expect("prerendered");
+    let html = page(&s, "a");
+    let device = s.delivery.device_source().expect("a device runtime");
+    assert!(
+        html.contains(&format!("<script>{device}</script>")),
+        "{html}"
+    );
+    assert!(
+        !html.contains(&format!("<script>{}</script>", s.delivery.runtime_source())),
+        "{html}"
+    );
+    assert!(!html.contains("pw-resume.wasm"), "{html}");
+    let policy = html
+        .lines()
+        .find(|l| l.starts_with("content-security-policy:"))
+        .unwrap_or_else(|| panic!("a policy in {html}"));
+    assert!(policy.contains(&csp::sha256_source(&device)), "{policy}");
 }

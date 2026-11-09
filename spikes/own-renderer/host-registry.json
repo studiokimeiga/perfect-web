@@ -649,6 +649,11 @@
         "base"
       ]
     },
+    "device-runtime.spec.mjs": {
+      "roles": [
+        "todomvc"
+      ]
+    },
     "todomvc.spec.mjs": {
       "roles": [
         "todomvc"

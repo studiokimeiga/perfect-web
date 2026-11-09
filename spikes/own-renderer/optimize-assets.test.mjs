@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { copyFile, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -97,7 +98,13 @@ test("a production build says its pages warm what their presses need", async () 
     const files = await optimizeAssets(dir);
     assert.deepEqual(files, ["pw-runtime.mjs"]);
     const delivery = JSON.parse((await readFile(path.join(dir, "delivery.json"))).toString());
-    assert.deepEqual(delivery, { warm: true, versioned: true, bundled: true, device: true });
+    assert.deepEqual(delivery, {
+      warm: true,
+      versioned: true,
+      bundled: true,
+      device: true,
+      runtime: createHash("sha256").update("export const a = 1;\n").digest("hex"),
+    });
     await assert.rejects(readFile(path.join(dir, "delivery.json.br")), { code: "ENOENT" });
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -241,6 +248,53 @@ export {};
     assert.deepEqual(gunzipSync(await readFile(path.join(dir, "pw-runtime-device.mjs.gz"))), device);
     const delivery = JSON.parse((await readFile(path.join(dir, "delivery.json"))).toString());
     assert.equal(delivery.device, true);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("a build with no runtime says nothing of one", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+  try {
+    await writeFile(path.join(dir, "pw-resume.wasm"), Buffer.from([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0]));
+    await optimizeAssets(dir);
+    const delivery = JSON.parse((await readFile(path.join(dir, "delivery.json"))).toString());
+    assert.equal(Object.hasOwn(delivery, "runtime"), false);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+// What only a page with a server reaches, by a word each leaves in a build.
+const SERVER_ONLY = {
+  "the decision module": "decide_manifest",
+  "its address": "/pw-resume.wasm",
+  "its instantiation": "instantiateStreaming",
+  "a command": "/command/",
+  "a subscription": "/stream?doc",
+  "a stream's reading": "getReader",
+  "a stream's marks": "pw-slot",
+  "a read": "/pw-read",
+  "a speculation": "speculation",
+  "a navigation that keeps a layout": "popstate",
+  "its scroll": "scrollRestoration",
+  "the frame hook": "__pwTestApply",
+  "the batch hook": "__pwTestBatch",
+  "a server's build name": "pw-build",
+};
+
+test("the runtime of a page that talks to no server holds none of a server's code", async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), "pw-assets-"));
+  try {
+    await copyFile(new URL("./public/pw-runtime.mjs", import.meta.url), path.join(dir, "pw-runtime.mjs"));
+    await optimizeAssets(dir);
+    const full = (await readFile(path.join(dir, "pw-runtime.mjs"))).toString();
+    const device = (await readFile(path.join(dir, "pw-runtime-device.mjs"))).toString();
+    for (const [what, word] of Object.entries(SERVER_ONLY)) {
+      assert.ok(full.includes(word), `the full runtime has ${what}`);
+      assert.ok(!device.includes(word), `the device's has no ${what}: ${word}`);
+    }
+    assert.ok(device.includes("/pw-handlers"), "a page's table is still asked for");
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

@@ -2886,7 +2886,7 @@ async function flushSignals() {
     // Shown once what is in it can be pressed (ADR-0141).
     showDialogs(inserted);
   }
-  readAgain(changed);
+  if (PW_SERVER) readAgain(changed);
   window.__pw.signals = Object.fromEntries(signals);
 }
 
@@ -4560,10 +4560,10 @@ async function subscribe() {
 // Exposed so a test can deliver a frame out of order. A transport cannot be
 // made to do that on demand, and the property is about the page's guard rather
 // than about the transport.
-window.__pwTestApply = applyFrame;
+if (PW_SERVER) window.__pwTestApply = applyFrame;
 // And a batch, as a transport delivers one: what a page leaving does with
 // it is the batch's guard, not a frame's (the soft navigation's ADR).
-window.__pwTestBatch = applyBatch;
+if (PW_SERVER) window.__pwTestBatch = applyBatch;
 window.__pwHeld = () => Object.fromEntries(held);
 window.__pwKnown = () => Object.fromEntries(known);
 

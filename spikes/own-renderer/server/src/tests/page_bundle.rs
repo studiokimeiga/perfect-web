@@ -115,6 +115,7 @@ fn a_page_that_talks_to_no_server_starts_the_devices_runtime() {
         "{on_device}"
     );
     assert!(on_device.contains("pw-runtime-device.mjs"), "{on_device}");
+    assert!(!on_device.contains("/pw-runtime.mjs"), "{on_device}");
     assert!(
         !on_device.contains(&delivery.runtime_source()),
         "{on_device}"
