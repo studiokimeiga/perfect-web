@@ -182,6 +182,7 @@ pub(crate) struct Deployment {
 /// the runtime, `style` the data layer's stylesheet (none where it has
 /// none), `needs` what the build's markup asks and `deployment` what the
 /// deployment adds.
+#[cfg(test)]
 pub(crate) fn document(
     script: &str,
     style: &str,
