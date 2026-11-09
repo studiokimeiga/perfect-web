@@ -654,6 +654,11 @@
         "todomvc"
       ]
     },
+    "longer-holds.spec.mjs": {
+      "roles": [
+        "base"
+      ]
+    },
     "todomvc.spec.mjs": {
       "roles": [
         "todomvc"
