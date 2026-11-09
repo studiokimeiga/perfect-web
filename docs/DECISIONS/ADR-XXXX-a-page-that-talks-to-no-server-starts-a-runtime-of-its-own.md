@@ -65,7 +65,7 @@ A development build has no second runtime, and its pages are as they were.
 
 ## Result
 
-To be recorded from `just e14-head-to-head` before this is accepted.
+`just e14-head-to-head` at `3b0e7c4f`, with the rest of the size train; the parts are not measured apart. `pw-runtime-device.mjs` is 14.5 KB as Brotli sends it where the runtime is 21.3 KB, and TodoMVC's first load receives 22,623 bytes, from 45,913 at `7f328c3d` (Svelte 20,821, React 70,085). Compressed alike it is 20,684 against Svelte's 16,992, which is 16,506 of script against about 14,800 and a document that holds the page and its stylesheets. Under Slow 4G it is interactive in 1,269 ms, from 1,373 (Svelte 1,306, React 1,688). TodoMVC's whole specification, 60 tests in three engines, passes on the production build.
 
 ## Consequences
 

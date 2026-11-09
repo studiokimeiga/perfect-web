@@ -47,7 +47,7 @@ policy reads the build's own files when the host starts.
 
 ## Result
 
-To be recorded from `just e14-head-to-head` before this is accepted.
+`just e14-head-to-head` at `3b0e7c4f`, with the rest of the size train; the parts are not measured apart. TodoMVC's build and configuration come to 43 lines, from 183 (Svelte 44, React 145), and its checkbox is the official drawing.
 
 ## Consequences
 

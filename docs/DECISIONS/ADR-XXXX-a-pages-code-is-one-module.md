@@ -54,7 +54,7 @@ A development build has no bundle, and its pages load each module as they did.
 
 ## Result
 
-To be recorded from `just e14-head-to-head` before this is accepted.
+`just e14-head-to-head` at `3b0e7c4f`, with the rest of the size train; the parts are not measured apart. TodoMVC's first load makes 4 requests, from 18 at `7f328c3d` (Svelte 5, React 5), and its page's code is one module of 2,032 bytes as Brotli sends it, from 6,743 in eleven files. The store's first load makes 4, from 7 (SvelteKit 9, Next.js 6).
 
 ## Consequences
 

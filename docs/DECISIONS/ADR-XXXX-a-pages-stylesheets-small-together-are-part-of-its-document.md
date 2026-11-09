@@ -60,7 +60,7 @@ what a reader pays.
 
 ## Result
 
-To be recorded from `just e14-head-to-head` before this is accepted.
+`just e14-head-to-head` at `3b0e7c4f`, with the rest of the size train; the parts are not measured apart. TodoMVC asks for no stylesheet, and its document is 3,959 bytes as Brotli sends it, from 2,109 and three more requests. Under Slow 4G its first paint is at 652 ms, from 1,244 at `7f328c3d` (Svelte 1,204, React 1,204), and its largest content at 652 ms, from 1,244 (Svelte 1,320, React 1,696). A production build's stylesheets are minified as well.
 
 ## Consequences
 

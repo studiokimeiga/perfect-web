@@ -50,7 +50,7 @@ knows no handler, and each is refused.
 
 ## Result
 
-To be recorded from `just e14-head-to-head` before this is accepted.
+`just e14-head-to-head` at `3b0e7c4f`, with the rest of the size train; the parts are not measured apart. No page fetches WebAssembly. The store's first load receives 27,659 bytes, from 35,592 at `7f328c3d` (SvelteKit 35,033, Next.js 140,208), in 4 requests (9, 6), and under Slow 4G it is interactive in 1,312 ms (SvelteKit 1,747, Next.js 2,066). The browser suites, 1,591 tests in three engines, pass on it.
 
 ## Consequences
 

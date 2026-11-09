@@ -111,3 +111,7 @@ here before it lands. The hold above is now what a page asks for.
    page acknowledges it, which is its next request; 25 s of a busy page's frames
    could pass `MAX_WAITING` and tell a page that was keeping up to reload. A
    stream that has half that waiting ends, and its page asks again at once.
+
+## Result
+
+`just e14-head-to-head` at `3b0e7c4f`, with the rest of the size train. The store's twenty idle visitors made 0.00 requests a page a minute in the instrument's ten seconds, from 29.7 at `7f328c3d`; ten seconds is shorter than a hold, and by the hold's length the rate is about 2.4 a minute. The host's CPU for them is 3.00 ms a second, from 4.00 (SvelteKit 1.00, Next.js 0.00).
