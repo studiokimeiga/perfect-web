@@ -29,7 +29,7 @@ async function oneEspresso(page) {
 
 /** Whether a request is the order page's document: a load's, or, since the
  * cart and the order are shown in one layout, the fetch of a navigation that
- * keeps it (the soft navigation's ADR). */
+ * keeps it (ADR-0306). */
 const orderPage = (request) =>
   ["document", "fetch"].includes(request.resourceType()) &&
   new URL(request.url()).pathname === "/order";
@@ -79,7 +79,7 @@ test("an order placed goes to its page, read after the commit", async ({ page })
   await expect(page).toHaveTitle("Your order");
   await expect(page.locator("#order-status")).toHaveText(PLACED);
   // A navigation to another page, not a reload of this one: the cart's
-  // layout kept, its window the one loaded first (the soft navigation's ADR).
+  // layout kept, its window the one loaded first (ADR-0306).
   expect(await page.evaluate(() => window.__pwSoftNavigations)).toBe(1);
   expect(await page.evaluate(() => performance.getEntriesByType("navigation")[0].type)).toBe(
     "navigate",
@@ -288,7 +288,7 @@ test("a page shown again from the back-forward cache takes a press again", async
   // press made as the page unloads does not finish before it goes.
   test.skip(browserName !== "chromium", "covered by the stopped navigation's test");
   await oneEspresso(page);
-  // Loaded whole, as another build's (the soft navigation's ADR keeps the
+  // Loaded whole, as another build's (ADR-0306 keeps the
   // layout otherwise, and unloads nothing).
   await wholeOrderPage(page, () => new Promise((r) => setTimeout(r, 500)));
   const cleared = [];

@@ -108,7 +108,7 @@
           "HOLES"
         ],
         "maxCrap": 57.0,
-        "reason": "The packaging's reading of a build (ADR-0412, ADR-0413, the rows train's ADR), held by optimize-assets.test.mjs. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
+        "reason": "The packaging's reading of a build (ADR-0412, ADR-0413, ADR-0417), held by optimize-assets.test.mjs. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -129,7 +129,7 @@
           "deviceFeatures"
         ],
         "maxCrap": 133.0,
-        "reason": "The packaging's reading of a build (ADR-0412, ADR-0413, the rows train's ADR), held by optimize-assets.test.mjs. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
+        "reason": "The packaging's reading of a build (ADR-0412, ADR-0413, ADR-0417), held by optimize-assets.test.mjs. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -150,7 +150,7 @@
           "needs"
         ],
         "maxCrap": 157.0,
-        "reason": "The packaging's reading of a build (ADR-0412, ADR-0413, the rows train's ADR), held by optimize-assets.test.mjs. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
+        "reason": "The packaging's reading of a build (ADR-0412, ADR-0413, ADR-0417), held by optimize-assets.test.mjs. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -160,7 +160,7 @@
           "walkParts"
         ],
         "maxCrap": 133.0,
-        "reason": "The packaging's reading of a build (ADR-0412, ADR-0413, the rows train's ADR), held by optimize-assets.test.mjs. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
+        "reason": "The packaging's reading of a build (ADR-0412, ADR-0413, ADR-0417), held by optimize-assets.test.mjs. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -181,7 +181,7 @@
         ],
         "maxCrap": 241.0,
         "maxCognitive": 16,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -233,7 +233,7 @@
           "attributeOfPiece"
         ],
         "maxCrap": 31.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -243,7 +243,7 @@
           "bound"
         ],
         "maxCrap": 43.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -255,7 +255,7 @@
         "maxCrap": 651.0,
         "maxCognitive": 55,
         "maxCyclomatic": 25,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -286,7 +286,7 @@
         ],
         "maxCrap": 211.0,
         "maxCognitive": 25,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -434,7 +434,7 @@
           "heardAtTheDocument"
         ],
         "maxCrap": 57.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -454,7 +454,7 @@
           "holdsStill"
         ],
         "maxCrap": 111.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -464,7 +464,7 @@
           "hole"
         ],
         "maxCrap": 57.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -476,7 +476,7 @@
         "maxCrap": 507.0,
         "maxCognitive": 20,
         "maxCyclomatic": 22,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -518,7 +518,7 @@
         "maxCrap": 871.0,
         "maxCognitive": 36,
         "maxCyclomatic": 29,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -528,7 +528,7 @@
           "morphBlock"
         ],
         "maxCrap": 111.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -540,7 +540,7 @@
         "maxCrap": 703.0,
         "maxCognitive": 58,
         "maxCyclomatic": 26,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -550,7 +550,7 @@
           "morphed"
         ],
         "maxCrap": 91.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -581,7 +581,7 @@
         ],
         "maxCrap": 421.0,
         "maxCognitive": 32,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -592,7 +592,7 @@
         ],
         "maxCrap": 157.0,
         "maxCognitive": 17,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -602,7 +602,7 @@
           "rangeOf"
         ],
         "maxCrap": 57.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -642,7 +642,7 @@
           "refusedPress"
         ],
         "maxCrap": 91.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -652,7 +652,7 @@
           "renderer"
         ],
         "maxCrap": 91.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -662,7 +662,7 @@
           "rowGone"
         ],
         "maxCrap": 31.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -672,7 +672,7 @@
           "rowsMade"
         ],
         "maxCrap": 133.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -682,7 +682,7 @@
           "rowsMorphed"
         ],
         "maxCrap": 31.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -692,7 +692,7 @@
           "rowsParsed"
         ],
         "maxCrap": 31.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -702,7 +702,7 @@
           "rowsPlanned"
         ],
         "maxCrap": 57.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -712,7 +712,7 @@
           "rowsShown"
         ],
         "maxCrap": 91.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -722,7 +722,7 @@
           "runsGone"
         ],
         "maxCrap": 73.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -754,7 +754,7 @@
           "spanGone"
         ],
         "maxCrap": 57.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -784,7 +784,7 @@
           "warmable"
         ],
         "maxCrap": 31.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -794,7 +794,7 @@
           "warmsOn"
         ],
         "maxCrap": 31.0,
-        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (ADR-0417, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [

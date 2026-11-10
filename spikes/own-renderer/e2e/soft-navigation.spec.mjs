@@ -1,4 +1,4 @@
-// The soft navigation's ADR: a navigation between two pages of one layout
+// ADR-0306: a navigation between two pages of one layout
 // and one build keeps the layout, and shows the next page in it, read after
 // the commit before it (ADR-0280). The owner's Next.js bug, its second half:
 // save, go to a page, and see it fresh, the header not mounted again.

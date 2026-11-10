@@ -43,7 +43,7 @@ const PW_AUTOFOCUS = true;
 const PW_PLANS = true;
 
 /**
- * **This document's life** (the soft navigation's ADR). Every listener the
+ * **This document's life** (ADR-0306). Every listener the
  * runtime adds is added with its signal, and its subscription asks under it:
  * a navigation that shows the next page in this one's layout hands the
  * document to a runtime of the next document's, and aborting this ends all
@@ -4202,7 +4202,7 @@ addEventListener(
  */
 async function navigate(route, args, mine) {
   const url = pageAddress(route, args);
-  // A page shown in a layout keeps it (the soft navigation's ADR), held to
+  // A page shown in a layout keeps it (ADR-0306), held to
   // the same two rules, by the same two functions.
   if (parts.layout) return softNavigate(url, "push", mine);
   if (!taken(url)) return;
@@ -5292,7 +5292,7 @@ async function subscribe() {
 // than about the transport.
 if (PW_SERVER) window.__pwTestApply = applyFrame;
 // And a batch, as a transport delivers one: what a page leaving does with
-// it is the batch's guard, not a frame's (the soft navigation's ADR).
+// it is the batch's guard, not a frame's (ADR-0306).
 if (PW_SERVER) window.__pwTestBatch = applyBatch;
 window.__pwHeld = () => Object.fromEntries(held);
 window.__pwKnown = () => Object.fromEntries(known);
@@ -5314,7 +5314,7 @@ function apply(values) {
   }
 }
 
-// --- a navigation that keeps the layout (the soft navigation's ADR) ---------
+// --- a navigation that keeps the layout (ADR-0306) ---------
 //
 // The owner's Next.js bug, its second half: save, go to a page, and see the
 // header mounted again. A page shown in a layout (the layouts' ADR) is shown
@@ -5522,7 +5522,7 @@ async function softNavigate(url, how, mine, chosen = false) {
   if (going.signal.aborted || window.__pwUnloading) return;
   pending = null;
   const at = response.url || url;
-  // The same build, by the name it says of itself (the build id's ADR).
+  // The same build, by the name it says of itself (ADR-0300).
   if (!response.ok || !servedBuild || response.headers.get("pw-build") !== servedBuild) {
     return loadWhole(at, how);
   }
