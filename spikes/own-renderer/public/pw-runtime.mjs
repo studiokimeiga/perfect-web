@@ -535,6 +535,25 @@ const decider = (lines, page) => {
 };
 // --- end of the decision
 
+async function bootDecision() {
+  // What this build compiled (ADR-0132), from the server that served this
+  // runtime and never from the document: a document cached from another build
+  // names handlers this one may not have. Answered by the head's preload
+  // (ADR-0399), or, for a page alone in its build, by the document that holds
+  // this runtime too (`tableAlone`). If the table cannot be read, nothing is
+  // known and every handler is refused, which is the closed side.
+  const lines = heardTable(
+    PW_ALONE ? tableAlone() : await fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : "")),
+  );
+  decide = decider(lines, PAGE);
+  if (!PW_SERVER) return;
+  log.push(`knows ${lines.filter((l) => l && l[0] !== "#").length} handler(s)`);
+  // What this build says of this page's documents (ADR-0300), from the same
+  // table and never from the document.
+  const [, , schema, scope] = lines.find((l) => l.startsWith(`#page|${PAGE}|`))?.split("|") ?? [];
+  if (schema !== undefined) log.push(`knows ${PAGE}'s documents: ${schema} ${scope}`);
+}
+
 /** **The handler table a page alone in its build holds** (the one page's
  * ADR): its document's, which holds this runtime too, so both are of one
  * build, as ADR-0132 asks of a table. Empty where it cannot be read, and every
@@ -547,24 +566,6 @@ const tableAlone = !PW_ALONE ? null : function tableAlone() {
     return "";
   }
 };
-
-async function bootDecision() {
-  // What this build compiled (ADR-0132), from the server that served this
-  // runtime and never from the document: a document cached from another build
-  // names handlers this one may not have. Answered by the head's preload
-  // (ADR-0399). If the table cannot be read, nothing is known and every
-  // handler is refused, which is the closed side.
-  const lines = heardTable(
-    PW_ALONE ? tableAlone() : await fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : "")),
-  );
-  decide = decider(lines, PAGE);
-  if (!PW_SERVER) return;
-  log.push(`knows ${lines.filter((l) => l && l[0] !== "#").length} handler(s)`);
-  // What this build says of this page's documents (ADR-0300), from the same
-  // table and never from the document.
-  const [, , schema, scope] = lines.find((l) => l.startsWith(`#page|${PAGE}|`))?.split("|") ?? [];
-  if (schema !== undefined) log.push(`knows ${PAGE}'s documents: ${schema} ${scope}`);
-}
 
 // --- attaching -----------------------------------------------------------
 

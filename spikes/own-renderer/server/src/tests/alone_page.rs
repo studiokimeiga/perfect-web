@@ -60,7 +60,11 @@ fn a_page_alone_in_its_build_holds_its_code_and_asks_for_nothing_as_it_boots() {
     assert!(!html.contains("rel=\"preload\""), "{html}");
     assert!(!html.contains("pw-runtime-device.mjs"), "{html}");
     assert!(!html.contains(&s.delivery.runtime_source()), "{html}");
-    assert_eq!(html.matches("<script type=\"module\">").count(), 1, "{html}");
+    assert_eq!(
+        html.matches("<script type=\"module\">").count(),
+        1,
+        "{html}"
+    );
 }
 
 #[test]
@@ -89,7 +93,10 @@ fn its_table_is_the_one_its_host_answers_for_its_build() {
     let said = table_in(&html).unwrap_or_default();
     let read: Option<String> = serde_json::from_str(said).ok();
     assert_eq!(read.as_deref(), Some(body(&answer)), "{html}");
-    assert!(body(&answer).contains(&format!("#bundle|{PAGE}|")), "{answer}");
+    assert!(
+        body(&answer).contains(&format!("#bundle|{PAGE}|")),
+        "{answer}"
+    );
     // No `<` in a script element's text (ADR-0097).
     assert!(!said.contains('<'), "{said}");
 }
@@ -214,7 +221,9 @@ fn a_build_whose_contracts_name_no_component_is_served_with_none() {
 fn a_build_that_computes_on_a_host_and_has_no_components_is_refused() {
     let (_dir, out) = super::todomvc::built_todomvc();
     let _ = std::fs::remove_dir_all(out.join("components"));
-    let refused = Server::from_build(out.clone(), out).err().unwrap_or_default();
+    let refused = Server::from_build(out.clone(), out)
+        .err()
+        .unwrap_or_default();
     assert!(refused.contains("components"), "{refused}");
 }
 
@@ -229,7 +238,13 @@ fn a_page_of_a_build_of_several_fetches_its_runtime_whatever_its_packaging_wrote
     for route in ["/", "/q"] {
         let answer = get_as(&s, "a", route);
         assert!(answer.starts_with("HTTP/1.1 200"), "{route}: {answer}");
-        assert!(!answer.contains("<script type=\"module\">"), "{route}: {answer}");
-        assert!(answer.contains("pw-runtime-device.mjs"), "{route}: {answer}");
+        assert!(
+            !answer.contains("<script type=\"module\">"),
+            "{route}: {answer}"
+        );
+        assert!(
+            answer.contains("pw-runtime-device.mjs"),
+            "{route}: {answer}"
+        );
     }
 }

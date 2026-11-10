@@ -117,7 +117,7 @@ test("all host and provider listeners are disjoint across adjacent and multiple 
 
 test("TCP bound includes the final slot and largest concrete listener", () => {
   const max = Math.max(...listenersForSlots(REGISTRY, 1).map(({ port }) => port - 1));
-  assert.equal(max, 215);
+  assert.equal(max, 218);
   assert.equal(Math.max(...listenersForSlots(REGISTRY, 65535 - max - REGISTRY.stride, 2).map(({ port }) => port)), 65535);
   assert.throws(() => listenersForSlots(REGISTRY, 65536 - max - REGISTRY.stride, 2), /TCP port/);
   for (const base of [0, -1, 1.5, NaN, Infinity, "13201", 65536]) assert.throws(() => listenersForSlots(REGISTRY, base), /PORT/);

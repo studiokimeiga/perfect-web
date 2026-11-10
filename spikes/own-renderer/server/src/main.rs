@@ -7382,7 +7382,10 @@ impl Server {
                 && self.delivery.alone_page() == Some(page.as_str()))
             .then(|| self.delivery.one_document(&document, &self.handlers_said()))
             .flatten();
-            let script = alone.is_some().then(|| self.delivery.alone_script()).flatten();
+            let script = alone
+                .is_some()
+                .then(|| self.delivery.alone_script())
+                .flatten();
             let document = match alone {
                 Some(one) => one,
                 None if runs_on_device(plan) => {
@@ -8162,7 +8165,9 @@ impl Server {
         // (the one page's ADR): its policy allows that alone.
         let scripts = match alone {
             Some(module) => vec![module],
-            None => std::iter::once(runtime.as_str()).chain(device.as_deref()).collect(),
+            None => std::iter::once(runtime.as_str())
+                .chain(device.as_deref())
+                .collect(),
         };
         csp::document_with(&scripts, self.data.style(), needs, &deployment)
     }
