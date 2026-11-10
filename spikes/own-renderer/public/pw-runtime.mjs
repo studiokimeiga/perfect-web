@@ -559,10 +559,10 @@ window.__pw = {
   build: () => servedBuild,
   indexSize: () => index.size,
   /** The bytes of command bodies kept alive and not yet answered, and what
-   * they may come to (ADR-0268). */
-  keepalive: () => ({ inFlight: keptAlive, budget: keepaliveBudget }),
+   * they may come to (ADR-0268). A page with no server sends none. */
+  keepalive: !PW_SERVER ? null : () => ({ inFlight: keptAlive, budget: keepaliveBudget }),
   /** How long each send of a command waits for its answer (ADR-0381). */
-  deadline: () => sendDeadline,
+  deadline: !PW_SERVER ? null : () => sendDeadline,
   /** How long a press's module may take to load (ADR-0382). */
   loadDeadline: () => loadDeadline,
   /** How many presses have not finished (ADR-0280's `pressing`). */
@@ -834,10 +834,10 @@ async function send(component, args, interaction, retry, after, before) {
  * adapter; it never raises it.
  */
 let keptAlive = 0;
-const keepaliveBudget = Math.min(
-  64 * 1024,
-  Number(new URLSearchParams(location.search).get("keepalive") ?? 64 * 1024) || 0,
-);
+// A page with no server sends no command.
+const keepaliveBudget = !PW_SERVER
+  ? 0
+  : Math.min(64 * 1024, Number(new URLSearchParams(location.search).get("keepalive") ?? 64 * 1024) || 0);
 
 /**
  * How long to wait before sending a command again (ADR-0173): a second,
@@ -868,7 +868,7 @@ function lowered(name) {
   const asked = Number(new URLSearchParams(location.search).get(name));
   return asked > 0 ? Math.min(10_000, Math.max(500, asked)) : 10_000;
 }
-const sendDeadline = lowered("deadline");
+const sendDeadline = !PW_SERVER ? 0 : lowered("deadline");
 const loadDeadline = lowered("load-deadline");
 
 // --- ADR-0122: optimistic transitions -----------------------------------
@@ -1612,7 +1612,7 @@ const renderer = (() => {
       return row;
     });
     kept.set(p.id, now);
-    return { part: p.id, rows, of: planned(p) ? p : null };
+    return { part: p.id, rows, of: PW_PLANS && planned(p) ? p : null };
   }
 
   function holdsStill(row, item, e) {
@@ -1633,7 +1633,7 @@ const renderer = (() => {
     let holes;
     const text = rendered(others, (out) => {
       out.bare = !PW_SERVER && DELEGATED_ROWS;
-      if (planned(p)) out.holes = holes = [];
+      if (PW_PLANS && planned(p)) out.holes = holes = [];
       out.html.push(`<!--pw:s${at}-->`);
       emit(p.body, within(named({ ...e, reads }, p.binding, item), p.id, token), others, out);
       out.html.push(`<!--pw:e${at}-->`);
@@ -1642,11 +1642,13 @@ const renderer = (() => {
   }
 
   /** Each list part whose rows a plan can make, as `planned` found it. */
-  const plannable = new WeakMap();
+  const plannable = !PW_PLANS ? null : new WeakMap();
 
   /** **Whether a list's rows can be made from one parsed row** (`planOf`):
-   * nothing inside a row changes its shape, and no anchor inside it is read. */
-  function planned(p) {
+   * nothing inside a row changes its shape, and no anchor inside it is read.
+   * A build with no such list holds none of this (an expression, so that
+   * the build drops it). */
+  const planned = !PW_PLANS ? null : function planned(p) {
     if (!plannable.has(p)) {
       const hole = (v) =>
         (v.part === "text" && v.context === "text") ||
@@ -1654,10 +1656,10 @@ const renderer = (() => {
         v.part === "interpolated_attribute" ||
         v.part === "boolean_attribute" ||
         v.part === "event";
-      plannable.set(p, PW_PLANS && DELEGATED_ROWS && p.body.every((c) => c.chunk === "static" || hole(c.value)));
+      plannable.set(p, DELEGATED_ROWS && p.body.every((c) => c.chunk === "static" || hole(c.value)));
     }
     return plannable.get(p);
-  }
+  };
 
   /** The most elements a page may nest (`NESTED_ELEMENTS`, ADR-0203). */
   const NESTED_ELEMENTS = 500;

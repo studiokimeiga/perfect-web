@@ -36,6 +36,7 @@ function loadRenderer(server = true) {
     PW_MATCH: true,
     PW_VIEWS: true,
     PW_DIALOGS: true,
+    PW_PLANS: true,
   });
 }
 const renderer = loadRenderer();
