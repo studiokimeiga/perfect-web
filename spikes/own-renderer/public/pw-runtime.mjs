@@ -1125,6 +1125,11 @@ const renderer = (() => {
   /** What a lookup finds where there is nothing, which `null` is not. */
   const NONE = {};
 
+  /** **Each value a row computes**, by the name its item holds it under (the
+   * row's computed holes' ADR): given by `rowsComputed` once the page's
+   * computed module is loaded. */
+  const rowComputes = new Map();
+
   const isList = Array.isArray;
   const isObject = (v) => typeof v === "object" && v !== null && !isList(v);
   const isVariant = (v) => isObject(v) && typeof v.$case === "string";
@@ -1237,8 +1242,15 @@ const renderer = (() => {
       if (value === NONE) continue;
       for (let rest = cut; rest < segments.length; rest++) {
         if (!isRecord(value)) return NONE;
-        const all = field(value, segments.slice(rest).join("."));
+        const whole = segments.slice(rest).join(".");
+        const all = field(value, whole);
         if (all !== NONE) return all;
+        // **A value its row computes** (the row's computed holes' ADR), by
+        // the name its item holds it under, which a host's first render set:
+        // the browser computes each after, in the row's scope, so what it
+        // reads of the page is the row's own.
+        const computes = rowComputes.get(whole);
+        if (computes) return computes(e);
         value = field(value, segments[rest]);
         if (value === NONE) return NONE;
       }
@@ -1622,7 +1634,7 @@ const renderer = (() => {
       const item = opened(raw);
       const key = rowKey(item, p, seen);
       const old = was?.get(key);
-      const row = old && holdsStill(old, item, e) ? old : rowOf(p, e, others, item, key);
+      const row = old && holdsStill(old, item, e, p) ? old : rowOf(p, e, others, item, key);
       now.set(key, row);
       return row;
     });
@@ -1630,13 +1642,39 @@ const renderer = (() => {
     return { part: p.id, rows, of: PW_PLANS && planned(p) ? p : null };
   }
 
-  function holdsStill(row, item, e) {
+  function holdsStill(row, item, e, p) {
     if (!same(row.item, item)) return false;
     // What a `{#match}` around the list bound, which a row can read.
     for (let a = row.names, b = e.names; a || b; a = a.up, b = b.up) {
       if (!a || !b || a.name !== b.name || !same(a.value, b.value)) return false;
     }
     for (const [name, value] of row.reads) if (e.page.get(name) !== value) return false;
+    return computedHold(row, item, e, p);
+  }
+
+  /** **Whether what a row computes still comes out as it did** (the row's
+   * computed holes' ADR): where nothing it read of the page moved, so; else
+   * each is computed again, for the row's item, and the row is kept where
+   * each is what it showed, what they read noted as it is now. The large
+   * list's class reads the selection in every row, and only the rows whose
+   * class it changes are written again. */
+  function computedHold(row, item, e, p) {
+    const computing = row.computing;
+    if (!computing || computing.computedValues.length === 0) return true;
+    let moved = false;
+    for (const [name, value] of computing.computedReads) {
+      if (e.page.get(name) !== value) {
+        moved = true;
+        break;
+      }
+    }
+    if (!moved) return true;
+    const reads = new Map();
+    const again = { ...e, reads, computedReads: reads, computedValues: null, names: { name: p.binding, value: item, up: e.names } };
+    for (const [name, value] of computing.computedValues) {
+      if (!same(rowComputes.get(name)(again), value)) return false;
+    }
+    computing.computedReads = reads;
     return true;
   }
 
@@ -1645,14 +1683,17 @@ const renderer = (() => {
     const reads = new Map();
     const token = tokenOf(e, p.id, key);
     const at = `${p.id}@${token}`;
-    if (PW_PLANS && planned(p)) return plannedRowOf(p, e, others, item, at, token, reads);
+    // What its computed values read, and what they came to (the row's
+    // computed holes' ADR), where the page's rows compute any.
+    const computing = rowComputes.size ? { computedReads: new Map(), computedValues: [] } : null;
+    if (PW_PLANS && planned(p)) return plannedRowOf(p, e, others, item, at, token, reads, computing);
     const text = rendered(others, (out) => {
       out.bare = !PW_SERVER && DELEGATED_ROWS;
       out.html.push(`<!--pw:s${at}-->`);
-      emit(p.body, within(named({ ...e, reads }, p.binding, item), p.id, token), others, out);
+      emit(p.body, within(named({ ...e, reads, ...computing }, p.binding, item), p.id, token), others, out);
       out.html.push(`<!--pw:e${at}-->`);
     });
-    return { key: at, text, item, reads, names: e.names };
+    return { key: at, text, item, reads, names: e.names, computing };
   }
 
   /** **A row a plan makes** (`planOf`): its holes, what each sets as it was
@@ -1660,8 +1701,8 @@ const renderer = (() => {
    * it, a morph or a parse. Nothing in such a row is written later (no view
    * is in it), so it needs none of the writer that waits for one, and its
    * scope is made once. */
-  const plannedRowOf = !PW_PLANS ? null : function plannedRowOf(p, e, others, item, at, token, reads) {
-    const env = { ...e, reads, names: { name: p.binding, value: item, up: e.names }, frames: [...e.frames, { scope: p.id, instance: token }] };
+  const plannedRowOf = !PW_PLANS ? null : function plannedRowOf(p, e, others, item, at, token, reads, computing) {
+    const env = { ...e, reads, ...computing, names: { name: p.binding, value: item, up: e.names }, frames: [...e.frames, { scope: p.id, instance: token }] };
     const out = { html: [`<!--pw:s${at}-->`], later: [], lists: false, bare: true, holes: [], raws: [] };
     emit(p.body, env, others, out);
     out.html.push(`<!--pw:e${at}-->`);
@@ -1672,6 +1713,7 @@ const renderer = (() => {
       item,
       reads,
       names: e.names,
+      computing,
       holes: out.holes,
       raws: out.raws,
       get text() {
@@ -1900,6 +1942,25 @@ const renderer = (() => {
 
   const asked = {
     env,
+    /** **What each row of a list the browser renders computes** (the row's
+     * computed holes' ADR): `functions`, the page's computed module's `rows`;
+     * `entries`, the manifest's, each the name its item holds the value under
+     * and what its function reads, in order, by its path in the row. */
+    rowsComputed: (functions, entries) => {
+      for (const { name, inputs } of entries) {
+        const f = functions[name];
+        if (!f) continue;
+        // What it reads of the page is its row's computed reads, apart from
+        // what the row's markup reads, and what it computes is kept with the
+        // row: a change it reads keeps the row where each comes out the same.
+        rowComputes.set(name, (e) => {
+          const at = e.computedReads ? { ...e, reads: e.computedReads } : e;
+          const value = f(...inputs.map((path) => need(at, path)));
+          e.computedValues?.push([name, value]);
+          return value;
+        });
+      }
+    },
     letGo: () => tokens.clear(),
     /** One part, its anchors included. */
     part: (p, e, others) => rendered(others, (out) => emit([{ chunk: "dynamic", value: p }], e, others, out)),
@@ -2507,7 +2568,7 @@ function signalAt(path) {
  * whose subject may be one. None where the page computes none. */
 async function computedNow() {
   const computed = (parts.live ?? []).filter((l) => l.derived);
-  if (computed.length === 0) return [];
+  if (computed.length === 0 && !parts.rowsComputed) return [];
   const module = await computedValues();
   return computed.map((l) => [
     `#${parts.template}~${l.part}`,
@@ -3453,6 +3514,9 @@ function computedValues() {
   computedModule = pageCode("computed", url, computedAttempts).then(
     (module) => {
       log.push(`loaded ${parts.computed}`);
+      // What each row of a list the browser renders computes (the row's
+      // computed holes' ADR), given to the renderer as the module arrives.
+      if (parts.rowsComputed) renderer.rowsComputed(module.rows ?? {}, parts.rowsComputed);
       return module;
     },
     (error) => {

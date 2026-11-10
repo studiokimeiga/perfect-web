@@ -7272,7 +7272,10 @@ impl Server {
         }
         // What it computes from its signals, at their first values (ADR-0227).
         let env = self.with_computed_signals(env, plan, template)?;
-        let env = with_signals(env, plan).in_domain(
+        // And what each row of a list the browser renders computes (the
+        // row's computed holes' ADR), from the signals just set.
+        let env = self.with_browser_rows(with_signals(env, plan), plan, template)?;
+        let env = env.in_domain(
             IdentityDomain::document(path, partition, BUILD).keyed("own-renderer-spike-key"),
         );
         let body = pw_render::render(template, &env, &self.templates)
@@ -7461,8 +7464,25 @@ impl Server {
         template: &Template,
     ) -> Result<Env, String> {
         for live in plan["live"].as_array().into_iter().flatten() {
+            if let Some((path, value)) = self.computed_first(plan, template, live)? {
+                env = env.set(&path, val_to_value(&value));
+            }
+        }
+        Ok(env)
+    }
+
+    /// **What one live part computes from the signals' first values**
+    /// (ADR-0227), by the path the template reads it; none for one that
+    /// computes nothing.
+    fn computed_first(
+        &self,
+        plan: &serde_json::Value,
+        template: &Template,
+        live: &serde_json::Value,
+    ) -> Result<Option<(String, Val)>, String> {
+        {
             let Some(id) = live["derived"].as_str() else {
-                continue;
+                return Ok(None);
             };
             let part = live["part"].as_u64().unwrap_or_default() as u32;
             // A text part, an attribute, or a block's subject (ADR-0229); or
@@ -7498,9 +7518,106 @@ impl Server {
                 })
                 .collect();
             let value = self.computed_from(id, &firsts)?;
-            env = env.set(&path, val_to_value(&value));
+            Ok(Some((path, value)))
+        }
+    }
+
+    /// **What each row of a list the browser renders computes, for the first
+    /// render** (the row's computed holes' ADR): each row of the list's first
+    /// value given the member the template reads, computed by its component
+    /// from the row's item and the signals' first values, as a host gives a
+    /// query's row what it reads through a member (ADR-0170). The browser
+    /// computes it from then on. Set where the list is read, for the render;
+    /// the signal the page holds is its own value.
+    fn with_browser_rows(
+        &self,
+        mut env: Env,
+        plan: &serde_json::Value,
+        template: &Template,
+    ) -> Result<Env, String> {
+        let mut lists: BTreeMap<&str, Vec<&serde_json::Value>> = BTreeMap::new();
+        for row in plan["browser_rows"].as_array().into_iter().flatten() {
+            if let Some(collection) = row["collection"].as_str() {
+                lists.entry(collection).or_default().push(row);
+            }
+        }
+        for (collection, rows) in lists {
+            let items = self.first_list(plan, template, collection)?;
+            let mut shown = Vec::with_capacity(items.len());
+            for item in &items {
+                let mut rendered = Value::from_wire(item)?;
+                let Value::Record(fields) = &mut rendered else {
+                    return Err(format!("a row of `{collection}` is no record"));
+                };
+                for row in &rows {
+                    let binding = row["binding"].as_str().unwrap_or_default();
+                    // Each value it reads, in its function's order: the row's
+                    // item, or a signal's first value, then its fields.
+                    let args: Vec<serde_json::Value> = row["inputs"]
+                        .as_array()
+                        .into_iter()
+                        .flatten()
+                        .filter_map(|input| input.as_str())
+                        .map(|input| {
+                            let mut at = input.split('.');
+                            let root = at.next().unwrap_or_default();
+                            let mut value = if root == binding {
+                                item.clone()
+                            } else {
+                                first_value(plan, root)
+                            };
+                            for field in at {
+                                value = value[field].clone();
+                            }
+                            value
+                        })
+                        .collect();
+                    let value =
+                        self.computed_from(row["derived"].as_str().unwrap_or_default(), &args)?;
+                    // By its path from the item's name, as a query's row's is.
+                    let path = row["path"].as_str().unwrap_or_default();
+                    let within = path.split_once('.').map_or("", |(_, rest)| rest);
+                    fields.insert(within.to_string(), val_to_value(&value));
+                }
+                shown.push(rendered);
+            }
+            env = env.set(collection, Value::List(shown));
         }
         Ok(env)
+    }
+
+    /// **A list's first value, as the page holds it** (the row's computed
+    /// holes' ADR): a signal's, by its fields, or one the browser computes
+    /// from the signals, as its component computes it from their first values.
+    fn first_list(
+        &self,
+        plan: &serde_json::Value,
+        template: &Template,
+        collection: &str,
+    ) -> Result<Vec<serde_json::Value>, String> {
+        let value = if collection.starts_with('#') {
+            let mut found = None;
+            for live in plan["live"].as_array().into_iter().flatten() {
+                if let Some((path, value)) = self.computed_first(plan, template, live)?
+                    && path == collection
+                {
+                    found = Some(val_to_json(&value));
+                    break;
+                }
+            }
+            found.ok_or_else(|| format!("no part computes `{collection}`"))?
+        } else {
+            let mut at = collection.split('.');
+            let mut value = first_value(plan, at.next().unwrap_or_default());
+            for field in at {
+                value = value[field].clone();
+            }
+            value
+        };
+        match value {
+            serde_json::Value::Array(items) => Ok(items),
+            other => Err(format!("`{collection}`'s first value is no list: {other}")),
+        }
     }
 
     /// **A computed value's component, run with `json`** (ADR-0227), typed
@@ -8213,8 +8330,11 @@ impl Server {
         let env = self
             .with_computed_signals(env, plan, self.template_of(page))
             .unwrap_or_else(|e| panic!("`{page}`'s computed values: {e}"));
-        // Its signals, at their first values (ADR-0140).
-        with_signals(env, plan)
+        // Its signals, at their first values (ADR-0140), and what each row of
+        // a list the browser renders computes from them (the row's computed
+        // holes' ADR).
+        self.with_browser_rows(with_signals(env, plan), plan, self.template_of(page))
+            .unwrap_or_else(|e| panic!("`{page}`'s rows' computed values: {e}"))
             // A page, not a materialization: its domain is the route identity
             // and its partition. The generation is carried whatever the
             // partition is — the two are orthogonal.
@@ -13090,6 +13210,25 @@ fn first_value(plan: &serde_json::Value, signal: &str) -> serde_json::Value {
         .unwrap_or(serde_json::Value::Null)
 }
 
+/// **What each row of a list the browser renders computes** (the row's
+/// computed holes' ADR), as the runtime reads it: the name the item holds the
+/// value under, and what its function reads, in order, each by its path in
+/// the row. None where no row computes.
+fn rows_computed(manifest: &mut serde_json::Value, plan: &serde_json::Value) {
+    let rows: Vec<serde_json::Value> = plan["browser_rows"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|row| {
+            let (_, name) = row["path"].as_str()?.split_once('.')?;
+            Some(serde_json::json!({ "name": name, "inputs": row["inputs"] }))
+        })
+        .collect();
+    if !rows.is_empty() {
+        manifest["rowsComputed"] = serde_json::Value::Array(rows);
+    }
+}
+
 /// **The module a page's browser computes its signals' values with**
 /// (ADR-0227), as `pw build` wrote it: one a page computes any from.
 fn computed_module(plan: &serde_json::Value) -> Option<String> {
@@ -13098,6 +13237,9 @@ fn computed_module(plan: &serde_json::Value) -> Option<String> {
         .into_iter()
         .flatten()
         .any(|l| l["derived"].is_string())
+        // Or a row of a list the browser renders (the row's computed holes'
+        // ADR).
+        || plan["browser_rows"].as_array().is_some_and(|r| !r.is_empty())
         // TRACK SEAM (device-store): or the steps of a value the device
         // keeps from an earlier version to its own.
         || device::migrates(plan);
@@ -13143,10 +13285,12 @@ fn signal_document(
     with_fragment(&mut manifest, plan);
     // TRACK SEAM (device-store): what the device keeps that it holds.
     device::with_device(&mut manifest, plan);
-    // What it computes from its signals (ADR-0227).
+    // What it computes from its signals (ADR-0227), and each row of a list
+    // it renders (the row's computed holes' ADR).
     if let Some(module) = computed_module(plan) {
         manifest["computed"] = serde_json::Value::String(module);
     }
+    rows_computed(&mut manifest, plan);
     with_instance_templates(&mut manifest, template, templates);
     if let Some(layout) = plan.get("layout").filter(|l| !l.is_null()) {
         manifest["layout"] = layout.clone();
@@ -13330,10 +13474,12 @@ fn document(
     with_fragment(&mut manifest, plan);
     // TRACK SEAM (device-store): what the device keeps that it holds.
     device::with_device(&mut manifest, plan);
-    // What it computes from them (ADR-0227).
+    // What it computes from them (ADR-0227), and each row of a list it
+    // renders (the row's computed holes' ADR).
     if let Some(module) = computed_module(plan) {
         manifest["computed"] = serde_json::Value::String(module);
     }
+    rows_computed(&mut manifest, plan);
     // Each binding a signal keys (ADR-0152): the browser reads it again, for
     // the new key, when one of its signals changes, and does what its stale
     // work says.
@@ -18232,6 +18378,9 @@ public query Store(",
     // TRACK SEAM (device-store): a page that holds a value the device keeps,
     // served (ADR-0366).
     mod device_store;
+    // A row of a list the browser renders computes what it shows (the row's
+    // computed holes' ADR).
+    mod browser_rows;
     mod inline_styles;
     mod page_bundle;
 

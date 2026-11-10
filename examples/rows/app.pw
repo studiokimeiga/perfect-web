@@ -16,8 +16,6 @@ import String
 
 type Row = Row { id: Int, label: String }
 
-type Shown = Shown { id: Int, label: String, class: String }
-
 fn adjectives() -> List<String> !{} {
     ["pretty", "large", "big", "small", "tall", "short", "long", "handsome", "plain", "quaint", "clean", "elegant", "easy", "angry", "crazy", "helpful", "mushy", "odd", "unsightly", "adorable", "important", "inexpensive", "cheap", "expensive", "fancy"]
 }
@@ -42,7 +40,7 @@ fn label_of(id: Int) -> String !{} {
     let a = (id * 16807) % 2147483647
     let b = (a * 16807) % 2147483647
     let c = (b * 16807) % 2147483647
-    String.join([word(adjectives(), a), word(colours(), b), word(nouns(), c)], " ")
+    "{word(adjectives(), a)} {word(colours(), b)} {word(nouns(), c)}"
 }
 
 fn made(from: Int, n: Int) -> List<Row> !{} {
@@ -51,7 +49,7 @@ fn made(from: Int, n: Int) -> List<Row> !{} {
 
 fn updated(rows: List<Row>) -> List<Row> !{} {
     List.map(rows, (r) => if (r.id % 10) == 1 {
-        Row { id: r.id, label: String.join([r.label, "!!!"], " ") }
+        Row { id: r.id, label: "{r.label} !!!" }
     } else {
         r
     })
@@ -76,18 +74,6 @@ fn swapped(rows: List<Row>) -> List<Row> !{} {
 
 fn removed(rows: List<Row>, id: Int) -> List<Row> !{} {
     List.filter(rows, (r) => r.id != id)
-}
-
-fn shown(rows: List<Row>, selected: Int) -> List<Shown> !{} {
-    List.map(rows, (r) => Shown {
-        id: r.id,
-        label: r.label,
-        class: if r.id == selected {
-            "danger"
-        } else {
-            ""
-        },
-    })
 }
 
 page Rows() {
@@ -118,8 +104,8 @@ page Rows() {
             <button id="swaprows" type="button" on:press={() => rows = swapped(rows)}>Swap rows</button>
             <table>
                 <tbody id="tbody">
-                    {#each shown(rows, selected) as row (row.id)}
-                        <tr class={row.class}>
+                    {#each rows as row (row.id)}
+                        <tr class={if row.id == selected { "danger" } else { "" }}>
                             <td class="id">{row.id}</td>
                             <td class="label"><button type="button" class="select" on:press={resumable(captures = { row }) => selected = row.id}>{row.label}</button></td>
                             <td class="rm"><button type="button" class="remove" aria-label="Remove" on:press={resumable(captures = { row }) => rows = removed(rows, row.id)}>x</button></td>

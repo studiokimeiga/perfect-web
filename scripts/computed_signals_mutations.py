@@ -95,16 +95,17 @@ MUTANTS = [
         "cargo",
         MODULE,
         # Re-anchored by track `device-store`: a part's function given each
-        # value it reads.
-        '            live.part,\n            takes.join(", "),\n',
-        '            n,\n            takes.join(", "),\n',
+        # value it reads; and by the row's computed holes' ADR, a part's key
+        # beside a row's.
+        '            None => format!("\\"{}\\"", entry.part),\n',
+        '            None => format!("\\"{}\\"", n),\n',
     ),
     (
         "the module does not decode the signal's value",
         "cargo",
         MODULE,
-        '            decoded.join(", ")\n        ));\n',
-        '            takes.join(", ")\n        ));\n',
+        '            decoded.join(", ")\n        );\n',
+        '            takes.join(", ")\n        );\n',
     ),
     (
         "a module that did not compile is no refusal",

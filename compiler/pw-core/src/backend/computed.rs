@@ -10,7 +10,7 @@
 //! each function with the signal's value as the document holds it, in
 //! `js_pure`'s wire form.
 
-use crate::page_values::{Derived, Live};
+use crate::page_values::{Derived, Live, PageValues};
 
 use super::ir::Lowering;
 use super::lower::{self, Context};
@@ -39,7 +39,7 @@ pub(crate) fn compile_checked(
     let mut out = Vec::new();
     for planned in &checked.pages().pages {
         let Ok(plan) = &planned.plan else { continue };
-        let computed: Vec<&Live> = plan.live.iter().filter(|l| !l.derived.is_empty()).collect();
+        let computed = entries(plan);
         // And the steps each value the device keeps takes from an earlier
         // version to its own (track `device-store`), which the runtime loads
         // only where the device holds an earlier one.
@@ -68,7 +68,7 @@ pub(crate) fn compile_prepared(
         let Ok(plan) = &planned.plan else {
             continue;
         };
-        let computed: Vec<&Live> = plan.live.iter().filter(|l| !l.derived.is_empty()).collect();
+        let computed = entries(plan);
         // And the steps each value the device keeps takes from an earlier
         // version to its own (track `device-store`), as `compile_checked`.
         let migrating = plan.device.iter().any(|h| h.version > 1);
@@ -77,11 +77,11 @@ pub(crate) fn compile_prepared(
         }
         let functions: Option<Vec<_>> = computed
             .iter()
-            .map(|live| {
+            .map(|entry| {
                 let derived = analysis
                     .derived
                     .iter()
-                    .find(|d| d.component_id == live.derived)?;
+                    .find(|d| d.component_id == entry.derived)?;
                 program
                     .functions
                     .iter()
@@ -104,6 +104,40 @@ pub(crate) fn compile_prepared(
         });
     }
     Ok(out)
+}
+
+/// **A function a page's module holds**: a part's, by its number, as the
+/// browser computes it from the signals (ADR-0227); or a row's, by the name its
+/// item holds the value under, as the browser computes it for each row (the
+/// row's computed holes' ADR).
+pub(crate) struct Entry<'a> {
+    part: u32,
+    derived: &'a str,
+    row: Option<&'a str>,
+}
+
+/// Each function `plan`'s module holds: its live parts' that compute, then
+/// its rows'.
+fn entries(plan: &PageValues) -> Vec<Entry<'_>> {
+    let parts = plan
+        .live
+        .iter()
+        .filter(|l: &&Live| !l.derived.is_empty())
+        .map(|l| Entry {
+            part: l.part,
+            derived: &l.derived,
+            row: None,
+        });
+    let rows = plan.browser_rows.iter().filter_map(|r| {
+        let (_, name) = r.path.split_once('.')?;
+        let part = name.rsplit('~').next()?.parse().ok()?;
+        Some(Entry {
+            part,
+            derived: &r.derived,
+            row: Some(name),
+        })
+    });
+    parts.chain(rows).collect()
 }
 
 /// **A page's module, with the migrations of the values the device keeps**
@@ -189,18 +223,18 @@ fn migrations(cx: &Context<'_>, page: &str) -> Result<String, String> {
 fn module(
     cx: &Context<'_>,
     page: &str,
-    computed: &[&Live],
+    computed: &[Entry<'_>],
     derived: &[Derived],
 ) -> Result<String, String> {
     let mut functions = Vec::new();
-    for live in computed {
+    for entry in computed {
         let d = derived
             .iter()
-            .find(|d| d.component_id == live.derived)
-            .ok_or_else(|| format!("part {} of `{page}` lifted no function", live.part))?;
+            .find(|d| d.component_id == entry.derived)
+            .ok_or_else(|| format!("part {} of `{page}` lifted no function", entry.part))?;
         match lower::hole(cx, d) {
             Lowering::Lowered(f) => functions.push(f),
-            other => return Err(format!("part {} of `{page}`: {other}", live.part)),
+            other => return Err(format!("part {} of `{page}`: {other}", entry.part)),
         }
     }
     let program = lower::program_of(cx, functions);
@@ -214,7 +248,7 @@ fn module(
 
 fn emit(
     page: &str,
-    computed: &[&Live],
+    computed: &[Entry<'_>],
     functions: &[&super::ir::Function],
     program: &super::ir::Program,
 ) -> Result<String, String> {
@@ -225,11 +259,14 @@ fn emit(
         let js = super::js_pure::isolated(f, program)?;
         source.push_str(&format!("const f{n} = {js};\n\n"));
     }
-    source.push_str("export const parts = {\n");
-    for (n, live) in computed.iter().enumerate() {
+    // Each part's by its number, then each row's by the name its item holds
+    // the value under (the row's computed holes' ADR).
+    let mut parts = String::from("export const parts = {\n");
+    let mut rows = String::from("export const rows = {\n");
+    for (n, entry) in computed.iter().enumerate() {
         let f = functions[n];
         if f.params.is_empty() {
-            return Err(format!("part {} of `{page}` takes nothing", live.part));
+            return Err(format!("part {} of `{page}` takes nothing", entry.part));
         }
         // Each value it reads, decoded from its wire form, in order: one, or
         // several the browser holds (track `device-store`, decision 7).
@@ -243,13 +280,26 @@ fn emit(
             decoded.push(super::js_pure::decoder(program, input, &j)?);
             takes.push(j);
         }
-        source.push_str(&format!(
-            "  \"{}\": ({}) => f{n}({}),\n",
-            live.part,
+        let key = match entry.row {
+            Some(name) => serde_json::Value::String(name.to_string()).to_string(),
+            None => format!("\"{}\"", entry.part),
+        };
+        let line = format!(
+            "  {key}: ({}) => f{n}({}),\n",
             takes.join(", "),
             decoded.join(", ")
-        ));
+        );
+        match entry.row {
+            Some(_) => rows.push_str(&line),
+            None => parts.push_str(&line),
+        }
     }
+    source.push_str(&parts);
     source.push_str("};\n");
+    // A page none of whose rows computes holds no `rows`, as before.
+    if computed.iter().any(|e| e.row.is_some()) {
+        source.push_str(&rows);
+        source.push_str("};\n");
+    }
     Ok(source)
 }

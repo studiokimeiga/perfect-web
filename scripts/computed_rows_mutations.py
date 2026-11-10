@@ -37,8 +37,8 @@ MUTANTS = [
         "a row's value is named by no item",
         "cargo",
         TEMPLATE,
-        "            Some(item)\n                if !inputs.is_empty()\n",
-        "            Some(item)\n                if false && !inputs.is_empty()\n",
+        "            Some(item)\n                if inputs\n",
+        "            Some(item)\n                if false && inputs\n",
     ),
     (
         "a row's value is named by the outermost loop's item",
