@@ -3120,6 +3120,9 @@ const ESCAPED = { "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;"
  * undone, line breaks as the parser makes them, and a NUL as `nul`. `null`
  * for any escape the renderer does not write. */
 function unescaped(text, nul) {
+  // Most text holds nothing the renderer escaped and no character the parser
+  // changes: it is read back as it is.
+  if (!/[&\r\0]/.test(text)) return text;
   if (/&(?!(?:amp|lt|gt|quot|#39|#96);)/.test(text)) return null;
   return text.replace(/&(?:amp|lt|gt|quot|#39|#96);/g, (m) => ESCAPED[m]).replace(/\r\n?/g, "\n").replaceAll("\0", nul);
 }
