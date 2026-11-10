@@ -1089,9 +1089,10 @@ struct Server {
     /// [`KEPT_AT_MOST`], an answer closes its connection.
     open: Arc<std::sync::atomic::AtomicUsize>,
     /// **The kept connections waiting for their next request** (the
-    /// keep-alive ADR), by their peer's address: arming a dropped command
-    /// (`/bench/drop`) closes them ([`Idle`]).
-    idle: Mutex<BTreeMap<std::net::SocketAddr, TcpStream>>,
+    /// keep-alive ADR), by their peer's address, each with the session its
+    /// last answer was for: arming a session's dropped command
+    /// (`/bench/drop`) closes that session's ([`Idle`]).
+    idle: Mutex<BTreeMap<std::net::SocketAddr, (String, TcpStream)>>,
     /// **The longest a held subscription waits for a wake** ([`WAKE_AT_LEAST`]
     /// in every host; a test lengthens it to show that a push, not a slice,
     /// delivers its frames).
@@ -3932,20 +3933,23 @@ impl Server {
         }
     }
 
-    /// **Whether a dropped command is armed** (ADR-0175, ADR-0401), for any
-    /// session. A browser sends a request again by itself where a connection
-    /// it reused closes before any answer, so a drop on a kept connection
-    /// never reaches the page. Arming closes the kept connections waiting;
-    /// and until the drop is taken no answer keeps its connection, so one
-    /// busy when it was armed (a held subscription) is not reused either:
-    /// the command goes on a connection the browser never used. Only a test
-    /// arms one (`/bench/drop`).
-    fn dropping_a_command(&self) -> bool {
+    /// **Whether a dropped command is armed for `session`** (ADR-0175,
+    /// ADR-0401). A browser sends a request again by itself where a
+    /// connection it reused closes before any answer, so a drop on a kept
+    /// connection never reaches the page. Arming closes the session's kept
+    /// connections waiting; and until the drop is taken no answer to the
+    /// session keeps its connection, so one busy when it was armed (a held
+    /// subscription) is not reused either: the command goes on a connection
+    /// the browser never used. Another session's connections are its own, as
+    /// each fault is its session's, and the suite shares its host: until the
+    /// drop's session's ADR every session's kept connection was closed, under
+    /// browsers reusing them. Only a test arms one (`/bench/drop`).
+    fn dropping_a_command_for(&self, session: &str) -> bool {
         self.connection_faults
             .lock()
             .expect("connection faults")
-            .values()
-            .any(|f| f.drop_command.is_some())
+            .get(session)
+            .is_some_and(|f| f.drop_command.is_some())
     }
 
     /// **Whether the session's next command connection is dropped, and
@@ -9976,6 +9980,9 @@ struct Keeping {
     answered: std::sync::atomic::AtomicBool,
     /// The request is a HEAD: its answer is written without its body.
     head_only: std::sync::atomic::AtomicBool,
+    /// The session the request is answered for, its cookie's or the one made
+    /// for it (the drop's session's ADR).
+    session: Mutex<String>,
 }
 
 impl Conn {
@@ -9996,11 +10003,22 @@ impl Conn {
     }
 
     /// A request begun: its connection closed after it unless the request,
-    /// read whole, allows otherwise; and nothing answered yet.
+    /// read whole, allows otherwise; and nothing answered yet, for no one.
     fn begin(&self) {
         self.keep(false);
         self.answered(false);
         self.head_only(false);
+        self.answering_for("");
+    }
+
+    /// The session this request is answered for.
+    fn answering_for(&self, session: &str) {
+        session.clone_into(&mut self.keeping.session.lock().expect("session"));
+    }
+
+    /// The session the last request was answered for.
+    fn answered_for(&self) -> String {
+        self.keeping.session.lock().expect("session").clone()
     }
 
     /// Whether this request is a HEAD, whose answer has no body (RFC 9110
@@ -10132,7 +10150,10 @@ fn handle(server: &Server, stream: TcpStream) {
                 server.tell_waiting();
                 return;
             }
-            let _idle = Idle::listed(server, &conn);
+            // The session its last answer was for: a browser's connection
+            // carries its context's cookie, so the session's own.
+            let session = conn.answered_for();
+            let _idle = Idle::listed(server, &conn, &session);
             if !server.telling.lock().expect("telling").is_empty() {
                 scope.spawn(|| server.tell_waiting());
             }
@@ -10140,7 +10161,7 @@ fn handle(server: &Server, stream: TcpStream) {
             // PR #94's verify): the arming closed only the connections listed
             // before it. It is armed before it closes them, so one listed
             // since finds it armed here, and closes as they did.
-            if server.dropping_a_command() {
+            if server.dropping_a_command_for(&session) {
                 let _ = conn.shutdown(std::net::Shutdown::Both);
                 return;
             }
@@ -10152,20 +10173,25 @@ fn handle(server: &Server, stream: TcpStream) {
 }
 
 /// **A kept connection listed while it waits for its next request** (the
-/// keep-alive ADR), so that arming a dropped command can close it: unlisted
-/// when its next request begins, or when it closes.
+/// keep-alive ADR), with the session its last answer was for, so that arming
+/// that session's dropped command can close it: unlisted when its next
+/// request begins, or when it closes.
 struct Idle<'a> {
     server: &'a Server,
     at: Option<std::net::SocketAddr>,
 }
 
 impl<'a> Idle<'a> {
-    fn listed(server: &'a Server, conn: &Conn) -> Idle<'a> {
+    fn listed(server: &'a Server, conn: &Conn, session: &str) -> Idle<'a> {
         #[cfg(test)]
         std::thread::sleep(*server.listing_delay.lock().expect("listing delay"));
         let at = conn.peer_addr().ok().and_then(|at| {
             let listed = conn.try_clone().ok()?;
-            server.idle.lock().expect("idle").insert(at, listed);
+            server
+                .idle
+                .lock()
+                .expect("idle")
+                .insert(at, (session.to_string(), listed));
             Some(at)
         });
         Idle { server, at }
@@ -10412,16 +10438,17 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
             return;
         }
     };
+    let (session, fresh) = session_of(&headers);
+    stream.answering_for(&session);
     // Kept for the next request where HTTP/1.1 keeps it, the request did not
-    // ask to close, the host has room, and no dropped command is armed; and
-    // only once its body is read.
+    // ask to close, the host has room, and no dropped command is armed for
+    // its session; and only once its body is read.
     let persists = version == "HTTP/1.1"
         && !head_only
         && !asks_to_close(&headers)
         && server.open.load(std::sync::atomic::Ordering::SeqCst) <= KEPT_AT_MOST
-        && !server.dropping_a_command();
+        && !server.dropping_a_command_for(&session);
     stream.keep(persists && length == 0);
-    let (session, fresh) = session_of(&headers);
     // TRACK SEAM (second-host): the session as the hosts keep it, read once
     // for the request (ADR-0369): signed in or out on another host, it is so
     // here too. Every request is admitted, the runtime's own files too: the
@@ -11400,11 +11427,25 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
             // Its next command goes on a connection of its own (the
             // keep-alive ADR): a browser sends a request again by itself
             // where a kept connection it reused closes before any answer, so
-            // the drop would never reach the page. Every kept connection
-            // waiting for its next request is closed, after the fault is
-            // armed: one listed since finds it armed (`handle`). The browser
-            // opens another, as it does for one a host closed while idle.
-            for (_, idle) in std::mem::take(&mut *server.idle.lock().expect("idle")) {
+            // the drop would never reach the page. Each of the session's kept
+            // connections waiting for its next request is closed, after the
+            // fault is armed: one listed since finds it armed (`handle`). The
+            // browser opens another, as it does for one a host closed while
+            // idle. Another session's are left as they are (the drop's
+            // session's ADR).
+            let mine: Vec<TcpStream> = {
+                let mut idle = server.idle.lock().expect("idle");
+                let at: Vec<std::net::SocketAddr> = idle
+                    .iter()
+                    .filter(|(_, (whose, _))| *whose == session)
+                    .map(|(at, _)| *at)
+                    .collect();
+                at.iter()
+                    .filter_map(|at| idle.remove(at))
+                    .map(|(_, conn)| conn)
+                    .collect()
+            };
+            for idle in mine {
                 let _ = idle.shutdown(std::net::Shutdown::Both);
             }
             respond_json(&mut stream, 200, &session, fresh, "{}");

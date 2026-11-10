@@ -104,6 +104,14 @@ MUTANTS = [
         "                // count = end > start",
     ),
     (
+        "a range too long for a list traps for another cause",
+        WASM,
+        "                I::I32And,\n                I::If(Empty),\n"
+        "                I::Call(trap_index(realloc_index, Cause::TooLongForMemory)),\n",
+        "                I::I32And,\n                I::If(Empty),\n"
+        "                I::Call(trap_index(realloc_index, Cause::MemoryExhausted)),\n",
+    ),
+    (
         "an empty range's count is its difference",
         WASM,
         "                I::I32WrapI64,\n                I::I32Const(0),\n"

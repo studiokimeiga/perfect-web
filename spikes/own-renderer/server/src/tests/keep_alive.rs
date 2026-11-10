@@ -406,6 +406,43 @@ fn arming_a_drop_closes_the_kept_connections_waiting() {
     assert!(ended, "the kept connection closed when the drop was armed");
 }
 
+/// **A drop one session arms leaves another's connections kept** (the drop's
+/// session's ADR): each fault is its session's, and the suite shares its
+/// host. Until then arming one closed every session's kept connections, under
+/// browsers reusing them, and no answer to any session kept its connection
+/// until the drop was taken. Asked again, the other session's connection
+/// answers and keeps itself, and is still there once listed again.
+#[test]
+fn a_drop_one_session_arms_leaves_another_sessions_connections_kept() {
+    let s = kept_feed();
+    let (armed, again, once_more) = connected(&s, |client, answers| {
+        client
+            .write_all(get("/pw-handlers", "").as_bytes())
+            .expect("request");
+        let _ = answer(answers);
+        let armed = connected(&s, |arm, armed| {
+            arm.write_all(
+                b"POST /bench/drop?next=command&at=before HTTP/1.1\r\nHost: t\r\n\
+                  Cookie: pw-session=b\r\ncontent-length: 0\r\nConnection: close\r\n\r\n",
+            )
+            .expect("arm");
+            answer(armed).0
+        });
+        // Written or not, as a closed connection refuses a write: what was
+        // answered says which.
+        let _ = client.write_all(get("/pw-handlers", "").as_bytes());
+        let again = answer(answers).0;
+        let _ = client.write_all(get("/pw-handlers", "").as_bytes());
+        (armed, again, answer(answers).0)
+    });
+    assert!(armed.starts_with("HTTP/1.1 200"), "{armed}");
+    assert!(
+        again.starts_with("HTTP/1.1 200") && again.contains("connection: keep-alive\r\n"),
+        "{again}"
+    );
+    assert!(once_more.starts_with("HTTP/1.1 200"), "{once_more}");
+}
+
 /// **A drop armed between a kept connection's answer and its listing closes
 /// it too** (PR #94's verify, under its whole suite's load). The arming
 /// closed the connections listed; one that had answered and was not listed
@@ -451,7 +488,7 @@ fn while_a_dropped_command_is_armed_no_answer_keeps_its_connection() {
     s.connection_faults
         .lock()
         .expect("connection faults")
-        .entry("b".into())
+        .entry("a".into())
         .or_default()
         .drop_command = Some(DropAt::Before);
     let (armed, ended) = connected(&s, |client, answers| {
