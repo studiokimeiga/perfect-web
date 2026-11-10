@@ -28,20 +28,26 @@
   "ignoreFindings": [
     "spikes/pw-to-marko/src/routes/**",
     "benchmarks/headtohead/todomvc/react/**",
-    "benchmarks/headtohead/todomvc/svelte/**"
+    "benchmarks/headtohead/todomvc/svelte/**",
+    "benchmarks/headtohead/rows/react/**",
+    "benchmarks/headtohead/rows/svelte/**"
   ],
   "duplicates": {
     "ignore": [
       "spikes/pw-to-marko/src/routes/**",
       "benchmarks/headtohead/todomvc/react/**",
-      "benchmarks/headtohead/todomvc/svelte/**"
+      "benchmarks/headtohead/todomvc/svelte/**",
+      "benchmarks/headtohead/rows/react/**",
+      "benchmarks/headtohead/rows/svelte/**"
     ]
   },
   "health": {
     "ignore": [
       "spikes/pw-to-marko/src/routes/**",
       "benchmarks/headtohead/todomvc/react/**",
-      "benchmarks/headtohead/todomvc/svelte/**"
+      "benchmarks/headtohead/todomvc/svelte/**",
+      "benchmarks/headtohead/rows/react/**",
+      "benchmarks/headtohead/rows/svelte/**"
     ],
     "thresholdOverrides": [
       {
@@ -86,6 +92,26 @@
       },
       {
         "files": [
+          "spikes/own-renderer/e2e/rows.spec.mjs"
+        ],
+        "functions": [
+          "<arrow>"
+        ],
+        "maxCrap": 157.0,
+        "reason": "The large list's seeded walk of every press. Scored with no coverage data; ceiling at the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/optimize-assets.mjs"
+        ],
+        "functions": [
+          "HOLES"
+        ],
+        "maxCrap": 57.0,
+        "reason": "The packaging's reading of a build (ADR-0412, ADR-0413, the rows train's ADR), held by optimize-assets.test.mjs. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
           "spikes/own-renderer/optimize-assets.mjs"
         ],
         "functions": [
@@ -100,6 +126,16 @@
           "spikes/own-renderer/optimize-assets.mjs"
         ],
         "functions": [
+          "deviceFeatures"
+        ],
+        "maxCrap": 133.0,
+        "reason": "The packaging's reading of a build (ADR-0412, ADR-0413, the rows train's ADR), held by optimize-assets.test.mjs. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/optimize-assets.mjs"
+        ],
+        "functions": [
           "handlersIn"
         ],
         "maxCrap": 157.0,
@@ -108,14 +144,44 @@
       },
       {
         "files": [
-          "spikes/own-renderer/public/pw-runtime.mjs"
+          "spikes/own-renderer/optimize-assets.mjs"
+        ],
+        "functions": [
+          "needs"
+        ],
+        "maxCrap": 157.0,
+        "reason": "The packaging's reading of a build (ADR-0412, ADR-0413, the rows train's ADR), held by optimize-assets.test.mjs. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/optimize-assets.mjs"
+        ],
+        "functions": [
+          "walkParts"
+        ],
+        "maxCrap": 133.0,
+        "reason": "The packaging's reading of a build (ADR-0412, ADR-0413, the rows train's ADR), held by optimize-assets.test.mjs. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/optimize-assets.test.mjs"
         ],
         "functions": [
           "<arrow>"
         ],
+        "maxCrap": 31.0,
+        "reason": "The packaging's tests of each flag. Scored with no coverage data; ceiling at the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "acted"
+        ],
         "maxCrap": 241.0,
-        "maxCognitive": 34,
-        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+        "maxCognitive": 16,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -144,9 +210,9 @@
         "functions": [
           "attach"
         ],
-        "maxCrap": 273.0,
-        "maxCognitive": 19,
-        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+        "maxCognitive": 23,
+        "maxCrap": 421.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named. Raised by the rows train, whose rows it reconciles."
       },
       {
         "files": [
@@ -158,6 +224,38 @@
         "maxCrap": 133.0,
         "maxCognitive": 23,
         "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "attributeOfPiece"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "bound"
+        ],
+        "maxCrap": 43.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "buildIndex"
+        ],
+        "maxCrap": 651.0,
+        "maxCognitive": 55,
+        "maxCyclomatic": 25,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -178,6 +276,17 @@
         ],
         "maxCrap": 91.0,
         "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "capturedText"
+        ],
+        "maxCrap": 211.0,
+        "maxCognitive": 25,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -217,6 +326,17 @@
           "spikes/own-renderer/public/pw-runtime.mjs"
         ],
         "functions": [
+          "decided"
+        ],
+        "maxCrap": 241.0,
+        "maxCognitive": 34,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `decided` is the decision `decider` returns."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
           "dropSpace"
         ],
         "maxCrap": 31.0,
@@ -229,8 +349,9 @@
         "functions": [
           "emit"
         ],
-        "maxCrap": 91.0,
-        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+        "maxCognitive": 21,
+        "maxCrap": 183.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named. Raised by the rows train, whose rows it reconciles."
       },
       {
         "files": [
@@ -239,8 +360,8 @@
         "functions": [
           "emitEach"
         ],
-        "maxCrap": 57.0,
-        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+        "maxCrap": 111.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named. Raised by the rows train, whose rows it reconciles."
       },
       {
         "files": [
@@ -259,9 +380,9 @@
         "functions": [
           "emitPart"
         ],
-        "maxCrap": 463.0,
-        "maxCyclomatic": 21,
-        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+        "maxCyclomatic": 22,
+        "maxCrap": 507.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named. Raised by the rows train, whose rows it reconciles."
       },
       {
         "files": [
@@ -290,10 +411,10 @@
         "functions": [
           "flushSignals"
         ],
-        "maxCrap": 463.0,
-        "maxCognitive": 39,
-        "maxCyclomatic": 21,
-        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+        "maxCyclomatic": 27,
+        "maxCognitive": 49,
+        "maxCrap": 757.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named. Raised by the rows train, whose rows it reconciles."
       },
       {
         "files": [
@@ -310,10 +431,52 @@
           "spikes/own-renderer/public/pw-runtime.mjs"
         ],
         "functions": [
+          "heardAtTheDocument"
+        ],
+        "maxCrap": 57.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
           "holds"
         ],
         "maxCrap": 91.0,
         "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "holdsStill"
+        ],
+        "maxCrap": 111.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "hole"
+        ],
+        "maxCrap": 57.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "holeSet"
+        ],
+        "maxCrap": 507.0,
+        "maxCognitive": 20,
+        "maxCyclomatic": 22,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -350,6 +513,50 @@
           "spikes/own-renderer/public/pw-runtime.mjs"
         ],
         "functions": [
+          "listMade"
+        ],
+        "maxCrap": 871.0,
+        "maxCognitive": 36,
+        "maxCyclomatic": 29,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "morphBlock"
+        ],
+        "maxCrap": 111.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "morphChildren"
+        ],
+        "maxCrap": 703.0,
+        "maxCognitive": 58,
+        "maxCyclomatic": 26,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "morphed"
+        ],
+        "maxCrap": 91.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
           "nested"
         ],
         "maxCrap": 31.0,
@@ -364,6 +571,38 @@
         ],
         "maxCrap": 57.0,
         "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "planOf"
+        ],
+        "maxCrap": 421.0,
+        "maxCognitive": 32,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "pressHeard"
+        ],
+        "maxCrap": 157.0,
+        "maxCognitive": 17,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "rangeOf"
+        ],
+        "maxCrap": 57.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -400,11 +639,102 @@
           "spikes/own-renderer/public/pw-runtime.mjs"
         ],
         "functions": [
+          "refusedPress"
+        ],
+        "maxCrap": 91.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "renderer"
+        ],
+        "maxCrap": 91.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "rowGone"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "rowsMade"
+        ],
+        "maxCrap": 133.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "rowsMorphed"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "rowsParsed"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "rowsPlanned"
+        ],
+        "maxCrap": 57.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "rowsShown"
+        ],
+        "maxCrap": 91.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "runsGone"
+        ],
+        "maxCrap": 73.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
           "same"
         ],
-        "maxCrap": 421.0,
-        "maxCognitive": 34,
-        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+        "maxCyclomatic": 25,
+        "maxCognitive": 48,
+        "maxCrap": 651.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named. Raised by the rows train, whose rows it reconciles."
       },
       {
         "files": [
@@ -415,6 +745,16 @@
         ],
         "maxCrap": 91.0,
         "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "spanGone"
+        ],
+        "maxCrap": 57.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -435,6 +775,26 @@
         ],
         "maxCrap": 31.0,
         "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "warmable"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "warmsOn"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The device runtime's keyed rows, plans and presses heard at the document (the rows train's ADR, a press changes what it changes), held by rows.spec.mjs, device-runtime.spec.mjs and the renderer's agreement tests. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411's analyzers)."
       },
       {
         "files": [
@@ -601,6 +961,16 @@
         ],
         "maxCrap": 43.0,
         "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-contract.test.mjs"
+        ],
+        "functions": [
+          "<arrow>"
+        ],
+        "maxCrap": 57.0,
+        "reason": "The renderer contract's tests of which rows stay. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411's analyzers)."
       }
     ]
   },

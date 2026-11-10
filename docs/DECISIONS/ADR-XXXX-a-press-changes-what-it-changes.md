@@ -104,6 +104,26 @@ thousand rows ties (97 and 84). The heap with a thousand rows, after a
 collection, is 3.2 MB (Svelte's 3.6). The head-to-head's figures go here when it
 has run at this branch's commit.
 
+
+## The pull request's analyzers
+
+Fallow's audit, run on this branch against train-16 (ADR-0411's last section
+says why its CRAP scores complexity alone here), refused 41 functions this
+branch adds or makes more complex: 34 of the runtime's, among them the rows'
+reconciliation (`listMade`, `rowsMade`, `planOf`, `holeSet`), the morph and the
+presses heard at the document; four of the packaging's; and four test
+callbacks. Each has a ceiling in `.fallowrc.json` at the score it landed with,
+and a function train-16 gave one and this branch grew has it raised, its reason
+saying so. Three findings were not complexity and are fixed: the packaging's
+two walks over a build's templates are one (`walkParts`), the plans' predicate
+held both by the runtime and by the packaging is marked as held twice on
+purpose, and the rows app's React and Svelte sources are read as TodoMVC's are,
+apps built by their own build and not imported. Two of ADR-0411's follow-ups
+are done here: the decision `decider` returns is named (`decided`), its ceiling
+narrowed to it from every arrow in the runtime, and `setAttributeAt` reads an
+attribute back by the escapes the renderer writes (`unescaped`), with no parse,
+refusing the change for any it does not write. Coverage for Fallow remains next.
+
 ## Consequences
 
 - `examples/rows` is the third app of the head-to-head, and each of its rows

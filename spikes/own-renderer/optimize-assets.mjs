@@ -46,7 +46,10 @@ async function packDeviceRuntime(directory, source) {
   await writeFile(file + ".gz", gzipSync(Buffer.from(code), { level: 9, mtime: 0 }));
 }
 
-/** A part a row's plan sets in place, as the runtime's `planned` reads it. */
+/** A part a row's plan sets in place, as the runtime's `planned` reads it:
+ * held twice, as the packaging decides what the runtime would, and held
+ * together by `optimize-assets.test.mjs`. */
+// fallow-ignore-next-line code-duplication
 const HOLES = (v) =>
   (v.part === "text" && v.context === "text") ||
   (v.part === "attribute" && v.context !== "content") ||
@@ -54,31 +57,44 @@ const HOLES = (v) =>
   v.part === "boolean_attribute" ||
   v.part === "event";
 
-/** What a template's parts need of the runtime. */
-function featuresIn(chunks, templates, out, seen) {
+/** **Each part of `chunks`**, and of each template its instances reach,
+ * through every block, each template once: `visit(part)` for a part, and
+ * `visit(null, chunk)` for markup. */
+function walkParts(chunks, templates, visit, seen) {
   for (const chunk of chunks) {
     if (chunk.chunk === "static") {
-      if (/<dialog[\s>]/i.test(chunk.value)) out.PW_DIALOGS = true;
-      if (/\sautofocus[\s=>/]/i.test(chunk.value)) out.PW_AUTOFOCUS = true;
+      visit(null, chunk);
       continue;
     }
     const part = chunk.value;
+    visit(part, chunk);
+    if (part.part === "instance" && !seen.has(part.path)) {
+      seen.add(part.path);
+      const view = templates.find((t) => t.path === part.path);
+      if (view) walkParts(view.chunks, templates, visit, seen);
+    }
+    for (const inner of [part.then, part.otherwise, part.body, part.placeholder, part.ready?.body, part.failed?.body, ...(part.arms ?? []).map((a) => a.body)]) {
+      if (inner) walkParts(inner, templates, visit, seen);
+    }
+  }
+}
+
+/** What a template's parts need of the runtime. */
+function featuresIn(chunks, templates, out, seen) {
+  walkParts(chunks, templates, function needs(part, chunk) {
+    if (part === null) {
+      if (/<dialog[\s>]/i.test(chunk.value)) out.PW_DIALOGS = true;
+      if (/\sautofocus[\s=>/]/i.test(chunk.value)) out.PW_AUTOFOCUS = true;
+      return;
+    }
     if (part.part === "match") out.PW_MATCH = true;
     if (part.context === "url" || part.context === "style") out.PW_LINKS = true;
     if (part.name === "autofocus") out.PW_AUTOFOCUS = true;
     if (part.part === "each" && part.key != null && part.body.every((c) => c.chunk === "static" || HOLES(c.value))) out.PW_PLANS = true;
     if (part.part === "instance") {
       out.PW_VIEWS = true;
-      if (!seen.has(part.path)) {
-        seen.add(part.path);
-        const view = templates.find((t) => t.path === part.path);
-        if (view) featuresIn(view.chunks, templates, out, seen);
-      }
     }
-    for (const inner of [part.then, part.otherwise, part.body, part.placeholder, part.ready?.body, part.failed?.body, ...(part.arms ?? []).map((a) => a.body)]) {
-      if (inner) featuresIn(inner, templates, out, seen);
-    }
-  }
+  }, seen);
   return out;
 }
 
@@ -193,19 +209,10 @@ async function modulesIn(directory) {
 /** The handlers `chunks` names, and each template its instances reach,
  * through every block, each once. */
 function handlersIn(chunks, templates, out, seen) {
-  for (const chunk of chunks) {
-    if (chunk.chunk !== "dynamic") continue;
-    const part = chunk.value;
+  walkParts(chunks, templates, function named(part) {
+    if (part === null) return;
     if (part.part === "event") out.add(part.handler);
-    if (part.part === "instance" && !seen.has(part.path)) {
-      seen.add(part.path);
-      const view = templates.find((t) => t.path === part.path);
-      if (view) handlersIn(view.chunks, templates, out, seen);
-    }
-    for (const inner of [part.then, part.otherwise, part.body, part.placeholder, part.ready?.body, part.failed?.body, ...(part.arms ?? []).map((a) => a.body)]) {
-      if (inner) handlersIn(inner, templates, out, seen);
-    }
-  }
+  }, seen);
   return out;
 }
 

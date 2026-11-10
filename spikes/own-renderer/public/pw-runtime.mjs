@@ -496,7 +496,7 @@ const decider = (lines, page) => {
   // Told nothing of this page, a document's schema and scope are not compared,
   // as no build has spoken for them.
   const told = lines.find((l) => l.startsWith(`#page|${page}|`))?.split("|");
-  return (manifest) => {
+  return function decided(manifest) {
     const [scheme, abi, , handler, capture = "", schema = "", scope = "", captures, construct] = manifest.split("|");
     const code = !captures && capture
       ? 9
@@ -1659,6 +1659,8 @@ const renderer = (() => {
    * the build drops it). */
   const planned = !PW_PLANS ? null : function planned(p) {
     if (!plannable.has(p)) {
+      // The packaging holds this too (`HOLES`), to know a build needs plans.
+      // fallow-ignore-next-line code-duplication
       const hole = (v) =>
         (v.part === "text" && v.context === "text") ||
         (v.part === "attribute" && v.context !== "content") ||
@@ -4932,9 +4934,11 @@ function setAttributeAt(address, op) {
     if (op.name === "checked" && "checked" in element) element.checked = false;
     return true;
   }
-  const parsed = document.createElement("template");
-  parsed.innerHTML = `<i ${op.name}="${op.value}"></i>`;
-  const value = parsed.content.firstChild.getAttribute(op.name) ?? "";
+  // As the parser reads the attribute the renderer wrote: its escapes undone,
+  // a return a line, a NUL U+FFFD. A value with an escape the renderer does
+  // not write is none it wrote, and the change is refused.
+  const value = unescaped(op.value, "\ufffd");
+  if (value === null) return false;
   // A value set again, the same, is a change all the same, and a control's
   // name changed is said again where it has focus (ADR-0182).
   if (element.getAttribute(op.name) !== value) element.setAttribute(op.name, value);
