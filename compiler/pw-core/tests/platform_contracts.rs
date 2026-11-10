@@ -507,7 +507,11 @@ fn the_trusted_platform_contract_is_hashed() {
     // provider gave them, none for no one and for a guest, whose user's id
     // holds its session: what a program that declares its data needs of its
     // reader, which the guestbook read through the feed's layer.
-    const EXPECTED: u64 = 0x7ccc0f75433153c8;
+    // 2026-11-10 (trains 18 and 19): `list` declares `range`, the whole
+    // numbers from one to another (the ranges' ADR), and `swap`, a list's
+    // two places exchanged (the swap's ADR): the large list built its ids by
+    // a halving of its own and swapped by sixteen lines.
+    const EXPECTED: u64 = 0x2d9081500b5d89a5;
     eprintln!(
         "  platform contract: {} files, hash {hash:#018x}",
         names.len()
