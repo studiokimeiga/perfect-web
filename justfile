@@ -3968,11 +3968,12 @@ e10-case:
      } > docs/evidence/E10/case.txt
     @grep -E "^test result|^javascript:|mutants killed|^---- |panicked at" docs/evidence/E10/case.txt
 
-# ADR-0055: slicing, and the standard library's placeholders computed. The
-# operations against Vec and str, the component against the JavaScript
-# module, and the mutation controls.
+# ADR-0055: slicing, and the standard library's placeholders computed; and
+# `List.range` (the ranges' ADR). The operations against Vec and str, the
+# component against the JavaScript module, and the mutation controls.
 e10-slices:
-    @{ echo "ADR-0055 - slicing, and the standard library's placeholders computed"; echo; \
+    @{ echo "ADR-0055 - slicing, and the standard library's placeholders computed"; \
+       echo "the ranges' ADR - the numbers from one to another are a list"; echo; \
        echo "produced by: just e10-slices"; \
        echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' || echo ' + uncommitted changes')"; \
        echo "rust: $(rustc --version)"; echo "node: $(node --version)"; echo; \
@@ -3984,7 +3985,7 @@ e10-slices:
        echo; echo "== mutation controls (scripts/slice_mutations.py)"; echo; \
        python3 scripts/slice_mutations.py; \
        echo; \
-       echo "NOT CLAIMED: String.split, List.range, or an Int sum. Maps and sets"; \
+       echo "NOT CLAIMED: String.split, or an Int sum. Maps and sets"; \
        echo "are not claimed here, nor Unicode case mapping (ADR-0056)."; \
      } > docs/evidence/E10/slices.txt
     @grep -E "^test result|^javascript:|mutants killed|^---- |panicked at" docs/evidence/E10/slices.txt

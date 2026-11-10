@@ -241,6 +241,9 @@ public query Rest(xs: List<Int>, n: Int) -> List<Int> { List.drop(xs, n) }
 
 public query Part(xs: List<Int>, a: Int, b: Int) -> List<Int> { List.slice(xs, a, b) }
 
+// A range too long for a list traps for one cause in both (ADR-0267).
+public query Range(a: Int, b: Int) -> List<Int> { List.range(a, b) }
+
 public query Backwards(words: List<Word>) -> List<Word> { List.reverse(words) }
 
 public query TextPart(text: String, a: Int, b: Int) -> String { String.slice(text, a, b) }

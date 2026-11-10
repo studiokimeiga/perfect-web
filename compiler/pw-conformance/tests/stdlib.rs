@@ -144,6 +144,8 @@ public query Backwards(xs: List<Int>) -> List<Int> { List.reverse(xs) }
 
 public query WordsBackwards(words: List<Word>) -> List<Word> { List.reverse(words) }
 
+public query Range(a: Int, b: Int) -> List<Int> { List.range(a, b) }
+
 public query TextPart(text: String, a: Int, b: Int) -> String { String.slice(text, a, b) }
 
 public query Total(xs: List<Float>) -> Float { List.sum(xs) }
@@ -595,6 +597,48 @@ fn slices_drops_and_reversals_agree_with_vec_and_str() {
             Ok(Val::String(want)),
             "String.slice({text:?}, {a}, {b})"
         );
+    }
+}
+
+/// **`List.range` is Rust's `a..b`**: empty where `b` is not past `a`, and a
+/// trap for its cause where it would hold more than 2^28 - 1 numbers, which
+/// no list's bytes an `i32` counts can. `MIN` to `MAX` among them: the
+/// difference of the two wraps a 64-bit subtraction, to -1.
+#[test]
+fn ranges_agree_with_rust_and_a_range_too_long_traps_for_its_cause() {
+    let range = compiled("s.Range");
+    let mut rng = Rng(0x7a);
+    let mut cases: Vec<(i64, i64)> = vec![
+        (0, 0),
+        (3, 1),
+        (-2, 3),
+        (i64::MAX - 3, i64::MAX),
+        (i64::MIN, i64::MIN + 2),
+        (i64::MIN, i64::MAX),
+        (i64::MAX, i64::MIN),
+        (-1, i64::MAX),
+        (0, 0x0fff_ffff + 1),
+    ];
+    cases.extend((0..CASES).map(|_| {
+        let a = rng.int();
+        (a, a.saturating_add(rng.below(40) as i64 - 8))
+    }));
+    cases.extend((0..CASES).map(|_| (rng.int(), rng.int())));
+    for (a, b) in cases {
+        let got = call(&range, &[Val::S64(a), Val::S64(b)]);
+        if b > a && i128::from(b) - i128::from(a) > 0x0fff_ffff {
+            let why = got.expect_err(&format!("List.range({a}, {b}) has no value"));
+            assert!(
+                why.contains("a value too long for memory"),
+                "List.range({a}, {b}) stopped for another cause: {why}"
+            );
+        } else {
+            assert_eq!(
+                got,
+                Ok(ints(&(a..b).collect::<Vec<_>>())),
+                "List.range({a}, {b})"
+            );
+        }
     }
 }
 

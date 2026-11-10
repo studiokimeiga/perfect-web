@@ -37,18 +37,6 @@ fn word(words: List<String>, at: Int) -> String !{} {
     }
 }
 
-// The whole numbers from `from`, `n` of them, halved so a list's length is no
-// depth of calls.
-fn ints(from: Int, n: Int) -> List<Int> !{} {
-    if n <= 0 {
-        []
-    } else if n == 1 {
-        [from]
-    } else {
-        List.concat(ints(from, n / 2), ints(from + n / 2, n - n / 2))
-    }
-}
-
 // A label, from the row's id: every stack's is this one.
 fn label_of(id: Int) -> String !{} {
     let a = (id * 16807) % 2147483647
@@ -58,7 +46,7 @@ fn label_of(id: Int) -> String !{} {
 }
 
 fn made(from: Int, n: Int) -> List<Row> !{} {
-    List.map(ints(from, n), (id) => Row { id: id, label: label_of(id) })
+    List.map(List.range(from, from + n), (id) => Row { id: id, label: label_of(id) })
 }
 
 fn updated(rows: List<Row>) -> List<Row> !{} {

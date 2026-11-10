@@ -3,9 +3,9 @@
 placeholders computed.
 
 Each mutant undoes one piece of `List.drop`, `List.slice`, `List.reverse`,
-`String.slice`, `List.sum` or `List.maximum`, in the component, the
-JavaScript module or the standard library's own Pleris, and the tests must
-then fail.
+`String.slice`, `List.sum`, `List.maximum` or `List.range`, in the
+component, the JavaScript module or the standard library's own Pleris, and
+the tests must then fail.
 
 Run from the repository root; `just e10-slices` records the output.
 The source is restored after every mutant, whatever happens.
@@ -86,6 +86,49 @@ MUTANTS = [
         LIST,
         "if x > b | x != x | (x == b",
         "if x > b | (x == b",
+    ),
+    # `List.range`.
+    (
+        "a range's bound reads a wrapped difference as signed",
+        WASM,
+        "                I::I64Const(0x0fff_ffff),\n                I::I64GtU,",
+        "                I::I64Const(0x0fff_ffff),\n                I::I64GtS,",
+    ),
+    (
+        "a range too long for a list traps for no cause",
+        WASM,
+        "                I::Call(trap_index(realloc_index, Cause::TooLongForMemory)),\n"
+        "                I::Unreachable,\n                I::End,\n"
+        "                // count = end > start",
+        "                I::Unreachable,\n                I::End,\n"
+        "                // count = end > start",
+    ),
+    (
+        "an empty range's count is its difference",
+        WASM,
+        "                I::I32WrapI64,\n                I::I32Const(0),\n"
+        "                I::LocalGet(1),\n                I::LocalGet(0),\n"
+        "                I::I64GtS,\n                I::Select,\n                I::LocalSet(2),",
+        "                I::I32WrapI64,\n                I::LocalSet(2),",
+    ),
+    (
+        "a range's numbers start at zero",
+        WASM,
+        "                    I::LocalGet(0),\n                    I::LocalGet(4),\n"
+        "                    I::I64ExtendI32U,\n                    I::I64Add,",
+        "                    I::LocalGet(4),\n                    I::I64ExtendI32U,",
+    ),
+    (
+        "the module's range traps for another cause",
+        JS,
+        r'trap(\"a value too long for memory\")',
+        r'trap(\"a range too long\")',
+    ),
+    (
+        "the module's range starts at zero",
+        JS,
+        "for (let i = start; i < end; i++)",
+        "for (let i = 0n; i < end; i++)",
     ),
 ]
 

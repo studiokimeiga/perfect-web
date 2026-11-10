@@ -833,6 +833,14 @@ const HELPERS: &[(&str, &[&str], &str)] = &[
          while (b > a && WHITE.has(cs[b - 1].codePointAt(0))) b--;\n  return cs.slice(a, b).join(\"\");\n}",
     ),
     (
+        "range",
+        &["trap"],
+        "// The whole numbers from `start` up to `end`, as `List.range`; one of\n\
+         // more than 2^28 - 1 traps for the component's cause (ADR-0267).\n\
+         function range(start, end) {\n  if (end - start > 268435455n) trap(\"a value too long for memory\");\n  \
+         const out = [];\n  for (let i = start; i < end; i++) out.push(i);\n  return out;\n}",
+    ),
+    (
         "slice",
         &[],
         "// `start` up to `end`, each clamped to the array, as `List.slice` and\n\
@@ -1940,6 +1948,9 @@ impl<'p> Emitter<'p> {
                         format!("{}({}, {}, {})", self.uses("slice"), arg(0), arg(1), arg(2))
                     }
                     Intrinsic::ListReverse => format!("[...{}].reverse()", arg(0)),
+                    Intrinsic::ListRange => {
+                        format!("{}({}, {})", self.uses("range"), arg(0), arg(1))
+                    }
                     Intrinsic::StrSlice => format!(
                         "{}(Array.from({}), {}, {}).join(\"\")",
                         self.uses("slice"),
