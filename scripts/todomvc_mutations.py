@@ -183,7 +183,9 @@ MUTANTS = [
         # Re-anchored by the row's computed holes' ADR: each row computes
         # whether it is edited, its field and its class apart.
         "                            {#if row.id == editing}\n",
-        "                            {#if false}\n",
+        # Zero is no todo's id, `editing`'s own for none: a program the
+        # checker accepts, where `false` is no value a block reads.
+        "                            {#if row.id == 0}\n",
     ),
     (
         "no row's class says it is edited",
