@@ -1,22 +1,22 @@
 ADR-0165 - the store's delivery estimate and recommendations
 
 produced by: just e14-slots
-commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
 == the store's streams (compiler/pw-core/tests/stream_plan.rs)
 
-test a_signal_shown_in_a_stream_is_refused_by_the_plan ... ok
 test a_fallback_no_host_executes_is_refused_by_the_plan ... ok
-test a_stream_inside_a_block_is_not_built_yet ... ok
+test a_signal_shown_in_a_stream_is_refused_by_the_plan ... ok
 test a_page_that_streams_a_query_does_not_take_its_authority ... ok
+test a_stream_inside_a_block_is_not_built_yet ... ok
 test one_the_page_waits_for_is_not_streamed ... ok
 test a_stream_is_a_part_with_its_query_and_its_arms ... ok
 test the_plan_names_each_stream_with_its_query_s_policies ... ok
 test the_store_streams_its_estimate_and_its_recommendations ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.65s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.74s
 
 == the store checks
 
@@ -27,11 +27,11 @@ pw check: 73 file(s), no diagnostics
 test tests::a_menu_change_drops_that_stores_kept_menu_only ... ok
 test tests::a_menu_change_drops_that_stores_recommendations_only ... ok
 test tests::the_store_sends_its_slots_after_its_own_content ... ok
-test result: ok. 732 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 502.15s
+test result: ok. 1021 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 415.66s
 
 == the slots, three engines (e2e/slots.spec.mjs)
 
-  21 passed (40.5s)
+  21 passed (32.7s)
 
 == mutation controls (scripts/slots_mutations.py)
 

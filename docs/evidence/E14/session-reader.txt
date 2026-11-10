@@ -1,8 +1,8 @@
 ADR-0389 - immutable readers for renders and stream workers
 
 produced by: just e14-session-reader
-commit: 850fbfe94bcf15a880068354d2008b083bd4333d
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42617416601 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == mutation controls (scripts/session_reader_mutations.py)
@@ -14,7 +14,7 @@ test tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_
 test tests::session_revocation::an_anonymous_render_never_borrows_a_transient_authenticated_actor ... ok
 test tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account ... ok
 
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 962 filtered out; finished in 4.20s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 1026 filtered out; finished in 3.28s
 
 
 
@@ -28,7 +28,7 @@ failures:
 
 ---- tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change stdout ----
 
-thread 'tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change' (6304) panicked at spikes/own-renderer/server/src/tests/session_revocation.rs:590:5:
+thread 'tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change' (146493) panicked at spikes/own-renderer/server/src/tests/session_revocation.rs:590:5:
 assertion `left == right` failed: a child worker must execute as the render's original actor
   left: Some(Text("REPLACEMENT_ACTOR"))
  right: Some(Text("bob"))
@@ -36,14 +36,14 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::session_revocation::an_anonymous_render_never_borrows_a_transient_authenticated_actor stdout ----
 
-thread 'tests::session_revocation::an_anonymous_render_never_borrows_a_transient_authenticated_actor' (6309) panicked at spikes/own-renderer/server/src/tests/session_revocation.rs:516:5:
+thread 'tests::session_revocation::an_anonymous_render_never_borrows_a_transient_authenticated_actor' (146497) panicked at spikes/own-renderer/server/src/tests/session_revocation.rs:516:5:
 an anonymous-labeled response cannot borrow an intermediate actor's private value: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
-content-length: 15554
+content-length: 15487
 x-content-type-options: nosniff
 cache-control: private, no-store
 pw-build: b41b95d941a141982
-content-security-policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'sha256-v8jCs+poUKnEHV7piaB+l4LlDvig0qQ2jqYEal4D2VY='; style-src 'self'; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'
+content-security-policy: default-src 'none'; script-src 'self' 'sha256-v8jCs+poUKnEHV7piaB+l4LlDvig0qQ2jqYEal4D2VY='; style-src 'self'; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'
 connection: keep-alive
 keep-alive: timeout=75
 
@@ -54,7 +54,6 @@ keep-alive: timeout=75
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Home</title>
 <link rel="modulepreload" href="/pw-runtime.mjs">
-<link rel="preload" href="/pw-resume.wasm" as="fetch" crossorigin>
 <link rel="preload" href="/pw-handlers" as="fetch" crossorigin>
 </head>
 <body>
@@ -132,7 +131,7 @@ keep-alive: timeout=75
 
 ---- tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account stdout ----
 
-thread 'tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account' (6314) panicked at spikes/own-renderer/server/src/tests/session_revocation.rs:612:5:
+thread 'tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account' (146502) panicked at spikes/own-renderer/server/src/tests/session_revocation.rs:612:5:
 assertion `left == right` failed: a worker's explicitly anonymous actor cannot become the cache's current account
   left: Some(Bool(true))
  right: Some(Bool(false))
@@ -143,7 +142,7 @@ failures:
     tests::session_revocation::an_anonymous_render_never_borrows_a_transient_authenticated_actor
     tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account
 
-test result: FAILED. 1 passed; 3 failed; 0 ignored; 0 measured; 962 filtered out; finished in 4.31s
+test result: FAILED. 1 passed; 3 failed; 0 ignored; 0 measured; 1026 filtered out; finished in 3.34s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -159,21 +158,21 @@ failures:
 
 ---- tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change stdout ----
 
-thread 'tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change' (6369) panicked at spikes/own-renderer/server/src/tests/session_revocation.rs:571:5:
-worker query partition must follow the same frozen actor as its host calls: Key { resource: "feed.app.Me", key: "session=v2:88e61b0fd98620f1fe9a2d7a7d2ebde4eb10b270578785e0aaae80bd8f2f5554:a:cbd5115568d4d8aa25f1724ce8469831\u{1f}\"bde0560d56bd4e732cbd082169ef437d5d81ab7248c24cd7f922235b2368aa11\"" }
+thread 'tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change' (146560) panicked at spikes/own-renderer/server/src/tests/session_revocation.rs:571:5:
+worker query partition must follow the same frozen actor as its host calls: Key { resource: "feed.app.Me", key: "session=v2:88e61b0fd98620f1fe9a2d7a7d2ebde4eb10b270578785e0aaae80bd8f2f5554:a:ffd63c9dd19c1416fe85fdde4e841667\u{1f}\"bde0560d56bd4e732cbd082169ef437d5d81ab7248c24cd7f922235b2368aa11\"" }
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account stdout ----
 
-thread 'tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account' (6379) panicked at spikes/own-renderer/server/src/tests/session_revocation.rs:571:5:
-worker query partition must follow the same frozen actor as its host calls: Key { resource: "feed.app.Me", key: "session=v2:88e61b0fd98620f1fe9a2d7a7d2ebde4eb10b270578785e0aaae80bd8f2f5554:a:eb82d83d79c875bb3e757a30ede5f490\u{1f}\"bde0560d56bd4e732cbd082169ef437d5d81ab7248c24cd7f922235b2368aa11\"" }
+thread 'tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account' (146569) panicked at spikes/own-renderer/server/src/tests/session_revocation.rs:571:5:
+worker query partition must follow the same frozen actor as its host calls: Key { resource: "feed.app.Me", key: "session=v2:88e61b0fd98620f1fe9a2d7a7d2ebde4eb10b270578785e0aaae80bd8f2f5554:a:109584f0bd041c788068b0fe57eb0c9c\u{1f}\"bde0560d56bd4e732cbd082169ef437d5d81ab7248c24cd7f922235b2368aa11\"" }
 
 
 failures:
     tests::session_revocation::a_stream_worker_keeps_its_render_actor_across_a_concurrent_account_change
     tests::session_revocation::an_anonymous_stream_worker_cannot_borrow_the_live_account
 
-test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 962 filtered out; finished in 4.21s
+test result: FAILED. 2 passed; 2 failed; 0 ignored; 0 measured; 1026 filtered out; finished in 3.42s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 
@@ -189,14 +188,14 @@ failures:
 
 ---- tests::session_revocation::a_private_initial_document_cannot_finish_after_its_session_is_revoked stdout ----
 
-thread 'tests::session_revocation::a_private_initial_document_cannot_finish_after_its_session_is_revoked' (6446) panicked at spikes/own-renderer/server/src/tests/session_revocation.rs:292:5:
+thread 'tests::session_revocation::a_private_initial_document_cannot_finish_after_its_session_is_revoked' (146615) panicked at spikes/own-renderer/server/src/tests/session_revocation.rs:292:5:
 a revoked in-flight render cannot hand over its private HTML: HTTP/1.1 200 OK
 content-type: text/html; charset=utf-8
-content-length: 8949
+content-length: 8882
 x-content-type-options: nosniff
 cache-control: private, no-store
 pw-build: b41b95d941a141982
-content-security-policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'sha256-v8jCs+poUKnEHV7piaB+l4LlDvig0qQ2jqYEal4D2VY='; style-src 'self'; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'
+content-security-policy: default-src 'none'; script-src 'self' 'sha256-v8jCs+poUKnEHV7piaB+l4LlDvig0qQ2jqYEal4D2VY='; style-src 'self'; img-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'
 connection: keep-alive
 keep-alive: timeout=75
 
@@ -207,7 +206,6 @@ keep-alive: timeout=75
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Conversation</title>
 <link rel="modulepreload" href="/pw-runtime.mjs">
-<link rel="preload" href="/pw-resume.wasm" as="fetch" crossorigin>
 <link rel="preload" href="/pw-handlers" as="fetch" crossorigin>
 </head>
 <body>
@@ -247,7 +245,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::session_revocation::a_private_initial_document_cannot_finish_after_its_session_is_revoked
 
-test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 962 filtered out; finished in 4.23s
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 1026 filtered out; finished in 3.44s
 
 error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
 

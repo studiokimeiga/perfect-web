@@ -1,8 +1,8 @@
 NEXT 4b - a read is a bounded number of statements on PostgreSQL
 
 produced by: just e14-bounded-statements
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
@@ -87,10 +87,10 @@ test tests::bounded_statements::scheduled_state_writes_store_ran_waits_for_a_com
 test tests::bounded_statements::scheduled_state_writes_store_retry_waits_for_a_command ... ok
 test tests::bounded_statements::a_commands_commit_is_counted_with_it ... ok
 test tests::bounded_statements::sweep_cleanup_and_payment_commit_share_the_same_write_guard ... ok
-test tests::bounded_statements::placing_and_settling_where_payments_are_taken_is_bounded ... ok
 statements per page and command:
 test tests::bounded_statements::each_page_and_command_is_a_bounded_number_of_statements ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 703 filtered out; finished in 16.77s
+test tests::bounded_statements::placing_and_settling_where_payments_are_taken_is_bounded ... ok
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1020 filtered out; finished in 14.34s
 
 == mutation controls (scripts/bounded_statements_mutations.py)
 
@@ -104,10 +104,11 @@ checkout#parts scans every store's menu for each line's store [postgres]: KILLED
 hours#for-cart scans every store's menu for each line's store [postgres]: KILLED (3 of 10 tests fail)
 the order's reach scans every store's menu for each line's store [postgres]: KILLED (2 of 10 tests fail)
 unchanged statement counters stand for payment completion [postgres]: KILLED (1 of 10 tests fail)
-store_pg.rs ran bypasses the command write guard [postgres]: KILLED (3 of 10 tests fail)
+store_pg.rs ran bypasses the command write guard [postgres]: KILLED (1 of 10 tests fail)
 store_pg.rs retry bypasses the command write guard [postgres]: KILLED (1 of 10 tests fail)
 feed_pg.rs ran bypasses the command write guard [postgres]: KILLED (1 of 10 tests fail)
 feed_pg.rs retry bypasses the command write guard [postgres]: KILLED (1 of 10 tests fail)
 feed_pg.rs ran writes before it takes the command write guard [postgres]: KILLED (1 of 10 tests fail)
-14 of 14 mutants killed
+store_pg.rs retry_current bypasses the command write guard [postgres]: KILLED (1 of 10 tests fail)
+15 of 15 mutants killed
 memory bound: no process was stopped

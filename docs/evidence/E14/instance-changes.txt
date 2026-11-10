@@ -1,8 +1,8 @@
 ADR-0168 - a change reaches every part that reads it
 
 produced by: just e14-instance-changes
-commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 playwright: Version 1.58.0
 
@@ -10,8 +10,8 @@ playwright: Version 1.58.0
 
 test a_block_that_changed_renders_the_instance_again ... ok
 test a_renamed_item_sets_its_text_and_every_attribute_that_reads_the_name ... ok
-test a_block_that_decides_as_it_did_is_set_where_it_is ... ok
 test a_match_that_shows_the_arm_it_showed_is_set_where_it_is ... ok
+test a_block_that_decides_as_it_did_is_set_where_it_is ... ok
 test nothing_changed_is_no_change ... ok
 test an_attribute_is_set_as_the_document_writes_it_and_a_boolean_one_comes_and_goes ... ok
 test an_unkeyed_list_inside_the_row_that_changed_renders_the_row_again ... ok
@@ -22,7 +22,7 @@ test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 test tests::a_list_moves_what_moved_and_sets_what_changed_where_it_is ... ok
 test tests::a_rename_sets_every_part_that_reads_the_name ... ok
-test result: ok. 732 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 384.13s
+test result: ok. 1021 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 457.32s
 
 == each Add named by its item, renamed with it; an instance in place not moved (three engines)
 
@@ -30,13 +30,13 @@ test result: ok. 732 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; fi
 
 == mutation controls (scripts/instance_changes_mutations.py)
 
-baseline (render): 123 passed, 0 failed
+baseline (render): 125 passed, 0 failed
 baseline (server): 1 passed, 0 failed
 baseline (browser): 24 passed, 0 failed
-a changed attribute is not set [render]: KILLED (3 of 46 tests fail)
-a changed text is not set [render]: KILLED (4 of 13 tests fail)
-a block that changed is set in place [render]: KILLED (1 of 46 tests fail)
-an attribute's value is not the one the document writes [render]: KILLED (1 of 46 tests fail)
+a changed attribute is not set [render]: KILLED (3 of 47 tests fail)
+a changed text is not set [render]: KILLED (4 of 14 tests fail)
+a block that changed is set in place [render]: KILLED (1 of 47 tests fail)
+an attribute's value is not the one the document writes [render]: KILLED (1 of 47 tests fail)
 a rename sets the name's text alone [server]: KILLED (1 of 1 tests fail)
 the menu control decodes only spaces [browser]: KILLED (1 of 21 tests fail)
 an attribute patch is not applied [browser]: KILLED (1 of 21 tests fail)

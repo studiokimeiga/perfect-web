@@ -1,22 +1,22 @@
 ADR-0325 - an interaction's answer commits with its writes
 
 produced by: just e14-interactions
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
 == the materializer's record (runtime/pw-materialize)
 
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
 test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
 == the host's records, in memory, and on PostgreSQL (store_pg.rs, feed_pg.rs)
@@ -25,10 +25,10 @@ test tests::an_interactions_record_answers_it_for_a_day ... ok
 test tests::interactions_kept_are_bounded_per_session ... ok
 test tests::feed_pg::on_postgres_a_posts_interaction_outlives_its_host ... ok
 test tests::store_pg::on_postgres_an_interactions_answer_outlives_its_host ... ok
-test tests::store_pg::on_postgres_an_interactions_record_answers_a_day ... ok
 test tests::store_pg::on_postgres_a_second_hosts_commit_answers_what_the_first_committed ... ok
 test tests::store_pg::on_postgres_a_retried_interaction_runs_its_command_once ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 706 filtered out; finished in 8.64s
+test tests::store_pg::on_postgres_an_interactions_record_answers_a_day ... ok
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 1023 filtered out; finished in 14.44s
 
 == mutation controls (scripts/interactions_mutations.py)
 

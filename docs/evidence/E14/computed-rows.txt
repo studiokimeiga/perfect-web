@@ -1,8 +1,8 @@
 ADR-0228 - a value computed in a row is the row's
 
 produced by: just e14-computed-rows
-commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -17,35 +17,35 @@ test a_value_the_template_computes_is_lifted_and_planned ... ok
 test what_a_host_does_not_compute_is_refused_by_name ... ok
 test a_member_an_imported_module_lacks_does_not_resolve ... ok
 test a_view_that_contains_itself_computes_nothing_yet_and_a_speculated_value_is_computed ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.87s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.36s
 test from_a_field_of_the_item_in_a_block_and_in_a_loop_in_the_row ... ok
 test a_value_computed_in_a_row_is_each_rows ... ok
 test what_a_row_does_not_compute_yet_is_refused_by_name ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.63s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.99s
 test a_binding_named_like_a_function_is_its_value ... ok
 test a_function_named_in_a_handler_is_the_handlers ... ok
 test the_diagnostic_says_it_was_named_as_a_value ... ok
-test a_field_of_a_value_is_no_function_of_the_same_name ... ok
 test a_helper_without_a_row_carries_what_it_performs ... ok
+test a_field_of_a_value_is_no_function_of_the_same_name ... ok
 test a_function_named_as_a_value_performs_its_effects_where_it_is_named ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.17s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
 test a_target_may_leave_a_key_unnamed ... ok
 test a_key_left_unnamed_is_a_targets_alone ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.55s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.38s
 
 == the server (spikes/own-renderer/server/src/main.rs)
 
-test tests::a_value_computed_in_a_row_is_each_rows_and_sent_with_it ... ok
 test tests::an_opaque_value_compares_as_its_representation ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 739 filtered out; finished in 2.52s
+test tests::a_value_computed_in_a_row_is_each_rows_and_sent_with_it ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1028 filtered out; finished in 1.53s
 
 == the feed in three engines (e2e/feed.spec.mjs)
 
-  66 passed (1.2m)
+  72 passed (1.0m)
 
 == mutation controls (scripts/computed_rows_mutations.py)
 
-baseline (browser): 66 passed, 0 failed
+baseline (browser): 72 passed, 0 failed
 baseline (cargo): 25 passed, 0 failed
 a row's value is named by no item [cargo]: KILLED (4 of 10 tests fail)
 a row's value is named by the outermost loop's item [cargo]: KILLED (1 of 13 tests fail)
@@ -57,7 +57,7 @@ a part computed from a speculated value is not computed again [cargo]: KILLED (1
 an attribute computed from a speculated value is built [cargo]: KILLED (1 of 13 tests fail)
 a field of a value is a function of the same name [cargo]: KILLED (5 of 10 tests fail)
 an opaque value does not compare as its representation [cargo]: KILLED (4 of 10 tests fail)
-a like is not shown before the server answers [browser]: KILLED (6 of 66 tests fail)
-a like shown before the server answers counts nothing [browser]: KILLED (3 of 66 tests fail)
+a like is not shown before the server answers [browser]: KILLED (6 of 72 tests fail)
+a like shown before the server answers counts nothing [browser]: KILLED (3 of 72 tests fail)
 12 of 12 mutants killed
 memory bound: no process was stopped

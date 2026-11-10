@@ -1,0 +1,39 @@
+a build's stylesheets draw with their own images
+
+produced by: just e14-style-images
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+node: v22.21.1
+playwright: Version 1.58.0
+
+== what a page's policy allows (tests::page_policy::)
+
+test tests::page_policy::a_policy_allows_data_images_only_where_a_build_needs_them ... ok
+test tests::page_policy::a_build_whose_stylesheets_draw_with_data_allows_those_images ... ok
+test tests::page_policy::a_streamed_document_carries_its_policy_in_its_head ... ok
+test tests::page_policy::a_deployment_that_takes_payments_frames_its_provider_alone ... ok
+test tests::page_policy::a_sign_in_at_another_origin_is_a_forms_to_reach ... ok
+test tests::page_policy::a_document_allows_each_inline_script_and_style_it_holds_by_its_hash ... ok
+test tests::page_policy::the_runtime_is_started_by_the_text_its_policy_hashes ... ok
+test tests::page_policy::every_answers_type_is_its_type ... ok
+test tests::page_policy::every_other_html_answer_runs_nothing ... ok
+test tests::page_policy::the_host_writes_no_style_attribute ... ok
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1020 filtered out; finished in 19.37s
+
+== TodoMVC, in three engines (e2e/todomvc.spec.mjs)
+
+  162 passed (1.6m)
+
+== mutation controls (scripts/style_images_mutations.py)
+
+baseline: 10 passed, 0 failed
+any file counts as a stylesheet: KILLED (1 of 10 tests fail)
+a mention of the words is an image: KILLED (1 of 10 tests fail)
+an image in upper case is missed: KILLED (1 of 10 tests fail)
+a space before an image is its first character: KILLED (1 of 10 tests fail)
+a quote is part of an image: KILLED (1 of 10 tests fail)
+the policy allows them for every build: KILLED (2 of 10 tests fail)
+the policy never allows them: KILLED (1 of 10 tests fail)
+7 of 7 mutants killed
+memory bound: no process was stopped
