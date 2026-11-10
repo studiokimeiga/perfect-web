@@ -1,0 +1,53 @@
+ADR0389 - private upload lease and preview authority
+produced by: just e14-upload-authority
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+campaign: docs/evidence/E14/upload-authority.puawyK/campaign/report.json
+test_actual_child_completion_and_timeout_retain_raw_logs_and_reap_receipts (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_actual_child_completion_and_timeout_retain_raw_logs_and_reap_receipts) ... ok
+test_actual_sigterm_before_launch_during_restore_and_final_report_is_invalid (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_actual_sigterm_before_launch_during_restore_and_final_report_is_invalid) ... ok
+test_baseexception_after_final_green_is_recorded_as_invalid (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_baseexception_after_final_green_is_recorded_as_invalid) ... one: KILLED
+ok
+test_cancellation_restores_source_and_keeps_invalid_evidence (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_cancellation_restores_source_and_keeps_invalid_evidence) ... scope=FULL, controls=0/1, valid=False, restored=True
+ok
+test_catalogue_exposes_all_exact_source_edits_to_preflight (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_catalogue_exposes_all_exact_source_edits_to_preflight) ... ok
+test_domain_assertion_site_excludes_helper_and_setup_assertions (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_domain_assertion_site_excludes_helper_and_setup_assertions) ... ok
+test_exact_head_requires_all_source_and_recipe_inputs_committed (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_exact_head_requires_all_source_and_recipe_inputs_committed) ... ok
+test_final_green_baseline_is_required_after_every_restored_kill (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_final_green_baseline_is_required_after_every_restored_kill) ... one: KILLED
+scope=FULL, controls=1/1, valid=True, restored=True
+one: KILLED
+INVALID: final restored baseline is not complete and green
+scope=FULL, controls=1/1, valid=False, restored=True
+one: KILLED
+INVALID: final restored baseline is not complete and green
+scope=FULL, controls=1/1, valid=False, restored=True
+ok
+test_inventory_crosschecks_native_and_declared_identities_before_baseline (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_inventory_crosschecks_native_and_declared_identities_before_baseline) ... ok
+test_main_restores_the_previous_term_handler_on_success_and_preflight_failure (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_main_restores_the_previous_term_handler_on_success_and_preflight_failure) ... ok
+test_native_assertion_validation_rejects_build_setup_timeout_and_partial_runs (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_native_assertion_validation_rejects_build_setup_timeout_and_partial_runs) ... ok
+test_native_inventory_is_exact_and_refuses_ignored_and_foreign_entries (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_native_inventory_is_exact_and_refuses_ignored_and_foreign_entries) ... ok
+test_native_run_refuses_a_green_result_without_producer_reaping (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_native_run_refuses_a_green_result_without_producer_reaping) ... ok
+test_process_cancellation_keeps_receipt_and_propagates (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_process_cancellation_keeps_receipt_and_propagates) ... ok
+test_process_errors_keep_raw_output_and_never_acquire_native_status (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_process_errors_keep_raw_output_and_never_acquire_native_status) ... ok
+test_reaped_assertion_exit_followed_by_log_io_error_is_not_a_kill (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_reaped_assertion_exit_followed_by_log_io_error_is_not_a_kill) ... ok
+test_reaped_inventory_exit_followed_by_log_io_error_is_refused (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_reaped_inventory_exit_followed_by_log_io_error_is_refused) ... ok
+test_shared_domain_helper_requires_its_explicit_function_identity (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_shared_domain_helper_requires_its_explicit_function_identity) ... ok
+test_source_inventory_refuses_missing_duplicate_and_macro_tests (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_source_inventory_refuses_missing_duplicate_and_macro_tests) ... ok
+test_survivor_or_invalid_native_run_is_never_credited (scripts.tests.test_upload_authority_mutations.UploadAuthorityProducer.test_survivor_or_invalid_native_run_is_never_credited) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 0.575s
+
+OK
+http-admitted-reader: KILLED
+preview-lease-reader: KILLED
+shown-lease-reader: KILLED
+claim-lease-reader: KILLED
+preview-live-inspection: KILLED
+post-body-current-composite: KILLED
+post-storage-source-inspection: KILLED
+preview-inspection-order: KILLED
+local-publication-gate: KILLED
+previous-lease-current-composite: KILLED
+provisional-refusal-cleanup: KILLED
+scope=FULL, controls=11/11, valid=True, restored=True

@@ -1,8 +1,8 @@
 ADR-0071 - what a template's blocks and events take
 
 produced by: just e10-template-operands
-commit: ddaeeb1dfba9630371b7dd5b127c23855d245c74
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39131257549 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == a template's operands (compiler/pw-core/tests/template_operands.rs)
@@ -11,12 +11,12 @@ test an_option_condition_is_reported_once ... ok
 test an_each_runs_over_a_list ... ok
 test an_event_attribute_is_given_a_function ... ok
 test an_if_tests_a_value_with_a_truth ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.67s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
 
 == the store's relations, each decided (compiler/pw-core/tests/value_relations.rs)
 
 test the_store_program_is_decided_not_merely_silent ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.47s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 0.45s
 
 == mutation controls (scripts/template_operand_mutations.py)
 

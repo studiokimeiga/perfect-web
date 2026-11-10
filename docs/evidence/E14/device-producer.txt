@@ -1,8 +1,8 @@
 ADR-0366 - complete assertion-only device mutation producers
 
 produced by: just e14-device-producer
-commit: 34f3c2d1de6bfa075a1db82ae5a61fddf4af4e95
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39538607183 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 test_authentic_assertion_kills (test_device_producer_results.DeviceProducers.test_authentic_assertion_kills) ... ok
 test_browser_inventory_is_complete_and_frozen (test_device_producer_results.DeviceProducers.test_browser_inventory_is_complete_and_frozen) ... ok
 test_browser_native_exit_must_agree (test_device_producer_results.DeviceProducers.test_browser_native_exit_must_agree) ... ok
@@ -22,7 +22,7 @@ test_reporter_refuses_timeout_skip_retry_and_expected_failure (test_device_produ
 test_restored_build_failure_fails_campaign (test_device_producer_results.DeviceProducers.test_restored_build_failure_fails_campaign) ... ok
 
 ----------------------------------------------------------------------
-Ran 17 tests in 0.590s
+Ran 17 tests in 0.403s
 
 OK
 memory bound: no process was stopped
@@ -31,8 +31,8 @@ assertion: native exit 1, valid=True, expected=True
 
 Running 1 test using 1 worker
 
-[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-8dastqzq/fixture.spec.mjs:61:8 › witness
-[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-8dastqzq/fixture.spec.mjs:61:8 › witness ─────────
+[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-4j4aa8bl/fixture.spec.mjs:61:8 › witness
+[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-4j4aa8bl/fixture.spec.mjs:61:8 › witness ─────────
 
     Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
 
@@ -49,15 +49,15 @@ Running 1 test using 1 worker
       33 |             ? result.catch(error => proven(error, name, isNot)) : result;
       34 |         } catch (error) { return proven(error, name, isNot); }
         at Proxy.toBe (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:31:34)
-        at witness (/tmp/pw-browser-protocol-8dastqzq/fixture.spec.mjs:10:39)
-    [cause]: Error: PW_ASSERTION:3f0244cf2a404f60a07d106b28efdeb5060bd7fce471e8c3e4c5fb449517b145
+        at witness (/tmp/pw-browser-protocol-4j4aa8bl/fixture.spec.mjs:10:39)
+    [cause]: Error: PW_ASSERTION:29a9afb2d930357b767f630362b06802742fc7cc365fff46a5c79b3df7e1adec
         at proven (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:13:19)
         at Proxy.toBe (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:34:34)
-        at witness (/tmp/pw-browser-protocol-8dastqzq/fixture.spec.mjs:10:39)
+        at witness (/tmp/pw-browser-protocol-4j4aa8bl/fixture.spec.mjs:10:39)
 
 
 [1A[2K  1 failed
-    ../../../../../../../tmp/pw-browser-protocol-8dastqzq/fixture.spec.mjs:61:8 › witness ──────────
+    ../../../../../../../tmp/pw-browser-protocol-4j4aa8bl/fixture.spec.mjs:61:8 › witness ──────────
 
 customMessage: native exit 1, valid=True, expected=True
 not: native exit 1, valid=True, expected=True
@@ -66,8 +66,8 @@ poll: native exit 1, valid=True, expected=True
 
 Running 1 test using 1 worker
 
-[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-adpi1mxv/fixture.spec.mjs:61:8 › witness
-[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-adpi1mxv/fixture.spec.mjs:61:8 › witness ─────────
+[1A[2K[1/1] ../../../../../../../tmp/pw-browser-protocol-izizs8qx/fixture.spec.mjs:61:8 › witness
+[1A[2K  1) ../../../../../../../tmp/pw-browser-protocol-izizs8qx/fixture.spec.mjs:61:8 › witness ─────────
 
     Error: Expected: [32m"stale"[39m
     Received: [31m"fresh"[39m
@@ -83,15 +83,15 @@ Running 1 test using 1 worker
       34 |         } catch (error) { return proven(error, name, isNot); }
         at Proxy.toBePolled (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:31:34)
         at Object.toBe (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:96:81)
-        at witness (/tmp/pw-browser-protocol-adpi1mxv/fixture.spec.mjs:14:66)
-    [cause]: Error: PW_ASSERTION:fe4e69e530aa8db56bee6c1d5a4d4bfad5d9337ac4dbc147def986ff3221e4e0
+        at witness (/tmp/pw-browser-protocol-izizs8qx/fixture.spec.mjs:14:66)
+    [cause]: Error: PW_ASSERTION:dc02e0c77feb3e580454c0391f4eb7cad312acb44d219d7890e9731643888f8f
         at proven (/home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:13:19)
         at /home/runner/work/perfect-web/perfect-web/spikes/own-renderer/assertion-expect.mjs:33:37
-        at witness (/tmp/pw-browser-protocol-adpi1mxv/fixture.spec.mjs:14:24)
+        at witness (/tmp/pw-browser-protocol-izizs8qx/fixture.spec.mjs:14:24)
 
 
 [1A[2K  1 failed
-    ../../../../../../../tmp/pw-browser-protocol-adpi1mxv/fixture.spec.mjs:61:8 › witness ──────────
+    ../../../../../../../tmp/pw-browser-protocol-izizs8qx/fixture.spec.mjs:61:8 › witness ──────────
 
 pollNaN: native exit 0, valid=True, expected=True
 pollSignedZero: native exit 1, valid=True, expected=True
@@ -112,7 +112,7 @@ retry: native exit 0, valid=False, expected=False
 soft: native exit 1, valid=False, expected=False
 unwrapped: native exit 1, valid=False, expected=False
 24 of 24 native Playwright producer cases agree
-structured instrument receipts: /tmp/pw-device-producer-controls-zv9mxv7x
+structured instrument receipts: /tmp/pw-device-producer-controls-pmty05p_
 baseline: 17 executed; 0 failed; valid=True
 invalid cargo native result accepted: KILLED by test_device_producer_results.DeviceProducers.test_cargo_refuses_status_and_build_errors (1 actual body assertions)
 cargo inventory may change: KILLED by test_device_producer_results.DeviceProducers.test_cargo_inventory_must_be_complete_and_frozen (1 actual body assertions)

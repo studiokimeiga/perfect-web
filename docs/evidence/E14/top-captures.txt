@@ -1,20 +1,20 @@
 ADR-0217 - what a handler at the top of the page captures is set again when it changes
 
 produced by: just e14-top-captures
-commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the plan and the speculation (compiler/pw-core/tests/top_level_captures.rs)
 
 test a_page_whose_handlers_capture_no_query_plans_none ... ok
 test a_handlers_captures_at_the_top_are_planned_and_speculated ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.77s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.15s
 
 == the server's patch, and the browser's renderer
 
 test tests::a_handlers_captures_at_the_top_of_the_page_are_set_again ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1029 filtered out; finished in 5.37s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1033 filtered out; finished in 9.23s
 test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

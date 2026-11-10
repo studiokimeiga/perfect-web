@@ -1,8 +1,8 @@
 ADR-0233 - a speculation on a value of a type that contains itself
 
 produced by: just e14-speculated-graphs
-commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -10,7 +10,7 @@ node: v22.21.1
 
 test a_speculated_thread_is_read_from_its_nodes_and_replied_to ... ok
 test a_thread_sent_nested_or_not_a_tree_traps ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
 
 == the host (compiler/pw-conformance/tests/browser_graphs.rs)
 
@@ -25,7 +25,7 @@ test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 == the server (spikes/own-renderer/server/src/main.rs)
 
 test tests::a_value_that_contains_itself_is_written_as_its_nodes ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1029 filtered out; finished in 1.73s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1033 filtered out; finished in 1.69s
 
 == mutation controls (scripts/speculated_graphs_mutations.py)
 

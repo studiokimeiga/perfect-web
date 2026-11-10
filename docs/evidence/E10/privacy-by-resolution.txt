@@ -1,17 +1,17 @@
 ADR-0112 - a call's privacy is the declaration it resolves to
 
 produced by: just e10-privacy-by-resolution
-commit: ddaeeb1dfba9630371b7dd5b127c23855d245c74
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39131257549 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == privacy by resolution (compiler/pw-core/tests/privacy_by_resolution.rs)
 
 test a_secret_is_one_however_it_is_imported ... ok
-test a_value_refused_a_shared_cache_is_reported_once ... ok
 test a_session_read_is_one_however_it_is_imported ... ok
+test a_value_refused_a_shared_cache_is_reported_once ... ok
 test a_sink_is_one_however_it_is_imported ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.85s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.93s
 
 == mutation controls (scripts/privacy_resolution_mutations.py)
 

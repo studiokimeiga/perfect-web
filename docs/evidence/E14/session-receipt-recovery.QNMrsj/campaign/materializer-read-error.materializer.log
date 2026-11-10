@@ -1,0 +1,19 @@
+
+running 1 test
+test tests::a_receipt_decode_error_is_not_a_missing_committed_interaction ... FAILED
+
+failures:
+
+---- tests::a_receipt_decode_error_is_not_a_missing_committed_interaction stdout ----
+
+thread 'tests::a_receipt_decode_error_is_not_a_missing_committed_interaction' (160227) panicked at runtime/pw-materialize/src/lib.rs:1110:9:
+a committed receipt decode failure was silently reported as a miss
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::a_receipt_decode_error_is_not_a_missing_committed_interaction
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p pw-materialize --lib`

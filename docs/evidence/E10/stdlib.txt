@@ -1,8 +1,8 @@
 ADR-0040 - the standard library's lists and strings, compiled
 
 produced by: just e10-stdlib
-commit: ddaeeb1dfba9630371b7dd5b127c23855d245c74
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39131257549 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == against Vec and str (compiler/pw-conformance/tests/stdlib.rs)
@@ -19,7 +19,7 @@ test sum_and_maximum_compute ... ok
 test text_is_rebuilt_from_code_points_and_bad_ones_trap ... ok
 test what_stays_outside_is_refused_by_name ... r.Q: `r.Q` did not lower: the backend does not lower an empty list whose element type nothing fixes yet: `[]` needs the type its context expects
 r.Q: `r.Q` did not lower: the backend does not lower an intrinsic this backend does not know yet: `shuffle` is declared `intrinsic "list.shuffle"`
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.24s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.39s
 
 == mutation controls (scripts/stdlib_mutations.py)
 

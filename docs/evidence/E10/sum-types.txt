@@ -1,8 +1,8 @@
 ADR-0059 - declared sum types
 
 produced by: just e10-sum-types
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -14,13 +14,13 @@ test a_case_is_its_types_value ... ok
 test a_bare_case_with_a_payload_is_the_one_type_that_has_it ... ok
 test a_cases_fields_are_its_arguments ... ok
 test a_generic_sum_type_is_instantiated_where_it_is_used ... ok
-test a_case_its_type_does_not_declare_is_refused ... ok
 test a_pattern_through_its_type_is_a_case_not_a_binding ... ok
+test a_case_its_type_does_not_declare_is_refused ... ok
 test a_patterns_qualifier_must_name_the_type_matched ... ok
 test an_arms_fields_are_typed_in_its_body ... ok
 test an_options_payload_is_typed_in_its_arm ... ok
 test a_bare_case_is_the_case_of_the_type_expected ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
 
 == through the E8 host, against a model (compiler/pw-conformance/tests/sum_types.rs)
 
@@ -33,12 +33,12 @@ test a_hosts_answer_is_matched_by_its_case ... ok
 test a_parameter_is_returned_as_itself ... ok
 test a_sum_type_that_holds_itself_in_place_is_built ... ok
 test a_case_written_alone_is_built_as_the_type_expected ... ok
-test a_parameter_is_matched_case_by_case ... ok
-test each_case_is_built ... ok
-test every_joined_slot_is_read_and_written ... ok
 test a_union_of_one_case_is_a_variant ... ok
+test each_case_is_built ... ok
+test a_parameter_is_matched_case_by_case ... ok
+test every_joined_slot_is_read_and_written ... ok
 test a_type_of_three_hundred_cases_has_a_wider_discriminant ... ok
-test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.55s
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.17s
 
 == the component and the JavaScript module
 
@@ -46,7 +46,7 @@ javascript: 3 queries over cases written alone, 600 calls, component and module 
 javascript: 5 queries over trees, 1000 calls, component and module agree (155 trapped in both)
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
 javascript: 91 queries, 18200 calls, component and module agree (1196 trapped in both)
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 49.65s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 76.91s
 
 == mutation controls (scripts/sum_type_mutations.py)
 

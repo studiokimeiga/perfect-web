@@ -1,8 +1,8 @@
 kiokun.com's word page, served by the development server
 
 produced by: just e14-kiokun-word
-commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -28,17 +28,17 @@ test tests::kiokun::a_japanese_senses_examples_are_its_japanese_sentences ... ok
 test tests::kiokun::a_pitch_shard_is_its_words_hash_over_utf16_units ... ok
 test tests::kiokun::a_record_listed_twice_is_shown_twice_each_keyed_once ... ok
 test tests::kiokun::a_sample_of_the_whole_dictionary_is_served_and_timed ... ignored, reads a kiokun-data checkout named by KIOKUN_DATA; a measurement, run by `just e14-kiokun-sample`
-test tests::kiokun::a_japanese_word_shows_its_pitch_accent ... ok
 test tests::kiokun::a_senses_examples_are_shown_first_and_the_rest_disclosed ... ok
-test tests::kiokun::a_stub_of_several_traditional_forms_shows_each_ones_words ... ok
+test tests::kiokun::a_japanese_word_shows_its_pitch_accent ... ok
 test tests::kiokun::a_stubs_card_heads_the_page_it_names ... ok
+test tests::kiokun::a_stub_of_several_traditional_forms_shows_each_ones_words ... ok
 test tests::kiokun::a_stubs_page_shows_its_targets_forms_and_its_own ... ok
 test tests::kiokun::a_stubs_redirect_is_followed_to_the_entry_it_names ... ok
 test tests::kiokun::a_page_with_edrdg_data_acknowledges_the_group ... ok
-test tests::kiokun::a_word_kiokun_lacks_is_not_found ... ok
-test tests::kiokun::an_app_without_its_label_table_is_refused ... ok
 test tests::kiokun::a_word_too_long_to_be_a_file_name_is_not_found ... ok
+test tests::kiokun::an_app_without_its_label_table_is_refused ... ok
 test tests::kiokun::an_equivalent_forms_words_are_shown_on_the_canonical_page ... ok
+test tests::kiokun::a_word_kiokun_lacks_is_not_found ... ok
 test tests::kiokun::an_equivalent_simplified_form_is_moved_to_its_traditional_page ... ok
 test tests::kiokun::appears_in_ranks_each_languages_words_ten_at_a_time ... ok
 test tests::kiokun::an_inflected_word_shows_the_dictionary_form_it_is ... ok
@@ -56,9 +56,9 @@ test tests::kiokun::search_matches_kiokuns_own_on_a_sample ... ignored, reads ki
 test tests::kiokun::search_reads_kana_variants_and_canonical_pages ... ok
 test tests::kiokun::search_matches_kiokuns_answers_for_the_sample ... ok
 test tests::kiokun::the_character_headers_rules_hold ... ok
-test tests::kiokun::the_character_header_shows_its_gloss_levels_and_readings ... ok
 test tests::kiokun::the_description_takes_kiokuns_fragments_and_length ... ok
 test tests::kiokun::the_header_shows_each_written_form_with_its_roles ... ok
+test tests::kiokun::the_character_header_shows_its_gloss_levels_and_readings ... ok
 test tests::kiokun::the_japanese_examples_match_kiokuns_own_on_a_sample ... ignored, reads kiokun.com's own answers, made locally by `just e14-kiokun-examples`
 test tests::kiokun::the_layer_reads_no_path_but_one_of_kiokuns_files ... ok
 test tests::kiokun::the_japanese_examples_match_kiokuns_answers_for_the_sample ... ok
@@ -75,11 +75,11 @@ test tests::kiokun::word_pages_with_long_lists_are_timed ... ignored, reads a ki
 test tests::kiokun::a_unit_test_server_uses_the_sample_despite_deployment_paths ... ok
 test tests::kiokun::the_page_head_matches_kiokuns_answers_for_the_sample ... ok
 test tests::kiokun::deinflection_matches_kiokuns_answers_for_the_sample ... ok
-test result: ok. 56 passed; 0 failed; 9 ignored; 0 measured; 965 filtered out; finished in 71.51s
+test result: ok. 56 passed; 0 failed; 9 ignored; 0 measured; 969 filtered out; finished in 63.40s
 
 == the browser in three engines (e2e/kiokun-site.spec.mjs)
 
-  15 passed (47.2s)
+  15 passed (39.9s)
 
 == mutation controls (scripts/kiokun_word_mutations.py)
 

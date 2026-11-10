@@ -1,8 +1,8 @@
 ADR-0062 - generic types in the backend
 
 produced by: just e10-generics
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -15,13 +15,13 @@ test a_generic_record_is_built_and_read ... ok
 test two_instances_of_one_record_are_two_layouts ... ok
 test a_generic_case_as_a_function_and_a_record_in_a_lambda ... ok
 test an_instance_inside_an_instance ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.52s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
 
 == a type and a query of one name (compiler/pw-conformance/tests/wit_names.rs)
 
 test a_field_named_by_a_keyword_is_named_unescaped ... ok
-test a_query_named_by_a_keyword_is_exported_under_its_name ... ok
 test a_type_and_a_query_of_one_name_are_two_things ... ok
+test a_query_named_by_a_keyword_is_exported_under_its_name ... ok
 test a_case_named_by_a_keyword_is_built_and_named_unescaped ... ok
 test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
 
@@ -31,7 +31,7 @@ javascript: 3 queries over cases written alone, 600 calls, component and module 
 javascript: 5 queries over trees, 1000 calls, component and module agree (155 trapped in both)
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
 javascript: 91 queries, 18200 calls, component and module agree (1196 trapped in both)
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 51.54s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 47.88s
 
 == mutation controls (scripts/generic_mutations.py)
 

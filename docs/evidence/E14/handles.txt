@@ -1,29 +1,31 @@
 ADR-0263 - a handle is the platform's to make
 
 produced by: just e14-handles
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/handles.rs)
 
 test a_local_callback_is_not_a_handle_constructor ... ok
-test nothing_the_browser_supplies_holds_a_handle ... ok
 test a_data_layer_answers_ids_never_handles ... ok
 test a_program_constructs_no_handle ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+test nothing_the_browser_supplies_holds_a_handle ... ok
+test the_readers_account_is_the_readers ... ok
+test a_tables_row_holds_no_handle ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.25s
 
 == mutation controls (scripts/handle_mutations.py)
 
-baseline: 4 passed, 0 failed
-a program may construct a handle: KILLED (1 of 4 tests fail)
-a program may construct a user's handle: KILLED (1 of 4 tests fail)
-an operation outside the platform's may answer a handle: KILLED (1 of 4 tests fail)
-a handle in a type's argument is not found: KILLED (2 of 4 tests fail)
-a handle in a record's field is not found: KILLED (1 of 4 tests fail)
-an organization's handle is not found in a type: KILLED (1 of 4 tests fail)
-a page's parameter may hold a handle: KILLED (1 of 4 tests fail)
-a module's signal may hold a handle: KILLED (1 of 4 tests fail)
-a view's signal may hold a handle: KILLED (1 of 4 tests fail)
+baseline: 6 passed, 0 failed
+a program may construct a handle: KILLED (1 of 6 tests fail)
+a program may construct a user's handle: KILLED (1 of 6 tests fail)
+an operation outside the platform's may answer a handle: KILLED (2 of 6 tests fail)
+a handle in a type's argument is not found: KILLED (3 of 6 tests fail)
+a handle in a record's field is not found: KILLED (2 of 6 tests fail)
+an organization's handle is not found in a type: KILLED (2 of 6 tests fail)
+a page's parameter may hold a handle: KILLED (1 of 6 tests fail)
+a module's signal may hold a handle: KILLED (1 of 6 tests fail)
+a view's signal may hold a handle: KILLED (1 of 6 tests fail)
 9 of 9 mutants killed
 memory bound: no process was stopped

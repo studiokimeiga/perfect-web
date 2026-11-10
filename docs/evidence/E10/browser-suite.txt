@@ -1,16 +1,16 @@
 E10 - the store page, compiled commands and handlers, in browser engines: chromium firefox webkit
 
 produced by: just e10-browser "chromium firefox webkit" docs/evidence/E10/browser-suite.txt
-commit: 7e6e631316e2cf28484b1dd191b9d9bcc643e7c8
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42697853597 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: c6d46aa7398c92470965a0401768abf80b6c2ade
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42783891441 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 playwright: Version 1.58.0
 
 == run 1 of 3
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
 EVIDENCE static-route-script-bytes=0 wasm-bytes=0
-EVIDENCE interactive-script-bytes=197457 brotli=51430
+EVIDENCE interactive-script-bytes=228184 brotli=59127
 EVIDENCE interactive-wasm-bytes=0 brotli=0
-EVIDENCE  script 197457 gzip=61096 brotli=51430 http://127.0.0.1:3148/pw-runtime.mjs
+EVIDENCE  script 228184 gzip=70688 brotli=59127 http://127.0.0.1:3148/pw-runtime.mjs
 EVIDENCE colour (chromium): profiled.jpg renders by its profile: as sent and as served [106,135,188,255], without a profile [37,62,128,255]
 EVIDENCE colour (chromium): profiled.png renders by its profile: as sent and as served [124,156,188,255], without a profile [51,85,128,255]
 EVIDENCE colour (chromium): profiled.webp renders by its profile: as sent and as served [80,94,185,160], without a profile [19,29,123,160]
@@ -44,13 +44,13 @@ EVIDENCE colour (webkit): real.jpg does not render by its profile: as sent and a
 EVIDENCE colour (webkit): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
 EVIDENCE colour (webkit): real.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
   24 skipped
-  1437 passed (20.5m)
+  1446 passed (21.6m)
 == run 2 of 3
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
 EVIDENCE static-route-script-bytes=0 wasm-bytes=0
-EVIDENCE interactive-script-bytes=197457 brotli=51430
+EVIDENCE interactive-script-bytes=228184 brotli=59127
 EVIDENCE interactive-wasm-bytes=0 brotli=0
-EVIDENCE  script 197457 gzip=61096 brotli=51430 http://127.0.0.1:3148/pw-runtime.mjs
+EVIDENCE  script 228184 gzip=70688 brotli=59127 http://127.0.0.1:3148/pw-runtime.mjs
 EVIDENCE colour (chromium): profiled.jpg renders by its profile: as sent and as served [106,135,188,255], without a profile [37,62,128,255]
 EVIDENCE colour (chromium): profiled.png renders by its profile: as sent and as served [124,156,188,255], without a profile [51,85,128,255]
 EVIDENCE colour (chromium): profiled.webp renders by its profile: as sent and as served [80,94,185,160], without a profile [19,29,123,160]
@@ -84,13 +84,13 @@ EVIDENCE colour (webkit): real.jpg does not render by its profile: as sent and a
 EVIDENCE colour (webkit): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
 EVIDENCE colour (webkit): real.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
   24 skipped
-  1437 passed (20.1m)
+  1446 passed (21.3m)
 == run 3 of 3
 EVIDENCE localStorage limit (chromium): 5242880 UTF-16 code units
 EVIDENCE static-route-script-bytes=0 wasm-bytes=0
-EVIDENCE interactive-script-bytes=197457 brotli=51430
+EVIDENCE interactive-script-bytes=228184 brotli=59127
 EVIDENCE interactive-wasm-bytes=0 brotli=0
-EVIDENCE  script 197457 gzip=61096 brotli=51430 http://127.0.0.1:3148/pw-runtime.mjs
+EVIDENCE  script 228184 gzip=70688 brotli=59127 http://127.0.0.1:3148/pw-runtime.mjs
 EVIDENCE colour (chromium): profiled.jpg renders by its profile: as sent and as served [106,135,188,255], without a profile [37,62,128,255]
 EVIDENCE colour (chromium): profiled.png renders by its profile: as sent and as served [124,156,188,255], without a profile [51,85,128,255]
 EVIDENCE colour (chromium): profiled.webp renders by its profile: as sent and as served [80,94,185,160], without a profile [19,29,123,160]
@@ -124,4 +124,4 @@ EVIDENCE colour (webkit): real.jpg does not render by its profile: as sent and a
 EVIDENCE colour (webkit): real.png does not render by its profile: as sent and as served [51,85,128,255], without a profile [51,85,128,255]
 EVIDENCE colour (webkit): real.webp does not render by its profile: as sent and as served [19,29,123,160], without a profile [19,29,123,160]
   24 skipped
-  1437 passed (20.0m)
+  1446 passed (22.2m)

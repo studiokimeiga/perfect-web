@@ -1,8 +1,8 @@
 ADR-0321 - a related note is shown in its own file
 
 produced by: just e14-related-files
-commit: 64cc7da190695fa62cadf247d14fd9ebdc24f6e9
-ci: https://github.com/Kimeiga/perfect-web/actions/runs/38348107940 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == each note in its own file (compiler/pw-core/tests/related_files.rs)
@@ -13,30 +13,66 @@ test a_route_declared_twice_names_the_first_page_where_it_is ... ok
 test a_layouts_note_is_in_the_layouts_file ... ok
 test a_reader_in_another_file_is_named_in_it ... ok
 test every_note_is_text_of_its_own_file ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.85s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 32.37s
 
 == pw check: a note shown in its own file, and no stop on a span (compiler/pw-cli)
 
 test tests::a_note_in_another_file_is_shown_in_it ... ok
-test tests::check_renders_a_diagnostic_with_a_real_span ... ok
 test tests::a_span_outside_its_file_is_a_note_and_no_panic ... ok
+test tests::check_renders_a_diagnostic_with_a_real_span ... ok
 test tests::explain_flags_a_session_value_in_a_shared_cache ... ok
 test tests::explain_never_leaks_generated_paths ... ok
 test tests::unannotated_and_empty_effect_rows_read_differently ... ok
 test tests::explain_derives_placement_from_effects_alone ... ok
 test tests::explain_shows_every_policy_the_compiler_knows_about ... ok
 test tests::the_committed_graph_matches_what_the_compiler_emits ... ok
-test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+test accepted_corpus_has_exactly_its_known_backend_refusals ... ok
+test reference_program_roots_stay_executable ... ok
+test every_rejected_corpus_program_has_the_same_check_and_build_codes has been running for over 60 seconds
+test every_rejected_corpus_program_has_the_same_check_and_build_codes ... ok
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 75.36s
+test a_pure_computed_each_head_is_refused ... ok
+test a_page_cannot_depend_on_an_unwritten_query ... ok
+test a_part_cannot_compute_from_a_signal_and_a_query ... ok
+test a_part_may_compute_from_two_signals ... ok
+test a_signal_in_a_title_is_refused_during_check ... ok
+test syntax_refusals_keep_clean_siblings_errors_and_skip_backends ... ok
+test a_supported_neighbor_checks_and_builds ... ok
+test wit_name_collisions_are_check_refusals ... ok
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+test a_fence_is_read_as_commonmark_reads_it ... ok
+test a_gaps_build_output_belongs_to_the_gap_before_it ... ok
+test a_page_is_held_to_the_directory_it_names ... ok
+test a_page_with_no_example_or_a_block_unseen_is_reported ... ok
+test a_pages_file_blocks_are_its_program_in_order ... ok
+test a_program_differs_from_a_directory_by_a_file_or_a_byte ... ok
+test a_refused_examples_codes_are_read_from_its_output ... ok
+test an_unclosed_or_indented_fence_is_refused ... ok
+test an_info_string_says_what_a_block_is ... ok
+test shown_output_belongs_to_the_refused_example_before_it ... ok
+test a_pages_program_is_the_directory_it_names ... ok
+test the_reference_is_held_to_the_registry ... ok
+test the_diagnostic_reference_lists_every_registered_code ... ok
+test every_example_in_the_guide_compiles_as_it_says ... ok
+test a_wrong_example_is_reported_and_a_right_one_is_not ... ok
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 8.23s
 test a_layouts_note_is_shown_in_the_layouts_file ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 test each_file_keeps_its_own_answers_under_one_name ... ok
 test a_file_is_reported_though_another_has_its_name ... ok
 test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test an_invalid_or_missing_release_is_an_error ... ok
+test actual_compiler_manifest_executes_without_app_specific_rust ... ok
+test a_released_schema_does_not_skip_executable_support ... ok
+test migration_refusals_precede_unsupported_backend_diagnostics ... ok
+test check_and_build_hold_a_program_to_the_named_release ... ok
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.02s
 
 == mutation controls (scripts/related_files_mutations.py)
 
 baseline (core): 6 passed, 0 failed
-baseline (cli): 12 passed, 0 failed
+baseline (cli): 43 passed, 0 failed
 a note's unit is not resolved to its file [core]: KILLED (5 of 6 tests fail)
 a note in the diagnostic's own file names it as another's [core]: KILLED (2 of 6 tests fail)
 PW5046's note on the layout is read in the page's file [core]: KILLED (1 of 6 tests fail)

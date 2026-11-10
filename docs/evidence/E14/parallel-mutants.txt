@@ -1,8 +1,8 @@
 ADR-0357 - a mutation script's mutants run in parallel slots
 
 produced by: just e14-parallel-mutants
-commit: 2b8a8b81bb410adbc3174edc6039dff29125c4c4
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39478386992 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 python: Python 3.12.3
 platform: Linux x86_64
 slots: 1
@@ -32,12 +32,12 @@ test_the_tree_is_never_mutated_and_each_slot_is_its_own (scripts.tests.test_muta
 test_a_longer_description_is_not_a_shorter_ones (scripts.tests.test_mutation_slots.Verdicts.test_a_longer_description_is_not_a_shorter_ones) ... ok
 test_a_slots_lines_are_each_mutants (scripts.tests.test_mutation_slots.Verdicts.test_a_slots_lines_are_each_mutants) ... ok
 test_each_shape_the_scripts_print (scripts.tests.test_mutation_slots.Verdicts.test_each_shape_the_scripts_print) ... ok
-Ran 23 tests in 4.255s
+Ran 23 tests in 3.399s
 OK
 
 == mutation controls (scripts/mutation_slots_mutations.py)
 
-frozen profiles: full=165, mocked=68; evidence /tmp/parallel-instrument-1mem54lg
+frozen profiles: full=165, mocked=68; evidence /tmp/parallel-instrument-ngy2h1wd
 preflight: 86 actual unequal source/SHA substitutions recorded
 baseline: 165 passed, 0 failed
 a run asked for slots runs the script's loop in the tree: KILLED (5 of 165 test methods fail)

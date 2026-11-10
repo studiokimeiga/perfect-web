@@ -1,17 +1,17 @@
 ADR-0141 - a dialog a signal shows is the browser's modal dialog
 
 produced by: just e14-dialogs
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rule (compiler/pw-core/tests/dialogs.rs)
 
 test a_view_with_a_dialog_alone_is_read ... ok
 test a_dialog_s_close_gives_its_return_value ... ok
-test a_dialog_a_signal_shows_says_what_closing_it_does ... ok
 test a_dialog_nothing_shows_is_refused ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+test a_dialog_a_signal_shows_says_what_closing_it_does ... ok
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
 
 == mutation controls (scripts/dialogs_mutations.py)
 

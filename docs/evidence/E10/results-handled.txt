@@ -1,17 +1,17 @@
 ADR-0099 - a failure is handled
 
 produced by: just e10-results-handled
-commit: ddaeeb1dfba9630371b7dd5b127c23855d245c74
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39131257549 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == results handled (compiler/pw-core/tests/results_handled.rs)
 
 test a_discarded_value_is_not_a_result ... ok
 test a_handler_gives_the_runtime_no_failure_to_drop ... ok
+test a_handler_that_handles_its_failure_is_the_control ... ok
 test a_returned_result_is_used ... ok
 test a_statements_result_is_handled ... ok
-test a_handler_that_handles_its_failure_is_the_control ... ok
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 
 == mutation controls (scripts/results_handled_mutations.py)

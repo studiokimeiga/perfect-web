@@ -1,8 +1,8 @@
 ADR-0215 - a query's retry reaches its runtime as declared, and fixed is no strategy
 
 produced by: just e14-query-retry
-commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the plan, the cache and the server
@@ -11,11 +11,11 @@ test a_command_inside_a_function_is_refused ... ok
 test a_command_parameter_a_browser_cannot_send_is_refused ... ok
 test a_command_is_sent_again_as_its_retry_clause_says ... ok
 test a_case_and_a_record_holding_one_are_sent_as_the_browser_holds_them ... ok
-test a_handler_calls_several_commands_in_order ... ok
 test a_handler_branches_between_commands ... ok
+test a_handler_calls_several_commands_in_order ... ok
 test a_handler_that_calls_no_command_is_refused ... ok
-test a_handler_that_discards_its_answer_by_name_sends_it ... ok
 test a_handler_that_discards_its_answer_with_underscore_sends_it ... ok
+test a_handler_that_discards_its_answer_by_name_sends_it ... ok
 test a_handler_computes_what_it_sends ... ok
 test a_record_or_a_list_is_sent_as_json_carries_it ... ok
 test a_refused_command_stops_the_handler_before_the_next ... ok
@@ -25,38 +25,38 @@ test an_int_a_javascript_number_cannot_carry_stops_the_handler_before_it_sends .
 test an_opaque_constructor_sends_its_representation ... ok
 test each_path_read_is_read_where_the_document_carries_it ... ok
 test a_program_that_does_not_check_compiles_no_handlers ... ok
-test the_stores_handlers_compile_to_the_calls_their_bodies_make ... ok
 test a_handler_calls_its_commands_by_the_contracts_own_ids ... ok
+test the_stores_handlers_compile_to_the_calls_their_bodies_make ... ok
 test a_module_and_its_event_part_name_one_handler ... ok
-test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.35s
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.16s
 test a_key_separates_a_partition_by_naming_it ... ok
 test a_key_names_a_parameter_or_a_partition ... ok
 test a_session_query_in_a_shared_cache_is_refused_however_it_is_spelled ... ok
 test a_session_read_is_never_stale_however_it_is_written ... ok
-test a_type_a_policy_names_is_visible ... ok
 test a_duration_is_a_count_and_a_unit ... ok
 test a_retried_command_is_idempotent_whatever_it_retries_on ... ok
+test a_type_a_policy_names_is_visible ... ok
 test a_word_is_one_its_domain_lists ... ok
 test only_transport_only_is_transport_only ... ok
 test a_world_is_one_a_platform_has ... ok
 test an_operator_is_given_its_arguments ... ok
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.65s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.31s
 test a_querys_jitter_reaches_its_plan ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
-test a_command_can_invalidate_the_resource_it_changed ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
 test a_delay_varies_only_with_jitter ... ok
+test a_command_can_invalidate_the_resource_it_changed ... ok
 test a_dropped_subscription_releases_even_on_an_early_return ... ok
-test a_failed_key_does_not_stay_in_flight_forever ... ok
 test a_fresh_cached_value_is_served_without_a_request ... ok
+test a_failed_key_does_not_stay_in_flight_forever ... ok
 test duplicate_commands_with_one_interaction_id_mutate_once ... ok
-test private_state_never_appears_in_public_cache_output ... ok
-test navigating_away_cancels_work_nobody_is_waiting_for ... ok
 test retries_are_bounded_and_backoff_grows ... ok
+test private_state_never_appears_in_public_cache_output ... ok
 test the_trace_records_what_actually_happened ... ok
+test navigating_away_cancels_work_nobody_is_waiting_for ... ok
 test a_recomputation_storm_does_not_exceed_one_request_per_key ... ok
 test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 test tests::a_querys_retry_reaches_its_cache_as_declared ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1029 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1033 filtered out; finished in 0.00s
 
 == mutation controls (scripts/query_retry_mutations.py)
 

@@ -1,8 +1,8 @@
 ADR-0260 (track uploads) - an image on a post: a typed upload, a deployment's blob storage, served safely
 
 produced by: just e14-uploads
-commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -16,17 +16,17 @@ test blob::tests::a_key_is_the_sha256_of_the_bytes ... ok
 test blob::tests::a_blob_is_kept_by_its_key_once_and_forgotten ... ok
 test blob::tests::a_blob_changed_where_it_is_kept_is_not_given_out ... ok
 test tests::uploads::a_malformed_image_is_refused_over_http_without_staging ... ok
-test tests::uploads::a_photos_metadata_is_neither_kept_nor_served ... ok
 test tests::uploads::a_command_that_does_not_commit_gives_its_claim_back ... ok
+test tests::uploads::a_photos_metadata_is_neither_kept_nor_served ... ok
 test tests::uploads::a_deleted_posts_image_is_not_served_and_its_blob_is_collected ... ok
 test tests::uploads::an_attached_image_removed_is_forgotten ... ok
-test tests::uploads::an_upload_is_read_within_its_own_limits_not_a_commands ... ok
 test tests::uploads::an_image_attached_is_posted_with_its_post_and_served ... ok
+test tests::uploads::an_upload_is_read_within_its_own_limits_not_a_commands ... ok
 test tests::uploads::an_uploads_connection_is_closed_after_its_answer ... ok
-test tests::uploads::on_postgres_an_attached_image_removed_is_forgotten ... ok
 test tests::uploads::on_postgres_a_deleted_posts_image_is_not_served_and_its_blob_is_collected ... ok
-test tests::uploads::on_postgres_an_image_is_kept_with_its_post ... ok
+test tests::uploads::on_postgres_an_attached_image_removed_is_forgotten ... ok
 test tests::uploads::on_postgres_posting_an_image_with_none_attached_commits_nothing ... ok
+test tests::uploads::on_postgres_an_image_is_kept_with_its_post ... ok
 test uploads::icc::tests::a_profile_keeps_its_colour_and_names_nothing ... ok
 test tests::uploads::one_signed_out_attaches_nothing ... ok
 test uploads::icc::tests::a_profiles_producer_signatures_are_not_kept ... ok
@@ -68,19 +68,19 @@ test uploads::sniff::tests::crc32_is_iso_3309s ... ok
 test uploads::sniff::tests::every_kind_is_named_by_its_word ... ok
 test uploads::sniff::tests::real_encoders_files_are_read_as_they_are_shown ... ok
 test uploads::sniff::tests::the_kind_is_the_bytes_and_nothing_else ... ok
-test uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept ... ok
-test uploads::strip::tests::a_gif_that_does_not_parse_is_refused ... ok
 test uploads::strip::tests::a_gif_keeps_its_image_timing_and_loop_and_nothing_else ... ok
-test uploads::strip::tests::a_gifs_reserved_descriptor_and_control_bits_are_zeroed ... ok
+test uploads::strip::tests::a_gif_that_does_not_parse_is_refused ... ok
 test uploads::strip::tests::a_gif_whose_images_have_their_own_colour_tables_is_kept ... ok
+test uploads::strip::tests::a_gifs_reserved_descriptor_and_control_bits_are_zeroed ... ok
 test uploads::strip::tests::a_jpeg_keeps_its_image_colour_and_turn_and_nothing_else ... ok
+test uploads::strip::tests::a_jpeg_that_does_not_parse_is_refused ... ok
 test uploads::strip::tests::a_jpeg_with_restart_markers_is_kept_whole ... ok
 test uploads::strip::tests::a_jpegs_density_is_not_kept ... ok
-test uploads::strip::tests::a_jpeg_that_does_not_parse_is_refused ... ok
+test uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks ... ok
 test uploads::strip::tests::a_jpegs_turn_is_its_first_readable_exif_before_any_scan ... ok
 test uploads::strip::tests::a_png_keeps_its_image_colour_and_frames_and_nothing_else ... ok
 test uploads::strip::tests::a_png_that_does_not_parse_is_refused ... ok
-test uploads::strip::tests::a_jpegs_icc_profile_is_read_as_libjpeg_reads_its_chunks ... ok
+test uploads::icc::tests::a_profile_that_does_not_parse_is_not_kept ... ok
 test uploads::strip::tests::a_simple_webp_is_its_image_alone ... ok
 test uploads::strip::tests::a_webp_keeps_its_image_colour_and_alpha_and_nothing_else ... ok
 test uploads::strip::tests::a_pngs_single_icc_profile_is_rewritten_and_duplicates_refused ... ok
@@ -141,28 +141,28 @@ test tests::uploads::posting_an_image_with_none_attached_commits_nothing ... ok
 test uploads::tests::the_kind_is_sniffed_and_never_the_senders ... ok
 test uploads::tests::the_same_image_attached_twice_is_kept ... ok
 test uploads::tests::the_size_is_held_before_and_after_the_body_is_read ... ok
-test uploads::tests::the_dimensions_are_held ... ok
 test tests::uploads::what_is_not_an_image_is_refused_whatever_it_is_called ... ok
+test uploads::tests::the_dimensions_are_held ... ok
 test uploads::strip::tests::any_bytes_are_refused_or_kept_and_kept_again_unchanged ... ok
-test result: ok. 134 passed; 0 failed; 0 ignored; 0 measured; 896 filtered out; finished in 6.58s
+test result: ok. 134 passed; 0 failed; 0 ignored; 0 measured; 900 filtered out; finished in 12.86s
 
 == the declaration and its checks (compiler/pw-core/tests/uploads.rs)
 
-test a_build_writes_each_upload_for_its_host ... ok
 test an_upload_that_states_its_limits_checks ... ok
+test a_build_writes_each_upload_for_its_host ... ok
 test its_clauses_are_an_uploads_alone ... ok
 test a_form_that_sends_a_file_posts_it_to_an_upload ... ok
-test every_clause_is_stated ... ok
 test a_limit_is_a_literal_count ... ok
+test every_clause_is_stated ... ok
 test its_paths_are_literal_paths ... ok
 test its_types_are_a_closed_set ... ok
 test two_uploads_are_at_two_paths ... ok
 test its_paths_are_no_pages ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.89s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.00s
 
 == an image on a post in three engines (e2e/uploads.spec.mjs)
 
-  15 passed (26.4s)
+  15 passed (38.3s)
 
 == mutation controls (scripts/uploads_mutations.py)
 

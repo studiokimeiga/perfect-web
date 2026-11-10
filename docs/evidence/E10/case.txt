@@ -1,8 +1,8 @@
 ADR-0056 - Unicode case mapping
 
 produced by: just e10-case
-commit: 64cc7da190695fa62cadf247d14fd9ebdc24f6e9
-ci: https://github.com/Kimeiga/perfect-web/actions/runs/38348107940 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -12,7 +12,7 @@ test the_tables_are_generated_under_unicode_17 ... ok
 test no_mapping_grows_a_string_past_its_bound ... ok
 test a_table_is_ranges_then_code_points_that_map_to_more_than_one ... ok
 test the_tables_reproduce_rusts_mapping_for_every_code_point ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.12s
 
 == the component through the host (pw-conformance/tests/case_mapping.rs)
 
@@ -21,7 +21,7 @@ test texts_that_differ_in_case_compare_equal_lowered ... ok
 test the_mapping_is_per_code_point ... ok
 test mixed_text_is_mapped_as_rust_maps_it ... ok
 test every_code_point_unicode_maps_is_mapped_as_rust_maps_it ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.10s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.53s
 
 == the module under Node, and the component against it
 
@@ -30,7 +30,7 @@ javascript: 5 queries over trees, 1000 calls, component and module agree (155 tr
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
 javascript: 91 queries, 18200 calls, component and module agree (1196 trapped in both)
 test the_modules_case_mapping_is_rusts_for_every_code_point ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 60.06s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 84.00s
 
 == mutation controls (scripts/case_mutations.py)
 

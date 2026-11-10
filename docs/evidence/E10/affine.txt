@@ -1,8 +1,8 @@
 ADR-0045 - affine values consumed exactly once, on every path
 
 produced by: just e10-affine
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == each witness (examples/generality/affine_not_consumed_once)
@@ -33,7 +33,7 @@ unit-body-drops-its-value.pw             GENERAL    [PW2005] affine resource `tx
 
 == the generality suite
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 124.34s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 83.63s
 
 == mutation controls (scripts/affine_mutations.py)
 

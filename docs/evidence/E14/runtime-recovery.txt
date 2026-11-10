@@ -1,14 +1,14 @@
 ADR-0155 - the page keeps its subscription, and recovers a refused handler
 
 produced by: just e14-runtime-recovery
-commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 playwright: Version 1.58.0
 
 == the browser (e2e/transport.spec.mjs, e2e/recovery.spec.mjs), three engines
 
   4 skipped
-  53 passed (58.0s)
+  53 passed (1.2m)
 
 == mutation controls (scripts/runtime_recovery_mutations.py)
 

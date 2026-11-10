@@ -1,15 +1,16 @@
 E9 gate item 2 — differential agreement with Koka
 
 produced by: just e9-parity
-commit: beb5529c7dc22972944ee9733a2998e7d241abef
-koka: Koka 3.2.3, 01:29:29 Mar 18 2026 (ghc release version)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+koka: Koka 3.2.3, 01:25:33 Mar 18 2026 (ghc release version)
 
 Every accepted corpus file that lowers to the pure subset (ADR-0015),
 compiled by the real Koka. Both compilers must accept it.
 
   agreed       1
   disagreed    0
-  skipped     31   not in the common subset
+  skipped     43   not in the common subset
 
 SKIPPED — counted as skipped, never as agreement. Silence is not parity:
   A-001-pure-calculation.pw  (types declared in another module; emit-koka is single-module)
@@ -43,6 +44,18 @@ SKIPPED — counted as skipped, never as agreement. Silence is not parity:
   A-029-a-thread-that-contains-itself.pw  (no function body in the pure subset)
   A-030-cases-and-bindings-by-their-capital.pw  (no function body in the pure subset)
   A-031-a-form-controls-value-where-html-reads-it.pw  (no function body in the pure subset)
+  A-033-a-page-states-its-canonical-address.pw  (no function body in the pure subset)
+  A-034-a-users-query-read-on-a-users-page.pw  (no function body in the pure subset)
+  A-035-a-page-loads-from-its-own-origin.pw  (no function body in the pure subset)
+  A-036-a-command-schedules-one-the-clock-invokes.pw  (no function body in the pure subset)
+  A-037-a-list-read-together-before-its-loop.pw  (no function body in the pure subset)
+  A-038-a-loop-over-a-querys-value.pw  (no function body in the pure subset)
+  A-039-generic-results-preserve-pure-member-types.pw  (types declared in another module; emit-koka is single-module)
+  A-050-a-table-read-and-written-through-its-functions.pw  (no function body in the pure subset)
+  A-051-a-reference-within-one-source.pw  (no function body in the pure subset)
+  A-052-a-reference-across-sources-that-may-name-no-row.pw  (no function body in the pure subset)
+  A-053-a-tables-change-from-its-released-schema-stated.pw  (no function body in the pure subset)
+  A-054-a-value-the-device-keeps.pw  (no function body in the pure subset)
 
 CONTROLS — a run that cannot fail, or cannot agree, measures nothing
   A. a well-typed module with no `main` is accepted by Koka:   pass

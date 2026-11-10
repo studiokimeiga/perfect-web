@@ -1,8 +1,8 @@
 ADR-0105 - a command invalidates the entry it speculates on
 
 produced by: just e10-speculation-reconciled
-commit: 320c52a44840a80423609ab476eb847c04de34a6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39442025240 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == speculations reconciled (compiler/pw-core/tests/speculation_reconciled.rs)
@@ -12,12 +12,12 @@ test a_speculated_reader_is_reported_once ... ok
 test an_event_reconciles_only_an_entry_that_hears_it ... ok
 test the_speculation_is_underlined ... ok
 test a_speculation_is_reconciled_by_its_command ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.07s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.82s
 
 == ADR-0101's readers and ADR-0103's fragments, unchanged
 
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.08s
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.74s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.55s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.14s
 
 == mutation controls (scripts/speculation_mutations.py)
 

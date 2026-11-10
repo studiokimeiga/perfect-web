@@ -1,8 +1,8 @@
 ADR-0196 - only a word that begins a statement or an expression is reserved
 
 produced by: just e14-reserved-words
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the parser (compiler/pw-syntax/src/grammar.rs)
@@ -18,8 +18,8 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 pw check: 57 file(s), no diagnostics
 pw check: 27 file(s), no diagnostics
-rejected: 95 files
-rejected: 95/95 charter §16 categories covered
+rejected: 97 files
+rejected: 97/97 charter §16 categories covered
 corpus-check: OK
 
 == mutation controls (scripts/reserved_words_mutations.py)

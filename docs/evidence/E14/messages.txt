@@ -1,8 +1,8 @@
 ADR-0279 - direct messages: a conversation read from each side
 
 produced by: just e14-messages
-commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -29,11 +29,11 @@ test tests::messages::on_postgres_reading_a_conversation_reaches_each_of_the_rea
 test tests::messages::reading_a_conversation_reaches_each_of_the_readers_sessions ... ok
 test tests::messages::who_may_message_whom_is_xs_rule ... ok
 test tests::messages::on_postgres_who_may_message_whom_is_xs_rule ... ok
-test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 1011 filtered out; finished in 12.79s
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 12.14s
 
 == the browser in three engines (e2e/messages.spec.mjs)
 
-  9 passed (1.0m)
+  9 passed (1.1m)
 
 == mutation controls (scripts/messages_mutations.py)
 
