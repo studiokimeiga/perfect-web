@@ -195,8 +195,8 @@ MUTANTS = [
         "a region the browser renders again does not read the answers",
         "browser",
         RUNTIME,
-        "  return `{${[[binding, value], ...computed, ...params, ...holds, ...signals]\n",
-        "  return `{${[[binding, value], ...computed, ...params, ...signals]\n",
+        "  return renderer.env([[binding, value], ...computed, ...params, ...holds, ...signals]);\n",
+        "  return renderer.env([[binding, value], ...computed, ...params, ...signals]);\n",
     ),
 ]
 

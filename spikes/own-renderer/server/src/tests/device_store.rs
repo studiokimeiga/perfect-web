@@ -8,7 +8,7 @@ use super::*;
 
 /// `src` beside the platform's packages, built as `pw build` builds it, and
 /// served.
-fn served(src: &str) -> Served {
+pub(super) fn served(src: &str) -> Served {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
     let dir = tempfile::TempDir::with_prefix("pw-device-store-").expect("a temporary directory");
     let mut units = Vec::new();

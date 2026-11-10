@@ -9,7 +9,7 @@
 # `wasm32-wasip2` is required by spikes/wasmtime-component (Milestone 0 task 10)
 # and by the eventual edge/origin component backend (Milestone 8, Milestone 10).
 # `wasm32-unknown-unknown` builds the browser's WebAssembly, `pw-resume-wasm`
-# and `pw-render-wasm` (`spikes/own-renderer/run.sh`). It was installed on the
+# (`spikes/own-renderer/run.sh`). It was installed on the
 # development machine by hand and listed nowhere, until the first verification
 # run on a fresh runner could not build it (ADR-0245).
 #

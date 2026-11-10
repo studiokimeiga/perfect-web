@@ -1,19 +1,20 @@
 ADR-0155 - the page keeps its subscription, and recovers a refused handler
 
 produced by: just e14-runtime-recovery
-commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 playwright: Version 1.58.0
 
 == the browser (e2e/transport.spec.mjs, e2e/recovery.spec.mjs), three engines
 
-  51 passed (1.1m)
+  4 skipped
+  53 passed (58.0s)
 
 == mutation controls (scripts/runtime_recovery_mutations.py)
 
 baseline: 4 passed, 0 failed
 a failed subscription request ends the subscription: KILLED (1 of 3 tests fail)
 a press on a refused handler does nothing: KILLED (2 of 4 tests fail)
-the recovery codes are read one place off: KILLED (1 of 4 tests fail)
+a region of private state is told to refetch: KILLED (1 of 4 tests fail)
 3 of 3 mutants killed
 memory bound: no process was stopped

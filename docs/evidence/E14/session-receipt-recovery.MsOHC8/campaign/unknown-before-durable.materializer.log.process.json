@@ -1,0 +1,24 @@
+{
+  "command": [
+    "cargo",
+    "test",
+    "--quiet",
+    "--locked",
+    "-p",
+    "pw-materialize",
+    "--lib",
+    "--",
+    "tests::a_receipt_decode_error_is_not_a_missing_committed_interaction",
+    "--exact",
+    "--test-threads=1",
+    "--format=pretty"
+  ],
+  "error": null,
+  "reaped": {
+    "pid": 123097,
+    "status": 0,
+    "timed_out": false,
+    "cancelled": false
+  },
+  "stderr_policy": "raw merged stdout/stderr"
+}

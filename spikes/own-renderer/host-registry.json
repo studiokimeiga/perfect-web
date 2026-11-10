@@ -529,6 +529,11 @@
         "mutable:performance"
       ]
     },
+    "page-bundle.spec.mjs": {
+      "roles": [
+        "base"
+      ]
+    },
     "press-modules.spec.mjs": {
       "roles": [
         "base"
@@ -640,6 +645,16 @@
       ]
     },
     "thread.spec.mjs": {
+      "roles": [
+        "base"
+      ]
+    },
+    "device-runtime.spec.mjs": {
+      "roles": [
+        "todomvc"
+      ]
+    },
+    "longer-holds.spec.mjs": {
       "roles": [
         "base"
       ]

@@ -1,8 +1,8 @@
 ADR-0177 - a public read whose origin fails is answered with the last value kept
 
 produced by: just e14-last-known-good
-commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -22,22 +22,22 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 197 filtered out; fi
 == the development server (pw-dev-server)
 
 test tests::a_failed_origin_is_answered_with_the_last_public_value_kept ... ok
-test result: ok. 732 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 538.77s
+test result: ok. 1021 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 340.22s
 
 == the page, in three engines (e2e/controls.spec.mjs)
 
-  15 passed (53.4s)
+  15 passed (40.7s)
 
 == mutation controls (scripts/last_known_good_mutations.py)
 
-baseline (resource): 69 passed, 0 failed
+baseline (resource): 70 passed, 0 failed
 baseline (core): 206 passed, 0 failed
 baseline (server): 1 passed, 0 failed
-nothing is answered with what was kept [resource]: KILLED (2 of 65 tests fail)
-a private manifest's read is answered with what was kept [resource]: KILLED (1 of 65 tests fail)
-a private value kept under a public read's key answers it [resource]: KILLED (1 of 65 tests fail)
-`expire` expires nothing [resource]: KILLED (1 of 65 tests fail)
-an expired value is still fresh [resource]: KILLED (1 of 65 tests fail)
+nothing is answered with what was kept [resource]: KILLED (2 of 66 tests fail)
+a private manifest's read is answered with what was kept [resource]: KILLED (1 of 66 tests fail)
+a private value kept under a public read's key answers it [resource]: KILLED (1 of 66 tests fail)
+`expire` expires nothing [resource]: KILLED (1 of 66 tests fail)
+an expired value is still fresh [resource]: KILLED (1 of 66 tests fail)
 PW0343 is not raised [core]: KILLED (1 of 198 tests fail)
 PW0343 is raised for public data [core]: KILLED (3 of 198 tests fail)
 the plan does not carry `fallback` [core]: KILLED (1 of 206 tests fail)

@@ -175,7 +175,7 @@ def run_full(
             (root / "spikes/todomvc-cypress", ("run.sh",)),
             (root / "spikes/todomvc-cypress-probes", ("run.sh",)),
             (root / "target/debug", ("pw", "pw-dev-server", "kiokun-server")),
-            (root / "target/wasm32-unknown-unknown/browser", ("pw_render_wasm.wasm", "pw_resume_wasm.wasm")),
+            (root / "target/wasm32-unknown-unknown/browser", ("pw_resume_wasm.wasm",)),
         ):
             where.mkdir(parents=True, exist_ok=True)
             for name in names:

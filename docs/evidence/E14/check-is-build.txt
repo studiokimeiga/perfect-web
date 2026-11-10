@@ -1,18 +1,13 @@
 Check and build validate one executable program
 
 produced by: just e14-check-is-build
-commit: a0602009d8f7d4f178bb9ce082ab08919ebc1130
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39545311229 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
-   Compiling pw-resource v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-resource)
-   Compiling getrandom v0.4.3
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
-   Compiling tempfile v3.27.0
-   Compiling pw-document v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-document)
-   Compiling pw-render v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-render)
-    Finished `test` profile [unoptimized] target(s) in 16.57s
-     Running tests/check_is_build.rs (target/debug/deps/check_is_build-d3d3cf7237442757)
+    Finished `test` profile [unoptimized] target(s) in 14.68s
+     Running tests/check_is_build.rs (target/debug/deps/check_is_build-f59a2ef86092d725)
 
 running 12 tests
 test an_unmappable_export_keeps_its_declaration_identity ... ok
@@ -28,11 +23,13 @@ test semantic_library_checks_do_not_promise_executable_support ... ok
 test a_wit_failure_preserves_independent_page_refusals_and_its_own_file ... ok
 test prepared_privacy_stays_with_its_program_and_qualified_namesakes ... ok
 
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
 
+   Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
+   Compiling pw-table-memory v0.0.0 (/home/runner/work/perfect-web/perfect-web/runtime/pw-table-memory)
    Compiling pw-cli v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-cli)
-    Finished `test` profile [unoptimized] target(s) in 0.21s
-     Running tests/check_is_build.rs (target/debug/deps/check_is_build-81122b17cc7f2050)
+    Finished `test` profile [unoptimized] target(s) in 14.60s
+     Running tests/check_is_build.rs (target/debug/deps/check_is_build-37eeea2392a1bbb2)
 
 running 8 tests
 test a_pure_computed_each_head_is_refused ... ok
@@ -40,33 +37,32 @@ test a_page_cannot_depend_on_an_unwritten_query ... ok
 test a_part_cannot_compute_from_a_signal_and_a_query ... ok
 test a_part_may_compute_from_two_signals ... ok
 test a_signal_in_a_title_is_refused_during_check ... ok
+test a_supported_neighbor_checks_and_builds ... ok
 test syntax_refusals_keep_clean_siblings_errors_and_skip_backends ... ok
 test wit_name_collisions_are_check_refusals ... ok
-test a_supported_neighbor_checks_and_builds ... ok
 
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
 
 
    Compiling pw-cli v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-cli)
-    Finished `test` profile [unoptimized] target(s) in 0.57s
-     Running tests/check_build_corpus.rs (target/debug/deps/check_build_corpus-ac089aa40944fca8)
+    Finished `test` profile [unoptimized] target(s) in 0.55s
+     Running tests/check_build_corpus.rs (target/debug/deps/check_build_corpus-7721cbade0b52d84)
 
 running 3 tests
 accepted corpus: semantic language remains accepted; complete check/build agree on exactly 9 listed backend refusals
 test accepted_corpus_has_exactly_its_known_backend_refusals ... ok
 reference program roots: 9 complete checks and builds
 test reference_program_roots_stay_executable ... ok
-test every_rejected_corpus_program_has_the_same_check_and_build_codes has been running for over 60 seconds
-check/build corpus parity: 95 rejected programs
+check/build corpus parity: 97 rejected programs
 test every_rejected_corpus_program_has_the_same_check_and_build_codes ... ok
 
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 75.94s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 52.72s
 
 
 Complete check program census; no artifacts
-commit: a0602009d8f7d4f178bb9ce082ab08919ebc1130
-binary SHA256: 58c83d5a836ce40330fa94fe992dd5de24bec225d44a9e5127ea0d6a1d875dbc
-source diff SHA256: 590cbb624dbfe141ed132d57c9ed7688180fbda2adbe2bc928937798f3758aa5
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+binary SHA256: 2507c5f534ef615f49252eaec20f3d460193a4d3cec88776c25eb28a8b2cf2c9
+source diff SHA256: 059052922cda3ed853200bf5b7dcfc035f20f58435f718435f7ad3950dff05ec
 accepted: new-support-refusal; 93 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
@@ -83,14 +79,15 @@ kiokun: clean; 27 files; codes=[]
 todomvc: clean; 23 files; codes=[]
 kiokun-site: clean; 25 files; codes=[]
 demo: clean; 65 files; codes=[]
-tables: clean; 26 files; codes=[]
+tables: semantic-or-syntax-refusal; 29 files; codes=['PW5106']
 rules (the program of rule_fixtures.rs): semantic-or-syntax-refusal; 81 files; codes=['PW0020', 'PW0021', 'PW0022', 'PW0023', 'PW0024', 'PW0025', 'PW0026', 'PW0408', 'PW0600', 'PW0609', 'PW5006', 'PW5010', 'PW5015', 'PW5016', 'PW5100', 'PW5101']
 counter: semantic-or-syntax-refusal; 50 files; codes=['PW5302']
-guestbook: clean; 51 files; codes=[]
+guestbook: clean; 53 files; codes=[]
 hello-static: clean; 50 files; codes=[]
 koka: clean; 50 files; codes=[]
 render: clean; 50 files; codes=[]
 streamed: semantic-or-syntax-refusal; 50 files; codes=['PW0021', 'PW0026', 'PW0408', 'PW5401']
+compiler/pw-core/tests/fixtures/tables-duplicate-index-fields.pw: semantic-or-syntax-refusal; 23 files; codes=['PW0361']
 examples/rejected/R-001-network-request-inside-view.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0401']
 examples/rejected/R-002-database-access-in-browser.pw: semantic-or-syntax-refusal; 50 files; codes=['PW5002']
 examples/rejected/R-003-secret-serialized-to-browser.pw: semantic-or-syntax-refusal; 50 files; codes=['PW5003']
@@ -117,7 +114,7 @@ examples/rejected/R-023-dead-internal-route.pw: semantic-or-syntax-refusal; 50 f
 examples/rejected/R-024-raw-unsafe-HTML-without-capability.pw: semantic-or-syntax-refusal; 50 files; codes=['PW5010']
 examples/rejected/R-025-browser-only-API-on-origin.pw: semantic-or-syntax-refusal; 50 files; codes=['PW5005']
 examples/rejected/R-026-server-secret-referenced-by-edge-artifact.pw: semantic-or-syntax-refusal; 50 files; codes=['PW5005']
-examples/rejected/R-027-query-key-changes-without-stale-work-cancellation-policy.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0325']
+examples/rejected/R-027-query-key-changes-without-stale-work-cancellation-policy.pw: semantic-or-syntax-refusal; 50 files; codes=['PW5309']
 examples/rejected/R-028-subscription-outlives-component-scope.pw: semantic-or-syntax-refusal; 50 files; codes=['PW2004']
 examples/rejected/R-029-optimistic-state-with-no-rollback-path.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0330']
 examples/rejected/R-030-private-data-in-resume-manifest.pw: semantic-or-syntax-refusal; 53 files; codes=['PW5007']
@@ -176,6 +173,8 @@ examples/rejected/R-092-a-member-read-needs-a-known-receiver.pw: semantic-or-syn
 examples/rejected/R-093-a-rigid-parameter-declares-no-members.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0610']
 examples/rejected/R-094-a-function-value-receiver-keeps-its-effect.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0401']
 examples/rejected/R-095-a-recursive-generic-invocation-keeps-its-effect.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0400']
+examples/rejected/R-096-an-image-with-no-text-alternative.pw: semantic-or-syntax-refusal; 50 files; codes=['PW5053']
+examples/rejected/R-097-a-command-that-says-nothing-of-who-may-run-it.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0367']
 examples/rejected/R-100-a-table-keyed-by-a-field-no-database-keys-a-row-by.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0361']
 examples/rejected/R-101-an-index-on-a-field-its-row-does-not-have.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0361']
 examples/rejected/R-102-a-table-read-whole-that-states-no-bound.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0364']
@@ -319,6 +318,17 @@ examples/generality/canonical_address/neighbour.pw: new-support-refusal; 94 file
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
 examples/generality/case_name_capitalized/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0625']
 examples/generality/case_name_capitalized/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+  [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
+  [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
+  [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
+  [PW6601] `store.add_button.AddToCartButton~ui` depends on `cart.commands.add_to_cart`, whose body is a placeholder (`todo`)
+  [PW6601] a template part the renderer cannot render: store.responsive_menu.ResponsiveMenu~ui: `style:grid-template-columns`: `style:grid-template-columns` is a directive, and only `on:` directives are compiled
+  [PW6601] `store.overview.StoreOverview~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
+  [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
+examples/generality/control_without_label/blank-submit.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5014']
+examples/generality/control_without_label/buttons.pw: new-support-refusal; 94 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -550,6 +560,28 @@ examples/generality/handler_signature_mismatch/neighbour.pw: new-support-refusal
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
   [PW6601] a handler in `generality.handler_ok.Search~ui`: `a handler that calls no command and changes no signal` does not encode: a handler reaches the server through a command and changes the page through a signal, and this one does neither, so pressing it would change nothing
+examples/generality/image_without_alt/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5053']
+examples/generality/image_without_alt/image-button-alt.pw: new-support-refusal; 94 files; codes=['PW6601']
+  [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
+  [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
+  [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
+  [PW6601] `store.add_button.AddToCartButton~ui` depends on `cart.commands.add_to_cart`, whose body is a placeholder (`todo`)
+  [PW6601] a template part the renderer cannot render: store.responsive_menu.ResponsiveMenu~ui: `style:grid-template-columns`: `style:grid-template-columns` is a directive, and only `on:` directives are compiled
+  [PW6601] `store.overview.StoreOverview~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
+  [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
+examples/generality/image_without_alt/image-button-empty-alt.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5053']
+examples/generality/image_without_alt/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+  [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
+  [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
+  [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
+  [PW6601] `store.add_button.AddToCartButton~ui` depends on `cart.commands.add_to_cart`, whose body is a placeholder (`todo`)
+  [PW6601] a template part the renderer cannot render: store.responsive_menu.ResponsiveMenu~ui: `style:grid-template-columns`: `style:grid-template-columns` is a directive, and only `on:` directives are compiled
+  [PW6601] `store.overview.StoreOverview~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
+  [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
 examples/generality/invalid_nesting/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5012']
 examples/generality/invalid_nesting/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
@@ -1010,8 +1042,8 @@ examples/generality/set_pair_shape/neighbour.pw: new-support-refusal; 94 files; 
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
-examples/generality/stale_key_policy/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0325']
-examples/generality/stale_key_policy/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+examples/generality/signal_key_stale_work/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW5309']
+examples/generality/signal_key_stale_work/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
   [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
   [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
@@ -1158,6 +1190,17 @@ examples/generality/value_exceeds_sink_level/valid-public-neighbour.pw: new-supp
   [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
   [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
   [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
+examples/generality/who_may_run/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0367']
+examples/generality/who_may_run/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
+  [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
+  [PW6601] `payments.capture.capture_payment`: did not lower: the backend does not lower a body-level statement yet: the backend lowers calls, names, literals, blocks, bindings, field reads, matches over `Option` and `Result`, arithmetic, comparisons, `if`, interpolated strings and records
+  [PW6601] `marketing.terms.Terms~ui`'s values: part 0 computes a value that performs `build.input.read<WorkspaceFile>`, and a host computes only a value that performs nothing
+  [PW6601] `store.add_button.AddToCartButton~ui` depends on `cart.commands.add_to_cart`, whose body is a placeholder (`todo`)
+  [PW6601] a template part the renderer cannot render: store.responsive_menu.ResponsiveMenu~ui: `style:grid-template-columns`: `style:grid-template-columns` is a directive, and only `on:` directives are compiled
+  [PW6601] `store.overview.StoreOverview~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `store.cart_page.CartPage~ui` depends on `Resources.Cart`, whose body is a placeholder (`todo`)
+  [PW6601] `store.store_summary.StoreSummary~ui` depends on `Resources.Store`, whose body is a placeholder (`todo`)
+  [PW6601] `saved.page.SavedPage~ui` depends on `Saved.SavedFor`, whose body is a placeholder (`todo`)
 examples/generality/wrong_frame_phase/caught.pw: semantic-or-syntax-refusal; 94 files; codes=['PW0402']
 examples/generality/wrong_frame_phase/neighbour.pw: new-support-refusal; 94 files; codes=['PW6601']
   [PW6601] a template part the renderer cannot render: store.map_widget.StoreLocation~ui: `<map resource={..}>`: an element that mounts a resource is not compiled
@@ -1193,6 +1236,8 @@ examples/history/C10/generality/control_without_label/labelledby-nothing.pw: sem
 examples/history/C16/generality/forbidden_effect/page-may-read-clock.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0334']
 examples/history/C16/generality/task_detached/nested.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0021', 'PW2002']
 examples/history/C16/rules/annotations/decoded-not-cast.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0021']
+examples/history/C30/R-027-query-key-changes-without-stale-work-cancellation-policy.pw: clean; 50 files; codes=[]
+examples/history/C30/generality/stale_key_policy/caught.pw: clean; 50 files; codes=[]
 examples/history/C8/A-004-private-cart-query.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0605']
 examples/history/C8/A-005-idempotent-command.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0605', 'PW0609']
 examples/history/C8/A-006-scoped-WebSocket-subscription.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0026']
@@ -1222,7 +1267,7 @@ examples/history/C8/R-019-invalid-HTML-nesting.pw: semantic-or-syntax-refusal; 5
 examples/history/C8/R-023-dead-internal-route.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0026', 'PW5009', 'PW5028', 'PW5029']
 examples/history/C8/R-025-browser-only-API-on-origin.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0026', 'PW5005']
 examples/history/C8/R-026-server-secret-referenced-by-edge-artifact.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0021', 'PW0026', 'PW0030', 'PW5002']
-examples/history/C8/R-027-query-key-changes-without-stale-work-cancellation-policy.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0026', 'PW0325']
+examples/history/C8/R-027-query-key-changes-without-stale-work-cancellation-policy.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0026']
 examples/history/C8/R-028-subscription-outlives-component-scope.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0026', 'PW0408', 'PW2004']
 examples/history/C8/R-033-geometry-read-during-render.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0026', 'PW0401', 'PW0408']
 examples/history/C8/R-034-layout-read-after-layout-affecting-write.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0026', 'PW0402']
@@ -1267,7 +1312,7 @@ examples/history/C8/generality/retry_not_idempotent/neighbour.pw: semantic-or-sy
 examples/history/C8/generality/retry_unbounded/caught.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0026', 'PW0313', 'PW0335', 'PW0605']
 examples/history/C8/generality/retry_unbounded/neighbour.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0026', 'PW0335', 'PW0605']
 examples/history/C8/generality/secret_to_browser/neighbour.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0026', 'PW0605']
-examples/history/C8/generality/stale_key_policy/caught.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0026', 'PW0325', 'PW0335']
+examples/history/C8/generality/stale_key_policy/caught.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0026', 'PW0335']
 examples/history/C8/generality/stale_key_policy/neighbour.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0026', 'PW0335']
 examples/history/C8/generality/unchecked_external_cast/helper-return.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0026', 'PW0601']
 examples/history/C8/generality/unchecked_external_cast/neighbour.pw: semantic-or-syntax-refusal; 50 files; codes=['PW0026']
@@ -1298,12 +1343,12 @@ examples/history/C9/generality/dead_internal_link/caught.pw: semantic-or-syntax-
 examples/history/C9/generality/dead_internal_link/neighbour.pw: semantic-or-syntax-refusal; 50 files; codes=['PW5029']
 examples/history/C9/rules/routes/link-to-declared-route.pw: semantic-or-syntax-refusal; 50 files; codes=['PW5029']
 historical benchmark baseline: clean; 43 files; codes=[]
-program census: 453 program assemblies; 626 of 626 tracked source files covered; {'clean': 15, 'semantic-or-syntax-refusal': 353, 'new-support-refusal': 85}
+program census: 466 program assemblies; 644 of 644 tracked source files covered; {'clean': 16, 'semantic-or-syntax-refusal': 361, 'new-support-refusal': 89}
 
 ............cleanup also failed: OSError('cleanup')
 ...
 ----------------------------------------------------------------------
-Ran 15 tests in 0.344s
+Ran 15 tests in 0.436s
 
 OK
 
@@ -1363,66 +1408,65 @@ a part computed from two signals is refused again: KILLED (1 of 99 tests fail)
 
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
    Compiling pw-cli v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-cli)
-    Finished `dev` profile [unoptimized] target(s) in 16.78s
-Wed Oct 21 05:11:57 UTC 2026
-1.89 1.64 1.49 1/259 36916
+    Finished `dev` profile [unoptimized] target(s) in 14.27s
+Mon Nov  9 16:15:28 UTC 2026
+1.61 1.63 1.79 2/257 68848
 program sources SHA256:
-d45527e51dfe702725e0764a51b147eed3668a7b6adb6f49327b9d9c046daeb0  -
-58c83d5a836ce40330fa94fe992dd5de24bec225d44a9e5127ea0d6a1d875dbc  target/debug/pw
+63fb6f7871f98f53679e1740a682b5f3560dd227eb184f2b6a1d86045f610ec2  -
+2a09703504e48433cb05d13040948f0c9ab5e15e1cf3a5de1d84afe4a7802bc3  target/debug/pw
 CLI sample 1
 pw check: 57 file(s), no diagnostics
-check CLI wall=3.47 user=3.45 sys=0.02 cpu=100%
+check CLI wall=2.51 user=2.49 sys=0.02 cpu=100%
 CLI sample 2
 pw check: 57 file(s), no diagnostics
-check CLI wall=3.47 user=3.44 sys=0.02 cpu=99%
+check CLI wall=2.54 user=2.52 sys=0.01 cpu=99%
 CLI sample 3
 pw check: 57 file(s), no diagnostics
-check CLI wall=3.45 user=3.42 sys=0.02 cpu=99%
-1.75 1.62 1.48 1/259 36929
+check CLI wall=2.51 user=2.48 sys=0.02 cpu=99%
+1.56 1.62 1.79 1/256 68860
    Compiling pw-core v0.0.0 (/home/runner/work/perfect-web/perfect-web/compiler/pw-core)
-    Finished `test` profile [unoptimized] target(s) in 16.66s
-     Running tests/check_latency.rs (target/debug/deps/check_latency-d82d26a115d014b6)
+    Finished `test` profile [unoptimized] target(s) in 14.18s
+     Running tests/check_latency.rs (target/debug/deps/check_latency-746e556c8fe37fd3)
 
 running 11 tests
-test a_checker_made_slow_is_not_let_through_by_the_waiting ... ok
-test a_clock_that_reads_nothing_is_refused_by_the_control ... ok
 test a_loaded_machine_is_waited_on_while_it_may_quiet_down ... ok
-test producing_diagnostics_is_judged_at_the_fastest_of_both ... ok
+test a_clock_that_reads_nothing_is_refused_by_the_control ... ok
 test a_quiet_machine_is_asked_for_seven_checks_and_no_more ... ok
+test a_checker_made_slow_is_not_let_through_by_the_waiting ... ok
+test producing_diagnostics_is_judged_at_the_fastest_of_both ... ok
 test the_ceiling_bounds_the_fastest_check_not_the_median ... ok
-test the_ceiling_is_800_ms_a_thousand_lines_and_a_check_is_judged_by_it ... ok
 test the_fastest_is_of_the_threads_cpu_time_not_of_the_wall_clock ... ok
+test the_ceiling_is_800_ms_a_thousand_lines_and_a_check_is_judged_by_it ... ok
 test the_waiting_ends_with_the_window_or_the_most_checks ... ok
-check-latency reject 1702.07 ms   (cpu 1701.72 ms; clean 3171.42 ms, cpu 3171.09 ms; the fastest of 7 and 7 checks, which the ratio bounds: cpu 1691.55 ms, clean cpu 3162.99 ms)
+check-latency reject 1215.59 ms   (cpu 1215.19 ms; clean 2307.97 ms, cpu 2307.68 ms; the fastest of 7 and 7 checks, which the ratio bounds: cpu 1208.68 ms, clean cpu 2296.98 ms)
 test a_rejected_program_is_not_measurably_slower_than_a_clean_one ... ok
-test the_whole_program_and_one_edit_are_both_measured has been running for over 60 seconds
-check-latency cold   3165.99 ms   (cpu 3165.70 ms; 6600 lines, cpu 479.65 ms a thousand lines; the fastest of 7 checks, which the ceiling bounds: cpu 3159.65 ms, 478.73 ms a thousand lines)
-check-latency edit   3166.12 ms   (cpu 3165.76 ms; 57 files, no query system: an edit costs a full check)
+check-latency cold   2314.86 ms   (cpu 2314.65 ms; 6631 lines, cpu 349.06 ms a thousand lines; the fastest of 7 checks, which the ceiling bounds: cpu 2305.92 ms, 347.75 ms a thousand lines)
+check-latency edit   2314.45 ms   (cpu 2314.23 ms; 57 files, no query system: an edit costs a full check)
 test the_whole_program_and_one_edit_are_both_measured ... ok
 
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 78.57s
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 57.19s
 
 	Command being timed: "cargo test --locked -p pw-core --test check_latency -- --nocapture"
-	User time (seconds): 104.12
-	System time (seconds): 1.77
-	Percent of CPU this job got: 111%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:35.28
+	User time (seconds): 77.57
+	System time (seconds): 1.52
+	Percent of CPU this job got: 110%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:11.40
 	Average shared text size (kbytes): 0
 	Average unshared data size (kbytes): 0
 	Average stack size (kbytes): 0
 	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 1376616
+	Maximum resident set size (kbytes): 1353072
 	Average resident set size (kbytes): 0
-	Major (requiring I/O) page faults: 158
-	Minor (reclaiming a frame) page faults: 568391
-	Voluntary context switches: 1407
-	Involuntary context switches: 1922
+	Major (requiring I/O) page faults: 165
+	Minor (reclaiming a frame) page faults: 572432
+	Voluntary context switches: 1345
+	Involuntary context switches: 1434
 	Swaps: 0
 	File system inputs: 0
-	File system outputs: 430880
+	File system outputs: 435984
 	Socket messages sent: 0
 	Socket messages received: 0
 	Signals delivered: 0
 	Page size (bytes): 4096
 	Exit status: 0
-1.28 1.52 1.46 1/259 37005
+1.30 1.55 1.75 1/259 68933

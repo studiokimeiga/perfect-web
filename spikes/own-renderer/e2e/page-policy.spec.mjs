@@ -1,10 +1,9 @@
 // ADR-0195's ruling 13 (the track `page-csp`): every HTML answer the host
 // writes carries a Content-Security-Policy generated from its build and its
 // deployment. Each page the suite serves runs under it with nothing refused:
-// the runtime starts, its WebAssembly compiles, a press reaches its handler,
-// and the order page frames the payment provider. The controls: what the
-// policy refuses is refused, and said, in each engine; and without
-// `'wasm-unsafe-eval'`, or without the provider among its frames, the page
+// the runtime starts, a press reaches its handler, and the order page frames
+// the payment provider. The controls: what the policy refuses is refused, and
+// said, in each engine; and without the provider among its frames, the page
 // does not work, so the policy's sources are each what something needs.
 import { expect, test } from "@playwright/test";
 import {
@@ -73,7 +72,8 @@ for (const path of RUNS) {
   test(`${path} runs under its policy, nothing refused`, { annotation: { type: "pw-host", description: "base" } }, async ({ page }) => {
     const refused = await watching(page);
     const policy = await visit(page, path);
-    expect(policy, "a policy is sent").toContain("script-src 'self' 'wasm-unsafe-eval' 'sha256-");
+    expect(policy, "a policy is sent").toContain("script-src 'self' 'sha256-");
+    expect(policy, "and nothing compiled on the page").not.toContain("wasm-unsafe-eval");
     expect(await booted(page), "the runtime started").toBe("1");
     expect(await refused()).toEqual([]);
   });
@@ -142,25 +142,6 @@ test("the control: what the policy refuses is refused, and said", { annotation: 
   ).not.toBe("rgb(1, 2, 3)");
 });
 
-test("the control: without 'wasm-unsafe-eval' the runtime does not start", { annotation: { type: "pw-host", description: "base" } }, async ({ page }) => {
-  // The document as served, its policy without the source the runtime's
-  // WebAssembly needs (CSP Level 3, §6.1.10).
-  await page.route(
-    (url) => new URL(url).pathname === "/stores/47",
-    async (route) => {
-      const response = await route.fetch();
-      const headers = response.headers();
-      headers["content-security-policy"] = headers["content-security-policy"].replace(
-        " 'wasm-unsafe-eval'",
-        "",
-      );
-      await route.fulfill({ response, headers });
-    },
-  );
-  await visit(page, "/stores/47");
-  expect(await booted(page), "the runtime's WebAssembly is refused").toBe("failed");
-});
-
 test.describe("a deployment that takes payments", { annotation: { type: "pw-host", description: "payments" } }, () => {
   test.use({
     baseURL: async ({}, use, testInfo) => {
@@ -221,7 +202,7 @@ test.describe("the feed", { annotation: { type: "pw-host", description: "feed" }
   for (const path of ["/", "/post/p1"]) {
     test(`${path} runs under its policy, nothing refused`, async ({ page }) => {
       const refused = await watching(page);
-      expect(await visit(page, path)).toContain("'wasm-unsafe-eval'");
+      expect(await visit(page, path)).not.toContain("'wasm-unsafe-eval'");
       expect(await booted(page)).toBe("1");
       expect(await refused()).toEqual([]);
     });
@@ -259,7 +240,7 @@ test.describe("kiokun", { annotation: { type: "pw-host", description: "kiokun" }
 
   test("a word's page runs under its policy, nothing refused", async ({ page }) => {
     const refused = await watching(page);
-    expect(await visit(page, `/word/${encodeURIComponent("人")}`)).toContain("'wasm-unsafe-eval'");
+    expect(await visit(page, `/word/${encodeURIComponent("人")}`)).not.toContain("'wasm-unsafe-eval'");
     expect(await booted(page)).toBe("1");
     expect(await refused()).toEqual([]);
   });

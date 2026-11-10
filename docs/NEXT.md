@@ -6,6 +6,39 @@
 
 # Next
 
+## After train-16, 2026-11-10
+
+The head-to-head at `3b0e7c4f` is behind in 16 rows. By the owner's order of
+2026-11-09 each is a defect until it is fixed or recorded as a real trade-off.
+In order:
+
+1. **Rows being closed** on `perf/after-train-20261109` and
+   `perf/rows-20261109`: a press changes only the rows it changed, another
+   tab's write waits its turn, a device's runtime holds what its build's pages
+   use, a subscription held long looks once a second, and a list of a thousand
+   rows keeps its rows and sets only what changed. The head-to-head at
+   `57d0dd31` adds a third app, a large list's operations as krausest's
+   benchmark runs them, and is behind in 73 rows, 55 of them that app's:
+   making, appending and replacing a thousand rows a tenth to three fifths
+   slower than Svelte in every engine, updating every tenth row slower, and its
+   page 15.9 KB to Svelte's 12.6. It lands with a head-to-head at its own
+   commit.
+2. **TodoMVC's bytes** against Svelte's. Generated code for a build's templates
+   is the remaining lever, from what the device's renderer costs; it is a third
+   thing to hold to the server's renderer, so it is taken only if the count says.
+3. **The store's source** (294 lines to SvelteKit's 134, and 2,128 of Rust in
+   its host). The benchmark's store is frozen and the twelve tasks' patches
+   start from it, so its host's operations move into tables as its own task.
+4. **Not measured yet:** real phones and real networks, apps beyond TodoMVC and
+   the store, and the idle-visitors window past one hold.
+5. **JavaScript libraries behind a boundary** (ADR-0075's mounted resources).
+6. **The pull request's analyzers, made to measure** (ADR-0411's last
+   section): Fallow given the suites' coverage in Istanbul's format, so its
+   CRAP scores risk and not complexity alone, and each of the 54 ceilings
+   brought down to what that leaves; the decision `decider` returns named,
+   its ceiling narrowed to it; `setAttributeAt` reading an attribute back by
+   the renderer's escapes, with no parse.
+
 ## After train-14, 2026-11-07
 
 Train-14 merges 23 PRs and the cache repair ([STATUS](STATUS.md)). What
@@ -18,13 +51,9 @@ stays open, in order:
    go in PRs of their own), merge master, renumber its codes (ADR-0406
    holds PW0367), add `requires` to its fixtures, carry #91's findings
    (ADR-0407's decision 3), and re-run its gates on GitHub.
-2. **PR #87, repaired before it lands** (reserved ADR-0402; #86 landed with
-   train-15 after its repairs): a failed regeneration (ADR-0176) is retried
-   only by the page's next subscription request, now up to 25 s away; frames
-   pile past `MAX_WAITING` on a held stream; and each tab holds one of
-   HTTP/1.1's six connections to an origin for 25 s (hold long only where the
-   page's connection is HTTP/2 or later, `nextHopProtocol`). When it lands,
-   its, keep-alive's and `session_overlap`'s mutation scripts run whole.
+2. **Done in train-16:** PR #87, repaired (ADR-0402): a failed regeneration
+   is tried within the hold, a held stream ends before its queue fills, and a
+   page is held long only where it costs no other request a connection.
 3. **Done in train-15:** PR #81, its WebKit failure the test's own (device
    pixels), with its review's three items.
 4. **Done in train-15:** D3's PostgreSQL `put` is answered from the row

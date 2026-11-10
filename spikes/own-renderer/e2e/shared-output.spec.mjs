@@ -61,7 +61,8 @@ test("a shared build asset revalidates without persisting or disclosing a sessio
       headers: { ...headers, "if-none-match": `W/${etag}` },
     });
     // The server uses a conservative strong-validator check.
-    expect(weak.status()).toBe(200);
+    // RFC 9110 §13.1.2: `If-None-Match` compares weakly.
+    expect(weak.status()).toBe(304);
     const staticPage = await client.get("/HelloStatic.html");
     expect(staticPage.status()).toBe(200);
     expect(staticPage.headers()["content-security-policy"]).toContain("default-src 'none'");

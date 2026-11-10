@@ -1208,13 +1208,22 @@ shown by the view's own signal or one provided to it (ADR-0144). A page
 that reads queries holds signals on the store's route only (ADR-0140); any
 other page with queries is not served yet (E14-Q).
 
-**A response's caching is said for a session's responses alone**
-(ADR-0184). A session's response says `private, no-store`, and a build's
-file names no session but says nothing of how long it may be kept, which is
-the deployment's. A page declared `cache shared` is not served yet, so no
-response says `public`. The engines in the browser suite ask for a page
-again on going back whatever it says, so `no-store`'s effect on a browser
-that restores pages is held by its header alone.
+**A response's caching is said for a session's responses and for a page no
+reader decides** (ADR-0184, ADR-0409). A session's response says
+`private, no-store`, and a build's file names no session but says nothing of
+how long it may be kept, which is the deployment's. A page no reader decides
+says `public, no-cache`, with a validator. A page declared `cache shared` is
+not served yet. The engines in the browser suite ask for a page again on going
+back whatever it says, so `no-store`'s effect on a browser that restores pages
+is held by its header alone, and what a page does when the back-forward cache
+brings it back is held by the event it is given (`pageshow`, `persisted`), not
+by a page that was really frozen.
+
+**A device-only app still needs this host to be served** (the prerender's
+ADR). Its document is one file's worth of bytes, but a plain static host has
+no route for `/pw-handlers` and `/handler/<id>.mjs`, would keep none of the
+files named `?b=` without being told, and sends no policy. That is its own
+decision.
 
 **A page states its title only when it is served at a route** (ADR-0183).
 PW5029 refuses a routed page that states none. A page without a route is

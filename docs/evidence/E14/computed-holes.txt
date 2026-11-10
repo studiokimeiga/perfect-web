@@ -1,8 +1,8 @@
 ADR-0226 - a value the template computes compiles
 
 produced by: just e14-computed-holes
-commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -17,32 +17,32 @@ test a_value_the_template_computes_is_lifted_and_planned ... ok
 test a_member_an_imported_module_lacks_does_not_resolve ... ok
 test what_a_host_does_not_compute_is_refused_by_name ... ok
 test a_view_that_contains_itself_computes_nothing_yet_and_a_speculated_value_is_computed ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.34s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.58s
 test a_binding_named_like_a_function_is_its_value ... ok
 test a_function_named_in_a_handler_is_the_handlers ... ok
 test the_diagnostic_says_it_was_named_as_a_value ... ok
 test a_field_of_a_value_is_no_function_of_the_same_name ... ok
 test a_helper_without_a_row_carries_what_it_performs ... ok
 test a_function_named_as_a_value_performs_its_effects_where_it_is_named ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.03s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
 test a_key_is_the_path_from_the_element ... ok
 test the_ir_blocks_a_computed_list_and_a_foreign_key ... ok
 test a_loops_key_is_read_from_its_element ... ok
 test a_directive_other_than_on_does_not_build ... ok
 test a_computed_hole_checks_and_does_not_build ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.99s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.70s
 
 == the corpus at C16 (corpus-check, checking_source.rs, generality.rs, corpus_history.rs, rule_fixtures.rs)
 
 accepted: 44 files
 accepted: 44/44 charter §16 categories covered
-rejected: 95 files
-rejected: 95/95 charter §16 categories covered
+rejected: 97 files
+rejected: 97/97 charter §16 categories covered
 corpus-check: OK
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 166.29s
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.63s
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 156.69s
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 91.22s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.30s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 86.43s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
 
 == the server (spikes/own-renderer/server/src/main.rs)
 
@@ -50,15 +50,15 @@ test tests::a_member_read_inside_a_block_is_computed_and_told_where_it_is ... ok
 test tests::a_value_computed_in_a_row_is_each_rows_and_sent_with_it ... ok
 test tests::an_attributes_computed_value_is_the_hosts_and_set_again ... ok
 test tests::an_invalidated_entry_is_dropped_by_the_key_the_command_computed ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 737 filtered out; finished in 11.03s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 1026 filtered out; finished in 6.25s
 
 == the feed in three engines (e2e/feed.spec.mjs)
 
-  66 passed (1.2m)
+  72 passed (54.4s)
 
 == mutation controls (scripts/computed_holes_mutations.py)
 
-baseline: 64 passed, 0 failed
+baseline: 65 passed, 0 failed
 a computed hole reads nothing: KILLED (7 of 42 tests fail)
 a computed attribute reads nothing: KILLED (6 of 42 tests fail)
 a name a lambda binds is read from outside: KILLED (1 of 42 tests fail)
@@ -79,8 +79,8 @@ an escape hatch's effect is said to be impure: KILLED (6 of 34 tests fail)
 an import's name is a local again: KILLED (1 of 42 tests fail)
 a module a path starts with is a term: KILLED (3 of 34 tests fail)
 an inferred `Int` has no type: KILLED (8 of 42 tests fail)
-the host does not run the lifted function: KILLED (2 of 64 tests fail)
-a character with no rule between tags is unknown: KILLED (2 of 64 tests fail)
-the host renders without a computed attribute's value: KILLED (2 of 64 tests fail)
+the host does not run the lifted function: KILLED (2 of 65 tests fail)
+a character with no rule between tags is unknown: KILLED (2 of 65 tests fail)
+the host renders without a computed attribute's value: KILLED (2 of 65 tests fail)
 23 of 23 mutants killed
 memory bound: no process was stopped

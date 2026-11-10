@@ -76,7 +76,7 @@ SETS = {
         "pleris": {
             "app": ["examples/todomvc/app.pw"],
             "host": [],
-            "build": ["spikes/own-renderer/todomvc.sh", "spikes/own-renderer/todomvc-styles.mjs"],
+            "build": ["spikes/own-renderer/todomvc.sh"],
             "excluded": [],
         },
         "react": {

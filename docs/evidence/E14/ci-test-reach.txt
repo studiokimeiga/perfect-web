@@ -1,8 +1,8 @@
 Changed tests reach the verification that consumes them
 
 produced by: just e14-ci-test-reach
-commit: bd267ad604f0ccbae86012c2124dc17977ed65b5
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39549550596 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 test_bound_controls_require_a_complete_actual_intended_assertion (scripts.tests.test_ci_scripts.BoundEvidence.test_bound_controls_require_a_complete_actual_intended_assertion) ... ok
 test_exact_no_stop_and_absent_guard_remain_valid (scripts.tests.test_ci_scripts.BoundEvidence.test_exact_no_stop_and_absent_guard_remain_valid) ... ok
 test_fetch_excludes_all_outputs_and_completed_timing_of_stopped_recipe (scripts.tests.test_ci_scripts.BoundEvidence.test_fetch_excludes_all_outputs_and_completed_timing_of_stopped_recipe) ... ok
@@ -19,7 +19,7 @@ test_evidence_of_a_commit_the_head_does_not_descend_from_is_not_current (scripts
 test_main_runs_no_current_recipe_only_where_asked (scripts.tests.test_ci_scripts.CurrentEvidence.test_main_runs_no_current_recipe_only_where_asked) ... ci_plan: e10-attribute-case is current, recorded at aaaaaaaa
 ok
 test_the_evidence_is_read_as_the_head_holds_it (scripts.tests.test_ci_scripts.CurrentEvidence.test_the_evidence_is_read_as_the_head_holds_it) ... ok
-test_the_workflow_plans_each_push_with_the_evidence (scripts.tests.test_ci_scripts.CurrentEvidence.test_the_workflow_plans_each_push_with_the_evidence) ... ok
+test_the_workflow_plans_each_push_and_pr_with_the_evidence (scripts.tests.test_ci_scripts.CurrentEvidence.test_the_workflow_plans_each_push_and_pr_with_the_evidence) ... ok
 test_a_file_of_another_commit_is_refused (scripts.tests.test_ci_scripts.Fetch.test_a_file_of_another_commit_is_refused) ... ok
 test_a_file_whose_recipe_reads_what_changed_since_its_run_is_refused (scripts.tests.test_ci_scripts.Fetch.test_a_file_whose_recipe_reads_what_changed_since_its_run_is_refused) ... ok
 test_a_file_with_no_commit_is_copied_as_it_is (scripts.tests.test_ci_scripts.Fetch.test_a_file_with_no_commit_is_copied_as_it_is) ... ok
@@ -104,7 +104,7 @@ test_the_runs_are_read_through_gh_by_their_commit (scripts.tests.test_ci_scripts
 test_where_no_run_passed_master_plans_from_the_commit_before (scripts.tests.test_ci_scripts.VerifiedBase.test_where_no_run_passed_master_plans_from_the_commit_before) ... ok
 
 ----------------------------------------------------------------------
-Ran 96 tests in 25.004s
+Ran 96 tests in 24.352s
 
 OK
   not copied, its recipe failed: docs/evidence/E14/stopped.txt

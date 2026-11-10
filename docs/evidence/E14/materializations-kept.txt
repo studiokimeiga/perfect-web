@@ -1,8 +1,8 @@
 ADR-0277 - a materialization is kept, and a page reads it
 
 produced by: just e14-materializations-kept
-commit: 1afd58fcfc66434070422b3112debeac94bad07f
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40265548018 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -15,11 +15,11 @@ test a_page_reads_a_public_one_the_host_keeps ... ok
 test one_that_derives_its_value_reads_another_and_a_cycle_of_reads_is_refused ... ok
 test what_it_depends_on_is_stated_once_by_reading_it ... ok
 test a_body_begins_where_the_clauses_end_whatever_it_begins_with ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.68s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.83s
 test each_read_is_the_platforms_and_names_what_it_reads ... ok
 test a_page_that_reads_one_depends_on_it_and_binds_it ... ok
 test one_that_derives_its_value_is_a_component_that_imports_its_reads ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.31s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.37s
 
 == the chain's order (runtime/pw-materialize/tests/chain_order.rs)
 
@@ -36,38 +36,39 @@ test tests::materializations::an_entry_made_again_with_its_value_tells_no_one ..
 test tests::materializations::a_page_is_served_what_a_chain_derives_every_readers ... ok
 test tests::materializations::a_change_makes_the_chain_again_in_its_order_and_tells_its_readers ... ok
 test tests::materializations::a_document_that_reads_another_key_is_told_nothing ... ok
+test tests::tables::closed_tables_refuse_fresh_and_last_known_good_materializations ... ok
 test tests::materializations::what_could_not_be_made_again_is_served_its_last_good_value ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 772 filtered out; finished in 11.33s
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 1021 filtered out; finished in 11.23s
 
 == the store's chain in three engines (e2e/materialized.spec.mjs)
 
-  6 passed (35.2s)
+  6 passed (29.0s)
 
 == mutation controls (scripts/materializations_kept_mutations.py)
 
 baseline (compiler): 12 passed, 0 failed
-baseline (runtime): 11 passed, 0 failed
-baseline (server): 11 passed, 0 failed
+baseline (runtime): 12 passed, 0 failed
+baseline (server): 12 passed, 0 failed
 a read in a body is no read [compiler]: KILLED (1 of 3 tests fail)
 a read answers its resource's `Result` [compiler]: KILLED (1 of 3 tests fail)
 a materialization that derives its value is not lowered [compiler]: KILLED (1 of 3 tests fail)
 a read names nothing it reads [compiler]: KILLED (1 of 12 tests fail)
 a page may not read a public one [compiler]: KILLED (1 of 3 tests fail)
 a page may read a private one [compiler]: KILLED (1 of 9 tests fail)
-a read is linked only with a grant [server]: KILLED (8 of 11 tests fail)
-a chain's order is its paths' [runtime]: KILLED (3 of 11 tests fail)
-a page's read of one is a query's [server]: KILLED (8 of 11 tests fail)
-an event reaches no kept entry [server]: KILLED (5 of 11 tests fail)
-a chain is made against its order [server]: KILLED (2 of 11 tests fail)
-an entry is made again while it is current [server]: KILLED (5 of 11 tests fail)
-each document of a reader's session is told [server]: KILLED (1 of 11 tests fail)
-an entry made again with its value is told [server]: KILLED (1 of 11 tests fail)
-a document is told whatever key it reads [server]: KILLED (1 of 11 tests fail)
-what a menu change made is told to no one [server]: KILLED (3 of 11 tests fail)
-a query is read past its kept answer [server]: KILLED (1 of 11 tests fail)
-a body's answers are not remembered [server]: KILLED (8 of 11 tests fail)
-a fault does not hold [server]: KILLED (1 of 11 tests fail)
-what could not be made is served no last good value [server]: KILLED (1 of 11 tests fail)
-a number is read back narrower [server]: KILLED (9 of 11 tests fail)
+a read is linked only with a grant [server]: KILLED (9 of 12 tests fail)
+a chain's order is its paths' [runtime]: KILLED (3 of 12 tests fail)
+a page's read of one is a query's [server]: KILLED (8 of 12 tests fail)
+an event reaches no kept entry [server]: KILLED (5 of 12 tests fail)
+a chain is made against its order [server]: KILLED (2 of 12 tests fail)
+an entry is made again while it is current [server]: KILLED (5 of 12 tests fail)
+each document of a reader's session is told [server]: KILLED (1 of 12 tests fail)
+an entry made again with its value is told [server]: KILLED (1 of 12 tests fail)
+a document is told whatever key it reads [server]: KILLED (1 of 12 tests fail)
+what a menu change made is told to no one [server]: KILLED (3 of 12 tests fail)
+a query is read past its kept answer [server]: KILLED (1 of 12 tests fail)
+a body's answers are not remembered [server]: KILLED (9 of 12 tests fail)
+a fault does not hold [server]: KILLED (2 of 12 tests fail)
+what could not be made is served no last good value [server]: KILLED (2 of 12 tests fail)
+a number is read back narrower [server]: KILLED (10 of 12 tests fail)
 21 of 21 mutants killed
 memory bound: no process was stopped

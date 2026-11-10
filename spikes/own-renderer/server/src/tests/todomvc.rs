@@ -9,7 +9,16 @@ use super::*;
 const PAGE: &str = "todomvc.app.Todos~ui";
 
 /// The program, built as `pw build` builds it, and served.
-fn served_todomvc() -> Served {
+pub(super) fn served_todomvc() -> Served {
+    let (dir, out) = built_todomvc();
+    Served {
+        server: Server::from_build(out.clone(), out).expect("served"),
+        _dir: dir,
+    }
+}
+
+/// The program, built, and where.
+pub(super) fn built_todomvc() -> (tempfile::TempDir, std::path::PathBuf) {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
     let dir = tempfile::TempDir::with_prefix("pw-todomvc-").expect("a temporary directory");
     let mut units = Vec::new();
@@ -43,15 +52,12 @@ fn served_todomvc() -> Served {
     assert!(build.refusals().is_empty(), "{:?}", build.refusals());
     let out = dir.path().join("build");
     build.write(&out).expect("the build is written");
-    Served {
-        server: Server::from_build(out.clone(), out).expect("served"),
-        _dir: dir,
-    }
+    (dir, out)
 }
 
 /// The page `session` is served, as a browser is answered: the document
 /// whole, its root and its head among it.
-fn page(s: &Server, session: &str) -> String {
+pub(super) fn page(s: &Server, session: &str) -> String {
     let answer: String = fetched_as(s, "/", Some(session))
         .into_iter()
         .map(|(_, c)| c)

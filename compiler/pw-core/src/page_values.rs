@@ -881,6 +881,12 @@ pub struct PageValues {
     /// declared default, since the device's never reaches it.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub device: Vec<crate::device_store::Held>,
+    /// **No reader decides the page's document, and nothing on it asks a
+    /// server anything** (ADR-0409): a host renders it once and
+    /// sends everyone those bytes. Derived, by [`crate::prerender`], once
+    /// the build's handlers are compiled.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub prerender: bool,
 }
 
 fn public_scope() -> String {
@@ -2500,6 +2506,7 @@ fn plan(
             predicates: asked.into_iter().collect(),
             fragment: crate::address_fragment::declared(decl),
             device: crate::device_store::held(hirs, ws, sigs, unit, id)?,
+            prerender: false,
         },
         members,
         computed,

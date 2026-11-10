@@ -53,6 +53,8 @@ pub(crate) struct Needs {
     pub(crate) styles: BTreeSet<String>,
     /// An `<iframe>`: the page frames the deployment's payment provider.
     pub(crate) frames: bool,
+    /// A `data:` image in one of the build's own stylesheets.
+    pub(crate) data_images: bool,
 }
 
 impl Needs {
@@ -182,8 +184,20 @@ pub(crate) struct Deployment {
 /// the runtime, `style` the data layer's stylesheet (none where it has
 /// none), `needs` what the build's markup asks and `deployment` what the
 /// deployment adds.
+#[cfg(test)]
 pub(crate) fn document(
     script: &str,
+    style: &str,
+    needs: &Needs,
+    deployment: &Deployment,
+) -> String {
+    document_with(&[script], style, needs, deployment)
+}
+
+/// [`document`], allowing each of `scripts`: a build whose pages start one of
+/// two runtimes (ADR-0413).
+pub(crate) fn document_with(
+    scripts: &[&str],
     style: &str,
     needs: &Needs,
     deployment: &Deployment,
@@ -195,13 +209,15 @@ pub(crate) fn document(
     styles.extend(needs.styles.iter().map(|s| sha256_source(s)));
     let mut directives = vec![
         "default-src 'none'".to_string(),
-        // The runtime and its modules from this origin, and its WebAssembly,
-        // which a policy without `'wasm-unsafe-eval'` refuses to compile or
-        // instantiate (CSP Level 3, §6.1.10; Chrome 97, Firefox 102, Safari
-        // 16, by MDN's compatibility data).
+        // The runtime and its modules from this origin, and nothing compiled
+        // on the page: there is no WebAssembly to allow.
         format!(
-            "script-src 'self' 'wasm-unsafe-eval' {}",
-            sha256_source(script)
+            "script-src 'self' {}",
+            scripts
+                .iter()
+                .map(|s| sha256_source(s))
+                .collect::<Vec<_>>()
+                .join(" ")
         ),
         format!("style-src {}", styles.join(" ")),
     ];
@@ -210,7 +226,14 @@ pub(crate) fn document(
     if needs.style_attributes {
         directives.push("style-src-attr 'unsafe-inline'".to_string());
     }
-    directives.push("img-src 'self'".to_string());
+    directives.push(
+        if needs.data_images {
+            "img-src 'self' data:"
+        } else {
+            "img-src 'self'"
+        }
+        .to_string(),
+    );
     directives.push("connect-src 'self'".to_string());
     if let (true, Some(provider)) = (needs.frames, &deployment.frames) {
         directives.push(format!("frame-src {provider}"));
@@ -360,7 +383,7 @@ mod tests {
         assert_eq!(
             none,
             format!(
-                "default-src 'none'; script-src 'self' 'wasm-unsafe-eval' {}; style-src 'self'; \
+                "default-src 'none'; script-src 'self' {}; style-src 'self'; \
                  img-src 'self'; connect-src 'self'; form-action 'self'; \
                  frame-ancestors 'none'; base-uri 'none'",
                 sha256_source("go()")
@@ -369,6 +392,7 @@ mod tests {
         let needs = Needs {
             style_attributes: true,
             styles: ["@import \"/a.css\";".to_string()].into(),
+            data_images: false,
             frames: true,
         };
         let deployment = Deployment {

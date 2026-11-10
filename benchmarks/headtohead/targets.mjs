@@ -85,7 +85,8 @@ export const APPS = {
         path: "/",
         ready: "pw",
         minifies: "runtime",
-        compresses: "root-assets",
+        // Its document too, one for everyone (ADR-0409).
+        compresses: "all",
         caches: true,
         build: { kind: "pleris", dist: path.join(SPIKE, "dist-todomvc"), sources: path.join(SPIKE, "dist-todomvc/sources.json") },
       },

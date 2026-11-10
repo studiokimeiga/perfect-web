@@ -32,7 +32,6 @@
 //! that looks correct and is missing something, and no test of the page finds
 //! it.
 
-pub mod decode;
 pub mod escape;
 pub mod identity;
 pub mod ir;
@@ -45,7 +44,7 @@ pub use ir::{
     Arm, Chunk, Context, Part, PartEntry, PartId, Segment, StreamArm, Template, TitlePiece,
 };
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 /// Why a render produced no bytes.
@@ -1127,6 +1126,26 @@ fn each_changes(
             at: at.to_string(),
         });
     };
+    // Refused as a render refuses them (`emit_part`): a key repeated in the
+    // new list has one place in it and two items to put there, and the
+    // walk below panicked on it until 2026-11-09, on the thread of the
+    // command that made two keys equal.
+    let mut seen = BTreeSet::new();
+    for item in new {
+        let raw = key_of(item, key);
+        if raw.is_empty() {
+            return Err(Blocked::MissingLoopKey {
+                each: *id,
+                field: key.clone(),
+            });
+        }
+        if !seen.insert(raw.clone()) {
+            return Err(Blocked::DuplicateLoopKey {
+                each: *id,
+                key: raw,
+            });
+        }
+    }
     let token = |v: &Value| env.domain.instance_token(&env.path, *id, &key_of(v, key));
     let render = |v: &Value| each_instance(part, v, env, others, at);
     let wanted: Vec<InstanceToken> = new.iter().map(token).collect();

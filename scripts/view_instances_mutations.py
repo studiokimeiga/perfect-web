@@ -38,7 +38,7 @@ CHECK = ROOT / "compiler/pw-core/src/check.rs"
 IR = ROOT / "compiler/pw-core/src/template_ir.rs"
 PLAN = ROOT / "compiler/pw-core/src/page_values.rs"
 RENDER = ROOT / "runtime/pw-render/src/lib.rs"
-WASM = ROOT / "runtime/pw-render-wasm/src/lib.rs"
+WASM = ROOT / "runtime/pw-render-oracle/src/lib.rs"
 SPIKE = ROOT / "spikes/own-renderer"
 RUNTIME = SPIKE / "public/pw-runtime.mjs"
 STAGED = SPIKE / "dist/pw-runtime.mjs"
@@ -226,8 +226,8 @@ MUTANTS = [
         "a request to the in-browser renderer carries no view",
         "runtime",
         RUNTIME,
-        "const TEMPLATES_JSON = TEMPLATES.length ? JSON.stringify(TEMPLATES) : \"\";\n",
-        "const TEMPLATES_JSON = \"\";\n",
+        "const TEMPLATES = Object.values(parts.templates ?? {}).map((t) => t.template);\n",
+        "const TEMPLATES = [];\n",
     ),
     (
         "a page is sent without the views its instances reach",
@@ -248,7 +248,7 @@ MUTANTS = [
 CARGO = [
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-core", "--test", "views_contain_themselves"],
     ["cargo", "test", "--quiet", "--locked", "-p", "pw-render", "--test", "properties"],
-    ["cargo", "test", "--quiet", "--locked", "-p", "pw-render-wasm"],
+    ["cargo", "test", "--quiet", "--locked", "-p", "pw-render-oracle"],
 ]
 
 BROWSER = [

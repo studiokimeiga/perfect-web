@@ -321,10 +321,22 @@ function canonicalMissingSource(path) {
 // Why a build cannot be served, or null: it is not whole (`run.sh` records
 // its sources last, so a build stopped part-way has no `sources.json`), it
 // was built with another `pw-runtime.mjs` (a build serves the runtime it was
-// built with: `dist-keyed` once ran the old runtime against the new server),
+// built with: `dist-keyed` once ran the old runtime against the new server;
+// a production build's is packed, and its `delivery.json` says what from),
 // a source it recorded changed or is gone since (ADR-0166), or it is not
 // built. Only `keyed-store.sh`'s copies, made outside the repository and
 // removed after its build, may be gone.
+function isBuiltFrom(runtime, directory) {
+  if (runtime.equals(readFileSync(resolve(directory, "pw-runtime.mjs")))) return true;
+  // A production build packs its runtime, and says what it packed.
+  try {
+    const { runtime: packed } = JSON.parse(readFileSync(resolve(directory, "delivery.json"), "utf8"));
+    return packed === createHash("sha256").update(runtime).digest("hex");
+  } catch {
+    return false;
+  }
+}
+
 export function buildProblem(name, root = ROOT) {
   const build = BUILDS[name];
   if (!build) fail(`unknown build ${name}`);
@@ -333,7 +345,7 @@ export function buildProblem(name, root = ROOT) {
   const runtime = resolve(root, "public/pw-runtime.mjs");
   const problem = (why) => `${why}: run ${build.prerequisite}`;
   if (!existsSync(resolve(directory, "sources.json"))) return problem(`${build.dist} is no whole build (sources.json is missing)`);
-  if (!existsSync(runtime) || !existsSync(resolve(directory, "pw-runtime.mjs")) || !readFileSync(runtime).equals(readFileSync(resolve(directory, "pw-runtime.mjs")))) return problem(`${build.dist} was built with another pw-runtime.mjs`);
+  if (!existsSync(runtime) || !existsSync(resolve(directory, "pw-runtime.mjs")) || !isBuiltFrom(readFileSync(runtime), directory)) return problem(`${build.dist} was built with another pw-runtime.mjs`);
   try {
     const { files } = JSON.parse(readFileSync(resolve(directory, "sources.json"), "utf8"));
     if (!Array.isArray(files) || files.some((file) => !object(file) || typeof file.path !== "string" || typeof file.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(file.sha256))) return problem(`${build.dist} has invalid source records`);

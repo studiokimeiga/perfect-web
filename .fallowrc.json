@@ -42,6 +42,566 @@
       "spikes/pw-to-marko/src/routes/**",
       "benchmarks/headtohead/todomvc/react/**",
       "benchmarks/headtohead/todomvc/svelte/**"
+    ],
+    "thresholdOverrides": [
+      {
+        "files": [
+          "spikes/own-renderer/decision-agreement.test.mjs"
+        ],
+        "functions": [
+          "compare"
+        ],
+        "maxCrap": 73.0,
+        "reason": "The decision's agreement test, comparing it with pw-resume over every change of a manifest. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/decision-agreement.test.mjs"
+        ],
+        "functions": [
+          "pairs"
+        ],
+        "maxCrap": 43.0,
+        "reason": "The decision's agreement test, comparing it with pw-resume over every change of a manifest. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/decision-agreement.test.mjs"
+        ],
+        "functions": [
+          "singles"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The decision's agreement test, comparing it with pw-resume over every change of a manifest. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/e2e/page-bundle.spec.mjs"
+        ],
+        "functions": [
+          "<arrow>"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The page bundle spec's watcher of requests. Scored with no coverage data; ceiling at the score it landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/optimize-assets.mjs"
+        ],
+        "functions": [
+          "bundlePages"
+        ],
+        "maxCrap": 133.0,
+        "maxCognitive": 18,
+        "reason": "The packaging's reading of a build: its handlers and its page bundles (ADR-0412, ADR-0413), held by optimize-assets.test.mjs. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/optimize-assets.mjs"
+        ],
+        "functions": [
+          "handlersIn"
+        ],
+        "maxCrap": 157.0,
+        "maxCognitive": 17,
+        "reason": "The packaging's reading of a build: its handlers and its page bundles (ADR-0412, ADR-0413), held by optimize-assets.test.mjs. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "<arrow>"
+        ],
+        "maxCrap": 241.0,
+        "maxCognitive": 34,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "armShown"
+        ],
+        "maxCrap": 133.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "askToHoldLong"
+        ],
+        "maxCrap": 43.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "attach"
+        ],
+        "maxCrap": 273.0,
+        "maxCognitive": 19,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "attributeOf"
+        ],
+        "maxCrap": 133.0,
+        "maxCognitive": 23,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "built"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "captured"
+        ],
+        "maxCrap": 91.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "captures"
+        ],
+        "maxCrap": 211.0,
+        "maxCognitive": 25,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "changes"
+        ],
+        "maxCrap": 57.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "changesWithin"
+        ],
+        "maxCrap": 1333.0,
+        "maxCognitive": 57,
+        "maxCyclomatic": 36,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "dropSpace"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "emit"
+        ],
+        "maxCrap": 91.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "emitEach"
+        ],
+        "maxCrap": 57.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "emitInstance"
+        ],
+        "maxCrap": 43.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "emitPart"
+        ],
+        "maxCrap": 463.0,
+        "maxCyclomatic": 21,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "escUrlComponent"
+        ],
+        "maxCrap": 157.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "escaped"
+        ],
+        "maxCrap": 57.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "flushSignals"
+        ],
+        "maxCrap": 463.0,
+        "maxCognitive": 39,
+        "maxCyclomatic": 21,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "handlersWithin"
+        ],
+        "maxCrap": 43.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "holds"
+        ],
+        "maxCrap": 91.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "insertAt"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "keyOf"
+        ],
+        "maxCrap": 43.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "listChanged"
+        ],
+        "maxCrap": 43.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "nested"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "opened"
+        ],
+        "maxCrap": 57.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "read"
+        ],
+        "maxCrap": 73.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "readCaptured"
+        ],
+        "maxCrap": 43.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "referenced"
+        ],
+        "maxCrap": 91.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "same"
+        ],
+        "maxCrap": 421.0,
+        "maxCognitive": 34,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "shown"
+        ],
+        "maxCrap": 91.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "take"
+        ],
+        "maxCrap": 43.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/public/pw-runtime.mjs"
+        ],
+        "functions": [
+          "warmSpeculation"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The browser's renderer and decision, ports of runtime/pw-render and pw-resume, held to them on every run by renderer-agreement.test.mjs and decision-agreement.test.mjs. Scored with no coverage data, so CRAP is complexity alone; each ceiling is the score it landed with (ADR-0411). `<arrow>` is the decision `decider` returns, until it is named."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "<arrow>"
+        ],
+        "maxCrap": 57.0,
+        "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "arm"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "askedInScope"
+        ],
+        "maxCrap": 133.0,
+        "maxCognitive": 17,
+        "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "choose"
+        ],
+        "maxCrap": 31.0,
+        "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "codePoints"
+        ],
+        "maxCrap": 57.0,
+        "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "dynamic"
+        ],
+        "maxCrap": 931.0,
+        "maxCognitive": 32,
+        "maxCyclomatic": 30,
+        "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "dynamicParts"
+        ],
+        "maxCrap": 43.0,
+        "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "fromTheBrowser"
+        ],
+        "maxCrap": 111.0,
+        "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "generatedRequests"
+        ],
+        "maxCrap": 43.0,
+        "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "paths"
+        ],
+        "maxCrap": 73.0,
+        "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "perturbed"
+        ],
+        "maxCrap": 307.0,
+        "maxCognitive": 19,
+        "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "requestsAbout"
+        ],
+        "maxCrap": 111.0,
+        "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "rows"
+        ],
+        "maxCrap": 73.0,
+        "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "shaped"
+        ],
+        "maxCrap": 651.0,
+        "maxCognitive": 39,
+        "maxCyclomatic": 25,
+        "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "value"
+        ],
+        "maxCrap": 43.0,
+        "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      },
+      {
+        "files": [
+          "spikes/own-renderer/renderer-agreement.test.mjs"
+        ],
+        "functions": [
+          "wire"
+        ],
+        "maxCrap": 43.0,
+        "reason": "The agreement test's generators of templates and requests, whose branches are the IR's and the escapings'. Scored with no coverage data; ceilings at the scores they landed with (ADR-0411)."
+      }
     ]
   },
   "audit": {

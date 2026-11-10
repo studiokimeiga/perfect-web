@@ -1,0 +1,883 @@
+The longer-holds ADR - a subscription held until something happens
+
+produced by: just e14-longer-holds
+commit: 7e6e631316e2cf28484b1dd191b9d9bcc643e7c8
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42697853597 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
+
+== held, live and ended by its page (tests::longer_holds::, and the idle subscription's)
+
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_pages_next_request_tries_a_failed_regeneration_again ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... ok
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 1015 filtered out; finished in 6.37s
+
+== which pages ask, in three engines (e2e/longer-holds.spec.mjs)
+
+  18 passed (46.5s)
+
+== mutation controls (scripts/longer_holds_mutations.py)
+
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... ok
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 20.00s
+
+
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... ok
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... FAILED
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+failures:
+
+---- tests::longer_holds::a_streams_page_gone_ends_its_hold stdout ----
+
+thread 'tests::longer_holds::a_streams_page_gone_ends_its_hold' (25768) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:415:5:
+ended once its page went: 25.00051818s
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::longer_holds::a_streams_page_gone_ends_its_hold
+
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 44.50s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a held stream never looks for its page gone: KILLED (1 of 15 tests fail)
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... ok
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... FAILED
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+failures:
+
+---- tests::longer_holds::a_polls_page_gone_ends_its_hold stdout ----
+
+thread 'tests::longer_holds::a_polls_page_gone_ends_its_hold' (26075) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:397:5:
+ended once its page went: 25.000409526s
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::longer_holds::a_polls_page_gone_ends_its_hold
+
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 44.47s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a held long poll never looks for its page gone: KILLED (1 of 15 tests fail)
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... FAILED
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... FAILED
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... FAILED
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... ok
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... FAILED
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... FAILED
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... FAILED
+
+failures:
+
+---- tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it stdout ----
+
+thread 'tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it' (26373) panicked at spikes/own-renderer/server/src/main.rs:17094:9:
+held its whole hold: 71.498µs
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::longer_holds::a_held_poll_keeps_its_page_live stdout ----
+
+thread 'tests::longer_holds::a_held_poll_keeps_its_page_live' (26378) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:350:5:
+live past LIVE while its poll is held
+
+---- tests::longer_holds::a_held_stream_keeps_its_page_live stdout ----
+
+thread 'tests::longer_holds::a_held_stream_keeps_its_page_live' (26380) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:368:5:
+live past LIVE while its stream is held
+
+---- tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream stdout ----
+
+thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream' (26390) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:285:5:
+assertion `left == right` failed: the value the failure held back
+  left: 0
+ right: 1
+
+---- tests::longer_holds::a_stream_that_asks_is_held_long stdout ----
+
+thread 'tests::longer_holds::a_stream_that_asks_is_held_long' (26401) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:149:5:
+held its whole hold: 151.209µs
+
+---- tests::longer_holds::an_idle_poll_is_held_its_whole_hold stdout ----
+
+thread 'tests::longer_holds::an_idle_poll_is_held_its_whole_hold' (26405) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:51:5:
+held its whole hold: 121.333µs
+
+
+failures:
+    tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it
+    tests::longer_holds::a_held_poll_keeps_its_page_live
+    tests::longer_holds::a_held_stream_keeps_its_page_live
+    tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream
+    tests::longer_holds::a_stream_that_asks_is_held_long
+    tests::longer_holds::an_idle_poll_is_held_its_whole_hold
+
+test result: FAILED. 9 passed; 6 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 10.45s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a quiet connection is taken for a page gone: KILLED (6 of 15 tests fail)
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... FAILED
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... ok
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+failures:
+
+---- tests::longer_holds::a_held_poll_keeps_its_page_live stdout ----
+
+thread 'tests::longer_holds::a_held_poll_keeps_its_page_live' (26690) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:350:5:
+live past LIVE while its poll is held
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::longer_holds::a_held_poll_keeps_its_page_live
+
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 19.98s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a held long poll keeps its page live no longer: KILLED (1 of 15 tests fail)
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... FAILED
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... ok
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+failures:
+
+---- tests::longer_holds::a_held_stream_keeps_its_page_live stdout ----
+
+thread 'tests::longer_holds::a_held_stream_keeps_its_page_live' (27004) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:368:5:
+live past LIVE while its stream is held
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::longer_holds::a_held_stream_keeps_its_page_live
+
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 19.97s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a held stream keeps its page live no longer: KILLED (1 of 15 tests fail)
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... FAILED
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... ok
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+failures:
+
+---- tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds stdout ----
+
+thread 'tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds' (27322) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:426:5:
+assertion `left == right` failed
+  left: 2s
+ right: 25s
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds
+
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 19.96s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+the hold is two seconds again: KILLED (1 of 15 tests fail)
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... FAILED
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... FAILED
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+failures:
+
+---- tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is stdout ----
+
+thread 'tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is' (27641) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:111:5:
+assertion failed: begun.elapsed() < Duration::from_secs(5)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long stdout ----
+
+thread 'tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long' (27643) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:70:5:
+assertion failed: begun.elapsed() < Duration::from_secs(5)
+
+
+failures:
+    tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is
+    tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long
+
+test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 59.76s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a poll is held long whether it asks or not: KILLED (2 of 15 tests fail)
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... ok
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... FAILED
+
+failures:
+
+---- tests::longer_holds::an_idle_poll_is_held_its_whole_hold stdout ----
+
+thread 'tests::longer_holds::an_idle_poll_is_held_its_whole_hold' (27977) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:51:5:
+held its whole hold: 1.000243721s
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::longer_holds::an_idle_poll_is_held_its_whole_hold
+
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 19.41s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a poll is never held long: KILLED (1 of 15 tests fail)
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... ok
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... FAILED
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+failures:
+
+---- tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long stdout ----
+
+thread 'tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long' (28286) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:88:5:
+assertion failed: begun.elapsed() < Duration::from_secs(5)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long
+
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 39.87s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a stream is held long whether it asks or not: KILLED (1 of 15 tests fail)
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... ok
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... FAILED
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+failures:
+
+---- tests::longer_holds::a_stream_that_asks_is_held_long stdout ----
+
+thread 'tests::longer_holds::a_stream_that_asks_is_held_long' (28601) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:149:5:
+held its whole hold: 100.301245ms
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::longer_holds::a_stream_that_asks_is_held_long
+
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 18.06s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a stream is never held long: KILLED (1 of 15 tests fail)
+warning: variable does not need to be mutable
+     --> spikes/own-renderer/server/src/main.rs:12192:9
+      |
+12192 |     let mut tried = opened;
+      |         ----^^^^^
+      |         |
+      |         help: remove this `mut`
+      |
+      = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `tried`
+     --> spikes/own-renderer/server/src/main.rs:12192:9
+      |
+12192 |     let mut tried = opened;
+      |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_tried`
+      |
+      = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... ok
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... FAILED
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+failures:
+
+---- tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold stdout ----
+
+thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold' (28906) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:235:5:
+answered within the hold: 20.000231385s
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold
+
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 39.71s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a held long poll does not try again: KILLED (1 of 15 tests fail)
+warning: variable does not need to be mutable
+     --> spikes/own-renderer/server/src/main.rs:11985:9
+      |
+11985 |     let mut tried = opened;
+      |         ----^^^^^
+      |         |
+      |         help: remove this `mut`
+      |
+      = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `tried`
+     --> spikes/own-renderer/server/src/main.rs:11985:9
+      |
+11985 |     let mut tried = opened;
+      |         ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_tried`
+      |
+      = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... ok
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... FAILED
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+failures:
+
+---- tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream stdout ----
+
+thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream' (29216) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:285:5:
+assertion `left == right` failed: the value the failure held back
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream
+
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 19.96s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a held stream does not try again: KILLED (1 of 15 tests fail)
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... ok
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... FAILED
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... FAILED
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+failures:
+
+---- tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream stdout ----
+
+thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream' (29526) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:285:5:
+assertion `left == right` failed: the value the failure held back
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold stdout ----
+
+thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold' (29531) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:235:5:
+answered within the hold: 20.000259456s
+
+
+failures:
+    tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream
+    tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold
+
+test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 39.69s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a hold never tries again: KILLED (2 of 15 tests fail)
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... ok
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... FAILED
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... FAILED
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+failures:
+
+---- tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream stdout ----
+
+thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream' (29845) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:285:5:
+assertion `left == right` failed: the value the failure held back
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold stdout ----
+
+thread 'tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold' (29850) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:235:5:
+answered within the hold: 20.000339503s
+
+
+failures:
+    tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream
+    tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold
+
+test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 39.78s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a hold tries again whatever is current: KILLED (2 of 15 tests fail)
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... FAILED
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+failures:
+
+---- tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is stdout ----
+
+thread 'tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is' (30156) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:101:5:
+no second place
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is
+
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 19.87s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+no limit on how many are held long: KILLED (1 of 15 tests fail)
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... FAILED
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... FAILED
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+failures:
+
+---- tests::longer_holds::a_long_hold_gives_its_place_back stdout ----
+
+thread 'tests::longer_holds::a_long_hold_gives_its_place_back' (30466) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:130:5:
+its place is free
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is stdout ----
+
+thread 'tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is' (30467) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:100:5:
+the first place
+
+
+failures:
+    tests::longer_holds::a_long_hold_gives_its_place_back
+    tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is
+
+test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 20.82s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+the limit is one fewer than it says: KILLED (2 of 15 tests fail)
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... FAILED
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+failures:
+
+---- tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is stdout ----
+
+thread 'tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is' (30780) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:113:5:
+given back, its place is free
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is
+
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 19.98s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a place refused is kept: KILLED (1 of 15 tests fail)
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... FAILED
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... FAILED
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... ok
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+failures:
+
+---- tests::longer_holds::a_long_hold_gives_its_place_back stdout ----
+
+thread 'tests::longer_holds::a_long_hold_gives_its_place_back' (31090) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:130:5:
+its place is free
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is stdout ----
+
+thread 'tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is' (31091) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:113:5:
+given back, its place is free
+
+
+failures:
+    tests::longer_holds::a_long_hold_gives_its_place_back
+    tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is
+
+test result: FAILED. 13 passed; 2 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 19.99s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a place held is never given back: KILLED (2 of 15 tests fail)
+warning: unused variable: `filling`
+     --> spikes/own-renderer/server/src/main.rs:12043:46
+      |
+12043 |         if let Some((reader, cursor, frames, filling)) = batch {
+      |                                              ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_filling`
+      |
+      = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... ok
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... FAILED
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+failures:
+
+---- tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills stdout ----
+
+thread 'tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills' (31421) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:324:5:
+8.000584558s
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills
+
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 27.88s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a stream's queue fills: KILLED (1 of 15 tests fail)
+
+running 15 tests
+test tests::an_idle_subscription_waits_on_the_table_rather_than_asking_it ... ok
+test tests::longer_holds::a_held_poll_keeps_its_page_live ... ok
+test tests::longer_holds::a_held_stream_keeps_its_page_live ... ok
+test tests::longer_holds::a_host_holds_a_subscription_twenty_five_seconds ... ok
+test tests::longer_holds::a_long_hold_gives_its_place_back ... ok
+test tests::longer_holds::a_poll_past_the_limit_is_held_as_any_page_is ... ok
+test tests::longer_holds::a_poll_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_polls_page_gone_ends_its_hold ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_held_stream ... ok
+test tests::longer_holds::a_regeneration_that_failed_is_tried_again_within_a_hold ... ok
+test tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills ... FAILED
+test tests::longer_holds::a_stream_that_asks_is_held_long ... ok
+test tests::longer_holds::a_stream_that_does_not_ask_is_not_held_long ... ok
+test tests::longer_holds::a_streams_page_gone_ends_its_hold ... ok
+test tests::longer_holds::an_idle_poll_is_held_its_whole_hold ... ok
+
+failures:
+
+---- tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills stdout ----
+
+thread 'tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills' (31731) panicked at spikes/own-renderer/server/src/tests/longer_holds.rs:324:5:
+8.000497228s
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::longer_holds::a_stream_held_long_ends_before_its_queue_fills
+
+test result: FAILED. 14 passed; 1 failed; 0 ignored; 0 measured; 1016 filtered out; finished in 27.93s
+
+error: test failed, to rerun pass `-p pw-dev-server --bin pw-dev-server`
+
+a stream's queue is full before it ends: KILLED (1 of 15 tests fail)
+20 of 20 mutants killed; valid=True, restored=True
+memory bound: no process was stopped
+
+== which pages ask, mutation controls (scripts/longer_holds_browser_mutations.py)
+
+baseline: 6 passed, 0 failed
+every tab of an HTTP/1.1 origin is held long: KILLED (1 of 6 tests fail)
+no tab is held long: KILLED (6 of 6 tests fail)
+HTTP/2 is not recognised: KILLED (1 of 6 tests fail)
+the long hold is not handed on: KILLED (2 of 6 tests fail)
+a tab that leaves keeps the long hold: KILLED (1 of 6 tests fail)
+a stream does not say so: KILLED (5 of 6 tests fail)
+a long poll does not say so: KILLED (1 of 6 tests fail)
+7 of 7 mutants killed
+memory bound: no process was stopped

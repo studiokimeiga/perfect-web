@@ -1,8 +1,8 @@
 ADR-0208 - a command computes its events, and the outbox commits them with its writes
 
 produced by: just e14-command-events
-commit: 11d7917c4d1fc259ff99c340eac5551bc9120ca6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39701638548 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the command's component (compiler/pw-conformance/tests/events.rs)
@@ -10,7 +10,7 @@ rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 test a_command_that_emits_nothing_imports_no_outbox ... ok
 test its_contract_imports_the_outbox_for_each_event_and_requires_it ... ok
 test a_command_computes_its_events_from_what_it_was_given ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
 
 == the outbox's values (runtime/pw-materialize/tests/outbox_values.rs)
 
@@ -22,11 +22,11 @@ test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 test tests::a_command_whose_events_cannot_be_kept_is_not_run ... ok
 test tests::a_command_commits_the_events_it_computes ... ok
 test tests::a_command_that_emits_nothing_tells_nothing ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 710 filtered out; finished in 9.06s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1027 filtered out; finished in 6.08s
 
 == the store's artifacts, as the compiler emits them
 
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.40s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.27s
 
 == mutation controls (scripts/committed_events_mutations.py)
 

@@ -944,6 +944,8 @@ mod store;
 // TRACK SEAM (store-accounts): where a delivery goes, and whether a store
 // reaches it.
 mod places;
+// The prerender's ADR: a page no reader decides, as one document.
+mod prerender;
 // Track `store-pg`: the store's data in PostgreSQL.
 mod store_pg;
 mod uploads;
@@ -1069,6 +1071,10 @@ struct Server {
     /// press's ADR), as its packaging says ([`warms`]): told to the browser
     /// on the handler table's `#warm` line.
     warm: bool,
+    /// **The pages whose code is one module** (ADR-0412), as
+    /// its packaging wrote them: told to the browser on the handler table,
+    /// and the only ones `/bundle/` serves.
+    bundles: std::collections::BTreeSet<String>,
     /// **How long a kept connection waits for its next request** (the
     /// keep-alive ADR): [`KEEP_ALIVE_IDLE`] in every host. A test's host
     /// waits [`TEST_KEEP_ALIVE_IDLE`], so that a client reading one answer to
@@ -1090,6 +1096,18 @@ struct Server {
     /// in every host; a test lengthens it to show that a push, not a slice,
     /// delivers its frames).
     wake_at_least: std::time::Duration,
+    /// **How long a held subscription waits when nothing happens** (the
+    /// longer-holds ADR): a stream's and a long poll's, where its page has
+    /// not asked to be held long, and how long where it has (`hold=long`).
+    stream_hold: std::time::Duration,
+    poll_hold: std::time::Duration,
+    long_hold: std::time::Duration,
+    /// How many subscriptions may be held long at once, and how many are.
+    long_hold_limit: usize,
+    long_holds: std::sync::atomic::AtomicUsize,
+    /// How often a held subscription tries again a regeneration that failed
+    /// (ADR-0176), as a page's next request would have.
+    retried_every: std::time::Duration,
     /// **How this build's files are named on the wire** ([`Delivery`]): at
     /// a version a cache keeps, a production build's; as they are, a
     /// development build's.
@@ -1324,6 +1342,9 @@ struct Server {
     /// Set once, as the server starts; a page that states its canonical
     /// address cannot be served without it.
     origin: std::sync::OnceLock<String>,
+    /// **Each page no reader decides, as one document** (the prerender's
+    /// ADR), by its template path: filled once, before the host listens.
+    prerendered: std::sync::OnceLock<BTreeMap<String, prerender::Prerendered>>,
     /// NEXT 6c: **the deployment's payments**, as its configuration states
     /// them (`PW_PAYMENTS`), set once as the server starts; none where it
     /// names none.
@@ -2124,6 +2145,7 @@ impl Server {
             needs.styles.insert(device::READING.to_string());
             needs.styles.insert(device::UNSCRIPTED.to_string());
         }
+        needs.data_images = stylesheets_draw_with_data(&dist);
         // TRACK SEAM (second-host): its pages numbered in its instance.
         let first_page = hosts::first_page(data.instance());
         // How its files are named on the wire (ADR-0399).
@@ -2144,6 +2166,7 @@ impl Server {
             applied: Mutex::new(BTreeMap::new()),
             sessions: Mutex::new(BTreeMap::new()),
             components,
+            bundles: bundles_of(&dist, &artifacts),
             warm: warms(&dist),
             keep_alive: if cfg!(test) {
                 TEST_KEEP_ALIVE_IDLE
@@ -2154,12 +2177,19 @@ impl Server {
             open: Arc::default(),
             idle: Mutex::new(BTreeMap::new()),
             wake_at_least: WAKE_AT_LEAST,
+            stream_hold: STREAM_HOLD,
+            poll_hold: POLL_HOLD,
+            long_hold: HOLD,
+            long_hold_limit: LONG_HOLDS,
+            long_holds: std::sync::atomic::AtomicUsize::new(0),
+            retried_every: STREAM_HOLD,
             dist,
             artifacts,
             pending: Table::default(),
             slow: Mutex::new(std::collections::VecDeque::new()),
             tellings: Mutex::new(std::collections::VecDeque::new()),
             origin: std::sync::OnceLock::new(),
+            prerendered: std::sync::OnceLock::new(),
             payments: std::sync::OnceLock::new(),
             shown: Mutex::new(BTreeMap::new()),
             documents: std::sync::atomic::AtomicU64::new(first_page),
@@ -5882,6 +5912,35 @@ impl Server {
         self.drain_held(session);
     }
 
+    /// **A regeneration that failed, tried again within a held subscription**
+    /// (ADR-0176, ADR-0402), as often as a page that is not held
+    /// long would have asked. Until that hold was long, a page's next request
+    /// was at most two seconds away.
+    fn try_again_within(&self, session: &str, tried: &mut std::time::Instant) {
+        if tried.elapsed() < self.retried_every {
+            return;
+        }
+        *tried = std::time::Instant::now();
+        let failed = self.data.session_entry()
+            && self
+                .materializer
+                .entry(&self.cart_key(session))
+                .is_some_and(|entry| entry.stale);
+        if failed {
+            self.drain(session);
+        }
+    }
+
+    /// A place among the subscriptions held long, while there is one.
+    fn hold_long(&self) -> Option<HeldLong<'_>> {
+        use std::sync::atomic::Ordering::SeqCst;
+        if self.long_holds.fetch_add(1, SeqCst) >= self.long_hold_limit {
+            self.long_holds.fetch_sub(1, SeqCst);
+            return None;
+        }
+        Some(HeldLong(&self.long_holds))
+    }
+
     /// [`Server::drain`], by a caller that holds the session's lock.
     fn drain_held(&self, session: &str) {
         // A data layer that keeps no entry for the session has none to
@@ -7169,6 +7228,18 @@ impl Server {
         session: &str,
         settled: &[(u32, Settled)],
     ) -> Result<(String, Env, &Template), String> {
+        self.render_page_in(path, params, session_partition(session), settled)
+    }
+
+    /// [`Self::render_page`], its identities in `partition`: a session's, or
+    /// the public one where the page is every reader's (ADR-0409).
+    fn render_page_in(
+        &self,
+        path: &str,
+        params: &BTreeMap<String, String>,
+        partition: Partition,
+        settled: &[(u32, Settled)],
+    ) -> Result<(String, Env, &Template), String> {
         let plan = self
             .plans
             .get(path)
@@ -7202,8 +7273,7 @@ impl Server {
         // What it computes from its signals, at their first values (ADR-0227).
         let env = self.with_computed_signals(env, plan, template)?;
         let env = with_signals(env, plan).in_domain(
-            IdentityDomain::document(path, session_partition(session), BUILD)
-                .keyed("own-renderer-spike-key"),
+            IdentityDomain::document(path, partition, BUILD).keyed("own-renderer-spike-key"),
         );
         let body = pw_render::render(template, &env, &self.templates)
             .map_err(|e| format!("`{path}` does not render: {e:?}"))?;
@@ -7233,6 +7303,45 @@ impl Server {
             env,
             template,
         ))
+    }
+
+    /// **Each page no reader decides, rendered once** (ADR-0409),
+    /// in the public partition, once the deployment's origin and policy are
+    /// settled. A page that does not render is said here, before the host
+    /// listens, as a handler that was not compiled is: a build that cannot
+    /// show a page did not finish.
+    fn prerender(&self) -> Result<(), String> {
+        let mut documents = BTreeMap::new();
+        for (page, plan) in &self.plans {
+            if plan["prerender"] != true {
+                continue;
+            }
+            let (document, _, _) = self
+                .render_page_in(page, &BTreeMap::new(), Partition::Public, &[])
+                .map_err(|why| format!("`{page}` cannot be prerendered: {why}"))?;
+            let document = if runs_on_device(plan) {
+                self.delivery.on_device(document)
+            } else {
+                document
+            };
+            let (document, style) = self.delivery.styles_inline(document);
+            let (build, delivery, _) = self.document_says();
+            let policy = format!(
+                "content-security-policy: {}\r\n",
+                self.policy_allowing(style)
+            );
+            let document =
+                prerender::Prerendered::of(document, format!("{build}{delivery}{policy}"))
+                    .map_err(|why| format!("`{page}` cannot be prerendered: {why}"))?;
+            documents.insert(page.clone(), document);
+        }
+        let _ = self.prerendered.set(documents);
+        Ok(())
+    }
+
+    /// **The page `page`'s one document**, where the host rendered one.
+    fn prerendered(&self, page: &str) -> Option<&prerender::Prerendered> {
+        self.prerendered.get()?.get(page)
     }
 
     /// Where `pw emit-handlers` wrote the module for a handler identity.
@@ -7840,18 +7949,49 @@ impl Server {
     /// provider and identity provider, where it has them at origins of
     /// their own.
     fn policy(&self) -> String {
+        self.policy_for(&self.needs)
+    }
+
+    /// The policy of a document holding `style` as well (the inline styles'
+    /// ADR).
+    fn policy_allowing(&self, style: Option<String>) -> String {
+        let mut needs = self.needs.clone();
+        needs.styles.extend(style);
+        self.policy_for(&needs)
+    }
+
+    fn policy_for(&self, needs: &csp::Needs) -> String {
         let deployment = csp::Deployment {
             frames: self.payments.get().map(|p| p.provider.clone()),
             forms: self.identity.sign_in_origin(),
         };
         // The script as this build's delivery writes it (ADR-0399):
         // at its version, a production build's.
-        csp::document(
-            &self.delivery.runtime_source(),
-            self.data.style(),
-            &self.needs,
-            &deployment,
-        )
+        let runtime = self.delivery.runtime_source();
+        let device = self.delivery.device_source();
+        let mut scripts = vec![runtime.as_str()];
+        scripts.extend(device.as_deref());
+        csp::document_with(&scripts, self.data.style(), needs, &deployment)
+    }
+
+    /// **What every document says of itself**, each a header's line: the
+    /// build, the delivery and the policy.
+    fn document_says(&self) -> (String, String, String) {
+        // **The build that served it** (ADR-0300), which a page that keeps
+        // its parts across a navigation holds the next document to.
+        let build = format!("pw-build: {}\r\n", self.build_id);
+        // **The delivery it names its files at** (ADR-0399): a
+        // versioned build's only. A page that navigates in place holds the
+        // next document to it as it does to the build, since its runtime
+        // asks for files a browser keeps a year at its own.
+        let delivery = self
+            .delivery
+            .version
+            .as_ref()
+            .map_or(String::new(), |v| format!("pw-delivery: {v}\r\n"));
+        // What it may load and run (`csp`).
+        let policy = format!("content-security-policy: {}\r\n", self.policy());
+        (build, delivery, policy)
     }
 
     /// **A document, and each streamed region's arm as its query settles**
@@ -7893,20 +8033,7 @@ impl Server {
         } else {
             String::new()
         };
-        // **The build that served it** (ADR-0300), which a page that keeps
-        // its parts across a navigation holds the next document to.
-        let build = format!("pw-build: {}\r\n", self.build_id);
-        // **The delivery it names its files at** (ADR-0399): a
-        // versioned build's only. A page that navigates in place holds the
-        // next document to it as it does to the build, since its runtime
-        // asks for files a browser keeps a year at its own.
-        let delivery = self
-            .delivery
-            .version
-            .as_ref()
-            .map_or(String::new(), |v| format!("pw-delivery: {v}\r\n"));
-        // What it may load and run (`csp`).
-        let policy = format!("content-security-policy: {}\r\n", self.policy());
+        let (build, delivery, policy) = self.document_says();
         if settling.waiting.is_empty() && settling.settled.is_empty() {
             write_response(
                 stream,
@@ -9575,6 +9702,13 @@ fn main() {
             std::process::exit(1);
         }
     }
+    // **Each page no reader decides, rendered once** (ADR-0409),
+    // with the origin and the deployment's policy now settled, or the server
+    // does not start.
+    if let Err(e) = server.prerender() {
+        eprintln!("pw dev server: {e}");
+        std::process::exit(1);
+    }
     let listener = TcpListener::bind(("127.0.0.1", port)).expect("bind");
     println!("pw dev server on {port}");
     // TRACK SEAM (identity): which identity model runs.
@@ -10321,6 +10455,11 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
         Some(Ok(matched)) => Some(matched),
         None => None,
     };
+
+    // The one document of the page it names, where it has one.
+    let prerendered = routed
+        .as_ref()
+        .and_then(|(page, _)| server.prerendered(page));
 
     match (method, route) {
         // **A command the compiler built, by its component id**: what a
@@ -11429,6 +11568,35 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
                 ),
             }
         }
+        // A page's code in one module (ADR-0412): only a page
+        // whose packaging wrote one.
+        ("GET", route)
+            if route
+                .strip_prefix("/bundle/")
+                .and_then(|m| m.split('?').next())
+                .and_then(|m| m.strip_suffix(".mjs"))
+                .is_some_and(|page| server.bundles.contains(page)) =>
+        {
+            let module = route.trim_start_matches("/bundle/");
+            let module = module.split('?').next().unwrap_or(module);
+            let path = server.artifacts.join("bundles").join(module);
+            match std::fs::read(&path) {
+                Ok(bytes) => respond_representation(
+                    &mut stream,
+                    &headers,
+                    "text/javascript; charset=utf-8",
+                    &path,
+                    bytes,
+                    server.delivery.cache_policy(query),
+                ),
+                Err(_) => respond_build(
+                    &mut stream,
+                    404,
+                    "text/plain; charset=utf-8",
+                    b"this module was not bundled",
+                ),
+            }
+        }
         ("GET", route) if route.starts_with("/handler/") => {
             let id = route
                 .trim_start_matches("/handler/")
@@ -11541,6 +11709,10 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
             // 2026-11-06).
             if server.warm {
                 table.push_str("#warm|1\n");
+            }
+            // Each page whose code is one module (ADR-0412).
+            for page in &server.bundles {
+                table.push_str(&format!("#bundle|{page}|/bundle/{page}.mjs\n"));
             }
             for (page, plan) in &server.plans {
                 if let Some(template) = server.templates.iter().find(|t| &t.path == page) {
@@ -11662,6 +11834,11 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
             fresh,
             b"no such command",
         ),
+        // **A page no reader decides, at its route** (ADR-0409):
+        // after every route of the host's own, so that none loses its place.
+        ("GET", _) if prerendered.is_some() => {
+            respond_prerendered(&mut stream, &headers, prerendered.expect("matched"));
+        }
         // **A page at its route** (ADR-0162): the store at `/stores/{id}`,
         // its parameters as the address gives them, and any other page that
         // declares one; one that binds a query as the store's is (ADR-0190).
@@ -11699,6 +11876,27 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
     }
 }
 
+/// [`stream_held`], as long as a page that has not asked to be held long.
+#[cfg(test)]
+fn stream_open(
+    server: &Server,
+    stream: &mut Conn,
+    session: &str,
+    fresh: bool,
+    document: u64,
+    since: u64,
+) {
+    stream_held(
+        server,
+        stream,
+        session,
+        fresh,
+        document,
+        since,
+        server.stream_hold,
+    );
+}
+
 /// Long-poll: hand over whatever frames are waiting, or wait briefly for one.
 ///
 /// The transport, and only the transport. `pw-protocol` names none of this, so
@@ -11722,13 +11920,16 @@ fn answer_connection(server: &Server, mut stream: Conn, reader: &mut BufReader<T
 /// oldest streaming mechanism HTTP has and needs no chunked framing to be
 /// written by hand — which matters here, because a bug in hand-rolled chunked
 /// encoding would look exactly like a transport that drops frames.
-fn stream_open(
+///
+/// Held `hold` when nothing happens.
+fn stream_held(
     server: &Server,
     stream: &mut Conn,
     session: &str,
     fresh: bool,
     document: u64,
     since: u64,
+    hold: std::time::Duration,
 ) {
     let doc: Doc = (session.to_string(), document);
     let cookie = if fresh {
@@ -11775,14 +11976,20 @@ fn stream_open(
         }
     };
 
-    // Bounded, like the long poll: a held connection is a held thread, and
-    // three engine families times six workers is eighteen of them. Two
-    // seconds, as eighty passes of 25 ms were; a pass now runs when the
-    // table is woken (a frame pushed, a cut-off) or a slice has passed.
+    // Bounded, like the long poll: a held connection is a held thread.
+    // As long as its page asked (ADR-0402); a pass runs when the table
+    // is woken (a frame pushed, a cut-off) or a slice has passed, and ends
+    // the hold where its page has gone.
     let opened = std::time::Instant::now();
-    let until = opened + STREAM_HOLD;
+    let until = opened + hold;
+    let mut tried = opened;
     let mut pass = 0u64;
     loop {
+        if gone(stream) {
+            ended(format_args!("stream's page gone at pass {pass}"));
+            return;
+        }
+        server.try_again_within(session, &mut tried);
         let batch = {
             let asked = std::time::Instant::now();
             let mut queue = server.pending.lock().expect("pending");
@@ -11806,6 +12013,7 @@ fn stream_open(
                 waiting.note(format_args!("pass {pass} waited {waited} ms for the table"));
             }
             waiting.seen = std::time::Instant::now();
+            let filling = waiting.frames.len() >= MAX_WAITING / 2;
             let (cursor, frames) = waiting.after(written);
             let batch = (!frames.is_empty()).then(|| {
                 let body: Vec<serde_json::Value> = frames
@@ -11816,6 +12024,7 @@ fn stream_open(
                     waiting.reader.clone(),
                     cursor,
                     serde_json::to_string(&body).expect("frames"),
+                    filling,
                 )
             });
             if batch.is_none() {
@@ -11831,7 +12040,7 @@ fn stream_open(
             batch
         };
 
-        if let Some((reader, cursor, frames)) = batch {
+        if let Some((reader, cursor, frames, filling)) = batch {
             if !server.delivery_allowed(&doc, reader.as_ref()) {
                 server.revoke_document(&doc);
                 let _ = stream.write_all(format!("{}\n", reload_batch(written)).as_bytes());
@@ -11848,6 +12057,12 @@ fn stream_open(
             }
             ended(format_args!("wrote through {cursor}, {} bytes", line.len()));
             written = cursor;
+            // Forgotten only when the page says it has them, which is its
+            // next request: a long hold ends before what it wrote would make
+            // the queue overflow, and the page be told to reload.
+            if filling {
+                break;
+            }
         }
     }
     ended(format_args!(
@@ -11856,13 +12071,59 @@ fn stream_open(
     ));
 }
 
-/// **How long a streamed subscription is held** before the page asks again:
-/// two seconds, as eighty passes of 25 ms were until 2026-11-06.
-const STREAM_HOLD: std::time::Duration = std::time::Duration::from_secs(2);
+/// **How long a subscription is held when nothing happens and its page asked
+/// to be held long** (ADR-0402), a stream's and a long poll's
+/// alike, before the page asks again: 25 s. A push answers a held
+/// subscription at once, and each pass keeps its document live ([`LIVE`]), so
+/// the hold costs no change its speed. It costs an open page about 2.4
+/// requests a minute, where a stream held two seconds cost 30 and a long poll
+/// held one cost 60. Under the 30 s a hosting router allows before an
+/// answer's first byte (Heroku's) and the 60 s a proxy commonly allows a
+/// quiet connection.
+const HOLD: std::time::Duration = std::time::Duration::from_secs(25);
 
-/// **How long a long poll is held** before it answers an empty batch: one
-/// second, as forty passes of 25 ms were.
+/// **How many subscriptions a host holds long at once** (the longer-holds
+/// ADR). Each is a thread, and a request asks for it by what it says: past
+/// this, a page is held as briefly as one that did not ask.
+const LONG_HOLDS: usize = 2048;
+
+/// One subscription held long, given back when it ends.
+struct HeldLong<'a>(&'a std::sync::atomic::AtomicUsize);
+
+impl Drop for HeldLong<'_> {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+
+/// **How long a subscription is held otherwise**: a stream two seconds, a
+/// long poll one. A browser opens six connections to an HTTP/1.1 origin, so a
+/// page that has not been given the long hold keeps a connection only
+/// briefly, for a press in any tab to find one.
+const STREAM_HOLD: std::time::Duration = std::time::Duration::from_secs(2);
 const POLL_HOLD: std::time::Duration = std::time::Duration::from_secs(1);
+
+/// **Whether a held subscription's page has gone** (ADR-0402):
+/// the browser closed the connection the subscription is held on, as a page
+/// leaving does (its runtime aborts the request). A browser sends nothing
+/// else on a connection while it waits for that connection's answer, so
+/// what there is to read is its close. Looked at without waiting, once a
+/// pass, so that a page gone holds no thread for the rest of a hold.
+fn gone(stream: &TcpStream) -> bool {
+    if stream.set_nonblocking(true).is_err() {
+        return false;
+    }
+    let mut byte = [0u8; 1];
+    let read = stream.peek(&mut byte);
+    let _ = stream.set_nonblocking(false);
+    match read {
+        Ok(read) => read == 0,
+        Err(e) => !matches!(
+            e.kind(),
+            std::io::ErrorKind::WouldBlock | std::io::ErrorKind::Interrupted
+        ),
+    }
+}
 
 fn stream_frames(server: &Server, stream: &mut Conn, session: &str, fresh: bool, _query: &str) {
     // A bounded hold, deliberately short. Each waiting subscriber occupies a
@@ -11896,8 +12157,19 @@ fn stream_frames(server: &Server, stream: &mut Conn, session: &str, fresh: bool,
 
     // One route, two adapters. The frames are the same either way — see
     // `e2e/transport.spec.mjs`, which runs the whole subscription twice.
+    let held_long = _query
+        .split('&')
+        .any(|p| p == "hold=long")
+        .then(|| server.hold_long())
+        .flatten();
+    let long = held_long.is_some();
     if _query.split('&').any(|p| p == "mode=stream") {
-        stream_open(server, stream, session, fresh, document, since);
+        let hold = if long {
+            server.long_hold
+        } else {
+            server.stream_hold
+        };
+        stream_held(server, stream, session, fresh, document, since, hold);
         return;
     }
 
@@ -11907,11 +12179,22 @@ fn stream_frames(server: &Server, stream: &mut Conn, session: &str, fresh: bool,
         return;
     }
 
-    // Held a second at most, as forty passes of 25 ms were; a pass now runs
+    // As long as its page asked (ADR-0402); a pass runs
     // when the table is woken (a frame pushed, a cut-off) or a slice has
-    // passed (ADR-0399).
-    let until = opened + POLL_HOLD;
+    // passed (ADR-0399), and ends the hold where its page has gone, with no
+    // answer: no one is there to read one.
+    let until = opened
+        + if long {
+            server.long_hold
+        } else {
+            server.poll_hold
+        };
+    let mut tried = opened;
     loop {
+        if gone(stream) {
+            return;
+        }
+        server.try_again_within(session, &mut tried);
         let batch = {
             let mut queue = server.pending.lock().expect("pending");
             // As a held stream's: cut off, it is closed with no answer,
@@ -12470,6 +12753,26 @@ fn warms(dist: &std::path::Path) -> bool {
 
 /// Whether a build's packaging says `key` of its delivery: `true` at `key`
 /// in `delivery.json` beside its assets, and nothing else.
+/// The pages whose module the packaging of the build in `dist` wrote, where
+/// it says it did: none in a development build.
+fn bundles_of(
+    dist: &std::path::Path,
+    artifacts: &std::path::Path,
+) -> std::collections::BTreeSet<String> {
+    if !delivery_says(dist, "bundled") {
+        return Default::default();
+    }
+    std::fs::read_dir(artifacts.join("bundles"))
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter_map(|e| {
+            let name = e.file_name();
+            name.to_str()?.strip_suffix(".mjs").map(str::to_string)
+        })
+        .collect()
+}
+
 fn delivery_says(dist: &std::path::Path, key: &str) -> bool {
     std::fs::read_to_string(dist.join("delivery.json"))
         .ok()
@@ -12534,8 +12837,6 @@ fn respond_representation(
     mut bytes: Vec<u8>,
     policy: &str,
 ) {
-    use sha2::Digest;
-
     let mut encoding = None;
     // The build pipeline writes both representations, without changing the
     // uncompressed file or any user/session-specific HTML response.
@@ -12553,31 +12854,77 @@ fn respond_representation(
     }
 
     // A strong ETag describes this representation, not the differently
-    // encoded version, and 304 has no body. Weak tags conservatively miss.
-    let digest = sha2::Sha256::digest(&bytes);
-    let hex = digest
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect::<String>();
-    let tag = format!("\"{hex}\"");
-    let unchanged =
-        build_request_header(request_headers, "if-none-match").is_some_and(|candidates| {
-            candidates
-                .split(',')
-                .any(|candidate| candidate.trim() == tag)
-        });
+    // encoded version.
+    let tag = prerender::strong_tag(&bytes);
+    if holds_representation(request_headers, &tag) {
+        write_not_modified(stream, policy, &tag);
+        return;
+    }
     let mut response_headers =
         format!("cache-control: {policy}\r\netag: {tag}\r\nvary: accept-encoding\r\n");
     if let Some(algorithm) = encoding {
         response_headers.push_str(&format!("content-encoding: {algorithm}\r\n"));
     }
+    write_response(stream, 200, mime, &response_headers, &bytes);
+}
+
+/// **A page no reader decides, as this request accepts it** (the prerender's
+/// ADR): the same for everyone, so any cache may keep it and asks before each
+/// use. It names no session.
+fn respond_prerendered(
+    stream: &mut Conn,
+    request_headers: &str,
+    document: &prerender::Prerendered,
+) {
+    const POLICY: &str = "public, no-cache";
+    let chosen = document.accepted(|encoding| accepts_asset_encoding(request_headers, encoding));
+    if holds_representation(request_headers, &chosen.tag) {
+        write_not_modified(stream, POLICY, &chosen.tag);
+        return;
+    }
+    let encoding = chosen
+        .encoding
+        .map_or(String::new(), |e| format!("content-encoding: {e}\r\n"));
     write_response(
         stream,
-        if unchanged { 304 } else { 200 },
-        mime,
-        &response_headers,
-        if unchanged { b"" } else { &bytes },
+        200,
+        "text/html; charset=utf-8",
+        &format!(
+            "cache-control: {POLICY}\r\netag: {}\r\nvary: accept-encoding\r\n{encoding}{}",
+            chosen.tag, document.headers
+        ),
+        &chosen.bytes,
     );
+}
+
+/// **Whether a request already holds the representation `tag` names**: its
+/// `if-none-match` lists it, compared weakly as RFC 9110 §13.1.2 requires (an
+/// intermediary that weakens a tag has not changed what it names), or says
+/// `*`.
+fn holds_representation(request_headers: &str, tag: &str) -> bool {
+    build_request_header(request_headers, "if-none-match").is_some_and(|held| {
+        held.trim() == "*"
+            || held.split(',').any(|one| {
+                let one = one.trim();
+                one.strip_prefix("W/").unwrap_or(one) == tag
+            })
+    })
+}
+
+/// **A 304** (RFC 9110 §15.4.5): what a cache needs to go on using what it
+/// holds, and nothing else. No `content-length`: the field could only say
+/// what a 200 would have sent (§8.6), and a 304 has no content.
+fn write_not_modified(stream: &mut Conn, policy: &str, tag: &str) {
+    let head = format!(
+        "HTTP/1.1 304 {}\r\ncache-control: {policy}\r\netag: {tag}\r\nvary: accept-encoding\r\n{NOSNIFF}{}\r\n",
+        reason(304),
+        stream.connection()
+    );
+    let whole = stream
+        .write_all(head.as_bytes())
+        .and_then(|()| stream.flush())
+        .is_ok();
+    stream.answered(whole);
 }
 
 #[cfg(test)]
@@ -13083,7 +13430,6 @@ const RUNTIME: &str = "<script>import(\"/pw-runtime.mjs\")</script>";
 /// waits for: measured under Slow 4G, the three cost the first paint about
 /// 20 ms of shared bandwidth and saved its interactivity 1.76 s.
 const BOOT: &str = "<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n\
-     <link rel=\"preload\" href=\"/pw-resume.wasm\" as=\"fetch\" crossorigin>\n\
      <link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n";
 
 /// **How a production build's files are named on the wire** (the first
@@ -13114,6 +13460,73 @@ struct Delivery {
     /// The files beside the documents a document may name, each by its
     /// address (`/todomvc-app.css`): only these are named at the version.
     files: std::collections::BTreeSet<String>,
+    /// Whether this build has a runtime for a page that talks to no server
+    /// (ADR-0413).
+    device: bool,
+    /// Each stylesheet this build could make part of a document, by its
+    /// address (ADR-0415).
+    styles: BTreeMap<String, InlineStyle>,
+}
+
+/// A stylesheet of a build that means the same inside a document.
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct InlineStyle {
+    text: String,
+    /// Its bytes as Brotli sends them.
+    sent: usize,
+}
+
+/// **Whether a stylesheet means the same inside a document**: nothing in it
+/// has to come first in a sheet of its own, each address in it reads the same
+/// from any page, and nothing in it ends the element that holds it.
+fn can_be_inlined(text: &str) -> bool {
+    let text = text.to_ascii_lowercase();
+    !["</style", "@import", "@namespace"]
+        .iter()
+        .any(|word| text.contains(word))
+        && text.match_indices("url(").all(|(at, _)| {
+            let address = text[at + "url(".len()..]
+                .trim_start()
+                .trim_start_matches(['"', '\'']);
+            ["data:", "https:", "http:", "/", "#"]
+                .iter()
+                .any(|from| address.starts_with(from))
+        })
+}
+
+/// **Whether a build's own stylesheets draw with `data:` images** (the
+/// stylesheets' images' ADR): a policy generated from the build allows what
+/// the build's files ask for, and `data:` has no address to fetch.
+fn stylesheets_draw_with_data(dist: &std::path::Path) -> bool {
+    std::fs::read_dir(dist)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|path| path.extension().is_some_and(|x| x == "css"))
+        .filter_map(|path| std::fs::read_to_string(path).ok())
+        .any(|css| draws_with_data(&css))
+}
+
+fn draws_with_data(css: &str) -> bool {
+    let css = css.to_ascii_lowercase();
+    css.match_indices("url(").any(|(at, _)| {
+        css[at + "url(".len()..]
+            .trim_start()
+            .trim_start_matches(['"', '\''])
+            .starts_with("data:image/")
+    })
+}
+
+/// How much of a page's stylesheets may be part of its document, as Brotli
+/// sends them (ADR-0415).
+const INLINE_AT_MOST: usize = 4 * 1024;
+
+/// **Whether a page runs on the device alone** (ADR-0413): one
+/// document for everyone, whose handlers send nothing, and no layout to keep
+/// across a navigation.
+fn runs_on_device(plan: &serde_json::Value) -> bool {
+    plan["prerender"] == true && plan.get("layout").is_none_or(|l| l.is_null())
 }
 
 impl Delivery {
@@ -13138,14 +13551,17 @@ impl Delivery {
         };
         let mut paths = files_in(dist);
         paths.sort();
-        let mut modules: Vec<std::path::PathBuf> = ["handlers", "computed", "speculations"]
-            .iter()
-            .flat_map(|d| files_in(&artifacts.join(d)))
-            .collect();
+        let mut modules: Vec<std::path::PathBuf> =
+            ["handlers", "computed", "speculations", "bundles"]
+                .iter()
+                .flat_map(|d| files_in(&artifacts.join(d)))
+                .collect();
         modules.sort();
         let mut digest = sha2::Sha256::new();
         digest.update(build.as_bytes());
         let mut files = std::collections::BTreeSet::new();
+        let inline = delivery_says(dist, "inline");
+        let mut styles = BTreeMap::new();
         for path in paths {
             let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
                 continue;
@@ -13163,6 +13579,18 @@ impl Delivery {
             );
             if named {
                 files.insert(format!("/{name}"));
+            }
+            if inline && name.ends_with(".css") {
+                let sent = std::fs::metadata(path.with_extension("css.br"));
+                if let (Ok(text), Ok(sent)) = (std::str::from_utf8(&bytes), sent)
+                    && can_be_inlined(text)
+                {
+                    let style = InlineStyle {
+                        text: text.to_string(),
+                        sent: sent.len() as usize,
+                    };
+                    styles.insert(format!("/{name}"), style);
+                }
             }
         }
         for path in modules {
@@ -13184,6 +13612,8 @@ impl Delivery {
             .map(|b| format!("{b:02x}"))
             .collect::<String>();
         Delivery {
+            device: delivery_says(dist, "device") && dist.join("pw-runtime-device.mjs").is_file(),
+            styles,
             version: Some(version),
             files,
         }
@@ -13205,10 +13635,8 @@ impl Delivery {
             None => BOOT.to_string(),
             Some(_) => format!(
                 "<link rel=\"modulepreload\" href=\"{}\">\n\
-                 <link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>\n\
                  <link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>\n",
                 self.named("/pw-runtime.mjs"),
-                self.named("/pw-resume.wasm"),
                 self.named("/pw-handlers"),
             ),
         }
@@ -13221,6 +13649,31 @@ impl Delivery {
             None => RUNTIME_SOURCE.to_string(),
             Some(_) => format!("import(\"{}\")", self.named("/pw-runtime.mjs")),
         }
+    }
+
+    /// The script that starts the runtime of a page that talks to no server,
+    /// where this build has one.
+    fn device_source(&self) -> Option<String> {
+        self.device
+            .then(|| format!("import(\"{}\")", self.named("/pw-runtime-device.mjs")))
+    }
+
+    /// `document`, delivered, starting the device's runtime.
+    fn on_device(&self, document: String) -> String {
+        let (Some(device), full) = (self.device_source(), self.runtime_source()) else {
+            return document;
+        };
+        document.replacen(&full, &device, 1).replacen(
+            &format!(
+                "<link rel=\"modulepreload\" href=\"{}\">",
+                self.named("/pw-runtime.mjs")
+            ),
+            &format!(
+                "<link rel=\"modulepreload\" href=\"{}\">",
+                self.named("/pw-runtime-device.mjs")
+            ),
+            1,
+        )
     }
 
     /// The script that starts the runtime ([`RUNTIME`]).
@@ -13295,6 +13748,69 @@ impl Delivery {
             None => document,
         };
         self.name_files(document)
+    }
+
+    /// `document`, its stylesheets in it where they can be (the inline
+    /// styles' ADR), and the text of the `<style>` that now holds them.
+    fn styles_inline(&self, document: String) -> (String, Option<String>) {
+        const START: &str = "<link rel=\"stylesheet\" href=\"";
+        const END: &str = "\">";
+        let Some(head_ends) = document.find("</head>") else {
+            return (document, None);
+        };
+        let mut rest = document.as_str();
+        let mut kept = String::with_capacity(document.len());
+        let mut texts = Vec::new();
+        let mut sent = 0;
+        // Where the first of them was, and where the last of them ended.
+        let mut first = None;
+        let mut last_ends = 0;
+        while let Some(at) = rest.find(START) {
+            let after = &rest[at + START.len()..];
+            let Some(closes) = after.find('"') else {
+                return (document, None);
+            };
+            if !after[closes..].starts_with(END) {
+                return (document, None);
+            }
+            let href = &after[..closes];
+            let Some(style) = self.styles.get(href.split('?').next().unwrap_or(href)) else {
+                return (document, None);
+            };
+            texts.push(style.text.as_str());
+            sent += style.sent;
+            first.get_or_insert(document.len() - rest.len() + at);
+            kept.push_str(&rest[..at]);
+            rest = &after[closes + END.len()..];
+            last_ends = document.len() - rest.len();
+        }
+        kept.push_str(rest);
+        let Some(first) = first else {
+            return (document, None);
+        };
+        // A link the walk above did not read says more than its address.
+        if sent > INLINE_AT_MOST || kept.contains("rel=\"stylesheet\"") {
+            return (document, None);
+        }
+        // Where they go must not pass a style of the page's own: one between
+        // them, or, where they are in the body and go up to the head, one in
+        // the body before them.
+        let passes = document[first..last_ends].contains("<style")
+            || (first > head_ends && document[head_ends..first].contains("<style"));
+        if passes {
+            return (document, None);
+        }
+        let style = texts.join("\n");
+        let element = format!("<style>{style}</style>\n");
+        // A head's link keeps its place among the head's styles. A style
+        // element is metadata, so one from the body goes to the head's end.
+        let at = if first < head_ends {
+            first
+        } else {
+            kept.find("</head>").expect("the head, as above")
+        };
+        kept.insert_str(at, &element);
+        (kept, Some(style))
     }
 
     /// Whether a request's query names this delivery: `b=` its id.
@@ -16575,7 +17091,10 @@ public query Store(",
         let begun = std::time::Instant::now();
         stream_open(&s, &mut held, session, false, document, document);
         let held_for = begun.elapsed();
-        assert!(held_for >= STREAM_HOLD, "held its whole hold: {held_for:?}");
+        assert!(
+            held_for >= s.stream_hold,
+            "held its whole hold: {held_for:?}"
+        );
         let passes = passes_of(&s, &doc).expect("it ended after its passes");
         // Two seconds in slices of 250 ms: nine looks, give or take a wake.
         assert!(
@@ -17691,6 +18210,8 @@ public query Store(",
     // TRACK SEAM (device-store): a page that holds a value the device keeps,
     // served (ADR-0366).
     mod device_store;
+    mod inline_styles;
+    mod page_bundle;
 
     // TRACK SEAM (store-search): the store's search page, served (W9).
     mod store_search;
@@ -17720,8 +18241,12 @@ public query Store(",
     mod session_commands_pg;
     // ADR-0401: a connection kept for its next request.
     mod keep_alive;
+    // The prerender's ADR: a page no reader decides is one document.
+    mod prerender;
     // ADR-0389, amended 2026-11-02: overlapping admissions of one session.
     mod session_overlap;
+    // The longer-holds ADR: a subscription held until something happens.
+    mod longer_holds;
     mod session_receipt_recovery;
     mod session_revocation;
     mod session_upload_authority;
@@ -18247,10 +18772,10 @@ public query Store(",
     }
 
     /// **A document asks for what its runtime boots with, from its head**
-    /// (ADR-0399): the runtime as a module preload, and the
-    /// decision's code and this build's handler table as the CORS fetches
-    /// the runtime makes, so that the runtime's own requests are answered by
-    /// them; after its stylesheets; and no handler's code (E7-L). On a page
+    /// (ADR-0399): the runtime as a module preload, and this build's handler
+    /// table as the CORS fetch the runtime makes, so that the runtime's own
+    /// request is answered by it; after its stylesheets; and no handler's
+    /// code (E7-L). On a page
     /// that reads queries, and on one of signals alone.
     #[test]
     fn a_document_preloads_what_its_runtime_boots_with() {
@@ -18280,12 +18805,13 @@ public query Store(",
                 .expect("a head");
             for link in [
                 "<link rel=\"modulepreload\" href=\"/pw-runtime.mjs\">\n",
-                "<link rel=\"preload\" href=\"/pw-resume.wasm\" as=\"fetch\" crossorigin>\n",
                 "<link rel=\"preload\" href=\"/pw-handlers\" as=\"fetch\" crossorigin>\n",
             ] {
                 assert!(head.ends_with(BOOT) && BOOT.contains(link), "{head}");
             }
             assert!(!head.contains("/handler/"), "no handler's code: {head}");
+            // A build holds no WebAssembly for it to ask for.
+            assert!(!head.contains(".wasm"), "{head}");
             // The runtime it preloads is the one the document starts.
             assert!(document.contains(RUNTIME), "{document}");
         }
@@ -18369,7 +18895,6 @@ public query Store(",
         for (file, bytes) in [
             ("delivery.json", "{\"warm\": true, \"versioned\": true}\n"),
             ("pw-runtime.mjs", "export {};\n"),
-            ("pw-resume.wasm", "\0asm"),
             ("app.css", "p{}"),
             ("notes.txt", "not served by name"),
         ] {
@@ -18385,7 +18910,7 @@ public query Store(",
                 .iter()
                 .map(String::as_str)
                 .collect::<Vec<_>>(),
-            vec!["/app.css", "/pw-resume.wasm", "/pw-runtime.mjs"]
+            vec!["/app.css", "/pw-runtime.mjs"]
         );
         // A reader's text that reads like an attribute is the reader's: text
         // escapes `&`, `<` and `>`, never `"` (`escape::text`), so a post, a
@@ -18402,10 +18927,6 @@ public query Store(",
             format!(
                 "<link rel=\"modulepreload\" href=\"{}\">",
                 at("/pw-runtime.mjs")
-            ),
-            format!(
-                "<link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>",
-                at("/pw-resume.wasm")
             ),
             format!(
                 "<link rel=\"preload\" href=\"{}\" as=\"fetch\" crossorigin>",

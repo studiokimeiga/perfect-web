@@ -46,7 +46,7 @@ async function transferred(page, run) {
   await run();
   page.off("response", on);
 
-  const out = { script: 0, wasm: 0, document: 0, other: 0, sent: { script: 0, wasm: 0 }, urls: [] };
+  const out = { script: 0, wasm: 0, document: 0, other: 0, sent: { script: 0, wasm: 0 }, urls: [], asked: [...seen.keys()] };
   for (const [url, { type, response }] of seen) {
     let body;
     try {
@@ -86,24 +86,12 @@ test("gate 7a: the static route ships no browser runtime", async ({ page }) => {
   console.log(`EVIDENCE static-route-script-bytes=${bytes.script} wasm-bytes=${bytes.wasm}`);
 });
 
-test("the decision's WebAssembly carries none of its trace's words", async ({ request }) => {
-  // ADR-0400: no page read the decision's causal trace, and its
-  // words were a tenth of the decision every page downloads. A refusal is
-  // told by its code (`PWR04`), which pleris.dev explains, and its recovery.
-  const wasm = await (await request.get("/pw-resume.wasm")).body();
-  for (const words of ["handler identity found", "capture schema matches exactly", "does not admit"]) {
-    expect(wasm.includes(words), `the words "${words}"`).toBe(false);
-  }
-  const { instance } = await WebAssembly.instantiate(wasm, {});
-  const exports = Object.keys(instance.exports);
-  expect(exports, "nor an export of them").not.toContain("last_trace_ptr");
-  expect(exports, "and the decision is whole").toEqual(expect.arrayContaining(["decide_manifest", "last_recovery"]));
-});
-
 test("gate 7b: the interactive route's runtime is bounded as it is sent", async ({ page }) => {
   const bytes = await transferred(page, () => ready(page));
   console.log(`EVIDENCE interactive-script-bytes=${bytes.script} brotli=${bytes.sent.script}`);
   console.log(`EVIDENCE interactive-wasm-bytes=${bytes.wasm} brotli=${bytes.sent.wasm}`);
+  expect(bytes.wasm, "no WebAssembly is sent").toBe(0);
+  expect((await page.request.get("/pw-resume.wasm")).status(), "and none is served").toBe(404);
   for (const u of bytes.urls) console.log(`EVIDENCE  ${u}`);
 
   // A bound, not a target. It exists so the number cannot quietly become a
@@ -116,16 +104,15 @@ test("gate 7b: the interactive route's runtime is bounded as it is sent", async 
   expect(bytes.urls.filter((u) => u.includes("/handler/")), "no handler bytes").toEqual([]);
 });
 
-test("gate 7d: the renderer a page fetches to render a block again is bounded as it is sent", async ({
-  request,
-}) => {
-  // Fetched the first time a block a signal decides is rendered again
-  // (ADR-0137), not as a page activates.
-  const body = await (await request.get("/pw-render.wasm")).body();
-  console.log(
-    `EVIDENCE renderer-wasm-bytes=${body.length} gzip=${gzipSync(body, { level: 9 }).length} ` +
-      `brotli=${brotli(body)}`,
-  );
-  expect(body.length, "the renderer is served").toBeGreaterThan(0);
-  expect(brotli(body), "the renderer, as sent").toBeLessThan(128 * 1024);
+test("gate 7d: a block a signal decides is rendered with what the page already holds", async ({ page }) => {
+  // The browser's renderer is the runtime's (ADR-0411): it
+  // was a file of its own, fetched the first time a block was rendered again.
+  await page.goto("/page/demo.panel.PanelPage~ui");
+  await page.waitForFunction(() => document.documentElement.dataset.pwReady === "1");
+  const during = await transferred(page, async () => {
+    await page.locator("#open-cart").click();
+    await expect(page.locator("#cart-panel")).toBeVisible();
+  });
+  expect(during.asked.filter((u) => /wasm|render/.test(u)), "no renderer is fetched").toEqual([]);
+  expect((await page.request.get("/pw-render.wasm")).status(), "and none is served").toBe(404);
 });

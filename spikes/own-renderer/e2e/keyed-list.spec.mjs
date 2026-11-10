@@ -234,6 +234,9 @@ test("a move to where an instance already is moves nothing", async ({ page }) =>
   let replay = null;
   let move = null;
   let armed = false;
+  // A batch is added to as it is answered, so each must be answered briefly:
+  // this page does not ask to be held long (ADR-0402).
+  await page.addInitScript(() => Object.defineProperty(navigator, "locks", { value: undefined }));
   await page.route("**/stream*", async (route) => {
     const response = await route.fetch();
     let body = await response.text();

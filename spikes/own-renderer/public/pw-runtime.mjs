@@ -21,6 +21,13 @@
 
 const parts = JSON.parse(document.getElementById("pw-parts")?.textContent ?? "{}");
 
+/** **Whether this runtime talks to a server** (ADR-0413). The
+ * packaging builds a second runtime with this false, for a page no reader
+ * decides and with no layout, and what only a server's page uses falls away
+ * with it: the subscription, commands, speculation, streams, a navigation
+ * that keeps the layout. */
+const PW_SERVER = true;
+
 /**
  * **This document's life** (the soft navigation's ADR). Every listener the
  * runtime adds is added with its signal, and its subscription asks under it:
@@ -75,15 +82,9 @@ const entries = new Map(
   [...manifests].map(([path, list]) => [path, new Map(list.map((p) => [p.id, p]))]),
 );
 
-/** Each view's template, as JSON: what the browser's renderer renders an
- * instance in a block with (ADR-0203). Empty where the page has none. */
+/** Each view's template: what the browser's renderer renders an instance in
+ * a block with (ADR-0203). Empty where the page has none. */
 const TEMPLATES = Object.values(parts.templates ?? {}).map((t) => t.template);
-const TEMPLATES_JSON = TEMPLATES.length ? JSON.stringify(TEMPLATES) : "";
-
-/** A renderer's request, with each view's template where the page has one. */
-function withTemplates(request) {
-  return TEMPLATES_JSON ? `${request.slice(0, -1)},"templates":${TEMPLATES_JSON}}` : request;
-}
 
 function buildIndex() {
   index.clear();
@@ -373,9 +374,10 @@ function applyList(key, scope, op) {
 
 // --- the compatibility decision -----------------------------------------
 //
-// The same wasm E7V compiled, and the same rule: the gate FAILS CLOSED. A
-// handler that attached because the decision had not loaded would be the bypass
-// this design exists to prevent.
+// E7V's decision, and its rule: the gate FAILS CLOSED. A handler that attached
+// because the decision had not been made would be the bypass this design
+// exists to prevent. `pw-resume`, the Rust crate, is its specification, and
+// `decision-agreement.test.mjs` holds these lines to that crate's own build.
 
 let decide = null;
 
@@ -385,6 +387,50 @@ let servedBuild = "";
 
 /** Whether its build warms (ADR-0399): the table's `#warm|1`. */
 let buildWarms = false;
+
+/** **Where this page's code is one module** (ADR-0412), `null`
+ * where each piece of it is a module of its own. */
+let pageBundleAt = null;
+let pageBundleLoading = null;
+
+/** Whether this page's code comes from its one module: only where the
+ * decision authorised every handler on it, as a refused handler is never
+ * fetched (E7-L's order). Asked after the decision, and answered once. */
+let bundleUsable = null;
+function usesBundle() {
+  if (bundleUsable === null) {
+    bundleUsable =
+      pageBundleAt !== null &&
+      [...manifests].every(([template, list]) =>
+        list.every((p) => p.kind !== "event" || !p.value || verdictOf(nameOf(template, p), p).attach),
+      );
+  }
+  return bundleUsable && pageBundleAt !== null;
+}
+
+/** This page's one module, loaded with the first need of anything in it. A
+ * load that fails is not asked for again: each piece is asked for alone, as
+ * in a build with no bundle. */
+function pageBundle() {
+  pageBundleLoading ??= import(delivered(pageBundleAt)).catch((error) => {
+    pageBundleAt = null;
+    log.push(`the page's module was not loaded: ${error.message ?? error}`);
+    throw error;
+  });
+  return pageBundleLoading;
+}
+
+/** A piece of this page's code: from its one module where there is one and
+ * this is the piece's first try; else, or where that module fails, alone. */
+function pageCode(piece, url, attempt) {
+  if (attempt > 0 || !usesBundle()) return import(url);
+  return pageBundle().then(
+    // A page's bundle is of the build that answered. A document from another
+    // build can be authorised a handler this page's bundle does not hold.
+    (all) => all[piece] ?? import(url),
+    () => import(url),
+  );
+}
 
 /** The delivery this runtime was asked for at (`?b=`, ADR-0399);
  * none for a development build. */
@@ -402,75 +448,72 @@ function attempted(path, attempt) {
   return attempt === 0 ? at : `${at}${at.includes("?") ? "&" : "?"}attempt=${attempt}`;
 }
 
-async function bootDecision() {
-  // The decision and the table together, each answered by the head's
-  // preload (ADR-0399).
-  const tableText = fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : ""));
-  // A failed decision fails the boot; the table's rejection is not unheard.
-  tableText.catch(() => {});
-  const { instance } = await WebAssembly.instantiateStreaming(fetch(delivered("/pw-resume.wasm")), {});
-  const { memory, alloc, decide_manifest, last_recovery, know, know_document } =
-    instance.exports;
-
-  const write = (s) => {
-    const bytes = new TextEncoder().encode(s);
-    const ptr = alloc(bytes.length);
-    new Uint8Array(memory.buffer, ptr, bytes.length).set(bytes);
-    return [ptr, bytes.length];
-  };
-  // What this build compiled (ADR-0132), from the server that served this
-  // runtime and never from the document: a document cached from another
-  // build names handlers this one may not have. If the table cannot be read,
-  // nothing is known and every handler is refused, which is the closed side.
-  const table = await tableText;
-  const known = know(...write(table));
-  log.push(`knows ${known} handler(s)`);
-  // **What this build says of this page's documents** (ADR-0300): its name,
-  // and this page's document schema and scope, from the same table and never
-  // from the document; the decision holds each handler's document to them.
+/** What this build's table says of its build and this page, which either
+ * decision reads: its lines, for the decision to read the rest of. */
+function heardTable(table) {
   const lines = table.split("\n");
   servedBuild = lines.find((l) => l.startsWith("#build|"))?.slice("#build|".length) ?? "";
   // Whether the build warms: the table's word, never the document's.
   buildWarms = lines.includes("#warm|1");
-  const page = lines.find((l) => l.startsWith(`#page|${PAGE}|`));
-  if (page && know_document) {
-    const [, , schema, scope] = page.split("|");
-    know_document(...write(`${schema}|${scope}`));
-    log.push(`knows ${PAGE}'s documents: ${schema} ${scope}`);
-  }
-  // `last_recovery` returns an INDEX into this list, not a pointer. A first
-  // version read it as one and every decision threw `Start offset -1 is
-  // outside the bounds of the buffer`, which the page reported as "boot
-  // failed" — so no handler attached and the button was inert.
-  //
-  // Worth recording: fail-closed did its job. A bug in the code that READS the
-  // decision produced a page that does nothing, not a page that attaches
-  // anyway. That is the difference the design was for.
-  //
-  // In `pw-resume-wasm`'s order, from 0: `RefetchRegion` is 0 there. Until
-  // 2026-10-03 this list began with a "none" the ABI does not have, so every
-  // recovery was read one place off. A region to refetch read as "none", a
-  // document to reload as "rerender-private-slot". Nothing acted on a
-  // recovery then, so only the log was wrong (ADR-0155).
-  const RECOVERY = [
-    "refetch-region",
-    "rerender-private-slot",
-    "reload",
-    "retry-interaction",
-    "require-user-confirmation",
-    "reject-irrecoverable",
-  ];
+  // Where this page's code is one module: the table's word, as a build's is.
+  pageBundleAt = lines.find((l) => l.startsWith(`#bundle|${PAGE}|`))?.split("|")[2] ?? null;
+  return lines;
+}
 
-  decide = (manifest) => {
-    const [ptr, len] = write(manifest);
-    // 0 resume, 1 migrate; anything else is a refusal.
-    const code = decide_manifest(ptr, len);
-    return {
-      attach: code === 0 || code === 1,
-      recovery: RECOVERY[last_recovery()] ?? "unknown",
-      code,
-    };
+/** **Whether a handler a document names may attach** (E7V; ADR-0414):
+ * `pw-resume`'s answers, from the build's table and the document's manifest.
+ * What that crate hashes, a handler's name and what it captures, is compared
+ * here as the text it was hashed from, so a handler is known exactly when the
+ * crate knows it. Fails closed as that does: a table that cannot be read knows
+ * no handler, and each is refused. */
+const decider = (lines, page) => {
+  const known = new Set(lines.filter((l) => l && l[0] !== "#").map((l) => (l.includes("|") ? l : `${l}|`)));
+  // Told nothing of this page, a document's schema and scope are not compared,
+  // as no build has spoken for them.
+  const told = lines.find((l) => l.startsWith(`#page|${page}|`))?.split("|");
+  return (manifest) => {
+    const [scheme, abi, , handler, capture = "", schema = "", scope = "", captures, construct] = manifest.split("|");
+    const code = !captures && capture
+      ? 9
+      : !/^\+?0*2$/.test(scheme)
+        ? 2
+        : !/^\+?0*1$/.test(abi)
+          ? 3
+          : !known.has(`${handler}|${capture}`)
+            ? 4
+            : told && scope !== "public" && scope !== told[3]
+              ? 5
+              : told && schema !== told[2]
+                ? 6
+                : 0;
+    const recovery = construct === "private"
+      ? "rerender-private-slot"
+      : construct === "command"
+        ? "retry-interaction"
+        : construct === "resource"
+          ? "reject-irrecoverable"
+          : scope === "public"
+            ? "refetch-region"
+            : "rerender-private-slot";
+    return { attach: code === 0, recovery, code };
   };
+};
+// --- end of the decision
+
+async function bootDecision() {
+  // What this build compiled (ADR-0132), from the server that served this
+  // runtime and never from the document: a document cached from another build
+  // names handlers this one may not have. Answered by the head's preload
+  // (ADR-0399). If the table cannot be read, nothing is known and every
+  // handler is refused, which is the closed side.
+  const lines = heardTable(await fetch(delivered("/pw-handlers")).then((r) => (r.ok ? r.text() : "")));
+  decide = decider(lines, PAGE);
+  if (!PW_SERVER) return;
+  log.push(`knows ${lines.filter((l) => l && l[0] !== "#").length} handler(s)`);
+  // What this build says of this page's documents (ADR-0300), from the same
+  // table and never from the document.
+  const [, , schema, scope] = lines.find((l) => l.startsWith(`#page|${PAGE}|`))?.split("|") ?? [];
+  if (schema !== undefined) log.push(`knows ${PAGE}'s documents: ${schema} ${scope}`);
 }
 
 // --- attaching -----------------------------------------------------------
@@ -505,7 +548,7 @@ window.__pw = {
   settled: [],
 };
 
-// The manifest a handler presents, in the ABI `pw-resume-wasm` reads:
+// The manifest a handler presents, in the fields `pw-resume` reads:
 //
 //   scheme|abi|build|handler|capture|document|scope|captures|construct
 //
@@ -583,7 +626,7 @@ function loadHandler(identity) {
   const url = attempted(`/handler/${identity}.mjs`, attempt);
   // No deadline: the load is shared, and each press waits within its own
   // (ADR-0382; the first press's review).
-  const pending = import(url).then((module) => {
+  const pending = pageCode(`h_${identity}`, url, attempt).then((module) => {
     // What a load given up brings late is not used (ADR-0382).
     if (loaded.get(identity) === pending) {
       loaded.set(identity, module);
@@ -598,8 +641,8 @@ function loadHandler(identity) {
 
 /**
  * **A module a press needs, loaded within the deadline** (ADR-0382): its
- * handler's, the page's speculation module, the renderer that renders its
- * regions. A load given up fails as a failed load does, and is no longer
+ * handler's, or the page's speculation module. A load given up fails as a
+ * failed load does, and is no longer
  * waited for, so the press after it, which waits for its turn (ADR-0152),
  * is not held by a module that never comes. The import itself cannot be
  * stopped: it is not waited for, and whatever it brings late is not used.
@@ -833,14 +876,8 @@ for (const [binding, e] of Object.entries(parts.entries ?? {})) {
 }
 
 let speculationModule = null;
-let speculationOwner = null;
 
-// A known native execution failure is never the load-only fallback.
-class RetiredRenderer extends Error {}
-
-/** The page's speculation module, loaded with the first press that needs it,
- * and the renderer with it where a speculation renders a region (ADR-0172):
- * a region is rendered between a batch's frames, so both are ready first.
+/** The page's speculation module, loaded with the first press that needs it.
  *
  * **Within the deadline, and not kept failed** (ADR-0382): until 2026-10-21 a
  * failed load was kept, and every later press that speculates failed with it
@@ -851,49 +888,24 @@ function speculations() {
   if (!parts.speculation) return Promise.resolve(null);
   if (speculationModule) return speculationModule;
   const url = attempted(parts.speculation, speculationAttempts);
-  const rendering = parts.regions ? renderModule() : null;
-  const owner = { renderer: null, retired: false };
-  const trackedRenderer = rendering?.then((exports) => {
-    owner.renderer = exports;
-    owner.retired ||= rendererLoaded !== exports;
-    return exports;
-  }) ?? null;
   // No deadline: each press waits within its own (`speculationsWithin`).
-  const loading = Promise.all([speculationLoaded ?? import(url), trackedRenderer]).then(
-    ([module, renderer]) => {
-      if (!currentSpeculation(loading, owner, renderer)) {
-        if (speculationModule === loading) {
-          speculationModule = null;
-          speculationOwner = null;
-        }
-        throw new RetiredRenderer("the renderer was retired while speculation loaded");
-      }
-      if (renderer) wasm = renderer;
-      speculationLoaded = module;
+  const loading = (speculationLoaded ? Promise.resolve(speculationLoaded) : pageCode("speculation", url, speculationAttempts)).then(
+    (module) => {
+      // What a load given up brings late is not used (ADR-0382).
+      if (speculationModule === loading) speculationLoaded = module;
       return module;
     },
     (error) => {
-      // Retirement belongs to this load even if its import rejects later.
-      // A newer renderer/load must not inherit an older owner's failure.
-      if (owner.retired) error = new RetiredRenderer("the renderer was retired while speculation loaded");
-      if (speculationModule !== loading) throw error;
-      speculationModule = null;
-      speculationOwner = null;
-      speculationAttempts += 1;
-      // A renderer still loading is forgotten with it: the next press asks
-      // for both again.
-      forgetRenderer(rendering);
+      forgetSpeculation(loading);
       throw error;
     },
   );
   speculationModule = loading;
-  speculationOwner = owner;
-  owner.rendering = rendering;
   return loading;
 }
 
 /** A press's wait for the speculation module, within its own deadline
- * (ADR-0382): given up, it forgets the load and the renderer loading with it. */
+ * (ADR-0382): given up, it forgets the load. */
 async function speculationsWithin() {
   const loading = speculations();
   try {
@@ -906,16 +918,8 @@ async function speculationsWithin() {
 
 function forgetSpeculation(loading) {
   if (speculationModule !== loading) return;
-  const rendering = speculationOwner?.rendering ?? null;
   speculationModule = null;
-  speculationOwner = null;
   speculationAttempts += 1;
-  forgetRenderer(rendering);
-}
-
-/** Publication needs both the coordinator and its native owner still current. */
-function currentSpeculation(loading, owner, renderer) {
-  return speculationModule === loading && !owner.retired && (!renderer || rendererLoaded === renderer);
 }
 
 /** How many loads of the page's speculation module have failed (ADR-0382). */
@@ -970,7 +974,6 @@ async function speculate(component, args, interaction) {
   try {
     module = await speculationsWithin();
   } catch (error) {
-    if (error instanceof RetiredRenderer) throw error;
     log.push(`${component} sent unspeculated: ${error.message ?? error}`);
     return [];
   }
@@ -979,9 +982,6 @@ async function speculate(component, args, interaction) {
     for (const s of module?.commands?.[component] ?? []) {
       const state = current(module, s.binding);
       if (!state || state.value === undefined) continue;
-      if (parts.regions && (!wasm || wasm !== rendererLoaded)) {
-        throw new RetiredRenderer("the renderer was retired before speculation resumed");
-      }
       const id = nextSpeculation++;
       state.pending.push({ id, transition: s.transition, args, until: undefined, interaction });
       ids.push([s.binding, id]);
@@ -1070,12 +1070,847 @@ async function reapplySpeculations() {
   }
 }
 
+// --- the browser's renderer ------------------------------------------------
+//
+// A block a signal decides, a loop's row, an attribute and what a handler
+// captures are rendered here, from the template IR the page carries, with
+// the server's escaping in each context, its anchors and its refusals. It is
+// `runtime/pw-render`, for what a browser asks of it. As WebAssembly it was
+// 77 KB as sent, most of it a heap, JSON and a formatter around these few
+// hundred lines, and every request went through JSON twice to reach it. Two
+// renderers can disagree, so the two are held to each other, byte for byte,
+// in every run of the suite (`renderer-agreement.test.mjs`).
+//
+// A value here is as a page's signals hold it: JSON's forms, an `Int` a
+// number or a `BigInt`, a case `{ $case, value }`, and a type that contains
+// itself the `{ $graph }` of its nodes (ADR-0194, ADR-0205). `null` is empty
+// text, as it is to the server's reader.
+const renderer = (() => {
+  /** Why a render produced no bytes, named as the server's `Blocked` is. */
+  class Blocked extends Error {
+    constructor(kind, at) {
+      super(`${kind}: ${at}`);
+      this.kind = kind;
+    }
+  }
+  const missing = (path) => new Blocked("MissingValue", path);
+  const unrepresented = (why) => new Blocked("UnrepresentedConstruct", why);
+  const malformed = (why) => new Blocked("Malformed", why);
+
+  /** What a lookup finds where there is nothing, which `null` is not. */
+  const NONE = {};
+
+  const isList = Array.isArray;
+  const isObject = (v) => typeof v === "object" && v !== null && !isList(v);
+  const isVariant = (v) => isObject(v) && typeof v.$case === "string";
+  const isRecord = (v) => isObject(v) && typeof v.$case !== "string";
+  const isInt = (v) => typeof v === "bigint" || (Number.isInteger(v) && Math.abs(v) < 2 ** 63);
+
+  /** Each `$graph` as the tree it says, read once. */
+  const graphs = new WeakMap();
+
+  /** A value as it is read: a `$graph` is its tree. A `$node` outside one
+   * is no value. */
+  function opened(v) {
+    if (!isObject(v)) return v;
+    if ("$graph" in v && Object.keys(v).length === 1) {
+      if (!graphs.has(v)) graphs.set(v, built(v.$graph));
+      return graphs.get(v);
+    }
+    if ("$node" in v && Object.keys(v).length === 1) throw malformed("a $node outside any $graph");
+    return v;
+  }
+
+  /** A `$graph`'s tree, from its last node to its first: a `$node` takes a
+   * later node, once, and every node is taken but the first. */
+  function built(list) {
+    if (!isList(list) || list.length === 0) throw malformed("a $graph that is not a list of nodes");
+    const nodes = new Array(list.length).fill(NONE);
+    const take = (k) => {
+      if (!(typeof k === "bigint" || Number.isInteger(k)) || k < 0) throw malformed("a $node that is not an index");
+      const i = Number(k);
+      if (i >= nodes.length || nodes[i] === NONE) throw malformed("a $node that is no later node");
+      const node = nodes[i];
+      nodes[i] = NONE;
+      return node;
+    };
+    const read = (j) => {
+      if (isList(j)) return j.map(read);
+      if (!isObject(j)) return j;
+      const keys = Object.keys(j);
+      if (keys.length === 1 && keys[0] === "$graph") return built(j.$graph);
+      if (keys.length === 1 && keys[0] === "$node") return take(j.$node);
+      return Object.fromEntries(keys.map((k) => [k, read(j[k])]));
+    };
+    for (let at = list.length - 1; at >= 0; at--) nodes[at] = read(list[at]);
+    if (nodes.slice(1).some((n) => n !== NONE)) throw malformed("a node no other holds");
+    return nodes[0];
+  }
+
+  const field = (record, name) => (Object.hasOwn(record, name) ? opened(record[name]) : NONE);
+
+  /** How a value reads in text or attribute position; `null` for a list, a
+   * record or a case, which have no text form. */
+  function shown(v) {
+    switch (typeof v) {
+      case "string":
+        return v;
+      case "boolean":
+        return v ? "true" : "false";
+      case "bigint":
+        return v.toString();
+      case "number":
+        return Number.isFinite(v) ? String(v) : "";
+      default:
+        return v === null || v === undefined ? "" : null;
+    }
+  }
+
+  /** The value as a condition. An `Option` or a `Result` is not one: which
+   * case it is decides a `{#match}`. */
+  function holds(v) {
+    if (isVariant(v)) throw unrepresented("an Option or a Result is taken apart with {#match}");
+    switch (typeof v) {
+      case "boolean":
+        return v;
+      case "bigint":
+        return v !== 0n;
+      case "number":
+        return Number.isFinite(v) && v !== 0;
+      case "string":
+        return v !== "";
+      default:
+        return isList(v) ? v.length > 0 : v !== null && v !== undefined;
+    }
+  }
+
+  const scalar = (v) => (typeof v === "boolean" ? "b" : isInt(v) ? "i" : "t") + shown(v);
+
+  /** Whether two values are one value, as the server's `==` has it. */
+  function same(a, b) {
+    const pairs = [[a, b]];
+    while (pairs.length) {
+      const [p, q] = pairs.pop();
+      const x = opened(p);
+      const y = opened(q);
+      if (isList(x) || isList(y)) {
+        if (!isList(x) || !isList(y) || x.length !== y.length) return false;
+        x.forEach((v, i) => pairs.push([v, y[i]]));
+      } else if (!isObject(x) || !isObject(y)) {
+        if (isObject(x) || isObject(y) || scalar(x) !== scalar(y)) return false;
+      } else if (isVariant(x) || isVariant(y)) {
+        if (x.$case !== y.$case || Object.hasOwn(x, "value") !== Object.hasOwn(y, "value")) return false;
+        if (Object.hasOwn(x, "value")) pairs.push([x.value, y.value]);
+      } else {
+        const keys = Object.keys(x);
+        if (keys.length !== Object.keys(y).length) return false;
+        for (const k of keys) {
+          if (!Object.hasOwn(y, k)) return false;
+          pairs.push([x[k], y[k]]);
+        }
+      }
+    }
+    return true;
+  }
+
+  // --- what a render has -----------------------------------------------------
+
+  /** The values a render has, by path. A name bound inside it goes in front
+   * of them, so a row's scope costs one cell. */
+  const env = (entries) => ({ page: new Map(entries), names: null, frames: [], elements: 0 });
+  const named = (e, name, value) => ({ ...e, names: { name, value, up: e.names } });
+  const within = (e, scope, instance) => ({ ...e, frames: [...e.frames, { scope, instance }] });
+
+  function bound(e, key) {
+    for (let n = e.names; n; n = n.up) if (n.name === key) return opened(n.value);
+    return e.page.has(key) ? opened(e.page.get(key)) : NONE;
+  }
+
+  /** The value at `path`: a whole path set directly, or the longest name
+   * bound and each field after it; at each record, the rest of the path is
+   * read whole first, where a host set a value by its path (ADR-0170). */
+  function read(e, path) {
+    const whole = bound(e, path);
+    if (whole !== NONE) return whole;
+    const segments = path.split(".");
+    for (let cut = segments.length - 1; cut >= 1; cut--) {
+      let value = bound(e, segments.slice(0, cut).join("."));
+      if (value === NONE) continue;
+      for (let rest = cut; rest < segments.length; rest++) {
+        if (!isRecord(value)) return NONE;
+        const all = field(value, segments.slice(rest).join("."));
+        if (all !== NONE) return all;
+        value = field(value, segments[rest]);
+        if (value === NONE) return NONE;
+      }
+      return value;
+    }
+    return NONE;
+  }
+
+  function need(e, path) {
+    const v = read(e, path);
+    if (v === NONE) throw missing(path);
+    return v;
+  }
+
+  function needText(e, path) {
+    const s = shown(need(e, path));
+    if (s === null) throw missing(path);
+    return s;
+  }
+
+  /** The value at a capture path: the longest prefix bound, then fields. */
+  function readCaptured(e, path) {
+    const segments = path.split(".");
+    for (let split = segments.length; split >= 1; split--) {
+      let v = bound(e, segments.slice(0, split).join("."));
+      if (v === NONE) continue;
+      for (const name of segments.slice(split)) {
+        if (!isRecord(v)) return NONE;
+        v = field(v, name);
+        if (v === NONE) return NONE;
+      }
+      return v;
+    }
+    return NONE;
+  }
+
+  /** An element's key: the text at `path` from it, empty where there is none. */
+  function keyOf(item, path) {
+    let v = item;
+    for (const name of path.split(".")) {
+      if (name === "") continue;
+      if (!isRecord(v)) return "";
+      v = field(v, name);
+      if (v === NONE) return "";
+    }
+    return shown(v) ?? "";
+  }
+
+  /** **An instance's address in this page.** One per instance and key, for
+   * as long as the page is open, and so never the same for two; the server's
+   * are a keyed hash, under a key a page does not hold. */
+  const tokens = new Map();
+  function tokenOf(e, id, key) {
+    const said = `${e.frames.map((f) => `${f.scope}@${f.instance}`).join("/")}|${id}|${key}`;
+    let token = tokens.get(said);
+    if (token === undefined) tokens.set(said, (token = `b${tokens.size}`));
+    return token;
+  }
+
+  // --- each context's escaping (`runtime/pw-render/src/escape.rs`) ---------
+
+  const ENTITY = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;", "`": "&#96;" };
+  const entity = (c) => ENTITY[c];
+  const escText = (v) => v.replace(/[&<>]/g, entity);
+  const escAttribute = (v) => v.replace(/[&"'<>`]/g, entity);
+  const escContent = (v) => (/^[\n\r]/.test(v) ? "\n" : "") + escText(v);
+  const lowerAscii = (s) => s.replace(/[A-Z]+/g, (m) => m.toLowerCase());
+  const UNSEEN = /[\p{White_Space}\p{Cc}]/gu;
+  const DANGEROUS = ["javascript:", "vbscript:", "data:"];
+  const utf8 = new TextEncoder();
+
+  /** A value inside a URL whose text the author wrote around it: one
+   * component, every UTF-8 byte but RFC 3986's unreserved encoded. */
+  function escUrlComponent(v) {
+    let out = "";
+    for (const b of utf8.encode(v)) {
+      const plain = (b > 47 && b < 58) || (b > 64 && b < 91) || (b > 96 && b < 123) || b === 45 || b === 46 || b === 95 || b === 126;
+      out += plain ? String.fromCharCode(b) : `%${b.toString(16).toUpperCase().padStart(2, "0")}`;
+    }
+    return out;
+  }
+
+  function digits(text, radix, shape) {
+    if (!shape.test(text)) return null;
+    let n = 0;
+    for (const d of text.replace("+", "")) {
+      n = n * radix + parseInt(d, radix);
+      if (n > 0xffffffff) return null;
+    }
+    return n;
+  }
+
+  /** What a reference's body says, `""` for what a parser drops, `null` for
+   * what this does not read. The text is lowercased already. */
+  function referenced(body) {
+    let code;
+    if (body.startsWith("#x")) code = digits(body.slice(2), 16, /^\+?[0-9a-f]+$/);
+    else if (body[0] === "#") code = digits(body.slice(1), 10, /^\+?[0-9]+$/);
+    else return body === "colon" ? ":" : body === "amp" ? "&" : null;
+    if (code === null || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return null;
+    const c = String.fromCodePoint(code);
+    return c.replace(UNSEEN, "");
+  }
+
+  function decodeEntities(s) {
+    let out = "";
+    let rest = s;
+    for (let i = rest.indexOf("&"); i >= 0; i = rest.indexOf("&")) {
+      out += rest.slice(0, i);
+      rest = rest.slice(i);
+      // Within twelve characters, as the server's is within twelve bytes:
+      // a body holding a wide character is no number, and leaves an `&` at
+      // the front of what is compared, wherever its window ends.
+      const end = rest.slice(0, 12).indexOf(";");
+      if (end < 0) {
+        out += "&";
+        rest = rest.slice(1);
+        continue;
+      }
+      out += referenced(rest.slice(1, end)) ?? rest.slice(0, end + 1);
+      rest = rest.slice(end + 1);
+    }
+    return out + rest;
+  }
+
+  /** A URL-valued attribute: a scheme that executes is replaced, whatever
+   * spelling reaches the parser, and then the attribute's rules. */
+  function escUrl(v) {
+    const decoded = decodeEntities(lowerAscii(v.replace(UNSEEN, "")));
+    return DANGEROUS.some((s) => decoded.startsWith(s)) ? "about:blank" : escAttribute(v);
+  }
+
+  function escStyle(v) {
+    const lower = lowerAscii(v);
+    const suspicious =
+      lower.includes("expression(") || DANGEROUS.some((s) => lower.includes(`url(${s}`) || lower.includes(`url('${s}`));
+    return suspicious ? "" : escAttribute(v);
+  }
+
+  /** The one place a context becomes an escaping function. */
+  function escaped(v, context) {
+    switch (context) {
+      case "text":
+        return escText(v);
+      case "attribute":
+      case "content":
+        return escAttribute(v);
+      case "url":
+        return escUrl(v);
+      case "style":
+        return escStyle(v);
+      case "raw_html":
+        return v;
+      default:
+        throw unrepresented(`a context the IR does not have: ${context}`);
+    }
+  }
+
+  // --- writing -------------------------------------------------------------
+
+  /** Markup being written, and each instance inside it, written later: a
+   * view that contains itself goes as deep as its data, and this stays no
+   * deeper on the stack (ADR-0203). */
+  function rendered(others, first) {
+    const opening = (write) => {
+      const out = { html: [], later: [] };
+      let failed = null;
+      try {
+        write(out);
+      } catch (error) {
+        if (!(error instanceof Blocked)) throw error;
+        failed = error;
+      }
+      return { out, failed, next: 0, written: 0 };
+    };
+    const open = [opening(first)];
+    const doc = [];
+    const copy = (top, until) => {
+      for (; top.written < until; top.written++) doc.push(top.out.html[top.written]);
+    };
+    while (open.length > 0) {
+      const top = open[open.length - 1];
+      const later = top.out.later[top.next++];
+      if (later) {
+        copy(top, later.at);
+        open.push(opening((out) => emit(later.chunks, later.env, others, out)));
+        continue;
+      }
+      open.pop();
+      if (top.failed) throw top.failed;
+      copy(top, top.out.html.length);
+    }
+    return doc.join("");
+  }
+
+  function emit(chunks, e, others, out) {
+    let i = 0;
+    while (i < chunks.length) {
+      const c = chunks[i];
+      if (c.chunk === "static") {
+        out.html.push(c.value);
+      } else if (c.value.part === "event") {
+        // An element's handlers, adjacent in the IR, write one attribute
+        // between them (ADR-0138).
+        const run = [c.value];
+        for (;;) {
+          const q = chunks[i + run.length];
+          if (q?.chunk !== "dynamic" || q.value.part !== "event" || q.value.owner !== c.value.owner) break;
+          run.push(q.value);
+        }
+        i += run.length;
+        out.html.push(capturesAttribute(run, e));
+        continue;
+      } else {
+        emitPart(c.value, e, others, out);
+      }
+      i += 1;
+    }
+  }
+
+  /** The separator the IR wrote for an attribute that turned out absent. */
+  function dropSpace(html) {
+    let i = html.length - 1;
+    while (i >= 0 && html[i] === "") i -= 1;
+    if (i >= 0 && html[i].endsWith(" ")) html[i] = html[i].slice(0, -1);
+  }
+
+  function emitPart(p, e, others, out) {
+    const html = out.html;
+    const start = `<!--pw:s${p.id}-->`;
+    const end = `<!--pw:e${p.id}-->`;
+    switch (p.part) {
+      case "blocked":
+        throw unrepresented(p.reason);
+      // Written into the document's head by its host.
+      case "title":
+      case "meta":
+      case "canonical":
+        return;
+      case "text":
+        html.push(start, escaped(needText(e, p.value), p.context), end);
+        return;
+      case "attribute":
+        if (p.context === "content") {
+          html.push(escContent(needText(e, p.value)));
+          return;
+        }
+      // falls through: the attribute's value is `attributeOf`'s.
+      case "interpolated_attribute": {
+        const [name, value] = attributeOf(p, e);
+        if (value !== null) html.push(`${name}="${value}"`);
+        return;
+      }
+      case "boolean_attribute":
+        if (attributeOf(p, e)[1] !== null) html.push(p.name);
+        else dropSpace(html);
+        return;
+      case "event":
+        html.push(capturesAttribute([p], e));
+        return;
+      case "stream":
+        // No query's answer is here: a streamed region shows its placeholder.
+        if (!p.streamed) throw missing(`the answer of stream ${p.id}`);
+        html.push(start, `<?start name="pw-${p.id}">`);
+        emit(p.placeholder, e, others, out);
+        html.push("<?end>", end);
+        return;
+      case "conditional": {
+        const branch = holds(need(e, p.value)) ? p.then : p.otherwise;
+        html.push(start);
+        emit(branch, e, others, out);
+        html.push(end);
+        return;
+      }
+      case "each":
+        emitEach(p, e, others, out, start, end);
+        return;
+      case "match": {
+        const [arm, scoped] = armShown(p.arms, p.value, e);
+        html.push(start);
+        emit(arm.body, scoped, others, out);
+        html.push(end);
+        return;
+      }
+      case "instance":
+        emitInstance(p, e, others, out);
+        return;
+      case "raw_html":
+        // No capability is presented to a browser's render.
+        throw new Blocked("UnauthorisedRawHtml", p.capability);
+      default:
+        throw unrepresented(`a part the IR does not have: ${p.part}`);
+    }
+  }
+
+  function emitEach(p, e, others, out, start, end) {
+    const html = out.html;
+    const items = need(e, p.collection);
+    if (!isList(items)) throw missing(p.collection);
+    const seen = new Set();
+    html.push(start);
+    for (const raw of items) {
+      const item = opened(raw);
+      const scoped = named(e, p.binding, item);
+      if (p.key === null || p.key === undefined) {
+        emit(p.body, scoped, others, out);
+        continue;
+      }
+      const key = keyOf(item, p.key);
+      if (key === "") throw new Blocked("MissingLoopKey", p.key);
+      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);
+      seen.add(key);
+      const token = tokenOf(e, p.id, key);
+      html.push(`<!--pw:s${p.id}@${token}-->`);
+      emit(p.body, within(scoped, p.id, token), others, out);
+      html.push(`<!--pw:e${p.id}@${token}-->`);
+    }
+    html.push(end);
+  }
+
+  /** The most elements a page may nest (`NESTED_ELEMENTS`, ADR-0203). */
+  const NESTED_ELEMENTS = 500;
+
+  function emitInstance(p, e, others, out) {
+    const t = others.find((o) => o.path === p.path);
+    if (!t) throw new Blocked("UnknownInstance", p.path);
+    const root = e.elements + (p.elements ?? 0);
+    if (root + (p.deepest ?? 0) > NESTED_ELEMENTS) throw new Blocked("TooDeep", p.path);
+    const token = tokenOf(e, p.id, p.path);
+    let child = { page: new Map(), names: null, frames: [...e.frames, { scope: p.id, instance: token }], elements: root };
+    for (const [param, source] of p.args) child = named(child, param, need(e, source));
+    out.html.push(`<!--pw:s${p.id}@${token}-->`);
+    out.later.push({ at: out.html.length, chunks: t.chunks, env: child });
+    out.html.push(`<!--pw:e${p.id}@${token}-->`);
+  }
+
+  /** The arm a `{#match}` shows, and what its body is rendered in. */
+  function armShown(arms, path, e) {
+    const v = need(e, path);
+    if (!isVariant(v)) throw unrepresented("a {#match} takes an Option or a Result apart");
+    const arm = arms.find((a) => a.case === v.$case);
+    if (!arm) throw unrepresented(`no arm renders ${v.$case}`);
+    const held = Object.hasOwn(v, "value");
+    let scoped = e;
+    if (arm.binding !== undefined && arm.binding !== null) {
+      if (!held) throw unrepresented(`${v.$case} has no payload to bind`);
+      scoped = named(scoped, arm.binding, v.value);
+    }
+    const fields = arm.fields ?? [];
+    if (fields.length > 0) {
+      const parts = held ? opened(v.value) : null;
+      if (!isList(parts)) throw unrepresented(`${v.$case} has no fields to bind`);
+      if (parts.length !== fields.length) throw unrepresented(`${v.$case} has another number of fields`);
+      fields.forEach((name, i) => (scoped = named(scoped, name, parts[i])));
+    }
+    return [arm, scoped];
+  }
+
+  /** An attribute part's name and its value as the document writes it,
+   * `null` for a boolean attribute that is absent; `null` for no attribute. */
+  function attributeOf(p, e) {
+    switch (p.part) {
+      case "attribute":
+        return [p.name, escaped(needText(e, p.value), p.context)];
+      case "boolean_attribute":
+        return [p.name, holds(need(e, p.value)) ? "" : null];
+      case "interpolated_attribute": {
+        let value = "";
+        for (const s of p.segments) {
+          if (s.segment === "static") value += s.value;
+          else {
+            const v = read(e, s.value);
+            const text = v === NONE ? null : shown(v);
+            if (text === null) throw missing(s.value);
+            if (p.context === "url") value += escUrlComponent(text);
+            else if (p.context === "attribute") value += escAttribute(text);
+            else throw unrepresented(`a value interpolated into a ${p.context} attribute`);
+          }
+        }
+        return [p.name, value];
+      }
+      default:
+        return null;
+    }
+  }
+
+  // --- what a handler captures --------------------------------------------
+
+  /** Keys in the order the server's map has them: by code point. */
+  function byPoint(a, b) {
+    const place = (c) => (c >= 0xd800 && c < 0xe000 ? c + 0x2000 : c >= 0xe000 ? c - 0x800 : c);
+    for (let i = 0; i < Math.min(a.length, b.length); i++) {
+      const x = a.charCodeAt(i);
+      const y = b.charCodeAt(i);
+      if (x !== y) return place(x) - place(y);
+    }
+    return a.length - b.length;
+  }
+
+  /** A captured value, a `Map` for an object and each scalar written. */
+  function captured(raw) {
+    const v = opened(raw);
+    if (isList(v)) return v.map(captured);
+    if (isVariant(v)) throw unrepresented(`${v.$case} cannot be captured by a handler`);
+    if (isObject(v)) {
+      // Its fields. What a host computed for a row is the page's to show.
+      return new Map(Object.keys(v).filter((k) => !k.includes(".")).map((k) => [k, captured(v[k])]));
+    }
+    if (typeof v === "boolean") return String(v);
+    if (isInt(v)) {
+      if (typeof v === "bigint" ? v > 2n ** 53n || v < -(2n ** 53n) : Math.abs(v) > 2 ** 53) {
+        throw unrepresented(`${v} is outside 2^53, so a handler would read it as a different number`);
+      }
+      return v.toString();
+    }
+    return JSON.stringify(shown(v));
+  }
+
+  function written(v) {
+    if (isList(v)) return `[${v.map(written).join(",")}]`;
+    if (typeof v === "string") return v;
+    return `{${[...v.keys()].sort(byPoint).map((k) => `${JSON.stringify(k)}:${written(v.get(k))}`).join(",")}}`;
+  }
+
+  /** `{"item": {"id": ..}}` for the path `item.id`. */
+  function insertAt(object, path, value) {
+    const names = path.split(".");
+    const leaf = names.pop();
+    let at = object;
+    for (const name of names) {
+      if (!at.has(name)) at.set(name, new Map());
+      at = at.get(name);
+      if (!(at instanceof Map)) throw unrepresented("one capture path runs through another's value");
+    }
+    if (at.has(leaf)) throw unrepresented("one capture path runs through another's value");
+    at.set(leaf, value);
+  }
+
+  /** What an element's handlers capture, as the document writes it, or
+   * `null` where nothing is captured. */
+  function captures(parts, e) {
+    const paths = new Map();
+    for (const p of parts) {
+      if (p.part !== "event") continue;
+      const renames = p.renames ?? {};
+      for (const path of p.captures ?? []) {
+        // `item.id` of a view given `entry` is `entry.id` (ADR-0136).
+        const dot = path.indexOf(".");
+        const root = dot < 0 ? path : path.slice(0, dot);
+        let at = path;
+        if (Object.hasOwn(renames, root)) at = dot < 0 ? renames[root] : `${renames[root]}${path.slice(dot)}`;
+        if (paths.has(path) && paths.get(path) !== at) {
+          throw unrepresented("two handlers on one element capture one name from two places");
+        }
+        paths.set(path, at);
+      }
+    }
+    if (paths.size === 0) return null;
+    const object = new Map();
+    for (const path of [...paths.keys()].sort(byPoint)) {
+      const at = paths.get(path);
+      const v = readCaptured(e, at);
+      if (v === NONE) throw missing(at);
+      insertAt(object, path, captured(v));
+    }
+    return escAttribute(written(object));
+  }
+
+  function capturesAttribute(run, e) {
+    const value = captures(run, e);
+    return value === null ? "" : ` data-pw-captures="${value}"`;
+  }
+
+  // --- what changed --------------------------------------------------------
+
+  function nested(p) {
+    switch (p.part) {
+      case "conditional":
+        return [p.then, p.otherwise];
+      case "each":
+        return [p.body];
+      case "match":
+        return p.arms.map((a) => a.body);
+      case "stream":
+        return [p.placeholder, p.ready.body, p.failed.body];
+      default:
+        return [];
+    }
+  }
+
+  function handlersWithin(chunks, out) {
+    for (const c of chunks) {
+      if (c.chunk !== "dynamic") continue;
+      const p = c.value;
+      if (p.part === "event") {
+        if (!out.has(p.owner)) out.set(p.owner, []);
+        out.get(p.owner).push(p);
+      }
+      for (const inner of nested(p)) handlersWithin(inner, out);
+    }
+  }
+
+  /** What changed in one row, part by part; `null` where it is rendered again. */
+  function rowChanges(p, was, now, e, others) {
+    const scoped = (item) => within(named(e, p.binding, item), p.id, tokenOf(e, p.id, keyOf(item, p.key)));
+    const before = scoped(was);
+    const after = scoped(now);
+    const handlers = new Map();
+    handlersWithin(p.body, handlers);
+    const out = [];
+    return changesWithin(p.body, before, after, handlers, others, out) ? out : null;
+  }
+
+  function changesWithin(chunks, before, after, handlers, others, out) {
+    for (const c of chunks) {
+      if (c.chunk !== "dynamic") continue;
+      const p = c.value;
+      const differs = () => {
+        const one = [c];
+        return rendered(others, (o) => emit(one, before, others, o)) !== rendered(others, (o) => emit(one, after, others, o));
+      };
+      switch (p.part) {
+        case "text": {
+          const x = shown(need(before, p.value));
+          const y = shown(need(after, p.value));
+          if (x === null || y === null) {
+            if (differs()) return false;
+          } else if (x !== y) {
+            out.push([p.id, { text: y }]);
+          }
+          break;
+        }
+        case "attribute":
+        case "boolean_attribute":
+        case "interpolated_attribute": {
+          const x = attributeOf(p, before);
+          const y = attributeOf(p, after);
+          if (x[0] !== y[0] || x[1] !== y[1]) out.push([p.id, { attribute: y[0], value: y[1] }]);
+          break;
+        }
+        case "event": {
+          const run = handlers.get(p.owner) ?? [];
+          if (run[0]?.id !== p.id) break;
+          const x = captures(run, before);
+          const y = captures(run, after);
+          if (x !== y) out.push([p.id, { attribute: "data-pw-captures", value: y }]);
+          break;
+        }
+        case "conditional": {
+          const x = holds(need(before, p.value));
+          const y = holds(need(after, p.value));
+          if (x !== y || !changesWithin(x ? p.then : p.otherwise, before, after, handlers, others, out)) return false;
+          break;
+        }
+        case "match": {
+          const [x, was] = armShown(p.arms, p.value, before);
+          const [y, now] = armShown(p.arms, p.value, after);
+          if (x.case !== y.case || !changesWithin(y.body, was, now, handlers, others, out)) return false;
+          break;
+        }
+        case "each": {
+          const x = p.key === null || p.key === undefined ? NONE : read(before, p.collection);
+          const y = p.key === null || p.key === undefined ? NONE : read(after, p.collection);
+          if (isList(x) && isList(y)) {
+            // A list inside a row: its row is rendered again in the browser,
+            // and whether it changed is what is asked here.
+            if (!same(x, y) && listChanged(p, x, y, after, others)) out.push([p.id, { list: true }]);
+          } else if (differs()) {
+            return false;
+          }
+          break;
+        }
+        default:
+          if (differs()) return false;
+      }
+    }
+    return true;
+  }
+
+  /** Whether the keyed loop `p` goes from `old` to `now` by any operation,
+   * refusing as the server's derivation of them does (`each_changes`). */
+  function listChanged(p, old, now, e, others) {
+    const seen = new Set();
+    for (const raw of now) {
+      const key = keyOf(opened(raw), p.key);
+      if (key === "") throw new Blocked("MissingLoopKey", p.key);
+      if (seen.has(key)) throw new Blocked("DuplicateLoopKey", key);
+      seen.add(key);
+    }
+    const token = (v) => tokenOf(e, p.id, keyOf(opened(v), p.key));
+    const wanted = now.map(token);
+    const current = [];
+    let changed = false;
+    for (const v of old) {
+      const t = token(v);
+      if (wanted.includes(t)) current.push([t, v]);
+      else changed = true;
+    }
+    now.forEach((raw, i) => {
+      const item = opened(raw);
+      const found = current.findIndex(([t]) => t === wanted[i]);
+      if (found < 0) {
+        eachInstance(p, item, e, others);
+        current.splice(i, 0, [wanted[i], item]);
+        changed = true;
+        return;
+      }
+      if (found !== i) {
+        current.splice(i, 0, current.splice(found, 1)[0]);
+        changed = true;
+      }
+      if (!same(current[i][1], item)) {
+        if (rowChanges(p, opened(current[i][1]), item, e, others) === null) eachInstance(p, item, e, others);
+        current[i][1] = item;
+        changed = true;
+      }
+    });
+    return changed;
+  }
+
+  function eachInstance(p, item, e, others) {
+    if (p.key === null || p.key === undefined) throw unrepresented("an unkeyed loop has no addressable instance");
+    const key = keyOf(item, p.key);
+    if (key === "") throw new Blocked("MissingLoopKey", p.key);
+    const token = tokenOf(e, p.id, key);
+    const scoped = within(named(e, p.binding, item), p.id, token);
+    return rendered(others, (out) => {
+      out.html.push(`<!--pw:s${p.id}@${token}-->`);
+      emit(p.body, scoped, others, out);
+      out.html.push(`<!--pw:e${p.id}@${token}-->`);
+    });
+  }
+
+  // --- what the page asks ---------------------------------------------------
+
+  return {
+    env,
+    same,
+    letGo: () => tokens.clear(),
+    /** One part, its anchors included. */
+    part: (p, e, others) => rendered(others, (out) => emit([{ chunk: "dynamic", value: p }], e, others, out)),
+    /** One instance of a keyed loop, for its item. */
+    instance(p, item, e, others) {
+      if (p.part === "blocked") throw malformed("the part is no loop");
+      if (p.part !== "each") throw unrepresented("the part is not a keyed loop");
+      return eachInstance(p, opened(item), e, others);
+    },
+    /** What changed in one instance, `null` where it is rendered again. */
+    changes(p, was, now, e, others) {
+      if (p.part === "blocked") throw malformed("the part is no loop");
+      if (p.part !== "each" || p.key === null || p.key === undefined) throw unrepresented("the part is not a keyed loop");
+      const found = rowChanges(p, opened(was), opened(now), e, others);
+      return found && found.some(([, change]) => change.list) ? null : found;
+    },
+    /** An attribute's name, and its value as the document writes it. */
+    attribute(p, e) {
+      const found = attributeOf(p, e);
+      if (found === null) throw malformed("the part is no attribute");
+      return found;
+    },
+    captures,
+  };
+})();
+// --- end of the browser's renderer
+
 // --- ADR-0172: what a speculation renders again --------------------------
 //
 // A speculation reaches every part that reads its value. Text at the top of
 // the page is set by the module's own functions (ADR-0122). An attribute, a
-// block and a loop's rows are rendered by the browser's copy of the server's
-// renderer, from the speculated value, so the two agree by being one.
+// block and a loop's rows are rendered by the browser's renderer, from the
+// speculated value.
 //
 // A row the server rendered keeps its nodes, and focus with them: its parts
 // are set where they are, and one a speculation takes away is detached, not
@@ -1090,37 +1925,10 @@ async function reapplySpeculations() {
 // come in one batch (the server queues them in one hold), so the list's rows
 // are then the held value's, in its order.
 
-/** The renderer, and the speculation module, once loaded. */
-let wasm = null;
+/** The speculation module, once loaded. */
 let speculationLoaded = null;
 
-/** One call into the renderer: the request as JSON, the answer as text. */
-function renderCall(name, request) {
-  return callRenderer(wasm, name, request);
-}
-
-/** Retire the exact native instance that threw, keeping a newer owner. */
-function callRenderer(exports, name, request, label = name) {
-  const bytes = new TextEncoder().encode(withTemplates(request));
-  let code, out;
-  try {
-    const ptr = exports.alloc(bytes.length);
-    new Uint8Array(exports.memory.buffer, ptr, bytes.length).set(bytes);
-    code = exports[name](ptr, bytes.length);
-    out = new TextDecoder().decode(
-      new Uint8Array(exports.memory.buffer, exports.out_ptr(), exports.out_len()),
-    );
-  } catch (error) {
-    retireRenderer(exports);
-    log.push(`renderer ${name} failed: ${error.message ?? error}`);
-    throw error;
-  }
-  // A normal refusal is not a native execution failure.
-  if (code !== 0) throw new Error(`${label} did not render: ${out}`);
-  return out;
-}
-
-/** A value as the renderer reads it: JSON, each `Int` written exactly. A
+/** A value as the device keeps it: JSON, each `Int` written exactly. A
  * `BigInt` has no JSON form of its own, and a number past 2^53 has no exact
  * one. */
 function wire(v) {
@@ -1171,9 +1979,7 @@ function regionValues(module, binding, value) {
   // And what the page asked of its reader (ADR-0307), as the host answered
   // it for the document: `SignedIn~holds`, a boolean.
   const holds = Object.entries(parts.holds ?? {});
-  return `{${[[binding, value], ...computed, ...params, ...holds, ...signals]
-    .map(([k, v]) => `${JSON.stringify(k)}:${wire(v)}`)
-    .join(",")}}`;
+  return renderer.env([[binding, value], ...computed, ...params, ...holds, ...signals]);
 }
 
 /** The addresses of a loop's instances, in the document's order. */
@@ -1255,18 +2061,10 @@ function passFocus(nodes, part) {
  * rendered again, at its own address, where more than its text and its
  * attributes changed. */
 function setRow(region, row, item, values) {
-  const template = JSON.stringify(parts.regions[region.part]);
-  const changes = JSON.parse(
-    renderCall(
-      "instance_changes",
-      `{"part":${template},"was":${wire(rowOf(region, row.shown))},"now":${wire(rowOf(region, item))},"values":${values}}`,
-    ),
-  );
+  const template = parts.regions[region.part];
+  const changes = renderer.changes(template, rowOf(region, row.shown), rowOf(region, item), values, TEMPLATES);
   if (changes === null) {
-    const html = renderCall(
-      "render_instance",
-      `{"part":${template},"item":${wire(rowOf(region, item))},"values":${values}}`,
-    );
+    const html = renderer.instance(template, rowOf(region, item), values, TEMPLATES);
     const fresh = /^<!--pw:s\d+@([A-Za-z0-9_-]+)-->/.exec(html)?.[1];
     const nodes = rowNodes(region.part, row.token);
     const replaced = parseInstance(fresh ? html.replaceAll(`@${fresh}-->`, `@${row.token}-->`) : html);
@@ -1316,10 +2114,7 @@ function showList(region, items, values, held, passing = true) {
   for (const w of wanted) {
     let row = state.rows.find((r) => r.key === w.key);
     if (!row) {
-      const html = renderCall(
-        "render_instance",
-        `{"part":${JSON.stringify(parts.regions[region.part])},"item":${wire(rowOf(region, w.item))},"values":${values}}`,
-      );
+      const html = renderer.instance(parts.regions[region.part], rowOf(region, w.item), values, TEMPLATES);
       const nodes = parseInstance(html);
       after.after(...nodes);
       const token = /^pw:s\d+@([A-Za-z0-9_-]+)$/.exec(nodes[0]?.data ?? "")?.[1];
@@ -1337,7 +2132,7 @@ function showList(region, items, values, held, passing = true) {
         moveNodes(after.parentNode, nodes, after.nextSibling);
         buildIndex();
       }
-      if (wire(rowOf(region, row.shown)) !== wire(rowOf(region, w.item))) {
+      if (!renderer.same(rowOf(region, row.shown), rowOf(region, w.item))) {
         setRow(region, row, w.item, values);
       }
       row.shown = w.item;
@@ -1357,14 +2152,14 @@ const shownBlocks = new Map();
 /** **Every region that reads `binding`, at `value`** (ADR-0172). */
 function showRegions(module, binding, value, held) {
   const regions = module.regions?.[binding] ?? [];
-  if (regions.length === 0 || !wasm) return;
+  if (regions.length === 0) return;
   const values = regionValues(module, binding, value);
   for (const region of regions) {
-    const template = JSON.stringify(parts.regions?.[region.part]);
+    const template = parts.regions?.[region.part];
     if (region.kind === "list") {
       showList(region, listAt(value, region.collection), values, held);
     } else if (region.kind === "block") {
-      const html = renderCall("render_part", `{"part":${template},"values":${values}}`);
+      const html = renderer.part(template, values, TEMPLATES);
       if (shownBlocks.get(region.part) !== html) {
         shownBlocks.set(region.part, html);
         replaceBlock(region.part, html);
@@ -1375,9 +2170,7 @@ function showRegions(module, binding, value, held) {
       // What a handler at the top of the page captures (ADR-0217): its
       // element's captures, as the speculated value makes them, so a press
       // meanwhile sends what the page shows.
-      const written = JSON.parse(
-        renderCall("captures_value", `{"parts":${template},"values":${values}}`),
-      );
+      const written = renderer.captures(template, values);
       setAttributeAt(
         { template: parts.schema, instances: [], part: region.part },
         written === null
@@ -1385,9 +2178,7 @@ function showRegions(module, binding, value, held) {
           : { op: "set_attribute", name: "data-pw-captures", value: written },
       );
     } else if (region.kind === "attribute") {
-      const [name, written] = JSON.parse(
-        renderCall("attribute_value", `{"part":${template},"values":${values}}`),
-      );
+      const [name, written] = renderer.attribute(template, values);
       setAttributeAt(
         { template: parts.schema, instances: [], part: region.part },
         written === null
@@ -1441,7 +2232,7 @@ function refocus(focused) {
 /** **Each list shown as the page holds it, before a batch's patches apply**
  * (ADR-0172), and read from the document again after them. */
 function revertLists() {
-  if (!speculationLoaded || !wasm) return;
+  if (!speculationLoaded || shownLists.size === 0) return;
   for (const [binding] of speculated) {
     const state = current(speculationLoaded, binding);
     if (!state || state.value === undefined) continue;
@@ -1463,9 +2254,8 @@ function revertLists() {
 // part a signal decides, and the template of each block one decides. A
 // handler changes a signal through its context; this holds the value and
 // renders again exactly the parts that read it: a text part by setting its
-// range, a block by rendering its template with the browser's build of the
-// server's renderer (`pw-render-wasm`), so the two agree by being one
-// implementation. Nothing here asks the server for anything.
+// range, a block by rendering its template with the browser's renderer.
+// Nothing here asks the server for anything.
 
 /** name → its value, as JSON carries it (`js_pure`'s wire form). */
 const signals = new Map(Object.entries(parts.signals ?? {}));
@@ -1496,62 +2286,6 @@ const arms = new Map();
 for (const live of parts.live ?? []) {
   if (live.owns?.length) arms.set(live.part, armOf(live));
 }
-let renderer = null;
-/** The renderer's exports, once loaded. */
-let rendererLoaded = null;
-
-/** The renderer, loaded with the first block a signal renders again. */
-function renderModule() {
-  if (rendererLoaded) return Promise.resolve(rendererLoaded);
-  if (renderer) return renderer;
-  // Not kept failed (ADR-0382): the next need asks the network again.
-  const loading = fetch(delivered("/pw-render.wasm"))
-    .then((r) => WebAssembly.instantiateStreaming(r, {}))
-    .then(
-      ({ instance }) => {
-        if (renderer === loading) rendererLoaded = instance.exports;
-        return instance.exports;
-      },
-      (error) => {
-        if (renderer === loading) renderer = null;
-        log.push(`renderer not loaded: ${error.message ?? error}`);
-        throw error;
-      },
-    );
-  renderer = loading;
-  return loading;
-}
-
-/** **A renderer load a press gave up on** (ADR-0382): forgotten unless it
- * has loaded, so the next need asks the network again. */
-function forgetRenderer(loading = renderer) {
-  if (!rendererLoaded && renderer === loading) renderer = null;
-}
-
-/** Native execution failed: only caches owned by these exports are retired. */
-function retireRenderer(failed) {
-  if (!failed) return;
-  markSpeculationRetired(failed);
-  if (rendererLoaded === failed) {
-    rendererLoaded = null;
-    renderer = null;
-  }
-  retireSpeculationRenderer(failed);
-}
-
-/** Retain this coordinator's failure before either cache is released. */
-function markSpeculationRetired(failed) {
-  if (speculationOwner?.renderer === failed) speculationOwner.retired = true;
-}
-
-/** The native owner may be shared; the speculation cache has its own owner. */
-function retireSpeculationRenderer(failed) {
-  if (wasm !== failed) return;
-  wasm = null;
-  speculationModule = null;
-  speculationOwner = null;
-}
-
 /** A path read from the signals' values: `greeting`, or `panel.item`. */
 function signalAt(path) {
   const [root, ...fields] = path.split(".");
@@ -1587,13 +2321,8 @@ function readsOf(live) {
 /** The block numbered `id`, rendered at the signals' values now, and what
  * the page computes from them. */
 async function renderBlock(id) {
-  const x = await renderModule();
-  const values = [...signals, ...(await computedNow())]
-    .map(([k, v]) => `${JSON.stringify(k)}:${wire(v)}`)
-    .join(",");
-  return callRenderer(
-    x, "render_part", `{"part":${JSON.stringify(parts.blocks[id])},"values":{${values}}}`, `block ${id}`,
-  );
+  const computed = await computedNow();
+  return renderer.part(parts.blocks[id], renderer.env([...signals, ...computed]), TEMPLATES);
 }
 
 /** The nodes from `start` to `end`, both included. */
@@ -2013,7 +2742,7 @@ function computedValues() {
   // wait for it, and a page's boot does, where a value the device keeps is
   // migrated by it; a slow load there is better waited for than failed.
   const url = attempted(parts.computed, computedAttempts);
-  computedModule = import(url).then(
+  computedModule = pageCode("computed", url, computedAttempts).then(
     (module) => {
       log.push(`loaded ${parts.computed}`);
       return module;
@@ -2102,7 +2831,7 @@ async function flushSignals() {
     // Shown once what is in it can be pressed (ADR-0141).
     showDialogs(inserted);
   }
-  readAgain(changed);
+  if (PW_SERVER) readAgain(changed);
   window.__pw.signals = Object.fromEntries(signals);
 }
 
@@ -2761,7 +3490,11 @@ addEventListener(
   (e) => {
     if (!e.persisted) return;
     navigating = false;
-    if (leaving && parts.listens !== false) {
+    // A frozen page hears no `storage` event, so another tab's writes while
+    // it was kept went unheard: everything the device keeps is read again,
+    // as after a `clear()` (ADR-0409).
+    void heardKept({ key: null, storageArea: deviceStore() });
+    if (PW_SERVER && leaving && parts.listens !== false) {
       leaving = false;
       subscribe();
     }
@@ -2783,7 +3516,7 @@ async function navigate(route, args, mine) {
   const url = pageAddress(route, args);
   // A page shown in a layout keeps it (the soft navigation's ADR), held to
   // the same two rules, by the same two functions.
-  if (parts.layout) return softNavigate(url, "push", mine);
+  if (PW_SERVER && parts.layout) return softNavigate(url, "push", mine);
   if (!taken(url)) return;
   navigating = true;
   await pressedBefore(mine);
@@ -3114,7 +3847,7 @@ function bindEvent(template, part) {
           set: (name, value) => setSignal(instance(name), value, { el, event }),
           // Each command speculates before its request (ADR-0122), and its
           // speculation is resolved by the answer, whatever it is.
-          command: async (component, args, how = {}) => {
+          command: !PW_SERVER ? null : async (component, args, how = {}) => {
             const interaction = `${press}-${calls++}`;
             const ids = await speculate(component, args, interaction);
             let answer;
@@ -3196,10 +3929,8 @@ function quietly(loading, what) {
 }
 
 /** **Warm what this page's presses need**, in the order they need it: the
- * renderer, the computed and speculation modules, the handlers shown, then
- * the rest. */
+ * computed and speculation modules, the handlers shown, then the rest. */
 function warm() {
-  if (rendersInBrowser()) quietly(renderModule(), "the renderer");
   warmComputed();
   warmSpeculation();
   const identities = warmable();
@@ -3213,7 +3944,7 @@ function warmComputed() {
 }
 
 function warmSpeculation() {
-  if (parts.speculation && !speculationModule && !speculationLoaded) {
+  if (PW_SERVER && parts.speculation && !speculationModule && !speculationLoaded) {
     quietly(speculations(), parts.speculation);
   }
 }
@@ -3249,16 +3980,13 @@ function warmHandler(identity) {
   });
 }
 
-/** **A press's own paths, run once on nothing** (ADR-0399): the
- * renderer's on its sample (`warm`), the morph's on a copy of a block in an
- * inert document. A block holding a `<dialog>`, or larger than
- * `WARM_ELEMENTS`, is passed over. Each step waits for idle; none runs once
- * the runtime has ended. */
+/** **A press's own paths, run once on nothing** (ADR-0399): the morph's on
+ * a copy of a block in an inert document. A block holding a `<dialog>`, or
+ * larger than `WARM_ELEMENTS`, is passed over. Each step waits for idle; none
+ * runs once the runtime has ended. */
 async function warmPaths() {
   if (!rendersInBrowser()) return;
-  const x = await renderModule();
   if (!(await idleAndLive())) return;
-  warmRenderer(x);
   const block = warmableBlock();
   if (block) await warmBlock(block);
 }
@@ -3266,15 +3994,6 @@ async function warmPaths() {
 async function idleAndLive() {
   await idleness();
   return !life.signal.aborted;
-}
-
-function warmRenderer(x) {
-  try {
-    if (x.warm && x.warm() !== 0) log.push("the renderer refused its warm-up");
-  } catch (e) {
-    retireRenderer(x);
-    throw e;
-  }
 }
 
 function warmableBlock() {
@@ -3344,8 +4063,10 @@ async function attach() {
   // (ADR-0302): a live region added with its words is not reliably said.
   announcerOf();
   log.push(`indexed ${indexed} address(es)`);
-  for (const p of parts.parts ?? []) {
-    if (p.kind === "stream" && streamPending(String(p.id))) pendingAtIndex.add(String(p.id));
+  if (PW_SERVER) {
+    for (const p of parts.parts ?? []) {
+      if (p.kind === "stream" && streamPending(String(p.id))) pendingAtIndex.add(String(p.id));
+    }
   }
 
   await bootDecision();
@@ -3368,11 +4089,11 @@ async function attach() {
   performance.measure("pw:activate", "pw:activate:start", "pw:activate:end");
 
   // The regions still pending, filled as the response goes on (ADR-0148).
-  watchStreams();
+  if (PW_SERVER) watchStreams();
 
   // A page whose values are its signals alone listens for nothing
   // (ADR-0130): no resource of its changes on the server.
-  if (parts.listens !== false) subscribe();
+  if (PW_SERVER && parts.listens !== false) subscribe();
   // The signal a page binds to its address's fragment follows it from here.
   if (parts.fragment) bindFragment(parts.fragment);
   // What a block shows from here on, with `autofocus`, takes focus.
@@ -3675,7 +4396,7 @@ function applyBatch(batch) {
  */
 async function pollOnce() {
   // Which document this page is (ADR-0161): each is its own subscriber.
-  const response = await fetch(`/stream?doc=${documentCursor}&since=${cursor}`, {
+  const response = await fetch(`/stream?doc=${documentCursor}&since=${cursor}${holdLong}`, {
     signal: life.signal,
     priority: SUBSCRIPTION_PRIORITY,
   });
@@ -3695,7 +4416,7 @@ const SUBSCRIPTION_PRIORITY = "low";
  * not an error, and parsing half of one would apply half a change.
  */
 async function streamOnce() {
-  const response = await fetch(`/stream?doc=${documentCursor}&since=${cursor}&mode=stream`, {
+  const response = await fetch(`/stream?doc=${documentCursor}&since=${cursor}&mode=stream${holdLong}`, {
     signal: life.signal,
     priority: SUBSCRIPTION_PRIORITY,
   });
@@ -3751,7 +4472,45 @@ addEventListener(
  * `chosenTransport()` answering differently, which it never does, and the page
  * stopped hearing changes without a word.
  */
+/** `&hold=long`, where this page's subscription may be held until something
+ * happens (ADR-0402); empty otherwise. */
+let holdLong = "";
+
+/** Lets the long hold go, where this page holds it or is waiting for it. */
+let letHoldGo = null;
+
+/** **Whether a page's subscription may be held long.** A browser opens six
+ * connections to an HTTP/1.1 origin, so a page that held one until something
+ * happened would, with six tabs open, leave a press none. On HTTP/2 or later
+ * every request shares one connection, and each page may; on HTTP/1.1 one tab
+ * of the origin may, and the next takes over when it closes or leaves. A page
+ * kept in the back-forward cache holds nothing while it is gone, and asks again
+ * when it is shown. */
+function askToHoldLong() {
+  const protocol = performance.getEntriesByType("navigation")[0]?.nextHopProtocol ?? "";
+  if (/^h[23]/.test(protocol)) {
+    holdLong = "&hold=long";
+    return;
+  }
+  if (letHoldGo || !navigator.locks) return;
+  const asked = new AbortController();
+  letHoldGo = () => {
+    asked.abort();
+    letHoldGo = null;
+    holdLong = "";
+  };
+  addEventListener("pagehide", letHoldGo, { once: true, signal: life.signal });
+  life.signal.addEventListener("abort", letHoldGo, { once: true });
+  navigator.locks
+    .request("pw-subscription", { signal: asked.signal }, () => {
+      holdLong = "&hold=long";
+      return new Promise((resolve) => asked.signal.addEventListener("abort", resolve, { once: true }));
+    })
+    .catch(() => {});
+}
+
 async function subscribe() {
+  askToHoldLong();
   let transport = chosenTransport();
   const pinned = new URLSearchParams(location.search).has("transport");
   window.__pw.transport = transport;
@@ -3784,10 +4543,10 @@ async function subscribe() {
 // Exposed so a test can deliver a frame out of order. A transport cannot be
 // made to do that on demand, and the property is about the page's guard rather
 // than about the transport.
-window.__pwTestApply = applyFrame;
+if (PW_SERVER) window.__pwTestApply = applyFrame;
 // And a batch, as a transport delivers one: what a page leaving does with
 // it is the batch's guard, not a frame's (the soft navigation's ADR).
-window.__pwTestBatch = applyBatch;
+if (PW_SERVER) window.__pwTestBatch = applyBatch;
 window.__pwHeld = () => Object.fromEntries(held);
 window.__pwKnown = () => Object.fromEntries(known);
 
@@ -4072,12 +4831,9 @@ function handOver() {
   delete document.documentElement.dataset.pwNavigating;
   document.documentElement.dataset.pwReady = "0";
   life.abort();
-  // Its renderer let go: this module stays in the module map (the first
-  // press's review), and nothing here renders again.
-  renderer = null;
-  rendererLoaded = null;
-  wasm = null;
-  if (speculationOwner) speculationOwner.renderer = null;
+  // What its renderer holds let go: this module stays in the module map
+  // (the first press's review), and nothing here renders again.
+  renderer.letGo();
   // At this runtime's delivery, where it has one (ADR-0399).
   const next = delivered("/pw-runtime.mjs");
   import(`${next}${next.includes("?") ? "&" : "?"}document=${window.__pwSoftNavigations}`).catch((e) => {
@@ -4087,7 +4843,7 @@ function handOver() {
 }
 
 // The page's scroll is the navigation's to keep, for each entry it makes.
-if (parts.layout && "scrollRestoration" in history) history.scrollRestoration = "manual";
+if (PW_SERVER && parts.layout && "scrollRestoration" in history) history.scrollRestoration = "manual";
 
 // **The browser's own navigation wins.** Once it begins one, an address
 // typed, a link it follows itself, a test's `goto`, a soft navigation in
@@ -4109,7 +4865,7 @@ addEventListener("beforeunload", () => pending?.abort(), { signal: life.signal }
 // elsewhere, marked external or marked `data-pw-reload` (the consensus of
 // Turbo, Astro and SvelteKit, read 2026-10-09). A page with no layout keeps
 // nothing, and leaves every link to the browser.
-document.addEventListener(
+if (PW_SERVER) document.addEventListener(
   "click",
   (e) => {
     const a = parts.layout ? linkOf(e) : null;
@@ -4127,7 +4883,7 @@ document.addEventListener(
 
 // **Back and forward**, between entries a navigation made: read again, as
 // any navigation is, never a page kept from before (ADR-0280's rule).
-addEventListener(
+if (PW_SERVER) addEventListener(
   "popstate",
   (e) => {
     if (!e.state?.pw || !parts.layout) return;

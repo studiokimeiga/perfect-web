@@ -2,6 +2,31 @@
 
 <!-- Charter §3.4 requires exactly these sections. Keep them. -->
 
+**Train-16, 2026-11-10:** on train-15, the size train. A page no reader decides
+is one document, compressed and revalidated as a file is (PR #96, ADR-0409). The
+browser renders with a page of JavaScript, 5 KB as sent where the WebAssembly
+was 77 KB, held byte for byte to the server's renderer in every run (PR #99,
+ADR-0411); every page decides in its runtime, held to `pw-resume`, so no build
+holds WebAssembly (PR #97, ADR-0410, ADR-0414). A page's code is one module
+(ADR-0412). A page that talks to no server starts a runtime of its own
+(ADR-0413). A page's stylesheets, small together, are part of its document
+(ADR-0415), and a build's stylesheets draw with their own images (ADR-0416). A
+subscription is held until something happens, up to 25 s (PR #87, ADR-0402, with
+its review's three repairs), and an open page asks about 2.4 times a minute
+where it asked 29.7. The differential test found two crashes in the server's
+renderer, both fixed: `escape::decode_entities` panicked on an address with a
+wide character at byte 12, and `each_changes` when a list's new items repeat a
+key. An independent review found three defects before this landed, each fixed
+with a test and a control: the cascade order of inlined stylesheets, a dead
+handler where a bundle lacked a piece, and an uncapped `hold=long`. Two controls
+had counted a mutant killed that did not build, their replacements written
+against code that had moved since 2026-10-25; both are written against the code
+as it is, and recorded again. The head-to-head at `3b0e7c4f`: of 151 rows,
+Pleris is ahead in 55 and behind in 16, where it was behind in 31 at `58b0b2ca`.
+TodoMVC's first load receives 22,623 bytes (Svelte 20,821, React 70,085), and a
+repeat visit 240 (Svelte 759); the store's first load 27,659 (SvelteKit 35,033,
+Next.js 140,208).
+
 **Train-15, 2026-11-08:** on train-14, it lands keep-alive (PR #86, ADR-0401)
 with its review's repairs, TodoMVC's checkbox drawn in CSS (PR #81, ADR-0367
 amended; its WebKit failure was the test measuring device pixels), and every

@@ -64,6 +64,8 @@ import 'just/guide-ownership.just'
 import 'just/second-host.just'
 import 'just/session-overlap.just'
 import 'just/keep-alive.just'
+import 'just/prerender.just'
+import 'just/longer-holds.just'
 import 'just/node-audit.just'
 import 'just/keyed-retry.just'
 import 'just/effect-convergence.just'
@@ -82,6 +84,12 @@ import 'just/who-may-run.just'
 import 'just/command-route.just'
 import 'just/session-reader.just'
 import 'just/site.just'
+import 'just/browser-renderer.just'
+import 'just/page-bundle.just'
+import 'just/device-runtime.just'
+import 'just/decision-in-js.just'
+import 'just/inline-styles.just'
+import 'just/style-images.just'
 
 default:
     @just --list
@@ -1703,9 +1711,8 @@ e14-signals:
        echo "rust: $(rustc --version)"; echo; \
        echo "== the compiler (compiler/pw-core/tests/signals.rs)"; echo; \
        cargo test --locked -p pw-core --test signals 2>&1 | grep -E '^(test |test result)|panicked at'; \
-       echo; echo "== the browser's renderer (runtime/pw-render-wasm)"; echo; \
-       cargo test --locked -p pw-render-wasm 2>&1 | grep -E '^(test |test result)|panicked at'; \
-       ls -l target/wasm32-unknown-unknown/browser/pw_render_wasm.wasm 2>/dev/null | awk '{print "   pw-render.wasm: " $5 " bytes"}'; \
+       echo; echo "== the browser's renderer (runtime/pw-render-oracle)"; echo; \
+       cargo test --locked -p pw-render-oracle 2>&1 | grep -E '^(test |test result)|panicked at'; \
        echo; echo "== the page, each engine (e2e/signals.spec.mjs)"; echo; \
        for e in webkit chromium; do \
          bash scripts/run_suite.sh -- pnpm exec playwright test e2e/signals.spec.mjs --project=$e --reporter=list; \
@@ -2267,8 +2274,8 @@ e14-cart-lines:
        echo "commit: $(git rev-parse HEAD)$(git diff --quiet HEAD -- . ':(exclude)docs/evidence' ':(exclude)spikes/own-renderer/store-ir.json' || echo ' + uncommitted changes')"; \
        echo "rust: $(rustc --version)"; echo "node: $(node --version)"; \
        echo "playwright: $(cd spikes/own-renderer && pnpm exec playwright --version)"; echo; \
-       echo "== the renderer in the browser (runtime/pw-render-wasm)"; echo; \
-       cargo test --locked -p pw-render-wasm 2>&1 | grep -E '^(test |test result)|panicked at'; \
+       echo "== the renderer in the browser (runtime/pw-render-oracle)"; echo; \
+       cargo test --locked -p pw-render-oracle 2>&1 | grep -E '^(test |test result)|panicked at'; \
        echo; echo "== an instance's changes, captures set in place (runtime/pw-render)"; echo; \
        cargo test --locked -p pw-render --test instance_changes --test properties 2>&1 | grep -E '^(test |test result)|panicked at'; \
        echo; echo "== regions, refusals, what a handler sends (compiler/pw-core)"; echo; \
@@ -2779,9 +2786,9 @@ e14-view-instances:
        echo "playwright: $(cd spikes/own-renderer && pnpm exec playwright --version)"; echo; \
        echo "== the compiler (compiler/pw-core/tests/views_contain_themselves.rs)"; echo; \
        cargo test --locked -p pw-core --test views_contain_themselves 2>&1 | grep -E '^(test |test result)|panicked at'; \
-       echo; echo "== the renderer (runtime/pw-render/tests/properties.rs) and the browser's (runtime/pw-render-wasm)"; echo; \
+       echo; echo "== the renderer (runtime/pw-render/tests/properties.rs) and the browser's (runtime/pw-render-oracle)"; echo; \
        cargo test --locked -p pw-render --test properties 2>&1 | grep -E '^test result|^---- |panicked at'; \
-       cargo test --locked -p pw-render-wasm 2>&1 | grep -E '^(test |test result)|panicked at'; \
+       cargo test --locked -p pw-render-oracle 2>&1 | grep -E '^(test |test result)|panicked at'; \
        echo; echo "== the thread page (spikes/own-renderer/e2e/thread.spec.mjs), three engines"; echo; \
        bash scripts/run_suite.sh -- pnpm exec playwright test e2e/thread.spec.mjs --reporter=line; \
        echo; echo "== mutation controls (scripts/view_instances_mutations.py)"; echo; \
@@ -3211,7 +3218,7 @@ e14-top-captures:
        cargo test --locked -p pw-core --test top_level_captures 2>&1 | grep -E '^(test |test result)|panicked at'; \
        echo; echo "== the server's patch, and the browser's renderer"; echo; \
        cargo test --locked -p pw-dev-server -- a_handlers_captures_at_the_top_of_the_page_are_set_again 2>&1 | grep -E '^(test |test result)|panicked at'; \
-       cargo test --locked -p pw-render-wasm 2>&1 | grep -E '^test result|^---- |panicked at'; \
+       cargo test --locked -p pw-render-oracle 2>&1 | grep -E '^test result|^---- |panicked at'; \
        echo; echo "== mutation controls (scripts/top_captures_mutations.py)"; echo; \
        CARGO_INCREMENTAL=0 python3 scripts/top_captures_mutations.py; \
      } > docs/evidence/E14/top-captures.txt

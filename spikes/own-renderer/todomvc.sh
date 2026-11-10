@@ -10,8 +10,7 @@
 # The stylesheets are TodoMVC's, from the npm packages the owner approved
 # (2026-10-08), copied as they are: `todomvc-common`'s base.css (MIT) and
 # `todomvc-app-css`'s index.css (CC BY 4.0: its licence travels with it, and
-# the page credits it). The third, `todomvc-pleris.css`, is this app's own,
-# generated from the second by `todomvc-styles.mjs` (see it for why).
+# the page credits it).
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -48,18 +47,12 @@ cargo run --quiet -p pw-cli --manifest-path "$REPO_ROOT/Cargo.toml" -- \
 cp "$SPIKE/public/pw-runtime.mjs" "$OUT/"
 
 # TodoMVC's own stylesheets, as the packages ship them, and the notices that
-# go with them; and this app's own, after them.
+# go with them.
 cp "$COMMON_CSS/base.css" "$OUT/todomvc-base.css"
 cp "$APP_CSS/index.css" "$OUT/todomvc-app.css"
 cp "$COMMON_CSS/license" "$OUT/todomvc-common.license.txt"
 cp "$APP_CSS/license" "$OUT/todomvc-app-css.license.txt"
-node "$SPIKE/todomvc-styles.mjs" "$APP_CSS/index.css" "$OUT"
 
-# The browser's WebAssembly, as `run.sh` builds it.
-cargo build --quiet --manifest-path "$REPO_ROOT/Cargo.toml" \
-  -p pw-resume-wasm -p pw-render-wasm --target wasm32-unknown-unknown --profile browser
-cp "$TARGET_DIR/wasm32-unknown-unknown/browser/pw_resume_wasm.wasm" "$OUT/pw-resume.wasm"
-cp "$TARGET_DIR/wasm32-unknown-unknown/browser/pw_render_wasm.wasm" "$OUT/pw-render.wasm"
 
 # What it was built from, each source by its digest (ADR-0166): the browser
 # suite does not serve a build whose sources have changed since.

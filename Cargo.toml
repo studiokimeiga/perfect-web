@@ -12,7 +12,7 @@ members = [
     "runtime/pw-outbound-testkit",
     "runtime/pw-protocol",
     "runtime/pw-render",
-    "runtime/pw-render-wasm",
+    "runtime/pw-render-oracle",
     "runtime/pw-resource",
     "runtime/pw-resume",
     "runtime/pw-resume-wasm",
@@ -118,7 +118,7 @@ sha2 = "=0.11.0"
 lto = "thin"
 codegen-units = 1
 
-# The browser's WebAssembly (ADR-0130): `pw-render-wasm` and `pw-resume-wasm`,
+# The browser's WebAssembly (ADR-0130): `pw-resume-wasm`,
 # downloaded by a page, so built for size. `release` stays as it is for the
 # native binaries.
 [profile.browser]

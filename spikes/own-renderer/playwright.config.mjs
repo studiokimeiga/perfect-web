@@ -31,6 +31,8 @@ export default defineConfig({
     // times several workers saturates the machine, and a long-animation-frame
     // measurement taken under that load measures the load.
     ...(process.env.PW_PERFORMANCE ? [] : ["**/performance.spec.mjs"]),
+    // Of a production build alone: `just e14-device-runtime` builds one.
+    ...(process.env.PW_PRODUCTION_ASSETS ? [] : ["**/device-runtime.spec.mjs"]),
     ...unserved.map(({ file }) => `**/${file}`),
   ],
   fullyParallel: true,

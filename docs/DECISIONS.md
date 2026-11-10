@@ -3337,3 +3337,30 @@ A host keeps a connection for its next request, where HTTP/1.1 keeps it and its 
 
 [ADR-0408](DECISIONS/ADR-0408-the-site-shows-the-record.md):
 pleris.dev shows the head-to-head's record, never a copy. The instrument writes its verdicts as JSON (`--verdicts`, `docs/evidence/E14/head-to-head.json`); the home page's tables, its standing over the whole record, and a page of every row (`/measured`) read it when the site is built, each row's winner named in words; a refused run, a changed tree, or a record changed since its commit stops the build (`just e14-site`).
+
+[ADR-0402](DECISIONS/ADR-0402-a-subscription-is-held-until-something-happens.md):
+A subscription whose page asks is held until something happens, up to 25 s: every page on HTTP/2 or later, one tab of an origin at a time on HTTP/1.1 (PR #87, with its review's three repairs).
+
+[ADR-0409](DECISIONS/ADR-0409-a-page-no-reader-decides-is-one-document.md):
+A page no reader decides is one document: rendered once before the host listens, compressed and revalidated as a file is, so a repeat visit is 240 bytes (PR #96).
+
+[ADR-0410](DECISIONS/ADR-0410-the-decision-runs-on-what-it-needs.md):
+The decision runs on what it needs: `pw-resume.wasm` from 52 KB to 16 KB (PR #97).
+
+[ADR-0411](DECISIONS/ADR-0411-the-browser-renders-with-a-page-of-javascript.md):
+The browser renders with a page of JavaScript, 5 KB as sent where the WebAssembly was 77 KB, held byte for byte to the server's renderer in every run of the suite (PR #99). It found and fixed two crashes in the server's renderer.
+
+[ADR-0412](DECISIONS/ADR-0412-a-pages-code-is-one-module.md):
+A page's code is one module in a production build, its handlers, computed values and speculations, where each was a request of its own.
+
+[ADR-0413](DECISIONS/ADR-0413-a-page-that-talks-to-no-server-starts-a-runtime-of-its-own.md):
+A page that talks to no server starts a runtime of its own, built from the same source with no server's code in it.
+
+[ADR-0414](DECISIONS/ADR-0414-every-page-decides-in-its-runtime.md):
+Every page decides in its runtime, held to `pw-resume` on every run: no build holds WebAssembly, and no policy allows it.
+
+[ADR-0415](DECISIONS/ADR-0415-a-pages-stylesheets-small-together-are-part-of-its-document.md):
+A page's stylesheets, small together, are part of its document: a first paint waits on no request for them.
+
+[ADR-0416](DECISIONS/ADR-0416-a-builds-stylesheets-draw-with-their-own-images.md):
+A build's stylesheets draw with their own `data:` images, and TodoMVC uses the official sheet as it ships.

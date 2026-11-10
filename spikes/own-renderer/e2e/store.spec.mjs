@@ -296,7 +296,7 @@ test.describe("what activation costs, now that E7-L has closed", () => {
 
     const eager = requested.filter((u) => u.endsWith(".mjs") || u.endsWith(".wasm"));
     expect(eager.some((u) => u.includes("pw-runtime")), "the runtime loads").toBe(true);
-    expect(eager.some((u) => u.includes("pw-resume")), "the decision loads").toBe(true);
+    expect(eager.filter((u) => u.endsWith(".wasm")), "no WebAssembly does").toEqual([]);
     expect(
       eager.filter((u) => u.includes("/handler/")),
       "and no handler does",

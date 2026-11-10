@@ -1,8 +1,8 @@
 ADR-0236 - a speculation on the entry a page's parameter keys
 
 produced by: just e14-speculated-routes
-commit: 5859161709c17de454a0ee25f8ecf8b206f61ed9
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/40203355758 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -12,21 +12,21 @@ playwright: Version 1.58.0
 test the_thread_page_speculates_on_the_thread_its_parameter_keys ... ok
 test a_region_a_speculation_renders_reads_the_pages_parameter ... ok
 test any_other_flow_to_the_key_is_refused_by_name ... ok
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.13s
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.55s
 
 == the server (spikes/own-renderer/server/src/main.rs)
 
-test tests::a_speculating_document_carries_its_parameters ... ok
 test tests::a_speculated_thread_is_named_by_its_page_parameter ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 739 filtered out; finished in 2.36s
+test tests::a_speculating_document_carries_its_parameters ... ok
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1028 filtered out; finished in 1.68s
 
 == the feed in three engines (e2e/feed.spec.mjs)
 
-  66 passed (1.2m)
+  72 passed (1.1m)
 
 == mutation controls (scripts/speculated_routes_mutations.py)
 
-baseline (browser): 66 passed, 0 failed
+baseline (browser): 72 passed, 0 failed
 baseline (cargo): 5 passed, 0 failed
 a key from the command's parameter matches no binding [cargo]: KILLED (4 of 5 tests fail)
 a name the handler binds passes the page's parameter [cargo]: KILLED (1 of 5 tests fail)
@@ -37,6 +37,6 @@ a frame is sent at the entry of no parameter [cargo]: KILLED (1 of 5 tests fail)
 a commit's basis names the entry of no parameter [cargo]: KILLED (1 of 5 tests fail)
 a region a speculation renders does not hold the page's parameters [cargo]: KILLED (3 of 5 tests fail)
 a speculating document carries no parameters [cargo]: KILLED (1 of 5 tests fail)
-the feed's reply is not speculated [browser]: KILLED (6 of 66 tests fail)
+the feed's reply is not speculated [browser]: KILLED (12 of 72 tests fail)
 10 of 10 mutants killed
 memory bound: no process was stopped

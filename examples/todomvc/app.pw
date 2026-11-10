@@ -204,7 +204,6 @@ page Todos() {
         <title>TodoMVC: Pleris</title>
         <link rel="stylesheet" href="/todomvc-base.css" />
         <link rel="stylesheet" href="/todomvc-app.css" />
-        <link rel="stylesheet" href="/todomvc-pleris.css" />
         <section class="todoapp">
             <header class="header">
                 <h1>todos</h1>
