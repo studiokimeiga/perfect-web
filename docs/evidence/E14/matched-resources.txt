@@ -1,8 +1,8 @@
 ADR-0269 - a resource is held by what takes it apart
 
 produced by: just e14-matched-resources
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == taken apart (compiler/pw-core/tests/matched_resources.rs, let_discard.rs)
@@ -16,17 +16,17 @@ test a_resource_given_to_a_call_that_does_not_release_it_is_refused ... ok
 test a_resource_a_result_carries_is_held_with_a_question_mark ... ok
 test a_result_discarded_by_let_is_handled ... ok
 test a_resources_acquire_clause_holds_its_value ... ok
-test a_declaration_gives_its_caller_what_it_declares ... ok
 test a_resource_kept_in_a_value_or_returned_by_a_function_value_is_refused ... ok
+test a_declaration_gives_its_caller_what_it_declares ... ok
 test an_affine_resource_discarded_is_refused_as_never_consumed ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.12s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.94s
 test a_carrying_binding_is_held_by_what_its_question_mark_takes_out ... ok
 test a_path_that_leaves_the_arm_before_ending_it_is_refused_where_it_leaves ... ok
 test a_carrying_binding_is_held_by_the_arm_that_takes_it_apart ... ok
 test an_option_is_taken_apart_as_a_result_is ... ok
-test an_arm_that_drops_the_acquisition_is_refused_where_it_drops_it ... ok
 test an_acquisition_matched_where_it_is_made_is_held_by_its_arm ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.32s
+test an_arm_that_drops_the_acquisition_is_refused_where_it_drops_it ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.63s
 
 == mutation controls (scripts/matched_resource_mutations.py)
 

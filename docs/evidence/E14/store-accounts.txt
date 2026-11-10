@@ -1,9 +1,10 @@
 Track store-accounts - a cart and an order a user's (milestone 1), delivery addresses (milestone 2), the owner's bug as acceptance (milestone 3)
 
 produced by: just e14-store-accounts
-commit: 9338dfadfa49b69e1a52313451306b102a2e0323
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
-postgres: 18.6 (Ubuntu 18.6-1.pgdg22.04+2)
+postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
 == the compiler: `user`, and a record's scope its producers' joined
 
@@ -11,29 +12,29 @@ test user_opens_a_declaration_of_each_kind_and_lowers_as_its_visibility ... ok
 test a_name_user_is_still_a_name ... ok
 test a_user_query_is_imported_and_read_on_a_user_page ... ok
 test a_user_querys_record_is_the_users_and_no_other_manifest_holds_it ... ok
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
-test a_handler_that_captures_nothing_is_not_a_boundary_question ... ok
-test the_same_value_in_a_public_region_is_still_refused ... ok
-test a_session_scoped_region_may_resume_a_session_scoped_value ... ok
-test naming_the_principal_is_the_repair_and_it_works ... ok
-test a_capture_with_no_nameable_type_is_its_own_verdict ... ok
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.47s
 test a_public_value_crosses_into_a_region_whose_scope_is_unstated ... ok
+test a_handler_that_captures_nothing_is_not_a_boundary_question ... ok
+test a_capture_with_no_nameable_type_is_its_own_verdict ... ok
 test a_private_region_that_names_no_principal_is_blocked_rather_than_guessed ... ok
-test a_user_querys_record_is_its_users_and_no_public_manifest_holds_it ... ok
+test a_session_scoped_region_may_resume_a_session_scoped_value ... ok
 test a_resource_capture_is_refused_and_a_key_capture_is_not ... ok
 test a_scoped_producer_makes_its_type_private_and_an_unscoped_one_does_not ... ok
+test naming_the_principal_is_the_repair_and_it_works ... ok
+test a_user_querys_record_is_its_users_and_no_public_manifest_holds_it ... ok
+test the_same_value_in_a_public_region_is_still_refused ... ok
 test a_record_a_sessions_and_a_users_query_both_produce_holds_both_scopes ... ok
 test the_resume_capture_verdicts_the_corpus_carries ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.64s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.32s
 test boundary::tests::a_resource_cannot_cross_either_boundary ... ok
 test boundary::tests::a_resource_is_reported_as_a_resource_even_when_it_is_also_private ... ok
-test boundary::tests::an_undetermined_schema_is_blocked_and_not_permitted ... ok
-test boundary::tests::an_unknown_destination_blocks_a_restricted_value_and_not_a_public_one ... ok
 test boundary::tests::a_scope_from_the_producer_counts_even_when_the_label_is_public ... ok
-test boundary::tests::disagreeing_producers_scopes_are_joined_and_refuse_what_either_alone_would ... ok
+test boundary::tests::an_unknown_destination_blocks_a_restricted_value_and_not_a_public_one ... ok
+test boundary::tests::an_undetermined_schema_is_blocked_and_not_permitted ... ok
 test boundary::tests::public_flows_into_a_restricted_destination_at_both_boundaries ... ok
-test boundary::tests::remote_session_a_into_session_b_is_refused ... ok
 test boundary::tests::remote_session_a_into_session_a_is_allowed ... ok
+test boundary::tests::disagreeing_producers_scopes_are_joined_and_refuse_what_either_alone_would ... ok
+test boundary::tests::remote_session_a_into_session_b_is_refused ... ok
 test boundary::tests::resume_session_a_into_public_is_refused ... ok
 test boundary::tests::resume_session_a_into_session_a_is_allowed ... ok
 test boundary::tests::the_label_and_the_producer_scope_are_joined_rather_than_chosen ... ok
@@ -51,104 +52,104 @@ corpus-check: OK
 
 test places::tests::a_store_delivers_within_its_radius_and_not_past_it ... ok
 test places::tests::each_place_is_one_and_in_the_bay_area ... ok
+test places::tests::the_distance_is_the_great_circle_one ... ok
 test places::tests::travel_is_four_minutes_a_kilometre_rounded_up ... ok
 test store::joins::a_guests_lines_are_summed_into_the_users_or_appended ... ok
-test places::tests::the_distance_is_the_great_circle_one ... ok
 test store::joins::a_sum_past_a_bigint_is_refused_and_nothing_moves ... ok
-test tests::sign_in::a_callback_another_browser_started_is_refused ... ok
-test tests::sign_in::a_page_holds_its_announcer_from_the_first_byte ... ok
-test tests::notifications::an_event_naming_a_user_drops_that_users_entries_alone ... ok
-test tests::sign_in::a_fresh_sessions_cookie_is_http_only_and_unguessable ... ok
-test tests::sign_in::a_control_is_shown_where_its_commands_predicate_holds ... ok
-test tests::sign_in::a_documents_answers_are_its_own_for_its_life ... ok
-test tests::sign_in::a_post_and_a_reply_are_their_signed_in_authors ... ok
-test tests::sign_in::a_command_from_another_origin_is_refused ... ok
-test tests::sign_in::an_answer_is_read_by_the_compilers_name_for_it ... ok
-test tests::notifications::another_users_session_sees_none_of_it ... ok
-test tests::notifications::ones_own_act_notifies_no_one ... ok
-test tests::notifications::on_postgres_an_event_naming_a_user_drops_that_users_entries_alone ... ok
-test tests::notifications::a_like_a_reply_and_a_follow_each_tell_the_user_they_involve ... ok
-test tests::notifications::reading_them_tells_no_other_users_page ... ok
-test tests::notifications::a_like_reaches_each_of_its_users_open_pages ... ok
-test tests::notifications::on_postgres_another_users_session_sees_none_of_it ... ok
-test tests::notifications::on_postgres_ones_own_act_notifies_no_one ... ok
-test tests::notifications::a_deleted_posts_notifications_go_with_it ... ok
-test tests::notifications::on_postgres_a_like_reaches_each_of_its_users_open_pages ... ok
-test tests::notifications::on_postgres_reading_them_tells_no_other_users_page ... ok
-test tests::notifications::on_postgres_a_like_a_reply_and_a_follow_each_tell_the_user_they_involve ... ok
-test tests::notifications::reading_them_reaches_each_of_the_readers_sessions ... ok
-test tests::notifications::on_postgres_a_deleted_posts_notifications_go_with_it ... ok
-test tests::sign_in::a_predicate_the_deployment_cannot_evaluate_is_refused_at_start ... ok
-test tests::sign_in::a_sign_in_rotates_the_session_and_the_old_one_is_no_one ... ok
-test tests::notifications::on_postgres_reading_them_reaches_each_of_the_readers_sessions ... ok
-test tests::sign_in::a_refused_press_sent_again_is_refused_again ... ok
-test tests::sign_in::a_signed_out_reader_reads_and_cannot_post ... ok
-test tests::sign_in::a_session_is_no_one_until_a_provider_vouches_for_it ... ok
-test tests::sign_in::a_refusal_says_the_programs_words_for_its_predicate ... ok
-test tests::sign_in::each_feed_operation_answers_its_requests_session_alone ... ok
-test tests::sign_in::nothing_the_feed_keeps_holds_a_session_cookie ... ok
-test tests::store_accounts::a_signed_in_sessions_cart_is_not_joined_to_the_next_user ... ok
-test tests::store_accounts::a_session_keyed_carts_change_reaches_no_other_session ... ok
-test tests::sign_in::a_refusal_the_program_gives_no_words_is_told_in_the_deployments ... ok
-test tests::sign_in::only_its_author_deletes_a_post ... ok
-test tests::store_accounts::nothing_a_session_keyed_store_keeps_holds_a_session_cookie ... ok
-test tests::sign_in::signing_out_forgets_the_principal ... ok
-test tests::sign_in::the_relying_party_answers_the_routes_the_compiler_knows ... ok
-test tests::sign_in::on_postgres::a_post_on_postgres_is_its_signed_in_authors ... ok
-test tests::sign_in::on_postgres::each_feed_operation_answers_its_requests_session_alone_on_postgres ... ok
-test tests::sign_in::the_guest_models_reader_is_its_sessions_guest ... ok
-test tests::sign_in::on_postgres::nothing_kept_on_postgres_holds_a_session_cookie ... ok
-test tests::sign_in::on_postgres::a_delete_on_postgres_is_its_authors_alone ... ok
-test tests::sign_in::the_development_provider_signs_up_and_in_through_the_flow ... ok
-test tests::sign_in::two_users_pages_never_share_private_parts ... ok
-test tests::sign_in::a_token_not_this_sign_ins_is_refused ... ok
-test tests::addresses::the_places_are_the_fixed_tables ... ok
-test tests::store_accounts::a_join_past_a_bigint_is_refused_and_the_sign_in_completes ... ok
 test tests::addresses::a_readers_addresses_are_theirs_to_add_rename_remove_and_choose ... ok
 test tests::addresses::a_reader_keeps_at_most_ten_addresses ... ok
-test tests::store_accounts::a_stale_press_is_refused_before_the_order_waits ... ok
-test tests::store_accounts::a_guests_cart_follows_them_in ... ok
-test tests::store_accounts::an_order_is_no_other_users_to_read ... ok
 test tests::a_sessions_own_change_reaches_no_other_session ... ok
-test tests::store_accounts::a_shared_entry_still_reaches_every_reader ... ok
-test tests::store_accounts::two_users_carts_never_share_a_line ... ok
-test tests::addresses::an_address_saved_reaches_the_users_other_sessions_and_no_one_elses ... ok
-test tests::store_accounts::a_users_cart_reaches_each_of_their_sessions_and_no_one_elses ... ok
-test tests::store_accounts::a_retry_of_a_press_that_committed_is_answered_from_what_was_kept ... ok
-test tests::store_accounts::a_command_is_answered_for_the_reader_its_page_was_shown_to ... ok
 test tests::addresses::a_store_out_of_reach_says_so_and_refuses_the_add_and_the_order ... ok
+test tests::addresses::an_address_saved_reaches_the_users_other_sessions_and_no_one_elses ... ok
+test tests::addresses::the_places_are_the_fixed_tables ... ok
 test tests::addresses::the_estimate_gains_the_travel_to_the_chosen_address ... ok
+test tests::notifications::a_like_a_reply_and_a_follow_each_tell_the_user_they_involve ... ok
+test tests::notifications::a_deleted_posts_notifications_go_with_it ... ok
+test tests::notifications::a_like_reaches_each_of_its_users_open_pages ... ok
+test tests::notifications::an_event_naming_a_user_drops_that_users_entries_alone ... ok
+test tests::notifications::another_users_session_sees_none_of_it ... ok
+test tests::notifications::on_postgres_a_deleted_posts_notifications_go_with_it ... ok
+test tests::notifications::on_postgres_a_like_a_reply_and_a_follow_each_tell_the_user_they_involve ... ok
+test tests::notifications::on_postgres_an_event_naming_a_user_drops_that_users_entries_alone ... ok
+test tests::notifications::on_postgres_a_like_reaches_each_of_its_users_open_pages ... ok
 test tests::addresses::the_page_the_estimate_and_the_commands_read_one_rule ... ok
-test result: ok. 70 passed; 0 failed; 0 ignored; 0 measured; 961 filtered out; finished in 16.87s
+test tests::notifications::on_postgres_another_users_session_sees_none_of_it ... ok
+test tests::notifications::on_postgres_ones_own_act_notifies_no_one ... ok
+test tests::notifications::on_postgres_reading_them_reaches_each_of_the_readers_sessions ... ok
+test tests::notifications::ones_own_act_notifies_no_one ... ok
+test tests::notifications::on_postgres_reading_them_tells_no_other_users_page ... ok
+test tests::notifications::reading_them_reaches_each_of_the_readers_sessions ... ok
+test tests::notifications::reading_them_tells_no_other_users_page ... ok
+test tests::sign_in::a_callback_another_browser_started_is_refused ... ok
+test tests::sign_in::a_command_from_another_origin_is_refused ... ok
+test tests::sign_in::a_control_is_shown_where_its_commands_predicate_holds ... ok
+test tests::sign_in::a_documents_answers_are_its_own_for_its_life ... ok
+test tests::sign_in::a_fresh_sessions_cookie_is_http_only_and_unguessable ... ok
+test tests::sign_in::a_page_holds_its_announcer_from_the_first_byte ... ok
+test tests::sign_in::a_post_and_a_reply_are_their_signed_in_authors ... ok
+test tests::sign_in::a_refusal_says_the_programs_words_for_its_predicate ... ok
+test tests::sign_in::a_refusal_the_program_gives_no_words_is_told_in_the_deployments ... ok
+test tests::sign_in::a_refused_press_sent_again_is_refused_again ... ok
+test tests::sign_in::a_predicate_the_deployment_cannot_evaluate_is_refused_at_start ... ok
+test tests::sign_in::a_session_is_no_one_until_a_provider_vouches_for_it ... ok
+test tests::sign_in::an_answer_is_read_by_the_compilers_name_for_it ... ok
+test tests::sign_in::a_sign_in_rotates_the_session_and_the_old_one_is_no_one ... ok
+test tests::sign_in::a_signed_out_reader_reads_and_cannot_post ... ok
+test tests::sign_in::each_feed_operation_answers_its_requests_session_alone ... ok
+test tests::sign_in::nothing_the_feed_keeps_holds_a_session_cookie ... ok
+test tests::sign_in::on_postgres::a_delete_on_postgres_is_its_authors_alone ... ok
+test tests::sign_in::on_postgres::a_post_on_postgres_is_its_signed_in_authors ... ok
+test tests::sign_in::on_postgres::each_feed_operation_answers_its_requests_session_alone_on_postgres ... ok
+test tests::sign_in::only_its_author_deletes_a_post ... ok
+test tests::sign_in::on_postgres::nothing_kept_on_postgres_holds_a_session_cookie ... ok
+test tests::sign_in::signing_out_forgets_the_principal ... ok
+test tests::sign_in::a_token_not_this_sign_ins_is_refused ... ok
+test tests::sign_in::the_guest_models_reader_is_its_sessions_guest ... ok
+test tests::sign_in::the_relying_party_answers_the_routes_the_compiler_knows ... ok
+test tests::sign_in::the_development_provider_signs_up_and_in_through_the_flow ... ok
+test tests::sign_in::two_users_pages_never_share_private_parts ... ok
+test tests::store_accounts::a_command_is_answered_for_the_reader_its_page_was_shown_to ... ok
+test tests::store_accounts::a_guests_cart_follows_them_in ... ok
+test tests::store_accounts::a_session_keyed_carts_change_reaches_no_other_session ... ok
+test tests::store_accounts::a_signed_in_sessions_cart_is_not_joined_to_the_next_user ... ok
+test tests::store_accounts::a_join_past_a_bigint_is_refused_and_the_sign_in_completes ... ok
+test tests::store_accounts::a_retry_of_a_press_that_committed_is_answered_from_what_was_kept ... ok
+test tests::store_accounts::a_shared_entry_still_reaches_every_reader ... ok
+test tests::store_accounts::nothing_a_session_keyed_store_keeps_holds_a_session_cookie ... ok
+test tests::store_accounts::a_stale_press_is_refused_before_the_order_waits ... ok
+test tests::store_accounts::a_users_cart_reaches_each_of_their_sessions_and_no_one_elses ... ok
+test tests::store_accounts::an_order_is_no_other_users_to_read ... ok
+test tests::store_accounts::two_users_carts_never_share_a_line ... ok
+test result: ok. 70 passed; 0 failed; 0 ignored; 0 measured; 964 filtered out; finished in 63.42s
 
 == the server, the store on PostgreSQL (PW_STORE_TEST_LAYER=postgres)
 
 test store::joins::a_guests_lines_are_summed_into_the_users_or_appended ... ok
 test store::joins::a_sum_past_a_bigint_is_refused_and_nothing_moves ... ok
-test tests::store_accounts::nothing_a_session_keyed_store_keeps_holds_a_session_cookie ... ok
+test tests::addresses::a_readers_addresses_are_theirs_to_add_rename_remove_and_choose ... ok
+test tests::addresses::a_reader_keeps_at_most_ten_addresses ... ok
+test tests::addresses::an_address_saved_reaches_the_users_other_sessions_and_no_one_elses ... ok
+test tests::addresses::a_store_out_of_reach_says_so_and_refuses_the_add_and_the_order ... ok
+test tests::addresses::the_places_are_the_fixed_tables ... ok
+test tests::store_accounts::a_command_is_answered_for_the_reader_its_page_was_shown_to ... ok
+test tests::addresses::the_estimate_gains_the_travel_to_the_chosen_address ... ok
+test tests::store_accounts::a_join_past_a_bigint_is_refused_and_the_sign_in_completes ... ok
+test tests::store_accounts::a_guests_cart_follows_them_in ... ok
 test tests::store_accounts::a_session_keyed_carts_change_reaches_no_other_session ... ok
 test tests::store_accounts::a_signed_in_sessions_cart_is_not_joined_to_the_next_user ... ok
-test tests::store_accounts::a_shared_entry_still_reaches_every_reader ... ok
-test tests::store_accounts::a_command_is_answered_for_the_reader_its_page_was_shown_to ... ok
-test tests::store_accounts::a_stale_press_is_refused_before_the_order_waits ... ok
 test tests::store_accounts::a_retry_of_a_press_that_committed_is_answered_from_what_was_kept ... ok
-test tests::addresses::a_store_out_of_reach_says_so_and_refuses_the_add_and_the_order ... ok
-test tests::store_accounts::two_users_carts_never_share_a_line ... ok
-test tests::store_accounts::a_users_cart_reaches_each_of_their_sessions_and_no_one_elses ... ok
-test tests::addresses::an_address_saved_reaches_the_users_other_sessions_and_no_one_elses ... ok
-test tests::store_accounts::a_join_past_a_bigint_is_refused_and_the_sign_in_completes ... ok
-test tests::addresses::a_reader_keeps_at_most_ten_addresses ... ok
-test tests::store_accounts::a_guests_cart_follows_them_in ... ok
-test tests::addresses::the_places_are_the_fixed_tables ... ok
-test tests::store_accounts::an_order_is_no_other_users_to_read ... ok
-test tests::addresses::a_readers_addresses_are_theirs_to_add_rename_remove_and_choose ... ok
-test tests::addresses::the_estimate_gains_the_travel_to_the_chosen_address ... ok
 test tests::addresses::the_page_the_estimate_and_the_commands_read_one_rule ... ok
-test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 1010 filtered out; finished in 15.88s
+test tests::store_accounts::a_shared_entry_still_reaches_every_reader ... ok
+test tests::store_accounts::nothing_a_session_keyed_store_keeps_holds_a_session_cookie ... ok
+test tests::store_accounts::a_stale_press_is_refused_before_the_order_waits ... ok
+test tests::store_accounts::a_users_cart_reaches_each_of_their_sessions_and_no_one_elses ... ok
+test tests::store_accounts::an_order_is_no_other_users_to_read ... ok
+test tests::store_accounts::two_users_carts_never_share_a_line ... ok
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 1013 filtered out; finished in 36.35s
 
 == the store's customer side in three engines (e2e/store-accounts.spec.mjs)
 
-  21 passed (28.7s)
+  21 passed (1.2m)
 
 == mutation controls (scripts/store_accounts_mutations.py)
 

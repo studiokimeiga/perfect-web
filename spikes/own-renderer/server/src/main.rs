@@ -944,7 +944,7 @@ mod store;
 // TRACK SEAM (store-accounts): where a delivery goes, and whether a store
 // reaches it.
 mod places;
-// The prerender's ADR: a page no reader decides, as one document.
+// ADR-0409: a page no reader decides, as one document.
 mod prerender;
 // Track `store-pg`: the store's data in PostgreSQL.
 mod store_pg;
@@ -18453,7 +18453,7 @@ public query Store(",
     mod session_commands_pg;
     // ADR-0401: a connection kept for its next request.
     mod keep_alive;
-    // The prerender's ADR: a page no reader decides is one document.
+    // ADR-0409: a page no reader decides is one document.
     mod prerender;
     // ADR-0389, amended 2026-11-02: overlapping admissions of one session.
     mod session_overlap;

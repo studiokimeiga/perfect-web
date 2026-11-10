@@ -1,14 +1,14 @@
 ADR-0114 - what is built before any request reads no request's value
 
 produced by: just e10-built-pages
-commit: 320c52a44840a80423609ab476eb847c04de34a6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39442025240 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == built pages (compiler/pw-core/tests/built_pages.rs)
 
 test a_built_page_reads_no_parameter ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.81s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
 
 == mutation controls (scripts/built_page_mutations.py)
 

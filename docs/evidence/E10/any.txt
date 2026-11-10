@@ -1,15 +1,15 @@
 ADR-0065 - a value that holds at every type
 
 produced by: just e10-any
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == None, [], Err, todo, a free parameter, a let mut (compiler/pw-core/tests/any_type.rs)
 
 test a_case_passed_as_a_function_keeps_its_link ... ok
-test a_failure_is_a_result_of_any_success ... ok
 test a_generic_case_nothing_fixes_is_any_instance ... ok
+test a_failure_is_a_result_of_any_success ... ok
 test a_mutable_binding_is_one_type ... ok
 test a_seed_its_context_does_not_type_is_built_at_the_folds_type ... ok
 test an_early_return_is_any_success ... ok
@@ -19,7 +19,7 @@ test a_folds_accumulator_is_what_its_function_builds ... ok
 test todo_is_any_value ... ok
 test none_is_an_option_of_anything ... ok
 test an_empty_list_is_a_list_of_anything ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.29s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
 
 == what the value relations decide: the store program
 
@@ -30,7 +30,7 @@ test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
   Return      agree                            408
   Return      undecided: Unknown               1
   Binding     agree                            25
-  Annotation  agree                            1308
+  Annotation  agree                            1312
   Operand     agree                            484
   Assignment  agree                            73
   Member      agree                            557
@@ -54,7 +54,7 @@ test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
   Return      agree                            100
   Return      undecided: Unknown               1
   Binding     agree                            1
-  Annotation  agree                            473
+  Annotation  agree                            477
   Operand     agree                            221
   Assignment  agree                            1
   Member      agree                            126
@@ -78,7 +78,7 @@ test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
   Return      undecided: Unknown               1
   Binding     agree                            3
   Binding     undecided: Unknown               3
-  Annotation  agree                            965
+  Annotation  agree                            969
   Operand     agree                            248
   Operand     undecided: Unknown               3
   Assignment  agree                            5

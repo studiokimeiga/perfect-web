@@ -1,8 +1,8 @@
 ADR-0042 - template branches and interpolated attributes
 
 produced by: just e10-templates
-commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker and the IR (compiler/pw-core/tests/template_blocks.rs)
@@ -19,7 +19,7 @@ test an_unclosed_block_is_refused ... ok
 test else_if_nests_a_conditional_in_the_otherwise_branch ... ok
 test else_is_the_other_branch_not_more_of_the_first ... ok
 test match_takes_an_option_apart_with_its_payload_bound ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.76s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.62s
 
 == the renderer (runtime/pw-render/tests/branches.rs)
 
@@ -46,8 +46,8 @@ test a_secret_in_an_attributes_hole_is_refused_as_one_in_its_value_is ... ok
 test a_malformed_block_is_refused ... FAILED
 test an_attribute_with_holes_is_text_and_values_in_its_context ... ok
 test a_well_formed_page_has_no_diagnostic ... FAILED
-test an_unclosed_block_is_refused ... ok
 test an_arms_binding_has_its_payloads_type ... FAILED
+test an_unclosed_block_is_refused ... ok
 test else_if_nests_a_conditional_in_the_otherwise_branch ... FAILED
 test else_is_the_other_branch_not_more_of_the_first ... FAILED
 test match_takes_an_option_apart_with_its_payload_bound ... FAILED
@@ -56,49 +56,49 @@ failures:
 
 ---- a_template_match_over_a_declared_type_is_checked_as_any_match stdout ----
 
-thread 'a_template_match_over_a_declared_type_is_checked_as_any_match' (13918) panicked at compiler/pw-core/tests/template_blocks.rs:387:9:
+thread 'a_template_match_over_a_declared_type_is_checked_as_any_match' (54245) panicked at compiler/pw-core/tests/template_blocks.rs:387:9:
 {#match f}{:Rect(w, h)}<p>x</p>{:Nothing}<p>-</p>{/match}: expected PW0305 saying "does not cover `Dot`", got [Diagnostic { code: "PW5019", invariant: "a template block closes with its own name and holds only the markers it takes", reason: "malformed_template_block", detector: DeclarationRule, severity: Error, message: "a `{#match}` holds only its arms: nothing may come before the first", primary_span: 159..216, related: [Related { span: 113..240, label: "`P` renders this", file: None, unit: None }], explanation: Some("A block's markers decide what renders. A marker the block does not take is not ignored safely: an `if` whose `{:else}` were dropped would render both of its branches at once."), repairs: [] }, Diagnostic { code: "PW0305", invariant: "a match must cover every value its scrutinee can take", reason: "non_exhaustive_match", detector: PatternMatrix, severity: Error, message: "`{#match f}` does not cover `Rect` or `Dot` or `Nothing`", primary_span: 159..216, related: [Related { span: 113..240, label: "`P` renders this", file: None, unit: None }], explanation: Some("A template match is exhaustive, as every match is (ADR-0011): an arm that renders nothing is written, not implied."), repairs: [Repair { description: "add a `{:Rect}` arm", replacement: None }, Repair { description: "add a `{:Dot}` arm", replacement: None }, Repair { description: "add a `{:Nothing}` arm", replacement: None }] }]
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_declared_sum_type_is_taken_apart_in_a_template stdout ----
 
-thread 'a_declared_sum_type_is_taken_apart_in_a_template' (13915) panicked at compiler/pw-core/tests/template_blocks.rs:344:5:
+thread 'a_declared_sum_type_is_taken_apart_in_a_template' (54242) panicked at compiler/pw-core/tests/template_blocks.rs:344:5:
 [Diagnostic { code: "PW5019", invariant: "a template block closes with its own name and holds only the markers it takes", reason: "malformed_template_block", detector: DeclarationRule, severity: Error, message: "a `{#match}` holds only its arms: nothing may come before the first", primary_span: 153..205, related: [Related { span: 108..229, label: "`P` renders this", file: None, unit: None }], explanation: Some("A block's markers decide what renders. A marker the block does not take is not ignored safely: an `if` whose `{:else}` were dropped would render both of its branches at once."), repairs: [] }, Diagnostic { code: "PW0305", invariant: "a match must cover every value its scrutinee can take", reason: "non_exhaustive_match", detector: PatternMatrix, severity: Error, message: "`{#match s}` does not cover `Circle` or `Square`", primary_span: 153..205, related: [Related { span: 108..229, label: "`P` renders this", file: None, unit: None }], explanation: Some("A template match is exhaustive, as every match is (ADR-0011): an arm that renders nothing is written, not implied."), repairs: [Repair { description: "add a `{:Circle}` arm", replacement: None }, Repair { description: "add a `{:Square}` arm", replacement: None }] }]
 
 ---- a_malformed_block_is_refused stdout ----
 
-thread 'a_malformed_block_is_refused' (13916) panicked at compiler/pw-core/tests/template_blocks.rs:320:9:
+thread 'a_malformed_block_is_refused' (54243) panicked at compiler/pw-core/tests/template_blocks.rs:320:9:
 {#if a}<p>A</p>{:else}<p>B</p>{:else}<p>C</p>{/if}: expected PW5019 saying "one `{:else}`, last", got []
 
 ---- a_well_formed_page_has_no_diagnostic stdout ----
 
-thread 'a_well_formed_page_has_no_diagnostic' (13920) panicked at compiler/pw-core/tests/template_blocks.rs:417:5:
+thread 'a_well_formed_page_has_no_diagnostic' (54247) panicked at compiler/pw-core/tests/template_blocks.rs:417:5:
 [Diagnostic { code: "PW5019", invariant: "a template block closes with its own name and holds only the markers it takes", reason: "malformed_template_block", detector: DeclarationRule, severity: Error, message: "a `{#match}` holds only its arms: nothing may come before the first", primary_span: 254..335, related: [Related { span: 108..454, label: "`P` renders this", file: None, unit: None }], explanation: Some("A block's markers decide what renders. A marker the block does not take is not ignored safely: an `if` whose `{:else}` were dropped would render both of its branches at once."), repairs: [] }, Diagnostic { code: "PW0305", invariant: "a match must cover every value its scrutinee can take", reason: "non_exhaustive_match", detector: PatternMatrix, severity: Error, message: "`{#match found}` does not cover `Some` or `None`", primary_span: 254..335, related: [Related { span: 108..454, label: "`P` renders this", file: None, unit: None }], explanation: Some("A template match is exhaustive, as every match is (ADR-0011): an arm that renders nothing is written, not implied."), repairs: [Repair { description: "add a `{:Some}` arm", replacement: None }, Repair { description: "add a `{:None}` arm", replacement: None }] }, Diagnostic { code: "PW0021", invariant: "an imported name must be declared by the module it comes from", reason: "unresolved_name", detector: DeclarationRule, severity: Error, message: "`h` does not resolve", primary_span: 289..290, related: [Related { span: 108..454, label: "used inside `P`", file: None, unit: None }], explanation: Some("Nothing in scope here is called `h`: no parameter, no `let` or pattern before this use, no declaration of this module, and no import. A name must come from lexical scope, the module, or an explicit import."), repairs: [Repair { description: "bind `h` before this use, declare it, or import it", replacement: None }] }, Diagnostic { code: "PW0021", invariant: "an imported name must be declared by the module it comes from", reason: "unresolved_name", detector: DeclarationRule, severity: Error, message: "`h` does not resolve", primary_span: 301..302, related: [Related { span: 108..454, label: "used inside `P`", file: None, unit: None }], explanation: Some("Nothing in scope here is called `h`: no parameter, no `let` or pattern before this use, no declaration of this module, and no import. A name must come from lexical scope, the module, or an explicit import."), repairs: [Repair { description: "bind `h` before this use, declare it, or import it", replacement: None }] }]
 
 ---- an_arms_binding_has_its_payloads_type stdout ----
 
-thread 'an_arms_binding_has_its_payloads_type' (13921) panicked at compiler/pw-core/tests/template_blocks.rs:428:5:
+thread 'an_arms_binding_has_its_payloads_type' (54248) panicked at compiler/pw-core/tests/template_blocks.rs:428:5:
 assertion `left == right` failed: [Diagnostic { code: "PW5019", invariant: "a template block closes with its own name and holds only the markers it takes", reason: "malformed_template_block", detector: DeclarationRule, severity: Error, message: "a `{#match}` holds only its arms: nothing may come before the first", primary_span: 171..246, related: [Related { span: 108..270, label: "`P` renders this", file: None, unit: None }], explanation: Some("A block's markers decide what renders. A marker the block does not take is not ignored safely: an `if` whose `{:else}` were dropped would render both of its branches at once."), repairs: [] }, Diagnostic { code: "PW0305", invariant: "a match must cover every value its scrutinee can take", reason: "non_exhaustive_match", detector: PatternMatrix, severity: Error, message: "`{#match found}` does not cover `Some` or `None`", primary_span: 171..246, related: [Related { span: 108..270, label: "`P` renders this", file: None, unit: None }], explanation: Some("A template match is exhaustive, as every match is (ADR-0011): an arm that renders nothing is written, not implied."), repairs: [Repair { description: "add a `{:Some}` arm", replacement: None }, Repair { description: "add a `{:None}` arm", replacement: None }] }, Diagnostic { code: "PW0021", invariant: "an imported name must be declared by the module it comes from", reason: "unresolved_name", detector: DeclarationRule, severity: Error, message: "`inner` does not resolve", primary_span: 204..209, related: [Related { span: 108..270, label: "used inside `P`", file: None, unit: None }], explanation: Some("Nothing in scope here is called `inner`: no parameter, no `let` or pattern before this use, no declaration of this module, and no import. A name must come from lexical scope, the module, or an explicit import."), repairs: [Repair { description: "bind `inner` before this use, declare it, or import it", replacement: None }] }]
   left: ["PW5019", "PW0305", "PW0021"]
  right: ["PW0600"]
 
 ---- else_if_nests_a_conditional_in_the_otherwise_branch stdout ----
 
-thread 'else_if_nests_a_conditional_in_the_otherwise_branch' (13924) panicked at compiler/pw-core/tests/template_blocks.rs:126:5:
+thread 'else_if_nests_a_conditional_in_the_otherwise_branch' (54251) panicked at compiler/pw-core/tests/template_blocks.rs:126:5:
 assertion `left == right` failed
   left: 1
  right: 2
 
 ---- else_is_the_other_branch_not_more_of_the_first stdout ----
 
-thread 'else_is_the_other_branch_not_more_of_the_first' (13925) panicked at compiler/pw-core/tests/template_blocks.rs:112:5:
+thread 'else_is_the_other_branch_not_more_of_the_first' (54252) panicked at compiler/pw-core/tests/template_blocks.rs:112:5:
 assertion `left == right` failed
   left: "<p>Welcome back</p><p>Please sign in</p>"
  right: "<p>Welcome back</p>"
 
 ---- match_takes_an_option_apart_with_its_payload_bound stdout ----
 
-thread 'match_takes_an_option_apart_with_its_payload_bound' (13926) panicked at compiler/pw-core/tests/template_blocks.rs:143:5:
+thread 'match_takes_an_option_apart_with_its_payload_bound' (54253) panicked at compiler/pw-core/tests/template_blocks.rs:143:5:
 [Diagnostic { code: "PW5019", invariant: "a template block closes with its own name and holds only the markers it takes", reason: "malformed_template_block", detector: DeclarationRule, severity: Error, message: "a `{#match}` holds only its arms: nothing may come before the first", primary_span: 163..234, related: [Related { span: 108..258, label: "`P` renders this", file: None, unit: None }], explanation: Some("A block's markers decide what renders. A marker the block does not take is not ignored safely: an `if` whose `{:else}` were dropped would render both of its branches at once."), repairs: [] }, Diagnostic { code: "PW0305", invariant: "a match must cover every value its scrutinee can take", reason: "non_exhaustive_match", detector: PatternMatrix, severity: Error, message: "`{#match found}` does not cover `Some` or `None`", primary_span: 163..234, related: [Related { span: 108..258, label: "`P` renders this", file: None, unit: None }], explanation: Some("A template match is exhaustive, as every match is (ADR-0011): an arm that renders nothing is written, not implied."), repairs: [Repair { description: "add a `{:Some}` arm", replacement: None }, Repair { description: "add a `{:None}` arm", replacement: None }] }, Diagnostic { code: "PW0021", invariant: "an imported name must be declared by the module it comes from", reason: "unresolved_name", detector: DeclarationRule, severity: Error, message: "`h` does not resolve", primary_span: 192..193, related: [Related { span: 108..258, label: "used inside `P`", file: None, unit: None }], explanation: Some("Nothing in scope here is called `h`: no parameter, no `let` or pattern before this use, no declaration of this module, and no import. A name must come from lexical scope, the module, or an explicit import."), repairs: [Repair { description: "bind `h` before this use, declare it, or import it", replacement: None }] }]
 
 
@@ -136,14 +136,14 @@ failures:
 
 ---- a_secret_in_an_attributes_hole_is_refused_as_one_in_its_value_is stdout ----
 
-thread 'a_secret_in_an_attributes_hole_is_refused_as_one_in_its_value_is' (14344) panicked at compiler/pw-core/tests/template_blocks.rs:222:5:
+thread 'a_secret_in_an_attributes_hole_is_refused_as_one_in_its_value_is' (54669) panicked at compiler/pw-core/tests/template_blocks.rs:222:5:
 []
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- an_attribute_with_holes_is_text_and_values_in_its_context stdout ----
 
-thread 'an_attribute_with_holes_is_text_and_values_in_its_context' (14349) panicked at compiler/pw-core/tests/template_blocks.rs:171:5:
-assertion `left == right` failed: the href and class retain their holes: [{"chunk":"static","value":"<main>\n<a"},{"chunk":"dynamic","value":{"at":"href=\"/words/{hit.target}\"","part":"blocked","reason":"`href` has a `{` that opens no expression"}},{"chunk":"dynamic","value":{"at":"class=\"hit {hit.word}\"","part":"blocked","reason":"`class` has a `{` that opens no expression"}},{"chunk":"static","value":">"},{"chunk":"dynamic","value":{"context":"text","id":0,"part":"text","value":"hit.word"}},{"chunk":"static","value":"</a>\n        </main>"}]
+thread 'an_attribute_with_holes_is_text_and_values_in_its_context' (54674) panicked at compiler/pw-core/tests/template_blocks.rs:171:5:
+assertion `left == right` failed: the href and class retain their holes: [{"chunk":"static","value":"<main> <a"},{"chunk":"dynamic","value":{"at":"href=\"/words/{hit.target}\"","part":"blocked","reason":"`href` has a `{` that opens no expression"}},{"chunk":"dynamic","value":{"at":"class=\"hit {hit.word}\"","part":"blocked","reason":"`class` has a `{` that opens no expression"}},{"chunk":"static","value":">"},{"chunk":"dynamic","value":{"context":"text","id":0,"part":"text","value":"hit.word"}},{"chunk":"static","value":"</a> </main>"}]
   left: 0
  right: 2
 
@@ -152,7 +152,7 @@ failures:
     a_secret_in_an_attributes_hole_is_refused_as_one_in_its_value_is
     an_attribute_with_holes_is_text_and_values_in_its_context
 
-test result: FAILED. 10 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.98s
+test result: FAILED. 10 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.93s
 
 error: test failed, to rerun pass `-p pw-core --test template_blocks`
 
@@ -168,15 +168,15 @@ test an_attribute_with_holes_is_text_and_values_in_its_context ... ok
 test an_unclosed_block_is_refused ... ok
 test else_if_nests_a_conditional_in_the_otherwise_branch ... FAILED
 test an_arms_binding_has_its_payloads_type ... ok
-test match_takes_an_option_apart_with_its_payload_bound ... ok
 test else_is_the_other_branch_not_more_of_the_first ... FAILED
+test match_takes_an_option_apart_with_its_payload_bound ... ok
 test a_malformed_block_is_refused ... ok
 
 failures:
 
 ---- else_if_nests_a_conditional_in_the_otherwise_branch stdout ----
 
-thread 'else_if_nests_a_conditional_in_the_otherwise_branch' (14776) panicked at compiler/pw-core/tests/template_blocks.rs:132:5:
+thread 'else_if_nests_a_conditional_in_the_otherwise_branch' (55102) panicked at compiler/pw-core/tests/template_blocks.rs:132:5:
 assertion `left == right` failed
   left: ""
  right: "<p>C</p>"
@@ -184,7 +184,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- else_is_the_other_branch_not_more_of_the_first stdout ----
 
-thread 'else_is_the_other_branch_not_more_of_the_first' (14777) panicked at compiler/pw-core/tests/template_blocks.rs:113:5:
+thread 'else_is_the_other_branch_not_more_of_the_first' (55103) panicked at compiler/pw-core/tests/template_blocks.rs:113:5:
 assertion `left == right` failed
   left: ""
  right: "<p>Please sign in</p>"
@@ -194,7 +194,7 @@ failures:
     else_if_nests_a_conditional_in_the_otherwise_branch
     else_is_the_other_branch_not_more_of_the_first
 
-test result: FAILED. 10 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.01s
+test result: FAILED. 10 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.94s
 
 error: test failed, to rerun pass `-p pw-core --test template_blocks`
 
@@ -210,15 +210,15 @@ test an_attribute_with_holes_is_text_and_values_in_its_context ... ok
 test an_unclosed_block_is_refused ... ok
 test else_if_nests_a_conditional_in_the_otherwise_branch ... FAILED
 test an_arms_binding_has_its_payloads_type ... ok
-test else_is_the_other_branch_not_more_of_the_first ... ok
 test match_takes_an_option_apart_with_its_payload_bound ... ok
+test else_is_the_other_branch_not_more_of_the_first ... ok
 test a_malformed_block_is_refused ... ok
 
 failures:
 
 ---- else_if_nests_a_conditional_in_the_otherwise_branch stdout ----
 
-thread 'else_if_nests_a_conditional_in_the_otherwise_branch' (15202) panicked at compiler/pw-core/tests/template_blocks.rs:131:5:
+thread 'else_if_nests_a_conditional_in_the_otherwise_branch' (55527) panicked at compiler/pw-core/tests/template_blocks.rs:131:5:
 assertion `left == right` failed
   left: ""
  right: "<p>B</p>"
@@ -228,7 +228,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     else_if_nests_a_conditional_in_the_otherwise_branch
 
-test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.99s
+test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.93s
 
 error: test failed, to rerun pass `-p pw-core --test template_blocks`
 
@@ -236,15 +236,15 @@ error: test failed, to rerun pass `-p pw-core --test template_blocks`
 
 running 12 tests
 test a_secret_in_an_attributes_hole_is_refused_as_one_in_its_value_is ... ok
-test a_url_that_begins_with_a_value_or_a_style_with_holes_is_refused ... FAILED
 test a_declared_sum_type_is_taken_apart_in_a_template ... ok
+test a_url_that_begins_with_a_value_or_a_style_with_holes_is_refused ... FAILED
 test a_well_formed_page_has_no_diagnostic ... ok
 test a_template_match_over_a_declared_type_is_checked_as_any_match ... ok
 test an_attribute_with_holes_is_text_and_values_in_its_context ... ok
 test an_unclosed_block_is_refused ... ok
 test else_if_nests_a_conditional_in_the_otherwise_branch ... ok
-test else_is_the_other_branch_not_more_of_the_first ... ok
 test an_arms_binding_has_its_payloads_type ... ok
+test else_is_the_other_branch_not_more_of_the_first ... ok
 test match_takes_an_option_apart_with_its_payload_bound ... ok
 test a_malformed_block_is_refused ... ok
 
@@ -252,8 +252,8 @@ failures:
 
 ---- a_url_that_begins_with_a_value_or_a_style_with_holes_is_refused stdout ----
 
-thread 'a_url_that_begins_with_a_value_or_a_style_with_holes_is_refused' (15627) panicked at compiler/pw-core/tests/template_blocks.rs:199:9:
-assertion `left == right` failed: <a href="{hit.target}/x">x</a>: [{"chunk":"static","value":"<main>\n<a data-pw=\"0\" "},{"chunk":"dynamic","value":{"context":"url","id":0,"name":"href","owner":0,"part":"interpolated_attribute","segments":[{"segment":"value","value":"hit.target"},{"segment":"static","value":"/x"}]}},{"chunk":"static","value":">x</a>\n        </main>"}]
+thread 'a_url_that_begins_with_a_value_or_a_style_with_holes_is_refused' (55947) panicked at compiler/pw-core/tests/template_blocks.rs:199:9:
+assertion `left == right` failed: <a href="{hit.target}/x">x</a>: [{"chunk":"static","value":"<main> <a data-pw=\"0\" "},{"chunk":"dynamic","value":{"context":"url","id":0,"name":"href","owner":0,"part":"interpolated_attribute","segments":[{"segment":"value","value":"hit.target"},{"segment":"static","value":"/x"}]}},{"chunk":"static","value":">x</a> </main>"}]
   left: 0
  right: 1
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
@@ -262,7 +262,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_url_that_begins_with_a_value_or_a_style_with_holes_is_refused
 
-test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.02s
+test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.93s
 
 error: test failed, to rerun pass `-p pw-core --test template_blocks`
 
@@ -279,9 +279,9 @@ warning: unused variable: `closer`
 running 12 tests
 test a_malformed_block_is_refused ... FAILED
 test a_url_that_begins_with_a_value_or_a_style_with_holes_is_refused ... ok
-test a_well_formed_page_has_no_diagnostic ... ok
-test a_declared_sum_type_is_taken_apart_in_a_template ... ok
 test a_secret_in_an_attributes_hole_is_refused_as_one_in_its_value_is ... ok
+test a_declared_sum_type_is_taken_apart_in_a_template ... ok
+test a_well_formed_page_has_no_diagnostic ... ok
 test an_attribute_with_holes_is_text_and_values_in_its_context ... ok
 test an_unclosed_block_is_refused ... ok
 test a_template_match_over_a_declared_type_is_checked_as_any_match ... ok
@@ -294,7 +294,7 @@ failures:
 
 ---- a_malformed_block_is_refused stdout ----
 
-thread 'a_malformed_block_is_refused' (16054) panicked at compiler/pw-core/tests/template_blocks.rs:320:9:
+thread 'a_malformed_block_is_refused' (56375) panicked at compiler/pw-core/tests/template_blocks.rs:320:9:
 {#if a}<p>A</p>{/each}: expected PW5019 saying "closes with", got []
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -302,22 +302,22 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_malformed_block_is_refused
 
-test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
+test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
 
 error: test failed, to rerun pass `-p pw-core --test template_blocks`
 
 a block may close with another's name: KILLED (1 of 31 tests fail)
 
 running 12 tests
-test a_secret_in_an_attributes_hole_is_refused_as_one_in_its_value_is ... ok
 test a_malformed_block_is_refused ... FAILED
-test a_declared_sum_type_is_taken_apart_in_a_template ... ok
+test a_secret_in_an_attributes_hole_is_refused_as_one_in_its_value_is ... ok
 test a_url_that_begins_with_a_value_or_a_style_with_holes_is_refused ... ok
-test an_attribute_with_holes_is_text_and_values_in_its_context ... ok
+test a_declared_sum_type_is_taken_apart_in_a_template ... ok
 test a_well_formed_page_has_no_diagnostic ... ok
+test an_attribute_with_holes_is_text_and_values_in_its_context ... ok
+test a_template_match_over_a_declared_type_is_checked_as_any_match ... ok
 test an_unclosed_block_is_refused ... ok
 test else_if_nests_a_conditional_in_the_otherwise_branch ... ok
-test a_template_match_over_a_declared_type_is_checked_as_any_match ... ok
 test else_is_the_other_branch_not_more_of_the_first ... ok
 test match_takes_an_option_apart_with_its_payload_bound ... ok
 test an_arms_binding_has_its_payloads_type ... ok
@@ -326,7 +326,7 @@ failures:
 
 ---- a_malformed_block_is_refused stdout ----
 
-thread 'a_malformed_block_is_refused' (16497) panicked at compiler/pw-core/tests/template_blocks.rs:320:9:
+thread 'a_malformed_block_is_refused' (56800) panicked at compiler/pw-core/tests/template_blocks.rs:320:9:
 {#await a}<p>A</p>{/await}: expected PW5019 saying "is not a template block", got []
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -334,7 +334,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_malformed_block_is_refused
 
-test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
+test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
 
 error: test failed, to rerun pass `-p pw-core --test template_blocks`
 
@@ -363,16 +363,16 @@ test a_well_formed_page_has_no_diagnostic ... ok
 test a_template_match_over_a_declared_type_is_checked_as_any_match ... ok
 test an_attribute_with_holes_is_text_and_values_in_its_context ... ok
 test an_unclosed_block_is_refused ... ok
+test else_is_the_other_branch_not_more_of_the_first ... ok
 test else_if_nests_a_conditional_in_the_otherwise_branch ... ok
 test match_takes_an_option_apart_with_its_payload_bound ... ok
-test else_is_the_other_branch_not_more_of_the_first ... ok
 test an_arms_binding_has_its_payloads_type ... ok
 
 failures:
 
 ---- a_malformed_block_is_refused stdout ----
 
-thread 'a_malformed_block_is_refused' (16928) panicked at compiler/pw-core/tests/template_blocks.rs:320:9:
+thread 'a_malformed_block_is_refused' (57227) panicked at compiler/pw-core/tests/template_blocks.rs:320:9:
 {#if a}<p>A</p>{:else}<p>B</p>{:else}<p>C</p>{/if}: expected PW5019 saying "one `{:else}`, last", got []
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -380,7 +380,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_malformed_block_is_refused
 
-test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
+test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
 
 error: test failed, to rerun pass `-p pw-core --test template_blocks`
 
@@ -395,16 +395,16 @@ test a_template_match_over_a_declared_type_is_checked_as_any_match ... ok
 test an_attribute_with_holes_is_text_and_values_in_its_context ... ok
 test an_unclosed_block_is_refused ... ok
 test else_if_nests_a_conditional_in_the_otherwise_branch ... ok
+test a_malformed_block_is_refused ... FAILED
 test an_arms_binding_has_its_payloads_type ... ok
 test else_is_the_other_branch_not_more_of_the_first ... ok
-test a_malformed_block_is_refused ... FAILED
 test match_takes_an_option_apart_with_its_payload_bound ... ok
 
 failures:
 
 ---- a_malformed_block_is_refused stdout ----
 
-thread 'a_malformed_block_is_refused' (17354) panicked at compiler/pw-core/tests/template_blocks.rs:320:9:
+thread 'a_malformed_block_is_refused' (57652) panicked at compiler/pw-core/tests/template_blocks.rs:320:9:
 {#each hits as h (h.target)}<p>{h.word}</p>{:else}<p>none</p>{/each}: expected PW5019 saying "takes no", got []
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -412,7 +412,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_malformed_block_is_refused
 
-test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
+test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
 
 error: test failed, to rerun pass `-p pw-core --test template_blocks`
 
@@ -426,8 +426,8 @@ test a_declared_sum_type_is_taken_apart_in_a_template ... ok
 test a_well_formed_page_has_no_diagnostic ... ok
 test an_attribute_with_holes_is_text_and_values_in_its_context ... ok
 test an_unclosed_block_is_refused ... ok
-test else_is_the_other_branch_not_more_of_the_first ... ok
 test else_if_nests_a_conditional_in_the_otherwise_branch ... ok
+test else_is_the_other_branch_not_more_of_the_first ... ok
 test match_takes_an_option_apart_with_its_payload_bound ... ok
 test an_arms_binding_has_its_payloads_type ... ok
 test a_malformed_block_is_refused ... FAILED
@@ -436,13 +436,13 @@ failures:
 
 ---- a_template_match_over_a_declared_type_is_checked_as_any_match stdout ----
 
-thread 'a_template_match_over_a_declared_type_is_checked_as_any_match' (17784) panicked at compiler/pw-core/tests/template_blocks.rs:387:9:
+thread 'a_template_match_over_a_declared_type_is_checked_as_any_match' (58079) panicked at compiler/pw-core/tests/template_blocks.rs:387:9:
 {#match f}{:Rect(w, h)}<p>x</p>{:Nothing}<p>-</p>{/match}: expected PW0305 saying "does not cover `Dot`", got []
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_malformed_block_is_refused stdout ----
 
-thread 'a_malformed_block_is_refused' (17782) panicked at compiler/pw-core/tests/template_blocks.rs:320:9:
+thread 'a_malformed_block_is_refused' (58077) panicked at compiler/pw-core/tests/template_blocks.rs:320:9:
 {#match found}{:Some(h)}<p>{h.word}</p>{/match}: expected PW0305 saying "does not cover", got []
 
 
@@ -450,22 +450,22 @@ failures:
     a_malformed_block_is_refused
     a_template_match_over_a_declared_type_is_checked_as_any_match
 
-test result: FAILED. 10 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.84s
+test result: FAILED. 10 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
 
 error: test failed, to rerun pass `-p pw-core --test template_blocks`
 
 a template match need not be exhaustive: KILLED (2 of 31 tests fail)
 
 running 12 tests
-test a_declared_sum_type_is_taken_apart_in_a_template ... ok
 test a_secret_in_an_attributes_hole_is_refused_as_one_in_its_value_is ... ok
+test a_declared_sum_type_is_taken_apart_in_a_template ... ok
 test a_url_that_begins_with_a_value_or_a_style_with_holes_is_refused ... ok
 test a_well_formed_page_has_no_diagnostic ... ok
 test a_template_match_over_a_declared_type_is_checked_as_any_match ... ok
-test an_attribute_with_holes_is_text_and_values_in_its_context ... ok
 test an_arms_binding_has_its_payloads_type ... FAILED
-test an_unclosed_block_is_refused ... ok
+test an_attribute_with_holes_is_text_and_values_in_its_context ... ok
 test else_is_the_other_branch_not_more_of_the_first ... ok
+test an_unclosed_block_is_refused ... ok
 test else_if_nests_a_conditional_in_the_otherwise_branch ... ok
 test match_takes_an_option_apart_with_its_payload_bound ... ok
 test a_malformed_block_is_refused ... FAILED
@@ -474,7 +474,7 @@ failures:
 
 ---- an_arms_binding_has_its_payloads_type stdout ----
 
-thread 'an_arms_binding_has_its_payloads_type' (18214) panicked at compiler/pw-core/tests/template_blocks.rs:428:5:
+thread 'an_arms_binding_has_its_payloads_type' (58509) panicked at compiler/pw-core/tests/template_blocks.rs:428:5:
 assertion `left == right` failed: []
   left: []
  right: ["PW0600"]
@@ -482,7 +482,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_malformed_block_is_refused stdout ----
 
-thread 'a_malformed_block_is_refused' (18209) panicked at compiler/pw-core/tests/template_blocks.rs:320:9:
+thread 'a_malformed_block_is_refused' (58504) panicked at compiler/pw-core/tests/template_blocks.rs:320:9:
 {#if found}<p>x</p>{/if}: expected PW0600 saying "may be absent", got []
 
 
@@ -490,7 +490,7 @@ failures:
     a_malformed_block_is_refused
     an_arms_binding_has_its_payloads_type
 
-test result: FAILED. 10 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.94s
+test result: FAILED. 10 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.89s
 
 error: test failed, to rerun pass `-p pw-core --test template_blocks`
 
@@ -504,9 +504,9 @@ test a_well_formed_page_has_no_diagnostic ... ok
 test a_template_match_over_a_declared_type_is_checked_as_any_match ... ok
 test an_arms_binding_has_its_payloads_type ... FAILED
 test an_attribute_with_holes_is_text_and_values_in_its_context ... ok
-test else_is_the_other_branch_not_more_of_the_first ... ok
-test else_if_nests_a_conditional_in_the_otherwise_branch ... ok
 test an_unclosed_block_is_refused ... ok
+test else_if_nests_a_conditional_in_the_otherwise_branch ... ok
+test else_is_the_other_branch_not_more_of_the_first ... ok
 test match_takes_an_option_apart_with_its_payload_bound ... ok
 test a_malformed_block_is_refused ... ok
 
@@ -514,7 +514,7 @@ failures:
 
 ---- an_arms_binding_has_its_payloads_type stdout ----
 
-thread 'an_arms_binding_has_its_payloads_type' (18640) panicked at compiler/pw-core/tests/template_blocks.rs:428:5:
+thread 'an_arms_binding_has_its_payloads_type' (58934) panicked at compiler/pw-core/tests/template_blocks.rs:428:5:
 assertion `left == right` failed: []
   left: []
  right: ["PW0600"]
@@ -524,7 +524,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     an_arms_binding_has_its_payloads_type
 
-test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.93s
+test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.91s
 
 error: test failed, to rerun pass `-p pw-core --test template_blocks`
 
@@ -537,15 +537,15 @@ test a_declared_case_renders_with_each_field_bound ... FAILED
 test a_part_inside_an_arm_can_be_rendered_alone ... ok
 test a_match_renders_the_arm_its_case_names_with_the_payload_bound ... FAILED
 test a_value_cannot_give_a_url_a_scheme_or_another_segment ... ok
-test a_value_in_a_url_is_one_component_whatever_it_holds ... ok
 test a_variant_has_no_text_form ... ok
+test a_value_in_a_url_is_one_component_whatever_it_holds ... ok
 test an_interpolated_attribute_refuses_a_missing_value ... ok
 
 failures:
 
 ---- a_declared_case_renders_with_each_field_bound stdout ----
 
-thread 'a_declared_case_renders_with_each_field_bound' (19497) panicked at runtime/pw-render/tests/branches.rs:186:5:
+thread 'a_declared_case_renders_with_each_field_bound' (59788) panicked at runtime/pw-render/tests/branches.rs:186:5:
 assertion `left == right` failed
   left: Err(UnrepresentedConstruct { reason: "`circle` has no fields to bind", at: "shape" })
  right: Ok("<!--pw:s0--><p>r<!--pw:s3-->2<!--pw:e3--></p><!--pw:e0-->")
@@ -553,7 +553,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_match_renders_the_arm_its_case_names_with_the_payload_bound stdout ----
 
-thread 'a_match_renders_the_arm_its_case_names_with_the_payload_bound' (19499) panicked at runtime/pw-render/tests/branches.rs:86:5:
+thread 'a_match_renders_the_arm_its_case_names_with_the_payload_bound' (59790) panicked at runtime/pw-render/tests/branches.rs:86:5:
 assertion `left == right` failed
   left: Err(UnrepresentedConstruct { reason: "`none` has no payload to bind", at: "found" })
  right: Ok("<!--pw:s0--><p>-</p><!--pw:e0-->")
@@ -569,14 +569,14 @@ error: test failed, to rerun pass `-p pw-render --test branches`
 
 
 running 10 tests
-test data::tests::a_record_listed_twice_is_read_once ... ok
 test tests::a_declared_case_reaches_the_renderer_by_its_wit_name ... ok
+test data::tests::a_record_listed_twice_is_read_once ... ok
 test tests::an_escaped_file_name_is_read_by_its_key ... FAILED
 test tests::the_compiled_lookup_follows_the_shards_redirects ... ok
 test tests::search_ranks_as_kiokun_ranks ... ok
+test tests::the_sample_is_one_shard ... ok
 test tests::the_pages_are_the_compiled_templates_with_no_script ... FAILED
 test tests::the_shard_rule_is_kiokuns ... ok
-test tests::the_sample_is_one_shard ... ok
 test tests::the_compiled_shard_rule_is_kiokuns ... ok
 test tests::the_compiled_search_is_kiokuns_ranking ... ok
 
@@ -584,7 +584,7 @@ failures:
 
 ---- tests::an_escaped_file_name_is_read_by_its_key stdout ----
 
-thread 'tests::an_escaped_file_name_is_read_by_its_key' (19790) panicked at spikes/kiokun/server/src/main.rs:313:9:
+thread 'tests::an_escaped_file_name_is_read_by_its_key' (60081) panicked at spikes/kiokun/server/src/main.rs:313:9:
 assertion `left == right` failed
   left: 500
  right: 200
@@ -592,7 +592,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::the_pages_are_the_compiled_templates_with_no_script stdout ----
 
-thread 'tests::the_pages_are_the_compiled_templates_with_no_script' (19799) panicked at spikes/kiokun/server/src/main.rs:470:9:
+thread 'tests::the_pages_are_the_compiled_templates_with_no_script' (60090) panicked at spikes/kiokun/server/src/main.rs:470:9:
 assertion `left == right` failed: the redirect, followed
   left: 500
  right: 200
@@ -602,7 +602,7 @@ failures:
     tests::an_escaped_file_name_is_read_by_its_key
     tests::the_pages_are_the_compiled_templates_with_no_script
 
-test result: FAILED. 8 passed; 2 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.98s
+test result: FAILED. 8 passed; 2 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.91s
 
 error: test failed, to rerun pass `-p kiokun-server --bin kiokun-server`
 
@@ -614,16 +614,16 @@ test a_match_refuses_what_it_cannot_take_apart ... ok
 test a_declared_case_renders_with_each_field_bound ... FAILED
 test a_part_inside_an_arm_can_be_rendered_alone ... ok
 test a_match_renders_the_arm_its_case_names_with_the_payload_bound ... FAILED
-test a_value_cannot_give_a_url_a_scheme_or_another_segment ... ok
-test a_value_in_a_url_is_one_component_whatever_it_holds ... ok
 test a_variant_has_no_text_form ... ok
+test a_value_in_a_url_is_one_component_whatever_it_holds ... ok
+test a_value_cannot_give_a_url_a_scheme_or_another_segment ... ok
 test an_interpolated_attribute_refuses_a_missing_value ... ok
 
 failures:
 
 ---- a_declared_case_renders_with_each_field_bound stdout ----
 
-thread 'a_declared_case_renders_with_each_field_bound' (20348) panicked at runtime/pw-render/tests/branches.rs:186:5:
+thread 'a_declared_case_renders_with_each_field_bound' (60640) panicked at runtime/pw-render/tests/branches.rs:186:5:
 assertion `left == right` failed
   left: Err(MissingValue { path: "r" })
  right: Ok("<!--pw:s0--><p>r<!--pw:s3-->2<!--pw:e3--></p><!--pw:e0-->")
@@ -631,7 +631,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- a_match_renders_the_arm_its_case_names_with_the_payload_bound stdout ----
 
-thread 'a_match_renders_the_arm_its_case_names_with_the_payload_bound' (20350) panicked at runtime/pw-render/tests/branches.rs:81:5:
+thread 'a_match_renders_the_arm_its_case_names_with_the_payload_bound' (60642) panicked at runtime/pw-render/tests/branches.rs:81:5:
 assertion `left == right` failed
   left: Err(MissingValue { path: "h.word" })
  right: Ok("<!--pw:s0--><p><!--pw:s1-->人<!--pw:e1--></p><!--pw:e0-->")
@@ -662,7 +662,7 @@ failures:
 
 ---- tests::an_escaped_file_name_is_read_by_its_key stdout ----
 
-thread 'tests::an_escaped_file_name_is_read_by_its_key' (20641) panicked at spikes/kiokun/server/src/main.rs:313:9:
+thread 'tests::an_escaped_file_name_is_read_by_its_key' (60933) panicked at spikes/kiokun/server/src/main.rs:313:9:
 assertion `left == right` failed
   left: 500
  right: 200
@@ -670,7 +670,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- tests::the_pages_are_the_compiled_templates_with_no_script stdout ----
 
-thread 'tests::the_pages_are_the_compiled_templates_with_no_script' (20650) panicked at spikes/kiokun/server/src/main.rs:451:9:
+thread 'tests::the_pages_are_the_compiled_templates_with_no_script' (60942) panicked at spikes/kiokun/server/src/main.rs:451:9:
 assertion `left == right` failed
   left: 500
  right: 200
@@ -680,7 +680,7 @@ failures:
     tests::an_escaped_file_name_is_read_by_its_key
     tests::the_pages_are_the_compiled_templates_with_no_script
 
-test result: FAILED. 8 passed; 2 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.97s
+test result: FAILED. 8 passed; 2 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.88s
 
 error: test failed, to rerun pass `-p kiokun-server --bin kiokun-server`
 
@@ -688,29 +688,29 @@ an arm's payload is not bound: KILLED (4 of 31 tests fail)
 
 running 9 tests
 test a_conditional_renders_exactly_one_branch_and_refuses_a_variant ... ok
-test a_declared_case_renders_with_each_field_bound ... ok
 test a_match_refuses_what_it_cannot_take_apart ... ok
-test a_match_renders_the_arm_its_case_names_with_the_payload_bound ... ok
-test a_value_in_a_url_is_one_component_whatever_it_holds ... FAILED
-test a_value_cannot_give_a_url_a_scheme_or_another_segment ... FAILED
+test a_declared_case_renders_with_each_field_bound ... ok
 test a_part_inside_an_arm_can_be_rendered_alone ... ok
+test a_match_renders_the_arm_its_case_names_with_the_payload_bound ... ok
+test a_value_cannot_give_a_url_a_scheme_or_another_segment ... FAILED
+test a_value_in_a_url_is_one_component_whatever_it_holds ... FAILED
 test a_variant_has_no_text_form ... ok
 test an_interpolated_attribute_refuses_a_missing_value ... ok
 
 failures:
 
+---- a_value_cannot_give_a_url_a_scheme_or_another_segment stdout ----
+
+thread 'a_value_cannot_give_a_url_a_scheme_or_another_segment' (61495) panicked at runtime/pw-render/tests/branches.rs:290:9:
+javascript:alert(1) -> /words/javascript:alert(1)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
 ---- a_value_in_a_url_is_one_component_whatever_it_holds stdout ----
 
-thread 'a_value_in_a_url_is_one_component_whatever_it_holds' (21204) panicked at runtime/pw-render/tests/branches.rs:258:5:
+thread 'a_value_in_a_url_is_one_component_whatever_it_holds' (61496) panicked at runtime/pw-render/tests/branches.rs:258:5:
 assertion `left == right` failed
   left: "<a data-pw=\"0\" href=\"/words/길/에 ?x#y%&quot;&lt;人&amp;\" title=\"see 길/에 ?x#y%&quot;&lt;人&amp;\">x</a>"
  right: "<a data-pw=\"0\" href=\"/words/%EA%B8%B8%2F%EC%97%90%20%3Fx%23y%25%22%3C%E4%BA%BA%26\" title=\"see 길/에 ?x#y%&quot;&lt;人&amp;\">x</a>"
-
----- a_value_cannot_give_a_url_a_scheme_or_another_segment stdout ----
-
-thread 'a_value_cannot_give_a_url_a_scheme_or_another_segment' (21203) panicked at runtime/pw-render/tests/branches.rs:290:9:
-javascript:alert(1) -> /words/javascript:alert(1)
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
@@ -723,8 +723,8 @@ error: test failed, to rerun pass `-p pw-render --test branches`
 
 
 running 10 tests
-test data::tests::a_record_listed_twice_is_read_once ... ok
 test tests::a_declared_case_reaches_the_renderer_by_its_wit_name ... ok
+test data::tests::a_record_listed_twice_is_read_once ... ok
 test tests::the_compiled_lookup_follows_the_shards_redirects ... ok
 test tests::an_escaped_file_name_is_read_by_its_key ... ok
 test tests::search_ranks_as_kiokun_ranks ... ok
@@ -738,7 +738,7 @@ failures:
 
 ---- tests::the_pages_are_the_compiled_templates_with_no_script stdout ----
 
-thread 'tests::the_pages_are_the_compiled_templates_with_no_script' (21501) panicked at spikes/kiokun/server/src/main.rs:486:9:
+thread 'tests::the_pages_are_the_compiled_templates_with_no_script' (61793) panicked at spikes/kiokun/server/src/main.rs:486:9:
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -747,44 +747,7 @@ thread 'tests::the_pages_are_the_compiled_templates_with_no_script' (21501) pani
 <title>person — search — kiokun slice</title>
 </head>
 <body>
-<main>
-            <form action="/search" method="get" role="search">
-                <input data-pw="0" id="q" type="search" name="q" value="person" aria-label="Search the dictionary">
-            </form>
-            <!--pw:s1-->
-                <ul id="hits">
-                    <!--pw:s2--><!--pw:s2@Oc2U9E_np42JAMK4-->
-                        <li>
-                            <a data-pw="1" href="/人"><!--pw:s4-->人<!--pw:e4--></a>
-                            <span class="language"><!--pw:s5-->chinese · japanese<!--pw:e5--></span>
-                            <span class="pronunciation"><!--pw:s6-->rén<!--pw:e6--></span>
-                            <span class="definition"><!--pw:s7-->person<!--pw:e7--></span>
-                        </li>
-                    <!--pw:e2@Oc2U9E_np42JAMK4--><!--pw:s2@ncud1YKVLyvSZ4rc-->
-                        <li>
-                            <a data-pw="1" href="/上"><!--pw:s4-->上<!--pw:e4--></a>
-                            <span class="language"><!--pw:s5-->japanese<!--pw:e5--></span>
-                            <span class="pronunciation"><!--pw:s6-->かみ<!--pw:e6--></span>
-                            <span class="definition"><!--pw:s7-->person of high rank (e.g. the emperor)<!--pw:e7--></span>
-                        </li>
-                    <!--pw:e2@ncud1YKVLyvSZ4rc--><!--pw:s2@xBdSQrnutS23cinb-->
-                        <li>
-                            <a data-pw="1" href="/色"><!--pw:s4-->色<!--pw:e4--></a>
-                            <span class="language"><!--pw:s5-->japanese<!--pw:e5--></span>
-                            <span class="pronunciation"><!--pw:s6-->いろ<!--pw:e6--></span>
-                            <span class="definition"><!--pw:s7-->personality; character<!--pw:e7--></span>
-                        </li>
-                    <!--pw:e2@xBdSQrnutS23cinb--><!--pw:s2@B0xhWhWTXGz0Js2M-->
-                        <li>
-                            <a data-pw="1" href="/面"><!--pw:s4-->麵<!--pw:e4--></a>
-                            <span class="language"><!--pw:s5-->chinese<!--pw:e5--></span>
-                            <span class="pronunciation"><!--pw:s6-->miàn<!--pw:e6--></span>
-                            <span class="definition"><!--pw:s7-->(slang) (of a person) ineffectual<!--pw:e7--></span>
-                        </li>
-                    <!--pw:e2@B0xhWhWTXGz0Js2M--><!--pw:e2-->
-                </ul>
-            <!--pw:e1-->
-        </main>
+<main> <form action="/search" method="get" role="search"> <input data-pw="0" id="q" type="search" name="q" value="person" aria-label="Search the dictionary"> </form> <!--pw:s1--> <ul id="hits"> <!--pw:s2--><!--pw:s2@Oc2U9E_np42JAMK4--> <li> <a data-pw="1" href="/人"><!--pw:s4-->人<!--pw:e4--></a> <span class="language"><!--pw:s5-->chinese · japanese<!--pw:e5--></span> <span class="pronunciation"><!--pw:s6-->rén<!--pw:e6--></span> <span class="definition"><!--pw:s7-->person<!--pw:e7--></span> </li> <!--pw:e2@Oc2U9E_np42JAMK4--><!--pw:s2@ncud1YKVLyvSZ4rc--> <li> <a data-pw="1" href="/上"><!--pw:s4-->上<!--pw:e4--></a> <span class="language"><!--pw:s5-->japanese<!--pw:e5--></span> <span class="pronunciation"><!--pw:s6-->かみ<!--pw:e6--></span> <span class="definition"><!--pw:s7-->person of high rank (e.g. the emperor)<!--pw:e7--></span> </li> <!--pw:e2@ncud1YKVLyvSZ4rc--><!--pw:s2@xBdSQrnutS23cinb--> <li> <a data-pw="1" href="/色"><!--pw:s4-->色<!--pw:e4--></a> <span class="language"><!--pw:s5-->japanese<!--pw:e5--></span> <span class="pronunciation"><!--pw:s6-->いろ<!--pw:e6--></span> <span class="definition"><!--pw:s7-->personality; character<!--pw:e7--></span> </li> <!--pw:e2@xBdSQrnutS23cinb--><!--pw:s2@B0xhWhWTXGz0Js2M--> <li> <a data-pw="1" href="/面"><!--pw:s4-->麵<!--pw:e4--></a> <span class="language"><!--pw:s5-->chinese<!--pw:e5--></span> <span class="pronunciation"><!--pw:s6-->miàn<!--pw:e6--></span> <span class="definition"><!--pw:s7-->(slang) (of a person) ineffectual<!--pw:e7--></span> </li> <!--pw:e2@B0xhWhWTXGz0Js2M--><!--pw:e2--> </ul> <!--pw:e1--> </main>
 </body>
 </html>
 
@@ -794,7 +757,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     tests::the_pages_are_the_compiled_templates_with_no_script
 
-test result: FAILED. 9 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.98s
+test result: FAILED. 9 passed; 1 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.90s
 
 error: test failed, to rerun pass `-p kiokun-server --bin kiokun-server`
 
@@ -802,20 +765,20 @@ a value in a URL is attribute-escaped, not one component: KILLED (3 of 31 tests 
 
 running 9 tests
 test a_match_refuses_what_it_cannot_take_apart ... ok
+test a_declared_case_renders_with_each_field_bound ... ok
 test a_conditional_renders_exactly_one_branch_and_refuses_a_variant ... FAILED
 test a_match_renders_the_arm_its_case_names_with_the_payload_bound ... ok
 test a_part_inside_an_arm_can_be_rendered_alone ... ok
-test a_declared_case_renders_with_each_field_bound ... ok
+test a_value_cannot_give_a_url_a_scheme_or_another_segment ... ok
 test a_value_in_a_url_is_one_component_whatever_it_holds ... ok
 test an_interpolated_attribute_refuses_a_missing_value ... ok
-test a_value_cannot_give_a_url_a_scheme_or_another_segment ... ok
 test a_variant_has_no_text_form ... ok
 
 failures:
 
 ---- a_conditional_renders_exactly_one_branch_and_refuses_a_variant stdout ----
 
-thread 'a_conditional_renders_exactly_one_branch_and_refuses_a_variant' (22050) panicked at runtime/pw-render/tests/branches.rs:218:5:
+thread 'a_conditional_renders_exactly_one_branch_and_refuses_a_variant' (62341) panicked at runtime/pw-render/tests/branches.rs:218:5:
 Ok("<!--pw:s0-->A<!--pw:e0-->")
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 

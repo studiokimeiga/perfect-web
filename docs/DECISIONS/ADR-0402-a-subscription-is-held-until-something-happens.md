@@ -17,7 +17,7 @@ seconds and a long poll one, then answered with nothing, and the page asked
 again at once.
 
 - **An idle page cost the host about 30 requests a minute**, 60 by long
-  poll. The first press's ADR lists it among what Pleris still loses: the
+  poll. ADR-0399 lists it among what Pleris still loses: the
   store's live page asked 29.7 times a minute where a Next.js or SvelteKit
   page asks nothing (they have no live updates).
 - **The short holds no longer buy anything.** They were set when a held

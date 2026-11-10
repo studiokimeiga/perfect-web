@@ -1,7 +1,7 @@
 ADR-0376 - producer process ownership
 produced by: just e14-producer-ownership
-commit: c714d1c35cee98ec923946aac6c873624c971b7f
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39542637844 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 test_child_default_and_ignored_signals_keep_native_semantics (test_producer_ownership.ProducerOwnership.test_child_default_and_ignored_signals_keep_native_semantics) ... ok
 test_child_does_not_inherit_a_blocked_cancellation_signal (test_producer_ownership.ProducerOwnership.test_child_does_not_inherit_a_blocked_cancellation_signal) ... ok
 test_default_cancellation_raises_through_source_restoration (test_producer_ownership.ProducerOwnership.test_default_cancellation_raises_through_source_restoration) ... ok
@@ -9,12 +9,13 @@ test_ignored_parent_cancellation_stays_ignored (test_producer_ownership.Producer
 test_launch_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership.test_launch_cancellation_reaps_before_all_four_restore) ... ok
 test_launch_error_restores_original_handlers (test_producer_ownership.ProducerOwnership.test_launch_error_restores_original_handlers) ... ok
 test_native_output_and_nonzero_status_are_unchanged (test_producer_ownership.ProducerOwnership.test_native_output_and_nonzero_status_are_unchanged) ... ok
+test_pid_readiness_is_published_only_after_complete_record_for_all_four (test_producer_ownership.ProducerOwnership.test_pid_readiness_is_published_only_after_complete_record_for_all_four) ... ok
 test_repeated_cancellation_during_cleanup_cannot_skip_restoration (test_producer_ownership.ProducerOwnership.test_repeated_cancellation_during_cleanup_cannot_skip_restoration) ... ok
 test_running_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership.test_running_cancellation_reaps_before_all_four_restore) ... ok
 test_timeout_reaps_and_preserves_native_partial_output (test_producer_ownership.ProducerOwnership.test_timeout_reaps_and_preserves_native_partial_output) ... ok
 
 ----------------------------------------------------------------------
-Ran 10 tests in 1.314s
+Ran 11 tests in 1.968s
 
 OK
 test_child_default_and_ignored_signals_keep_native_semantics (test_producer_ownership.ProducerOwnership.test_child_default_and_ignored_signals_keep_native_semantics) ... ok
@@ -24,19 +25,20 @@ test_ignored_parent_cancellation_stays_ignored (test_producer_ownership.Producer
 test_launch_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership.test_launch_cancellation_reaps_before_all_four_restore) ... ok
 test_launch_error_restores_original_handlers (test_producer_ownership.ProducerOwnership.test_launch_error_restores_original_handlers) ... ok
 test_native_output_and_nonzero_status_are_unchanged (test_producer_ownership.ProducerOwnership.test_native_output_and_nonzero_status_are_unchanged) ... ok
+test_pid_readiness_is_published_only_after_complete_record_for_all_four (test_producer_ownership.ProducerOwnership.test_pid_readiness_is_published_only_after_complete_record_for_all_four) ... ok
 test_repeated_cancellation_during_cleanup_cannot_skip_restoration (test_producer_ownership.ProducerOwnership.test_repeated_cancellation_during_cleanup_cannot_skip_restoration) ... ok
 test_running_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership.test_running_cancellation_reaps_before_all_four_restore) ... ok
 test_timeout_reaps_and_preserves_native_partial_output (test_producer_ownership.ProducerOwnership.test_timeout_reaps_and_preserves_native_partial_output) ... ok
 
 ----------------------------------------------------------------------
-Ran 10 tests in 3.619s
+Ran 11 tests in 4.830s
 
 OK
 
-Python structured receipt: /tmp/pw-producer-ownership-7becuh69/pw-guide-result-nl2vu99h
-{"valid": true, "reason": "complete", "passed": ["test_producer_ownership.ProducerOwnership.test_child_default_and_ignored_signals_keep_native_semantics", "test_producer_ownership.ProducerOwnership.test_child_does_not_inherit_a_blocked_cancellation_signal", "test_producer_ownership.ProducerOwnership.test_default_cancellation_raises_through_source_restoration", "test_producer_ownership.ProducerOwnership.test_ignored_parent_cancellation_stays_ignored", "test_producer_ownership.ProducerOwnership.test_launch_cancellation_reaps_before_all_four_restore", "test_producer_ownership.ProducerOwnership.test_launch_error_restores_original_handlers", "test_producer_ownership.ProducerOwnership.test_native_output_and_nonzero_status_are_unchanged", "test_producer_ownership.ProducerOwnership.test_repeated_cancellation_during_cleanup_cannot_skip_restoration", "test_producer_ownership.ProducerOwnership.test_running_cancellation_reaps_before_all_four_restore", "test_producer_ownership.ProducerOwnership.test_timeout_reaps_and_preserves_native_partial_output"], "assertion_failed": [], "body_errors": [], "executed": 10, "report_sha256": "82f7f88c959e0c2a5af6909e50acc725e3266f219ae3a556fac60b9ebc162aef"}
+Python structured receipt: /tmp/pw-producer-ownership-xnwsb8zy/pw-guide-result-85d0b0uz
+{"valid": true, "reason": "complete", "passed": ["test_producer_ownership.ProducerOwnership.test_child_default_and_ignored_signals_keep_native_semantics", "test_producer_ownership.ProducerOwnership.test_child_does_not_inherit_a_blocked_cancellation_signal", "test_producer_ownership.ProducerOwnership.test_default_cancellation_raises_through_source_restoration", "test_producer_ownership.ProducerOwnership.test_ignored_parent_cancellation_stays_ignored", "test_producer_ownership.ProducerOwnership.test_launch_cancellation_reaps_before_all_four_restore", "test_producer_ownership.ProducerOwnership.test_launch_error_restores_original_handlers", "test_producer_ownership.ProducerOwnership.test_native_output_and_nonzero_status_are_unchanged", "test_producer_ownership.ProducerOwnership.test_pid_readiness_is_published_only_after_complete_record_for_all_four", "test_producer_ownership.ProducerOwnership.test_repeated_cancellation_during_cleanup_cannot_skip_restoration", "test_producer_ownership.ProducerOwnership.test_running_cancellation_reaps_before_all_four_restore", "test_producer_ownership.ProducerOwnership.test_timeout_reaps_and_preserves_native_partial_output"], "assertion_failed": [], "body_errors": [], "executed": 11, "report_sha256": "1c11d82781e873015f7179a443cf42aa6a75311edb9cd3662b12d54086ddd47d"}
 
-baseline: 10 passed, 0 failed
+baseline: 11 passed, 0 failed
 test_launch_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership.test_launch_cancellation_reaps_before_all_four_restore) ... 
   test_launch_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership.test_launch_cancellation_reaps_before_all_four_restore) (producer='case_and_delivery_mutations') ... FAIL
   test_launch_cancellation_reaps_before_all_four_restore (test_producer_ownership.ProducerOwnership.test_launch_cancellation_reaps_before_all_four_restore) (producer='template_mutations') ... FAIL
@@ -49,9 +51,9 @@ FAIL: test_launch_cancellation_reaps_before_all_four_restore (test_producer_owne
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 105, in test_launch_cancellation_reaps_before_all_four_restore
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 150, in test_launch_cancellation_reaps_before_all_four_restore
     self.probe(producer, 'launch')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 89, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 122, in probe
     self.assertEqual(json.loads(receipt.read_text()),
 AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
 - {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
@@ -67,9 +69,9 @@ FAIL: test_launch_cancellation_reaps_before_all_four_restore (test_producer_owne
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 105, in test_launch_cancellation_reaps_before_all_four_restore
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 150, in test_launch_cancellation_reaps_before_all_four_restore
     self.probe(producer, 'launch')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 89, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 122, in probe
     self.assertEqual(json.loads(receipt.read_text()),
 AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
 - {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
@@ -85,9 +87,9 @@ FAIL: test_launch_cancellation_reaps_before_all_four_restore (test_producer_owne
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 105, in test_launch_cancellation_reaps_before_all_four_restore
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 150, in test_launch_cancellation_reaps_before_all_four_restore
     self.probe(producer, 'launch')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 89, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 122, in probe
     self.assertEqual(json.loads(receipt.read_text()),
 AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
 - {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
@@ -103,9 +105,9 @@ FAIL: test_launch_cancellation_reaps_before_all_four_restore (test_producer_owne
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 105, in test_launch_cancellation_reaps_before_all_four_restore
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 150, in test_launch_cancellation_reaps_before_all_four_restore
     self.probe(producer, 'launch')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 89, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 122, in probe
     self.assertEqual(json.loads(receipt.read_text()),
 AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
 - {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
@@ -116,11 +118,11 @@ AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False
  : 
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.682s
+Ran 1 test in 0.695s
 
 FAILED (failures=4)
 
-Python structured receipt: /tmp/pw-producer-ownership-7becuh69/pw-guide-result-x3lb7yyr
+Python structured receipt: /tmp/pw-producer-ownership-xnwsb8zy/pw-guide-result-9od9eugz
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_producer_ownership.ProducerOwnership.test_launch_cancellation_reaps_before_all_four_restore"], "body_errors": [], "executed": 1, "report_sha256": "9da11c6d0a485c6a9fa75330a64ac0df84866275a11b0c3b0ecfe49e3fa0585c"}
 
 launch cancellation is delivered before ownership: KILLED by test_producer_ownership.ProducerOwnership.test_launch_cancellation_reaps_before_all_four_restore (1 assertion methods fail)
@@ -136,9 +138,9 @@ FAIL: test_running_cancellation_reaps_before_all_four_restore (test_producer_own
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 110, in test_running_cancellation_reaps_before_all_four_restore
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 155, in test_running_cancellation_reaps_before_all_four_restore
     self.probe(producer, 'running')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 89, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 122, in probe
     self.assertEqual(json.loads(receipt.read_text()),
 AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
 - {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
@@ -154,9 +156,9 @@ FAIL: test_running_cancellation_reaps_before_all_four_restore (test_producer_own
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 110, in test_running_cancellation_reaps_before_all_four_restore
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 155, in test_running_cancellation_reaps_before_all_four_restore
     self.probe(producer, 'running')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 89, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 122, in probe
     self.assertEqual(json.loads(receipt.read_text()),
 AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
 - {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
@@ -172,9 +174,9 @@ FAIL: test_running_cancellation_reaps_before_all_four_restore (test_producer_own
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 110, in test_running_cancellation_reaps_before_all_four_restore
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 155, in test_running_cancellation_reaps_before_all_four_restore
     self.probe(producer, 'running')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 89, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 122, in probe
     self.assertEqual(json.loads(receipt.read_text()),
 AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
 - {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
@@ -190,9 +192,9 @@ FAIL: test_running_cancellation_reaps_before_all_four_restore (test_producer_own
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 110, in test_running_cancellation_reaps_before_all_four_restore
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 155, in test_running_cancellation_reaps_before_all_four_restore
     self.probe(producer, 'running')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 89, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 122, in probe
     self.assertEqual(json.loads(receipt.read_text()),
 AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
 - {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
@@ -203,11 +205,11 @@ AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False
  : 
 
 ----------------------------------------------------------------------
-Ran 1 test in 1.076s
+Ran 1 test in 1.105s
 
 FAILED (failures=4)
 
-Python structured receipt: /tmp/pw-producer-ownership-7becuh69/pw-guide-result-ggqk0au8
+Python structured receipt: /tmp/pw-producer-ownership-xnwsb8zy/pw-guide-result-5_bq8ozr
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_producer_ownership.ProducerOwnership.test_running_cancellation_reaps_before_all_four_restore"], "body_errors": [], "executed": 1, "report_sha256": "5d0c77c6fdd6b2e81e0c4de008492eba34d3778a70f4fd31c73cefbc4f3902b9"}
 
 cancellation omits owned cleanup: KILLED by test_producer_ownership.ProducerOwnership.test_running_cancellation_reaps_before_all_four_restore (1 assertion methods fail)
@@ -223,9 +225,9 @@ FAIL: test_launch_cancellation_reaps_before_all_four_restore (test_producer_owne
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 105, in test_launch_cancellation_reaps_before_all_four_restore
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 150, in test_launch_cancellation_reaps_before_all_four_restore
     self.probe(producer, 'launch')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 89, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 122, in probe
     self.assertEqual(json.loads(receipt.read_text()),
 AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
 - {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
@@ -241,9 +243,9 @@ FAIL: test_launch_cancellation_reaps_before_all_four_restore (test_producer_owne
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 105, in test_launch_cancellation_reaps_before_all_four_restore
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 150, in test_launch_cancellation_reaps_before_all_four_restore
     self.probe(producer, 'launch')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 89, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 122, in probe
     self.assertEqual(json.loads(receipt.read_text()),
 AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
 - {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
@@ -259,9 +261,9 @@ FAIL: test_launch_cancellation_reaps_before_all_four_restore (test_producer_owne
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 105, in test_launch_cancellation_reaps_before_all_four_restore
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 150, in test_launch_cancellation_reaps_before_all_four_restore
     self.probe(producer, 'launch')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 89, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 122, in probe
     self.assertEqual(json.loads(receipt.read_text()),
 AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
 - {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
@@ -277,9 +279,9 @@ FAIL: test_launch_cancellation_reaps_before_all_four_restore (test_producer_owne
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 105, in test_launch_cancellation_reaps_before_all_four_restore
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 150, in test_launch_cancellation_reaps_before_all_four_restore
     self.probe(producer, 'launch')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 89, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 122, in probe
     self.assertEqual(json.loads(receipt.read_text()),
 AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
 - {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
@@ -290,11 +292,11 @@ AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False
  : 
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.677s
+Ran 1 test in 0.692s
 
 FAILED (failures=4)
 
-Python structured receipt: /tmp/pw-producer-ownership-7becuh69/pw-guide-result-kkaay7ro
+Python structured receipt: /tmp/pw-producer-ownership-xnwsb8zy/pw-guide-result-6b9_t8qd
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_producer_ownership.ProducerOwnership.test_launch_cancellation_reaps_before_all_four_restore"], "body_errors": [], "executed": 1, "report_sha256": "9da11c6d0a485c6a9fa75330a64ac0df84866275a11b0c3b0ecfe49e3fa0585c"}
 
 cleanup does not finish native reaping: KILLED by test_producer_ownership.ProducerOwnership.test_launch_cancellation_reaps_before_all_four_restore (1 assertion methods fail)
@@ -310,9 +312,9 @@ FAIL: test_repeated_cancellation_during_cleanup_cannot_skip_restoration (test_pr
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 115, in test_repeated_cancellation_during_cleanup_cannot_skip_restoration
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 160, in test_repeated_cancellation_during_cleanup_cannot_skip_restoration
     self.probe(producer, 'cleanup')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 89, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 122, in probe
     self.assertEqual(json.loads(receipt.read_text()),
 AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
 - {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
@@ -328,9 +330,9 @@ FAIL: test_repeated_cancellation_during_cleanup_cannot_skip_restoration (test_pr
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 115, in test_repeated_cancellation_during_cleanup_cannot_skip_restoration
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 160, in test_repeated_cancellation_during_cleanup_cannot_skip_restoration
     self.probe(producer, 'cleanup')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 89, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 122, in probe
     self.assertEqual(json.loads(receipt.read_text()),
 AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
 - {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
@@ -346,9 +348,9 @@ FAIL: test_repeated_cancellation_during_cleanup_cannot_skip_restoration (test_pr
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 115, in test_repeated_cancellation_during_cleanup_cannot_skip_restoration
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 160, in test_repeated_cancellation_during_cleanup_cannot_skip_restoration
     self.probe(producer, 'cleanup')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 89, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 122, in probe
     self.assertEqual(json.loads(receipt.read_text()),
 AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
 - {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
@@ -364,9 +366,9 @@ FAIL: test_repeated_cancellation_during_cleanup_cannot_skip_restoration (test_pr
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 115, in test_repeated_cancellation_during_cleanup_cannot_skip_restoration
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 160, in test_repeated_cancellation_during_cleanup_cannot_skip_restoration
     self.probe(producer, 'cleanup')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 89, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 122, in probe
     self.assertEqual(json.loads(receipt.read_text()),
 AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False} != {'alive_at_restore': False, 'source': 'original', 'reaped': True}
 - {'alive_at_restore': True, 'reaped': False, 'source': 'original'}
@@ -377,11 +379,11 @@ AssertionError: {'alive_at_restore': True, 'source': 'original', 'reaped': False
  : 
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.672s
+Ran 1 test in 0.696s
 
 FAILED (failures=4)
 
-Python structured receipt: /tmp/pw-producer-ownership-7becuh69/pw-guide-result-zyhukx5o
+Python structured receipt: /tmp/pw-producer-ownership-xnwsb8zy/pw-guide-result-byyl5lry
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_producer_ownership.ProducerOwnership.test_repeated_cancellation_during_cleanup_cannot_skip_restoration"], "body_errors": [], "executed": 1, "report_sha256": "adad3e1265eab0e5af00ac0989bca1ea7c1757c0f662e8146b87d6faa5ca9e9f"}
 
 cleanup cancellation escapes before reaping: KILLED by test_producer_ownership.ProducerOwnership.test_repeated_cancellation_during_cleanup_cannot_skip_restoration (1 assertion methods fail)
@@ -397,9 +399,9 @@ FAIL: test_default_cancellation_raises_through_source_restoration (test_producer
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 120, in test_default_cancellation_raises_through_source_restoration
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 165, in test_default_cancellation_raises_through_source_restoration
     self.probe(producer, 'launch', 'default')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 87, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 120, in probe
     self.assertEqual(wrapper.returncode, expected, output)
 AssertionError: -15 != 143 : 
 
@@ -409,9 +411,9 @@ FAIL: test_default_cancellation_raises_through_source_restoration (test_producer
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 120, in test_default_cancellation_raises_through_source_restoration
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 165, in test_default_cancellation_raises_through_source_restoration
     self.probe(producer, 'launch', 'default')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 87, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 120, in probe
     self.assertEqual(wrapper.returncode, expected, output)
 AssertionError: -15 != 143 : 
 
@@ -421,9 +423,9 @@ FAIL: test_default_cancellation_raises_through_source_restoration (test_producer
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 120, in test_default_cancellation_raises_through_source_restoration
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 165, in test_default_cancellation_raises_through_source_restoration
     self.probe(producer, 'launch', 'default')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 87, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 120, in probe
     self.assertEqual(wrapper.returncode, expected, output)
 AssertionError: -15 != 143 : 
 
@@ -433,18 +435,18 @@ FAIL: test_default_cancellation_raises_through_source_restoration (test_producer
 Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 348, in subtest
     yield
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 120, in test_default_cancellation_raises_through_source_restoration
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 165, in test_default_cancellation_raises_through_source_restoration
     self.probe(producer, 'launch', 'default')
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 87, in probe
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 120, in probe
     self.assertEqual(wrapper.returncode, expected, output)
 AssertionError: -15 != 143 : 
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.692s
+Ran 1 test in 0.683s
 
 FAILED (failures=4)
 
-Python structured receipt: /tmp/pw-producer-ownership-7becuh69/pw-guide-result-sldc4xa3
+Python structured receipt: /tmp/pw-producer-ownership-xnwsb8zy/pw-guide-result-t_dkzbb6
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_producer_ownership.ProducerOwnership.test_default_cancellation_raises_through_source_restoration"], "body_errors": [], "executed": 1, "report_sha256": "d4cc6d7dbd6b7ec2be5c4926f61d6b0c2904aaee31df654da0757ede941136c7"}
 
 default cancellation kills the parent without restoring source: KILLED by test_producer_ownership.ProducerOwnership.test_default_cancellation_raises_through_source_restoration (1 assertion methods fail)
@@ -454,7 +456,7 @@ test_ignored_parent_cancellation_stays_ignored (test_producer_ownership.Producer
 FAIL: test_ignored_parent_cancellation_stays_ignored (test_producer_ownership.ProducerOwnership.test_ignored_parent_cancellation_stays_ignored)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 169, in test_ignored_parent_cancellation_stays_ignored
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 214, in test_ignored_parent_cancellation_stays_ignored
     result = producer_process.run([sys.executable, '-c',
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/runner/work/perfect-web/perfect-web/scripts/producer_process.py", line 123, in run
@@ -467,16 +469,16 @@ Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 302, in body
     return self.checked(original(*args, **kwargs), identity + ' body')
                         ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 172, in test_ignored_parent_cancellation_stays_ignored
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 217, in test_ignored_parent_cancellation_stays_ignored
     self.fail(f'an ignored signal cancelled the parent: {stopped}')
 AssertionError: an ignored signal cancelled the parent: 143
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.066s
+Ran 1 test in 0.067s
 
 FAILED (failures=1)
 
-Python structured receipt: /tmp/pw-producer-ownership-7becuh69/pw-guide-result-gia97l60
+Python structured receipt: /tmp/pw-producer-ownership-xnwsb8zy/pw-guide-result-tjunnevf
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_producer_ownership.ProducerOwnership.test_ignored_parent_cancellation_stays_ignored"], "body_errors": [], "executed": 1, "report_sha256": "1cfa651b6414df34e76d2293dbfe4343e01852ba99921dc28a4bae2cd32d53ab"}
 
 ignored cancellation is captured: KILLED by test_producer_ownership.ProducerOwnership.test_ignored_parent_cancellation_stays_ignored (1 assertion methods fail)
@@ -489,16 +491,16 @@ Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 302, in body
     return self.checked(original(*args, **kwargs), identity + ' body')
                         ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 126, in test_native_output_and_nonzero_status_are_unchanged
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 171, in test_native_output_and_nonzero_status_are_unchanged
     self.assertEqual(result.returncode, 17)
 AssertionError: 0 != 17
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.053s
+Ran 1 test in 0.054s
 
 FAILED (failures=1)
 
-Python structured receipt: /tmp/pw-producer-ownership-7becuh69/pw-guide-result-c5zlds8w
+Python structured receipt: /tmp/pw-producer-ownership-xnwsb8zy/pw-guide-result-h253lyg9
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_producer_ownership.ProducerOwnership.test_native_output_and_nonzero_status_are_unchanged"], "body_errors": [], "executed": 1, "report_sha256": "88735b0ce39c8eb23619d8ec61ccadcc7c20a67163848e6ab9fc342a3030a6aa"}
 
 native failed status is changed to success: KILLED by test_producer_ownership.ProducerOwnership.test_native_output_and_nonzero_status_are_unchanged (1 assertion methods fail)
@@ -511,7 +513,7 @@ Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 302, in body
     return self.checked(original(*args, **kwargs), identity + ' body')
                         ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 135, in test_timeout_reaps_and_preserves_native_partial_output
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 180, in test_timeout_reaps_and_preserves_native_partial_output
     with self.assertRaises(subprocess.TimeoutExpired) as expired:
 AssertionError: TimeoutExpired not raised
 
@@ -520,7 +522,7 @@ Ran 1 test in 0.204s
 
 FAILED (failures=1)
 
-Python structured receipt: /tmp/pw-producer-ownership-7becuh69/pw-guide-result-4iftqa3q
+Python structured receipt: /tmp/pw-producer-ownership-xnwsb8zy/pw-guide-result-iw_ktn44
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_producer_ownership.ProducerOwnership.test_timeout_reaps_and_preserves_native_partial_output"], "body_errors": [], "executed": 1, "report_sha256": "56ef14d1c4f7c0d108d9f15ae13361f3b4ed8c9f47f9701f0350dd164e554d9a"}
 
 timeout is reported as native completion: KILLED by test_producer_ownership.ProducerOwnership.test_timeout_reaps_and_preserves_native_partial_output (1 assertion methods fail)
@@ -533,11 +535,11 @@ Traceback (most recent call last):
   File "/home/runner/work/perfect-web/perfect-web/scripts/unittest_producer.py", line 302, in body
     return self.checked(original(*args, **kwargs), identity + ' body')
                         ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 188, in test_launch_error_restores_original_handlers
+  File "/home/runner/work/perfect-web/perfect-web/scripts/tests/test_producer_ownership.py", line 233, in test_launch_error_restores_original_handlers
     self.assertEqual({number: signal.getsignal(number) for number in before}, before)
-AssertionError: {<Sig[13 chars]2>: <function run.<locals>.defer at 0x7f38e2de[73 chars]740>} != {<Sig[13 chars]2>: <built-in function default_int_handler>, <[39 chars]: 0>}
-- {<Signals.SIGINT: 2>: <function run.<locals>.defer at 0x7f38e2de7740>,
--  <Signals.SIGTERM: 15>: <function run.<locals>.defer at 0x7f38e2de7740>}
+AssertionError: {<Sig[13 chars]2>: <function run.<locals>.defer at 0x7f31bf42[73 chars]880>} != {<Sig[13 chars]2>: <built-in function default_int_handler>, <[39 chars]: 0>}
+- {<Signals.SIGINT: 2>: <function run.<locals>.defer at 0x7f31bf423880>,
+-  <Signals.SIGTERM: 15>: <function run.<locals>.defer at 0x7f31bf423880>}
 + {<Signals.SIGINT: 2>: <built-in function default_int_handler>,
 +  <Signals.SIGTERM: 15>: <Handlers.SIG_DFL: 0>}
 
@@ -546,7 +548,7 @@ Ran 1 test in 0.001s
 
 FAILED (failures=1)
 
-Python structured receipt: /tmp/pw-producer-ownership-7becuh69/pw-guide-result-5y2pki7l
+Python structured receipt: /tmp/pw-producer-ownership-xnwsb8zy/pw-guide-result-_vd6xi9q
 {"valid": true, "reason": "complete", "passed": [], "assertion_failed": ["test_producer_ownership.ProducerOwnership.test_launch_error_restores_original_handlers"], "body_errors": [], "executed": 1, "report_sha256": "f4ce66fe9d2feb8fa3f81cbc95a855367c04d2ab4b6d94fd895e869bf163cda9"}
 
 original handlers are not restored: KILLED by test_producer_ownership.ProducerOwnership.test_launch_error_restores_original_handlers (1 assertion methods fail)

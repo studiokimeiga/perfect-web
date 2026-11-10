@@ -1,22 +1,22 @@
 ADR-0204 - an element holds only the children HTML permits, as the page holds them
 
 produced by: just e14-rendered-children
-commit: 320c52a44840a80423609ab476eb847c04de34a6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39442025240 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rule (compiler/pw-core/tests/children_as_rendered.rs)
 
 test a_view_is_the_elements_it_renders ... ok
-test a_view_is_read_through_its_blocks_and_the_views_it_uses ... ok
 test a_blocks_rows_and_branches_are_the_elements_children ... ok
+test a_view_is_read_through_its_blocks_and_the_views_it_uses ... ok
 test a_view_from_another_module_is_read_where_it_is_declared ... ok
 test a_view_that_contains_itself_is_read_once ... ok
 test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 
 == the corpus's expectations, R-019's among them (compiler/pw-core/tests/checking_source.rs)
 
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 81.27s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 143.03s
 
 == mutation controls (scripts/rendered_children_mutations.py)
 

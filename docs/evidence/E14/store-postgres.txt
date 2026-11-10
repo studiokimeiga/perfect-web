@@ -1,8 +1,8 @@
 Track store-pg - the store's data on PostgreSQL, held to what its source states
 
 produced by: just e14-store-postgres
-commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
@@ -17,8 +17,8 @@ test tests::store_pg::on_postgres_a_run_is_written_by_its_commands_transaction .
 test tests::store_pg::on_postgres_a_run_committed_and_not_removed_commits_once ... ok
 test tests::store_pg::on_postgres_a_run_kept_under_the_old_key_is_its_schedulers_after_the_upgrade ... ok
 test tests::store_pg::on_postgres_a_run_outlives_the_host_that_scheduled_it ... ok
-test tests::store_pg::on_postgres_a_stated_change_feed_the_layer_cannot_deliver_is_refused ... ok
 test tests::store_pg::on_postgres_a_second_hosts_commit_answers_what_the_first_committed ... ok
+test tests::store_pg::on_postgres_a_stated_change_feed_the_layer_cannot_deliver_is_refused ... ok
 test tests::store_pg::on_postgres_an_interactions_answer_outlives_its_host ... ok
 test tests::store_pg::on_postgres_an_interactions_record_answers_a_day ... ok
 test tests::store_pg::on_postgres_an_order_keeps_its_lines_and_the_outboxes_hold_only_its_hosts_rows ... ok
@@ -29,15 +29,15 @@ test tests::store_pg::on_postgres_the_stores_schema_is_its_own_beside_the_feeds 
 test tests::store_pg::on_postgres_two_hosts_commit_a_run_once ... ok
 test tests::store_pg::on_postgres_serializable_against_a_read_committed_default_is_refused ... ok
 test tests::store_pg::on_postgres_the_two_layers_answer_alike ... ok
-test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 1009 filtered out; finished in 47.05s
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 1013 filtered out; finished in 47.87s
 
 == the server's whole suite, the store on PostgreSQL (PW_STORE_TEST_LAYER=postgres)
 
-test result: ok. 1000 passed; 0 failed; 9 ignored; 0 measured; 21 filtered out; finished in 800.78s
+test result: ok. 1004 passed; 0 failed; 9 ignored; 0 measured; 21 filtered out; finished in 839.53s
 
 == the server's whole suite, the store in memory
 
-test result: ok. 1000 passed; 0 failed; 9 ignored; 0 measured; 21 filtered out; finished in 699.48s
+test result: ok. 1004 passed; 0 failed; 9 ignored; 0 measured; 21 filtered out; finished in 714.74s
 
 == mutation controls (scripts/store_postgres_mutations.py)
 

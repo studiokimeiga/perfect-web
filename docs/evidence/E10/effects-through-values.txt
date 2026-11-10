@@ -1,8 +1,8 @@
 ADR-0078 - an effect is performed where its function is named
 
 produced by: just e10-effects-through-values
-commit: 34f3c2d1de6bfa075a1db82ae5a61fddf4af4e95
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39538607183 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == effects through values (compiler/pw-core/tests/effects_through_values.rs)
@@ -13,7 +13,7 @@ test the_diagnostic_says_it_was_named_as_a_value ... ok
 test a_field_of_a_value_is_no_function_of_the_same_name ... ok
 test a_helper_without_a_row_carries_what_it_performs ... ok
 test a_function_named_as_a_value_performs_its_effects_where_it_is_named ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.06s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.98s
 
 == the generality witnesses (compiler/pw-core/tests/generality.rs)
 
@@ -24,9 +24,9 @@ test a_general_witness_is_caught_and_a_narrow_one_is_not has been running for ov
 test a_witness_is_valid_except_for_the_invariant_it_is_about has been running for over 60 seconds
 test every_witness_is_valid_evidence has been running for over 60 seconds
 test every_witness_is_valid_evidence ... ok
-test a_witness_is_valid_except_for_the_invariant_it_is_about ... ok
 test a_general_witness_is_caught_and_a_narrow_one_is_not ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 158.48s
+test a_witness_is_valid_except_for_the_invariant_it_is_about ... ok
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 165.07s
 
 == mutation controls (scripts/effect_value_mutations.py)
 
@@ -39,7 +39,7 @@ test a_field_of_a_value_is_no_function_of_the_same_name ... ok
 test a_helper_without_a_row_carries_what_it_performs ... ok
 test a_function_named_as_a_value_performs_its_effects_where_it_is_named ... ok
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.06s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.96s
 
 
 
@@ -50,19 +50,19 @@ test generality_is_reported_separately_from_conformance ... ok
 test a_general_witness_is_caught_and_a_narrow_one_is_not has been running for over 60 seconds
 test a_witness_is_valid_except_for_the_invariant_it_is_about has been running for over 60 seconds
 test every_witness_is_valid_evidence has been running for over 60 seconds
-test a_general_witness_is_caught_and_a_narrow_one_is_not ... ok
 test every_witness_is_valid_evidence ... ok
 test a_witness_is_valid_except_for_the_invariant_it_is_about ... ok
+test a_general_witness_is_caught_and_a_narrow_one_is_not ... ok
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 158.69s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 163.88s
 
 
 baseline: 12 passed, 0 failed
 
 running 6 tests
+test a_function_named_in_a_handler_is_the_handlers ... ok
 test a_binding_named_like_a_function_is_its_value ... ok
 test a_function_named_as_a_value_performs_its_effects_where_it_is_named ... FAILED
-test a_function_named_in_a_handler_is_the_handlers ... ok
 test the_diagnostic_says_it_was_named_as_a_value ... FAILED
 test a_field_of_a_value_is_no_function_of_the_same_name ... FAILED
 test a_helper_without_a_row_carries_what_it_performs ... FAILED
@@ -71,7 +71,7 @@ failures:
 
 ---- a_function_named_as_a_value_performs_its_effects_where_it_is_named stdout ----
 
-thread 'a_function_named_as_a_value_performs_its_effects_where_it_is_named' (7822) panicked at compiler/pw-core/tests/effects_through_values.rs:71:5:
+thread 'a_function_named_as_a_value_performs_its_effects_where_it_is_named' (12150) panicked at compiler/pw-core/tests/effects_through_values.rs:71:5:
 assertion `left == right` failed: view V() !{} {
     let f = clock.now
     <p>{f()}</p>
@@ -82,7 +82,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- the_diagnostic_says_it_was_named_as_a_value stdout ----
 
-thread 'the_diagnostic_says_it_was_named_as_a_value' (7825) panicked at compiler/pw-core/tests/effects_through_values.rs:71:5:
+thread 'the_diagnostic_says_it_was_named_as_a_value' (12153) panicked at compiler/pw-core/tests/effects_through_values.rs:71:5:
 assertion `left == right` failed: view V(xs: List<Int>) !{} {
     let ys = List.map(xs, stamp)
     <p>x</p>
@@ -92,7 +92,7 @@ assertion `left == right` failed: view V(xs: List<Int>) !{} {
 
 ---- a_field_of_a_value_is_no_function_of_the_same_name stdout ----
 
-thread 'a_field_of_a_value_is_no_function_of_the_same_name' (7821) panicked at compiler/pw-core/tests/effects_through_values.rs:182:9:
+thread 'a_field_of_a_value_is_no_function_of_the_same_name' (12149) panicked at compiler/pw-core/tests/effects_through_values.rs:182:9:
 fn f(i: Item) -> Int !{} {
     let g = stamp
     g(i.now)
@@ -100,7 +100,7 @@ fn f(i: Item) -> Int !{} {
 
 ---- a_helper_without_a_row_carries_what_it_performs stdout ----
 
-thread 'a_helper_without_a_row_carries_what_it_performs' (7824) panicked at compiler/pw-core/tests/effects_through_values.rs:71:5:
+thread 'a_helper_without_a_row_carries_what_it_performs' (12152) panicked at compiler/pw-core/tests/effects_through_values.rs:71:5:
 assertion `left == right` failed: fn read() -> Int {
     let f = clock.now
     f()
@@ -120,7 +120,7 @@ failures:
     a_helper_without_a_row_carries_what_it_performs
     the_diagnostic_says_it_was_named_as_a_value
 
-test result: FAILED. 2 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+test result: FAILED. 2 passed; 4 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
 
 error: test failed, to rerun pass `-p pw-core --test effects_through_values`
 
@@ -140,7 +140,7 @@ failures:
 
 ---- a_general_witness_is_caught_and_a_narrow_one_is_not stdout ----
 
-thread 'a_general_witness_is_caught_and_a_narrow_one_is_not' (7923) panicked at compiler/pw-core/tests/generality.rs:352:5:
+thread 'a_general_witness_is_caught_and_a_narrow_one_is_not' (12251) panicked at compiler/pw-core/tests/generality.rs:352:5:
 forbidden_effect/function-receiver.pw: declares GENERAL for `forbidden_effect` but was caught by {} — the analysis does not reach this shape
 forbidden_effect/named-callback.pw: declares GENERAL for `forbidden_effect` but was caught by {} — the analysis does not reach this shape
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
@@ -149,25 +149,25 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_general_witness_is_caught_and_a_narrow_one_is_not
 
-test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 156.19s
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 160.39s
 
 error: test failed, to rerun pass `-p pw-core --test generality`
 
 a function named as a value is not counted: KILLED (5 of 12 tests fail)
 
 running 6 tests
-test a_binding_named_like_a_function_is_its_value ... FAILED
 test a_function_named_in_a_handler_is_the_handlers ... ok
+test a_binding_named_like_a_function_is_its_value ... FAILED
 test the_diagnostic_says_it_was_named_as_a_value ... ok
-test a_helper_without_a_row_carries_what_it_performs ... ok
 test a_field_of_a_value_is_no_function_of_the_same_name ... ok
+test a_helper_without_a_row_carries_what_it_performs ... ok
 test a_function_named_as_a_value_performs_its_effects_where_it_is_named ... ok
 
 failures:
 
 ---- a_binding_named_like_a_function_is_its_value stdout ----
 
-thread 'a_binding_named_like_a_function_is_its_value' (8283) panicked at compiler/pw-core/tests/effects_through_values.rs:79:5:
+thread 'a_binding_named_like_a_function_is_its_value' (12612) panicked at compiler/pw-core/tests/effects_through_values.rs:79:5:
 view V() !{} {
     let stamp = 5
     <p>{stamp}</p>
@@ -180,7 +180,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_binding_named_like_a_function_is_its_value
 
-test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.07s
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.97s
 
 error: test failed, to rerun pass `-p pw-core --test effects_through_values`
 
@@ -192,28 +192,22 @@ test generality_is_reported_separately_from_conformance ... ok
 test a_general_witness_is_caught_and_a_narrow_one_is_not has been running for over 60 seconds
 test a_witness_is_valid_except_for_the_invariant_it_is_about has been running for over 60 seconds
 test every_witness_is_valid_evidence has been running for over 60 seconds
-test a_general_witness_is_caught_and_a_narrow_one_is_not ... FAILED
 test a_witness_is_valid_except_for_the_invariant_it_is_about ... FAILED
 test every_witness_is_valid_evidence ... FAILED
+test a_general_witness_is_caught_and_a_narrow_one_is_not ... FAILED
 
 failures:
 
----- a_general_witness_is_caught_and_a_narrow_one_is_not stdout ----
-
-thread 'a_general_witness_is_caught_and_a_narrow_one_is_not' (8386) panicked at compiler/pw-core/tests/generality.rs:352:5:
-derived_not_pure/neighbour.pw: is a valid neighbour and must compile clean, but reports {"undeclared_effect"}. Either the rule is banning the construct rather than checking the invariant, or the file is not actually valid.
-forbidden_effect/page-may-read-clock.pw: is a valid neighbour and must compile clean, but reports {"undeclared_effect"}. Either the rule is banning the construct rather than checking the invariant, or the file is not actually valid.
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-
 ---- a_witness_is_valid_except_for_the_invariant_it_is_about stdout ----
 
-thread 'a_witness_is_valid_except_for_the_invariant_it_is_about' (8387) panicked at compiler/pw-core/tests/generality.rs:306:5:
+thread 'a_witness_is_valid_except_for_the_invariant_it_is_about' (12716) panicked at compiler/pw-core/tests/generality.rs:306:5:
 derived_not_pure/neighbour.pw: also reports ["undeclared_effect"]. A witness must be a valid program except for `derived_not_pure` — an unrelated defect makes its result a property of the file rather than of the analysis.
 forbidden_effect/page-may-read-clock.pw: also reports ["undeclared_effect"]. A witness must be a valid program except for `forbidden_effect` — an unrelated defect makes its result a property of the file rather than of the analysis.
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- every_witness_is_valid_evidence stdout ----
 
-thread 'every_witness_is_valid_evidence' (8389) panicked at compiler/pw-core/tests/generality.rs:265:5:
+thread 'every_witness_is_valid_evidence' (12718) panicked at compiler/pw-core/tests/generality.rs:265:5:
 these witnesses are INVALID EVIDENCE — whatever they report or fail to report is a property of the file, not of the analysis:
 
   derived_not_pure/neighbour.pw
@@ -232,21 +226,27 @@ these witnesses are INVALID EVIDENCE — whatever they report or fail to report 
     FAIL target diagnostic present
     unrelated diagnostics: ["undeclared_effect"]
 
+---- a_general_witness_is_caught_and_a_narrow_one_is_not stdout ----
+
+thread 'a_general_witness_is_caught_and_a_narrow_one_is_not' (12715) panicked at compiler/pw-core/tests/generality.rs:352:5:
+derived_not_pure/neighbour.pw: is a valid neighbour and must compile clean, but reports {"undeclared_effect"}. Either the rule is banning the construct rather than checking the invariant, or the file is not actually valid.
+forbidden_effect/page-may-read-clock.pw: is a valid neighbour and must compile clean, but reports {"undeclared_effect"}. Either the rule is banning the construct rather than checking the invariant, or the file is not actually valid.
+
 
 failures:
     a_general_witness_is_caught_and_a_narrow_one_is_not
     a_witness_is_valid_except_for_the_invariant_it_is_about
     every_witness_is_valid_evidence
 
-test result: FAILED. 3 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 172.31s
+test result: FAILED. 3 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 171.21s
 
 error: test failed, to rerun pass `-p pw-core --test generality`
 
 a binding in scope is read as the declaration it shadows: KILLED (4 of 12 tests fail)
 
 running 6 tests
-test a_binding_named_like_a_function_is_its_value ... ok
 test a_function_named_in_a_handler_is_the_handlers ... ok
+test a_binding_named_like_a_function_is_its_value ... ok
 test a_helper_without_a_row_carries_what_it_performs ... FAILED
 test the_diagnostic_says_it_was_named_as_a_value ... ok
 test a_field_of_a_value_is_no_function_of_the_same_name ... ok
@@ -256,7 +256,7 @@ failures:
 
 ---- a_helper_without_a_row_carries_what_it_performs stdout ----
 
-thread 'a_helper_without_a_row_carries_what_it_performs' (8823) panicked at compiler/pw-core/tests/effects_through_values.rs:71:5:
+thread 'a_helper_without_a_row_carries_what_it_performs' (13086) panicked at compiler/pw-core/tests/effects_through_values.rs:71:5:
 assertion `left == right` failed: fn width(el: ElementRef) -> Float {
     el.offsetWidth
 }
@@ -273,7 +273,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     a_helper_without_a_row_carries_what_it_performs
 
-test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.96s
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.94s
 
 error: test failed, to rerun pass `-p pw-core --test effects_through_values`
 
@@ -285,18 +285,18 @@ test generality_is_reported_separately_from_conformance ... ok
 test a_general_witness_is_caught_and_a_narrow_one_is_not has been running for over 60 seconds
 test a_witness_is_valid_except_for_the_invariant_it_is_about has been running for over 60 seconds
 test every_witness_is_valid_evidence has been running for over 60 seconds
+test a_witness_is_valid_except_for_the_invariant_it_is_about ... ok
 test a_general_witness_is_caught_and_a_narrow_one_is_not ... ok
 test every_witness_is_valid_evidence ... ok
-test a_witness_is_valid_except_for_the_invariant_it_is_about ... ok
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 157.09s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 161.77s
 
 
 a helper declaring no row carries only what it calls: KILLED (1 of 12 tests fail)
 
 running 6 tests
-test a_binding_named_like_a_function_is_its_value ... ok
 test a_function_named_in_a_handler_is_the_handlers ... ok
+test a_binding_named_like_a_function_is_its_value ... ok
 test the_diagnostic_says_it_was_named_as_a_value ... FAILED
 test a_field_of_a_value_is_no_function_of_the_same_name ... ok
 test a_helper_without_a_row_carries_what_it_performs ... ok
@@ -306,7 +306,7 @@ failures:
 
 ---- the_diagnostic_says_it_was_named_as_a_value stdout ----
 
-thread 'the_diagnostic_says_it_was_named_as_a_value' (9286) panicked at compiler/pw-core/tests/effects_through_values.rs:114:5:
+thread 'the_diagnostic_says_it_was_named_as_a_value' (13551) panicked at compiler/pw-core/tests/effects_through_values.rs:114:5:
 PW0400 `V` performs `clock.read` but does not declare it | An effect row is a claim about what a body does, and a caller relies on it. `stamp` performs it. An effect that reaches a caller through a helper or a callback is still an effect the caller pays for.
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
@@ -314,7 +314,7 @@ note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 failures:
     the_diagnostic_says_it_was_named_as_a_value
 
-test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.05s
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.95s
 
 error: test failed, to rerun pass `-p pw-core --test effects_through_values`
 
@@ -330,7 +330,7 @@ test a_witness_is_valid_except_for_the_invariant_it_is_about ... ok
 test a_general_witness_is_caught_and_a_narrow_one_is_not ... ok
 test every_witness_is_valid_evidence ... ok
 
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 160.07s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 163.53s
 
 
 a function named as a value is said to be called: KILLED (1 of 12 tests fail)

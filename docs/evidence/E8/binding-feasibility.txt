@@ -11,61 +11,177 @@ already checks.
 test boundary::tests::a_resource_cannot_cross_either_boundary ... ok
 test boundary::tests::an_undetermined_schema_is_blocked_and_not_permitted ... ok
 test boundary::tests::a_resource_is_reported_as_a_resource_even_when_it_is_also_private ... ok
-test boundary::tests::resume_session_a_into_session_a_is_allowed ... ok
-test boundary::tests::remote_session_a_into_session_a_is_allowed ... ok
 test boundary::tests::a_scope_from_the_producer_counts_even_when_the_label_is_public ... ok
 test boundary::tests::an_unknown_destination_blocks_a_restricted_value_and_not_a_public_one ... ok
-test boundary::tests::resume_session_a_into_public_is_refused ... ok
+test boundary::tests::disagreeing_producers_scopes_are_joined_and_refuse_what_either_alone_would ... ok
 test boundary::tests::public_flows_into_a_restricted_destination_at_both_boundaries ... ok
 test boundary::tests::remote_session_a_into_session_b_is_refused ... ok
+test boundary::tests::resume_session_a_into_public_is_refused ... ok
+test boundary::tests::resume_session_a_into_session_a_is_allowed ... ok
+test boundary::tests::remote_session_a_into_session_a_is_allowed ... ok
 test boundary::tests::the_label_and_the_producer_scope_are_joined_rather_than_chosen ... ok
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 167 filtered out; finished in 0.01s
-test binding::tests::an_undetermined_position_is_neither_refused_nor_transferable ... ok
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 186 filtered out; finished in 0.00s
+test binding::tests::a_resource_in_an_argument_refuses_the_edge ... ok
 test binding::tests::a_resource_in_a_result_refuses_it_too ... ok
 test binding::tests::a_session_scoped_type_is_conditional_rather_than_remotable ... ok
+test binding::tests::an_undetermined_position_is_neither_refused_nor_transferable ... ok
+test binding::tests::a_page_returns_nothing_and_that_is_not_undetermined ... ok
+test resolve::tests::an_each_rows_name_is_a_local_binding ... ok
+test binding::tests::local_is_always_direct_and_remote_is_not ... ok
 test binding::tests::an_ordinary_query_is_remotable ... ok
 test binding::tests::the_error_side_is_a_position_of_its_own ... ok
-test binding::tests::local_is_always_direct_and_remote_is_not ... ok
-test binding::tests::a_resource_in_an_argument_refuses_the_edge ... ok
-test binding::tests::a_page_returns_nothing_and_that_is_not_undetermined ... ok
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 170 filtered out; finished in 0.01s
-test a_public_value_crosses_into_a_region_whose_scope_is_unstated ... ok
-test the_same_value_in_a_public_region_is_still_refused ... ok
-test naming_the_principal_is_the_repair_and_it_works ... ok
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 189 filtered out; finished in 0.01s
 test a_handler_that_captures_nothing_is_not_a_boundary_question ... ok
+test a_public_value_crosses_into_a_region_whose_scope_is_unstated ... ok
 test a_capture_with_no_nameable_type_is_its_own_verdict ... ok
 test a_private_region_that_names_no_principal_is_blocked_rather_than_guessed ... ok
 test a_session_scoped_region_may_resume_a_session_scoped_value ... ok
 test a_resource_capture_is_refused_and_a_key_capture_is_not ... ok
 test a_scoped_producer_makes_its_type_private_and_an_unscoped_one_does_not ... ok
+test naming_the_principal_is_the_repair_and_it_works ... ok
+test a_user_querys_record_is_its_users_and_no_public_manifest_holds_it ... ok
+test the_same_value_in_a_public_region_is_still_refused ... ok
+test a_record_a_sessions_and_a_users_query_both_produce_holds_both_scopes ... ok
 test the_resume_capture_verdicts_the_corpus_carries ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.87s
 test a_necessarily_remote_edge_that_owes_a_principal_is_not_a_finished_plan ... ok
-test an_undetermined_signature_does_not_refuse_a_deployment ... ok
 test an_edge_whose_ends_share_no_node_is_necessarily_remote ... ok
-test placement_and_transferability_are_independent_and_only_one_pair_fails ... ok
-test an_import_naming_nothing_is_dangling_rather_than_silently_ignored ... ok
+test an_undetermined_signature_does_not_refuse_a_deployment ... ok
 test a_refused_component_carries_the_reason_from_every_node ... ok
-test the_planner_agrees_with_admit_on_every_pair ... ok
+test a_topology_that_grants_nothing_cannot_host_the_privileged_components ... ok
+test an_import_naming_nothing_is_dangling_rather_than_silently_ignored ... ok
 test can_be_local_is_disjointness_of_candidate_sets ... ok
+test placement_and_transferability_are_independent_and_only_one_pair_fails ... ok
 test every_edge_in_the_store_program_can_be_bound ... ok
 test the_store_program_is_deployable_on_a_topology_that_serves_it ... ok
-test a_topology_that_grants_nothing_cannot_host_the_privileged_components ... ok
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test the_planner_agrees_with_admit_on_every_pair ... ok
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 
 and what the store's exports say about themselves:
 
   Resources.Cart           Cart           local=direct   remote=conditional
+      argument 0: Session<SessionId> — binding must preserve Session<SessionId>
       result: Cart — binding must preserve Session<SessionId>
   Resources.Menu           Menu           local=direct   remote=transferable
   Resources.Order          Order          local=direct   remote=transferable
   Resources.Store          Store          local=direct   remote=transferable
+  Saved.SavedFor           SavedFor       local=direct   remote=conditional
+      argument 0: User<UserId> — binding must preserve User<UserId>
+      result: SavedItems — binding must preserve User<UserId>
+  UserCarts.line_count     line_count     local=direct   remote=conditional
+      argument 0: UserCart — binding must preserve User<UserId>
+  UserCarts.subtotal       subtotal       local=direct   remote=conditional
+      argument 0: UserCart — binding must preserve User<UserId>
+      result: Money<USD> — binding must preserve User<UserId>
+  domain.count             count          local=direct   remote=transferable
+  domain.display           display        local=direct   remote=conditional
+      argument 0: Money<USD> — binding must preserve User<UserId>
+      result: String — binding must preserve User<UserId>
+  domain.total             total          local=direct   remote=conditional
+      result: Money<USD> — binding must preserve User<UserId>
+  store.hours.CartHours    CartHours      local=direct   remote=conditional
+      argument 0: User<UserId> — binding must preserve User<UserId>
+      result: String — binding must preserve User<UserId>
+  store.hours.StoreStatus  StoreStatus    local=direct   remote=transferable
+  store.hours.StoresOpen   StoresOpen     local=direct   remote=transferable
+  store.page.AddressPage~ui AddressPage    local=direct   remote=transferable
   store.page.Cart          Cart           local=direct   remote=conditional
-      result: Cart — binding must preserve Session<SessionId>
+      argument 0: User<UserId> — binding must preserve User<UserId>
+      result: UserCart — binding must preserve User<UserId>
+  store.page.CartPage~ui   CartPage       local=direct   remote=transferable
+  store.page.Checkout      Checkout       local=direct   remote=conditional
+      argument 0: User<UserId> — binding must preserve User<UserId>
+      result: Priced — binding must preserve User<UserId>
+  store.page.Estimate      Estimate       local=direct   remote=conditional
+      argument 1: User<UserId> — binding must preserve User<UserId>
+      result: DeliveryEstimate — binding must preserve User<UserId>
+  store.page.HomePage~ui   HomePage       local=direct   remote=transferable
   store.page.Menu          Menu           local=direct   remote=transferable
+  store.page.MenuLine      MenuLine       local=direct   remote=conditional
+      result: String — binding must preserve User<UserId>
+  store.page.MenuSize      MenuSize       local=direct   remote=transferable
+  store.page.Order         Order          local=direct   remote=conditional
+      argument 0: User<UserId> — binding must preserve User<UserId>
+      result: Option<OrderStatus> — binding must preserve User<UserId>
+  store.page.OrderPage~ui  OrderPage      local=direct   remote=transferable
+  store.page.OrderPage~ui.derived_3 derived$3      local=direct   remote=conditional
+      argument 0: Option<OrderStatus> — binding must preserve User<UserId>
+      result: String — binding must preserve User<UserId>
+  store.page.OrderPage~ui.derived_4 derived$4      local=direct   remote=conditional
+      argument 0: Option<OrderStatus> — binding must preserve User<UserId>
+  store.page.OrderPage~ui.derived_9 derived$9      local=direct   remote=conditional
+      argument 0: Option<OrderStatus> — binding must preserve User<UserId>
+  store.page.OrderTotal    OrderTotal     local=direct   remote=conditional
+      argument 0: User<UserId> — binding must preserve User<UserId>
+      result: Option<Money<USD>> — binding must preserve User<UserId>
+  store.page.Places        Places         local=direct   remote=transferable
+  store.page.Reach         Reach          local=direct   remote=conditional
+      argument 1: User<UserId> — binding must preserve User<UserId>
+      result: Coverage — binding must preserve User<UserId>
+  store.page.Recommendations Recommendations local=direct   remote=transferable
+  store.page.SavedAddresses SavedAddresses local=direct   remote=conditional
+      argument 0: User<UserId> — binding must preserve User<UserId>
+      result: List<Address> — binding must preserve User<UserId>
   store.page.Store         Store          local=direct   remote=transferable
-  store.page.StorePage     StorePage      local=direct   remote=transferable
+  store.page.StoreLayout~ui StoreLayout    local=direct   remote=transferable
+  store.page.StoreList     StoreList      local=direct   remote=transferable
+  store.page.StorePage~ui  StorePage      local=direct   remote=transferable
+  store.page.TimePage~ui   TimePage       local=direct   remote=conditional
+      argument 0: Option<String> — binding must preserve User<UserId>
+  store.page.TimesOffered  TimesOffered   local=direct   remote=conditional
+      argument 0: User<UserId> — binding must preserve User<UserId>
+      argument 1: Option<String> — binding must preserve User<UserId>
+      result: TimesShown — binding must preserve User<UserId>
+  store.page.add_address   add_address    local=direct   remote=conditional
+      result: List<Address> — binding must preserve User<UserId>
   store.page.add_to_cart   add_to_cart    local=direct   remote=conditional
-      result: Cart — binding must preserve Session<SessionId>
+      result: UserCart — binding must preserve User<UserId>
+  store.page.apply_promo   apply_promo    local=direct   remote=conditional
+      argument 0: String — binding must preserve User<UserId>
+  store.page.cancel_order  cancel_order   local=direct   remote=transferable
+  store.page.choose_address choose_address local=direct   remote=conditional
+      result: List<Address> — binding must preserve User<UserId>
+  store.page.choose_time   choose_time    local=direct   remote=transferable
+  store.page.choose_tip    choose_tip     local=direct   remote=transferable
   store.page.clear_cart    clear_cart     local=direct   remote=conditional
-      result: Cart — binding must preserve Session<SessionId>
+      result: UserCart — binding must preserve User<UserId>
+  store.page.decrease_in_cart decrease_in_cart local=direct   remote=conditional
+      result: UserCart — binding must preserve User<UserId>
+  store.page.expire_order  expire_order   local=direct   remote=conditional
+      argument 0: String — binding must preserve User<UserId>
+  store.page.increase_in_cart increase_in_cart local=direct   remote=conditional
+      result: UserCart — binding must preserve User<UserId>
+  store.page.place_order   place_order    local=direct   remote=conditional
+      argument 0: Money<USD> — binding must preserve User<UserId>
+  store.page.remove_address remove_address local=direct   remote=conditional
+      result: List<Address> — binding must preserve User<UserId>
+  store.page.remove_from_cart remove_from_cart local=direct   remote=conditional
+      result: UserCart — binding must preserve User<UserId>
+  store.page.remove_promo  remove_promo   local=direct   remote=transferable
+  store.page.rename_address rename_address local=direct   remote=conditional
+      result: List<Address> — binding must preserve User<UserId>
+  store.page.send_to_store send_to_store  local=direct   remote=conditional
+      argument 0: String — binding must preserve User<UserId>
+  store.page.settle_payment settle_payment local=direct   remote=transferable
+  store.rate.RatePage~ui   RatePage       local=direct   remote=transferable
+  store.rate.RatePage~ui.derived_10 derived$10     local=direct   remote=transferable
+  store.rate.RatePage~ui.derived_12 derived$12     local=direct   remote=transferable
+  store.rate.RatePage~ui.derived_14 derived$14     local=direct   remote=transferable
+  store.rate.RatePage~ui.derived_16 derived$16     local=direct   remote=conditional
+      result: String — binding must preserve User<UserId>
+  store.rate.RatePage~ui.derived_6 derived$6      local=direct   remote=transferable
+  store.rate.RatePage~ui.derived_8 derived$8      local=direct   remote=transferable
+  store.rate.rate_order    rate_order     local=direct   remote=transferable
+  store.reviews.OrderRatings OrderRatings   local=direct   remote=conditional
+      argument 0: User<UserId> — binding must preserve User<UserId>
+      result: List<RateLink> — binding must preserve User<UserId>
+  store.reviews.StoreRatings StoreRatings   local=direct   remote=transferable
+  store.reviews.StoreToRate StoreToRate    local=direct   remote=conditional
+      argument 1: User<UserId> — binding must preserve User<UserId>
+      result: RateShown — binding must preserve User<UserId>
+  store.search.Search      Search         local=direct   remote=conditional
+      argument 0: Option<String> — binding must preserve User<UserId>
+      argument 1: User<UserId> — binding must preserve User<UserId>
+      result: SearchShown — binding must preserve User<UserId>
+  store.search.SearchPage~ui SearchPage     local=direct   remote=conditional
+      argument 0: Option<String> — binding must preserve User<UserId>

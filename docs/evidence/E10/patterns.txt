@@ -1,16 +1,16 @@
 ADR-0060 - nested and literal patterns
 
 produced by: just e10-patterns
-commit: 64cc7da190695fa62cadf247d14fd9ebdc24f6e9
-ci: https://github.com/Kimeiga/perfect-web/actions/runs/38348107940 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
 == the checker (compiler/pw-core/tests/patterns.rs)
 
 test a_name_alone_binds_the_whole_value ... ok
-test a_literal_of_another_type_is_refused ... ok
 test a_bool_is_matched_by_true_and_false ... ok
+test a_literal_of_another_type_is_refused ... ok
 test a_case_nested_in_an_option_is_analysed ... ok
 test a_name_nested_in_a_pattern_is_typed_in_its_arm ... ok
 test an_option_nested_in_a_declared_case_is_analysed ... ok
@@ -22,14 +22,14 @@ test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 test a_float_literal_pattern_is_refused_by_name ... ok
 test a_case_named_alone_under_another_is_that_case_not_a_binding ... ok
 test a_case_and_a_literal_nested_in_an_option ... ok
-test a_literal_arm_falls_through_to_the_arm_after_it ... ok
 test a_bool_is_matched_by_its_two_values ... ok
+test a_literal_arm_falls_through_to_the_arm_after_it ... ok
 test a_pattern_nested_in_an_option_takes_its_payload_apart ... ok
+test an_or_pattern_that_binds_is_refused_by_name ... ok
 test a_string_is_matched_by_its_literals_and_bound_otherwise ... ok
 test an_int_is_matched_by_its_literals_negative_ones_too ... ok
-test an_or_pattern_that_binds_is_refused_by_name ... ok
 test a_result_of_an_option_of_a_case_three_deep ... ok
-test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
 
 == the component and the JavaScript module
 
@@ -37,7 +37,7 @@ javascript: 3 queries over cases written alone, 600 calls, component and module 
 javascript: 5 queries over trees, 1000 calls, component and module agree (155 trapped in both)
 javascript: 5 queries over values held in place, 1000 calls, component and module agree (132 trapped in both)
 javascript: 91 queries, 18200 calls, component and module agree (1196 trapped in both)
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 58.22s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 47.51s
 
 == mutation controls (scripts/pattern_mutations.py)
 
@@ -47,7 +47,7 @@ a declared case's fields are opaque to the analysis: KILLED (12 of 25 tests fail
 a `Bool` is read as a `String`: KILLED (12 of 25 tests fail)
 a negative literal does not parse: KILLED (12 of 25 tests fail)
 a negative literal loses its sign: KILLED (1 of 25 tests fail)
-a name nested in a pattern is not typed: KILLED (1 of 25 tests fail)
+a name nested in a pattern is not typed: KILLED (3 of 25 tests fail)
 a case named alone under another is a binding: KILLED (4 of 25 tests fail)
 a literal is tested for inequality: KILLED (5 of 25 tests fail)
 a `Bool`'s two branches are swapped: KILLED (1 of 25 tests fail)

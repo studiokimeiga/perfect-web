@@ -1,15 +1,15 @@
 ADR-0111 - a shorthand field reads its capture
 
 produced by: just e10-capture-shorthand
-commit: a1a232f5c9e804c5eba9e2123d57fe8637666993
-ci: https://github.com/Kimeiga/perfect-web/actions/runs/38186484587 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == a shorthand field (compiler/pw-core/tests/capture_shorthand.rs)
 
 test a_handler_builds_a_record_from_a_capture ... ok
 test a_capture_read_through_a_shorthand_field_is_read ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
 
 == mutation controls (scripts/capture_shorthand_mutations.py)
 

@@ -13,7 +13,7 @@ ADR-0297 (a commit tells the pages that ask, at once), ADR-0298 (the store on
 PostgreSQL), ADR-0325 (an interaction's answer commits with its writes),
 ADR-0334 (a command runs when the clock passes its time), the identity ADRs
 (0258, 0263, 0264), track store-accounts' Q3 (a command is answered for the
-reader its page was shown to) and the render merge's ADR (train-11, its
+reader its page was shown to) and ADR-0354 (train-11, its
 seats and its snapshots).
 
 ## Corrections and findings (first)
@@ -71,7 +71,7 @@ seats and its snapshots).
   test-side on train-11 (1e2dd39c), not yet on master; at load 40-55 its
   mutation script's baseline passed. And
   `the_store_sends_its_slots_after_its_own_content` (1 of 1 whole-suite
-  runs at load 60-74), as the render merge's ADR records it on master.
+  runs at load 60-74), as ADR-0354 records it on master.
 
 ## Context
 

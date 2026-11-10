@@ -1,15 +1,15 @@
 ADR-0326 - a name imported by name is the file's, before a whole module's
 
 produced by: just e14-explicit-imports
-commit: 92fdd6e34743e33a80914939976125a9eb307842
-ci: https://github.com/Kimeiga/perfect-web/actions/runs/38559878637 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the order, and the refusal (compiler/pw-core/tests/explicit_imports.rs)
 
 test a_name_imported_by_name_is_the_files_before_a_whole_modules ... ok
 test a_call_two_whole_modules_declare_is_refused_where_it_is_written ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
 
 == mutation controls (scripts/explicit_imports_mutations.py)
 

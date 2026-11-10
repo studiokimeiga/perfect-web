@@ -3364,3 +3364,12 @@ A page's stylesheets, small together, are part of its document: a first paint wa
 
 [ADR-0416](DECISIONS/ADR-0416-a-builds-stylesheets-draw-with-their-own-images.md):
 A build's stylesheets draw with their own `data:` images, and TodoMVC uses the official sheet as it ships.
+
+[ADR-0417](DECISIONS/ADR-0417-a-press-changes-what-it-changes.md):
+A press changes what it changes: on a page that talks to no server, a block's keyed rows are made by key, a row whose value and reads are unchanged kept with its nodes, a moved row moved, and a list whose rows keep their shape made from one parsed row; presses are heard at the document. The large list is the head-to-head's third app.
+
+[ADR-0418](DECISIONS/ADR-0418-another-tabs-write-waits-its-turn.md):
+Another tab's write waits its turn: a burst of writes from another tab is read once it settles, 50 ms after the last.
+
+[ADR-0419](DECISIONS/ADR-0419-a-devices-runtime-holds-what-its-builds-pages-use.md):
+A device's runtime holds what its build's pages use: kept values, fragments, autofocus, matches, links' escaping, views, dialogs and row plans only where a build's templates use them; a page's head fetches its module beside its runtime.

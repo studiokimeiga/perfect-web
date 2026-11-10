@@ -1,14 +1,14 @@
 ADR-0121 - an idempotent command runs once per interaction
 
 produced by: just e14-idempotent-commands
-commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the contract carries it (compiler/pw-core/tests/component_contract.rs)
 
 test idempotent_by_is_an_export_property_and_part_of_the_abi ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 30 filtered out; finished in 0.01s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 30 filtered out; finished in 0.00s
 
 == the reservation keeps what must not run twice (runtime/pw-resource)
 
@@ -26,25 +26,25 @@ test tests::interactions_kept_are_bounded_per_session ... ok
 test tests::store_pg::on_postgres_a_retried_interaction_runs_its_command_once ... ok
 test tests::store_pg::on_postgres_an_interactions_answer_outlives_its_host ... ok
 test tests::store_pg::on_postgres_an_interactions_record_answers_a_day ... ok
-test tests::session_commands::invalid_interaction_metadata_is_a_known_refusal_before_any_execution ... ok
 test tests::session_commands::an_old_document_cannot_authorize_a_fresh_interaction_after_same_cookie_reopen ... ok
+test tests::session_commands::invalid_interaction_metadata_is_a_known_refusal_before_any_execution ... ok
 test tests::session_commands::same_cookie_reopening_does_not_inherit_prior_interaction_acknowledgements_or_basis ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 1018 filtered out; finished in 3.12s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 1022 filtered out; finished in 3.23s
 
 == the browser, each engine alone (e2e/idempotent-command.spec.mjs)
 
-  ✓  1 [chromium] › e2e/idempotent-command.spec.mjs:40:1 › two presses are two interactions (1.5s)
-  ✓  2 [chromium] › e2e/idempotent-command.spec.mjs:17:1 › a request sent twice is one add (1.9s)
-  ✓  3 [chromium] › e2e/idempotent-command.spec.mjs:49:1 › a command request without an interaction is refused (543ms)
-  3 passed (9.1s)
-  ✓  1 [firefox] › e2e/idempotent-command.spec.mjs:40:1 › two presses are two interactions (2.6s)
-  ✓  2 [firefox] › e2e/idempotent-command.spec.mjs:17:1 › a request sent twice is one add (2.6s)
-  ✓  3 [firefox] › e2e/idempotent-command.spec.mjs:49:1 › a command request without an interaction is refused (706ms)
-  3 passed (10.1s)
-  ✓  2 [webkit] › e2e/idempotent-command.spec.mjs:40:1 › two presses are two interactions (1.8s)
-  ✓  1 [webkit] › e2e/idempotent-command.spec.mjs:17:1 › a request sent twice is one add (2.5s)
-  ✓  3 [webkit] › e2e/idempotent-command.spec.mjs:49:1 › a command request without an interaction is refused (718ms)
-  3 passed (8.7s)
+  ✓  1 [chromium] › e2e/idempotent-command.spec.mjs:40:1 › two presses are two interactions (1.7s)
+  ✓  2 [chromium] › e2e/idempotent-command.spec.mjs:17:1 › a request sent twice is one add (2.1s)
+  ✓  3 [chromium] › e2e/idempotent-command.spec.mjs:49:1 › a command request without an interaction is refused (525ms)
+  3 passed (9.3s)
+  ✓  2 [firefox] › e2e/idempotent-command.spec.mjs:40:1 › two presses are two interactions (2.1s)
+  ✓  1 [firefox] › e2e/idempotent-command.spec.mjs:17:1 › a request sent twice is one add (2.9s)
+  ✓  3 [firefox] › e2e/idempotent-command.spec.mjs:49:1 › a command request without an interaction is refused (753ms)
+  3 passed (11.2s)
+  ✓  1 [webkit] › e2e/idempotent-command.spec.mjs:40:1 › two presses are two interactions (1.9s)
+  ✓  2 [webkit] › e2e/idempotent-command.spec.mjs:17:1 › a request sent twice is one add (2.6s)
+  ✓  3 [webkit] › e2e/idempotent-command.spec.mjs:49:1 › a command request without an interaction is refused (719ms)
+  3 passed (9.7s)
 
 == mutation controls (scripts/idempotent_commands_mutations.py)
 

@@ -1,31 +1,31 @@
 ADR-0200 - () is the unit value, and no expression the compiler cannot read checks
 
 produced by: just e14-unit-value
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rule (compiler/pw-core/tests/unit_value.rs)
 
 test a_file_that_does_not_parse_reports_its_syntax_errors ... ok
 test a_pattern_the_compiler_cannot_read_is_refused ... ok
-test an_expression_the_compiler_cannot_read_is_refused ... ok
 test a_file_that_does_not_parse_is_kept_out_of_the_program ... ok
+test an_expression_the_compiler_cannot_read_is_refused ... ok
 test unit_is_the_one_value_of_its_type ... ok
 test unit_is_built ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
 
 == every .pw file in the repository (compiler/pw-core/tests/every_expression_is_read.rs)
 
 test no_file_that_parses_holds_an_expression_the_compiler_cannot_read ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.62s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.88s
 
 == a block left open (pw-syntax's grammar, compiler/pw-core/tests/template_blocks.rs)
 
 test grammar::tests::a_block_left_open_ends_with_its_element ... ok
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 97 filtered out; finished in 0.00s
 test an_unclosed_block_is_refused ... ok
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.11s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.05s
 
 == mutation controls (scripts/unit_value_mutations.py)
 

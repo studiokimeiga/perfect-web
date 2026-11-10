@@ -6,6 +6,32 @@
 
 # Next
 
+## After train-17, 2026-11-10
+
+The head-to-head at `2d2b57ea` is behind in 71 rows. By the owner's order of
+2026-11-09 each is a defect until it is fixed or recorded as a real trade-off.
+In order:
+
+1. **Train-18** on `perf/train-18-20261110`: a planned row is written when it
+   is read (making a thousand rows, where the large list trails most), a list
+   a signal holds is a block of its own (no `{#if}` around it), `List.range`,
+   and a dropped command is its session's (WebKit's cut-off test). It lands
+   with a head-to-head at its own commit.
+2. **The large list's source** against Svelte's (116 lines to 81): a hole a
+   row computes from its row and the signals, which ruling 0073-a's plan
+   still refuses in a signal's list and from two values (the app precomputes
+   each row's class into a type of its own); `List.swap`; a default for an
+   `Option`; and the app written with interpolation.
+3. **The large list's page**: 19.3 KB as sent in four requests, to Svelte's
+   13.2 KB in two.
+4. **TodoMVC's bytes**, **the store's source** and what is **not measured
+   yet**, as after train-16 (below).
+5. **WebKit's cut-off test** (`e2e/connections.spec.mjs`), the known failure
+   of run 42772395298's WebKit job: it failed in two of four runs of this
+   train, once with WebKit's network process gone and once with a long poll
+   never answered, beside the dropped-command tests. Train-18 keeps a dropped
+   command to its session and attaches the server's trail when it fails.
+
 ## After train-16, 2026-11-10
 
 The head-to-head at `3b0e7c4f` is behind in 16 rows. By the owner's order of

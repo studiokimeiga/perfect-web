@@ -1,8 +1,8 @@
 ADR-0179 - an opaque type states its invariant, and every construction and every boundary holds it
 
 produced by: just e14-invariants
-commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 playwright: Version 1.58.0
@@ -26,7 +26,7 @@ test arithmetic_on_bounded_values_is_exact ... ok
 test an_upper_bound_is_held_as_the_lower_is ... ok
 test the_store_s_contracts_state_where_a_count_comes_from_outside ... ok
 test the_store_builds_every_count_it_can_show ... ok
-test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.69s
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.76s
 
 == the conformance oracle, its values fitted to the contract
 
@@ -36,7 +36,7 @@ test the_kiokun_search_agrees_with_its_reference ... ok
 test the_oracle_notices_a_reference_that_is_wrong ... ok
 test the_stores_queries_agree_with_their_reference ... ok
 test the_stores_commands_agree_with_their_reference ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.33s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.40s
 
 == the host (runtime/pw-host/tests/bounded.rs, pleris_component.rs)
 
@@ -54,11 +54,11 @@ test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 15 filtered out; fin
 
 test tests::a_quantity_that_is_no_positive_int_is_refused_at_the_boundary ... ok
 test tests::a_stored_line_of_nothing_is_a_failed_read ... ok
-test result: ok. 1021 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 629.08s
+test result: ok. 1025 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 645.85s
 
 == the page, in three engines (e2e/compiled-handler.spec.mjs)
 
-  18 passed (25.6s)
+  18 passed (24.9s)
 
 == mutation controls (scripts/invariants_mutations.py)
 

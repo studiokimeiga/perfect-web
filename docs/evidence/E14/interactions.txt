@@ -1,8 +1,8 @@
 ADR-0325 - an interaction's answer commits with its writes
 
 produced by: just e14-interactions
-commit: 3b0e7c4f548f44d550d3b89eb233f8982f85caff
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42641277195 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64, PostgreSQL 18.6)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 postgres: 18.6 (Debian 18.6-1.pgdg13+2)
 
@@ -24,11 +24,11 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 test tests::an_interactions_record_answers_it_for_a_day ... ok
 test tests::interactions_kept_are_bounded_per_session ... ok
 test tests::feed_pg::on_postgres_a_posts_interaction_outlives_its_host ... ok
+test tests::store_pg::on_postgres_an_interactions_record_answers_a_day ... ok
 test tests::store_pg::on_postgres_an_interactions_answer_outlives_its_host ... ok
 test tests::store_pg::on_postgres_a_second_hosts_commit_answers_what_the_first_committed ... ok
 test tests::store_pg::on_postgres_a_retried_interaction_runs_its_command_once ... ok
-test tests::store_pg::on_postgres_an_interactions_record_answers_a_day ... ok
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 1023 filtered out; finished in 14.44s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 1027 filtered out; finished in 15.36s
 
 == mutation controls (scripts/interactions_mutations.py)
 

@@ -1,8 +1,8 @@
 ADR-0292 - a mutation script's processes are bounded in memory
 
 produced by: just e14-mutation-bound
-commit: 34f3c2d1de6bfa075a1db82ae5a61fddf4af4e95
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39538607183 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 python: Python 3.12.3
 platform: Linux x86_64
 
@@ -49,12 +49,12 @@ test_a_mutants_browser_run_is_not_kept (scripts.tests.test_mutation_baseline.Kee
 test_a_red_baselines_failed_browser_run_is_kept_apart (scripts.tests.test_mutation_baseline.KeepsABaselinesBrowserRun.test_a_red_baselines_failed_browser_run_is_kept_apart) ... ok
 test_the_benchmark_harness_run_is_kept_under_its_own_directory (scripts.tests.test_mutation_baseline.KeepsABaselinesBrowserRun.test_the_benchmark_harness_run_is_kept_under_its_own_directory) ... ok
 test_what_an_earlier_recipe_left_is_not_kept (scripts.tests.test_mutation_baseline.KeepsABaselinesBrowserRun.test_what_an_earlier_recipe_left_is_not_kept) ... ok
-Ran 41 tests in 7.743s
+Ran 41 tests in 7.801s
 OK
 
 == mutation controls (scripts/mutation_bound_mutations.py)
 
-structured instrument receipts: /tmp/pw-bound-controls-9l264hqb
+structured instrument receipts: /tmp/pw-bound-controls-3n1w_qoo
 baseline: 137 tests; valid=True
 a process past the bound is said stopped and runs on: KILLED by test_mutation_bound.Bound.test_a_process_past_the_bound_is_stopped_and_said (actual body assertion)
 only the processes the script started itself are watched: KILLED by test_mutation_bound.Bound.test_the_processes_watched_are_those_the_root_started_and_theirs (actual body assertion)

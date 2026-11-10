@@ -1,8 +1,8 @@
 ADR-0055 - slicing, and the standard library's placeholders computed
 
 produced by: just e10-slices
-commit: 64cc7da190695fa62cadf247d14fd9ebdc24f6e9
-ci: https://github.com/Kimeiga/perfect-web/actions/runs/38348107940 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 node: v22.21.1
 
@@ -14,12 +14,12 @@ test indexing_taking_and_joining_lists ... ok
 test joining_strings_and_functions_by_name ... ok
 test records_are_sorted_stably_and_built_in_lists ... ok
 test sum_and_maximum_compute ... ok
-test text_is_rebuilt_from_code_points_and_bad_ones_trap ... ok
 test slices_drops_and_reversals_agree_with_vec_and_str ... ok
+test text_is_rebuilt_from_code_points_and_bad_ones_trap ... ok
 test what_stays_outside_is_refused_by_name ... ok
-test string_operations_agree_with_str ... ok
 test list_operations_agree_with_vec ... ok
-test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.76s
+test string_operations_agree_with_str ... ok
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.97s
 
 == the component and the JavaScript module, on the same arguments
 

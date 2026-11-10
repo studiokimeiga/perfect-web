@@ -1,36 +1,36 @@
 ADR-0189 - a <link> is written where HTML allows it
 
 produced by: just e14-links
-commit: f15117dede242fac2bc2d54aa973180e47cad1c6
-ci: https://github.com/studiokimeiga/perfect-web/actions/runs/39526960864 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the rule (compiler/pw-core/tests/links.rs)
 
 test a_link_html_allows_in_the_body_is_written_where_it_is ... ok
 test a_link_the_head_holds_is_refused_in_markup ... ok
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
 
 == the corpus at C12 (corpus-check, generality.rs, checking_source.rs)
 
 accepted: 44 files
 accepted: 44/44 charter §16 categories covered
-rejected: 95 files
-rejected: 95/95 charter §16 categories covered
+rejected: 97 files
+rejected: 97/97 charter §16 categories covered
 corpus-check: OK
 test a_caught_file_conveys_every_fact_its_expect_error_lines_declare ... ok
 test every_rejected_fixtures_rule_is_a_code_its_check_reports ... ok
 test every_rejected_fixture_emits_only_its_own_defect ... ok
 test every_diagnostic_carries_what_charter_16_3_requires has been running for over 60 seconds
 test every_diagnostic_carries_what_charter_16_3_requires ... ok
-test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 86.91s
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 141.66s
 test generality_is_reported_separately_from_conformance ... ok
-test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 84.62s
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 138.11s
 
 == every program the repository checks
 
 accepted corpus: 44 programs, 35 with no error, 9 refused exactly as listed (examples/accepted/build-refusals.json: 9 entries)
-pw check: 73 file(s), no diagnostics
+pw check: 74 file(s), no diagnostics
 pw check: 27 file(s), no diagnostics
 pw check: 43 file(s), no diagnostics
 

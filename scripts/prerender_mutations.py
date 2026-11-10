@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The prerender's ADR: a page no reader decides is one document.
+"""ADR-0409: a page no reader decides is one document.
 
 Each control undoes one rule:
 - of the mark (`compiler/pw-core/src/prerender.rs`): an address, no value from

@@ -1,22 +1,22 @@
 ADR-0041 - kiokun's shard rule and ranking in Pleris: mutation controls
 
 produced by: just e10-kiokun-mutants
-commit: 25b01345e1a5406a8b977c6c269475aa5b872e60
-ci: https://github.com/Kimeiga/perfect-web/actions/runs/38326782630 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
-baseline: 164 passed, 0 failed
-group_by never starts a new run: KILLED (2 of 164 tests fail)
-every run group_by writes starts at the list's head: KILLED (2 of 164 tests fail)
-a statement keyword can name a value: KILLED (1 of 164 tests fail)
-Shards.pw: two Han characters are han-3plus: KILLED (1 of 164 tests fail)
-Shards.pw: the hex digit ten is `:`: KILLED (1 of 164 tests fail)
-app.pw: Search keeps twenty-one hits: KILLED (2 of 164 tests fail)
-app.pw: a common word ranks after an uncommon one: KILLED (1 of 164 tests fail)
-the host takes an escaped file name for its word: KILLED (1 of 164 tests fail)
-a lookup takes a file that records another word: KILLED (1 of 164 tests fail)
-a word's path may hold `/`: KILLED (1 of 164 tests fail)
-Places answers the first thousand words only: KILLED (1 of 164 tests fail)
+baseline: 167 passed, 0 failed
+group_by never starts a new run: KILLED (2 of 167 tests fail)
+every run group_by writes starts at the list's head: KILLED (2 of 167 tests fail)
+a statement keyword can name a value: KILLED (1 of 167 tests fail)
+Shards.pw: two Han characters are han-3plus: KILLED (1 of 167 tests fail)
+Shards.pw: the hex digit ten is `:`: KILLED (1 of 167 tests fail)
+app.pw: Search keeps twenty-one hits: KILLED (2 of 167 tests fail)
+app.pw: a common word ranks after an uncommon one: KILLED (1 of 167 tests fail)
+the host takes an escaped file name for its word: KILLED (1 of 167 tests fail)
+a lookup takes a file that records another word: KILLED (1 of 167 tests fail)
+a word's path may hold `/`: KILLED (1 of 167 tests fail)
+Places answers the first thousand words only: KILLED (1 of 167 tests fail)
 11 of 11 mutants killed
 memory bound: no process was stopped
 

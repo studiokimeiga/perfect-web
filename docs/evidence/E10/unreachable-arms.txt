@@ -1,18 +1,18 @@
 ADR-0076 - an arm no value reaches is refused
 
 produced by: just e10-unreachable-arms
-commit: 5d147285f6e2957e5a5c0a5ac159c7269d1721b7
-ci: https://github.com/Kimeiga/perfect-web/actions/runs/38277655867 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == unreachable arms (compiler/pw-core/tests/unreachable_arms.rs)
 
 test a_wildcard_after_every_case_is_refused ... ok
-test a_literal_matched_twice_is_refused ... ok
 test the_analysis_says_which_arm ... ok
 test a_case_matched_twice_is_refused ... ok
 test an_arm_after_a_wildcard_is_refused ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+test a_literal_matched_twice_is_refused ... ok
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
 
 == mutation controls (scripts/unreachable_arm_mutations.py)
 

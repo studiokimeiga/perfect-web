@@ -1,8 +1,8 @@
 ADR-0086 - a function crosses no boundary
 
 produced by: just e10-function-captures
-commit: 3fdcf929ad57be351ef24cb1ac59a7cbe9a981ab
-ci: https://github.com/Kimeiga/perfect-web/actions/runs/38233018418 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462 + uncommitted changes
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == function captures (compiler/pw-core/tests/function_captures.rs)

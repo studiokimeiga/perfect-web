@@ -15,7 +15,7 @@ and closed it: every answer said `connection: close`, and each connection
 had a thread of its own for that one request.
 
 - **Under load it lost to SvelteKit** in the head-to-head (ADR-0392's
-  measurements; the first press's ADR, "Next" 3). The harness's load
+  measurements; ADR-0399, "Next" 3). The harness's load
   generator (`benchmarks/headtohead/load.mjs`) keeps its connections, as a
   browser and Node's own `http.Agent` do. Against this host each of its
   requests paid for a new connection, while Node's servers keep connections
@@ -116,8 +116,7 @@ cannot share it.
   host had.
 - **The head-to-head's numbers under load** are not re-measured here.
 - **A subscription's poll** now reuses its page's connection, but it is
-  still asked every 2 s; holding it longer is its own decision (the
-  first press's ADR, "Next" 2).
+  still asked every 2 s; holding it longer is its own decision (ADR-0399, "Next" 2).
 - **HTTP/2 between a browser and a deployment**, through a front proxy.
 
 ## Review, 2026-11-07, and its repairs

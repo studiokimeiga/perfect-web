@@ -1,8 +1,8 @@
 ADR-0252 - a value returned early carries its label to the caller
 
 produced by: just e14-returned-labels
-commit: 29cae71e8ffe8b9c02bef73a0e024087f5dbf486
-ci: https://github.com/Kimeiga/perfect-web/actions/runs/37933879838 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
+commit: 6a112c3d4f146cb53f0cda84e69a60d011c35462
+ci: https://github.com/studiokimeiga/perfect-web/actions/runs/42772395298 (Ubuntu 24.04.5 LTS on GitHub Actions, x86_64)
 rust: rustc 1.97.1 (8bab26f4f 2026-07-14)
 
 == the checker (compiler/pw-core/tests/returned_labels.rs)
@@ -12,7 +12,7 @@ test a_secret_returned_from_a_loop_is_the_callers ... ok
 test a_secret_returned_from_a_branch_is_the_callers ... ok
 test where_a_secret_decides_a_question_mark_its_failure_carries_it ... ok
 test where_a_secret_decides_what_returns_the_value_carries_it ... ok
-test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s
 
 == mutation controls (scripts/returned_labels_mutations.py)
 
