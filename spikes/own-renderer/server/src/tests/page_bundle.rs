@@ -290,3 +290,29 @@ fn a_production_build_of_the_page_fetches_its_code_beside_its_runtime() {
         "{html}"
     );
 }
+
+/// **A page whose build wrote no module for it names none** (the device's
+/// runtime's ADR, decision 6): it runs on the device's runtime and preloads
+/// that alone. Named, its module would be a request no host answers, made
+/// beside the runtime's on every first load (run 42783891441's control).
+#[test]
+fn a_production_build_of_a_page_with_no_module_names_none() {
+    let (_dir, out) = super::todomvc::built_todomvc();
+    std::fs::write(
+        out.join("delivery.json"),
+        "{\"versioned\": true, \"device\": true}\n",
+    )
+    .expect("written");
+    for file in ["pw-runtime.mjs", "pw-runtime-device.mjs"] {
+        std::fs::write(out.join(file), "export {};\n").expect("written");
+    }
+    let s = Server::from_build(out.clone(), out).expect("served");
+    s.prerender().expect("prerendered");
+    let html = super::todomvc::page(&s, "a");
+    let runtime = s.delivery.named("/pw-runtime-device.mjs");
+    assert!(
+        html.contains(&format!("<link rel=\"modulepreload\" href=\"{runtime}\">")),
+        "{html}"
+    );
+    assert!(!html.contains("/bundle/"), "{html}");
+}
